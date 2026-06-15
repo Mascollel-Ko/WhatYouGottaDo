@@ -33,9 +33,6 @@ object SeedData {
 
     fun exercises(context: Context): List<Exercise> {
         val imageMappings = exerciseImageMappings(context)
-        if (context.assetExists(EXERCISE_SEED_ASSET)) {
-            return exercisesFromJson(context, imageMappings)
-        }
         val rows = csvRows(context)
 
         return exercisesFromParsedRows(rows, imageMappings)
