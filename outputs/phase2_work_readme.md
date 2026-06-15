@@ -506,3 +506,38 @@ Preserved:
 Verification:
 
 - `assembleDebug` succeeded after the patch.
+
+## Phase 3.3.0 Badminton Transfer Analysis
+
+This update adds the Analysis tab section `배드민턴 전이 분석`.
+
+First-screen rule:
+
+- The card body shows exactly one recommendation sentence.
+- Ratios, charts, explanations, and Top 5 exercise lists are only shown after expanding details.
+
+Calculation:
+
+- confirmed sets only
+- recent 7 days and baseline 28 days
+- structured metadata only through `ExerciseAnalysisMapper`
+- transfer type is mapped from `badmintonTransferStrength`
+- transfer axes are derived from existing badminton, fatigue, movement, laterality, balance, and muscle metadata
+
+Detail views:
+
+- `전이축 비중`
+- `전이유형 비중`
+- `최근 7일 vs 28일`
+- `운동별 전이 자극 Top 5`
+
+Preserved:
+
+- planned sets remain excluded from actual analysis.
+- no DB schema change.
+- no exercise name parsing for analysis.
+- 3.1 readiness and 3.2 performance trend remain visible.
+
+Reference:
+
+- `outputs/phase3_3_0_badminton_transfer_analysis.md`

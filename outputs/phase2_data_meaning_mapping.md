@@ -706,3 +706,44 @@ Data meaning impact:
 - `WorkoutSet.confirmed=false` still means planned set.
 - `WorkoutSet.confirmed=true` still means completed record set.
 - Analysis aggregation rules are unchanged.
+
+## Phase 3.3.0 Badminton Transfer Analysis Mapping
+
+This patch adds `배드민턴 전이 분석`.
+
+Data inputs:
+
+- `WorkoutSet.confirmed=true` sets only
+- `WorkoutSet.confirmed=false` planned sets are excluded
+- `ExerciseAnalysisMapper` structured metadata
+- 3.1 `TodayReadinessSummary` for fatigue-aware recommendation gating
+
+Transfer type mapping:
+
+| Metadata | Transfer Type |
+| --- | --- |
+| `badmintonTransferStrength=DIRECT` | direct |
+| `badmintonTransferStrength=SUPPORTIVE` | supportive |
+| `badmintonTransferStrength=GENERAL` | general_strength |
+| badminton metadata exists but no stronger type | low |
+| no badminton metadata | none |
+
+Transfer axis mapping:
+
+| Axis | Structured metadata source |
+| --- | --- |
+| `deceleration_landing` | fatigue categories, court movement, force type, transfer roles |
+| `unilateral_stability` | laterality, balance tags, lunge reach metadata |
+| `lateral_movement` | court movement, footwork roles, movement pattern, plane |
+| `rotation_control` | rotation / anti-rotation metadata |
+| `lower_body_strength` | squat / hinge / lunge patterns and lower-body baseline groups |
+| `racket_support` | overhead, shoulder, grip, forearm metadata |
+| `aerobic_footwork` | conditioning, skill, footwork persistence metadata |
+| `low_fatigue_control` | prehab, stability, mobility, recovery metadata |
+
+Meaning rules:
+
+- The module reports transfer stimulus distribution, not match-performance improvement.
+- The first card shows one recommendation sentence only.
+- Detail view may show transfer axis share, transfer type share, 7-day vs 28-day comparison, and Top 5 transfer stimulus exercises.
+- Exercise names are display values only; they are not used for classification.

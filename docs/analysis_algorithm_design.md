@@ -341,3 +341,50 @@ Relationship analysis:
 - require enough points before interpreting correlation.
 - use trend wording only.
 - do not claim causality.
+
+## Phase 3.3.0 Badminton Transfer Analysis
+
+3.3.0 adds a badminton transfer module. It does not claim match-performance improvement.
+
+First-screen rule:
+
+```text
+one card
+one recommendation sentence
+no numbers
+no chart
+no Top 5 list
+```
+
+Inputs:
+
+- confirmed sets only
+- `ExerciseAnalysisMapper`
+- `badmintonTransferStrength`
+- `badmintonTransferRoles`
+- `courtMovementTypes`
+- `badmintonSkillTargets`
+- fatigue, movement, laterality, balance, and muscle metadata
+- 3.1 readiness result for fatigue-aware gating
+
+Transfer stimulus:
+
+```text
+exerciseLoad = completed set load fallback
+transferStimulus = exerciseLoad * transferTypeWeight
+```
+
+If an exercise belongs to multiple transfer axes, stimulus is split evenly across axes.
+
+Detail outputs:
+
+- transfer axis share
+- transfer type share
+- recent 7 days vs 28 days
+- Top 5 transfer stimulus exercises
+
+Sentence policy:
+
+- use `전이 비중`, `전이 자극`, and `배드민턴 전이 분석`.
+- avoid match-performance improvement claims.
+- high fatigue should choose recovery or low-fatigue supplementary work before strong transfer work.

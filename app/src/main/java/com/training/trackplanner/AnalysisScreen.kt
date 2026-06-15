@@ -36,6 +36,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
+import com.training.trackplanner.analysis.badminton.BadmintonTransferDetailChartMode
+import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.FatigueDetailSection
 import com.training.trackplanner.analysis.readiness.FatigueLevel
@@ -59,6 +62,7 @@ import kotlin.math.abs
 internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val stats by viewModel.analysisStats.collectAsState()
     val readiness by viewModel.todayReadinessSummary.collectAsState()
+    val badmintonTransfer by viewModel.badmintonTransferSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
 
     LazyColumn(
@@ -75,6 +79,10 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
         item {
             readiness?.let { TodayReadinessCard(it) }
                 ?: InfoCard("오늘 상태를 계산하고 있습니다.")
+        }
+        item {
+            badmintonTransfer?.let { BadmintonTransferCard(it) }
+                ?: InfoCard("배드민턴 전이 분석을 계산하고 있습니다.")
         }
         item {
             performanceTrend?.let { PerformanceTrendCard(it) }
@@ -167,6 +175,79 @@ private fun TodayReadinessCard(summary: TodayReadinessSummary) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     summary.detailSections.forEach { section ->
                         FatigueDetailSectionCard(section)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var chartMode by rememberSaveable {
+        mutableStateOf(BadmintonTransferDetailChartMode.AXIS_SHARE)
+    }
+    val chartItems = when (chartMode) {
+        BadmintonTransferDetailChartMode.AXIS_SHARE -> summary.chartData.axisShareBars
+        BadmintonTransferDetailChartMode.TRANSFER_TYPE_SHARE -> summary.chartData.transferTypeShareBars
+        BadmintonTransferDetailChartMode.WINDOW_COMPARISON -> summary.chartData.windowComparisonBars
+        BadmintonTransferDetailChartMode.TOP_EXERCISES -> summary.chartData.topExerciseBars
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "배드민턴 전이 분석",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                ConfidencePill(summary.confidence)
+            }
+            Text(
+                text = summary.metrics.recommendationSentence,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            TextButton(onClick = { expanded = !expanded }) {
+                Text(if (expanded) "자세히 닫기" else "자세히 보기")
+            }
+            if (expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = summary.metrics.detailInsightText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    ChipRow(
+                        labels = BadmintonTransferDetailChartMode.entries.map { mode -> mode.displayName },
+                        selected = BadmintonTransferDetailChartMode.entries.indexOf(chartMode),
+                        onSelect = { index -> chartMode = BadmintonTransferDetailChartMode.entries[index] }
+                    )
+                    TransferBarList(chartItems)
+                    if (summary.metrics.recommendedExerciseCandidates.isNotEmpty()) {
+                        Text(
+                            text = "추천축 후보 운동",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        summary.metrics.recommendedExerciseCandidates.forEach { name ->
+                            Text(
+                                text = "- $name",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
@@ -474,6 +555,39 @@ private fun BarChartList(items: List<com.training.trackplanner.analysis.trends.B
                 ) {
                     Text(item.label, style = MaterialTheme.typography.labelMedium)
                     Text(formatTrendValue(item.value), style = MaterialTheme.typography.labelMedium)
+                }
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat())
+                        .height(8.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary
+                ) {}
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransferBarList(items: List<BadmintonTransferBarItem>) {
+    if (items.isEmpty()) {
+        InfoCard("전이 자극 기록이 부족합니다.")
+        return
+    }
+    val max = items.maxOf { item -> abs(item.value) }.coerceAtLeast(1.0)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEach { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(item.label, style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        text = item.valueLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 Surface(
                     modifier = Modifier

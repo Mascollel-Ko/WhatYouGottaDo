@@ -726,6 +726,50 @@ Verification:
 
 - `assembleDebug` succeeded after the patch.
 
+## Phase 3.3.0 Badminton Transfer Analysis
+
+Files:
+
+- `app/src/main/java/com/training/trackplanner/analysis/badminton`
+- `app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`
+- `app/src/main/java/com/training/trackplanner/AnalysisScreen.kt`
+- `app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+
+UI connection:
+
+- `TrainingRepository.badmintonTransferSummary()` builds the 3.3 result.
+- `TrainingViewModel.badmintonTransferSummary` exposes the result.
+- `AnalysisScreen` renders the `배드민턴 전이 분석` card below Today Readiness.
+
+First-screen policy:
+
+- Show only `recommendationSentence`.
+- Do not show percentages, charts, reasons, or exercise lists on the first card.
+
+Detail policy:
+
+- One chart/list area is reused.
+- Selector options are `전이축 비중`, `전이유형 비중`, `최근 7일 vs 28일`, and `운동별 전이 자극 Top 5`.
+
+Calculation policy:
+
+- `confirmed=true` sets only.
+- `confirmed=false` planned sets excluded.
+- no exercise-name classification.
+- transfer type comes from `badmintonTransferStrength`.
+- transfer axes are derived from existing structured metadata.
+- 3.1 readiness is used to avoid strong transfer recommendations on high-fatigue days.
+
+Verification:
+
+- `testDebugUnitTest` succeeded.
+- Static search found no exercise-name `.contains` classification in the new main package.
+
+Reference:
+
+- `outputs/phase3_3_0_badminton_transfer_analysis.md`
+
 구현:
 
 - 날짜 long press action dialog

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.util.Log
 import androidx.room.withTransaction
+import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEngine
+import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
@@ -72,6 +74,19 @@ class TrainingRepository(
             exercises = exerciseDao.allExercises(),
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             dailyMetrics = dailyMetricDao.metricsUntil(todayString)
+        )
+    }
+
+    suspend fun badmintonTransferSummary(
+        readinessSummary: TodayReadinessSummary? = null
+    ): BadmintonTransferSummary = withContext(Dispatchers.IO) {
+        val today = SystemAnalysisDateProvider().today()
+        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        BadmintonTransferAnalysisEngine().analyze(
+            today = today,
+            exercises = exerciseDao.allExercises(),
+            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            readinessSummary = readinessSummary
         )
     }
 

@@ -3,6 +3,7 @@ package com.training.trackplanner
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.data.AnalysisStats
@@ -56,6 +57,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _performanceTrendSummary = MutableStateFlow<PerformanceTrendSummary?>(null)
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
+
+    private val _badmintonTransferSummary = MutableStateFlow<BadmintonTransferSummary?>(null)
+    val badmintonTransferSummary: StateFlow<BadmintonTransferSummary?> =
+        _badmintonTransferSummary.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -250,11 +255,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun refreshBadmintonTransfer() {
+        viewModelScope.launch {
+            refreshAnalysisSummaries()
+        }
+    }
+
     private suspend fun refreshAnalysisSummaries() {
-        runCatching {
+        val readinessSummary = runCatching {
             repository.todayReadinessSummary()
         }.onSuccess { summary ->
             _todayReadinessSummary.value = summary
+        }.getOrNull()
+        runCatching {
+            repository.badmintonTransferSummary(readinessSummary)
+        }.onSuccess { summary ->
+            _badmintonTransferSummary.value = summary
         }
         runCatching {
             repository.performanceTrendSummary()
