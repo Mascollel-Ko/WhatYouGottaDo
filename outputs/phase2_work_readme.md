@@ -569,3 +569,21 @@ Preserved:
 Reference:
 
 - `outputs/phase3_4_0_home_backup_restore.md`
+
+## Post v0.3.4.0 Analysis UI Compactness Patch
+
+This minor update reduces the collapsed height of the 3.1 Today Readiness card in the Analysis tab.
+
+UI changes:
+
+- reduced card padding and vertical spacing.
+- reduced Today Readiness status typography from headline-sized to title-sized.
+- shortened collapsed `주요 이유` to the first 2 items.
+- changed collapsed `추천` and `조절` blocks into one-line summaries.
+- kept the expanded detail sections unchanged.
+
+Preserved:
+
+- Today Readiness engine logic is unchanged.
+- confirmed-only analysis semantics are unchanged.
+- 3.2 performance trend and 3.3 badminton transfer sections remain in place.

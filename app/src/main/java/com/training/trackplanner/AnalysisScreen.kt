@@ -126,22 +126,22 @@ private fun TodayReadinessCard(summary: TodayReadinessSummary) {
         )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         text = "오늘 상태",
-                        style = MaterialTheme.typography.labelLarge,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
                         text = statusLabel(summary.status),
-                        style = MaterialTheme.typography.headlineSmall,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -150,23 +150,23 @@ private fun TodayReadinessCard(summary: TodayReadinessSummary) {
             }
             Text(
                 text = summary.headline,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
                 text = summary.shortReason,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             if (summary.primaryReasons.isNotEmpty()) {
-                CompactTextBlock("주요 이유", summary.primaryReasons)
+                CompactTextBlock("주요 이유", summary.primaryReasons.take(2))
             }
             if (summary.recommendedModes.isNotEmpty()) {
-                CompactTextBlock("추천", summary.recommendedModes)
+                CompactSummaryLine("추천", summary.recommendedModes.take(2))
             }
             if (summary.restrictedModes.isNotEmpty()) {
-                CompactTextBlock("조절", summary.restrictedModes)
+                CompactSummaryLine("조절", summary.restrictedModes.take(2))
             }
             TextButton(onClick = { expanded = !expanded }) {
                 Text(if (expanded) "자세히 닫기" else "자세히 보기")
@@ -671,21 +671,31 @@ private fun SelectableChip(
 
 @Composable
 private fun CompactTextBlock(label: String, values: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
         values.forEach { value ->
             Text(
                 text = "- $value",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
+}
+
+@Composable
+private fun CompactSummaryLine(label: String, values: List<String>) {
+    if (values.isEmpty()) return
+    Text(
+        text = "$label: ${values.joinToString(", ")}",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onPrimaryContainer
+    )
 }
 
 @Composable

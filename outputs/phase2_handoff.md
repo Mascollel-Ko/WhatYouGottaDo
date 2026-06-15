@@ -840,3 +840,23 @@ Repository API:
 - 계획 복사와 선택복사는 `confirmed=false`
 - 기록상태 복사와 이동은 confirmed 보존
 - 덮어쓰기 / 삭제는 사용자 확인 dialog를 거침
+
+## Post v0.3.4.0 Analysis UI Compactness Patch
+
+Scope:
+
+- `AnalysisScreen.TodayReadinessCard` collapsed layout only.
+
+Changed:
+
+- reduced Today Readiness card padding and internal spacing.
+- reduced status typography size.
+- limited collapsed primary reasons to 2 items.
+- rendered collapsed recommended/restricted modes as one-line summaries.
+
+Unchanged:
+
+- Today Readiness analysis engine.
+- detail section content when expanded.
+- confirmed-only analysis semantics.
+- performance trend and badminton transfer analysis cards.

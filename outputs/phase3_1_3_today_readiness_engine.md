@@ -340,3 +340,20 @@ The final `testDebugUnitTest` and `assembleDebug` commands still need to be reru
   - confirm planned sets do not change today readiness load.
 - Connect future pain/condition inputs to `PainGateEvaluator` and `RecoverySignalInterpreter`.
 - Tune constants after real-world logs and method review.
+
+## Post v0.3.4.0 UI Compactness Note
+
+The Analysis tab Today Readiness card collapsed state was made shorter.
+
+Changed:
+
+- card padding and vertical spacing were reduced.
+- the readiness status label uses a smaller title size.
+- collapsed primary reasons show at most 2 items.
+- collapsed recommendation and restriction modes are summarized on one line each.
+
+Unchanged:
+
+- Today Readiness engine calculations.
+- expanded detail sections.
+- confirmed-only analysis behavior.
