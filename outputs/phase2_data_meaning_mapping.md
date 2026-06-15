@@ -747,3 +747,33 @@ Meaning rules:
 - The first card shows one recommendation sentence only.
 - Detail view may show transfer axis share, transfer type share, 7-day vs 28-day comparison, and Top 5 transfer stimulus exercises.
 - Exercise names are display values only; they are not used for classification.
+
+## v0.3.4.0 Backup / Restore Mapping
+
+Home `기록 백업` exports restore-format CSV.
+
+Restore-format rows map as follows:
+
+| CSV | DB |
+| --- | --- |
+| `row_type=daily`, `date`, `sleep_hours`, `body_weight_kg` | `DailyMetric` upsert |
+| `row_type=set`, entry columns | `WorkoutEntry` |
+| `set_index`, `set_confirmed`, `reps`, `weight_kg`, `seconds`, `rpe` | `WorkoutSet` |
+
+Confirmed semantics:
+
+- `set_confirmed=0` imports as `WorkoutSet.confirmed=false`.
+- `set_confirmed=1` imports as `WorkoutSet.confirmed=true`.
+- missing `set_confirmed` falls back to entry-level `confirmed`.
+
+Legacy `daily_timeseries` import:
+
+- `sleep_hours` and `body_weight_kg` map to `DailyMetric`.
+- invalid numeric values become empty values and must not crash import.
+- daily aggregate totals map to generated category-level `WorkoutEntry` and confirmed `WorkoutSet` rows.
+- generated aggregate rows are marked with `WorkoutEntry.notes = "CSV daily_timeseries import"`.
+
+Limit:
+
+- `daily_timeseries` lacks exact exercise and set detail.
+- imported aggregate records preserve date-level continuity for Home, Record, Analysis, and recommendation inputs, but they are not exact historical set reconstruction.

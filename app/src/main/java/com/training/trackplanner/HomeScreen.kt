@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,9 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,6 +33,17 @@ internal fun HomeScreen(
     val entryCount by remember(today) { viewModel.entryCount(today) }.collectAsState(initial = 0)
     val unconfirmedCount by remember(today) { viewModel.plannedSetCount(today) }.collectAsState(initial = 0)
     val confirmedCount by remember(today) { viewModel.confirmedSetCount(today) }.collectAsState(initial = 0)
+    val transferMessage by viewModel.recordTransferMessage.collectAsState()
+    val backupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        uri?.let(viewModel::backupRecords)
+    }
+    val restoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let(viewModel::restoreRecords)
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -45,14 +56,6 @@ internal fun HomeScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
             )
-        }
-        if (entryCount == 0 && confirmedCount == 0) {
-            item {
-                TodayTaskCard(
-                    onRecord = { onNavigate(AppTab.Record) },
-                    onPlan = { onNavigate(AppTab.Plan) }
-                )
-            }
         }
         item {
             CtaCard(
@@ -82,48 +85,23 @@ internal fun HomeScreen(
                 unconfirmedCount = unconfirmedCount
             )
         }
-    }
-}
-
-@Composable
-private fun TodayTaskCard(
-    onRecord: () -> Unit,
-    onPlan: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "오늘 할 일",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Text(
-                text = "처음이라면 프로그램을 적용하거나 오늘 운동을 하나 추가해 시작하세요.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = onRecord
-                ) {
-                    Text("기록 시작")
+        item {
+            RecordManagementCard(
+                message = transferMessage,
+                onBackup = {
+                    backupLauncher.launch("whatyougottatrain_backup_$today.csv")
+                },
+                onRestore = {
+                    restoreLauncher.launch(
+                        arrayOf(
+                            "text/csv",
+                            "text/comma-separated-values",
+                            "application/vnd.ms-excel",
+                            "text/*"
+                        )
+                    )
                 }
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = onPlan
-                ) {
-                    Text("프로그램 선택")
-                }
-            }
+            )
         }
     }
 }
@@ -169,6 +147,50 @@ private fun TodaySummaryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun RecordManagementCard(
+    message: String?,
+    onBackup: () -> Unit,
+    onRestore: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "기록 관리",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = onBackup
+                ) {
+                    Text("기록 백업")
+                }
+                OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = onRestore
+                ) {
+                    Text("기록 복원")
+                }
+            }
+            message?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

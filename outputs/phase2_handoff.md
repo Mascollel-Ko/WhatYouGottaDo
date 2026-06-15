@@ -770,6 +770,51 @@ Reference:
 
 - `outputs/phase3_3_0_badminton_transfer_analysis.md`
 
+## v0.3.4.0 Home Cleanup and Backup Restore
+
+Files:
+
+- `app/src/main/java/com/training/trackplanner/HomeScreen.kt`
+- `app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+- `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt`
+- `app/src/test/java/com/training/trackplanner/data/RecordCsvBackupRestoreTest.kt`
+- `app/build.gradle.kts`
+
+Home:
+
+- removed the `오늘 할 일` card.
+- added `기록 관리` under `오늘 요약`.
+- `기록 백업` uses `CreateDocument("text/csv")`.
+- `기록 복원` uses `OpenDocument()`.
+
+Repository API:
+
+- `exportRecordsBackup(uri)`
+- `importRecordsBackup(uri)`
+
+CSV behavior:
+
+- restore-format CSV exports/imports detailed daily metrics, entries, and sets.
+- daily_timeseries CSV imports daily metrics and category-level aggregate records.
+- malformed `sleep_hours` and other numeric fields are ignored instead of crashing.
+- daily_timeseries aggregate entries use note marker `CSV daily_timeseries import` to avoid duplicate aggregate creation.
+
+Data semantics:
+
+- set `confirmed=true` remains completed.
+- set `confirmed=false` remains planned.
+- daily_timeseries cannot reconstruct exact original exercises/sets; it restores date-level analysis continuity.
+
+Verification:
+
+- `testDebugUnitTest` succeeded.
+- `compileDebugKotlin` succeeded.
+
+Reference:
+
+- `outputs/phase3_4_0_home_backup_restore.md`
+
 구현:
 
 - 날짜 long press action dialog

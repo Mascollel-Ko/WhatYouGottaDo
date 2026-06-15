@@ -2,6 +2,7 @@ package com.training.trackplanner.data
 
 import android.content.Context
 import android.content.pm.ApplicationInfo
+import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEngine
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 enum class ProgramApplyMode {
     Append,
@@ -92,6 +94,31 @@ class TrainingRepository(
 
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         workoutDao.observeEntriesWithSets(date)
+
+    suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        val entries = workoutDao.allEntriesWithSets()
+        val metrics = dailyMetricDao.allMetrics()
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics)
+        context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
+            writer.write(csv)
+        } ?: error("백업 파일을 열 수 없습니다.")
+        RecordCsvTransferResult(
+            format = "restore",
+            dailyMetricCount = metrics.size,
+            entryCount = entries.size,
+            setCount = entries.sumOf { item -> item.sets.size }
+        )
+    }
+
+    suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        val text = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { reader ->
+            reader.readText()
+        } ?: error("복원 파일을 열 수 없습니다.")
+        when (val data = RecordCsvBackupRestore.parse(text)) {
+            is RecordCsvImportData.Restore -> importRestoreCsv(data)
+            is RecordCsvImportData.DailyTimeseries -> importDailyTimeseriesCsv(data)
+        }
+    }
 
     fun entryCount(date: String): Flow<Int> =
         workoutDao.observeEntryCount(date)
@@ -417,6 +444,311 @@ class TrainingRepository(
         )
     }
 
+    private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
+        var dailyCount = 0
+        var entryCount = 0
+        var setCount = 0
+        var skipped = 0
+        db.withTransaction {
+            data.dailyRows.forEach { row ->
+                if (row.sleepHours != null || row.bodyWeightKg != null) {
+                    dailyMetricDao.upsert(
+                        DailyMetric(
+                            date = row.date,
+                            sleepHours = row.sleepHours,
+                            bodyWeightKg = row.bodyWeightKg
+                        )
+                    )
+                    dailyCount += 1
+                }
+            }
+            data.setRows
+                .filter { row -> row.sleepHours != null || row.bodyWeightKg != null }
+                .distinctBy { row -> row.date }
+                .forEach { row ->
+                    dailyMetricDao.upsert(
+                        DailyMetric(
+                            date = row.date,
+                            sleepHours = row.sleepHours,
+                            bodyWeightKg = row.bodyWeightKg
+                        )
+                    )
+                    dailyCount += 1
+                }
+            data.setRows
+                .groupBy { row -> row.entryKey }
+                .values
+                .sortedWith(
+                    compareBy<List<RestoreSetRow>> { rows -> rows.first().date }
+                        .thenBy { rows -> rows.first().entryOrder }
+                )
+                .forEach { rows ->
+                    val first = rows.first()
+                    val importedSets = rows.sortedBy { row -> row.setIndex }
+                    if (hasDuplicateRestoreEntry(first, importedSets)) {
+                        skipped += 1
+                        return@forEach
+                    }
+                    val exercise = findOrCreateImportedExercise(first.exerciseName, first.category)
+                    val confirmedCount = importedSets.count { row -> row.setConfirmed }
+                    val entryId = workoutDao.insertEntry(
+                        WorkoutEntry(
+                            date = first.date,
+                            exerciseId = exercise.id,
+                            exerciseName = exercise.name,
+                            category = first.category,
+                            restSeconds = first.restSeconds,
+                            notes = first.notes,
+                            rpe = first.rpe,
+                            maxReps = first.maxReps,
+                            completedAt = if (confirmedCount > 0) System.currentTimeMillis() else null
+                        )
+                    )
+                    importedSets.forEachIndexed { index, row ->
+                        workoutDao.insertSet(
+                            WorkoutSet(
+                                entryId = entryId,
+                                setIndex = index + 1,
+                                reps = row.reps,
+                                weightKg = row.weightKg,
+                                seconds = row.seconds,
+                                confirmed = row.setConfirmed,
+                                manualWeight = row.weightKg > 0.0,
+                                rpe = row.rpe
+                            )
+                        )
+                        setCount += 1
+                    }
+                    entryCount += 1
+                }
+        }
+        return RecordCsvTransferResult(
+            format = "restore",
+            dailyMetricCount = dailyCount,
+            entryCount = entryCount,
+            setCount = setCount,
+            skippedDuplicateCount = skipped,
+            warningCount = data.warningCount
+        )
+    }
+
+    private suspend fun importDailyTimeseriesCsv(
+        data: RecordCsvImportData.DailyTimeseries
+    ): RecordCsvTransferResult {
+        var dailyCount = 0
+        var entryCount = 0
+        var setCount = 0
+        var skipped = 0
+        db.withTransaction {
+            data.rows.forEach { row ->
+                if (row.sleepHours != null || row.bodyWeightKg != null) {
+                    dailyMetricDao.upsert(
+                        DailyMetric(
+                            date = row.date,
+                            sleepHours = row.sleepHours,
+                            bodyWeightKg = row.bodyWeightKg
+                        )
+                    )
+                    dailyCount += 1
+                }
+
+                val existing = workoutDao.entriesWithSets(row.date)
+                if (existing.any { item -> item.entry.notes == TIMESERIES_IMPORT_NOTE }) {
+                    skipped += 1
+                    return@forEach
+                }
+
+                val confirmedCategoryCounts = row.confirmedCategoryCounts()
+                if (confirmedCategoryCounts.isEmpty() && row.plannedEntries <= 0) return@forEach
+
+                val confirmedTotal = confirmedCategoryCounts.values.sum().coerceAtLeast(1)
+                confirmedCategoryCounts.forEach { (category, categoryCount) ->
+                    val ratio = categoryCount.toDouble() / confirmedTotal
+                    val reps = (row.totalReps * ratio).toInt().coerceAtLeast(0)
+                    val tonnage = row.totalTonnageKg * ratio
+                    val seconds = (row.totalSeconds * ratio).toInt().coerceAtLeast(0)
+                    val setsForCategory = (row.totalSets * ratio).toInt().coerceAtLeast(1)
+                    val weight = if (reps > 0 && tonnage > 0.0) tonnage / reps else 0.0
+                    val exercise = findOrCreateImportedExercise("CSV 복원 $category", category)
+                    val entryId = workoutDao.insertEntry(
+                        WorkoutEntry(
+                            date = row.date,
+                            exerciseId = exercise.id,
+                            exerciseName = exercise.name,
+                            category = category,
+                            notes = TIMESERIES_IMPORT_NOTE,
+                            completedAt = System.currentTimeMillis()
+                        )
+                    )
+                    workoutDao.insertSet(
+                        WorkoutSet(
+                            entryId = entryId,
+                            setIndex = 1,
+                            reps = reps,
+                            weightKg = weight,
+                            seconds = seconds,
+                            confirmed = true,
+                            manualWeight = weight > 0.0
+                        )
+                    )
+                    entryCount += 1
+                    setCount += 1
+                    repeat((setsForCategory - 1).coerceAtLeast(0)) { index ->
+                        workoutDao.insertSet(
+                            WorkoutSet(
+                                entryId = entryId,
+                                setIndex = index + 2,
+                                reps = 0,
+                                weightKg = 0.0,
+                                seconds = 0,
+                                confirmed = true,
+                                manualWeight = false
+                            )
+                        )
+                        setCount += 1
+                    }
+                }
+
+                if (row.plannedEntries > 0) {
+                    val exercise = findOrCreateImportedExercise("CSV 복원 계획", "근력운동")
+                    val entryId = workoutDao.insertEntry(
+                        WorkoutEntry(
+                            date = row.date,
+                            exerciseId = exercise.id,
+                            exerciseName = exercise.name,
+                            category = exercise.category,
+                            notes = TIMESERIES_IMPORT_NOTE
+                        )
+                    )
+                    workoutDao.insertSet(
+                        WorkoutSet(
+                            entryId = entryId,
+                            setIndex = 1,
+                            confirmed = false
+                        )
+                    )
+                    entryCount += 1
+                    setCount += 1
+                }
+            }
+        }
+        return RecordCsvTransferResult(
+            format = "daily_timeseries",
+            dailyMetricCount = dailyCount,
+            entryCount = entryCount,
+            setCount = setCount,
+            skippedDuplicateCount = skipped,
+            warningCount = data.warningCount
+        )
+    }
+
+    private suspend fun hasDuplicateRestoreEntry(
+        first: RestoreSetRow,
+        rows: List<RestoreSetRow>
+    ): Boolean =
+        workoutDao.entriesWithSets(first.date).any { existing ->
+            existing.entry.exerciseName == first.exerciseName &&
+                existing.entry.category == first.category &&
+                existing.entry.restSeconds == first.restSeconds &&
+                existing.entry.notes == first.notes &&
+                existing.entry.rpe == first.rpe &&
+                existing.entry.maxReps == first.maxReps &&
+                existing.sets.sortedBy { set -> set.setIndex }.matchesRestoreRows(rows)
+        }
+
+    private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Boolean {
+        if (size != rows.size) return false
+        return zip(rows).all { (set, row) ->
+            set.confirmed == row.setConfirmed &&
+                set.reps == row.reps &&
+                kotlin.math.abs(set.weightKg - row.weightKg) < 0.001 &&
+                set.seconds == row.seconds &&
+                set.rpe == row.rpe
+        }
+    }
+
+    private suspend fun findOrCreateImportedExercise(name: String, category: String): Exercise {
+        exerciseDao.findByName(name)?.let { existing -> return existing }
+        val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
+            Exercise(
+                name = name,
+                category = category,
+                stableKey = "imported_${name.stableToken()}",
+                movementPattern = category.defaultMovementPattern(),
+                movementCategory = category.defaultMovementCategory(),
+                primaryMuscles = category.defaultPrimaryMuscles(),
+                equipment = "NONE",
+                forceType = category.defaultForceType(),
+                plane = category.defaultPlane(),
+                laterality = "BILATERAL",
+                metadataConfidence = MetadataConfidence.LOW.name
+            )
+        )
+        val insertedId = exerciseDao.insertExercise(mapped)
+        return if (insertedId > 0) {
+            mapped.copy(id = insertedId)
+        } else {
+            exerciseDao.findByName(name) ?: mapped
+        }
+    }
+
+    private fun DailyTimeseriesRow.confirmedCategoryCounts(): Map<String, Int> {
+        val raw = linkedMapOf(
+            "근력운동" to strengthEntries,
+            "기능성운동" to functionalEntries,
+            "유산소운동" to cardioEntries,
+            "스포츠" to sportsEntries
+        ).filterValues { count -> count > 0 }
+        if (raw.isNotEmpty()) return raw
+        return if (confirmedEntries > 0 || totalSets > 0 || totalReps > 0 || totalSeconds > 0 || totalTonnageKg > 0.0) {
+            mapOf("근력운동" to 1)
+        } else {
+            emptyMap()
+        }
+    }
+
+    private fun String.stableToken(): String =
+        lowercase(Locale.US)
+            .replace(Regex("[^a-z0-9가-힣]+"), "_")
+            .trim('_')
+            .ifBlank { "record" }
+
+    private fun String.defaultMovementPattern(): String =
+        when (this) {
+            "유산소운동" -> MovementPattern.LOCOMOTION.name
+            "스포츠" -> MovementPattern.FOOTWORK.name
+            "기능성운동" -> MovementPattern.ANTI_ROTATION.name
+            else -> MovementPattern.SQUAT.name
+        }
+
+    private fun String.defaultMovementCategory(): String =
+        when (this) {
+            "유산소운동" -> MovementCategory.CONDITIONING.name
+            "스포츠" -> MovementCategory.SKILL_DRILL.name
+            "기능성운동" -> MovementCategory.STABILITY.name
+            else -> MovementCategory.STRENGTH.name
+        }
+
+    private fun String.defaultPrimaryMuscles(): String =
+        when (this) {
+            "유산소운동", "스포츠" -> "QUADRICEPS,CALF"
+            "기능성운동" -> "CORE"
+            else -> "QUADRICEPS"
+        }
+
+    private fun String.defaultForceType(): String =
+        when (this) {
+            "유산소운동", "스포츠" -> FatigueForceType.ACCELERATE.name
+            "기능성운동" -> FatigueForceType.BRACE.name
+            else -> FatigueForceType.SQUAT.name
+        }
+
+    private fun String.defaultPlane(): String =
+        when (this) {
+            "스포츠", "기능성운동" -> Plane.MULTI_PLANAR.name
+            else -> Plane.SAGITTAL.name
+        }
+
     private suspend fun seedMissingPrograms() {
         SeedData.programs(context).forEach { seed ->
             val programName = seed.displayName()
@@ -643,6 +975,7 @@ class TrainingRepository(
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"
+        const val TIMESERIES_IMPORT_NOTE = "CSV daily_timeseries import"
         val timedCategories = setOf("유산소운동", "스포츠")
     }
 }

@@ -70,6 +70,9 @@ interface ExerciseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(exercises: List<Exercise>)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertExercise(exercise: Exercise): Long
+
     @Update
     suspend fun updateExercise(exercise: Exercise)
 }
@@ -91,6 +94,10 @@ interface WorkoutDao {
     @Transaction
     @Query("SELECT * FROM workout_entries WHERE date > :date ORDER BY date, createdAt, id")
     suspend fun entriesWithSetsAfter(date: String): List<WorkoutEntryWithSets>
+
+    @Transaction
+    @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
+    suspend fun allEntriesWithSets(): List<WorkoutEntryWithSets>
 
     @Query("SELECT COUNT(*) FROM workout_entries WHERE date = :date")
     fun observeEntryCount(date: String): Flow<Int>
@@ -318,6 +325,9 @@ interface DailyMetricDao {
 
     @Query("SELECT * FROM daily_metrics WHERE date <= :date ORDER BY date")
     suspend fun metricsUntil(date: String): List<DailyMetric>
+
+    @Query("SELECT * FROM daily_metrics ORDER BY date")
+    suspend fun allMetrics(): List<DailyMetric>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(metric: DailyMetric)

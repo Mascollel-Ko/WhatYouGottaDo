@@ -1,6 +1,7 @@
 package com.training.trackplanner
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
@@ -61,6 +62,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _badmintonTransferSummary = MutableStateFlow<BadmintonTransferSummary?>(null)
     val badmintonTransferSummary: StateFlow<BadmintonTransferSummary?> =
         _badmintonTransferSummary.asStateFlow()
+
+    private val _recordTransferMessage = MutableStateFlow<String?>(null)
+    val recordTransferMessage: StateFlow<String?> =
+        _recordTransferMessage.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -258,6 +263,31 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun refreshBadmintonTransfer() {
         viewModelScope.launch {
             refreshAnalysisSummaries()
+        }
+    }
+
+    fun backupRecords(uri: Uri) {
+        viewModelScope.launch {
+            runCatching {
+                repository.exportRecordsBackup(uri)
+            }.onSuccess { result ->
+                _recordTransferMessage.value = result.summaryText("기록 백업")
+            }.onFailure { error ->
+                _recordTransferMessage.value = "기록 백업 실패: ${error.message ?: "알 수 없는 오류"}"
+            }
+        }
+    }
+
+    fun restoreRecords(uri: Uri) {
+        viewModelScope.launch {
+            runCatching {
+                repository.importRecordsBackup(uri)
+            }.onSuccess { result ->
+                _recordTransferMessage.value = result.summaryText("기록 복원")
+                refreshAnalysisSummaries()
+            }.onFailure { error ->
+                _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
+            }
         }
     }
 

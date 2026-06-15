@@ -541,3 +541,31 @@ Preserved:
 Reference:
 
 - `outputs/phase3_3_0_badminton_transfer_analysis.md`
+
+## v0.3.4.0 Home Cleanup and Backup Restore
+
+This update cleans the Home screen and re-exposes record backup / restore entry points.
+
+Home changes:
+
+- removed the duplicated `오늘 할 일` card.
+- kept `오늘 요약`.
+- added `기록 관리` below `오늘 요약`.
+- added `기록 백업` and `기록 복원` buttons.
+
+Backup / restore:
+
+- backup exports restore-format CSV through Android document creation.
+- restore imports restore-format CSV and legacy `daily_timeseries` CSV.
+- restore-format can recreate daily metrics, workout entries, and sets.
+- daily_timeseries import restores daily metrics and creates category-level aggregate records because that CSV has no exact set-level detail.
+
+Preserved:
+
+- `confirmed=false` remains planned.
+- `confirmed=true` remains completed record.
+- v0.3.3.0 analysis and badminton transfer cards remain in place.
+
+Reference:
+
+- `outputs/phase3_4_0_home_backup_restore.md`

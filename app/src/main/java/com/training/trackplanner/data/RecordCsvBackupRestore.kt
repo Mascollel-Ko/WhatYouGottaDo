@@ -1,0 +1,334 @@
+package com.training.trackplanner.data
+
+import java.time.LocalDate
+import java.util.Locale
+
+data class RecordCsvTransferResult(
+    val format: String,
+    val dailyMetricCount: Int = 0,
+    val entryCount: Int = 0,
+    val setCount: Int = 0,
+    val skippedDuplicateCount: Int = 0,
+    val warningCount: Int = 0
+) {
+    fun summaryText(action: String): String =
+        "$action 완료: daily $dailyMetricCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
+}
+
+sealed class RecordCsvImportData {
+    data class Restore(
+        val dailyRows: List<RestoreDailyRow>,
+        val setRows: List<RestoreSetRow>,
+        val warningCount: Int
+    ) : RecordCsvImportData()
+
+    data class DailyTimeseries(
+        val rows: List<DailyTimeseriesRow>,
+        val warningCount: Int
+    ) : RecordCsvImportData()
+}
+
+data class RestoreDailyRow(
+    val date: String,
+    val sleepHours: Double?,
+    val bodyWeightKg: Double?
+)
+
+data class RestoreSetRow(
+    val date: String,
+    val entryKey: String,
+    val entryOrder: Int,
+    val exerciseName: String,
+    val category: String,
+    val confirmed: Boolean,
+    val restSeconds: Int,
+    val rpe: Double?,
+    val maxReps: Int?,
+    val notes: String,
+    val setIndex: Int,
+    val setConfirmed: Boolean,
+    val reps: Int,
+    val weightKg: Double,
+    val seconds: Int,
+    val sleepHours: Double?,
+    val bodyWeightKg: Double?
+)
+
+data class DailyTimeseriesRow(
+    val date: String,
+    val sleepHours: Double?,
+    val bodyWeightKg: Double?,
+    val totalEntries: Int,
+    val confirmedEntries: Int,
+    val plannedEntries: Int,
+    val totalSets: Int,
+    val totalReps: Int,
+    val totalTonnageKg: Double,
+    val totalSeconds: Int,
+    val strengthEntries: Int,
+    val functionalEntries: Int,
+    val cardioEntries: Int,
+    val sportsEntries: Int,
+    val exercisesSummary: String
+)
+
+object RecordCsvBackupRestore {
+    private val restoreHeader = listOf(
+        "schema_version",
+        "row_type",
+        "date",
+        "entry_key",
+        "entry_order",
+        "exercise_name",
+        "category",
+        "confirmed",
+        "rest_seconds",
+        "rpe",
+        "max_reps",
+        "notes",
+        "set_index",
+        "set_confirmed",
+        "reps",
+        "weight_kg",
+        "seconds",
+        "sleep_hours",
+        "body_weight_kg"
+    )
+
+    fun buildRestoreCsv(
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        metrics: List<DailyMetric>
+    ): String {
+        val builder = StringBuilder()
+        builder.appendLine(restoreHeader.joinToString(","))
+        val metricsByDate = metrics.associateBy { metric -> metric.date }
+        val dates = (entriesWithSets.map { item -> item.entry.date } + metrics.map { metric -> metric.date })
+            .distinct()
+            .sorted()
+        dates.forEach { date ->
+            val metric = metricsByDate[date]
+            if (metric != null) {
+                builder.appendCsvRow(
+                    listOf(
+                        "1",
+                        "daily",
+                        date,
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        metric.sleepHours.formatOptional(),
+                        metric.bodyWeightKg.formatOptional()
+                    )
+                )
+            }
+        }
+        entriesWithSets
+            .groupBy { item -> item.entry.date }
+            .toSortedMap()
+            .forEach { (_, entriesForDate) ->
+                entriesForDate.forEachIndexed { entryIndex, item ->
+                    val entry = item.entry
+                    val entryConfirmed = item.sets.any { set -> set.confirmed }
+                    val orderedSets = item.sets.sortedBy { set -> set.setIndex }
+                    orderedSets.forEach { set ->
+                        builder.appendCsvRow(
+                            listOf(
+                                "1",
+                                "set",
+                                entry.date,
+                                entry.id.toString(),
+                                (entryIndex + 1).toString(),
+                                entry.exerciseName,
+                                entry.category,
+                                entryConfirmed.toCsvBool(),
+                                entry.restSeconds.toString(),
+                                (set.rpe ?: entry.rpe).formatOptional(),
+                                entry.maxReps?.toString().orEmpty(),
+                                entry.notes,
+                                set.setIndex.toString(),
+                                set.confirmed.toCsvBool(),
+                                set.reps.toString(),
+                                set.weightKg.formatNumber(),
+                                set.seconds.toString(),
+                                "",
+                                ""
+                            )
+                        )
+                    }
+                }
+            }
+        return builder.toString()
+    }
+
+    fun parse(text: String): RecordCsvImportData {
+        val rows = text.lineSequence()
+            .filter { line -> line.isNotBlank() }
+            .map(::parseCsvLine)
+            .toList()
+        if (rows.isEmpty()) {
+            return RecordCsvImportData.Restore(emptyList(), emptyList(), warningCount = 1)
+        }
+        val header = rows.first().map { value -> value.trim() }
+        val index = header.withIndex().associate { (i, name) -> name to i }
+        return if ("row_type" in index) {
+            parseRestore(rows.drop(1), index)
+        } else {
+            parseDailyTimeseries(rows.drop(1), index)
+        }
+    }
+
+    private fun parseRestore(
+        rows: List<List<String>>,
+        index: Map<String, Int>
+    ): RecordCsvImportData.Restore {
+        var warnings = 0
+        val dailyRows = mutableListOf<RestoreDailyRow>()
+        val setRows = mutableListOf<RestoreSetRow>()
+        rows.forEachIndexed { rowIndex, row ->
+            val date = row.value(index, "date").trim()
+            if (!date.isValidDate()) {
+                warnings += 1
+                return@forEachIndexed
+            }
+            when (row.value(index, "row_type").trim().lowercase(Locale.US)) {
+                "daily" -> dailyRows += RestoreDailyRow(
+                    date = date,
+                    sleepHours = row.safeDouble(index, "sleep_hours"),
+                    bodyWeightKg = row.safeDouble(index, "body_weight_kg")
+                )
+                "set" -> setRows += RestoreSetRow(
+                    date = date,
+                    entryKey = row.value(index, "entry_key").ifBlank { "fallback-$date-$rowIndex" },
+                    entryOrder = row.safeInt(index, "entry_order") ?: rowIndex + 1,
+                    exerciseName = row.value(index, "exercise_name").ifBlank { "CSV 복원 운동" },
+                    category = row.value(index, "category").ifBlank { "근력운동" },
+                    confirmed = row.safeBool(index, "confirmed") ?: true,
+                    restSeconds = row.safeInt(index, "rest_seconds") ?: 60,
+                    rpe = row.safeDouble(index, "rpe"),
+                    maxReps = row.safeInt(index, "max_reps"),
+                    notes = row.value(index, "notes"),
+                    setIndex = row.safeInt(index, "set_index") ?: 1,
+                    setConfirmed = row.safeBool(index, "set_confirmed")
+                        ?: row.safeBool(index, "confirmed")
+                        ?: true,
+                    reps = row.safeInt(index, "reps") ?: 0,
+                    weightKg = row.safeDouble(index, "weight_kg") ?: 0.0,
+                    seconds = row.safeInt(index, "seconds") ?: 0,
+                    sleepHours = row.safeDouble(index, "sleep_hours"),
+                    bodyWeightKg = row.safeDouble(index, "body_weight_kg")
+                )
+                else -> warnings += 1
+            }
+        }
+        return RecordCsvImportData.Restore(dailyRows, setRows, warnings)
+    }
+
+    private fun parseDailyTimeseries(
+        rows: List<List<String>>,
+        index: Map<String, Int>
+    ): RecordCsvImportData.DailyTimeseries {
+        var warnings = 0
+        val parsed = rows.mapNotNull { row ->
+            val date = row.value(index, "date").trim()
+            if (!date.isValidDate()) {
+                warnings += 1
+                return@mapNotNull null
+            }
+            DailyTimeseriesRow(
+                date = date,
+                sleepHours = row.safeDouble(index, "sleep_hours"),
+                bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
+                totalEntries = row.safeInt(index, "total_entries") ?: 0,
+                confirmedEntries = row.safeInt(index, "confirmed_entries") ?: 0,
+                plannedEntries = row.safeInt(index, "planned_entries") ?: 0,
+                totalSets = row.safeInt(index, "total_sets") ?: 0,
+                totalReps = row.safeInt(index, "total_reps") ?: 0,
+                totalTonnageKg = row.safeDouble(index, "total_tonnage_kg") ?: 0.0,
+                totalSeconds = row.safeInt(index, "total_seconds") ?: 0,
+                strengthEntries = row.safeInt(index, "strength_entries") ?: 0,
+                functionalEntries = row.safeInt(index, "functional_entries") ?: 0,
+                cardioEntries = row.safeInt(index, "cardio_entries") ?: 0,
+                sportsEntries = row.safeInt(index, "sports_entries") ?: 0,
+                exercisesSummary = row.value(index, "exercises_summary")
+            )
+        }
+        return RecordCsvImportData.DailyTimeseries(parsed, warnings)
+    }
+
+    private fun parseCsvLine(line: String): List<String> {
+        val values = mutableListOf<String>()
+        val current = StringBuilder()
+        var inQuotes = false
+        var index = 0
+        while (index < line.length) {
+            val char = line[index]
+            when {
+                char == '"' && inQuotes && index + 1 < line.length && line[index + 1] == '"' -> {
+                    current.append('"')
+                    index += 1
+                }
+                char == '"' -> inQuotes = !inQuotes
+                char == ',' && !inQuotes -> {
+                    values += current.toString()
+                    current.clear()
+                }
+                else -> current.append(char)
+            }
+            index += 1
+        }
+        values += current.toString()
+        return values
+    }
+
+    private fun StringBuilder.appendCsvRow(values: List<String>) {
+        appendLine(values.joinToString(",") { value -> value.escapeCsv() })
+    }
+
+    private fun String.escapeCsv(): String =
+        if (contains(',') || contains('"') || contains('\n') || contains('\r')) {
+            "\"" + replace("\"", "\"\"") + "\""
+        } else {
+            this
+        }
+
+    private fun List<String>.value(index: Map<String, Int>, key: String): String =
+        index[key]?.let { i -> getOrNull(i) }.orEmpty()
+
+    private fun List<String>.safeDouble(index: Map<String, Int>, key: String): Double? =
+        value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toDoubleOrNull()
+
+    private fun List<String>.safeInt(index: Map<String, Int>, key: String): Int? =
+        value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toIntOrNull()
+
+    private fun List<String>.safeBool(index: Map<String, Int>, key: String): Boolean? =
+        when (value(index, key).trim().lowercase(Locale.US)) {
+            "1", "true", "yes", "y" -> true
+            "0", "false", "no", "n" -> false
+            else -> null
+        }
+
+    private fun String.isValidDate(): Boolean =
+        runCatching { LocalDate.parse(this) }.isSuccess
+
+    private fun Boolean.toCsvBool(): String = if (this) "1" else "0"
+
+    private fun Double?.formatOptional(): String = this?.formatNumber().orEmpty()
+
+    private fun Double.formatNumber(): String =
+        if (this % 1.0 == 0.0) {
+            String.format(Locale.US, "%.0f", this)
+        } else {
+            String.format(Locale.US, "%.3f", this).trimEnd('0').trimEnd('.')
+        }
+}
