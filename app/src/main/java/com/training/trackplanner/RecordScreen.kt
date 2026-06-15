@@ -102,7 +102,7 @@ internal fun RecordScreen(
 
     if (showExercisePicker) {
         ExercisePickerDialog(
-            exercises = exercises,
+            exercises = exercises.filter { exercise -> exercise.isActive },
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 viewModel.addWorkout(selectedDate, exercise.id)

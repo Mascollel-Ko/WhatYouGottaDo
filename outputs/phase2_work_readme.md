@@ -662,3 +662,17 @@ Preserved:
 Reference:
 
 - `outputs/v0.3.4.2_sport_session_program_filter.md`
+
+## v0.3.4.3 Update
+- Restored exercise image assets and JSON seed from the provided APK.
+- Added exercise image mapping and placeholder-safe detail rendering.
+- Added exercise hide/unhide and safe delete management.
+- Added exercise master rows to CSV backup/restore.
+- Added metadata inventory/gap/enum reports for later analysis/program-generation work.
+- Build and APK backup status are reported in the final v0.3.4.3 handoff.
+
+## v0.3.4.3 Verification
+- Unit test: `.\gradlew.bat --no-daemon --no-problems-report testDebugUnitTest` 성공.
+- Debug build: `.\gradlew.bat --no-daemon --no-problems-report assembleDebug` 성공.
+- APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\WhatYouGottaTrain-v0.3.4.3-debug.apk`.
+

@@ -44,6 +44,11 @@ data class ProgramApplyConflictSummary(
         get() = existingEntryCount > 0
 }
 
+data class ExerciseDeleteResult(
+    val deleted: Boolean,
+    val referenced: Boolean
+)
+
 class TrainingRepository(
     private val db: TrainingDatabase,
     private val context: Context
@@ -101,12 +106,14 @@ class TrainingRepository(
     suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         val entries = workoutDao.allEntriesWithSets()
         val metrics = dailyMetricDao.allMetrics()
-        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics)
+        val exercises = exerciseDao.allExercises()
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises)
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
         } ?: error("백업 파일을 열 수 없습니다.")
         RecordCsvTransferResult(
             format = "restore",
+            exerciseCount = exercises.size,
             dailyMetricCount = metrics.size,
             entryCount = entries.size,
             setCount = entries.sumOf { item -> item.sets.size }
@@ -146,7 +153,7 @@ class TrainingRepository(
         val programSeedVersion = appMetaDao.intValue(META_PROGRAM_SEED_VERSION)
 
         if (exerciseSeedVersion < EXERCISE_SEED_VERSION || exerciseDao.countExercises() == 0) {
-            exerciseDao.insertAll(SeedData.exercises(context))
+            upsertSeedExercises()
             appMetaDao.upsert(
                 AppMeta(
                     key = META_EXERCISE_SEED_VERSION,
@@ -167,6 +174,54 @@ class TrainingRepository(
         }
 
         logDebugSummary()
+    }
+
+    private suspend fun upsertSeedExercises() {
+        SeedData.exercises(context).forEach { seed ->
+            val existing = exerciseDao.findByStableKey(seed.stableKey)
+                ?: exerciseDao.findByName(seed.name)
+            if (existing == null) {
+                exerciseDao.insertExercise(seed)
+            } else if (!existing.isCustom) {
+                exerciseDao.updateExercise(
+                    seed.copy(
+                        id = existing.id,
+                        stableKey = existing.stableKey,
+                        imageAssetName = seed.imageAssetName.ifBlank { existing.imageAssetName },
+                        isActive = existing.isActive,
+                        archivedAt = existing.archivedAt,
+                        isCustom = existing.isCustom,
+                        needsReview = existing.needsReview || seed.needsReview
+                    )
+                )
+            }
+        }
+    }
+
+    suspend fun setExerciseActive(exerciseId: Long, active: Boolean) = withContext(Dispatchers.IO) {
+        val exercise = exerciseDao.findById(exerciseId) ?: return@withContext
+        exerciseDao.updateExercise(
+            exercise.copy(
+                isActive = active,
+                archivedAt = if (active) null else System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun deleteExerciseIfUnused(exerciseId: Long): ExerciseDeleteResult = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction ExerciseDeleteResult(
+                deleted = false,
+                referenced = false
+            )
+            val referenced = workoutDao.countEntriesForExercise(exerciseId) > 0 ||
+                programDao.countProgramItemsForExercise(exerciseId) > 0
+            if (referenced) {
+                return@withTransaction ExerciseDeleteResult(deleted = false, referenced = true)
+            }
+            exerciseDao.deleteExercise(exercise)
+            ExerciseDeleteResult(deleted = true, referenced = false)
+        }
     }
 
     suspend fun addWorkoutEntry(date: String, exerciseId: Long) = withContext(Dispatchers.IO) {
@@ -557,11 +612,17 @@ class TrainingRepository(
     }
 
     private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
+        var exerciseCount = 0
         var dailyCount = 0
         var entryCount = 0
         var setCount = 0
         var skipped = 0
         db.withTransaction {
+            data.exerciseRows.forEach { row ->
+                if (upsertRestoredExercise(row)) {
+                    exerciseCount += 1
+                }
+            }
             data.dailyRows.forEach { row ->
                 if (row.sleepHours != null || row.bodyWeightKg != null) {
                     dailyMetricDao.upsert(
@@ -636,6 +697,7 @@ class TrainingRepository(
         }
         return RecordCsvTransferResult(
             format = "restore",
+            exerciseCount = exerciseCount,
             dailyMetricCount = dailyCount,
             entryCount = entryCount,
             setCount = setCount,
@@ -773,8 +835,61 @@ class TrainingRepository(
                 existing.entry.notes == first.notes &&
                 existing.entry.rpe == first.rpe &&
                 existing.entry.maxReps == first.maxReps &&
-                existing.sets.sortedBy { set -> set.setIndex }.matchesRestoreRows(rows)
+            existing.sets.sortedBy { set -> set.setIndex }.matchesRestoreRows(rows)
         }
+
+    private suspend fun upsertRestoredExercise(row: RestoreExerciseRow): Boolean {
+        val stableKey = row.stableKey.ifBlank { "imported_${row.name.stableToken()}" }
+        val category = row.category.ifBlank { "근력운동" }
+        val restored = ExerciseMetadataMapper.applyLegacyMetadata(
+            Exercise(
+                name = row.name,
+                category = category,
+                detail1 = row.detail1,
+                detail2 = row.detail2,
+                mode = row.mode,
+                description = row.description,
+                defaultRestSeconds = row.defaultRestSeconds,
+                stableKey = stableKey,
+                movementPattern = row.movementPattern,
+                movementCategory = row.movementCategory,
+                primaryMuscles = row.primaryMuscles,
+                secondaryMuscles = row.secondaryMuscles,
+                equipment = row.equipment,
+                equipmentTags = row.equipment,
+                forceType = row.forceType,
+                bodyRegion = row.bodyRegion,
+                plane = row.plane,
+                laterality = row.laterality,
+                trainingRole = row.trainingRole,
+                sportTransferDirect = row.sportTransferDirect,
+                sportTransferSupportive = row.sportTransferSupportive,
+                loadProfile = row.loadProfile,
+                metadataConfidence = row.metadataConfidence.ifBlank { MetadataConfidence.LOW.name }
+            )
+        ).copy(
+            imageAssetName = row.imageAssetName,
+            isActive = row.isActive,
+            archivedAt = if (row.isActive) null else System.currentTimeMillis(),
+            isCustom = row.isCustom,
+            needsReview = row.needsReview
+        )
+        val existing = exerciseDao.findByStableKey(stableKey) ?: exerciseDao.findByName(row.name)
+        if (existing == null) {
+            exerciseDao.insertExercise(restored)
+        } else {
+            exerciseDao.updateExercise(
+                restored.copy(
+                    id = existing.id,
+                    stableKey = existing.stableKey,
+                    imageAssetName = restored.imageAssetName.ifBlank { existing.imageAssetName },
+                    isCustom = existing.isCustom || restored.isCustom,
+                    needsReview = existing.needsReview || restored.needsReview
+                )
+            )
+        }
+        return true
+    }
 
     private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Boolean {
         if (size != rows.size) return false
@@ -1118,7 +1233,7 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 4
+        const val EXERCISE_SEED_VERSION = 5
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"

@@ -117,7 +117,7 @@ internal fun PlanScreen(
         else -> {
         ProgramDetailScreen(
             program = selectedProgram,
-            exercises = exercises,
+            exercises = exercises.filter { exercise -> exercise.isActive },
             viewModel = viewModel,
             onBack = { selectedProgramId = null },
                 onEdit = { editingProgramId = selectedProgram.id },
@@ -760,7 +760,7 @@ private fun ProgramDetailScreen(
 
     addTarget?.let { target ->
         ExercisePickerDialog(
-            exercises = exercises,
+            exercises = exercises.filter { exercise -> exercise.isActive },
             onDismiss = { addTarget = null },
             onSelect = { exercise ->
                 viewModel.addExerciseToProgram(

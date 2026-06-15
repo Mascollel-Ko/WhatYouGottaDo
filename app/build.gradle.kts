@@ -14,8 +14,8 @@ android {
         applicationId = "com.whatyougottatrain.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 30402
-        versionName = "0.3.4.2"
+        versionCode = 30403
+        versionName = "0.3.4.3"
     }
 
     buildFeatures {

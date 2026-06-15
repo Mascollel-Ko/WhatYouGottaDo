@@ -271,6 +271,21 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setExerciseActive(exerciseId: Long, active: Boolean) {
+        viewModelScope.launch {
+            repository.setExerciseActive(exerciseId, active)
+            refreshAnalysisSummaries()
+        }
+    }
+
+    fun deleteExerciseIfUnused(exerciseId: Long, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val result = repository.deleteExerciseIfUnused(exerciseId)
+            onResult(result.deleted)
+            refreshAnalysisSummaries()
+        }
+    }
+
     fun copyDateRangeAsPlan(
         sourceStart: String,
         sourceEnd: String,

@@ -71,7 +71,12 @@ data class Exercise(
     val analysisEligibility: String = "",
     val activityKind: String = "",
     val planningEligibility: String = "",
-    val metadataConfidence: String = "UNKNOWN"
+    val metadataConfidence: String = "UNKNOWN",
+    val imageAssetName: String = "",
+    val isActive: Boolean = true,
+    val archivedAt: Long? = null,
+    val isCustom: Boolean = false,
+    val needsReview: Boolean = false
 )
 
 @Entity(tableName = "workout_entries")

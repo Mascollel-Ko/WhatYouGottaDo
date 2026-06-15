@@ -61,6 +61,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE name = :name LIMIT 1")
     suspend fun findByName(name: String): Exercise?
 
+    @Query("SELECT * FROM exercises WHERE stableKey = :stableKey LIMIT 1")
+    suspend fun findByStableKey(stableKey: String): Exercise?
+
     @Query("SELECT * FROM exercises")
     suspend fun allExercises(): List<Exercise>
 
@@ -75,6 +78,9 @@ interface ExerciseDao {
 
     @Update
     suspend fun updateExercise(exercise: Exercise)
+
+    @Delete
+    suspend fun deleteExercise(exercise: Exercise)
 }
 
 @Dao
@@ -110,6 +116,9 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM workout_entries WHERE date = :date")
     suspend fun countEntriesOnDate(date: String): Int
+
+    @Query("SELECT COUNT(*) FROM workout_entries WHERE exerciseId = :exerciseId")
+    suspend fun countEntriesForExercise(exerciseId: Long): Int
 
     @Query(
         """
@@ -324,6 +333,9 @@ interface ProgramDao {
 
     @Query("SELECT COUNT(*) FROM training_program_items")
     suspend fun countProgramItems(): Int
+
+    @Query("SELECT COUNT(*) FROM training_program_items WHERE exerciseId = :exerciseId")
+    suspend fun countProgramItemsForExercise(exerciseId: Long): Int
 
     @Query(
         """

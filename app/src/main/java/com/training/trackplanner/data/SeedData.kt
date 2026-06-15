@@ -1,6 +1,8 @@
 package com.training.trackplanner.data
 
 import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.Locale
 
 data class ProgramSeed(
@@ -26,17 +28,29 @@ data class ProgramItemSeed(
 
 object SeedData {
     private const val SETTINGS_SEED_ASSET = "training_settings_seed.csv"
+    private const val EXERCISE_SEED_ASSET = "exercises_seed.json"
+    private const val EXERCISE_IMAGE_MAPPING_ASSET = "exercise_image_mapping.csv"
 
     fun exercises(context: Context): List<Exercise> {
+        val imageMappings = exerciseImageMappings(context)
+        if (context.assetExists(EXERCISE_SEED_ASSET)) {
+            return exercisesFromJson(context, imageMappings)
+        }
         val rows = csvRows(context)
 
-        return exercisesFromParsedRows(rows)
+        return exercisesFromParsedRows(rows, imageMappings)
     }
 
     internal fun exercisesFromParsedRows(rows: List<Map<String, String>>): List<Exercise> =
+        exercisesFromParsedRows(rows, emptyList())
+
+    private fun exercisesFromParsedRows(
+        rows: List<Map<String, String>>,
+        imageMappings: List<ExerciseImageMapping>
+    ): List<Exercise> =
         rows
             .filter { it["row_type"] == "exercise" }
-            .map(::exerciseFromCsv)
+            .map { row -> exerciseFromCsv(row, imageMappings) }
             .also(::validateCatalog)
 
     fun programs(context: Context): List<ProgramSeed> {
@@ -70,6 +84,69 @@ object SeedData {
             }
         }
 
+    private fun exercisesFromJson(
+        context: Context,
+        imageMappings: List<ExerciseImageMapping>
+    ): List<Exercise> =
+        context.assets.open(EXERCISE_SEED_ASSET).bufferedReader(Charsets.UTF_8).use { reader ->
+            val root = JSONObject(reader.readText())
+            val exercises = root.optJSONArray("exercises") ?: JSONArray()
+            (0 until exercises.length())
+                .map { index -> exerciseFromJson(exercises.getJSONObject(index), imageMappings) }
+                .also(::validateCatalog)
+        }
+
+    private fun exerciseFromJson(
+        item: JSONObject,
+        imageMappings: List<ExerciseImageMapping>
+    ): Exercise {
+        val name = item.optString("name").ifBlank { item.optString("exerciseName") }
+        val category = item.optString("category")
+        val patternTokens = item.stringList("movementPattern").toSet()
+        val stableKey = item.optString("stableKey").ifBlank { stableKeyFor(name) }
+        val base = Exercise(
+            name = name,
+            category = category,
+            detail1 = item.optString("detail1"),
+            detail2 = item.optString("detail2"),
+            mode = item.optString("mode"),
+            description = item.optString("description"),
+            defaultRestSeconds = item.optInt("defaultRestSeconds", 60),
+            familyId = item.optString("familyId").ifBlank { familyIdFor(name, category) },
+            familyName = item.optString("familyName").ifBlank { familyIdFor(name, category).replace('_', ' ') },
+            familyRole = canonicalFamilyRole(item.optString("familyRole")),
+            familyE1rmMultiplier = item.optDoubleOrNull("familyE1rmMultiplier") ?: 1.0,
+            stableKey = stableKey,
+            movementPattern = ExerciseTaxonomy.list(patternTokens.joinToString(","), ExerciseTaxonomy.movementPatterns, "movementPattern"),
+            movementCategory = ExerciseTaxonomy.single(item.firstString("movementCategory"), ExerciseTaxonomy.movementCategories, "movementCategory"),
+            primaryMuscles = ExerciseTaxonomy.list(item.stringList("primaryMuscles").joinToString(","), ExerciseTaxonomy.muscles, "primaryMuscles"),
+            secondaryMuscles = ExerciseTaxonomy.list(item.stringList("secondaryMuscles").joinToString(","), ExerciseTaxonomy.muscles, "secondaryMuscles"),
+            equipment = ExerciseTaxonomy.list(item.stringList("equipment").joinToString(","), ExerciseTaxonomy.equipment, "equipment"),
+            equipmentTags = ExerciseTaxonomy.list(item.stringList("equipmentTags").joinToString(","), ExerciseTaxonomy.equipment, "equipmentTags"),
+            forceType = ExerciseTaxonomy.single(item.firstString("forceType"), ExerciseTaxonomy.forceTypes, "forceType"),
+            bodyRegion = ExerciseTaxonomy.single(item.firstString("bodyRegion"), ExerciseTaxonomy.bodyRegions, "bodyRegion"),
+            plane = item.firstString("plane"),
+            laterality = item.firstString("laterality"),
+            trainingRole = ExerciseTaxonomy.single(item.firstString("trainingRole"), ExerciseTaxonomy.trainingRoles, "trainingRole"),
+            stabilityRoles = ExerciseTaxonomy.list(item.stringList("stabilityRoles").joinToString(","), ExerciseTaxonomy.stabilityRoles, "stabilityRoles"),
+            sportTransferDirect = ExerciseTaxonomy.list(item.stringList("sportTransferDirect").joinToString(","), ExerciseTaxonomy.sportTransferDirect, "sportTransferDirect"),
+            sportTransferSupportive = ExerciseTaxonomy.list(item.stringList("sportTransferSupportive").joinToString(","), ExerciseTaxonomy.sportTransferSupportive, "sportTransferSupportive"),
+            accessoryRoles = ExerciseTaxonomy.list(item.stringList("accessoryRoles").joinToString(","), ExerciseTaxonomy.accessoryRoles, "accessoryRoles"),
+            loadProfile = ExerciseTaxonomy.single(item.firstString("loadProfile"), ExerciseTaxonomy.loadProfiles, "loadProfile"),
+            metadataConfidence = item.optString("metadataConfidence").ifBlank { MetadataConfidence.LOW.name }
+        )
+        return ExerciseMetadataMapper.applySeedMetadata(
+            exercise = base,
+            source = SeedMetadataSource(
+                movementPatternTokens = patternTokens,
+                movementCategoryToken = item.firstString("movementCategory"),
+                forceTypeToken = item.firstString("forceType"),
+                planeToken = item.firstString("plane"),
+                isUnilateral = item.optBooleanOrNull("isUnilateral")
+            )
+        ).withRecoveredImage(imageMappings)
+    }
+
     private fun programItemFromCsv(row: Map<String, String>): ProgramItemSeed =
         ProgramItemSeed(
             weekNumber = row.value("week_number").toIntOrNull() ?: 1,
@@ -87,7 +164,10 @@ object SeedData {
             seconds = row.value("seconds").toIntOrNull() ?: 0
         )
 
-    private fun exerciseFromCsv(row: Map<String, String>): Exercise {
+    private fun exerciseFromCsv(
+        row: Map<String, String>,
+        imageMappings: List<ExerciseImageMapping>
+    ): Exercise {
         val originalName = row.value("exercise_name")
         val name = normalizedExerciseName(originalName)
         val category = row.value("category")
@@ -163,7 +243,7 @@ object SeedData {
                 planeToken = row.value("plane"),
                 isUnilateral = row.value("is_unilateral").toBooleanFlagOrNull()
             )
-        )
+        ).withRecoveredImage(imageMappings)
     }
 
     private fun activityKindFor(
@@ -221,6 +301,86 @@ object SeedData {
     }
 
     private fun Map<String, String>.value(key: String): String = this[key]?.trim().orEmpty()
+
+    private data class ExerciseImageMapping(
+        val stableKey: String,
+        val exerciseName: String,
+        val imageAssetName: String,
+        val needsReview: Boolean
+    )
+
+    private fun exerciseImageMappings(context: Context): List<ExerciseImageMapping> {
+        if (!context.assetExists(EXERCISE_IMAGE_MAPPING_ASSET)) return emptyList()
+        return context.assets.open(EXERCISE_IMAGE_MAPPING_ASSET).bufferedReader(Charsets.UTF_8).use { reader ->
+            val rows = reader.lineSequence()
+                .filter { it.isNotBlank() }
+                .map(::parseCsvLine)
+                .toList()
+            if (rows.isEmpty()) return emptyList()
+            val header = rows.first().map { value -> value.removePrefix("\uFEFF") }
+            rows.drop(1).mapNotNull { values ->
+                val row = header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
+                val imageAssetName = row.value("image_asset_name")
+                if (imageAssetName.isBlank()) {
+                    null
+                } else {
+                    ExerciseImageMapping(
+                        stableKey = row.value("stable_key"),
+                        exerciseName = row.value("exercise_name"),
+                        imageAssetName = imageAssetName,
+                        needsReview = row.value("needs_review") == "1"
+                    )
+                }
+            }
+        }
+    }
+
+    private fun Exercise.withRecoveredImage(imageMappings: List<ExerciseImageMapping>): Exercise {
+        val mapping = imageMappings.firstOrNull { mapping ->
+            mapping.stableKey.isNotBlank() && mapping.stableKey == stableKey
+        } ?: imageMappings.firstOrNull { mapping ->
+            mapping.exerciseName.normalizedForMapping() == name.normalizedForMapping()
+        }
+        return if (mapping == null) {
+            this
+        } else {
+            copy(
+                imageAssetName = mapping.imageAssetName,
+                needsReview = needsReview || mapping.needsReview
+            )
+        }
+    }
+
+    private fun Context.assetExists(name: String): Boolean =
+        runCatching {
+            assets.open(name).close()
+            true
+        }.getOrDefault(false)
+
+    private fun JSONObject.firstString(key: String): String =
+        stringList(key).firstOrNull().orEmpty()
+
+    private fun JSONObject.stringList(key: String): List<String> {
+        val value = opt(key) ?: return emptyList()
+        return when (value) {
+            is JSONArray -> (0 until value.length()).mapNotNull { index ->
+                value.optString(index).trim().takeIf { item -> item.isNotBlank() }
+            }
+            is String -> value.split('|', ',', '/', ';')
+                .map { item -> item.trim() }
+                .filter { item -> item.isNotBlank() }
+            else -> emptyList()
+        }
+    }
+
+    private fun JSONObject.optDoubleOrNull(key: String): Double? =
+        if (has(key) && !isNull(key)) optDouble(key) else null
+
+    private fun JSONObject.optBooleanOrNull(key: String): Boolean? =
+        if (has(key) && !isNull(key)) optBoolean(key) else null
+
+    private fun String.normalizedForMapping(): String =
+        trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), "")
 
     private fun canonicalFamilyRole(value: String): String {
         val normalized = value.trim().uppercase(Locale.ROOT)

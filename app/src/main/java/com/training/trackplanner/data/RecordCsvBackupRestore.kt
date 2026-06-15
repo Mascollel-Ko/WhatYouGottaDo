@@ -5,6 +5,7 @@ import java.util.Locale
 
 data class RecordCsvTransferResult(
     val format: String,
+    val exerciseCount: Int = 0,
     val dailyMetricCount: Int = 0,
     val entryCount: Int = 0,
     val setCount: Int = 0,
@@ -17,6 +18,7 @@ data class RecordCsvTransferResult(
 
 sealed class RecordCsvImportData {
     data class Restore(
+        val exerciseRows: List<RestoreExerciseRow>,
         val dailyRows: List<RestoreDailyRow>,
         val setRows: List<RestoreSetRow>,
         val warningCount: Int
@@ -32,6 +34,35 @@ data class RestoreDailyRow(
     val date: String,
     val sleepHours: Double?,
     val bodyWeightKg: Double?
+)
+
+data class RestoreExerciseRow(
+    val name: String,
+    val stableKey: String,
+    val category: String,
+    val detail1: String,
+    val detail2: String,
+    val mode: String,
+    val description: String,
+    val defaultRestSeconds: Int,
+    val imageAssetName: String,
+    val primaryMuscles: String,
+    val secondaryMuscles: String,
+    val equipment: String,
+    val movementPattern: String,
+    val movementCategory: String,
+    val forceType: String,
+    val bodyRegion: String,
+    val laterality: String,
+    val plane: String,
+    val trainingRole: String,
+    val sportTransferDirect: String,
+    val sportTransferSupportive: String,
+    val loadProfile: String,
+    val metadataConfidence: String,
+    val isActive: Boolean,
+    val isCustom: Boolean,
+    val needsReview: Boolean
 )
 
 data class RestoreSetRow(
@@ -92,15 +123,89 @@ object RecordCsvBackupRestore {
         "weight_kg",
         "seconds",
         "sleep_hours",
-        "body_weight_kg"
+        "body_weight_kg",
+        "stable_key",
+        "description",
+        "default_rest_seconds",
+        "image_asset_name",
+        "primary_muscles",
+        "secondary_muscles",
+        "equipment",
+        "movement_pattern",
+        "movement_category",
+        "force_type",
+        "body_region",
+        "laterality",
+        "plane",
+        "training_role",
+        "sport_transfer_direct",
+        "sport_transfer_supportive",
+        "load_profile",
+        "metadata_confidence",
+        "is_active",
+        "is_custom",
+        "needs_review",
+        "detail1",
+        "detail2",
+        "mode"
     )
 
     fun buildRestoreCsv(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        metrics: List<DailyMetric>
+        metrics: List<DailyMetric>,
+        exercises: List<Exercise> = emptyList()
     ): String {
         val builder = StringBuilder()
         builder.appendLine(restoreHeader.joinToString(","))
+        exercises.sortedBy { exercise -> exercise.name }.forEach { exercise ->
+            builder.appendCsvRow(
+                listOf(
+                    "1",
+                    "exercise",
+                    "",
+                    "",
+                    "",
+                    exercise.name,
+                    exercise.category,
+                    "",
+                    exercise.defaultRestSeconds.toString(),
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    exercise.stableKey,
+                    exercise.description,
+                    exercise.defaultRestSeconds.toString(),
+                    exercise.imageAssetName,
+                    exercise.primaryMuscles,
+                    exercise.secondaryMuscles,
+                    exercise.equipment.ifBlank { exercise.equipmentTags },
+                    exercise.movementPattern,
+                    exercise.movementCategory,
+                    exercise.forceType,
+                    exercise.bodyRegion,
+                    exercise.laterality,
+                    exercise.plane,
+                    exercise.trainingRole,
+                    exercise.sportTransferDirect,
+                    exercise.sportTransferSupportive,
+                    exercise.loadProfile,
+                    exercise.metadataConfidence,
+                    exercise.isActive.toCsvBool(),
+                    exercise.isCustom.toCsvBool(),
+                    exercise.needsReview.toCsvBool(),
+                    exercise.detail1,
+                    exercise.detail2,
+                    exercise.mode
+                )
+            )
+        }
         val metricsByDate = metrics.associateBy { metric -> metric.date }
         val dates = (entriesWithSets.map { item -> item.entry.date } + metrics.map { metric -> metric.date })
             .distinct()
@@ -177,7 +282,7 @@ object RecordCsvBackupRestore {
             .map(::parseCsvLine)
             .toList()
         if (rows.isEmpty()) {
-            return RecordCsvImportData.Restore(emptyList(), emptyList(), warningCount = 1)
+            return RecordCsvImportData.Restore(emptyList(), emptyList(), emptyList(), warningCount = 1)
         }
         val header = rows.first().map { value -> value.trim() }
         val index = header.withIndex().associate { (i, name) -> name to i }
@@ -193,15 +298,55 @@ object RecordCsvBackupRestore {
         index: Map<String, Int>
     ): RecordCsvImportData.Restore {
         var warnings = 0
+        val exerciseRows = mutableListOf<RestoreExerciseRow>()
         val dailyRows = mutableListOf<RestoreDailyRow>()
         val setRows = mutableListOf<RestoreSetRow>()
         rows.forEachIndexed { rowIndex, row ->
+            val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
+            if (rowType == "exercise") {
+                val name = row.value(index, "exercise_name").trim()
+                if (name.isBlank()) {
+                    warnings += 1
+                } else {
+                    exerciseRows += RestoreExerciseRow(
+                        name = name,
+                        stableKey = row.value(index, "stable_key"),
+                        category = row.value(index, "category"),
+                        detail1 = row.value(index, "detail1"),
+                        detail2 = row.value(index, "detail2"),
+                        mode = row.value(index, "mode"),
+                        description = row.value(index, "description"),
+                        defaultRestSeconds = row.safeInt(index, "default_rest_seconds")
+                            ?: row.safeInt(index, "rest_seconds")
+                            ?: 60,
+                        imageAssetName = row.value(index, "image_asset_name"),
+                        primaryMuscles = row.value(index, "primary_muscles"),
+                        secondaryMuscles = row.value(index, "secondary_muscles"),
+                        equipment = row.value(index, "equipment"),
+                        movementPattern = row.value(index, "movement_pattern"),
+                        movementCategory = row.value(index, "movement_category"),
+                        forceType = row.value(index, "force_type"),
+                        bodyRegion = row.value(index, "body_region"),
+                        laterality = row.value(index, "laterality"),
+                        plane = row.value(index, "plane"),
+                        trainingRole = row.value(index, "training_role"),
+                        sportTransferDirect = row.value(index, "sport_transfer_direct"),
+                        sportTransferSupportive = row.value(index, "sport_transfer_supportive"),
+                        loadProfile = row.value(index, "load_profile"),
+                        metadataConfidence = row.value(index, "metadata_confidence"),
+                        isActive = row.safeBool(index, "is_active") ?: true,
+                        isCustom = row.safeBool(index, "is_custom") ?: false,
+                        needsReview = row.safeBool(index, "needs_review") ?: false
+                    )
+                }
+                return@forEachIndexed
+            }
             val date = row.value(index, "date").trim()
             if (!date.isValidDate()) {
                 warnings += 1
                 return@forEachIndexed
             }
-            when (row.value(index, "row_type").trim().lowercase(Locale.US)) {
+            when (rowType) {
                 "daily" -> dailyRows += RestoreDailyRow(
                     date = date,
                     sleepHours = row.safeDouble(index, "sleep_hours"),
@@ -231,7 +376,7 @@ object RecordCsvBackupRestore {
                 else -> warnings += 1
             }
         }
-        return RecordCsvImportData.Restore(dailyRows, setRows, warnings)
+        return RecordCsvImportData.Restore(exerciseRows, dailyRows, setRows, warnings)
     }
 
     private fun parseDailyTimeseries(

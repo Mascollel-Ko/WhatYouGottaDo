@@ -20,7 +20,8 @@ internal fun Exercise.withFatigueOnlyPlanningMetadata(): Exercise {
 }
 
 internal fun Exercise.isProgramSelectableExercise(): Boolean =
-    resolvedActivityKind() == ActivityKind.TRAINING_EXERCISE &&
+    isActive &&
+        resolvedActivityKind() == ActivityKind.TRAINING_EXERCISE &&
         resolvedPlanningEligibility() == PlanningEligibility.PROGRAM_SELECTABLE
 
 internal fun Exercise.resolvedActivityKind(): ActivityKind {

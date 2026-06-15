@@ -68,4 +68,33 @@ class RecordCsvBackupRestoreTest {
         assertTrue(csv.contains(",set,"))
         assertTrue(csv.contains("memo"))
     }
+
+    @Test
+    fun restoreCsvExportsAndParsesExerciseMasterRows() {
+        val exercise = Exercise(
+            id = 1,
+            name = "Test Squat",
+            category = "근력운동",
+            stableKey = "test_squat",
+            description = "basic test exercise",
+            imageAssetName = "exercise_images/local_downloads/test_squat.png",
+            primaryMuscles = "QUADRICEPS,GLUTE",
+            equipment = "BARBELL",
+            movementPattern = "SQUAT",
+            movementCategory = "STRENGTH",
+            metadataConfidence = "HIGH"
+        )
+
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            exercises = listOf(exercise)
+        )
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+
+        assertTrue(csv.contains(",exercise,"))
+        assertEquals(1, parsed.exerciseRows.size)
+        assertEquals("test_squat", parsed.exerciseRows.first().stableKey)
+        assertEquals("exercise_images/local_downloads/test_squat.png", parsed.exerciseRows.first().imageAssetName)
+    }
 }

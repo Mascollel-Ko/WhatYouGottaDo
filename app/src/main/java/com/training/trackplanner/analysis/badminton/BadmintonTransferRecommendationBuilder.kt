@@ -101,7 +101,7 @@ class BadmintonTransferRecommendationBuilder {
         cautionLevel: BadmintonTransferCautionLevel,
         exercises: List<Exercise>
     ): List<String> =
-        exercises.mapNotNull { exercise ->
+        exercises.filter { exercise -> exercise.isActive }.mapNotNull { exercise ->
             val features = AnalysisFeatureExtractor.fromExercise(exercise)
             val axes = BadmintonTransferMetadataMapper.transferAxes(features)
             if (axis !in axes) return@mapNotNull null

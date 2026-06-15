@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrainingProgramItem::class,
         AppMeta::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class TrainingDatabase : RoomDatabase() {
@@ -117,6 +117,16 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `imageAssetName` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `isActive` INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `archivedAt` INTEGER")
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `isCustom` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `exercises` ADD COLUMN `needsReview` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -130,7 +140,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_3_4,
                         MIGRATION_4_5,
                         MIGRATION_5_6,
-                        MIGRATION_6_7
+                        MIGRATION_6_7,
+                        MIGRATION_7_8
                     )
                     .build()
                     .also { instance = it }
