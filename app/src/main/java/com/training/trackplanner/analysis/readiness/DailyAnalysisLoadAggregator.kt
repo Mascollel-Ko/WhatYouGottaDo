@@ -1,0 +1,205 @@
+package com.training.trackplanner.analysis.readiness
+
+import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.WorkoutEntryWithSets
+import java.time.LocalDate
+
+class DailyAnalysisLoadAggregator {
+    fun aggregate(
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        exerciseMap: Map<Long, Exercise>
+    ): List<DailyAnalysisLoad> {
+        val contributions = entriesWithSets.mapNotNull { entryWithSets ->
+            val confirmedSets = entryWithSets.sets.filter { set -> set.confirmed }
+            if (confirmedSets.isEmpty()) return@mapNotNull null
+            val exercise = exerciseMap[entryWithSets.entry.exerciseId] ?: return@mapNotNull null
+            val features = ExerciseAnalysisMapper.fromRecord(
+                exercise = exercise,
+                entry = entryWithSets.entry,
+                sets = entryWithSets.sets
+            )
+            if (!features.isCompleted) return@mapNotNull null
+
+            val date = runCatching { LocalDate.parse(entryWithSets.entry.date) }.getOrNull()
+                ?: return@mapNotNull null
+            val rpeModifier = TodayReadinessConstants.rpeModifier(features.averageRpe)
+            val baseDose = baseDose(features)
+            val systemicLoad = baseDose * features.systemicLoadWeight * rpeModifier
+            val neuralHeavyLoad = baseDose * features.neuralHeavyWeight * rpeModifier
+            val neuralSpeedLoad =
+                baseDose * features.neuralSpeedWeight * TodayReadinessConstants.speedRpeModifier(rpeModifier)
+            val localLoad =
+                baseDose * features.localLoadWeight * TodayReadinessConstants.localRpeModifier(rpeModifier)
+            val decelerationLoad = baseDose * features.decelerationWeight
+            val elasticLoad = baseDose * features.elasticSscWeight
+            val rotationLoad = baseDose * features.rotationPowerWeight
+            val antiRotationLoad = baseDose * features.antiRotationWeight
+            val overheadLoad = baseDose * features.overheadSwingWeight
+            val gripLoad = baseDose * features.gripLoadWeight
+            val hasCourtMovement = features.courtMovementTypes.isNotEmpty()
+            val badmintonBonus =
+                baseDose * TodayReadinessConstants.badmintonTransferBonus(
+                    features.badmintonTransferStrength,
+                    hasCourtMovement
+                )
+            val badmintonCourtLoad =
+                neuralSpeedLoad + decelerationLoad + elasticLoad + overheadLoad + gripLoad + badmintonBonus
+
+            val categoryLoads = mapOf(
+                FatigueCategoryKey.SYSTEMIC to systemicLoad,
+                FatigueCategoryKey.NEURAL_HEAVY to neuralHeavyLoad,
+                FatigueCategoryKey.NEURAL_SPEED to neuralSpeedLoad,
+                FatigueCategoryKey.LOCAL_MUSCLE to localLoad,
+                FatigueCategoryKey.DECELERATION to decelerationLoad,
+                FatigueCategoryKey.ELASTIC_SSC to elasticLoad,
+                FatigueCategoryKey.ROTATION_POWER to rotationLoad,
+                FatigueCategoryKey.ANTI_ROTATION to antiRotationLoad,
+                FatigueCategoryKey.OVERHEAD_REPETITION to overheadLoad,
+                FatigueCategoryKey.GRIP_FOREARM to gripLoad,
+                FatigueCategoryKey.BADMINTON_COURT to badmintonCourtLoad
+            ).filterValues { load -> load > 0.0 }
+
+            DailyLoadContribution(
+                date = date,
+                exerciseId = features.exerciseId,
+                entryId = entryWithSets.entry.id,
+                exerciseName = features.exerciseName,
+                recoveryDecayProfile = features.recoveryDecayProfile.ifBlank { "SHORT" },
+                categoryLoads = categoryLoads,
+                bodyPartLoads = bodyPartLoads(
+                    primaryMuscles = features.primaryMuscles,
+                    secondaryMuscles = features.secondaryMuscles,
+                    localLoad = localLoad,
+                    axialLoadLevel = features.axialLoadLevel,
+                    decelerationLoad = decelerationLoad,
+                    elasticLoad = elasticLoad,
+                    overheadLoad = overheadLoad,
+                    gripLoad = gripLoad
+                ),
+                baselineGroupLoads = baselineGroupLoads(features.adaptiveBaselineGroups, categoryLoads),
+                completedSets = features.completedSets,
+                totalReps = features.totalReps ?: 0,
+                durationMinutes = features.durationMinutes
+            )
+        }
+
+        return contributions
+            .groupBy { contribution -> contribution.date }
+            .map { (date, dailyContributions) ->
+                DailyAnalysisLoad(
+                    date = date,
+                    categoryLoads = dailyContributions.foldLoads { it.categoryLoads },
+                    bodyPartLoads = dailyContributions.foldLoads { it.bodyPartLoads },
+                    baselineGroupLoads = dailyContributions.foldLoads { it.baselineGroupLoads },
+                    completedEntryCount = dailyContributions.map { it.entryId }.distinct().size,
+                    completedSetCount = dailyContributions.sumOf { it.completedSets },
+                    contributions = dailyContributions
+                )
+            }
+            .sortedBy { daily -> daily.date }
+    }
+
+    private fun baseDose(features: com.training.trackplanner.analysis.features.AnalysisExerciseFeatures): Double {
+        val volumeLoad = features.totalVolumeLoad ?: 0.0
+        if (volumeLoad > 0.0) return volumeLoad
+        val repsLoad = (features.totalReps ?: 0) * TodayReadinessConstants.BODYWEIGHT_PROXY_LOAD
+        if (repsLoad > 0.0) return repsLoad
+        val durationLoad =
+            (features.durationMinutes ?: 0.0) * TodayReadinessConstants.DRILL_INTENSITY_PROXY_LOAD_PER_MINUTE
+        return durationLoad.coerceAtLeast(features.completedSets * 10.0)
+    }
+
+    private fun baselineGroupLoads(
+        groups: Set<String>,
+        categoryLoads: Map<FatigueCategoryKey, Double>
+    ): Map<String, Double> {
+        if (groups.isEmpty()) return emptyMap()
+        val weightedLoad = categoryLoads.values.sum()
+        if (weightedLoad <= 0.0) return emptyMap()
+        return groups.associateWith { weightedLoad / groups.size }
+    }
+
+    private fun bodyPartLoads(
+        primaryMuscles: Set<String>,
+        secondaryMuscles: Set<String>,
+        localLoad: Double,
+        axialLoadLevel: String,
+        decelerationLoad: Double,
+        elasticLoad: Double,
+        overheadLoad: Double,
+        gripLoad: Double
+    ): Map<String, Double> {
+        val loads = mutableMapOf<String, Double>()
+        primaryMuscles.forEach { token ->
+            muscleBodyParts(token).forEach { part ->
+                loads.add(part, localLoad * TodayReadinessConstants.LOCAL_PRIMARY_SHARE)
+            }
+        }
+        secondaryMuscles.forEach { token ->
+            muscleBodyParts(token).forEach { part ->
+                loads.add(part, localLoad * TodayReadinessConstants.LOCAL_SECONDARY_SHARE)
+            }
+        }
+        if (axialLoadLevel == "HIGH" || axialLoadLevel == "MODERATE") {
+            loads.add("erectors_low_back", localLoad * TodayReadinessConstants.AXIAL_BACK_SHARE)
+        }
+        val landingLoad = decelerationLoad + elasticLoad
+        if (landingLoad > 0.0) {
+            listOf("quads", "glutes", "calves_achilles", "hips_adductors_abductors").forEach { part ->
+                loads.add(part, landingLoad * TodayReadinessConstants.DECELERATION_LOWER_SHARE)
+            }
+        }
+        if (overheadLoad > 0.0) {
+            loads.add("shoulders", overheadLoad * TodayReadinessConstants.OVERHEAD_SHOULDER_SHARE)
+            loads.add("rotator_cuff", overheadLoad * TodayReadinessConstants.OVERHEAD_SHOULDER_SHARE)
+        }
+        if (gripLoad > 0.0) {
+            loads.add("forearm_grip", gripLoad * TodayReadinessConstants.GRIP_FOREARM_SHARE)
+        }
+        return loads.filterValues { value -> value > 0.0 }
+    }
+
+    private fun muscleBodyParts(token: String): List<String> {
+        val normalized = token.trim().uppercase()
+        if (normalized.isBlank()) return emptyList()
+        return when {
+            normalized.hasAny("QUAD", "대퇴", "허벅지", "사두") -> listOf("quads")
+            normalized.hasAny("HAMSTRING", "햄스트링") -> listOf("hamstrings")
+            normalized.hasAny("GLUTE", "둔근") -> listOf("glutes")
+            normalized.hasAny("CALF", "ACHILLES", "종아리", "아킬레스") -> listOf("calves_achilles")
+            normalized.hasAny("ERECTOR", "LOW_BACK", "SPINE", "척추", "기립") -> listOf("erectors_low_back")
+            normalized.hasAny("CHEST", "PECTOR", "가슴", "흉근") -> listOf("chest")
+            normalized.hasAny("LAT", "BACK", "등", "광배") -> listOf("lats_upper_back")
+            normalized.hasAny("SHOULDER", "DELTOID", "어깨", "삼각") -> listOf("shoulders")
+            normalized.hasAny("ROTATOR", "회전근") -> listOf("rotator_cuff")
+            normalized.hasAny("BICEP", "FLEXOR", "이두") -> listOf("elbow_flexors")
+            normalized.hasAny("TRICEP", "EXTENSOR", "삼두") -> listOf("elbow_extensors")
+            normalized.hasAny("FOREARM", "GRIP", "전완", "그립", "손목") -> listOf("forearm_grip")
+            normalized.hasAny("CORE", "ABS", "OBLIQUE", "복부", "코어", "몸통") -> listOf("core_abs_obliques")
+            normalized.hasAny("ADDUCTOR", "ABDUCTOR", "HIP", "고관절", "내전", "외전") ->
+                listOf("hips_adductors_abductors")
+            else -> emptyList()
+        }
+    }
+
+    private fun String.hasAny(vararg fragments: String): Boolean =
+        fragments.any { fragment -> contains(fragment, ignoreCase = true) }
+
+    private fun MutableMap<String, Double>.add(key: String, value: Double) {
+        if (value <= 0.0) return
+        put(key, (this[key] ?: 0.0) + value)
+    }
+
+    private fun <K> List<DailyLoadContribution>.foldLoads(
+        selector: (DailyLoadContribution) -> Map<K, Double>
+    ): Map<K, Double> {
+        val totals = mutableMapOf<K, Double>()
+        forEach { contribution ->
+            selector(contribution).forEach { (key, value) ->
+                if (value > 0.0) totals[key] = (totals[key] ?: 0.0) + value
+            }
+        }
+        return totals
+    }
+}

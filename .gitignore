@@ -1,0 +1,19 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.apk
+*.aab
+.idea/workspace.xml
+.idea/caches/
+.idea/libraries/
+.idea/
+
+# Android Studio / Kotlin local state
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/dictionaries/
+.kotlin/
+
+# Local generated workspace artifacts
+work/

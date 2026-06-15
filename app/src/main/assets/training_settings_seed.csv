@@ -1,0 +1,980 @@
+﻿schema_version,row_type,program_key,program_name,duration_days,week_number,day_of_week,order_index,exercise_name,category,detail1,detail2,mode,description,family_id,family_name,family_role,family_e1rm_multiplier,default_rest_seconds,rest_seconds,prescription,set_count,reps,weight_kg,seconds,stable_key,source,movement_pattern,movement_category,primary_muscles,secondary_muscles,equipment_tags,force_type,body_region,laterality,joint_emphasis,scapular_demand,hip_demand,plane,is_unilateral,metadata_updated_at
+3,exercise,,,,,,,B-스탠스 RDL,근력운동,햄스트링/둔근,척추기립근/골반안정근,"덤벨 또는 바벨, 무게*횟수",발을 앞뒤로 작게 벌려 앞다리에 대부분의 부하를 싣고 내려간다. 후면사슬 편측 보조운동으로 적합하다.,,,,1,90,,,,,,,ex_201f6426,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,햄스트링/둔근,척추기립근/골반안정근,바벨|덤벨,HINGE,LOWER,UNILATERAL,HIP|SPINE,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,EZ바 컬,근력운동,이두근,상완요골근/전완근,"EZ바, 무게*횟수",EZ바를 잡고 팔꿈치를 고정해 말아 올린다. 손목 부담을 줄이면서 이두 볼륨을 쌓기 좋다.,,,,1,60,,,,,,,ex_8633d8db,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,이두근,상완요골근/전완근,EZ바,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,V업,근력운동,복직근,고관절굴곡근/코어,"맨몸, 횟수",팔과 다리를 동시에 들어 몸을 접는다. 허리가 과하게 뜨지 않게 짧은 범위부터 통제한다.,,,,1,45,,,,,,,ex_644e0f9d,BUILT_IN,CORE_FLEXION|ANTERIOR_CORE|HIP_FLEXOR_ACCESSORY,ACCESSORY,복직근,고관절굴곡근/코어,맨몸,CORE,TRUNK,BILATERAL,SPINE|HIP,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,Yates Row,근력운동,광배근/능형근,후면삼각근/이두근,"언더핸드 바벨, 무게*횟수",상체를 약간 숙이고 언더핸드로 배 쪽을 향해 당긴다. 도리안 예이츠의 등 훈련으로 알려진 고중량 로우다.,row,로우,로우 계열,1,120,,,,,,,ex_8e4bf08e,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION,STRENGTH,광배근/능형근,후면삼각근/이두근,바벨,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,글루트 브릿지,근력운동,둔근,햄스트링/코어,"맨몸 또는 바벨, 횟수 또는 무게*횟수",등을 바닥에 두고 엉덩이를 들어 올린다. 허리를 꺾지 않고 둔근으로 골반을 펴는 감각을 확인한다.,,,,1,75,,,,,,,ex_389920ab,BUILT_IN,HIP_EXTENSION|GLUTE_STRENGTH|POSTERIOR_CHAIN_ACCESSORY,STRENGTH,둔근,햄스트링/코어,바벨|맨몸,HINGE,LOWER,BILATERAL,HIP,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,네거티브 풀업,근력운동,광배근/대원근,이두근/전완근/견갑안정근,"맨몸, 횟수",위에서 시작해 천천히 내려온다. 풀업 반복 수가 부족한 날에도 당기는 힘과 견갑 제어를 연습할 수 있다.,weighted_pullup,중량 풀업,풀업 계열,1,90,,,,,,,ex_e4f911bb,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL|ECCENTRIC_PULLING,STRENGTH,광배근/대원근,이두근/전완근/견갑안정근,맨몸,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,다이아몬드 푸시업,근력운동,삼두근/대흉근,전면삼각근/코어,"맨몸, 횟수",양손을 좁게 모아 푸시업을 한다. 팔꿈치가 과하게 벌어지지 않게 하며 삼두와 가슴 안쪽 자극을 기록한다.,,,,1,60,,,,,,,ex_debf6a8b,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH|TRICEPS_EMPHASIS,STRENGTH,삼두근/대흉근,전면삼각근/코어,맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,덤벨 래터럴 레이즈,근력운동,측면삼각근,상부승모근/회전근개,"덤벨, 무게*횟수","덤벨 래터럴 레이즈: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 측면삼각근이고, 상부승모근/회전근개이 흔들리지 않게 보조한다.",,,,1,60,,,,,,,ex_93538692,BUILT_IN,SHOULDER_ABDUCTION|SHOULDER_ISOLATION|SHOULDER_ACCESSORY,ACCESSORY,측면삼각근,상부승모근/회전근개,덤벨,ISOLATION,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 루마니안 데드리프트,근력운동,햄스트링/둔근,척추기립근/광배근/코어,"덤벨, 무게*횟수",덤벨을 허벅지 앞에 두고 엉덩이를 뒤로 보내며 내려간다. 햄스트링이 늘어나는 범위 안에서 등을 유지한다.,deadlift,데드리프트,루마니안 데드리프트 보정,1.18,90,,,,,,,ex_9523db82,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH,STRENGTH,햄스트링/둔근,척추기립근/광배근/코어,덤벨,HINGE,LOWER,BILATERAL,HIP|SPINE,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 리스트 익스텐션,근력운동,손목신전근/전완근,그립,"덤벨, 무게*횟수",손등을 위로 들어 손목 신전근을 훈련한다. 스매시와 라켓 제어 후 손목 균형을 맞추는 보조운동이다.,,,,1,45,,,,,,,ex_72f11dc5,BUILT_IN,WRIST_FOREARM|FOREARM_ACCESSORY|GRIP_SUPPORT,ACCESSORY,손목신전근/전완근,그립,덤벨,ISOLATION,UPPER,BILATERAL,WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 리스트 컬,근력운동,손목굴곡근/전완근,그립,"덤벨, 무게*횟수",전완을 고정하고 손목만 접어 올린다. 손목과 그립 지구력을 보강하되 통증이 있으면 중량을 낮춘다.,,,,1,45,,,,,,,ex_95028bfe,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,손목굴곡근/전완근,그립,덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 벤치프레스,근력운동,대흉근,삼두근/전면삼각근,"덤벨, 무게*횟수",양손 덤벨을 가슴 옆까지 낮춘 뒤 위로 민다. 로니 콜먼식 고중량 덤벨 프레스 계열의 기본형이다.,bench_press,벤치프레스,덤벨 벤치프레스 보정,1.22,90,,,,,,,ex_3a7d3eda,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,대흉근,삼두근/전면삼각근,덤벨|벤치,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,덤벨 숄더프레스,근력운동,전면삼각근/측면삼각근,삼두근/코어,"덤벨, 무게*횟수",덤벨을 어깨 높이에서 머리 위로 밀어 올린다. 바벨보다 어깨 각도를 조절하기 쉬운 기본 어깨 프레스다.,vertical_press,수직 프레스,덤벨/머신 프레스 보정,1.08,90,,,,,,,ex_79f3bdbe,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/코어,덤벨,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 스텝업,근력운동,둔근/대퇴사두근,햄스트링/종아리/코어,"박스/덤벨, 무게*횟수",박스 위로 한 발씩 올라서며 완전히 펴고 내려온다. 코트 전진 동작과 한발 추진력을 보강한다.,,,,1,75,,,,,,,ex_704cbf1a,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,둔근/대퇴사두근,햄스트링/종아리/코어,덤벨|박스/스텝박스,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,덤벨 컬,근력운동,이두근,전완근,"덤벨, 무게*횟수","덤벨 컬: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 이두근이고, 전완근이 흔들리지 않게 보조한다.",,,,1,60,,,,,,,ex_281347da,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,이두근,전완근,덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 킥백,근력운동,삼두근,후면삼각근/코어,"덤벨, 무게*횟수",상체를 숙이고 팔꿈치를 몸 옆에 고정한 뒤 팔을 뒤로 편다. 가볍게 끝 범위 수축을 확인한다.,,,,1,60,,,,,,,ex_da56a4fe,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY,ACCESSORY,삼두근,후면삼각근/코어,덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 풀오버,근력운동,광배근/대흉근,전거근/코어,"덤벨, 무게*횟수",벤치에 누워 덤벨을 머리 뒤로 내렸다가 가슴 위로 끌어온다. 고전 보디빌딩의 흉곽/등 보조 운동이다.,,,,1,75,,,,,,,ex_708e64ce,BUILT_IN,SHOULDER_EXTENSION|LAT_ACCESSORY|SCAPULAR_CONTROL|CHEST_LAT_ACCESSORY,ACCESSORY,광배근/대흉근,전거근/코어,덤벨,PULL,UPPER,BILATERAL,SHOULDER,SCAPULAR_DEPRESSION,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,덤벨 프로네이션/수피네이션,근력운동,회내근/회외근/전완근,그립,"덤벨 한쪽 잡기, 횟수",덤벨 끝을 잡고 손바닥을 안팎으로 천천히 회전한다. 라켓 회전 제어와 전완 내구성 보강용이다.,,,,1,45,,,,,,,ex_f6703b06,BUILT_IN,WRIST_FOREARM|FOREARM_ACCESSORY|GRIP_SUPPORT|FOREARM_ROTATION,ACCESSORY,회내근/회외근/전완근,그립,덤벨,ISOLATION,UPPER,BILATERAL,WRIST,,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,데드리프트,근력운동,햄스트링/둔근/척추기립근,광배근/코어,"바벨, 무게*횟수","데드리프트: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 햄스트링/둔근/척추기립근이고, 광배근/코어이 흔들리지 않게 보조한다.",deadlift,데드리프트,데드리프트 계열,1,150,,,,,,,barbell_deadlift,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH,STRENGTH,햄스트링/둔근/척추기립근,광배근/코어,바벨,HINGE,LOWER,BILATERAL,HIP|SPINE,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,등받이 없는 덤벨 시티드 숄더프레스,근력운동,전면삼각근/측면삼각근,삼두근/코어/견갑안정근,"덤벨, 무게*횟수","등받이 없는 덤벨 시티드 숄더프레스: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 전면삼각근/측면삼각근이고, 삼두근/코어/견갑안정근이 흔들리지 않게 보조한다.",vertical_press,수직 프레스,덤벨/머신 프레스 보정,1.08,90,,,,,,,ex_bb4b4276,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/코어/견갑안정근,덤벨,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,디클라인 푸시업,근력운동,상부대흉근/전면삼각근,삼두근/코어,"맨몸, 횟수",발을 높은 곳에 올리고 푸시업을 한다. 몸통을 곧게 유지하며 어깨가 으쓱하지 않게 밀어낸다.,,,,1,60,,,,,,,ex_fb67af37,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,상부대흉근/전면삼각근,삼두근/코어,콘/마커|맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,딥스,근력운동,대흉근/삼두근,전면삼각근/코어,"평행봉, 횟수 또는 중량",몸을 약간 앞으로 기울여 내려갔다가 밀어 올린다. 고전 보디빌딩 루틴에서 가슴과 삼두 보강에 자주 쓰인다.,,,,1,90,,,,,,,ex_6463edad,BUILT_IN,PUSH_VERTICAL_SUPPORT|CHEST_TRICEPS_STRENGTH,STRENGTH,대흉근/삼두근,전면삼각근/코어,평행봉,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,라잉 트라이셉스 익스텐션,근력운동,삼두근 장두,전완근/어깨안정근,"EZ바 또는 덤벨, 무게*횟수",누운 상태에서 팔꿈치를 굽혀 이마 뒤쪽으로 내렸다가 편다. 팔꿈치가 벌어지지 않게 통제한다.,,,,1,75,,,,,,,ex_d20b7487,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY,ACCESSORY,삼두근 장두,전완근/어깨안정근,EZ바|덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,래터럴 런지,근력운동,내전근/둔근/대퇴사두근,햄스트링/코어,"덤벨 또는 맨몸, 무게*횟수",옆으로 크게 디뎌 한쪽 다리를 접고 반대쪽은 길게 편다. 사이드 스텝과 측면 감속 능력 보강에 좋다.,,,,1,75,,,,,,,ex_b4b198de,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER|FRONTAL_PLANE_LOWER|ADDUCTOR_GLUTE_SUPPORT,STRENGTH,내전근/둔근/대퇴사두근,햄스트링/코어,덤벨|맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,랫풀다운,근력운동,광배근,이두근/하부승모근,"케이블 머신, 무게*횟수","랫풀다운: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근이고, 이두근/하부승모근이 흔들리지 않게 보조한다.",,,,1,90,,,,,,,ex_dc9e5953,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL,STRENGTH,광배근,이두근/하부승모근,케이블|머신,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,런지,근력운동,대퇴사두근/둔근,햄스트링/코어,"덤벨 또는 맨몸, 무게*횟수","런지: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 대퇴사두근/둔근이고, 햄스트링/코어이 흔들리지 않게 보조한다.",,,,1,90,,,,,,,ex_64644b5e,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER,STRENGTH,대퇴사두근/둔근,햄스트링/코어,덤벨|맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,레그 익스텐션,근력운동,대퇴사두근,무릎안정근,"머신, 무게*횟수",무릎을 펴 대퇴사두근을 수축한다. 스쿼트 후 대퇴사두근 볼륨을 더할 때 가볍게 통제한다.,,,,1,60,,,,,,,ex_b78a8f95,BUILT_IN,KNEE_EXTENSION|QUAD_ISOLATION,ACCESSORY,대퇴사두근,무릎안정근,레그익스텐션 머신,ISOLATION,LOWER,BILATERAL,KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,레그 컬,근력운동,햄스트링,종아리/무릎안정근,"머신, 무게*횟수",머신에서 무릎을 굽혀 햄스트링을 수축한다. 하체 후면 볼륨과 무릎 안정성 보완에 좋다.,,,,1,60,,,,,,,ex_2822ec2e,BUILT_IN,KNEE_FLEXION|HAMSTRING_STRENGTH,ACCESSORY,햄스트링,종아리/무릎안정근,레그컬 머신,ISOLATION,LOWER,BILATERAL,KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,레그 프레스,근력운동,대퇴사두근/둔근,햄스트링,"머신, 무게*횟수","레그 프레스: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 대퇴사두근/둔근이고, 햄스트링이 흔들리지 않게 보조한다.",,,,1,120,,,,,,,ex_ab468462,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH,STRENGTH,대퇴사두근/둔근,햄스트링,레그프레스 머신,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,로프 해머 컬,근력운동,상완요골근/상완근,이두근/전완근,"케이블 로프, 무게*횟수",로프를 잡고 엄지가 위를 향한 채 컬한다. 케이블 장력으로 팔꿈치 굴곡을 일정하게 기록한다.,,,,1,60,,,,,,,ex_c1a81cb2,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BRACHIALIS_BRACHIORADIALIS,ACCESSORY,상완요골근/상완근,이두근/전완근,케이블,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,루마니안 데드리프트,근력운동,햄스트링/둔근,척추기립근/코어,"바벨 또는 덤벨, 무게*횟수","루마니안 데드리프트: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 햄스트링/둔근이고, 척추기립근/코어이 흔들리지 않게 보조한다.",deadlift,데드리프트,루마니안 데드리프트 보정,1.18,120,,,,,,,ex_d2bb7946,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH,STRENGTH,햄스트링/둔근,척추기립근/코어,바벨|덤벨,HINGE,LOWER,BILATERAL,HIP|SPINE,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,리닝 래터럴 레이즈,근력운동,측면삼각근,상부승모근/회전근개,"덤벨, 무게*횟수",기둥이나 랙을 잡고 몸을 기울인 상태에서 팔을 옆으로 든다. 측면삼각근의 긴 범위를 천천히 쓴다.,,,,1,60,,,,,,,ex_70f19bf,BUILT_IN,SHOULDER_ABDUCTION|SHOULDER_ISOLATION|SHOULDER_ACCESSORY|UNILATERAL_UPPER,ACCESSORY,측면삼각근,상부승모근/회전근개,덤벨,ISOLATION,UPPER,UNILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,FRONTAL,1,1781278881407
+3,exercise,,,,,,,리버스 노르딕 컬,근력운동,대퇴사두근/고관절굴곡근,코어,"맨몸, 횟수",무릎을 대고 몸을 뒤로 천천히 젖혔다 돌아온다. 앞쪽 허벅지와 고관절 앞쪽을 통제된 범위에서 강화한다.,,,,1,75,,,,,,,ex_8a3800f1,BUILT_IN,KNEE_FLEXION|HAMSTRING_STRENGTH|ECCENTRIC_HAMSTRING|DECELERATION_SUPPORT,SUPPORT,대퇴사두근/고관절굴곡근,코어,맨몸,ECCENTRIC,LOWER,BILATERAL,KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,리버스 런지,근력운동,둔근/대퇴사두근,햄스트링/코어,"덤벨 또는 맨몸, 무게*횟수",뒤로 한 발 빼며 내려갔다가 앞발로 밀어 돌아온다. 무릎 부담을 줄이면서 한발 감속과 둔근 사용을 연습한다.,,,,1,90,,,,,,,ex_c8bcf3ce,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER,STRENGTH,둔근/대퇴사두근,햄스트링/코어,덤벨|맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,리버스 리스트 컬,근력운동,손목신전근/전완근,그립,"덤벨 또는 바벨, 무게*횟수",손등이 위를 향한 상태에서 손목을 들어 올린다. 손목 굴곡 운동과 균형을 맞춰 전완을 보강한다.,,,,1,45,,,,,,,ex_8e18b02a,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,손목신전근/전완근,그립,바벨|덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,리버스 컬,근력운동,상완요골근/전완근,이두근,"바벨 또는 EZ바, 무게*횟수",손등이 위를 향하게 잡고 컬을 수행한다. 라켓 스포츠에 필요한 전완 버티는 힘을 보강한다.,,,,1,60,,,,,,,ex_dd2f732e,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BRACHIALIS_BRACHIORADIALIS,ACCESSORY,상완요골근/전완근,이두근,EZ바|바벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,리어델트 케이블 플라이,근력운동,후면삼각근,능형근/회전근개,"케이블, 무게*횟수",양쪽 케이블을 잡고 팔을 뒤로 벌린다. 허리 반동 없이 어깨 뒤쪽으로 움직임을 마무리한다.,,,,1,60,,,,,,,ex_7deabeba,BUILT_IN,SHOULDER_HORIZONTAL_ABDUCTION|REAR_DELTOID_ISOLATION|SHOULDER_ACCESSORY|SCAPULAR_RETRACTION,ACCESSORY,후면삼각근,능형근/회전근개,케이블,PULL,UPPER,BILATERAL,SHOULDER,SCAPULAR_RETRACTION|ROTATOR_CUFF_SUPPORT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,리어델트 플라이,근력운동,후면삼각근,능형근/회전근개,"덤벨 또는 케이블, 무게*횟수",팔을 벌려 후면삼각근을 수축한다. 어깨 뒤쪽 볼륨과 견갑 안정성을 보완한다.,,,,1,60,,,,,,,ex_7176cbee,BUILT_IN,SHOULDER_HORIZONTAL_ABDUCTION|REAR_DELTOID_ISOLATION|SHOULDER_ACCESSORY|SCAPULAR_RETRACTION,ACCESSORY,후면삼각근,능형근/회전근개,덤벨|케이블,PULL,UPPER,BILATERAL,SHOULDER,SCAPULAR_RETRACTION|ROTATOR_CUFF_SUPPORT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,리어풋 엘리베이티드 스플릿 스쿼트,근력운동,대퇴사두근/둔근,햄스트링/내전근/코어,"벤치/덤벨, 무게*횟수",뒷발을 벤치에 올리고 앞다리 중심으로 내려간다. 불가리안 스플릿 스쿼트와 같은 패턴의 보디빌딩 하체 운동이다.,squat,스쿼트,스쿼트 계열,1,90,,,,,,,ex_bb728af2,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,대퇴사두근/둔근,햄스트링/내전근/코어,덤벨|벤치,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,링 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"링 또는 스트랩, 횟수",링을 잡고 몸을 당긴다. 손목과 어깨 각도를 자연스럽게 조절할 수 있어 견갑 안정성 확인에 좋다.,row,로우,로우 계열,1,75,,,,,,,ex_282a9d87,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|CORE_STABILITY_SUPPORT,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,TRX/링,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,마운틴 클라이머,근력운동,코어/고관절굴곡근,어깨안정근/심폐,"맨몸, 시간 또는 횟수",푸시업 자세에서 무릎을 번갈아 당긴다. 몸통 높이를 유지하며 빠른 고관절 반복과 코어 버티기를 기록한다.,,,,1,45,,,,,,,ex_a9b52886,BUILT_IN,FULL_BODY_CONDITIONING|CORE_STABILITY|HIP_FLEXOR_ACCESSORY|SHOULDER_STABILITY_SUPPORT,CONDITIONING,코어/고관절굴곡근,어깨안정근/심폐,맨몸,MIXED,WHOLE_BODY,ALTERNATING,SPINE|HIP|SHOULDER,SCAPULAR_CONTROL_LIGHT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,맨몸 스쿼트,근력운동,대퇴사두근/둔근,햄스트링/코어,"맨몸, 횟수",발바닥 전체로 바닥을 누르며 앉았다 일어난다. 워밍업이나 회복일에 스쿼트 패턴을 확인한다.,squat,스쿼트,스쿼트 계열,1,45,,,,,,,ex_cb3c4dc2,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,STRENGTH,대퇴사두근/둔근,햄스트링/코어,맨몸,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,머신 숄더프레스,근력운동,전면삼각근/측면삼각근,삼두근/견갑안정근,"머신, 무게*횟수",등받이에 기대어 어깨 위로 밀어 올린다. 몸통 안정성이 부족한 초보자가 어깨 프레스 힘을 쌓기 좋다.,vertical_press,수직 프레스,덤벨/머신 프레스 보정,1.08,90,,,,,,,ex_4aa3725a,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/견갑안정근,머신,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,머신 체스트프레스,근력운동,대흉근,삼두근/전면삼각근/견갑고정,"머신, 무게*횟수",등과 견갑을 패드에 안정적으로 고정하고 손잡이를 앞으로 민다. 초보자가 가슴 프레스 패턴을 안전하게 익히기 좋다.,,,,1,90,,,,,,,ex_1dbee10e,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,대흉근,삼두근/전면삼각근/견갑고정,머신,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,메도우즈 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"랜드마인 또는 바벨, 한팔 무게*횟수",바벨 한쪽 끝을 잡고 몸 옆으로 당긴다. 등 하부와 광배근을 강하게 쓰되 몸통 반동은 줄인다.,row,로우,로우 계열,1,90,,,,,,,ex_f459ad2a,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,랜드마인|바벨,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,바벨 로우,근력운동,광배근/능형근,이두근/후면삼각근/코어,"바벨, 무게*횟수","바벨 로우: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근/능형근이고, 이두근/후면삼각근/코어이 흔들리지 않게 보조한다.",row,로우,로우 계열,1,120,,,,,,,ex_de46b7f6,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION,STRENGTH,광배근/능형근,이두근/후면삼각근/코어,바벨,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,밴드 외회전,근력운동,회전근개,후면삼각근/견갑안정근,"밴드, 횟수",팔꿈치를 몸통 옆에 고정하고 바깥쪽으로 회전한다. 어깨 충돌을 줄이고 오버헤드 동작을 보조한다.,,,,1,45,,,,,,,ex_e8ff8cfa,BUILT_IN,SHOULDER_EXTERNAL_ROTATION|ROTATOR_CUFF_SUPPORT|SHOULDER_PREHAB,SUPPORT,회전근개,후면삼각근/견갑안정근,밴드,ISOLATION,UPPER,UNILATERAL,SHOULDER,ROTATOR_CUFF|SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,버드독,근력운동,심부코어/척추안정근,둔근/견갑안정근,"맨몸, 좌우 횟수",네발기기 자세에서 반대 팔과 다리를 뻗는다. 골반이 돌아가지 않게 버티며 몸통 안정성을 훈련한다.,,,,1,45,,,,,,,ex_28347c1f,BUILT_IN,CORE_STABILITY|ANTI_ROTATION|LUMBOPELVIC_CONTROL|CONTRALATERAL_COORDINATION,SUPPORT,심부코어/척추안정근,둔근/견갑안정근,맨몸,CORE,TRUNK,ALTERNATING,SPINE|HIP,SCAPULAR_CONTROL_LIGHT,PELVIC_STABILITY,ANTI_ROTATION,1,1781278881407
+3,exercise,,,,,,,벤치 딥스,근력운동,삼두근,대흉근/전면삼각근,"벤치, 횟수",손을 벤치에 두고 몸을 내려갔다 밀어 올린다. 어깨 앞쪽이 불편하면 깊이를 줄이거나 다른 삼두 운동으로 바꾼다.,bench_press,벤치프레스,벤치프레스 계열,1,60,,,,,,,ex_deca2b61,BUILT_IN,PUSH_VERTICAL_SUPPORT|TRICEPS_EMPHASIS|CHEST_ACCESSORY,STRENGTH,삼두근,대흉근/전면삼각근,벤치,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,벤치프레스,근력운동,대흉근,삼두근/전면삼각근,"바벨, 무게*횟수","벤치프레스: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 대흉근이고, 삼두근/전면삼각근이 흔들리지 않게 보조한다.",bench_press,벤치프레스,벤치프레스 계열,1,120,,,,,,,barbell_bench_press,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,대흉근,삼두근/전면삼각근,바벨|벤치,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,슈퍼맨,근력운동,척추기립근/둔근,햄스트링/견갑안정근,"맨몸, 횟수 또는 시간",엎드려 팔과 다리를 들어 올린다. 허리를 과하게 꺾기보다 등 뒤쪽 근육을 부드럽게 수축한다.,,,,1,45,,,,,,,ex_284ecca6,BUILT_IN,SPINAL_EXTENSION|POSTERIOR_CHAIN_ACCESSORY|GLUTE_BACK_SUPPORT,ACCESSORY,척추기립근/둔근,햄스트링/견갑안정근,맨몸,HINGE,TRUNK,BILATERAL,SPINE|HIP,SCAPULAR_CONTROL_LIGHT,HIP_EXTENSION_LIGHT,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스미스 머신 런지,근력운동,대퇴사두근/둔근,햄스트링/내전근,"스미스 머신, 무게*횟수",고정 궤도에서 런지 자세로 내려갔다 올라온다. 균형 부담을 낮추고 한쪽 다리 자극을 명확히 한다.,,,,1,90,,,,,,,ex_1052e9fa,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER,STRENGTH,대퇴사두근/둔근,햄스트링/내전근,스미스 머신,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,스미스 머신 스쿼트,근력운동,대퇴사두근/둔근,햄스트링/코어,"스미스 머신, 무게*횟수",스미스 머신 궤도 안에서 스쿼트한다. 상체 균형 부담을 줄이고 하체 볼륨에 집중할 때 사용한다.,squat,스쿼트,스쿼트 계열,1,120,,,,,,,ex_fa3416f6,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,STRENGTH,대퇴사두근/둔근,햄스트링/코어,스미스 머신,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스캡 풀업,근력운동,하부승모근/광배근,전거근/회전근개,"맨몸, 횟수",팔을 편 채 견갑골만 아래로 끌어내렸다가 돌아온다. 오버헤드 동작 전 견갑 제어를 깨우는 운동이다.,weighted_pullup,중량 풀업,풀업 계열,1,45,,,,,,,ex_e1894690,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL,STRENGTH,하부승모근/광배근,전거근/회전근개,맨몸,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,스쿼트,근력운동,대퇴사두근/둔근,햄스트링/코어,"바벨, 무게*횟수","스쿼트: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 대퇴사두근/둔근이고, 햄스트링/코어이 흔들리지 않게 보조한다.",squat,스쿼트,스쿼트 계열,1,120,,,,,,,barbell_back_squat,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,STRENGTH,대퇴사두근/둔근,햄스트링/코어,바벨,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스탠딩 레그 컬,근력운동,햄스트링,종아리/무릎안정근,"머신, 한발 무게*횟수",서서 한쪽 무릎을 굽혀 햄스트링을 수축한다. 좌우 햄스트링 힘 차이를 따로 보기 쉽다.,,,,1,60,,,,,,,ex_b59bed7d,BUILT_IN,KNEE_FLEXION|HAMSTRING_STRENGTH,ACCESSORY,햄스트링,종아리/무릎안정근,레그컬 머신,ISOLATION,LOWER,UNILATERAL,KNEE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,스탠딩 카프 레이즈,근력운동,비복근/종아리,발목안정근,"머신 또는 덤벨, 무게*횟수",무릎을 편 상태에서 뒤꿈치를 최대한 들어 올린다. 점프와 첫 발 반응을 위한 발목 탄성 보조운동이다.,,,,1,60,,,,,,,ex_bd072cd,BUILT_IN,CALF_ANKLE_STRENGTH|ANKLE_STIFFNESS_SUPPORT,ACCESSORY,비복근/종아리,발목안정근,덤벨|머신,ISOLATION,LOWER,BILATERAL,ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스트레이트암 풀다운,근력운동,광배근,전거근/코어,"케이블, 무게*횟수",팔꿈치를 거의 편 채 손을 허벅지 쪽으로 내린다. 로우나 풀업 전 광배근 사용을 깨우는 보조운동이다.,,,,1,60,,,,,,,ex_ca5cce66,BUILT_IN,SHOULDER_EXTENSION|LAT_ACCESSORY|SCAPULAR_CONTROL,ACCESSORY,광배근,전거근/코어,케이블,PULL,UPPER,BILATERAL,SHOULDER,SCAPULAR_DEPRESSION,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스파이더 컬,근력운동,이두근,전완근,"인클라인 벤치/덤벨 또는 EZ바, 무게*횟수",가슴을 벤치에 기대고 팔을 아래로 늘어뜨린 뒤 컬한다. 반동을 줄이고 상단 수축을 명확히 만든다.,bench_press,벤치프레스,덤벨 벤치프레스 보정,1.22,60,,,,,,,ex_516f4456,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BICEPS_ISOLATION_STRICT,ACCESSORY,이두근,전완근,EZ바|덤벨|벤치|콘/마커,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,스플릿 스쿼트,근력운동,대퇴사두근/둔근,햄스트링/내전근/코어,"덤벨 또는 맨몸, 무게*횟수",앞뒤로 발을 벌리고 제자리에서 내려갔다 올라온다. 한발 런지 힘을 안정적으로 쌓는 기본 편측 하체 운동이다.,squat,스쿼트,스쿼트 계열,1,90,,,,,,,ex_f2a79d37,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,대퇴사두근/둔근,햄스트링/내전근/코어,덤벨|맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,시티드 원암 케이블 로우,근력운동,광배근/능형근,후면삼각근/이두근,"케이블, 한팔 무게*횟수",앉은 상태에서 한 팔씩 케이블을 당긴다. 허리를 세우고 팔꿈치 경로를 일정하게 유지한다.,row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_a76f20b6,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근,케이블,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,시티드 카프 레이즈,근력운동,가자미근/종아리,발목안정근,"머신, 무게*횟수",무릎을 굽힌 상태에서 뒤꿈치를 들어 올린다. 코트 푸시와 착지에 필요한 종아리 지구력 보강용이다.,,,,1,60,,,,,,,ex_5c8751d2,BUILT_IN,CALF_ANKLE_STRENGTH|ANKLE_STIFFNESS_SUPPORT,ACCESSORY,가자미근/종아리,발목안정근,머신,ISOLATION,LOWER,BILATERAL,ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,싱글 레그 글루트 브릿지,근력운동,둔근,햄스트링/코어/골반안정근,"맨몸, 한발 횟수",한쪽 발로 바닥을 밀어 엉덩이를 들어 올린다. 좌우 둔근 활성 차이를 간단히 확인하기 좋다.,,,,1,60,,,,,,,ex_5715d6ca,BUILT_IN,HIP_EXTENSION|GLUTE_STRENGTH|POSTERIOR_CHAIN_ACCESSORY|PELVIC_STABILITY|UNILATERAL_LOWER,SUPPORT,둔근,햄스트링/코어/골반안정근,맨몸,HINGE,LOWER,UNILATERAL,HIP,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 레그 익스텐션,근력운동,대퇴사두근,무릎안정근,"머신, 한발 무게*횟수",레그 익스텐션을 한쪽 다리씩 수행한다. 대퇴사두근 좌우 차이를 분리해 기록할 수 있다.,,,,1,60,,,,,,,ex_d60745b4,BUILT_IN,KNEE_EXTENSION|QUAD_ISOLATION|UNILATERAL_LOWER,ACCESSORY,대퇴사두근,무릎안정근,레그익스텐션 머신,ISOLATION,LOWER,UNILATERAL,KNEE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 레그 컬,근력운동,햄스트링,종아리/무릎안정근,"머신, 한발 무게*횟수",레그 컬을 한쪽 다리씩 수행한다. 감속과 착지에 필요한 햄스트링 좌우 균형을 확인한다.,,,,1,60,,,,,,,ex_8824026f,BUILT_IN,KNEE_FLEXION|HAMSTRING_STRENGTH,ACCESSORY,햄스트링,종아리/무릎안정근,레그컬 머신,ISOLATION,LOWER,UNILATERAL,KNEE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 카프 레이즈,근력운동,비복근/가자미근,발목안정근,"맨몸 또는 덤벨, 한발 횟수",한쪽 발로 뒤꿈치를 들어 올린다. 첫 발 반응과 착지에 필요한 발목 탄성의 좌우 차이를 보기 좋다.,,,,1,45,,,,,,,ex_5ca7133f,BUILT_IN,CALF_ANKLE_STRENGTH|ANKLE_STIFFNESS_SUPPORT|UNILATERAL_LOWER,ACCESSORY,비복근/가자미근,발목안정근,덤벨|맨몸,ISOLATION,LOWER,UNILATERAL,ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 힙 쓰러스트,근력운동,둔근,햄스트링/코어/골반안정근,"벤치, 한발 횟수 또는 중량",한쪽 발로 지면을 밀며 엉덩이를 들어 올린다. 둔근 좌우 차이와 골반 안정성을 확인하기 좋다.,bench_press,벤치프레스,벤치프레스 계열,1,75,,,,,,,ex_d634055c,BUILT_IN,HIP_EXTENSION|GLUTE_STRENGTH|POSTERIOR_CHAIN_ACCESSORY|PELVIC_STABILITY|UNILATERAL_LOWER,SUPPORT,둔근,햄스트링/코어/골반안정근,벤치,HINGE,LOWER,UNILATERAL,HIP,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,아놀드 프레스,근력운동,전면삼각근/측면삼각근,삼두근/회전근개,"덤벨, 무게*횟수",손바닥을 몸쪽에서 바깥쪽으로 돌리며 덤벨을 밀어 올린다. 어깨 가동범위가 편한 선에서 통제한다.,,,,1,75,,,,,,,ex_767e188e,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/회전근개,덤벨,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,아처 푸시업,근력운동,대흉근/삼두근,전면삼각근/코어,"맨몸, 좌우 횟수",한쪽 팔에 더 많은 체중을 싣고 좌우로 번갈아 내려간다. 한팔 푸시업으로 가기 전 좌우 밀기 힘을 키운다.,,,,1,75,,,,,,,ex_73b0b63f,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH|UNILATERAL_UPPER|ANTI_ROTATION_SUPPORT,STRENGTH,대흉근/삼두근,전면삼각근/코어,맨몸,PUSH,UPPER,ALTERNATING,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,오버헤드 트라이셉스 익스텐션,근력운동,삼두근 장두,전완근/코어,"덤벨 또는 케이블, 무게*횟수",팔을 머리 위에 둔 상태에서 팔꿈치를 펴 삼두를 훈련한다. 삼두 장두 보완에 좋다.,,,,1,60,,,,,,,ex_a9e8859c,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY|OVERHEAD_ELBOW_EXTENSION|LONG_HEAD_TRICEPS,ACCESSORY,삼두근 장두,전완근/코어,덤벨|케이블,ISOLATION,UPPER,BILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,오버헤드 프레스,근력운동,전면삼각근/측면삼각근,삼두근/코어,"바벨, 무게*횟수","오버헤드 프레스: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 전면삼각근/측면삼각근이고, 삼두근/코어이 흔들리지 않게 보조한다.",vertical_press,수직 프레스,바벨 수직 프레스 계열,1,120,,,,,,,ex_32219f7a,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/코어,바벨,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,워킹 런지,근력운동,대퇴사두근/둔근,햄스트링/내전근/코어,"덤벨 또는 맨몸, 무게*횟수",앞으로 걸으며 런지를 반복한다. 코트에서 전진 런지 후 회복하는 힘과 편측 안정성을 함께 기른다.,,,,1,90,,,,,,,ex_e3715c0b,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER,STRENGTH,대퇴사두근/둔근,햄스트링/내전근/코어,덤벨|맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원레그 레그 프레스,근력운동,대퇴사두근/둔근,햄스트링/골반안정근,"머신, 한발 무게*횟수",레그 프레스를 한쪽 다리씩 수행한다. 좌우 힘 차이를 확인하고 한발로 밀어내는 능력을 키우기 좋다.,,,,1,105,,,,,,,ex_a091b9fe,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,대퇴사두근/둔근,햄스트링/골반안정근,레그프레스 머신,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원레그 핵 스쿼트,근력운동,대퇴사두근/둔근,햄스트링/골반안정근,"머신, 한발 무게*횟수",핵 스쿼트 머신에서 한쪽 다리 중심으로 밀어 올린다. 한발 힘과 좌우 대퇴사두근 차이를 기록하기 좋다.,,,,1,105,,,,,,,ex_f1d31d3d,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,대퇴사두근/둔근,햄스트링/골반안정근,핵스쿼트 머신,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 RDL,근력운동,햄스트링/둔근,코어/광배근/골반안정근,"덤벨, 한팔 무게*횟수",한 손에 덤벨을 들고 힙힌지를 수행한다. 몸통 회전과 골반 흔들림을 막으며 후면사슬을 훈련한다.,,,,1,75,,,,,,,ex_e0b1e364,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,햄스트링/둔근,코어/광배근/골반안정근,덤벨,HINGE,LOWER,UNILATERAL,HIP|SPINE,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"덤벨, 한팔 무게*횟수",한 손과 무릎을 벤치에 대고 덤벨을 옆구리로 당긴다. 좌우 등 힘 차이와 견갑 제어를 보기 좋다.,row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_30a0e9aa,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,덤벨,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 벤치프레스,근력운동,대흉근,전면삼각근/삼두근/코어,"덤벨, 한팔 무게*횟수",한쪽 팔로 덤벨을 밀어 올리며 몸통이 돌아가지 않게 버틴다. 가슴 프레스와 좌우 안정성을 함께 기록하기 좋다.,bench_press,벤치프레스,덤벨 벤치프레스 보정,1.22,90,,,,,,,ex_389e0556,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH|UNILATERAL_UPPER|ANTI_ROTATION_SUPPORT,STRENGTH,대흉근,전면삼각근/삼두근/코어,덤벨|벤치,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 숄더프레스,근력운동,전면삼각근/측면삼각근,삼두근/코어,"덤벨, 한팔 무게*횟수",한 팔씩 머리 위로 덤벨을 밀어 올린다. 갈비뼈가 들리지 않게 몸통을 고정하고 좌우 차이를 본다.,vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,90,,,,,,,ex_7814843a,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,STRENGTH,전면삼각근/측면삼각근,삼두근/코어,덤벨,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 오버헤드 트라이셉스 익스텐션,근력운동,삼두근 장두,전완근/코어,"덤벨, 한팔 무게*횟수",한 팔로 덤벨을 머리 뒤에서 위로 편다. 어깨 위치를 안정시키고 팔꿈치가 흔들리지 않게 한다.,,,,1,60,,,,,,,ex_fdbdf454,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY|UNILATERAL_UPPER|OVERHEAD_ELBOW_EXTENSION|LONG_HEAD_TRICEPS,ACCESSORY,삼두근 장두,전완근/코어,덤벨,ISOLATION,UPPER,UNILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 덤벨 컬,근력운동,이두근,전완근/코어,"덤벨, 한팔 무게*횟수",한 팔씩 덤벨 컬을 수행한다. 좌우 이두 힘 차이를 확인하기 좋고 반동을 줄여 정확히 기록하기 쉽다.,,,,1,60,,,,,,,ex_85b2ac56,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|UNILATERAL_UPPER,ACCESSORY,이두근,전완근/코어,덤벨,ISOLATION,UPPER,UNILATERAL,ELBOW|WRIST,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 랫풀다운,근력운동,광배근,이두근/하부승모근/코어,"케이블, 한팔 무게*횟수",한 팔씩 위에서 아래로 당겨 팔꿈치를 옆구리 쪽으로 보낸다. 광배근 좌우 차이를 확인하기 쉽다.,,,,1,75,,,,,,,ex_32eb8457,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL|UNILATERAL_UPPER,STRENGTH,광배근,이두근/하부승모근/코어,케이블,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,1,1781278881407
+3,exercise,,,,,,,원암 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"덤벨 또는 케이블, 한팔 무게*횟수","한 팔씩 당기는 로우 계열의 일반 항목이다. 그날 장비에 따라 덤벨, 케이블, 머신으로 수행하고 좌우 차이를 본다.",row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_e3487166,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,덤벨|케이블,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 리어델트 케이블 플라이,근력운동,후면삼각근,능형근/회전근개,"케이블, 한팔 무게*횟수",한 팔씩 케이블을 뒤로 벌린다. 견갑을 과하게 모으기보다 후면삼각근으로 팔을 여는 감각을 본다.,,,,1,60,,,,,,,ex_a60496be,BUILT_IN,SHOULDER_HORIZONTAL_ABDUCTION|REAR_DELTOID_ISOLATION|SHOULDER_ACCESSORY|SCAPULAR_RETRACTION|UNILATERAL_UPPER,ACCESSORY,후면삼각근,능형근/회전근개,케이블,PULL,UPPER,UNILATERAL,SHOULDER,SCAPULAR_RETRACTION|ROTATOR_CUFF_SUPPORT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 머신 로우,근력운동,광배근/능형근,후면삼각근/이두근,"머신, 한팔 무게*횟수",머신 핸들을 한쪽씩 당긴다. 궤도가 안정돼 있어 고중량에서도 좌우 등 사용량을 따로 보기 쉽다.,row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_33d2da8e,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근,머신,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 스트레이트암 풀다운,근력운동,광배근,전거근/코어,"케이블, 한팔 무게*횟수",한 팔씩 팔을 편 상태로 아래로 당긴다. 몸통 회전을 막으며 광배근 수축 방향을 따로 확인한다.,,,,1,60,,,,,,,ex_c365e5e2,BUILT_IN,SHOULDER_EXTENSION|LAT_ACCESSORY|SCAPULAR_CONTROL,ACCESSORY,광배근,전거근/코어,케이블,PULL,UPPER,UNILATERAL,SHOULDER,SCAPULAR_DEPRESSION,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 인버티드 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"바 또는 링, 한팔 횟수",몸을 비스듬히 세운 상태에서 한 팔 중심으로 당긴다. 견갑 안정성과 좌우 당기는 힘을 스포츠 전이형으로 보강한다.,row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_d9084b5e,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER|CORE_STABILITY_SUPPORT,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,TRX/링,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 인클라인 덤벨 프레스,근력운동,상부대흉근,전면삼각근/삼두근/코어,"덤벨, 한팔 무게*횟수",인클라인 벤치에서 한 팔씩 덤벨을 밀어 올린다. 상부 가슴과 어깨 전면의 좌우 차이를 확인한다.,vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,90,,,,,,,ex_9f283612,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH|UNILATERAL_UPPER|ANTI_ROTATION_SUPPORT,STRENGTH,상부대흉근,전면삼각근/삼두근/코어,덤벨|콘/마커,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 케이블 래터럴 레이즈,근력운동,측면삼각근,상부승모근/회전근개,"케이블, 한팔 무게*횟수",한 팔씩 케이블을 옆으로 든다. 어깨가 올라가지 않게 하고 좌우 측면삼각근 차이를 따로 기록한다.,,,,1,60,,,,,,,ex_b076570e,BUILT_IN,SHOULDER_ABDUCTION|SHOULDER_ISOLATION|SHOULDER_ACCESSORY|UNILATERAL_UPPER,ACCESSORY,측면삼각근,상부승모근/회전근개,케이블,ISOLATION,UPPER,UNILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,FRONTAL,1,1781278881407
+3,exercise,,,,,,,원암 케이블 숄더프레스,근력운동,전면삼각근/측면삼각근,삼두근/코어/회전근개,"케이블, 한팔 무게*횟수",케이블 저항을 한 팔로 위로 민다. 저항 방향이 흔들리므로 어깨와 몸통 안정성을 함께 요구한다.,vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,75,,,,,,,ex_c536edc2,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,STRENGTH,전면삼각근/측면삼각근,삼두근/코어/회전근개,케이블,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 케이블 컬,근력운동,이두근,전완근/코어,"케이블, 한팔 무게*횟수",케이블 손잡이를 한 팔씩 말아 올린다. 팔꿈치를 고정해 좌우 이두 수축 차이를 보기 쉽다.,,,,1,60,,,,,,,ex_3d5719de,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|UNILATERAL_UPPER,ACCESSORY,이두근,전완근/코어,케이블,ISOLATION,UPPER,UNILATERAL,ELBOW|WRIST,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 케이블 트라이셉스 푸시다운,근력운동,삼두근,전완근/코어,"케이블, 한팔 무게*횟수",한 팔씩 케이블을 아래로 밀어 팔꿈치를 편다. 팔꿈치 위치를 고정해 좌우 삼두 차이를 확인한다.,,,,1,60,,,,,,,ex_5322f2d1,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY|UNILATERAL_UPPER,ACCESSORY,삼두근,전완근/코어,케이블,ISOLATION,UPPER,UNILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,원암 케이블 플라이,근력운동,대흉근,전면삼각근/코어,"케이블, 한팔 무게*횟수",케이블을 한 팔씩 몸 앞쪽으로 모은다. 몸통 회전을 억제하면서 가슴 수축과 좌우 차이를 따로 본다.,,,,1,60,,,,,,,ex_442617f6,BUILT_IN,CHEST_FLY|CHEST_ACCESSORY|SHOULDER_HORIZONTAL_ADDUCTION,ACCESSORY,대흉근,전면삼각근/코어,케이블,PUSH,UPPER,UNILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 케이블 하이 로우,근력운동,광배근/하부승모근,능형근/후면삼각근/코어,"케이블, 한팔 무게*횟수",높은 케이블을 한쪽 팔로 대각선 아래로 당긴다. 스매시 후 당기는 패턴과 견갑 하강을 보강한다.,row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_40fa57be,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/하부승모근,능형근/후면삼각근/코어,케이블,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,원암 해머 컬,근력운동,상완요골근/이두근,전완근/그립,"덤벨, 한팔 무게*횟수",엄지가 위를 향하게 잡고 한 팔씩 들어 올린다. 라켓 그립과 전완 버티는 힘을 함께 보강한다.,,,,1,60,,,,,,,ex_86323ed6,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BRACHIALIS_BRACHIORADIALIS|UNILATERAL_UPPER,ACCESSORY,상완요골근/이두근,전완근/그립,덤벨,ISOLATION,UPPER,UNILATERAL,ELBOW|WRIST,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,월싯,근력운동,대퇴사두근,둔근/코어,"벽, 시간",벽에 등을 기대고 무릎을 굽힌 상태로 버틴다. 무릎 각도와 허리 위치를 일정하게 유지한다.,,,,1,45,,,,,,,ex_64661229,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH,STRENGTH,대퇴사두근,둔근/코어,벽,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,인버티드 로우,근력운동,광배근/능형근,후면삼각근/이두근/코어,"바 또는 링, 횟수",바 아래에 몸을 두고 가슴을 바 쪽으로 당긴다. 몸을 곧게 유지해 등과 견갑 제어를 함께 훈련한다.,row,로우,로우 계열,1,75,,,,,,,ex_e159d15a,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|CORE_STABILITY_SUPPORT,STRENGTH,광배근/능형근,후면삼각근/이두근/코어,TRX/링,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,인클라인 덤벨 컬,근력운동,이두근 장두,전완근,"덤벨, 무게*횟수",기울인 벤치에 기대 팔을 뒤쪽에 둔 상태로 컬한다. 이두가 늘어난 위치에서 천천히 시작한다.,,,,1,60,,,,,,,ex_d5048362,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,이두근 장두,전완근,덤벨|콘/마커,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,인클라인 덤벨 프레스,근력운동,상부대흉근,전면삼각근/삼두근,"덤벨, 무게*횟수","인클라인 덤벨 프레스: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 상부대흉근이고, 전면삼각근/삼두근이 흔들리지 않게 보조한다.",vertical_press,수직 프레스,덤벨/머신 프레스 보정,1.08,90,,,,,,,ex_a61f1e96,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,상부대흉근,전면삼각근/삼두근,덤벨|콘/마커,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,인클라인 덤벨 플라이,근력운동,상부대흉근,전면삼각근/전거근,"덤벨, 무게*횟수",기울인 벤치에서 팔을 넓게 열었다가 상부 가슴으로 모은다. 어깨 앞쪽이 밀리지 않게 가동범위를 조절한다.,,,,1,60,,,,,,,ex_a61f307a,BUILT_IN,CHEST_FLY|CHEST_ACCESSORY|SHOULDER_HORIZONTAL_ADDUCTION,ACCESSORY,상부대흉근,전면삼각근/전거근,덤벨|콘/마커,PUSH,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,중량 친업,근력운동,광배근/이두근,전완근/코어,"벨트 또는 덤벨, 무게*횟수",친업에 추가 중량을 걸고 당긴다. 팔꿈치 굴곡 힘과 등 힘을 유지하되 실패지점까지 밀지 않는다.,weighted_pullup,중량 풀업,풀업 계열,1,120,,,,,,,ex_e41e8dcf,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL|MAX_STRENGTH,STRENGTH,광배근/이두근,전완근/코어,덤벨,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,중량 풀업,근력운동,광배근/대원근,이두근/전완근/코어,"벨트 또는 덤벨, 무게*횟수",풀업에 추가 중량을 걸고 몸통 흔들림을 줄여 당긴다. 배드민턴의 등/그립/견갑 안정성 강화에 유리하다.,weighted_pullup,중량 풀업,풀업 계열,1,120,,,,,,,ex_e41f4c2b,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL|MAX_STRENGTH,STRENGTH,광배근/대원근,이두근/전완근/코어,덤벨,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,체스트 서포티드 로우,근력운동,광배근/능형근,후면삼각근/이두근,"벤치 또는 머신, 무게*횟수",가슴을 패드나 벤치에 기대고 당긴다. 허리 반동을 줄이고 등 근육에 집중하기 좋다.,bench_press,벤치프레스,벤치프레스 계열,1,90,,,,,,,ex_8e51640a,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION,STRENGTH,광배근/능형근,후면삼각근/이두근,머신|벤치,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,체스트 서포티드 원암 덤벨 로우,근력운동,광배근/능형근,후면삼각근/이두근,"인클라인 벤치/덤벨, 한팔 무게*횟수",가슴을 벤치에 기대고 한 팔씩 당긴다. 허리 반동을 줄여 등 수축과 좌우 차이를 더 깔끔하게 기록할 수 있다.,bench_press,벤치프레스,덤벨 벤치프레스 보정,1.22,75,,,,,,,ex_6a966452,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근,덤벨|벤치|콘/마커,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,체스트 서포티드 원암 로우,근력운동,광배근/능형근,후면삼각근/이두근,"인클라인 벤치/덤벨 또는 머신, 한팔 무게*횟수",가슴을 지지한 상태에서 한 팔씩 당긴다. 허리 피로를 줄이고 등 수축 품질을 유지하기 좋다.,bench_press,벤치프레스,덤벨 벤치프레스 보정,1.22,75,,,,,,,ex_462c760e,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,후면삼각근/이두근,덤벨|머신|벤치|콘/마커,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,친업,근력운동,광배근/이두근,전완근/코어,"맨몸 또는 중량, 횟수",손바닥이 몸을 향하게 잡고 가슴을 바까지 당긴다. 팔꿈치 굴곡과 등 통합 힘을 함께 기른다.,weighted_pullup,중량 풀업,풀업 계열,1,90,,,,,,,ex_6466fe77,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL,STRENGTH,광배근/이두근,전완근/코어,맨몸,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,카프 레이즈,근력운동,비복근/가자미근,발목안정근,"머신 또는 덤벨, 무게*횟수","뒤꿈치를 들어 올려 종아리를 수축한다. 점프, 착지, 보행 안정성 보조에 쓰는 기본 종아리 운동이다.",,,,1,60,,,,,,,ex_f892893e,BUILT_IN,CALF_ANKLE_STRENGTH|ANKLE_STIFFNESS_SUPPORT,ACCESSORY,비복근/가자미근,발목안정근,덤벨|머신,ISOLATION,LOWER,BILATERAL,ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,캡틴체어 레그 레이즈,근력운동,복직근/고관절굴곡근,전거근/견갑안정근,"캡틴체어, 횟수",팔꿈치를 받치고 다리를 들어 올린다. 매달리기 부담 없이 하복부와 고관절 굴곡을 기록하기 좋다.,,,,1,60,,,,,,,ex_a345e30b,BUILT_IN,CORE_FLEXION|ANTERIOR_CORE|HIP_FLEXOR_ACCESSORY,ACCESSORY,복직근/고관절굴곡근,전거근/견갑안정근,,CORE,TRUNK,BILATERAL,SPINE|HIP,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,컨센트레이션 컬,근력운동,이두근,전완근,"덤벨, 한팔 무게*횟수",팔꿈치를 허벅지 안쪽에 고정하고 한 팔씩 컬한다. 반동을 줄인 이두 고립운동으로 좌우 차이 확인에 좋다.,,,,1,60,,,,,,,ex_c62c0716,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BICEPS_ISOLATION_STRICT,ACCESSORY,이두근,전완근,덤벨,ISOLATION,UPPER,UNILATERAL,ELBOW|WRIST,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,케이블 래터럴 레이즈,근력운동,측면삼각근,상부승모근/회전근개,"케이블, 무게*횟수",케이블을 옆으로 들어 측면삼각근을 수축한다. 덤벨보다 시작 구간 장력이 커서 가볍게 통제한다.,,,,1,60,,,,,,,ex_b76d3f92,BUILT_IN,SHOULDER_ABDUCTION|SHOULDER_ISOLATION|SHOULDER_ACCESSORY,ACCESSORY,측면삼각근,상부승모근/회전근개,케이블,ISOLATION,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,케이블 로우,근력운동,광배근/능형근,이두근/후면삼각근,"케이블, 무게*횟수",케이블을 몸쪽으로 당겨 등을 수축한다. 허리 부담을 낮추면서 등 볼륨을 쌓기 좋은 기본 로우다.,row,로우,로우 계열,1,90,,,,,,,ex_fa31f7a6,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION,STRENGTH,광배근/능형근,이두근/후면삼각근,케이블,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,케이블 원암 로우,근력운동,광배근/능형근,이두근/후면삼각근/코어,"케이블, 무게*횟수","케이블 원암 로우: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근/능형근이고, 이두근/후면삼각근/코어이 흔들리지 않게 보조한다.",row,로우,원암/덤벨 로우 보정,1.12,75,,,,,,,ex_3c3692aa,BUILT_IN,PULL_HORIZONTAL|BACK_STRENGTH|SCAPULAR_RETRACTION|UNILATERAL_UPPER,STRENGTH,광배근/능형근,이두근/후면삼각근/코어,케이블,PULL,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_RETRACTION,,TRANSVERSE,1,1781278881407
+3,exercise,,,,,,,케이블 원암 트라이셉스 익스텐션,근력운동,삼두근,전완근/코어,"케이블, 무게*횟수","케이블 원암 트라이셉스 익스텐션: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 삼두근이고, 전완근/코어이 흔들리지 않게 보조한다.",,,,1,60,,,,,,,ex_eb636bac,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY|UNILATERAL_UPPER,ACCESSORY,삼두근,전완근/코어,케이블,ISOLATION,UPPER,UNILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,케이블 컬,근력운동,이두근,전완근,"케이블, 무게*횟수",케이블을 팔꿈치 고정 상태로 말아 올린다. 반복 내내 장력이 유지돼 이두 고립에 좋다.,,,,1,60,,,,,,,ex_e709eeda,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT,ACCESSORY,이두근,전완근,케이블,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,케이블 킥백,근력운동,둔근,햄스트링/코어,"케이블, 한발 무게*횟수",발목 스트랩으로 한쪽 다리를 뒤로 뻗는다. 허리를 꺾지 않고 둔근 수축으로 끝 범위를 만든다.,,,,1,60,,,,,,,ex_fa34ddfe,BUILT_IN,HIP_EXTENSION|GLUTE_ISOLATION|POSTERIOR_CHAIN_ACCESSORY|UNILATERAL_LOWER,ACCESSORY,둔근,햄스트링/코어,케이블,ISOLATION,LOWER,UNILATERAL,HIP,,HIP_EXTENSION,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,케이블 풀스루,근력운동,둔근/햄스트링,척추기립근/코어,"케이블, 무게*횟수",케이블을 다리 사이로 잡고 엉덩이를 뒤로 보냈다가 편다. 허리보다 둔근과 햄스트링으로 마무리한다.,,,,1,75,,,,,,,ex_4c76dbb2,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH,STRENGTH,둔근/햄스트링,척추기립근/코어,케이블,HINGE,LOWER,BILATERAL,HIP|SPINE,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,케이블 플라이,근력운동,대흉근,전면삼각근/코어,"케이블, 무게*횟수",케이블을 양손으로 모아 가슴을 수축한다. 프레스 후 가슴 볼륨을 보완하는 고립운동이다.,,,,1,60,,,,,,,ex_4c779df2,BUILT_IN,CHEST_FLY|CHEST_ACCESSORY|SHOULDER_HORIZONTAL_ADDUCTION,ACCESSORY,대흉근,전면삼각근/코어,케이블,PUSH,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,크로스바디 해머 컬,근력운동,상완요골근/상완근,이두근/전완근,"덤벨, 무게*횟수",덤벨을 반대쪽 가슴 방향으로 들어 올린다. 팔 두께와 전완 보조 힘을 함께 기른다.,,,,1,60,,,,,,,ex_b69ab702,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BRACHIALIS_BRACHIORADIALIS,ACCESSORY,상완요골근/상완근,이두근/전완근,덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,클로즈그립 벤치프레스,근력운동,삼두근/대흉근,전면삼각근,"바벨, 무게*횟수",일반 벤치보다 손 간격을 좁혀 밀어 올린다. 손목과 어깨가 불편하면 간격을 조금 넓혀 조절한다.,bench_press,벤치프레스,좁은 그립 벤치프레스 보정,1.05,120,,,,,,,ex_27b3deb5,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,삼두근/대흉근,전면삼각근,바벨|벤치,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,킥스탠스 RDL,근력운동,햄스트링/둔근,척추기립근/골반안정근,"덤벨 또는 바벨, 무게*횟수",한쪽 발을 뒤꿈치 보조로 두고 앞다리 중심으로 힙힌지를 한다. 싱글 레그 RDL보다 안정적으로 좌우 차이를 본다.,,,,1,90,,,,,,,ex_885b629,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,햄스트링/둔근,척추기립근/골반안정근,바벨|덤벨,HINGE,LOWER,UNILATERAL,HIP|SPINE,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,트라이셉스 푸시다운,근력운동,삼두근,전완근,"케이블, 무게*횟수",케이블 바나 로프를 아래로 밀어 삼두근을 수축한다. 팔 볼륨을 위한 기본 삼두 고립운동이다.,,,,1,60,,,,,,,ex_fa570291,BUILT_IN,ELBOW_EXTENSION|TRICEPS_ISOLATION|ARM_ACCESSORY,ACCESSORY,삼두근,전완근,케이블,ISOLATION,UPPER,BILATERAL,ELBOW|SHOULDER,SHOULDER_STABILITY_LIGHT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,파이크 푸시업,근력운동,전면삼각근/측면삼각근,삼두근/상부승모근/코어,"맨몸, 횟수",엉덩이를 높이고 머리가 바닥 쪽으로 내려가게 밀어낸다. 맨몸으로 오버헤드 프레스 패턴을 연습한다.,,,,1,75,,,,,,,ex_3caa236b,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/상부승모근/코어,맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,페이스풀,근력운동,후면삼각근/하부승모근,회전근개/능형근,"케이블, 무게*횟수","페이스풀: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 후면삼각근/하부승모근이고, 회전근개/능형근이 흔들리지 않게 보조한다.",,,,1,60,,,,,,,face_pull,BUILT_IN,SHOULDER_HORIZONTAL_ABDUCTION|REAR_DELTOID_ISOLATION|SHOULDER_ACCESSORY|SCAPULAR_RETRACTION|EXTERNAL_ROTATION_SUPPORT,ACCESSORY,후면삼각근/하부승모근,회전근개/능형근,케이블,PULL,UPPER,BILATERAL,SHOULDER,SCAPULAR_RETRACTION|ROTATOR_CUFF_SUPPORT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,푸시업,근력운동,대흉근,삼두근/전면삼각근/코어,"맨몸, 횟수","푸시업: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 대흉근이고, 삼두근/전면삼각근/코어이 흔들리지 않게 보조한다.",,,,1,60,,,,,,,ex_28902b13,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,대흉근,삼두근/전면삼각근/코어,맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,풀업,근력운동,광배근,이두근/코어,"맨몸, 횟수","풀업: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근이고, 이두근/코어이 흔들리지 않게 보조한다.",weighted_pullup,중량 풀업,풀업 계열,1,90,,,,,,,pull_up,BUILT_IN,PULL_VERTICAL|BACK_STRENGTH|SCAPULAR_CONTROL,STRENGTH,광배근,이두근/코어,맨몸,PULL,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_DEPRESSION|SCAPULAR_RETRACTION,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,프론트 스쿼트,근력운동,대퇴사두근/코어,둔근/상부등,"바벨, 무게*횟수",바벨을 앞쪽 어깨에 올리고 스쿼트한다. 상체를 세운 자세로 대퇴사두근과 코어를 함께 훈련한다.,squat,스쿼트,프론트 스쿼트 보수 환산,0.88,120,,,,,,,ex_c5043892,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,STRENGTH,대퇴사두근/코어,둔근/상부등,바벨,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,프론트풋 엘리베이티드 스플릿 스쿼트,근력운동,대퇴사두근/둔근,내전근/햄스트링/코어,"낮은 발판/덤벨, 무게*횟수",앞발을 낮은 발판에 올리고 깊게 내려간다. 무릎 전방 범위와 둔근 사용을 함께 늘릴 때 쓴다.,squat,스쿼트,프론트 스쿼트 보수 환산,0.88,90,,,,,,,ex_7ce96a7a,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,대퇴사두근/둔근,내전근/햄스트링/코어,덤벨|박스/스텝박스,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,프리처 컬,근력운동,이두근,전완근,"EZ바 또는 덤벨, 무게*횟수",팔꿈치를 패드에 고정해 반동을 줄이고 컬한다. 아놀드식 팔 훈련에서 자주 보이는 이두 고립운동이다.,,,,1,60,,,,,,,ex_e994008a,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BICEPS_ISOLATION_STRICT,ACCESSORY,이두근,전완근,EZ바|덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,플랫 덤벨 플라이,근력운동,대흉근,전면삼각근/전거근,"덤벨, 무게*횟수",팔꿈치를 살짝 굽힌 채 양팔을 벌렸다가 가슴 앞으로 모은다. 프레스보다 가슴 늘어남과 수축 감각을 우선한다.,,,,1,60,,,,,,,ex_91b749b3,BUILT_IN,CHEST_FLY|CHEST_ACCESSORY|SHOULDER_HORIZONTAL_ADDUCTION,ACCESSORY,대흉근,전면삼각근/전거근,덤벨,PUSH,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,할로우 바디 홀드,근력운동,복직근/심부코어,고관절굴곡근,"맨몸, 시간",허리를 바닥에 붙이고 팔과 다리를 뻗은 채 버틴다. 몸통이 꺾이지 않는 기본 코어 긴장을 만든다.,row,로우,로우 계열,1,45,,,,,,,ex_2a826c82,BUILT_IN,CORE_STABILITY|ANTI_EXTENSION|ANTERIOR_CORE,SUPPORT,복직근/심부코어,고관절굴곡근,맨몸,CORE,TRUNK,BILATERAL,SPINE|HIP,,,ANTI_EXTENSION,0,1781278881407
+3,exercise,,,,,,,해머 컬,근력운동,상완요골근/이두근,전완근,"덤벨, 무게*횟수",엄지가 위를 향하게 들고 컬한다. 팔 두께와 그립 보조에 좋고 배드민턴 전완 보강에도 쓸 수 있다.,,,,1,60,,,,,,,ex_2892da5a,BUILT_IN,ELBOW_FLEXION|BICEPS_ACCESSORY|FOREARM_GRIP_SUPPORT|BRACHIALIS_BRACHIORADIALIS,ACCESSORY,상완요골근/이두근,전완근,덤벨,ISOLATION,UPPER,BILATERAL,ELBOW|WRIST,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,핵 스쿼트,근력운동,대퇴사두근,둔근/햄스트링,"머신, 무게*횟수",머신에서 등을 대고 깊게 내려갔다가 밀어 올린다. 대퇴사두근에 집중하기 쉬운 보디빌딩 하체 운동이다.,,,,1,120,,,,,,,ex_e9e97659,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,STRENGTH,대퇴사두근,둔근/햄스트링,핵스쿼트 머신,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,핸드스탠드 푸시업,근력운동,전면삼각근/측면삼각근,삼두근/상부승모근/코어,"벽 또는 맨몸, 횟수",벽을 이용하거나 물구나무 자세에서 팔을 굽혔다 편다. 난도가 높으므로 범위와 자세 품질을 먼저 관리한다.,,,,1,120,,,,,,,ex_fa2e73b3,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION,STRENGTH,전면삼각근/측면삼각근,삼두근/상부승모근/코어,벽|맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,행잉 레그 레이즈,근력운동,복직근/고관절굴곡근,전완근/광배근,"철봉, 횟수",철봉에 매달려 다리를 들어 올린다. 골반을 말아 올리는 느낌으로 코어를 쓰고 흔들림을 줄인다.,,,,1,60,,,,,,,ex_b3f447be,BUILT_IN,CORE_FLEXION|ANTERIOR_CORE|HIP_FLEXOR_ACCESSORY,ACCESSORY,복직근/고관절굴곡근,전완근/광배근,철봉/풀업바,CORE,TRUNK,BILATERAL,SPINE|HIP,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,힙 쓰러스트,근력운동,둔근,햄스트링/코어,"바벨, 무게*횟수","힙 쓰러스트: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 둔근이고, 햄스트링/코어이 흔들리지 않게 보조한다.",,,,1,120,,,,,,,ex_721f7b5b,BUILT_IN,HIP_EXTENSION|GLUTE_STRENGTH|POSTERIOR_CHAIN_ACCESSORY,STRENGTH,둔근,햄스트링/코어,바벨,HINGE,LOWER,BILATERAL,HIP,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,힙 어덕션,근력운동,내전근,골반안정근/코어,"머신 또는 케이블, 무게*횟수",다리를 안쪽으로 모아 내전근을 훈련한다. 사이드 런지와 코트 감속에서 필요한 안쪽 허벅지 힘을 보강한다.,,,,1,60,,,,,,,ex_eaea872c,BUILT_IN,HIP_STABILITY_SUPPORT|FRONTAL_PLANE_LOWER|ADDUCTOR_STRENGTH_SUPPORT,SUPPORT,내전근,골반안정근/코어,케이블|머신,LOWER_BODY,LOWER,BILATERAL,HIP,,PELVIC_STABILITY,FRONTAL,0,1781278881407
+3,exercise,,,,,,,힙 어브덕션,근력운동,중둔근/둔근,골반안정근,"머신 또는 밴드, 무게*횟수",다리를 바깥쪽으로 벌려 중둔근을 훈련한다. 런지와 방향전환에서 골반이 무너지지 않게 돕는다.,,,,1,60,,,,,,,ex_728da646,BUILT_IN,HIP_STABILITY_SUPPORT|FRONTAL_PLANE_LOWER|GLUTE_MED_SUPPORT,SUPPORT,중둔근/둔근,골반안정근,힙어브덕션 머신|밴드,LOWER_BODY,LOWER,BILATERAL,HIP,,PELVIC_STABILITY,FRONTAL,0,1781278881407
+3,exercise,,,,,,,30초 반복 스매시 테스트,기능성운동,스매시/상지폭발/타점반복/코어전달,라켓/셔틀콕/피더,시간/성공횟수,30초 동안 성공한 스매시 횟수를 기록한다. 스매시 속도 장비가 없을 때 상지 폭발력과 반복 타점 유지의 대체 지표로 쓴다.,,,,1,90,,,,,,,ex_91d8430b,BUILT_IN,BADMINTON_SKILL_TEST|OVERHEAD_POWER|ROTATIONAL_POWER|REPEATED_STRIKE_CAPACITY,SPORT_SPECIFIC,스매시/상지폭발/타점반복/코어전달,라켓/셔틀콕/피더,콘/마커,POWER,WHOLE_BODY,BILATERAL,SHOULDER|SPINE|HIP,ROTATOR_CUFF_SUPPORT,HIP_ROTATION,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,6방향 랜덤 콕줍기,기능성운동,랜덤반응/방향전환/감속/회복,셔틀콕/코트,시간 또는 반복,무작위로 놓이거나 지시된 6방향 셔틀콕을 줍고 중앙으로 회복한다. 실제 랠리처럼 반응과 풋워크 전환을 함께 훈련한다.,,,,1,60,,,,,,,ex_bc84eb7f,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,랜덤반응/방향전환/감속/회복,셔틀콕/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,6코너 섀도우 풋워크,기능성운동,풋워크/가속/감속/회복,코트 또는 콘,시간,코트 여섯 방향으로 이동하고 중앙으로 회복한다. 배드민턴의 기본 이동 패턴을 반복해 체력과 리듬을 만든다.,,,,1,60,,,,,,,ex_33841b88,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,풋워크/가속/감속/회복,코트 또는 콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,6코너 풋워크 최대반복 테스트,기능성운동,풋워크/방향전환/감속/재출발,코트 또는 콘,시간/최대횟수,정해진 시간 안에 6코너 이동을 몇 번 완성하는지 기록한다. 풋워크 속도와 감속 품질 변화를 보기 위한 테스트다.,,,,1,90,,,,,,,ex_c7977dfd,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,풋워크/방향전환/감속/재출발,코트 또는 콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,A스킵,기능성운동,무릎드라이브/리듬/접지,맨몸/트랙,거리 또는 시간,무릎을 올리며 스킵 리듬으로 전진한다. 러닝 자세의 무릎 드라이브와 반대팔 리듬을 맞춘다.,,,,1,30,,,,,,,ex_a12de111,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|KNEE_DRIVE,RUNNING_DRILL,무릎드라이브/리듬/접지,맨몸/트랙,콘/마커|맨몸,PLYOMETRIC,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,B스킵,기능성운동,햄스트링리듬/하퇴스윙,맨몸/트랙,거리 또는 시간,무릎을 올린 뒤 발을 앞으로 뻗어 긁듯이 내려놓는다. 보폭 회수와 접지 위치 감각을 익힌다.,,,,1,30,,,,,,,ex_a12de4d2,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|HAMSTRING_SWING,RUNNING_DRILL,햄스트링리듬/하퇴스윙,맨몸/트랙,콘/마커|맨몸,PLYOMETRIC,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,가벼운 콕줍기,기능성운동,회복/가벼운풋워크/리듬,셔틀콕/코트,시간 또는 반복,낮은 강도로 셔틀콕을 줍고 중앙으로 돌아온다. 피로가 큰 주에 움직임 감각만 유지하는 드릴이다.,,,,1,45,,,,,,,ex_216351a1,BUILT_IN,FOOTWORK_LIGHT|RECOVERY_MOVEMENT|LOW_INTENSITY_COORDINATION,AGILITY,회복/가벼운풋워크/리듬,셔틀콕/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,고블릿 스쿼트,기능성운동,하체힘/코어/스쿼트패턴,케틀벨 또는 덤벨,무게*횟수,"고블릿 스쿼트: 하체힘/코어/스쿼트패턴을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",squat,스쿼트,스쿼트 계열,1,75,,,,,,,ex_ac7df636,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN,SUPPORT,하체힘/코어/스쿼트패턴,케틀벨 또는 덤벨,덤벨|케틀벨,LOWER_BODY,LOWER,BILATERAL,HIP|KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,노르딕 햄스트링 컬,기능성운동,햄스트링/감속/후면사슬,파트너 또는 고정대,횟수,무릎을 고정하고 몸을 천천히 앞으로 내린다. 급정지와 감속에서 햄스트링 보호 능력을 기른다.,,,,1,90,,,,,,,ex_1cf51b6b,USER_EDITED,KNEE_FLEXION|HAMSTRING_STRENGTH|ECCENTRIC_HAMSTRING|DECELERATION_SUPPORT,SUPPORT,햄스트링/감속/후면사슬,파트너 또는 고정대,파트너/고정대,ECCENTRIC,LOWER,BILATERAL,KNEE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,데드버그,기능성운동,코어/요추안정성/협응,맨몸,횟수,"데드버그: 코어/요추안정성/협응을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",deadlift,데드리프트,데드리프트 계열,1,30,,,,,,,ex_d5bdffe1,BUILT_IN,CORE_STABILITY|ANTI_EXTENSION|LUMBOPELVIC_CONTROL|CONTRALATERAL_COORDINATION,SUPPORT,코어/요추안정성/협응,맨몸,맨몸,CORE,TRUNK,ALTERNATING,SPINE|HIP,,PELVIC_STABILITY,ANTI_EXTENSION,1,1781278881407
+3,exercise,,,,,,,드롭 점프,기능성운동,탄성/착지제어/반응힘,박스,횟수,낮은 박스에서 내려와 짧게 착지한 뒤 즉시 점프한다. 빠른 접지와 반응 파워를 훈련한다.,,,,1,60,,,,,,,ex_d6726746,BUILT_IN,PLYOMETRIC_SSC|LOWER_BODY_POWER|LANDING_CONTROL_SUPPORT|LANDING_CONTROL_DIRECT,PLYOMETRIC,탄성/착지제어/반응힘,박스,박스/스텝박스,PLYOMETRIC,LOWER,BILATERAL,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,라인 홉,기능성운동,발목반응/좌우제어,라인,횟수 또는 시간,바닥 선을 기준으로 짧게 좌우 또는 앞뒤로 넘는다. 낮은 강도의 플라이오메트릭 입문 드릴이다.,,,,1,45,,,,,,,ex_a3ddd8ac,BUILT_IN,ANKLE_STIFFNESS|PLYOMETRIC_SSC|LOW_LEVEL_HOP|LANDING_CONTROL_SUPPORT,PLYOMETRIC,발목반응/좌우제어,라인,콘/마커,PLYOMETRIC,LOWER,BILATERAL,ANKLE,,,FRONTAL,0,1781278881407
+3,exercise,,,,,,,래터럴 바운드,기능성운동,측면파워/감속/방향전환,맨몸,횟수 또는 시간,"래터럴 바운드: 측면파워/감속/방향전환을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,45,,,,,,,ex_34e7d21,BUILT_IN,LATERAL_POWER|LATERAL_DECELERATION_DIRECT|LANDING_CONTROL_DIRECT|PLYOMETRIC_SSC|CHANGE_OF_DIRECTION_SUPPORT,PLYOMETRIC,측면파워/감속/방향전환,맨몸,맨몸,PLYOMETRIC,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,래터럴 스텝다운,기능성운동,무릎제어/둔근/편측제어,박스,횟수,박스 위에서 한쪽 다리로 버티며 반대 발을 옆으로 낮춘다. 무릎이 안쪽으로 무너지지 않게 제어하는 훈련이다.,,,,1,60,,,,,,,ex_69a56484,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT|FRONTAL_PLANE_LOWER|ADDUCTOR_GLUTE_SUPPORT,SUPPORT,무릎제어/둔근/편측제어,박스,박스/스텝박스,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,랜덤 방향전환 드릴,기능성운동,랜덤반응/방향전환/감속/재출발,콘 또는 코치 신호,시간,무작위 신호에 따라 방향을 바꾸고 멈춘 뒤 다시 출발한다. 첫 스텝과 감속 후 재출발을 함께 훈련한다.,,,,1,60,,,,,,,ex_64422511,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,랜덤반응/방향전환/감속/재출발,콘 또는 코치 신호,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,랜덤 비프 풋워크,기능성운동,신호반응/풋워크/방향전환/감속,비프 신호/코트,시간,소리 신호에 맞춰 무작위 방향으로 이동한다. 예측이 어려운 상황에서 첫 발과 복귀 리듬을 훈련한다.,,,,1,60,,,,,,,ex_c5f4c242,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,신호반응/풋워크/방향전환/감속,비프 신호/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,랜덤 풋워크,기능성운동,랜덤반응/풋워크/방향전환/회복,코트/콘,시간,정해진 순서 없이 여러 방향으로 움직이고 중앙으로 회복한다. 경기 상황에 가까운 풋워크 품질을 본다.,,,,1,60,,,,,,,ex_1c7f2342,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,랜덤반응/풋워크/방향전환/회복,코트/콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,린단 참고 트랙 스프린트,기능성운동,가속/최고속도/하체파워,트랙,거리 또는 시간,린단의 트랙 스프린트 훈련 보도를 참고한 항목이다. 짧은 질주와 충분한 휴식으로 폭발적 이동 속도를 기른다.,,,,1,90,,,,,,,ex_4773b6ea,USER_CREATED,GENERAL_SUPPORT,SUPPORT,가속/최고속도/하체파워,트랙,콘/마커,MIXED,WHOLE_BODY,BILATERAL,,,,,0,1781278881407
+3,exercise,,,,,,,린단 참고 페이스 체인지 풋워크,기능성운동,속도변화/풋워크/반응,코트/콘,시간,린단 경기 특성인 템포 변화와 코트 장악을 참고한 드릴이다. 느린 이동에서 급가속으로 전환하는 패턴을 반복한다.,,,,1,60,,,,,,,ex_5004ca76,USER_CREATED,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT|PACE_CHANGE|ACCELERATION_DECELERATION_TRANSITION,AGILITY,속도변화/풋워크/반응,코트/콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,멀티셔틀 풋워크,기능성운동,반복스피드/심폐/코트회복,셔틀/코트,시간 또는 반복,연속 투입되는 셔틀에 맞춰 여러 방향으로 이동한다. 경기 속도에서 풋워크와 회복 능력을 함께 훈련한다.,,,,1,60,,,,,,,ex_752b45ae,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT|REPEAT_SPRINT_ABILITY|AEROBIC_ANAEROBIC,AGILITY,반복스피드/심폐/코트회복,셔틀/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,메디신볼 슬램,기능성운동,순발력/코어,메디신볼,횟수 또는 시간,메디신볼 슬램: 횟수 또는 시간 방식으로 수행한다. 주요 타깃은 순발력/코어이며 보조 요소는 메디신볼이다.,,,,1,60,,,,,,,ex_26ac0c19,USER_CREATED,POWER|CORE_POWER|SHOULDER_EXTENSION_POWER,POWER,순발력/코어,메디신볼,메디신볼,POWER,WHOLE_BODY,BILATERAL,SHOULDER|SPINE|HIP,SCAPULAR_CONTROL_LIGHT,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,미니밴드 사이드워크,기능성운동,중둔근/골반안정성,미니밴드,거리 또는 횟수,무릎이나 발목에 밴드를 걸고 옆으로 걷는다. 러닝과 스쿼트에서 골반이 무너지는 것을 줄이는 보조운동이다.,,,,1,45,,,,,,,ex_16b298db,BUILT_IN,HIP_STABILITY_SUPPORT|FRONTAL_PLANE_LOWER|GLUTE_MED_SUPPORT,SUPPORT,중둔근/골반안정성,미니밴드,밴드,LOWER_BODY,LOWER,ALTERNATING,HIP,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,바이퍼 트위스트(아래로),기능성운동,회전생성,바이퍼,무게*횟수,위에서 바이퍼를 아래로 내려치고 멈춘다. 상체 회전력을 만든다.,,,,1,90,,,,,,,ex_8354acd,USER_CREATED,ROTATIONAL_POWER|TRUNK_ROTATION|CORE_POWER,POWER,회전생성,바이퍼,바이퍼,ROTATION,TRUNK,BILATERAL,SPINE|HIP|SHOULDER,SCAPULAR_CONTROL_LIGHT,HIP_ROTATION,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,박스 스텝업,기능성운동,하체힘/보행안정성/둔근,낮은 박스,횟수 또는 무게*횟수,낮은 박스에 한 발씩 올라서며 골반과 무릎이 흔들리지 않게 제어한다. 어려운 한발 운동 전 단계로 쓴다.,,,,1,60,,,,,,,ex_6232f4bc,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,SUPPORT,하체힘/보행안정성/둔근,낮은 박스,박스/스텝박스,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,박스 점프,기능성운동,탄성/하체파워/착지제어,박스,횟수,"박스 점프: 탄성/하체파워/착지제어을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,60,,,,,,,ex_d9e141e4,BUILT_IN,PLYOMETRIC_SSC|LOWER_BODY_POWER|LANDING_CONTROL_SUPPORT,PLYOMETRIC,탄성/하체파워/착지제어,박스,박스/스텝박스,PLYOMETRIC,LOWER,BILATERAL,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,발목/고관절 가동성,기능성운동,가동성/착지준비/부상예방,맨몸,시간,발목과 고관절을 부드럽게 움직여 풋워크 전 관절 범위를 확보한다. 고강도 점프 전 준비운동으로 쓴다.,,,,1,30,,,,,,,ex_149730de,BUILT_IN,MOBILITY|RECOVERY_SUPPORT|ANKLE_HIP_MOBILITY,MOBILITY,가동성/착지준비/부상예방,맨몸,맨몸,MOBILITY,WHOLE_BODY,BILATERAL,HIP|ANKLE,,,,0,1781278881407
+3,exercise,,,,,,,버피,기능성운동,전신컨디셔닝/파워/심폐,맨몸,횟수 또는 시간,"버피: 전신컨디셔닝/파워/심폐을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,45,,,,,,,ex_3f184ef9,BUILT_IN,FULL_BODY_CONDITIONING|CARDIO|PLYOMETRIC_SUPPORT,CONDITIONING,전신컨디셔닝/파워/심폐,맨몸,맨몸,MIXED,WHOLE_BODY,BILATERAL,HIP|KNEE|SHOULDER,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,불가리안 스플릿 스쿼트,기능성운동,편측제어/하체힘/감속,벤치/덤벨,무게*횟수,뒷발을 벤치에 올리고 앞다리로 내려갔다 민다. 코트 런지와 한발 감속 능력을 보강한다.,squat,스쿼트,스쿼트 계열,1,90,,,,,,,ex_e2efd0fe,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT|DECELERATION_SUPPORT,SUPPORT,편측제어/하체힘/감속,벤치/덤벨,덤벨|벤치,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,사이드 스텝 후 정지,기능성운동,좌우이동/감속/균형,코트 또는 콘,시간,좌우로 빠르게 이동한 뒤 마지막 스텝에서 몸이 밀리지 않게 정지한다. 방향전환 전 감속 능력을 훈련한다.,,,,1,60,,,,,,,ex_9b132c23,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT|LATERAL_DECELERATION_DIRECT,AGILITY,좌우이동/감속/균형,코트 또는 콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,사이드 플랭크,기능성운동,측면코어/골반안정성,맨몸,시간,"사이드 플랭크: 측면코어/골반안정성을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,45,,,,,,,ex_f6d43398,BUILT_IN,CORE_STABILITY|ANTI_LATERAL_FLEXION|LUMBOPELVIC_CONTROL,SUPPORT,측면코어/골반안정성,맨몸,맨몸,CORE,TRUNK,UNILATERAL,SPINE|HIP,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,셔틀런,기능성운동,방향전환/감속/가속,콘,시간 또는 반복,"셔틀런: 방향전환/감속/가속을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,60,,,,,,,ex_a4040be3,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,방향전환/감속/가속,콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,스캡 푸시업,기능성운동,전거근/견갑제어,맨몸,횟수,팔꿈치를 편 푸시업 자세에서 견갑골만 밀고 모은다. 푸시업과 프레스 전 견갑 고정 감각을 만든다.,,,,1,30,,,,,,,ex_c4535de3,BUILT_IN,PUSH_HORIZONTAL|CHEST_STRENGTH,STRENGTH,전거근/견갑제어,맨몸,맨몸,PUSH,UPPER,BILATERAL,SHOULDER|ELBOW,SCAPULAR_CONTROL_LIGHT,,TRANSVERSE,0,1781278881407
+3,exercise,,,,,,,스케이터 스쿼트,기능성운동,편측제어/둔근/감속,맨몸 또는 덤벨,횟수 또는 무게*횟수,뒤쪽 무릎을 바닥 쪽으로 보내며 한발로 내려갔다 올라온다. 사이드 런지와 착지 제어에 필요한 한발 힘을 키운다.,squat,스쿼트,스쿼트 계열,1,75,,,,,,,ex_ee378da7,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT|DECELERATION_SUPPORT,SUPPORT,편측제어/둔근/감속,맨몸 또는 덤벨,덤벨|맨몸,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,스킵 바운드,기능성운동,수평탄성/둔근파워/리듬,맨몸/트랙,거리 또는 횟수,스킵보다 길게 떠서 전진하되 착지는 조용하게 한다. 초보자는 낮은 볼륨으로 탄성 감각만 확인한다.,,,,1,45,,,,,,,ex_c4ea0a2a,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|HORIZONTAL_POWER|PLYOMETRIC_SSC,RUNNING_DRILL,수평탄성/둔근파워/리듬,맨몸/트랙,콘/마커|맨몸,PLYOMETRIC,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,스트라이드,기능성운동,러닝기술/가속/리듬,트랙 또는 평지,거리 또는 시간,짧은 거리에서 70~85% 속도로 부드럽게 가속한다. 전력질주가 아니라 자세와 리듬을 확인하는 드릴이다.,,,,1,60,,,,,,,ex_c5c2fdef,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|ACCELERATION_SUPPORT|RUNNING_RHYTHM,RUNNING_DRILL,러닝기술/가속/리듬,트랙 또는 평지,콘/마커,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,스트레칭,기능성운동,회복/가동성/관절보호,맨몸,시간,훈련 후 관절과 근육을 가볍게 풀어준다. 디로드 주간에는 피로를 낮추고 움직임 품질을 유지하는 데 쓴다.,,,,1,30,,,,,,,ex_dd16e07a,BUILT_IN,MOBILITY|RECOVERY_SUPPORT,MOBILITY,회복/가동성/관절보호,맨몸,맨몸,MOBILITY,WHOLE_BODY,BILATERAL,,,,,0,1781278881407
+3,exercise,,,,,,,스플릿 스텝,기능성운동,발빠름/리듬/첫스텝,맨몸/코트,시간 또는 반복,상대 타이밍에 맞춰 짧게 튀며 준비 자세를 만든다. 첫 발 반응과 이동 리듬을 정리하는 기본 드릴이다.,,,,1,45,,,,,,,ex_c6d9efef,BUILT_IN,SPLIT_STEP_DIRECT|REACTION_AGILITY_DIRECT|FIRST_STEP_SUPPORT,AGILITY,발빠름/리듬/첫스텝,맨몸/코트,콘/마커|맨몸,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,스플릿 스텝 리액션,기능성운동,반응속도/발빠름/방향전환,콘 또는 코치 신호,시간,스플릿 스텝 후 신호 방향으로 첫 발을 빠르게 낸다. 배드민턴 수비와 네트 대시의 출발 반응을 훈련한다.,,,,1,45,,,,,,,ex_8e69fc74,BUILT_IN,SPLIT_STEP_DIRECT|REACTION_AGILITY_DIRECT|FIRST_STEP_SUPPORT|CHANGE_OF_DIRECTION_DIRECT,AGILITY,반응속도/발빠름/방향전환,콘 또는 코치 신호,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,스플릿 스텝 후 좌우 런지,기능성운동,첫스텝/좌우런지/감속,코트 또는 콘,횟수 또는 시간,스플릿 스텝 후 좌우 중 한 방향으로 런지하고 균형을 잡는다. 배드민턴 수비 첫 발과 감속을 함께 연습한다.,,,,1,60,,,,,,,ex_377448a9,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT|DECELERATION_SUPPORT,SUPPORT,첫스텝/좌우런지/감속,코트 또는 콘,콘/마커,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 RDL,기능성운동,편측제어/힙힌지/균형,덤벨 또는 케틀벨,무게*횟수,"싱글 레그 RDL: 편측제어/힙힌지/균형을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,75,,,,,,,single_leg_rdl,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,STRENGTH,편측제어/힙힌지/균형,덤벨 또는 케틀벨,덤벨|케틀벨,HINGE,LOWER,UNILATERAL,HIP|SPINE,,HIP_EXTENSION|PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 박스 스쿼트,기능성운동,편측제어/하체힘/균형,박스/벤치,횟수 또는 무게*횟수,박스에 앉듯 한발로 내려갔다가 올라온다. 한발 스쿼트 패턴을 안전하게 연습하며 좌우 제어를 확인한다.,squat,스쿼트,박스 스쿼트 보수 환산,0.96,75,,,,,,,ex_85f12271,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,SUPPORT,편측제어/하체힘/균형,박스/벤치,벤치|박스/스텝박스,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,싱글 레그 홉 앤 스틱,기능성운동,착지제어/탄성/편측제어,맨몸,횟수,한발로 짧게 뛰고 같은 발로 조용히 멈춘다. 배드민턴의 급정지와 재가속 전 착지 안정성을 점검한다.,,,,1,60,,,,,,,ex_314df428,BUILT_IN,LANDING_CONTROL_DIRECT|DECELERATION_DIRECT|UNILATERAL_LOWER|PLYOMETRIC_SSC,PLYOMETRIC,착지제어/탄성/편측제어,맨몸,맨몸,PLYOMETRIC,LOWER,UNILATERAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,안세영 참고 고강도 랠리 풋워크,기능성운동,반복스피드/수비전환/심폐,코트/파트너,시간,남자 선수들과의 고강도 훈련 공개 인터뷰를 참고한 항목이다. 긴 랠리 속에서 수비 후 공격 전환을 반복한다.,,,,1,60,,,,,,,ex_c1bf2aa8,USER_CREATED,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT|REPEAT_SPRINT_ABILITY|AEROBIC_ANAEROBIC,AGILITY,반복스피드/수비전환/심폐,코트/파트너,콘/마커|파트너/고정대,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,앙클링,기능성운동,발목탄성/러닝리듬,맨몸/트랙,거리 또는 시간,발목을 작게 튕기며 짧은 접지로 앞으로 이동한다. 러닝 전 발목 탄성과 리듬을 깨우는 기본 드릴이다.,,,,1,30,,,,,,,ex_a412dd45,BUILT_IN,ANKLE_STIFFNESS|PLYOMETRIC_SSC|RUNNING_DRILL,PLYOMETRIC,발목탄성/러닝리듬,맨몸/트랙,콘/마커|맨몸,PLYOMETRIC,LOWER,ALTERNATING,ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,앞뒤 랜덤 콕줍기,기능성운동,전후이동/랜덤반응/가속/감속,셔틀콕/코트,시간 또는 반복,앞코트와 뒤코트 방향을 무작위로 오가며 셔틀콕을 줍는다. 네트 대시와 후방 회복의 첫 발 반응을 훈련한다.,,,,1,60,,,,,,,ex_4255e429,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,전후이동/랜덤반응/가속/감속,셔틀콕/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,애질리티 래더,기능성운동,발빠름/협응/리듬,래더,시간,"애질리티 래더: 발빠름/협응/리듬을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,45,,,,,,,ex_2055b629,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,발빠름/협응/리듬,래더,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,원암 하프 닐링 프레스,기능성운동,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,무게*횟수,하프 닐링 원암 프레스와 같은 패턴의 항목이다. 좌우 어깨 안정성과 몸통 흔들림을 따로 기록한다.,,,,1,75,,,,,,,ex_8380d7fe,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,SUPPORT,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,덤벨|케틀벨,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,월 드라이브,기능성운동,러닝자세/무릎드라이브/코어,벽,횟수 또는 시간,벽을 밀며 몸을 기울이고 무릎을 번갈아 당긴다. 골반과 몸통을 고정한 채 러닝 추진 자세를 익힌다.,,,,1,30,,,,,,,ex_f332aeab,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|KNEE_DRIVE,RUNNING_DRILL,러닝자세/무릎드라이브/코어,벽,벽,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,월 슬라이드,기능성운동,견갑상방회전/어깨가동성,벽,횟수,등과 팔을 벽에 대고 천천히 위아래로 움직인다. 초보자의 견갑 움직임과 오버헤드 준비를 돕는다.,,,,1,30,,,,,,,ex_f97a05ab,BUILT_IN,SCAPULAR_CONTROL|SHOULDER_PREHAB|SCAPULAR_UPWARD_ROTATION|SHOULDER_MOBILITY,SUPPORT,견갑상방회전/어깨가동성,벽,벽,SUPPORT,UPPER,BILATERAL,SHOULDER,SCAPULAR_CONTROL|SCAPULAR_UPWARD_ROTATION,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,점프 런지,기능성운동,하체파워/편측제어/착지제어,맨몸,횟수,런지 자세에서 점프해 다리를 바꿔 착지한다. 배드민턴 런지 회복과 하체 탄성에 직접적인 전이가 있다.,,,,1,60,,,,,,,ex_df966b45,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER|PLYOMETRIC_SSC|LANDING_CONTROL_SUPPORT,SUPPORT,하체파워/편측제어/착지제어,맨몸,맨몸,LOWER_BODY,LOWER,ALTERNATING,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,좌우 랜덤 콕줍기,기능성운동,좌우이동/랜덤반응/방향전환/감속,셔틀콕/코트,시간 또는 반복,"좌우 방향을 무작위로 오가며 셔틀콕을 줍는다. 사이드 스텝, 런지 감속, 중앙 복귀 리듬을 강화한다.",,,,1,60,,,,,,,ex_421ba24b,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT|LATERAL_DECELERATION_DIRECT,AGILITY,좌우이동/랜덤반응/방향전환/감속,셔틀콕/코트,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,케틀벨 스윙,기능성운동,힙힌지/파워,케틀벨,무게*횟수,"케틀벨 스윙: 힙힌지/파워을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,60,,,,,,,ex_7404067c,BUILT_IN,HIP_HINGE|POSTERIOR_CHAIN_STRENGTH|HIP_POWER|BALLISTIC_HINGE,POWER,힙힌지/파워,케틀벨,케틀벨,POWER,LOWER,BILATERAL,HIP|SPINE,,HIP_EXTENSION,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,코사크 스쿼트,기능성운동,측면가동성/내전근/편측제어,맨몸 또는 케틀벨,횟수 또는 무게*횟수,한쪽으로 깊게 앉으며 반대쪽 다리를 길게 편다. 사이드 런지 범위와 내전근 준비도를 높이는 운동이다.,squat,스쿼트,스쿼트 계열,1,75,,,,,,,ex_a611010d,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|FRONTAL_PLANE_LOWER|ADDUCTOR_GLUTE_SUPPORT,SUPPORT,측면가동성/내전근/편측제어,맨몸 또는 케틀벨,케틀벨|맨몸,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,코펜하겐 플랭크,기능성운동,내전근/측면코어/골반안정성,벤치,시간,한쪽 다리를 벤치에 올리고 옆으로 버틴다. 배드민턴 사이드 런지와 방향전환의 골반 안정성을 보강한다.,bench_press,벤치프레스,벤치프레스 계열,1,45,,,,,,,ex_a8385c4a,BUILT_IN,CORE_STABILITY|ANTI_LATERAL_FLEXION|LUMBOPELVIC_CONTROL|ADDUCTOR_STRENGTH_SUPPORT,SUPPORT,내전근/측면코어/골반안정성,벤치,벤치,CORE,TRUNK,UNILATERAL,SPINE|HIP,,PELVIC_STABILITY,FRONTAL,1,1781278881407
+3,exercise,,,,,,,콘 드릴,기능성운동,방향전환/가속/감속,콘,시간,"콘 드릴: 방향전환/가속/감속을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,60,,,,,,,ex_a4350c0f,BUILT_IN,FOOTWORK_DIRECT|CHANGE_OF_DIRECTION_DIRECT|DECELERATION_DIRECT|REACTION_AGILITY_DIRECT,AGILITY,방향전환/가속/감속,콘,콘/마커,AGILITY,LOWER,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,터키시 겟업,기능성운동,전신협응/어깨안정성/코어,케틀벨,무게*횟수,"터키시 겟업: 전신협응/어깨안정성/코어을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,90,,,,,,,ex_91f6958d,BUILT_IN,FULL_BODY_COORDINATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|HIP_MOBILITY,SUPPORT,전신협응/어깨안정성/코어,케틀벨,케틀벨,MIXED,WHOLE_BODY,BILATERAL,SHOULDER|SPINE|HIP,ROTATOR_CUFF_SUPPORT|SCAPULAR_CONTROL,HIP_MOBILITY|PELVIC_STABILITY,MULTIPLANAR,0,1781278881407
+3,exercise,,,,,,,파머스 캐리,기능성운동,그립/코어/보행안정성,덤벨 또는 케틀벨,무게*거리 또는 시간,"파머스 캐리: 그립/코어/보행안정성을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,60,,,,,,,ex_a1fc4533,BUILT_IN,LOADED_CARRY|GRIP_SUPPORT|TRUNK_STABILITY_SUPPORT|GAIT_STABILITY,SUPPORT,그립/코어/보행안정성,덤벨 또는 케틀벨,덤벨|케틀벨,CARRY,WHOLE_BODY,BILATERAL,SPINE|HIP|WRIST,,PELVIC_STABILITY,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,팔로프 프레스,기능성운동,회전저항/코어안정성,케이블 또는 밴드,무게*횟수,몸 옆에서 당기는 밴드나 케이블을 가슴 앞에서 밀어낸다. 몸통이 돌아가지 않게 버티며 코어 안정성을 익힌다.,,,,1,45,,,,,,,ex_99728d25,BUILT_IN,CORE_STABILITY|ANTI_ROTATION|TRUNK_CONTROL_SUPPORT,SUPPORT,회전저항/코어안정성,케이블 또는 밴드,케이블|밴드,CORE,TRUNK,BILATERAL,SPINE|SHOULDER,SCAPULAR_CONTROL_LIGHT,,ANTI_ROTATION,0,1781278881407
+3,exercise,,,,,,,포고 점프,기능성운동,발목탄성/아킬레스강성,맨몸,횟수 또는 시간,무릎을 크게 굽히지 않고 발목으로 작게 튄다. 러닝 접지 탄성을 만들되 통증이 있으면 즉시 중단한다.,,,,1,45,,,,,,,ex_e465d1e9,BUILT_IN,ANKLE_STIFFNESS|PLYOMETRIC_SSC,PLYOMETRIC,발목탄성/아킬레스강성,맨몸,맨몸,PLYOMETRIC,LOWER,BILATERAL,ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,플랭크,기능성운동,코어/몸통안정성,맨몸,시간,"플랭크: 코어/몸통안정성을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",,,,1,45,,,,,,,ex_a44ae2ca,BUILT_IN,CORE_STABILITY|ANTI_EXTENSION|ANTERIOR_CORE,SUPPORT,코어/몸통안정성,맨몸,맨몸,CORE,TRUNK,BILATERAL,SPINE,,,ANTI_EXTENSION,0,1781278881407
+3,exercise,,,,,,,피스톨 스쿼트,기능성운동,편측제어/하체힘/발목가동성,맨몸,횟수,한쪽 다리를 앞으로 뻗고 한발로 깊게 앉았다 일어난다. 강도가 높아 보조를 두고 범위를 조절해 기록한다.,squat,스쿼트,스쿼트 계열,1,90,,,,,,,ex_d67e5761,BUILT_IN,KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN|UNILATERAL_LOWER|HIP_STABILITY_SUPPORT,SUPPORT,편측제어/하체힘/발목가동성,맨몸,맨몸,LOWER_BODY,LOWER,UNILATERAL,HIP|KNEE,,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,하이니 스킵,기능성운동,무릎드라이브/고관절굴곡,맨몸/트랙,거리 또는 시간,무릎을 빠르게 올리며 짧은 스킵으로 전진한다. 피로가 낮은 상태에서 러닝 리듬을 빠르게 만든다.,,,,1,30,,,,,,,ex_c821775c,BUILT_IN,RUNNING_DRILL|SPRINT_MECHANICS_SUPPORT|KNEE_DRIVE,RUNNING_DRILL,무릎드라이브/고관절굴곡,맨몸/트랙,콘/마커|맨몸,PLYOMETRIC,LOWER,ALTERNATING,HIP|KNEE|ANKLE,,,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,하프 닐링 원암 프레스,기능성운동,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,무게*횟수,한쪽 무릎을 세운 자세에서 한 팔로 프레스한다. 골반과 몸통을 고정해 오버헤드 안정성을 만든다.,vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,75,,,,,,,ex_8e1b313e,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,SUPPORT,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,덤벨|케틀벨,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,하프 닐링 케틀벨 원암 프레스,기능성운동,어깨안정성/편측제어/코어,케틀벨,무게*횟수,"하프 닐링 케틀벨 원암 프레스: 어깨안정성/편측제어/코어을 목표로 짧고 선명하게 수행한다. 속도보다 착지, 정지, 몸통 안정성을 먼저 확인한다.",vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,75,,,,,,,ex_d79824d2,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,SUPPORT,어깨안정성/편측제어/코어,케틀벨,케틀벨,PUSH,UPPER,UNILATERAL,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,하프 닐링 케틀벨 프레스,기능성운동,어깨안정성/편측제어/코어,케틀벨,무게*횟수,하프 닐링 자세에서 케틀벨을 한 팔로 밀어 올린다. 어깨와 코어의 회전 저항을 함께 훈련한다.,vertical_press,수직 프레스,원암/케틀벨 프레스 보정,1.10,75,,,,,,,ex_e0759156,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,SUPPORT,어깨안정성/편측제어/코어,케틀벨,케틀벨,PUSH,UPPER,HALF_KNEELING,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,하프 닐링 프레스,기능성운동,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,무게*횟수,하프 닐링 자세에서 한 팔 또는 양팔로 프레스한다. 디로드 주간에는 가볍게 안정성 유지용으로 쓴다.,,,,1,75,,,,,,,ex_66e8c8c2,BUILT_IN,PUSH_VERTICAL|SHOULDER_STRENGTH|SCAPULAR_UPWARD_ROTATION|SHOULDER_STABILITY_SUPPORT|TRUNK_STABILITY_SUPPORT|UNILATERAL_UPPER,SUPPORT,어깨안정성/편측제어/코어,덤벨 또는 케틀벨,덤벨|케틀벨,PUSH,UPPER,HALF_KNEELING,SHOULDER|ELBOW,SCAPULAR_UPWARD_ROTATION|ROTATOR_CUFF_SUPPORT,PELVIC_STABILITY,SAGITTAL,1,1781278881407
+3,exercise,,,,,,,농구,스포츠,중강도,60분,시간,농구: 실제 종목 동작에 가깝게 수행한다. 시간과 강도를 기록해 다음 훈련의 기준으로 삼는다.,,,,1,30,,,,,,,ex_1a4858d7,BUILT_IN,SPORT_SESSION|COURT_SPORT|JUMPING|CHANGE_OF_DIRECTION|AEROBIC_ANAEROBIC,SPORT,중강도,60분,맨몸,SPORT,WHOLE_BODY,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,러닝 풋살,스포츠,고강도,60분,시간,러닝 풋살: 실제 종목 동작에 가깝게 수행한다. 시간과 강도를 기록해 다음 훈련의 기준으로 삼는다.,,,,1,30,,,,,,,ex_aca9d312,BUILT_IN,SPORT_SESSION|FIELD_SPORT|RUNNING|CHANGE_OF_DIRECTION|AEROBIC_ANAEROBIC,SPORT,고강도,60분,맨몸,SPORT,WHOLE_BODY,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,배드민턴,스포츠,중강도,60분,시간,배드민턴: 실제 종목 동작에 가깝게 수행한다. 시간과 강도를 기록해 다음 훈련의 기준으로 삼는다.,,,,1,30,,,,,,,ex_ae9ecdbc,BUILT_IN,SPORT_SESSION|RACKET_SPORT|CHANGE_OF_DIRECTION|LUNGING|AEROBIC_ANAEROBIC,SPORT,중강도,60분,맨몸,SPORT,WHOLE_BODY,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,축구,스포츠,중강도,60분,시간,축구: 실제 종목 동작에 가깝게 수행한다. 시간과 강도를 기록해 다음 훈련의 기준으로 삼는다.,,,,1,30,,,,,,,ex_1a4bbdcf,BUILT_IN,SPORT_SESSION|FIELD_SPORT|RUNNING|CHANGE_OF_DIRECTION|AEROBIC_ANAEROBIC,SPORT,중강도,60분,맨몸,SPORT,WHOLE_BODY,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,테니스,스포츠,중강도,60분,시간,테니스: 실제 종목 동작에 가깝게 수행한다. 시간과 강도를 기록해 다음 훈련의 기준으로 삼는다.,,,,1,30,,,,,,,ex_2f3b56d0,BUILT_IN,SPORT_SESSION|RACKET_SPORT|ROTATION|CHANGE_OF_DIRECTION|AEROBIC_ANAEROBIC,SPORT,중강도,60분,맨몸,SPORT,WHOLE_BODY,MULTIDIRECTIONAL,HIP|KNEE|ANKLE,,PELVIC_STABILITY,MULTIPLANAR,1,1781278881407
+3,exercise,,,,,,,계단 오르기,유산소운동,중강도,20분,시간/층수,계단 오르기: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 중강도 기준으로 무리 없이 조절한다.,,,,1,45,,,,,,,ex_74c2d13b,BUILT_IN,CARDIO|STAIR_CLIMBING|KNEE_DOMINANT|LOWER_BODY_ENDURANCE,CARDIO,중강도,20분,유산소장비/맨몸,CARDIO,LOWER,CYCLIC,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,러닝,유산소운동,중강도,30분,시간/거리/페이스,러닝: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 중강도 기준으로 무리 없이 조절한다.,,,,1,30,,,,,,,ex_681d9ed2,BUILT_IN,CARDIO|RUNNING,CARDIO,중강도,30분,유산소장비/맨몸,CARDIO,CARDIO,CYCLIC,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,로잉머신,유산소운동,중강도,20분,시간/거리/페이스,로잉머신: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 중강도 기준으로 무리 없이 조절한다.,,,,1,45,,,,,,,ex_d7c90536,BUILT_IN,CARDIO|ROWING|PULLING_ENDURANCE|HIP_HINGE_LIGHT,CARDIO,중강도,20분,머신|로잉머신,CARDIO,WHOLE_BODY,CYCLIC,HIP|SHOULDER|ELBOW,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,수영,유산소운동,중강도,30분,시간/거리,수영: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 중강도 기준으로 무리 없이 조절한다.,,,,1,45,,,,,,,ex_681eed4a,BUILT_IN,CARDIO|SWIMMING|SHOULDER_ENDURANCE,CARDIO,중강도,30분,유산소장비/맨몸,CARDIO,WHOLE_BODY,CYCLIC,SHOULDER|HIP,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,실내 자전거,유산소운동,저강도,40분,시간/강도,실내 자전거: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 저강도 기준으로 무리 없이 조절한다.,,,,1,30,,,,,,,ex_ab918e2b,BUILT_IN,CARDIO|CYCLING|LOWER_BODY_ENDURANCE,CARDIO,저강도,40분,실내자전거,CARDIO,LOWER,CYCLIC,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,인터벌 러닝,유산소운동,고강도,20분,시간/거리/페이스,인터벌 러닝: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 고강도 기준으로 무리 없이 조절한다.,,,,1,60,,,,,,,ex_faae2044,BUILT_IN,CARDIO|RUNNING|INTERVAL_RUNNING|ANAEROBIC_CONDITIONING,CARDIO,고강도,20분,유산소장비/맨몸,CARDIO,CARDIO,CYCLIC,HIP|KNEE|ANKLE,,,SAGITTAL,0,1781278881407
+3,exercise,,,,,,,줄넘기,유산소운동,중강도,10분,시간/횟수,줄넘기: 호흡과 페이스를 일정하게 유지하며 수행한다. 강도는 중강도 기준으로 무리 없이 조절한다.,,,,1,45,,,,,,,ex_9bd6dddb,BUILT_IN,CARDIO|JUMP_ROPE|ANKLE_STIFFNESS|PLYOMETRIC_SSC,CARDIO,중강도,10분,유산소장비/맨몸,CARDIO_PLYOMETRIC,LOWER,CYCLIC,ANKLE,,,SAGITTAL,0,1781278881407
+3,program,3,배드민턴 웨이트 보조 4주,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,1,스쿼트,근력운동,,,,,,,,,,120,3x4 · RPE 7 · 하체 유지,3,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,2,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x6 · RPE 7 · 후면사슬 유지,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,3,중량 풀업,근력운동,,,,,,,,,,120,4x5 · +10kg 전후 · 실패 금지,4,5,10,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,4,케이블 원암 로우,근력운동,,,,,,,,,,75,3x8 · 좌우 견갑 제어,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,5,해머 컬,근력운동,,,,,,,,,,60,3x10 · 팔/그립 보조,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,6,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x12 · 발목 탄성,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,1,7,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,15초 x 4 · 이동 후 균형 잡고 정지,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,8,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,4x8 · 26kg 전후 · 어깨 통증 없는 범위,4,8,26,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,9,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,3x8 · 몸통 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,10,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8 · 회전 안정성,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,11,페이스풀,근력운동,,,,,,,,,,60,3x12 · 견갑 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,12,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10 · 삼두 보강,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,13,원암 덤벨 컬,근력운동,,,,,,,,,,60,3x10 · 좌우 이두,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,14,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,3,15,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 그립/코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,16,케틀벨 스윙,기능성운동,,,,,,,,,,60,3x12 · 힙힌지 파워,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,17,래터럴 바운드,기능성운동,,,,,,,,,,45,3x5/측 · 착지 후 멈춤,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,18,데드리프트,근력운동,,,,,,,,,,150,3x3 · RPE 7 · 무겁게 당기되 여유,3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,19,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측 · 편측 안정성,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,20,덤벨 스텝업,근력운동,,,,,,,,,,75,3x8/측 · 전진 추진력,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,21,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10 · 등 보강,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,22,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,2세트 · 전완/라켓 회전,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,1,5,23,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,15초 x 4 · 좌우 이동 후 몸이 밀리지 않게 정지,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,24,스쿼트,근력운동,,,,,,,,,,120,4x5 · RPE 7~8,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,25,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x7 · 자세와 속도 우선,3,7,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,26,중량 풀업,근력운동,,,,,,,,,,120,4x6 · +10~15kg,4,6,12,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,27,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,3x9 · 허리 반동 없이,3,9,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,28,해머 컬,근력운동,,,,,,,,,,60,3x11,3,11,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,29,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x14,3,14,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,1,30,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,18초 x 5 · 이동 후 정지,5,0,0,18,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,31,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,4x9 · RPE 7~8,4,9,26,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,32,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,4x8,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,33,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,34,페이스풀,근력운동,,,,,,,,,,60,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,35,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,36,원암 해머 컬,근력운동,,,,,,,,,,60,3x10,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,37,밴드 외회전,근력운동,,,,,,,,,,45,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,3,38,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,39,케틀벨 스윙,기능성운동,,,,,,,,,,60,3x15 · 폭발적 힙힌지,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,40,래터럴 바운드,기능성운동,,,,,,,,,,45,3x5/측 · 낮은 볼륨,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,41,데드리프트,근력운동,,,,,,,,,,150,4x3 · RPE 7~8,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,42,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,43,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8/측 · 무릎 안정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,44,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,45,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,3세트,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,2,5,46,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,18초 x 5 · 감속 품질,5,0,0,18,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,47,스쿼트,근력운동,,,,,,,,,,120,4x6 · RPE 8 이하,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,48,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8 · 후면사슬 유지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,49,중량 풀업,근력운동,,,,,,,,,,120,4x7 · +10~15kg,4,7,12,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,50,케이블 원암 로우,근력운동,,,,,,,,,,75,3x10,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,51,해머 컬,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,52,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,1,53,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,20초 x 6 · 품질 저하 전 종료,6,0,0,20,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,54,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,4x10 · 실패 금지,4,10,26,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,55,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,4x10,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,56,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,57,페이스풀,근력운동,,,,,,,,,,60,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,58,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,59,원암 덤벨 컬,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,60,밴드 외회전,근력운동,,,,,,,,,,45,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,3,61,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,62,케틀벨 스윙,기능성운동,,,,,,,,,,60,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,63,래터럴 바운드,기능성운동,,,,,,,,,,45,3x5/측 · 착지 고정,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,64,데드리프트,근력운동,,,,,,,,,,150,4x5 · RPE 8 이하,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,65,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,66,덤벨 스텝업,근력운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,67,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,68,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,3세트,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,3,5,69,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,20초 x 6 · 좌우 이동 후 정지,6,0,0,20,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,70,스쿼트,근력운동,,,,,,,,,,120,DELOAD · 2x5 · 세트/중량 20~30% 감소,2,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,71,루마니안 데드리프트,근력운동,,,,,,,,,,120,DELOAD · 2x6,2,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,72,중량 풀업,근력운동,,,,,,,,,,120,DELOAD · 3x5 · 가볍게,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,73,케이블 원암 로우,근력운동,,,,,,,,,,75,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,74,해머 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,75,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,1,76,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,77,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,78,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,79,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,80,페이스풀,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,81,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,82,원암 덤벨 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,83,밴드 외회전,근력운동,,,,,,,,,,45,DELOAD · 2x15,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,3,84,파머스 캐리,기능성운동,,,,,,,,,,60,DELOAD · 2라운드,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,85,케틀벨 스윙,기능성운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,86,래터럴 바운드,기능성운동,,,,,,,,,,45,DELOAD · 2x5/측,2,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,87,데드리프트,근력운동,,,,,,,,,,150,DELOAD · 2x3,2,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,88,싱글 레그 RDL,기능성운동,,,,,,,,,,75,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,89,덤벨 스텝업,근력운동,,,,,,,,,,75,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,90,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,91,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,3,배드민턴 웨이트 보조 4주,28,4,5,92,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program,4,일반 스트렝스 4주 블록,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,1,1,스쿼트,근력운동,,,,,,,,,,120,일반 이용자용 · 초중급자용 · 5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,1,4,벤치프레스,근력운동,,,,,,,,,,120,4x5 · 실패지점 반복 금지,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,1,7,바벨 로우,근력운동,,,,,,,,,,120,4x6~8 · 등 상부 고정,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,1,10,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x6~8 · 햄스트링/둔근,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,1,13,플랭크,기능성운동,,,,,,,,,,45,3세트 · 몸통 안정성,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,3,16,오버헤드 프레스,근력운동,,,,,,,,,,120,5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,3,19,데드리프트,근력운동,,,,,,,,,,150,3~4x3~5 · 충분한 휴식,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,3,22,풀업,근력운동,,,,,,,,,,90,4x6~10 · 어려우면 랫풀다운으로 대체,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,3,25,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 보조 프레스,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,3,28,페이스풀,근력운동,,,,,,,,,,60,3x12~15 · 어깨 보호,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,31,데드리프트,근력운동,,,,,,,,,,150,4x3 · 전신 스트렝스,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,34,프론트 스쿼트,근력운동,,,,,,,,,,120,3x5~8 · 대퇴사두근/코어,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,37,벤치프레스,근력운동,,,,,,,,,,120,4x5~8 · RPE 7~8,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,40,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,43,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 그립/코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,1,5,46,사이드 플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 측면코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,1,2,스쿼트,근력운동,,,,,,,,,,120,일반 이용자용 · 초중급자용 · 5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,1,5,벤치프레스,근력운동,,,,,,,,,,120,4x5 · 실패지점 반복 금지,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,1,8,바벨 로우,근력운동,,,,,,,,,,120,4x6~8 · 등 상부 고정,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,1,11,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x6~8 · 햄스트링/둔근,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,1,14,플랭크,기능성운동,,,,,,,,,,45,3세트 · 몸통 안정성,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,3,17,오버헤드 프레스,근력운동,,,,,,,,,,120,5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,3,20,데드리프트,근력운동,,,,,,,,,,150,3~4x3~5 · 충분한 휴식,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,3,23,풀업,근력운동,,,,,,,,,,90,4x6~10 · 어려우면 랫풀다운으로 대체,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,3,26,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 보조 프레스,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,3,29,페이스풀,근력운동,,,,,,,,,,60,3x12~15 · 어깨 보호,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,32,데드리프트,근력운동,,,,,,,,,,150,4x3 · 전신 스트렝스,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,35,프론트 스쿼트,근력운동,,,,,,,,,,120,3x5~8 · 대퇴사두근/코어,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,38,벤치프레스,근력운동,,,,,,,,,,120,4x5~8 · RPE 7~8,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,41,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,44,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 그립/코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,2,5,47,사이드 플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 측면코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,1,3,스쿼트,근력운동,,,,,,,,,,120,일반 이용자용 · 초중급자용 · 5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,1,6,벤치프레스,근력운동,,,,,,,,,,120,4x5 · 실패지점 반복 금지,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,1,9,바벨 로우,근력운동,,,,,,,,,,120,4x6~8 · 등 상부 고정,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,1,12,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x6~8 · 햄스트링/둔근,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,1,15,플랭크,기능성운동,,,,,,,,,,45,3세트 · 몸통 안정성,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,3,18,오버헤드 프레스,근력운동,,,,,,,,,,120,5x3~5 · RPE 7~8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,3,21,데드리프트,근력운동,,,,,,,,,,150,3~4x3~5 · 충분한 휴식,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,3,24,풀업,근력운동,,,,,,,,,,90,4x6~10 · 어려우면 랫풀다운으로 대체,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,3,27,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 보조 프레스,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,3,30,페이스풀,근력운동,,,,,,,,,,60,3x12~15 · 어깨 보호,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,33,데드리프트,근력운동,,,,,,,,,,150,4x3 · 전신 스트렝스,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,36,프론트 스쿼트,근력운동,,,,,,,,,,120,3x5~8 · 대퇴사두근/코어,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,39,벤치프레스,근력운동,,,,,,,,,,120,4x5~8 · RPE 7~8,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,42,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,45,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 그립/코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,3,5,48,사이드 플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 측면코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,1,49,스쿼트,근력운동,,,,,,,,,,120,DELOAD · 3x3 · 세트/중량 20~30% 감소,3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,1,50,벤치프레스,근력운동,,,,,,,,,,120,DELOAD · 3x5,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,1,51,바벨 로우,근력운동,,,,,,,,,,120,DELOAD · 3x6,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,1,52,데드버그,기능성운동,,,,,,,,,,30,DELOAD · 3세트,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,3,53,오버헤드 프레스,근력운동,,,,,,,,,,120,DELOAD · 3x3,3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,3,54,데드리프트,근력운동,,,,,,,,,,150,DELOAD · 2x3,2,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,3,55,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,3,56,페이스풀,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,5,57,데드리프트,근력운동,,,,,,,,,,150,DELOAD · 2x3,2,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,5,58,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,5,59,덤벨 벤치프레스,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,5,60,체스트 서포티드 로우,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,4,일반 스트렝스 4주 블록,28,4,5,61,사이드 플랭크,기능성운동,,,,,,,,,,45,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program,5,보디빌딩 3일 스플릿,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,1,1,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Push · 4x6~10 · 근비대,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,1,4,덤벨 숄더프레스,근력운동,,,,,,,,,,90,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,1,7,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,1,10,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15 · 푸시업으로 대체 가능,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,1,13,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,16,풀업,근력운동,,,,,,,,,,90,Pull · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,19,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,22,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,25,페이스풀,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,28,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,3,31,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,34,레그 프레스,근력운동,,,,,,,,,,120,Legs + Arms · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,37,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,40,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,43,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,46,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,49,덤벨 컬,근력운동,,,,,,,,,,60,2세트 · 이두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,1,5,52,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,2세트 · 삼두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,1,2,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Push · 4x6~10 · 근비대,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,1,5,덤벨 숄더프레스,근력운동,,,,,,,,,,90,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,1,8,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,1,11,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15 · 푸시업으로 대체 가능,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,1,14,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,17,풀업,근력운동,,,,,,,,,,90,Pull · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,20,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,23,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,26,페이스풀,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,29,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,3,32,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,35,레그 프레스,근력운동,,,,,,,,,,120,Legs + Arms · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,38,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,41,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,44,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,47,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,50,덤벨 컬,근력운동,,,,,,,,,,60,2세트 · 이두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,2,5,53,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,2세트 · 삼두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,1,3,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Push · 4x6~10 · 근비대,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,1,6,덤벨 숄더프레스,근력운동,,,,,,,,,,90,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,1,9,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,1,12,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15 · 푸시업으로 대체 가능,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,1,15,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,18,풀업,근력운동,,,,,,,,,,90,Pull · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,21,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,24,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,27,페이스풀,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,30,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,3,33,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,36,레그 프레스,근력운동,,,,,,,,,,120,Legs + Arms · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,39,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,42,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,45,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,48,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,51,덤벨 컬,근력운동,,,,,,,,,,60,2세트 · 이두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,3,5,54,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,2세트 · 삼두 보조,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,1,55,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,1,56,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,1,57,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,3,58,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,3,59,케이블 로우,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,3,60,덤벨 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,5,61,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,5,62,레그 컬,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,5,보디빌딩 3일 스플릿,28,4,5,63,카프 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program,6,보디빌딩 4일 스플릿,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,1,1,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest/Triceps · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,1,4,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,1,7,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,1,10,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,1,13,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,16,풀업,근력운동,,,,,,,,,,90,Back/Biceps · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,19,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,22,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,25,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,28,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,2,31,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,4,34,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,4,37,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,4,40,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,4,43,런지,근력운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,4,46,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,49,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders/Arms · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,52,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,55,리어델트 플라이,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,58,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,61,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,1,5,64,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,1,2,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest/Triceps · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,1,5,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,1,8,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,1,11,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,1,14,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,17,풀업,근력운동,,,,,,,,,,90,Back/Biceps · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,20,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,23,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,26,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,29,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,2,32,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,4,35,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,4,38,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,4,41,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,4,44,런지,근력운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,4,47,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,50,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders/Arms · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,53,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,56,리어델트 플라이,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,59,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,62,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,2,5,65,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,1,3,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest/Triceps · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,1,6,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,1,9,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,1,12,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,1,15,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,18,풀업,근력운동,,,,,,,,,,90,Back/Biceps · 4x6~10 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,21,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,24,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,27,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,30,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,2,33,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,4,36,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,4,39,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,4,42,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,4,45,런지,근력운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,4,48,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,51,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders/Arms · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,54,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,57,리어델트 플라이,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,60,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,63,덤벨 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,3,5,66,해머 컬,근력운동,,,,,,,,,,60,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,1,67,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,1,68,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,2,69,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,2,70,덤벨 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,4,71,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,4,72,카프 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,5,73,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,6,보디빌딩 4일 스플릿,28,4,5,74,페이스풀,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program,7,보디빌딩 5일 스플릿,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,1,1,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest · 5x6~10,5,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,1,4,덤벨 벤치프레스,근력운동,,,,,,,,,,90,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,1,7,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,1,10,딥스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,2,13,풀업,근력운동,,,,,,,,,,90,Back · 5x6~10 · 어려우면 랫풀다운,5,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,2,16,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,2,19,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,2,22,원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,2,25,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,3,28,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,3,31,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,3,34,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,3,37,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,3,40,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,4,43,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,4,46,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,5x12~15,5,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,4,49,리어델트 플라이,근력운동,,,,,,,,,,60,4x12~15 · 업라이트 로우 제외,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,52,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,Arms/Forearms · 4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,55,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,58,덤벨 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,61,해머 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,64,리버스 컬,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,67,덤벨 리스트 컬,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,1,5,70,덤벨 리스트 익스텐션,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,1,2,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest · 5x6~10,5,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,1,5,덤벨 벤치프레스,근력운동,,,,,,,,,,90,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,1,8,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,1,11,딥스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,2,14,풀업,근력운동,,,,,,,,,,90,Back · 5x6~10 · 어려우면 랫풀다운,5,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,2,17,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,2,20,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,2,23,원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,2,26,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,3,29,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,3,32,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,3,35,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,3,38,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,3,41,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,4,44,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,4,47,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,5x12~15,5,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,4,50,리어델트 플라이,근력운동,,,,,,,,,,60,4x12~15 · 업라이트 로우 제외,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,53,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,Arms/Forearms · 4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,56,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,59,덤벨 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,62,해머 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,65,리버스 컬,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,68,덤벨 리스트 컬,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,2,5,71,덤벨 리스트 익스텐션,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,1,3,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Chest · 5x6~10,5,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,1,6,덤벨 벤치프레스,근력운동,,,,,,,,,,90,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,1,9,케이블 플라이,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,1,12,딥스,근력운동,,,,,,,,,,90,3x8~12,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,2,15,풀업,근력운동,,,,,,,,,,90,Back · 5x6~10 · 어려우면 랫풀다운,5,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,2,18,바벨 로우,근력운동,,,,,,,,,,120,4x8~12,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,2,21,케이블 로우,근력운동,,,,,,,,,,90,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,2,24,원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10~12,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,2,27,페이스풀,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,3,30,레그 프레스,근력운동,,,,,,,,,,120,Legs · 4x6~10,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,3,33,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8~10,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,3,36,레그 컬,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,3,39,불가리안 스플릿 스쿼트,기능성운동,,,,,,,,,,90,3x8~10/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,3,42,카프 레이즈,근력운동,,,,,,,,,,60,4x12~15,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,4,45,오버헤드 프레스,근력운동,,,,,,,,,,120,Shoulders · 4x6~10,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,4,48,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,5x12~15,5,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,4,51,리어델트 플라이,근력운동,,,,,,,,,,60,4x12~15 · 업라이트 로우 제외,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,54,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,Arms/Forearms · 4x10~15,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,57,오버헤드 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x10~15,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,60,덤벨 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,63,해머 컬,근력운동,,,,,,,,,,60,4x10~12,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,66,리버스 컬,근력운동,,,,,,,,,,60,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,69,덤벨 리스트 컬,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,3,5,72,덤벨 리스트 익스텐션,근력운동,,,,,,,,,,45,3x12~15,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,1,73,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,1,74,케이블 플라이,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,2,75,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,2,76,케이블 로우,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,3,77,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,3,78,레그 컬,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,4,79,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,4,80,리어델트 플라이,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,5,81,트라이셉스 푸시다운,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,5,82,덤벨 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,7,보디빌딩 5일 스플릿,28,4,5,83,덤벨 리스트 컬,근력운동,,,,,,,,,,45,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program,8,배드민턴 최적화 4주 스플릿,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,1,줄넘기,유산소운동,,,,,,,,,,45,워밍업 · 2분 · 가볍게,1,0,0,120,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,2,스쿼트,근력운동,,,,,,,,,,120,Lower Strength · 4x4 · RPE 7,4,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,3,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x6 · 후면사슬 유지 · 실패 금지,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,4,중량 풀업,근력운동,,,,,,,,,,120,4x5 · RPE 7~8 · 등/그립 주력,4,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,5,케이블 원암 로우,근력운동,,,,,,,,,,75,3x8/측 · 견갑 제어,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,6,해머 컬,근력운동,,,,,,,,,,60,3x10 · 팔/전완 보디빌딩 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,7,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x12/측 · 발목 탄성,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,1,8,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,15초 x 4 · 이동 후 정지 품질,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,9,밴드 외회전,근력운동,,,,,,,,,,45,워밍업 · 2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,10,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Upper Push · 4x8 · RPE 7~8,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,11,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,3x8 · 몸통 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,12,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8/측 · 회전 저항,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,13,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x12 · 어깨 보디빌딩 볼륨,4,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,14,페이스풀,근력운동,,,,,,,,,,60,3x15 · 견갑 안정,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,15,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x12/측 · 삼두,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,2,16,원암 덤벨 컬,근력운동,,,,,,,,,,60,3x10/측 · 이두,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,17,데드리프트,근력운동,,,,,,,,,,150,Hinge + Decel · 4x3 · RPE 7,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,18,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측 · 편측 힙힌지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,19,리버스 런지,근력운동,,,,,,,,,,90,3x8/측 · 감속 후 재출발,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,20,래터럴 바운드,기능성운동,,,,,,,,,,45,3x4/측 · 착지 후 멈춤,3,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,21,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,15초 x 4 · 좌우 감속,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,4,22,데드버그,기능성운동,,,,,,,,,,30,3세트 · 코어 안정,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,23,풀업,근력운동,,,,,,,,,,90,Upper Pull/Arms · 4x6 · 어려우면 랫풀다운,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,24,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,3x10/측 · 허리 반동 없이,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,25,원암 케이블 하이 로우,근력운동,,,,,,,,,,75,3x10/측 · 견갑 하강,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,26,리버스 컬,근력운동,,,,,,,,,,60,3x12 · 전완,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,27,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,2세트 · 라켓 회전 제어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,28,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 그립/몸통,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,1,6,29,스플릿 스텝 리액션,기능성운동,,,,,,,,,,45,15초 x 4 · 첫 발 품질,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,30,스쿼트,근력운동,,,,,,,,,,120,Lower Strength · 5x4 · RPE 7~8,5,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,31,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x7 · 후면사슬,3,7,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,32,중량 풀업,근력운동,,,,,,,,,,120,5x5 · 당기기 스트렝스,5,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,33,케이블 원암 로우,근력운동,,,,,,,,,,75,3x9/측,3,9,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,34,해머 컬,근력운동,,,,,,,,,,60,3x11,3,11,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,35,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x14/측,3,14,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,1,36,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,18초 x 5 · 품질 유지,5,0,0,18,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,37,밴드 외회전,근력운동,,,,,,,,,,45,워밍업 · 2x15,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,38,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Upper Push · 4x9 · RPE 7~8,4,9,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,39,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,4x8,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,40,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,41,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,4x13,4,13,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,42,페이스풀,근력운동,,,,,,,,,,60,3x15,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,43,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,3x12/측,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,2,44,원암 해머 컬,근력운동,,,,,,,,,,60,3x10/측,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,45,데드리프트,근력운동,,,,,,,,,,150,Hinge + Decel · 4x4 · RPE 7~8,4,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,46,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,47,워킹 런지,근력운동,,,,,,,,,,90,"3x10/측 · 넓은 공간이면, 아니면 제자리 런지",3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,48,래터럴 바운드,기능성운동,,,,,,,,,,45,3x5/측 · 낮은 볼륨,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,49,앞뒤 랜덤 콕줍기,기능성운동,,,,,,,,,,60,18초 x 5 · 전후 감속,5,0,0,18,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,4,50,사이드 플랭크,기능성운동,,,,,,,,,,45,3세트 · 측면코어,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,51,풀업,근력운동,,,,,,,,,,90,Upper Pull/Arms · 4x7 · 어려우면 랫풀다운,4,7,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,52,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,4x10/측,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,53,원암 케이블 하이 로우,근력운동,,,,,,,,,,75,3x10/측,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,54,리버스 컬,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,55,덤벨 리스트 익스텐션,근력운동,,,,,,,,,,45,2x15 · 손목 신전,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,56,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,2,6,57,좌우 랜덤 콕줍기,기능성운동,,,,,,,,,,60,18초 x 5 · 좌우 감속,5,0,0,18,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,58,스쿼트,근력운동,,,,,,,,,,120,Lower Strength · 4x3 · RPE 8,4,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,59,루마니안 데드리프트,근력운동,,,,,,,,,,120,4x6 · RPE 8 이하,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,60,중량 풀업,근력운동,,,,,,,,,,120,"5x4 · 무겁게, 실패 금지",5,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,61,케이블 원암 로우,근력운동,,,,,,,,,,75,4x8/측,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,62,해머 컬,근력운동,,,,,,,,,,60,4x10 · 팔 볼륨 증가,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,63,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,3x15/측,3,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,1,64,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,20초 x 5 · 피로 전 종료,5,0,0,20,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,65,밴드 외회전,근력운동,,,,,,,,,,45,워밍업 · 2x15,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,66,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,Upper Push · 5x6 · RPE 8,5,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,67,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,4x6 · 무겁지만 깔끔하게,4,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,68,원암 하프 닐링 프레스,기능성운동,,,,,,,,,,75,3x8/측 · 안정성,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,69,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,5x12 · 측면삼각근,5,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,70,페이스풀,근력운동,,,,,,,,,,60,4x15 · 후면삼각근/견갑,4,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,71,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,4x10/측,4,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,2,72,원암 덤벨 컬,근력운동,,,,,,,,,,60,3x10/측,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,73,데드리프트,근력운동,,,,,,,,,,150,Hinge + Decel · 5x3 · RPE 8,5,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,74,싱글 레그 RDL,기능성운동,,,,,,,,,,75,3x8/측,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,75,리버스 런지,근력운동,,,,,,,,,,90,3x10/측 · 박스 불필요,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,76,래터럴 바운드,기능성운동,,,,,,,,,,45,3x5/측 · 착지 고정,3,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,77,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,20초 x 5 · 좌우 감속,5,0,0,20,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,4,78,데드버그,기능성운동,,,,,,,,,,30,3세트 · 호흡/요추 안정,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,79,풀업,근력운동,,,,,,,,,,90,Upper Pull/Arms · 5x5 · 어려우면 랫풀다운,5,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,80,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,4x8/측 · 무겁게,4,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,81,원암 케이블 하이 로우,근력운동,,,,,,,,,,75,3x10/측,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,82,리버스 컬,근력운동,,,,,,,,,,60,3x12,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,83,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,3세트 · 전완 회전,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,84,파머스 캐리,기능성운동,,,,,,,,,,60,4라운드 · 그립/코어,4,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,3,6,85,랜덤 방향전환 드릴,기능성운동,,,,,,,,,,60,20초 x 5 · 짧고 선명하게,5,0,0,20,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,86,스쿼트,근력운동,,,,,,,,,,120,DELOAD · 2x4 · 세트/중량 20~30% 감소,2,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,87,루마니안 데드리프트,근력운동,,,,,,,,,,120,DELOAD · 2x6,2,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,88,중량 풀업,근력운동,,,,,,,,,,120,DELOAD · 3x4 · 가볍게,3,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,89,케이블 원암 로우,근력운동,,,,,,,,,,75,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,90,해머 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,1,91,6코너 섀도우 풋워크,기능성운동,,,,,,,,,,60,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,92,밴드 외회전,근력운동,,,,,,,,,,45,DELOAD · 2x15,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,93,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 3x8,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,94,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,95,덤벨 래터럴 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,96,페이스풀,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,97,케이블 원암 트라이셉스 익스텐션,근력운동,,,,,,,,,,60,DELOAD · 2x10/측,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,2,98,원암 덤벨 컬,근력운동,,,,,,,,,,60,DELOAD · 2x10/측,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,99,데드리프트,근력운동,,,,,,,,,,150,DELOAD · 2x3,2,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,100,싱글 레그 RDL,기능성운동,,,,,,,,,,75,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,101,리버스 런지,근력운동,,,,,,,,,,90,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,102,래터럴 바운드,기능성운동,,,,,,,,,,45,DELOAD · 2x4/측,2,4,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,103,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,4,104,데드버그,기능성운동,,,,,,,,,,30,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,105,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 3x8 · 풀업 대체,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,106,체스트 서포티드 원암 덤벨 로우,근력운동,,,,,,,,,,75,DELOAD · 2x10/측,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,107,리버스 컬,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,108,덤벨 프로네이션/수피네이션,근력운동,,,,,,,,,,45,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,109,파머스 캐리,기능성운동,,,,,,,,,,60,DELOAD · 2라운드,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,8,배드민턴 최적화 4주 스플릿,28,4,6,110,스플릿 스텝 리액션,기능성운동,,,,,,,,,,45,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program,9,기능성+스트렝스 최대측정주,7,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,1,1,스쿼트,근력운동,,,,,,,,,,120,측정 · 워밍업 후 오늘의 기술적 1~3RM · RPE 9 이하 · 실패 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,1,2,중량 풀업,근력운동,,,,,,,,,,120,측정 · 오늘의 기술적 1~3RM 또는 3~5RM · 반동 없이,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,1,3,6코너 풋워크 최대반복 테스트,기능성운동,,,,,,,,,,90,측정 · 30초 1회 · 완료 반복 수 입력 · 같은 코트/동선 유지,1,0,0,30,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,1,4,싱글 레그 카프 레이즈,근력운동,,,,,,,,,,45,보조측정 · 좌우 각 1세트 최대품질 반복 · 반동 과도하게 쓰지 않기,1,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,3,5,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,측정 · 오늘의 3~5RM · 어깨가 편한 각도만 사용,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,3,6,등받이 없는 덤벨 시티드 숄더프레스,근력운동,,,,,,,,,,90,측정 · 오늘의 3~5RM · 허리 반동 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,3,7,30초 반복 스매시 테스트,기능성운동,,,,,,,,,,90,측정 · 30초 1회 · 성공 횟수 입력 · 피더/장소 조건 고정,1,0,0,30,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,3,8,스플릿 스텝 리액션,기능성운동,,,,,,,,,,45,측정 · 15초 x 2 · 첫 발이 흐려지면 중단,2,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,3,9,밴드 외회전,근력운동,,,,,,,,,,45,정리 · 2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,5,10,데드리프트,근력운동,,,,,,,,,,150,측정 · 오늘의 기술적 1~3RM · 그라인딩 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,5,11,싱글 레그 RDL,기능성운동,,,,,,,,,,75,보조측정 · 5RM/측 또는 흔들림 없는 최대중량,1,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,5,12,래터럴 바운드,기능성운동,,,,,,,,,,45,측정 · 3x3/측 · 거리보다 착지 고정 품질,3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,5,13,앞뒤 랜덤 콕줍기,기능성운동,,,,,,,,,,60,측정 · 30초 1회 · 완료 반복 수 입력,1,0,0,30,,,,,,,,,,,,,,,,
+3,program_item,9,기능성+스트렝스 최대측정주,7,1,5,14,좌우 랜덤 콕줍기,기능성운동,,,,,,,,,,60,측정 · 30초 1회 · 완료 반복 수 입력,1,0,0,30,,,,,,,,,,,,,,,,
+3,program,10,스트렝스 최대측정주,7,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,1,1,스쿼트,근력운동,,,,,,,,,,120,측정 · 오늘의 기술적 1~3RM · RPE 9 이하 · 실패/무리한 재시도 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,1,2,벤치프레스,근력운동,,,,,,,,,,120,측정 · 오늘의 기술적 1~3RM · 보조자 또는 안전바 권장,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,1,3,페이스풀,근력운동,,,,,,,,,,60,정리 · 2x15 · 어깨 후방 안정,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,3,4,중량 풀업,근력운동,,,,,,,,,,120,측정 · 오늘의 기술적 1~3RM 또는 3~5RM · 턱 확실히 넘기기,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,3,5,오버헤드 프레스,근력운동,,,,,,,,,,120,선택 측정 · 오늘의 1~3RM · 허리 과신전 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,3,6,바벨 로우,근력운동,,,,,,,,,,120,보조측정 · 5RM · 몸통 각도 유지,1,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,5,7,데드리프트,근력운동,,,,,,,,,,150,측정 · 오늘의 기술적 1~3RM · 등 말림/그라인딩 금지,1,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,5,8,루마니안 데드리프트,근력운동,,,,,,,,,,120,가벼운 백오프 · 2x5 · 햄스트링 감각 확인,2,5,0,0,,,,,,,,,,,,,,,,
+3,program_item,10,스트렝스 최대측정주,7,1,5,9,사이드 플랭크,기능성운동,,,,,,,,,,45,정리 · 2세트 · 몸통 안정,2,0,0,0,,,,,,,,,,,,,,,,
+3,program,11,초보자 스트렝스 4주 기초,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,1,1,고블릿 스쿼트,기능성운동,,,,,,,,,,75,기초 스쿼트 · 3x8~10 · RPE 6~7 · 몸통 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,1,4,머신 체스트프레스,근력운동,,,,,,,,,,90,기초 프레스 · 3x8~10 · 견갑 패드 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,1,7,랫풀다운,근력운동,,,,,,,,,,90,기초 당기기 · 3x8~10 · 어깨를 귀에서 멀게,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,1,10,루마니안 데드리프트,근력운동,,,,,,,,,,120,힙힌지 · 2~3x8 · 햄스트링 감각 우선,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,1,13,팔로프 프레스,기능성운동,,,,,,,,,,45,2x10/측 · 회전 저항 코어,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,3,16,레그 프레스,근력운동,,,,,,,,,,120,하체 힘 · 3x8~10 · 깊이보다 골반 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,3,19,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8 · 가벼운 덤벨로 궤도 학습,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,3,22,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,3,25,힙 쓰러스트,근력운동,,,,,,,,,,120,3x8~10 · 둔근 수축,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,3,28,페이스풀,근력운동,,,,,,,,,,60,2x12~15 · 견갑 안정,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,5,31,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,3x6~8 · 수직 궤도에서 하체 힘,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,5,34,머신 숄더프레스,근력운동,,,,,,,,,,90,3x8 · 허리 과신전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,5,37,케이블 로우,근력운동,,,,,,,,,,90,3x8~10 · 등으로 당기기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,5,40,데드리프트,근력운동,,,,,,,,,,150,"기술 연습 · 3x3 · 매우 가볍게, 실패 금지",3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,1,5,43,파머스 캐리,기능성운동,,,,,,,,,,60,2~3라운드 · 몸통 기울어짐 없이 걷기,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,1,2,고블릿 스쿼트,기능성운동,,,,,,,,,,75,기초 스쿼트 · 3x8~10 · RPE 6~7 · 몸통 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,1,5,머신 체스트프레스,근력운동,,,,,,,,,,90,기초 프레스 · 3x8~10 · 견갑 패드 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,1,8,랫풀다운,근력운동,,,,,,,,,,90,기초 당기기 · 3x8~10 · 어깨를 귀에서 멀게,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,1,11,루마니안 데드리프트,근력운동,,,,,,,,,,120,힙힌지 · 2~3x8 · 햄스트링 감각 우선,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,1,14,팔로프 프레스,기능성운동,,,,,,,,,,45,2x10/측 · 회전 저항 코어,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,3,17,레그 프레스,근력운동,,,,,,,,,,120,하체 힘 · 3x8~10 · 깊이보다 골반 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,3,20,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8 · 가벼운 덤벨로 궤도 학습,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,3,23,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,3,26,힙 쓰러스트,근력운동,,,,,,,,,,120,3x8~10 · 둔근 수축,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,3,29,페이스풀,근력운동,,,,,,,,,,60,2x12~15 · 견갑 안정,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,5,32,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,3x6~8 · 수직 궤도에서 하체 힘,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,5,35,머신 숄더프레스,근력운동,,,,,,,,,,90,3x8 · 허리 과신전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,5,38,케이블 로우,근력운동,,,,,,,,,,90,3x8~10 · 등으로 당기기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,5,41,데드리프트,근력운동,,,,,,,,,,150,"기술 연습 · 3x3 · 매우 가볍게, 실패 금지",3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,2,5,44,파머스 캐리,기능성운동,,,,,,,,,,60,2~3라운드 · 몸통 기울어짐 없이 걷기,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,1,3,고블릿 스쿼트,기능성운동,,,,,,,,,,75,기초 스쿼트 · 3x8~10 · RPE 6~7 · 몸통 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,1,6,머신 체스트프레스,근력운동,,,,,,,,,,90,기초 프레스 · 3x8~10 · 견갑 패드 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,1,9,랫풀다운,근력운동,,,,,,,,,,90,기초 당기기 · 3x8~10 · 어깨를 귀에서 멀게,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,1,12,루마니안 데드리프트,근력운동,,,,,,,,,,120,힙힌지 · 2~3x8 · 햄스트링 감각 우선,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,1,15,팔로프 프레스,기능성운동,,,,,,,,,,45,2x10/측 · 회전 저항 코어,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,3,18,레그 프레스,근력운동,,,,,,,,,,120,하체 힘 · 3x8~10 · 깊이보다 골반 고정,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,3,21,덤벨 벤치프레스,근력운동,,,,,,,,,,90,3x8 · 가벼운 덤벨로 궤도 학습,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,3,24,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x8~10 · 허리 반동 없이,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,3,27,힙 쓰러스트,근력운동,,,,,,,,,,120,3x8~10 · 둔근 수축,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,3,30,페이스풀,근력운동,,,,,,,,,,60,2x12~15 · 견갑 안정,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,5,33,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,3x6~8 · 수직 궤도에서 하체 힘,3,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,5,36,머신 숄더프레스,근력운동,,,,,,,,,,90,3x8 · 허리 과신전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,5,39,케이블 로우,근력운동,,,,,,,,,,90,3x8~10 · 등으로 당기기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,5,42,데드리프트,근력운동,,,,,,,,,,150,"기술 연습 · 3x3 · 매우 가볍게, 실패 금지",3,3,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,3,5,45,파머스 캐리,기능성운동,,,,,,,,,,60,2~3라운드 · 몸통 기울어짐 없이 걷기,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,1,46,고블릿 스쿼트,기능성운동,,,,,,,,,,75,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,1,47,머신 체스트프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,1,48,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,1,49,팔로프 프레스,기능성운동,,,,,,,,,,45,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,3,50,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,3,51,덤벨 벤치프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,3,52,체스트 서포티드 로우,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,3,53,페이스풀,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,5,54,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,DELOAD · 2x6,2,6,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,5,55,머신 숄더프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,5,56,케이블 로우,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,11,초보자 스트렝스 4주 기초,28,4,5,57,파머스 캐리,기능성운동,,,,,,,,,,60,DELOAD · 2라운드,2,0,0,0,,,,,,,,,,,,,,,,
+3,program,12,초보자 보디빌딩 4주 머신+복합,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,1,레그 프레스,근력운동,,,,,,,,,,120,Lower/Push · 3x10 · 대퇴/둔근 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,4,머신 체스트프레스,근력운동,,,,,,,,,,90,3x10 · 견갑 패드 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,7,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x10 · 등 수축 집중,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,10,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,13,페이스풀,근력운동,,,,,,,,,,60,2x15 · 후면어깨/견갑,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,1,16,데드버그,기능성운동,,,,,,,,,,30,2~3세트 · 코어 안정,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,19,고블릿 스쿼트,기능성운동,,,,,,,,,,75,Pull/Hinge · 3x10 · 스쿼트 패턴,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,22,랫풀다운,근력운동,,,,,,,,,,90,3x10 · 등 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,25,머신 숄더프레스,근력운동,,,,,,,,,,90,3x10 · 어깨 프레스,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,28,힙 쓰러스트,근력운동,,,,,,,,,,120,3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,31,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,3,34,플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 몸통 흔들림 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,37,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,Full Body · 3x8 · 안정된 하체 복합,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,40,케이블 로우,근력운동,,,,,,,,,,90,3x10 · 등,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,43,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 상부가슴,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,46,레그 익스텐션,근력운동,,,,,,,,,,60,2~3x12 · 대퇴사두근,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,49,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,52,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,1,5,55,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,2,레그 프레스,근력운동,,,,,,,,,,120,Lower/Push · 3x10 · 대퇴/둔근 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,5,머신 체스트프레스,근력운동,,,,,,,,,,90,3x10 · 견갑 패드 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,8,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x10 · 등 수축 집중,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,11,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,14,페이스풀,근력운동,,,,,,,,,,60,2x15 · 후면어깨/견갑,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,1,17,데드버그,기능성운동,,,,,,,,,,30,2~3세트 · 코어 안정,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,20,고블릿 스쿼트,기능성운동,,,,,,,,,,75,Pull/Hinge · 3x10 · 스쿼트 패턴,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,23,랫풀다운,근력운동,,,,,,,,,,90,3x10 · 등 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,26,머신 숄더프레스,근력운동,,,,,,,,,,90,3x10 · 어깨 프레스,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,29,힙 쓰러스트,근력운동,,,,,,,,,,120,3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,32,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,3,35,플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 몸통 흔들림 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,38,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,Full Body · 3x8 · 안정된 하체 복합,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,41,케이블 로우,근력운동,,,,,,,,,,90,3x10 · 등,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,44,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 상부가슴,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,47,레그 익스텐션,근력운동,,,,,,,,,,60,2~3x12 · 대퇴사두근,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,50,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,53,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,2,5,56,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,3,레그 프레스,근력운동,,,,,,,,,,120,Lower/Push · 3x10 · 대퇴/둔근 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,6,머신 체스트프레스,근력운동,,,,,,,,,,90,3x10 · 견갑 패드 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,9,체스트 서포티드 로우,근력운동,,,,,,,,,,90,3x10 · 등 수축 집중,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,12,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,15,페이스풀,근력운동,,,,,,,,,,60,2x15 · 후면어깨/견갑,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,1,18,데드버그,기능성운동,,,,,,,,,,30,2~3세트 · 코어 안정,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,21,고블릿 스쿼트,기능성운동,,,,,,,,,,75,Pull/Hinge · 3x10 · 스쿼트 패턴,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,24,랫풀다운,근력운동,,,,,,,,,,90,3x10 · 등 볼륨,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,27,머신 숄더프레스,근력운동,,,,,,,,,,90,3x10 · 어깨 프레스,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,30,힙 쓰러스트,근력운동,,,,,,,,,,120,3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,33,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,3,36,플랭크,기능성운동,,,,,,,,,,45,2~3세트 · 몸통 흔들림 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,39,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,Full Body · 3x8 · 안정된 하체 복합,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,42,케이블 로우,근력운동,,,,,,,,,,90,3x10 · 등,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,45,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,3x8~10 · 상부가슴,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,48,레그 익스텐션,근력운동,,,,,,,,,,60,2~3x12 · 대퇴사두근,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,51,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,54,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,3,5,57,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,1,58,레그 프레스,근력운동,,,,,,,,,,120,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,1,59,머신 체스트프레스,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,1,60,체스트 서포티드 로우,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,1,61,데드버그,기능성운동,,,,,,,,,,30,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,3,62,고블릿 스쿼트,기능성운동,,,,,,,,,,75,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,3,63,랫풀다운,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,3,64,머신 숄더프레스,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,3,65,플랭크,기능성운동,,,,,,,,,,45,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,5,66,스미스 머신 스쿼트,근력운동,,,,,,,,,,120,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,5,67,케이블 로우,근력운동,,,,,,,,,,90,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,5,68,인클라인 덤벨 프레스,근력운동,,,,,,,,,,90,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,12,초보자 보디빌딩 4주 머신+복합,28,4,5,69,밴드 외회전,근력운동,,,,,,,,,,45,DELOAD · 2x15,2,15,0,0,,,,,,,,,,,,,,,,
+3,program,13,초보자 기능성 안정화 4주,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,1,1,데드버그,기능성운동,,,,,,,,,,30,Core/Scap · 3세트 · 허리 뜨지 않게,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,1,4,버드독,근력운동,,,,,,,,,,45,3x8/측 · 골반 회전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,1,7,팔로프 프레스,기능성운동,,,,,,,,,,45,3x10/측 · 회전 저항,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,1,10,월 슬라이드,기능성운동,,,,,,,,,,30,2x10 · 견갑 상방회전,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,1,13,스캡 푸시업,기능성운동,,,,,,,,,,30,2x10 · 전거근,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,3,16,글루트 브릿지,근력운동,,,,,,,,,,75,Lower Stability · 3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,3,19,고블릿 스쿼트,기능성운동,,,,,,,,,,75,3x8~10 · 몸통 세우기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,3,22,박스 스텝업,기능성운동,,,,,,,,,,60,"2x8/측 · 낮은 박스, 천천히",2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,3,25,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10~15보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,3,28,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,5,31,케틀벨 스윙,기능성운동,,,,,,,,,,60,Pattern + Carry · 3x10 · 가볍게 힙힌지,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,5,34,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,15초 x 4 · 감속 후 정지,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,5,37,래터럴 스텝다운,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,5,40,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 몸통 기울어짐 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,1,5,43,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,1,2,데드버그,기능성운동,,,,,,,,,,30,Core/Scap · 3세트 · 허리 뜨지 않게,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,1,5,버드독,근력운동,,,,,,,,,,45,3x8/측 · 골반 회전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,1,8,팔로프 프레스,기능성운동,,,,,,,,,,45,3x10/측 · 회전 저항,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,1,11,월 슬라이드,기능성운동,,,,,,,,,,30,2x10 · 견갑 상방회전,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,1,14,스캡 푸시업,기능성운동,,,,,,,,,,30,2x10 · 전거근,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,3,17,글루트 브릿지,근력운동,,,,,,,,,,75,Lower Stability · 3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,3,20,고블릿 스쿼트,기능성운동,,,,,,,,,,75,3x8~10 · 몸통 세우기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,3,23,박스 스텝업,기능성운동,,,,,,,,,,60,"2x8/측 · 낮은 박스, 천천히",2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,3,26,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10~15보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,3,29,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,5,32,케틀벨 스윙,기능성운동,,,,,,,,,,60,Pattern + Carry · 3x10 · 가볍게 힙힌지,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,5,35,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,15초 x 4 · 감속 후 정지,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,5,38,래터럴 스텝다운,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,5,41,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 몸통 기울어짐 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,2,5,44,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,1,3,데드버그,기능성운동,,,,,,,,,,30,Core/Scap · 3세트 · 허리 뜨지 않게,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,1,6,버드독,근력운동,,,,,,,,,,45,3x8/측 · 골반 회전 금지,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,1,9,팔로프 프레스,기능성운동,,,,,,,,,,45,3x10/측 · 회전 저항,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,1,12,월 슬라이드,기능성운동,,,,,,,,,,30,2x10 · 견갑 상방회전,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,1,15,스캡 푸시업,기능성운동,,,,,,,,,,30,2x10 · 전거근,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,3,18,글루트 브릿지,근력운동,,,,,,,,,,75,Lower Stability · 3x10 · 둔근,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,3,21,고블릿 스쿼트,기능성운동,,,,,,,,,,75,3x8~10 · 몸통 세우기,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,3,24,박스 스텝업,기능성운동,,,,,,,,,,60,"2x8/측 · 낮은 박스, 천천히",2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,3,27,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10~15보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,3,30,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,5,33,케틀벨 스윙,기능성운동,,,,,,,,,,60,Pattern + Carry · 3x10 · 가볍게 힙힌지,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,5,36,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,15초 x 4 · 감속 후 정지,4,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,5,39,래터럴 스텝다운,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,5,42,파머스 캐리,기능성운동,,,,,,,,,,60,3라운드 · 몸통 기울어짐 없이,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,3,5,45,밴드 외회전,근력운동,,,,,,,,,,45,2x15 · 어깨 보호,2,15,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,1,46,데드버그,기능성운동,,,,,,,,,,30,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,1,47,버드독,근력운동,,,,,,,,,,45,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,1,48,팔로프 프레스,기능성운동,,,,,,,,,,45,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,1,49,월 슬라이드,기능성운동,,,,,,,,,,30,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,3,50,글루트 브릿지,근력운동,,,,,,,,,,75,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,3,51,고블릿 스쿼트,기능성운동,,,,,,,,,,75,DELOAD · 2x8,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,3,52,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,DELOAD · 2x10보/측,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,5,53,케틀벨 스윙,기능성운동,,,,,,,,,,60,DELOAD · 2x10,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,5,54,사이드 스텝 후 정지,기능성운동,,,,,,,,,,60,DELOAD · 15초 x 3,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,13,초보자 기능성 안정화 4주,28,4,5,55,파머스 캐리,기능성운동,,,,,,,,,,60,DELOAD · 2라운드,2,0,0,0,,,,,,,,,,,,,,,,
+3,program,14,초보자 러닝 보조 4주,28,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,1,앙클링,기능성운동,,,,,,,,,,30,러닝 드릴 · 15~20m x 3 · 짧은 접지,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,4,A스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 무릎드라이브,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,7,월 드라이브,기능성운동,,,,,,,,,,30,3x10/측 · 골반 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,10,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리 지구력,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,13,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,1,16,데드버그,기능성운동,,,,,,,,,,30,2세트 · 몸통 안정,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,19,포고 점프,기능성운동,,,,,,,,,,45,Plyo 입문 · 2~3x15초 · 낮은 높이,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,22,라인 홉,기능성운동,,,,,,,,,,45,2~3x15초 · 조용한 착지,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,25,하이니 스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 빠른 리듬,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,28,박스 스텝업,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,31,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8 · 후면사슬,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,3,34,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,37,B스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 접지 위치 감각,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,40,스킵 바운드,기능성운동,,,,,,,,,,45,10~15m x 2 · 낮은 볼륨,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,43,스트라이드,기능성운동,,,,,,,,,,60,"60~80m x 4 · 70~85%, 전력질주 금지",4,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,46,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,49,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링 보조,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,1,5,52,스탠딩 카프 레이즈,근력운동,,,,,,,,,,60,3x12 · 발목 탄성,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,2,앙클링,기능성운동,,,,,,,,,,30,러닝 드릴 · 15~20m x 3 · 짧은 접지,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,5,A스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 무릎드라이브,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,8,월 드라이브,기능성운동,,,,,,,,,,30,3x10/측 · 골반 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,11,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리 지구력,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,14,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,1,17,데드버그,기능성운동,,,,,,,,,,30,2세트 · 몸통 안정,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,20,포고 점프,기능성운동,,,,,,,,,,45,Plyo 입문 · 2~3x15초 · 낮은 높이,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,23,라인 홉,기능성운동,,,,,,,,,,45,2~3x15초 · 조용한 착지,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,26,하이니 스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 빠른 리듬,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,29,박스 스텝업,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,32,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8 · 후면사슬,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,3,35,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,38,B스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 접지 위치 감각,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,41,스킵 바운드,기능성운동,,,,,,,,,,45,10~15m x 2 · 낮은 볼륨,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,44,스트라이드,기능성운동,,,,,,,,,,60,"60~80m x 4 · 70~85%, 전력질주 금지",4,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,47,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,50,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링 보조,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,2,5,53,스탠딩 카프 레이즈,근력운동,,,,,,,,,,60,3x12 · 발목 탄성,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,3,앙클링,기능성운동,,,,,,,,,,30,러닝 드릴 · 15~20m x 3 · 짧은 접지,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,6,A스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 무릎드라이브,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,9,월 드라이브,기능성운동,,,,,,,,,,30,3x10/측 · 골반 고정,3,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,12,카프 레이즈,근력운동,,,,,,,,,,60,3x12~15 · 종아리 지구력,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,15,힙 어브덕션,근력운동,,,,,,,,,,60,2~3x12 · 골반 안정,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,1,18,데드버그,기능성운동,,,,,,,,,,30,2세트 · 몸통 안정,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,21,포고 점프,기능성운동,,,,,,,,,,45,Plyo 입문 · 2~3x15초 · 낮은 높이,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,24,라인 홉,기능성운동,,,,,,,,,,45,2~3x15초 · 조용한 착지,3,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,27,하이니 스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 빠른 리듬,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,30,박스 스텝업,기능성운동,,,,,,,,,,60,2x8/측 · 낮은 박스,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,33,루마니안 데드리프트,근력운동,,,,,,,,,,120,3x8 · 후면사슬,3,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,3,36,사이드 플랭크,기능성운동,,,,,,,,,,45,2세트 · 측면코어,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,39,B스킵,기능성운동,,,,,,,,,,30,15~20m x 3 · 접지 위치 감각,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,42,스킵 바운드,기능성운동,,,,,,,,,,45,10~15m x 2 · 낮은 볼륨,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,45,스트라이드,기능성운동,,,,,,,,,,60,"60~80m x 4 · 70~85%, 전력질주 금지",4,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,48,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,2x10보/측 · 골반 안정,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,51,레그 컬,근력운동,,,,,,,,,,60,2~3x12 · 햄스트링 보조,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,3,5,54,스탠딩 카프 레이즈,근력운동,,,,,,,,,,60,3x12 · 발목 탄성,3,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,1,55,앙클링,기능성운동,,,,,,,,,,30,DELOAD · 15m x 2,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,1,56,A스킵,기능성운동,,,,,,,,,,30,DELOAD · 15m x 2,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,1,57,월 드라이브,기능성운동,,,,,,,,,,30,DELOAD · 2x8/측,2,8,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,1,58,카프 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,3,59,포고 점프,기능성운동,,,,,,,,,,45,DELOAD · 15초 x 2,2,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,3,60,라인 홉,기능성운동,,,,,,,,,,45,DELOAD · 15초 x 2,2,0,0,15,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,3,61,하이니 스킵,기능성운동,,,,,,,,,,30,DELOAD · 15m x 2,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,3,62,사이드 플랭크,기능성운동,,,,,,,,,,45,DELOAD · 2세트,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,5,63,B스킵,기능성운동,,,,,,,,,,30,DELOAD · 15m x 2,2,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,5,64,스트라이드,기능성운동,,,,,,,,,,60,DELOAD · 60m x 3 · 편하게,3,0,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,5,65,미니밴드 사이드워크,기능성운동,,,,,,,,,,45,DELOAD · 2x10보/측,2,10,0,0,,,,,,,,,,,,,,,,
+3,program_item,14,초보자 러닝 보조 4주,28,4,5,66,스탠딩 카프 레이즈,근력운동,,,,,,,,,,60,DELOAD · 2x12,2,12,0,0,,,,,,,,,,,,,,,,
