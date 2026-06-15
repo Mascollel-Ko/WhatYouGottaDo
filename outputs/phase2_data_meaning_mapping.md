@@ -777,3 +777,59 @@ Limit:
 
 - `daily_timeseries` lacks exact exercise and set detail.
 - imported aggregate records preserve date-level continuity for Home, Record, Analysis, and recommendation inputs, but they are not exact historical set reconstruction.
+
+## v0.3.4.1 Program Generator Data Meaning
+
+Program definition fields:
+
+| Field | Meaning |
+| --- | --- |
+| `TrainingProgram.goal` | User-facing program goal used by the skeleton generator. |
+| `weeklyTrainingDays` | Planned sessions per week for generated skeletons. |
+| `sessionMinutes` | Rough time budget used to cap item count. |
+| `availableEquipment` | Comma-separated equipment tokens available to the user. |
+| `excludedExerciseText` | User-entered exclusion text. Used only as a direct text filter. |
+| `badmintonTransferRatio` | Target share for badminton-transfer-supportive work. |
+| `sportStrengthRatio` | UI-selected sport/strength emphasis label such as `70/30`. |
+| `periodizationType` | Selected or auto-chosen periodization style. |
+
+Generator mapping:
+
+- Exercise selection is based on structured `Exercise` metadata.
+- Metadata sources include movement pattern, training role, badminton transfer strength, fatigue categories, equipment, axial load, and analysis eligibility.
+- Exercise names are display values and are not used for classification.
+- The only name-based filter is the user's explicit exclusion text.
+
+Weight source mapping:
+
+| Source label | Meaning |
+| --- | --- |
+| `DIRECT_HISTORY_HIGH` | Recent confirmed same-exercise records support the kg suggestion. |
+| `DIRECT_HISTORY_MEDIUM` | Same-exercise history exists, but confidence is lower. |
+| `SIMILAR_EXERCISE_LOW` | Similar metadata history supports a conservative kg suggestion. |
+| `EMPTY_NEEDS_MANUAL_INPUT` | No reliable kg suggestion; user should enter kg manually. |
+
+Program application mapping:
+
+- `TrainingProgramItem` copies to `WorkoutEntry` plus planned `WorkoutSet` rows.
+- Program-created sets always import as `WorkoutSet.confirmed=false`.
+- `confirmed=false` continues to mean planned but not yet completed.
+- `confirmed=true` continues to mean completed record.
+- Program overwrite deletes planned-only rows only.
+- Entries containing any confirmed set are preserved.
+
+## Record Calendar Range Delete Mapping
+
+Long-press calendar `select delete` maps to date-range deletion.
+
+| User choice | DB behavior |
+| --- | --- |
+| unconfirmed only | delete `WorkoutSet` rows where `confirmed=false` in the selected date range |
+| including confirmed | delete all `WorkoutSet` and `WorkoutEntry` rows in the selected date range |
+
+Preservation rules:
+
+- DailyMetric rows are not deleted.
+- When only unconfirmed sets are deleted, confirmed sets remain actual training records.
+- Remaining sets in an entry are reindexed from `setIndex=1`.
+- Empty entries are removed after their last unconfirmed set is deleted.

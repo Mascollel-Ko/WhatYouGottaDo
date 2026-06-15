@@ -13,8 +13,10 @@ import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgram
@@ -136,6 +138,32 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun generateProgramSkeleton(
+        request: ProgramSkeletonRequest,
+        onResult: (GeneratedProgramSkeleton) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(repository.generateProgramSkeleton(request))
+        }
+    }
+
+    fun saveGeneratedProgram(
+        existingProgramId: Long?,
+        skeleton: GeneratedProgramSkeleton,
+        onSaved: (Long) -> Unit
+    ) {
+        viewModelScope.launch {
+            onSaved(repository.saveGeneratedProgram(existingProgramId, skeleton))
+        }
+    }
+
+    fun deleteProgram(programId: Long, onDeleted: () -> Unit = {}) {
+        viewModelScope.launch {
+            repository.deleteProgram(programId)
+            onDeleted()
+        }
+    }
+
     fun addExerciseToProgram(
         programId: Long,
         weekNumber: Int,
@@ -232,6 +260,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun deleteDate(date: String) {
         viewModelScope.launch {
             repository.deleteDate(date)
+            refreshAnalysisSummaries()
+        }
+    }
+
+    fun deleteDateRange(startDate: String, endDate: String, includeConfirmed: Boolean) {
+        viewModelScope.launch {
+            repository.deleteDateRange(startDate, endDate, includeConfirmed)
             refreshAnalysisSummaries()
         }
     }

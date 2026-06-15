@@ -160,6 +160,30 @@ interface WorkoutDao {
         SELECT COUNT(workout_sets.id)
         FROM workout_sets
         INNER JOIN workout_entries ON workout_entries.id = workout_sets.entryId
+        WHERE workout_entries.date BETWEEN :startDate AND :endDate AND workout_sets.confirmed = 1
+        """
+    )
+    suspend fun countConfirmedSetsBetween(startDate: String, endDate: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(*)
+        FROM workout_entries
+        WHERE date BETWEEN :startDate AND :endDate
+        AND NOT EXISTS (
+            SELECT 1 FROM workout_sets
+            WHERE workout_sets.entryId = workout_entries.id
+            AND workout_sets.confirmed = 1
+        )
+        """
+    )
+    suspend fun countPlannedOnlyEntriesBetween(startDate: String, endDate: String): Int
+
+    @Query(
+        """
+        SELECT COUNT(workout_sets.id)
+        FROM workout_sets
+        INNER JOIN workout_entries ON workout_entries.id = workout_sets.entryId
         WHERE workout_entries.date = :date AND workout_sets.confirmed = 1
         """
     )
@@ -193,6 +217,39 @@ interface WorkoutDao {
 
     @Query("DELETE FROM workout_entries WHERE date IN (:dates)")
     suspend fun deleteEntriesOnDates(dates: List<String>)
+
+    @Query("DELETE FROM workout_entries WHERE id = :entryId")
+    suspend fun deleteEntryById(entryId: Long)
+
+    @Query(
+        """
+        DELETE FROM workout_sets
+        WHERE entryId IN (
+            SELECT workout_entries.id
+            FROM workout_entries
+            WHERE workout_entries.date BETWEEN :startDate AND :endDate
+            AND NOT EXISTS (
+                SELECT 1 FROM workout_sets AS confirmed_sets
+                WHERE confirmed_sets.entryId = workout_entries.id
+                AND confirmed_sets.confirmed = 1
+            )
+        )
+        """
+    )
+    suspend fun deletePlannedOnlySetsBetween(startDate: String, endDate: String)
+
+    @Query(
+        """
+        DELETE FROM workout_entries
+        WHERE date BETWEEN :startDate AND :endDate
+        AND NOT EXISTS (
+            SELECT 1 FROM workout_sets
+            WHERE workout_sets.entryId = workout_entries.id
+            AND workout_sets.confirmed = 1
+        )
+        """
+    )
+    suspend fun deletePlannedOnlyEntriesBetween(startDate: String, endDate: String)
 
     @Query(
         """
@@ -301,6 +358,15 @@ interface ProgramDao {
 
     @Insert
     suspend fun insertProgram(program: TrainingProgram): Long
+
+    @Update
+    suspend fun updateProgram(program: TrainingProgram)
+
+    @Query("DELETE FROM training_program_items WHERE programId = :programId")
+    suspend fun deleteProgramItems(programId: Long)
+
+    @Query("DELETE FROM training_programs WHERE id = :programId")
+    suspend fun deleteProgram(programId: Long)
 
     @Insert
     suspend fun insertProgramItem(item: TrainingProgramItem): Long

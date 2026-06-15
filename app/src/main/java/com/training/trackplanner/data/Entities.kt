@@ -114,7 +114,16 @@ data class TrainingProgram(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val durationDays: Int,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val goal: String = "",
+    val weeklyTrainingDays: Int = 0,
+    val sessionMinutes: Int = 0,
+    val availableEquipment: String = "",
+    val excludedExerciseText: String = "",
+    val badmintonTransferRatio: Double = 0.4,
+    val sportStrengthRatio: String = "AUTO",
+    val periodizationType: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "training_program_items")

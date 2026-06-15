@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrainingProgramItem::class,
         AppMeta::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class TrainingDatabase : RoomDatabase() {
@@ -96,6 +96,20 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `goal` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `weeklyTrainingDays` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `sessionMinutes` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `availableEquipment` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `excludedExerciseText` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `badmintonTransferRatio` REAL NOT NULL DEFAULT 0.4")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `sportStrengthRatio` TEXT NOT NULL DEFAULT 'AUTO'")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `periodizationType` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `updatedAt` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -103,7 +117,13 @@ abstract class TrainingDatabase : RoomDatabase() {
                     TrainingDatabase::class.java,
                     "training_track_planner.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
+                    )
                     .build()
                     .also { instance = it }
             }

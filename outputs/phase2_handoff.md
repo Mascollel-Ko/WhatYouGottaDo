@@ -860,3 +860,58 @@ Unchanged:
 - detail section content when expanded.
 - confirmed-only analysis semantics.
 - performance trend and badminton transfer analysis cards.
+
+## v0.3.4.1 Program Generator and Plan Tab Recovery
+
+Scope:
+
+- Plan tab program create/edit/delete.
+- Automatic program skeleton generation.
+- Safe program application overwrite.
+- Program seed/user program data preservation.
+
+Files:
+
+- `program_skeleton_generator_spec_v0.3.4.1.md`
+- `outputs/phase3_4_1_program_generator.md`
+- `app/src/main/java/com/training/trackplanner/PlanScreen.kt`
+- `app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`
+- `app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt`
+- `app/src/main/java/com/training/trackplanner/data/Daos.kt`
+- `app/src/main/java/com/training/trackplanner/data/Entities.kt`
+- `app/src/test/java/com/training/trackplanner/data/ProgramSkeletonGeneratorTest.kt`
+- `app/build.gradle.kts`
+
+Program data model:
+
+- `TrainingProgram` now stores optional planning inputs such as goal, weekly training days, session minutes, equipment, exclusions, badminton transfer ratio, sport/strength ratio, periodization type, and updated timestamp.
+- Room migration `5 -> 6` is additive only.
+
+Generator:
+
+- `ProgramSkeletonGenerator` builds a 4-week skeleton from exercise metadata and confirmed history.
+- It chooses a periodization shape, distributes sessions across weekdays, scores candidates, limits high-fatigue clustering, and produces editable program items.
+- Weight suggestions use direct same-exercise history first, similar metadata history second, and otherwise leave kg empty for manual input.
+
+Overwrite behavior:
+
+- `ProgramApplyConflictSummary` now describes the date range and planned-only entries.
+- `Overwrite` deletes only entries with no confirmed set in the program date range.
+- Confirmed records are preserved even when overwrite is selected.
+
+Next recommended work:
+
+- Add Room in-memory tests for planned-only overwrite behavior.
+- Add explicit condition/injury taxonomy if exclusions need to move beyond user text.
+- Add program-level duplicate prevention if multiple saved variants share identical metadata.
+
+Record calendar range delete:
+
+- `RecordCalendarScreen` now has `CalendarRangeDelete` and `PendingRangeDelete`.
+- Long-press menu includes `select delete`.
+- `TrainingViewModel.deleteDateRange(startDate, endDate, includeConfirmed)` delegates to repository.
+- `includeConfirmed=true` removes all entries/sets in range.
+- `includeConfirmed=false` removes only unconfirmed sets, deletes empty entries, and reindexes remaining sets.
+- Daily metrics are preserved.

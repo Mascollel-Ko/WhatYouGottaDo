@@ -587,3 +587,40 @@ Preserved:
 - Today Readiness engine logic is unchanged.
 - confirmed-only analysis semantics are unchanged.
 - 3.2 performance trend and 3.3 badminton transfer sections remain in place.
+
+## v0.3.4.1 Program Generator and Safe Schedule Overwrite
+
+This update restores the Plan tab as a practical program workflow.
+
+Plan changes:
+
+- programs can be opened, edited, and deleted.
+- the program editor can create a metadata-based 4-week skeleton.
+- generated skeletons can be reviewed and edited before saving.
+- the editor supports goal, weekly days, session minutes, equipment, exclusions, badminton transfer ratio, sport/strength ratio, and periodization type.
+
+Generator rules:
+
+- structured exercise metadata is the primary classification source.
+- exercise names are not used for analysis classification.
+- user exclusion text can filter exercise names because it is direct user input.
+- scoring uses goal fit, transfer metadata, equipment, movement needs, fatigue cost, and metadata confidence.
+- recent confirmed history can autofill conservative starting weights.
+
+Schedule overwrite:
+
+- applying a program still creates planned sets with `confirmed=false`.
+- overwrite now removes only planned-only schedule entries.
+- completed records with `confirmed=true` sets are preserved.
+- the conflict dialog shows target period, planned entries to replace, new planned entries, and confirmed sets preserved.
+
+Reference:
+
+- `program_skeleton_generator_spec_v0.3.4.1.md`
+- `outputs/phase3_4_1_program_generator.md`
+
+Record calendar add-on:
+
+- long-press date menu now includes range delete.
+- the selected start/end date range can delete unconfirmed-only sets or all records including confirmed sets.
+- unconfirmed-only delete preserves completed records and reorders remaining set indexes.

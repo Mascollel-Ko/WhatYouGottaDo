@@ -35,7 +35,10 @@ enum class CalendarConflictMode {
 data class ProgramApplyConflictSummary(
     val affectedDateCount: Int = 0,
     val existingEntryCount: Int = 0,
-    val existingConfirmedSetCount: Int = 0
+    val existingConfirmedSetCount: Int = 0,
+    val startDate: String = "",
+    val endDate: String = "",
+    val newPlannedEntryCount: Int = 0
 ) {
     val hasExistingEntries: Boolean
         get() = existingEntryCount > 0
@@ -225,6 +228,74 @@ class TrainingRepository(
         )
     }
 
+    suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
+        withContext(Dispatchers.IO) {
+            ProgramSkeletonGenerator().generate(
+                request = request,
+                exercises = exerciseDao.allExercises(),
+                history = workoutDao.allEntriesWithSets()
+            )
+        }
+
+    suspend fun saveGeneratedProgram(
+        existingProgramId: Long?,
+        skeleton: GeneratedProgramSkeleton
+    ): Long = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val now = System.currentTimeMillis()
+            val request = skeleton.request
+            val program = TrainingProgram(
+                id = existingProgramId ?: 0,
+                name = skeleton.suggestedName.ifBlank { request.name.ifBlank { "새 프로그램" } },
+                durationDays = skeleton.durationDays,
+                createdAt = existingProgramId?.let { programDao.findProgram(it)?.createdAt } ?: now,
+                goal = request.goal.name,
+                weeklyTrainingDays = request.weeklyTrainingDays,
+                sessionMinutes = request.sessionMinutes,
+                availableEquipment = request.availableEquipment.joinToString("|"),
+                excludedExerciseText = request.excludedExerciseText,
+                badmintonTransferRatio = request.badmintonTransferRatio,
+                sportStrengthRatio = request.sportStrengthRatio,
+                periodizationType = skeleton.periodizationType.name,
+                updatedAt = now
+            )
+            val programId = if (existingProgramId != null && programDao.findProgram(existingProgramId) != null) {
+                programDao.updateProgram(program)
+                programDao.deleteProgramItems(existingProgramId)
+                existingProgramId
+            } else {
+                programDao.insertProgram(program)
+            }
+            programDao.insertProgramItems(
+                skeleton.items.map { item ->
+                    TrainingProgramItem(
+                        programId = programId,
+                        weekNumber = item.weekNumber,
+                        dayOfWeek = item.dayOfWeek,
+                        orderIndex = item.orderIndex,
+                        exerciseId = item.exerciseId,
+                        exerciseName = item.exerciseName,
+                        category = item.category,
+                        restSeconds = item.restSeconds,
+                        prescription = item.prescription,
+                        setCount = item.setCount.coerceAtLeast(1),
+                        reps = item.reps,
+                        weightKg = item.weightKg,
+                        seconds = item.seconds
+                    )
+                }
+            )
+            programId
+        }
+    }
+
+    suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            programDao.deleteProgramItems(programId)
+            programDao.deleteProgram(programId)
+        }
+    }
+
     suspend fun addExerciseToProgram(
         programId: Long,
         weekNumber: Int,
@@ -271,15 +342,19 @@ class TrainingRepository(
         programId: Long,
         startDate: String
     ): ProgramApplyConflictSummary = withContext(Dispatchers.IO) {
+        val program = programDao.findProgram(programId)
         val programItems = programDao.itemsForProgram(programId)
-        val dates = targetDates(startDate, programItems)
-        if (dates.isEmpty()) {
+        val range = program?.dateRangeFor(startDate)
+        if (program == null || programItems.isEmpty() || range == null) {
             ProgramApplyConflictSummary()
         } else {
             ProgramApplyConflictSummary(
-                affectedDateCount = dates.size,
-                existingEntryCount = workoutDao.countEntriesOnDates(dates),
-                existingConfirmedSetCount = workoutDao.countConfirmedSetsOnDates(dates)
+                affectedDateCount = program.durationDays,
+                existingEntryCount = workoutDao.countPlannedOnlyEntriesBetween(range.first, range.second),
+                existingConfirmedSetCount = workoutDao.countConfirmedSetsBetween(range.first, range.second),
+                startDate = range.first,
+                endDate = range.second,
+                newPlannedEntryCount = programItems.size
             )
         }
     }
@@ -292,37 +367,39 @@ class TrainingRepository(
         val program = programDao.findProgram(programId) ?: return@withContext
         val items = programDao.itemsForProgram(program.id)
         if (items.isEmpty()) return@withContext
-        val dates = targetDates(startDate, items)
-        if (mode == ProgramApplyMode.Overwrite && dates.isNotEmpty()) {
-            workoutDao.deleteSetsOnDates(dates)
-            workoutDao.deleteEntriesOnDates(dates)
-        }
+        val range = program.dateRangeFor(startDate) ?: return@withContext
+        db.withTransaction {
+            if (mode == ProgramApplyMode.Overwrite) {
+                workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
+                workoutDao.deletePlannedOnlyEntriesBetween(range.first, range.second)
+            }
 
-        val now = System.currentTimeMillis()
-        items.forEachIndexed { index, item ->
-            val entryId = workoutDao.insertEntry(
-                WorkoutEntry(
-                    date = dateForProgramItem(startDate, item),
-                    exerciseId = item.exerciseId,
-                    exerciseName = item.exerciseName,
-                    category = item.category,
-                    restSeconds = item.restSeconds,
-                    notes = noteFromPrescription(item.prescription),
-                    createdAt = now + index
-                )
-            )
-            repeat(item.setCount.coerceAtLeast(1)) { setIndex ->
-                workoutDao.insertSet(
-                    WorkoutSet(
-                        entryId = entryId,
-                        setIndex = setIndex + 1,
-                        reps = item.reps,
-                        weightKg = item.weightKg,
-                        seconds = item.seconds,
-                        confirmed = false,
-                        manualWeight = item.weightKg > 0.0
+            val now = System.currentTimeMillis()
+            items.forEachIndexed { index, item ->
+                val entryId = workoutDao.insertEntry(
+                    WorkoutEntry(
+                        date = dateForProgramItem(startDate, item),
+                        exerciseId = item.exerciseId,
+                        exerciseName = item.exerciseName,
+                        category = item.category,
+                        restSeconds = item.restSeconds,
+                        notes = noteFromPrescription(item.prescription),
+                        createdAt = now + index
                     )
                 )
+                repeat(item.setCount.coerceAtLeast(1)) { setIndex ->
+                    workoutDao.insertSet(
+                        WorkoutSet(
+                            entryId = entryId,
+                            setIndex = setIndex + 1,
+                            reps = item.reps,
+                            weightKg = item.weightKg,
+                            seconds = item.seconds,
+                            confirmed = false,
+                            manualWeight = item.weightKg > 0.0
+                        )
+                    )
+                }
             }
         }
     }
@@ -346,6 +423,41 @@ class TrainingRepository(
         db.withTransaction {
             workoutDao.deleteSetsOnDates(listOf(date))
             workoutDao.deleteEntriesOnDates(listOf(date))
+        }
+    }
+
+    suspend fun deleteDateRange(
+        startDate: String,
+        endDate: String,
+        includeConfirmed: Boolean
+    ) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            val dates = dateRange(startDate, endDate)
+            if (dates.isEmpty()) return@withTransaction
+            if (includeConfirmed) {
+                workoutDao.deleteSetsOnDates(dates)
+                workoutDao.deleteEntriesOnDates(dates)
+            } else {
+                val entries = dates.flatMap { date -> workoutDao.entriesWithSets(date) }
+                entries.forEach { entryWithSets ->
+                    entryWithSets.sets
+                        .filter { set -> !set.confirmed }
+                        .forEach { set -> workoutDao.deleteSet(set) }
+
+                    val remainingSets = workoutDao.setsForEntry(entryWithSets.entry.id)
+                        .sortedBy { set -> set.setIndex }
+                    if (remainingSets.isEmpty()) {
+                        workoutDao.deleteEntryById(entryWithSets.entry.id)
+                    } else {
+                        remainingSets.forEachIndexed { index, set ->
+                            val nextIndex = index + 1
+                            if (set.setIndex != nextIndex) {
+                                workoutDao.updateSetIndex(set.id, nextIndex)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -818,6 +930,13 @@ class TrainingRepository(
 
     private fun targetDates(startDate: String, items: List<TrainingProgramItem>): List<String> =
         items.map { dateForProgramItem(startDate, it) }.distinct()
+
+    private fun TrainingProgram.dateRangeFor(startDate: String): Pair<String, String>? =
+        runCatching {
+            val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
+            val end = start.plusDays(durationDays.coerceAtLeast(1).toLong() - 1L)
+            start.format(DateTimeFormatter.ISO_LOCAL_DATE) to end.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        }.getOrNull()
 
     private fun dateForProgramItem(startDate: String, item: TrainingProgramItem): String {
         val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)

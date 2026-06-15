@@ -63,7 +63,9 @@ internal fun RecordCalendarScreen(
     var pendingAction by remember { mutableStateOf<CalendarPendingAction?>(null) }
     var pendingConflict by remember { mutableStateOf<PendingConflict?>(null) }
     var pendingDelete by remember { mutableStateOf<PendingDelete?>(null) }
+    var pendingRangeDelete by remember { mutableStateOf<PendingRangeDelete?>(null) }
     var rangeCopy by remember { mutableStateOf<CalendarRangeCopy?>(null) }
+    var rangeDelete by remember { mutableStateOf<CalendarRangeDelete?>(null) }
 
     actionMenuDate?.let { sourceDate ->
         CalendarActionDialog(
@@ -89,6 +91,10 @@ internal fun RecordCalendarScreen(
             onRangeCopy = {
                 rangeCopy = CalendarRangeCopy(sourceStart = sourceDate)
                 actionMenuDate = null
+            },
+            onRangeDelete = {
+                rangeDelete = CalendarRangeDelete(sourceStart = sourceDate)
+                actionMenuDate = null
             }
         )
     }
@@ -100,6 +106,31 @@ internal fun RecordCalendarScreen(
             onConfirm = {
                 viewModel.deleteDate(delete.date)
                 pendingDelete = null
+            }
+        )
+    }
+
+    pendingRangeDelete?.let { delete ->
+        DeleteDateRangeDialog(
+            pendingDelete = delete,
+            onDismiss = { pendingRangeDelete = null },
+            onDeleteUnconfirmedOnly = {
+                viewModel.deleteDateRange(
+                    startDate = delete.startDate,
+                    endDate = delete.endDate,
+                    includeConfirmed = false
+                )
+                pendingRangeDelete = null
+                rangeDelete = null
+            },
+            onDeleteAll = {
+                viewModel.deleteDateRange(
+                    startDate = delete.startDate,
+                    endDate = delete.endDate,
+                    includeConfirmed = true
+                )
+                pendingRangeDelete = null
+                rangeDelete = null
             }
         )
     }
@@ -187,6 +218,12 @@ internal fun RecordCalendarScreen(
                     onCancel = { rangeCopy = null }
                 )
             }
+            rangeDelete?.let { state ->
+                ActionModeCard(
+                    text = "${state.sourceStart}부터 삭제할 끝 날짜 선택",
+                    onCancel = { rangeDelete = null }
+                )
+            }
         }
         item {
             CalendarGrid(
@@ -198,11 +235,14 @@ internal fun RecordCalendarScreen(
                         date = date,
                         pendingAction = pendingAction,
                         rangeCopy = rangeCopy,
+                        rangeDelete = rangeDelete,
                         viewModel = viewModel,
                         onPlainDateSelected = onDateSelected,
                         onPendingConflict = { pendingConflict = it },
+                        onPendingRangeDelete = { pendingRangeDelete = it },
                         onPendingActionChange = { pendingAction = it },
-                        onRangeCopyChange = { rangeCopy = it }
+                        onRangeCopyChange = { rangeCopy = it },
+                        onRangeDeleteChange = { rangeDelete = it }
                     )
                 },
                 onDateLongClick = { actionMenuDate = it }
@@ -371,7 +411,8 @@ private fun CalendarActionDialog(
     onCopyWithState: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
-    onRangeCopy: () -> Unit
+    onRangeCopy: () -> Unit,
+    onRangeDelete: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -389,6 +430,9 @@ private fun CalendarActionDialog(
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeCopy) {
                     Text("선택복사")
+                }
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeDelete) {
+                    Text("선택 삭제")
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onDelete) {
                     Text("삭제")
@@ -495,15 +539,59 @@ private fun DeleteDateDialog(
     )
 }
 
+@Composable
+private fun DeleteDateRangeDialog(
+    pendingDelete: PendingRangeDelete,
+    onDismiss: () -> Unit,
+    onDeleteUnconfirmedOnly: () -> Unit,
+    onDeleteAll: () -> Unit
+) {
+    val summary = pendingDelete.summary
+    val confirmedSets = summary.existingConfirmedSetCount
+    val unconfirmedSets = (summary.existingSetCount - confirmedSets).coerceAtLeast(0)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("선택한 날짜 범위를 삭제할까요?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("${pendingDelete.startDate} ~ ${pendingDelete.endDate}")
+                Text("대상 날짜 ${summary.affectedDateCount}일")
+                Text("운동 ${summary.existingEntryCount}개, 세트 ${summary.existingSetCount}개")
+                Text("확인 세트 ${confirmedSets}개, 미확인 세트 ${unconfirmedSets}개")
+                Text("수면/체중 기록은 삭제하지 않습니다.")
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDeleteAll) {
+                Text("확인 포함 삭제")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDeleteUnconfirmedOnly) {
+                    Text("미확인만 삭제")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("취소")
+                }
+            }
+        }
+    )
+}
+
 private fun handleCalendarDateClick(
     date: String,
     pendingAction: CalendarPendingAction?,
     rangeCopy: CalendarRangeCopy?,
+    rangeDelete: CalendarRangeDelete?,
     viewModel: TrainingViewModel,
     onPlainDateSelected: (String) -> Unit,
     onPendingConflict: (PendingConflict) -> Unit,
+    onPendingRangeDelete: (PendingRangeDelete) -> Unit,
     onPendingActionChange: (CalendarPendingAction?) -> Unit,
-    onRangeCopyChange: (CalendarRangeCopy?) -> Unit
+    onRangeCopyChange: (CalendarRangeCopy?) -> Unit,
+    onRangeDeleteChange: (CalendarRangeDelete?) -> Unit
 ) {
     if (pendingAction != null) {
         if (pendingAction.sourceDate == date) {
@@ -572,6 +660,21 @@ private fun handleCalendarDateClick(
                 }
             }
         }
+        return
+    }
+
+    if (rangeDelete != null) {
+        val dates = calendarDateRange(rangeDelete.sourceStart, date)
+        viewModel.loadCalendarConflictSummary(dates) { summary ->
+            onPendingRangeDelete(
+                PendingRangeDelete(
+                    startDate = dates.firstOrNull() ?: rangeDelete.sourceStart,
+                    endDate = dates.lastOrNull() ?: date,
+                    summary = summary
+                )
+            )
+        }
+        onRangeDeleteChange(null)
         return
     }
 
@@ -654,6 +757,10 @@ private data class CalendarRangeCopy(
     val sourceEnd: String? = null
 )
 
+private data class CalendarRangeDelete(
+    val sourceStart: String
+)
+
 private data class PendingConflict(
     val title: String,
     val execution: CalendarExecution,
@@ -670,6 +777,12 @@ private data class PendingConflict(
 private data class PendingDelete(
     val date: String,
     val summary: DailyRecordSummary?
+)
+
+private data class PendingRangeDelete(
+    val startDate: String,
+    val endDate: String,
+    val summary: CalendarConflictSummary
 )
 
 private sealed interface CalendarExecution {
