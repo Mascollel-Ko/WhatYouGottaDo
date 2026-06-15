@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -66,6 +67,19 @@ internal fun RecordCalendarScreen(
     var pendingRangeDelete by remember { mutableStateOf<PendingRangeDelete?>(null) }
     var rangeCopy by remember { mutableStateOf<CalendarRangeCopy?>(null) }
     var rangeDelete by remember { mutableStateOf<CalendarRangeDelete?>(null) }
+
+    BackHandler {
+        when {
+            actionMenuDate != null -> actionMenuDate = null
+            pendingDelete != null -> pendingDelete = null
+            pendingRangeDelete != null -> pendingRangeDelete = null
+            pendingConflict != null -> pendingConflict = null
+            pendingAction != null -> pendingAction = null
+            rangeCopy != null -> rangeCopy = null
+            rangeDelete != null -> rangeDelete = null
+            else -> onBack()
+        }
+    }
 
     actionMenuDate?.let { sourceDate ->
         CalendarActionDialog(

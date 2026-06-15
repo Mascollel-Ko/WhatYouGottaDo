@@ -1,6 +1,7 @@
 package com.training.trackplanner
 
 import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -96,6 +97,10 @@ internal fun TrainingTrackPlannerApp(
             recordTarget = target
             selectedTab = AppTab.Record
         }
+    }
+
+    BackHandler(enabled = selectedTab != AppTab.Home) {
+        selectedTab = AppTab.Home
     }
 
     Scaffold(

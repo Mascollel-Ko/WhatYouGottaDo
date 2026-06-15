@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -118,6 +119,10 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
 private fun TodayReadinessCard(summary: TodayReadinessSummary) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
+    BackHandler(enabled = expanded) {
+        expanded = false
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -188,6 +193,11 @@ private fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
     var chartMode by rememberSaveable {
         mutableStateOf(BadmintonTransferDetailChartMode.AXIS_SHARE)
     }
+
+    BackHandler(enabled = expanded) {
+        expanded = false
+    }
+
     val chartItems = when (chartMode) {
         BadmintonTransferDetailChartMode.AXIS_SHARE -> summary.chartData.axisShareBars
         BadmintonTransferDetailChartMode.TRANSFER_TYPE_SHARE -> summary.chartData.transferTypeShareBars
@@ -258,6 +268,10 @@ private fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
 @Composable
 private fun PerformanceTrendCard(summary: PerformanceTrendSummary) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = expanded) {
+        expanded = false
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth(),

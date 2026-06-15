@@ -1,6 +1,7 @@
 package com.training.trackplanner
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,6 +70,18 @@ internal fun PlanScreen(
         }
         if (editingProgramId != null && editingProgram == null) {
             editingProgramId = null
+        }
+    }
+
+    BackHandler(enabled = creatingProgram || editingProgramId != null || selectedProgramId != null) {
+        when {
+            creatingProgram || editingProgramId != null -> {
+                creatingProgram = false
+                editingProgramId = null
+            }
+            selectedProgramId != null -> {
+                selectedProgramId = null
+            }
         }
     }
 

@@ -915,3 +915,11 @@ Record calendar range delete:
 - `includeConfirmed=true` removes all entries/sets in range.
 - `includeConfirmed=false` removes only unconfirmed sets, deletes empty entries, and reindexes remaining sets.
 - Daily metrics are preserved.
+
+Back navigation:
+
+- Root app back goes to Home when the current tab is not Home.
+- Home back is left to Android default close behavior.
+- Record calendar back closes calendar state and returns to the selected record date.
+- Plan create/edit/detail back returns to the prior Plan screen.
+- Expanded Analysis detail cards collapse before leaving the Analysis tab.

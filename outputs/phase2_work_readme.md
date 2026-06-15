@@ -624,3 +624,9 @@ Record calendar add-on:
 - long-press date menu now includes range delete.
 - the selected start/end date range can delete unconfirmed-only sets or all records including confirmed sets.
 - unconfirmed-only delete preserves completed records and reorders remaining set indexes.
+
+Back navigation add-on:
+
+- Android back from non-Home tabs returns to Home.
+- Android back from Home can close the app.
+- Calendar and detail-expanded screens consume back first and return to their prior in-app state.

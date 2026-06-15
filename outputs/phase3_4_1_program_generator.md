@@ -98,3 +98,21 @@ Applied scope:
 - Preserved data-loss prevention for confirmed records unless the user explicitly chooses the destructive range-delete option.
 - Preserved additive-only DB migration behavior.
 - Ran narrow verification: unit tests and debug APK build.
+
+## Back Navigation Policy Add-on
+
+Version remains `0.3.4.1`.
+
+Behavior:
+
+- Pressing Android back outside Home moves the app to Home first.
+- Pressing Android back on Home keeps default system behavior, so the app can close.
+- Record calendar back first cancels active calendar modes/dialogs, otherwise returns to the selected record date.
+- Plan editor back cancels create/edit mode.
+- Plan detail back returns to the program list.
+- Analysis detail cards close their expanded `details` section before leaving the Analysis tab.
+
+Ponytail safety note:
+
+- This patch only adds Compose `BackHandler` callbacks.
+- It does not change DB schema, CSV, analysis formulas, or confirmed/planned data semantics.
