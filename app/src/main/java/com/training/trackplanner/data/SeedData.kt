@@ -115,6 +115,9 @@ object SeedData {
         val sportTransferSupportive = sportTransferSupportiveFor(category, sourceText, movementPattern)
         val accessoryRoles = accessoryRolesFor(sourceText, movementPattern)
         val loadProfile = loadProfileFor(sourceText, forceType, trainingRole)
+        val seedMovementTokens = row.value("movement_pattern").splitSeedTokens()
+        val activityKind = activityKindFor(category, seedMovementTokens)
+        val planningEligibility = planningEligibilityFor(activityKind)
 
         val legacyExercise = Exercise(
             name = name,
@@ -147,12 +150,14 @@ object SeedData {
                 metadataConfidenceFor(name, sportTransferDirect),
                 ExerciseTaxonomy.metadataConfidence,
                 "metadataConfidence"
-            )
+            ),
+            activityKind = activityKind.name,
+            planningEligibility = planningEligibility.name
         )
         return ExerciseMetadataMapper.applySeedMetadata(
             exercise = legacyExercise,
             source = SeedMetadataSource(
-                movementPatternTokens = row.value("movement_pattern").splitSeedTokens(),
+                movementPatternTokens = seedMovementTokens,
                 movementCategoryToken = row.value("movement_category"),
                 forceTypeToken = row.value("force_type"),
                 planeToken = row.value("plane"),
@@ -160,6 +165,25 @@ object SeedData {
             )
         )
     }
+
+    private fun activityKindFor(
+        category: String,
+        movementPatternTokens: Set<String>
+    ): ActivityKind =
+        when {
+            ActivityKind.MATCH_RECORD.name in movementPatternTokens -> ActivityKind.MATCH_RECORD
+            ActivityKind.SPORT_SESSION.name in movementPatternTokens -> ActivityKind.SPORT_SESSION
+            category == "스포츠" -> ActivityKind.SPORT_SESSION
+            else -> ActivityKind.TRAINING_EXERCISE
+        }
+
+    private fun planningEligibilityFor(activityKind: ActivityKind): PlanningEligibility =
+        when (activityKind) {
+            ActivityKind.TRAINING_EXERCISE -> PlanningEligibility.PROGRAM_SELECTABLE
+            ActivityKind.SPORT_SESSION,
+            ActivityKind.MATCH_RECORD -> PlanningEligibility.FATIGUE_ONLY
+            ActivityKind.DAILY_METRIC_ONLY -> PlanningEligibility.ANALYSIS_ONLY
+        }
 
     private fun normalizedExerciseName(name: String): String = when (name) {
         "배드민턴" -> "배드민턴 경기 기록"

@@ -818,6 +818,32 @@ Program application mapping:
 - Program overwrite deletes planned-only rows only.
 - Entries containing any confirmed set are preserved.
 
+## v0.3.4.2 Sport Session / Program Candidate Split
+
+Exercise planning fields:
+
+| Field | Meaning |
+| --- | --- |
+| `Exercise.activityKind` | Distinguishes selectable training exercises from sport sessions, match records, or daily metric rows. |
+| `Exercise.planningEligibility` | Declares whether an exercise can become a generated program item. |
+
+Allowed program candidate:
+
+| `activityKind` | `planningEligibility` | Program generator |
+| --- | --- | --- |
+| `TRAINING_EXERCISE` | `PROGRAM_SELECTABLE` | allowed |
+| `SPORT_SESSION` | `FATIGUE_ONLY` | excluded |
+| `MATCH_RECORD` | `FATIGUE_ONLY` | excluded |
+| any | `ANALYSIS_ONLY` / `HIDDEN` | excluded |
+
+Meaning:
+
+- Sport sessions and match records are actual external load, not planned program exercises.
+- They may remain in records and analysis inputs.
+- They may affect fatigue, recovery, recent load, and trend signals.
+- They must not appear in generated program previews, saved `TrainingProgramItem` rows, or program-applied planned `WorkoutEntry` rows.
+- `badmintonTransferRatio` means the share of badminton-transfer-supportive training exercises, not a ratio for adding badminton matches.
+
 ## Record Calendar Range Delete Mapping
 
 Long-press calendar `select delete` maps to date-range deletion.

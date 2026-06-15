@@ -55,6 +55,8 @@ Recovered from `README(21).md`, `TrainingTrackPlanner_handoff(22) (1).txt`, `csv
 
 The generator uses current `Exercise` metadata fields:
 
+- activityKind
+- planningEligibility
 - movementPattern
 - movementCategory
 - primaryMuscles / secondaryMuscles
@@ -79,6 +81,26 @@ The generator uses current `Exercise` metadata fields:
 If metadata is missing, the generator lowers confidence and uses conservative defaults.
 
 Exercise name matching is allowed only for user-entered exclusion text and display/search. It is not used for scoring transfer, fatigue, movement pattern, or analysis semantics.
+
+## 4.1 v0.3.4.2 Sport Session Exclusion
+
+Sport sessions and match records are not program generation candidates.
+
+Required split:
+
+- `TRAINING_EXERCISE` + `PROGRAM_SELECTABLE`: eligible for generated program items.
+- `SPORT_SESSION` or `MATCH_RECORD`: fatigue/load signal only.
+- `FATIGUE_ONLY` / `ANALYSIS_ONLY` / `HIDDEN`: excluded from generated program items.
+
+Examples excluded from generation:
+
+- badminton match/session records
+- soccer, basketball, tennis, futsal, and other sport sessions
+- CSV aggregate restore rows used only to preserve historical load continuity
+
+Badminton transfer ratio is not a match-scheduling ratio. It adjusts the share of badminton-supportive weights, prehab, functional drills, and low-to-moderate fatigue transfer exercises.
+
+The generator applies this hard filter before scoring. Excluded sport sessions can still contribute to readiness, fatigue, recent load, and trend analysis when recorded as completed history.
 
 ## 5. Periodization Engine
 

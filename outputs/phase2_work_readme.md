@@ -638,3 +638,27 @@ Rest timer overlay add-on:
 - App-outside overlay is suppressed when the confirmed set has no next target.
 - This prevents the overlay from remaining after the final set/session.
 - Legacy overlay feature parity audit: `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.
+
+## v0.3.4.2 Sport Session Program Filter
+
+This hotfix prevents sport sessions and match records from entering generated programs.
+
+Changes:
+
+- added `Exercise.activityKind`.
+- added `Exercise.planningEligibility`.
+- added Room migration `6 -> 7`.
+- `ProgramSkeletonGenerator` now hard-filters candidates before scoring.
+- only `TRAINING_EXERCISE + PROGRAM_SELECTABLE` can become generated program items.
+- `SPORT_SESSION`, `MATCH_RECORD`, `FATIGUE_ONLY`, `ANALYSIS_ONLY`, and `HIDDEN` are excluded from program generation.
+- CSV daily-timeseries aggregate exercises are marked fatigue-only.
+
+Preserved:
+
+- sport sessions can remain completed history.
+- sport sessions can remain fatigue/readiness/trend inputs.
+- existing records, confirmed sets, user plans, and metrics are not deleted.
+
+Reference:
+
+- `outputs/v0.3.4.2_sport_session_program_filter.md`

@@ -681,7 +681,11 @@ class TrainingRepository(
                     val seconds = (row.totalSeconds * ratio).toInt().coerceAtLeast(0)
                     val setsForCategory = (row.totalSets * ratio).toInt().coerceAtLeast(1)
                     val weight = if (reps > 0 && tonnage > 0.0) tonnage / reps else 0.0
-                    val exercise = findOrCreateImportedExercise("CSV 복원 $category", category)
+                    val exercise = findOrCreateImportedExercise(
+                        name = "CSV 복원 $category",
+                        category = category,
+                        forceFatigueOnly = true
+                    )
                     val entryId = workoutDao.insertEntry(
                         WorkoutEntry(
                             date = row.date,
@@ -722,7 +726,11 @@ class TrainingRepository(
                 }
 
                 if (row.plannedEntries > 0) {
-                    val exercise = findOrCreateImportedExercise("CSV 복원 계획", "근력운동")
+                    val exercise = findOrCreateImportedExercise(
+                        name = "CSV 복원 계획",
+                        category = "근력운동",
+                        forceFatigueOnly = true
+                    )
                     val entryId = workoutDao.insertEntry(
                         WorkoutEntry(
                             date = row.date,
@@ -779,8 +787,22 @@ class TrainingRepository(
         }
     }
 
-    private suspend fun findOrCreateImportedExercise(name: String, category: String): Exercise {
-        exerciseDao.findByName(name)?.let { existing -> return existing }
+    private suspend fun findOrCreateImportedExercise(
+        name: String,
+        category: String,
+        forceFatigueOnly: Boolean = false
+    ): Exercise {
+        exerciseDao.findByName(name)?.let { existing ->
+            val updated = if (forceFatigueOnly) {
+                existing.withFatigueOnlyPlanningMetadata()
+            } else {
+                existing.withInferredPlanningMetadata()
+            }
+            if (updated != existing) {
+                exerciseDao.updateExercise(updated)
+            }
+            return updated
+        }
         val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
             Exercise(
                 name = name,
@@ -795,7 +817,9 @@ class TrainingRepository(
                 laterality = "BILATERAL",
                 metadataConfidence = MetadataConfidence.LOW.name
             )
-        )
+        ).let { exercise ->
+            if (forceFatigueOnly) exercise.withFatigueOnlyPlanningMetadata() else exercise
+        }
         val insertedId = exerciseDao.insertExercise(mapped)
         return if (insertedId > 0) {
             mapped.copy(id = insertedId)
@@ -1081,6 +1105,10 @@ class TrainingRepository(
             stabilityDemandLevel.isBlank() ||
             mobilityDemandLevel.isBlank() ||
             analysisEligibility.isBlank() ||
+            activityKind.isBlank() ||
+            planningEligibility.isBlank() ||
+            activityKind !in ActivityKind.entries.map { kind -> kind.name } ||
+            planningEligibility !in PlanningEligibility.entries.map { eligibility -> eligibility.name } ||
             metadataConfidence !in MetadataConfidence.entries.map { confidence -> confidence.name }
 
     private fun ProgramSeed.displayName(): String =
@@ -1090,7 +1118,7 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 3
+        const val EXERCISE_SEED_VERSION = 4
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"

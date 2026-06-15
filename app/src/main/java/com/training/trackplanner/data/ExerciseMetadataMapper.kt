@@ -146,7 +146,7 @@ object ExerciseMetadataMapper {
             balanceContributionTags = balanceContributionTags.toTokenString(),
             analysisEligibility = analysisEligibility.toTokenString(),
             metadataConfidence = confidence.name
-        )
+        ).withInferredPlanningMetadata()
         val check = MetadataSanityChecker.check(mapped)
         return if (check.needsReview && mapped.metadataConfidence != MetadataConfidence.NEEDS_REVIEW.name) {
             mapped.copy(metadataConfidence = MetadataConfidence.NEEDS_REVIEW.name)

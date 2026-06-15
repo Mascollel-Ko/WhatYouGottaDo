@@ -69,6 +69,8 @@ data class Exercise(
     val mobilityDemandLevel: String = "",
     val balanceContributionTags: String = "",
     val analysisEligibility: String = "",
+    val activityKind: String = "",
+    val planningEligibility: String = "",
     val metadataConfidence: String = "UNKNOWN"
 )
 

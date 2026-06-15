@@ -137,3 +137,22 @@ Safety note:
 - No analysis logic change.
 - No CSV behavior change.
 - Legacy overlay behavior audit: `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.
+
+## v0.3.4.2 Sport Session Filter
+
+Behavior:
+
+- Program generation now excludes sport sessions and match records before scoring.
+- Only `Exercise.activityKind=TRAINING_EXERCISE` with `planningEligibility=PROGRAM_SELECTABLE` can enter the generated skeleton.
+- Badminton transfer ratio controls transfer-supportive training exercises, not badminton match scheduling.
+- CSV daily-timeseries aggregate exercises are classified as fatigue-only.
+
+Safety note:
+
+- Room migration `6 -> 7` only adds `activityKind` and `planningEligibility`.
+- Existing records and confirmed sets are preserved.
+- Sport sessions remain available to fatigue/readiness/trend analysis.
+
+Reference:
+
+- `outputs/v0.3.4.2_sport_session_program_filter.md`

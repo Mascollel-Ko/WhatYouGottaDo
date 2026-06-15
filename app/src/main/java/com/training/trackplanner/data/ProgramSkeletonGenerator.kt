@@ -87,7 +87,10 @@ class ProgramSkeletonGenerator {
             .split(',', '\n', ';')
             .map { it.trim() }
             .filter { it.isNotBlank() }
-        val baseCandidates = exercises
+        val selectableExercises = exercises.filter { exercise ->
+            exercise.isProgramSelectableExercise()
+        }
+        val baseCandidates = selectableExercises
             .filter { exercise -> exercise.category.isNotBlank() }
             .filter { exercise -> exercise.matchesEquipment(selectedEquipment) }
             .filter { exercise ->
@@ -99,7 +102,7 @@ class ProgramSkeletonGenerator {
                 exercise.metadataConfidence == MetadataConfidence.NEEDS_REVIEW.name &&
                     exercise.analysisEligibility.isBlank()
             }
-            .ifEmpty { exercises.filter { it.category.isNotBlank() } }
+            .ifEmpty { selectableExercises.filter { it.category.isNotBlank() } }
 
         val trainingDays = request.weeklyTrainingDays.coerceIn(2, 5)
         val dayOfWeeks = dayOfWeeks(trainingDays)
@@ -189,6 +192,9 @@ class ProgramSkeletonGenerator {
         val warnings = buildList {
             if (baseCandidates.size < 8) add("조건에 맞는 운동 후보가 적어 일부 패턴이 반복될 수 있습니다.")
             if (request.availableEquipment.isEmpty()) add("운동기구를 선택하지 않아 기본 기구 전체를 허용했습니다.")
+            if (selectableExercises.size < exercises.size) {
+                add("스포츠 경기/세션 기록은 프로그램 생성 후보에서 제외했습니다.")
+            }
         }
         return GeneratedProgramSkeleton(
             suggestedName = suggestedName,

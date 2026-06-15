@@ -932,3 +932,43 @@ Rest timer overlay adjustment:
 - Overlay display now requires `hasNextTarget=true`.
 - Last-set timers can still run in-app, but app-outside overlay is not shown when there is no next target.
 - Legacy README/handoff audit is documented in `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.
+
+## v0.3.4.2 Sport Session Program Filter
+
+Scope:
+
+- Program skeleton generation.
+- Exercise planning metadata.
+- CSV import-created exercise classification.
+- Program editor helper text.
+
+Files:
+
+- `app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt`
+- `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataTaxonomy.kt`
+- `app/src/main/java/com/training/trackplanner/data/Entities.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt`
+- `app/src/main/java/com/training/trackplanner/data/SeedData.kt`
+- `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataMapper.kt`
+- `app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`
+- `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+- `app/src/main/java/com/training/trackplanner/PlanScreen.kt`
+- `app/src/test/java/com/training/trackplanner/data/ProgramSkeletonGeneratorTest.kt`
+- `outputs/v0.3.4.2_sport_session_program_filter.md`
+
+Data rule:
+
+- `TRAINING_EXERCISE + PROGRAM_SELECTABLE` is the only program-selectable pair.
+- `SPORT_SESSION`, `MATCH_RECORD`, and `FATIGUE_ONLY` records can remain analysis/load inputs but cannot become program items.
+
+Generator behavior:
+
+- candidate filtering happens before scoring.
+- high badminton transfer ratio cannot pull badminton matches into the plan.
+- fallback candidate pools also use only program-selectable exercises.
+
+Preservation:
+
+- no existing workout record is deleted.
+- confirmed/unconfirmed semantics are unchanged.
+- sport sessions remain valid fatigue/readiness/trend history.

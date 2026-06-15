@@ -364,6 +364,11 @@ private fun ProgramEditorScreen(
                         optionLabel = { ratio -> badmintonRatioOptions.getValue(ratio) },
                         onSelect = { badmintonRatio = it }
                     )
+                    Text(
+                        text = "배드민턴 경기 자체가 아니라 전이성이 높은 웨이트/보조운동 비중을 조절합니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
@@ -382,6 +387,11 @@ private fun ProgramEditorScreen(
                             onSelect = { periodizationType = it }
                         )
                     }
+                    Text(
+                        text = "스포츠 활동 자체를 계획에 넣지 않고, 스포츠 전이성 보조운동과 일반 근력운동의 구성 비율만 조절합니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     EquipmentToggleGrid(
                         selected = selectedEquipment,
                         onChange = { selectedEquipment = it }

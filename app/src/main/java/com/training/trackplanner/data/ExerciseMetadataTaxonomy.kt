@@ -312,3 +312,17 @@ enum class AnalysisEligibility {
     TEST_ONLY,
     EXCLUDED_FROM_ANALYSIS
 }
+
+enum class ActivityKind {
+    TRAINING_EXERCISE,
+    SPORT_SESSION,
+    MATCH_RECORD,
+    DAILY_METRIC_ONLY
+}
+
+enum class PlanningEligibility {
+    PROGRAM_SELECTABLE,
+    FATIGUE_ONLY,
+    ANALYSIS_ONLY,
+    HIDDEN
+}

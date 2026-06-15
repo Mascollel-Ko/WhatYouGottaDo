@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -41,6 +42,73 @@ class ProgramSkeletonGeneratorTest {
 
         assertTrue(highTransfer >= lowTransfer)
         assertEquals(ProgramPeriodizationType.BADMINTON_WAVE, high.periodizationType)
+    }
+
+    @Test
+    fun sportSessionsAreExcludedFromBadmintonSupportProgram() {
+        val sportSessions = listOf(
+            sportSessionExercise(101, "배드민턴 경기 기록"),
+            sportSessionExercise(102, "축구 경기")
+        )
+
+        val skeleton = ProgramSkeletonGenerator().generate(
+            request = baseRequest(
+                goal = ProgramGoal.BADMINTON_SUPPORT,
+                badmintonTransferRatio = 0.70
+            ),
+            exercises = sampleExercises() + sportSessions,
+            history = emptyList()
+        )
+
+        assertTrue(skeleton.items.isNotEmpty())
+        assertFalse(skeleton.items.any { item -> item.exerciseId in sportSessions.map { it.id } })
+        assertFalse(skeleton.items.any { item -> item.exerciseName.contains("경기") })
+    }
+
+    @Test
+    fun sportSessionsAreExcludedEvenWhenNoOtherCandidateExists() {
+        val skeleton = ProgramSkeletonGenerator().generate(
+            request = baseRequest(
+                goal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+                badmintonTransferRatio = 0.70
+            ),
+            exercises = listOf(
+                sportSessionExercise(201, "배드민턴 경기 기록"),
+                sportSessionExercise(202, "tennis match")
+            ),
+            history = emptyList()
+        )
+
+        assertTrue(skeleton.items.isEmpty())
+    }
+
+    @Test
+    fun sportSessionsRemainFatigueEligibleButNotProgramSelectable() {
+        val sportSession = sportSessionExercise(301, "배드민턴 경기 기록")
+
+        assertFalse(sportSession.isProgramSelectableExercise())
+        assertEquals(ActivityKind.SPORT_SESSION, sportSession.resolvedActivityKind())
+        assertEquals(PlanningEligibility.FATIGUE_ONLY, sportSession.resolvedPlanningEligibility())
+        assertTrue(sportSession.analysisEligibility.contains(AnalysisEligibility.FATIGUE.name))
+    }
+
+    @Test
+    fun legacySportSessionNameFallbackIsExcluded() {
+        val legacySportSession = sportSessionExercise(401, "badminton match").copy(
+            category = "기능성운동",
+            activityKind = "",
+            planningEligibility = ""
+        )
+
+        val skeleton = ProgramSkeletonGenerator().generate(
+            request = baseRequest(goal = ProgramGoal.BADMINTON_SUPPORT),
+            exercises = sampleExercises() + legacySportSession,
+            history = emptyList()
+        )
+
+        assertEquals(ActivityKind.SPORT_SESSION, legacySportSession.resolvedActivityKind())
+        assertFalse(legacySportSession.isProgramSelectableExercise())
+        assertFalse(skeleton.items.any { item -> item.exerciseId == legacySportSession.id })
     }
 
     @Test
@@ -170,6 +238,30 @@ class ProgramSkeletonGeneratorTest {
             badmintonTransferRoles = BadmintonTransferRole.SHOULDER_CARE.name,
             fatigueCategories = FatigueCategory.LOW_FATIGUE_REHAB.name,
             analysisEligibility = "${AnalysisEligibility.BADMINTON_TRANSFER.name},${AnalysisEligibility.RECOVERY_ONLY.name}",
+            metadataConfidence = MetadataConfidence.HIGH.name
+        )
+
+    private fun sportSessionExercise(id: Long, name: String): Exercise =
+        Exercise(
+            id = id,
+            name = name,
+            category = "스포츠",
+            defaultRestSeconds = 30,
+            stableKey = "sport_session_$id",
+            movementPattern = MovementPattern.FOOTWORK.name,
+            movementCategory = MovementCategory.CONDITIONING.name,
+            equipment = "BODYWEIGHT",
+            trainingRole = FatigueTrainingRole.CONDITIONING.name,
+            badmintonTransferStrength = BadmintonTransferStrength.DIRECT.name,
+            badmintonTransferRoles = BadmintonTransferRole.FOOTWORK.name,
+            fatigueCategories = "${FatigueCategory.SYSTEMIC.name},${FatigueCategory.DECELERATION.name}",
+            adaptiveBaselineGroups = AdaptiveBaselineGroup.BADMINTON_COURT.name,
+            systemicLoadWeight = 0.5,
+            neuralSpeedWeight = 0.6,
+            decelerationWeight = 0.7,
+            analysisEligibility = "${AnalysisEligibility.FATIGUE.name},${AnalysisEligibility.BADMINTON_TRANSFER.name}",
+            activityKind = ActivityKind.SPORT_SESSION.name,
+            planningEligibility = PlanningEligibility.FATIGUE_ONLY.name,
             metadataConfidence = MetadataConfidence.HIGH.name
         )
 }
