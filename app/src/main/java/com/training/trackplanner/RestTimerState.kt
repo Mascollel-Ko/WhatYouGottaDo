@@ -9,6 +9,7 @@ data class RestTimerState(
     val endAtEpochMillis: Long = 0,
     val exerciseName: String = "",
     val nextHint: String = "",
+    val hasNextTarget: Boolean = false,
     val targetRecordDate: String = "",
     val targetEntryId: Long = 0,
     val targetSetId: Long = 0,

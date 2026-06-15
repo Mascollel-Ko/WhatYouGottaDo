@@ -894,6 +894,8 @@ Generator:
 - `ProgramSkeletonGenerator` builds a 4-week skeleton from exercise metadata and confirmed history.
 - It chooses a periodization shape, distributes sessions across weekdays, scores candidates, limits high-fatigue clustering, and produces editable program items.
 - Weight suggestions use direct same-exercise history first, similar metadata history second, and otherwise leave kg empty for manual input.
+- Program editor generation and save now require a non-blank program name.
+- `전부 새로 만들기` clears the current generated preview before creating a fresh skeleton from the current editor inputs.
 
 Overwrite behavior:
 
@@ -923,3 +925,10 @@ Back navigation:
 - Record calendar back closes calendar state and returns to the selected record date.
 - Plan create/edit/detail back returns to the prior Plan screen.
 - Expanded Analysis detail cards collapse before leaving the Analysis tab.
+
+Rest timer overlay adjustment:
+
+- `RestTimerState.hasNextTarget` tracks whether a confirmed set has a next unconfirmed set to prepare.
+- Overlay display now requires `hasNextTarget=true`.
+- Last-set timers can still run in-app, but app-outside overlay is not shown when there is no next target.
+- Legacy README/handoff audit is documented in `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.

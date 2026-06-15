@@ -216,6 +216,7 @@ private fun ProgramEditorScreen(
     onCancel: () -> Unit,
     onSaved: (Long) -> Unit
 ) {
+    val context = LocalContext.current
     val existingItems by if (program != null) {
         remember(program.id) { viewModel.programItems(program.id) }.collectAsState(initial = emptyList())
     } else {
@@ -223,6 +224,9 @@ private fun ProgramEditorScreen(
     }
     var nameText by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.name ?: "")
+    }
+    var nameError by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf(false)
     }
     var goal by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.goal.toProgramGoal())
@@ -258,9 +262,11 @@ private fun ProgramEditorScreen(
         }
     }
 
+    fun normalizedProgramName(): String = nameText.trim()
+
     fun currentRequest(): ProgramSkeletonRequest =
         ProgramSkeletonRequest(
-            name = nameText.ifBlank { "" },
+            name = normalizedProgramName(),
             goal = goal,
             weeklyTrainingDays = weeklyDays,
             sessionMinutes = sessionMinutes,
@@ -270,6 +276,27 @@ private fun ProgramEditorScreen(
             sportStrengthRatio = sportStrengthRatio,
             periodizationType = periodizationType
         )
+
+    fun requireProgramName(): Boolean {
+        val valid = normalizedProgramName().isNotEmpty()
+        nameError = !valid
+        if (!valid) {
+            Toast.makeText(context, "프로그램명을 입력하세요.", Toast.LENGTH_SHORT).show()
+        }
+        return valid
+    }
+
+    fun generateSkeleton(clearExisting: Boolean) {
+        if (!requireProgramName()) return
+        val request = currentRequest()
+        if (clearExisting) skeleton = null
+        viewModel.generateProgramSkeleton(request) { generated ->
+            skeleton = generated.copy(
+                suggestedName = request.name,
+                request = generated.request.copy(name = request.name)
+            )
+        }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -294,8 +321,15 @@ private fun ProgramEditorScreen(
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
                         value = nameText,
-                        onValueChange = { nameText = it },
+                        onValueChange = {
+                            nameText = it
+                            if (nameError && it.isNotBlank()) nameError = false
+                        },
                         label = { Text("프로그램명") },
+                        isError = nameError,
+                        supportingText = {
+                            if (nameError) Text("프로그램명을 입력하세요.")
+                        },
                         singleLine = true
                     )
                     ProgramDropdown(
@@ -361,16 +395,15 @@ private fun ProgramEditorScreen(
                     )
                     Button(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            viewModel.generateProgramSkeleton(currentRequest()) { generated ->
-                                skeleton = generated.copy(
-                                    suggestedName = nameText.ifBlank { generated.suggestedName }
-                                )
-                                if (nameText.isBlank()) nameText = generated.suggestedName
-                            }
-                        }
+                        onClick = { generateSkeleton(clearExisting = false) }
                     ) {
                         Text("자동으로 골자 만들기")
+                    }
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { generateSkeleton(clearExisting = true) }
+                    ) {
+                        Text("전부 새로 만들기")
                     }
                 }
             }
@@ -408,12 +441,13 @@ private fun ProgramEditorScreen(
                     modifier = Modifier.weight(1f),
                     enabled = skeleton?.items?.isNotEmpty() == true,
                     onClick = {
+                        if (!requireProgramName()) return@Button
                         val current = skeleton ?: return@Button
                         val request = currentRequest()
                         viewModel.saveGeneratedProgram(
                             existingProgramId = program?.id,
                             skeleton = current.copy(
-                                suggestedName = nameText.ifBlank { current.suggestedName },
+                                suggestedName = request.name,
                                 request = request
                             ),
                             onSaved = onSaved

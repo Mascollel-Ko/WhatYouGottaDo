@@ -34,7 +34,7 @@ class RestTimerOverlayController(private val context: Context) {
 
     fun showOrUpdate(state: RestTimerState) {
         currentState = state
-        if (!canDrawOverlays() || dismissedForCurrentAwaySession || !state.isActive) {
+        if (!canDrawOverlays() || dismissedForCurrentAwaySession || !state.isActive || !state.hasNextTarget) {
             remove()
             return
         }

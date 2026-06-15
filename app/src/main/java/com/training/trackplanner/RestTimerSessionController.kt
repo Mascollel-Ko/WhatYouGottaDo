@@ -54,6 +54,7 @@ class RestTimerSessionController(context: Context) {
             endAtEpochMillis = endAt,
             exerciseName = exerciseName,
             nextHint = nextHint,
+            hasNextTarget = nextHint.isNotBlank(),
             targetRecordDate = targetRecordDate,
             targetEntryId = targetEntryId,
             targetSetId = targetSetId
@@ -104,6 +105,7 @@ class RestTimerSessionController(context: Context) {
     private fun restoreRestTimerState() {
         val endAt = preferences.getLong(KEY_REST_END_AT, 0L)
         val next = preferences.getString(KEY_REST_NEXT, "").orEmpty()
+        val hasNextTarget = preferences.getBoolean(KEY_REST_HAS_NEXT_TARGET, next.isNotBlank())
         val targetDate = preferences.getString(KEY_REST_TARGET_DATE, "").orEmpty()
         val targetEntryId = preferences.getLong(KEY_REST_TARGET_ENTRY_ID, 0L)
         val targetSetId = preferences.getLong(KEY_REST_TARGET_SET_ID, 0L)
@@ -122,6 +124,7 @@ class RestTimerSessionController(context: Context) {
             totalSeconds = remaining,
             endAtEpochMillis = endAt,
             nextHint = next,
+            hasNextTarget = hasNextTarget,
             targetRecordDate = targetDate,
             targetEntryId = targetEntryId,
             targetSetId = targetSetId
@@ -174,7 +177,7 @@ class RestTimerSessionController(context: Context) {
         if (notifyRunning && enriched.isRunning) {
             notifier.showRunning(enriched)
         }
-        if (!appInForeground && enriched.isActive) {
+        if (!appInForeground && enriched.isActive && enriched.hasNextTarget) {
             overlayController.showOrUpdate(enriched)
         } else {
             overlayController.remove()
@@ -186,7 +189,7 @@ class RestTimerSessionController(context: Context) {
         backgroundRetryJob = scope.launch {
             delay(BACKGROUND_OVERLAY_RETRY_DELAY_MS)
             val current = _state.value
-            if (!appInForeground && current.isActive) {
+            if (!appInForeground && current.isActive && current.hasNextTarget) {
                 overlayController.showOrUpdate(current)
             }
         }
@@ -196,6 +199,7 @@ class RestTimerSessionController(context: Context) {
         preferences.edit()
             .putLong(KEY_REST_END_AT, state.endAtEpochMillis)
             .putString(KEY_REST_NEXT, state.nextHint)
+            .putBoolean(KEY_REST_HAS_NEXT_TARGET, state.hasNextTarget)
             .putString(KEY_REST_TARGET_DATE, state.targetRecordDate)
             .putLong(KEY_REST_TARGET_ENTRY_ID, state.targetEntryId)
             .putLong(KEY_REST_TARGET_SET_ID, state.targetSetId)
@@ -219,6 +223,7 @@ class RestTimerSessionController(context: Context) {
         const val PREFERENCES_NAME = "rest_timer"
         const val KEY_REST_END_AT = "rest_end_at"
         const val KEY_REST_NEXT = "rest_next"
+        const val KEY_REST_HAS_NEXT_TARGET = "rest_has_next_target"
         const val KEY_REST_TARGET_DATE = "rest_target_date"
         const val KEY_REST_TARGET_ENTRY_ID = "rest_target_entry_id"
         const val KEY_REST_TARGET_SET_ID = "rest_target_set_id"

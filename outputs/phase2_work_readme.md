@@ -598,6 +598,8 @@ Plan changes:
 - the program editor can create a metadata-based 4-week skeleton.
 - generated skeletons can be reviewed and edited before saving.
 - the editor supports goal, weekly days, session minutes, equipment, exclusions, badminton transfer ratio, sport/strength ratio, and periodization type.
+- the editor requires a program name before skeleton generation or save.
+- `전부 새로 만들기` clears the current preview and regenerates a fresh skeleton from the current inputs.
 
 Generator rules:
 
@@ -630,3 +632,9 @@ Back navigation add-on:
 - Android back from non-Home tabs returns to Home.
 - Android back from Home can close the app.
 - Calendar and detail-expanded screens consume back first and return to their prior in-app state.
+
+Rest timer overlay add-on:
+
+- App-outside overlay is suppressed when the confirmed set has no next target.
+- This prevents the overlay from remaining after the final set/session.
+- Legacy overlay feature parity audit: `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.

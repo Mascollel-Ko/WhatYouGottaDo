@@ -1320,7 +1320,7 @@ private fun nextRestHint(
     return if (nextSet != null) {
         "${entry.exerciseName} ${nextSet.setIndex}세트 준비"
     } else {
-        "다음 운동 없음"
+        ""
     }
 }
 

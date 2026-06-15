@@ -31,6 +31,12 @@ Program generator:
 - Supported inputs include goal, weeks, weekly training days, session minutes, equipment, exclusions, badminton transfer ratio, sport/strength ratio, and periodization type.
 - Supported periodization outputs include step/deload, badminton wave, daily undulating, and linear strength behavior.
 
+Program editor UX:
+
+- Program name is required before skeleton generation and save.
+- `자동으로 골자 만들기` generates a preview from the current editor inputs.
+- `전부 새로 만들기` sits below the automatic skeleton button and clears the current preview before generating a fresh skeleton from the current editor inputs.
+
 Generated item behavior:
 
 - Items become `TrainingProgramItem` rows when saved.
@@ -116,3 +122,18 @@ Ponytail safety note:
 
 - This patch only adds Compose `BackHandler` callbacks.
 - It does not change DB schema, CSV, analysis formulas, or confirmed/planned data semantics.
+
+## Rest Timer Overlay Add-on
+
+Behavior:
+
+- Rest timer state now records whether there is a next target.
+- Overlay is shown only when a timer is active and a next target exists.
+- Confirming the final set can keep the in-app timer behavior, but app-outside overlay is suppressed.
+
+Safety note:
+
+- No DB migration.
+- No analysis logic change.
+- No CSV behavior change.
+- Legacy overlay behavior audit: `outputs/rest_timer_overlay_legacy_audit_v0.3.4.1.md`.
