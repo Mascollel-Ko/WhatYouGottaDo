@@ -1,32 +1,27 @@
 # Initial Profile Backup / Restore Hotfix Report
 
-## 변경
+## v0.3.4.4.2 Changes
 
-- CSV profile row export에 새 구조화 key를 추가했다.
-- import 시 새 key를 우선 사용한다.
-- v0.3.4.4의 legacy key도 crash 없이 읽는다.
+- Backup still exports legacy profile keys for compatibility.
+- Backup exports structured keys such as `sex`, `birthYear`, `strengthTrainingYears`, `badmintonTrainingYears`, `painAreaTags`, `avoidMovementTags`, and `primaryGoal`.
+- Restore prefers structured keys.
+- Restore sanitizes enum keys and numeric ranges before saving.
 
-## 새 export key 예
+## Import Safety Rules
 
-- `birthYear`
-- `sex`
-- `strengthTrainingYears`
-- `badmintonTrainingYears`
-- `trainingBreakCategory`
-- `trainingBreakReason`
-- `painAreaTags`
-- `avoidMovementTags`
-- `primaryGoal`
-- `freeNote`
+| Input | Handling |
+| --- | --- |
+| invalid `sex` | `UNSPECIFIED` |
+| invalid `birthYear` | `null` |
+| RPE outside 1-10 | `null` |
+| 1-5 recovery scale outside range | `null` |
+| unknown `trainingBreakCategory` | fallback from legacy `breakWeeks`, otherwise `NONE` |
+| unknown `trainingBreakReason` | fallback from legacy `breakDueToPain`, otherwise `NONE` |
+| unknown pain/avoid tag | dropped; legacy free text maps to `OTHER` |
+| unknown `primaryGoal` | fallback from legacy `goals`, otherwise `MIXED` |
 
-## legacy 호환
+## Legacy Compatibility
 
-- `gender`: 가능한 경우 `MALE/FEMALE/UNSPECIFIED`로 변환
-- `birthYearOrAgeRange`: 4자리 숫자만 `birthYear`로 변환
-- `strengthTrainingAge`, `badmintonTrainingAge`: 숫자 추출 가능한 경우만 years로 변환
-- `painAreas`, `avoidedMovements`: 구조화 tags가 없으면 `OTHER`로 보수 변환
-- `goals`: 일부 키워드만 `primaryGoal`로 변환, 실패 시 `MIXED`
-
-## 테스트
-
-- `restoreCsvExportsAndParsesInitialProfileRows` unit test를 구조화 key 기준으로 보강했다.
+- v0.3.4.4 and partial v0.3.4.4.1 backups can import without crashing.
+- Free-text legacy values are not used as core fatigue inputs.
+- If legacy text cannot be safely mapped, the app stores `null`, `NONE`, `OTHER`, `UNSPECIFIED`, or `MIXED`.

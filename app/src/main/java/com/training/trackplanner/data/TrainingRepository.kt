@@ -22,6 +22,53 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private val breakCategoryKeys = setOf(
+    "NONE",
+    "LESS_THAN_1_WEEK",
+    "ONE_TO_TWO_WEEKS",
+    "THREE_TO_FOUR_WEEKS",
+    "FIVE_TO_EIGHT_WEEKS",
+    "MORE_THAN_EIGHT_WEEKS"
+)
+private val breakReasonKeys = setOf("NONE", "SCHEDULE", "FATIGUE", "PAIN_OR_INJURY", "ILLNESS", "OTHER")
+private val painAreaKeys = setOf(
+    "NONE",
+    "NECK",
+    "SHOULDER",
+    "ELBOW",
+    "WRIST_HAND",
+    "UPPER_BACK",
+    "LOW_BACK",
+    "HIP",
+    "HAMSTRING",
+    "KNEE",
+    "CALF_ACHILLES",
+    "ANKLE_FOOT",
+    "OTHER"
+)
+private val avoidMovementKeys = setOf(
+    "NONE",
+    "HEAVY_SQUAT",
+    "HEAVY_DEADLIFT",
+    "BENCH_OR_PUSH",
+    "OVERHEAD_PRESS",
+    "JUMP_LANDING",
+    "LUNGE_DECELERATION",
+    "ROTATION",
+    "LONG_BADMINTON",
+    "HIGH_INTENSITY_INTERVAL",
+    "OTHER"
+)
+private val primaryGoalKeys = setOf(
+    "BADMINTON_PERFORMANCE",
+    "STRENGTH_GAIN",
+    "STRENGTH_MAINTENANCE",
+    "HYPERTROPHY_PHYSIQUE",
+    "RECOVERY_INJURY_PREVENTION",
+    "WEIGHT_MANAGEMENT",
+    "MIXED"
+)
+
 enum class ProgramApplyMode {
     Append,
     Overwrite
@@ -917,14 +964,25 @@ class TrainingRepository(
         if (isEmpty()) return null
         val values = associate { row -> row.key to row.value }
         val sex = normalizeProfileSex(values["sex"].orEmpty().ifBlank { values["gender"].orEmpty() })
-        val birthYear = values["birthYear"]?.toIntOrNull()
-            ?: values["birthYearOrAgeRange"]?.trim()?.toIntOrNull()?.takeIf { it in 1900..2100 }
-        val breakCategory = values["trainingBreakCategory"].orEmpty().ifBlank {
+        val currentYear = LocalDate.now().year
+        val birthYear = values["birthYear"]?.toIntOrNull()?.takeIf { it in 1900..currentYear }
+            ?: values["birthYearOrAgeRange"]?.trim()?.toIntOrNull()?.takeIf { it in 1900..currentYear }
+        val breakCategory = sanitizeProfileKey(values["trainingBreakCategory"], breakCategoryKeys).ifBlank {
             breakWeeksToProfileCategory(values["breakWeeks"]?.toIntOrNull())
         }
-        val breakReason = values["trainingBreakReason"].orEmpty().ifBlank {
+        val breakReason = sanitizeProfileKey(values["trainingBreakReason"], breakReasonKeys).ifBlank {
             if (values["breakDueToPain"].toCsvBoolean()) "PAIN_OR_INJURY" else "NONE"
         }
+        val painAreaTags = sanitizeTagList(
+            raw = values["painAreaTags"],
+            allowed = painAreaKeys,
+            legacyText = values["painAreas"]
+        )
+        val avoidMovementTags = sanitizeTagList(
+            raw = values["avoidMovementTags"],
+            allowed = avoidMovementKeys,
+            legacyText = values["avoidedMovements"]
+        )
         return InitialUserProfile(
             id = 1,
             bodyWeightKg = values["bodyWeightKg"]?.toDoubleOrNull(),
@@ -935,10 +993,10 @@ class TrainingRepository(
             sex = sex,
             strengthSessionsPerWeek = values["strengthSessionsPerWeek"]?.toDoubleOrNull(),
             strengthMinutesPerSession = values["strengthMinutesPerSession"]?.toIntOrNull(),
-            strengthAverageRpe = values["strengthAverageRpe"]?.toDoubleOrNull(),
+            strengthAverageRpe = values["strengthAverageRpe"].toRpeDouble(),
             badmintonSessionsPerWeek = values["badmintonSessionsPerWeek"]?.toDoubleOrNull(),
             badmintonMinutesPerSession = values["badmintonMinutesPerSession"]?.toIntOrNull(),
-            badmintonAverageRpe = values["badmintonAverageRpe"]?.toDoubleOrNull(),
+            badmintonAverageRpe = values["badmintonAverageRpe"].toRpeDouble(),
             strengthTrainingAge = values["strengthTrainingAge"].orEmpty(),
             badmintonTrainingAge = values["badmintonTrainingAge"].orEmpty(),
             strengthTrainingYears = values["strengthTrainingYears"]?.toDoubleOrNull()
@@ -962,23 +1020,21 @@ class TrainingRepository(
             typicalSleepHours = values["typicalSleepHours"]?.toDoubleOrNull(),
             usualSleepHours = values["usualSleepHours"]?.toDoubleOrNull()
                 ?: values["typicalSleepHours"]?.toDoubleOrNull(),
-            sleepQuality = values["sleepQuality"]?.toIntOrNull(),
-            currentFatigue = values["currentFatigue"]?.toIntOrNull(),
-            currentSoreness = values["currentSoreness"]?.toIntOrNull(),
-            currentStress = values["currentStress"]?.toIntOrNull(),
-            currentMood = values["currentMood"]?.toIntOrNull(),
-            currentCondition = values["currentCondition"]?.toIntOrNull()
-                ?: values["currentMood"]?.toIntOrNull(),
+            sleepQuality = values["sleepQuality"].toScale5Int(),
+            currentFatigue = values["currentFatigue"].toScale5Int(),
+            currentSoreness = values["currentSoreness"].toScale5Int(),
+            currentStress = values["currentStress"].toScale5Int(),
+            currentMood = values["currentMood"].toScale5Int(),
+            currentCondition = values["currentCondition"].toScale5Int()
+                ?: values["currentMood"].toScale5Int(),
             painAreas = values["painAreas"].orEmpty(),
-            painAreaTags = values["painAreaTags"].orEmpty().ifBlank {
-                if (values["painAreas"].isNullOrBlank()) "NONE" else "OTHER"
-            },
+            painAreaTags = painAreaTags,
             avoidedMovements = values["avoidedMovements"].orEmpty(),
-            avoidMovementTags = values["avoidMovementTags"].orEmpty().ifBlank {
-                if (values["avoidedMovements"].isNullOrBlank()) "NONE" else "OTHER"
-            },
+            avoidMovementTags = avoidMovementTags,
             goals = values["goals"].orEmpty(),
-            primaryGoal = values["primaryGoal"].orEmpty().ifBlank { legacyGoalToKey(values["goals"].orEmpty()) },
+            primaryGoal = sanitizeProfileKey(values["primaryGoal"], primaryGoalKeys).ifBlank {
+                legacyGoalToKey(values["goals"].orEmpty())
+            },
             secondaryGoalTags = values["secondaryGoalTags"].orEmpty(),
             freeNote = values["freeNote"].orEmpty(),
             createdAt = values["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
@@ -991,6 +1047,29 @@ class TrainingRepository(
             "1", "true", "yes", "y" -> true
             else -> false
         }
+
+    private fun String?.toRpeDouble(): Double? =
+        this?.toDoubleOrNull()?.takeIf { value -> value in 1.0..10.0 }
+
+    private fun String?.toScale5Int(): Int? =
+        this?.toIntOrNull()?.takeIf { value -> value in 1..5 }
+
+    private fun sanitizeProfileKey(value: String?, allowed: Set<String>): String =
+        value?.trim()?.uppercase(Locale.US)?.takeIf { key -> key in allowed }.orEmpty()
+
+    private fun sanitizeTagList(raw: String?, allowed: Set<String>, legacyText: String?): String {
+        val tags = raw.orEmpty()
+            .split(",", "|", ";")
+            .map { value -> value.trim().uppercase(Locale.US) }
+            .filter { key -> key in allowed && key != "NONE" }
+            .distinct()
+        return when {
+            tags.isNotEmpty() -> tags.sorted().joinToString(",")
+            legacyText.isNullOrBlank() -> "NONE"
+            "OTHER" in allowed -> "OTHER"
+            else -> "NONE"
+        }
+    }
 
     private fun normalizeProfileSex(value: String): String =
         when (value.trim().lowercase(Locale.US)) {

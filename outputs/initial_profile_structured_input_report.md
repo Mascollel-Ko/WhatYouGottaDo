@@ -1,34 +1,35 @@
 # Initial Profile Structured Input Report
 
-## 수정 파일
+## v0.3.4.4.2 Scope
 
-- `app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt`
-- `app/src/main/java/com/training/trackplanner/data/Entities.kt`
+The initial profile UI keeps free text out of core analysis inputs. `freeNote` remains available only as a note and is not used by readiness calculation.
 
-## 제거한 핵심 자유 텍스트 입력
+## Structured Inputs
 
-- 출생연도/나이
-- 성별
-- 근력운동 경력
-- 배드민턴 경력
-- 운동 공백 이유
-- 통증/주의 부위
-- 피하고 싶은 움직임
-- 주요 목표
+| Field | UI/input type | Stored value | Analysis use |
+| --- | --- | --- | --- |
+| `birthYear` | numeric year | `Int?` | stored only for future analysis |
+| `sex` | single choice | `MALE/FEMALE/UNSPECIFIED` | stored conservatively, not a strong fatigue factor |
+| `strengthTrainingYears` | decimal year input | `Double?` | resistance adaptation |
+| `badmintonTrainingYears` | decimal year input | `Double?` | court-load adaptation |
+| `strengthSessionsPerWeek` | numeric input | `Double?` | recent resistance capacity |
+| `strengthMinutesPerSession` | numeric minutes | `Int?` | recent resistance capacity |
+| `strengthAverageRpe` | 1-10 chip | numeric 1-10 | recent resistance load context |
+| `badmintonSessionsPerWeek` | numeric input | `Double?` | recent court-load capacity |
+| `badmintonMinutesPerSession` | numeric minutes | `Int?` | recent court-load capacity |
+| `badmintonAverageRpe` | 1-10 chip | numeric 1-10 | recent court-load context |
+| `trainingBreakCategory` | single choice | enum key | detraining modifier |
+| `trainingBreakReason` | single choice | enum key | conservative detraining modifier |
+| `squatKg/deadliftKg/benchPressKg` | numeric kg | `Double?` | resistance marker score |
+| `pullUpMaxReps/pullUpAddedWeightKg` | numeric | `Int?` / `Double?` | resistance marker score |
+| `usualSleepHours` | decimal hours | `Double?` | recovery capacity |
+| `sleepQuality/currentFatigue/currentSoreness/currentStress/currentCondition` | 1-5 chip | `Int?` | recovery capacity |
+| `painAreaTags` | multi-select | comma-separated enum keys | restriction profile |
+| `avoidMovementTags` | multi-select | comma-separated enum keys | restriction profile |
+| `primaryGoal` | single choice | enum key | goal sensitivity |
 
-## 새 입력 방식
+## Notes
 
-- 출생연도: 숫자, 1900년부터 현재 연도까지
-- 성별: `MALE`, `FEMALE`, `UNSPECIFIED`
-- 운동 경력: 년 단위 숫자
-- 최근 4주 RPE: 1~10 chip 선택
-- 수면 질/피로/근육통/스트레스/컨디션: 1~5 chip 선택
-- 운동 공백: enum chip
-- 통증/주의 부위: multi-select enum tag
-- 피하고 싶은 움직임: multi-select enum tag
-- 목표: enum chip
-
-## 남긴 자유 텍스트
-
-- `freeNote`만 남겼다.
-- `freeNote`는 피로도 계산의 핵심 입력으로 사용하지 않는다.
+- `NONE` is mutually exclusive with other multi-select tags.
+- Backup/import sanitizes profile enum keys and RPE/rating ranges.
+- Existing legacy free-text fields remain for migration/import compatibility only.

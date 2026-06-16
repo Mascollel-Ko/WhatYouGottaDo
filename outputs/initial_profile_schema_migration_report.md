@@ -1,17 +1,32 @@
 # Initial Profile Schema Migration Report
 
-## 변경
+## Current Schema Path
 
-- DB version: 9 -> 10
-- schema export: `app/schemas/com.training.trackplanner.data.TrainingDatabase/10.json`
-- migration: `MIGRATION_9_10`
+- v0.3.4.4.1 introduced DB version `10` and the structured profile columns.
+- v0.3.4.4.2 raises DB version to `11`.
+- `MIGRATION_10_11` is intentionally no-op because no new columns are required.
+- Destructive migration was not used.
 
-## 추가 필드
+## Migration List
+
+| Migration | Purpose |
+| --- | --- |
+| `MIGRATION_8_9` | Create `initial_user_profiles` with legacy/free-text compatible fields. |
+| `MIGRATION_9_10` | Add structured profile columns and migrate obvious legacy values. |
+| `MIGRATION_10_11` | Version bump for cold-start readiness binding without schema changes. |
+
+## Structured Columns Preserved
 
 - `birthYear`
 - `sex`
 - `strengthTrainingYears`
 - `badmintonTrainingYears`
+- `strengthSessionsPerWeek`
+- `strengthMinutesPerSession`
+- `strengthAverageRpe`
+- `badmintonSessionsPerWeek`
+- `badmintonMinutesPerSession`
+- `badmintonAverageRpe`
 - `trainingBreakCategory`
 - `trainingBreakReason`
 - `squatKg`
@@ -20,22 +35,19 @@
 - `pullUpMaxReps`
 - `pullUpAddedWeightKg`
 - `usualSleepHours`
+- `sleepQuality`
+- `currentFatigue`
+- `currentSoreness`
+- `currentStress`
 - `currentCondition`
 - `painAreaTags`
 - `avoidMovementTags`
 - `primaryGoal`
-- `secondaryGoalTags`
 - `freeNote`
 
-## migration 정책
+## Compatibility Policy
 
-- 기존 자유 텍스트 필드는 삭제하지 않는다.
-- `gender`는 가능한 경우 `sex`로 변환한다.
-- 4자리 숫자 `birthYearOrAgeRange`는 `birthYear`로 변환한다.
-- `breakWeeks`와 `breakDueToPain`은 구조화된 공백 category/reason으로 변환한다.
-- 해석 불가능한 값은 null/default로 둔다.
-
-## 테스트
-
-- `assembleDebugAndroidTest`로 migration test APK 컴파일 성공.
-- `migrate9To10AddsStructuredInitialProfileFields` 테스트를 추가했다.
+- Existing workout records, sets, exercises, hidden states, programs, and the profile row are preserved.
+- Legacy free-text fields remain in the table for compatibility.
+- New readiness logic reads structured fields only.
+- v11 schema export is generated during the final build/test pass.

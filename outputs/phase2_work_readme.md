@@ -707,3 +707,13 @@ Reference:
 - 기존 v0.3.4.4 문자열 필드는 삭제하지 않고 호환/deprecated 필드로 유지한다.
 - CSV profile row는 구조화 key를 export/import한다.
 - cold-start readiness 보정은 `usualSleepHours`, `currentCondition`, `trainingBreakCategory`, `trainingBreakReason`, `painAreaTags` 같은 구조화 값만 사용한다.
+
+## v0.3.4.4.2 Hotfix Addendum
+
+- Version bumped to `v0.3.4.4.2` / DB version `11`.
+- `MIGRATION_10_11` is no-op; structured initial profile fields were already present in DB v10.
+- Added `InitialAdaptationProfile` and cold-start readiness baseline binding.
+- Removed the old fatigued-only profile adjustment pattern.
+- Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
+- CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\WhatYouGottaTrain-v0.3.4.4.2-debug.apk`.

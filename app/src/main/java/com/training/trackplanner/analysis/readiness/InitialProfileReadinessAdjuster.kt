@@ -1,115 +1,252 @@
 package com.training.trackplanner.analysis.readiness
 
-import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.InitialUserProfile
-import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-class InitialProfileReadinessAdjuster {
-    fun adjust(
-        summary: TodayReadinessSummary,
+class InitialProfileReadinessAdjuster(
+    private val calculator: InitialAdaptationProfileCalculator = InitialAdaptationProfileCalculator()
+) {
+    fun adaptationFor(initialProfile: InitialUserProfile?): InitialAdaptationProfile? =
+        initialProfile?.let(calculator::calculate)
+
+    fun adjustBaseline(
+        residual: ResidualFatigueSnapshot,
+        adaptiveBaseline: AdaptiveBaselineSnapshot,
         today: LocalDate,
-        completedEntries: List<WorkoutEntryWithSets>,
-        dailyMetrics: List<DailyMetric>,
+        dailyLoads: List<DailyAnalysisLoad>,
         initialProfile: InitialUserProfile?
-    ): TodayReadinessSummary {
-        if (summary.status != ReadinessStatus.FATIGUED) return summary
+    ): AdaptiveBaselineSnapshot {
+        val adaptation = adaptationFor(initialProfile) ?: return adaptiveBaseline
+        val profileWeight = profileWeight(today, dailyLoads)
+        if (profileWeight <= 0.0) return adaptiveBaseline
 
-        val mode = mode(today, completedEntries)
-        if (mode == InitialReadinessMode.PERSONAL_BASELINE) return summary
-
-        val strongSignals = strongSignals(today, completedEntries, dailyMetrics, initialProfile)
-        if (strongSignals >= 2) return summary
-
-        val note = if (initialProfile == null) {
-            "기록이 더 쌓이면 판단이 안정됩니다."
-        } else {
-            "초기 프로필과 최근 기록을 함께 반영했습니다."
+        val categoryTolerances = FatigueCategoryKey.entries.associateWith { category ->
+            val personal = adaptiveBaseline.toleranceByCategory[category]
+                ?: TodayReadinessConstants.CONSERVATIVE_TOLERANCE
+            val profileTolerance = profileTolerance(
+                currentLoad = residual.residualByCategory[category] ?: 0.0,
+                personalTolerance = personal,
+                targetPressure = targetPressureForCategory(category, adaptation)
+            )
+            blendDouble(personal, profileTolerance, profileWeight)
         }
-        return summary.copy(
-            status = ReadinessStatus.CAUTION,
-            headline = "오늘은 강도를 조금 조절하세요.",
-            shortReason = "초기 기록 구간이라 보수적으로 해석했습니다.",
-            adaptiveBaselineNotes = (summary.adaptiveBaselineNotes + note).distinct()
+
+        val groupKeys = adaptiveBaseline.toleranceByBaselineGroup.keys +
+            residual.residualByAdaptiveBaselineGroup.keys
+        val groupTolerances = groupKeys.associateWith { group ->
+            val personal = adaptiveBaseline.toleranceByBaselineGroup[group]
+                ?: TodayReadinessConstants.CONSERVATIVE_TOLERANCE
+            val profileTolerance = profileTolerance(
+                currentLoad = residual.residualByAdaptiveBaselineGroup[group] ?: 0.0,
+                personalTolerance = personal,
+                targetPressure = targetPressureForGroup(group, adaptation)
+            )
+            blendDouble(personal, profileTolerance, profileWeight)
+        }
+
+        val bodyPartKeys = adaptiveBaseline.toleranceByBodyPart.keys + residual.residualByBodyPart.keys
+        val bodyPartTolerances = bodyPartKeys.associateWith { part ->
+            val personal = adaptiveBaseline.toleranceByBodyPart[part]
+                ?: TodayReadinessConstants.CONSERVATIVE_TOLERANCE
+            val profileTolerance = profileTolerance(
+                currentLoad = residual.residualByBodyPart[part] ?: 0.0,
+                personalTolerance = personal,
+                targetPressure = targetPressureForBodyPart(part, adaptation)
+            )
+            blendDouble(personal, profileTolerance, profileWeight)
+        }
+
+        val confidenceByCategory = FatigueCategoryKey.entries.associateWith { category ->
+            val existing = adaptiveBaseline.confidenceByCategory[category] ?: AnalysisConfidence.LOW
+            if (profileWeight >= 0.35) {
+                maxConfidence(existing, minConfidence(adaptation.confidence, AnalysisConfidence.MEDIUM_LOW))
+            } else {
+                existing
+            }
+        }
+
+        val dataSufficiency = if (profileWeight >= 0.35) {
+            maxConfidence(
+                adaptiveBaseline.dataSufficiency,
+                minConfidence(adaptation.confidence, AnalysisConfidence.MEDIUM_LOW)
+            )
+        } else {
+            adaptiveBaseline.dataSufficiency
+        }
+
+        return adaptiveBaseline.copy(
+            toleranceByCategory = categoryTolerances,
+            toleranceByBaselineGroup = adaptiveBaseline.toleranceByBaselineGroup + groupTolerances,
+            toleranceByBodyPart = adaptiveBaseline.toleranceByBodyPart + bodyPartTolerances,
+            confidenceByCategory = confidenceByCategory,
+            dataSufficiency = dataSufficiency,
+            baselineAdjustmentNotes = (adaptiveBaseline.baselineAdjustmentNotes + adaptation.notes).distinct()
         )
     }
 
-    private fun mode(
+    fun adjustSummary(
+        summary: TodayReadinessSummary,
         today: LocalDate,
-        completedEntries: List<WorkoutEntryWithSets>
-    ): InitialReadinessMode {
-        val dates = completedEntries
-            .mapNotNull { runCatching { LocalDate.parse(it.entry.date) }.getOrNull() }
-            .distinct()
-            .sorted()
-        if (dates.isEmpty() || dates.size < 4) return InitialReadinessMode.COLD_START
-        val lastGap = ChronoUnit.DAYS.between(dates.last(), today)
-        if (lastGap >= 60) return InitialReadinessMode.RETURNING_AFTER_BREAK
-        return if (dates.size < 42) InitialReadinessMode.BASELINE_BUILDING else InitialReadinessMode.PERSONAL_BASELINE
-    }
-
-    private fun strongSignals(
-        today: LocalDate,
-        completedEntries: List<WorkoutEntryWithSets>,
-        dailyMetrics: List<DailyMetric>,
+        dailyLoads: List<DailyAnalysisLoad>,
+        pressure: FatiguePressureSnapshot,
         initialProfile: InitialUserProfile?
-    ): Int {
-        var count = 0
-        val recentConfirmedSets = completedEntries
-            .filter { item ->
-                val date = runCatching { LocalDate.parse(item.entry.date) }.getOrNull()
-                date != null && ChronoUnit.DAYS.between(date, today) in 0..2
-            }
-            .sumOf { item -> item.sets.count { set -> set.confirmed } }
-        if (recentConfirmedSets >= 10) count += 1
+    ): TodayReadinessSummary {
+        val adaptation = adaptationFor(initialProfile) ?: return summary
+        val profileWeight = profileWeight(today, dailyLoads)
+        if (profileWeight <= 0.0 || summary.status == ReadinessStatus.LIMITED) {
+            return summary.copy(
+                adaptiveBaselineNotes = (summary.adaptiveBaselineNotes + adaptation.notes).distinct()
+            )
+        }
 
-        val recentHighRpeLoad = completedEntries.any { item ->
-            val date = runCatching { LocalDate.parse(item.entry.date) }.getOrNull()
-            date != null &&
-                ChronoUnit.DAYS.between(date, today) in 0..2 &&
-                item.sets.any { set ->
-                    set.confirmed &&
-                        (set.rpe ?: item.entry.rpe ?: 0.0) >= 9.0 &&
-                        (set.weightKg >= 100.0 || set.seconds >= 600)
+        val strongSupport = adaptation.resistanceAdaptationScore > 1.10 &&
+            adaptation.activityAdaptationScore > 1.05 &&
+            adaptation.recoveryCapacityScore >= 0.95 &&
+            adaptation.detrainingModifier >= 0.90 &&
+            !adaptation.restrictionProfile.hasRestrictions
+        val conservativeProfile = adaptation.recoveryCapacityScore <= 0.72 ||
+            adaptation.detrainingModifier <= 0.70 ||
+            adaptation.restrictionProfile.hasRestrictions
+        val hasHighPressure = pressure.categoryPressures.values.any { item -> item.level >= FatigueLevel.HIGH } ||
+            pressure.bodyPartPressures.values.any { item -> item.level >= FatigueLevel.HIGH }
+        val hasVeryHighPressure = pressure.categoryPressures.values.any { item ->
+            (item.pressure ?: 0.0) > 1.60
+        }
+
+        val adjustedStatus = when (summary.status) {
+            ReadinessStatus.READY ->
+                if (conservativeProfile && profileWeight >= 0.35) ReadinessStatus.CAUTION else summary.status
+            ReadinessStatus.CAUTION -> when {
+                conservativeProfile && hasHighPressure -> ReadinessStatus.FATIGUED
+                strongSupport && profileWeight >= 0.35 && !hasHighPressure -> ReadinessStatus.READY
+                else -> summary.status
+            }
+            ReadinessStatus.FATIGUED ->
+                if (strongSupport && profileWeight >= 0.35 && !hasVeryHighPressure) {
+                    ReadinessStatus.CAUTION
+                } else {
+                    summary.status
                 }
+            ReadinessStatus.LIMITED -> summary.status
         }
-        if (recentHighRpeLoad) count += 1
 
-        val recentSleepValues = dailyMetrics
-            .filter { metric ->
-                val date = runCatching { LocalDate.parse(metric.date) }.getOrNull()
-                date != null && ChronoUnit.DAYS.between(date, today) in 0..3
-            }
-            .mapNotNull { it.sleepHours }
-        val recentSleepLow = recentSleepValues.count { it < 6.0 } >= 2 || recentSleepValues.any { it < 5.0 }
-        val usualSleep = initialProfile?.usualSleepHours ?: initialProfile?.typicalSleepHours
-        if (recentSleepLow || (usualSleep ?: 8.0) < 6.0) count += 1
-
-        val recoveryBad = listOf(
-            initialProfile?.currentFatigue,
-            initialProfile?.currentSoreness,
-            initialProfile?.currentStress
-        ).filterNotNull().count { it >= 4 } >= 2
-        val conditionBad = initialProfile?.currentCondition?.let { it <= 2 } == true
-        if (recoveryBad || conditionBad) count += 1
-
-        if (initialProfile?.trainingBreakCategory == "MORE_THAN_EIGHT_WEEKS" ||
-            initialProfile?.trainingBreakReason == "PAIN_OR_INJURY"
-        ) {
-            count += 1
+        val notes = (summary.adaptiveBaselineNotes + adaptation.notes).distinct()
+        val restricted = (summary.restrictedModes + restrictedModesFromProfile(adaptation)).distinct()
+        return if (adjustedStatus == summary.status) {
+            summary.copy(adaptiveBaselineNotes = notes, restrictedModes = restricted.take(4))
+        } else {
+            summary.copy(
+                status = adjustedStatus,
+                headline = headlineFor(adjustedStatus),
+                shortReason = reasonFor(adjustedStatus),
+                adaptiveBaselineNotes = notes,
+                restrictedModes = restricted.take(4)
+            )
         }
-        if (initialProfile?.painAreaTags.hasStructuredTags()) count += 1
-        return count
     }
 
-    private fun String?.hasStructuredTags(): Boolean =
-        !isNullOrBlank() && split(",").any { tag -> tag.trim().isNotBlank() && tag.trim() != "NONE" }
-}
+    private fun profileWeight(today: LocalDate, dailyLoads: List<DailyAnalysisLoad>): Double {
+        val dates = dailyLoads.map { it.date }.distinct().sorted()
+        if (dates.isEmpty() || dates.size < 4) return 0.75
+        val lastGap = ChronoUnit.DAYS.between(dates.last(), today)
+        if (lastGap >= 60) return 0.65
+        return when {
+            dates.size < 14 -> 0.70
+            dates.size < 42 -> 0.40
+            else -> 0.10
+        }
+    }
 
-private enum class InitialReadinessMode {
-    COLD_START,
-    BASELINE_BUILDING,
-    PERSONAL_BASELINE,
-    RETURNING_AFTER_BREAK
+    private fun profileTolerance(
+        currentLoad: Double,
+        personalTolerance: Double,
+        targetPressure: Double
+    ): Double {
+        val target = targetPressure.coerceIn(0.65, 1.75)
+        val fromCurrentLoad = if (currentLoad > TodayReadinessConstants.LOW_STD_FLOOR) {
+            currentLoad / target
+        } else {
+            personalTolerance / target
+        }
+        return fromCurrentLoad.coerceFinite(0.10, Double.MAX_VALUE)
+    }
+
+    private fun targetPressureForCategory(
+        category: FatigueCategoryKey,
+        adaptation: InitialAdaptationProfile
+    ): Double {
+        val adaptationScore = when (category) {
+            FatigueCategoryKey.NEURAL_HEAVY -> adaptation.resistanceAdaptationScore
+            FatigueCategoryKey.NEURAL_SPEED,
+            FatigueCategoryKey.DECELERATION,
+            FatigueCategoryKey.ELASTIC_SSC,
+            FatigueCategoryKey.BADMINTON_COURT -> adaptation.badmintonAdaptationScore
+            FatigueCategoryKey.SYSTEMIC,
+            FatigueCategoryKey.LOCAL_MUSCLE -> adaptation.activityAdaptationScore
+            FatigueCategoryKey.OVERHEAD_REPETITION,
+            FatigueCategoryKey.GRIP_FOREARM,
+            FatigueCategoryKey.ROTATION_POWER,
+            FatigueCategoryKey.ANTI_ROTATION -> maxOf(
+                adaptation.activityAdaptationScore,
+                adaptation.badmintonAdaptationScore
+            )
+        }
+        val capacity = (adaptationScore * adaptation.recoveryCapacityScore * adaptation.detrainingModifier)
+            .coerceIn(0.45, 1.70)
+        return (1.0 / capacity)
+            .coerceIn(0.70, 1.60) *
+            adaptation.goalSensitivityProfile.categorySensitivity(category) *
+            adaptation.restrictionProfile.categorySensitivity(category)
+    }
+
+    private fun targetPressureForGroup(group: String, adaptation: InitialAdaptationProfile): Double {
+        val upper = group.uppercase()
+        val adaptationScore = when {
+            upper in setOf("HEAVY_LOWER", "HINGE", "SQUAT_PATTERN", "UPPER_PUSH", "UPPER_PULL") ->
+                adaptation.resistanceAdaptationScore
+            upper in setOf("BADMINTON_COURT", "DECELERATION", "ELASTIC_SSC") ->
+                adaptation.badmintonAdaptationScore
+            else -> adaptation.activityAdaptationScore
+        }
+        val capacity = (adaptationScore * adaptation.recoveryCapacityScore * adaptation.detrainingModifier)
+            .coerceIn(0.45, 1.70)
+        return (1.0 / capacity).coerceIn(0.70, 1.60) *
+            adaptation.restrictionProfile.groupSensitivity(group)
+    }
+
+    private fun targetPressureForBodyPart(part: String, adaptation: InitialAdaptationProfile): Double {
+        val capacity = (adaptation.activityAdaptationScore * adaptation.recoveryCapacityScore * adaptation.detrainingModifier)
+            .coerceIn(0.45, 1.70)
+        return (1.0 / capacity).coerceIn(0.70, 1.60) *
+            adaptation.restrictionProfile.bodyPartSensitivity(part)
+    }
+
+    private fun restrictedModesFromProfile(adaptation: InitialAdaptationProfile): List<String> = buildList {
+        val pain = adaptation.restrictionProfile.painAreaTags
+        val avoid = adaptation.restrictionProfile.avoidMovementTags
+        if ("SHOULDER" in pain || "BENCH_OR_PUSH" in avoid || "OVERHEAD_PRESS" in avoid) {
+            add("어깨 부담 큰 상체 푸시")
+        }
+        if ("LOW_BACK" in pain || "HEAVY_DEADLIFT" in avoid) add("고축부하 힌지")
+        if ("KNEE" in pain || "HEAVY_SQUAT" in avoid) add("무거운 스쿼트")
+        if ("JUMP_LANDING" in avoid || "LUNGE_DECELERATION" in avoid) add("점프/감속 드릴")
+        if ("LONG_BADMINTON" in avoid) add("장시간 배드민턴")
+    }
+
+    private fun headlineFor(status: ReadinessStatus): String =
+        when (status) {
+            ReadinessStatus.READY -> "오늘은 예정 훈련을 진행해도 좋습니다."
+            ReadinessStatus.CAUTION -> "오늘은 강도를 조금 조절하세요."
+            ReadinessStatus.FATIGUED -> "오늘은 회복 여지를 더 남기세요."
+            ReadinessStatus.LIMITED -> "오늘은 부담이 적은 운동이 낫습니다."
+        }
+
+    private fun reasonFor(status: ReadinessStatus): String =
+        when (status) {
+            ReadinessStatus.READY -> "초기 프로필상 현재 부하를 소화할 여지가 있습니다."
+            ReadinessStatus.CAUTION -> "초기 프로필과 최근 기록을 함께 보면 조절이 낫습니다."
+            ReadinessStatus.FATIGUED -> "최근 부하와 회복 입력을 함께 보수적으로 반영했습니다."
+            ReadinessStatus.LIMITED -> "선택한 제한 신호를 우선 반영했습니다."
+        }
 }

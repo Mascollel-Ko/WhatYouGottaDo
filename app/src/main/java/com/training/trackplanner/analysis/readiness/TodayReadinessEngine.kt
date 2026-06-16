@@ -39,10 +39,17 @@ class TodayReadinessEngine(
             stats = statisticalBaseline,
             outcomeSignals = adaptiveSignals
         )
+        val readinessBaseline = initialProfileAdjuster.adjustBaseline(
+            residual = residual,
+            adaptiveBaseline = adaptiveBaseline,
+            today = input.today,
+            dailyLoads = dailyLoads,
+            initialProfile = input.initialProfile
+        )
         val pressure = pressureCalculator.calculate(
             residual = residual,
             stats = statisticalBaseline,
-            adaptiveBaseline = adaptiveBaseline
+            adaptiveBaseline = readinessBaseline
         )
         val recovery = recoverySignalInterpreter.interpret(
             today = input.today,
@@ -62,14 +69,14 @@ class TodayReadinessEngine(
             recovery = recovery,
             performance = performance,
             pain = pain,
-            adaptiveBaseline = adaptiveBaseline
+            adaptiveBaseline = readinessBaseline
         )
         val detailSections = detailSectionBuilder.build(
             pressure = pressure,
             recovery = recovery,
             performance = performance,
             pain = pain,
-            adaptiveBaseline = adaptiveBaseline
+            adaptiveBaseline = readinessBaseline
         )
 
         val summary = TodayReadinessSummary(
@@ -84,11 +91,11 @@ class TodayReadinessEngine(
             adaptiveBaselineNotes = decision.sentence.adaptiveBaselineNotes,
             generatedAt = LocalDateTime.now()
         )
-        return initialProfileAdjuster.adjust(
+        return initialProfileAdjuster.adjustSummary(
             summary = summary,
             today = input.today,
-            completedEntries = completedEntriesUntilToday,
-            dailyMetrics = input.dailyMetrics,
+            dailyLoads = dailyLoads,
+            pressure = pressure,
             initialProfile = input.initialProfile
         )
     }

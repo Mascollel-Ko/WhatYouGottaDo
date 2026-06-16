@@ -1030,3 +1030,13 @@ Validation:
 - 초기 프로필 UI에서 핵심 입력은 더 이상 자유 텍스트가 아니다.
 - `birthYearOrAgeRange`, `gender`, `strengthTrainingAge`, `badmintonTrainingAge`, `painAreas`, `avoidedMovements`, `goals`는 호환용으로 남아 있으나 새 분석 입력으로 쓰지 않는다.
 - 새 profile backup key는 enum key / numeric value를 저장한다.
+
+## v0.3.4.4.2 Hotfix Addendum
+
+- Version bumped to `v0.3.4.4.2` / DB version `11`.
+- `MIGRATION_10_11` is no-op; structured initial profile fields were already present in DB v10.
+- Added `InitialAdaptationProfile` and cold-start readiness baseline binding.
+- Removed the old fatigued-only profile adjustment pattern.
+- Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
+- CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\WhatYouGottaTrain-v0.3.4.4.2-debug.apk`.

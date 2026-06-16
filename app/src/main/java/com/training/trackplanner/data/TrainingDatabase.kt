@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AppMeta::class,
         InitialUserProfile::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class TrainingDatabase : RoomDatabase() {
@@ -225,6 +225,12 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v0.3.4.4.2 completes cold-start readiness binding without schema changes.
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -241,7 +247,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_6_7,
                         MIGRATION_7_8,
                         MIGRATION_8_9,
-                        MIGRATION_9_10
+                        MIGRATION_9_10,
+                        MIGRATION_10_11
                     )
                     .build()
                     .also { instance = it }

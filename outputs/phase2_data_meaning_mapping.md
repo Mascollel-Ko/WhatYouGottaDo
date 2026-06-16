@@ -911,3 +911,13 @@ No DB schema or metadata meaning changed.
 - `painAreaTags`, `avoidMovementTags`: comma-separated enum key list. `NONE`은 단독 값이다.
 - `primaryGoal`: 목표 enum key.
 - `freeNote`: 보조 메모이며 피로도 계산 핵심값이 아니다.
+
+## v0.3.4.4.2 Hotfix Addendum
+
+- Version bumped to `v0.3.4.4.2` / DB version `11`.
+- `MIGRATION_10_11` is no-op; structured initial profile fields were already present in DB v10.
+- Added `InitialAdaptationProfile` and cold-start readiness baseline binding.
+- Removed the old fatigued-only profile adjustment pattern.
+- Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
+- CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\WhatYouGottaTrain-v0.3.4.4.2-debug.apk`.
