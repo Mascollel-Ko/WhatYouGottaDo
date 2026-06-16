@@ -689,3 +689,13 @@ Reference:
 - 각 운동 행 오른쪽의 `i` 버튼으로 운동 사진, 설명, 상세 태그를 다이얼로그에서 확인합니다.
 - 운동 선택/추가 다이얼로그의 기존 행 선택 동작은 유지했습니다.
 - 앱 버전은 변경하지 않았습니다.
+
+## v0.3.4.4 Update
+
+- Room schema export를 활성화하고 DB version 9를 추가했다.
+- `initial_user_profiles` 테이블, DAO, repository flow, 홈 화면 입력 dialog를 추가했다.
+- 초기 프로필은 CSV 백업/복원에 포함된다.
+- Today Readiness는 cold-start 구간에서 강한 복합 신호가 없으면 과도한 `FATIGUED`를 `CAUTION`으로 낮춘다.
+- 기록 탭 운동 카드 헤더를 한 줄로 줄이고, 완료 세트는 compact row로 접는다.
+- 기록 탭과 운동 탭에서 공통 `ExerciseInfoDialog`를 사용한다.
+- 기본 제공 운동은 직접 삭제보다 숨김을 우선한다.

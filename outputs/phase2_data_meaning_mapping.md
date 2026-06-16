@@ -892,3 +892,12 @@ Exercise detail display is now an explicit row action.
 | Exercise picker row tap | still selects that exercise for record/program flows |
 
 No DB schema or metadata meaning changed.
+
+## v0.3.4.4 Data Meaning Addendum
+
+- `InitialUserProfile`: 초기 기록이 부족한 시기의 readiness 보정 입력값이다. 분석 결과를 고정 저장하지 않는다.
+- `WorkoutSet.confirmed=false`: 계획 세트 의미 유지.
+- `WorkoutSet.confirmed=true`: 실제 수행 기록 의미 유지.
+- CSV `row_type=profile`: 초기 프로필 key/value 백업 행이다.
+- `Exercise.isActive=false`: 운동 숨김 상태다. 과거 기록 삭제가 아니다.
+- `Exercise.isCustom=true`: 사용자 추가 운동이다. 삭제 가능성 판단에 사용한다.

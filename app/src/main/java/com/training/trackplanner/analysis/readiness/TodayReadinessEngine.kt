@@ -12,7 +12,8 @@ class TodayReadinessEngine(
     private val performanceDropDetector: PerformanceDropDetector = PerformanceDropDetector(),
     private val painGateEvaluator: PainGateEvaluator = PainGateEvaluator(),
     private val decisionEngine: TodayReadinessDecisionEngine = TodayReadinessDecisionEngine(),
-    private val detailSectionBuilder: FatigueDetailSectionBuilder = FatigueDetailSectionBuilder()
+    private val detailSectionBuilder: FatigueDetailSectionBuilder = FatigueDetailSectionBuilder(),
+    private val initialProfileAdjuster: InitialProfileReadinessAdjuster = InitialProfileReadinessAdjuster()
 ) {
     fun analyze(input: TodayReadinessEngineInput): TodayReadinessSummary {
         val exerciseMap = input.exercises.associateBy { exercise -> exercise.id }
@@ -71,7 +72,7 @@ class TodayReadinessEngine(
             adaptiveBaseline = adaptiveBaseline
         )
 
-        return TodayReadinessSummary(
+        val summary = TodayReadinessSummary(
             status = decision.status,
             headline = decision.sentence.headline,
             shortReason = decision.sentence.shortReason,
@@ -82,6 +83,13 @@ class TodayReadinessEngine(
             detailSections = detailSections,
             adaptiveBaselineNotes = decision.sentence.adaptiveBaselineNotes,
             generatedAt = LocalDateTime.now()
+        )
+        return initialProfileAdjuster.adjust(
+            summary = summary,
+            today = input.today,
+            completedEntries = completedEntriesUntilToday,
+            dailyMetrics = input.dailyMetrics,
+            initialProfile = input.initialProfile
         )
     }
 

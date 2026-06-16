@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -77,6 +78,7 @@ internal fun RecordScreen(
         viewModel.entriesForDate(selectedDate)
     }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
+    val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.id } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
 
@@ -171,6 +173,7 @@ internal fun RecordScreen(
                 WorkoutEntryCard(
                     selectedDate = selectedDate,
                     entryWithSets = entryWithSets,
+                    exercise = exerciseMap[entryWithSets.entry.exerciseId],
                     restTimerSessionController = restTimerSessionController,
                     timerState = timerState,
                     onUpdateEntry = viewModel::updateWorkoutEntry,
@@ -353,6 +356,7 @@ private fun EmptyRecordState(
 private fun WorkoutEntryCard(
     selectedDate: String,
     entryWithSets: WorkoutEntryWithSets,
+    exercise: Exercise?,
     restTimerSessionController: RestTimerSessionController,
     timerState: RestTimerState,
     onUpdateEntry: (WorkoutEntry) -> Unit,
@@ -366,7 +370,15 @@ private fun WorkoutEntryCard(
     val showWeight = shouldShowWeight(entry)
     var showBulkEditDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showDetails by rememberSaveable(entry.id) { mutableStateOf(false) }
+    var showExerciseInfo by rememberSaveable(entry.id) { mutableStateOf(false) }
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
+
+    if (showExerciseInfo && exercise != null) {
+        ExerciseInfoDialog(
+            exercise = exercise,
+            onDismiss = { showExerciseInfo = false }
+        )
+    }
 
     if (showBulkEditDialog) {
         BulkEditDialog(
@@ -388,43 +400,45 @@ private fun WorkoutEntryCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.exerciseName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${planSummary(sets, showWeight)} · 휴식 ${formatSeconds(entry.restSeconds)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                TextButton(onClick = { showDetails = !showDetails }) {
-                    Text(if (showDetails) "접기" else "상세")
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                StatusChip("${sets.count { it.confirmed }}/${sets.size} 완료")
-                if (entry.notes.isNotBlank()) StatusChip("메모 있음")
-                entry.maxReps?.let { StatusChip("최대 ${it}회") }
-                entry.rpe?.let { StatusChip("전체 RPE ${formatRpe(it)}") }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                Text(
                     modifier = Modifier.weight(1f),
+                    text = entry.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                if (exercise != null) {
+                    TextButton(
+                        modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        onClick = { showExerciseInfo = true }
+                    ) {
+                        Text("i")
+                    }
+                }
+                TextButton(
+                    modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                     onClick = onAddSet
                 ) {
-                    Text("세트 +")
+                    Text("세트+")
                 }
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
+                TextButton(
+                    modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                     onClick = { showBulkEditDialog = true }
                 ) {
                     Text("일괄")
+                }
+                TextButton(
+                    modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    onClick = { showDetails = !showDetails }
+                ) {
+                    Text(if (showDetails) "접기" else "상세")
                 }
             }
             pendingWeightSuggestion?.let { suggestion ->
@@ -595,6 +609,8 @@ private fun WorkoutSetRow(
     var secondsText by rememberSaveable(set.id) { mutableStateOf(set.seconds.toString()) }
     var showRpeDialog by rememberSaveable(set.id) { mutableStateOf(false) }
     var showRestDialog by rememberSaveable(set.id) { mutableStateOf(false) }
+    var isExpanded by rememberSaveable(set.id) { mutableStateOf(false) }
+    var editField by rememberSaveable(set.id) { mutableStateOf<SetEditField?>(null) }
     val effectiveRestSeconds = set.restSecondsOverride ?: entry.restSeconds
     val isTimerTarget = timerState.targetEntryId == entry.id && timerState.targetSetId == set.id
 
@@ -624,6 +640,96 @@ private fun WorkoutSetRow(
                 showRestDialog = false
             }
         )
+    }
+    editField?.let { field ->
+        SetValueEditDialog(
+            field = field,
+            currentValue = when (field) {
+                SetEditField.Weight -> formatDecimal(set.weightKg)
+                SetEditField.Reps -> set.reps.toString()
+                SetEditField.Seconds -> set.seconds.toString()
+            },
+            onDismiss = { editField = null },
+            onApply = { value ->
+                val updated = when (field) {
+                    SetEditField.Weight -> {
+                        val kg = value.toDoubleOrNull() ?: 0.0
+                        set.copy(weightKg = kg, manualWeight = value.isNotBlank())
+                    }
+                    SetEditField.Reps -> set.copy(reps = value.toIntOrNull() ?: 0)
+                    SetEditField.Seconds -> set.copy(seconds = value.toIntOrNull() ?: 0)
+                }
+                onUpdateSet(updated)
+                if (field == SetEditField.Weight && updated.weightKg > 0.0 && updated.weightKg != set.weightKg) {
+                    onPositiveWeightEdit(set, updated.weightKg)
+                }
+                editField = null
+            }
+        )
+    }
+
+    if (set.confirmed && !isExpanded) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(6.dp),
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        modifier = Modifier.size(36.dp),
+                        checked = true,
+                        onCheckedChange = { checked -> onUpdateSet(set.copy(confirmed = checked)) }
+                    )
+                    Text(
+                        text = "${set.setIndex}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (showWeight) {
+                        CompactChip(
+                            text = "${formatWeight(set.weightKg)}kg",
+                            onClick = { editField = SetEditField.Weight }
+                        )
+                    }
+                    CompactChip(
+                        text = if (set.seconds > 0 && !showWeight) "${set.seconds}초" else "${set.reps}회",
+                        onClick = {
+                            editField = if (set.seconds > 0 && !showWeight) {
+                                SetEditField.Seconds
+                            } else {
+                                SetEditField.Reps
+                            }
+                        }
+                    )
+                    CompactChip(
+                        text = set.rpe?.let { "RPE${formatRpe(it)}" } ?: "RPE-",
+                        onClick = { showRpeDialog = true }
+                    )
+                    TextButton(
+                        modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        onClick = { isExpanded = true }
+                    ) {
+                        Text("상세")
+                    }
+                }
+                if (isTimerTarget && timerState.isActive) {
+                    RestTimerSetChip(
+                        state = timerState,
+                        onStop = onStopRestTimer
+                    )
+                }
+            }
+        }
+        return
     }
 
     Surface(
@@ -760,6 +866,11 @@ private fun WorkoutSetRow(
                     onClick = { onDeleteSet(set) }
                 ) {
                     Text("삭제")
+                }
+                if (set.confirmed) {
+                    TextButton(onClick = { isExpanded = false }) {
+                        Text("접기")
+                    }
                 }
                 if (isTimerTarget && timerState.isActive) {
                     RestTimerSetChip(
@@ -1013,6 +1124,68 @@ private fun RestOverrideDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SetValueEditDialog(
+    field: SetEditField,
+    currentValue: String,
+    onDismiss: () -> Unit,
+    onApply: (String) -> Unit
+) {
+    var text by rememberSaveable(field.name, currentValue) { mutableStateOf(currentValue) }
+    val isWeight = field == SetEditField.Weight
+    val isValid = if (isWeight) {
+        text.isBlank() || text.toDoubleOrNull() != null
+    } else {
+        text.isUnsignedInt()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                when (field) {
+                    SetEditField.Weight -> "kg 수정"
+                    SetEditField.Reps -> "횟수 수정"
+                    SetEditField.Seconds -> "시간 수정"
+                }
+            )
+        },
+        text = {
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = text,
+                onValueChange = {
+                    val allowed = if (isWeight) isDecimalInput(it) else it.isUnsignedInt()
+                    if (allowed) text = it
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (isWeight) KeyboardType.Decimal else KeyboardType.Number
+                ),
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = isValid,
+                onClick = { onApply(text) }
+            ) {
+                Text("적용")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
+            }
+        }
+    )
+}
+
+private enum class SetEditField {
+    Weight,
+    Reps,
+    Seconds
 }
 
 @Composable

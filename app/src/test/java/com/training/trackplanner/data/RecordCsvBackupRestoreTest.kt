@@ -97,4 +97,25 @@ class RecordCsvBackupRestoreTest {
         assertEquals("test_squat", parsed.exerciseRows.first().stableKey)
         assertEquals("exercise_images/local_downloads/test_squat.png", parsed.exerciseRows.first().imageAssetName)
     }
+
+    @Test
+    fun restoreCsvExportsAndParsesInitialProfileRows() {
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            initialProfile = InitialUserProfile(
+                bodyWeightKg = 72.5,
+                strengthSessionsPerWeek = 3.0,
+                typicalSleepHours = 7.0,
+                painAreas = "어깨"
+            )
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+
+        assertTrue(csv.contains(",profile,"))
+        assertEquals("bodyWeightKg", parsed.profileRows.first().key)
+        assertEquals("72.5", parsed.profileRows.first().value)
+        assertTrue(parsed.profileRows.any { it.key == "painAreas" && it.value == "어깨" })
+    }
 }

@@ -14,6 +14,7 @@ import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramSkeletonRequest
@@ -51,6 +52,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         AnalysisStats()
+    )
+
+    val initialUserProfile: StateFlow<InitialUserProfile?> = repository.initialUserProfile.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        null
     )
 
     private val _todayReadinessSummary = MutableStateFlow<TodayReadinessSummary?>(null)
@@ -221,6 +228,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun saveDailyMetric(date: String, sleepHours: Double?, bodyWeightKg: Double?) {
         viewModelScope.launch {
             repository.saveDailyMetric(date, sleepHours, bodyWeightKg)
+            refreshAnalysisSummaries()
+        }
+    }
+
+    fun saveInitialUserProfile(profile: InitialUserProfile) {
+        viewModelScope.launch {
+            repository.saveInitialUserProfile(profile)
             refreshAnalysisSummaries()
         }
     }

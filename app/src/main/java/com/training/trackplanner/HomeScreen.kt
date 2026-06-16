@@ -17,10 +17,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.InitialUserProfile
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -34,6 +38,8 @@ internal fun HomeScreen(
     val unconfirmedCount by remember(today) { viewModel.plannedSetCount(today) }.collectAsState(initial = 0)
     val confirmedCount by remember(today) { viewModel.confirmedSetCount(today) }.collectAsState(initial = 0)
     val transferMessage by viewModel.recordTransferMessage.collectAsState()
+    val initialProfile by viewModel.initialUserProfile.collectAsState()
+    var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
@@ -103,6 +109,23 @@ internal fun HomeScreen(
                 }
             )
         }
+        item {
+            InitialProfileCard(
+                profile = initialProfile,
+                onOpen = { showInitialProfile = true }
+            )
+        }
+    }
+
+    if (showInitialProfile) {
+        InitialProfileDialog(
+            profile = initialProfile,
+            onDismiss = { showInitialProfile = false },
+            onSave = { profile ->
+                viewModel.saveInitialUserProfile(profile)
+                showInitialProfile = false
+            }
+        )
     }
 }
 
@@ -190,6 +213,43 @@ private fun RecordManagementCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InitialProfileCard(
+    profile: InitialUserProfile?,
+    onOpen: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "초기 프로필",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = if (profile == null) {
+                    "기록이 적은 구간의 상태 해석에 참고합니다. 건너뛰어도 됩니다."
+                } else {
+                    "초기 프로필이 저장되어 있습니다. 언제든 수정할 수 있습니다."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onOpen
+            ) {
+                Text(if (profile == null) "입력하기" else "수정하기")
             }
         }
     }

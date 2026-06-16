@@ -58,10 +58,12 @@ class TrainingRepository(
     private val programDao = db.programDao()
     private val dailyMetricDao = db.dailyMetricDao()
     private val appMetaDao = db.appMetaDao()
+    private val initialUserProfileDao = db.initialUserProfileDao()
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
     val analysisStats: Flow<AnalysisStats> = workoutDao.observeAnalysisStats()
+    val initialUserProfile: Flow<InitialUserProfile?> = initialUserProfileDao.observeProfile()
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
@@ -71,7 +73,8 @@ class TrainingRepository(
                 today = today,
                 exercises = exerciseDao.allExercises(),
                 entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-                dailyMetrics = dailyMetricDao.metricsUntil(todayString)
+                dailyMetrics = dailyMetricDao.metricsUntil(todayString),
+                initialProfile = initialUserProfileDao.profile()
             )
         )
     }
@@ -107,7 +110,8 @@ class TrainingRepository(
         val entries = workoutDao.allEntriesWithSets()
         val metrics = dailyMetricDao.allMetrics()
         val exercises = exerciseDao.allExercises()
-        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises)
+        val profile = initialUserProfileDao.profile()
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises, profile)
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
         } ?: error("백업 파일을 열 수 없습니다.")
@@ -115,6 +119,7 @@ class TrainingRepository(
             format = "restore",
             exerciseCount = exercises.size,
             dailyMetricCount = metrics.size,
+            profileCount = if (profile != null) 1 else 0,
             entryCount = entries.size,
             setCount = entries.sumOf { item -> item.sets.size }
         )
@@ -147,6 +152,17 @@ class TrainingRepository(
 
     fun metricForDate(date: String): Flow<DailyMetric?> =
         dailyMetricDao.observeMetric(date)
+
+    suspend fun saveInitialUserProfile(profile: InitialUserProfile) = withContext(Dispatchers.IO) {
+        val existing = initialUserProfileDao.profile()
+        initialUserProfileDao.upsert(
+            profile.copy(
+                id = 1,
+                createdAt = existing?.createdAt ?: profile.createdAt,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
 
     suspend fun seedIfNeeded() = withContext(Dispatchers.IO) {
         val exerciseSeedVersion = appMetaDao.intValue(META_EXERCISE_SEED_VERSION)
@@ -216,7 +232,7 @@ class TrainingRepository(
             )
             val referenced = workoutDao.countEntriesForExercise(exerciseId) > 0 ||
                 programDao.countProgramItemsForExercise(exerciseId) > 0
-            if (referenced) {
+            if (referenced || !exercise.isCustom) {
                 return@withTransaction ExerciseDeleteResult(deleted = false, referenced = true)
             }
             exerciseDao.deleteExercise(exercise)
@@ -614,10 +630,15 @@ class TrainingRepository(
     private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
         var exerciseCount = 0
         var dailyCount = 0
+        var profileCount = 0
         var entryCount = 0
         var setCount = 0
         var skipped = 0
         db.withTransaction {
+            data.profileRows.toInitialUserProfile()?.let { profile ->
+                initialUserProfileDao.upsert(profile)
+                profileCount = 1
+            }
             data.exerciseRows.forEach { row ->
                 if (upsertRestoredExercise(row)) {
                     exerciseCount += 1
@@ -699,6 +720,7 @@ class TrainingRepository(
             format = "restore",
             exerciseCount = exerciseCount,
             dailyMetricCount = dailyCount,
+            profileCount = profileCount,
             entryCount = entryCount,
             setCount = setCount,
             skippedDuplicateCount = skipped,
@@ -890,6 +912,50 @@ class TrainingRepository(
         }
         return true
     }
+
+    private fun List<RestoreProfileRow>.toInitialUserProfile(): InitialUserProfile? {
+        if (isEmpty()) return null
+        val values = associate { row -> row.key to row.value }
+        return InitialUserProfile(
+            id = 1,
+            bodyWeightKg = values["bodyWeightKg"]?.toDoubleOrNull(),
+            heightCm = values["heightCm"]?.toDoubleOrNull(),
+            birthYearOrAgeRange = values["birthYearOrAgeRange"].orEmpty(),
+            gender = values["gender"].orEmpty(),
+            strengthSessionsPerWeek = values["strengthSessionsPerWeek"]?.toDoubleOrNull(),
+            strengthMinutesPerSession = values["strengthMinutesPerSession"]?.toIntOrNull(),
+            strengthAverageRpe = values["strengthAverageRpe"]?.toDoubleOrNull(),
+            badmintonSessionsPerWeek = values["badmintonSessionsPerWeek"]?.toDoubleOrNull(),
+            badmintonMinutesPerSession = values["badmintonMinutesPerSession"]?.toIntOrNull(),
+            badmintonAverageRpe = values["badmintonAverageRpe"]?.toDoubleOrNull(),
+            strengthTrainingAge = values["strengthTrainingAge"].orEmpty(),
+            badmintonTrainingAge = values["badmintonTrainingAge"].orEmpty(),
+            hadRecentTrainingBreak = values["hadRecentTrainingBreak"].toCsvBoolean(),
+            breakWeeks = values["breakWeeks"]?.toIntOrNull(),
+            breakDueToPain = values["breakDueToPain"].toCsvBoolean(),
+            squatLevel = values["squatLevel"].orEmpty(),
+            deadliftLevel = values["deadliftLevel"].orEmpty(),
+            benchPressLevel = values["benchPressLevel"].orEmpty(),
+            pullUpLevel = values["pullUpLevel"].orEmpty(),
+            typicalSleepHours = values["typicalSleepHours"]?.toDoubleOrNull(),
+            sleepQuality = values["sleepQuality"]?.toIntOrNull(),
+            currentFatigue = values["currentFatigue"]?.toIntOrNull(),
+            currentSoreness = values["currentSoreness"]?.toIntOrNull(),
+            currentStress = values["currentStress"]?.toIntOrNull(),
+            currentMood = values["currentMood"]?.toIntOrNull(),
+            painAreas = values["painAreas"].orEmpty(),
+            avoidedMovements = values["avoidedMovements"].orEmpty(),
+            goals = values["goals"].orEmpty(),
+            createdAt = values["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
+            updatedAt = values["updatedAt"]?.toLongOrNull() ?: System.currentTimeMillis()
+        )
+    }
+
+    private fun String?.toCsvBoolean(): Boolean =
+        when (this?.trim()?.lowercase(Locale.US)) {
+            "1", "true", "yes", "y" -> true
+            else -> false
+        }
 
     private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Boolean {
         if (size != rows.size) return false

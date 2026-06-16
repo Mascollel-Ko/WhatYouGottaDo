@@ -15,10 +15,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DailyMetric::class,
         TrainingProgram::class,
         TrainingProgramItem::class,
-        AppMeta::class
+        AppMeta::class,
+        InitialUserProfile::class
     ],
-    version = 8,
-    exportSchema = false
+    version = 9,
+    exportSchema = true
 )
 abstract class TrainingDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
@@ -26,6 +27,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun programDao(): ProgramDao
     abstract fun dailyMetricDao(): DailyMetricDao
     abstract fun appMetaDao(): AppMetaDao
+    abstract fun initialUserProfileDao(): InitialUserProfileDao
 
     companion object {
         @Volatile
@@ -127,6 +129,49 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `initial_user_profiles` (
+                        `id` INTEGER NOT NULL,
+                        `bodyWeightKg` REAL,
+                        `heightCm` REAL,
+                        `birthYearOrAgeRange` TEXT NOT NULL DEFAULT '',
+                        `gender` TEXT NOT NULL DEFAULT '',
+                        `strengthSessionsPerWeek` REAL,
+                        `strengthMinutesPerSession` INTEGER,
+                        `strengthAverageRpe` REAL,
+                        `badmintonSessionsPerWeek` REAL,
+                        `badmintonMinutesPerSession` INTEGER,
+                        `badmintonAverageRpe` REAL,
+                        `strengthTrainingAge` TEXT NOT NULL DEFAULT '',
+                        `badmintonTrainingAge` TEXT NOT NULL DEFAULT '',
+                        `hadRecentTrainingBreak` INTEGER NOT NULL DEFAULT 0,
+                        `breakWeeks` INTEGER,
+                        `breakDueToPain` INTEGER NOT NULL DEFAULT 0,
+                        `squatLevel` TEXT NOT NULL DEFAULT '',
+                        `deadliftLevel` TEXT NOT NULL DEFAULT '',
+                        `benchPressLevel` TEXT NOT NULL DEFAULT '',
+                        `pullUpLevel` TEXT NOT NULL DEFAULT '',
+                        `typicalSleepHours` REAL,
+                        `sleepQuality` INTEGER,
+                        `currentFatigue` INTEGER,
+                        `currentSoreness` INTEGER,
+                        `currentStress` INTEGER,
+                        `currentMood` INTEGER,
+                        `painAreas` TEXT NOT NULL DEFAULT '',
+                        `avoidedMovements` TEXT NOT NULL DEFAULT '',
+                        `goals` TEXT NOT NULL DEFAULT '',
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -141,7 +186,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_4_5,
                         MIGRATION_5_6,
                         MIGRATION_6_7,
-                        MIGRATION_7_8
+                        MIGRATION_7_8,
+                        MIGRATION_8_9
                     )
                     .build()
                     .also { instance = it }

@@ -69,7 +69,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                             managementMessage = if (deleted) {
                                 "운동을 삭제했습니다."
                             } else {
-                                "사용 중인 운동이라 삭제하지 않았습니다."
+                                "삭제하지 않았습니다. 기본 운동이거나 기록에서 사용 중이면 숨김을 사용하세요."
                             }
                         }
                         deleteCandidate = null
@@ -87,35 +87,9 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     }
 
     detailCandidate?.let { exercise ->
-        AlertDialog(
-            onDismissRequest = { detailCandidate = null },
-            confirmButton = {
-                TextButton(onClick = { detailCandidate = null }) {
-                    Text("닫기")
-                }
-            },
-            title = { Text("운동 정보") },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = 560.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    item {
-                        ExerciseDetailCard(exercise)
-                    }
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            exercise.detailTags().forEach { (label, value) ->
-                                Text(
-                                    text = "$label: $value",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+        ExerciseInfoDialog(
+            exercise = exercise,
+            onDismiss = { detailCandidate = null }
         )
     }
 
@@ -196,18 +170,3 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
         }
     }
 }
-
-private fun Exercise.detailTags(): List<Pair<String, String>> =
-    listOf(
-        "주동근" to primaryMuscles,
-        "보조근" to secondaryMuscles,
-        "장비" to equipment.ifBlank { equipmentTags },
-        "패턴" to movementPattern,
-        "분류" to movementCategory,
-        "축부하" to axialLoadLevel,
-        "측성" to laterality,
-        "훈련역할" to trainingRole,
-        "직접전이" to sportTransferDirect,
-        "보조전이" to sportTransferSupportive,
-        "메타" to metadataConfidence
-    ).filter { (_, value) -> value.isNotBlank() }

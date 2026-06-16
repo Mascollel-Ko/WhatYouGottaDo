@@ -7,18 +7,20 @@ data class RecordCsvTransferResult(
     val format: String,
     val exerciseCount: Int = 0,
     val dailyMetricCount: Int = 0,
+    val profileCount: Int = 0,
     val entryCount: Int = 0,
     val setCount: Int = 0,
     val skippedDuplicateCount: Int = 0,
     val warningCount: Int = 0
 ) {
     fun summaryText(action: String): String =
-        "$action 완료: daily $dailyMetricCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
+        "$action 완료: profile $profileCount, daily $dailyMetricCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
 }
 
 sealed class RecordCsvImportData {
     data class Restore(
         val exerciseRows: List<RestoreExerciseRow>,
+        val profileRows: List<RestoreProfileRow>,
         val dailyRows: List<RestoreDailyRow>,
         val setRows: List<RestoreSetRow>,
         val warningCount: Int
@@ -34,6 +36,11 @@ data class RestoreDailyRow(
     val date: String,
     val sleepHours: Double?,
     val bodyWeightKg: Double?
+)
+
+data class RestoreProfileRow(
+    val key: String,
+    val value: String
 )
 
 data class RestoreExerciseRow(
@@ -147,16 +154,32 @@ object RecordCsvBackupRestore {
         "needs_review",
         "detail1",
         "detail2",
-        "mode"
+        "mode",
+        "profile_key",
+        "profile_value"
     )
 
     fun buildRestoreCsv(
         entriesWithSets: List<WorkoutEntryWithSets>,
         metrics: List<DailyMetric>,
-        exercises: List<Exercise> = emptyList()
+        exercises: List<Exercise> = emptyList(),
+        initialProfile: InitialUserProfile? = null
     ): String {
         val builder = StringBuilder()
         builder.appendLine(restoreHeader.joinToString(","))
+        initialProfile?.toCsvPairs()?.forEach { (key, value) ->
+            builder.appendCsvRow(
+                restoreHeader.map { column ->
+                    when (column) {
+                        "schema_version" -> "1"
+                        "row_type" -> "profile"
+                        "profile_key" -> key
+                        "profile_value" -> value
+                        else -> ""
+                    }
+                }
+            )
+        }
         exercises.sortedBy { exercise -> exercise.name }.forEach { exercise ->
             builder.appendCsvRow(
                 listOf(
@@ -282,7 +305,7 @@ object RecordCsvBackupRestore {
             .map(::parseCsvLine)
             .toList()
         if (rows.isEmpty()) {
-            return RecordCsvImportData.Restore(emptyList(), emptyList(), emptyList(), warningCount = 1)
+            return RecordCsvImportData.Restore(emptyList(), emptyList(), emptyList(), emptyList(), warningCount = 1)
         }
         val header = rows.first().map { value -> value.trim() }
         val index = header.withIndex().associate { (i, name) -> name to i }
@@ -299,10 +322,23 @@ object RecordCsvBackupRestore {
     ): RecordCsvImportData.Restore {
         var warnings = 0
         val exerciseRows = mutableListOf<RestoreExerciseRow>()
+        val profileRows = mutableListOf<RestoreProfileRow>()
         val dailyRows = mutableListOf<RestoreDailyRow>()
         val setRows = mutableListOf<RestoreSetRow>()
         rows.forEachIndexed { rowIndex, row ->
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
+            if (rowType == "profile") {
+                val key = row.value(index, "profile_key").trim()
+                if (key.isBlank()) {
+                    warnings += 1
+                } else {
+                    profileRows += RestoreProfileRow(
+                        key = key,
+                        value = row.value(index, "profile_value")
+                    )
+                }
+                return@forEachIndexed
+            }
             if (rowType == "exercise") {
                 val name = row.value(index, "exercise_name").trim()
                 if (name.isBlank()) {
@@ -376,7 +412,7 @@ object RecordCsvBackupRestore {
                 else -> warnings += 1
             }
         }
-        return RecordCsvImportData.Restore(exerciseRows, dailyRows, setRows, warnings)
+        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings)
     }
 
     private fun parseDailyTimeseries(
@@ -476,4 +512,38 @@ object RecordCsvBackupRestore {
         } else {
             String.format(Locale.US, "%.3f", this).trimEnd('0').trimEnd('.')
         }
+
+    private fun InitialUserProfile.toCsvPairs(): List<Pair<String, String>> =
+        listOf(
+            "bodyWeightKg" to bodyWeightKg.formatOptional(),
+            "heightCm" to heightCm.formatOptional(),
+            "birthYearOrAgeRange" to birthYearOrAgeRange,
+            "gender" to gender,
+            "strengthSessionsPerWeek" to strengthSessionsPerWeek.formatOptional(),
+            "strengthMinutesPerSession" to strengthMinutesPerSession?.toString().orEmpty(),
+            "strengthAverageRpe" to strengthAverageRpe.formatOptional(),
+            "badmintonSessionsPerWeek" to badmintonSessionsPerWeek.formatOptional(),
+            "badmintonMinutesPerSession" to badmintonMinutesPerSession?.toString().orEmpty(),
+            "badmintonAverageRpe" to badmintonAverageRpe.formatOptional(),
+            "strengthTrainingAge" to strengthTrainingAge,
+            "badmintonTrainingAge" to badmintonTrainingAge,
+            "hadRecentTrainingBreak" to hadRecentTrainingBreak.toCsvBool(),
+            "breakWeeks" to breakWeeks?.toString().orEmpty(),
+            "breakDueToPain" to breakDueToPain.toCsvBool(),
+            "squatLevel" to squatLevel,
+            "deadliftLevel" to deadliftLevel,
+            "benchPressLevel" to benchPressLevel,
+            "pullUpLevel" to pullUpLevel,
+            "typicalSleepHours" to typicalSleepHours.formatOptional(),
+            "sleepQuality" to sleepQuality?.toString().orEmpty(),
+            "currentFatigue" to currentFatigue?.toString().orEmpty(),
+            "currentSoreness" to currentSoreness?.toString().orEmpty(),
+            "currentStress" to currentStress?.toString().orEmpty(),
+            "currentMood" to currentMood?.toString().orEmpty(),
+            "painAreas" to painAreas,
+            "avoidedMovements" to avoidedMovements,
+            "goals" to goals,
+            "createdAt" to createdAt.toString(),
+            "updatedAt" to updatedAt.toString()
+        )
 }

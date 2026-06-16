@@ -1013,3 +1013,12 @@ Validation:
 - `testDebugUnitTest` succeeded.
 - `assembleDebug` succeeded.
 - Debug APK copied to `C:\Users\pki08\Documents\Codex\google_drive_backup\WhatYouGottaTrain-v0.3.4.3-debug.apk`.
+
+## v0.3.4.4 Handoff
+
+- 빌드 기준 버전은 `0.3.4.4` / `versionCode 30404`다.
+- Room schema는 `app/schemas/com.training.trackplanner.data.TrainingDatabase/9.json`부터 Git에 포함한다.
+- migration test 골격은 추가됐지만 v8 schema asset이 없어 8->9 실행 테스트는 `@Ignore` 상태다.
+- 초기 프로필은 일반 UI에서 점수/모드명을 노출하지 않는다. Home의 “초기 프로필”에서 수정한다.
+- 운동 삭제 정책: 사용자 추가 운동 + 미참조 운동만 삭제, 그 외는 숨김 우선.
+- 기록 탭 `상세` 버튼은 현재 세트 상세 접기/펼치기용이다. 운동별 과거 기록 상세는 v0.3.4.5 후보 문서 참조.

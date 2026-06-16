@@ -157,3 +157,38 @@ data class AppMeta(
     val value: String,
     val updatedAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "initial_user_profiles")
+data class InitialUserProfile(
+    @PrimaryKey val id: Int = 1,
+    val bodyWeightKg: Double? = null,
+    val heightCm: Double? = null,
+    val birthYearOrAgeRange: String = "",
+    val gender: String = "",
+    val strengthSessionsPerWeek: Double? = null,
+    val strengthMinutesPerSession: Int? = null,
+    val strengthAverageRpe: Double? = null,
+    val badmintonSessionsPerWeek: Double? = null,
+    val badmintonMinutesPerSession: Int? = null,
+    val badmintonAverageRpe: Double? = null,
+    val strengthTrainingAge: String = "",
+    val badmintonTrainingAge: String = "",
+    val hadRecentTrainingBreak: Boolean = false,
+    val breakWeeks: Int? = null,
+    val breakDueToPain: Boolean = false,
+    val squatLevel: String = "",
+    val deadliftLevel: String = "",
+    val benchPressLevel: String = "",
+    val pullUpLevel: String = "",
+    val typicalSleepHours: Double? = null,
+    val sleepQuality: Int? = null,
+    val currentFatigue: Int? = null,
+    val currentSoreness: Int? = null,
+    val currentStress: Int? = null,
+    val currentMood: Int? = null,
+    val painAreas: String = "",
+    val avoidedMovements: String = "",
+    val goals: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)

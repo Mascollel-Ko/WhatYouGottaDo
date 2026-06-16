@@ -419,3 +419,15 @@ interface AppMetaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(meta: AppMeta)
 }
+
+@Dao
+interface InitialUserProfileDao {
+    @Query("SELECT * FROM initial_user_profiles WHERE id = 1 LIMIT 1")
+    fun observeProfile(): Flow<InitialUserProfile?>
+
+    @Query("SELECT * FROM initial_user_profiles WHERE id = 1 LIMIT 1")
+    suspend fun profile(): InitialUserProfile?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(profile: InitialUserProfile)
+}
