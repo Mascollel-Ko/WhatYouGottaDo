@@ -19,6 +19,8 @@ class PerformanceDropDetector {
         var sameLoadRpeIncrease = false
         var sameLoadRepsDrop = false
         var estimated1RmDrop = false
+        var smallE1RmDropCount = 0
+        var largeE1RmDropCount = 0
         val reasons = mutableListOf<String>()
 
         completedRecords.forEach { (exerciseId, records) ->
@@ -50,22 +52,31 @@ class PerformanceDropDetector {
             val previousE1rm = previousFeatures.estimated1Rm
             if (latestE1rm != null && previousE1rm != null && previousE1rm > 0.0) {
                 val dropRatio = (previousE1rm - latestE1rm) / previousE1rm
-                if (dropRatio >= 0.05) estimated1RmDrop = true
+                when {
+                    dropRatio >= 0.08 -> largeE1RmDropCount += 1
+                    dropRatio >= 0.05 -> smallE1RmDropCount += 1
+                }
             }
         }
 
         if (sameLoadRpeIncrease) reasons += "같은 중량에서 체감 강도가 높아졌습니다."
         if (sameLoadRepsDrop) reasons += "같은 중량 반복수가 줄었습니다."
-        if (estimated1RmDrop) reasons += "최근 근력 지표가 낮게 잡혔습니다."
+        estimated1RmDrop = largeE1RmDropCount > 0 || smallE1RmDropCount >= 2
+        val totalRecordCount = completedRecords.values.sumOf { it.size }
+        if (estimated1RmDrop && (largeE1RmDropCount >= 2 || sameLoadRpeIncrease || sameLoadRepsDrop)) {
+            reasons += "최근 근력 지표가 함께 낮아졌습니다."
+        }
+
         val level = when {
             reasons.size >= 2 -> FatigueLevel.HIGH
-            reasons.size == 1 -> FatigueLevel.ELEVATED
-            completedRecords.values.sumOf { it.size } < 2 -> FatigueLevel.LOW
+            reasons.size == 1 && totalRecordCount >= 4 -> FatigueLevel.ELEVATED
+            reasons.size == 1 -> FatigueLevel.NORMAL
+            totalRecordCount < 2 -> FatigueLevel.LOW
             else -> FatigueLevel.NORMAL
         }
         val confidence = when {
-            completedRecords.values.sumOf { it.size } >= 8 -> AnalysisConfidence.MEDIUM
-            completedRecords.values.sumOf { it.size } >= 2 -> AnalysisConfidence.MEDIUM_LOW
+            totalRecordCount >= 8 -> AnalysisConfidence.MEDIUM
+            totalRecordCount >= 2 -> AnalysisConfidence.MEDIUM_LOW
             else -> AnalysisConfidence.LOW
         }
 

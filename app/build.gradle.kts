@@ -14,8 +14,8 @@ android {
         applicationId = "com.whatyougottatrain.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 304042
-        versionName = "v0.3.4.4.2"
+        versionCode = 304043
+        versionName = "v0.3.4.4.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

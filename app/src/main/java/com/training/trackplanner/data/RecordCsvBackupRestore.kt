@@ -515,6 +515,7 @@ object RecordCsvBackupRestore {
 
     private fun InitialUserProfile.toCsvPairs(): List<Pair<String, String>> =
         listOf(
+            "profileRecoveryScaleDirection" to "HIGH_IS_GOOD",
             "bodyWeightKg" to bodyWeightKg.formatOptional(),
             "heightCm" to heightCm.formatOptional(),
             "birthYearOrAgeRange" to birthYearOrAgeRange,

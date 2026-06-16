@@ -963,6 +963,17 @@ class TrainingRepository(
     private fun List<RestoreProfileRow>.toInitialUserProfile(): InitialUserProfile? {
         if (isEmpty()) return null
         val values = associate { row -> row.key to row.value }
+        val recoveryScaleHighIsGood = values["profileRecoveryScaleDirection"]
+            ?.trim()
+            ?.equals("HIGH_IS_GOOD", ignoreCase = true) == true
+        fun recoveryScore(key: String): Int? {
+            val value = values[key].toScale5Int() ?: return null
+            return if (recoveryScaleHighIsGood || key == "sleepQuality" || key == "currentCondition" || key == "currentMood") {
+                value
+            } else {
+                6 - value
+            }
+        }
         val sex = normalizeProfileSex(values["sex"].orEmpty().ifBlank { values["gender"].orEmpty() })
         val currentYear = LocalDate.now().year
         val birthYear = values["birthYear"]?.toIntOrNull()?.takeIf { it in 1900..currentYear }
@@ -1020,13 +1031,13 @@ class TrainingRepository(
             typicalSleepHours = values["typicalSleepHours"]?.toDoubleOrNull(),
             usualSleepHours = values["usualSleepHours"]?.toDoubleOrNull()
                 ?: values["typicalSleepHours"]?.toDoubleOrNull(),
-            sleepQuality = values["sleepQuality"].toScale5Int(),
-            currentFatigue = values["currentFatigue"].toScale5Int(),
-            currentSoreness = values["currentSoreness"].toScale5Int(),
-            currentStress = values["currentStress"].toScale5Int(),
-            currentMood = values["currentMood"].toScale5Int(),
-            currentCondition = values["currentCondition"].toScale5Int()
-                ?: values["currentMood"].toScale5Int(),
+            sleepQuality = recoveryScore("sleepQuality"),
+            currentFatigue = recoveryScore("currentFatigue"),
+            currentSoreness = recoveryScore("currentSoreness"),
+            currentStress = recoveryScore("currentStress"),
+            currentMood = recoveryScore("currentMood"),
+            currentCondition = recoveryScore("currentCondition")
+                ?: recoveryScore("currentMood"),
             painAreas = values["painAreas"].orEmpty(),
             painAreaTags = painAreaTags,
             avoidedMovements = values["avoidedMovements"].orEmpty(),

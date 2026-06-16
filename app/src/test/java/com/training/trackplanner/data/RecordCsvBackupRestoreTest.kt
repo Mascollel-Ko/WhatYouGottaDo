@@ -120,9 +120,10 @@ class RecordCsvBackupRestoreTest {
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
 
         assertTrue(csv.contains(",profile,"))
-        assertEquals("bodyWeightKg", parsed.profileRows.first().key)
-        assertEquals("72.5", parsed.profileRows.first().value)
+        val bodyWeightRow = parsed.profileRows.first { it.key == "bodyWeightKg" }
+        assertEquals("72.5", bodyWeightRow.value)
         assertTrue(parsed.profileRows.any { it.key == "sex" && it.value == "MALE" })
+        assertTrue(parsed.profileRows.any { it.key == "profileRecoveryScaleDirection" && it.value == "HIGH_IS_GOOD" })
         assertTrue(parsed.profileRows.any { it.key == "birthYear" && it.value == "1990" })
         assertTrue(parsed.profileRows.any { it.key == "painAreaTags" && it.value == "SHOULDER,LOW_BACK" })
         assertTrue(parsed.profileRows.any { it.key == "primaryGoal" && it.value == "BADMINTON_PERFORMANCE" })

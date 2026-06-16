@@ -1,0 +1,97 @@
+package com.training.trackplanner.analysis.readiness
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class FatiguePressureCalculatorHotfixTest {
+    @Test
+    fun zeroResidualWithHighStatsDoesNotBecomeHighFatigue() {
+        val result = FatiguePressureCalculator().calculate(
+            residual = residual(0.0),
+            stats = stats(zScore = 3.0, percentile = 99.0),
+            adaptiveBaseline = adaptive(tolerance = 100.0)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertEquals(FatigueLevel.LOW, result.level)
+        assertEquals(0.0, result.currentResidualLoad, 0.0001)
+    }
+
+    @Test
+    fun lowRatioDoesNotBecomeHighFatigue() {
+        val result = FatiguePressureCalculator().calculate(
+            residual = residual(10.0),
+            stats = stats(zScore = 3.0, percentile = 99.0),
+            adaptiveBaseline = adaptive(tolerance = 100.0)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertEquals(FatigueLevel.LOW, result.level)
+        assertTrue((result.pressure ?: 1.0) <= 0.2)
+    }
+
+    @Test
+    fun missingBaselineWithZeroResidualDoesNotRenderAsHighRatio() {
+        val result = FatiguePressureCalculator().calculate(
+            residual = residual(0.0),
+            stats = stats(zScore = null, percentile = null),
+            adaptiveBaseline = adaptive(tolerance = null)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertEquals(FatigueLevel.LOW, result.level)
+        assertNull(result.pressure)
+    }
+
+    @Test
+    fun actualHighLoadCanStillBecomeHighFatigue() {
+        val result = FatiguePressureCalculator().calculate(
+            residual = residual(160.0),
+            stats = stats(zScore = 1.7, percentile = 90.0),
+            adaptiveBaseline = adaptive(tolerance = 100.0)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertTrue(result.level.ordinal >= FatigueLevel.HIGH.ordinal)
+    }
+
+    private fun residual(load: Double): ResidualFatigueSnapshot =
+        ResidualFatigueSnapshot(
+            residualByCategory = mapOf(FatigueCategoryKey.SYSTEMIC to load),
+            residualByBodyPart = emptyMap(),
+            residualByAdaptiveBaselineGroup = emptyMap(),
+            highestResidualCategories = listOf(FatigueCategoryKey.SYSTEMIC),
+            highestResidualBodyParts = emptyList()
+        )
+
+    private fun stats(zScore: Double?, percentile: Double?): StatisticalBaselineSnapshot =
+        StatisticalBaselineSnapshot(
+            categoryStats = mapOf(
+                FatigueCategoryKey.SYSTEMIC to BaselineStat(
+                    rollingMean = 50.0,
+                    rollingStd = 10.0,
+                    zScore = zScore,
+                    percentile = percentile,
+                    ewmaBaseline = 50.0,
+                    pressure = null,
+                    trend = BaselineTrend.STABLE,
+                    confidence = AnalysisConfidence.MEDIUM,
+                    sampleDays = 42
+                )
+            ),
+            baselineGroupStats = emptyMap(),
+            bodyPartStats = emptyMap(),
+            overallConfidence = AnalysisConfidence.MEDIUM
+        )
+
+    private fun adaptive(tolerance: Double?): AdaptiveBaselineSnapshot =
+        AdaptiveBaselineSnapshot(
+            toleranceByCategory = mapOf(FatigueCategoryKey.SYSTEMIC to tolerance).filterValues { it != null }.mapValues { it.value!! },
+            toleranceByBaselineGroup = emptyMap(),
+            toleranceByBodyPart = emptyMap(),
+            confidenceByCategory = mapOf(FatigueCategoryKey.SYSTEMIC to AnalysisConfidence.MEDIUM),
+            trendByCategory = mapOf(FatigueCategoryKey.SYSTEMIC to BaselineTrend.STABLE),
+            successfulExposureCountByCategory = emptyMap(),
+            failedExposureCountByCategory = emptyMap(),
+            dataSufficiency = AnalysisConfidence.MEDIUM,
+            baselineAdjustmentNotes = emptyList()
+        )
+}

@@ -72,18 +72,21 @@ class FatiguePressureCalculator {
             zScore = zScore,
             percentile = percentile,
             pressure = ratio,
-            level = level(ratio, zScore, percentile, confidence),
+            level = level(currentResidualLoad, ratio, zScore, percentile, confidence),
             confidence = confidence,
             baselineTrend = trend
         )
     }
 
     private fun level(
+        currentResidualLoad: Double,
         pressure: Double?,
         zScore: Double?,
         percentile: Double?,
         confidence: AnalysisConfidence
     ): FatigueLevel {
+        if (currentResidualLoad <= TodayReadinessConstants.LOW_STD_FLOOR) return FatigueLevel.LOW
+        if (pressure != null && pressure < 0.75) return FatigueLevel.LOW
         val candidates = mutableListOf<FatigueLevel>()
         pressure?.let { value ->
             candidates += when {

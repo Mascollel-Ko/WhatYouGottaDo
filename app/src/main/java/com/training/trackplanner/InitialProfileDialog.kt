@@ -11,6 +11,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,14 +36,13 @@ internal fun InitialProfileDialog(
     var bodyWeight by rememberSaveable { mutableStateOf(base.bodyWeightKg?.let(::formatDecimal).orEmpty()) }
     var height by rememberSaveable { mutableStateOf(base.heightCm?.let(::formatDecimal).orEmpty()) }
     var birthYear by rememberSaveable { mutableStateOf(base.birthYear?.toString().orEmpty()) }
-    var birthYearError by rememberSaveable { mutableStateOf<String?>(null) }
+    var inputError by rememberSaveable { mutableStateOf<String?>(null) }
     var sex by rememberSaveable { mutableStateOf(normalizeSex(base.sex.ifBlank { base.gender })) }
     var strengthSessions by rememberSaveable { mutableStateOf(base.strengthSessionsPerWeek?.let(::formatDecimal).orEmpty()) }
     var strengthMinutes by rememberSaveable { mutableStateOf(base.strengthMinutesPerSession?.toString().orEmpty()) }
-    var strengthRpe by rememberSaveable { mutableStateOf(base.strengthAverageRpe?.roundToInt()?.toString().orEmpty()) }
+    var strengthRpe by rememberSaveable { mutableStateOf(base.strengthAverageRpe?.let(::formatDecimal).orEmpty()) }
     var badmintonSessions by rememberSaveable { mutableStateOf(base.badmintonSessionsPerWeek?.let(::formatDecimal).orEmpty()) }
     var badmintonMinutes by rememberSaveable { mutableStateOf(base.badmintonMinutesPerSession?.toString().orEmpty()) }
-    var badmintonRpe by rememberSaveable { mutableStateOf(base.badmintonAverageRpe?.roundToInt()?.toString().orEmpty()) }
     var strengthYears by rememberSaveable { mutableStateOf((base.strengthTrainingYears ?: parseTrainingYears(base.strengthTrainingAge))?.let(::formatDecimal).orEmpty()) }
     var badmintonYears by rememberSaveable { mutableStateOf((base.badmintonTrainingYears ?: parseTrainingYears(base.badmintonTrainingAge))?.let(::formatDecimal).orEmpty()) }
     var breakCategory by rememberSaveable { mutableStateOf(base.trainingBreakCategory.ifBlank { breakWeeksToCategory(base.breakWeeks) }) }
@@ -53,11 +53,11 @@ internal fun InitialProfileDialog(
     var pullUpReps by rememberSaveable { mutableStateOf(base.pullUpMaxReps?.toString().orEmpty()) }
     var pullUpWeight by rememberSaveable { mutableStateOf(base.pullUpAddedWeightKg?.let(::formatDecimal).orEmpty()) }
     var sleepHours by rememberSaveable { mutableStateOf((base.usualSleepHours ?: base.typicalSleepHours)?.let(::formatDecimal).orEmpty()) }
-    var sleepQuality by rememberSaveable { mutableStateOf(base.sleepQuality?.toString().orEmpty()) }
-    var fatigue by rememberSaveable { mutableStateOf(base.currentFatigue?.toString().orEmpty()) }
-    var soreness by rememberSaveable { mutableStateOf(base.currentSoreness?.toString().orEmpty()) }
-    var stress by rememberSaveable { mutableStateOf(base.currentStress?.toString().orEmpty()) }
-    var condition by rememberSaveable { mutableStateOf((base.currentCondition ?: base.currentMood)?.toString().orEmpty()) }
+    var sleepQuality by rememberSaveable { mutableStateOf((base.sleepQuality ?: 3).toFloat()) }
+    var fatigue by rememberSaveable { mutableStateOf((base.currentFatigue ?: 3).toFloat()) }
+    var soreness by rememberSaveable { mutableStateOf((base.currentSoreness ?: 3).toFloat()) }
+    var stress by rememberSaveable { mutableStateOf((base.currentStress ?: 3).toFloat()) }
+    var condition by rememberSaveable { mutableStateOf((base.currentCondition ?: base.currentMood ?: 3).toFloat()) }
     var painTags by rememberSaveable { mutableStateOf(base.painAreaTags.toTagSet()) }
     var avoidTags by rememberSaveable { mutableStateOf(base.avoidMovementTags.toTagSet()) }
     var goal by rememberSaveable { mutableStateOf(base.primaryGoal.ifBlank { "MIXED" }) }
@@ -79,12 +79,12 @@ internal fun InitialProfileDialog(
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IntField("출생연도", birthYear, Modifier.weight(1f), 1900, LocalDate.now().year) {
+                        DigitsField("출생연도", birthYear, Modifier.weight(1f), maxLength = 4) {
                             birthYear = it
-                            birthYearError = null
+                            inputError = null
                         }
                     }
-                    birthYearError?.let { Text(it) }
+                    inputError?.let { Text(it) }
                 }
                 item { SingleChoice("성별", sexOptions, sex) { sex = it } }
                 item {
@@ -94,14 +94,18 @@ internal fun InitialProfileDialog(
                         IntField("근력 분", strengthMinutes, Modifier.weight(1f), 0, 600) { strengthMinutes = it }
                     }
                 }
-                item { SingleChoice("근력 RPE", rpeOptions, strengthRpe) { strengthRpe = it } }
+                item {
+                    OneDecimalField("근력 평균 RPE", strengthRpe, Modifier.fillMaxWidth(), maxLength = 4) {
+                        strengthRpe = it
+                        inputError = null
+                    }
+                }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DecimalField("배드민턴 주당", badmintonSessions, Modifier.weight(1f), 0.0, 14.0) { badmintonSessions = it }
                         IntField("배드민턴 분", badmintonMinutes, Modifier.weight(1f), 0, 600) { badmintonMinutes = it }
                     }
                 }
-                item { SingleChoice("배드민턴 RPE", rpeOptions, badmintonRpe) { badmintonRpe = it } }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DecimalField("근력 경력 년", strengthYears, Modifier.weight(1f), 0.0, 80.0) { strengthYears = it }
@@ -130,18 +134,18 @@ internal fun InitialProfileDialog(
                         DecimalField("평소 수면 h", sleepHours, Modifier.weight(1f), 0.0, 24.0) { sleepHours = it }
                     }
                 }
-                item { SingleChoice("수면 질", scale5Options, sleepQuality) { sleepQuality = it } }
-                item { SingleChoice("현재 피로감", scale5Options, fatigue) { fatigue = it } }
-                item { SingleChoice("현재 근육통", scale5Options, soreness) { soreness = it } }
-                item { SingleChoice("현재 스트레스", scale5Options, stress) { stress = it } }
-                item { SingleChoice("현재 컨디션", scale5Options, condition) { condition = it } }
+                item { RecoverySlider("수면질", "나쁨", "좋음", sleepQuality) { sleepQuality = it } }
+                item { RecoverySlider("현재 피로도", "매우 피곤함", "매우 가벼움", fatigue) { fatigue = it } }
+                item { RecoverySlider("근육통", "심함", "없음", soreness) { soreness = it } }
+                item { RecoverySlider("스트레스", "높음", "낮음", stress) { stress = it } }
+                item { RecoverySlider("컨디션", "나쁨", "좋음", condition) { condition = it } }
                 item {
                     MultiChoice("통증/주의 부위", painOptions, painTags) { painTags = it }
                 }
                 item {
                     MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags) { avoidTags = it }
                 }
-                item { SingleChoice("주요 목표", goalOptions, goal) { goal = it } }
+                item { SingleChoice("주요 목표", goalOptions, goal, itemsPerRow = 2) { goal = it } }
                 item {
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
@@ -157,8 +161,15 @@ internal fun InitialProfileDialog(
             Button(
                 onClick = {
                     val year = birthYear.toIntOrNull()
-                    if (birthYear.isNotBlank() && (year == null || year !in 1900..LocalDate.now().year)) {
-                        birthYearError = "출생연도는 1900년부터 올해까지만 저장됩니다."
+                    if (birthYear.isNotBlank() &&
+                        (birthYear.length != 4 || year == null || year !in 1900..LocalDate.now().year)
+                    ) {
+                        inputError = "출생연도는 1900년부터 올해까지의 4자리 숫자만 저장됩니다."
+                        return@Button
+                    }
+                    val strengthRpeValue = strengthRpe.toDoubleOrNull()
+                    if (strengthRpe.isNotBlank() && (strengthRpeValue == null || strengthRpeValue !in 1.0..10.0 || !strengthRpe.hasAtMostOneDecimalPlace())) {
+                        inputError = "근력 평균 RPE는 1부터 10까지의 숫자만 저장됩니다."
                         return@Button
                     }
                     onSave(
@@ -171,10 +182,10 @@ internal fun InitialProfileDialog(
                             sex = sex,
                             strengthSessionsPerWeek = strengthSessions.toDoubleOrNull(),
                             strengthMinutesPerSession = strengthMinutes.toIntOrNull(),
-                            strengthAverageRpe = strengthRpe.toDoubleOrNull(),
+                            strengthAverageRpe = strengthRpeValue,
                             badmintonSessionsPerWeek = badmintonSessions.toDoubleOrNull(),
                             badmintonMinutesPerSession = badmintonMinutes.toIntOrNull(),
-                            badmintonAverageRpe = badmintonRpe.toDoubleOrNull(),
+                            badmintonAverageRpe = base.badmintonAverageRpe,
                             strengthTrainingAge = "",
                             badmintonTrainingAge = "",
                             strengthTrainingYears = strengthYears.toDoubleOrNull(),
@@ -191,12 +202,12 @@ internal fun InitialProfileDialog(
                             pullUpAddedWeightKg = pullUpWeight.toDoubleOrNull(),
                             typicalSleepHours = sleepHours.toDoubleOrNull(),
                             usualSleepHours = sleepHours.toDoubleOrNull(),
-                            sleepQuality = sleepQuality.toIntOrNull(),
-                            currentFatigue = fatigue.toIntOrNull(),
-                            currentSoreness = soreness.toIntOrNull(),
-                            currentStress = stress.toIntOrNull(),
-                            currentMood = condition.toIntOrNull(),
-                            currentCondition = condition.toIntOrNull(),
+                            sleepQuality = sleepQuality.roundToInt().coerceIn(1, 5),
+                            currentFatigue = fatigue.roundToInt().coerceIn(1, 5),
+                            currentSoreness = soreness.roundToInt().coerceIn(1, 5),
+                            currentStress = stress.roundToInt().coerceIn(1, 5),
+                            currentMood = condition.roundToInt().coerceIn(1, 5),
+                            currentCondition = condition.roundToInt().coerceIn(1, 5),
                             painAreas = "",
                             painAreaTags = painTags.toStoredTags(),
                             avoidedMovements = "",
@@ -224,11 +235,12 @@ private fun SingleChoice(
     title: String,
     options: List<ProfileOption>,
     selected: String,
+    itemsPerRow: Int = 3,
     onSelect: (String) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title)
-        options.chunked(3).forEach { row ->
+        options.filter { it.label.isNotBlank() }.chunked(itemsPerRow).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { option ->
                     FilterChip(
@@ -251,7 +263,7 @@ private fun MultiChoice(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title)
-        options.chunked(3).forEach { row ->
+        options.filter { it.label.isNotBlank() }.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { option ->
                     FilterChip(
@@ -265,6 +277,28 @@ private fun MultiChoice(
             }
         }
     }
+}
+
+@Composable
+private fun OneDecimalField(
+    label: String,
+    value: String,
+    modifier: Modifier,
+    maxLength: Int,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        modifier = modifier,
+        value = value,
+        onValueChange = { next ->
+            if (next.length <= maxLength && next.isOneDecimalInput()) {
+                onValueChange(next)
+            }
+        },
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        singleLine = true
+    )
 }
 
 @Composable
@@ -313,6 +347,54 @@ private fun IntField(
     )
 }
 
+@Composable
+private fun DigitsField(
+    label: String,
+    value: String,
+    modifier: Modifier,
+    maxLength: Int,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        modifier = modifier,
+        value = value,
+        onValueChange = { next ->
+            if (next.length <= maxLength && next.all { char -> char.isDigit() }) {
+                onValueChange(next)
+            }
+        },
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        singleLine = true
+    )
+}
+
+@Composable
+private fun RecoverySlider(
+    title: String,
+    leftLabel: String,
+    rightLabel: String,
+    value: Float,
+    onValueChange: (Float) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("$title ${value.roundToInt().coerceIn(1, 5)}")
+        Slider(
+            value = value.coerceIn(1f, 5f),
+            onValueChange = { next -> onValueChange(next.coerceIn(1f, 5f)) },
+            valueRange = 1f..5f,
+            steps = 3
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(leftLabel)
+            Text(rightLabel)
+        }
+    }
+}
+
 private data class ProfileOption(val key: String, val label: String)
 
 private val sexOptions = listOf(
@@ -320,8 +402,6 @@ private val sexOptions = listOf(
     ProfileOption("MALE", "남성"),
     ProfileOption("FEMALE", "여성")
 )
-private val rpeOptions = (1..10).map { ProfileOption(it.toString(), it.toString()) }
-private val scale5Options = (1..5).map { ProfileOption(it.toString(), it.toString()) }
 private val breakOptions = listOf(
     ProfileOption("NONE", "없음"),
     ProfileOption("LESS_THAN_1_WEEK", "1주 미만"),
@@ -419,6 +499,12 @@ private fun breakCategoryToWeeks(category: String): Int? =
         "MORE_THAN_EIGHT_WEEKS" -> 9
         else -> null
     }
+
+private fun String.isOneDecimalInput(): Boolean =
+    isBlank() || matches(Regex("""\d{0,2}(\.\d?)?"""))
+
+private fun String.hasAtMostOneDecimalPlace(): Boolean =
+    substringAfter('.', missingDelimiterValue = "").length <= 1
 
 private fun parseTrainingYears(value: String): Double? {
     val normalized = value.trim().lowercase()

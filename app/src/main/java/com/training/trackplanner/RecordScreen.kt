@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
@@ -279,36 +280,41 @@ private fun RecordDateSwitcher(
     ) {
         val dateButtonModifier = Modifier.defaultMinSize(minWidth = 0.dp)
         val dateButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-        Row(
+        Column(
             modifier = Modifier.padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            OutlinedButton(
-                onClick = onPrevious,
-                modifier = dateButtonModifier,
-                contentPadding = dateButtonPadding
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text("이전날")
-            }
-            Text(
-                modifier = Modifier.weight(1f),
-                text = date.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                softWrap = false
-            )
-            OutlinedButton(
-                onClick = onNext,
-                modifier = dateButtonModifier,
-                contentPadding = dateButtonPadding
-            ) {
-                Text("다음날")
+                OutlinedButton(
+                    onClick = onPrevious,
+                    modifier = dateButtonModifier.weight(1f),
+                    contentPadding = dateButtonPadding
+                ) {
+                    Text("이전날")
+                }
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = date.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    textAlign = TextAlign.Center
+                )
+                OutlinedButton(
+                    onClick = onNext,
+                    modifier = dateButtonModifier.weight(1f),
+                    contentPadding = dateButtonPadding
+                ) {
+                    Text("다음날")
+                }
             }
             OutlinedButton(
                 onClick = onOpenCalendar,
-                modifier = dateButtonModifier,
+                modifier = Modifier.fillMaxWidth(),
                 contentPadding = dateButtonPadding
             ) {
                 Text("달력")
@@ -398,18 +404,18 @@ private fun WorkoutEntryCard(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = entry.exerciseName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = entry.exerciseName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
                 if (exercise != null) {
                     TextButton(
                         modifier = Modifier.defaultMinSize(minWidth = 0.dp),

@@ -1,5 +1,17 @@
 # Program Skeleton Generator Spec v0.3.4.1
 
+## Current Status in v0.3.4.4.3
+
+This document remains the generator design reference. The active app version is `v0.3.4.4.3`.
+
+UI behavior added after this spec:
+
+- New program creation still exposes automatic skeleton generation.
+- New program creation still exposes full rebuild / "전부 새로 만들기".
+- Existing program editing hides automatic skeleton generator controls and focuses on editing the loaded program structure.
+- Program list cards expose a direct apply button.
+- Program detail is a read-only day-by-day text summary, not the editing surface.
+
 ## 1. Purpose
 
 The generator creates an editable 4-week training program skeleton from user constraints, existing exercise metadata, and recent training history.

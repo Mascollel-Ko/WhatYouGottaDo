@@ -28,6 +28,39 @@ class InitialProfileColdStartReadinessTest {
     }
 
     @Test
+    fun badmintonAverageRpeDoesNotAffectBadmintonAdaptation() {
+        val base = highAdaptationProfile()
+        val lowRpe = InitialAdaptationProfileCalculator().calculate(base.copy(badmintonAverageRpe = 1.0))
+        val highRpe = InitialAdaptationProfileCalculator().calculate(base.copy(badmintonAverageRpe = 10.0))
+
+        assertEquals(lowRpe.badmintonAdaptationScore, highRpe.badmintonAdaptationScore, 0.0001)
+    }
+
+    @Test
+    fun recoverySliderScoresTreatRightSideAsGood() {
+        val good = InitialAdaptationProfileCalculator().calculate(
+            highAdaptationProfile().copy(
+                sleepQuality = 5,
+                currentFatigue = 5,
+                currentSoreness = 5,
+                currentStress = 5,
+                currentCondition = 5
+            )
+        )
+        val bad = InitialAdaptationProfileCalculator().calculate(
+            highAdaptationProfile().copy(
+                sleepQuality = 1,
+                currentFatigue = 1,
+                currentSoreness = 1,
+                currentStress = 1,
+                currentCondition = 1
+            )
+        )
+
+        assertTrue(good.recoveryCapacityScore > bad.recoveryCapacityScore)
+    }
+
+    @Test
     fun sameRecordCanProduceDifferentReadinessFromDifferentProfiles() {
         val exercise = lowerStrengthExercise()
         val record = record(
@@ -144,7 +177,7 @@ class InitialProfileColdStartReadinessTest {
             strengthAverageRpe = 7.0,
             badmintonSessionsPerWeek = 5.0,
             badmintonMinutesPerSession = 80,
-            badmintonAverageRpe = 7.0,
+            badmintonAverageRpe = 10.0,
             trainingBreakCategory = "NONE",
             trainingBreakReason = "NONE",
             squatKg = 120.0,
@@ -153,9 +186,9 @@ class InitialProfileColdStartReadinessTest {
             pullUpMaxReps = 12,
             usualSleepHours = 7.5,
             sleepQuality = 4,
-            currentFatigue = 2,
-            currentSoreness = 2,
-            currentStress = 2,
+            currentFatigue = 4,
+            currentSoreness = 4,
+            currentStress = 4,
             currentCondition = 4,
             painAreaTags = "NONE",
             avoidMovementTags = "NONE",
@@ -171,14 +204,14 @@ class InitialProfileColdStartReadinessTest {
             strengthAverageRpe = null,
             badmintonSessionsPerWeek = 0.0,
             badmintonMinutesPerSession = 0,
-            badmintonAverageRpe = null,
+            badmintonAverageRpe = 1.0,
             trainingBreakCategory = "MORE_THAN_EIGHT_WEEKS",
             trainingBreakReason = "FATIGUE",
             usualSleepHours = 5.0,
             sleepQuality = 2,
-            currentFatigue = 5,
-            currentSoreness = 4,
-            currentStress = 5,
+            currentFatigue = 1,
+            currentSoreness = 2,
+            currentStress = 1,
             currentCondition = 2,
             painAreaTags = "NONE",
             avoidMovementTags = "NONE",

@@ -38,7 +38,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
@@ -57,7 +56,6 @@ internal fun PlanScreen(
     onOpenRecord: () -> Unit
 ) {
     val programs by viewModel.programs.collectAsState()
-    val exercises by viewModel.exercises.collectAsState()
     var selectedProgramId by rememberSaveable { mutableStateOf<Long?>(null) }
     var editingProgramId by rememberSaveable { mutableStateOf<Long?>(null) }
     var creatingProgram by rememberSaveable { mutableStateOf(false) }
@@ -104,6 +102,7 @@ internal fun PlanScreen(
         selectedProgram == null -> {
         ProgramListScreen(
             programs = programs,
+                viewModel = viewModel,
                 onCreateProgram = { creatingProgram = true },
                 onSelectProgram = { selectedProgramId = it.id },
                 onEditProgram = { editingProgramId = it.id },
@@ -111,18 +110,17 @@ internal fun PlanScreen(
                     viewModel.deleteProgram(program.id) {
                         if (selectedProgramId == program.id) selectedProgramId = null
                     }
-                }
+                },
+                onOpenRecord = onOpenRecord
         )
         }
         else -> {
         ProgramDetailScreen(
             program = selectedProgram,
-            exercises = exercises.filter { exercise -> exercise.isActive },
             viewModel = viewModel,
             onBack = { selectedProgramId = null },
                 onEdit = { editingProgramId = selectedProgram.id },
-                onDeleted = { selectedProgramId = null },
-            onOpenRecord = onOpenRecord
+                onDeleted = { selectedProgramId = null }
         )
         }
     }
@@ -131,13 +129,16 @@ internal fun PlanScreen(
 @Composable
 private fun ProgramListScreen(
     programs: List<TrainingProgram>,
+    viewModel: TrainingViewModel,
     onCreateProgram: () -> Unit,
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
-    onDeleteProgram: (TrainingProgram) -> Unit
+    onDeleteProgram: (TrainingProgram) -> Unit,
+    onOpenRecord: () -> Unit
 ) {
     val context = LocalContext.current
     var deleteTarget by remember { mutableStateOf<TrainingProgram?>(null) }
+    var applyTarget by remember { mutableStateOf<TrainingProgram?>(null) }
 
     deleteTarget?.let { program ->
         AlertDialog(
@@ -158,6 +159,29 @@ private fun ProgramListScreen(
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
                     Text("취소")
+                }
+            }
+        )
+    }
+
+    applyTarget?.let { program ->
+        AlertDialog(
+            onDismissRequest = { applyTarget = null },
+            title = { Text("${program.name} 적용") },
+            text = {
+                ProgramApplyCard(
+                    program = program,
+                    viewModel = viewModel,
+                    onApplied = {
+                        applyTarget = null
+                        onOpenRecord()
+                    }
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { applyTarget = null }) {
+                    Text("닫기")
                 }
             }
         )
@@ -201,6 +225,7 @@ private fun ProgramListScreen(
                 ProgramCard(
                     program = program,
                     onClick = { onSelectProgram(program) },
+                    onApply = { applyTarget = program },
                     onEdit = { onEditProgram(program) },
                     onDelete = { deleteTarget = program }
                 )
@@ -332,6 +357,7 @@ private fun ProgramEditorScreen(
                         },
                         singleLine = true
                     )
+                    if (program == null) {
                     ProgramDropdown(
                         label = "프로그램 목적",
                         selected = goal,
@@ -415,6 +441,13 @@ private fun ProgramEditorScreen(
                     ) {
                         Text("전부 새로 만들기")
                     }
+                    } else {
+                        Text(
+                            text = "기존 구성은 아래 목록에서 수정합니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
@@ -437,7 +470,13 @@ private fun ProgramEditorScreen(
                 )
             }
         } ?: item {
-            InfoCard("자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다.")
+            InfoCard(
+                if (program == null) {
+                    "자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
+                } else {
+                    "아직 저장된 운동 구성이 없습니다."
+                }
+            )
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -735,18 +774,15 @@ private data class ProgramEquipmentOption(
 @Composable
 private fun ProgramDetailScreen(
     program: TrainingProgram,
-    exercises: List<Exercise>,
     viewModel: TrainingViewModel,
     onBack: () -> Unit,
     onEdit: () -> Unit,
-    onDeleted: () -> Unit,
-    onOpenRecord: () -> Unit
+    onDeleted: () -> Unit
 ) {
     val context = LocalContext.current
     val items by remember(program.id) {
         viewModel.programItems(program.id)
     }.collectAsState(initial = emptyList())
-    var addTarget by rememberSaveable { mutableStateOf<Pair<Int, Int>?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val groupedKeys = remember(items) {
         if (items.isEmpty()) {
@@ -756,22 +792,6 @@ private fun ProgramDetailScreen(
                 .distinct()
                 .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
         }
-    }
-
-    addTarget?.let { target ->
-        ExercisePickerDialog(
-            exercises = exercises.filter { exercise -> exercise.isActive },
-            onDismiss = { addTarget = null },
-            onSelect = { exercise ->
-                viewModel.addExerciseToProgram(
-                    programId = program.id,
-                    weekNumber = target.first,
-                    dayOfWeek = target.second,
-                    exerciseId = exercise.id
-                )
-                addTarget = null
-            }
-        )
     }
 
     if (confirmDelete) {
@@ -830,29 +850,71 @@ private fun ProgramDetailScreen(
         item {
             ScreenHeader(
                 title = program.name,
-                body = "주차와 요일별 처방을 확인하고 운동, 세트, 반복, 중량, 시간, 휴식을 조정하세요."
-            )
-        }
-        item {
-            ProgramApplyCard(
-                program = program,
-                viewModel = viewModel,
-                onApplied = onOpenRecord
+                body = "주차와 요일별 운동 구성을 텍스트 요약으로 확인합니다."
             )
         }
         items(groupedKeys, key = { "${it.first}-${it.second}" }) { key ->
             val dayItems = items
                 .filter { it.weekNumber == key.first && it.dayOfWeek == key.second }
                 .sortedWith(compareBy<TrainingProgramItem> { it.orderIndex }.thenBy { it.id })
-            ProgramDaySection(
+            ProgramDaySummarySection(
                 weekNumber = key.first,
                 dayOfWeek = key.second,
-                items = dayItems,
-                onAddExercise = { addTarget = key },
-                onUpdateItem = viewModel::updateProgramItem,
-                onDeleteItem = viewModel::deleteProgramItem
+                items = dayItems
             )
         }
+    }
+}
+
+@Composable
+private fun ProgramDaySummarySection(
+    weekNumber: Int,
+    dayOfWeek: Int,
+    items: List<TrainingProgramItem>
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = programDayLabel(weekNumber, dayOfWeek),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            if (items.isEmpty()) {
+                Text(
+                    text = "- 휴식 또는 미지정",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                items.forEach { item ->
+                    Text(
+                        text = programItemSummary(item),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun programItemSummary(item: TrainingProgramItem): String {
+    val prescriptionParts = buildList {
+        if (item.setCount > 0 && item.reps > 0) add("${item.setCount}세트 x ${item.reps}회")
+        if (item.weightKg > 0.0) add("${formatDecimal(item.weightKg)}kg")
+        if (item.seconds > 0) add("${item.seconds}초")
+        if (item.restSeconds > 0) add("휴식 ${item.restSeconds}초")
+        if (item.prescription.isNotBlank()) add(item.prescription)
+    }
+    return if (prescriptionParts.isEmpty()) {
+        "- ${item.exerciseName}"
+    } else {
+        "- ${item.exerciseName}: ${prescriptionParts.joinToString(", ")}"
     }
 }
 
@@ -1145,6 +1207,7 @@ private fun ProgramDecimalField(
 private fun ProgramCard(
     program: TrainingProgram,
     onClick: () -> Unit,
+    onApply: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -1159,11 +1222,18 @@ private fun ProgramCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = program.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = program.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Button(onClick = onApply) {
+                    Text("적용")
+                }
+            }
             Text(
                 text = "${program.durationDays}일 프로그램",
                 style = MaterialTheme.typography.bodySmall,

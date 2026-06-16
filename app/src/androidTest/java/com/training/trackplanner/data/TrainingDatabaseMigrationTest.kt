@@ -135,6 +135,60 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate11To12InvertsBadRecoveryScalesOnly() {
+        helper.createDatabase(TEST_DB, 11).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO initial_user_profiles (
+                    id, bodyWeightKg, heightCm, birthYearOrAgeRange, gender, birthYear, sex,
+                    strengthSessionsPerWeek, strengthMinutesPerSession, strengthAverageRpe,
+                    badmintonSessionsPerWeek, badmintonMinutesPerSession, badmintonAverageRpe,
+                    strengthTrainingAge, badmintonTrainingAge, strengthTrainingYears, badmintonTrainingYears,
+                    hadRecentTrainingBreak, breakWeeks, breakDueToPain,
+                    trainingBreakCategory, trainingBreakReason,
+                    squatLevel, deadliftLevel, benchPressLevel, pullUpLevel,
+                    squatKg, deadliftKg, benchPressKg, pullUpMaxReps, pullUpAddedWeightKg,
+                    typicalSleepHours, usualSleepHours, sleepQuality, currentFatigue, currentSoreness,
+                    currentStress, currentMood, currentCondition,
+                    painAreas, painAreaTags, avoidedMovements, avoidMovementTags,
+                    goals, primaryGoal, secondaryGoalTags, freeNote, createdAt, updatedAt
+                ) VALUES (
+                    1, 72.0, 175.0, '', 'MALE', 1990, 'MALE',
+                    4.0, 70, 7.0,
+                    5.0, 80, 9.0,
+                    '', '', 6.0, 2.0,
+                    0, NULL, 0,
+                    'NONE', 'NONE',
+                    '', '', '', '',
+                    120.0, 150.0, 90.0, 12, 10.0,
+                    7.5, 7.5, 4, 5, 4,
+                    1, 3, 4,
+                    '', 'NONE', '', 'NONE',
+                    '', 'MIXED', '', '', 1, 2
+                )
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 12, true, TrainingDatabase.MIGRATION_11_12).use { database ->
+            database.query(
+                """
+                SELECT sleepQuality, currentFatigue, currentSoreness, currentStress, currentMood, currentCondition
+                FROM initial_user_profiles WHERE id = 1
+                """.trimIndent()
+            ).use { cursor ->
+                cursor.moveToFirst()
+                check(cursor.getInt(0) == 4)
+                check(cursor.getInt(1) == 1)
+                check(cursor.getInt(2) == 2)
+                check(cursor.getInt(3) == 5)
+                check(cursor.getInt(4) == 3)
+                check(cursor.getInt(5) == 4)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
     }

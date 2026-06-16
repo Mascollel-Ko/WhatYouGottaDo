@@ -112,10 +112,9 @@ class InitialAdaptationProfileCalculator {
         val badminton = (
             0.62 +
                 yearsScore(profile.badmintonTrainingYears) * 0.32 +
-                weeklyTrainingScore(
+                weeklyVolumeScore(
                     sessions = profile.badmintonSessionsPerWeek,
-                    minutes = profile.badmintonMinutesPerSession,
-                    rpe = profile.badmintonAverageRpe
+                    minutes = profile.badmintonMinutesPerSession
                 ) * 0.42
             ).coerceIn(0.55, 1.55)
         val totalWeeklyMinutes = weeklyMinutes(profile.strengthSessionsPerWeek, profile.strengthMinutesPerSession) +
@@ -123,7 +122,7 @@ class InitialAdaptationProfileCalculator {
         val activity = (
             0.70 +
                 (totalWeeklyMinutes / 420.0).coerceIn(0.0, 1.0) * 0.45 +
-                averageRpeScore(profile.strengthAverageRpe, profile.badmintonAverageRpe) * 0.16
+                averageRpeScore(profile.strengthAverageRpe) * 0.16
             ).coerceIn(0.55, 1.50)
         val restriction = InitialRestrictionProfile(
             painAreaTags = profile.painAreaTags.toTags(),
@@ -153,9 +152,12 @@ class InitialAdaptationProfileCalculator {
         ((years ?: 0.0) / 6.0).coerceIn(0.0, 1.0)
 
     private fun weeklyTrainingScore(sessions: Double?, minutes: Int?, rpe: Double?): Double {
+        return (weeklyVolumeScore(sessions, minutes) * 0.78 + averageRpeScore(rpe) * 0.22).coerceIn(0.0, 1.0)
+    }
+
+    private fun weeklyVolumeScore(sessions: Double?, minutes: Int?): Double {
         val weeklyMinutes = weeklyMinutes(sessions, minutes)
-        val volume = (weeklyMinutes / 240.0).coerceIn(0.0, 1.0)
-        return (volume * 0.78 + averageRpeScore(rpe) * 0.22).coerceIn(0.0, 1.0)
+        return (weeklyMinutes / 240.0).coerceIn(0.0, 1.0)
     }
 
     private fun weeklyMinutes(sessions: Double?, minutes: Int?): Double =
@@ -191,9 +193,9 @@ class InitialAdaptationProfileCalculator {
         }
         score += scaleBonus(profile.sleepQuality, highIsGood = true)
         score += scaleBonus(profile.currentCondition ?: profile.currentMood, highIsGood = true)
-        score += scaleBonus(profile.currentFatigue, highIsGood = false)
-        score += scaleBonus(profile.currentSoreness, highIsGood = false)
-        score += scaleBonus(profile.currentStress, highIsGood = false)
+        score += scaleBonus(profile.currentFatigue, highIsGood = true)
+        score += scaleBonus(profile.currentSoreness, highIsGood = true)
+        score += scaleBonus(profile.currentStress, highIsGood = true)
         return score.coerceIn(0.60, 1.25)
     }
 
