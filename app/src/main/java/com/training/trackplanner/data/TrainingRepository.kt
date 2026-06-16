@@ -916,12 +916,23 @@ class TrainingRepository(
     private fun List<RestoreProfileRow>.toInitialUserProfile(): InitialUserProfile? {
         if (isEmpty()) return null
         val values = associate { row -> row.key to row.value }
+        val sex = normalizeProfileSex(values["sex"].orEmpty().ifBlank { values["gender"].orEmpty() })
+        val birthYear = values["birthYear"]?.toIntOrNull()
+            ?: values["birthYearOrAgeRange"]?.trim()?.toIntOrNull()?.takeIf { it in 1900..2100 }
+        val breakCategory = values["trainingBreakCategory"].orEmpty().ifBlank {
+            breakWeeksToProfileCategory(values["breakWeeks"]?.toIntOrNull())
+        }
+        val breakReason = values["trainingBreakReason"].orEmpty().ifBlank {
+            if (values["breakDueToPain"].toCsvBoolean()) "PAIN_OR_INJURY" else "NONE"
+        }
         return InitialUserProfile(
             id = 1,
             bodyWeightKg = values["bodyWeightKg"]?.toDoubleOrNull(),
             heightCm = values["heightCm"]?.toDoubleOrNull(),
             birthYearOrAgeRange = values["birthYearOrAgeRange"].orEmpty(),
             gender = values["gender"].orEmpty(),
+            birthYear = birthYear,
+            sex = sex,
             strengthSessionsPerWeek = values["strengthSessionsPerWeek"]?.toDoubleOrNull(),
             strengthMinutesPerSession = values["strengthMinutesPerSession"]?.toIntOrNull(),
             strengthAverageRpe = values["strengthAverageRpe"]?.toDoubleOrNull(),
@@ -930,22 +941,46 @@ class TrainingRepository(
             badmintonAverageRpe = values["badmintonAverageRpe"]?.toDoubleOrNull(),
             strengthTrainingAge = values["strengthTrainingAge"].orEmpty(),
             badmintonTrainingAge = values["badmintonTrainingAge"].orEmpty(),
+            strengthTrainingYears = values["strengthTrainingYears"]?.toDoubleOrNull()
+                ?: values["strengthTrainingAge"].parseProfileYears(),
+            badmintonTrainingYears = values["badmintonTrainingYears"]?.toDoubleOrNull()
+                ?: values["badmintonTrainingAge"].parseProfileYears(),
             hadRecentTrainingBreak = values["hadRecentTrainingBreak"].toCsvBoolean(),
             breakWeeks = values["breakWeeks"]?.toIntOrNull(),
             breakDueToPain = values["breakDueToPain"].toCsvBoolean(),
+            trainingBreakCategory = breakCategory,
+            trainingBreakReason = breakReason,
             squatLevel = values["squatLevel"].orEmpty(),
             deadliftLevel = values["deadliftLevel"].orEmpty(),
             benchPressLevel = values["benchPressLevel"].orEmpty(),
             pullUpLevel = values["pullUpLevel"].orEmpty(),
+            squatKg = values["squatKg"]?.toDoubleOrNull(),
+            deadliftKg = values["deadliftKg"]?.toDoubleOrNull(),
+            benchPressKg = values["benchPressKg"]?.toDoubleOrNull(),
+            pullUpMaxReps = values["pullUpMaxReps"]?.toIntOrNull(),
+            pullUpAddedWeightKg = values["pullUpAddedWeightKg"]?.toDoubleOrNull(),
             typicalSleepHours = values["typicalSleepHours"]?.toDoubleOrNull(),
+            usualSleepHours = values["usualSleepHours"]?.toDoubleOrNull()
+                ?: values["typicalSleepHours"]?.toDoubleOrNull(),
             sleepQuality = values["sleepQuality"]?.toIntOrNull(),
             currentFatigue = values["currentFatigue"]?.toIntOrNull(),
             currentSoreness = values["currentSoreness"]?.toIntOrNull(),
             currentStress = values["currentStress"]?.toIntOrNull(),
             currentMood = values["currentMood"]?.toIntOrNull(),
+            currentCondition = values["currentCondition"]?.toIntOrNull()
+                ?: values["currentMood"]?.toIntOrNull(),
             painAreas = values["painAreas"].orEmpty(),
+            painAreaTags = values["painAreaTags"].orEmpty().ifBlank {
+                if (values["painAreas"].isNullOrBlank()) "NONE" else "OTHER"
+            },
             avoidedMovements = values["avoidedMovements"].orEmpty(),
+            avoidMovementTags = values["avoidMovementTags"].orEmpty().ifBlank {
+                if (values["avoidedMovements"].isNullOrBlank()) "NONE" else "OTHER"
+            },
             goals = values["goals"].orEmpty(),
+            primaryGoal = values["primaryGoal"].orEmpty().ifBlank { legacyGoalToKey(values["goals"].orEmpty()) },
+            secondaryGoalTags = values["secondaryGoalTags"].orEmpty(),
+            freeNote = values["freeNote"].orEmpty(),
             createdAt = values["createdAt"]?.toLongOrNull() ?: System.currentTimeMillis(),
             updatedAt = values["updatedAt"]?.toLongOrNull() ?: System.currentTimeMillis()
         )
@@ -956,6 +991,42 @@ class TrainingRepository(
             "1", "true", "yes", "y" -> true
             else -> false
         }
+
+    private fun normalizeProfileSex(value: String): String =
+        when (value.trim().lowercase(Locale.US)) {
+            "male", "m", "남", "남성" -> "MALE"
+            "female", "f", "여", "여성" -> "FEMALE"
+            else -> "UNSPECIFIED"
+        }
+
+    private fun String?.parseProfileYears(): Double? {
+        val value = this?.trim()?.lowercase(Locale.US).orEmpty()
+        if (value == "반년") return 0.5
+        return Regex("""\d+(\.\d+)?""").find(value)?.value?.toDoubleOrNull()
+    }
+
+    private fun breakWeeksToProfileCategory(weeks: Int?): String =
+        when {
+            weeks == null || weeks <= 0 -> "NONE"
+            weeks <= 1 -> "LESS_THAN_1_WEEK"
+            weeks <= 2 -> "ONE_TO_TWO_WEEKS"
+            weeks <= 4 -> "THREE_TO_FOUR_WEEKS"
+            weeks <= 8 -> "FIVE_TO_EIGHT_WEEKS"
+            else -> "MORE_THAN_EIGHT_WEEKS"
+        }
+
+    private fun legacyGoalToKey(value: String): String {
+        val goal = value.lowercase(Locale.US)
+        return when {
+            "배드민턴" in goal -> "BADMINTON_PERFORMANCE"
+            "근력" in goal && "유지" in goal -> "STRENGTH_MAINTENANCE"
+            "근력" in goal -> "STRENGTH_GAIN"
+            "근비대" in goal || "체형" in goal -> "HYPERTROPHY_PHYSIQUE"
+            "회복" in goal || "부상" in goal -> "RECOVERY_INJURY_PREVENTION"
+            "체중" in goal -> "WEIGHT_MANAGEMENT"
+            else -> "MIXED"
+        }
+    }
 
     private fun List<WorkoutSet>.matchesRestoreRows(rows: List<RestoreSetRow>): Boolean {
         if (size != rows.size) return false

@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AppMeta::class,
         InitialUserProfile::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 abstract class TrainingDatabase : RoomDatabase() {
@@ -172,6 +172,59 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `birthYear` INTEGER")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `sex` TEXT NOT NULL DEFAULT 'UNSPECIFIED'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `strengthTrainingYears` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `badmintonTrainingYears` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `trainingBreakCategory` TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `trainingBreakReason` TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `squatKg` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `deadliftKg` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `benchPressKg` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `pullUpMaxReps` INTEGER")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `pullUpAddedWeightKg` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `usualSleepHours` REAL")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `currentCondition` INTEGER")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `painAreaTags` TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `avoidMovementTags` TEXT NOT NULL DEFAULT 'NONE'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `primaryGoal` TEXT NOT NULL DEFAULT 'MIXED'")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `secondaryGoalTags` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `initial_user_profiles` ADD COLUMN `freeNote` TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    """
+                    UPDATE `initial_user_profiles`
+                    SET `sex` = CASE
+                        WHEN lower(trim(`gender`)) IN ('male', 'm', '남', '남성') THEN 'MALE'
+                        WHEN lower(trim(`gender`)) IN ('female', 'f', '여', '여성') THEN 'FEMALE'
+                        ELSE 'UNSPECIFIED'
+                    END,
+                    `birthYear` = CASE
+                        WHEN trim(`birthYearOrAgeRange`) GLOB '[12][0-9][0-9][0-9]'
+                             AND CAST(trim(`birthYearOrAgeRange`) AS INTEGER) BETWEEN 1900 AND 2100
+                        THEN CAST(trim(`birthYearOrAgeRange`) AS INTEGER)
+                        ELSE NULL
+                    END,
+                    `trainingBreakCategory` = CASE
+                        WHEN `breakWeeks` IS NULL OR `breakWeeks` <= 0 THEN 'NONE'
+                        WHEN `breakWeeks` <= 1 THEN 'LESS_THAN_1_WEEK'
+                        WHEN `breakWeeks` <= 2 THEN 'ONE_TO_TWO_WEEKS'
+                        WHEN `breakWeeks` <= 4 THEN 'THREE_TO_FOUR_WEEKS'
+                        WHEN `breakWeeks` <= 8 THEN 'FIVE_TO_EIGHT_WEEKS'
+                        ELSE 'MORE_THAN_EIGHT_WEEKS'
+                    END,
+                    `trainingBreakReason` = CASE
+                        WHEN `breakDueToPain` = 1 THEN 'PAIN_OR_INJURY'
+                        ELSE 'NONE'
+                    END,
+                    `usualSleepHours` = `typicalSleepHours`,
+                    `currentCondition` = `currentMood`
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -187,7 +240,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_5_6,
                         MIGRATION_6_7,
                         MIGRATION_7_8,
-                        MIGRATION_8_9
+                        MIGRATION_8_9,
+                        MIGRATION_9_10
                     )
                     .build()
                     .also { instance = it }

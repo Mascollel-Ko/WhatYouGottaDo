@@ -105,9 +105,15 @@ class RecordCsvBackupRestoreTest {
             metrics = emptyList(),
             initialProfile = InitialUserProfile(
                 bodyWeightKg = 72.5,
+                birthYear = 1990,
+                sex = "MALE",
                 strengthSessionsPerWeek = 3.0,
+                strengthTrainingYears = 6.0,
                 typicalSleepHours = 7.0,
-                painAreas = "어깨"
+                usualSleepHours = 7.0,
+                painAreaTags = "SHOULDER,LOW_BACK",
+                avoidMovementTags = "HEAVY_DEADLIFT",
+                primaryGoal = "BADMINTON_PERFORMANCE"
             )
         )
 
@@ -116,6 +122,9 @@ class RecordCsvBackupRestoreTest {
         assertTrue(csv.contains(",profile,"))
         assertEquals("bodyWeightKg", parsed.profileRows.first().key)
         assertEquals("72.5", parsed.profileRows.first().value)
-        assertTrue(parsed.profileRows.any { it.key == "painAreas" && it.value == "어깨" })
+        assertTrue(parsed.profileRows.any { it.key == "sex" && it.value == "MALE" })
+        assertTrue(parsed.profileRows.any { it.key == "birthYear" && it.value == "1990" })
+        assertTrue(parsed.profileRows.any { it.key == "painAreaTags" && it.value == "SHOULDER,LOW_BACK" })
+        assertTrue(parsed.profileRows.any { it.key == "primaryGoal" && it.value == "BADMINTON_PERFORMANCE" })
     }
 }

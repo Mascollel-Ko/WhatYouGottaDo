@@ -699,3 +699,11 @@ Reference:
 - 기록 탭 운동 카드 헤더를 한 줄로 줄이고, 완료 세트는 compact row로 접는다.
 - 기록 탭과 운동 탭에서 공통 `ExerciseInfoDialog`를 사용한다.
 - 기본 제공 운동은 직접 삭제보다 숨김을 우선한다.
+
+## v0.3.4.4.1 Hotfix Update
+
+- 초기 프로필 핵심 입력을 자유 텍스트에서 숫자/선택/multi-select 중심으로 바꿨다.
+- DB version 10과 `MIGRATION_9_10`을 추가했다.
+- 기존 v0.3.4.4 문자열 필드는 삭제하지 않고 호환/deprecated 필드로 유지한다.
+- CSV profile row는 구조화 key를 export/import한다.
+- cold-start readiness 보정은 `usualSleepHours`, `currentCondition`, `trainingBreakCategory`, `trainingBreakReason`, `painAreaTags` 같은 구조화 값만 사용한다.

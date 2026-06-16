@@ -83,23 +83,28 @@ class InitialProfileReadinessAdjuster {
             }
             .mapNotNull { it.sleepHours }
         val recentSleepLow = recentSleepValues.count { it < 6.0 } >= 2 || recentSleepValues.any { it < 5.0 }
-        if (recentSleepLow || (initialProfile?.typicalSleepHours ?: 8.0) < 6.0) count += 1
+        val usualSleep = initialProfile?.usualSleepHours ?: initialProfile?.typicalSleepHours
+        if (recentSleepLow || (usualSleep ?: 8.0) < 6.0) count += 1
 
         val recoveryBad = listOf(
             initialProfile?.currentFatigue,
             initialProfile?.currentSoreness,
             initialProfile?.currentStress
         ).filterNotNull().count { it >= 4 } >= 2
-        if (recoveryBad) count += 1
+        val conditionBad = initialProfile?.currentCondition?.let { it <= 2 } == true
+        if (recoveryBad || conditionBad) count += 1
 
-        if (initialProfile?.hadRecentTrainingBreak == true &&
-            ((initialProfile.breakWeeks ?: 0) >= 8 || initialProfile.breakDueToPain)
+        if (initialProfile?.trainingBreakCategory == "MORE_THAN_EIGHT_WEEKS" ||
+            initialProfile?.trainingBreakReason == "PAIN_OR_INJURY"
         ) {
             count += 1
         }
-        if (initialProfile?.painAreas?.isNotBlank() == true) count += 1
+        if (initialProfile?.painAreaTags.hasStructuredTags()) count += 1
         return count
     }
+
+    private fun String?.hasStructuredTags(): Boolean =
+        !isNullOrBlank() && split(",").any { tag -> tag.trim().isNotBlank() && tag.trim() != "NONE" }
 }
 
 private enum class InitialReadinessMode {

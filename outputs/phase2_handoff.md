@@ -1022,3 +1022,11 @@ Validation:
 - 초기 프로필은 일반 UI에서 점수/모드명을 노출하지 않는다. Home의 “초기 프로필”에서 수정한다.
 - 운동 삭제 정책: 사용자 추가 운동 + 미참조 운동만 삭제, 그 외는 숨김 우선.
 - 기록 탭 `상세` 버튼은 현재 세트 상세 접기/펼치기용이다. 운동별 과거 기록 상세는 v0.3.4.5 후보 문서 참조.
+
+## v0.3.4.4.1 Hotfix Handoff
+
+- 버전은 `0.3.4.4.1` / `versionCode 304041`이다.
+- 새 schema는 `app/schemas/com.training.trackplanner.data.TrainingDatabase/10.json`이다.
+- 초기 프로필 UI에서 핵심 입력은 더 이상 자유 텍스트가 아니다.
+- `birthYearOrAgeRange`, `gender`, `strengthTrainingAge`, `badmintonTrainingAge`, `painAreas`, `avoidedMovements`, `goals`는 호환용으로 남아 있으나 새 분석 입력으로 쓰지 않는다.
+- 새 profile backup key는 enum key / numeric value를 저장한다.

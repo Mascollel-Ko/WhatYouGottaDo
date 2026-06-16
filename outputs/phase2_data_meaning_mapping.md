@@ -901,3 +901,13 @@ No DB schema or metadata meaning changed.
 - CSV `row_type=profile`: 초기 프로필 key/value 백업 행이다.
 - `Exercise.isActive=false`: 운동 숨김 상태다. 과거 기록 삭제가 아니다.
 - `Exercise.isCustom=true`: 사용자 추가 운동이다. 삭제 가능성 판단에 사용한다.
+
+## v0.3.4.4.1 Data Meaning Addendum
+
+- `birthYear`: 1900~현재연도 범위의 숫자 출생연도.
+- `sex`: `MALE`, `FEMALE`, `UNSPECIFIED`.
+- `strengthTrainingYears`, `badmintonTrainingYears`: 년 단위 숫자 경력.
+- `trainingBreakCategory`, `trainingBreakReason`: 운동 공백 구조화 enum key.
+- `painAreaTags`, `avoidMovementTags`: comma-separated enum key list. `NONE`은 단독 값이다.
+- `primaryGoal`: 목표 enum key.
+- `freeNote`: 보조 메모이며 피로도 계산 핵심값이 아니다.
