@@ -251,12 +251,18 @@ internal fun ExercisePickerDialog(
 internal fun ExerciseListItem(
     exercise: Exercise,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null,
+    onInfo: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = Modifier
+    val cardModifier = if (onClick != null) {
+        Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+    } else {
+        Modifier.fillMaxWidth()
+    }
+    Card(
+        modifier = cardModifier,
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
@@ -266,22 +272,33 @@ internal fun ExerciseListItem(
             }
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = exercise.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = listOf(exercise.category, exercise.mode)
-                    .filter { it.isNotBlank() }
-                    .joinToString(" / "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = exercise.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = listOf(exercise.category, exercise.mode)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" / "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (onInfo != null) {
+                TextButton(onClick = onInfo) {
+                    Text("i")
+                }
+            }
         }
     }
 }

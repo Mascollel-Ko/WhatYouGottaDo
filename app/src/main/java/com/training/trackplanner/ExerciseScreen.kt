@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -32,10 +34,10 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val exercises by viewModel.exercises.collectAsState()
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf("전체") }
-    var selectedExerciseId by rememberSaveable { mutableStateOf<Long?>(null) }
     var manageMode by rememberSaveable { mutableStateOf(false) }
     var showHidden by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<Exercise?>(null) }
+    var detailCandidate by remember { mutableStateOf<Exercise?>(null) }
     var managementMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     val visibleExercises = remember(exercises, showHidden) {
@@ -53,9 +55,6 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                 exercise.detail2.contains(query, ignoreCase = true)
             categoryMatches && queryMatches
         }
-    }
-    val selectedExercise = remember(exercises, selectedExerciseId, filtered) {
-        exercises.firstOrNull { it.id == selectedExerciseId } ?: filtered.firstOrNull()
     }
 
     deleteCandidate?.let { exercise ->
@@ -82,6 +81,39 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
             dismissButton = {
                 TextButton(onClick = { deleteCandidate = null }) {
                     Text("취소")
+                }
+            }
+        )
+    }
+
+    detailCandidate?.let { exercise ->
+        AlertDialog(
+            onDismissRequest = { detailCandidate = null },
+            confirmButton = {
+                TextButton(onClick = { detailCandidate = null }) {
+                    Text("닫기")
+                }
+            },
+            title = { Text("운동 정보") },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 560.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        ExerciseDetailCard(exercise)
+                    }
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            exercise.detailTags().forEach { (label, value) ->
+                                Text(
+                                    text = "$label: $value",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
         )
@@ -136,16 +168,11 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                 managementMessage?.let { message -> Text(message) }
             }
         }
-        selectedExercise?.let { exercise ->
-            item {
-                ExerciseDetailCard(exercise)
-            }
-        }
         items(filtered, key = { it.id }) { exercise ->
             ExerciseListItem(
                 exercise = exercise,
-                selected = exercise.id == selectedExercise?.id,
-                onClick = { selectedExerciseId = exercise.id }
+                selected = false,
+                onInfo = { detailCandidate = exercise }
             )
             if (manageMode) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -169,3 +196,18 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
         }
     }
 }
+
+private fun Exercise.detailTags(): List<Pair<String, String>> =
+    listOf(
+        "주동근" to primaryMuscles,
+        "보조근" to secondaryMuscles,
+        "장비" to equipment.ifBlank { equipmentTags },
+        "패턴" to movementPattern,
+        "분류" to movementCategory,
+        "축부하" to axialLoadLevel,
+        "측성" to laterality,
+        "훈련역할" to trainingRole,
+        "직접전이" to sportTransferDirect,
+        "보조전이" to sportTransferSupportive,
+        "메타" to metadataConfidence
+    ).filter { (_, value) -> value.isNotBlank() }
