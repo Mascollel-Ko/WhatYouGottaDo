@@ -64,11 +64,14 @@ internal fun InitialProfileDialog(
     var freeNote by rememberSaveable { mutableStateOf(base.freeNote) }
 
     AlertDialog(
+        modifier = Modifier.fillMaxWidth(),
         onDismissRequest = onDismiss,
         title = { Text("초기 프로필") },
         text = {
             LazyColumn(
-                modifier = Modifier.heightIn(max = 560.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 560.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
@@ -238,10 +241,16 @@ private fun SingleChoice(
     itemsPerRow: Int = 3,
     onSelect: (String) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
         Text(title)
         options.filter { it.label.isNotBlank() }.chunked(itemsPerRow).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 row.forEach { option ->
                     FilterChip(
                         selected = selected == option.key,
@@ -263,14 +272,20 @@ private fun MultiChoice(
     rowKeys: List<List<String>>? = null,
     onChange: (Set<String>) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
         Text(title)
         val visibleOptions = options.filter { it.label.isNotBlank() }
         val rows = rowKeys?.mapNotNull { keys ->
             keys.mapNotNull { key -> visibleOptions.firstOrNull { it.key == key } }.takeIf { it.isNotEmpty() }
         } ?: visibleOptions.chunked(itemsPerRow)
         rows.forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 row.forEach { option ->
                     FilterChip(
                         selected = option.key in selected,
@@ -383,7 +398,10 @@ private fun RecoverySlider(
     value: Float,
     onValueChange: (Float) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text("$title ${value.roundToInt().coerceIn(1, 5)}")
         Slider(
             value = value.coerceIn(1f, 5f),
