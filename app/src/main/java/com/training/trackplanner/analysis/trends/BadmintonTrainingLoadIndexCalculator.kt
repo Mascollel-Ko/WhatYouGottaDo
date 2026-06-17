@@ -62,7 +62,7 @@ class BadmintonTrainingLoadIndexCalculator {
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
-            if (!features.isCourtSession()) return@sumOf 0.0
+            if (!features.isShuttlePlaySession()) return@sumOf 0.0
             record.durationMinutes() * PerformanceTrendConstants.badmintonIntensityFactor(features.averageRpe)
         }.takeIf { value -> value > 0.0 }
             ?: 0.0
@@ -72,6 +72,7 @@ class BadmintonTrainingLoadIndexCalculator {
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
+            if (features.isShuttlePlaySession()) return@sumOf 0.0
             if (!features.isFootworkReactive()) return@sumOf 0.0
             val dose = when {
                 record.durationMinutes() > 0.0 -> record.durationMinutes() *
@@ -88,6 +89,7 @@ class BadmintonTrainingLoadIndexCalculator {
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
+            if (features.isShuttlePlaySession()) return@sumOf 0.0
             val supportWeight = PerformanceTrendConstants.badmintonSupportWeight(features.badmintonTransferStrength)
             if (supportWeight <= 0.0) return@sumOf 0.0
             val baseDose = record.baseDose()
@@ -100,7 +102,7 @@ class BadmintonTrainingLoadIndexCalculator {
     ): Map<Long, Double> =
         associate { record ->
             val features = featuresFor(record, exerciseMap)
-            val dose = if (features == null) 0.0 else {
+            val dose = if (features == null || features.isShuttlePlaySession()) 0.0 else {
                 record.baseDose() * PerformanceTrendConstants.badmintonSupportWeight(features.badmintonTransferStrength)
             }
             record.entry.exerciseId to dose
@@ -114,10 +116,8 @@ class BadmintonTrainingLoadIndexCalculator {
         return AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
     }
 
-    private fun AnalysisExerciseFeatures.isCourtSession(): Boolean =
-        "BADMINTON_TRANSFER" in analysisEligibility &&
-            badmintonTransferStrength == "DIRECT" &&
-            (courtMovementTypes.isNotEmpty() || trainingRole in setOf("SKILL", "CONDITIONING"))
+    private fun AnalysisExerciseFeatures.isShuttlePlaySession(): Boolean =
+        activityKind == "SPORT_SESSION" && stableKey in shuttlePlayStableKeys
 
     private fun AnalysisExerciseFeatures.isFootworkReactive(): Boolean =
         courtMovementTypes.any { type ->
@@ -189,6 +189,10 @@ class BadmintonTrainingLoadIndexCalculator {
             "REAR_COURT",
             "MULTI_DIRECTION",
             "RECOVERY_STEP"
+        )
+        val shuttlePlayStableKeys = setOf(
+            "ex_ae9ecdbc",
+            "ex_badminton_lesson"
         )
     }
 }

@@ -306,6 +306,13 @@ class TrainingRepository(
         refreshEntryCompletion(entry.id)
     }
 
+    suspend fun deleteWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            workoutDao.deleteSetsForEntry(entry.id)
+            workoutDao.deleteEntryById(entry.id)
+        }
+    }
+
     suspend fun addSet(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
         val currentSets = workoutDao.setsForEntry(entry.id)
         val nextIndex = currentSets.size + 1
@@ -1460,7 +1467,7 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 5
+        const val EXERCISE_SEED_VERSION = 6
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"

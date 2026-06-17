@@ -356,6 +356,10 @@ object ExerciseMetadataMapper {
         if (pattern == MovementPattern.FOOTWORK || hasAny("BADMINTON_FOOTWORK", "FOOTWORK_DIRECT")) {
             roles += BadmintonTransferRole.FOOTWORK
         }
+        if (hasAny("BADMINTON_DIRECT_PLAY")) {
+            roles += BadmintonTransferRole.FOOTWORK
+            roles += BadmintonTransferRole.CONDITIONING
+        }
         if (hasAny("REACTION", "REACTION_AGILITY_DIRECT")) roles += BadmintonTransferRole.REACTION
         if (hasAny("ACCELERATION_DECELERATION_TRANSITION")) roles += BadmintonTransferRole.ACCELERATION
         if (hasAny("DECELERATION", "DECELERATION_DIRECT", "LATERAL_DECELERATION_DIRECT", "CHANGE_OF_DIRECTION_DIRECT")) {

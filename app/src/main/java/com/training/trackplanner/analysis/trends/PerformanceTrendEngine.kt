@@ -198,7 +198,7 @@ class PerformanceTrendEngine(
             PerformanceDetailSection(
                 type = PerformanceDetailSectionType.STRENGTH,
                 title = "근력운동 해설",
-                availableModes = listOf(DetailChartMode.TREND, DetailChartMode.COMPOSITION, DetailChartMode.CONTRIBUTION, DetailChartMode.RANKING),
+                availableModes = listOf(DetailChartMode.TREND, DetailChartMode.COMPOSITION, DetailChartMode.CONTRIBUTION),
                 selectedMode = DetailChartMode.TREND,
                 availableMetrics = listOf(TrendMetricId.STRENGTH_INTENSITY, TrendMetricId.STRENGTH_VOLUME, TrendMetricId.STRENGTH_EFFICIENCY),
                 selectedMetrics = listOf(TrendMetricId.STRENGTH_INTENSITY),
@@ -220,7 +220,7 @@ class PerformanceTrendEngine(
             PerformanceDetailSection(
                 type = PerformanceDetailSectionType.FATIGUE,
                 title = "피로도 해설",
-                availableModes = listOf(DetailChartMode.TREND, DetailChartMode.COMPOSITION, DetailChartMode.CONTRIBUTION, DetailChartMode.RANKING),
+                availableModes = listOf(DetailChartMode.TREND, DetailChartMode.COMPOSITION, DetailChartMode.CONTRIBUTION),
                 selectedMode = DetailChartMode.TREND,
                 availableMetrics = listOf(
                     TrendMetricId.SYSTEMIC_FATIGUE,

@@ -9,6 +9,17 @@ class ScatterRelationshipAnalyzer {
         yMetric: TrendMetricId,
         metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
     ): ScatterAnalysisResult {
+        if (xMetric == yMetric) {
+            return ScatterAnalysisResult(
+                xMetric = xMetric,
+                yMetric = yMetric,
+                dataPoints = emptyList(),
+                correlation = null,
+                interpretation = "X축과 Y축은 서로 다른 지표를 선택하세요.",
+                confidence = AnalysisConfidence.LOW,
+                dataSufficiency = "동일 지표"
+            )
+        }
         val xPoints = metricSeries[xMetric].orEmpty()
         val yPoints = metricSeries[yMetric].orEmpty()
         val paired = xPoints.zip(yPoints).mapNotNull { (x, y) ->

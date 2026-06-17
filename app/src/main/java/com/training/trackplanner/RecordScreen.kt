@@ -181,6 +181,7 @@ internal fun RecordScreen(
                     onAddSet = { viewModel.addSet(entryWithSets.entry) },
                     onUpdateSet = viewModel::updateSet,
                     onDeleteSet = viewModel::deleteSet,
+                    onDeleteEntry = { viewModel.deleteWorkoutEntry(entryWithSets.entry) },
                     onStopRestTimer = restTimerSessionController::stop
                 )
             }
@@ -369,13 +370,16 @@ private fun WorkoutEntryCard(
     onAddSet: () -> Unit,
     onUpdateSet: (WorkoutSet) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
+    onDeleteEntry: () -> Unit,
     onStopRestTimer: () -> Unit
 ) {
     val entry = entryWithSets.entry
     val sets = entryWithSets.sets.sortedBy { it.setIndex }
     val showWeight = shouldShowWeight(entry)
+    val hasConfirmedSet = sets.any { set -> set.confirmed }
     var showBulkEditDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showDetails by rememberSaveable(entry.id) { mutableStateOf(false) }
+    var showDeleteEntryDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showExerciseInfo by rememberSaveable(entry.id) { mutableStateOf(false) }
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
 
@@ -396,6 +400,30 @@ private fun WorkoutEntryCard(
         )
     }
 
+    if (showDeleteEntryDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteEntryDialog = false },
+            title = { Text("운동 삭제") },
+            text = { Text("${entry.exerciseName}을(를) 선택한 날짜 기록에서 삭제할까요? 세트 기록도 함께 삭제됩니다.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteEntryDialog = false
+                        onStopRestTimer()
+                        onDeleteEntry()
+                    }
+                ) {
+                    Text("삭제")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteEntryDialog = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -404,13 +432,33 @@ private fun WorkoutEntryCard(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                text = entry.exerciseName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2
-            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = entry.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
+                )
+                TextButton(
+                    modifier = Modifier.defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                    onClick = {
+                        if (hasConfirmedSet) {
+                            showDeleteEntryDialog = true
+                        } else {
+                            onStopRestTimer()
+                            onDeleteEntry()
+                        }
+                    }
+                ) {
+                    Text("운동 삭제")
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -471,9 +519,16 @@ private fun WorkoutEntryCard(
                     set = set,
                     sets = sets,
                     showWeight = showWeight,
-                    canDelete = sets.size > 1,
+                    canDelete = true,
                     onUpdateSet = onUpdateSet,
-                    onDeleteSet = onDeleteSet,
+                    onDeleteSet = { targetSet ->
+                        if (sets.size <= 1) {
+                            onStopRestTimer()
+                            onDeleteEntry()
+                        } else {
+                            onDeleteSet(targetSet)
+                        }
+                    },
                     timerState = timerState,
                     onStopRestTimer = onStopRestTimer,
                     onPositiveWeightEdit = { sourceSet, kg ->

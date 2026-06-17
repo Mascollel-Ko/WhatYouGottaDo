@@ -18,7 +18,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -287,7 +290,7 @@ private fun PerformanceTrendCard(summary: PerformanceTrendSummary) {
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = "성과 추세 분석",
+                        text = "성과 추세",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -341,6 +344,9 @@ private fun PerformanceDetailSectionCard(
     var yMetric by rememberSaveable(section.type.name + "_y") { mutableStateOf(TrendMetricId.FATIGUE_COMPOSITE) }
     val chartBuilder = remember { PerformanceChartSpecBuilder() }
     val scatterAnalyzer = remember { ScatterRelationshipAnalyzer() }
+    val relationshipMetrics = remember(summary.metricSeries) {
+        relationshipMetricOptions(summary.metricSeries)
+    }
     val chartSpec = when (section.type) {
         PerformanceDetailSectionType.STRENGTH ->
             chartBuilder.strengthDetail(mode, selectedMetrics.toList(), summary.strengthWeeks)
@@ -378,22 +384,20 @@ private fun PerformanceDetailSectionCard(
                         selectedMetrics.add(section.availableMetrics.first())
                     }
                 )
-                MetricChipRow(
-                    metrics = section.availableMetrics,
-                    selectedMetrics = selectedMetrics.toList(),
-                    allowMulti = mode == DetailChartMode.TREND,
-                    onToggle = { metric ->
-                        if (mode == DetailChartMode.TREND) {
+                if (mode == DetailChartMode.TREND) {
+                    MetricChipRow(
+                        metrics = section.availableMetrics,
+                        selectedMetrics = selectedMetrics.toList(),
+                        allowMulti = true,
+                        onToggle = { metric ->
                             if (metric in selectedMetrics) selectedMetrics.remove(metric) else selectedMetrics.add(metric)
                             if (selectedMetrics.isEmpty()) selectedMetrics.add(metric)
-                        } else {
-                            selectedMetrics.clear()
-                            selectedMetrics.add(metric)
                         }
-                    }
-                )
+                    )
+                }
             } else {
                 RelationshipAxisSelectors(
+                    metrics = relationshipMetrics,
                     xMetric = xMetric,
                     yMetric = yMetric,
                     onXChange = { xMetric = it },
@@ -416,28 +420,94 @@ private fun PerformanceDetailSectionCard(
 
 @Composable
 private fun RelationshipAxisSelectors(
+    metrics: List<TrendMetricId>,
     xMetric: TrendMetricId,
     yMetric: TrendMetricId,
     onXChange: (TrendMetricId) -> Unit,
     onYChange: (TrendMetricId) -> Unit
 ) {
-    val xOptions = listOf(
-        TrendMetricId.FATIGUE_COMPOSITE,
-        TrendMetricId.BADMINTON_TRAINING,
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AxisDropdown(
+            label = "X축",
+            selected = xMetric,
+            metrics = metrics,
+            onSelect = onXChange
+        )
+        AxisDropdown(
+            label = "Y축",
+            selected = yMetric,
+            metrics = metrics,
+            onSelect = onYChange
+        )
+        if (xMetric == yMetric) {
+            Text(
+                text = "X축과 Y축은 서로 다른 지표를 선택하세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun AxisDropdown(
+    label: String,
+    selected: TrendMetricId,
+    metrics: List<TrendMetricId>,
+    onSelect: (TrendMetricId) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        Box {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { expanded = true }
+            ) {
+                Text(selected.label())
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                metrics.forEach { metric ->
+                    DropdownMenuItem(
+                        text = { Text(metric.label()) },
+                        onClick = {
+                            expanded = false
+                            onSelect(metric)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun relationshipMetricOptions(
+    metricSeries: Map<TrendMetricId, List<com.training.trackplanner.analysis.trends.TrendDataPoint>>
+): List<TrendMetricId> {
+    val preferred = listOf(
         TrendMetricId.STRENGTH_PERFORMANCE,
-        TrendMetricId.STRENGTH_VOLUME_ONLY,
-        TrendMetricId.STRENGTH_INTENSITY_ONLY
-    )
-    val yOptions = listOf(
+        TrendMetricId.STRENGTH_INTENSITY,
+        TrendMetricId.STRENGTH_VOLUME,
+        TrendMetricId.STRENGTH_EFFICIENCY,
+        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.COURT_VOLUME,
+        TrendMetricId.FOOTWORK_REACTIVE,
+        TrendMetricId.BADMINTON_SUPPORT,
         TrendMetricId.FATIGUE_COMPOSITE,
+        TrendMetricId.SYSTEMIC_FATIGUE,
+        TrendMetricId.STRENGTH_FATIGUE,
+        TrendMetricId.BADMINTON_FATIGUE,
+        TrendMetricId.LOCAL_BODY_PART_FATIGUE,
+        TrendMetricId.RECOVERY_PERFORMANCE_PENALTY,
         TrendMetricId.STRENGTH_DELTA_NEXT,
-        TrendMetricId.FATIGUE_DELTA_NEXT,
-        TrendMetricId.STRENGTH_PERFORMANCE
+        TrendMetricId.FATIGUE_DELTA_NEXT
     )
-    Text("X축", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-    MetricChipRow(xOptions, listOf(xMetric), allowMulti = false, onToggle = onXChange)
-    Text("Y축", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-    MetricChipRow(yOptions, listOf(yMetric), allowMulti = false, onToggle = onYChange)
+    return preferred.filter { metric ->
+        metricSeries[metric]?.any { point -> point.value != null } == true
+    }
 }
 
 @Composable

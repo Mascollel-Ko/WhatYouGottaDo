@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class RestTimerSessionController(context: Context) {
     private val appContext = context.applicationContext
@@ -55,6 +56,7 @@ class RestTimerSessionController(context: Context) {
             exerciseName = exerciseName,
             nextHint = nextHint,
             hasNextTarget = nextHint.isNotBlank(),
+            startedAfterConfirmedSet = true,
             targetRecordDate = targetRecordDate,
             targetEntryId = targetEntryId,
             targetSetId = targetSetId
@@ -106,6 +108,7 @@ class RestTimerSessionController(context: Context) {
         val endAt = preferences.getLong(KEY_REST_END_AT, 0L)
         val next = preferences.getString(KEY_REST_NEXT, "").orEmpty()
         val hasNextTarget = preferences.getBoolean(KEY_REST_HAS_NEXT_TARGET, next.isNotBlank())
+        val startedAfterConfirmedSet = preferences.getBoolean(KEY_REST_STARTED_AFTER_CONFIRMED_SET, false)
         val targetDate = preferences.getString(KEY_REST_TARGET_DATE, "").orEmpty()
         val targetEntryId = preferences.getLong(KEY_REST_TARGET_ENTRY_ID, 0L)
         val targetSetId = preferences.getLong(KEY_REST_TARGET_SET_ID, 0L)
@@ -125,6 +128,7 @@ class RestTimerSessionController(context: Context) {
             endAtEpochMillis = endAt,
             nextHint = next,
             hasNextTarget = hasNextTarget,
+            startedAfterConfirmedSet = startedAfterConfirmedSet,
             targetRecordDate = targetDate,
             targetEntryId = targetEntryId,
             targetSetId = targetSetId
@@ -177,7 +181,7 @@ class RestTimerSessionController(context: Context) {
         if (notifyRunning && enriched.isRunning) {
             notifier.showRunning(enriched)
         }
-        if (!appInForeground && enriched.isActive && enriched.hasNextTarget) {
+        if (!appInForeground && canShowBackgroundOverlay(enriched)) {
             overlayController.showOrUpdate(enriched)
         } else {
             overlayController.remove()
@@ -189,7 +193,7 @@ class RestTimerSessionController(context: Context) {
         backgroundRetryJob = scope.launch {
             delay(BACKGROUND_OVERLAY_RETRY_DELAY_MS)
             val current = _state.value
-            if (!appInForeground && current.isActive && current.hasNextTarget) {
+            if (!appInForeground && canShowBackgroundOverlay(current)) {
                 overlayController.showOrUpdate(current)
             }
         }
@@ -200,6 +204,7 @@ class RestTimerSessionController(context: Context) {
             .putLong(KEY_REST_END_AT, state.endAtEpochMillis)
             .putString(KEY_REST_NEXT, state.nextHint)
             .putBoolean(KEY_REST_HAS_NEXT_TARGET, state.hasNextTarget)
+            .putBoolean(KEY_REST_STARTED_AFTER_CONFIRMED_SET, state.startedAfterConfirmedSet)
             .putString(KEY_REST_TARGET_DATE, state.targetRecordDate)
             .putLong(KEY_REST_TARGET_ENTRY_ID, state.targetEntryId)
             .putLong(KEY_REST_TARGET_SET_ID, state.targetSetId)
@@ -214,6 +219,12 @@ class RestTimerSessionController(context: Context) {
             appInForeground = appInForeground
         )
 
+    private fun canShowBackgroundOverlay(state: RestTimerState): Boolean =
+        state.isActive &&
+            state.hasNextTarget &&
+            state.startedAfterConfirmedSet &&
+            state.targetRecordDate == LocalDate.now().toString()
+
     private fun remainingSecondsUntil(endAtEpochMillis: Long): Int {
         val remainingMillis = endAtEpochMillis - System.currentTimeMillis()
         return ((remainingMillis + 999L) / 1000L).toInt().coerceAtLeast(0)
@@ -224,6 +235,7 @@ class RestTimerSessionController(context: Context) {
         const val KEY_REST_END_AT = "rest_end_at"
         const val KEY_REST_NEXT = "rest_next"
         const val KEY_REST_HAS_NEXT_TARGET = "rest_has_next_target"
+        const val KEY_REST_STARTED_AFTER_CONFIRMED_SET = "rest_started_after_confirmed_set"
         const val KEY_REST_TARGET_DATE = "rest_target_date"
         const val KEY_REST_TARGET_ENTRY_ID = "rest_target_entry_id"
         const val KEY_REST_TARGET_SET_ID = "rest_target_set_id"

@@ -7,6 +7,8 @@ import com.training.trackplanner.data.WorkoutSet
 data class AnalysisExerciseFeatures(
     val exerciseId: Long,
     val exerciseName: String,
+    val stableKey: String,
+    val activityKind: String,
     val metadataConfidence: String,
     val analysisEligibility: Set<String>,
     val movementPattern: String,
@@ -92,6 +94,8 @@ object ExerciseAnalysisMapper {
         return AnalysisExerciseFeatures(
             exerciseId = exercise.id,
             exerciseName = exercise.name,
+            stableKey = exercise.stableKey,
+            activityKind = exercise.activityKind,
             metadataConfidence = exercise.metadataConfidence,
             analysisEligibility = exercise.analysisEligibility.splitTokens(),
             movementPattern = exercise.movementPattern,

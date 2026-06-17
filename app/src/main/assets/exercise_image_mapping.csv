@@ -207,6 +207,7 @@ B스킵,,exercise_images/local_downloads/b_skip.png,HIGH,0,korean_name=localized
 농구,,exercise_images/local_downloads/basketball.png,HIGH,0,korean_name=localizedName.ko
 테니스,,exercise_images/local_downloads/tennis.png,HIGH,0,korean_name=localizedName.ko
 배드민턴,,exercise_images/local_downloads/badminton.png,HIGH,0,korean_name=localizedName.ko
+배드민턴 레슨,ex_badminton_lesson,exercise_images/local_downloads/badminton.png,HIGH,0,shares badminton play image
 러닝 풋살,,exercise_images/local_downloads/running_futsal.png,HIGH,0,korean_name=localizedName.ko
 래터럴 바운드 투 스틱,lateral_bound_to_stick,,NONE,1,no_safe_match
 홉 투 스틱,hop_to_stick,,NONE,1,no_safe_match

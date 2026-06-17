@@ -145,6 +145,9 @@ interface WorkoutDao {
     @Delete
     suspend fun deleteSet(set: WorkoutSet)
 
+    @Query("DELETE FROM workout_sets WHERE entryId = :entryId")
+    suspend fun deleteSetsForEntry(entryId: Long)
+
     @Query("SELECT * FROM workout_sets WHERE entryId = :entryId ORDER BY setIndex")
     suspend fun setsForEntry(entryId: Long): List<WorkoutSet>
 

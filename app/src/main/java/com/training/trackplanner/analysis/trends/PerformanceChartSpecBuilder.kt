@@ -36,7 +36,7 @@ class PerformanceChartSpecBuilder {
                 }
             )
             DetailChartMode.COMPOSITION -> compositionSpec(
-                title = "강도/수행량/효율 구성",
+                title = "강도/수행량/RPE 대비 운동량 구성",
                 items = latestStrengthComposition(strengthWeeks)
             )
             DetailChartMode.CONTRIBUTION -> barSpec(
@@ -155,7 +155,7 @@ class PerformanceChartSpecBuilder {
         val components = listOf(
             "강도" to PerformanceTrendConstants.STRENGTH_PERFORMANCE_INTENSITY_WEIGHT * latest.intensityIndex,
             "수행량" to PerformanceTrendConstants.STRENGTH_PERFORMANCE_VOLUME_WEIGHT * latest.volumeIndex,
-            "효율" to PerformanceTrendConstants.STRENGTH_PERFORMANCE_EFFICIENCY_WEIGHT * latest.efficiencyIndex
+            "RPE 대비 운동량" to PerformanceTrendConstants.STRENGTH_PERFORMANCE_EFFICIENCY_WEIGHT * latest.efficiencyIndex
         )
         return shareItems(components)
     }
@@ -163,7 +163,7 @@ class PerformanceChartSpecBuilder {
     private fun latestBadmintonComposition(weeks: List<BadmintonWeekIndex>): List<BarItem> {
         val latest = weeks.lastOrNull() ?: return emptyList()
         val components = listOf(
-            "코트" to PerformanceTrendConstants.BADMINTON_COURT_WEIGHT * latest.courtVolumeIndex,
+            "셔틀 플레이" to PerformanceTrendConstants.BADMINTON_COURT_WEIGHT * latest.courtVolumeIndex,
             "풋워크/반응" to PerformanceTrendConstants.BADMINTON_FOOTWORK_WEIGHT * latest.footworkReactiveIndex,
             "보조훈련" to PerformanceTrendConstants.BADMINTON_SUPPORT_WEIGHT * latest.supportIndex
         )
@@ -189,7 +189,7 @@ class PerformanceChartSpecBuilder {
         return listOf(
             contributionItem("강도", current.map { it.intensityIndex }, previous.map { it.intensityIndex }, 0.50),
             contributionItem("수행량", current.map { it.volumeIndex }, previous.map { it.volumeIndex }, 0.40),
-            contributionItem("효율", current.map { it.efficiencyIndex }, previous.map { it.efficiencyIndex }, 0.10)
+            contributionItem("RPE 대비 운동량", current.map { it.efficiencyIndex }, previous.map { it.efficiencyIndex }, 0.10)
         )
     }
 
@@ -198,7 +198,7 @@ class PerformanceChartSpecBuilder {
         val current = weeks.takeLast(4)
         val previous = weeks.dropLast(4).takeLast(4)
         return listOf(
-            contributionItem("코트", current.map { it.courtVolumeIndex }, previous.map { it.courtVolumeIndex }, 0.60),
+            contributionItem("셔틀 플레이", current.map { it.courtVolumeIndex }, previous.map { it.courtVolumeIndex }, 0.60),
             contributionItem("풋워크", current.map { it.footworkReactiveIndex }, previous.map { it.footworkReactiveIndex }, 0.25),
             contributionItem("보조", current.map { it.supportIndex }, previous.map { it.supportIndex }, 0.15)
         )

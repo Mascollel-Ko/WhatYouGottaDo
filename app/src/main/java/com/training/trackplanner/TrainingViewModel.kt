@@ -118,6 +118,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun deleteWorkoutEntry(entry: WorkoutEntry) {
+        viewModelScope.launch {
+            repository.deleteWorkoutEntry(entry)
+            refreshAnalysisSummaries()
+        }
+    }
+
     fun addSet(entry: WorkoutEntry) {
         viewModelScope.launch {
             repository.addSet(entry)

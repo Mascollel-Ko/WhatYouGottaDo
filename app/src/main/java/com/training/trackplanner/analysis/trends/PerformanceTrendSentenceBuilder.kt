@@ -30,7 +30,7 @@ class PerformanceTrendSentenceBuilder {
         if (latest == null) {
             "기록이 더 쌓이면 배드민턴 관련 수행량을 볼 수 있습니다."
         } else {
-            "배드민턴 훈련량은 코트 수행량, 풋워크/반응, 보조훈련량을 합친 흐름입니다."
+            "배드민턴 훈련량은 셔틀 플레이 시간, 풋워크/반응, 보조훈련량을 합친 흐름입니다."
         }
 
     fun fatigueInterpretation(latest: FatigueWeekIndex?): String =
@@ -78,9 +78,9 @@ internal fun TrendMetricId.label(): String =
         TrendMetricId.STRENGTH_PERFORMANCE -> "근력운동 퍼포먼스"
         TrendMetricId.STRENGTH_INTENSITY -> "강도"
         TrendMetricId.STRENGTH_VOLUME -> "수행량"
-        TrendMetricId.STRENGTH_EFFICIENCY -> "효율"
+        TrendMetricId.STRENGTH_EFFICIENCY -> "RPE 대비 운동량"
         TrendMetricId.BADMINTON_TRAINING -> "배드민턴 훈련량"
-        TrendMetricId.COURT_VOLUME -> "코트 수행량"
+        TrendMetricId.COURT_VOLUME -> "셔틀 플레이 시간"
         TrendMetricId.FOOTWORK_REACTIVE -> "풋워크/반응"
         TrendMetricId.BADMINTON_SUPPORT -> "보조훈련량"
         TrendMetricId.FATIGUE_COMPOSITE -> "피로도 종합지수"
