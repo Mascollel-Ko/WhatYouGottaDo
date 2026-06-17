@@ -143,7 +143,7 @@ internal fun InitialProfileDialog(
                     MultiChoice("통증/주의 부위", painOptions, painTags) { painTags = it }
                 }
                 item {
-                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags, itemsPerRow = 1) { avoidTags = it }
+                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags, rowKeys = avoidOptionRows) { avoidTags = it }
                 }
                 item { SingleChoice("주요 목표", goalOptions, goal, itemsPerRow = 2) { goal = it } }
                 item {
@@ -260,11 +260,16 @@ private fun MultiChoice(
     options: List<ProfileOption>,
     selected: Set<String>,
     itemsPerRow: Int = 3,
+    rowKeys: List<List<String>>? = null,
     onChange: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title)
-        options.filter { it.label.isNotBlank() }.chunked(itemsPerRow).forEach { row ->
+        val visibleOptions = options.filter { it.label.isNotBlank() }
+        val rows = rowKeys?.mapNotNull { keys ->
+            keys.mapNotNull { key -> visibleOptions.firstOrNull { it.key == key } }.takeIf { it.isNotEmpty() }
+        } ?: visibleOptions.chunked(itemsPerRow)
+        rows.forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { option ->
                     FilterChip(
@@ -446,6 +451,17 @@ private val avoidOptions = listOf(
     ProfileOption("LONG_BADMINTON", "장시간 배드민턴"),
     ProfileOption("HIGH_INTENSITY_INTERVAL", "고강도 인터벌"),
     ProfileOption("OTHER", "기타")
+)
+private val avoidOptionRows = listOf(
+    listOf("NONE"),
+    listOf("HEAVY_SQUAT"),
+    listOf("HEAVY_DEADLIFT"),
+    listOf("BENCH_OR_PUSH"),
+    listOf("OVERHEAD_PRESS"),
+    listOf("JUMP_LANDING", "LUNGE_DECELERATION"),
+    listOf("ROTATION", "HIGH_INTENSITY_INTERVAL"),
+    listOf("LONG_BADMINTON"),
+    listOf("OTHER")
 )
 private val goalOptions = listOf(
     ProfileOption("BADMINTON_PERFORMANCE", "배드민턴 경기력"),
