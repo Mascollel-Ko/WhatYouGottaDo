@@ -1,4 +1,4 @@
-# Initial Profile Recovery Slider Report
+﻿# Initial Profile Recovery Slider Report
 
 ## Slider Direction
 
@@ -18,7 +18,7 @@ All profile recovery sliders use the same direction:
 
 ## Migration
 
-Room DB version was bumped from `11` to `12`. `MIGRATION_11_12` converts existing v0.3.4.4.2 records:
+Room DB version was bumped from `11` to `12`. `MIGRATION_11_12` converts existing v0.3.4.4.3 records:
 
 - `currentFatigue = 6 - currentFatigue`
 - `currentSoreness = 6 - currentSoreness`

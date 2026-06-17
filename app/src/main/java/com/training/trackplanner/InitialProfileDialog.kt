@@ -143,7 +143,7 @@ internal fun InitialProfileDialog(
                     MultiChoice("통증/주의 부위", painOptions, painTags) { painTags = it }
                 }
                 item {
-                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags) { avoidTags = it }
+                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags, itemsPerRow = 1) { avoidTags = it }
                 }
                 item { SingleChoice("주요 목표", goalOptions, goal, itemsPerRow = 2) { goal = it } }
                 item {
@@ -259,11 +259,12 @@ private fun MultiChoice(
     title: String,
     options: List<ProfileOption>,
     selected: Set<String>,
+    itemsPerRow: Int = 3,
     onChange: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title)
-        options.filter { it.label.isNotBlank() }.chunked(3).forEach { row ->
+        options.filter { it.label.isNotBlank() }.chunked(itemsPerRow).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { option ->
                     FilterChip(
@@ -436,7 +437,7 @@ private val painOptions = listOf(
 private val avoidOptions = listOf(
     ProfileOption("NONE", "없음"),
     ProfileOption("HEAVY_SQUAT", "무거운 스쿼트"),
-    ProfileOption("HEAVY_DEADLIFT", "무거운 데드리프트"),
+    ProfileOption("HEAVY_DEADLIFT", "무거운/데드리프트"),
     ProfileOption("BENCH_OR_PUSH", "벤치/상체 푸시"),
     ProfileOption("OVERHEAD_PRESS", "오버헤드 프레스"),
     ProfileOption("JUMP_LANDING", "점프/착지"),

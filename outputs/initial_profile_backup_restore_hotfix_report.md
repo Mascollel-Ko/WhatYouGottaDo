@@ -1,6 +1,6 @@
-# Initial Profile Backup / Restore Hotfix Report
+﻿# Initial Profile Backup / Restore Hotfix Report
 
-## v0.3.4.4.2 Changes
+## v0.3.4.4.3 Changes
 
 - Backup still exports legacy profile keys for compatibility.
 - Backup exports structured keys such as `sex`, `birthYear`, `strengthTrainingYears`, `badmintonTrainingYears`, `painAreaTags`, `avoidMovementTags`, and `primaryGoal`.
