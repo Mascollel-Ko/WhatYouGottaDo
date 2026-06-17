@@ -1,70 +1,70 @@
 # Phase 2.7.2 Calendar Copy / Delete Recovery Patch
 
-작성일: 2026-06-15
+?묒꽦?? 2026-06-15
 
-## 목적
+## 紐⑹쟻
 
-기존 앱 달력의 기록 lifecycle 기능을 Kotlin / Compose 앱에 복원했다. DB schema, CSV, 고급 분석은 변경하지 않았다.
+湲곗〈 ???щ젰??湲곕줉 lifecycle 湲곕뒫??Kotlin / Compose ?깆뿉 蹂듭썝?덈떎. DB schema, CSV, 怨좉툒 遺꾩꽍? 蹂寃쏀븯吏 ?딆븯??
 
-## 기존 문서에서 확인한 요구
+## 湲곗〈 臾몄꽌?먯꽌 ?뺤씤???붽뎄
 
-- 월간 달력과 날짜별 운동 표시
-- 날짜 길게 누른 뒤 대상 날짜로 복사
-- 날짜 길게 누른 뒤 기록상태까지 복사
-- 날짜 이동
-- 날짜 삭제
-- 삭제 영역 드롭 삭제
-- 선택복사
-- 대상 날짜 충돌 시 덮어쓰기 / 추가 / 취소
-- 붙여넣은 항목은 기본적으로 미확인 계획 상태
-- confirmed 의미 유지
+- ?붽컙 ?щ젰怨??좎쭨蹂??대룞 ?쒖떆
+- ?좎쭨 湲멸쾶 ?꾨Ⅸ ??????좎쭨濡?蹂듭궗
+- ?좎쭨 湲멸쾶 ?꾨Ⅸ ??湲곕줉?곹깭源뚯? 蹂듭궗
+- ?좎쭨 ?대룞
+- ?좎쭨 ??젣
+- ??젣 ?곸뿭 ?쒕∼ ??젣
+- ?좏깮蹂듭궗
+- ????좎쭨 異⑸룎 ????뼱?곌린 / 異붽? / 痍⑥냼
+- 遺숈뿬?ｌ? ??ぉ? 湲곕낯?곸쑝濡?誘명솗??怨꾪쉷 ?곹깭
+- confirmed ?섎? ?좎?
 
-Compose drag/drop은 안정성 리스크가 있어 long press + dialog + 대상 날짜 선택 방식으로 기능 동등성을 우선했다.
+Compose drag/drop? ?덉젙??由ъ뒪?ш? ?덉뼱 long press + dialog + ????좎쭨 ?좏깮 諛⑹떇?쇰줈 湲곕뒫 ?숇벑?깆쓣 ?곗꽑?덈떎.
 
-## UI 흐름
+## UI ?먮쫫
 
-월간 캘린더에서 날짜를 길게 누르면 액션 dialog가 열린다.
+?붽컙 罹섎┛?붿뿉???좎쭨瑜?湲멸쾶 ?꾨Ⅴ硫??≪뀡 dialog媛 ?대┛??
 
-액션:
+?≪뀡:
 
-- 계획으로 복사
-- 기록상태까지 복사
-- 이동
-- 선택복사
-- 삭제
+- 怨꾪쉷?쇰줈 蹂듭궗
+- 湲곕줉?곹깭源뚯? 蹂듭궗
+- ?대룞
+- ?좏깮蹂듭궗
+- ??젣
 
-복사 / 이동:
+蹂듭궗 / ?대룞:
 
-1. 원본 날짜 long press
-2. 액션 선택
-3. 대상 날짜 선택
-4. 대상 날짜에 기존 기록이 있으면 충돌 dialog 표시
-5. 덮어쓰기 / 추가 / 취소 선택
+1. ?먮낯 ?좎쭨 long press
+2. ?≪뀡 ?좏깮
+3. ????좎쭨 ?좏깮
+4. ????좎쭨??湲곗〈 湲곕줉???덉쑝硫?異⑸룎 dialog ?쒖떆
+5. ??뼱?곌린 / 異붽? / 痍⑥냼 ?좏깮
 
-선택복사:
+?좏깮蹂듭궗:
 
-1. 원본 시작 날짜 long press
-2. 선택복사 선택
-3. 원본 끝 날짜 선택
-4. 붙여넣을 시작 날짜 선택
-5. 대상 범위 충돌 확인
+1. ?먮낯 ?쒖옉 ?좎쭨 long press
+2. ?좏깮蹂듭궗 ?좏깮
+3. ?먮낯 ???좎쭨 ?좏깮
+4. 遺숈뿬?ｌ쓣 ?쒖옉 ?좎쭨 ?좏깮
+5. ???踰붿쐞 異⑸룎 ?뺤씤
 
-삭제:
+??젣:
 
-1. 원본 날짜 long press
-2. 삭제 선택
-3. 운동 수 / 세트 수 / 완료 세트 수 확인
-4. 삭제 확정
+1. ?먮낯 ?좎쭨 long press
+2. ??젣 ?좏깮
+3. ?대룞 ??/ ?명듃 ??/ ?꾨즺 ?명듃 ???뺤씤
+4. ??젣 ?뺤젙
 
 ## Repository / ViewModel / DAO
 
-DAO 추가:
+DAO 異붽?:
 
 - `entriesWithSets(date)`
 - `countDatesWithEntries(dates)`
 - `countSetsOnDates(dates)`
 
-Repository 추가:
+Repository 異붽?:
 
 - `calendarConflictSummary(dates)`
 - `copyDate(sourceDate, targetDate, keepConfirmed, conflictMode)`
@@ -72,122 +72,114 @@ Repository 추가:
 - `deleteDate(date)`
 - `copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode)`
 
-ViewModel 추가:
+ViewModel 異붽?:
 
-- conflict summary 조회
-- 날짜 복사
-- 기록상태 복사
-- 이동
-- 삭제
-- 선택복사
+- conflict summary 議고쉶
+- ?좎쭨 蹂듭궗
+- 湲곕줉?곹깭 蹂듭궗
+- ?대룞
+- ??젣
+- ?좏깮蹂듭궗
 
-## 계획 복사
+## 怨꾪쉷 蹂듭궗
 
-`계획으로 복사`는 원본 날짜의 `WorkoutEntry`와 `WorkoutSet`을 대상 날짜로 복사한다.
+`怨꾪쉷?쇰줈 蹂듭궗`???먮낯 ?좎쭨??`WorkoutEntry`? `WorkoutSet`??????좎쭨濡?蹂듭궗?쒕떎.
 
-- 모든 복사 세트는 `confirmed=false`
+- 紐⑤뱺 蹂듭궗 ?명듃??`confirmed=false`
 - `completedAt=null`
-- reps / weightKg / seconds / rpe / restSecondsOverride / manualWeight는 복사
-- DailyMetric은 복사하지 않음
+- reps / weightKg / seconds / rpe / restSecondsOverride / manualWeight??蹂듭궗
+- DailyMetric? 蹂듭궗?섏? ?딆쓬
 
-## 기록상태까지 복사
+## 湲곕줉?곹깭源뚯? 蹂듭궗
 
-`기록상태까지 복사`는 confirmed 상태를 보존한다.
+`湲곕줉?곹깭源뚯? 蹂듭궗`??confirmed ?곹깭瑜?蹂댁〈?쒕떎.
 
-- `confirmed=true`는 true로 복사
-- `confirmed=false`는 false로 복사
-- 완료 세트가 있는 entry는 새 `completedAt`을 부여
-- 실제 기록 복제이므로 일반 계획 복사와 UI 문구를 분리
+- `confirmed=true`??true濡?蹂듭궗
+- `confirmed=false`??false濡?蹂듭궗
+- ?꾨즺 ?명듃媛 ?덈뒗 entry????`completedAt`??遺??- ?ㅼ젣 湲곕줉 蹂듭젣?대?濡??쇰컲 怨꾪쉷 蹂듭궗? UI 臾멸뎄瑜?遺꾨━
 
-## 이동
+## ?대룞
 
-이동은 원본 날짜 기록을 대상 날짜로 옮긴다.
+?대룞? ?먮낯 ?좎쭨 湲곕줉??????좎쭨濡???릿??
 
-- confirmed 상태 보존
-- 대상 추가 / 덮어쓰기 후 원본 날짜의 운동 entry / set 삭제
-- DailyMetric은 이동하지 않음
-- 동일 날짜 이동은 no-op 처리
+- confirmed ?곹깭 蹂댁〈
+- ???異붽? / ??뼱?곌린 ???먮낯 ?좎쭨???대룞 entry / set ??젣
+- DailyMetric? ?대룞?섏? ?딆쓬
+- ?숈씪 ?좎쭨 ?대룞? no-op 泥섎━
 
-## 삭제
+## ??젣
 
-삭제는 해당 날짜의 운동 기록만 삭제한다.
+??젣???대떦 ?좎쭨???대룞 湲곕줉留???젣?쒕떎.
 
-- `WorkoutSet` 먼저 삭제
-- `WorkoutEntry` 삭제
-- DailyMetric은 삭제하지 않음
+- `WorkoutSet` 癒쇱? ??젣
+- `WorkoutEntry` ??젣
+- DailyMetric? ??젣?섏? ?딆쓬
 
-삭제 전 표시:
+??젣 ???쒖떆:
 
-- 날짜
-- 운동 수
-- 세트 수
-- 완료 세트 수
-- DailyMetric은 보존된다는 안내
+- ?좎쭨
+- ?대룞 ??- ?명듃 ??- ?꾨즺 ?명듃 ??- DailyMetric? 蹂댁〈?쒕떎???덈궡
 
-## 충돌 처리
+## 異⑸룎 泥섎━
 
-대상 날짜 또는 대상 범위에 기존 기록이 있으면 충돌 dialog를 표시한다.
+????좎쭨 ?먮뒗 ???踰붿쐞??湲곗〈 湲곕줉???덉쑝硫?異⑸룎 dialog瑜??쒖떆?쒕떎.
 
-- 덮어쓰기: 대상 set 삭제 후 entry 삭제, 이후 복사 / 이동
-- 추가: 대상 기록 보존 후 뒤에 추가
-- 취소: 아무 변경 없음
+- ??뼱?곌린: ???set ??젣 ??entry ??젣, ?댄썑 蹂듭궗 / ?대룞
+- 異붽?: ???湲곕줉 蹂댁〈 ???ㅼ뿉 異붽?
+- 痍⑥냼: ?꾨Т 蹂寃??놁쓬
 
-표시:
+?쒖떆:
 
-- 대상 날짜 수
-- 기존 운동 수
-- 기존 세트 수
-- 기존 완료 세트 수
+- ????좎쭨 ??- 湲곗〈 ?대룞 ??- 湲곗〈 ?명듃 ??- 湲곗〈 ?꾨즺 ?명듃 ??
+## confirmed ?섎? 蹂댁〈
 
-## confirmed 의미 보존
+- 怨꾪쉷 蹂듭궗: 紐⑤뱺 set `confirmed=false`
+- 湲곕줉?곹깭 蹂듭궗: ?먮낯 set??confirmed 蹂댁〈
+- ?대룞: ?먮낯 set??confirmed 蹂댁〈
+- ?좏깮蹂듭궗: 紐⑤뱺 set `confirmed=false`
+- ??젣: ?ъ슜?먭? 紐낆떆?곸쑝濡??뺤씤???좎쭨???대룞 湲곕줉留???젣
 
-- 계획 복사: 모든 set `confirmed=false`
-- 기록상태 복사: 원본 set의 confirmed 보존
-- 이동: 원본 set의 confirmed 보존
-- 선택복사: 모든 set `confirmed=false`
-- 삭제: 사용자가 명시적으로 확인한 날짜의 운동 기록만 삭제
+?ㅼ젣 ?덈젴 遺??吏묎퀎??怨꾩냽 `confirmed=true` ?명듃留?湲곗??쇰줈 ?쒕떎.
 
-실제 훈련 부하 집계는 계속 `confirmed=true` 세트만 기준으로 한다.
+## ?붽컙 Summary 媛깆떊
 
-## 월간 Summary 갱신
+Room Flow 湲곕컲?대떎. copy / move / delete ??`workout_entries`, `workout_sets`媛 蹂寃쎈릺硫??ㅼ쓬 ?붾㈃???먮룞 媛깆떊?쒕떎.
 
-Room Flow 기반이다. copy / move / delete 후 `workout_entries`, `workout_sets`가 변경되면 다음 화면이 자동 갱신된다.
+- 湲곕줉 ??selected date
+- ?붽컙 罹섎┛??summary
+- ???붿빟
+- ?⑥닚 遺꾩꽍 ?듦퀎
 
-- 기록 탭 selected date
-- 월간 캘린더 summary
-- 홈 요약
-- 단순 분석 통계
+蹂꾨룄 analysis dirty flag ?붿쭊? ?꾩쭅 ?녿떎.
 
-별도 analysis dirty flag 엔진은 아직 없다.
+## ?⑥? ?쒗븳
 
-## 남은 제한
+- drag/drop UI???꾩쭅 蹂듭썝?섏? ?딆븯??
+- ??젣 ?곸뿭 ?쒕∼ ???long press + ??젣 dialog 諛⑹떇?대떎.
+- ?좏깮蹂듭궗??湲곕낯 怨꾪쉷 蹂듭궗留?吏?먰븳??
+- DailyMetric源뚯? 蹂듭궗 / ?대룞 / ??젣?섎뒗 ?듭뀡? ?녿떎.
 
-- drag/drop UI는 아직 복원하지 않았다.
-- 삭제 영역 드롭 대신 long press + 삭제 dialog 방식이다.
-- 선택복사는 기본 계획 복사만 지원한다.
-- DailyMetric까지 복사 / 이동 / 삭제하는 옵션은 없다.
+## ?섎룞 QA
 
-## 수동 QA
+1. ?좎쭨 A瑜?`怨꾪쉷?쇰줈 蹂듭궗`???좎쭨 B??遺숈뿬?ｊ린
+2. B??紐⑤뱺 ?명듃媛 `confirmed=false`?몄? ?뺤씤
+3. ?좎쭨 A瑜?`湲곕줉?곹깭源뚯? 蹂듭궗`???좎쭨 C??遺숈뿬?ｊ린
+4. C??confirmed ?곹깭媛 A? 媛숈?吏 ?뺤씤
+5. ?좎쭨 A瑜??좎쭨 D濡??대룞
+6. A 湲곕줉 ??젣, D 湲곕줉 ?앹꽦 ?뺤씤
+7. ?좎쭨 D ??젣 ???대룞 / ?명듃 / ?꾨즺 ?명듃 ???쒖떆 ?뺤씤
+8. ??젣 ??DailyMetric 蹂댁〈 ?뺤씤
+9. ???異⑸룎 ????뼱?곌린 / 異붽? / 痍⑥냼 ?뺤씤
+10. ?좏깮蹂듭궗濡??좎쭨 踰붿쐞 蹂듭궗 ?뺤씤
+11. 蹂듭궗 / ?대룞 / ??젣 ???붽컙 summary 媛깆떊 ?뺤씤
 
-1. 날짜 A를 `계획으로 복사`해 날짜 B에 붙여넣기
-2. B의 모든 세트가 `confirmed=false`인지 확인
-3. 날짜 A를 `기록상태까지 복사`해 날짜 C에 붙여넣기
-4. C의 confirmed 상태가 A와 같은지 확인
-5. 날짜 A를 날짜 D로 이동
-6. A 기록 삭제, D 기록 생성 확인
-7. 날짜 D 삭제 전 운동 / 세트 / 완료 세트 수 표시 확인
-8. 삭제 후 DailyMetric 보존 확인
-9. 대상 충돌 시 덮어쓰기 / 추가 / 취소 확인
-10. 선택복사로 날짜 범위 복사 확인
-11. 복사 / 이동 / 삭제 후 월간 summary 갱신 확인
+## 鍮뚮뱶
 
-## 빌드
-
-검증 명령:
+寃利?紐낅졊:
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat --no-daemon --no-problems-report assembleDebug
 ```
 
-결과: `BUILD SUCCESSFUL`.
+寃곌낵: `BUILD SUCCESSFUL`.

@@ -1,9 +1,9 @@
-﻿# Initial Profile Schema Migration Report
+# Initial Profile Schema Migration Report
 
 ## Current Schema Path
 
 - v0.3.4.4.1 introduced DB version `10` and the structured profile columns.
-- v0.3.4.4.3 raises DB version to `11`.
+- v0.3.4.4.4 raises DB version to `11`.
 - `MIGRATION_10_11` is intentionally no-op because no new columns are required.
 - Destructive migration was not used.
 

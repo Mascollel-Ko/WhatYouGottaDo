@@ -10,14 +10,14 @@ It also adds CSV restore compatibility for the legacy `daily_timeseries` CSV sha
 
 Changed:
 
-- Removed the top `오늘 할 일` card.
-- Kept the existing `오늘 요약` section.
-- Added `기록 관리` below `오늘 요약`.
+- Removed the top `?ㅻ뒛 ???? card.
+- Kept the existing `?ㅻ뒛 ?붿빟` section.
+- Added `湲곕줉 愿由? below `?ㅻ뒛 ?붿빟`.
 
 Record management buttons:
 
-- `기록 백업`
-- `기록 복원`
+- `湲곕줉 諛깆뾽`
+- `湲곕줉 蹂듭썝`
 
 The buttons use Android document picker contracts:
 
@@ -26,7 +26,7 @@ The buttons use Android document picker contracts:
 
 ## Backup Format
 
-`기록 백업` exports restore-format CSV.
+`湲곕줉 諛깆뾽` exports restore-format CSV.
 
 Header:
 
@@ -94,7 +94,7 @@ Restored data writes into Room:
 
 This means the data is visible to:
 
-- Home `오늘 요약`
+- Home `?ㅻ뒛 ?붿빟`
 - Record tab date lists
 - Analysis tab simple stats
 - 3.1 Today Readiness
@@ -110,4 +110,3 @@ This means the data is visible to:
 
 - `compileDebugKotlin`: passed
 - `testDebugUnitTest`: passed
-

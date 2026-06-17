@@ -1,6 +1,6 @@
-﻿# Initial Profile Structured Input Report
+# Initial Profile Structured Input Report
 
-## v0.3.4.4.3 Scope
+## v0.3.4.4.4 Scope
 
 The initial profile UI keeps free text out of core analysis inputs. `freeNote` remains available only as a note and is not used by readiness calculation.
 

@@ -1,4 +1,4 @@
-﻿# WhatYouGottaTrain Phase 2.5 Handoff
+# WhatYouGottaTrain Phase 2.5 Handoff
 
 ?묒꽦?? 2026-06-14
 紐⑹쟻: ?ㅼ쓬 ?묒뾽?먭? ?꾩옱 ??援ъ“, ?곗씠???섎?, 鍮뚮뱶 ?곹깭, 二쇱쓽?먯쓣 鍮좊Ⅴ寃??댁뼱諛쏅룄濡??꾨떖?쒕떎.
@@ -1031,12 +1031,12 @@ Validation:
 - `birthYearOrAgeRange`, `gender`, `strengthTrainingAge`, `badmintonTrainingAge`, `painAreas`, `avoidedMovements`, `goals`???명솚?⑹쑝濡??⑥븘 ?덉쑝????遺꾩꽍 ?낅젰?쇰줈 ?곗? ?딅뒗??
 - ??profile backup key??enum key / numeric value瑜???ν븳??
 
-## v0.3.4.4.3 Hotfix Addendum
+## v0.3.4.4.4 Hotfix Addendum
 
-- Version bumped to `v0.3.4.4.3` / DB version `11`.
+- Version bumped to `v0.3.4.4.4` / DB version `11`.
 - `MIGRATION_10_11` is no-op; structured initial profile fields were already present in DB v10.
 - Added `InitialAdaptationProfile` and cold-start readiness baseline binding.
 - Removed the old fatigued-only profile adjustment pattern.
 - Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
 - CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
-- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3443-TrainingTrackPlanner-v0.3.4.4.3-debug.apk`.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3444-TrainingTrackPlanner-v0.3.4.4.4-debug.apk`.

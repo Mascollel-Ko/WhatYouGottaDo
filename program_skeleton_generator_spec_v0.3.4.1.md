@@ -1,13 +1,13 @@
 # Program Skeleton Generator Spec v0.3.4.1
 
-## Current Status in v0.3.4.4.3
+## Current Status in v0.3.4.4.4
 
-This document remains the generator design reference. The active app version is `v0.3.4.4.3`.
+This document remains the generator design reference. The active app version is `v0.3.4.4.4`.
 
 UI behavior added after this spec:
 
 - New program creation still exposes automatic skeleton generation.
-- New program creation still exposes full rebuild / "전부 새로 만들기".
+- New program creation still exposes full rebuild / "?꾨? ?덈줈 留뚮뱾湲?.
 - Existing program editing hides automatic skeleton generator controls and focuses on editing the loaded program structure.
 - Program list cards expose a direct apply button.
 - Program detail is a read-only day-by-day text summary, not the editing surface.
@@ -330,7 +330,7 @@ Plan tab flow:
 1. Program list
 2. Create or edit program
 3. Fill generation inputs
-4. Tap `자동으로 골자 만들기`
+4. Tap `?먮룞?쇰줈 怨⑥옄 留뚮뱾湲?
 5. Preview generated weeks/days/items
 6. User edits name / items / set / reps / weight / rest / RPE notes
 7. Save

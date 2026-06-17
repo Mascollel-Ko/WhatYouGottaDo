@@ -90,7 +90,7 @@ Recommendations choose the next action.
 
 Recommendations should be small and concrete:
 
-- Confirm today’s completed sets.
+- Confirm today?셲 completed sets.
 - Reduce intensity today.
 - Add one low-load support movement.
 - Keep the plan unchanged.
@@ -117,15 +117,15 @@ Korean sentence rules:
 
 Avoid:
 
-- "과훈련입니다."
-- "부상 위험이 높습니다."
-- "회복이 완전히 부족합니다."
+- "怨쇳썕?⑥엯?덈떎."
+- "遺???꾪뿕???믪뒿?덈떎."
+- "?뚮났???꾩쟾??遺議깊빀?덈떎."
 
 Prefer:
 
-- "부하가 빠르게 늘었습니다."
-- "회복 여지가 부족할 수 있습니다."
-- "오늘은 강도를 낮추는 편이 좋습니다."
+- "遺?섍? 鍮좊Ⅴ寃??섏뿀?듬땲??"
+- "?뚮났 ?ъ?媛 遺議깊븷 ???덉뒿?덈떎."
+- "?ㅻ뒛? 媛뺣룄瑜???텛???몄씠 醫뗭뒿?덈떎."
 
 ## Phase Boundary
 
@@ -385,6 +385,6 @@ Detail outputs:
 
 Sentence policy:
 
-- use `전이 비중`, `전이 자극`, and `배드민턴 전이 분석`.
+- use `?꾩씠 鍮꾩쨷`, `?꾩씠 ?먭레`, and `諛곕뱶誘쇳꽩 ?꾩씠 遺꾩꽍`.
 - avoid match-performance improvement claims.
 - high fatigue should choose recovery or low-fatigue supplementary work before strong transfer work.

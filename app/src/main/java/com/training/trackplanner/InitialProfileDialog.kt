@@ -437,7 +437,7 @@ private val painOptions = listOf(
 private val avoidOptions = listOf(
     ProfileOption("NONE", "없음"),
     ProfileOption("HEAVY_SQUAT", "무거운 스쿼트"),
-    ProfileOption("HEAVY_DEADLIFT", "무거운/데드리프트"),
+    ProfileOption("HEAVY_DEADLIFT", "무거운\n데드리프트"),
     ProfileOption("BENCH_OR_PUSH", "벤치/상체 푸시"),
     ProfileOption("OVERHEAD_PRESS", "오버헤드 프레스"),
     ProfileOption("JUMP_LANDING", "점프/착지"),

@@ -34,8 +34,8 @@ Program generator:
 Program editor UX:
 
 - Program name is required before skeleton generation and save.
-- `자동으로 골자 만들기` generates a preview from the current editor inputs.
-- `전부 새로 만들기` sits below the automatic skeleton button and clears the current preview before generating a fresh skeleton from the current editor inputs.
+- `?먮룞?쇰줈 怨⑥옄 留뚮뱾湲? generates a preview from the current editor inputs.
+- `?꾨? ?덈줈 留뚮뱾湲? sits below the automatic skeleton button and clears the current preview before generating a fresh skeleton from the current editor inputs.
 
 Generated item behavior:
 

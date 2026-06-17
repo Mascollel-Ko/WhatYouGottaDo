@@ -29,8 +29,8 @@ Existing taxonomy:
 String parsing audit:
 
 - Search UI still uses `contains` for text search in `ExerciseScreen.kt` and `CommonUi.kt`. This is not exercise classification.
-- `RecordScreen.kt` still checks `entry.category == "스포츠"` for sport-specific input presentation.
-- `TrainingRepository.kt` still checks `exercise.mode.contains("시간")` for default time-set behavior.
+- `RecordScreen.kt` still checks `entry.category == "?ㅽ룷痢?` for sport-specific input presentation.
+- `TrainingRepository.kt` still checks `exercise.mode.contains("?쒓컙")` for default time-set behavior.
 - `SeedData.kt` still contains legacy fallback string heuristics for old seed metadata generation.
 - New fatigue/readiness metadata mapping uses structured seed columns or existing metadata fields, not exercise-name parsing.
 

@@ -1,4 +1,4 @@
-﻿# WhatYouGottaTrain Data Meaning Mapping
+# WhatYouGottaTrain Data Meaning Mapping
 
 ?묒꽦?? 2026-06-14
 ?곸슜 踰붿쐞: Phase 2.5
@@ -912,12 +912,12 @@ No DB schema or metadata meaning changed.
 - `primaryGoal`: 紐⑺몴 enum key.
 - `freeNote`: 蹂댁“ 硫붾え?대ŉ ?쇰줈??怨꾩궛 ?듭떖媛믪씠 ?꾨땲??
 
-## v0.3.4.4.3 Hotfix Addendum
+## v0.3.4.4.4 Hotfix Addendum
 
-- Version bumped to `v0.3.4.4.3` / DB version `11`.
+- Version bumped to `v0.3.4.4.4` / DB version `11`.
 - `MIGRATION_10_11` is no-op; structured initial profile fields were already present in DB v10.
 - Added `InitialAdaptationProfile` and cold-start readiness baseline binding.
 - Removed the old fatigued-only profile adjustment pattern.
 - Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
 - CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
-- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3443-TrainingTrackPlanner-v0.3.4.4.3-debug.apk`.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3444-TrainingTrackPlanner-v0.3.4.4.4-debug.apk`.

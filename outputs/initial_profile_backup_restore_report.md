@@ -1,22 +1,20 @@
 # Initial Profile Backup / Restore Report
 
-## 백업
+## 諛깆뾽
 
-- restore CSV에 `row_type=profile` row를 추가했다.
-- profile row는 `profile_key`, `profile_value`로 저장한다.
-- 기존 daily/set/exercise row와 같은 파일에 포함된다.
+- restore CSV??`row_type=profile` row瑜?異붽??덈떎.
+- profile row??`profile_key`, `profile_value`濡???ν븳??
+- 湲곗〈 daily/set/exercise row? 媛숈? ?뚯씪???ы븿?쒕떎.
 
-## 복원
+## 蹂듭썝
 
-- `RecordCsvBackupRestore.parse()`가 profile row를 읽는다.
-- repository import 시 `InitialUserProfileDao.upsert()`로 저장한다.
-- profile row가 없는 과거 CSV도 실패하지 않는다.
+- `RecordCsvBackupRestore.parse()`媛 profile row瑜??쎈뒗??
+- repository import ??`InitialUserProfileDao.upsert()`濡???ν븳??
+- profile row媛 ?녿뒗 怨쇨굅 CSV???ㅽ뙣?섏? ?딅뒗??
 
-## 호환성
+## ?명솚??
+- daily_timeseries CSV??湲곗〈 寃쎈줈濡?怨꾩냽 蹂듭썝?쒕떎.
+- `sleep_hours`??`toDoubleOrNull()` 湲곕컲?쇰줈 ?뚯떛?섏뼱 鍮?媛??ㅻ쪟 媛믪뿉??crash?섏? ?딅뒗??
 
-- daily_timeseries CSV는 기존 경로로 계속 복원된다.
-- `sleep_hours`는 `toDoubleOrNull()` 기반으로 파싱되어 빈 값/오류 값에서 crash하지 않는다.
-
-## 테스트
-
-- `restoreCsvExportsAndParsesInitialProfileRows` unit test 추가.
+## ?뚯뒪??
+- `restoreCsvExportsAndParsesInitialProfileRows` unit test 異붽?.

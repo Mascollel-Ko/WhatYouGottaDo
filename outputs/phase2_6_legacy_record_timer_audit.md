@@ -1,33 +1,33 @@
 # Phase 2.6 Legacy Record / Rest Timer Audit
 
-## 1. 기존 README / handoff에서 확인한 기록 화면 요구
+## 1. 湲곗〈 README / handoff?먯꽌 ?뺤씤??湲곕줉 ?붾㈃ ?붽뎄
 
-- 기록 흐름은 계획 세트와 수행 기록 세트를 분리한다.
-- `WorkoutSet.confirmed=false`는 미확인 계획 세트다.
-- `WorkoutSet.confirmed=true`는 실제 수행 기록 세트다.
-- 붙여넣기 / 프로그램 적용 항목은 기본적으로 미확인 계획 상태다.
-- 운동별 세트 확인 / 해제, 세트 추가 / 수정 / 삭제가 필요하다.
-- 마지막 1개 세트 삭제는 차단한다.
-- 세트 삭제 후 같은 운동 안의 `set_index`는 1부터 재정렬한다.
-- `세트 +`는 마지막 세트의 중량 / 횟수 / 시간을 복사하되 새 세트는 미확인 상태로 추가한다.
-- 일괄 중량 설정과 입력 단위 기준 일괄 증가 / 감소가 필요하다.
-- 스포츠 부류는 RPE, 중량, 최대횟수를 강제하지 않는다.
-- 시간 제한 / 최대횟수 성격 운동은 세트 확인 시 해당 세트의 시간 입력이 가능해야 한다.
-- 사용자가 0kg을 직접 저장한 세트는 `manual_weight=1`로 보호한다.
+- 湲곕줉 ?먮쫫? 怨꾪쉷 ?명듃? ?섑뻾 湲곕줉 ?명듃瑜?遺꾨━?쒕떎.
+- `WorkoutSet.confirmed=false`??誘명솗??怨꾪쉷 ?명듃??
+- `WorkoutSet.confirmed=true`???ㅼ젣 ?섑뻾 湲곕줉 ?명듃??
+- 遺숈뿬?ｊ린 / ?꾨줈洹몃옩 ?곸슜 ??ぉ? 湲곕낯?곸쑝濡?誘명솗??怨꾪쉷 ?곹깭??
+- ?대룞蹂??명듃 ?뺤씤 / ?댁젣, ?명듃 異붽? / ?섏젙 / ??젣媛 ?꾩슂?섎떎.
+- 留덉?留?1媛??명듃 ??젣??李⑤떒?쒕떎.
+- ?명듃 ??젣 ??媛숈? ?대룞 ?덉쓽 `set_index`??1遺???ъ젙?ы븳??
+- `?명듃 +`??留덉?留??명듃??以묐웾 / ?잛닔 / ?쒓컙??蹂듭궗?섎릺 ???명듃??誘명솗???곹깭濡?異붽??쒕떎.
+- ?쇨큵 以묐웾 ?ㅼ젙怨??낅젰 ?⑥쐞 湲곗? ?쇨큵 利앷? / 媛먯냼媛 ?꾩슂?섎떎.
+- ?ㅽ룷痢?遺瑜섎뒗 RPE, 以묐웾, 理쒕??잛닔瑜?媛뺤젣?섏? ?딅뒗??
+- ?쒓컙 ?쒗븳 / 理쒕??잛닔 ?깃꺽 ?대룞? ?명듃 ?뺤씤 ???대떦 ?명듃???쒓컙 ?낅젰??媛?ν빐???쒕떎.
+- ?ъ슜?먭? 0kg??吏곸젒 ??ν븳 ?명듃??`manual_weight=1`濡?蹂댄샇?쒕떎.
 
-## 2. 기존 README / handoff에서 확인한 rest timer 요구
+## 2. 湲곗〈 README / handoff?먯꽌 ?뺤씤??rest timer ?붽뎄
 
-- 세트 확인 시 휴게 타이머 시작과 다음 운동 안내가 필요하다.
-- 앱 foreground에서는 앱 안 타이머만 표시하고 오버레이는 표시하지 않는다.
-- 앱 background에서 휴게 타이머가 실행 중이면 진행 알림과 오버레이를 표시한다.
-- 앱으로 돌아오면 오버레이를 제거한다.
-- 휴게 종료 시 앱 안에서도 소리 / 진동이 필요하다.
-- 앱 밖에서는 종료 알림을 표시한다.
-- 운동 여부와 무관한 반복 알림은 만들지 않는다.
-- 오버레이는 남은 시간과 다음 운동 / 다음 세트만 표시한다.
-- 과거 spark 효과 같은 장식은 제거 대상이다.
+- ?명듃 ?뺤씤 ???닿쾶 ??대㉧ ?쒖옉怨??ㅼ쓬 ?대룞 ?덈궡媛 ?꾩슂?섎떎.
+- ??foreground?먯꽌????????대㉧留??쒖떆?섍퀬 ?ㅻ쾭?덉씠???쒖떆?섏? ?딅뒗??
+- ??background?먯꽌 ?닿쾶 ??대㉧媛 ?ㅽ뻾 以묒씠硫?吏꾪뻾 ?뚮┝怨??ㅻ쾭?덉씠瑜??쒖떆?쒕떎.
+- ?깆쑝濡??뚯븘?ㅻ㈃ ?ㅻ쾭?덉씠瑜??쒓굅?쒕떎.
+- ?닿쾶 醫낅즺 ?????덉뿉?쒕룄 ?뚮━ / 吏꾨룞???꾩슂?섎떎.
+- ??諛뽰뿉?쒕뒗 醫낅즺 ?뚮┝???쒖떆?쒕떎.
+- ?대룞 ?щ?? 臾닿???諛섎났 ?뚮┝? 留뚮뱾吏 ?딅뒗??
+- ?ㅻ쾭?덉씠???⑥? ?쒓컙怨??ㅼ쓬 ?대룞 / ?ㅼ쓬 ?명듃留??쒖떆?쒕떎.
+- 怨쇨굅 spark ?④낵 媛숈? ?μ떇? ?쒓굅 ??곸씠??
 
-## 3. 기존 Java 앱의 rest timer 구성요소
+## 3. 湲곗〈 Java ?깆쓽 rest timer 援ъ꽦?붿냼
 
 - `RestTimerSessionController.java`
   - active countdown timer
@@ -56,7 +56,7 @@
 - `RestTimerSoundVibration.java`
   - finish sound / vibration
 
-기존 preference key:
+湲곗〈 preference key:
 
 ```text
 rest_end_at
@@ -66,10 +66,10 @@ rest_target_entry_id
 rest_finished
 ```
 
-## 4. 새 Kotlin / Compose 앱 대응 파일
+## 4. ??Kotlin / Compose ??????뚯씪
 
 - `RestTimerSessionController.kt`
-  - 세션 상태, persisted preference, foreground/background, notification/overlay orchestration
+  - ?몄뀡 ?곹깭, persisted preference, foreground/background, notification/overlay orchestration
 - `RestTimerNotifier.kt`
   - notification channel, running / finished notification
 - `RestTimerOverlayController.kt`
@@ -77,78 +77,76 @@ rest_finished
 - `RestTimerSoundVibration.kt`
   - finish sound / vibration
 - `RestTimerState.kt`
-  - Compose와 controller 사이에서 읽는 immutable timer state
+  - Compose? controller ?ъ씠?먯꽌 ?쎈뒗 immutable timer state
 - `RestTimerUi.kt`
-  - 앱 안 mini timer bar, permission hint
+  - ????mini timer bar, permission hint
 - `MainActivity.kt`
-  - lifecycle delegate와 notification / overlay click target navigation
+  - lifecycle delegate? notification / overlay click target navigation
 - `RecordScreen.kt`
-  - confirmed false -> true 이벤트에서 effective rest와 target 정보를 controller에 전달
+  - confirmed false -> true ?대깽?몄뿉??effective rest? target ?뺣낫瑜?controller???꾨떖
 
-## 5. 구현할 기능 목록
+## 5. 援ы쁽??湲곕뒫 紐⑸줉
 
-- Gradle problems report 충돌 우회 상태 유지
-- `WorkoutSet.rpe` 추가
-- `WorkoutSet.restSecondsOverride` 추가
+- Gradle problems report 異⑸룎 ?고쉶 ?곹깭 ?좎?
+- `WorkoutSet.rpe` 異붽?
+- `WorkoutSet.restSecondsOverride` 異붽?
 - Room additive migration
-- DailyMetric 입력을 기본 접힘 상태로 변경
-- 운동 notes / maxReps / entry-level RPE / 기본 rest 편집을 상세 패널로 접기
-- compact set row / compact number input 강화
-- 세트별 RPE 입력
-- 세트별 휴식 override 입력
-- effective rest 기반 타이머 시작
-- notes와 구조화 처방값 분리
-- 일괄 설정 / 증가 / 감소 메뉴 확장
-- 빈 kg 세트 자동 적용 prompt 유지 / 정리
-- rest timer 구조 기능 동등성 점검
-- 문서 갱신
+- DailyMetric ?낅젰??湲곕낯 ?묓옒 ?곹깭濡?蹂寃?- ?대룞 notes / maxReps / entry-level RPE / 湲곕낯 rest ?몄쭛???곸꽭 ?⑤꼸濡??묎린
+- compact set row / compact number input 媛뺥솕
+- ?명듃蹂?RPE ?낅젰
+- ?명듃蹂??댁떇 override ?낅젰
+- effective rest 湲곕컲 ??대㉧ ?쒖옉
+- notes? 援ъ“??泥섎갑媛?遺꾨━
+- ?쇨큵 ?ㅼ젙 / 利앷? / 媛먯냼 硫붾돱 ?뺤옣
+- 鍮?kg ?명듃 ?먮룞 ?곸슜 prompt ?좎? / ?뺣━
+- rest timer 援ъ“ 湲곕뒫 ?숇벑???먭?
+- 臾몄꽌 媛깆떊
 
-## 6. 구현하지 않을 기능과 이유
+## 6. 援ы쁽?섏? ?딆쓣 湲곕뒫怨??댁쑀
 
-- CSV 백업 / 복원: Phase 3 범위다.
-- 고급 분석 / 추천 엔진: 별도 승인 전까지 금지다.
-- 개인화 중량 자동 추천 엔진: 이번 범위는 빈 세트 적용 UX이며, 분석 기반 추천은 아니다.
-- foreground service 수준의 장시간 타이머 서비스화: 이번 범위는 기존 구조 복구 MVP다.
-- overlay 애니메이션 / spark 효과: 기존 문서에서 제거 대상으로 확인했다.
+- CSV 諛깆뾽 / 蹂듭썝: Phase 3 踰붿쐞??
+- 怨좉툒 遺꾩꽍 / 異붿쿇 ?붿쭊: 蹂꾨룄 ?뱀씤 ?꾧퉴吏 湲덉???
+- 媛쒖씤??以묐웾 ?먮룞 異붿쿇 ?붿쭊: ?대쾲 踰붿쐞??鍮??명듃 ?곸슜 UX?대ŉ, 遺꾩꽍 湲곕컲 異붿쿇? ?꾨땲??
+- foreground service ?섏????μ떆媛???대㉧ ?쒕퉬?ㅽ솕: ?대쾲 踰붿쐞??湲곗〈 援ъ“ 蹂듦뎄 MVP??
+- overlay ?좊땲硫붿씠??/ spark ?④낵: 湲곗〈 臾몄꽌?먯꽌 ?쒓굅 ??곸쑝濡??뺤씤?덈떎.
 
-## 7. 수동 QA 체크리스트
+## 7. ?섎룞 QA 泥댄겕由ъ뒪??
+湲곕줉 UI:
 
-기록 UI:
+1. 湲곕줉 ?붾㈃ ?곷떒???섎㈃ / 紐몃Т寃??낅젰移몄씠 ??긽 ?쇱퀜???덉? ?딆?吏 ?뺤씤
+2. `而⑤뵒?? 踰꾪듉?쇰줈 ?섎㈃ / 紐몃Т寃??낅젰???대━?붿? ?뺤씤
+3. ?대룞 移대뱶??硫붾え / 理쒕??잛닔 / ?대룞 ?꾩껜 泥닿컧 / 湲곕낯 ?댁떇 ?몄쭛??湲곕낯 ?묓옒?몄? ?뺤씤
+4. ?명듃 ???믪씠? ?낅젰移?padding??以꾩뿀?붿? ?뺤씤
+5. ?뺤씤 踰꾪듉???명듃 ?낅젰 ?놁뿉 ?덈뒗吏 ?뺤씤
 
-1. 기록 화면 상단에 수면 / 몸무게 입력칸이 항상 펼쳐져 있지 않은지 확인
-2. `컨디션` 버튼으로 수면 / 몸무게 입력이 열리는지 확인
-3. 운동 카드의 메모 / 최대횟수 / 운동 전체 체감 / 기본 휴식 편집이 기본 접힘인지 확인
-4. 세트 행 높이와 입력칸 padding이 줄었는지 확인
-5. 확인 버튼이 세트 입력 옆에 있는지 확인
+?명듃蹂?RPE / ?댁떇:
 
-세트별 RPE / 휴식:
+6. ?명듃蹂?RPE ?낅젰 / 鍮꾩슦湲??뺤씤
+7. ???ъ떆?????명듃蹂?RPE ?좎? ?뺤씤
+8. ?명듃 異붽? ??RPE媛 ?먮룞 蹂듭궗?섏? ?딅뒗吏 ?뺤씤
+9. ?명듃蹂??댁떇 override ?ㅼ젙 / 鍮꾩슦湲??뺤씤
+10. override媛 ?놁쑝硫?entry 湲곕낯 ?댁떇 ?ъ슜 ?뺤씤
 
-6. 세트별 RPE 입력 / 비우기 확인
-7. 앱 재시작 후 세트별 RPE 유지 확인
-8. 세트 추가 시 RPE가 자동 복사되지 않는지 확인
-9. 세트별 휴식 override 설정 / 비우기 확인
-10. override가 없으면 entry 기본 휴식 사용 확인
+硫붾え / 泥섎갑:
 
-메모 / 처방:
+11. ?꾨줈洹몃옩 ?곸슜 ??notes??援ъ“??泥섎갑媛믪씠 ?ㅼ뼱媛吏 ?딅뒗吏 ?뺤씤
+12. ?대룞 移대뱶 ?붿빟??notes媛 ?꾨땲??WorkoutSet?먯꽌 怨꾩궛?섎뒗吏 ?뺤씤
 
-11. 프로그램 적용 후 notes에 구조화 처방값이 들어가지 않는지 확인
-12. 운동 카드 요약이 notes가 아니라 WorkoutSet에서 계산되는지 확인
+?쇨큵 ?몄쭛:
 
-일괄 편집:
+13. kg ?ㅼ젙 / 利앷? / 媛먯냼 ?뺤씤
+14. ?잛닔 利앷? / 媛먯냼 ?뺤씤
+15. ?댁떇 ?ㅼ젙 / 利앷? / 媛먯냼 ?뺤씤
+16. confirmed=true ?ы븿 ???ъ슜???뺤씤 ?뺤씤
+17. 鍮?kg ?명듃 ?먮룞 ?곸슜??confirmed=false, weightKg=0 ?명듃留?諛붽씀?붿? ?뺤씤
 
-13. kg 설정 / 증가 / 감소 확인
-14. 횟수 증가 / 감소 확인
-15. 휴식 설정 / 증가 / 감소 확인
-16. confirmed=true 포함 시 사용자 확인 확인
-17. 빈 kg 세트 자동 적용이 confirmed=false, weightKg=0 세트만 바꾸는지 확인
+?닿쾶 ??대㉧:
 
-휴게 타이머:
-
-18. confirmed=false -> true에서만 타이머 시작 확인
-19. effective rest = `set.restSecondsOverride ?: entry.restSeconds` 확인
-20. 앱 안 mini timer 확인
-21. background notification 확인
-22. overlay 권한이 있을 때 background overlay 확인
-23. overlay 삭제 후 같은 away session에서 다시 뜨지 않는지 확인
-24. 앱 복귀 / 새 타이머에서 suppression reset 확인
-25. 종료 알림 / 소리 / 진동 확인
+18. confirmed=false -> true?먯꽌留???대㉧ ?쒖옉 ?뺤씤
+19. effective rest = `set.restSecondsOverride ?: entry.restSeconds` ?뺤씤
+20. ????mini timer ?뺤씤
+21. background notification ?뺤씤
+22. overlay 沅뚰븳???덉쓣 ??background overlay ?뺤씤
+23. overlay ??젣 ??媛숈? away session?먯꽌 ?ㅼ떆 ?⑥? ?딅뒗吏 ?뺤씤
+24. ??蹂듦? / ????대㉧?먯꽌 suppression reset ?뺤씤
+25. 醫낅즺 ?뚮┝ / ?뚮━ / 吏꾨룞 ?뺤씤

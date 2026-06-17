@@ -1,17 +1,16 @@
 # Initial Profile Fatigue Binding Report
 
-## 수정 파일
+## ?섏젙 ?뚯씪
 
 - `InitialProfileReadinessAdjuster.kt`
 
-## 변경
+## 蹂寃?
+- cold-start readiness 蹂댁젙?먯꽌 援ъ“???꾨뱶瑜??곗꽑 ?ъ슜?쒕떎.
+- `usualSleepHours`, `currentCondition`, `trainingBreakCategory`, `trainingBreakReason`, `painAreaTags`瑜??ъ슜?쒕떎.
+- ?먯쑀 ?띿뒪??`painAreas`, `goals`, `strengthTrainingAge`, `badmintonTrainingAge`???듭떖 ?쇰줈 蹂댁젙???ъ슜?섏? ?딅뒗??
 
-- cold-start readiness 보정에서 구조화 필드를 우선 사용한다.
-- `usualSleepHours`, `currentCondition`, `trainingBreakCategory`, `trainingBreakReason`, `painAreaTags`를 사용한다.
-- 자유 텍스트 `painAreas`, `goals`, `strengthTrainingAge`, `badmintonTrainingAge`는 핵심 피로 보정에 사용하지 않는다.
+## 蹂댁닔 泥섎━
 
-## 보수 처리
-
-- 초기 프로필이 없어도 crash 없이 기존 readiness 결과를 사용한다.
-- 구조화 값이 부족하면 기존 기록과 daily metric 기반으로만 판단한다.
-- 내부 모드명과 계산값은 일반 UI에 노출하지 않는다.
+- 珥덇린 ?꾨줈?꾩씠 ?놁뼱??crash ?놁씠 湲곗〈 readiness 寃곌낵瑜??ъ슜?쒕떎.
+- 援ъ“??媛믪씠 遺議깊븯硫?湲곗〈 湲곕줉怨?daily metric 湲곕컲?쇰줈留??먮떒?쒕떎.
+- ?대? 紐⑤뱶紐낃낵 怨꾩궛媛믪? ?쇰컲 UI???몄텧?섏? ?딅뒗??

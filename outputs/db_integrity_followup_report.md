@@ -1,21 +1,21 @@
 # DB Integrity Follow-up Report
 
-## 현재 적용
+## ?꾩옱 ?곸슜
 
-- `WorkoutEntry` 삭제 시 관련 `WorkoutSet` 삭제는 repository/DAO 흐름으로 처리한다.
-- `Exercise` 삭제는 repository에서 참조 여부를 검사한다.
-- `Exercise`가 `WorkoutEntry` 또는 `TrainingProgramItem`에서 참조되면 삭제하지 않는다.
-- 기본 제공 운동은 참조가 없어도 삭제보다 숨김을 우선한다.
+- `WorkoutEntry` ??젣 ??愿??`WorkoutSet` ??젣??repository/DAO ?먮쫫?쇰줈 泥섎━?쒕떎.
+- `Exercise` ??젣??repository?먯꽌 李몄“ ?щ?瑜?寃?ы븳??
+- `Exercise`媛 `WorkoutEntry` ?먮뒗 `TrainingProgramItem`?먯꽌 李몄“?섎㈃ ??젣?섏? ?딅뒗??
+- 湲곕낯 ?쒓났 ?대룞? 李몄“媛 ?놁뼱????젣蹂대떎 ?④????곗꽑?쒕떎.
 
-## 이번 버전에서 FK를 적용하지 않은 이유
+## ?대쾲 踰꾩쟾?먯꽌 FK瑜??곸슜?섏? ?딆? ?댁쑀
 
-- 기존 SQLite 테이블에 FK/cascade를 추가하려면 새 테이블 생성, 데이터 복사, 기존 테이블 삭제/rename이 필요하다.
-- 현재 앱은 사용자 기록, 프로그램, 운동 seed가 이미 존재하므로 rebuild migration은 v0.3.4.4 범위보다 리스크가 크다.
+- 湲곗〈 SQLite ?뚯씠釉붿뿉 FK/cascade瑜?異붽??섎젮硫????뚯씠釉??앹꽦, ?곗씠??蹂듭궗, 湲곗〈 ?뚯씠釉???젣/rename???꾩슂?섎떎.
+- ?꾩옱 ?깆? ?ъ슜??湲곕줉, ?꾨줈洹몃옩, ?대룞 seed媛 ?대? 議댁옱?섎?濡?rebuild migration? v0.3.4.4 踰붿쐞蹂대떎 由ъ뒪?ш? ?щ떎.
 
-## 향후 권장
+## ?ν썑 沅뚯옣
 
-- 다음 DB 구조 변경 시 schema 9 기준 migration test를 먼저 활성화한다.
-- `workout_sets.entryId -> workout_entries.id`는 cascade 후보.
-- `training_program_items.programId -> training_programs.id`는 cascade 후보.
-- `workout_entries.exerciseId -> exercises.id`는 restrict/no action 후보.
-- `training_program_items.exerciseId -> exercises.id`는 restrict/no action 후보.
+- ?ㅼ쓬 DB 援ъ“ 蹂寃???schema 9 湲곗? migration test瑜?癒쇱? ?쒖꽦?뷀븳??
+- `workout_sets.entryId -> workout_entries.id`??cascade ?꾨낫.
+- `training_program_items.programId -> training_programs.id`??cascade ?꾨낫.
+- `workout_entries.exerciseId -> exercises.id`??restrict/no action ?꾨낫.
+- `training_program_items.exerciseId -> exercises.id`??restrict/no action ?꾨낫.

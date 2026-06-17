@@ -26,4 +26,3 @@
 ## Compatibility
 
 No DB migration was required. The existing `strengthAverageRpe: Double?` field already supports decimal values.
-

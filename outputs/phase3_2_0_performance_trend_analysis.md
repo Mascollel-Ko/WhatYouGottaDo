@@ -7,17 +7,15 @@ Date: 2026-06-15
 Patch 3.2.0 adds the Analysis tab section:
 
 ```text
-성과 추세 분석
+?깃낵 異붿꽭 遺꾩꽍
 ```
 
 This is a summary dashboard plus detail indicators. It is not a precision diagnosis screen.
 
 First-screen dashboard lines:
 
-1. 근력운동 퍼포먼스
-2. 배드민턴 훈련량
-3. 피로도 종합지수
-
+1. 洹쇰젰?대룞 ?쇳룷癒쇱뒪
+2. 諛곕뱶誘쇳꽩 ?덈젴??3. ?쇰줈??醫낇빀吏??
 The first screen shows only three line charts and one short trend sentence.
 It does not show large numeric scores, recommendation lists, or decomposed sub-lines.
 
@@ -65,7 +63,7 @@ It does not show large numeric scores, recommendation lists, or decomposed sub-l
 
 The 3.2 card contains:
 
-- title: `성과 추세 분석`
+- title: `?깃낵 異붿꽭 遺꾩꽍`
 - one short trend sentence
 - three dashboard chart specs
 - detail toggle
@@ -282,10 +280,10 @@ Higher means higher fatigue burden.
 
 The detail area has four sections:
 
-1. 근력운동 해설
-2. 배드민턴 훈련 해설
-3. 피로도 해설
-4. 관계 분석
+1. 洹쇰젰?대룞 ?댁꽕
+2. 諛곕뱶誘쇳꽩 ?덈젴 ?댁꽕
+3. ?쇰줈???댁꽕
+4. 愿怨?遺꾩꽍
 
 Sections 1 to 3 have one chart slot each.
 
@@ -332,9 +330,9 @@ It does not make causal statements.
 
 Allowed wording:
 
-- "경향이 있습니다."
-- "함께 나타나는 편입니다."
-- "기록이 부족해 판단이 제한적입니다."
+- "寃쏀뼢???덉뒿?덈떎."
+- "?④퍡 ?섑??섎뒗 ?몄엯?덈떎."
+- "湲곕줉??遺議깊빐 ?먮떒???쒗븳?곸엯?덈떎."
 
 Forbidden wording:
 

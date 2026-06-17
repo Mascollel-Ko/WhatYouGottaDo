@@ -1,75 +1,74 @@
 # Phase 2.7 Record Calendar UI Patch
 
-작성일: 2026-06-15
+?묒꽦?? 2026-06-15
 
-## 목적
+## 紐⑹쟻
 
-기록 탭의 마이너 UI / 사용성 개선을 진행했다. CSV 백업/복원과 고급 분석/추천 엔진은 구현하지 않았다.
+湲곕줉 ??쓽 留덉씠??UI / ?ъ슜??媛쒖꽑??吏꾪뻾?덈떎. CSV 諛깆뾽/蹂듭썝怨?怨좉툒 遺꾩꽍/異붿쿇 ?붿쭊? 援ы쁽?섏? ?딆븯??
 
-## 상단 버튼 compact 배치
+## ?곷떒 踰꾪듉 compact 諛곗튂
 
-기록 탭 상단 액션을 조정했다.
+湲곕줉 ???곷떒 ?≪뀡??議곗젙?덈떎.
 
-- 날짜 이동 row: `이전날` / 날짜 / `다음날` / `달력`
-- 컨디션 row: `컨디션` / `운동 추가`
+- ?좎쭨 ?대룞 row: `?댁쟾?? / ?좎쭨 / `?ㅼ쓬?? / `?щ젰`
+- 而⑤뵒??row: `而⑤뵒?? / `?대룞 異붽?`
 
-`컨디션` 버튼은 수면 / 체중 입력을 여는 접힘 패널이다.  
-입력값이 있으면 `컨디션 · 수면 7h · 80kg` 형식으로 요약한다.
+`而⑤뵒?? 踰꾪듉? ?섎㈃ / 泥댁쨷 ?낅젰???щ뒗 ?묓옒 ?⑤꼸?대떎.
+?낅젰媛믪씠 ?덉쑝硫?`而⑤뵒??쨌 ?섎㈃ 7h 쨌 80kg` ?뺤떇?쇰줈 ?붿빟?쒕떎.
 
-## 세트 행 휴게 타이머 표시
+## ?명듃 ???닿쾶 ??대㉧ ?쒖떆
 
-상단의 큰 휴게 타이머 bar를 기록 화면에서 제거했다.  
-현재 active timer는 target set row 보조행에 표시한다.
+?곷떒?????닿쾶 ??대㉧ bar瑜?湲곕줉 ?붾㈃?먯꽌 ?쒓굅?덈떎.
+?꾩옱 active timer??target set row 蹂댁“?됱뿉 ?쒖떆?쒕떎.
 
-표시 예:
+?쒖떆 ??
 
-- `휴식 1:27`
-- `휴식 45초`
-- `휴식 종료`
+- `?댁떇 1:27`
+- `?댁떇 45珥?
+- `?댁떇 醫낅즺`
 
-작은 `종료` 액션으로 타이머를 중지할 수 있다.
+?묒? `醫낅즺` ?≪뀡?쇰줈 ??대㉧瑜?以묒??????덈떎.
 
 source of truth:
 
 - `RestTimerSessionController`
 
-세트 행은 controller state를 구독해서 표시만 한다.  
-타이머 state에 `targetSetId`를 추가해 active timer를 특정 세트 행에 매핑한다.
+?명듃 ?됱? controller state瑜?援щ룆?댁꽌 ?쒖떆留??쒕떎.
+??대㉧ state??`targetSetId`瑜?異붽???active timer瑜??뱀젙 ?명듃 ?됱뿉 留ㅽ븨?쒕떎.
 
-## 완료 운동 자동 상단 정렬
+## ?꾨즺 ?대룞 ?먮룞 ?곷떒 ?뺣젹
 
-정렬은 UI 표시 순서만 바꾼다. DB row, `createdAt`, `entry id`, `setIndex`는 변경하지 않는다.
+?뺣젹? UI ?쒖떆 ?쒖꽌留?諛붽씔?? DB row, `createdAt`, `entry id`, `setIndex`??蹂寃쏀븯吏 ?딅뒗??
 
-정렬 그룹:
+?뺣젹 洹몃９:
 
-1. 모든 세트가 `confirmed=true`인 운동
-2. 일부 세트가 `confirmed=true`인 운동
-3. 아직 확인된 세트가 없는 운동
+1. 紐⑤뱺 ?명듃媛 `confirmed=true`???대룞
+2. ?쇰? ?명듃媛 `confirmed=true`???대룞
+3. ?꾩쭅 ?뺤씤???명듃媛 ?녿뒗 ?대룞
 
-각 그룹 안에서는 `createdAt`, `entry.id` 순서를 유지한다.
+媛?洹몃９ ?덉뿉?쒕뒗 `createdAt`, `entry.id` ?쒖꽌瑜??좎??쒕떎.
 
-## 월간 캘린더 요약
+## ?붽컙 罹섎┛???붿빟
 
-`RecordCalendarScreen.kt`를 추가했다.
+`RecordCalendarScreen.kt`瑜?異붽??덈떎.
 
-흐름:
+?먮쫫:
 
-- 기록 탭 상단 `달력` 버튼 클릭
-- 월간 캘린더 화면 표시
-- 이전달 / 다음달 / 오늘 이동
-- 날짜 클릭 시 해당 날짜 기록 화면으로 이동
-- 선택 날짜와 오늘 표시
+- 湲곕줉 ???곷떒 `?щ젰` 踰꾪듉 ?대┃
+- ?붽컙 罹섎┛???붾㈃ ?쒖떆
+- ?댁쟾??/ ?ㅼ쓬??/ ?ㅻ뒛 ?대룞
+- ?좎쭨 ?대┃ ???대떦 ?좎쭨 湲곕줉 ?붾㈃?쇰줈 ?대룞
+- ?좏깮 ?좎쭨? ?ㅻ뒛 ?쒖떆
 
-날짜 cell 표시:
+?좎쭨 cell ?쒖떆:
 
-- 운동 종류 요약
-- confirmed set 수
-- confirmed volume
-- confirmed 기록이 없고 planned set만 있으면 `계획` 표시
+- ?대룞 醫낅쪟 ?붿빟
+- confirmed set ??- confirmed volume
+- confirmed 湲곕줉???녾퀬 planned set留??덉쑝硫?`怨꾪쉷` ?쒖떆
 
-## 월간 Summary Query / Model
+## ?붽컙 Summary Query / Model
 
-추가 모델:
+異붽? 紐⑤뜽:
 
 ```kotlin
 DailyRecordSummary(
@@ -84,104 +83,103 @@ DailyRecordSummary(
 )
 ```
 
-추가 query:
+異붽? query:
 
 - `WorkoutDao.observeDailySummariesBetween(startDate, endDate)`
 
-집계 기준:
+吏묎퀎 湲곗?:
 
-- 총 세트 수: `confirmed=true`
-- 총 볼륨: `confirmed=true` 세트의 `reps * weightKg`
-- 총 시간: `confirmed=true` 세트의 `seconds`
-- 계획 수: `confirmed=false`
-- 운동 종류: 날짜의 `WorkoutEntry.category`
-- body part 후보: `Exercise.bodyRegion`
+- 珥??명듃 ?? `confirmed=true`
+- 珥?蹂쇰ⅷ: `confirmed=true` ?명듃??`reps * weightKg`
+- 珥??쒓컙: `confirmed=true` ?명듃??`seconds`
+- 怨꾪쉷 ?? `confirmed=false`
+- ?대룞 醫낅쪟: ?좎쭨??`WorkoutEntry.category`
+- body part ?꾨낫: `Exercise.bodyRegion`
 
-`confirmed=false`는 실제 훈련 부하가 아니라 계획 / 미확인으로만 표시한다.
+`confirmed=false`???ㅼ젣 ?덈젴 遺?섍? ?꾨땲??怨꾪쉷 / 誘명솗?몄쑝濡쒕쭔 ?쒖떆?쒕떎.
 
-## 다크모드
+## ?ㅽ겕紐⑤뱶
 
-지원됨.
+吏?먮맖.
 
-확인 내용:
+?뺤씤 ?댁슜:
 
-- `Theme.kt`에 `lightColorScheme` 있음
-- `Theme.kt`에 `darkColorScheme` 있음
-- `isSystemInDarkTheme()` 기준으로 MaterialTheme colorScheme 선택
-- 새 캘린더 UI도 `MaterialTheme.colorScheme` 사용
+- `Theme.kt`??`lightColorScheme` ?덉쓬
+- `Theme.kt`??`darkColorScheme` ?덉쓬
+- `isSystemInDarkTheme()` 湲곗??쇰줈 MaterialTheme colorScheme ?좏깮
+- ??罹섎┛??UI??`MaterialTheme.colorScheme` ?ъ슜
 
-남은 제한:
+?⑥? ?쒗븳:
 
-- 앱 내 수동 다크모드 토글은 구현하지 않았다.
-- `Color.White`는 theme의 `onPrimary`, `onSecondary`, `onTertiary` 정의에서만 사용 중이다.
+- ?????섎룞 ?ㅽ겕紐⑤뱶 ?좉?? 援ы쁽?섏? ?딆븯??
+- `Color.White`??theme??`onPrimary`, `onSecondary`, `onTertiary` ?뺤쓽?먯꽌留??ъ슜 以묒씠??
 
-## 수동 QA 체크리스트
+## ?섎룞 QA 泥댄겕由ъ뒪??
+湲곕줉 ?곷떒:
 
-기록 상단:
+1. `?щ젰`??`?ㅼ쓬?? ?ㅻⅨ履쎌뿉 ?덈뒗吏 ?뺤씤
+2. `而⑤뵒??, `?대룞 異붽?`媛 compact row???덈뒗吏 ?뺤씤
+3. `而⑤뵒?? ?대┃ ???섎㈃ / 泥댁쨷 ?낅젰???대━?붿? ?뺤씤
+4. ?????condition summary媛 媛깆떊?섎뒗吏 ?뺤씤
 
-1. `달력`이 `다음날` 오른쪽에 있는지 확인
-2. `컨디션`, `운동 추가`가 compact row에 있는지 확인
-3. `컨디션` 클릭 시 수면 / 체중 입력이 열리는지 확인
-4. 저장 후 condition summary가 갱신되는지 확인
+?명듃蹂??닿쾶 ?쒖떆:
 
-세트별 휴게 표시:
+5. ?명듃 ?뺤씤 ???대떦 ?명듃 ?됱뿉 ?댁떇 countdown ?쒖떆 ?뺤씤
+6. ?곷떒 ??timer bar媛 ??긽 ?⑥? ?딅뒗吏 ?뺤씤
+7. ?묒? `醫낅즺` ?≪뀡?쇰줈 ??대㉧ 以묒? ?뺤씤
+8. background notification / overlay ?숈옉 ?좎? ?뺤씤
 
-5. 세트 확인 시 해당 세트 행에 휴식 countdown 표시 확인
-6. 상단 큰 timer bar가 항상 뜨지 않는지 확인
-7. 작은 `종료` 액션으로 타이머 중지 확인
-8. background notification / overlay 동작 유지 확인
+?꾨즺 ?대룞 ?뺣젹:
 
-완료 운동 정렬:
+9. 紐⑤뱺 ?명듃 ?꾨즺 ?대룞???꾩そ?쇰줈 ?대룞?섎뒗吏 ?뺤씤
+10. ?쇰? ?꾨즺 ?대룞??洹??ㅼ쓬???쒖떆?섎뒗吏 ?뺤씤
+11. DB row ?쒖꽌媛 諛붾뚯? ?딅뒗吏 ?뺤씤
 
-9. 모든 세트 완료 운동이 위쪽으로 이동하는지 확인
-10. 일부 완료 운동이 그 다음에 표시되는지 확인
-11. DB row 순서가 바뀌지 않는지 확인
+?붽컙 罹섎┛??
 
-월간 캘린더:
+12. `?щ젰` ?대┃ ???붽컙 ?붾㈃ ?쒖떆 ?뺤씤
+13. 湲곕줉 ?좎쭨 cell??醫낅쪟 / ?명듃 / 蹂쇰ⅷ ?쒖떆 ?뺤씤
+14. 怨꾪쉷留??덈뒗 ?좎쭨??`怨꾪쉷`?쇰줈 ?쒖떆?섎뒗吏 ?뺤씤
+15. ?좎쭨 ?대┃ ??湲곕줉 ?붾㈃ ?좎쭨 ?대룞 ?뺤씤
+16. ?ㅻ뒛 踰꾪듉怨??좏깮 ?좎쭨 媛뺤“ ?뺤씤
 
-12. `달력` 클릭 시 월간 화면 표시 확인
-13. 기록 날짜 cell에 종류 / 세트 / 볼륨 표시 확인
-14. 계획만 있는 날짜는 `계획`으로 표시되는지 확인
-15. 날짜 클릭 시 기록 화면 날짜 이동 확인
-16. 오늘 버튼과 선택 날짜 강조 확인
+?ㅽ겕紐⑤뱶:
 
-다크모드:
+17. ?쒖뒪???ㅽ겕紐⑤뱶?먯꽌 湲곕줉 ?붾㈃ ?뺤씤
+18. 罹섎┛??cell ?鍮??뺤씤
+19. ?명듃 row / chip / button ?鍮??뺤씤
 
-17. 시스템 다크모드에서 기록 화면 확인
-18. 캘린더 cell 대비 확인
-19. 세트 row / chip / button 대비 확인
+## 鍮뚮뱶
 
-## 빌드
-
-검증 명령:
+寃利?紐낅졊:
 
 ```powershell
 $env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
 .\gradlew.bat --no-daemon --no-problems-report assembleDebug
 ```
 
-결과: `BUILD SUCCESSFUL`.
+寃곌낵: `BUILD SUCCESSFUL`.
 
 ## Phase 2.7.2 Calendar Lifecycle Follow-up
 
-월간 캘린더 날짜 long press action을 추가했다.
+?붽컙 罹섎┛???좎쭨 long press action??異붽??덈떎.
 
-- 계획으로 복사
-- 기록상태까지 복사
-- 이동
-- 삭제
-- 선택복사
+- 怨꾪쉷?쇰줈 蹂듭궗
+- 湲곕줉?곹깭源뚯? 蹂듭궗
+- ?대룞
+- ??젣
+- ?좏깮蹂듭궗
 
-drag/drop 대신 long press + dialog + 대상 날짜 선택 방식이다.
+drag/drop ???long press + dialog + ????좎쭨 ?좏깮 諛⑹떇?대떎.
 
-confirmed 처리:
+confirmed 泥섎━:
 
-- 계획 복사 / 선택복사: `confirmed=false`
-- 기록상태 복사 / 이동: confirmed 보존
+- 怨꾪쉷 蹂듭궗 / ?좏깮蹂듭궗: `confirmed=false`
+- 湲곕줉?곹깭 蹂듭궗 / ?대룞: confirmed 蹂댁〈
 
-DailyMetric은 날짜 고유 컨디션이므로 복사 / 이동 / 삭제하지 않는다.
+DailyMetric? ?좎쭨 怨좎쑀 而⑤뵒?섏씠誘濡?蹂듭궗 / ?대룞 / ??젣?섏? ?딅뒗??
 
-상세 문서:
+?곸꽭 臾몄꽌:
 
 - `outputs/phase2_7_2_calendar_lifecycle_audit.md`
 - `outputs/phase2_7_2_calendar_lifecycle_patch.md`

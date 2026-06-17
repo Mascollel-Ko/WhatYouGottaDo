@@ -2,9 +2,9 @@
 
 ## Goal
 
-Patch 3.3.0 adds the Analysis tab section `배드민턴 전이 분석`.
+Patch 3.3.0 adds the Analysis tab section `諛곕뱶誘쇳꽩 ?꾩씠 遺꾩꽍`.
 
-The first card intentionally shows only one recommendation sentence. Detailed ratios, charts, and top exercises are hidden behind `자세히 보기`.
+The first card intentionally shows only one recommendation sentence. Detailed ratios, charts, and top exercises are hidden behind `?먯꽭??蹂닿린`.
 
 ## Added Files
 
@@ -100,20 +100,20 @@ Key outputs:
 
 First card:
 
-- title: `배드민턴 전이 분석`
+- title: `諛곕뱶誘쇳꽩 ?꾩씠 遺꾩꽍`
 - body: exactly one recommendation sentence
-- button: `자세히 보기`
+- button: `?먯꽭??蹂닿린`
 
 Example sentence:
 
-- `오늘은 감속·착지 제어 운동을 추천드립니다.`
+- `?ㅻ뒛? 媛먯냽쨌李⑹? ?쒖뼱 ?대룞??異붿쿇?쒕┰?덈떎.`
 
 Details:
 
-- `전이축 비중`
-- `전이유형 비중`
-- `최근 7일 vs 28일`
-- `운동별 전이 자극 Top 5`
+- `?꾩씠異?鍮꾩쨷`
+- `?꾩씠?좏삎 鍮꾩쨷`
+- `理쒓렐 7??vs 28??
+- `?대룞蹂??꾩씠 ?먭레 Top 5`
 
 Only one detail chart area is shown, and the selector changes the displayed data.
 
@@ -131,9 +131,9 @@ High-fatigue days do not recommend high-cost transfer work first.
 
 Used terms:
 
-- `전이 비중`
-- `전이 자극`
-- `배드민턴 전이 분석`
+- `?꾩씠 鍮꾩쨷`
+- `?꾩씠 ?먭레`
+- `諛곕뱶誘쇳꽩 ?꾩씠 遺꾩꽍`
 
 Avoided:
 
@@ -145,4 +145,3 @@ Avoided:
 
 - `testDebugUnitTest`: passed
 - Static check: new badminton analysis main package has no exercise-name `.contains` classification.
-

@@ -1,6 +1,6 @@
 # Metadata Analysis Readiness Report
 
-Patch: 3.1.2  
+Patch: 3.1.2
 Date: 2026-06-15
 
 ## Scope

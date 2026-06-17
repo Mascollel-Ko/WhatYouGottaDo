@@ -2,7 +2,7 @@
 
 ## Changes
 
-- Program list cards now expose an `적용` button in the default card state.
+- Program list cards now expose an `?곸슜` button in the default card state.
 - The apply button opens the existing program apply flow instead of duplicating application logic.
 - Existing start-date parsing, conflict summary, append mode, and overwrite mode remain in `ProgramApplyCard`.
 - Program detail view now shows day-by-day text summaries.
@@ -17,8 +17,8 @@
 ## Preserved Behavior
 
 - Program creation still requires a program name.
-- `자동으로 골자 만들기` remains available for new programs.
-- `전부 새로 만들기` remains available for new programs.
+- `?먮룞?쇰줈 怨⑥옄 留뚮뱾湲? remains available for new programs.
+- `?꾨? ?덈줈 留뚮뱾湲? remains available for new programs.
 - Program edit still loads existing program items through `skeletonFromProgram`.
 - Applying a program still uses `TrainingViewModel.applyProgram`.
 - Conflict handling still uses `loadProgramApplyConflictSummary`.
@@ -28,12 +28,10 @@
 Program detail rows are rendered as text:
 
 ```text
-- Exercise name: 3세트 x 8회, 60kg, 휴식 90초, prescription memo
+- Exercise name: 3?명듃 x 8?? 60kg, ?댁떇 90珥? prescription memo
 ```
 
 Empty days are shown as:
 
 ```text
-- 휴식 또는 미지정
-```
-
+- ?댁떇 ?먮뒗 誘몄???```
