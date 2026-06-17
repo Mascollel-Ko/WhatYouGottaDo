@@ -8,7 +8,7 @@
 -> `ReadinessScoreAdjustment`
 -> `Ready / Normal / Caution / Fatigued`
 
-The app status enum currently uses `READY`, `CAUTION`, `FATIGUED`, and `LIMITED`. v0.3.4.4.4 does not replace that enum. The requested "Normal" behavior is handled as a less conservative `READY/CAUTION` threshold effect inside the existing status system.
+The app status enum currently uses `READY`, `CAUTION`, `FATIGUED`, and `LIMITED`. v0.3.4.5 does not replace that enum. The requested "Normal" behavior is handled as a less conservative `READY/CAUTION` threshold effect inside the existing status system.
 
 ## Binding Points
 

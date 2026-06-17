@@ -717,3 +717,22 @@ Reference:
 - Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
 - CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
 - Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3444-TrainingTrackPlanner-v0.3.4.4.4-debug.apk`.
+
+## v0.3.4.5 Current Addendum
+
+- Version bumped to `v0.3.4.5` / `versionCode 304045`.
+- Room DB version remains `12`; no new migration was added.
+- Exercise seed version bumped to `6`.
+- Record tab now supports deleting a whole exercise entry from today's record via the exercise card action row.
+- Deleting the last set of an unconfirmed exercise now removes the entry instead of leaving an undeletable empty record.
+- Rest timer overlay is hidden when there is no next exercise target.
+- Analysis section wording changed from `성과 추세 분석` to `성과 추세`.
+- Strength detail wording changed from efficiency to `RPE 대비 운동량`.
+- Badminton court volume wording changed to `셔틀 플레이 시간`.
+- Metric chips are visible only in trend detail mode.
+- Strength and fatigue ranking modes are hidden; badminton ranking remains.
+- Relationship analysis uses dropdown X/Y selectors and blocks selecting the same metric on both axes.
+- `배드민턴 레슨` was added to the seed data and mapped as `BADMINTON_DIRECT_PLAY`.
+- Direct badminton play, footwork/reactive drills, and support training are separated by structured metadata.
+- Canonical handoff: `outputs/v0.3.4.5_reproduction_handoff.md`.
+- Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\TrainingTrackPlanner-v0.3.4.5-debug.apk`.

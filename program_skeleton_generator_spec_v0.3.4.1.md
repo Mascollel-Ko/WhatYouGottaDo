@@ -1,8 +1,8 @@
 # Program Skeleton Generator Spec v0.3.4.1
 
-## Current Status in v0.3.4.4.4
+## Current Status in v0.3.4.5
 
-This document remains the generator design reference. The active app version is `v0.3.4.4.4`.
+This document remains the generator design reference. The active app version is `v0.3.4.5`.
 
 UI behavior added after this spec:
 
@@ -11,6 +11,7 @@ UI behavior added after this spec:
 - Existing program editing hides automatic skeleton generator controls and focuses on editing the loaded program structure.
 - Program list cards expose a direct apply button.
 - Program detail is a read-only day-by-day text summary, not the editing surface.
+- v0.3.4.5 keeps the program generator behavior unchanged and focuses on record deletion UX, performance trend wording, badminton metric semantics, and rest overlay cleanup.
 
 ## 1. Purpose
 

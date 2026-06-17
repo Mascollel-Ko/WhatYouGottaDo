@@ -921,3 +921,17 @@ No DB schema or metadata meaning changed.
 - Initial profile now can affect READY/CAUTION/FATIGUED outcomes through baseline blending and final summary adjustment.
 - CSV profile restore now sanitizes enum keys, RPE, and 1-5 recovery fields.
 - Debug APK backup: `C:\Users\pki08\Documents\Codex\google_drive_backup\3444-TrainingTrackPlanner-v0.3.4.4.4-debug.apk`.
+
+## v0.3.4.5 Data Meaning Addendum
+
+- `WorkoutEntry` can now be deleted as a whole exercise record from today's record UI.
+- `WorkoutSet.confirmed=false` last-set deletion may remove the parent entry when no sets remain.
+- Rest timer overlay visibility now depends on a valid next exercise target, not only timer activity.
+- `AnalysisExerciseFeatures.stableKey` and `activityKind` identify stable exercise semantics for analysis calculators.
+- `ExerciseActivityKind.SPORT_SESSION` represents direct sport play such as badminton sessions and lessons.
+- `BADMINTON_DIRECT_PLAY` maps to direct shuttle play time, not footwork/reactive drill volume.
+- `배드민턴 레슨` is a seeded direct badminton play item.
+- `BadmintonTrainingLoadIndexCalculator` separates shuttle play, footwork/reactive work, and badminton support work before index calculation.
+- `PerformanceTrendSectionType.STRENGTH` and `PerformanceTrendSectionType.FATIGUE` no longer expose ranking mode in v0.3.4.5.
+- Relationship scatter points remain weekly trend points and must be described as correlation/tendency only.
+- Version facts: app `v0.3.4.5`, version code `304045`, Room DB `12`, exercise seed version `6`.

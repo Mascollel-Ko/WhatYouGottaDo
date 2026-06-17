@@ -388,3 +388,35 @@ Sentence policy:
 - use `?꾩씠 鍮꾩쨷`, `?꾩씠 ?먭레`, and `諛곕뱶誘쇳꽩 ?꾩씠 遺꾩꽍`.
 - avoid match-performance improvement claims.
 - high fatigue should choose recovery or low-fatigue supplementary work before strong transfer work.
+
+## v0.3.4.5 Current Notes
+
+v0.3.4.5 keeps the existing Today Readiness and performance trend engines. It updates the user-facing wording and chart selector behavior without changing the core formulas.
+
+Current analysis UI rules:
+
+- The first-screen performance section label is `성과 추세`.
+- The first screen remains a summary dashboard, not a scorecard.
+- The three first-screen concepts remain strength performance, badminton training volume, and fatigue composite.
+- Strength efficiency is labeled as `RPE 대비 운동량`.
+- Badminton court volume is labeled as `셔틀 플레이 시간`.
+- Badminton training volume must not be described as badminton skill, match ability, or guaranteed performance improvement.
+- Strength and fatigue detail ranking modes are hidden in v0.3.4.5.
+- Badminton detail ranking remains available because item-level training dose ranking has a concrete metadata basis.
+- Metric chips are shown only in trend mode.
+- Relationship analysis uses dropdown X/Y selectors and blocks same-metric scatter plots.
+
+Current badminton metric rules:
+
+- Direct shuttle play is represented by structured metadata, not exercise-name parsing.
+- `BADMINTON_DIRECT_PLAY` maps to `ExerciseActivityKind.SPORT_SESSION`.
+- `배드민턴` and `배드민턴 레슨` count toward shuttle play time.
+- Direct play, footwork/reactive drills, and support training are separated before baseline normalization.
+
+Current release facts:
+
+- App version: `v0.3.4.5`
+- Version code: `304045`
+- Room DB version: `12`
+- Exercise seed version: `6`
+- Canonical handoff: `outputs/v0.3.4.5_reproduction_handoff.md`

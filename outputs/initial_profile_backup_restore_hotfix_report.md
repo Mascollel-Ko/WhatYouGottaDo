@@ -1,5 +1,9 @@
 # Initial Profile Backup / Restore Hotfix Report
 
+## Current Through v0.3.4.5
+
+v0.3.4.5 does not change the structured initial profile backup/restore schema. The compatibility notes below remain current for the v0.3.4.5 app.
+
 ## v0.3.4.4.4 Changes
 
 - Backup still exports legacy profile keys for compatibility.
