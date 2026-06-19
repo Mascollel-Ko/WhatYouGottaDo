@@ -77,6 +77,7 @@ data class RestoreSetRow(
     val entryKey: String,
     val entryOrder: Int,
     val exerciseName: String,
+    val stableKey: String,
     val category: String,
     val confirmed: Boolean,
     val restSeconds: Int,
@@ -166,6 +167,7 @@ object RecordCsvBackupRestore {
         initialProfile: InitialUserProfile? = null
     ): String {
         val builder = StringBuilder()
+        val exercisesById = exercises.associateBy { exercise -> exercise.id }
         builder.appendLine(restoreHeader.joinToString(","))
         initialProfile?.toCsvPairs()?.forEach { (key, value) ->
             builder.appendCsvRow(
@@ -290,7 +292,8 @@ object RecordCsvBackupRestore {
                                 set.weightKg.formatNumber(),
                                 set.seconds.toString(),
                                 "",
-                                ""
+                                "",
+                                exercisesById[entry.exerciseId]?.stableKey.orEmpty()
                             )
                         )
                     }
@@ -393,6 +396,7 @@ object RecordCsvBackupRestore {
                     entryKey = row.value(index, "entry_key").ifBlank { "fallback-$date-$rowIndex" },
                     entryOrder = row.safeInt(index, "entry_order") ?: rowIndex + 1,
                     exerciseName = row.value(index, "exercise_name").ifBlank { "CSV 복원 운동" },
+                    stableKey = row.value(index, "stable_key"),
                     category = row.value(index, "category").ifBlank { "근력운동" },
                     confirmed = row.safeBool(index, "confirmed") ?: true,
                     restSeconds = row.safeInt(index, "rest_seconds") ?: 60,

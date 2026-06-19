@@ -1,0 +1,28 @@
+field,runtimeRepresentation,parserOrMapping,currentRuntimeConsumer,legacyFallback,status
+stableKey,String,trimmed scalar,RuntimeExerciseMetadataCatalog and backup restore,exerciseName,IMPLEMENTED
+exerciseName,String,trimmed scalar,RuntimeExerciseMetadataCatalog fallback,NONE,IMPLEMENTED
+planningEligibility,String,scalar comparison,ProgramSkeletonGenerator,Exercise.resolvedPlanningEligibility,IMPLEMENTED
+movementFamily,String,raw scalar,analysis input and generator-accessible catalog,movementPattern,IMPLEMENTED_CARRY_FORWARD
+movementSubtype,String,raw scalar,analysis input and generator-accessible catalog,NONE,IMPLEMENTED_CARRY_FORWARD
+programSlot,String,raw scalar,analysis input and generator-accessible catalog,trainingRole,IMPLEMENTED_CARRY_FORWARD
+redundancyGroup,String,raw scalar,ProgramSkeletonGenerator duplicate suppression,movementPattern,IMPLEMENTED
+progressMetricType,String plus ProgressMetricRuntimeBehavior,explicit broad behavior mapping,ProgramSkeletonGenerator scoring and future analysis,legacy progressMetricType,IMPLEMENTED
+strengthProgressionGroup,String,raw scalar,analysis input and generator-accessible catalog,legacy strengthProgressionGroup,IMPLEMENTED_CARRY_FORWARD
+analysisEligibility,MetadataTokenField,shared pipe parser,analysis input; known current tokens remain consumable,legacy analysisEligibility,IMPLEMENTED
+primaryStressProfile,String,raw scalar,analysis input and ProgramSkeletonGenerator stress cost,legacy fatigue weights,IMPLEMENTED
+secondaryStressTags,MetadataTokenField,shared pipe parser,analysis input and broad legacy fatigue adapter,legacy fatigueCategories,IMPLEMENTED
+tendonStressTags,MetadataTokenField,shared pipe parser,analysis input and broad legacy fatigue adapter,NONE,IMPLEMENTED_CARRY_FORWARD
+ligamentJointStabilityStressTags,MetadataTokenField,shared pipe parser,analysis input and broad legacy fatigue adapter,NONE,IMPLEMENTED_CARRY_FORWARD
+jointImpactStressTags,MetadataTokenField,shared pipe parser,analysis input and broad legacy fatigue adapter,NONE,IMPLEMENTED_CARRY_FORWARD
+cognitiveStressTags,MetadataTokenField,shared pipe parser,analysis input,NONE,IMPLEMENTED_CARRY_FORWARD
+sportContextTags,MetadataTokenField,shared pipe parser,analysis input,NONE,IMPLEMENTED_CARRY_FORWARD
+recoveryDecayProfile,String,raw scalar,analysis input and legacy calculator fallback,legacy recoveryDecayProfile,IMPLEMENTED_CARRY_FORWARD
+stressMagnitudeHint,String,raw scalar,ProgramSkeletonGenerator fatigue cost and analysis input,legacy weighted fatigue cost,IMPLEMENTED
+badmintonTransferLevel,String plus RuntimeBadmintonTransferLevel,safe scalar detection,BadmintonTransferMetadataMapper and ProgramSkeletonGenerator,legacy badmintonTransferStrength,IMPLEMENTED
+badmintonTransferType,MetadataTokenField,shared pipe parser,BadmintonTransferMetadataMapper axes,legacy badmintonTransferRoles,IMPLEMENTED
+badmintonSkillTargets,MetadataTokenField,shared pipe parser,BadmintonTransferMetadataMapper axes,legacy badmintonSkillTargets,IMPLEMENTED
+badmintonPhysicalQualities,MetadataTokenField,shared pipe parser,BadmintonTransferMetadataMapper axes and stability score,legacy balance tags,IMPLEMENTED
+transferConfidence,String,raw scalar,analysis input,NONE,IMPLEMENTED_CARRY_FORWARD
+sourceConfidenceLevel,String,raw scalar,analysis input and generator confidence penalty,legacy metadataConfidence,IMPLEMENTED
+finalSourceStatus,String,raw scalar,analysis input,NONE,IMPLEMENTED_CARRY_FORWARD
+safeForSeedMutation,Boolean,YES/TRUE/1 parser,stored only and never authorizes mutation,NONE,IMPLEMENTED_GUARD

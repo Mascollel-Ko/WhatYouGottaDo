@@ -146,6 +146,28 @@ class ProgramSkeletonGeneratorTest {
         assertTrue(skeleton.items.any { it.weightSource == "DIRECT_HISTORY_HIGH" })
     }
 
+    @Test
+    fun canonicalPlanningEligibilityOverridesLegacySelectableFallback() {
+        val exercise = strengthExercise(501, "Canonical fatigue-only", MovementPattern.SQUAT)
+        val metadata = ExerciseMetadataAdapter.fromFields(
+            mapOf(
+                "stableKey" to exercise.stableKey,
+                "exerciseName" to exercise.name,
+                "planningEligibility" to "FATIGUE_ONLY",
+                "safeForSeedMutation" to "NO"
+            )
+        )
+
+        val skeleton = ProgramSkeletonGenerator().generate(
+            request = baseRequest(goal = ProgramGoal.STRENGTH),
+            exercises = listOf(exercise),
+            history = emptyList(),
+            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.of(listOf(metadata))
+        )
+
+        assertTrue(skeleton.items.isEmpty())
+    }
+
     private fun baseRequest(
         goal: ProgramGoal = ProgramGoal.BADMINTON_SUPPORT,
         weeklyTrainingDays: Int = 3,

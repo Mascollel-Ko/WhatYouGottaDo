@@ -5,6 +5,13 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
+import com.training.trackplanner.analysis.fatigue.ContributionGrouping
+import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.fatigue.FatigueAnalysisMapper
+import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
+import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
+import com.training.trackplanner.analysis.fatigue.FatigueTarget
+import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.data.AnalysisStats
@@ -64,6 +71,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val todayReadinessSummary: StateFlow<TodayReadinessSummary?> =
         _todayReadinessSummary.asStateFlow()
 
+    private val _homeTodaySummary = MutableStateFlow(HomeTodaySummaryState.empty())
+    val homeTodaySummary: StateFlow<HomeTodaySummaryState> = _homeTodaySummary.asStateFlow()
+
     private val _performanceTrendSummary = MutableStateFlow<PerformanceTrendSummary?>(null)
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
@@ -71,6 +81,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _badmintonTransferSummary = MutableStateFlow<BadmintonTransferSummary?>(null)
     val badmintonTransferSummary: StateFlow<BadmintonTransferSummary?> =
         _badmintonTransferSummary.asStateFlow()
+
+    private var fatigueAnalysisHistory: List<DailyFatigueResult> = emptyList()
+    private val _fatigueAnalysisState = MutableStateFlow(FatigueAnalysisUiState())
+    val fatigueAnalysisState: StateFlow<FatigueAnalysisUiState> = _fatigueAnalysisState.asStateFlow()
 
     private val _recordTransferMessage = MutableStateFlow<String?>(null)
     val recordTransferMessage: StateFlow<String?> =
@@ -337,6 +351,30 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun selectFatigueAnalysisPeriod(period: FatigueAnalysisPeriod) {
+        rebuildFatigueAnalysis(period = period)
+    }
+
+    fun toggleFatigueTrendTarget(target: FatigueTarget) {
+        val selected = _fatigueAnalysisState.value.detail.selectedFatigueTargets.toMutableSet()
+        if (target in selected && selected.size > 1) selected.remove(target) else selected.add(target)
+        rebuildFatigueAnalysis(selectedTargets = selected)
+    }
+
+    fun selectFatigueContributionTarget(target: FatigueTarget) {
+        rebuildFatigueAnalysis(contributionTarget = target, selectedSourceKeys = emptySet())
+    }
+
+    fun selectFatigueContributionGrouping(grouping: ContributionGrouping) {
+        rebuildFatigueAnalysis(grouping = grouping, selectedSourceKeys = emptySet())
+    }
+
+    fun toggleFatigueContributionSource(sourceKey: String) {
+        val selected = _fatigueAnalysisState.value.detail.selectedContributionSourceKeys.toMutableSet()
+        if (sourceKey in selected && selected.size > 1) selected.remove(sourceKey) else selected.add(sourceKey)
+        rebuildFatigueAnalysis(selectedSourceKeys = selected)
+    }
+
     fun backupRecords(uri: Uri) {
         viewModelScope.launch {
             runCatching {
@@ -363,6 +401,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
 
     private suspend fun refreshAnalysisSummaries() {
+        runCatching {
+            repository.fatigueAnalysisHistory()
+        }.onSuccess { history ->
+            fatigueAnalysisHistory = history
+            rebuildFatigueAnalysis()
+        }.onFailure {
+            _fatigueAnalysisState.value = _fatigueAnalysisState.value.copy(
+                isLoading = false,
+                errorMessage = "피로도 기록을 불러오지 못했습니다."
+            )
+        }
+        runCatching {
+            repository.homeTodaySummary()
+        }.onSuccess { summary ->
+            _homeTodaySummary.value = summary
+        }
         val readinessSummary = runCatching {
             repository.todayReadinessSummary()
         }.onSuccess { summary ->
@@ -378,5 +432,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }.onSuccess { summary ->
             _performanceTrendSummary.value = summary
         }
+    }
+
+    private fun rebuildFatigueAnalysis(
+        period: FatigueAnalysisPeriod = _fatigueAnalysisState.value.detail.selectedPeriod,
+        selectedTargets: Set<FatigueTarget> = _fatigueAnalysisState.value.detail.selectedFatigueTargets,
+        contributionTarget: FatigueTarget = _fatigueAnalysisState.value.detail.contributionTarget,
+        grouping: ContributionGrouping = _fatigueAnalysisState.value.detail.contributionGrouping,
+        selectedSourceKeys: Set<String> = _fatigueAnalysisState.value.detail.selectedContributionSourceKeys
+    ) {
+        _fatigueAnalysisState.value = FatigueAnalysisMapper.map(
+            history = fatigueAnalysisHistory,
+            period = period,
+            selectedTargets = selectedTargets,
+            contributionTarget = contributionTarget,
+            grouping = grouping,
+            selectedSourceKeys = selectedSourceKeys
+        )
     }
 }

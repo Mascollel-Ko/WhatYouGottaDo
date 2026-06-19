@@ -43,11 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
 import com.training.trackplanner.analysis.badminton.BadmintonTransferDetailChartMode
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
+import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
-import com.training.trackplanner.analysis.readiness.FatigueDetailSection
-import com.training.trackplanner.analysis.readiness.FatigueLevel
-import com.training.trackplanner.analysis.readiness.ReadinessStatus
-import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.DetailChartMode
@@ -65,7 +62,7 @@ import kotlin.math.abs
 @Composable
 internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val stats by viewModel.analysisStats.collectAsState()
-    val readiness by viewModel.todayReadinessSummary.collectAsState()
+    val fatigueAnalysis by viewModel.fatigueAnalysisState.collectAsState()
     val badmintonTransfer by viewModel.badmintonTransferSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
 
@@ -77,12 +74,18 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
         item {
             ScreenHeader(
                 title = "분석",
-                body = "확인한 세트만 실제 훈련 기록으로 보고, 오늘 상태와 성과 흐름을 함께 봅니다."
+                body = "확인한 세트만 실제 훈련 기록으로 보고, 피로도와 성과 흐름을 함께 봅니다."
             )
         }
         item {
-            readiness?.let { TodayReadinessCard(it) }
-                ?: InfoCard("오늘 상태를 계산하고 있습니다.")
+            FatigueAnalysisSection(
+                state = fatigueAnalysis,
+                onPeriodChange = viewModel::selectFatigueAnalysisPeriod,
+                onFatigueTargetToggle = viewModel::toggleFatigueTrendTarget,
+                onContributionTargetChange = viewModel::selectFatigueContributionTarget,
+                onContributionGroupingChange = viewModel::selectFatigueContributionGrouping,
+                onContributionSourceToggle = viewModel::toggleFatigueContributionSource
+            )
         }
         item {
             badmintonTransfer?.let { BadmintonTransferCard(it) }
@@ -114,78 +117,6 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                 label = "총 시간",
                 value = formatSeconds(stats.totalSeconds)
             )
-        }
-    }
-}
-
-@Composable
-private fun TodayReadinessCard(summary: TodayReadinessSummary) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-
-    BackHandler(enabled = expanded) {
-        expanded = false
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "오늘 상태",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = statusLabel(summary.status),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                ConfidencePill(summary.confidence)
-            }
-            Text(
-                text = summary.headline,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = summary.shortReason,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            if (summary.primaryReasons.isNotEmpty()) {
-                CompactTextBlock("주요 이유", summary.primaryReasons.take(2))
-            }
-            if (summary.recommendedModes.isNotEmpty()) {
-                CompactSummaryLine("추천", summary.recommendedModes.take(2))
-            }
-            if (summary.restrictedModes.isNotEmpty()) {
-                CompactSummaryLine("조절", summary.restrictedModes.take(2))
-            }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "자세히 닫기" else "자세히 보기")
-            }
-            if (expanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    summary.detailSections.forEach { section ->
-                        FatigueDetailSectionCard(section)
-                    }
-                }
-            }
         }
     }
 }
@@ -754,85 +685,6 @@ private fun SelectableChip(
 }
 
 @Composable
-private fun CompactTextBlock(label: String, values: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        values.forEach { value ->
-            Text(
-                text = "- $value",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
-
-@Composable
-private fun CompactSummaryLine(label: String, values: List<String>) {
-    if (values.isEmpty()) return
-    Text(
-        text = "$label: ${values.joinToString(", ")}",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onPrimaryContainer
-    )
-}
-
-@Composable
-private fun FatigueDetailSectionCard(section: FatigueDetailSection) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = section.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                LevelPill(section.level)
-            }
-            Text(
-                text = section.summary,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            section.metrics.take(4).forEach { metric ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = metric.label,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = metric.value,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ConfidencePill(confidence: AnalysisConfidence) {
     Surface(
         shape = RoundedCornerShape(8.dp),
@@ -847,45 +699,12 @@ private fun ConfidencePill(confidence: AnalysisConfidence) {
     }
 }
 
-@Composable
-private fun LevelPill(level: FatigueLevel) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            text = levelLabel(level),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer
-        )
-    }
-}
-
-private fun statusLabel(status: ReadinessStatus): String =
-    when (status) {
-        ReadinessStatus.READY -> "READY"
-        ReadinessStatus.CAUTION -> "CAUTION"
-        ReadinessStatus.FATIGUED -> "FATIGUED"
-        ReadinessStatus.LIMITED -> "LIMITED"
-    }
-
 private fun confidenceLabel(confidence: AnalysisConfidence): String =
     when (confidence) {
         AnalysisConfidence.LOW -> "낮음"
         AnalysisConfidence.MEDIUM_LOW -> "보통 이하"
         AnalysisConfidence.MEDIUM -> "보통"
         AnalysisConfidence.HIGH -> "높음"
-    }
-
-private fun levelLabel(level: FatigueLevel): String =
-    when (level) {
-        FatigueLevel.LOW -> "LOW"
-        FatigueLevel.NORMAL -> "NORMAL"
-        FatigueLevel.ELEVATED -> "ELEVATED"
-        FatigueLevel.HIGH -> "HIGH"
-        FatigueLevel.VERY_HIGH -> "VERY HIGH"
-        FatigueLevel.LIMITED -> "LIMITED"
     }
 
 private fun DetailChartMode.modeLabel(): String =

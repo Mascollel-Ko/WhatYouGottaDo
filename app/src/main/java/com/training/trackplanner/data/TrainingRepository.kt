@@ -10,6 +10,11 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
+import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
+import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
+import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
+import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
@@ -106,6 +111,7 @@ class TrainingRepository(
     private val dailyMetricDao = db.dailyMetricDao()
     private val appMetaDao = db.appMetaDao()
     private val initialUserProfileDao = db.initialUserProfileDao()
+    private val runtimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -121,10 +127,57 @@ class TrainingRepository(
                 exercises = exerciseDao.allExercises(),
                 entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
                 dailyMetrics = dailyMetricDao.metricsUntil(todayString),
-                initialProfile = initialUserProfileDao.profile()
+                initialProfile = initialUserProfileDao.profile(),
+                runtimeMetadataCatalog = runtimeMetadataCatalog
             )
         )
     }
+
+    suspend fun homeTodaySummary(): HomeTodaySummaryState = withContext(Dispatchers.IO) {
+        val today = SystemAnalysisDateProvider().today()
+        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val exercises = exerciseDao.allExercises()
+        val entries = workoutDao.entriesWithSetsUntil(todayString)
+        val results = DailyFatigueCalculator(runtimeMetadataCatalog).calculateSeries(
+            endDate = today,
+            days = 7,
+            exercises = exercises,
+            entriesWithSets = entries,
+            initialProfile = initialUserProfileDao.profile()
+        )
+        val todayEntries = entries.filter { it.entry.date == todayString }
+        val todayState = results.last().state
+        HomeTodaySummaryState(
+            date = today,
+            plannedExerciseCount = todayEntries.size,
+            confirmedSetCount = todayEntries.sumOf { item -> item.sets.count { it.confirmed } },
+            unconfirmedSetCount = todayEntries.sumOf { item -> item.sets.count { !it.confirmed } },
+            fatigueLabel = todayState.readinessLabel,
+            fatigueScore = todayState.overallFatigueIndex,
+            fatigueHeadline = FatigueLabelResolver.headline(todayState.readinessLabel),
+            cautionReasons = todayState.cautionReasons,
+            recentTrainingLoadSeries = results.map { result ->
+                MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)
+            },
+            recentFatigueSeries = results.map { result ->
+                MiniTrendPoint(result.state.date, result.state.overallFatigueIndex.toDouble())
+            },
+            confidence = todayState.confidence
+        )
+    }
+
+    suspend fun fatigueAnalysisHistory(days: Int = 28 * 7): List<DailyFatigueResult> =
+        withContext(Dispatchers.IO) {
+            val today = SystemAnalysisDateProvider().today()
+            val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+            DailyFatigueCalculator(runtimeMetadataCatalog).calculateSeries(
+                endDate = today,
+                days = days.coerceIn(1, 28 * 7),
+                exercises = exerciseDao.allExercises(),
+                entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+                initialProfile = initialUserProfileDao.profile()
+            )
+        }
 
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
@@ -142,7 +195,7 @@ class TrainingRepository(
     ): BadmintonTransferSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        BadmintonTransferAnalysisEngine().analyze(
+        BadmintonTransferAnalysisEngine(runtimeMetadataCatalog = runtimeMetadataCatalog).analyze(
             today = today,
             exercises = exerciseDao.allExercises(),
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
@@ -358,7 +411,8 @@ class TrainingRepository(
             ProgramSkeletonGenerator().generate(
                 request = request,
                 exercises = exerciseDao.allExercises(),
-                history = workoutDao.allEntriesWithSets()
+                history = workoutDao.allEntriesWithSets(),
+                runtimeMetadataCatalog = runtimeMetadataCatalog
             )
         }
 
@@ -737,7 +791,11 @@ class TrainingRepository(
                         skipped += 1
                         return@forEach
                     }
-                    val exercise = findOrCreateImportedExercise(first.exerciseName, first.category)
+                    val exercise = findOrCreateImportedExercise(
+                        name = first.exerciseName,
+                        category = first.category,
+                        stableKey = first.stableKey
+                    )
                     val confirmedCount = importedSets.count { row -> row.setConfirmed }
                     val entryId = workoutDao.insertEntry(
                         WorkoutEntry(
@@ -915,7 +973,14 @@ class TrainingRepository(
         }
 
     private suspend fun upsertRestoredExercise(row: RestoreExerciseRow): Boolean {
-        val stableKey = row.stableKey.ifBlank { "imported_${row.name.stableToken()}" }
+        val stableKey = row.stableKey.ifBlank {
+            if (row.isCustom) {
+                "imported_${row.name.stableToken()}"
+            } else {
+                runtimeMetadataCatalog.resolveLegacyName(row.name)?.stableKey
+                    ?: "imported_${row.name.stableToken()}"
+            }
+        }
         val category = row.category.ifBlank { "근력운동" }
         val restored = ExerciseMetadataMapper.applyLegacyMetadata(
             Exercise(
@@ -1139,9 +1204,15 @@ class TrainingRepository(
     private suspend fun findOrCreateImportedExercise(
         name: String,
         category: String,
-        forceFatigueOnly: Boolean = false
+        forceFatigueOnly: Boolean = false,
+        stableKey: String = ""
     ): Exercise {
-        exerciseDao.findByName(name)?.let { existing ->
+        val resolvedStableKey = stableKey.takeIf { it.isNotBlank() }
+            ?: runtimeMetadataCatalog.resolveLegacyName(name)?.stableKey
+        val existingExercise = resolvedStableKey
+            ?.let { key -> exerciseDao.findByStableKey(key) }
+            ?: exerciseDao.findByName(name)
+        existingExercise?.let { existing ->
             val updated = if (forceFatigueOnly) {
                 existing.withFatigueOnlyPlanningMetadata()
             } else {
@@ -1156,7 +1227,7 @@ class TrainingRepository(
             Exercise(
                 name = name,
                 category = category,
-                stableKey = "imported_${name.stableToken()}",
+                stableKey = resolvedStableKey ?: "imported_${name.stableToken()}",
                 movementPattern = category.defaultMovementPattern(),
                 movementCategory = category.defaultMovementCategory(),
                 primaryMuscles = category.defaultPrimaryMuscles(),
@@ -1403,7 +1474,7 @@ class TrainingRepository(
 
         runCatching {
             AnalysisEngineV3(
-                inputCollector = AnalysisInputCollector(db),
+                inputCollector = AnalysisInputCollector(db, runtimeMetadataCatalog),
                 dateProvider = analysisDateProvider
             ).analyze()
         }.onSuccess { result ->

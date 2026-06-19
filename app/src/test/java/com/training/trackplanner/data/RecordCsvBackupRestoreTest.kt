@@ -60,13 +60,23 @@ class RecordCsvBackupRestoreTest {
         )
         val csv = RecordCsvBackupRestore.buildRestoreCsv(
             entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set))),
-            metrics = listOf(DailyMetric(date = "2026-06-15", sleepHours = 7.0, bodyWeightKg = 72.0))
+            metrics = listOf(DailyMetric(date = "2026-06-15", sleepHours = 7.0, bodyWeightKg = 72.0)),
+            exercises = listOf(
+                Exercise(
+                    id = 1,
+                    name = "스쿼트",
+                    category = "근력운동",
+                    stableKey = "barbell_squat"
+                )
+            )
         )
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
 
         assertTrue(csv.contains("row_type"))
         assertTrue(csv.contains(",daily,"))
         assertTrue(csv.contains(",set,"))
         assertTrue(csv.contains("memo"))
+        assertEquals("barbell_squat", parsed.setRows.single().stableKey)
     }
 
     @Test

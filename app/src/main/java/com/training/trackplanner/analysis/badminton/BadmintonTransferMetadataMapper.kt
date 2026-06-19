@@ -4,10 +4,11 @@ import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 
 internal object BadmintonTransferMetadataMapper {
     fun transferType(features: AnalysisExerciseFeatures): BadmintonTransferType =
-        when (features.badmintonTransferStrength) {
+        when (features.canonicalBadmintonTransferLevel.ifBlank { features.badmintonTransferStrength }) {
             "DIRECT" -> BadmintonTransferType.DIRECT
             "SUPPORTIVE" -> BadmintonTransferType.SUPPORTIVE
             "GENERAL" -> BadmintonTransferType.GENERAL_STRENGTH
+            "NONE" -> BadmintonTransferType.NONE
             else -> {
                 val hasLowTransferMetadata =
                     "BADMINTON_TRANSFER" in features.analysisEligibility ||
@@ -19,14 +20,18 @@ internal object BadmintonTransferMetadataMapper {
 
     fun transferAxes(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> {
         val axes = linkedSetOf<BadmintonTransferAxis>()
+        val skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
+        val transferTokens = features.badmintonTransferRoles +
+            features.canonicalBadmintonTransferTypes +
+            features.badmintonPhysicalQualities
 
         if (
             "DECELERATION" in features.fatigueCategories ||
             "ELASTIC_SSC" in features.fatigueCategories ||
-            "DECELERATION" in features.badmintonTransferRoles ||
-            "JUMP_LANDING" in features.badmintonTransferRoles ||
-            "DECELERATION_CONTROL" in features.badmintonSkillTargets ||
-            "JUMP_LANDING_CONTROL" in features.badmintonSkillTargets ||
+            "DECELERATION" in transferTokens ||
+            "JUMP_LANDING" in transferTokens ||
+            "DECELERATION_CONTROL" in skillTargets ||
+            "JUMP_LANDING_CONTROL" in skillTargets ||
             "DECELERATION" in features.courtMovementTypes ||
             "JUMP_LANDING" in features.courtMovementTypes ||
             features.forceType in setOf("LAND", "DECELERATE")
@@ -40,15 +45,15 @@ internal object BadmintonTransferMetadataMapper {
             "UNILATERAL_UPPER" in features.balanceContributionTags ||
             "HIP_STABILITY" in features.balanceContributionTags ||
             "KNEE_CONTROL" in features.balanceContributionTags ||
-            "LUNGE_REACH" in features.badmintonTransferRoles ||
-            "LUNGE_REACH" in features.badmintonSkillTargets
+            "LUNGE_REACH" in transferTokens ||
+            "LUNGE_REACH" in skillTargets
         ) {
             axes += BadmintonTransferAxis.UNILATERAL_STABILITY
         }
 
         if (
-            "FOOTWORK" in features.badmintonTransferRoles ||
-            "ACCELERATION" in features.badmintonTransferRoles ||
+            "FOOTWORK" in transferTokens ||
+            "ACCELERATION" in transferTokens ||
             features.courtMovementTypes.any { type ->
                 type in setOf(
                     "SPLIT_STEP",
@@ -72,10 +77,10 @@ internal object BadmintonTransferMetadataMapper {
             features.movementPattern in setOf("ROTATION", "ANTI_ROTATION") ||
             "ROTATION_POWER" in features.fatigueCategories ||
             "ANTI_ROTATION" in features.fatigueCategories ||
-            "ROTATION_POWER" in features.badmintonTransferRoles ||
-            "ANTI_ROTATION_STABILITY" in features.badmintonTransferRoles ||
-            "ROTATION_SEQUENCING" in features.badmintonSkillTargets ||
-            "ANTI_ROTATION_STABILITY" in features.badmintonSkillTargets ||
+            "ROTATION_POWER" in transferTokens ||
+            "ANTI_ROTATION_STABILITY" in transferTokens ||
+            "ROTATION_SEQUENCING" in skillTargets ||
+            "ANTI_ROTATION_STABILITY" in skillTargets ||
             "ROTATION" in features.balanceContributionTags ||
             "ANTI_ROTATION" in features.balanceContributionTags ||
             features.forceType in setOf("ROTATE", "BRACE")
@@ -96,12 +101,12 @@ internal object BadmintonTransferMetadataMapper {
         }
 
         if (
-            "OVERHEAD_POWER" in features.badmintonTransferRoles ||
-            "SHOULDER_CARE" in features.badmintonTransferRoles ||
-            "GRIP_FOREARM" in features.badmintonTransferRoles ||
-            "OVERHEAD_POWER" in features.badmintonSkillTargets ||
-            "GRIP_ENDURANCE" in features.badmintonSkillTargets ||
-            "SHOULDER_DURABILITY" in features.badmintonSkillTargets ||
+            "OVERHEAD_POWER" in transferTokens ||
+            "SHOULDER_CARE" in transferTokens ||
+            "GRIP_FOREARM" in transferTokens ||
+            "OVERHEAD_POWER" in skillTargets ||
+            "GRIP_ENDURANCE" in skillTargets ||
+            "SHOULDER_DURABILITY" in skillTargets ||
             "OVERHEAD_REPETITION" in features.fatigueCategories ||
             "GRIP_FOREARM" in features.fatigueCategories ||
             features.primaryMuscles.any { muscle ->
@@ -117,9 +122,9 @@ internal object BadmintonTransferMetadataMapper {
         if (
             features.trainingRole in setOf("CONDITIONING", "SKILL") ||
             features.movementCategory in setOf("CONDITIONING", "SKILL_DRILL") ||
-            "CONDITIONING" in features.badmintonTransferRoles ||
-            "CONDITIONING" in features.badmintonSkillTargets ||
-            "FOOTWORK_SPEED" in features.badmintonSkillTargets
+            "CONDITIONING" in transferTokens ||
+            "CONDITIONING" in skillTargets ||
+            "FOOTWORK_SPEED" in skillTargets
         ) {
             axes += BadmintonTransferAxis.AEROBIC_FOOTWORK
         }

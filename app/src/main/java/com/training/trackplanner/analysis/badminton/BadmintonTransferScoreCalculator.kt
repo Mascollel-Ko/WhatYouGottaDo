@@ -3,11 +3,14 @@ package com.training.trackplanner.analysis.badminton
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import java.time.LocalDate
 
-class BadmintonTransferScoreCalculator {
+class BadmintonTransferScoreCalculator(
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+) {
     fun calculate(
         today: LocalDate,
         exercises: List<Exercise>,
@@ -43,7 +46,12 @@ class BadmintonTransferScoreCalculator {
         if (exercise == null) return null
         val completedSets = record.sets.filter { set -> set.confirmed }
         if (completedSets.isEmpty()) return null
-        val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+        val features = AnalysisFeatureExtractor.fromRecord(
+            exercise,
+            record.entry,
+            record.sets,
+            runtimeMetadataCatalog.resolve(exercise)
+        )
         val transferType = BadmintonTransferMetadataMapper.transferType(features)
         val transferWeight = BadmintonTransferConstants.transferWeight(transferType)
         if (transferWeight <= 0.0) return null

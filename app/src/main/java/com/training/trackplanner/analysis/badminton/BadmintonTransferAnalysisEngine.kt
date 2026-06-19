@@ -3,11 +3,14 @@ package com.training.trackplanner.analysis.badminton
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 class BadmintonTransferAnalysisEngine(
-    private val scoreCalculator: BadmintonTransferScoreCalculator = BadmintonTransferScoreCalculator(),
+    runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+    private val scoreCalculator: BadmintonTransferScoreCalculator =
+        BadmintonTransferScoreCalculator(runtimeMetadataCatalog),
     private val recommendationBuilder: BadmintonTransferRecommendationBuilder = BadmintonTransferRecommendationBuilder(),
     private val insightBuilder: BadmintonTransferInsightBuilder = BadmintonTransferInsightBuilder(),
     private val chartDataBuilder: BadmintonTransferChartDataBuilder = BadmintonTransferChartDataBuilder()

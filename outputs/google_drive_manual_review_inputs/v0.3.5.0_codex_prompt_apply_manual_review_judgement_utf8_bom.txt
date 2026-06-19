@@ -1,0 +1,198 @@
+﻿v0.3.5.0 Manual Review Judgement 반영 작업
+
+목표:
+첨부된 개별 판정표를 사용해 v0.3.5.0 seed metadata gap report의 manual review 판단을 정리하라.
+이번 작업은 여전히 report/audit-only 작업이다.
+seed, 앱 코드, DB schema, program generator는 수정하지 마라.
+
+함께 제출되는 첨부 파일:
+- v0.3.5.0_seed_metadata_gap_report.md
+- v0.3.5.0_seed_metadata_gap_report.csv
+- v0.3.5.0_manual_review_171_individual_judgement.csv
+- v0.3.5.0_manual_review_171_individual_judgement.md
+
+반드시 먼저 할 일:
+1. 첨부 파일 4개를 확인하라.
+2. 기존 gap report가 215개 exercise row를 읽고 215개 output CSV row를 만든 report-only 산출물인지 확인하라.
+3. individual judgement CSV가 manualReviewRequired=YES였던 171개 row를 개별 판정한 파일인지 확인하라.
+4. stableKey 또는 exerciseName 기준으로 gap report CSV와 judgement CSV를 매칭하라.
+5. 매칭이 안 되는 row가 있으면 자동 추정하지 말고 audit report에 mismatch로 기록하라.
+
+절대 금지:
+- app/src/main/assets/training_settings_seed.csv 수정 금지
+- app/src/main/assets/exercises_seed.json 수정 금지
+- Kotlin 코드 수정 금지
+- Room schema 수정 금지
+- program generator 수정 금지
+- 기존 사용자 기록/DB 관련 파일 수정 금지
+- 네트워크 재검증 시도 금지
+- full build 실행 금지
+
+허용 범위:
+- 첨부된 judgement 파일을 outputs/ 또는 docs/metadata_review/ 아래에 보관용으로 복사하는 것은 허용
+- tools/metadata_gap_report_v0_3_5_0.ps1 같은 report-only 스크립트 보정은 허용
+- outputs/ 아래 report/audit CSV 및 MD 생성은 허용
+- 문서 산출물만 생성/수정 가능
+
+핵심 해석:
+기존 report의 manualReviewRequired=171은 과도하게 넓은 단일 플래그다.
+source review, template missing review, high-stress review, sport session review, true row-level manual review가 하나로 섞여 있다.
+첨부된 individual judgement CSV를 사용해 이를 분리하라.
+
+필수 산출물:
+1. outputs/v0.3.5.0_manual_review_audit_summary.md
+2. outputs/v0.3.5.0_manual_review_audit_summary.csv
+3. outputs/v0.3.5.0_seed_metadata_gap_report_audited.md
+4. outputs/v0.3.5.0_seed_metadata_gap_report_audited.csv
+
+필수 컬럼:
+audited CSV에는 최소한 다음 컬럼을 포함하라.
+
+- exerciseName
+- stableKey
+- currentCategoryType
+- estimatedMovementFamily
+- originalManualReviewRequired
+- originalSourceIdIssue
+- originalReasons
+- individualJudgement
+- familyJudgement
+- judgementPriority
+- rowManualReviewRequired
+- sourceReviewRequired
+- templateMissingReviewRequired
+- stressReviewRequired
+- sportSessionReviewRequired
+- sourceOnlyReview
+- overbroadManualReview
+- recommendedFamilyCorrection
+- recommendedSourceAction
+- recommendedNextAction
+- safeForTemplateDefault
+- safeForSeedMutation
+- notes
+
+플래그 분리 규칙:
+1. rowManualReviewRequired
+   - 운동 family 자체가 틀렸거나 세부 subtype 판단이 필요한 경우 YES
+   - P0/P1 family correction이 있으면 YES
+   - 단순 source issue만 있으면 NO
+
+2. sourceReviewRequired
+   - sourceIdIssue가 MISSING_SOURCE_ID, NEEDS_NETWORK_RECHECK, UNKNOWN_SOURCE, DEPRECATED_SOURCE 등을 포함하면 YES
+   - row family가 맞아도 source 검증이 필요하면 YES
+
+3. templateMissingReviewRequired
+   - FOREARM_GRIP_ACCESSORY_REVIEW
+   - CHEST_ISOLATION_REVIEW
+   - PULLOVER_LAT_CHEST_ACCESSORY_REVIEW
+   - POWER_CORE_SHOULDER_REVIEW
+   - RUNNING_MECHANICS_SUPPORT_REVIEW
+   - BADMINTON_OVERHEAD_POWER_TEST_REVIEW
+   - POSTERIOR_CHAIN_LOW_LOAD_REVIEW
+   - OTHER_SPORT_SESSION_RECORDS_REVIEW
+   같은 새 review family 또는 no-template family이면 YES
+
+4. stressReviewRequired
+   - HIGH_STRESS_SESSION_CLUSTER_REVIEW
+   - HIGH_AXIAL_REVIEW
+   - PLYOMETRIC_REVIEW
+   - DECELERATION_REVIEW
+   - ELASTIC_SSC_REVIEW
+   또는 그와 동등한 high-stress reason이 있으면 YES
+   - 단, v3에서 false positive를 줄인 상태를 유지하라.
+
+5. sportSessionReviewRequired
+   - BADMINTON_SESSION_SPORT_RECORDS
+   - OTHER_SPORT_SESSION_RECORDS_REVIEW
+   - sport session인데 PROGRAM_SELECTABLE 의심이 있는 row는 YES
+
+6. sourceOnlyReview
+   - sourceReviewRequired=YES
+   - rowManualReviewRequired=NO
+   - templateMissingReviewRequired=NO
+   - stressReviewRequired=NO
+   - sportSessionReviewRequired=NO
+   인 경우 YES
+
+7. overbroadManualReview
+   - individual judgement에서 manual review가 과잉이라고 판정된 row는 YES
+   - 또는 sourceOnlyReview=YES이면 YES
+
+8. safeForTemplateDefault
+   - family가 적절하고, source-only review 또는 low-risk template row이면 YES 가능
+   - no-template family, sport session, badminton skill test, running mechanics review, high stress review, row subtype review는 NO 또는 PARTIAL
+
+9. safeForSeedMutation
+   - 이번 단계에서는 원칙적으로 NO
+   - 단, 향후 후보로만 쓰려면 CANDIDATE 값을 허용할 수 있다.
+   - 이 작업에서 실제 seed mutation은 절대 하지 마라.
+
+P0 family correction 우선 반영:
+individual judgement에서 P0 또는 즉시 수정 필요로 표시된 row는 audited report에서 반드시 드러내라.
+다음 항목은 특히 확인하라.
+
+- 스트레이트암 풀다운
+- 원암 스트레이트암 풀다운
+- 페이스풀
+- 힙 어덕션
+- 힙 어브덕션
+- 린단 참고 트랙 스프린트
+- 터키시 겟업
+
+요구:
+- 기존 estimatedMovementFamily가 부적절하면 recommendedFamilyCorrection에 제안 family를 적어라.
+- 단, training_settings_seed.csv에는 반영하지 마라.
+- report-only 산출물에서만 correction candidate로 표시하라.
+
+배드민턴 관련 확인:
+다음 분류는 유지되어야 한다.
+
+- 배드민턴 / 배드민턴 레슨 -> BADMINTON_SESSION_SPORT_RECORDS
+- 6코너/랜덤 비프/멀티셔틀/콕줍기류 -> FOOTWORK_SPLIT_STEP_REACTION_DRILL_VARIANTS 또는 BADMINTON_COURT_FOOTWORK_REACTION_REVIEW
+- A스킵/B스킵/하이니 스킵/월 드라이브/스트라이드 -> RUNNING_MECHANICS_SUPPORT_REVIEW
+- 30초 반복 스매시 테스트 -> BADMINTON_OVERHEAD_POWER_TEST_REVIEW
+- 래터럴 바운드/사이드 스텝 후 정지 -> LATERAL_BOUND_LANDING_DECELERATION_VARIANTS
+
+주의:
+- 배드민턴 direct session은 PROGRAM_SELECTABLE 후보로 만들지 마라.
+- 배드민턴 direct play와 footwork drill volume을 섞지 마라.
+- 러닝 메커닉 보조 드릴을 direct badminton court footwork로 올리지 마라.
+- 스매시 테스트를 footwork로 분류하지 마라.
+
+summary에 반드시 포함할 것:
+- total exercise rows
+- total manualReviewRequired rows in original report
+- individual judgement rows matched
+- individual judgement rows unmatched
+- rowManualReviewRequired count
+- sourceReviewRequired count
+- sourceOnlyReview count
+- overbroadManualReview count
+- templateMissingReviewRequired count
+- stressReviewRequired count
+- sportSessionReviewRequired count
+- P0 correction candidate count
+- P1 correction candidate count
+- safeForTemplateDefault YES/PARTIAL/NO count
+- safeForSeedMutation YES/CANDIDATE/NO count
+- source issue rows that are only source review
+- source issue rows that also need real row review
+
+검증:
+- audited CSV는 215개 row 기준으로 작성하라.
+- individual judgement CSV의 171개 row는 모두 매칭되거나, unmatched로 명시되어야 한다.
+- row 수가 줄거나 중복되면 실패다.
+- seed 파일 변경이 있으면 실패다.
+- 앱 코드, DB schema, generator 변경이 있으면 실패다.
+- 네트워크 접근을 시도하지 마라.
+- full build를 실행하지 마라.
+
+최종 보고:
+- 수정/생성한 파일 목록
+- 원본 171 manual review 중 실제 rowManualReviewRequired 개수
+- sourceOnlyReview 개수
+- overbroadManualReview 개수
+- P0/P1 correction candidate 목록
+- 다음 단계에서 sidecar metadata draft로 넘겨도 되는지
+- seed/app code/DB/generator를 건드리지 않았는지

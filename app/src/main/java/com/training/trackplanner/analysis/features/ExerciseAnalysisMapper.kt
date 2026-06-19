@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.features
 
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 
@@ -60,21 +61,51 @@ data class AnalysisExerciseFeatures(
     val durationMinutes: Double?,
     val isCompleted: Boolean,
     val isPlannedOnly: Boolean,
-    val recordDate: String?
+    val recordDate: String?,
+    val movementFamily: String = "",
+    val movementSubtype: String = "",
+    val programSlot: String = "",
+    val redundancyGroup: String = "",
+    val primaryStressProfile: String = "",
+    val secondaryStressTags: Set<String> = emptySet(),
+    val tendonStressTags: Set<String> = emptySet(),
+    val ligamentJointStabilityStressTags: Set<String> = emptySet(),
+    val jointImpactStressTags: Set<String> = emptySet(),
+    val cognitiveStressTags: Set<String> = emptySet(),
+    val sportContextTags: Set<String> = emptySet(),
+    val stressMagnitudeHint: String = "",
+    val neuromuscularStressLevel: String = "",
+    val systemicMuscularStressLevel: String = "",
+    val localMuscularStressLevel: String = "",
+    val jointTendonImpactStressLevel: String = "",
+    val movementFocusDemandLevel: String = "",
+    val recoveryDurationClass: String = "",
+    val canonicalBadmintonTransferLevel: String = "",
+    val canonicalBadmintonTransferTypes: Set<String> = emptySet(),
+    val canonicalBadmintonSkillTargets: Set<String> = emptySet(),
+    val badmintonPhysicalQualities: Set<String> = emptySet(),
+    val transferConfidence: String = "",
+    val sourceConfidenceLevel: String = "",
+    val finalSourceStatus: String = ""
 )
 
 object ExerciseAnalysisMapper {
-    fun fromExercise(exercise: Exercise): AnalysisExerciseFeatures =
+    fun fromExercise(
+        exercise: Exercise,
+        runtimeMetadata: RuntimeExerciseMetadata? = null
+    ): AnalysisExerciseFeatures =
         fromRecord(
             exercise = exercise,
             entry = null,
-            sets = emptyList()
+            sets = emptyList(),
+            runtimeMetadata = runtimeMetadata
         )
 
     fun fromRecord(
         exercise: Exercise,
         entry: WorkoutEntry?,
-        sets: List<WorkoutSet>
+        sets: List<WorkoutSet>,
+        runtimeMetadata: RuntimeExerciseMetadata? = null
     ): AnalysisExerciseFeatures {
         val completedSets = sets.filter { set -> set.confirmed }
         val rpeValues = completedSets.mapNotNull { set -> set.rpe }
@@ -95,9 +126,15 @@ object ExerciseAnalysisMapper {
             exerciseId = exercise.id,
             exerciseName = exercise.name,
             stableKey = exercise.stableKey,
-            activityKind = exercise.activityKind,
+            activityKind = runtimeMetadata?.activityKind
+                ?.takeIf { it.isNotBlank() }
+                ?: exercise.activityKind,
             metadataConfidence = exercise.metadataConfidence,
-            analysisEligibility = exercise.analysisEligibility.splitTokens(),
+            analysisEligibility = runtimeMetadata
+                ?.analysisEligibility
+                ?.values
+                ?.toSet()
+                ?: exercise.analysisEligibility.splitTokens(),
             movementPattern = exercise.movementPattern,
             movementCategory = exercise.movementCategory,
             primaryMuscles = exercise.primaryMuscles.splitTokens(),
@@ -119,20 +156,47 @@ object ExerciseAnalysisMapper {
             antiRotationWeight = exercise.antiRotationWeight,
             overheadSwingWeight = exercise.overheadSwingWeight,
             gripLoadWeight = exercise.gripLoadWeight,
-            fatigueCategories = exercise.fatigueCategories.splitTokens(),
+            fatigueCategories = exercise.fatigueCategories.splitTokens() +
+                runtimeMetadata?.broadLegacyFatigueCategories().orEmpty(),
             adaptiveBaselineGroups = exercise.adaptiveBaselineGroups.splitTokens(),
-            recoveryDecayProfile = exercise.recoveryDecayProfile,
-            progressMetricType = exercise.progressMetricType,
-            strengthProgressionGroup = exercise.strengthProgressionGroup,
+            recoveryDecayProfile = runtimeMetadata?.recoveryDecayProfile
+                ?.takeIf { it.isNotBlank() }
+                ?: exercise.recoveryDecayProfile,
+            progressMetricType = runtimeMetadata?.progressMetricType
+                ?.takeIf { it.isNotBlank() }
+                ?: exercise.progressMetricType,
+            strengthProgressionGroup = runtimeMetadata?.strengthProgressionGroup
+                ?.takeIf { it.isNotBlank() }
+                ?: exercise.strengthProgressionGroup,
             hypertrophyVolumeGroup = exercise.hypertrophyVolumeGroup,
             mainLiftGroup = exercise.mainLiftGroup,
             accessoryContributionGroup = exercise.accessoryContributionGroup,
-            estimated1RmEligible = exercise.estimated1RmEligible,
-            volumeLoadEligible = exercise.volumeLoadEligible,
+            estimated1RmEligible = runtimeMetadata
+                ?.takeIf { it.progressMetricType.isNotBlank() }
+                ?.progressBehavior
+                ?.let { it == com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM }
+                ?: exercise.estimated1RmEligible,
+            volumeLoadEligible = runtimeMetadata
+                ?.takeIf { it.progressMetricType.isNotBlank() }
+                ?.progressBehavior
+                ?.let { behavior ->
+                    behavior in setOf(
+                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM,
+                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.LOAD_REPS,
+                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.VOLUME_LOAD
+                    )
+                }
+                ?: exercise.volumeLoadEligible,
             badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens(),
-            badmintonTransferStrength = exercise.badmintonTransferStrength,
+            badmintonTransferStrength = runtimeMetadata?.badmintonTransferLevel
+                ?.takeIf { it.isNotBlank() }
+                ?: exercise.badmintonTransferStrength,
             courtMovementTypes = exercise.courtMovementTypes.splitTokens(),
-            badmintonSkillTargets = exercise.badmintonSkillTargets.splitTokens(),
+            badmintonSkillTargets = runtimeMetadata
+                ?.badmintonSkillTargets
+                ?.values
+                ?.toSet()
+                ?: exercise.badmintonSkillTargets.splitTokens(),
             jointStressTags = exercise.jointStressTags.splitTokens(),
             stabilityDemandLevel = exercise.stabilityDemandLevel,
             mobilityDemandLevel = exercise.mobilityDemandLevel,
@@ -147,7 +211,36 @@ object ExerciseAnalysisMapper {
             durationMinutes = totalSeconds.takeIf { it > 0 }?.let { seconds -> seconds / 60.0 },
             isCompleted = completedSets.isNotEmpty(),
             isPlannedOnly = sets.isNotEmpty() && completedSets.isEmpty(),
-            recordDate = entry?.date
+            recordDate = entry?.date,
+            movementFamily = runtimeMetadata?.movementFamily.orEmpty(),
+            movementSubtype = runtimeMetadata?.movementSubtype.orEmpty(),
+            programSlot = runtimeMetadata?.programSlot.orEmpty(),
+            redundancyGroup = runtimeMetadata?.redundancyGroup.orEmpty(),
+            primaryStressProfile = runtimeMetadata?.primaryStressProfile.orEmpty(),
+            secondaryStressTags = runtimeMetadata?.secondaryStressTags?.values?.toSet().orEmpty(),
+            tendonStressTags = runtimeMetadata?.tendonStressTags?.values?.toSet().orEmpty(),
+            ligamentJointStabilityStressTags = runtimeMetadata
+                ?.ligamentJointStabilityStressTags
+                ?.values
+                ?.toSet()
+                .orEmpty(),
+            jointImpactStressTags = runtimeMetadata?.jointImpactStressTags?.values?.toSet().orEmpty(),
+            cognitiveStressTags = runtimeMetadata?.cognitiveStressTags?.values?.toSet().orEmpty(),
+            sportContextTags = runtimeMetadata?.sportContextTags?.values?.toSet().orEmpty(),
+            stressMagnitudeHint = runtimeMetadata?.stressMagnitudeHint.orEmpty(),
+            neuromuscularStressLevel = runtimeMetadata?.neuromuscularStressLevel.orEmpty(),
+            systemicMuscularStressLevel = runtimeMetadata?.systemicMuscularStressLevel.orEmpty(),
+            localMuscularStressLevel = runtimeMetadata?.localMuscularStressLevel.orEmpty(),
+            jointTendonImpactStressLevel = runtimeMetadata?.jointTendonImpactStressLevel.orEmpty(),
+            movementFocusDemandLevel = runtimeMetadata?.movementFocusDemandLevel.orEmpty(),
+            recoveryDurationClass = runtimeMetadata?.recoveryDurationClass.orEmpty(),
+            canonicalBadmintonTransferLevel = runtimeMetadata?.badmintonTransferLevel.orEmpty(),
+            canonicalBadmintonTransferTypes = runtimeMetadata?.badmintonTransferType?.values?.toSet().orEmpty(),
+            canonicalBadmintonSkillTargets = runtimeMetadata?.badmintonSkillTargets?.values?.toSet().orEmpty(),
+            badmintonPhysicalQualities = runtimeMetadata?.badmintonPhysicalQualities?.values?.toSet().orEmpty(),
+            transferConfidence = runtimeMetadata?.transferConfidence.orEmpty(),
+            sourceConfidenceLevel = runtimeMetadata?.sourceConfidenceLevel.orEmpty(),
+            finalSourceStatus = runtimeMetadata?.finalSourceStatus.orEmpty()
         )
     }
 

@@ -78,7 +78,8 @@ class ProgramSkeletonGenerator {
         request: ProgramSkeletonRequest,
         exercises: List<Exercise>,
         history: List<WorkoutEntryWithSets>,
-        today: LocalDate = LocalDate.now()
+        today: LocalDate = LocalDate.now(),
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): GeneratedProgramSkeleton {
         val periodizationType = choosePeriodization(request)
         val weekPlans = weekPlans(periodizationType)
@@ -88,7 +89,7 @@ class ProgramSkeletonGenerator {
             .map { it.trim() }
             .filter { it.isNotBlank() }
         val selectableExercises = exercises.filter { exercise ->
-            exercise.isProgramSelectableExercise()
+            exercise.isRuntimeProgramSelectable(runtimeMetadataCatalog.resolve(exercise))
         }
         val baseCandidates = selectableExercises
             .filter { exercise -> exercise.category.isNotBlank() }
@@ -128,7 +129,8 @@ class ProgramSkeletonGenerator {
                                 weeklyHighFatigue = weeklyHighFatigue,
                                 weekPlan = weekPlan,
                                 request = request,
-                                dayHighFatigueLimit = dayHighFatigueLimit
+                                dayHighFatigueLimit = dayHighFatigueLimit,
+                                runtimeMetadataCatalog = runtimeMetadataCatalog
                             )
                         }
                         .maxByOrNull { candidate ->
@@ -137,7 +139,8 @@ class ProgramSkeletonGenerator {
                                 dayIndex = dayIndex,
                                 slotIndex = slotIndex,
                                 daySelected = daySelected,
-                                selectedEquipment = selectedEquipment
+                                selectedEquipment = selectedEquipment,
+                                runtimeMetadataCatalog = runtimeMetadataCatalog
                             )
                         }
                         ?: baseCandidates.maxByOrNull { candidate ->
@@ -146,14 +149,16 @@ class ProgramSkeletonGenerator {
                                 dayIndex = dayIndex,
                                 slotIndex = slotIndex,
                                 daySelected = daySelected,
-                                selectedEquipment = selectedEquipment
+                                selectedEquipment = selectedEquipment,
+                                runtimeMetadataCatalog = runtimeMetadataCatalog
                             )
                         }
                     if (candidate != null) {
                         daySelected += candidate
-                        if (candidate.fatigueCost() >= 4.0) {
-                            weeklyHighFatigue[candidate.fatigueBucket()] =
-                                (weeklyHighFatigue[candidate.fatigueBucket()] ?: 0) + 1
+                        val candidateMetadata = runtimeMetadataCatalog.resolve(candidate)
+                        if (candidate.fatigueCost(candidateMetadata) >= 4.0) {
+                            val bucket = candidate.fatigueBucket(candidateMetadata)
+                            weeklyHighFatigue[bucket] = (weeklyHighFatigue[bucket] ?: 0) + 1
                         }
                         val prescription = candidate.prescription(request, weekPlan)
                         val weight = historyIndex.suggestWeight(
@@ -181,7 +186,7 @@ class ProgramSkeletonGenerator {
                             reps = prescription.reps,
                             weightKg = weight.weightKg,
                             seconds = prescription.seconds,
-                            selectionReason = candidate.reasonLabel(),
+                            selectionReason = candidate.reasonLabel(candidateMetadata),
                             weightSource = weight.source
                         )
                     }
@@ -416,10 +421,14 @@ class ProgramSkeletonGenerator {
         weeklyHighFatigue: Map<String, Int>,
         weekPlan: ProgramWeekPlan,
         request: ProgramSkeletonRequest,
-        dayHighFatigueLimit: Int
+        dayHighFatigueLimit: Int,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
     ): Boolean {
-        val cost = fatigueCost()
-        val currentDayHigh = daySelected.count { it.fatigueCost() >= 4.0 }
+        val runtimeMetadata = runtimeMetadataCatalog.resolve(this)
+        val cost = fatigueCost(runtimeMetadata)
+        val currentDayHigh = daySelected.count { selected ->
+            selected.fatigueCost(runtimeMetadataCatalog.resolve(selected)) >= 4.0
+        }
         if (cost >= 4.0 && currentDayHigh >= dayHighFatigueLimit) return true
         if (axialLoadLevel == AxialLoadLevel.HIGH.name &&
             (weeklyHighFatigue["AXIAL"] ?: 0) >= weekPlan.axialLoadLimit
@@ -446,22 +455,55 @@ class ProgramSkeletonGenerator {
         dayIndex: Int,
         slotIndex: Int,
         daySelected: List<Exercise>,
-        selectedEquipment: Set<String>
+        selectedEquipment: Set<String>,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
     ): Double {
-        val transfer = badmintonTransferScore()
+        val runtimeMetadata = runtimeMetadataCatalog.resolve(this)
+        val transfer = badmintonTransferScore(runtimeMetadata)
+        val progressBehavior = runtimeMetadata?.progressBehavior
         val baseGoalScore = when (request.goal) {
-            ProgramGoal.BADMINTON_SUPPORT -> transfer * 1.2 + stabilityScore()
-            ProgramGoal.STRENGTH -> if (trainingRole in strengthRoles) 5.0 else if (volumeLoadEligible) 2.0 else 0.0
-            ProgramGoal.BODYBUILDING -> if (volumeLoadEligible) 4.0 else if (trainingRole == FatigueTrainingRole.ACCESSORY.name) 3.0 else 0.0
-            ProgramGoal.FUNCTIONAL_CONDITIONING -> if (movementCategory in functionalCategories) 4.0 else stabilityScore()
+            ProgramGoal.BADMINTON_SUPPORT -> transfer * 1.2 + stabilityScore(runtimeMetadata)
+            ProgramGoal.STRENGTH -> when {
+                progressBehavior == ProgressMetricRuntimeBehavior.ESTIMATED_1RM -> 5.0
+                progressBehavior in setOf(
+                    ProgressMetricRuntimeBehavior.LOAD_REPS,
+                    ProgressMetricRuntimeBehavior.VOLUME_LOAD
+                ) -> 2.0
+                trainingRole in strengthRoles -> 5.0
+                volumeLoadEligible -> 2.0
+                else -> 0.0
+            }
+            ProgramGoal.BODYBUILDING -> when {
+                progressBehavior in setOf(
+                    ProgressMetricRuntimeBehavior.LOAD_REPS,
+                    ProgressMetricRuntimeBehavior.VOLUME_LOAD
+                ) -> 4.0
+                volumeLoadEligible -> 4.0
+                trainingRole == FatigueTrainingRole.ACCESSORY.name -> 3.0
+                else -> 0.0
+            }
+            ProgramGoal.FUNCTIONAL_CONDITIONING -> if (movementCategory in functionalCategories) {
+                4.0
+            } else {
+                stabilityScore(runtimeMetadata)
+            }
         }
         val badmintonScore = request.badmintonTransferRatio * transfer * 3.0
         val equipmentMatch = if (equipmentTokens().intersect(selectedEquipment).isNotEmpty()) 1.2 else 0.0
         val patternNeed = patternNeedScore(request.goal, dayIndex, slotIndex)
-        val redundancyPenalty = if (daySelected.any { it.movementPattern == movementPattern }) 3.0 else 0.0
+        val redundancyKey = runtimeMetadata?.redundancyGroup?.takeIf { it.isNotBlank() } ?: movementPattern
+        val redundancyPenalty = if (daySelected.any { selected ->
+                val selectedKey = runtimeMetadataCatalog.resolve(selected)
+                    ?.redundancyGroup
+                    ?.takeIf { it.isNotBlank() }
+                    ?: selected.movementPattern
+                selectedKey == redundancyKey
+            }
+        ) 3.0 else 0.0
         val sameMusclePenalty = if (daySelected.any { it.primaryMuscles == primaryMuscles && primaryMuscles.isNotBlank() }) 1.5 else 0.0
-        val fatiguePenalty = fatigueCost() * if (request.badmintonTransferRatio >= 0.55) 0.65 else 0.45
-        val confidencePenalty = if (metadataConfidence == MetadataConfidence.LOW.name) 0.5 else 0.0
+        val fatiguePenalty = fatigueCost(runtimeMetadata) * if (request.badmintonTransferRatio >= 0.55) 0.65 else 0.45
+        val confidence = runtimeMetadata?.sourceConfidenceLevel?.ifBlank { metadataConfidence } ?: metadataConfidence
+        val confidencePenalty = if (confidence in setOf(MetadataConfidence.LOW.name, "SOURCE_WEAK_BUT_ACCEPTABLE")) 0.5 else 0.0
         return baseGoalScore +
             badmintonScore +
             equipmentMatch +
@@ -526,23 +568,32 @@ class ProgramSkeletonGenerator {
             .filter { it in defaultEquipment }
             .toSet()
 
-    private fun Exercise.badmintonTransferScore(): Double =
-        when (badmintonTransferStrength) {
+    private fun Exercise.badmintonTransferScore(runtimeMetadata: RuntimeExerciseMetadata?): Double =
+        when (runtimeMetadata?.transferLevel) {
+            RuntimeBadmintonTransferLevel.DIRECT -> 5.0
+            RuntimeBadmintonTransferLevel.SUPPORTIVE -> 3.5
+            RuntimeBadmintonTransferLevel.GENERAL -> 1.5
+            RuntimeBadmintonTransferLevel.NONE -> 0.0
+            RuntimeBadmintonTransferLevel.UNKNOWN, null -> when (badmintonTransferStrength) {
             BadmintonTransferStrength.DIRECT.name -> 5.0
             BadmintonTransferStrength.SUPPORTIVE.name -> 3.5
             BadmintonTransferStrength.GENERAL.name -> 1.5
             else -> if (badmintonTransferRoles.isNotBlank() || badmintonSkillTargets.isNotBlank()) 1.0 else 0.0
+            }
         }
 
-    private fun Exercise.stabilityScore(): Double =
+    private fun Exercise.stabilityScore(runtimeMetadata: RuntimeExerciseMetadata?): Double =
         when {
+            runtimeMetadata?.badmintonPhysicalQualities?.values?.any { token ->
+                token.contains("STABILITY") || token.contains("BALANCE") || token.contains("CONTROL")
+            } == true -> 2.0
             trainingRole == FatigueTrainingRole.PREHAB.name -> 2.0
             stabilityDemandLevel == StabilityDemandLevel.HIGH.name -> 2.0
             balanceContributionTags.isNotBlank() -> 1.0
             else -> 0.0
         }
 
-    private fun Exercise.fatigueCost(): Double {
+    private fun Exercise.fatigueCost(runtimeMetadata: RuntimeExerciseMetadata? = null): Double {
         val weighted = systemicLoadWeight * 2.0 +
             neuralHeavyWeight * 1.5 +
             neuralSpeedWeight * 1.2 +
@@ -558,19 +609,29 @@ class ProgramSkeletonGenerator {
             MovementCategory.PREHAB.name, MovementCategory.MOBILITY.name, MovementCategory.RECOVERY.name -> -1.0
             else -> 0.0
         }
-        return (1.0 + weighted + axial + categoryCost).coerceIn(1.0, 5.0)
+        val canonicalCost = when (runtimeMetadata?.stressMagnitudeHint?.uppercase(Locale.ROOT)) {
+            "VERY_HIGH" -> 5.0
+            "HIGH" -> 4.2
+            "MODERATE" -> 3.0
+            "LOW" -> 1.5
+            else -> null
+        }
+        return canonicalCost ?: (1.0 + weighted + axial + categoryCost).coerceIn(1.0, 5.0)
     }
 
-    private fun Exercise.fatigueBucket(): String =
+    private fun Exercise.fatigueBucket(runtimeMetadata: RuntimeExerciseMetadata? = null): String =
         when {
+            runtimeMetadata?.primaryStressProfile?.isNotBlank() == true -> runtimeMetadata.primaryStressProfile
             axialLoadLevel == AxialLoadLevel.HIGH.name -> "AXIAL"
             movementPattern == MovementPattern.HINGE.name -> "HINGE"
             FatigueCategory.ELASTIC_SSC.name in fatigueCategories.splitTokens() -> "PLYOMETRIC"
             else -> movementPattern.ifBlank { "GENERAL" }
         }
 
-    private fun Exercise.reasonLabel(): String =
+    private fun Exercise.reasonLabel(runtimeMetadata: RuntimeExerciseMetadata? = null): String =
         when {
+            runtimeMetadata?.transferLevel == RuntimeBadmintonTransferLevel.DIRECT -> "배드민턴 직접 전이"
+            runtimeMetadata?.transferLevel == RuntimeBadmintonTransferLevel.SUPPORTIVE -> "배드민턴 보조 전이"
             badmintonTransferStrength == BadmintonTransferStrength.DIRECT.name -> "배드민턴 직접 전이"
             badmintonTransferStrength == BadmintonTransferStrength.SUPPORTIVE.name -> "배드민턴 보조 전이"
             FatigueCategory.DECELERATION.name in fatigueCategories.splitTokens() -> "감속 제어"
@@ -579,6 +640,13 @@ class ProgramSkeletonGenerator {
             FatigueCategory.GRIP_FOREARM.name in fatigueCategories.splitTokens() -> "그립/전완"
             trainingRole == FatigueTrainingRole.PREHAB.name -> "저피로 보강"
             else -> movementPattern.ifBlank { category }
+        }
+
+    private fun Exercise.isRuntimeProgramSelectable(runtimeMetadata: RuntimeExerciseMetadata?): Boolean =
+        when (runtimeMetadata?.planningEligibility?.uppercase(Locale.ROOT)) {
+            "PROGRAM_SELECTABLE" -> isActive
+            "FATIGUE_ONLY", "ANALYSIS_ONLY", "HIDDEN", "NOT_APPLICABLE" -> false
+            else -> isProgramSelectableExercise()
         }
 
     private fun ProgramSkeletonRequest.defaultProgramName(): String {

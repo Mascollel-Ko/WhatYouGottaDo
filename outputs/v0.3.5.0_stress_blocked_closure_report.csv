@@ -1,0 +1,7 @@
+﻿"RecordType","Id","Result","Detail"
+"VALIDATION","PARTA-001","PASS","Updated rows=5"
+"VALIDATION","PARTA-002","PASS","Non-stress changes=0"
+"VALIDATION","PARTA-003","PASS","Stress changes outside five approved rows=0"
+"VALIDATION","PARTA-004","PASS","Remaining stress-blank rows=0"
+"METRIC","STRESS_BLOCKED_BEFORE","5","Rows"
+"METRIC","STRESS_BLOCKED_AFTER","0","Rows"

@@ -1,0 +1,143 @@
+package com.training.trackplanner.analysis.fatigue
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.LocalDate
+
+class FatigueAnalysisMapperTest {
+    @Test
+    fun `simple state returns OFI and no more than two load items`() {
+        val state = FatigueAnalysisMapper.map(history(14))
+
+        assertEquals(14, state.simple.ofiSeries.size)
+        assertEquals(2, state.simple.highLoadItems.size)
+        assertEquals(2, state.simple.availableLoadItems.size)
+        assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `detail state exposes OFI and all six fatigue axes`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            selectedTargets = setOf(
+                FatigueTarget.OVERALL,
+                FatigueTarget.JOINT_TENDON_IMPACT
+            )
+        )
+
+        assertEquals(7, state.detail.fatigueTrendSeries.size)
+        assertEquals(2, state.detail.selectedFatigueTargets.size)
+        assertTrue(state.detail.fatigueTrendSeries.any { it.key == FatigueTarget.OVERALL.name })
+    }
+
+    @Test
+    fun `contribution state groups sources instead of repeating axis series`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            contributionTarget = FatigueTarget.LOCAL_MUSCULAR,
+            grouping = ContributionGrouping.REDUNDANCY_GROUP
+        )
+
+        assertTrue(state.detail.contributionSeries.isNotEmpty())
+        assertTrue(state.detail.contributionSeries.all { it.target == FatigueTarget.LOCAL_MUSCULAR })
+        assertTrue(state.detail.contributionSeries.none { it.sourceKey in FatigueTarget.entries.map(FatigueTarget::name) })
+    }
+
+    @Test
+    fun `twelve week period aggregates daily points into weekly points`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(84),
+            period = FatigueAnalysisPeriod.TWELVE_WEEKS
+        )
+
+        assertTrue(state.detail.usesWeeklyAggregation)
+        assertTrue(state.simple.ofiSeries.size in 12..13)
+    }
+
+    @Test
+    fun `empty history returns compact empty state`() {
+        val state = FatigueAnalysisMapper.map(emptyList())
+
+        assertTrue(state.simple.ofiSeries.isEmpty())
+        assertTrue(state.detail.contributionSeries.isEmpty())
+        assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `zero-only calculated history does not create a fake chart`() {
+        val date = LocalDate.of(2026, 6, 19)
+        val result = DailyFatigueResult(
+            state = DailyFatigueState(
+                date = date,
+                neuromuscularFatigue = 0.0,
+                systemicMuscularFatigue = 0.0,
+                localMuscularFatigue = 0.0,
+                jointTendonImpactFatigue = 0.0,
+                movementFocusFatigue = 0.0,
+                recoveryPressure = 0.0,
+                neuromuscularScore = 0,
+                systemicMuscularScore = 0,
+                localMuscularScore = 0,
+                jointTendonImpactScore = 0,
+                movementFocusScore = 0,
+                recoveryPressureScore = 0,
+                overallFatigueIndex = 0,
+                readinessLabel = FatigueReadinessLabel.LOW,
+                cautionReasons = emptyList(),
+                confidence = FatigueConfidence.LOW
+            ),
+            groupStates = emptyList(),
+            recordContributions = emptyList()
+        )
+
+        val state = FatigueAnalysisMapper.map(listOf(result))
+
+        assertTrue(state.simple.ofiSeries.isEmpty())
+        assertTrue(state.detail.fatigueTrendSeries.isEmpty())
+    }
+
+    private fun history(days: Int): List<DailyFatigueResult> {
+        val end = LocalDate.of(2026, 6, 19)
+        return (days - 1 downTo 0).map { offset ->
+            val date = end.minusDays(offset.toLong())
+            val score = 35 + (offset % 40)
+            DailyFatigueResult(
+                state = DailyFatigueState(
+                    date = date,
+                    neuromuscularFatigue = score.toDouble(),
+                    systemicMuscularFatigue = (score + 2).toDouble(),
+                    localMuscularFatigue = (score + 4).toDouble(),
+                    jointTendonImpactFatigue = (score + 6).toDouble(),
+                    movementFocusFatigue = (score + 8).toDouble(),
+                    recoveryPressure = (score + 10).toDouble(),
+                    neuromuscularScore = score,
+                    systemicMuscularScore = score + 2,
+                    localMuscularScore = score + 4,
+                    jointTendonImpactScore = score + 6,
+                    movementFocusScore = score + 8,
+                    recoveryPressureScore = score + 10,
+                    overallFatigueIndex = score + 5,
+                    readinessLabel = FatigueReadinessLabel.NORMAL,
+                    cautionReasons = emptyList(),
+                    confidence = FatigueConfidence.HIGH
+                ),
+                groupStates = listOf(
+                    GroupFatigueState(
+                        date = date,
+                        groupType = "redundancyGroup",
+                        groupKey = "HORIZONTAL_PUSH_COMPOUND",
+                        neuromuscularFatigue = score * 0.4,
+                        systemicMuscularFatigue = score * 0.5,
+                        localFatigue = score * 0.8,
+                        jointTendonImpactFatigue = score * 0.3,
+                        movementFocusFatigue = score * 0.2,
+                        recoveryPressure = score * 0.6
+                    )
+                ),
+                recordContributions = emptyList()
+            )
+        }
+    }
+}

@@ -23,7 +23,8 @@ class TodayReadinessEngine(
         }
         val dailyLoads = aggregator.aggregate(
             entriesWithSets = completedEntriesUntilToday,
-            exerciseMap = exerciseMap
+            exerciseMap = exerciseMap,
+            runtimeMetadataCatalog = input.runtimeMetadataCatalog
         )
         val residual = residualCalculator.calculate(dailyLoads, input.today)
         val statisticalBaseline = statisticalBaselineCalculator.calculate(
@@ -58,7 +59,8 @@ class TodayReadinessEngine(
         val performance = performanceDropDetector.detect(
             entriesWithSets = completedEntriesUntilToday,
             exerciseMap = exerciseMap,
-            today = input.today
+            today = input.today,
+            runtimeMetadataCatalog = input.runtimeMetadataCatalog
         )
         val pain = painGateEvaluator.evaluate(
             today = input.today,

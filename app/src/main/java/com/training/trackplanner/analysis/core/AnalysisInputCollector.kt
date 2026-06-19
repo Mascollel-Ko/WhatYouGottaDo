@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.core
 
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -9,7 +10,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class AnalysisInputCollector(
-    private val db: TrainingDatabase
+    private val db: TrainingDatabase,
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
 ) {
     suspend fun collect(today: LocalDate): AnalysisInputSnapshot {
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -90,10 +92,15 @@ class AnalysisInputCollector(
             }
         )
 
-    private fun Exercise.toAnalysisMetadata(): AnalysisExerciseMetadata =
-        AnalysisExerciseMetadata(
+    private fun Exercise.toAnalysisMetadata(): AnalysisExerciseMetadata {
+        val runtime = runtimeMetadataCatalog.resolve(this)
+        return AnalysisExerciseMetadata(
             exerciseId = id,
             stableKey = stableKey,
+            activityKind = runtime?.activityKind?.takeIf { it.isNotBlank() } ?: activityKind,
+            planningEligibility = runtime?.planningEligibility
+                ?.takeIf { it.isNotBlank() }
+                ?: planningEligibility,
             category = category,
             movementPattern = movementPattern,
             movementCategory = movementCategory,
@@ -116,7 +123,9 @@ class AnalysisInputCollector(
             adaptiveBaselineGroups = adaptiveBaselineGroups,
             accessoryRoles = accessoryRoles,
             loadProfile = loadProfile,
-            recoveryDecayProfile = recoveryDecayProfile,
+            recoveryDecayProfile = runtime?.recoveryDecayProfile
+                ?.takeIf { it.isNotBlank() }
+                ?: recoveryDecayProfile,
             systemicLoadWeight = systemicLoadWeight,
             neuralHeavyWeight = neuralHeavyWeight,
             neuralSpeedWeight = neuralSpeedWeight,
@@ -127,23 +136,55 @@ class AnalysisInputCollector(
             antiRotationWeight = antiRotationWeight,
             overheadSwingWeight = overheadSwingWeight,
             gripLoadWeight = gripLoadWeight,
-            progressMetricType = progressMetricType,
-            strengthProgressionGroup = strengthProgressionGroup,
+            progressMetricType = runtime?.progressMetricType
+                ?.takeIf { it.isNotBlank() }
+                ?: progressMetricType,
+            strengthProgressionGroup = runtime?.strengthProgressionGroup
+                ?.takeIf { it.isNotBlank() }
+                ?: strengthProgressionGroup,
             hypertrophyVolumeGroup = hypertrophyVolumeGroup,
             mainLiftGroup = mainLiftGroup,
             accessoryContributionGroup = accessoryContributionGroup,
             estimated1RmEligible = estimated1RmEligible,
             volumeLoadEligible = volumeLoadEligible,
-            badmintonTransferStrength = badmintonTransferStrength,
+            badmintonTransferStrength = runtime?.badmintonTransferLevel
+                ?.takeIf { it.isNotBlank() }
+                ?: badmintonTransferStrength,
             courtMovementTypes = courtMovementTypes,
-            badmintonSkillTargets = badmintonSkillTargets,
+            badmintonSkillTargets = runtime?.badmintonSkillTargets?.raw ?: badmintonSkillTargets,
             jointStressTags = jointStressTags,
             stabilityDemandLevel = stabilityDemandLevel,
             mobilityDemandLevel = mobilityDemandLevel,
             balanceContributionTags = balanceContributionTags,
-            analysisEligibility = analysisEligibility,
-            metadataConfidence = metadataConfidence
+            analysisEligibility = runtime?.analysisEligibility?.raw ?: analysisEligibility,
+            metadataConfidence = metadataConfidence,
+            movementFamily = runtime?.movementFamily.orEmpty(),
+            movementSubtype = runtime?.movementSubtype.orEmpty(),
+            programSlot = runtime?.programSlot.orEmpty(),
+            redundancyGroup = runtime?.redundancyGroup.orEmpty(),
+            primaryStressProfile = runtime?.primaryStressProfile.orEmpty(),
+            secondaryStressTags = runtime?.secondaryStressTags?.raw.orEmpty(),
+            tendonStressTags = runtime?.tendonStressTags?.raw.orEmpty(),
+            ligamentJointStabilityStressTags = runtime?.ligamentJointStabilityStressTags?.raw.orEmpty(),
+            jointImpactStressTags = runtime?.jointImpactStressTags?.raw.orEmpty(),
+            cognitiveStressTags = runtime?.cognitiveStressTags?.raw.orEmpty(),
+            sportContextTags = runtime?.sportContextTags?.raw.orEmpty(),
+            stressMagnitudeHint = runtime?.stressMagnitudeHint.orEmpty(),
+            neuromuscularStressLevel = runtime?.neuromuscularStressLevel.orEmpty(),
+            systemicMuscularStressLevel = runtime?.systemicMuscularStressLevel.orEmpty(),
+            localMuscularStressLevel = runtime?.localMuscularStressLevel.orEmpty(),
+            jointTendonImpactStressLevel = runtime?.jointTendonImpactStressLevel.orEmpty(),
+            movementFocusDemandLevel = runtime?.movementFocusDemandLevel.orEmpty(),
+            recoveryDurationClass = runtime?.recoveryDurationClass.orEmpty(),
+            canonicalBadmintonTransferLevel = runtime?.badmintonTransferLevel.orEmpty(),
+            canonicalBadmintonTransferType = runtime?.badmintonTransferType?.raw.orEmpty(),
+            canonicalBadmintonSkillTargets = runtime?.badmintonSkillTargets?.raw.orEmpty(),
+            badmintonPhysicalQualities = runtime?.badmintonPhysicalQualities?.raw.orEmpty(),
+            transferConfidence = runtime?.transferConfidence.orEmpty(),
+            sourceConfidenceLevel = runtime?.sourceConfidenceLevel.orEmpty(),
+            finalSourceStatus = runtime?.finalSourceStatus.orEmpty()
         )
+    }
 
     private fun DailyMetric.toAnalysisConditionRecord(): AnalysisConditionRecord? {
         val parsedDate = date.toLocalDateOrNull() ?: return null

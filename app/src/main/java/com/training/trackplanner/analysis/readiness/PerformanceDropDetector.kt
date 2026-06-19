@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.readiness
 
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
@@ -9,7 +10,8 @@ class PerformanceDropDetector {
     fun detect(
         entriesWithSets: List<WorkoutEntryWithSets>,
         exerciseMap: Map<Long, Exercise>,
-        today: LocalDate
+        today: LocalDate,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): PerformanceSignalSnapshot {
         val completedRecords = entriesWithSets
             .filter { record -> record.sets.any { set -> set.confirmed } }
@@ -29,8 +31,19 @@ class PerformanceDropDetector {
             if (sorted.size < 2) return@forEach
             val latest = sorted.last()
             val previous = sorted.dropLast(1).lastOrNull() ?: return@forEach
-            val latestFeatures = ExerciseAnalysisMapper.fromRecord(exercise, latest.entry, latest.sets)
-            val previousFeatures = ExerciseAnalysisMapper.fromRecord(exercise, previous.entry, previous.sets)
+            val runtimeMetadata = runtimeMetadataCatalog.resolve(exercise)
+            val latestFeatures = ExerciseAnalysisMapper.fromRecord(
+                exercise,
+                latest.entry,
+                latest.sets,
+                runtimeMetadata
+            )
+            val previousFeatures = ExerciseAnalysisMapper.fromRecord(
+                exercise,
+                previous.entry,
+                previous.sets,
+                runtimeMetadata
+            )
 
             val latestMainSet = latest.sets.filter { set -> set.confirmed }.maxByOrNull { set -> set.weightKg }
             val previousMainSet = previous.sets.filter { set -> set.confirmed }.maxByOrNull { set -> set.weightKg }

@@ -2,13 +2,15 @@ package com.training.trackplanner.analysis.readiness
 
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 class DailyAnalysisLoadAggregator {
     fun aggregate(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<Long, Exercise>,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): List<DailyAnalysisLoad> {
         val contributions = entriesWithSets.mapNotNull { entryWithSets ->
             val confirmedSets = entryWithSets.sets.filter { set -> set.confirmed }
@@ -17,7 +19,8 @@ class DailyAnalysisLoadAggregator {
             val features = ExerciseAnalysisMapper.fromRecord(
                 exercise = exercise,
                 entry = entryWithSets.entry,
-                sets = entryWithSets.sets
+                sets = entryWithSets.sets,
+                runtimeMetadata = runtimeMetadataCatalog.resolve(exercise)
             )
             if (!features.isCompleted) return@mapNotNull null
 
@@ -25,14 +28,19 @@ class DailyAnalysisLoadAggregator {
                 ?: return@mapNotNull null
             val rpeModifier = TodayReadinessConstants.rpeModifier(features.averageRpe)
             val baseDose = baseDose(features)
-            val systemicLoad = baseDose * features.systemicLoadWeight * rpeModifier
-            val neuralHeavyLoad = baseDose * features.neuralHeavyWeight * rpeModifier
+            val systemicLoad = baseDose * features.systemicLoadWeight * rpeModifier *
+                features.systemicMuscularStressLevel.axisMultiplier()
+            val neuralHeavyLoad = baseDose * features.neuralHeavyWeight * rpeModifier *
+                features.neuromuscularStressLevel.axisMultiplier()
             val neuralSpeedLoad =
-                baseDose * features.neuralSpeedWeight * TodayReadinessConstants.speedRpeModifier(rpeModifier)
+                baseDose * features.neuralSpeedWeight * TodayReadinessConstants.speedRpeModifier(rpeModifier) *
+                    features.neuromuscularStressLevel.axisMultiplier()
             val localLoad =
-                baseDose * features.localLoadWeight * TodayReadinessConstants.localRpeModifier(rpeModifier)
-            val decelerationLoad = baseDose * features.decelerationWeight
-            val elasticLoad = baseDose * features.elasticSscWeight
+                baseDose * features.localLoadWeight * TodayReadinessConstants.localRpeModifier(rpeModifier) *
+                    features.localMuscularStressLevel.axisMultiplier()
+            val jointStressMultiplier = features.jointTendonImpactStressLevel.axisMultiplier()
+            val decelerationLoad = baseDose * features.decelerationWeight * jointStressMultiplier
+            val elasticLoad = baseDose * features.elasticSscWeight * jointStressMultiplier
             val rotationLoad = baseDose * features.rotationPowerWeight
             val antiRotationLoad = baseDose * features.antiRotationWeight
             val overheadLoad = baseDose * features.overheadSwingWeight
@@ -185,6 +193,14 @@ class DailyAnalysisLoadAggregator {
 
     private fun String.hasAny(vararg fragments: String): Boolean =
         fragments.any { fragment -> contains(fragment, ignoreCase = true) }
+
+    private fun String.axisMultiplier(): Double =
+        when (uppercase()) {
+            "VERY_HIGH" -> 1.25
+            "HIGH" -> 1.12
+            "LOW" -> 0.90
+            else -> 1.0
+        }
 
     private fun MutableMap<String, Double>.add(key: String, value: Double) {
         if (value <= 0.0) return
