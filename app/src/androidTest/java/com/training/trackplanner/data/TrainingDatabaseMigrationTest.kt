@@ -189,7 +189,77 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate12To13AddsLosslessRuntimeMetadataTable() {
+        helper.createDatabase(TEST_DB, 12).close()
+
+        helper.runMigrationsAndValidate(TEST_DB, 13, true, TrainingDatabase.MIGRATION_12_13).use { database ->
+            val actualColumns = buildSet {
+                database.query("PRAGMA table_info(runtime_exercise_metadata)").use { cursor ->
+                    val nameIndex = cursor.getColumnIndexOrThrow("name")
+                    while (cursor.moveToNext()) add(cursor.getString(nameIndex))
+                }
+            }
+            assert(actualColumns == RUNTIME_METADATA_COLUMNS) {
+                "Unexpected runtime metadata columns: $actualColumns"
+            }
+        }
+    }
+
+    @Test
+    fun migrate13To14AddsPersistedRecordDisplayOrder() {
+        helper.createDatabase(TEST_DB, 13).close()
+
+        helper.runMigrationsAndValidate(TEST_DB, 14, true, TrainingDatabase.MIGRATION_13_14).use { database ->
+            val columns = buildSet {
+                database.query("PRAGMA table_info(workout_entries)").use { cursor ->
+                    val nameIndex = cursor.getColumnIndexOrThrow("name")
+                    while (cursor.moveToNext()) add(cursor.getString(nameIndex))
+                }
+            }
+            check("displayOrder" in columns)
+            check("firstConfirmedAt" in columns)
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
+
+        val RUNTIME_METADATA_COLUMNS = setOf(
+            "stableKey",
+            "exerciseName",
+            "activityKind",
+            "planningEligibility",
+            "movementFamily",
+            "movementSubtype",
+            "programSlot",
+            "redundancyGroup",
+            "progressMetricType",
+            "strengthProgressionGroup",
+            "analysisEligibility",
+            "primaryStressProfile",
+            "secondaryStressTags",
+            "tendonStressTags",
+            "ligamentJointStabilityStressTags",
+            "jointImpactStressTags",
+            "cognitiveStressTags",
+            "sportContextTags",
+            "recoveryDecayProfile",
+            "stressMagnitudeHint",
+            "badmintonTransferLevel",
+            "badmintonTransferType",
+            "badmintonSkillTargets",
+            "badmintonPhysicalQualities",
+            "transferConfidence",
+            "sourceConfidenceLevel",
+            "finalSourceStatus",
+            "neuromuscularStressLevel",
+            "systemicMuscularStressLevel",
+            "localMuscularStressLevel",
+            "jointTendonImpactStressLevel",
+            "movementFocusDemandLevel",
+            "recoveryDurationClass",
+            "safeForSeedMutation"
+        )
     }
 }

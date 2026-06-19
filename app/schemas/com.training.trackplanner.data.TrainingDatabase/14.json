@@ -1,0 +1,1398 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 14,
+    "identityHash": "4423f4234cc6b5f52ed76cc514c2e8ba",
+    "entities": [
+      {
+        "tableName": "exercises",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, `detail1` TEXT NOT NULL, `detail2` TEXT NOT NULL, `mode` TEXT NOT NULL, `description` TEXT NOT NULL, `defaultRestSeconds` INTEGER NOT NULL, `familyId` TEXT NOT NULL, `familyName` TEXT NOT NULL, `familyRole` TEXT NOT NULL, `familyE1rmMultiplier` REAL NOT NULL, `stableKey` TEXT NOT NULL, `movementPattern` TEXT NOT NULL, `movementCategory` TEXT NOT NULL, `primaryMuscles` TEXT NOT NULL, `secondaryMuscles` TEXT NOT NULL, `equipment` TEXT NOT NULL, `equipmentTags` TEXT NOT NULL, `compoundType` TEXT NOT NULL, `forceType` TEXT NOT NULL, `bodyRegion` TEXT NOT NULL, `plane` TEXT NOT NULL, `laterality` TEXT NOT NULL, `axialLoadLevel` TEXT NOT NULL, `trainingRole` TEXT NOT NULL, `stabilityRoles` TEXT NOT NULL, `sportTransferDirect` TEXT NOT NULL, `sportTransferSupportive` TEXT NOT NULL, `badmintonTransferRoles` TEXT NOT NULL, `fatigueCategories` TEXT NOT NULL, `adaptiveBaselineGroups` TEXT NOT NULL, `accessoryRoles` TEXT NOT NULL, `loadProfile` TEXT NOT NULL, `recoveryDecayProfile` TEXT NOT NULL, `systemicLoadWeight` REAL NOT NULL, `neuralHeavyWeight` REAL NOT NULL, `neuralSpeedWeight` REAL NOT NULL, `localLoadWeight` REAL NOT NULL, `decelerationWeight` REAL NOT NULL, `elasticSscWeight` REAL NOT NULL, `rotationPowerWeight` REAL NOT NULL, `antiRotationWeight` REAL NOT NULL, `overheadSwingWeight` REAL NOT NULL, `gripLoadWeight` REAL NOT NULL, `progressMetricType` TEXT NOT NULL, `strengthProgressionGroup` TEXT NOT NULL, `hypertrophyVolumeGroup` TEXT NOT NULL, `mainLiftGroup` TEXT NOT NULL, `accessoryContributionGroup` TEXT NOT NULL, `estimated1RmEligible` INTEGER NOT NULL, `volumeLoadEligible` INTEGER NOT NULL, `badmintonTransferStrength` TEXT NOT NULL, `courtMovementTypes` TEXT NOT NULL, `badmintonSkillTargets` TEXT NOT NULL, `jointStressTags` TEXT NOT NULL, `stabilityDemandLevel` TEXT NOT NULL, `mobilityDemandLevel` TEXT NOT NULL, `balanceContributionTags` TEXT NOT NULL, `analysisEligibility` TEXT NOT NULL, `activityKind` TEXT NOT NULL, `planningEligibility` TEXT NOT NULL, `metadataConfidence` TEXT NOT NULL, `imageAssetName` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `archivedAt` INTEGER, `isCustom` INTEGER NOT NULL, `needsReview` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detail1",
+            "columnName": "detail1",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "detail2",
+            "columnName": "detail2",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultRestSeconds",
+            "columnName": "defaultRestSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "familyId",
+            "columnName": "familyId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "familyName",
+            "columnName": "familyName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "familyRole",
+            "columnName": "familyRole",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "familyE1rmMultiplier",
+            "columnName": "familyE1rmMultiplier",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stableKey",
+            "columnName": "stableKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "movementPattern",
+            "columnName": "movementPattern",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "movementCategory",
+            "columnName": "movementCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryMuscles",
+            "columnName": "primaryMuscles",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryMuscles",
+            "columnName": "secondaryMuscles",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equipment",
+            "columnName": "equipment",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "equipmentTags",
+            "columnName": "equipmentTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "compoundType",
+            "columnName": "compoundType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "forceType",
+            "columnName": "forceType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyRegion",
+            "columnName": "bodyRegion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "plane",
+            "columnName": "plane",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "laterality",
+            "columnName": "laterality",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "axialLoadLevel",
+            "columnName": "axialLoadLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingRole",
+            "columnName": "trainingRole",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stabilityRoles",
+            "columnName": "stabilityRoles",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sportTransferDirect",
+            "columnName": "sportTransferDirect",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sportTransferSupportive",
+            "columnName": "sportTransferSupportive",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTransferRoles",
+            "columnName": "badmintonTransferRoles",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fatigueCategories",
+            "columnName": "fatigueCategories",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "adaptiveBaselineGroups",
+            "columnName": "adaptiveBaselineGroups",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accessoryRoles",
+            "columnName": "accessoryRoles",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loadProfile",
+            "columnName": "loadProfile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recoveryDecayProfile",
+            "columnName": "recoveryDecayProfile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemicLoadWeight",
+            "columnName": "systemicLoadWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "neuralHeavyWeight",
+            "columnName": "neuralHeavyWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "neuralSpeedWeight",
+            "columnName": "neuralSpeedWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localLoadWeight",
+            "columnName": "localLoadWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "decelerationWeight",
+            "columnName": "decelerationWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elasticSscWeight",
+            "columnName": "elasticSscWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotationPowerWeight",
+            "columnName": "rotationPowerWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "antiRotationWeight",
+            "columnName": "antiRotationWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "overheadSwingWeight",
+            "columnName": "overheadSwingWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gripLoadWeight",
+            "columnName": "gripLoadWeight",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressMetricType",
+            "columnName": "progressMetricType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strengthProgressionGroup",
+            "columnName": "strengthProgressionGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hypertrophyVolumeGroup",
+            "columnName": "hypertrophyVolumeGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mainLiftGroup",
+            "columnName": "mainLiftGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accessoryContributionGroup",
+            "columnName": "accessoryContributionGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimated1RmEligible",
+            "columnName": "estimated1RmEligible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "volumeLoadEligible",
+            "columnName": "volumeLoadEligible",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTransferStrength",
+            "columnName": "badmintonTransferStrength",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "courtMovementTypes",
+            "columnName": "courtMovementTypes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonSkillTargets",
+            "columnName": "badmintonSkillTargets",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jointStressTags",
+            "columnName": "jointStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stabilityDemandLevel",
+            "columnName": "stabilityDemandLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mobilityDemandLevel",
+            "columnName": "mobilityDemandLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "balanceContributionTags",
+            "columnName": "balanceContributionTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "analysisEligibility",
+            "columnName": "analysisEligibility",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activityKind",
+            "columnName": "activityKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "planningEligibility",
+            "columnName": "planningEligibility",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadataConfidence",
+            "columnName": "metadataConfidence",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imageAssetName",
+            "columnName": "imageAssetName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archivedAt",
+            "columnName": "archivedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isCustom",
+            "columnName": "isCustom",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "needsReview",
+            "columnName": "needsReview",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_exercises_stableKey",
+            "unique": true,
+            "columnNames": [
+              "stableKey"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_exercises_stableKey` ON `${TABLE_NAME}` (`stableKey`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "workout_entries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `date` TEXT NOT NULL, `exerciseId` INTEGER NOT NULL, `exerciseName` TEXT NOT NULL, `category` TEXT NOT NULL, `restSeconds` INTEGER NOT NULL, `notes` TEXT NOT NULL, `rpe` REAL, `maxReps` INTEGER, `createdAt` INTEGER NOT NULL, `completedAt` INTEGER, `displayOrder` INTEGER NOT NULL, `firstConfirmedAt` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseId",
+            "columnName": "exerciseId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseName",
+            "columnName": "exerciseName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restSeconds",
+            "columnName": "restSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rpe",
+            "columnName": "rpe",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "maxReps",
+            "columnName": "maxReps",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "displayOrder",
+            "columnName": "displayOrder",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstConfirmedAt",
+            "columnName": "firstConfirmedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "workout_sets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `entryId` INTEGER NOT NULL, `setIndex` INTEGER NOT NULL, `reps` INTEGER NOT NULL, `weightKg` REAL NOT NULL, `seconds` INTEGER NOT NULL, `confirmed` INTEGER NOT NULL, `manualWeight` INTEGER NOT NULL, `rpe` REAL, `restSecondsOverride` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entryId",
+            "columnName": "entryId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setIndex",
+            "columnName": "setIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightKg",
+            "columnName": "weightKg",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seconds",
+            "columnName": "seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confirmed",
+            "columnName": "confirmed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "manualWeight",
+            "columnName": "manualWeight",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rpe",
+            "columnName": "rpe",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "restSecondsOverride",
+            "columnName": "restSecondsOverride",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "daily_metrics",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` TEXT NOT NULL, `sleepHours` REAL, `bodyWeightKg` REAL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`date`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sleepHours",
+            "columnName": "sleepHours",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "bodyWeightKg",
+            "columnName": "bodyWeightKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "training_programs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `durationDays` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `goal` TEXT NOT NULL, `weeklyTrainingDays` INTEGER NOT NULL, `sessionMinutes` INTEGER NOT NULL, `availableEquipment` TEXT NOT NULL, `excludedExerciseText` TEXT NOT NULL, `badmintonTransferRatio` REAL NOT NULL, `sportStrengthRatio` TEXT NOT NULL, `periodizationType` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationDays",
+            "columnName": "durationDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goal",
+            "columnName": "goal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weeklyTrainingDays",
+            "columnName": "weeklyTrainingDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionMinutes",
+            "columnName": "sessionMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "availableEquipment",
+            "columnName": "availableEquipment",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "excludedExerciseText",
+            "columnName": "excludedExerciseText",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTransferRatio",
+            "columnName": "badmintonTransferRatio",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sportStrengthRatio",
+            "columnName": "sportStrengthRatio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodizationType",
+            "columnName": "periodizationType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "training_program_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `programId` INTEGER NOT NULL, `weekNumber` INTEGER NOT NULL, `dayOfWeek` INTEGER NOT NULL, `orderIndex` INTEGER NOT NULL, `exerciseId` INTEGER NOT NULL, `exerciseName` TEXT NOT NULL, `category` TEXT NOT NULL, `restSeconds` INTEGER NOT NULL, `prescription` TEXT NOT NULL, `setCount` INTEGER NOT NULL, `reps` INTEGER NOT NULL, `weightKg` REAL NOT NULL, `seconds` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programId",
+            "columnName": "programId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weekNumber",
+            "columnName": "weekNumber",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderIndex",
+            "columnName": "orderIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseId",
+            "columnName": "exerciseId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseName",
+            "columnName": "exerciseName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restSeconds",
+            "columnName": "restSeconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "prescription",
+            "columnName": "prescription",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setCount",
+            "columnName": "setCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reps",
+            "columnName": "reps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightKg",
+            "columnName": "weightKg",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seconds",
+            "columnName": "seconds",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "app_meta",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`key` TEXT NOT NULL, `value` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`key`))",
+        "fields": [
+          {
+            "fieldPath": "key",
+            "columnName": "key",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "key"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "initial_user_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `bodyWeightKg` REAL, `heightCm` REAL, `birthYearOrAgeRange` TEXT NOT NULL, `gender` TEXT NOT NULL, `birthYear` INTEGER, `sex` TEXT NOT NULL, `strengthSessionsPerWeek` REAL, `strengthMinutesPerSession` INTEGER, `strengthAverageRpe` REAL, `badmintonSessionsPerWeek` REAL, `badmintonMinutesPerSession` INTEGER, `badmintonAverageRpe` REAL, `strengthTrainingAge` TEXT NOT NULL, `badmintonTrainingAge` TEXT NOT NULL, `strengthTrainingYears` REAL, `badmintonTrainingYears` REAL, `hadRecentTrainingBreak` INTEGER NOT NULL, `breakWeeks` INTEGER, `breakDueToPain` INTEGER NOT NULL, `trainingBreakCategory` TEXT NOT NULL, `trainingBreakReason` TEXT NOT NULL, `squatLevel` TEXT NOT NULL, `deadliftLevel` TEXT NOT NULL, `benchPressLevel` TEXT NOT NULL, `pullUpLevel` TEXT NOT NULL, `squatKg` REAL, `deadliftKg` REAL, `benchPressKg` REAL, `pullUpMaxReps` INTEGER, `pullUpAddedWeightKg` REAL, `typicalSleepHours` REAL, `usualSleepHours` REAL, `sleepQuality` INTEGER, `currentFatigue` INTEGER, `currentSoreness` INTEGER, `currentStress` INTEGER, `currentMood` INTEGER, `currentCondition` INTEGER, `painAreas` TEXT NOT NULL, `painAreaTags` TEXT NOT NULL, `avoidedMovements` TEXT NOT NULL, `avoidMovementTags` TEXT NOT NULL, `goals` TEXT NOT NULL, `primaryGoal` TEXT NOT NULL, `secondaryGoalTags` TEXT NOT NULL, `freeNote` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bodyWeightKg",
+            "columnName": "bodyWeightKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "heightCm",
+            "columnName": "heightCm",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "birthYearOrAgeRange",
+            "columnName": "birthYearOrAgeRange",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gender",
+            "columnName": "gender",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "birthYear",
+            "columnName": "birthYear",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sex",
+            "columnName": "sex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strengthSessionsPerWeek",
+            "columnName": "strengthSessionsPerWeek",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "strengthMinutesPerSession",
+            "columnName": "strengthMinutesPerSession",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "strengthAverageRpe",
+            "columnName": "strengthAverageRpe",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "badmintonSessionsPerWeek",
+            "columnName": "badmintonSessionsPerWeek",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "badmintonMinutesPerSession",
+            "columnName": "badmintonMinutesPerSession",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "badmintonAverageRpe",
+            "columnName": "badmintonAverageRpe",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "strengthTrainingAge",
+            "columnName": "strengthTrainingAge",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTrainingAge",
+            "columnName": "badmintonTrainingAge",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strengthTrainingYears",
+            "columnName": "strengthTrainingYears",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "badmintonTrainingYears",
+            "columnName": "badmintonTrainingYears",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "hadRecentTrainingBreak",
+            "columnName": "hadRecentTrainingBreak",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakWeeks",
+            "columnName": "breakWeeks",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "breakDueToPain",
+            "columnName": "breakDueToPain",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingBreakCategory",
+            "columnName": "trainingBreakCategory",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainingBreakReason",
+            "columnName": "trainingBreakReason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "squatLevel",
+            "columnName": "squatLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deadliftLevel",
+            "columnName": "deadliftLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "benchPressLevel",
+            "columnName": "benchPressLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pullUpLevel",
+            "columnName": "pullUpLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "squatKg",
+            "columnName": "squatKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deadliftKg",
+            "columnName": "deadliftKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "benchPressKg",
+            "columnName": "benchPressKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "pullUpMaxReps",
+            "columnName": "pullUpMaxReps",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "pullUpAddedWeightKg",
+            "columnName": "pullUpAddedWeightKg",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "typicalSleepHours",
+            "columnName": "typicalSleepHours",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "usualSleepHours",
+            "columnName": "usualSleepHours",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sleepQuality",
+            "columnName": "sleepQuality",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentFatigue",
+            "columnName": "currentFatigue",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentSoreness",
+            "columnName": "currentSoreness",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentStress",
+            "columnName": "currentStress",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentMood",
+            "columnName": "currentMood",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentCondition",
+            "columnName": "currentCondition",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "painAreas",
+            "columnName": "painAreas",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "painAreaTags",
+            "columnName": "painAreaTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avoidedMovements",
+            "columnName": "avoidedMovements",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avoidMovementTags",
+            "columnName": "avoidMovementTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "goals",
+            "columnName": "goals",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryGoal",
+            "columnName": "primaryGoal",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryGoalTags",
+            "columnName": "secondaryGoalTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "freeNote",
+            "columnName": "freeNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "runtime_exercise_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stableKey` TEXT NOT NULL, `exerciseName` TEXT NOT NULL, `activityKind` TEXT NOT NULL, `planningEligibility` TEXT NOT NULL, `movementFamily` TEXT NOT NULL, `movementSubtype` TEXT NOT NULL, `programSlot` TEXT NOT NULL, `redundancyGroup` TEXT NOT NULL, `progressMetricType` TEXT NOT NULL, `strengthProgressionGroup` TEXT NOT NULL, `analysisEligibility` TEXT NOT NULL, `primaryStressProfile` TEXT NOT NULL, `secondaryStressTags` TEXT NOT NULL, `tendonStressTags` TEXT NOT NULL, `ligamentJointStabilityStressTags` TEXT NOT NULL, `jointImpactStressTags` TEXT NOT NULL, `cognitiveStressTags` TEXT NOT NULL, `sportContextTags` TEXT NOT NULL, `recoveryDecayProfile` TEXT NOT NULL, `stressMagnitudeHint` TEXT NOT NULL, `badmintonTransferLevel` TEXT NOT NULL, `badmintonTransferType` TEXT NOT NULL, `badmintonSkillTargets` TEXT NOT NULL, `badmintonPhysicalQualities` TEXT NOT NULL, `transferConfidence` TEXT NOT NULL, `sourceConfidenceLevel` TEXT NOT NULL, `finalSourceStatus` TEXT NOT NULL, `neuromuscularStressLevel` TEXT NOT NULL, `systemicMuscularStressLevel` TEXT NOT NULL, `localMuscularStressLevel` TEXT NOT NULL, `jointTendonImpactStressLevel` TEXT NOT NULL, `movementFocusDemandLevel` TEXT NOT NULL, `recoveryDurationClass` TEXT NOT NULL, `safeForSeedMutation` INTEGER NOT NULL, PRIMARY KEY(`stableKey`))",
+        "fields": [
+          {
+            "fieldPath": "stableKey",
+            "columnName": "stableKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseName",
+            "columnName": "exerciseName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activityKind",
+            "columnName": "activityKind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "planningEligibility",
+            "columnName": "planningEligibility",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "movementFamily",
+            "columnName": "movementFamily",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "movementSubtype",
+            "columnName": "movementSubtype",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "programSlot",
+            "columnName": "programSlot",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "redundancyGroup",
+            "columnName": "redundancyGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "progressMetricType",
+            "columnName": "progressMetricType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strengthProgressionGroup",
+            "columnName": "strengthProgressionGroup",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "analysisEligibility",
+            "columnName": "analysisEligibility",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryStressProfile",
+            "columnName": "primaryStressProfile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondaryStressTags",
+            "columnName": "secondaryStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tendonStressTags",
+            "columnName": "tendonStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ligamentJointStabilityStressTags",
+            "columnName": "ligamentJointStabilityStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jointImpactStressTags",
+            "columnName": "jointImpactStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cognitiveStressTags",
+            "columnName": "cognitiveStressTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sportContextTags",
+            "columnName": "sportContextTags",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recoveryDecayProfile",
+            "columnName": "recoveryDecayProfile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stressMagnitudeHint",
+            "columnName": "stressMagnitudeHint",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTransferLevel",
+            "columnName": "badmintonTransferLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonTransferType",
+            "columnName": "badmintonTransferType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonSkillTargets",
+            "columnName": "badmintonSkillTargets",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "badmintonPhysicalQualities",
+            "columnName": "badmintonPhysicalQualities",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "transferConfidence",
+            "columnName": "transferConfidence",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceConfidenceLevel",
+            "columnName": "sourceConfidenceLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finalSourceStatus",
+            "columnName": "finalSourceStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "neuromuscularStressLevel",
+            "columnName": "neuromuscularStressLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "systemicMuscularStressLevel",
+            "columnName": "systemicMuscularStressLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localMuscularStressLevel",
+            "columnName": "localMuscularStressLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jointTendonImpactStressLevel",
+            "columnName": "jointTendonImpactStressLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "movementFocusDemandLevel",
+            "columnName": "movementFocusDemandLevel",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recoveryDurationClass",
+            "columnName": "recoveryDurationClass",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "safeForSeedMutation",
+            "columnName": "safeForSeedMutation",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "stableKey"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4423f4234cc6b5f52ed76cc514c2e8ba')"
+    ]
+  }
+}

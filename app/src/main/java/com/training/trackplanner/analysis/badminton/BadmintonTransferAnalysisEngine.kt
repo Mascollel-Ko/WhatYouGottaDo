@@ -11,7 +11,8 @@ class BadmintonTransferAnalysisEngine(
     runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
     private val scoreCalculator: BadmintonTransferScoreCalculator =
         BadmintonTransferScoreCalculator(runtimeMetadataCatalog),
-    private val recommendationBuilder: BadmintonTransferRecommendationBuilder = BadmintonTransferRecommendationBuilder(),
+    private val recommendationBuilder: BadmintonTransferRecommendationBuilder =
+        BadmintonTransferRecommendationBuilder(runtimeMetadataCatalog),
     private val insightBuilder: BadmintonTransferInsightBuilder = BadmintonTransferInsightBuilder(),
     private val chartDataBuilder: BadmintonTransferChartDataBuilder = BadmintonTransferChartDataBuilder()
 ) {

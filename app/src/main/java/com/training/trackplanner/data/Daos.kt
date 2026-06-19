@@ -70,6 +70,9 @@ interface ExerciseDao {
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun countExercises(): Int
 
+    @Query("SELECT * FROM exercises WHERE isCustom = 1 AND trim(stableKey) = ''")
+    suspend fun customExercisesWithBlankStableKey(): List<Exercise>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(exercises: List<Exercise>)
 
@@ -81,6 +84,21 @@ interface ExerciseDao {
 
     @Delete
     suspend fun deleteExercise(exercise: Exercise)
+}
+
+@Dao
+interface RuntimeExerciseMetadataDao {
+    @Query("SELECT * FROM runtime_exercise_metadata WHERE stableKey = :stableKey LIMIT 1")
+    suspend fun findByStableKey(stableKey: String): RuntimeExerciseMetadataEntity?
+
+    @Query("SELECT * FROM runtime_exercise_metadata")
+    suspend fun all(): List<RuntimeExerciseMetadataEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(metadata: RuntimeExerciseMetadataEntity)
+
+    @Query("DELETE FROM runtime_exercise_metadata WHERE stableKey = :stableKey")
+    suspend fun deleteByStableKey(stableKey: String)
 }
 
 @Dao
@@ -133,6 +151,9 @@ interface WorkoutDao {
     @Insert
     suspend fun insertEntry(entry: WorkoutEntry): Long
 
+    @Query("SELECT * FROM workout_entries WHERE id = :entryId LIMIT 1")
+    suspend fun findEntryById(entryId: Long): WorkoutEntry?
+
     @Update
     suspend fun updateEntry(entry: WorkoutEntry)
 
@@ -141,6 +162,9 @@ interface WorkoutDao {
 
     @Update
     suspend fun updateSet(set: WorkoutSet)
+
+    @Query("SELECT * FROM workout_sets WHERE id = :setId LIMIT 1")
+    suspend fun findSetById(setId: Long): WorkoutSet?
 
     @Delete
     suspend fun deleteSet(set: WorkoutSet)
@@ -213,6 +237,25 @@ interface WorkoutDao {
 
     @Query("UPDATE workout_entries SET completedAt = :completedAt WHERE id = :entryId")
     suspend fun updateEntryCompletedAt(entryId: Long, completedAt: Long?)
+
+    @Query(
+        """
+        UPDATE workout_entries
+        SET displayOrder = :displayOrder
+        WHERE id = :entryId
+        """
+    )
+    suspend fun updateEntryDisplayOrder(entryId: Long, displayOrder: Int)
+
+    @Query(
+        """
+        UPDATE workout_entries
+        SET firstConfirmedAt = COALESCE(firstConfirmedAt, :confirmedAt),
+            completedAt = :confirmedAt
+        WHERE id = :entryId
+        """
+    )
+    suspend fun markEntryConfirmed(entryId: Long, confirmedAt: Long)
 
     @Query("UPDATE workout_sets SET setIndex = :setIndex WHERE id = :setId")
     suspend fun updateSetIndex(setId: Long, setIndex: Int)

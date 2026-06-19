@@ -20,11 +20,13 @@ import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgram
@@ -91,9 +93,14 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val recordTransferMessage: StateFlow<String?> =
         _recordTransferMessage.asStateFlow()
 
+    private val _exerciseRuntimeMetadata = MutableStateFlow<Map<Long, RuntimeExerciseMetadata>>(emptyMap())
+    val exerciseRuntimeMetadata: StateFlow<Map<Long, RuntimeExerciseMetadata>> =
+        _exerciseRuntimeMetadata.asStateFlow()
+
     init {
         viewModelScope.launch {
             repository.seedIfNeeded()
+            refreshExerciseRuntimeMetadataInternal()
             refreshAnalysisSummaries()
         }
     }
@@ -119,10 +126,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun metricForDate(date: String): Flow<DailyMetric?> =
         repository.metricForDate(date)
 
-    fun addWorkout(date: String, exerciseId: Long) {
+    fun addWorkout(date: String, exerciseId: Long, onAdded: (Long) -> Unit = {}) {
         viewModelScope.launch {
-            repository.addWorkoutEntry(date, exerciseId)
+            val entryId = repository.addWorkoutEntry(date, exerciseId)
             refreshAnalysisSummaries()
+            if (entryId > 0) onAdded(entryId)
         }
     }
 
@@ -312,6 +320,37 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             repository.setExerciseActive(exerciseId, active)
             refreshAnalysisSummaries()
         }
+    }
+
+    fun loadExerciseEditor(
+        exerciseId: Long?,
+        onLoaded: (ExerciseRuntimeMetadataEditorData) -> Unit
+    ) {
+        viewModelScope.launch {
+            onLoaded(repository.exerciseEditorData(exerciseId))
+        }
+    }
+
+    fun refreshExerciseRuntimeMetadata() {
+        viewModelScope.launch { refreshExerciseRuntimeMetadataInternal() }
+    }
+
+    fun saveExerciseEditor(
+        data: ExerciseRuntimeMetadataEditorData,
+        onResult: (Result<Long>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching { repository.saveExerciseEditor(data) }
+            if (result.isSuccess) {
+                refreshExerciseRuntimeMetadataInternal()
+                refreshAnalysisSummaries()
+            }
+            onResult(result)
+        }
+    }
+
+    private suspend fun refreshExerciseRuntimeMetadataInternal() {
+        _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseId()
     }
 
     fun deleteExerciseIfUnused(exerciseId: Long, onResult: (Boolean) -> Unit) {

@@ -114,6 +114,8 @@ class RuntimeExerciseMetadataCatalog private constructor(
     val size: Int
         get() = byStableKey.size
 
+    fun all(): List<RuntimeExerciseMetadata> = byStableKey.values.toList()
+
     fun resolveByStableKey(stableKey: String): RuntimeExerciseMetadata? =
         byStableKey[stableKey.trim().lowercase(Locale.ROOT)]
 

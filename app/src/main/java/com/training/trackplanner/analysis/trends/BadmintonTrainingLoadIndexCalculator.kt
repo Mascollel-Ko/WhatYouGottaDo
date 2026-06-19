@@ -4,9 +4,12 @@ import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 
-class BadmintonTrainingLoadIndexCalculator {
+class BadmintonTrainingLoadIndexCalculator(
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
         exerciseMap: Map<Long, Exercise>
@@ -113,7 +116,12 @@ class BadmintonTrainingLoadIndexCalculator {
         exerciseMap: Map<Long, Exercise>
     ): AnalysisExerciseFeatures? {
         val exercise = exerciseMap[record.entry.exerciseId] ?: return null
-        return AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+        return AnalysisFeatureExtractor.fromRecord(
+            exercise,
+            record.entry,
+            record.sets,
+            runtimeMetadataCatalog.resolve(exercise)
+        )
     }
 
     private fun AnalysisExerciseFeatures.isShuttlePlaySession(): Boolean =

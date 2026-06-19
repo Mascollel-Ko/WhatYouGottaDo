@@ -5,8 +5,11 @@ import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 
-class BadmintonTransferRecommendationBuilder {
+class BadmintonTransferRecommendationBuilder(
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+) {
     fun build(
         snapshot: BadmintonTransferScoreSnapshot,
         readinessSummary: TodayReadinessSummary?,
@@ -102,7 +105,10 @@ class BadmintonTransferRecommendationBuilder {
         exercises: List<Exercise>
     ): List<String> =
         exercises.filter { exercise -> exercise.isActive }.mapNotNull { exercise ->
-            val features = AnalysisFeatureExtractor.fromExercise(exercise)
+            val features = AnalysisFeatureExtractor.fromExercise(
+                exercise,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             val axes = BadmintonTransferMetadataMapper.transferAxes(features)
             if (axis !in axes) return@mapNotNull null
             val transferType = BadmintonTransferMetadataMapper.transferType(features)

@@ -10,13 +10,17 @@ import com.training.trackplanner.analysis.readiness.ResidualFatigueCalculator
 import com.training.trackplanner.analysis.readiness.StatisticalBaselineCalculator
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 class PerformanceTrendEngine(
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
     private val weeklyAggregator: WeeklyAnalysisAggregator = WeeklyAnalysisAggregator(),
-    private val strengthCalculator: StrengthPerformanceIndexCalculator = StrengthPerformanceIndexCalculator(),
-    private val badmintonCalculator: BadmintonTrainingLoadIndexCalculator = BadmintonTrainingLoadIndexCalculator(),
+    private val strengthCalculator: StrengthPerformanceIndexCalculator =
+        StrengthPerformanceIndexCalculator(runtimeMetadataCatalog),
+    private val badmintonCalculator: BadmintonTrainingLoadIndexCalculator =
+        BadmintonTrainingLoadIndexCalculator(runtimeMetadataCatalog),
     private val fatigueCalculator: FatigueCompositeIndexCalculator = FatigueCompositeIndexCalculator(),
     private val forecastCalculator: TrendForecastRangeCalculator = TrendForecastRangeCalculator(),
     private val chartSpecBuilder: PerformanceChartSpecBuilder = PerformanceChartSpecBuilder(),
@@ -102,7 +106,11 @@ class PerformanceTrendEngine(
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
             date != null && date <= today && record.sets.any { set -> set.confirmed }
         }
-        val dailyLoads = DailyAnalysisLoadAggregator().aggregate(completedEntries, exerciseMap)
+        val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
+            completedEntries,
+            exerciseMap,
+            runtimeMetadataCatalog
+        )
         return weeks.map { week ->
             val loadsUntilWeek = dailyLoads.filter { load -> load.date <= week.weekEnd }
             val entriesUntilWeek = completedEntries.filter { record -> LocalDate.parse(record.entry.date) <= week.weekEnd }
@@ -114,7 +122,12 @@ class PerformanceTrendEngine(
             val adaptive = AdaptiveBaselineCalculator().calculate(loadsUntilWeek, stats)
             val pressure = FatiguePressureCalculator().calculate(residual, stats, adaptive)
             val recovery = RecoverySignalInterpreter().interpret(week.weekEnd, metricsUntilWeek)
-            val performance = PerformanceDropDetector().detect(entriesUntilWeek, exerciseMap, week.weekEnd)
+            val performance = PerformanceDropDetector().detect(
+                entriesUntilWeek,
+                exerciseMap,
+                week.weekEnd,
+                runtimeMetadataCatalog
+            )
             val pain = PainGateEvaluator().evaluate(week.weekEnd, emptyList())
             fatigueCalculator.calculate(
                 weekStart = week.weekStart,

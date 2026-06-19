@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
@@ -16,11 +17,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrainingProgram::class,
         TrainingProgramItem::class,
         AppMeta::class,
-        InitialUserProfile::class
+        InitialUserProfile::class,
+        RuntimeExerciseMetadataEntity::class
     ],
-    version = 12,
+    version = 14,
     exportSchema = true
 )
+@TypeConverters(RuntimeMetadataTypeConverters::class)
 abstract class TrainingDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
     abstract fun workoutDao(): WorkoutDao
@@ -28,6 +31,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun dailyMetricDao(): DailyMetricDao
     abstract fun appMetaDao(): AppMetaDao
     abstract fun initialUserProfileDao(): InitialUserProfileDao
+    abstract fun runtimeExerciseMetadataDao(): RuntimeExerciseMetadataDao
 
     companion object {
         @Volatile
@@ -254,6 +258,71 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `runtime_exercise_metadata` (
+                        `stableKey` TEXT NOT NULL,
+                        `exerciseName` TEXT NOT NULL,
+                        `activityKind` TEXT NOT NULL,
+                        `planningEligibility` TEXT NOT NULL,
+                        `movementFamily` TEXT NOT NULL,
+                        `movementSubtype` TEXT NOT NULL,
+                        `programSlot` TEXT NOT NULL,
+                        `redundancyGroup` TEXT NOT NULL,
+                        `progressMetricType` TEXT NOT NULL,
+                        `strengthProgressionGroup` TEXT NOT NULL,
+                        `analysisEligibility` TEXT NOT NULL,
+                        `primaryStressProfile` TEXT NOT NULL,
+                        `secondaryStressTags` TEXT NOT NULL,
+                        `tendonStressTags` TEXT NOT NULL,
+                        `ligamentJointStabilityStressTags` TEXT NOT NULL,
+                        `jointImpactStressTags` TEXT NOT NULL,
+                        `cognitiveStressTags` TEXT NOT NULL,
+                        `sportContextTags` TEXT NOT NULL,
+                        `recoveryDecayProfile` TEXT NOT NULL,
+                        `stressMagnitudeHint` TEXT NOT NULL,
+                        `badmintonTransferLevel` TEXT NOT NULL,
+                        `badmintonTransferType` TEXT NOT NULL,
+                        `badmintonSkillTargets` TEXT NOT NULL,
+                        `badmintonPhysicalQualities` TEXT NOT NULL,
+                        `transferConfidence` TEXT NOT NULL,
+                        `sourceConfidenceLevel` TEXT NOT NULL,
+                        `finalSourceStatus` TEXT NOT NULL,
+                        `neuromuscularStressLevel` TEXT NOT NULL,
+                        `systemicMuscularStressLevel` TEXT NOT NULL,
+                        `localMuscularStressLevel` TEXT NOT NULL,
+                        `jointTendonImpactStressLevel` TEXT NOT NULL,
+                        `movementFocusDemandLevel` TEXT NOT NULL,
+                        `recoveryDurationClass` TEXT NOT NULL,
+                        `safeForSeedMutation` INTEGER NOT NULL,
+                        PRIMARY KEY(`stableKey`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        internal val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `workout_entries` ADD COLUMN `displayOrder` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `workout_entries` ADD COLUMN `firstConfirmedAt` INTEGER")
+                db.execSQL("UPDATE `workout_entries` SET `displayOrder` = `id`")
+                db.execSQL(
+                    """
+                    UPDATE `workout_entries`
+                    SET `firstConfirmedAt` = COALESCE(`completedAt`, `createdAt`)
+                    WHERE EXISTS (
+                        SELECT 1 FROM `workout_sets`
+                        WHERE `workout_sets`.`entryId` = `workout_entries`.`id`
+                          AND `workout_sets`.`confirmed` = 1
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -272,7 +341,9 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_8_9,
                         MIGRATION_9_10,
                         MIGRATION_10_11,
-                        MIGRATION_11_12
+                        MIGRATION_11_12,
+                        MIGRATION_12_13,
+                        MIGRATION_13_14
                     )
                     .build()
                     .also { instance = it }

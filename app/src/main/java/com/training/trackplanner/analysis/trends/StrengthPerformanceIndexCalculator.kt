@@ -5,10 +5,13 @@ import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 
-class StrengthPerformanceIndexCalculator {
+class StrengthPerformanceIndexCalculator(
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
         exerciseMap: Map<Long, Exercise>,
@@ -30,7 +33,7 @@ class StrengthPerformanceIndexCalculator {
         return weeks.mapIndexed { index, week ->
             val intensityScores = rawIntensityByWeek[index].mapNotNull { (exerciseId, intensityRaw) ->
                 val exercise = exerciseMap[exerciseId] ?: return@mapNotNull null
-                val features = AnalysisFeatureExtractor.fromExercise(exercise)
+                val features = AnalysisFeatureExtractor.fromExercise(exercise, runtimeMetadataCatalog.resolve(exercise))
                 val history = rawIntensityByWeek.map { values -> values[exerciseId] }
                 val (baseline, confidence) = TrendMath.baselineFor(history, index)
                 val score = if (baseline == null) 100.0 else TrendMath.higherIsBetterScore(intensityRaw, baseline)
@@ -124,7 +127,12 @@ class StrengthPerformanceIndexCalculator {
     ): Map<Long, Double> =
         mapNotNull { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@mapNotNull null
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthProgressEligible()) return@mapNotNull null
             val maxE1rm = record.sets
                 .filter { set -> set.confirmed && set.weightKg > 0.0 && set.reps in 1..12 }
@@ -140,7 +148,12 @@ class StrengthPerformanceIndexCalculator {
     ): Double =
         sumOf { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@sumOf 0.0
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthLike()) return@sumOf 0.0
             val weight = PerformanceTrendConstants.volumeEligibilityWeight(
                 features.trainingRole,
@@ -160,7 +173,12 @@ class StrengthPerformanceIndexCalculator {
     ): Int =
         sumOf { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@sumOf 0
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthLike()) return@sumOf 0
             record.sets.count { set ->
                 set.confirmed &&
@@ -174,7 +192,12 @@ class StrengthPerformanceIndexCalculator {
     ): Double? {
         val hardSets = flatMap { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@flatMap emptyList<SetWork>()
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthLike()) return@flatMap emptyList()
             record.sets
                 .filter { set -> set.confirmed && (set.rpe ?: record.entry.rpe) != null }
@@ -216,7 +239,12 @@ class StrengthPerformanceIndexCalculator {
     ): List<ComparableRpeSet> =
         flatMap { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@flatMap emptyList()
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthLike()) return@flatMap emptyList()
             record.sets.mapNotNull { set ->
                 val rpe = set.rpe ?: record.entry.rpe ?: return@mapNotNull null
@@ -247,7 +275,12 @@ class StrengthPerformanceIndexCalculator {
         val totals = mutableMapOf<String, Double>()
         forEach { record ->
             val exercise = exerciseMap[record.entry.exerciseId] ?: return@forEach
-            val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets)
+            val features = AnalysisFeatureExtractor.fromRecord(
+                exercise,
+                record.entry,
+                record.sets,
+                runtimeMetadataCatalog.resolve(exercise)
+            )
             if (!features.isStrengthLike()) return@forEach
             val bodyWeight = allDailyMetrics
                 .filter { metric -> metric.date <= record.entry.date }

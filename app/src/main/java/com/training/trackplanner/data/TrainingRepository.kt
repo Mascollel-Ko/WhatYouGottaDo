@@ -111,7 +111,8 @@ class TrainingRepository(
     private val dailyMetricDao = db.dailyMetricDao()
     private val appMetaDao = db.appMetaDao()
     private val initialUserProfileDao = db.initialUserProfileDao()
-    private val runtimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
+    private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -121,14 +122,15 @@ class TrainingRepository(
     suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val exercises = exerciseDao.allExercises()
         TodayReadinessEngine().analyze(
             TodayReadinessEngineInput(
                 today = today,
-                exercises = exerciseDao.allExercises(),
+                exercises = exercises,
                 entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
                 dailyMetrics = dailyMetricDao.metricsUntil(todayString),
                 initialProfile = initialUserProfileDao.profile(),
-                runtimeMetadataCatalog = runtimeMetadataCatalog
+                runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
             )
         )
     }
@@ -137,6 +139,7 @@ class TrainingRepository(
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
+        val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
         val results = DailyFatigueCalculator(runtimeMetadataCatalog).calculateSeries(
             endDate = today,
@@ -181,10 +184,11 @@ class TrainingRepository(
         withContext(Dispatchers.IO) {
             val today = SystemAnalysisDateProvider().today()
             val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-            DailyFatigueCalculator(runtimeMetadataCatalog).calculateSeries(
+            val exercises = exerciseDao.allExercises()
+            DailyFatigueCalculator(resolvedRuntimeMetadataCatalog(exercises)).calculateSeries(
                 endDate = today,
                 days = days.coerceIn(1, 28 * 7),
-                exercises = exerciseDao.allExercises(),
+                exercises = exercises,
                 entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
                 initialProfile = initialUserProfileDao.profile()
             )
@@ -193,9 +197,10 @@ class TrainingRepository(
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        PerformanceTrendEngine().analyze(
+        val exercises = exerciseDao.allExercises()
+        PerformanceTrendEngine(resolvedRuntimeMetadataCatalog(exercises)).analyze(
             today = today,
-            exercises = exerciseDao.allExercises(),
+            exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         )
@@ -206,9 +211,10 @@ class TrainingRepository(
     ): BadmintonTransferSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        BadmintonTransferAnalysisEngine(runtimeMetadataCatalog = runtimeMetadataCatalog).analyze(
+        val exercises = exerciseDao.allExercises()
+        BadmintonTransferAnalysisEngine(runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)).analyze(
             today = today,
-            exercises = exerciseDao.allExercises(),
+            exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             readinessSummary = readinessSummary
         )
@@ -288,6 +294,7 @@ class TrainingRepository(
                 )
             )
         }
+        repairCustomExerciseStableKeys()
         refreshExerciseAnalysisMetadata()
 
         if (programSeedVersion < PROGRAM_SEED_VERSION) {
@@ -309,21 +316,113 @@ class TrainingRepository(
                 ?: exerciseDao.findByName(seed.name)
             if (existing == null) {
                 exerciseDao.insertExercise(seed)
-            } else if (!existing.isCustom) {
-                exerciseDao.updateExercise(
-                    seed.copy(
-                        id = existing.id,
-                        stableKey = existing.stableKey,
-                        imageAssetName = seed.imageAssetName.ifBlank { existing.imageAssetName },
-                        isActive = existing.isActive,
-                        archivedAt = existing.archivedAt,
-                        isCustom = existing.isCustom,
-                        needsReview = existing.needsReview || seed.needsReview
-                    )
-                )
+            } else {
+                ExerciseStableKeyPolicy.mergeSeed(existing, seed)?.let { merged ->
+                    exerciseDao.updateExercise(merged)
+                }
             }
         }
     }
+
+    suspend fun exerciseEditorData(exerciseId: Long?): ExerciseRuntimeMetadataEditorData =
+        withContext(Dispatchers.IO) {
+            val persistedRows = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            val options = RuntimeMetadataEditorOptions.from(
+                canonicalRuntimeMetadataCatalog.all() + persistedRows
+            )
+            val exercise = exerciseId?.let { exerciseDao.findById(it) }
+                ?: Exercise(
+                    name = "",
+                    category = "근력운동",
+                    stableKey = "",
+                    isCustom = true
+                )
+            val metadata = if (exerciseId == null) {
+                RuntimeExerciseMetadataDefaults.forIdentity("", "")
+            } else {
+                RuntimeExerciseMetadataResolver(canonicalRuntimeMetadataCatalog, persistedRows).resolve(exercise)
+            }
+            ExerciseRuntimeMetadataEditorData(exercise, metadata, options)
+        }
+
+    suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): Long =
+        withContext(Dispatchers.IO) {
+            require(data.exercise.name.isNotBlank()) { "운동 이름을 입력하세요." }
+            require(data.exercise.category.isNotBlank()) { "분류를 입력하세요." }
+            require(data.exercise.defaultRestSeconds in 0..3600) { "휴식 시간은 0~3600초로 입력하세요." }
+            db.withTransaction {
+                val existing = data.exercise.id.takeIf { it > 0 }?.let { exerciseDao.findById(it) }
+                val savedExercise = if (existing == null) {
+                    insertUserExerciseWithUniqueKey(data.exercise)
+                } else {
+                    val stableKey = existing.stableKey.ifBlank {
+                        uniqueUserExerciseStableKey()
+                    }
+                    ExerciseStableKeyPolicy.preserveOnEdit(existing, data.exercise, stableKey)
+                        .also { exerciseDao.updateExercise(it) }
+                }
+                runtimeExerciseMetadataDao.upsert(
+                    data.metadata.copy(
+                        stableKey = savedExercise.stableKey,
+                        exerciseName = savedExercise.name,
+                        safeForSeedMutation = false
+                    ).toEntity()
+                )
+                savedExercise.id
+            }
+        }
+
+    suspend fun resolveRuntimeMetadata(exercise: Exercise): RuntimeExerciseMetadata =
+        withContext(Dispatchers.IO) {
+            RuntimeExerciseMetadataResolver(
+                canonicalRuntimeMetadataCatalog,
+                runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            ).resolve(exercise)
+        }
+
+    suspend fun resolvedRuntimeMetadataByExerciseId(): Map<Long, RuntimeExerciseMetadata> =
+        withContext(Dispatchers.IO) {
+            val exercises = exerciseDao.allExercises()
+            val catalog = resolvedRuntimeMetadataCatalog(exercises)
+            exercises.associate { exercise ->
+                exercise.id to (catalog.resolve(exercise) ?: RuntimeExerciseMetadataDefaults.forExercise(exercise))
+            }
+        }
+
+    private suspend fun repairCustomExerciseStableKeys() {
+        exerciseDao.customExercisesWithBlankStableKey().forEach { exercise ->
+            exerciseDao.updateExercise(exercise.copy(stableKey = uniqueUserExerciseStableKey()))
+        }
+    }
+
+    private suspend fun insertUserExerciseWithUniqueKey(draft: Exercise): Exercise {
+        repeat(USER_KEY_RETRY_LIMIT) {
+            val candidate = draft.copy(
+                id = 0,
+                stableKey = uniqueUserExerciseStableKey(),
+                isCustom = true
+            )
+            val id = exerciseDao.insertExercise(candidate)
+            if (id > 0) return candidate.copy(id = id)
+        }
+        error("사용자 운동 식별자를 생성하지 못했습니다.")
+    }
+
+    private suspend fun uniqueUserExerciseStableKey(): String {
+        repeat(USER_KEY_RETRY_LIMIT) {
+            val candidate = UserExerciseStableKeyGenerator.generate()
+            if (exerciseDao.findByStableKey(candidate) == null) return candidate
+        }
+        error("사용자 운동 식별자 충돌을 해결하지 못했습니다.")
+    }
+
+    private suspend fun resolvedRuntimeMetadataCatalog(
+        exercises: List<Exercise>
+    ): RuntimeExerciseMetadataCatalog =
+        RuntimeExerciseMetadataResolver(
+            canonicalRuntimeMetadataCatalog,
+            runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+        ).catalog(exercises)
 
     suspend fun setExerciseActive(exerciseId: Long, active: Boolean) = withContext(Dispatchers.IO) {
         val exercise = exerciseDao.findById(exerciseId) ?: return@withContext
@@ -346,23 +445,39 @@ class TrainingRepository(
             if (referenced || !exercise.isCustom) {
                 return@withTransaction ExerciseDeleteResult(deleted = false, referenced = true)
             }
+            runtimeExerciseMetadataDao.deleteByStableKey(exercise.stableKey)
             exerciseDao.deleteExercise(exercise)
             ExerciseDeleteResult(deleted = true, referenced = false)
         }
     }
 
-    suspend fun addWorkoutEntry(date: String, exerciseId: Long) = withContext(Dispatchers.IO) {
-        val exercise = exerciseDao.findById(exerciseId) ?: return@withContext
-        val entryId = workoutDao.insertEntry(
-            WorkoutEntry(
-                date = date,
-                exerciseId = exercise.id,
-                exerciseName = exercise.name,
-                category = exercise.category,
-                restSeconds = exercise.defaultRestSeconds
+    suspend fun addWorkoutEntry(date: String, exerciseId: Long): Long = withContext(Dispatchers.IO) {
+        val exercise = exerciseDao.findById(exerciseId) ?: return@withContext 0L
+        db.withTransaction {
+            val beforeInsert = normalizeDisplayOrder(date)
+            val latestConfirmedEntryId = beforeInsert
+                .filter { record -> record.sets.any(WorkoutSet::confirmed) }
+                .maxByOrNull { record ->
+                    record.entry.completedAt ?: record.entry.firstConfirmedAt ?: record.entry.createdAt
+                }
+                ?.entry
+                ?.id
+            val entryId = workoutDao.insertEntry(
+                WorkoutEntry(
+                    date = date,
+                    exerciseId = exercise.id,
+                    exerciseName = exercise.name,
+                    category = exercise.category,
+                    restSeconds = exercise.defaultRestSeconds,
+                    displayOrder = beforeInsert.size + 1
+                )
             )
-        )
-        workoutDao.insertSet(defaultSet(entryId, 1, exercise))
+            workoutDao.insertSet(defaultSet(entryId, 1, exercise))
+            if (latestConfirmedEntryId != null) {
+                moveEntryAfter(date, entryId, latestConfirmedEntryId)
+            }
+            entryId
+        }
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
@@ -394,8 +509,31 @@ class TrainingRepository(
     }
 
     suspend fun updateSet(set: WorkoutSet) = withContext(Dispatchers.IO) {
-        workoutDao.updateSet(set)
-        refreshEntryCompletion(set.entryId)
+        db.withTransaction {
+            val existing = workoutDao.findSetById(set.id)
+            val newlyConfirmed = set.confirmed && existing?.confirmed != true
+            val firstConfirmationForEntry = newlyConfirmed && workoutDao.confirmedCountForEntry(set.entryId) == 0
+            if (firstConfirmationForEntry) {
+                val entry = workoutDao.findEntryById(set.entryId)
+                if (entry != null) {
+                    val records = normalizeDisplayOrder(entry.date)
+                    val previousPerformedEntryId = records
+                        .asSequence()
+                        .filter { record -> record.entry.id != entry.id }
+                        .filter { record -> record.entry.firstConfirmedAt != null }
+                        .maxByOrNull { record -> record.entry.firstConfirmedAt ?: Long.MIN_VALUE }
+                        ?.entry
+                        ?.id
+                    moveEntryAfter(entry.date, entry.id, previousPerformedEntryId)
+                }
+            }
+            workoutDao.updateSet(set)
+            if (newlyConfirmed) {
+                workoutDao.markEntryConfirmed(set.entryId, System.currentTimeMillis())
+            } else {
+                refreshEntryCompletion(set.entryId)
+            }
+        }
     }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean = withContext(Dispatchers.IO) {
@@ -419,11 +557,12 @@ class TrainingRepository(
 
     suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
         withContext(Dispatchers.IO) {
+            val exercises = exerciseDao.allExercises()
             ProgramSkeletonGenerator().generate(
                 request = request,
-                exercises = exerciseDao.allExercises(),
+                exercises = exercises,
                 history = workoutDao.allEntriesWithSets(),
-                runtimeMetadataCatalog = runtimeMetadataCatalog
+                runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
             )
         }
 
@@ -574,7 +713,8 @@ class TrainingRepository(
                         category = item.category,
                         restSeconds = item.restSeconds,
                         notes = noteFromPrescription(item.prescription),
-                        createdAt = now + index
+                        createdAt = now + index,
+                        displayOrder = index + 1
                     )
                 )
                 repeat(item.setCount.coerceAtLeast(1)) { setIndex ->
@@ -988,7 +1128,7 @@ class TrainingRepository(
             if (row.isCustom) {
                 "imported_${row.name.stableToken()}"
             } else {
-                runtimeMetadataCatalog.resolveLegacyName(row.name)?.stableKey
+                canonicalRuntimeMetadataCatalog.resolveLegacyName(row.name)?.stableKey
                     ?: "imported_${row.name.stableToken()}"
             }
         }
@@ -1219,7 +1359,7 @@ class TrainingRepository(
         stableKey: String = ""
     ): Exercise {
         val resolvedStableKey = stableKey.takeIf { it.isNotBlank() }
-            ?: runtimeMetadataCatalog.resolveLegacyName(name)?.stableKey
+            ?: canonicalRuntimeMetadataCatalog.resolveLegacyName(name)?.stableKey
         val existingExercise = resolvedStableKey
             ?.let { key -> exerciseDao.findByStableKey(key) }
             ?: exerciseDao.findByName(name)
@@ -1368,12 +1508,33 @@ class TrainingRepository(
     }
 
     private suspend fun refreshEntryCompletion(entryId: Long) {
-        val completedAt = if (workoutDao.confirmedCountForEntry(entryId) > 0) {
-            System.currentTimeMillis()
-        } else {
-            null
+        val confirmedCount = workoutDao.confirmedCountForEntry(entryId)
+        val entry = workoutDao.findEntryById(entryId) ?: return
+        when {
+            confirmedCount == 0 -> workoutDao.updateEntryCompletedAt(entryId, null)
+            entry.completedAt == null -> workoutDao.updateEntryCompletedAt(entryId, System.currentTimeMillis())
         }
-        workoutDao.updateEntryCompletedAt(entryId, completedAt)
+    }
+
+    private suspend fun normalizeDisplayOrder(date: String): List<WorkoutEntryWithSets> {
+        val ordered = RecordEntryOrdering.ordered(workoutDao.entriesWithSets(date))
+        ordered.forEachIndexed { index, record ->
+            val order = index + 1
+            if (record.entry.displayOrder != order) {
+                workoutDao.updateEntryDisplayOrder(record.entry.id, order)
+            }
+        }
+        return ordered.mapIndexed { index, record ->
+            record.copy(entry = record.entry.copy(displayOrder = index + 1))
+        }
+    }
+
+    private suspend fun moveEntryAfter(date: String, movingEntryId: Long, anchorEntryId: Long?) {
+        val orderedIds = normalizeDisplayOrder(date).map { it.entry.id }
+        RecordEntryOrdering.moveAfter(orderedIds, movingEntryId, anchorEntryId)
+            .forEachIndexed { index, entryId ->
+                workoutDao.updateEntryDisplayOrder(entryId, index + 1)
+            }
     }
 
     private suspend fun reindexProgramDay(programId: Long, weekNumber: Int, dayOfWeek: Int) {
@@ -1412,7 +1573,13 @@ class TrainingRepository(
                     id = 0,
                     date = targetDate,
                     createdAt = baseCreatedAt + entryIndex,
-                    completedAt = if (keepConfirmed && confirmedCount > 0) System.currentTimeMillis() else null
+                    completedAt = if (keepConfirmed && confirmedCount > 0) System.currentTimeMillis() else null,
+                    displayOrder = entryIndex + 1,
+                    firstConfirmedAt = if (keepConfirmed && confirmedCount > 0) {
+                        System.currentTimeMillis()
+                    } else {
+                        null
+                    }
                 )
             )
             entryWithSets.sets.sortedBy { it.setIndex }.forEach { sourceSet ->
@@ -1484,8 +1651,9 @@ class TrainingRepository(
         )
 
         runCatching {
+            val exercises = exerciseDao.allExercises()
             AnalysisEngineV3(
-                inputCollector = AnalysisInputCollector(db, runtimeMetadataCatalog),
+                inputCollector = AnalysisInputCollector(db, resolvedRuntimeMetadataCatalog(exercises)),
                 dateProvider = analysisDateProvider
             ).analyze()
         }.onSuccess { result ->
@@ -1549,6 +1717,7 @@ class TrainingRepository(
         }
 
     private companion object {
+        const val USER_KEY_RETRY_LIMIT = 8
         const val EXERCISE_SEED_VERSION = 6
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"

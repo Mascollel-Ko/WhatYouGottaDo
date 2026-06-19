@@ -91,7 +91,9 @@ data class WorkoutEntry(
     val rpe: Double? = null,
     val maxReps: Int? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+    val displayOrder: Int = 0,
+    val firstConfirmedAt: Long? = null
 )
 
 @Entity(tableName = "workout_sets")

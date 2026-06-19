@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,11 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -79,9 +82,27 @@ internal fun RecordScreen(
         viewModel.entriesForDate(selectedDate)
     }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
+    val listState = rememberLazyListState()
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.id } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
+    var pendingAddedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingAddedAfterConfirmed by rememberSaveable { mutableStateOf(false) }
+    val showPermissionHint = timerState.isActive &&
+        (timerState.notificationPermissionNeeded || !timerState.overlayPermissionGranted)
+
+    LaunchedEffect(pendingAddedEntryId, sortedEntries, showPermissionHint) {
+        val entryId = pendingAddedEntryId ?: return@LaunchedEffect
+        val entryIndex = sortedEntries.indexOfFirst { it.entry.id == entryId }
+        if (entryIndex < 0) return@LaunchedEffect
+        if (pendingAddedAfterConfirmed) {
+            val leadingItems = 3 + if (showPermissionHint) 1 else 0
+            listState.animateScrollToItem((leadingItems + entryIndex - 1).coerceAtLeast(0))
+        } else {
+            listState.animateScrollToItem(0)
+        }
+        pendingAddedEntryId = null
+    }
 
     LaunchedEffect(target) {
         target?.let { selectedDate = it.recordDate }
@@ -108,7 +129,11 @@ internal fun RecordScreen(
             exercises = exercises.filter { exercise -> exercise.isActive },
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
-                viewModel.addWorkout(selectedDate, exercise.id)
+                val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::confirmed) }
+                viewModel.addWorkout(selectedDate, exercise.id) { addedEntryId ->
+                    pendingAddedAfterConfirmed = hadConfirmedSet
+                    pendingAddedEntryId = addedEntryId
+                }
                 showExercisePicker = false
             }
         )
@@ -116,6 +141,7 @@ internal fun RecordScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = listState,
         contentPadding = screenPadding(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -125,9 +151,7 @@ internal fun RecordScreen(
                 body = "세트 입력과 확인을 우선합니다. 확인한 세트만 실제 수행 기록입니다."
             )
         }
-        if (timerState.isActive &&
-            (timerState.notificationPermissionNeeded || !timerState.overlayPermissionGranted)
-        ) {
+        if (showPermissionHint) {
             item {
                 RestTimerPermissionHint(
                     notificationPermissionNeeded = timerState.notificationPermissionNeeded,
@@ -668,6 +692,9 @@ private fun WorkoutSetRow(
     var repsText by rememberSaveable(set.id) { mutableStateOf(set.reps.toString()) }
     var weightText by rememberSaveable(set.id) { mutableStateOf(formatDecimal(set.weightKg)) }
     var secondsText by rememberSaveable(set.id) { mutableStateOf(set.seconds.toString()) }
+    var repsFocused by rememberSaveable(set.id) { mutableStateOf(false) }
+    var weightFocused by rememberSaveable(set.id) { mutableStateOf(false) }
+    var secondsFocused by rememberSaveable(set.id) { mutableStateOf(false) }
     var showRpeDialog by rememberSaveable(set.id) { mutableStateOf(false) }
     var showRestDialog by rememberSaveable(set.id) { mutableStateOf(false) }
     var isExpanded by rememberSaveable(set.id) { mutableStateOf(false) }
@@ -675,10 +702,10 @@ private fun WorkoutSetRow(
     val effectiveRestSeconds = set.restSecondsOverride ?: entry.restSeconds
     val isTimerTarget = timerState.targetEntryId == entry.id && timerState.targetSetId == set.id
 
-    LaunchedEffect(set) {
-        repsText = set.reps.toString()
-        weightText = formatDecimal(set.weightKg)
-        secondsText = set.seconds.toString()
+    LaunchedEffect(set.reps, set.weightKg, set.seconds) {
+        if (!repsFocused) repsText = set.reps.toString()
+        if (!weightFocused) weightText = formatDecimal(set.weightKg)
+        if (!secondsFocused) secondsText = set.seconds.toString()
     }
 
     if (showRpeDialog) {
@@ -825,7 +852,17 @@ private fun WorkoutSetRow(
                     onValueChange = {
                         if (it.isUnsignedInt()) {
                             repsText = it
-                            onUpdateSet(set.copy(reps = it.toIntOrNull() ?: 0))
+                            it.toIntOrNull()?.let { reps -> onUpdateSet(set.copy(reps = reps)) }
+                        }
+                    },
+                    onFocusChanged = { focused ->
+                        repsFocused = focused
+                        repsText = if (focused) {
+                            NumericInputTextPolicy.onFocus(repsText)
+                        } else {
+                            NumericInputTextPolicy.onBlur(repsText).also { restored ->
+                                if (restored == "0") onUpdateSet(set.copy(reps = 0))
+                            }
                         }
                     }
                 )
@@ -838,15 +875,28 @@ private fun WorkoutSetRow(
                         onValueChange = {
                             if (isDecimalInput(it)) {
                                 weightText = it
-                                val kg = it.toDoubleOrNull() ?: 0.0
-                                onUpdateSet(
-                                    set.copy(
-                                        weightKg = kg,
-                                        manualWeight = it.isNotBlank()
+                                it.toDoubleOrNull()?.let { kg ->
+                                    onUpdateSet(
+                                        set.copy(
+                                            weightKg = kg,
+                                            manualWeight = true
+                                        )
                                     )
-                                )
-                                if (kg > 0.0 && kg != set.weightKg) {
-                                    onPositiveWeightEdit(set, kg)
+                                    if (kg > 0.0 && kg != set.weightKg) {
+                                        onPositiveWeightEdit(set, kg)
+                                    }
+                                }
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            weightFocused = focused
+                            weightText = if (focused) {
+                                NumericInputTextPolicy.onFocus(weightText)
+                            } else {
+                                NumericInputTextPolicy.onBlur(weightText).also { restored ->
+                                    if (restored == "0") {
+                                        onUpdateSet(set.copy(weightKg = 0.0, manualWeight = false))
+                                    }
                                 }
                             }
                         }
@@ -860,7 +910,17 @@ private fun WorkoutSetRow(
                         onValueChange = {
                             if (it.isUnsignedInt()) {
                                 secondsText = it
-                                onUpdateSet(set.copy(seconds = it.toIntOrNull() ?: 0))
+                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds)) }
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            secondsFocused = focused
+                            secondsText = if (focused) {
+                                NumericInputTextPolicy.onFocus(secondsText)
+                            } else {
+                                NumericInputTextPolicy.onBlur(secondsText).also { restored ->
+                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0))
+                                }
                             }
                         }
                     )
@@ -906,7 +966,17 @@ private fun WorkoutSetRow(
                         onValueChange = {
                             if (it.isUnsignedInt()) {
                                 secondsText = it
-                                onUpdateSet(set.copy(seconds = it.toIntOrNull() ?: 0))
+                                it.toIntOrNull()?.let { seconds -> onUpdateSet(set.copy(seconds = seconds)) }
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            secondsFocused = focused
+                            secondsText = if (focused) {
+                                NumericInputTextPolicy.onFocus(secondsText)
+                            } else {
+                                NumericInputTextPolicy.onBlur(secondsText).also { restored ->
+                                    if (restored == "0") onUpdateSet(set.copy(seconds = 0))
+                                }
                             }
                         }
                     )
@@ -992,8 +1062,10 @@ private fun CompactNumberField(
     value: String,
     suffix: String,
     keyboardType: KeyboardType,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    onFocusChanged: (Boolean) -> Unit
 ) {
+    var wasFocused by remember { mutableStateOf(false) }
     Surface(
         modifier = modifier.height(38.dp),
         shape = RoundedCornerShape(6.dp),
@@ -1004,7 +1076,14 @@ private fun CompactNumberField(
             verticalAlignment = Alignment.CenterVertically
         ) {
             BasicTextField(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { state ->
+                        if (wasFocused != state.isFocused) {
+                            wasFocused = state.isFocused
+                            onFocusChanged(state.isFocused)
+                        }
+                    },
                 value = value,
                 onValueChange = onValueChange,
                 singleLine = true,
@@ -1215,7 +1294,15 @@ private fun SetValueEditDialog(
         },
         text = {
             OutlinedTextField(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { state ->
+                        text = if (state.isFocused) {
+                            NumericInputTextPolicy.onFocus(text)
+                        } else {
+                            NumericInputTextPolicy.onBlur(text)
+                        }
+                    },
                 value = text,
                 onValueChange = {
                     val allowed = if (isWeight) isDecimalInput(it) else it.isUnsignedInt()
@@ -1573,13 +1660,4 @@ private fun formatTimerSeconds(seconds: Int): String {
 }
 
 private fun List<WorkoutEntryWithSets>.sortedForRecordDisplay(): List<WorkoutEntryWithSets> =
-    sortedWith(
-        compareBy<WorkoutEntryWithSets> {
-            when {
-                it.sets.isNotEmpty() && it.sets.all { set -> set.confirmed } -> 0
-                it.sets.any { set -> set.confirmed } -> 1
-                else -> 2
-            }
-        }.thenBy { it.entry.createdAt }
-            .thenBy { it.entry.id }
-    )
+    RecordEntryOrdering.ordered(this)
