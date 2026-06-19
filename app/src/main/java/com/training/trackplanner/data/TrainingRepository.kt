@@ -14,6 +14,7 @@ import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
 import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
+import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
@@ -179,12 +180,23 @@ class TrainingRepository(
             .filter { item -> item.sets.any { it.confirmed } }
             .mapNotNull { item -> runCatching { LocalDate.parse(item.entry.date) }.getOrNull() }
             .minOrNull()
-        val chartResults = if (firstConfirmedWorkoutDate == null) {
+        val confirmedChartResults = if (firstConfirmedWorkoutDate == null) {
             emptyList()
         } else {
             val periodStart = today.minusDays(6)
             val chartStart = maxOf(periodStart, firstConfirmedWorkoutDate)
             results.filter { result -> result.state.date >= chartStart }
+        }
+        val chartResults = if (unconfirmedSetCount > 0 && confirmedChartResults.size < 2) {
+            results.takeLast(2)
+        } else {
+            confirmedChartResults
+        }
+        val currentTrainingLoadSeries = chartResults.map { result ->
+            MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)
+        }
+        val currentFatigueSeries = chartResults.map { result ->
+            MiniTrendPoint(result.state.date, result.state.overallFatigueIndex.toDouble())
         }
         HomeTodaySummaryState(
             date = today,
@@ -202,12 +214,16 @@ class TrainingRepository(
                 unconfirmedSetCount = unconfirmedSetCount
             ),
             cautionReasons = todayState.cautionReasons,
-            recentTrainingLoadSeries = chartResults.map { result ->
-                MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)
-            },
-            recentFatigueSeries = chartResults.map { result ->
-                MiniTrendPoint(result.state.date, result.state.overallFatigueIndex.toDouble())
-            },
+            recentTrainingLoadSeries = currentTrainingLoadSeries,
+            projectedTrainingLoadSeries = HomeMiniChartSeriesBuilder.projected(
+                current = currentTrainingLoadSeries,
+                projectedTodayValue = projectedState?.confirmedTrainingLoad
+            ),
+            recentFatigueSeries = currentFatigueSeries,
+            projectedFatigueSeries = HomeMiniChartSeriesBuilder.projected(
+                current = currentFatigueSeries,
+                projectedTodayValue = projectedState?.overallFatigueIndex?.toDouble()
+            ),
             confidence = todayState.confidence
         )
     }

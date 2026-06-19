@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -225,8 +226,16 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                     value = summary.unconfirmedSetCount.toString()
                 )
             }
-            MiniTrendChart("최근 훈련량", summary.recentTrainingLoadSeries)
-            MiniTrendChart("최근 피로도", summary.recentFatigueSeries)
+            MiniTrendChart(
+                title = "최근 훈련량",
+                currentPoints = summary.recentTrainingLoadSeries,
+                projectedPoints = summary.projectedTrainingLoadSeries
+            )
+            MiniTrendChart(
+                title = "최근 피로도",
+                currentPoints = summary.recentFatigueSeries,
+                projectedPoints = summary.projectedFatigueSeries
+            )
         }
     }
 }
@@ -234,16 +243,29 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
 @Composable
 private fun MiniTrendChart(
     title: String,
-    points: List<MiniTrendPoint>
+    currentPoints: List<MiniTrendPoint>,
+    projectedPoints: List<MiniTrendPoint>? = null
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
+    val projectedColor = MaterialTheme.colorScheme.tertiary
     val guideColor = MaterialTheme.colorScheme.outlineVariant
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (projectedPoints != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("확정", style = MaterialTheme.typography.labelSmall, color = lineColor)
+                    Text("예상", style = MaterialTheme.typography.labelSmall, color = projectedColor)
+                }
+            }
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,24 +277,41 @@ private fun MiniTrendChart(
                 end = Offset(size.width, size.height - 1f),
                 strokeWidth = 1f
             )
-            if (points.isEmpty()) return@Canvas
-            val min = points.minOf { it.value }
-            val max = points.maxOf { it.value }
+            if (currentPoints.isEmpty()) return@Canvas
+            val allPoints = currentPoints + projectedPoints.orEmpty()
+            val min = allPoints.minOf { it.value }
+            val max = allPoints.maxOf { it.value }
             val range = (max - min).takeIf { it > 0.0 } ?: 1.0
-            val path = Path()
-            points.forEachIndexed { index, point ->
-                val x = if (points.size == 1) size.width / 2f else {
-                    size.width * index / (points.size - 1).toFloat()
+            fun pathFor(points: List<MiniTrendPoint>): Path {
+                val path = Path()
+                points.forEachIndexed { index, point ->
+                    val x = if (points.size == 1) size.width / 2f else {
+                        size.width * index / (points.size - 1).toFloat()
+                    }
+                    val normalized = ((point.value - min) / range).toFloat()
+                    val y = size.height - 4.dp.toPx() - normalized * (size.height - 8.dp.toPx())
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
-                val normalized = ((point.value - min) / range).toFloat()
-                val y = size.height - 4.dp.toPx() - normalized * (size.height - 8.dp.toPx())
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                return path
             }
             drawPath(
-                path = path,
+                path = pathFor(currentPoints),
                 color = lineColor,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
             )
+            projectedPoints?.let { points ->
+                drawPath(
+                    path = pathFor(points),
+                    color = projectedColor,
+                    style = Stroke(
+                        width = 2.dp.toPx(),
+                        cap = StrokeCap.Round,
+                        pathEffect = PathEffect.dashPathEffect(
+                            floatArrayOf(6.dp.toPx(), 4.dp.toPx())
+                        )
+                    )
+                )
+            }
         }
     }
 }

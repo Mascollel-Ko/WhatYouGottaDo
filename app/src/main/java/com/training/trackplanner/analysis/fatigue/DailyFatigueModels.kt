@@ -149,7 +149,9 @@ data class HomeTodaySummaryState(
     val fatigueCard: HomeFatigueCardSummary,
     val cautionReasons: List<String>,
     val recentTrainingLoadSeries: List<MiniTrendPoint>,
+    val projectedTrainingLoadSeries: List<MiniTrendPoint>?,
     val recentFatigueSeries: List<MiniTrendPoint>,
+    val projectedFatigueSeries: List<MiniTrendPoint>?,
     val confidence: FatigueConfidence
 ) {
     companion object {
@@ -168,7 +170,9 @@ data class HomeTodaySummaryState(
                 ),
                 cautionReasons = emptyList(),
                 recentTrainingLoadSeries = emptyList(),
+                projectedTrainingLoadSeries = null,
                 recentFatigueSeries = emptyList(),
+                projectedFatigueSeries = null,
                 confidence = FatigueConfidence.LOW
             )
     }

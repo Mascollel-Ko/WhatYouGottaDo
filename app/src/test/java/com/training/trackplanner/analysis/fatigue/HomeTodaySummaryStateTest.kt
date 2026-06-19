@@ -26,7 +26,9 @@ class HomeTodaySummaryStateTest {
             ),
             cautionReasons = emptyList(),
             recentTrainingLoadSeries = series,
+            projectedTrainingLoadSeries = null,
             recentFatigueSeries = series,
+            projectedFatigueSeries = null,
             confidence = FatigueConfidence.MEDIUM
         )
 
