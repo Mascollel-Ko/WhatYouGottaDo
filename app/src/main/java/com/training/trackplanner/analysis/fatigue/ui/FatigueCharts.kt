@@ -29,32 +29,35 @@ private data class ChartLine(
 internal fun FatigueTrendChart(
     series: List<FatigueSeries>,
     selectedKeys: Set<String>,
+    emptyMessage: String = "운동 기록이 쌓이면 표시됩니다.",
     modifier: Modifier = Modifier
 ) {
     val lines = series.filter { it.key in selectedKeys }.map { ChartLine(it.key, it.points) }
-    FatigueLineChart(lines, fixedMaximum = 100.0, modifier = modifier)
+    FatigueLineChart(lines, fixedMaximum = 100.0, emptyMessage = emptyMessage, modifier = modifier)
 }
 
 @Composable
 internal fun FatigueContributionChart(
     series: List<FatigueContributionSeries>,
     selectedKeys: Set<String>,
+    emptyMessage: String = "운동 기록이 쌓이면 표시됩니다.",
     modifier: Modifier = Modifier
 ) {
     val lines = series.filter { it.sourceKey in selectedKeys }.map { ChartLine(it.sourceKey, it.points) }
-    FatigueLineChart(lines, fixedMaximum = null, modifier = modifier)
+    FatigueLineChart(lines, fixedMaximum = null, emptyMessage = emptyMessage, modifier = modifier)
 }
 
 @Composable
 private fun FatigueLineChart(
     lines: List<ChartLine>,
     fixedMaximum: Double?,
+    emptyMessage: String,
     modifier: Modifier
 ) {
     val points = lines.flatMap { it.points }
     if (points.isEmpty()) {
         Text(
-            text = "기록이 부족합니다.",
+            text = emptyMessage,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

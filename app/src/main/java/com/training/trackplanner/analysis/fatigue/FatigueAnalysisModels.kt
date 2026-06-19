@@ -51,7 +51,8 @@ data class FatigueContributionSeries(
     val sourceKey: String,
     val sourceLabel: String,
     val target: FatigueTarget,
-    val points: List<FatigueTimePoint>
+    val points: List<FatigueTimePoint>,
+    val periodContributionPercent: Int
 )
 
 data class FatigueSimpleUiState(
@@ -68,6 +69,7 @@ data class FatigueDetailUiState(
     val contributionGrouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
     val contributionSeries: List<FatigueContributionSeries> = emptyList(),
     val selectedContributionSourceKeys: Set<String> = emptySet(),
+    val defaultContributionSourceKeys: Set<String> = emptySet(),
     val usesWeeklyAggregation: Boolean = false
 )
 

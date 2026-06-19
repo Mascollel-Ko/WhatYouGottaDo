@@ -34,7 +34,7 @@ fun FatigueAnalysisSection(
     onFatigueTargetToggle: (FatigueTarget) -> Unit,
     onContributionTargetChange: (FatigueTarget) -> Unit,
     onContributionGroupingChange: (ContributionGrouping) -> Unit,
-    onContributionSourceToggle: (String) -> Unit
+    onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     var mode by rememberSaveable { mutableStateOf(FatigueAnalysisMode.SIMPLE) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -58,7 +58,7 @@ fun FatigueAnalysisSection(
                     onFatigueTargetToggle = onFatigueTargetToggle,
                     onContributionTargetChange = onContributionTargetChange,
                     onContributionGroupingChange = onContributionGroupingChange,
-                    onContributionSourceToggle = onContributionSourceToggle
+                    onContributionSourcesApply = onContributionSourcesApply
                 )
             }
         }

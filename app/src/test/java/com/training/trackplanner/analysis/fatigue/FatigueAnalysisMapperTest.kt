@@ -98,6 +98,42 @@ class FatigueAnalysisMapperTest {
         assertTrue(state.detail.fatigueTrendSeries.isEmpty())
     }
 
+    @Test
+    fun `chart starts at first confirmed workout instead of profile-only dates`() {
+        val seededHistory = history(14).mapIndexed { index, result ->
+            if (index < 4) {
+                result.copy(state = result.state.copy(confirmedTrainingLoad = 0.0))
+            } else {
+                result
+            }
+        }
+
+        val state = FatigueAnalysisMapper.map(seededHistory)
+
+        assertEquals(10, state.simple.ofiSeries.size)
+        assertEquals(seededHistory[4].state.date, state.simple.ofiSeries.first().date)
+    }
+
+    @Test
+    fun `explicit empty source selection stays empty`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            selectedSourceKeys = emptySet(),
+            defaultSourcesWhenEmpty = false
+        )
+
+        assertTrue(state.detail.contributionSeries.isNotEmpty())
+        assertTrue(state.detail.selectedContributionSourceKeys.isEmpty())
+        assertTrue(state.detail.defaultContributionSourceKeys.isNotEmpty())
+    }
+
+    @Test
+    fun `contribution options include selected-period percentages`() {
+        val state = FatigueAnalysisMapper.map(history(14))
+
+        assertEquals(100, state.detail.contributionSeries.single().periodContributionPercent)
+    }
+
     private fun history(days: Int): List<DailyFatigueResult> {
         val end = LocalDate.of(2026, 6, 19)
         return (days - 1 downTo 0).map { offset ->
@@ -121,7 +157,8 @@ class FatigueAnalysisMapperTest {
                     overallFatigueIndex = score + 5,
                     readinessLabel = FatigueReadinessLabel.NORMAL,
                     cautionReasons = emptyList(),
-                    confidence = FatigueConfidence.HIGH
+                    confidence = FatigueConfidence.HIGH,
+                    confirmedTrainingLoad = score.toDouble()
                 ),
                 groupStates = listOf(
                     GroupFatigueState(

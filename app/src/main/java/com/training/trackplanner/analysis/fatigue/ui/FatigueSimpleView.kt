@@ -50,7 +50,7 @@ private fun LoadList(title: String, items: List<FatigueLoadItem>, modifier: Modi
             }
         }
         if (items.isEmpty()) {
-            Text("기록이 부족합니다.", style = MaterialTheme.typography.bodySmall)
+            Text("운동 기록이 쌓이면 표시됩니다.", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

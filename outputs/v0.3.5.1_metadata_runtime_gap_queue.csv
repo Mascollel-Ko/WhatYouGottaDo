@@ -1,7 +1,0 @@
-gapId,area,status,impact,recommendedAction,target
-V351-GAP-001,Production metadata source,OPEN,Canonical Pass 3 sidecar is not packaged as an app asset and the real seed is intentionally unchanged,Generate and review a separate seed candidate then add an approved runtime metadata resource,v0.3.5.1 follow-up
-V351-GAP-002,Persistence,OPEN,Canonical fields are runtime models only and are not persisted in Room,Choose metadata extension table or versioned resource repository before production ingestion,v0.3.5.1 follow-up
-V351-GAP-003,Analysis calculators,PARTIAL,All tokens are preserved but unsupported analysis tokens are safe no-ops,Connect each approved token to calculators with focused tests,v0.3.6.0
-V351-GAP-004,Program scoring,PARTIAL,Planning eligibility redundancy progression transfer and stress magnitude are consumed but movement family/subtype/slot scoring is not fully rewritten,Replace remaining legacy pattern scoring through canonical strategy rules,v0.3.5.1 follow-up
-V351-GAP-005,Backup metadata payload,PARTIAL,Set rows now export stableKey but canonical metadata fields are not embedded in backup,Export metadata version/reference after persistence format is approved,v0.3.5.1 follow-up
-V351-GAP-006,Automated verification,BLOCKED,Targeted tests were added but Gradle distribution download was denied by environment usage limit,Run the documented targeted test command when Gradle 9.3.0 is locally available,immediate

@@ -147,6 +147,17 @@ class TrainingRepository(
         )
         val todayEntries = entries.filter { it.entry.date == todayString }
         val todayState = results.last().state
+        val firstConfirmedWorkoutDate = entries.asSequence()
+            .filter { item -> item.sets.any { it.confirmed } }
+            .mapNotNull { item -> runCatching { LocalDate.parse(item.entry.date) }.getOrNull() }
+            .minOrNull()
+        val chartResults = if (firstConfirmedWorkoutDate == null) {
+            emptyList()
+        } else {
+            val periodStart = today.minusDays(6)
+            val chartStart = maxOf(periodStart, firstConfirmedWorkoutDate)
+            results.filter { result -> result.state.date >= chartStart }
+        }
         HomeTodaySummaryState(
             date = today,
             plannedExerciseCount = todayEntries.size,
@@ -156,10 +167,10 @@ class TrainingRepository(
             fatigueScore = todayState.overallFatigueIndex,
             fatigueHeadline = FatigueLabelResolver.headline(todayState.readinessLabel),
             cautionReasons = todayState.cautionReasons,
-            recentTrainingLoadSeries = results.map { result ->
+            recentTrainingLoadSeries = chartResults.map { result ->
                 MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)
             },
-            recentFatigueSeries = results.map { result ->
+            recentFatigueSeries = chartResults.map { result ->
                 MiniTrendPoint(result.state.date, result.state.overallFatigueIndex.toDouble())
             },
             confidence = todayState.confidence

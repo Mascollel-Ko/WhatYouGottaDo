@@ -19,7 +19,7 @@ internal fun FatigueDetailView(
     onFatigueTargetToggle: (FatigueTarget) -> Unit,
     onContributionTargetChange: (FatigueTarget) -> Unit,
     onContributionGroupingChange: (ContributionGrouping) -> Unit,
-    onContributionSourceToggle: (String) -> Unit
+    onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         FatiguePeriodSelector(state.selectedPeriod, onPeriodChange)
@@ -40,14 +40,20 @@ internal fun FatigueDetailView(
             onToggle = onContributionTargetChange
         )
         ContributionGroupingSelector(state.contributionGrouping, onContributionGroupingChange)
-        SourceSelector(
-            sources = state.contributionSeries.map { it.sourceKey to it.sourceLabel },
+        FatigueSourceMultiSelect(
+            sources = state.contributionSeries,
             selected = state.selectedContributionSourceKeys,
-            onToggle = onContributionSourceToggle
+            defaultSelection = state.defaultContributionSourceKeys,
+            onApply = onContributionSourcesApply
         )
         FatigueContributionChart(
             series = state.contributionSeries,
-            selectedKeys = state.selectedContributionSourceKeys
+            selectedKeys = state.selectedContributionSourceKeys,
+            emptyMessage = if (state.selectedContributionSourceKeys.isEmpty()) {
+                "표시할 항목을 선택하세요."
+            } else {
+                "운동 기록이 쌓이면 표시됩니다."
+            }
         )
     }
 }

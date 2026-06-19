@@ -83,6 +83,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         _badmintonTransferSummary.asStateFlow()
 
     private var fatigueAnalysisHistory: List<DailyFatigueResult> = emptyList()
+    private var contributionSourcesUserSelected = false
     private val _fatigueAnalysisState = MutableStateFlow(FatigueAnalysisUiState())
     val fatigueAnalysisState: StateFlow<FatigueAnalysisUiState> = _fatigueAnalysisState.asStateFlow()
 
@@ -362,17 +363,21 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun selectFatigueContributionTarget(target: FatigueTarget) {
+        contributionSourcesUserSelected = false
         rebuildFatigueAnalysis(contributionTarget = target, selectedSourceKeys = emptySet())
     }
 
     fun selectFatigueContributionGrouping(grouping: ContributionGrouping) {
+        contributionSourcesUserSelected = false
         rebuildFatigueAnalysis(grouping = grouping, selectedSourceKeys = emptySet())
     }
 
-    fun toggleFatigueContributionSource(sourceKey: String) {
-        val selected = _fatigueAnalysisState.value.detail.selectedContributionSourceKeys.toMutableSet()
-        if (sourceKey in selected && selected.size > 1) selected.remove(sourceKey) else selected.add(sourceKey)
-        rebuildFatigueAnalysis(selectedSourceKeys = selected)
+    fun selectFatigueContributionSources(sourceKeys: Set<String>) {
+        contributionSourcesUserSelected = true
+        rebuildFatigueAnalysis(
+            selectedSourceKeys = sourceKeys,
+            defaultSourcesWhenEmpty = false
+        )
     }
 
     fun backupRecords(uri: Uri) {
@@ -439,7 +444,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         selectedTargets: Set<FatigueTarget> = _fatigueAnalysisState.value.detail.selectedFatigueTargets,
         contributionTarget: FatigueTarget = _fatigueAnalysisState.value.detail.contributionTarget,
         grouping: ContributionGrouping = _fatigueAnalysisState.value.detail.contributionGrouping,
-        selectedSourceKeys: Set<String> = _fatigueAnalysisState.value.detail.selectedContributionSourceKeys
+        selectedSourceKeys: Set<String> = _fatigueAnalysisState.value.detail.selectedContributionSourceKeys,
+        defaultSourcesWhenEmpty: Boolean = !contributionSourcesUserSelected
     ) {
         _fatigueAnalysisState.value = FatigueAnalysisMapper.map(
             history = fatigueAnalysisHistory,
@@ -447,7 +453,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             selectedTargets = selectedTargets,
             contributionTarget = contributionTarget,
             grouping = grouping,
-            selectedSourceKeys = selectedSourceKeys
+            selectedSourceKeys = selectedSourceKeys,
+            defaultSourcesWhenEmpty = defaultSourcesWhenEmpty
         )
     }
 }

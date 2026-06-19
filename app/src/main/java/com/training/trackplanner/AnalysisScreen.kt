@@ -84,7 +84,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                 onFatigueTargetToggle = viewModel::toggleFatigueTrendTarget,
                 onContributionTargetChange = viewModel::selectFatigueContributionTarget,
                 onContributionGroupingChange = viewModel::selectFatigueContributionGrouping,
-                onContributionSourceToggle = viewModel::toggleFatigueContributionSource
+                onContributionSourcesApply = viewModel::selectFatigueContributionSources
             )
         }
         item {

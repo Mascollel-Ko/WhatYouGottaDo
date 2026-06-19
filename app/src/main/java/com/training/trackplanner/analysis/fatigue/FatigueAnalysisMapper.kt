@@ -11,7 +11,8 @@ object FatigueAnalysisMapper {
         selectedTargets: Set<FatigueTarget> = setOf(FatigueTarget.OVERALL),
         contributionTarget: FatigueTarget = FatigueTarget.OVERALL,
         grouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
-        selectedSourceKeys: Set<String> = emptySet()
+        selectedSourceKeys: Set<String> = emptySet(),
+        defaultSourcesWhenEmpty: Boolean = true
     ): FatigueAnalysisUiState {
         if (history.isEmpty()) {
             return FatigueAnalysisUiState(
@@ -28,8 +29,14 @@ object FatigueAnalysisMapper {
 
         val sorted = history.sortedBy { it.state.date }
         val endDate = sorted.last().state.date
-        val startDate = endDate.minusDays(period.weeks * 7L - 1L)
-        val window = sorted.filter { it.state.date >= startDate }
+        val periodStartDate = endDate.minusDays(period.weeks * 7L - 1L)
+        val firstWorkoutDate = sorted
+            .firstOrNull { it.state.confirmedTrainingLoad > 0.0 }
+            ?.state
+            ?.date
+            ?: return emptyState(period, selectedTargets, contributionTarget, grouping)
+        val chartStartDate = maxOf(periodStartDate, firstWorkoutDate)
+        val window = sorted.filter { it.state.date >= chartStartDate }
         val hasCalculatedFatigue = window.any { result ->
             result.state.confirmedTrainingLoad > 0.0 ||
                 result.state.overallFatigueIndex > 0 ||
@@ -41,16 +48,7 @@ object FatigueAnalysisMapper {
                 result.state.recoveryPressureScore > 0
         }
         if (!hasCalculatedFatigue) {
-            return FatigueAnalysisUiState(
-                detail = FatigueDetailUiState(
-                    selectedPeriod = period,
-                    selectedFatigueTargets = selectedTargets.ifEmpty { setOf(FatigueTarget.OVERALL) },
-                    contributionTarget = contributionTarget,
-                    contributionGrouping = grouping,
-                    usesWeeklyAggregation = period.usesWeeklyAggregation
-                ),
-                isLoading = false
-            )
+            return emptyState(period, selectedTargets, contributionTarget, grouping)
         }
         val trendSeries = FatigueTarget.entries.map { target ->
             FatigueSeries(
@@ -63,9 +61,15 @@ object FatigueAnalysisMapper {
             )
         }
         val contributionSeries = contributionSeries(window, contributionTarget, grouping, period)
+        val defaultSourceKeys = contributionSeries
+            .take(DEFAULT_CONTRIBUTOR_COUNT)
+            .map { it.sourceKey }
+            .toSet()
         val validSelectedSources = selectedSourceKeys.intersect(contributionSeries.map { it.sourceKey }.toSet())
-        val effectiveSelectedSources = validSelectedSources.ifEmpty {
-            contributionSeries.take(DEFAULT_CONTRIBUTOR_COUNT).map { it.sourceKey }.toSet()
+        val effectiveSelectedSources = if (validSelectedSources.isEmpty() && defaultSourcesWhenEmpty) {
+            defaultSourceKeys
+        } else {
+            validSelectedSources
         }
         val axisItems = axisItems(window.last().state)
 
@@ -83,6 +87,7 @@ object FatigueAnalysisMapper {
                 contributionGrouping = grouping,
                 contributionSeries = contributionSeries,
                 selectedContributionSourceKeys = effectiveSelectedSources,
+                defaultContributionSourceKeys = defaultSourceKeys,
                 usesWeeklyAggregation = period.usesWeeklyAggregation
             ),
             isLoading = false
@@ -98,7 +103,7 @@ object FatigueAnalysisMapper {
         val sourceKeys = window.flatMap { result ->
             result.groupStates.filter { it.groupType == grouping.groupType }.map { it.groupKey }
         }.distinct()
-        return sourceKeys.map { sourceKey ->
+        val unsorted = sourceKeys.map { sourceKey ->
             val daily = window.map { result ->
                 val value = result.groupStates
                     .filter { it.groupType == grouping.groupType && it.groupKey == sourceKey }
@@ -109,12 +114,39 @@ object FatigueAnalysisMapper {
                 sourceKey = sourceKey,
                 sourceLabel = sourceKey.toDisplayLabel(),
                 target = target,
-                points = aggregate(daily, period.usesWeeklyAggregation)
+                points = aggregate(daily, period.usesWeeklyAggregation),
+                periodContributionPercent = 0
             )
         }.filter { series -> series.points.any { it.value > 0.0 } }
             .sortedByDescending { series -> series.points.sumOf { it.value } }
-            .take(MAX_CONTRIBUTOR_OPTIONS)
+        val totalContribution = unsorted.sumOf { series -> series.points.sumOf { it.value } }
+        return unsorted.map { series ->
+            val seriesContribution = series.points.sumOf { it.value }
+            series.copy(
+                periodContributionPercent = if (totalContribution > 0.0) {
+                    ((seriesContribution / totalContribution) * 100.0).toInt().coerceIn(0, 100)
+                } else {
+                    0
+                }
+            )
+        }
     }
+
+    private fun emptyState(
+        period: FatigueAnalysisPeriod,
+        selectedTargets: Set<FatigueTarget>,
+        contributionTarget: FatigueTarget,
+        grouping: ContributionGrouping
+    ): FatigueAnalysisUiState = FatigueAnalysisUiState(
+        detail = FatigueDetailUiState(
+            selectedPeriod = period,
+            selectedFatigueTargets = selectedTargets.ifEmpty { setOf(FatigueTarget.OVERALL) },
+            contributionTarget = contributionTarget,
+            contributionGrouping = grouping,
+            usesWeeklyAggregation = period.usesWeeklyAggregation
+        ),
+        isLoading = false
+    )
 
     internal fun aggregate(points: List<FatigueTimePoint>, weekly: Boolean): List<FatigueTimePoint> {
         if (!weekly) return points
@@ -165,5 +197,4 @@ object FatigueAnalysisMapper {
         lowercase().split('_').joinToString(" ") { token -> token.replaceFirstChar(Char::uppercase) }
 
     private const val DEFAULT_CONTRIBUTOR_COUNT = 3
-    private const val MAX_CONTRIBUTOR_OPTIONS = 8
 }

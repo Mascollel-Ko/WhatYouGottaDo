@@ -57,19 +57,6 @@ internal fun ContributionGroupingSelector(
 }
 
 @Composable
-internal fun SourceSelector(
-    sources: List<Pair<String, String>>,
-    selected: Set<String>,
-    onToggle: (String) -> Unit
-) {
-    SelectorRow {
-        sources.forEach { (key, label) ->
-            FatigueSelectorChip(label, key in selected) { onToggle(key) }
-        }
-    }
-}
-
-@Composable
 internal fun FatigueSelectorChip(
     label: String,
     selected: Boolean,
