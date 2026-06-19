@@ -13,6 +13,7 @@ import com.training.trackplanner.analysis.engine.AnalysisEngineV3
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
+import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
@@ -141,15 +142,39 @@ class TrainingRepository(
         val exercises = exerciseDao.allExercises()
         val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
-        val results = DailyFatigueCalculator(runtimeMetadataCatalog).calculateSeries(
+        val initialProfile = initialUserProfileDao.profile()
+        val calculator = DailyFatigueCalculator(runtimeMetadataCatalog)
+        val results = calculator.calculateSeries(
             endDate = today,
             days = 7,
             exercises = exercises,
             entriesWithSets = entries,
-            initialProfile = initialUserProfileDao.profile()
+            initialProfile = initialProfile
         )
         val todayEntries = entries.filter { it.entry.date == todayString }
+        val confirmedSetCount = todayEntries.sumOf { item -> item.sets.count { it.confirmed } }
+        val unconfirmedSetCount = todayEntries.sumOf { item -> item.sets.count { !it.confirmed } }
         val todayState = results.last().state
+        val preWorkoutState = calculator.calculate(
+            targetDate = today,
+            exercises = exercises,
+            entriesWithSets = entries.filterNot { it.entry.date == todayString },
+            initialProfile = initialProfile
+        ).state
+        val projectedState = if (unconfirmedSetCount > 0) {
+            val projectedEntries = entries.map { item ->
+                if (item.entry.date != todayString) item
+                else item.copy(sets = item.sets.map { set -> set.copy(confirmed = true) })
+            }
+            calculator.calculate(
+                targetDate = today,
+                exercises = exercises,
+                entriesWithSets = projectedEntries,
+                initialProfile = initialProfile
+            ).state
+        } else {
+            null
+        }
         val firstConfirmedWorkoutDate = entries.asSequence()
             .filter { item -> item.sets.any { it.confirmed } }
             .mapNotNull { item -> runCatching { LocalDate.parse(item.entry.date) }.getOrNull() }
@@ -164,11 +189,18 @@ class TrainingRepository(
         HomeTodaySummaryState(
             date = today,
             plannedExerciseCount = todayEntries.size,
-            confirmedSetCount = todayEntries.sumOf { item -> item.sets.count { it.confirmed } },
-            unconfirmedSetCount = todayEntries.sumOf { item -> item.sets.count { !it.confirmed } },
+            confirmedSetCount = confirmedSetCount,
+            unconfirmedSetCount = unconfirmedSetCount,
             fatigueLabel = todayState.readinessLabel,
             fatigueScore = todayState.overallFatigueIndex,
             fatigueHeadline = FatigueLabelResolver.headline(todayState.readinessLabel),
+            fatigueCard = HomeFatigueCardSummaryFactory.create(
+                preWorkout = preWorkoutState,
+                current = todayState,
+                projected = projectedState,
+                confirmedSetCount = confirmedSetCount,
+                unconfirmedSetCount = unconfirmedSetCount
+            ),
             cautionReasons = todayState.cautionReasons,
             recentTrainingLoadSeries = chartResults.map { result ->
                 MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)

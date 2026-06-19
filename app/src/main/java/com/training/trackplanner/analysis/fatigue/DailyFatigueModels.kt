@@ -125,6 +125,19 @@ data class MiniTrendPoint(
     val value: Double
 )
 
+data class HomeFatigueReading(
+    val score: Int,
+    val label: String
+)
+
+data class HomeFatigueCardSummary(
+    val primaryPrefix: String,
+    val primary: HomeFatigueReading,
+    val projectionPrefix: String? = null,
+    val projection: HomeFatigueReading? = null,
+    val statusText: String? = null
+)
+
 data class HomeTodaySummaryState(
     val date: LocalDate,
     val plannedExerciseCount: Int,
@@ -133,6 +146,7 @@ data class HomeTodaySummaryState(
     val fatigueLabel: FatigueReadinessLabel,
     val fatigueScore: Int?,
     val fatigueHeadline: String,
+    val fatigueCard: HomeFatigueCardSummary,
     val cautionReasons: List<String>,
     val recentTrainingLoadSeries: List<MiniTrendPoint>,
     val recentFatigueSeries: List<MiniTrendPoint>,
@@ -148,6 +162,10 @@ data class HomeTodaySummaryState(
                 fatigueLabel = FatigueReadinessLabel.LOW,
                 fatigueScore = null,
                 fatigueHeadline = "피로도를 계산하고 있습니다.",
+                fatigueCard = HomeFatigueCardSummary(
+                    primaryPrefix = "운동 전",
+                    primary = HomeFatigueReading(0, "계산 중")
+                ),
                 cautionReasons = emptyList(),
                 recentTrainingLoadSeries = emptyList(),
                 recentFatigueSeries = emptyList(),

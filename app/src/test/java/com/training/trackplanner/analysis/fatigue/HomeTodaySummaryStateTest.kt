@@ -20,6 +20,10 @@ class HomeTodaySummaryStateTest {
             fatigueLabel = FatigueReadinessLabel.NORMAL,
             fatigueScore = 60,
             fatigueHeadline = FatigueLabelResolver.headline(FatigueReadinessLabel.NORMAL),
+            fatigueCard = HomeFatigueCardSummary(
+                primaryPrefix = "현재",
+                primary = HomeFatigueReading(60, "적정")
+            ),
             cautionReasons = emptyList(),
             recentTrainingLoadSeries = series,
             recentFatigueSeries = series,

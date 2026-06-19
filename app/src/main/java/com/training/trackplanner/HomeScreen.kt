@@ -191,15 +191,20 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
             )
             Text(
                 text = buildString {
-                    append("피로도: ")
-                    append(summary.fatigueLabel.name)
-                    summary.fatigueScore?.let { score -> append(" $score / 100") }
+                    append("피로도\n")
+                    append(summary.fatigueCard.primaryPrefix)
+                    append(" ")
+                    append(summary.fatigueCard.primary.score)
+                    append(" · ")
+                    append(summary.fatigueCard.primary.label)
                 },
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = summary.fatigueHeadline,
+                text = summary.fatigueCard.projection?.let { projection ->
+                    "${summary.fatigueCard.projectionPrefix} ${projection.score} · ${projection.label}"
+                } ?: summary.fatigueCard.statusText.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
