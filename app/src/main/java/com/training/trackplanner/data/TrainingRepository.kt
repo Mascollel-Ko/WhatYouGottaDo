@@ -606,11 +606,25 @@ class TrainingRepository(
     suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
         withContext(Dispatchers.IO) {
             val exercises = exerciseDao.allExercises()
+            val today = SystemAnalysisDateProvider().today()
+            val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+            val history = workoutDao.entriesWithSetsUntil(todayString)
+            val metadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
+            val fatigueState = runCatching {
+                DailyFatigueCalculator(metadataCatalog).calculate(
+                    targetDate = today,
+                    exercises = exercises,
+                    entriesWithSets = history,
+                    initialProfile = initialUserProfileDao.profile()
+                ).state
+            }.getOrNull()
             ProgramSkeletonGenerator().generate(
                 request = request,
                 exercises = exercises,
-                history = workoutDao.allEntriesWithSets(),
-                runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
+                history = history,
+                today = today,
+                runtimeMetadataCatalog = metadataCatalog,
+                fatigueState = fatigueState
             )
         }
 

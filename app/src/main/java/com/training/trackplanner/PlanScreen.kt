@@ -256,6 +256,9 @@ private fun ProgramEditorScreen(
     var goal by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.goal.toProgramGoal())
     }
+    var durationWeeks by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf(((program?.durationDays ?: 28) / 7).coerceIn(2, 12))
+    }
     var weeklyDays by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
     }
@@ -263,7 +266,7 @@ private fun ProgramEditorScreen(
         mutableStateOf((program?.sessionMinutes ?: 60).takeIf { it > 0 } ?: 60)
     }
     var badmintonRatio by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf((program?.badmintonTransferRatio ?: 0.40).coerceIn(0.25, 0.70))
+        mutableStateOf((program?.badmintonTransferRatio ?: 0.70).coerceIn(0.0, 0.90))
     }
     var sportStrengthRatio by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.sportStrengthRatio?.ifBlank { "AUTO" } ?: "AUTO")
@@ -299,7 +302,8 @@ private fun ProgramEditorScreen(
             excludedExerciseText = excludedText,
             badmintonTransferRatio = badmintonRatio,
             sportStrengthRatio = sportStrengthRatio,
-            periodizationType = periodizationType
+            periodizationType = periodizationType,
+            durationWeeks = durationWeeks
         )
 
     fun requireProgramName(): Boolean {
@@ -368,30 +372,41 @@ private fun ProgramEditorScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
+                            label = "프로그램 기간",
+                            selected = durationWeeks,
+                            options = (2..12).toList(),
+                            optionLabel = { "${it}주" },
+                            onSelect = { durationWeeks = it }
+                        )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f),
                             label = "주당 운동일수",
                             selected = weeklyDays,
-                            options = listOf(2, 3, 4, 5),
+                            options = (1..7).toList(),
                             optionLabel = { "주 ${it}일" },
                             onSelect = { weeklyDays = it }
                         )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
                             label = "하루 운동시간",
                             selected = sessionMinutes,
-                            options = listOf(30, 45, 60, 75),
+                            options = listOf(20, 30, 45, 60, 75, 90, 120),
                             optionLabel = { "${it}분" },
                             onSelect = { sessionMinutes = it }
                         )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f),
+                            label = "배드민턴 : 근력",
+                            selected = badmintonRatio,
+                            options = badmintonRatioOptions.keys.toList(),
+                            optionLabel = { ratio -> badmintonRatioOptions.getValue(ratio) },
+                            onSelect = { badmintonRatio = it }
+                        )
                     }
-                    ProgramDropdown(
-                        label = "배드민턴 지원 훈련 비중",
-                        selected = badmintonRatio,
-                        options = badmintonRatioOptions.keys.toList(),
-                        optionLabel = { ratio -> badmintonRatioOptions.getValue(ratio) },
-                        onSelect = { badmintonRatio = it }
-                    )
                     Text(
-                        text = "배드민턴 경기 자체가 아니라 전이성이 높은 웨이트/보조운동 비중을 조절합니다.",
+                        text = "배드민턴 특이 훈련과 일반 근력의 우선순위를 조절합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -640,7 +655,10 @@ private fun ProgramSkeletonPreview(
                     .toSortedMap()
                     .forEach { (dayOfWeek, dayItems) ->
                         Text(
-                            text = programDayLabel(weekPlan.weekIndex, dayOfWeek),
+                            text = listOfNotNull(
+                                programDayLabel(weekPlan.weekIndex, dayOfWeek),
+                                dayItems.firstOrNull()?.trainingSlot?.toTrainingSlotLabel()
+                            ).joinToString(" · "),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1285,23 +1303,25 @@ private fun skeletonFromProgram(
         sessionMinutes = (program.sessionMinutes.takeIf { it > 0 } ?: 60),
         availableEquipment = program.availableEquipment.toEquipmentSet().ifEmpty { defaultProgramEquipmentTokens },
         excludedExerciseText = program.excludedExerciseText,
-        badmintonTransferRatio = program.badmintonTransferRatio.coerceIn(0.25, 0.70),
+        badmintonTransferRatio = program.badmintonTransferRatio.coerceIn(0.0, 0.90),
         sportStrengthRatio = program.sportStrengthRatio.ifBlank { "AUTO" },
-        periodizationType = program.periodizationType.toProgramPeriodizationType()
+        periodizationType = program.periodizationType.toProgramPeriodizationType(),
+        durationWeeks = (program.durationDays / 7).coerceIn(2, 12)
     )
     val periodization = request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
         ?: ProgramPeriodizationType.STEP_DELOAD
-    val weekPlans = (1..4).map { week ->
+    val durationWeeks = (program.durationDays / 7).coerceIn(2, 12)
+    val weekPlans = (1..durationWeeks).map { week ->
         ProgramWeekPlan(
             weekIndex = week,
-            weekType = if (week == 4) "기존 디로드" else "기존 구성",
-            volumeMultiplier = if (week == 4) 0.70 else 1.0,
-            intensityMultiplier = if (week == 4) 0.75 else 0.90,
-            heavyExposureLimit = if (week == 4) 1 else 2,
-            lowerBodyFatigueLimit = if (week == 4) 5.0 else 8.0,
-            axialLoadLimit = if (week == 4) 1 else 2,
-            plyometricLimit = if (week == 4) 0 else 1,
-            deloadFlag = week == 4
+            weekType = if (week % 4 == 0) "기존 디로드" else "기존 구성",
+            volumeMultiplier = if (week % 4 == 0) 0.70 else 1.0,
+            intensityMultiplier = if (week % 4 == 0) 0.75 else 0.90,
+            heavyExposureLimit = if (week % 4 == 0) 1 else 2,
+            lowerBodyFatigueLimit = if (week % 4 == 0) 5.0 else 8.0,
+            axialLoadLimit = if (week % 4 == 0) 1 else 2,
+            plyometricLimit = if (week % 4 == 0) 0 else 1,
+            deloadFlag = week % 4 == 0
         )
     }
     return GeneratedProgramSkeleton(
@@ -1326,7 +1346,11 @@ private fun skeletonFromProgram(
                 weightKg = item.weightKg,
                 seconds = item.seconds,
                 selectionReason = "기존 프로그램",
-                weightSource = item.prescription.substringAfterLast(" · ", "MANUAL_OR_EXISTING")
+                weightSource = item.prescription.substringAfterLast(" · ", "MANUAL_OR_EXISTING"),
+                trainingSlot = item.prescription.substringAfter("SLOT:", "FULL_BODY_BADMINTON_SUPPORT")
+                    .substringBefore(" · "),
+                dayIntensity = item.prescription.substringAfter("DAY:", "MODERATE")
+                    .substringBefore(" · ")
             )
         }
     )
@@ -1362,12 +1386,23 @@ private fun String?.toEquipmentSet(): Set<String> =
         .filter { it.isNotBlank() }
         .toSet()
 
-private val badmintonRatioOptions = linkedMapOf(
-    0.25 to "낮음 25%",
-    0.40 to "보통 40%",
-    0.55 to "높음 55%",
-    0.70 to "매우 높음 70%"
-)
+private val badmintonRatioOptions = (0..9).reversed().associate { step ->
+    val badminton = step * 10
+    (badminton / 100.0) to "$badminton:${100 - badminton}"
+}
+
+private fun String.toTrainingSlotLabel(): String = when (this) {
+    "FULL_BODY_BADMINTON_SUPPORT" -> "전신 배드민턴 보강"
+    "LOWER_TRANSFER_FULL" -> "하체 전이"
+    "UPPER_SCAP_CORE_FULL" -> "상체·견갑·코어"
+    "LOWER_STRENGTH", "LOWER_STRENGTH_HEAVY" -> "하체 근력"
+    "UPPER_STRENGTH", "UPPER_STRENGTH_SCAP" -> "상체 근력·견갑"
+    "BADMINTON_TRANSFER", "BADMINTON_COD", "BADMINTON_COD_DECEL" -> "배드민턴 전이·감속"
+    "POWER_REACTIVE", "POWER_REACTIVE_LIGHT" -> "파워·반응"
+    "RECOVERY_PREHAB", "RECOVERY_WEAKPOINT", "MICRO_RECOVERY" -> "회복·프리햅"
+    "WEAKPOINT_ACCESSORY" -> "약점 보강"
+    else -> this
+}
 
 private val sportStrengthRatioOptions = listOf(
     "AUTO",
