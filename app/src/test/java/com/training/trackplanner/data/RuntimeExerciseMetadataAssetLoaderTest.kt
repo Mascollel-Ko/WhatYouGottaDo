@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.security.MessageDigest
 
 class RuntimeExerciseMetadataAssetLoaderTest {
     @Test
@@ -30,6 +31,26 @@ class RuntimeExerciseMetadataAssetLoaderTest {
         assertTrue(rows.all { it.jointTendonImpactStressLevel.isNotBlank() })
         assertTrue(rows.all { it.movementFocusDemandLevel.isNotBlank() })
         assertTrue(rows.all { it.recoveryDurationClass.isNotBlank() })
+        assertTrue(rows.all { it.appCueProfile in RuntimeExerciseMetadataAssetLoader.APP_CUE_PROFILES })
+
+        val randomBeepCueNames = setOf(
+            "랜덤 비프 풋워크",
+            "스플릿 스텝 리액션",
+            "랜덤 방향전환 드릴",
+            "랜덤 풋워크",
+            "6코너 섀도우 풋워크",
+            "앞뒤 랜덤 콕줍기",
+            "좌우 랜덤 콕줍기",
+            "6방향 랜덤 콕줍기"
+        )
+        assertEquals(
+            randomBeepCueNames,
+            rows.filter { it.appCueProfile == "RANDOM_BEEP_CUE" }
+                .map { it.exerciseName }
+                .toSet()
+        )
+        assertTrue(rows.filterNot { it.exerciseName in randomBeepCueNames }
+            .all { it.appCueProfile == "NONE" })
 
         val byName = rows.associateBy { it.exerciseName }
         assertEquals("GENERAL", byName.getValue("슈퍼맨").badmintonTransferLevel)
@@ -39,5 +60,24 @@ class RuntimeExerciseMetadataAssetLoaderTest {
         assertEquals("HIGH", byName.getValue("딥스").stressMagnitudeHint)
         assertEquals("HIGH", byName.getValue("벤치 딥스").stressMagnitudeHint)
         assertEquals("SUPPORTIVE", byName.getValue("케이블 원암 로우").badmintonTransferLevel)
+    }
+
+    @Test
+    fun missingAppCueProfileColumnDefaultsToNone() {
+        val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(
+            "stableKey,exerciseName\nlegacy_key,Legacy exercise"
+        )
+
+        assertEquals("NONE", rows.single().appCueProfile)
+    }
+
+    @Test
+    fun canonicalHashValidationIsLineEndingSafe() {
+        val lf = "first,second\n1,2\n"
+        val crlfHash = MessageDigest.getInstance("SHA-256")
+            .digest(lf.replace("\n", "\r\n").toByteArray(Charsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte) }
+
+        assertTrue(RuntimeExerciseMetadataAssetLoader.assetHashMatches(lf, crlfHash))
     }
 }

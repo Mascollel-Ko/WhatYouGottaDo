@@ -89,7 +89,8 @@ data class RuntimeExerciseMetadata(
     val jointTendonImpactStressLevel: String,
     val movementFocusDemandLevel: String,
     val recoveryDurationClass: String,
-    val safeForSeedMutation: Boolean
+    val safeForSeedMutation: Boolean,
+    val appCueProfile: String = "NONE"
 ) {
     val progressBehavior: ProgressMetricRuntimeBehavior
         get() = ExerciseMetadataAdapter.progressMetricBehavior(progressMetricType)
@@ -190,7 +191,11 @@ object ExerciseMetadataAdapter {
             jointTendonImpactStressLevel = fields.value("jointTendonImpactStressLevel"),
             movementFocusDemandLevel = fields.value("movementFocusDemandLevel"),
             recoveryDurationClass = fields.value("recoveryDurationClass"),
-            safeForSeedMutation = fields.value("safeForSeedMutation").toBooleanFlag()
+            safeForSeedMutation = fields.value("safeForSeedMutation").toBooleanFlag(),
+            appCueProfile = fields.value("appCueProfile")
+                .trim()
+                .uppercase(Locale.ROOT)
+                .ifBlank { "NONE" }
         )
 
     fun fromCsv(csv: String): List<RuntimeExerciseMetadata> {

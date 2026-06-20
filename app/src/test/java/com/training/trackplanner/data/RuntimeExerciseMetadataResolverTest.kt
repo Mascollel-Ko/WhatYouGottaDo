@@ -25,6 +25,25 @@ class RuntimeExerciseMetadataResolverTest {
         assertSame(canonical, canonicalOnlyResolver.resolve(builtIn))
     }
 
+    @Test
+    fun persistedLegacyMetadataKeepsCanonicalAppCueProfile() {
+        val exercise = exercise("beep_key", "Beep drill")
+        val canonical = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            appCueProfile = "RANDOM_BEEP_CUE"
+        )
+        val persisted = canonical.copy(
+            programSlot = "ROOM_SLOT",
+            appCueProfile = "NONE"
+        )
+        val resolved = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical)),
+            persistedRows = listOf(persisted)
+        ).resolve(exercise)
+
+        assertEquals("ROOM_SLOT", resolved.programSlot)
+        assertEquals("RANDOM_BEEP_CUE", resolved.appCueProfile)
+    }
+
     private fun exercise(stableKey: String, name: String) = Exercise(
         name = name,
         category = "Strength",

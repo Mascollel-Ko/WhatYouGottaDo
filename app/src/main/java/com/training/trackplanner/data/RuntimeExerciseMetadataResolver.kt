@@ -40,10 +40,18 @@ class RuntimeExerciseMetadataResolver(
 ) {
     private val persistedByStableKey = persistedRows.associateBy { it.stableKey }
 
-    fun resolve(exercise: Exercise): RuntimeExerciseMetadata =
-        persistedByStableKey[exercise.stableKey]
-            ?: canonicalCatalog.resolveByStableKey(exercise.stableKey)
-            ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
+    fun resolve(exercise: Exercise): RuntimeExerciseMetadata {
+        val persisted = persistedByStableKey[exercise.stableKey]
+        val canonical = canonicalCatalog.resolveByStableKey(exercise.stableKey)
+        return when {
+            persisted != null && canonical != null -> persisted.copy(
+                appCueProfile = canonical.appCueProfile
+            )
+            persisted != null -> persisted
+            canonical != null -> canonical
+            else -> RuntimeExerciseMetadataDefaults.forExercise(exercise)
+        }
+    }
 
     fun catalog(exercises: Collection<Exercise>): RuntimeExerciseMetadataCatalog =
         RuntimeExerciseMetadataCatalog.of(exercises.map(::resolve))
