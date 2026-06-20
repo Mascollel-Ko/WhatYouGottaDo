@@ -143,7 +143,11 @@ data class ProgramSkeletonItem(
     val estimatedDurationSeconds: Int = 0,
     val directSportSession: Boolean = false,
     val rehabLikeActivation: Boolean = false,
-    val scapularStabilityExposure: Boolean = false
+    val scapularStabilityExposure: Boolean = false,
+    val primarySlotCapabilities: List<String> = emptyList(),
+    val secondarySlotCapabilities: List<String> = emptyList(),
+    val weakSlotCapabilities: List<String> = emptyList(),
+    val slotCapabilitySource: String = SlotCapabilitySource.NONE.name
 )
 
 data class GeneratedProgramSkeleton(

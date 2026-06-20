@@ -7,6 +7,27 @@ import java.io.File
 
 class ProgramBuilderCanonicalExamplesTest {
     @Test
+    fun canonicalCoverageDiagnosticScansAllRowsWithoutLegacyFallback() {
+        val exercises = loadSeedExercises()
+        val metadata = ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
+        val catalog = RuntimeExerciseMetadataCatalog.of(metadata)
+
+        val diagnostics = ProgramSlotCoverageDiagnostics().analyze(exercises, catalog)
+
+        assertEquals(215, exercises.size)
+        assertEquals(ProgramSlotId.entries.size, diagnostics.size)
+        assertTrue(diagnostics.all { it.legacyFallbackMatchCount == 0 })
+        setOf(
+            ProgramSlotId.LOWER_SQUAT_PATTERN,
+            ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN,
+            ProgramSlotId.UPPER_PULL_ANCHOR,
+            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
+        ).forEach { slot ->
+            assertTrue("Expected canonical candidates for $slot", diagnostics.first { it.slot == slot }.candidateCount > 0)
+        }
+    }
+
+    @Test
     fun requiredExamplesGenerateFromCanonicalAssets() {
         val exercises = loadSeedExercises()
         val metadata = ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))

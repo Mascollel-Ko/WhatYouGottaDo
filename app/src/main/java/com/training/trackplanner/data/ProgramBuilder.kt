@@ -7,7 +7,11 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-class ProgramBuilder {
+class ProgramBuilder internal constructor(
+    private val templateCatalog: ProgramTemplateCatalog = ProgramTemplateCatalog.DEFAULT,
+    private val slotCapabilityResolver: SlotCapabilityResolver = SlotCapabilityResolver.DEFAULT,
+    private val fatigueSlotPolicy: FatigueSlotPolicy = FatigueSlotPolicy.DEFAULT
+) {
     fun build(
         request: ProgramSkeletonRequest,
         exercises: List<Exercise>,
@@ -22,20 +26,10 @@ class ProgramBuilder {
             sessionMinutes = request.dailyAvailableMinutes,
             badmintonTransferRatio = request.badmintonTransferRatio.coerceIn(0.0, 0.9)
         )
-        val fatigueGate = ProgramFatigueGate.from(fatigueState)
-        val weekPlans = ProgramWeekPlanner.create(normalized.durationWeeks, fatigueGate)
-        val schedule = ProgramSlotPlanner.slots(normalized.availableDaysPerWeek).map { planned ->
-            when (fatigueGate.band) {
-                ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.LIGHT)
-                ProgramFatigueBand.ORANGE -> planned.copy(
-                    intensity = if (planned.intensity == ProgramDayIntensity.HARD) {
-                        ProgramDayIntensity.MODERATE
-                    } else {
-                        planned.intensity
-                    }
-                )
-                else -> planned
-            }
+        val fatigueGate = fatigueSlotPolicy.gate(fatigueState)
+        val weekPlans = templateCatalog.weekPlans(normalized.durationWeeks, fatigueGate)
+        val schedule = templateCatalog.slots(normalized.availableDaysPerWeek).map { planned ->
+            fatigueSlotPolicy.adapt(planned, fatigueGate)
         }
         val excludedTerms = normalized.excludedExerciseText
             .split(',', '\n', ';')
@@ -44,10 +38,12 @@ class ProgramBuilder {
         val candidates = exercises.asSequence()
             .filter(Exercise::isActive)
             .map { exercise ->
+                val metadata = runtimeMetadataCatalog.resolve(exercise)
                 ProgramCandidate(
                     exercise = exercise,
-                    metadata = runtimeMetadataCatalog.resolve(exercise),
-                    canonical = runtimeMetadataCatalog.resolve(exercise) != null
+                    metadata = metadata,
+                    canonical = metadata != null,
+                    slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
                 )
             }
             .filter(ProgramCandidate::isProgramSelectable)
@@ -62,7 +58,7 @@ class ProgramBuilder {
         var timeBudgetTrimmed = false
         weekPlans.forEach { week ->
             schedule.forEachIndexed { dayIndex, day ->
-                val roles = ProgramRolePlanner.roles(day.slot, exerciseCount(normalized.dailyAvailableMinutes))
+                val roles = templateCatalog.roles(day.slot, exerciseCount(normalized.dailyAvailableMinutes))
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
                 var estimatedSessionSeconds = warmupReserveSeconds(normalized.dailyAvailableMinutes)
@@ -72,7 +68,7 @@ class ProgramBuilder {
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
                     val scored = candidates.asSequence()
                         .filterNot { candidate -> selected.any { it.exercise.id == candidate.exercise.id } }
-                        .filter { candidate -> fatigueGate.allows(candidate) }
+                        .filter { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) }
                         .filter { candidate -> candidate.allowedForSlot(day.slot) }
                         .filter { candidate -> candidate.allowedForRole(day.slot, role) }
                         .filter { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) }
@@ -158,7 +154,11 @@ class ProgramBuilder {
                         estimatedDurationSeconds = itemDurationSeconds,
                         directSportSession = picked.isDirectSportSession,
                         rehabLikeActivation = picked.isRehabLikeActivation,
-                        scapularStabilityExposure = picked.isScapularStabilityExposure
+                        scapularStabilityExposure = picked.isScapularStabilityExposure,
+                        primarySlotCapabilities = picked.slotCapabilities.primary.map(ProgramSlotId::name).sorted(),
+                        secondarySlotCapabilities = picked.slotCapabilities.secondary.map(ProgramSlotId::name).sorted(),
+                        weakSlotCapabilities = picked.slotCapabilities.weakMatches.map(ProgramSlotId::name).sorted(),
+                        slotCapabilitySource = picked.slotCapabilities.source.name
                     )
                 }
             }
@@ -376,246 +376,6 @@ class ProgramBuilder {
     }
 }
 
-private data class PlannedSlot(
-    val dayOfWeek: Int,
-    val slot: ProgramTrainingSlot,
-    val intensity: ProgramDayIntensity
-)
-
-private object ProgramSlotPlanner {
-    fun slots(days: Int): List<PlannedSlot> = when (days.coerceIn(1, 7)) {
-        1 -> listOf(slot(3, ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT, ProgramDayIntensity.MODERATE))
-        2 -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_TRANSFER_FULL, ProgramDayIntensity.HARD),
-            slot(4, ProgramTrainingSlot.UPPER_SCAP_CORE_FULL, ProgramDayIntensity.MODERATE)
-        )
-        3 -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
-            slot(3, ProgramTrainingSlot.UPPER_STRENGTH_SCAP, ProgramDayIntensity.MODERATE),
-            slot(5, ProgramTrainingSlot.BADMINTON_TRANSFER, ProgramDayIntensity.LIGHT)
-        )
-        4 -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
-            slot(3, ProgramTrainingSlot.UPPER_STRENGTH_SCAP, ProgramDayIntensity.MODERATE),
-            slot(5, ProgramTrainingSlot.BADMINTON_COD_DECEL, ProgramDayIntensity.MODERATE),
-            slot(7, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT)
-        )
-        5 -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_STRENGTH_HEAVY, ProgramDayIntensity.HARD),
-            slot(2, ProgramTrainingSlot.UPPER_STRENGTH_SCAP, ProgramDayIntensity.MODERATE),
-            slot(4, ProgramTrainingSlot.BADMINTON_COD_DECEL, ProgramDayIntensity.HARD),
-            slot(6, ProgramTrainingSlot.POWER_REACTIVE_LIGHT, ProgramDayIntensity.MODERATE),
-            slot(7, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT)
-        )
-        6 -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
-            slot(2, ProgramTrainingSlot.UPPER_STRENGTH, ProgramDayIntensity.MODERATE),
-            slot(3, ProgramTrainingSlot.RECOVERY_PREHAB, ProgramDayIntensity.LIGHT),
-            slot(4, ProgramTrainingSlot.BADMINTON_COD, ProgramDayIntensity.HARD),
-            slot(6, ProgramTrainingSlot.POWER_REACTIVE, ProgramDayIntensity.MODERATE),
-            slot(7, ProgramTrainingSlot.WEAKPOINT_ACCESSORY, ProgramDayIntensity.LIGHT)
-        )
-        else -> listOf(
-            slot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
-            slot(2, ProgramTrainingSlot.MICRO_RECOVERY, ProgramDayIntensity.LIGHT),
-            slot(3, ProgramTrainingSlot.UPPER_STRENGTH, ProgramDayIntensity.MODERATE),
-            slot(4, ProgramTrainingSlot.BADMINTON_COD, ProgramDayIntensity.HARD),
-            slot(5, ProgramTrainingSlot.RECOVERY_PREHAB, ProgramDayIntensity.LIGHT),
-            slot(6, ProgramTrainingSlot.POWER_REACTIVE, ProgramDayIntensity.MODERATE),
-            slot(7, ProgramTrainingSlot.WEAKPOINT_ACCESSORY, ProgramDayIntensity.LIGHT)
-        )
-    }
-
-    private fun slot(day: Int, slot: ProgramTrainingSlot, intensity: ProgramDayIntensity) =
-        PlannedSlot(day, slot, intensity)
-}
-
-private object ProgramWeekPlanner {
-    fun create(weeks: Int, gate: ProgramFatigueGate): List<ProgramWeekPlan> {
-        val flow = weekFlow(weeks).toMutableList().apply {
-            if (weeks == 8) {
-                this[lastIndex] = if (gate.band <= ProgramFatigueBand.YELLOW) {
-                    ProgramWeekType.REALIZATION
-                } else {
-                    ProgramWeekType.DELOAD
-                }
-            }
-            if (weeks == 12) {
-                this[lastIndex] = if (gate.band <= ProgramFatigueBand.YELLOW) {
-                    ProgramWeekType.REALIZATION
-                } else {
-                    ProgramWeekType.FINAL_DELOAD
-                }
-            }
-        }
-        return flow.mapIndexed { index, type ->
-            val settings = settings(type)
-            ProgramWeekPlan(
-                weekIndex = index + 1,
-                weekType = type.name,
-                volumeMultiplier = settings.volume,
-                intensityMultiplier = settings.intensity,
-                heavyExposureLimit = if (type in setOf(ProgramWeekType.DELOAD, ProgramWeekType.FINAL_DELOAD)) 1 else 2,
-                lowerBodyFatigueLimit = if (gate.band >= ProgramFatigueBand.ORANGE) 5.0 else 8.0,
-                axialLoadLimit = if (gate.allowsHeavyLower) 2 else 0,
-                plyometricLimit = if (gate.allowsHighImpact) 1 else 0,
-                deloadFlag = type in setOf(ProgramWeekType.DELOAD, ProgramWeekType.FINAL_DELOAD),
-                targetRpeMin = settings.rpeMin,
-                targetRpeMax = minOf(settings.rpeMax, gate.rpeCap.toDouble())
-            )
-        }
-    }
-
-    private fun weekFlow(weeks: Int): List<ProgramWeekType> {
-        val base = listOf(
-            ProgramWeekType.ADAPT,
-            ProgramWeekType.BUILD,
-            ProgramWeekType.HIGH,
-            ProgramWeekType.DELOAD,
-            ProgramWeekType.REBUILD,
-            ProgramWeekType.BUILD_PLUS,
-            ProgramWeekType.INTENSIFY,
-            ProgramWeekType.DELOAD,
-            ProgramWeekType.REBUILD,
-            ProgramWeekType.BUILD_PLUS,
-            ProgramWeekType.INTENSIFY,
-            ProgramWeekType.REALIZATION
-        )
-        return base.take(weeks.coerceIn(2, 12))
-    }
-
-    private fun settings(type: ProgramWeekType): WeekSettings = when (type) {
-        ProgramWeekType.ADAPT -> WeekSettings(0.80, 0.85, 6.5, 7.5)
-        ProgramWeekType.BUILD -> WeekSettings(0.95, 0.92, 7.0, 8.0)
-        ProgramWeekType.HIGH -> WeekSettings(1.05, 0.96, 7.5, 8.0)
-        ProgramWeekType.DELOAD -> WeekSettings(0.60, 0.72, 5.5, 6.5)
-        ProgramWeekType.REBUILD -> WeekSettings(0.85, 0.86, 6.5, 7.5)
-        ProgramWeekType.BUILD_PLUS -> WeekSettings(1.00, 0.94, 7.0, 8.0)
-        ProgramWeekType.INTENSIFY -> WeekSettings(0.90, 1.00, 8.0, 8.5)
-        ProgramWeekType.FINAL_DELOAD -> WeekSettings(0.55, 0.68, 5.5, 6.5)
-        ProgramWeekType.REALIZATION -> WeekSettings(0.75, 1.00, 7.5, 8.5)
-    }
-
-    private data class WeekSettings(
-        val volume: Double,
-        val intensity: Double,
-        val rpeMin: Double,
-        val rpeMax: Double
-    )
-}
-
-internal enum class ProgramExerciseRole { ANCHOR, TRANSFER, SUPPORT, CORE, PREHAB, ACCESSORY }
-
-private object ProgramRolePlanner {
-    fun roles(slot: ProgramTrainingSlot, count: Int): List<ProgramExerciseRole> {
-        val template = when (slot) {
-            ProgramTrainingSlot.LOWER_STRENGTH,
-            ProgramTrainingSlot.LOWER_STRENGTH_HEAVY,
-            ProgramTrainingSlot.LOWER_TRANSFER_FULL -> listOf(
-                ProgramExerciseRole.ANCHOR,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.TRANSFER,
-                ProgramExerciseRole.CORE,
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.SUPPORT
-            )
-            ProgramTrainingSlot.UPPER_STRENGTH,
-            ProgramTrainingSlot.UPPER_STRENGTH_SCAP,
-            ProgramTrainingSlot.UPPER_SCAP_CORE_FULL -> listOf(
-                ProgramExerciseRole.ANCHOR,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.CORE,
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.PREHAB
-            )
-            ProgramTrainingSlot.BADMINTON_TRANSFER,
-            ProgramTrainingSlot.BADMINTON_COD,
-            ProgramTrainingSlot.BADMINTON_COD_DECEL,
-            ProgramTrainingSlot.POWER_REACTIVE,
-            ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> listOf(
-                ProgramExerciseRole.TRANSFER,
-                ProgramExerciseRole.TRANSFER,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.CORE,
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.PREHAB
-            )
-            ProgramTrainingSlot.RECOVERY_PREHAB,
-            ProgramTrainingSlot.RECOVERY_WEAKPOINT,
-            ProgramTrainingSlot.MICRO_RECOVERY -> listOf(
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.CORE,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.PREHAB
-            )
-            else -> listOf(
-                ProgramExerciseRole.ANCHOR,
-                ProgramExerciseRole.TRANSFER,
-                ProgramExerciseRole.SUPPORT,
-                ProgramExerciseRole.CORE,
-                ProgramExerciseRole.PREHAB,
-                ProgramExerciseRole.ACCESSORY,
-                ProgramExerciseRole.SUPPORT
-            )
-        }
-        return template.take(count.coerceIn(2, 7))
-    }
-}
-
-internal data class ProgramFatigueGate(
-    val band: ProgramFatigueBand,
-    val volumeFactor: Double,
-    val rpeCap: Int,
-    val allowsHeavyLower: Boolean,
-    val allowsHighImpact: Boolean,
-    val allowsHighIntensityCod: Boolean,
-    val lowerBodyRestricted: Boolean
-) {
-    fun allows(candidate: ProgramCandidate): Boolean {
-        if (!allowsHeavyLower && candidate.isHeavyLower) return false
-        if (!allowsHighImpact && candidate.isHighImpact) return false
-        if (!allowsHighIntensityCod && candidate.isHighIntensityCod) return false
-        if (lowerBodyRestricted && candidate.isHeavyLower) return false
-        return true
-    }
-
-    companion object {
-        fun from(state: DailyFatigueState?): ProgramFatigueGate {
-            val ofi = state?.overallFatigueIndex ?: 0
-            val band = when (ofi) {
-                in 0..44 -> ProgramFatigueBand.GREEN
-                in 45..59 -> ProgramFatigueBand.YELLOW
-                in 60..74 -> ProgramFatigueBand.ORANGE
-                else -> ProgramFatigueBand.RED
-            }
-            val jointRestricted = (state?.jointTendonImpactScore ?: 0) >= 65
-            val neuralRestricted = (state?.neuromuscularScore ?: 0) >= 70
-            val localRestricted = (state?.localMuscularScore ?: 0) >= 70
-            return ProgramFatigueGate(
-                band = band,
-                volumeFactor = when (band) {
-                    ProgramFatigueBand.GREEN -> 1.0
-                    ProgramFatigueBand.YELLOW -> 0.75
-                    ProgramFatigueBand.ORANGE -> 0.50
-                    ProgramFatigueBand.RED -> 0.25
-                },
-                rpeCap = if (neuralRestricted || band >= ProgramFatigueBand.ORANGE) 7 else 9,
-                allowsHeavyLower = band < ProgramFatigueBand.ORANGE && !localRestricted,
-                allowsHighImpact = band < ProgramFatigueBand.ORANGE && !jointRestricted,
-                allowsHighIntensityCod = band < ProgramFatigueBand.ORANGE,
-                lowerBodyRestricted = localRestricted
-            )
-        }
-    }
-}
-
 private class ProgramSelectionHistory {
     private val stableKeyDays = mutableMapOf<String, MutableList<Int>>()
     private val redundancyDays = mutableMapOf<String, MutableList<Int>>()
@@ -675,7 +435,8 @@ private class ProgramSelectionHistory {
 internal data class ProgramCandidate(
     val exercise: Exercise,
     val metadata: RuntimeExerciseMetadata?,
-    val canonical: Boolean
+    val canonical: Boolean,
+    val slotCapabilities: SlotCapabilityProfile = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
 ) {
     private val identityTokens: Set<String> = buildSet {
         metadata?.let { value ->
@@ -773,10 +534,20 @@ internal data class ProgramCandidate(
         else -> 0.25
     }
     val metadataConfidenceFit: Double = if (canonical) 0.8 else 0.0
-    private val isLowerPattern: Boolean = identityHas(
+    private val isLowerPattern: Boolean = slotCapabilities.hasAny(
+        ProgramSlotId.LOWER_SQUAT_PATTERN,
+        ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN,
+        ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL,
+        ProgramSlotId.CALF_ANKLE_CAPACITY
+    ) || identityHas(
         "LOWER", "SQUAT", "HINGE", "DEADLIFT", "LUNGE", "CALF", "ANKLE", "HIP", "KNEE", "HAMSTRING", "GLUTE"
     )
-    private val isUpperPattern: Boolean = identityHas(
+    private val isUpperPattern: Boolean = slotCapabilities.hasAny(
+        ProgramSlotId.UPPER_PULL_ANCHOR,
+        ProgramSlotId.UPPER_PUSH_SUPPORT,
+        ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
+        ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT
+    ) || identityHas(
         "UPPER", "PULL", "ROW", "SCAP", "SHOULDER", "PUSH", "PRESS", "CHEST", "ELBOW", "BICEPS", "TRICEPS", "GRIP", "FOREARM"
     )
 

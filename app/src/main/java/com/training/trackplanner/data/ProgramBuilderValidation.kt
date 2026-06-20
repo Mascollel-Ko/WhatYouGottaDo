@@ -268,19 +268,50 @@ internal object ProgramBuilderValidator {
         issues: MutableList<ProgramValidationIssue>
     ) {
         if (result.weekPlans.size < 2) return
-        val required = linkedMapOf<String, (ProgramSkeletonItem) -> Boolean>(
-            "squat/single-leg" to { it.hasMetadataToken("SQUAT", "LUNGE", "SINGLE_LEG", "STEP_UP") },
-            "hinge" to { it.hasMetadataToken("HINGE", "DEADLIFT", "POSTERIOR_CHAIN") },
-            "upper pull" to { it.hasMetadataToken("PULL", "ROW", "LAT") },
-            "trunk" to { it.hasMetadataToken("CORE", "TRUNK", "ANTI_ROTATION") },
-            "scapular" to { it.hasMetadataToken("SCAP", "ROTATOR_CUFF", "SHOULDER_PREHAB") },
-            "footwork/COD" to { it.hasMetadataToken("FOOTWORK", "CHANGE_OF_DIRECTION", "DECELERATION", "REACTION") },
-            "calf/ankle" to { it.hasMetadataToken("CALF", "ANKLE", "ACHILLES") }
+        val coveragePolicy = CoverageAccountingPolicy.DEFAULT
+        val required = linkedMapOf<String, CoverageRequirement>(
+            "squat/single-leg" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.LOWER_SQUAT_PATTERN, ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL),
+                legacyTokens = arrayOf("SQUAT", "LUNGE", "SINGLE_LEG", "STEP_UP")
+            ),
+            "hinge" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN),
+                legacyTokens = arrayOf("HINGE", "DEADLIFT", "POSTERIOR_CHAIN")
+            ),
+            "upper pull" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.UPPER_PULL_ANCHOR),
+                legacyTokens = arrayOf("PULL", "ROW", "LAT")
+            ),
+            "trunk" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                legacyTokens = arrayOf("CORE", "TRUNK", "ANTI_ROTATION")
+            ),
+            "scapular" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT),
+                legacyTokens = arrayOf("SCAP", "ROTATOR_CUFF", "SHOULDER_PREHAB")
+            ),
+            "footwork/COD" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.BADMINTON_FOOTWORK_REACTION, ProgramSlotId.BADMINTON_DECEL_COD),
+                legacyTokens = arrayOf("FOOTWORK", "CHANGE_OF_DIRECTION", "DECELERATION", "REACTION")
+            ),
+            "calf/ankle" to CoverageRequirement(
+                slots = setOf(ProgramSlotId.CALF_ANKLE_CAPACITY),
+                legacyTokens = arrayOf("CALF", "ANKLE", "ACHILLES")
+            )
         )
         result.weekPlans.windowed(2).forEach { window ->
             val weekNumbers = window.map(ProgramWeekPlan::weekIndex).toSet()
             val items = result.items.filter { it.weekNumber in weekNumbers }
-            val missing = required.filterValues { predicate -> items.none(predicate) }.keys
+            val missing = required.filterValues { requirement ->
+                items.none { item ->
+                    val profile = coveragePolicy.profile(item)
+                    val structuredCredit = requirement.slots.maxOf { slot ->
+                        coveragePolicy.credit(profile, slot).value
+                    }
+                    structuredCredit >= CoverageCredit.PARTIAL.value ||
+                        (profile.source == SlotCapabilitySource.NONE && item.hasMetadataToken(*requirement.legacyTokens))
+                }
+            }.keys
             if (missing.isNotEmpty()) {
                 issues += issue(
                     "TWO_WEEK_MOVEMENT_COVERAGE",
@@ -294,6 +325,11 @@ internal object ProgramBuilderValidator {
             }
         }
     }
+
+    private data class CoverageRequirement(
+        val slots: Set<ProgramSlotId>,
+        val legacyTokens: Array<String>
+    )
 
     private fun validateFourWeekDistribution(
         result: GeneratedProgramSkeleton,

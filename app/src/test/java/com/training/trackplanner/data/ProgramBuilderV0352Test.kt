@@ -175,7 +175,11 @@ class ProgramBuilderV0352Test {
                 metadataProgramSlot = "UNCLASSIFIED",
                 redundancyGroup = "UNCLASSIFIED",
                 strengthProgressionGroup = "UNCLASSIFIED",
-                primaryStressProfile = "UNCLASSIFIED"
+                primaryStressProfile = "UNCLASSIFIED",
+                primarySlotCapabilities = emptyList(),
+                secondarySlotCapabilities = emptyList(),
+                weakSlotCapabilities = emptyList(),
+                slotCapabilitySource = SlotCapabilitySource.NONE.name
             )
         })
         val codes = ProgramBuilderValidator.validate(overloaded).map(ProgramValidationIssue::code).toSet()
