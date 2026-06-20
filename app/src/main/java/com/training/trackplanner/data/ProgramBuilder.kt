@@ -75,7 +75,7 @@ class ProgramBuilder {
                         .filter { candidate -> fatigueGate.allows(candidate) }
                         .filter { candidate -> candidate.allowedForSlot(day.slot) }
                         .filter { candidate -> candidate.allowedForRole(day.slot, role) }
-                        .filter { candidate -> sessionAllows(selected, candidate) }
+                        .filter { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) }
                         .map { candidate ->
                             candidate to score(
                                 candidate = candidate,
@@ -84,6 +84,7 @@ class ProgramBuilder {
                                 dayIntensity = day.intensity,
                                 request = normalized,
                                 week = week,
+                                fatigueGate = fatigueGate,
                                 selectionHistory = selectionHistory,
                                 absoluteDay = absoluteDay
                             )
@@ -155,7 +156,9 @@ class ProgramBuilder {
                         recoveryDurationClass = picked.metadata?.recoveryDurationClass.orEmpty(),
                         badmintonTransferLevel = picked.metadata?.badmintonTransferLevel.orEmpty(),
                         estimatedDurationSeconds = itemDurationSeconds,
-                        directSportSession = picked.isDirectSportSession
+                        directSportSession = picked.isDirectSportSession,
+                        rehabLikeActivation = picked.isRehabLikeActivation,
+                        scapularStabilityExposure = picked.isScapularStabilityExposure
                     )
                 }
             }
@@ -196,6 +199,7 @@ class ProgramBuilder {
         dayIntensity: ProgramDayIntensity,
         request: ProgramSkeletonRequest,
         week: ProgramWeekPlan,
+        fatigueGate: ProgramFatigueGate,
         selectionHistory: ProgramSelectionHistory,
         absoluteDay: Int
     ): Double {
@@ -215,11 +219,21 @@ class ProgramBuilder {
             week.weekType == ProgramWeekType.ADAPT.name && candidate.isRecovery -> 0.8
             else -> 0.0
         }
+        val recoveryContext = slot in RECOVERY_SLOTS || week.deloadFlag ||
+            fatigueGate.band == ProgramFatigueBand.RED
+        val rehabLikePenalty = when {
+            !candidate.isRehabLikeActivation -> 0.0
+            recoveryContext -> 0.35
+            role == ProgramExerciseRole.ANCHOR -> 8.0
+            week.weekType in PERFORMANCE_WEEK_TYPES -> 4.0
+            role == ProgramExerciseRole.PREHAB -> 1.5
+            else -> 2.5
+        }
         return candidate.slotFit(slot) * 2.2 +
             candidate.roleFit(role) * 2.0 +
             ratioFit * 1.8 +
             intensityFit + phaseFit +
-            candidate.metadataConfidenceFit - repeatPenalty
+            candidate.metadataConfidenceFit - repeatPenalty - rehabLikePenalty
     }
 
     private fun chooseControlledCandidate(
@@ -240,7 +254,18 @@ class ProgramBuilder {
         return scored[(weekIndex + dayIndex + itemIndex) % poolSize].first
     }
 
-    private fun sessionAllows(selected: List<ProgramCandidate>, next: ProgramCandidate): Boolean {
+    private fun sessionAllows(
+        selected: List<ProgramCandidate>,
+        next: ProgramCandidate,
+        slot: ProgramTrainingSlot,
+        week: ProgramWeekPlan,
+        gate: ProgramFatigueGate
+    ): Boolean {
+        if (next.isRehabLikeActivation) {
+            val recoveryContext = slot in RECOVERY_SLOTS || week.deloadFlag || gate.band == ProgramFatigueBand.RED
+            val cap = if (recoveryContext) 3 else 1
+            if (selected.count(ProgramCandidate::isRehabLikeActivation) >= cap) return false
+        }
         if (selected.count(ProgramCandidate::isIsolation) >= 2 && next.isIsolation) return false
         if (selected.any(ProgramCandidate::isHeavyLower) && next.isHeavyLower) return false
         val hasHeavyLower = selected.any(ProgramCandidate::isHeavyLower) || next.isHeavyLower
@@ -333,6 +358,21 @@ class ProgramBuilder {
         val work = prescription.setCount * workPerSet
         val rest = (prescription.setCount - 1).coerceAtLeast(0) * candidate.exercise.defaultRestSeconds
         return 45 + work + rest
+    }
+
+    private companion object {
+        val RECOVERY_SLOTS = setOf(
+            ProgramTrainingSlot.RECOVERY_PREHAB,
+            ProgramTrainingSlot.RECOVERY_WEAKPOINT,
+            ProgramTrainingSlot.MICRO_RECOVERY
+        )
+        val PERFORMANCE_WEEK_TYPES = setOf(
+            ProgramWeekType.BUILD.name,
+            ProgramWeekType.HIGH.name,
+            ProgramWeekType.BUILD_PLUS.name,
+            ProgramWeekType.INTENSIFY.name,
+            ProgramWeekType.REALIZATION.name
+        )
     }
 }
 
@@ -588,6 +628,8 @@ private class ProgramSelectionHistory {
             ?.let { absoluteDay - it }
             ?: Int.MAX_VALUE
         val stablePenalty = when {
+            candidate.isRehabLikeActivation && stableGap <= 14 -> 6.0
+            candidate.isRehabLikeActivation && stableGap <= 28 -> 2.5
             candidate.isAnchor && stableGap <= 7 -> 0.45
             candidate.isAnchor && stableGap <= 14 -> 0.15
             stableGap <= 7 -> 4.5
@@ -687,6 +729,14 @@ internal data class ProgramCandidate(
 
     val isRecovery: Boolean = identityHas("RECOVERY", "PREHAB", "MOBILITY", "CONTROL")
     val isCore: Boolean = identityHas("CORE", "ANTI_ROTATION", "ROTATION_CONTROL", "TRUNK")
+    val isScapularStabilityExposure: Boolean = identityHas(
+        "SCAP",
+        "ROTATOR_CUFF",
+        "REAR_DELT",
+        "HORIZONTAL_PULL",
+        "VERTICAL_PULL"
+    ) || has("SCAPULAR_CONTROL", "SHOULDER_DURABILITY", "ROTATOR_CUFF_CONTROL")
+    val isRehabLikeActivation: Boolean = rehabLikeActivationScore() >= 4
     val isIsolation: Boolean = identityHas("ISOLATION", "BICEPS", "TRICEPS", "CURL", "EXTENSION_ACCESSORY")
     val highStress: Boolean = metadata?.stressMagnitudeHint in setOf("HIGH", "VERY_HIGH") ||
         has("HIGH_AXIAL", "HIGH_NEURAL", "HIGH_IMPACT")
@@ -760,6 +810,7 @@ internal data class ProgramCandidate(
     }
 
     fun allowedForRole(slot: ProgramTrainingSlot, role: ProgramExerciseRole): Boolean {
+        if (role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
         if (role != ProgramExerciseRole.TRANSFER) return true
         return when (slot) {
             ProgramTrainingSlot.BADMINTON_COD,
@@ -808,6 +859,50 @@ internal data class ProgramCandidate(
 
     private fun identityHas(vararg needles: String): Boolean = needles.any { needle ->
         identityTokens.any { token -> token.contains(needle) }
+    }
+
+    private fun rehabLikeActivationScore(): Int {
+        val metadataValue = metadata ?: return 0
+        var score = 0
+        if (metadataValue.primaryStressProfile.contains("LOW_LOAD_PREHAB_CONTROL")) score += 2
+        if (has("LOW_LOAD_CONTROL", "LOCAL_STABILIZER_LOAD", "MOTOR_CONTROL")) score += 1
+        if (identityHas("RECOVERY_PREHAB", "ROTATOR_CUFF_CARE", "MOBILITY")) score += 2
+        if (metadataValue.progressBehavior == ProgressMetricRuntimeBehavior.QUALITY_BASED) score += 1
+        if (metadataValue.strengthProgressionGroup in setOf("", "NONE", "NOT_APPLICABLE")) score += 1
+        if (metadataValue.stressMagnitudeHint == "LOW" && metadataValue.recoveryDurationClass == "SHORT") score += 1
+
+        val equipmentTokens = splitTokens(exercise.equipment)
+        if (exercise.defaultRestSeconds <= 45 && equipmentTokens.any {
+                it in setOf("BODYWEIGHT", "BAND", "WALL", "맨몸", "밴드", "벽")
+            }
+        ) {
+            score += 1
+        }
+        if (metadataValue.movementSubtype in LOW_LOAD_ACTIVATION_SUBTYPES) score += 4
+
+        val hasProgression = metadataValue.strengthProgressionGroup !in setOf("", "NONE", "NOT_APPLICABLE")
+        if (hasProgression) score -= 2
+        if (identityHas("MAIN_", "STRENGTH", "COMPOUND", "HEAVY")) score -= 3
+        if (identityHas("SCAPULAR_RETRACTION_EXTERNAL_ROTATION", "REAR_DELT")) score -= 2
+        if (identityHas("ACCESSORY") && equipmentTokens.any {
+                it in setOf("CABLE", "DUMBBELL", "BARBELL", "MACHINE", "케이블", "덤벨", "바벨", "머신")
+            }
+        ) {
+            score -= 2
+        }
+        return score
+    }
+
+    private companion object {
+        val LOW_LOAD_ACTIVATION_SUBTYPES = setOf(
+            "WALL_SLIDE",
+            "SCAPULAR_PUSH_UP",
+            "BAND_EXTERNAL_ROTATION",
+            "BIRD_DOG",
+            "DEAD_BUG",
+            "SUPERMAN",
+            "SCAPULAR_PULL_UP"
+        )
     }
 }
 

@@ -141,7 +141,9 @@ data class ProgramSkeletonItem(
     val recoveryDurationClass: String = "",
     val badmintonTransferLevel: String = "",
     val estimatedDurationSeconds: Int = 0,
-    val directSportSession: Boolean = false
+    val directSportSession: Boolean = false,
+    val rehabLikeActivation: Boolean = false,
+    val scapularStabilityExposure: Boolean = false
 )
 
 data class GeneratedProgramSkeleton(

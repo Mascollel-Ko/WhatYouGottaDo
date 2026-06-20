@@ -11,6 +11,7 @@ internal object ProgramBuilderValidator {
         validateSessions(result, issues)
         validateHardDays(result, gate, issues)
         validateRepetition(result, issues)
+        validateRehabLikeDominance(result, gate, issues)
         validateRollingFatigue(result, issues)
         validateMovementCoverage(result, issues)
         validateFourWeekDistribution(result, issues)
@@ -182,6 +183,86 @@ internal object ProgramBuilderValidator {
         }
     }
 
+    private fun validateRehabLikeDominance(
+        result: GeneratedProgramSkeleton,
+        gate: ProgramFatigueGate?,
+        issues: MutableList<ProgramValidationIssue>
+    ) {
+        val sessions = result.items.groupBy { it.weekNumber to it.dayOfWeek }
+        sessions.forEach { (key, items) ->
+            val rehabItems = items.filter(ProgramSkeletonItem::rehabLikeActivation)
+            if (rehabItems.isEmpty()) return@forEach
+            val recoveryContext = items.all { item -> item.isRecoveryContext(result, gate) }
+            if (!recoveryContext && rehabItems.size > 1) {
+                issues += issue(
+                    "REHAB_ACTIVATION_SESSION_CAP",
+                    ProgramValidationSeverity.WARNING,
+                    "${key.first}주 ${key.second}일 정상 세션에 rehab-like activation이 ${rehabItems.size}개 포함되었습니다."
+                )
+            }
+            if (!recoveryContext && rehabItems.any { it.orderIndex == 1 || it.selectionRole == "ANCHOR" }) {
+                issues += issue(
+                    "REHAB_ACTIVATION_MAIN_POSITION",
+                    ProgramValidationSeverity.WARNING,
+                    "${key.first}주 ${key.second}일 rehab-like activation이 메인 위치를 차지합니다."
+                )
+            }
+            if (!recoveryContext && rehabItems.size >= 2 && rehabItems.size * 2 >= items.size) {
+                issues += issue(
+                    "REHAB_ACTIVATION_DOMINANCE",
+                    ProgramValidationSeverity.HARD,
+                    "${key.first}주 ${key.second}일 strength/transfer 세션의 절반 이상이 rehab-like activation입니다."
+                )
+            }
+        }
+
+        if (gate?.band != ProgramFatigueBand.RED && result.weekPlans.size >= 2) {
+            result.weekPlans.windowed(2).forEach { window ->
+                val weekNumbers = window.map(ProgramWeekPlan::weekIndex).toSet()
+                val normalRehab = result.items.filter { item ->
+                    item.weekNumber in weekNumbers && item.rehabLikeActivation &&
+                        !item.isRecoveryContext(result, gate)
+                }
+                normalRehab.groupBy(ProgramSkeletonItem::stableKey)
+                    .filterKeys(String::isNotBlank)
+                    .filterValues { it.size > 1 }
+                    .forEach { (stableKey, rows) ->
+                        issues += issue(
+                            "TWO_WEEK_REHAB_STABLE_KEY_REPEAT",
+                            ProgramValidationSeverity.WARNING,
+                            "${window.first().weekIndex}-${window.last().weekIndex}주 rehab-like $stableKey 항목이 ${rows.size}회 반복됩니다."
+                        )
+                    }
+            }
+        }
+
+        if (result.weekPlans.size >= 4) {
+            result.weekPlans.windowed(4).forEach { window ->
+                val weekNumbers = window.map(ProgramWeekPlan::weekIndex).toSet()
+                val normalItems = result.items.filter { item ->
+                    item.weekNumber in weekNumbers && !item.isRecoveryContext(result, gate)
+                }
+                val rehabItems = normalItems.filter(ProgramSkeletonItem::rehabLikeActivation)
+                if (normalItems.size >= 8 && rehabItems.size.toDouble() / normalItems.size > 0.15) {
+                    issues += issue(
+                        "FOUR_WEEK_REHAB_ACTIVATION_SHARE",
+                        ProgramValidationSeverity.WARNING,
+                        "${window.first().weekIndex}-${window.last().weekIndex}주 정상 세션의 rehab-like activation 비율이 15%를 초과합니다."
+                    )
+                }
+                val scapularItems = normalItems.filter(ProgramSkeletonItem::scapularStabilityExposure)
+                val rehabScapularItems = scapularItems.filter(ProgramSkeletonItem::rehabLikeActivation)
+                if (scapularItems.size >= 3 && rehabScapularItems.size * 2 > scapularItems.size) {
+                    issues += issue(
+                        "FOUR_WEEK_SCAPULAR_REHAB_DOMINANCE",
+                        ProgramValidationSeverity.WARNING,
+                        "${window.first().weekIndex}-${window.last().weekIndex}주 견갑 안정성 노출의 과반이 저부하 rehab activation입니다."
+                    )
+                }
+            }
+        }
+    }
+
     private fun validateMovementCoverage(
         result: GeneratedProgramSkeleton,
         issues: MutableList<ProgramValidationIssue>
@@ -314,6 +395,15 @@ internal object ProgramBuilderValidator {
         return needles.any(source::contains)
     }
 
+    private fun ProgramSkeletonItem.isRecoveryContext(
+        result: GeneratedProgramSkeleton,
+        gate: ProgramFatigueGate?
+    ): Boolean {
+        if (gate?.band == ProgramFatigueBand.RED) return true
+        val week = result.weekPlans.firstOrNull { it.weekIndex == weekNumber }
+        return week?.deloadFlag == true || trainingSlot in RECOVERY_SLOT_NAMES
+    }
+
     private fun Iterable<String>.validDistinct(): Set<String> =
         filter { it.isNotBlank() && it != "NONE" && it != "NOT_APPLICABLE" }.toSet()
 
@@ -337,4 +427,10 @@ internal object ProgramBuilderValidator {
 
     private fun Double?.orZero(): Double = this ?: 0.0
     private fun format(value: Double): String = "%.1f".format(value)
+
+    private val RECOVERY_SLOT_NAMES = setOf(
+        ProgramTrainingSlot.RECOVERY_PREHAB.name,
+        ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
+        ProgramTrainingSlot.MICRO_RECOVERY.name
+    )
 }
