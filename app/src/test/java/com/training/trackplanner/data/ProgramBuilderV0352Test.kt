@@ -27,6 +27,8 @@ class ProgramBuilderV0352Test {
         val result = fixture.generate(days = 3, weeks = 4, minutes = 45, ratio = 0.70)
         val weekOneSlots = result.items.filter { it.weekNumber == 1 }.map { it.trainingSlot }.toSet()
 
+        assertEquals("STANDARD_3D_4W_70_30", result.templateId)
+        assertTrue(result.representativeTemplate)
         assertEquals(3, result.items.filter { it.weekNumber == 1 }.map { it.dayOfWeek }.distinct().size)
         assertTrue(ProgramTrainingSlot.LOWER_STRENGTH.name in weekOneSlots)
         assertTrue(ProgramTrainingSlot.UPPER_STRENGTH_SCAP.name in weekOneSlots)
@@ -37,6 +39,7 @@ class ProgramBuilderV0352Test {
     fun fiveDayEightWeekProgramHasLoadWaveAndControlledVariety() {
         val result = fixture.generate(days = 5, weeks = 8, minutes = 60, ratio = 0.70)
 
+        assertEquals("STANDARD_5D_8W_70_30", result.templateId)
         assertEquals(8, result.weekPlans.size)
         assertEquals(ProgramWeekType.DELOAD.name, result.weekPlans[3].weekType)
         assertEquals(ProgramWeekType.REALIZATION.name, result.weekPlans.last().weekType)
@@ -48,6 +51,27 @@ class ProgramBuilderV0352Test {
             .groupBy { it.weekNumber }
             .mapValues { (_, rows) -> rows.map { it.exerciseId }.toSet() }
         assertTrue(transferNamesByWeek.values.distinct().size > 1)
+    }
+
+    @Test
+    fun representativeTemplatesFillRequiredAnchorsThroughCapabilityResolver() {
+        listOf(
+            fixture.generate(days = 3, weeks = 4, minutes = 60, ratio = 0.70),
+            fixture.generate(days = 4, weeks = 4, minutes = 60, ratio = 0.80),
+            fixture.generate(days = 4, weeks = 4, minutes = 60, ratio = 0.50),
+            fixture.generate(days = 5, weeks = 8, minutes = 60, ratio = 0.70),
+            fixture.generate(days = 5, weeks = 8, minutes = 60, ratio = 0.30)
+        ).forEach { result ->
+            val requiredSlots = result.items
+                .filter(ProgramSkeletonItem::requiredTemplateAnchor)
+                .map(ProgramSkeletonItem::requestedTemplateSlot)
+                .toSet()
+
+            assertTrue(ProgramSlotId.LOWER_SQUAT_PATTERN.name in requiredSlots)
+            assertTrue(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name in requiredSlots)
+            assertTrue(ProgramSlotId.UPPER_PULL_ANCHOR.name in requiredSlots)
+            assertFalse(result.warnings.any { it.startsWith("TEMPLATE_REQUIRED_SLOT_UNFILLED") })
+        }
     }
 
     @Test

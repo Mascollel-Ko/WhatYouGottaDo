@@ -149,7 +149,9 @@ data class ProgramSkeletonItem(
     val weakSlotCapabilities: List<String> = emptyList(),
     val slotCapabilitySource: String = SlotCapabilitySource.NONE.name,
     val slotCapabilityConfidence: String = SlotCapabilityConfidence.NONE.name,
-    val slotCapabilityWarnings: List<String> = emptyList()
+    val slotCapabilityWarnings: List<String> = emptyList(),
+    val requestedTemplateSlot: String = "",
+    val requiredTemplateAnchor: Boolean = false
 )
 
 data class GeneratedProgramSkeleton(
@@ -161,7 +163,9 @@ data class GeneratedProgramSkeleton(
     val items: List<ProgramSkeletonItem>,
     val warnings: List<String> = emptyList(),
     val validationIssues: List<String> = emptyList(),
-    val validationDetails: List<ProgramValidationIssue> = emptyList()
+    val validationDetails: List<ProgramValidationIssue> = emptyList(),
+    val templateId: String = "POLICY_FALLBACK",
+    val representativeTemplate: Boolean = false
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

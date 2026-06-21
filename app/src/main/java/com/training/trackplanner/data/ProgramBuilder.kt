@@ -10,7 +10,8 @@ import kotlin.math.roundToInt
 class ProgramBuilder internal constructor(
     private val templateCatalog: ProgramTemplateCatalog = ProgramTemplateCatalog.DEFAULT,
     private val slotCapabilityResolver: SlotCapabilityResolver = SlotCapabilityResolver.DEFAULT,
-    private val fatigueSlotPolicy: FatigueSlotPolicy = FatigueSlotPolicy.DEFAULT
+    private val fatigueSlotPolicy: FatigueSlotPolicy = FatigueSlotPolicy.DEFAULT,
+    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
 ) {
     fun build(
         request: ProgramSkeletonRequest,
@@ -28,7 +29,10 @@ class ProgramBuilder internal constructor(
         )
         val fatigueGate = fatigueSlotPolicy.gate(fatigueState)
         val weekPlans = templateCatalog.weekPlans(normalized.durationWeeks, fatigueGate)
-        val schedule = templateCatalog.slots(normalized.availableDaysPerWeek).map { planned ->
+        val templateSelection = templateCatalog.select(normalized)
+        val exposureTargets = templateCatalog.exposureTargets(templateSelection, normalized)
+            .associateBy(NumericExposureTarget::slot)
+        val schedule = templateSelection.sessions.map { planned ->
             fatigueSlotPolicy.adapt(planned, fatigueGate)
         }
         val excludedTerms = normalized.excludedExerciseText
@@ -58,19 +62,28 @@ class ProgramBuilder internal constructor(
         var timeBudgetTrimmed = false
         weekPlans.forEach { week ->
             schedule.forEachIndexed { dayIndex, day ->
-                val roles = templateCatalog.roles(day.slot, exerciseCount(normalized.dailyAvailableMinutes))
+                val exerciseSlots = templateCatalog.exerciseSlots(
+                    day,
+                    exerciseCount(normalized.dailyAvailableMinutes)
+                )
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
                 var estimatedSessionSeconds = warmupReserveSeconds(normalized.dailyAvailableMinutes)
                 var timeBudgetReached = false
-                roles.forEachIndexed { itemIndex, role ->
+                exerciseSlots.forEachIndexed { itemIndex, templateSlot ->
                     if (timeBudgetReached) return@forEachIndexed
+                    val role = templateSlot.role
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
                     val scored = candidates.asSequence()
                         .filterNot { candidate -> selected.any { it.exercise.id == candidate.exercise.id } }
                         .filter { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) }
-                        .filter { candidate -> candidate.allowedForSlot(day.slot) }
-                        .filter { candidate -> candidate.allowedForRole(day.slot, role) }
+                        .filter { candidate ->
+                            candidate.allowedForTemplateSlot(
+                                plannedSlot = day.slot,
+                                templateSlot = templateSlot,
+                                coveragePolicy = coveragePolicy
+                            )
+                        }
                         .filter { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) }
                         .map { candidate ->
                             candidate to score(
@@ -82,7 +95,10 @@ class ProgramBuilder internal constructor(
                                 week = week,
                                 fatigueGate = fatigueGate,
                                 selectionHistory = selectionHistory,
-                                absoluteDay = absoluteDay
+                                absoluteDay = absoluteDay,
+                                templateSlot = templateSlot,
+                                exposureTarget = templateSlot.targetSlot?.let(exposureTargets::get),
+                                totalWeeks = normalized.durationWeeks
                             )
                         }
                         .sortedByDescending { it.second }
@@ -94,16 +110,34 @@ class ProgramBuilder internal constructor(
                         dayIndex = dayIndex,
                         itemIndex = itemIndex,
                         preference = normalized.varietyPreference
-                    ) ?: return@forEachIndexed
-                    val prescription = prescribe(picked, role, week, fatigueGate)
-                    val itemDurationSeconds = estimateItemDurationSeconds(picked, prescription)
-                    if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
-                        timeBudgetReached = true
-                        timeBudgetTrimmed = true
+                    )
+                    if (picked == null) {
+                        if (templateSlot.required) {
+                            warnings += "TEMPLATE_REQUIRED_SLOT_UNFILLED: ${templateSelection.templateId}/${templateSlot.targetSlot}"
+                        }
                         return@forEachIndexed
                     }
+                    var prescription = prescribe(picked, role, week, fatigueGate)
+                    var itemDurationSeconds = estimateItemDurationSeconds(picked, prescription)
+                    if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
+                        timeBudgetTrimmed = true
+                        if (templateSlot.required) {
+                            prescription = fitRequiredPrescription(
+                                candidate = picked,
+                                prescription = prescription,
+                                remainingSeconds = sessionBudgetSeconds - estimatedSessionSeconds
+                            )
+                            itemDurationSeconds = estimateItemDurationSeconds(picked, prescription)
+                            if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
+                                warnings += "TEMPLATE_REQUIRED_SLOT_OVERRUN: ${templateSelection.templateId}/${templateSlot.targetSlot}"
+                            }
+                        } else {
+                            timeBudgetReached = true
+                            return@forEachIndexed
+                        }
+                    }
                     selected += picked
-                    selectionHistory.record(picked, week.weekIndex, absoluteDay)
+                    selectionHistory.record(picked, week.weekIndex, absoluteDay, coveragePolicy)
                     estimatedSessionSeconds += itemDurationSeconds
                     val weight = historyWeights.suggest(
                         exercise = picked.exercise,
@@ -160,7 +194,9 @@ class ProgramBuilder internal constructor(
                         weakSlotCapabilities = picked.slotCapabilities.weakMatches.map(ProgramSlotId::name).sorted(),
                         slotCapabilitySource = picked.slotCapabilities.source.name,
                         slotCapabilityConfidence = picked.slotCapabilities.confidence.name,
-                        slotCapabilityWarnings = picked.slotCapabilities.warnings
+                        slotCapabilityWarnings = picked.slotCapabilities.warnings,
+                        requestedTemplateSlot = templateSlot.targetSlot?.name.orEmpty(),
+                        requiredTemplateAnchor = templateSlot.required
                     )
                 }
             }
@@ -180,9 +216,20 @@ class ProgramBuilder internal constructor(
             periodizationType = periodization,
             weekPlans = weekPlans,
             items = generated,
-            warnings = warnings
+            warnings = warnings,
+            templateId = templateSelection.templateId,
+            representativeTemplate = templateSelection.representative
         )
-        val issues = ProgramBuilderValidator.validate(result, fatigueGate)
+        val templateIssues = warnings
+            .filter { it.startsWith("TEMPLATE_REQUIRED_SLOT_") }
+            .map { warning ->
+                ProgramValidationIssue(
+                    code = warning.substringBefore(':'),
+                    severity = ProgramValidationSeverity.HARD,
+                    message = warning.substringAfter(':').trim()
+                )
+            }
+        val issues = ProgramBuilderValidator.validate(result, fatigueGate) + templateIssues
         val renderedIssues = issues.map(ProgramValidationIssue::render)
         val visibleIssues = issues
             .filter { it.severity != ProgramValidationSeverity.SOFT_PENALTY }
@@ -203,7 +250,10 @@ class ProgramBuilder internal constructor(
         week: ProgramWeekPlan,
         fatigueGate: ProgramFatigueGate,
         selectionHistory: ProgramSelectionHistory,
-        absoluteDay: Int
+        absoluteDay: Int,
+        templateSlot: TemplateExerciseSlot,
+        exposureTarget: NumericExposureTarget?,
+        totalWeeks: Int
     ): Double {
         val badmintonWeight = request.badmintonTransferRatio
         val strengthWeight = 1.0 - badmintonWeight
@@ -231,11 +281,41 @@ class ProgramBuilder internal constructor(
             role == ProgramExerciseRole.PREHAB -> 1.5
             else -> 2.5
         }
+        val coverageCredit = templateSlot.targetSlot
+            ?.let { requested -> coveragePolicy.credit(candidate.slotCapabilities, requested).value }
+            ?: 0.0
+        val exposureBalance = exposureTarget?.let { target ->
+            exposureBalanceAdjustment(
+                target = target,
+                currentCredit = selectionHistory.coverage(target.slot),
+                weekIndex = week.weekIndex,
+                totalWeeks = totalWeeks
+            )
+        } ?: 0.0
         return candidate.slotFit(slot) * 2.2 +
             candidate.roleFit(role) * 2.0 +
+            coverageCredit * 3.0 + exposureBalance +
             ratioFit * 1.8 +
             intensityFit + phaseFit +
             candidate.metadataConfidenceFit - repeatPenalty - rehabLikePenalty
+    }
+
+    private fun exposureBalanceAdjustment(
+        target: NumericExposureTarget,
+        currentCredit: Double,
+        weekIndex: Int,
+        totalWeeks: Int
+    ): Double {
+        val progress = weekIndex.toDouble() / totalWeeks.coerceAtLeast(1)
+        val minimumToDate = target.minimum * progress
+        val preferredToDate = target.preferred * progress
+        val maximumToDate = target.maximum * progress
+        return when {
+            currentCredit < minimumToDate -> 1.25
+            currentCredit < preferredToDate -> 0.65
+            maximumToDate > 0.0 && currentCredit >= maximumToDate -> -1.25
+            else -> 0.15
+        }
     }
 
     private fun chooseControlledCandidate(
@@ -362,6 +442,18 @@ class ProgramBuilder internal constructor(
         return 45 + work + rest
     }
 
+    private fun fitRequiredPrescription(
+        candidate: ProgramCandidate,
+        prescription: ProgramPrescription,
+        remainingSeconds: Int
+    ): ProgramPrescription {
+        for (sets in prescription.setCount downTo 1) {
+            val reduced = prescription.copy(setCount = sets)
+            if (estimateItemDurationSeconds(candidate, reduced) <= remainingSeconds) return reduced
+        }
+        return prescription.copy(setCount = 1)
+    }
+
     private companion object {
         val RECOVERY_SLOTS = setOf(
             ProgramTrainingSlot.RECOVERY_PREHAB,
@@ -382,6 +474,7 @@ private class ProgramSelectionHistory {
     private val stableKeyDays = mutableMapOf<String, MutableList<Int>>()
     private val redundancyDays = mutableMapOf<String, MutableList<Int>>()
     private val familyWeeklyExposure = mutableMapOf<Pair<Int, String>, Int>()
+    private val slotExposure = mutableMapOf<ProgramSlotId, Double>()
 
     fun penalty(candidate: ProgramCandidate, weekIndex: Int, absoluteDay: Int): Double {
         val stableGap = stableKeyDays[candidate.exercise.stableKey]
@@ -420,7 +513,14 @@ private class ProgramSelectionHistory {
         return stablePenalty + redundancyPenalty + familyPenalty
     }
 
-    fun record(candidate: ProgramCandidate, weekIndex: Int, absoluteDay: Int) {
+    fun coverage(slot: ProgramSlotId): Double = slotExposure[slot] ?: 0.0
+
+    fun record(
+        candidate: ProgramCandidate,
+        weekIndex: Int,
+        absoluteDay: Int,
+        coveragePolicy: CoverageAccountingPolicy
+    ) {
         stableKeyDays.getOrPut(candidate.exercise.stableKey) { mutableListOf() } += absoluteDay
         candidate.metadata?.redundancyGroup
             ?.takeUnless { it.isBlank() || it == "NOT_APPLICABLE" }
@@ -431,6 +531,9 @@ private class ProgramSelectionHistory {
                 val key = weekIndex to family
                 familyWeeklyExposure[key] = (familyWeeklyExposure[key] ?: 0) + 1
             }
+        coveragePolicy.creditedSlots(candidate.slotCapabilities).forEach { (slot, credit) ->
+            slotExposure[slot] = coverage(slot) + credit.value
+        }
     }
 }
 
@@ -592,6 +695,24 @@ internal data class ProgramCandidate(
             ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> isReactivePowerSpecific || isCodSpecific
             ProgramTrainingSlot.BADMINTON_TRANSFER -> badmintonFit >= 0.90
             else -> true
+        }
+    }
+
+    fun allowedForTemplateSlot(
+        plannedSlot: ProgramTrainingSlot,
+        templateSlot: TemplateExerciseSlot,
+        coveragePolicy: CoverageAccountingPolicy
+    ): Boolean {
+        val target = templateSlot.targetSlot
+        if (target == null) {
+            return allowedForSlot(plannedSlot) && allowedForRole(plannedSlot, templateSlot.role)
+        }
+        if (templateSlot.role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
+        val credit = coveragePolicy.credit(slotCapabilities, target)
+        return if (templateSlot.required) {
+            credit.value >= CoverageCredit.PARTIAL.value
+        } else {
+            credit != CoverageCredit.NONE
         }
     }
 
