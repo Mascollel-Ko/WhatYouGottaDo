@@ -36,7 +36,10 @@ data class ProgramSlotDefinition(
     val isBadmintonTransfer: Boolean = false,
     val isRecoveryOrPrehab: Boolean = false,
     val isHighImpactOrReactive: Boolean = false,
-    val isUmbrella: Boolean = false
+    val isUmbrella: Boolean = false,
+    val derivedFrom: Set<ProgramSlotId> = emptySet(),
+    val minimumDerivedComponents: Int = 0,
+    val minimumDerivedContributors: Int = 0
 )
 
 object ProgramSlotDefinitions {
@@ -64,7 +67,16 @@ object ProgramSlotDefinitions {
                 id = id,
                 category = ProgramSlotCategory.STRENGTH_SUPPORT,
                 isBadmintonTransfer = true,
-                isUmbrella = true
+                isUmbrella = true,
+                derivedFrom = setOf(
+                    ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT,
+                    ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
+                    ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+                    ProgramSlotId.FOREARM_GRIP_ELBOW_SUPPORT,
+                    ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
+                ),
+                minimumDerivedComponents = 3,
+                minimumDerivedContributors = 2
             )
             ProgramSlotId.BADMINTON_DECEL_COD,
             ProgramSlotId.BADMINTON_FOOTWORK_REACTION -> ProgramSlotDefinition(

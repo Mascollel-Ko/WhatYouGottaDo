@@ -14,6 +14,7 @@ internal object ProgramBuilderValidator {
         validateRehabLikeDominance(result, gate, issues)
         validateRollingFatigue(result, issues)
         validateMovementCoverage(result, issues)
+        validateDerivedUmbrellaCoverage(result, issues)
         validateFourWeekDistribution(result, issues)
         return issues.distinctBy { Triple(it.code, it.severity, it.message) }
     }
@@ -330,6 +331,50 @@ internal object ProgramBuilderValidator {
         val slots: Set<ProgramSlotId>,
         val legacyTokens: Array<String>
     )
+
+    private fun validateDerivedUmbrellaCoverage(
+        result: GeneratedProgramSkeleton,
+        issues: MutableList<ProgramValidationIssue>
+    ) {
+        if (result.weekPlans.size < 2) return
+        val policy = CoverageAccountingPolicy.DEFAULT
+        val windows = if (result.weekPlans.size >= 4) {
+            result.weekPlans.windowed(4)
+        } else {
+            listOf(result.weekPlans)
+        }
+        windows.forEach { window ->
+            val weekNumbers = window.map(ProgramWeekPlan::weekIndex).toSet()
+            val items = result.items.filter { it.weekNumber in weekNumbers }
+            val overheadIntent = items.any { item ->
+                item.requestedTemplateSlot in setOf(
+                    ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT.name,
+                    ProgramSlotId.OVERHEAD_SMASH_SUPPORT.name
+                )
+            }
+            if (!overheadIntent) return@forEach
+            val coverage = policy.derivedUmbrellaCoverageByContributor(
+                contributors = items.map { item ->
+                    item.stableKey.ifBlank { item.localId } to policy.profile(item)
+                },
+                umbrellaSlot = ProgramSlotId.OVERHEAD_SMASH_SUPPORT
+            )
+            if (!coverage.satisfied) {
+                val code = if (coverage.representedComponents.isEmpty()) {
+                    "OVERHEAD_SMASH_COMPONENT_COVERAGE_MISSING"
+                } else {
+                    "OVERHEAD_SMASH_COMPONENT_COVERAGE_INCOMPLETE"
+                }
+                issues += issue(
+                    code,
+                    ProgramValidationSeverity.WARNING,
+                    "Weeks ${window.first().weekIndex}-${window.last().weekIndex} represent " +
+                        "${coverage.representedComponents.size}/${coverage.requiredComponentCount} overhead-smash " +
+                        "components with ${coverage.contributorCount}/${coverage.requiredContributorCount} contributors."
+                )
+            }
+        }
+    }
 
     private fun validateFourWeekDistribution(
         result: GeneratedProgramSkeleton,

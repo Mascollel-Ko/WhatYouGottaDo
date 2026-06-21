@@ -84,27 +84,17 @@ class ProgramBuilderCanonicalExamplesTest {
         val results = representativeExamples().associateWith { example -> build(example, exercises, catalog) }
         val outputDir = repositoryOutputDir().apply { mkdirs() }
 
-        File(outputDir, "v0.3.5.7_representative_template_samples.csv").writeText(
-            sampleCsv(results),
+        val after = ProgramSlotCoverageDiagnostics().analyze(exercises, catalog)
+        File(outputDir, "v0.3.5.8_metadata_slot_coverage_diagnostic.csv").writeText(
+            policyCoverageCsv(after),
             Charsets.UTF_8
         )
-        File(outputDir, "v0.3.5.7_representative_template_samples.md").writeText(
-            sampleMarkdown(results).trimEnd() + "\n",
+        File(outputDir, "v0.3.5.8_overhead_smash_recovery_policy_report.md").writeText(
+            policyReport(after, results).trimEnd() + "\n",
             Charsets.UTF_8
         )
-        File(outputDir, "v0.3.5.7_overhead_rotation_candidate_audit.csv").writeText(
-            candidateAuditCsv(exercises, catalog),
-            Charsets.UTF_8
-        )
-        val diagnostics = ProgramSlotCoverageDiagnostics()
-        val before = diagnostics.analyze(exercises.filterNot { it.stableKey in V0357_CANDIDATE_KEYS }, catalog)
-        val after = diagnostics.analyze(exercises, catalog)
-        File(outputDir, "v0.3.5.7_metadata_slot_coverage_diagnostic.csv").writeText(
-            slotCoverageCsv(before, after),
-            Charsets.UTF_8
-        )
-        File(outputDir, "v0.3.5.7_rotational_overhead_candidate_expansion_report.md").writeText(
-            expansionReport(exercises, catalog, before, after, results),
+        File(outputDir, "v0.3.5.8_representative_template_output_audit_report.md").writeText(
+            representativePolicyAudit(results).trimEnd() + "\n",
             Charsets.UTF_8
         )
 
@@ -114,6 +104,15 @@ class ProgramBuilderCanonicalExamplesTest {
         assertEquals(20, newProfiles.size)
         assertTrue(newProfiles.all { (_, profile) -> profile.source == SlotCapabilitySource.RUNTIME_METADATA })
         assertTrue(newProfiles.none { (_, profile) -> profile.source == SlotCapabilitySource.NAME_FALLBACK })
+        val overheadDiagnostic = after.first { it.slot == ProgramSlotId.OVERHEAD_SMASH_SUPPORT }
+        assertEquals(0, overheadDiagnostic.candidateCount)
+        assertEquals(SlotCoverageMode.DERIVED_UMBRELLA, overheadDiagnostic.coverageMode)
+        assertEquals(SlotCoverageStrength.ADEQUATE, overheadDiagnostic.coverageStrength)
+        val recoveryDiagnostic = after.first { it.slot == ProgramSlotId.RECOVERY_PREHAB_LIGHT }
+        assertEquals(SlotCoverageMode.DIRECT, recoveryDiagnostic.coverageMode)
+        assertEquals(SlotCoverageStrength.ADEQUATE, recoveryDiagnostic.coverageStrength)
+        assertEquals(0, recoveryDiagnostic.legacyFallbackMatchCount)
+        assertEquals(0, recoveryDiagnostic.nameFallbackMatchCount)
 
         results.forEach { (example, result) ->
             val requiredByWeek = result.items.filter(ProgramSkeletonItem::requiredTemplateAnchor)
@@ -156,6 +155,10 @@ class ProgramBuilderCanonicalExamplesTest {
             val selected = result.items.filter { it.requestedTemplateSlot == ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT.name }
             assertTrue("${result.templateId} did not fill athletic overhead press", selected.isNotEmpty())
             assertFalse(selected.any(ProgramSkeletonItem::rehabLikeActivation))
+            assertTrue(
+                "${result.templateId} did not derive overhead-smash support from a component mix",
+                overheadCoverageWindows(result).all(DerivedUmbrellaCoverage::satisfied)
+            )
         }
         results.filterKeys { it.requiresRotation }.values.forEach { result ->
             val selected = result.items.filter { it.requestedTemplateSlot == ProgramSlotId.ROTATIONAL_KINETIC_CHAIN.name }
@@ -317,6 +320,128 @@ class ProgramBuilderCanonicalExamplesTest {
                 current.nameFallbackMatchCount,
                 current.coverageStrength.name
             ).joinToString(",") { csv(it.toString()) })
+        }
+    }
+
+    private fun policyCoverageCsv(rows: List<SlotCoverageDiagnostic>): String = buildString {
+        appendLine(
+            "slot,coverageMode,directCandidates,strongPrimary,secondary,weakMetadata,legacyFallback," +
+                "nameFallback,derivedComponents,representedDerivedComponents,derivedContributors,status"
+        )
+        rows.forEach { row ->
+            appendLine(listOf(
+                row.slot.name,
+                row.coverageMode.name,
+                row.candidateCount,
+                row.strongMetadataMatchCount,
+                row.secondaryMetadataMatchCount,
+                row.weakMetadataMatchCount,
+                row.legacyFallbackMatchCount,
+                row.nameFallbackMatchCount,
+                row.derivedComponentSlots.sortedBy(ProgramSlotId::name).joinToString("|", transform = ProgramSlotId::name),
+                row.representedDerivedComponents.sortedBy(ProgramSlotId::name).joinToString("|", transform = ProgramSlotId::name),
+                row.derivedContributorCount,
+                row.coverageStrength.name
+            ).joinToString(",") { csv(it.toString()) })
+        }
+    }
+
+    private fun policyReport(
+        diagnostics: List<SlotCoverageDiagnostic>,
+        results: Map<Example, GeneratedProgramSkeleton>
+    ): String = buildString {
+        val overhead = diagnostics.first { it.slot == ProgramSlotId.OVERHEAD_SMASH_SUPPORT }
+        val recovery = diagnostics.first { it.slot == ProgramSlotId.RECOVERY_PREHAB_LIGHT }
+        appendLine("# v0.3.5.8 Overhead Smash / Recovery Policy")
+        appendLine()
+        appendLine("## OVERHEAD_SMASH_SUPPORT")
+        appendLine()
+        appendLine("- Direct candidates: ${overhead.candidateCount}")
+        appendLine("- Status: `${overhead.coverageMode}` / `${overhead.coverageStrength}`")
+        appendLine("- Derived components: ${overhead.derivedComponentSlots.sortedBy(ProgramSlotId::name).joinToString { "`${it.name}`" }}")
+        appendLine("- Represented components in candidate pool: ${overhead.representedDerivedComponents.size}")
+        appendLine("- Contributing candidate profiles: ${overhead.derivedContributorCount}")
+        appendLine("- Rule: at least 3 distinct components and 2 distinct exercise contributors; no single exercise gives full umbrella coverage.")
+        appendLine()
+        appendLine("## RECOVERY_PREHAB_LIGHT")
+        appendLine()
+        appendLine("- v0.3.5.7 status: `WEAK`")
+        appendLine("- v0.3.5.8 status: `${recovery.coverageStrength}`")
+        appendLine("- Candidates: ${recovery.candidateCount}")
+        appendLine("- Runtime metadata matches: primary ${recovery.strongMetadataMatchCount}, secondary ${recovery.secondaryMetadataMatchCount}, weak ${recovery.weakMetadataMatchCount}")
+        appendLine("- Fallback matches: legacy ${recovery.legacyFallbackMatchCount}, name ${recovery.nameFallbackMatchCount}")
+        appendLine("- Fix type: diagnostic-only. Existing recovery candidates are intentionally secondary to their movement role; no exercises or metadata rows were added.")
+        appendLine("- Existing rehab-like activation caps remain unchanged.")
+        appendLine()
+        appendLine("## Representative Audit")
+        appendLine()
+        results.forEach { (example, result) ->
+            val coverage = overheadCoverageWindows(result)
+            appendLine(
+                "- `${result.templateId}`: anchors preserved, hard issues " +
+                    "${result.validationDetails.count { it.severity == ProgramValidationSeverity.HARD }}, " +
+                    "rehab ${"%.1f".format(result.items.count(ProgramSkeletonItem::rehabLikeActivation) * 100.0 / result.items.size)}%, " +
+                    "derived overhead ${if (coverage.isEmpty()) "NOT_REQUIRED" else if (coverage.all(DerivedUmbrellaCoverage::satisfied)) "SATISFIED" else "INCOMPLETE"}."
+            )
+        }
+        appendLine()
+        appendLine("## Mutations")
+        appendLine()
+        appendLine("- Canonical metadata: unchanged")
+        appendLine("- Exercise seeds: unchanged")
+        appendLine("- Room schema: unchanged")
+        appendLine("- ProgramBuilder architecture: unchanged")
+    }
+
+    private fun representativePolicyAudit(
+        results: Map<Example, GeneratedProgramSkeleton>
+    ): String = buildString {
+        appendLine("# v0.3.5.8 Representative Template Output Audit")
+        appendLine()
+        appendLine("| Template | Items | Missing anchors | Rehab share | Max 2-week footwork/COD/reactive | Overhead windows | Overhead status | Hard issues |")
+        appendLine("|---|---:|---:|---:|---:|---:|---|---:|")
+        results.forEach { (example, result) ->
+            val requiredByWeek = result.items.filter(ProgramSkeletonItem::requiredTemplateAnchor)
+                .groupBy(ProgramSkeletonItem::weekNumber)
+            val missing = (1..example.weeks).sumOf { week ->
+                val slots = requiredByWeek[week].orEmpty().map(ProgramSkeletonItem::requestedTemplateSlot).toSet()
+                CORE_ANCHOR_SLOT_NAMES.count { it !in slots }
+            }
+            val rehabShare = result.items.count(ProgramSkeletonItem::rehabLikeActivation).toDouble() / result.items.size
+            val footworkShare = twoWeekFootworkShares(result).maxOrNull() ?: 0.0
+            val overheadWindows = overheadCoverageWindows(result)
+            val overheadStatus = when {
+                overheadWindows.isEmpty() -> "NOT_REQUIRED"
+                overheadWindows.all(DerivedUmbrellaCoverage::satisfied) -> "SATISFIED"
+                else -> "INCOMPLETE"
+            }
+            appendLine(
+                "| `${result.templateId}` | ${result.items.size} | $missing | ${"%.1f".format(rehabShare * 100)}% | " +
+                    "${"%.1f".format(footworkShare * 100)}% | ${overheadWindows.size} | $overheadStatus | " +
+                    "${result.validationDetails.count { it.severity == ProgramValidationSeverity.HARD }} |"
+            )
+        }
+    }
+
+    private fun overheadCoverageWindows(result: GeneratedProgramSkeleton): List<DerivedUmbrellaCoverage> {
+        val policy = CoverageAccountingPolicy.DEFAULT
+        val windows = if (result.weekPlans.size >= 4) result.weekPlans.windowed(4) else listOf(result.weekPlans)
+        return windows.mapNotNull { window ->
+            val weekNumbers = window.map(ProgramWeekPlan::weekIndex).toSet()
+            val items = result.items.filter { it.weekNumber in weekNumbers }
+            val overheadIntent = items.any {
+                it.requestedTemplateSlot in setOf(
+                    ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT.name,
+                    ProgramSlotId.OVERHEAD_SMASH_SUPPORT.name
+                )
+            }
+            if (!overheadIntent) return@mapNotNull null
+            policy.derivedUmbrellaCoverageByContributor(
+                contributors = items.map { item ->
+                    item.stableKey.ifBlank { item.localId } to policy.profile(item)
+                },
+                umbrellaSlot = ProgramSlotId.OVERHEAD_SMASH_SUPPORT
+            )
         }
     }
 

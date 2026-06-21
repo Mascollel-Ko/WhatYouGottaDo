@@ -7,6 +7,17 @@ enum class CoverageCredit(val value: Double) {
     NONE(0.0)
 }
 
+data class DerivedUmbrellaCoverage(
+    val umbrellaSlot: ProgramSlotId,
+    val representedComponents: Set<ProgramSlotId>,
+    val contributorCount: Int,
+    val requiredComponentCount: Int,
+    val requiredContributorCount: Int
+) {
+    val satisfied: Boolean =
+        representedComponents.size >= requiredComponentCount && contributorCount >= requiredContributorCount
+}
+
 class CoverageAccountingPolicy {
     fun credit(profile: SlotCapabilityProfile, slot: ProgramSlotId): CoverageCredit = when {
         slot == effectivePrimary(profile) && ProgramSlotDefinitions.get(slot).isUmbrella -> CoverageCredit.PARTIAL
@@ -31,8 +42,9 @@ class CoverageAccountingPolicy {
         profile: SlotCapabilityProfile,
         umbrellaSlot: ProgramSlotId
     ): CoverageCredit {
-        if (!ProgramSlotDefinitions.get(umbrellaSlot).isUmbrella) return credit(profile, umbrellaSlot)
-        val componentHits = umbrellaComponents(umbrellaSlot).count { slot ->
+        val definition = ProgramSlotDefinitions.get(umbrellaSlot)
+        if (definition.derivedFrom.isEmpty()) return credit(profile, umbrellaSlot)
+        val componentHits = definition.derivedFrom.count { slot ->
             credit(profile, slot).value >= CoverageCredit.PARTIAL.value
         }
         return when {
@@ -40,6 +52,34 @@ class CoverageAccountingPolicy {
             componentHits == 1 -> CoverageCredit.WEAK
             else -> CoverageCredit.NONE
         }
+    }
+
+    fun derivedUmbrellaCoverage(
+        profiles: Iterable<SlotCapabilityProfile>,
+        umbrellaSlot: ProgramSlotId
+    ): DerivedUmbrellaCoverage = derivedUmbrellaCoverageByContributor(
+        contributors = profiles.mapIndexed { index, profile -> "profile-$index" to profile },
+        umbrellaSlot = umbrellaSlot
+    )
+
+    fun derivedUmbrellaCoverageByContributor(
+        contributors: Iterable<Pair<String, SlotCapabilityProfile>>,
+        umbrellaSlot: ProgramSlotId
+    ): DerivedUmbrellaCoverage {
+        val definition = ProgramSlotDefinitions.get(umbrellaSlot)
+        require(definition.derivedFrom.isNotEmpty()) { "$umbrellaSlot is not a derived umbrella slot" }
+        val componentHitsByContributor = contributors.map { (contributorKey, profile) ->
+            contributorKey to definition.derivedFrom.filterTo(mutableSetOf()) { component ->
+                credit(profile, component).value >= CoverageCredit.PARTIAL.value
+            }
+        }.filter { (_, hits) -> hits.isNotEmpty() }
+        return DerivedUmbrellaCoverage(
+            umbrellaSlot = umbrellaSlot,
+            representedComponents = componentHitsByContributor.flatMap { it.second }.toSet(),
+            contributorCount = componentHitsByContributor.map { it.first }.distinct().size,
+            requiredComponentCount = definition.minimumDerivedComponents,
+            requiredContributorCount = definition.minimumDerivedContributors
+        )
     }
 
     fun profile(item: ProgramSkeletonItem): SlotCapabilityProfile = SlotCapabilityProfile(
@@ -61,17 +101,6 @@ class CoverageAccountingPolicy {
     private fun effectivePrimary(profile: SlotCapabilityProfile): ProgramSlotId? =
         profile.primary.firstOrNull()
 
-    private fun umbrellaComponents(slot: ProgramSlotId): Set<ProgramSlotId> = when (slot) {
-        ProgramSlotId.OVERHEAD_SMASH_SUPPORT -> setOf(
-            ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT,
-            ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
-            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
-            ProgramSlotId.FOREARM_GRIP_ELBOW_SUPPORT,
-            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
-        )
-        else -> emptySet()
-    }
-
     companion object {
         val DEFAULT = CoverageAccountingPolicy()
         const val MAX_CREDIT_PER_EXERCISE = 2.0
@@ -79,6 +108,8 @@ class CoverageAccountingPolicy {
 }
 
 enum class SlotCoverageStrength { ZERO, WEAK, ADEQUATE }
+
+enum class SlotCoverageMode { DIRECT, DERIVED_UMBRELLA }
 
 data class SlotCoverageDiagnostic(
     val slot: ProgramSlotId,
@@ -88,11 +119,16 @@ data class SlotCoverageDiagnostic(
     val weakMetadataMatchCount: Int,
     val legacyFallbackMatchCount: Int,
     val nameFallbackMatchCount: Int,
+    val coverageMode: SlotCoverageMode,
+    val derivedComponentSlots: Set<ProgramSlotId>,
+    val representedDerivedComponents: Set<ProgramSlotId>,
+    val derivedContributorCount: Int,
     val coverageStrength: SlotCoverageStrength
 )
 
 class ProgramSlotCoverageDiagnostics(
-    private val resolver: SlotCapabilityResolver = SlotCapabilityResolver.DEFAULT
+    private val resolver: SlotCapabilityResolver = SlotCapabilityResolver.DEFAULT,
+    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
 ) {
     fun analyze(
         exercises: List<Exercise>,
@@ -102,28 +138,47 @@ class ProgramSlotCoverageDiagnostics(
             resolver.resolve(exercise, catalog.resolve(exercise))
         }
         return ProgramSlotId.entries.map { slot ->
+            val definition = ProgramSlotDefinitions.get(slot)
             val candidateCount = profiles.count { it.hasAny(slot) }
             val strongCount = profiles.count {
                 it.source == SlotCapabilitySource.RUNTIME_METADATA && slot in it.primary
             }
+            val secondaryCount = profiles.count {
+                it.source == SlotCapabilitySource.RUNTIME_METADATA && slot in it.secondary
+            }
+            val weakCount = profiles.count {
+                it.source == SlotCapabilitySource.RUNTIME_METADATA && slot in it.weakMatches
+            }
+            val legacyCount = profiles.count {
+                it.source == SlotCapabilitySource.LEGACY_METADATA && it.hasAny(slot)
+            }
+            val nameCount = profiles.count {
+                it.source == SlotCapabilitySource.NAME_FALLBACK && it.hasAny(slot)
+            }
+            val derived = definition.derivedFrom.takeIf(Set<ProgramSlotId>::isNotEmpty)?.let {
+                coveragePolicy.derivedUmbrellaCoverage(profiles, slot)
+            }
+            val runtimeMetadataCount = strongCount + secondaryCount + weakCount
             SlotCoverageDiagnostic(
                 slot = slot,
                 candidateCount = candidateCount,
                 strongMetadataMatchCount = strongCount,
-                secondaryMetadataMatchCount = profiles.count {
-                    it.source == SlotCapabilitySource.RUNTIME_METADATA && slot in it.secondary
-                },
-                weakMetadataMatchCount = profiles.count {
-                    it.source == SlotCapabilitySource.RUNTIME_METADATA && slot in it.weakMatches
-                },
-                legacyFallbackMatchCount = profiles.count {
-                    it.source == SlotCapabilitySource.LEGACY_METADATA && it.hasAny(slot)
-                },
-                nameFallbackMatchCount = profiles.count {
-                    it.source == SlotCapabilitySource.NAME_FALLBACK && it.hasAny(slot)
-                },
+                secondaryMetadataMatchCount = secondaryCount,
+                weakMetadataMatchCount = weakCount,
+                legacyFallbackMatchCount = legacyCount,
+                nameFallbackMatchCount = nameCount,
+                coverageMode = if (derived == null) SlotCoverageMode.DIRECT else SlotCoverageMode.DERIVED_UMBRELLA,
+                derivedComponentSlots = definition.derivedFrom,
+                representedDerivedComponents = derived?.representedComponents.orEmpty(),
+                derivedContributorCount = derived?.contributorCount ?: 0,
                 coverageStrength = when {
+                    derived?.satisfied == true -> SlotCoverageStrength.ADEQUATE
+                    derived != null && derived.representedComponents.isNotEmpty() -> SlotCoverageStrength.WEAK
+                    derived != null -> SlotCoverageStrength.ZERO
                     candidateCount == 0 -> SlotCoverageStrength.ZERO
+                    definition.isRecoveryOrPrehab &&
+                        runtimeMetadataCount >= MIN_ADEQUATE_CANDIDATES &&
+                        legacyCount == 0 && nameCount == 0 -> SlotCoverageStrength.ADEQUATE
                     strongCount < MIN_ADEQUATE_STRONG_MATCHES || candidateCount < MIN_ADEQUATE_CANDIDATES ->
                         SlotCoverageStrength.WEAK
                     else -> SlotCoverageStrength.ADEQUATE
