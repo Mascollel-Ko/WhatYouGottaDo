@@ -147,7 +147,9 @@ data class ProgramSkeletonItem(
     val primarySlotCapabilities: List<String> = emptyList(),
     val secondarySlotCapabilities: List<String> = emptyList(),
     val weakSlotCapabilities: List<String> = emptyList(),
-    val slotCapabilitySource: String = SlotCapabilitySource.NONE.name
+    val slotCapabilitySource: String = SlotCapabilitySource.NONE.name,
+    val slotCapabilityConfidence: String = SlotCapabilityConfidence.NONE.name,
+    val slotCapabilityWarnings: List<String> = emptyList()
 )
 
 data class GeneratedProgramSkeleton(

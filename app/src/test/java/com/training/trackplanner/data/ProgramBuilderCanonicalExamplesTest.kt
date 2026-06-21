@@ -17,6 +17,22 @@ class ProgramBuilderCanonicalExamplesTest {
         assertEquals(215, exercises.size)
         assertEquals(ProgramSlotId.entries.size, diagnostics.size)
         assertTrue(diagnostics.all { it.legacyFallbackMatchCount == 0 })
+        assertTrue(diagnostics.all { it.nameFallbackMatchCount == 0 })
+        println("slot,candidates,strongPrimary,secondary,weakMetadata,legacyFallback,nameFallback,strength")
+        diagnostics.forEach { row ->
+            println(
+                listOf(
+                    row.slot.name,
+                    row.candidateCount,
+                    row.strongMetadataMatchCount,
+                    row.secondaryMetadataMatchCount,
+                    row.weakMetadataMatchCount,
+                    row.legacyFallbackMatchCount,
+                    row.nameFallbackMatchCount,
+                    row.coverageStrength.name
+                ).joinToString(",")
+            )
+        }
         setOf(
             ProgramSlotId.LOWER_SQUAT_PATTERN,
             ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN,

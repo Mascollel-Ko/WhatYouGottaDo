@@ -13,6 +13,8 @@ enum class ProgramSlotId {
     BADMINTON_FOOTWORK_REACTION,
     ATHLETIC_OVERHEAD_PRESS_SUPPORT,
     ROTATIONAL_KINETIC_CHAIN,
+    FOREARM_GRIP_ELBOW_SUPPORT,
+    OVERHEAD_SMASH_SUPPORT,
     POWER_REACTIVE_LOW_VOLUME,
     RECOVERY_PREHAB_LIGHT,
     ACCESSORY_ROTATION
@@ -53,9 +55,16 @@ object ProgramSlotDefinitions {
             ProgramSlotId.CALF_ANKLE_CAPACITY,
             ProgramSlotId.UPPER_PUSH_SUPPORT,
             ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
-            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN -> ProgramSlotDefinition(
+            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+            ProgramSlotId.FOREARM_GRIP_ELBOW_SUPPORT -> ProgramSlotDefinition(
                 id = id,
                 category = ProgramSlotCategory.STRENGTH_SUPPORT
+            )
+            ProgramSlotId.OVERHEAD_SMASH_SUPPORT -> ProgramSlotDefinition(
+                id = id,
+                category = ProgramSlotCategory.STRENGTH_SUPPORT,
+                isBadmintonTransfer = true,
+                isUmbrella = true
             )
             ProgramSlotId.BADMINTON_DECEL_COD,
             ProgramSlotId.BADMINTON_FOOTWORK_REACTION -> ProgramSlotDefinition(

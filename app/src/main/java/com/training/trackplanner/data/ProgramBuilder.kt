@@ -158,7 +158,9 @@ class ProgramBuilder internal constructor(
                         primarySlotCapabilities = picked.slotCapabilities.primary.map(ProgramSlotId::name).sorted(),
                         secondarySlotCapabilities = picked.slotCapabilities.secondary.map(ProgramSlotId::name).sorted(),
                         weakSlotCapabilities = picked.slotCapabilities.weakMatches.map(ProgramSlotId::name).sorted(),
-                        slotCapabilitySource = picked.slotCapabilities.source.name
+                        slotCapabilitySource = picked.slotCapabilities.source.name,
+                        slotCapabilityConfidence = picked.slotCapabilities.confidence.name,
+                        slotCapabilityWarnings = picked.slotCapabilities.warnings
                     )
                 }
             }
