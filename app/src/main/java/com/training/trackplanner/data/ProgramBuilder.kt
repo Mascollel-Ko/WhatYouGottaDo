@@ -76,6 +76,13 @@ class ProgramBuilder internal constructor(
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
                     val scored = candidates.asSequence()
                         .filterNot { candidate -> selected.any { it.exercise.id == candidate.exercise.id } }
+                        .filter { candidate ->
+                            selectionHistory.allowsRepeat(
+                                candidate = candidate,
+                                absoluteDay = absoluteDay,
+                                minimumGapDays = templateSlot.minimumRepeatGapDays
+                            )
+                        }
                         .filter { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) }
                         .filter { candidate ->
                             candidate.allowedForTemplateSlot(
@@ -295,6 +302,7 @@ class ProgramBuilder internal constructor(
         return candidate.slotFit(slot) * 2.2 +
             candidate.roleFit(role) * 2.0 +
             coverageCredit * 3.0 + exposureBalance +
+            candidate.templateSpecificityFit(templateSlot.targetSlot) +
             ratioFit * 1.8 +
             intensityFit + phaseFit +
             candidate.metadataConfidenceFit - repeatPenalty - rehabLikePenalty
@@ -514,6 +522,12 @@ private class ProgramSelectionHistory {
     }
 
     fun coverage(slot: ProgramSlotId): Double = slotExposure[slot] ?: 0.0
+
+    fun allowsRepeat(candidate: ProgramCandidate, absoluteDay: Int, minimumGapDays: Int): Boolean {
+        if (minimumGapDays <= 0) return true
+        val lastDay = stableKeyDays[candidate.exercise.stableKey].orEmpty().maxOrNull() ?: return true
+        return absoluteDay - lastDay >= minimumGapDays
+    }
 
     fun record(
         candidate: ProgramCandidate,
@@ -745,6 +759,15 @@ internal data class ProgramCandidate(
         ProgramTrainingSlot.RECOVERY_WEAKPOINT,
         ProgramTrainingSlot.MICRO_RECOVERY -> if (isRecovery || isCore) 1.0 else 0.2
         else -> max(strengthFit, badmintonFit)
+    }
+
+    fun templateSpecificityFit(targetSlot: ProgramSlotId?): Double = when (targetSlot) {
+        ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT -> when {
+            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY in slotCapabilities.secondary -> 0.90
+            badmintonFit >= 0.75 -> 0.35
+            else -> 0.0
+        }
+        else -> 0.0
     }
 
     private fun has(vararg needles: String): Boolean = needles.any { needle ->

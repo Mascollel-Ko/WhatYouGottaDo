@@ -137,6 +137,75 @@ class ProgramArchitectureFoundationTest {
     }
 
     @Test
+    fun resolverRejectsScapularRotationControlAndRecognizesViprDownwardTwist() {
+        val facePull = exercise(30, "Face pull")
+        val facePullMetadata = RuntimeExerciseMetadataDefaults.forExercise(facePull).copy(
+            movementFamily = "SCAPULAR_RETRACTION_EXTERNAL_ROTATION_CONTROL_VARIANTS",
+            movementSubtype = "FACE_PULL",
+            programSlot = "SCAPULAR_CONTROL_ACCESSORY",
+            redundancyGroup = "SCAPULAR_RETRACTION_EXTERNAL_ROTATION"
+        )
+        val wallSlide = exercise(31, "Wall slide")
+        val wallSlideMetadata = RuntimeExerciseMetadataDefaults.forExercise(wallSlide).copy(
+            movementFamily = "SCAPULAR_CONTROL_RECOVERY_PREHAB_VARIANTS",
+            movementSubtype = "WALL_SLIDE",
+            programSlot = "RECOVERY_PREHAB_SCAPULAR_CONTROL",
+            redundancyGroup = "SCAPULAR_UPWARD_ROTATION_CONTROL"
+        )
+        val vipr = exercise(32, "ViPR downward twist")
+        val viprMetadata = RuntimeExerciseMetadataDefaults.forExercise(vipr).copy(
+            movementFamily = "POWER_CORE_SHOULDER",
+            movementSubtype = "VIPR_DOWNWARD_TWIST",
+            programSlot = "POWER_CORE_SHOULDER"
+        )
+
+        val resolver = SlotCapabilityResolver.DEFAULT
+        assertFalse(resolver.resolve(facePull, facePullMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
+        assertFalse(resolver.resolve(wallSlide, wallSlideMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
+        assertEquals(
+            setOf(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN),
+            resolver.resolve(vipr, viprMetadata).primary
+        )
+    }
+
+    @Test
+    fun athleticOverheadSpecificityPrefersHalfKneelingAntiRotationSupport() {
+        val generic = exercise(33, "Generic overhead press")
+        val genericMetadata = RuntimeExerciseMetadataDefaults.forExercise(generic).copy(
+            movementFamily = "OVERHEAD_PRESS_VARIANTS",
+            movementSubtype = "MACHINE_OVERHEAD_PRESS",
+            programSlot = "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY",
+            badmintonTransferLevel = "GENERAL"
+        )
+        val halfKneeling = exercise(34, "Half kneeling press")
+        val halfKneelingMetadata = RuntimeExerciseMetadataDefaults.forExercise(halfKneeling).copy(
+            movementFamily = "HALF_KNEELING_UNILATERAL_SHOULDER_PRESS_VARIANTS",
+            movementSubtype = "HALF_KNEELING_SINGLE_ARM_PRESS",
+            programSlot = "UNILATERAL_SHOULDER_PRESS",
+            redundancyGroup = "HALF_KNEELING_ANTI_ROTATION_PRESS",
+            badmintonTransferLevel = "SUPPORTIVE"
+        )
+        val resolver = SlotCapabilityResolver.DEFAULT
+        val genericCandidate = ProgramCandidate(
+            generic,
+            genericMetadata,
+            true,
+            resolver.resolve(generic, genericMetadata)
+        )
+        val halfKneelingCandidate = ProgramCandidate(
+            halfKneeling,
+            halfKneelingMetadata,
+            true,
+            resolver.resolve(halfKneeling, halfKneelingMetadata)
+        )
+
+        assertTrue(
+            halfKneelingCandidate.templateSpecificityFit(ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT) >
+                genericCandidate.templateSpecificityFit(ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT)
+        )
+    }
+
+    @Test
     fun metadataFallbackIsWeakerThanRuntimeMetadata() {
         val runtimeExercise = exercise(4, "Runtime landmine")
         val runtimeMetadata = RuntimeExerciseMetadataDefaults.forExercise(runtimeExercise).copy(

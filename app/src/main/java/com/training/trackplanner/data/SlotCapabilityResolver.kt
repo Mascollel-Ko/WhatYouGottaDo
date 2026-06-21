@@ -165,7 +165,6 @@ class SlotCapabilityResolver {
                 ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
                 "ROTATIONAL",
                 "ROTATION_POWER",
-                "ROTATION_CONTROL",
                 "WOODCHOP",
                 "CABLE_CHOP",
                 "CABLE_LIFT",
@@ -176,7 +175,8 @@ class SlotCapabilityResolver {
                 "STEP_AND_ROTATE",
                 "ROTATIONAL_THROW",
                 "LANDMINE_ROTATION",
-                "KETTLEBELL_HALO"
+                "KETTLEBELL_HALO",
+                "VIPR_DOWNWARD_TWIST"
             ),
             CapabilityRule(ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT, "SCAP", "ROTATOR_CUFF", "REAR_DELT", "SHOULDER_DURABILITY"),
             CapabilityRule(ProgramSlotId.CALF_ANKLE_CAPACITY, "CALF", "ANKLE", "ACHILLES"),

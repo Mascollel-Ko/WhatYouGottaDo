@@ -3,7 +3,8 @@ package com.training.trackplanner.data
 internal data class TemplateExerciseSlot(
     val targetSlot: ProgramSlotId?,
     val role: ProgramExerciseRole,
-    val required: Boolean = false
+    val required: Boolean = false,
+    val minimumRepeatGapDays: Int = 0
 )
 
 internal data class PlannedSlot(
@@ -239,8 +240,9 @@ internal class ProgramTemplateCatalog {
     private fun requirement(
         slot: ProgramSlotId,
         role: ProgramExerciseRole,
-        required: Boolean = false
-    ) = TemplateExerciseSlot(slot, role, required)
+        required: Boolean = false,
+        minimumRepeatGapDays: Int = 0
+    ) = TemplateExerciseSlot(slot, role, required, minimumRepeatGapDays)
 
     private fun template(
         id: String,
@@ -350,7 +352,7 @@ internal class ProgramTemplateCatalog {
                 slot(7, ProgramTrainingSlot.WEAKPOINT_ACCESSORY, ProgramDayIntensity.LIGHT,
                     requirement(ProgramSlotId.UPPER_PULL_ANCHOR, ProgramExerciseRole.ANCHOR, true),
                     requirement(ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT, ProgramExerciseRole.SUPPORT),
-                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT),
+                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT, minimumRepeatGapDays = 14),
                     requirement(ProgramSlotId.RECOVERY_PREHAB_LIGHT, ProgramExerciseRole.PREHAB))
             )
         ),
@@ -379,7 +381,7 @@ internal class ProgramTemplateCatalog {
                     requirement(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN, ProgramExerciseRole.ANCHOR, true),
                     requirement(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME, ProgramExerciseRole.TRANSFER),
                     requirement(ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT, ProgramExerciseRole.SUPPORT),
-                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT)),
+                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT, minimumRepeatGapDays = 14)),
                 slot(7, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT,
                     requirement(ProgramSlotId.RECOVERY_PREHAB_LIGHT, ProgramExerciseRole.PREHAB),
                     requirement(ProgramSlotId.ACCESSORY_ROTATION, ProgramExerciseRole.ACCESSORY),
@@ -411,7 +413,7 @@ internal class ProgramTemplateCatalog {
                 slot(6, ProgramTrainingSlot.UPPER_STRENGTH_SCAP, ProgramDayIntensity.MODERATE,
                     requirement(ProgramSlotId.UPPER_PULL_ANCHOR, ProgramExerciseRole.ANCHOR, true),
                     requirement(ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT, ProgramExerciseRole.SUPPORT),
-                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT),
+                    requirement(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT, minimumRepeatGapDays = 14),
                     requirement(ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT, ProgramExerciseRole.SUPPORT)),
                 slot(7, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT,
                     requirement(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN, ProgramExerciseRole.ANCHOR, true),
