@@ -44,7 +44,7 @@ class RuntimeExerciseMetadataAssetLoader(
     }
 
     companion object {
-        const val EXPECTED_ROW_COUNT = 215
+        const val EXPECTED_ROW_COUNT = 235
         const val ASSET_DIRECTORY = "metadata"
         const val CANONICAL_ASSET_PATH =
             "$ASSET_DIRECTORY/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"

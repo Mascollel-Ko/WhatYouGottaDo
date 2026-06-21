@@ -72,6 +72,8 @@ object ExerciseTaxonomy {
         "MACHINE",
         "SMITH_MACHINE",
         "KETTLEBELL",
+        "LANDMINE",
+        "WEIGHT_PLATE",
         "BAND",
         "BENCH",
         "BOX",

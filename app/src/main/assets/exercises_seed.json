@@ -10791,6 +10791,1081 @@
         "MODERATE_LOAD"
       ],
       "metadataConfidence": "MANUAL_HIGH"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 사이드 스로우",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "옆면을 향해 몸통과 골반을 순서대로 회전하며 메디신볼을 벽으로 던진다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "med_ball_side_throw",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 로테이셔널 스쿱 토스",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "낮은 위치에서 골반과 몸통을 연결해 회전하며 메디신볼을 스쿱 동작으로 던진다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "med_ball_rotational_scoop_toss",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 로테이셔널 슬램",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "회전 순서를 유지하며 메디신볼을 대각선 아래로 강하게 내리친다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "med_ball_rotational_slam",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 오버헤드 슬램",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "메디신볼을 머리 위로 올린 뒤 몸통을 고정하고 바닥으로 빠르게 내리친다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "med_ball_overhead_slam",
+        "movementPattern":  [
+                                "VERTICAL_PUSH"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "SHOULDER",
+                               "CORE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "MULTI_PLANAR",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 체스트 패스",
+        "detail1":  "가슴/삼두근",
+        "detail2":  "어깨/코어",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "가슴 앞의 메디신볼을 몸통 고정과 함께 전방으로 빠르게 밀어 던진다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "med_ball_chest_pass",
+        "movementPattern":  [
+                                "HORIZONTAL_PUSH"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CHEST",
+                               "TRICEPS"
+                           ],
+        "secondaryMuscles":  [
+                                 "SHOULDER",
+                                 "CORE"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "MULTI_PLANAR",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "케이블 우드찹",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "케이블, 무게*횟수",
+        "description":  "케이블 저항을 따라 몸통과 골반을 함께 회전시키며 대각선으로 당긴다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "cable_woodchop",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "CABLE"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "CABLE"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "케이블 리프트",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "케이블, 무게*횟수",
+        "description":  "낮은 케이블을 대각선 위로 들어 올리며 골반과 몸통 회전을 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "cable_lift",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "CABLE"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "CABLE"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "밴드 우드찹",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "밴드, 횟수",
+        "description":  "밴드 장력을 유지하며 대각선 아래 방향으로 몸통 회전을 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "band_woodchop",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "BAND"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "BAND"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "밴드 리프트",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "밴드, 횟수",
+        "description":  "밴드 장력을 유지하며 대각선 위 방향으로 몸통 회전을 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "band_lift",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "BAND"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "BAND"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "랜드마인 로테이션",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "랜드마인, 무게*횟수",
+        "description":  "랜드마인 끝을 양손으로 잡고 골반과 몸통을 연결해 좌우로 회전한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "landmine_rotation",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "LANDMINE"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "LANDMINE"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "랜드마인 레인보우",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "랜드마인, 무게*횟수",
+        "description":  "랜드마인 끝을 머리 위의 호 형태로 이동하며 몸통 회전과 어깨 안정성을 함께 제어한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "landmine_rainbow",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "LANDMINE"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "LANDMINE"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "랜드마인 안티로테이션",
+        "detail1":  "복사근/심부코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "랜드마인, 무게*횟수",
+        "description":  "랜드마인을 몸 앞에서 이동시키며 골반과 몸통이 불필요하게 회전하지 않도록 버틴다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "landmine_anti_rotation",
+        "movementPattern":  [
+                                "ANTI_ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "DEEP_CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "LANDMINE"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "LANDMINE"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "ANTI_ROTATION"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "플레이트 로테이셔널 프레스아웃",
+        "detail1":  "복사근/심부코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "플레이트, 무게*횟수",
+        "description":  "플레이트를 몸 앞에서 밀어내며 천천히 회전하고 몸통의 흔들림을 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "plate_rotational_press_out",
+        "movementPattern":  [
+                                "ANTI_ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "DEEP_CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "WEIGHT_PLATE"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "WEIGHT_PLATE"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "ANTI_ROTATION"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "LOW_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "덤벨 우드찹",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "덤벨, 무게*횟수",
+        "description":  "덤벨을 대각선으로 이동하며 골반과 몸통 회전을 연결하고 끝 범위를 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "dumbbell_woodchop",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "DUMBBELL"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "DUMBBELL"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "케틀벨 헤일로",
+        "detail1":  "어깨/회전근개",
+        "detail2":  "견갑안정근/전완",
+        "mode":  "케틀벨, 무게*횟수",
+        "description":  "케틀벨을 머리 둘레로 천천히 이동하며 견갑과 어깨의 움직임을 제어한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "kettlebell_halo",
+        "movementPattern":  [
+                                "MOBILITY"
+                            ],
+        "movementCategory":  "MOBILITY",
+        "primaryMuscles":  [
+                               "SHOULDER",
+                               "ROTATOR_CUFF"
+                           ],
+        "secondaryMuscles":  [
+                                 "SCAPULAR_STABILIZERS",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "KETTLEBELL"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "UPPER",
+        "laterality":  "BILATERAL",
+        "plane":  "MULTI_PLANAR",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "KETTLEBELL"
+                          ],
+        "trainingRole":  [
+                             "MOBILITY"
+                         ],
+        "stabilityRoles":  [
+                               "SCAPULAR_STABILITY",
+                               "ROTATOR_CUFF_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  [
+                                        "SHOULDER_STABILITY_SUPPORT",
+                                        "GRIP_FOREARM_SUPPORT"
+                                    ],
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "LOW_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "바이퍼 로테이셔널 리프트",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "바이퍼, 무게*횟수",
+        "description":  "바이퍼를 낮은 위치에서 대각선 위로 들어 올리며 몸통 회전과 전신 연결을 만든다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "vipr_rotational_lift",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "VIPR"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "VIPR"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "바이퍼 찹",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "바이퍼, 무게*횟수",
+        "description":  "바이퍼를 대각선 아래로 이동하며 골반과 몸통 회전을 연결한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "vipr_chop",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "VIPR"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "VIPR"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "바이퍼 셔블 / 스쿱",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "바이퍼, 무게*횟수",
+        "description":  "바이퍼를 퍼 올리는 궤적으로 이동하며 후면사슬과 회전 동작을 연결한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "vipr_shovel_scoop",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "VIPR"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "VIPR"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "바이퍼 스텝 앤 로테이트",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "바이퍼, 무게*횟수",
+        "description":  "스텝과 함께 바이퍼를 회전시켜 하체 지지와 몸통 회전 순서를 연결한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "vipr_step_and_rotate",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "VIPR"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "VIPR"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "바이퍼 로테이셔널 프레스아웃",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "바이퍼, 무게*횟수",
+        "description":  "바이퍼를 몸 앞에서 밀어내며 회전 범위와 몸통 흔들림을 통제한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "vipr_rotational_press_out",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "VIPR"
+                      ],
+        "forceType":  "MOTOR_CONTROL",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "VIPR"
+                          ],
+        "trainingRole":  [
+                             "STABILITY"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  "MODERATE_LOAD",
+        "metadataConfidence":  "SEED_REVIEWED"
     }
   ]
 }

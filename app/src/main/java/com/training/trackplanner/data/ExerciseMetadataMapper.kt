@@ -553,6 +553,7 @@ object ExerciseMetadataMapper {
         ) -> ProgressMetricType.NOT_PROGRESS_TARGET
         movementCategory in setOf(MovementCategory.REACTIVE, MovementCategory.PLYOMETRIC, MovementCategory.SKILL_DRILL) ||
             movementPattern == MovementPattern.FOOTWORK -> ProgressMetricType.QUALITY_BASED
+        movementCategory == MovementCategory.POWER -> ProgressMetricType.QUALITY_BASED
         movementCategory == MovementCategory.CONDITIONING ||
             movementPattern == MovementPattern.LOCOMOTION -> ProgressMetricType.TIME_OR_DISTANCE
         compoundType == CompoundType.ISOLATION ||

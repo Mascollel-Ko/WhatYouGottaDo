@@ -144,7 +144,18 @@ class SlotCapabilityResolver {
         private val RULES = listOf(
             CapabilityRule(ProgramSlotId.BADMINTON_DECEL_COD, "DECELERATION", "CHANGE_OF_DIRECTION", "BADMINTON_COD"),
             CapabilityRule(ProgramSlotId.BADMINTON_FOOTWORK_REACTION, "FOOTWORK", "SPLIT_STEP", "REACTION_DRILL"),
-            CapabilityRule(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME, "PLYOMETRIC", "REACTIVE_POWER", "ELASTIC_SSC", "JUMP", "HOP"),
+            CapabilityRule(
+                ProgramSlotId.POWER_REACTIVE_LOW_VOLUME,
+                "PLYOMETRIC",
+                "REACTIVE_POWER",
+                "ELASTIC_SSC",
+                "JUMP",
+                "HOP",
+                "MED_BALL_OVERHEAD_SLAM",
+                "MED_BALL_CHEST_PASS",
+                "EXPLOSIVE_THROW",
+                "POWER_SLAM"
+            ),
             CapabilityRule(ProgramSlotId.LOWER_SQUAT_PATTERN, "SQUAT", "KNEE_DOMINANT"),
             CapabilityRule(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN, "HINGE", "DEADLIFT", "POSTERIOR_CHAIN"),
             CapabilityRule(ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL, "SINGLE_LEG", "LUNGE", "STEP_UP", "SPLIT_SQUAT"),
@@ -168,6 +179,11 @@ class SlotCapabilityResolver {
                 "WOODCHOP",
                 "CABLE_CHOP",
                 "CABLE_LIFT",
+                "BAND_CHOP",
+                "BAND_LIFT",
+                "MED_BALL_ROTATIONAL_THROW",
+                "MED_BALL_SCOOP_TOSS",
+                "MED_BALL_ROTATIONAL_SLAM",
                 "VIPR_CHOP",
                 "VIPR_LIFT",
                 "VIPR_SHOVEL",
@@ -175,7 +191,8 @@ class SlotCapabilityResolver {
                 "STEP_AND_ROTATE",
                 "ROTATIONAL_THROW",
                 "LANDMINE_ROTATION",
-                "KETTLEBELL_HALO",
+                "LANDMINE_RAINBOW",
+                "DUMBBELL_WOODCHOP",
                 "VIPR_DOWNWARD_TWIST"
             ),
             CapabilityRule(ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT, "SCAP", "ROTATOR_CUFF", "REAR_DELT", "SHOULDER_DURABILITY"),
@@ -212,12 +229,10 @@ class SlotCapabilityResolver {
                 "DUMBBELL WOODCHOP",
                 "BAND CHOP",
                 "BAND LIFT",
-                "KETTLEBELL HALO",
                 "케이블 찹",
                 "케이블 리프트",
                 "랜드마인 로테이션",
-                "덤벨 우드찹",
-                "케틀벨 헤일로"
+                "덤벨 우드찹"
             )
         )
     }
@@ -237,5 +252,13 @@ private fun Iterable<String>.tokenSet(): Set<String> = flatMap { value ->
 }.toSet()
 
 private fun Set<String>.hasAny(vararg needles: String): Boolean = needles.any { needle ->
-    any { token -> token == needle || token.contains(needle) }
+    any { token ->
+        token == needle || if (needle.length <= 3) {
+            token.startsWith("${needle}_") ||
+                token.endsWith("_${needle}") ||
+                token.contains("_${needle}_")
+        } else {
+            token.contains(needle)
+        }
+    }
 }

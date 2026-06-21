@@ -487,6 +487,8 @@ object SeedData {
         if (hasAny(text, "케이블")) equipment += "CABLE"
         if (hasAny(text, "머신")) equipment += "MACHINE"
         if (hasAny(text, "케틀벨")) equipment += "KETTLEBELL"
+        if (hasAny(text, "랜드마인")) equipment += "LANDMINE"
+        if (hasAny(text, "플레이트", "원판")) equipment += "WEIGHT_PLATE"
         if (hasAny(text, "밴드", "미니밴드")) equipment += "BAND"
         if (hasAny(text, "벤치")) equipment += "BENCH"
         if (hasAny(text, "박스", "스텝박스", "발판")) equipment += "BOX"

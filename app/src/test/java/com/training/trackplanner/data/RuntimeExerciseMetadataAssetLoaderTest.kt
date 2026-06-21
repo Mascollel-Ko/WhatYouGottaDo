@@ -17,14 +17,14 @@ class RuntimeExerciseMetadataAssetLoaderTest {
 
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
 
-        assertEquals(215, rows.size)
-        assertEquals(215, rows.map { it.stableKey.lowercase() }.distinct().size)
+        assertEquals(235, rows.size)
+        assertEquals(235, rows.map { it.stableKey.lowercase() }.distinct().size)
         assertFalse(rows.any { it.stableKey.isBlank() })
         assertEquals(18, rows.count { it.badmintonTransferLevel == "DIRECT" })
-        assertEquals(75, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
+        assertEquals(95, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
         assertEquals(93, rows.count { it.badmintonTransferLevel == "GENERAL" })
         assertEquals(29, rows.count { it.badmintonTransferLevel == "NONE" })
-        assertEquals(36, rows.count { it.stressMagnitudeHint == "HIGH" })
+        assertEquals(47, rows.count { it.stressMagnitudeHint == "HIGH" })
         assertTrue(rows.all { it.neuromuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.systemicMuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.localMuscularStressLevel.isNotBlank() })

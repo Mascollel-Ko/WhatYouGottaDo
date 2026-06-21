@@ -152,6 +152,13 @@ class ProgramArchitectureFoundationTest {
             programSlot = "RECOVERY_PREHAB_SCAPULAR_CONTROL",
             redundancyGroup = "SCAPULAR_UPWARD_ROTATION_CONTROL"
         )
+        val scapPushUp = exercise(33, "Scap push-up")
+        val scapPushUpMetadata = RuntimeExerciseMetadataDefaults.forExercise(scapPushUp).copy(
+            movementFamily = "SERRATUS_SCAPULAR_PROTRACTION_CONTROL_REVIEW",
+            movementSubtype = "SCAPULAR_PUSH_UP",
+            programSlot = "SCAPULAR_CONTROL_ACCESSORY",
+            redundancyGroup = "SCAPULAR_PROTRACTION_CONTROL"
+        )
         val vipr = exercise(32, "ViPR downward twist")
         val viprMetadata = RuntimeExerciseMetadataDefaults.forExercise(vipr).copy(
             movementFamily = "POWER_CORE_SHOULDER",
@@ -162,10 +169,104 @@ class ProgramArchitectureFoundationTest {
         val resolver = SlotCapabilityResolver.DEFAULT
         assertFalse(resolver.resolve(facePull, facePullMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
         assertFalse(resolver.resolve(wallSlide, wallSlideMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
+        assertFalse(resolver.resolve(scapPushUp, scapPushUpMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
         assertEquals(
             setOf(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN),
             resolver.resolve(vipr, viprMetadata).primary
         )
+    }
+
+    @Test
+    fun resolverClassifiesV0357RotationPowerAndControlCandidatesFromMetadata() {
+        val resolver = SlotCapabilityResolver.DEFAULT
+        val rotational = listOf(
+            "MED_BALL_ROTATIONAL_THROW",
+            "MED_BALL_SCOOP_TOSS",
+            "MED_BALL_ROTATIONAL_SLAM",
+            "CABLE_CHOP",
+            "CABLE_LIFT",
+            "BAND_CHOP",
+            "BAND_LIFT",
+            "LANDMINE_ROTATION",
+            "LANDMINE_RAINBOW",
+            "DUMBBELL_WOODCHOP",
+            "VIPR_ROTATIONAL_LIFT",
+            "VIPR_CHOP",
+            "VIPR_SHOVEL_SCOOP",
+            "VIPR_STEP_AND_ROTATE",
+            "VIPR_ROTATIONAL_PRESS_OUT"
+        )
+
+        rotational.forEachIndexed { index, subtype ->
+            val exercise = exercise(100L + index, "metadata fixture $index")
+            val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+                movementFamily = "ROTATIONAL_KINETIC_CHAIN",
+                movementSubtype = subtype,
+                programSlot = "ROTATIONAL_KINETIC_CHAIN"
+            )
+            val profile = resolver.resolve(exercise, metadata)
+            assertEquals("$subtype must be a strong rotational candidate", SlotCapabilitySource.RUNTIME_METADATA, profile.source)
+            assertEquals("$subtype must resolve primarily to rotation", setOf(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN), profile.primary)
+        }
+
+        val overheadSlam = exercise(130, "metadata overhead slam")
+        val overheadMetadata = RuntimeExerciseMetadataDefaults.forExercise(overheadSlam).copy(
+            movementFamily = "POWER_CORE_SHOULDER",
+            movementSubtype = "MED_BALL_OVERHEAD_SLAM",
+            programSlot = "POWER_REACTIVE_LOW_VOLUME"
+        )
+        assertEquals(
+            setOf(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME),
+            resolver.resolve(overheadSlam, overheadMetadata).primary
+        )
+        assertFalse(
+            resolver.resolve(overheadSlam, overheadMetadata).hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN)
+        )
+
+        val antiRotation = exercise(131, "metadata landmine anti-rotation")
+        val antiMetadata = RuntimeExerciseMetadataDefaults.forExercise(antiRotation).copy(
+            movementFamily = "TRUNK_ANTI_ROTATION_STABILITY",
+            movementSubtype = "LANDMINE_ANTI_ROTATION",
+            programSlot = "TRUNK_ANTI_ROTATION_STABILITY"
+        )
+        assertEquals(
+            setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+            resolver.resolve(antiRotation, antiMetadata).primary
+        )
+
+        val halo = exercise(132, "metadata kettlebell halo")
+        val haloMetadata = RuntimeExerciseMetadataDefaults.forExercise(halo).copy(
+            movementFamily = "SCAPULAR_SHOULDER_SUPPORT",
+            movementSubtype = "KETTLEBELL_HALO",
+            programSlot = "SCAPULAR_SHOULDER_SUPPORT"
+        )
+        val haloProfile = resolver.resolve(halo, haloMetadata)
+        assertEquals(setOf(ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT), haloProfile.primary)
+        assertFalse(haloProfile.hasAny(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN))
+    }
+
+    @Test
+    fun fatiguePolicyBlocksExplosiveRotationButAllowsControlledFallbackAtOrange() {
+        val resolver = SlotCapabilityResolver.DEFAULT
+        fun candidate(id: Long, subtype: String, magnitude: String): ProgramCandidate {
+            val exercise = exercise(id, subtype)
+            val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+                movementFamily = "ROTATIONAL_KINETIC_CHAIN",
+                movementSubtype = subtype,
+                programSlot = "ROTATIONAL_KINETIC_CHAIN",
+                stressMagnitudeHint = magnitude
+            )
+            return ProgramCandidate(exercise, metadata, true, resolver.resolve(exercise, metadata))
+        }
+        val explosive = candidate(140, "MED_BALL_ROTATIONAL_THROW", "HIGH")
+        val controlled = candidate(141, "CABLE_CHOP", "MODERATE")
+        val orange = ProgramFatigueGate(ProgramFatigueBand.ORANGE, 0.5, 7, false, false, false, false)
+        val red = ProgramFatigueGate(ProgramFatigueBand.RED, 0.25, 7, false, false, false, true)
+
+        assertFalse(FatigueSlotPolicy.DEFAULT.allows(explosive, orange))
+        assertTrue(FatigueSlotPolicy.DEFAULT.allows(controlled, orange))
+        assertFalse(FatigueSlotPolicy.DEFAULT.allows(explosive, red))
+        assertFalse(FatigueSlotPolicy.DEFAULT.allows(controlled, red))
     }
 
     @Test

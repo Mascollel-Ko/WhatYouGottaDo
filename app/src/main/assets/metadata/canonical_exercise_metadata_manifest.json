@@ -1,27 +1,27 @@
 {
     "schemaVersion": 2,
-  "metadataVersion": "v0.3.5.6",
-  "appVersion": "v0.3.5.6",
-  "createdForAppVersion": "v0.3.5.6",
-    "taxonomyRevision": "pass3.1-semantic-recalibrated",
+  "metadataVersion": "v0.3.5.7",
+  "appVersion": "v0.3.5.7",
+  "createdForAppVersion": "v0.3.5.7",
+    "taxonomyRevision": "pass3.1-semantic-recalibrated-v0.3.5.7-candidate-expansion",
     "asset": "canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
-    "rowCount": 215,
+    "rowCount": 235,
     "stableKeyUnique": true,
     "safeForSeedMutation": "NO",
     "sourceArtifact": "v0.3.5.0_pass3_1_semantic_recalibrated_sidecar.csv",
     "sourceSha256": "fc1199c387dbfda6287245f8f47878cdb4b15dedc0bb75c164aef1ae64346e15",
-    "assetSha256": "6fe1cd22719684845bc9082ec6ef408b368a7a450426f2ae02546970a48fb621",
+    "assetSha256": "0483f51e4340772c17f204ded9c5c8fa7c08aab8d6ddada4ebdd3e8182a41dfa",
     "transferCounts": {
         "DIRECT": 18,
-        "SUPPORTIVE": 75,
+        "SUPPORTIVE": 95,
         "GENERAL": 93,
         "NONE": 29
     },
     "stressMagnitudeCounts": {
-        "LOW": 66,
-        "MODERATE": 107,
+        "LOW": 68,
+        "MODERATE": 114,
         "VERY_HIGH": 6,
-        "HIGH": 36
+        "HIGH": 47
     },
     "fields": [
         "stableKey",
@@ -60,7 +60,7 @@
         "appCueProfile"
     ],
     "appCueProfileCounts": {
-        "NONE": 207,
+        "NONE": 227,
         "RANDOM_BEEP_CUE": 8
     }
 }

@@ -771,12 +771,22 @@ internal data class ProgramCandidate(
     }
 
     private fun has(vararg needles: String): Boolean = needles.any { needle ->
-        structuredTokens.any { token -> token.contains(needle) }
+        structuredTokens.any { token -> token.matchesMetadataNeedle(needle) }
     }
 
     private fun identityHas(vararg needles: String): Boolean = needles.any { needle ->
-        identityTokens.any { token -> token.contains(needle) }
+        identityTokens.any { token -> token.matchesMetadataNeedle(needle) }
     }
+
+    private fun String.matchesMetadataNeedle(needle: String): Boolean =
+        if (needle.length <= 3) {
+            this == needle ||
+                startsWith("${needle}_") ||
+                endsWith("_${needle}") ||
+                contains("_${needle}_")
+        } else {
+            contains(needle)
+        }
 
     private fun rehabLikeActivationScore(): Int {
         val metadataValue = metadata ?: return 0

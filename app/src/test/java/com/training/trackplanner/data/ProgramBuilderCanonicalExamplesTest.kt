@@ -15,7 +15,7 @@ class ProgramBuilderCanonicalExamplesTest {
 
         val diagnostics = ProgramSlotCoverageDiagnostics().analyze(exercises, catalog)
 
-        assertEquals(215, exercises.size)
+        assertEquals(235, exercises.size)
         assertEquals(ProgramSlotId.entries.size, diagnostics.size)
         assertTrue(diagnostics.all { it.legacyFallbackMatchCount == 0 })
         assertTrue(diagnostics.all { it.nameFallbackMatchCount == 0 })
@@ -49,8 +49,8 @@ class ProgramBuilderCanonicalExamplesTest {
         val exercises = loadSeedExercises()
         val metadata = ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
         val catalog = RuntimeExerciseMetadataCatalog.of(metadata)
-        assertEquals(215, exercises.size)
-        assertEquals(215, catalog.size)
+        assertEquals(235, exercises.size)
+        assertEquals(235, catalog.size)
 
         (representativeExamples() + Example("7 days / 8 weeks / 80:20 fallback", 7, 8, 45, 0.80))
             .forEach { example ->
@@ -84,18 +84,36 @@ class ProgramBuilderCanonicalExamplesTest {
         val results = representativeExamples().associateWith { example -> build(example, exercises, catalog) }
         val outputDir = repositoryOutputDir().apply { mkdirs() }
 
-        File(outputDir, "v0.3.5.6_representative_template_samples.csv").writeText(
+        File(outputDir, "v0.3.5.7_representative_template_samples.csv").writeText(
             sampleCsv(results),
             Charsets.UTF_8
         )
-        File(outputDir, "v0.3.5.6_representative_template_samples.md").writeText(
-            sampleMarkdown(results),
+        File(outputDir, "v0.3.5.7_representative_template_samples.md").writeText(
+            sampleMarkdown(results).trimEnd() + "\n",
             Charsets.UTF_8
         )
-        File(outputDir, "v0.3.5.6_overhead_rotation_candidate_audit.csv").writeText(
+        File(outputDir, "v0.3.5.7_overhead_rotation_candidate_audit.csv").writeText(
             candidateAuditCsv(exercises, catalog),
             Charsets.UTF_8
         )
+        val diagnostics = ProgramSlotCoverageDiagnostics()
+        val before = diagnostics.analyze(exercises.filterNot { it.stableKey in V0357_CANDIDATE_KEYS }, catalog)
+        val after = diagnostics.analyze(exercises, catalog)
+        File(outputDir, "v0.3.5.7_metadata_slot_coverage_diagnostic.csv").writeText(
+            slotCoverageCsv(before, after),
+            Charsets.UTF_8
+        )
+        File(outputDir, "v0.3.5.7_rotational_overhead_candidate_expansion_report.md").writeText(
+            expansionReport(exercises, catalog, before, after, results),
+            Charsets.UTF_8
+        )
+
+        val newProfiles = exercises.filter { it.stableKey in V0357_CANDIDATE_KEYS }.map { exercise ->
+            exercise to SlotCapabilityResolver.DEFAULT.resolve(exercise, catalog.resolve(exercise))
+        }
+        assertEquals(20, newProfiles.size)
+        assertTrue(newProfiles.all { (_, profile) -> profile.source == SlotCapabilitySource.RUNTIME_METADATA })
+        assertTrue(newProfiles.none { (_, profile) -> profile.source == SlotCapabilitySource.NAME_FALLBACK })
 
         results.forEach { (example, result) ->
             val requiredByWeek = result.items.filter(ProgramSkeletonItem::requiredTemplateAnchor)
@@ -124,6 +142,14 @@ class ProgramBuilderCanonicalExamplesTest {
             twoWeekFootworkShares(result).forEach { share ->
                 assertTrue("${example.label} footwork/COD/reactive share $share exceeds 45%", share <= 0.45)
             }
+            assertFalse("${example.label} contains a direct sport session", result.items.any(ProgramSkeletonItem::directSportSession))
+            assertFalse(
+                "${example.label} used a new transfer candidate as a core anchor",
+                result.items.any {
+                    it.stableKey in V0357_CANDIDATE_KEYS &&
+                        it.requestedTemplateSlot in CORE_ANCHOR_SLOT_NAMES
+                }
+            )
         }
 
         results.filterKeys { it.requiresOverhead }.values.forEach { result ->
@@ -204,7 +230,7 @@ class ProgramBuilderCanonicalExamplesTest {
     }
 
     private fun sampleMarkdown(results: Map<Example, GeneratedProgramSkeleton>): String = buildString {
-        appendLine("# v0.3.5.6 Representative Template Samples")
+        appendLine("# v0.3.5.7 Representative Template Samples")
         appendLine()
         results.forEach { (example, result) ->
             val rehabCount = result.items.count(ProgramSkeletonItem::rehabLikeActivation)
@@ -245,7 +271,9 @@ class ProgramBuilderCanonicalExamplesTest {
         val resolver = SlotCapabilityResolver.DEFAULT
         listOf(
             ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
-            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN
+            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+            ProgramSlotId.POWER_REACTIVE_LOW_VOLUME,
+            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
         ).forEach { slot ->
             exercises.forEach { exercise ->
                 val metadata = catalog.resolve(exercise)
@@ -267,6 +295,107 @@ class ProgramBuilderCanonicalExamplesTest {
                     ).joinToString(",") { csv(it) })
                 }
             }
+        }
+    }
+
+    private fun slotCoverageCsv(
+        before: List<SlotCoverageDiagnostic>,
+        after: List<SlotCoverageDiagnostic>
+    ): String = buildString {
+        appendLine("slot,beforeCandidates,afterCandidates,delta,beforeStrong,afterStrong,beforeNameFallback,afterNameFallback,afterStrength")
+        ProgramSlotId.entries.forEach { slot ->
+            val old = before.first { it.slot == slot }
+            val current = after.first { it.slot == slot }
+            appendLine(listOf(
+                slot.name,
+                old.candidateCount,
+                current.candidateCount,
+                current.candidateCount - old.candidateCount,
+                old.strongMetadataMatchCount,
+                current.strongMetadataMatchCount,
+                old.nameFallbackMatchCount,
+                current.nameFallbackMatchCount,
+                current.coverageStrength.name
+            ).joinToString(",") { csv(it.toString()) })
+        }
+    }
+
+    private fun expansionReport(
+        exercises: List<Exercise>,
+        catalog: RuntimeExerciseMetadataCatalog,
+        before: List<SlotCoverageDiagnostic>,
+        after: List<SlotCoverageDiagnostic>,
+        results: Map<Example, GeneratedProgramSkeleton>
+    ): String = buildString {
+        fun row(rows: List<SlotCoverageDiagnostic>, slot: ProgramSlotId) = rows.first { it.slot == slot }
+        val resolver = SlotCapabilityResolver.DEFAULT
+        val added = exercises.filter { it.stableKey in V0357_CANDIDATE_KEYS }
+        val fallbackCount = added.count { resolver.resolve(it, catalog.resolve(it)).source != SlotCapabilitySource.RUNTIME_METADATA }
+        appendLine("# v0.3.5.7 Rotational / Overhead Candidate Expansion")
+        appendLine()
+        appendLine("## Summary")
+        appendLine()
+        appendLine("- Added exercises: ${added.size}")
+        appendLine("- Canonical rows: ${catalog.size}")
+        appendLine("- New-row fallback count: $fallbackCount")
+        appendLine("- Room schema change: NO")
+        appendLine("- ProgramBuilder architecture rewrite: NO")
+        appendLine()
+        appendLine("## Slot Coverage")
+        appendLine()
+        appendLine("| Slot | Before | After | Strong after |")
+        appendLine("|---|---:|---:|---:|")
+        listOf(
+            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+            ProgramSlotId.POWER_REACTIVE_LOW_VOLUME,
+            ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
+            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY,
+            ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT
+        ).forEach { slot ->
+            appendLine("| `${slot.name}` | ${row(before, slot).candidateCount} | ${row(after, slot).candidateCount} | ${row(after, slot).strongMetadataMatchCount} |")
+        }
+        appendLine()
+        appendLine("## Added Metadata")
+        appendLine()
+        added.sortedBy(Exercise::name).forEach { exercise ->
+            val metadata = requireNotNull(catalog.resolve(exercise))
+            val profile = resolver.resolve(exercise, metadata)
+            appendLine("- ${exercise.name} (`${exercise.stableKey}`): `${metadata.movementSubtype}` -> `${profile.primary.singleOrNull()?.name}`; ${metadata.stressMagnitudeHint}/${metadata.recoveryDurationClass}")
+        }
+        appendLine()
+        appendLine("## Representative Templates")
+        appendLine()
+        appendLine("| Template | Items | Missing anchors | Rehab share | Max 2-week footwork/COD/reactive | New rotation selections | Hard issues |")
+        appendLine("|---|---:|---:|---:|---:|---:|---:|")
+        results.forEach { (example, result) ->
+            val requiredByWeek = result.items.filter(ProgramSkeletonItem::requiredTemplateAnchor)
+                .groupBy(ProgramSkeletonItem::weekNumber)
+            val missing = (1..example.weeks).sumOf { week ->
+                val slots = requiredByWeek[week].orEmpty().map(ProgramSkeletonItem::requestedTemplateSlot).toSet()
+                CORE_ANCHOR_SLOT_NAMES.count { it !in slots }
+            }
+            val rehabShare = result.items.count(ProgramSkeletonItem::rehabLikeActivation).toDouble() / result.items.size
+            val maxTransfer = twoWeekFootworkShares(result).maxOrNull() ?: 0.0
+            val newRotation = result.items.count {
+                it.stableKey in V0357_CANDIDATE_KEYS &&
+                    it.requestedTemplateSlot == ProgramSlotId.ROTATIONAL_KINETIC_CHAIN.name
+            }
+            val hard = result.validationDetails.count { it.severity == ProgramValidationSeverity.HARD }
+            appendLine("| `${result.templateId}` | ${result.items.size} | $missing | ${"%.1f".format(rehabShare * 100)}% | ${"%.1f".format(maxTransfer * 100)}% | $newRotation | $hard |")
+        }
+        appendLine()
+        appendLine("## Safety")
+        appendLine()
+        appendLine("- Explosive med-ball, landmine, and fast ViPR rows use HIGH stress and LONG recovery; ORANGE selects controlled cable/band/dumbbell alternatives instead.")
+        appendLine("- RED blocks the rotational kinetic-chain slot.")
+        appendLine("- Kettlebell halo is scapular/shoulder control, not aggressive rotation power.")
+        appendLine("- Face pull, wall slide, and scap push-up remain outside rotational kinetic-chain coverage.")
+        appendLine("- New exercises are SUPPORTIVE training exercises, never DIRECT sport sessions.")
+        appendLine()
+        appendLine("## Remaining Risks")
+        appendLine()
+        after.filter { it.coverageStrength != SlotCoverageStrength.ADEQUATE }.forEach { diagnostic ->
+            appendLine("- `${diagnostic.slot}` remains `${diagnostic.coverageStrength}` with ${diagnostic.candidateCount} candidates.")
         }
     }
 
@@ -367,6 +496,33 @@ class ProgramBuilderCanonicalExamplesTest {
     )
 
     private companion object {
+        val V0357_CANDIDATE_KEYS = setOf(
+            "med_ball_side_throw",
+            "med_ball_rotational_scoop_toss",
+            "med_ball_rotational_slam",
+            "med_ball_overhead_slam",
+            "med_ball_chest_pass",
+            "cable_woodchop",
+            "cable_lift",
+            "band_woodchop",
+            "band_lift",
+            "landmine_rotation",
+            "landmine_rainbow",
+            "landmine_anti_rotation",
+            "plate_rotational_press_out",
+            "dumbbell_woodchop",
+            "kettlebell_halo",
+            "vipr_rotational_lift",
+            "vipr_chop",
+            "vipr_shovel_scoop",
+            "vipr_step_and_rotate",
+            "vipr_rotational_press_out"
+        )
+        val CORE_ANCHOR_SLOT_NAMES = setOf(
+            ProgramSlotId.LOWER_SQUAT_PATTERN.name,
+            ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name,
+            ProgramSlotId.UPPER_PULL_ANCHOR.name
+        )
         val RECOVERY_TRAINING_SLOTS = setOf(
             ProgramTrainingSlot.RECOVERY_PREHAB.name,
             ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
