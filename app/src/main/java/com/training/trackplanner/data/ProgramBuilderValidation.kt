@@ -9,6 +9,7 @@ internal object ProgramBuilderValidator {
     ): List<ProgramValidationIssue> {
         val issues = mutableListOf<ProgramValidationIssue>()
         validateSessions(result, issues)
+        validateFallbackRoleSlots(result, issues)
         validateHardDays(result, gate, issues)
         validateRepetition(result, issues)
         validateRehabLikeDominance(result, gate, issues)
@@ -49,6 +50,52 @@ internal object ProgramBuilderValidator {
                 ProgramValidationSeverity.HARD,
                 "${item.exerciseName}은 직접 스포츠 세션이므로 프로그램 운동으로 선택할 수 없습니다."
             )
+        }
+    }
+
+    private fun validateFallbackRoleSlots(
+        result: GeneratedProgramSkeleton,
+        issues: MutableList<ProgramValidationIssue>
+    ) {
+        if (result.representativeTemplate) return
+        val blankSlots = result.items.count { it.requestedTemplateSlot.isBlank() }
+        if (blankSlots > 0) {
+            issues += issue(
+                "FALLBACK_REQUESTED_SLOT_UNRESOLVED",
+                ProgramValidationSeverity.WARNING,
+                "$blankSlots fallback items have no safely resolved requested slot."
+            )
+        }
+        result.items.forEach { item ->
+            when (item.selectionRole) {
+                ProgramExerciseRole.ANCHOR.name -> if (item.requestedTemplateSlot !in FALLBACK_ANCHOR_SLOTS) {
+                    issues += issue(
+                        "FALLBACK_ANCHOR_ROLE_MISMATCH",
+                        ProgramValidationSeverity.HARD,
+                        "${item.exerciseName} is labeled ANCHOR without an anchor slot capability."
+                    )
+                }
+                ProgramExerciseRole.CORE.name -> if (
+                    item.requestedTemplateSlot != ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name ||
+                    item.hasExplosiveRoleToken()
+                ) {
+                    issues += issue(
+                        "FALLBACK_CORE_ROLE_MISMATCH",
+                        ProgramValidationSeverity.HARD,
+                        "${item.exerciseName} is not a controlled trunk candidate for CORE."
+                    )
+                }
+                ProgramExerciseRole.PREHAB.name -> if (
+                    item.requestedTemplateSlot != ProgramSlotId.RECOVERY_PREHAB_LIGHT.name ||
+                    item.hasExplosiveRoleToken()
+                ) {
+                    issues += issue(
+                        "FALLBACK_PREHAB_ROLE_MISMATCH",
+                        ProgramValidationSeverity.HARD,
+                        "${item.exerciseName} is not a low-stress recovery candidate for PREHAB."
+                    )
+                }
+            }
         }
     }
 
@@ -193,6 +240,17 @@ internal object ProgramBuilderValidator {
         sessions.forEach { (key, items) ->
             val rehabItems = items.filter(ProgramSkeletonItem::rehabLikeActivation)
             if (rehabItems.isEmpty()) return@forEach
+            val week = result.weekPlans.firstOrNull { it.weekIndex == key.first }
+            if (
+                items.first().trainingSlot == ProgramTrainingSlot.RECOVERY_WEAKPOINT.name &&
+                week?.deloadFlag != true && gate?.band != ProgramFatigueBand.RED && rehabItems.size > 1
+            ) {
+                issues += issue(
+                    "RECOVERY_WEAKPOINT_REHAB_CLUSTER",
+                    ProgramValidationSeverity.WARNING,
+                    "${key.first}/${key.second} recovery-weakpoint session stacks ${rehabItems.size} rehab-like items."
+                )
+            }
             val recoveryContext = items.all { item -> item.isRecoveryContext(result, gate) }
             if (!recoveryContext && rehabItems.size > 1) {
                 issues += issue(
@@ -476,6 +534,13 @@ internal object ProgramBuilderValidator {
         return needles.any(source::contains)
     }
 
+    private fun ProgramSkeletonItem.hasExplosiveRoleToken(): Boolean = listOf(
+        movementFamily,
+        movementSubtype,
+        metadataProgramSlot,
+        primaryStressProfile
+    ).any { value -> FALLBACK_EXPLOSIVE_TOKENS.any { token -> value.contains(token, ignoreCase = true) } }
+
     private fun ProgramSkeletonItem.isRecoveryContext(
         result: GeneratedProgramSkeleton,
         gate: ProgramFatigueGate?
@@ -513,5 +578,22 @@ internal object ProgramBuilderValidator {
         ProgramTrainingSlot.RECOVERY_PREHAB.name,
         ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
         ProgramTrainingSlot.MICRO_RECOVERY.name
+    )
+    private val FALLBACK_ANCHOR_SLOTS = setOf(
+        ProgramSlotId.LOWER_SQUAT_PATTERN.name,
+        ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name,
+        ProgramSlotId.UPPER_PULL_ANCHOR.name,
+        ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL.name
+    )
+    private val FALLBACK_EXPLOSIVE_TOKENS = setOf(
+        "BALLISTIC",
+        "SLAM",
+        "THROW",
+        "TOSS",
+        "PUSH_PRESS",
+        "PLYOMETRIC",
+        "EXPLOSIVE",
+        "CHANGE_OF_DIRECTION",
+        "REACTION_DRILL"
     )
 }

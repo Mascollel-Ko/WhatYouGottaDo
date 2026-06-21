@@ -146,6 +146,7 @@ class ProgramBuilder internal constructor(
                     selected += picked
                     selectionHistory.record(picked, week.weekIndex, absoluteDay, coveragePolicy)
                     estimatedSessionSeconds += itemDurationSeconds
+                    val requestedSlot = templateSlot.targetSlot ?: picked.resolvedSlotForRole(role)
                     val weight = historyWeights.suggest(
                         exercise = picked.exercise,
                         targetReps = prescription.reps,
@@ -202,7 +203,7 @@ class ProgramBuilder internal constructor(
                         slotCapabilitySource = picked.slotCapabilities.source.name,
                         slotCapabilityConfidence = picked.slotCapabilities.confidence.name,
                         slotCapabilityWarnings = picked.slotCapabilities.warnings,
-                        requestedTemplateSlot = templateSlot.targetSlot?.name.orEmpty(),
+                        requestedTemplateSlot = requestedSlot?.name.orEmpty(),
                         requiredTemplateAnchor = templateSlot.required
                     )
                 }
@@ -278,7 +279,7 @@ class ProgramBuilder internal constructor(
             week.weekType == ProgramWeekType.ADAPT.name && candidate.isRecovery -> 0.8
             else -> 0.0
         }
-        val recoveryContext = slot in RECOVERY_SLOTS || week.deloadFlag ||
+        val recoveryContext = slot in EXPANDED_RECOVERY_SLOTS || week.deloadFlag ||
             fatigueGate.band == ProgramFatigueBand.RED
         val rehabLikePenalty = when {
             !candidate.isRehabLikeActivation -> 0.0
@@ -352,7 +353,8 @@ class ProgramBuilder internal constructor(
         gate: ProgramFatigueGate
     ): Boolean {
         if (next.isRehabLikeActivation) {
-            val recoveryContext = slot in RECOVERY_SLOTS || week.deloadFlag || gate.band == ProgramFatigueBand.RED
+            val recoveryContext = slot in EXPANDED_RECOVERY_SLOTS || week.deloadFlag ||
+                gate.band == ProgramFatigueBand.RED
             val cap = if (recoveryContext) 3 else 1
             if (selected.count(ProgramCandidate::isRehabLikeActivation) >= cap) return false
         }
@@ -463,9 +465,8 @@ class ProgramBuilder internal constructor(
     }
 
     private companion object {
-        val RECOVERY_SLOTS = setOf(
+        val EXPANDED_RECOVERY_SLOTS = setOf(
             ProgramTrainingSlot.RECOVERY_PREHAB,
-            ProgramTrainingSlot.RECOVERY_WEAKPOINT,
             ProgramTrainingSlot.MICRO_RECOVERY
         )
         val PERFORMANCE_WEEK_TYPES = setOf(
@@ -705,20 +706,35 @@ internal data class ProgramCandidate(
     fun allowedForRole(slot: ProgramTrainingSlot, role: ProgramExerciseRole): Boolean {
         if (role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
         return when (role) {
-            ProgramExerciseRole.ANCHOR -> isAnchor || (strengthFit >= 0.8 && !isIsolation)
-            ProgramExerciseRole.CORE -> isCore && !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
-            ProgramExerciseRole.PREHAB -> isRecovery && !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
+            ProgramExerciseRole.ANCHOR -> slotCapabilities.primary.any(ANCHOR_CAPABILITY_SLOTS::contains)
+            ProgramExerciseRole.CORE -> hasStrongCapability(CORE_CAPABILITY_SLOTS) &&
+                !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
+            ProgramExerciseRole.PREHAB -> isRecovery && hasStrongCapability(PREHAB_CAPABILITY_SLOTS) &&
+                !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
             ProgramExerciseRole.TRANSFER -> when (slot) {
                 ProgramTrainingSlot.BADMINTON_COD,
-                ProgramTrainingSlot.BADMINTON_COD_DECEL -> isCodSpecific
+                ProgramTrainingSlot.BADMINTON_COD_DECEL -> isCodSpecific &&
+                    hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
                 ProgramTrainingSlot.POWER_REACTIVE,
-                ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> isReactivePowerSpecific || isCodSpecific
-                ProgramTrainingSlot.BADMINTON_TRANSFER -> badmintonFit >= 0.90
-                else -> true
+                ProgramTrainingSlot.POWER_REACTIVE_LIGHT ->
+                    (isReactivePowerSpecific || isCodSpecific) && hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
+                ProgramTrainingSlot.BADMINTON_TRANSFER -> badmintonFit >= 0.90 &&
+                    hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
+                else -> hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
             }
-            ProgramExerciseRole.SUPPORT,
-            ProgramExerciseRole.ACCESSORY -> true
+            ProgramExerciseRole.SUPPORT -> hasStrongCapability(SUPPORT_CAPABILITY_SLOTS) &&
+                !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
+            ProgramExerciseRole.ACCESSORY -> hasResolvableCapability(ACCESSORY_CAPABILITY_SLOTS)
         }
+    }
+
+    fun resolvedSlotForRole(role: ProgramExerciseRole): ProgramSlotId? {
+        val eligible = capabilitySlotsForRole(role)
+        return slotCapabilities.primary.firstOrNull(eligible::contains)
+            ?: slotCapabilities.secondary.firstOrNull(eligible::contains)
+            ?: slotCapabilities.weakMatches
+                .takeIf { hasAcceptableWeakCapability }
+                ?.firstOrNull(eligible::contains)
     }
 
     fun allowedForTemplateSlot(
@@ -793,6 +809,29 @@ internal data class ProgramCandidate(
         identityTokens.any { token -> token.matchesMetadataNeedle(needle) }
     }
 
+    private fun hasStrongCapability(eligible: Set<ProgramSlotId>): Boolean =
+        slotCapabilities.primary.any(eligible::contains) ||
+            slotCapabilities.secondary.any(eligible::contains)
+
+    private fun hasResolvableCapability(eligible: Set<ProgramSlotId>): Boolean =
+        hasStrongCapability(eligible) ||
+            (hasAcceptableWeakCapability && slotCapabilities.weakMatches.any(eligible::contains))
+
+    private val hasAcceptableWeakCapability: Boolean
+        get() = slotCapabilities.source in setOf(
+            SlotCapabilitySource.RUNTIME_METADATA,
+            SlotCapabilitySource.LEGACY_METADATA
+        ) && slotCapabilities.confidence != SlotCapabilityConfidence.NONE
+
+    private fun capabilitySlotsForRole(role: ProgramExerciseRole): Set<ProgramSlotId> = when (role) {
+        ProgramExerciseRole.ANCHOR -> ANCHOR_CAPABILITY_SLOTS
+        ProgramExerciseRole.TRANSFER -> TRANSFER_CAPABILITY_SLOTS
+        ProgramExerciseRole.SUPPORT -> SUPPORT_CAPABILITY_SLOTS
+        ProgramExerciseRole.CORE -> CORE_CAPABILITY_SLOTS
+        ProgramExerciseRole.PREHAB -> PREHAB_CAPABILITY_SLOTS
+        ProgramExerciseRole.ACCESSORY -> ACCESSORY_CAPABILITY_SLOTS
+    }
+
     private fun String.matchesMetadataNeedle(needle: String): Boolean =
         if (needle.length <= 3) {
             this == needle ||
@@ -836,6 +875,37 @@ internal data class ProgramCandidate(
     }
 
     private companion object {
+        val ANCHOR_CAPABILITY_SLOTS = setOf(
+            ProgramSlotId.LOWER_SQUAT_PATTERN,
+            ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN,
+            ProgramSlotId.UPPER_PULL_ANCHOR,
+            ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL
+        )
+        val CORE_CAPABILITY_SLOTS = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY)
+        val PREHAB_CAPABILITY_SLOTS = setOf(ProgramSlotId.RECOVERY_PREHAB_LIGHT)
+        val SUPPORT_CAPABILITY_SLOTS = setOf(
+            ProgramSlotId.LOWER_SQUAT_PATTERN,
+            ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN,
+            ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL,
+            ProgramSlotId.CALF_ANKLE_CAPACITY,
+            ProgramSlotId.SCAPULAR_SHOULDER_SUPPORT,
+            ProgramSlotId.FOREARM_GRIP_ELBOW_SUPPORT,
+            ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
+            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+            ProgramSlotId.UPPER_PUSH_SUPPORT
+        )
+        val TRANSFER_CAPABILITY_SLOTS = setOf(
+            ProgramSlotId.BADMINTON_FOOTWORK_REACTION,
+            ProgramSlotId.BADMINTON_DECEL_COD,
+            ProgramSlotId.POWER_REACTIVE_LOW_VOLUME,
+            ProgramSlotId.ROTATIONAL_KINETIC_CHAIN,
+            ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT
+        )
+        val ACCESSORY_CAPABILITY_SLOTS = SUPPORT_CAPABILITY_SLOTS + setOf(
+            ProgramSlotId.ACCESSORY_ROTATION,
+            ProgramSlotId.RECOVERY_PREHAB_LIGHT,
+            ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
+        )
         val LOW_LOAD_ACTIVATION_SUBTYPES = setOf(
             "WALL_SLIDE",
             "SCAPULAR_PUSH_UP",

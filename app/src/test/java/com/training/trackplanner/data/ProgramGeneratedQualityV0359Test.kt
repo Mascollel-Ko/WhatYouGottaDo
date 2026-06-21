@@ -26,12 +26,16 @@ class ProgramGeneratedQualityV0359Test {
         )
         val outputDir = repositoryOutputDir().apply { mkdirs() }
 
-        File(outputDir, "v0.3.5.9_generated_program_quality_samples.json").writeText(
+        File(outputDir, "v0.3.5.10_generated_program_quality_samples.json").writeText(
             renderJson(results, audits, safety),
             Charsets.UTF_8
         )
-        File(outputDir, "v0.3.5.9_generated_program_quality_audit_report.md").writeText(
+        File(outputDir, "v0.3.5.10_generated_program_quality_audit_report.md").writeText(
             renderReport(results, audits, safety).trimEnd() + "\n",
+            Charsets.UTF_8
+        )
+        File(outputDir, "v0.3.5.10_fallback_role_slot_cleanup_report.md").writeText(
+            renderCleanupReport(audits).trimEnd() + "\n",
             Charsets.UTF_8
         )
 
@@ -48,6 +52,11 @@ class ProgramGeneratedQualityV0359Test {
         assertTrue(audits.values.all { it.benchDominantOverheadSelections == 0 })
         assertTrue(audits.values.all { it.rotationInAnchorSlots == 0 })
         assertTrue(audits.values.all { it.timeBudgetIssues == 0 })
+        val fallbackAudits = audits.filterKeys { it.id.startsWith("FALLBACK_") }.values
+        assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::fallbackBlankRequestedSlots))
+        assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::fallbackAnchorRoleViolations))
+        assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::fallbackCorePrehabRoleViolations))
+        assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::normalRecoveryRehabClusters))
         assertTrue(safety.all { sample -> sample.result.items.none { it.isExplosiveTransfer() } })
     }
 
@@ -85,6 +94,27 @@ class ProgramGeneratedQualityV0359Test {
             item.selectionRole in setOf(ProgramExerciseRole.CORE.name, ProgramExerciseRole.PREHAB.name) &&
                 item.isExplosiveTransfer()
         }
+        val fallbackItems = if (result.representativeTemplate) emptyList() else result.items
+        val fallbackAnchorViolations = fallbackItems.count { item ->
+            item.selectionRole == ProgramExerciseRole.ANCHOR.name &&
+                item.primarySlotCapabilities.none(ANCHOR_SLOT_NAMES::contains)
+        }
+        val fallbackCorePrehabViolations = fallbackItems.count { item ->
+            when (item.selectionRole) {
+                ProgramExerciseRole.CORE.name ->
+                    !item.hasCapability(setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name)) ||
+                        item.isExplosiveTransfer()
+                ProgramExerciseRole.PREHAB.name ->
+                    !item.hasCapability(setOf(ProgramSlotId.RECOVERY_PREHAB_LIGHT.name)) ||
+                        item.isExplosiveTransfer()
+                else -> false
+            }
+        }
+        val normalRecoveryClusters = sessionGroups.count { (key, rows) ->
+            val week = result.weekPlans.first { it.weekIndex == key.first }
+            !week.deloadFlag && rows.first().trainingSlot == ProgramTrainingSlot.RECOVERY_WEAKPOINT.name &&
+                rows.count(ProgramSkeletonItem::rehabLikeActivation) > 1
+        }
         val hardIssues = result.validationDetails.filter { it.severity == ProgramValidationSeverity.HARD }
         val warnings = result.validationDetails.filter { it.severity == ProgramValidationSeverity.WARNING }
         return ScenarioAudit(
@@ -108,6 +138,13 @@ class ProgramGeneratedQualityV0359Test {
             rotationInAnchorSlots = rotationRows.count { it.requestedTemplateSlot in CORE_ANCHOR_SLOT_NAMES },
             clutteredSessions = clutteredSessions,
             randomFunctionalFillerCount = roleMismatchCount,
+            fallbackItems = fallbackItems.size,
+            fallbackBlankRequestedSlots = fallbackItems.count { it.requestedTemplateSlot.isBlank() },
+            fallbackResolvedRequestedSlots = fallbackItems.count { it.requestedTemplateSlot.isNotBlank() },
+            fallbackWeakRequestedSlots = fallbackItems.count { it.requestedTemplateSlot in it.weakSlotCapabilities },
+            fallbackAnchorRoleViolations = fallbackAnchorViolations,
+            fallbackCorePrehabRoleViolations = fallbackCorePrehabViolations,
+            normalRecoveryRehabClusters = normalRecoveryClusters,
             hardIssueCodes = hardIssues.map(ProgramValidationIssue::code),
             warningCodes = warnings.map(ProgramValidationIssue::code)
         )
@@ -118,7 +155,7 @@ class ProgramGeneratedQualityV0359Test {
         audits: Map<Scenario, ScenarioAudit>,
         safety: List<SafetySample>
     ): String = buildString {
-        appendLine("# v0.3.5.9 Generated Program Quality Audit")
+        appendLine("# v0.3.5.10 Generated Program Quality Audit")
         appendLine()
         appendLine("## Scenario Summary")
         appendLine()
@@ -145,6 +182,10 @@ class ProgramGeneratedQualityV0359Test {
             appendLine("- Bench-dominant overhead selections: ${row.benchDominantOverheadSelections}")
             appendLine("- Rotation replacing anchor slots: ${row.rotationInAnchorSlots}")
             appendLine("- Explosive/COD filler in core-prehab roles: ${row.randomFunctionalFillerCount}")
+            if (!result.representativeTemplate) {
+                appendLine("- Fallback requested slots: ${row.fallbackResolvedRequestedSlots} resolved / ${row.fallbackBlankRequestedSlots} blank / ${row.fallbackWeakRequestedSlots} weak")
+                appendLine("- Fallback role violations: anchor ${row.fallbackAnchorRoleViolations}, core-prehab ${row.fallbackCorePrehabRoleViolations}, recovery clusters ${row.normalRecoveryRehabClusters}")
+            }
             appendLine("- Direct sport sessions / time issues: ${row.directSportSessions} / ${row.timeBudgetIssues}")
             appendLine("- Hard issues: ${row.hardIssueCodes.ifEmpty { listOf("NONE") }.joinToString()}")
             appendLine("- Warnings: ${row.warningCodes.ifEmpty { listOf("NONE") }.distinct().joinToString()}")
@@ -169,11 +210,11 @@ class ProgramGeneratedQualityV0359Test {
         appendLine()
         appendLine("## Quality Issues Found and Tuning Applied")
         appendLine()
-        appendLine("- Pre-tuning audit found 23 placements where a ballistic medicine-ball slam occupied a CORE role, including a trunk anti-rotation target and fallback CORE slots.")
-        appendLine("- Fallback role eligibility now requires anchor identity for ANCHOR, non-reactive trunk identity for CORE, and non-reactive recovery identity for PREHAB.")
-        appendLine("- Ballistic/slam/throw/toss/push-press metadata is recognized as reactive power for role and fatigue gating.")
-        appendLine("- Targeted template slots reject reactive-power candidates when the requested role is CORE or PREHAB.")
-        appendLine("- Post-tuning random functional filler count: 0; major anchor gaps for 3+ day scenarios: 0; hard issues: 0.")
+        appendLine("- v0.3.5.9 fallback rows had 1,200 blank requested slots, so role labels could not be audited against actual slot intent.")
+        appendLine("- Fallback ANCHOR now requires a primary squat, hinge, upper-pull, or single-leg capability.")
+        appendLine("- CORE, PREHAB, SUPPORT, TRANSFER, and ACCESSORY use explicit role-capability sets; reactive work is rejected from CORE/PREHAB/SUPPORT.")
+        appendLine("- Fallback requested slots are resolved from primary, then secondary, then acceptable structured weak capability.")
+        appendLine("- Normal recovery-weakpoint sessions allow at most one rehab-like activation item; expanded allowance remains for deload, RED, and explicit recovery/prehab contexts.")
         appendLine()
         appendLine("## Remaining Warnings")
         appendLine()
@@ -188,7 +229,7 @@ class ProgramGeneratedQualityV0359Test {
         safety: List<SafetySample>
     ): String = buildString {
         appendLine("{")
-        appendLine("  \"version\": \"v0.3.5.9\",")
+        appendLine("  \"version\": \"v0.3.5.10\",")
         appendLine("  \"scenarioCount\": ${results.size},")
         appendLine("  \"scenarios\": [")
         results.entries.forEachIndexed { index, (scenario, result) ->
@@ -199,7 +240,7 @@ class ProgramGeneratedQualityV0359Test {
             appendLine("      \"templateId\": \"${json(result.templateId)}\",")
             appendLine("      \"representativeTemplate\": ${result.representativeTemplate},")
             appendLine("      \"days\": ${scenario.days}, \"weeks\": ${scenario.weeks}, \"ratio\": ${decimal(scenario.ratio)},")
-            appendLine("      \"audit\": {\"items\": ${audit.items}, \"missingAnchorWindows\": ${audit.missingAnchorWindows}, \"missingSupportWindows\": ${audit.missingSupportWindows}, \"normalRehabShare\": ${decimal(audit.normalRehabShare)}, \"maxTwoWeekFootworkShare\": ${decimal(audit.maxTwoWeekFootworkShare)}, \"rotationExposure\": ${audit.rotationExposure}, \"athleticOverheadExposure\": ${audit.athleticOverheadExposure}, \"recoveryPrehabExposure\": ${audit.recoveryPrehabExposure}, \"randomFunctionalFillerCount\": ${audit.randomFunctionalFillerCount}, \"hardIssues\": ${audit.hardIssueCodes.size}, \"warnings\": ${audit.warningCodes.size}},")
+            appendLine("      \"audit\": {\"items\": ${audit.items}, \"missingAnchorWindows\": ${audit.missingAnchorWindows}, \"missingSupportWindows\": ${audit.missingSupportWindows}, \"normalRehabShare\": ${decimal(audit.normalRehabShare)}, \"maxTwoWeekFootworkShare\": ${decimal(audit.maxTwoWeekFootworkShare)}, \"rotationExposure\": ${audit.rotationExposure}, \"athleticOverheadExposure\": ${audit.athleticOverheadExposure}, \"recoveryPrehabExposure\": ${audit.recoveryPrehabExposure}, \"randomFunctionalFillerCount\": ${audit.randomFunctionalFillerCount}, \"fallbackBlankRequestedSlots\": ${audit.fallbackBlankRequestedSlots}, \"fallbackAnchorRoleViolations\": ${audit.fallbackAnchorRoleViolations}, \"fallbackCorePrehabRoleViolations\": ${audit.fallbackCorePrehabRoleViolations}, \"hardIssues\": ${audit.hardIssueCodes.size}, \"warnings\": ${audit.warningCodes.size}},")
             appendLine("      \"weeksOutput\": [")
             result.weekPlans.forEachIndexed { weekIndex, week ->
                 appendLine("        {\"week\": ${week.weekIndex}, \"weekType\": \"${week.weekType}\", \"days\": [")
@@ -254,6 +295,40 @@ class ProgramGeneratedQualityV0359Test {
         runtimeMetadataCatalog = catalog,
         fatigueState = fatigue
     )
+
+    private fun renderCleanupReport(audits: Map<Scenario, ScenarioAudit>): String = buildString {
+        val fallback = audits.filterKeys { it.id.startsWith("FALLBACK_") }.values
+        appendLine("# v0.3.5.10 Fallback Role / Slot Cleanup")
+        appendLine()
+        appendLine("## Scope")
+        appendLine()
+        appendLine("- Files changed: `app/build.gradle.kts`, `ProgramBuilder.kt`, `ProgramBuilderValidation.kt`, and the generated-quality audit test/output files.")
+        appendLine("- Metadata/seed/Room schema changes: NONE.")
+        appendLine("- Representative hidden templates changed: NO; shared fallback selection correctness only.")
+        appendLine()
+        appendLine("## Before / After")
+        appendLine()
+        appendLine("- v0.3.5.9 fallback requested-slot blanks: 1,200.")
+        appendLine("- Fallback items: ${fallback.sumOf(ScenarioAudit::fallbackItems)}")
+        appendLine("- Requested slots resolved: ${fallback.sumOf(ScenarioAudit::fallbackResolvedRequestedSlots)}")
+        appendLine("- Requested slots blank: ${fallback.sumOf(ScenarioAudit::fallbackBlankRequestedSlots)}")
+        appendLine("- Weak capability resolutions: ${fallback.sumOf(ScenarioAudit::fallbackWeakRequestedSlots)}")
+        appendLine("- Anchor role violations: ${fallback.sumOf(ScenarioAudit::fallbackAnchorRoleViolations)}")
+        appendLine("- CORE/PREHAB role violations: ${fallback.sumOf(ScenarioAudit::fallbackCorePrehabRoleViolations)}")
+        appendLine("- Normal recovery/weakpoint rehab clusters: ${fallback.sumOf(ScenarioAudit::normalRecoveryRehabClusters)}")
+        appendLine()
+        appendLine("## Rules Applied")
+        appendLine()
+        appendLine("- ANCHOR: primary capability must be squat, hinge, upper pull, or single-leg strength/control.")
+        appendLine("- CORE: controlled trunk/anti-rotation capability; no ballistic/reactive/high-impact work.")
+        appendLine("- PREHAB: recovery/prehab-light capability; no ballistic/reactive/high-impact work.")
+        appendLine("- SUPPORT: structured strength/support capability; no reactive/COD dumping.")
+        appendLine("- RECOVERY_WEAKPOINT: one rehab-like activation maximum in normal weeks.")
+        appendLine()
+        appendLine("## Remaining TODO")
+        appendLine()
+        appendLine("- Expand hidden templates only when a future request explicitly covers additional ratio/goal/day combinations.")
+    }
 
     private fun ProgramSkeletonItem.hasCapability(slots: Set<String>): Boolean =
         requestedTemplateSlot in slots || primarySlotCapabilities.any(slots::contains) || secondarySlotCapabilities.any(slots::contains)
@@ -331,6 +406,9 @@ class ProgramGeneratedQualityV0359Test {
         val athleticOverheadExposure: Int, val recoveryPrehabExposure: Int, val directSportSessions: Int,
         val timeBudgetIssues: Int, val rehabDominantSessions: Int, val benchDominantOverheadSelections: Int,
         val rotationInAnchorSlots: Int, val clutteredSessions: Int, val randomFunctionalFillerCount: Int,
+        val fallbackItems: Int, val fallbackBlankRequestedSlots: Int, val fallbackResolvedRequestedSlots: Int,
+        val fallbackWeakRequestedSlots: Int, val fallbackAnchorRoleViolations: Int,
+        val fallbackCorePrehabRoleViolations: Int, val normalRecoveryRehabClusters: Int,
         val hardIssueCodes: List<String>,
         val warningCodes: List<String>
     )
@@ -357,6 +435,10 @@ class ProgramGeneratedQualityV0359Test {
         val CORE_ANCHOR_SLOT_NAMES = setOf(
             ProgramSlotId.LOWER_SQUAT_PATTERN.name, ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name,
             ProgramSlotId.UPPER_PULL_ANCHOR.name
+        )
+        val ANCHOR_SLOT_NAMES = setOf(
+            ProgramSlotId.LOWER_SQUAT_PATTERN.name, ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name,
+            ProgramSlotId.UPPER_PULL_ANCHOR.name, ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL.name
         )
         val REQUIRED_ANCHOR_GROUPS = listOf(
             setOf(ProgramSlotId.LOWER_SQUAT_PATTERN.name, ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL.name),
