@@ -628,7 +628,10 @@ internal data class ProgramCandidate(
     private val isCodSpecific: Boolean = metadata?.appCueProfile == "RANDOM_BEEP_CUE" ||
         has("FOOTWORK", "SPLIT_STEP", "CHANGE_OF_DIRECTION", "DECELERATION", "REACTION", "COURT_MOVEMENT")
     private val isReactivePowerSpecific: Boolean = isHighImpact ||
-        has("ELASTIC_SSC", "REACTIVE_POWER", "EXPLOSIVE_POWER", "NEURAL_SPEED", "FIRST_STEP")
+        has(
+            "ELASTIC_SSC", "REACTIVE_POWER", "EXPLOSIVE_POWER", "NEURAL_SPEED", "FIRST_STEP",
+            "BALLISTIC", "SLAM", "THROW", "TOSS", "PUSH_PRESS"
+        )
     val isAnchor: Boolean = identityHas("COMPOUND", "HEAVY_HINGE", "SQUAT_HEAVY", "VERTICAL_PULL", "HORIZONTAL_PULL")
     val isDirectSportSession: Boolean = metadata?.activityKind == "SPORT_SESSION" ||
         identityHas("BADMINTON_SESSION_SPORT_RECORDS", "OTHER_SPORT_SESSION_RECORDS") ||
@@ -701,14 +704,20 @@ internal data class ProgramCandidate(
 
     fun allowedForRole(slot: ProgramTrainingSlot, role: ProgramExerciseRole): Boolean {
         if (role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
-        if (role != ProgramExerciseRole.TRANSFER) return true
-        return when (slot) {
-            ProgramTrainingSlot.BADMINTON_COD,
-            ProgramTrainingSlot.BADMINTON_COD_DECEL -> isCodSpecific
-            ProgramTrainingSlot.POWER_REACTIVE,
-            ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> isReactivePowerSpecific || isCodSpecific
-            ProgramTrainingSlot.BADMINTON_TRANSFER -> badmintonFit >= 0.90
-            else -> true
+        return when (role) {
+            ProgramExerciseRole.ANCHOR -> isAnchor || (strengthFit >= 0.8 && !isIsolation)
+            ProgramExerciseRole.CORE -> isCore && !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
+            ProgramExerciseRole.PREHAB -> isRecovery && !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
+            ProgramExerciseRole.TRANSFER -> when (slot) {
+                ProgramTrainingSlot.BADMINTON_COD,
+                ProgramTrainingSlot.BADMINTON_COD_DECEL -> isCodSpecific
+                ProgramTrainingSlot.POWER_REACTIVE,
+                ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> isReactivePowerSpecific || isCodSpecific
+                ProgramTrainingSlot.BADMINTON_TRANSFER -> badmintonFit >= 0.90
+                else -> true
+            }
+            ProgramExerciseRole.SUPPORT,
+            ProgramExerciseRole.ACCESSORY -> true
         }
     }
 
@@ -722,6 +731,12 @@ internal data class ProgramCandidate(
             return allowedForSlot(plannedSlot) && allowedForRole(plannedSlot, templateSlot.role)
         }
         if (templateSlot.role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
+        if (templateSlot.role == ProgramExerciseRole.CORE && isReactivePowerSpecific) return false
+        if (templateSlot.role == ProgramExerciseRole.PREHAB &&
+            (isReactivePowerSpecific || isHighImpact || isHighIntensityCod)
+        ) {
+            return false
+        }
         val credit = coveragePolicy.credit(slotCapabilities, target)
         return if (templateSlot.required) {
             credit.value >= CoverageCredit.PARTIAL.value
