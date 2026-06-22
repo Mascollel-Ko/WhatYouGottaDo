@@ -1,0 +1,57 @@
+package com.training.trackplanner.analysis.lab
+
+import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.time.LocalDate
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class AnalysisMetricRegistryTest {
+    private val explorerMetrics = setOf(
+        TrendMetricId.STRENGTH_PERFORMANCE,
+        TrendMetricId.STRENGTH_INTENSITY,
+        TrendMetricId.STRENGTH_VOLUME,
+        TrendMetricId.STRENGTH_EFFICIENCY,
+        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.COURT_VOLUME,
+        TrendMetricId.FOOTWORK_REACTIVE,
+        TrendMetricId.BADMINTON_SUPPORT,
+        TrendMetricId.FATIGUE_COMPOSITE,
+        TrendMetricId.SYSTEMIC_FATIGUE,
+        TrendMetricId.STRENGTH_FATIGUE,
+        TrendMetricId.BADMINTON_FATIGUE,
+        TrendMetricId.LOCAL_BODY_PART_FATIGUE,
+        TrendMetricId.RECOVERY_PERFORMANCE_PENALTY,
+        TrendMetricId.STRENGTH_DELTA_NEXT,
+        TrendMetricId.FATIGUE_DELTA_NEXT
+    )
+
+    @Test
+    fun registryContainsEveryRelationshipExplorerMetricExactlyOnce() {
+        assertEquals(explorerMetrics, AnalysisMetricRegistry.descriptors.map { it.id }.toSet())
+        assertEquals(explorerMetrics.size, AnalysisMetricRegistry.descriptors.size)
+        assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsScatter })
+    }
+
+    @Test
+    fun scatterSelectorCanFilterToMetricsWithAvailableValues() {
+        val date = LocalDate.of(2026, 1, 5)
+        val series = mapOf(
+            TrendMetricId.STRENGTH_VOLUME to listOf(TrendDataPoint(date, 100.0)),
+            TrendMetricId.FATIGUE_COMPOSITE to listOf(TrendDataPoint(date, null)),
+            TrendMetricId.COURT_VOLUME to emptyList()
+        )
+
+        val available = AnalysisMetricRegistry.scatterMetrics(series)
+
+        assertEquals(listOf(TrendMetricId.STRENGTH_VOLUME), available.map { it.id })
+    }
+
+    @Test
+    fun registryDescriptorsAreReadyForFutureTimeSeriesAndMultivariateUse() {
+        assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsTimeSeries })
+        assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsMultivariate })
+        assertTrue(AnalysisMetricRegistry.descriptors.all { it.description.isNotBlank() })
+    }
+}

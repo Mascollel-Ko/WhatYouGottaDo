@@ -5,7 +5,7 @@ internal object PerformanceTrendConstants {
     const val EXTENDED_WEEK_COUNT = 12
     const val FORECAST_WEEKS = 4
     const val FORECAST_MIN_POINTS = 4
-    const val SCATTER_MIN_POINTS = 10
+    const val SCATTER_MIN_POINTS = 8
     const val TREND_STABLE_DELTA = 4.0
     const val EPSILON = 0.0001
 
