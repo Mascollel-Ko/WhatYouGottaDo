@@ -88,6 +88,19 @@ data class BadmintonTransferScoreSnapshot(
         }
 }
 
+data class BadmintonTransferWindowSnapshot(
+    val windowDays: Int,
+    val totalStimulus: Double,
+    val axisStimulus: Map<BadmintonTransferAxis, Double>,
+    val axisEntryCounts: Map<BadmintonTransferAxis, Int>,
+    val sampleEntryCount: Int
+) {
+    val axisShare: Map<BadmintonTransferAxis, Double>
+        get() = axisStimulus.mapValues { (_, value) ->
+            if (totalStimulus <= BadmintonTransferConstants.EPSILON) 0.0 else value / totalStimulus
+        }
+}
+
 data class BadmintonTransferRecommendation(
     val recommendedAxis: BadmintonTransferAxis?,
     val recommendationSentence: String,

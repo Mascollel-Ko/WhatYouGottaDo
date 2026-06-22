@@ -7,11 +7,14 @@ import android.util.Log
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEngine
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
+import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageAnalyzer
+import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
 import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
 import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
@@ -265,6 +268,20 @@ class TrainingRepository(
             exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             readinessSummary = readinessSummary
+        )
+    }
+
+    suspend fun badmintonTransferCoverageSummary(
+        latestFatigueState: DailyFatigueState?
+    ): BadmintonTransferCoverageSummary = withContext(Dispatchers.IO) {
+        val today = SystemAnalysisDateProvider().today()
+        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val exercises = exerciseDao.allExercises()
+        BadmintonTransferCoverageAnalyzer(resolvedRuntimeMetadataCatalog(exercises)).analyze(
+            today = today,
+            exercises = exercises,
+            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            latestFatigueState = latestFatigueState
         )
     }
 

@@ -11,6 +11,31 @@ import java.time.LocalDate
 class BadmintonTransferScoreCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
 ) {
+    fun calculateWindow(
+        today: LocalDate,
+        windowDays: Int,
+        exercises: List<Exercise>,
+        entriesWithSets: List<WorkoutEntryWithSets>
+    ): BadmintonTransferWindowSnapshot {
+        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+        val safeWindowDays = windowDays.coerceAtLeast(1)
+        val start = today.minusDays(safeWindowDays.toLong() - 1)
+        val contributions = entriesWithSets.mapNotNull { record ->
+            val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
+            if (date !in start..today) return@mapNotNull null
+            contribution(record, exerciseMap[record.entry.exerciseId])
+        }
+        return BadmintonTransferWindowSnapshot(
+            windowDays = safeWindowDays,
+            totalStimulus = contributions.sumOf { contribution -> contribution.totalStimulus },
+            axisStimulus = axisStimulus(contributions),
+            axisEntryCounts = BadmintonTransferAxis.entries.associateWith { axis ->
+                contributions.count { contribution -> axis in contribution.axes }
+            },
+            sampleEntryCount = contributions.size
+        )
+    }
+
     fun calculate(
         today: LocalDate,
         exercises: List<Exercise>,

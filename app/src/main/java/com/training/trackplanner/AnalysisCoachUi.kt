@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
 import com.training.trackplanner.analysis.badminton.BadmintonTransferDetailChartMode
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
+import com.training.trackplanner.analysis.coach.BadmintonTransferAxisStatus
+import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
+import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
 import com.training.trackplanner.analysis.fatigue.ContributionGrouping
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
@@ -50,6 +53,7 @@ internal fun CoachAnalysisContent(
     readiness: TodayReadinessSummary?,
     fatigueAnalysis: FatigueAnalysisUiState,
     badmintonTransfer: BadmintonTransferSummary?,
+    coachInsight: CoachAnalysisInsightSummary,
     performanceTrend: PerformanceTrendSummary?,
     onPeriodChange: (FatigueAnalysisPeriod) -> Unit,
     onFatigueTargetToggle: (FatigueTarget) -> Unit,
@@ -68,6 +72,11 @@ internal fun CoachAnalysisContent(
             onContributionGroupingChange = onContributionGroupingChange,
             onContributionSourcesApply = onContributionSourcesApply
         )
+        CoachFatigueCauseCard(
+            summary = coachInsight.fatigueCauses,
+            combinedHeadline = coachInsight.combinedHeadline
+        )
+        BadmintonTransferCoverageCard(coachInsight)
         badmintonTransfer?.let { BadmintonTransferCard(it) }
             ?: InfoCard("배드민턴 전이 분석을 계산하고 있습니다.")
         performanceTrend?.let { PerformanceTrendCard(it) }
@@ -76,6 +85,84 @@ internal fun CoachAnalysisContent(
             InfoCard("확인된 세트가 쌓이면 코치 분석의 신뢰도가 높아집니다.")
         }
         TrainingDistributionSummary(stats)
+    }
+}
+
+@Composable
+private fun CoachFatigueCauseCard(
+    summary: CoachFatigueCauseSummary,
+    combinedHeadline: String?
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("피로 상승 원인", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (!summary.isDataSufficient) {
+                Text(summary.headline, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                return@Column
+            }
+            Text(
+                combinedHeadline ?: summary.headline,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            summary.causes.take(5).forEach { cause ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("${cause.rank}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(cause.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            cause.affectedAxes.joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(cause.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BadmintonTransferCoverageCard(insight: CoachAnalysisInsightSummary) {
+    val summary = insight.transferCoverage
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("배드민턴 전이 점검", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(summary.headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            if (!summary.isDataSufficient) return@Column
+            if (summary.lowAxes.isNotEmpty()) {
+                Text("부족축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                summary.lowAxes.take(4).forEach { TransferAxisRow(it) }
+            }
+            if (summary.cautionAxes.isNotEmpty()) {
+                Text("과잉·주의축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
+                summary.cautionAxes.take(3).forEach { TransferAxisRow(it) }
+            }
+            if (summary.lowAxes.isEmpty() && summary.cautionAxes.isEmpty()) {
+                Text("최근 전이 축은 대체로 균형적입니다.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(axis.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

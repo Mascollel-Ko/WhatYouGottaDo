@@ -24,6 +24,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val readiness by viewModel.todayReadinessSummary.collectAsState()
     val fatigueAnalysis by viewModel.fatigueAnalysisState.collectAsState()
     val badmintonTransfer by viewModel.badmintonTransferSummary.collectAsState()
+    val coachInsight by viewModel.coachAnalysisInsight.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
     var selectedTab by rememberSaveable { mutableStateOf(AnalysisTab.COACH) }
 
@@ -52,6 +53,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                     readiness = readiness,
                     fatigueAnalysis = fatigueAnalysis,
                     badmintonTransfer = badmintonTransfer,
+                    coachInsight = coachInsight,
                     performanceTrend = performanceTrend,
                     onPeriodChange = viewModel::selectFatigueAnalysisPeriod,
                     onFatigueTargetToggle = viewModel::toggleFatigueTrendTarget,
