@@ -78,13 +78,15 @@ data class BadmintonTransferCoverageSummary(
 data class CoachAnalysisInsightSummary(
     val fatigueCauses: CoachFatigueCauseSummary,
     val transferCoverage: BadmintonTransferCoverageSummary,
-    val combinedHeadline: String?
+    val combinedHeadline: String?,
+    val checkInGuidance: List<String> = emptyList()
 ) {
     companion object {
         fun empty() = CoachAnalysisInsightSummary(
             fatigueCauses = CoachFatigueCauseSummary.insufficient(),
             transferCoverage = BadmintonTransferCoverageSummary.insufficient(),
-            combinedHeadline = null
+            combinedHeadline = null,
+            checkInGuidance = emptyList()
         )
     }
 }

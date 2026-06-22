@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.coach
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.FatigueAxisValues
 import com.training.trackplanner.analysis.fatigue.FatigueDecayModel
+import com.training.trackplanner.data.DailyCheckIn
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -10,19 +11,16 @@ class CoachFatigueCauseAnalyzer {
     fun analyze(
         today: LocalDate,
         history: List<DailyFatigueResult>,
+        checkIns: List<DailyCheckIn> = emptyList(),
         windowDays: Int = 14,
         limit: Int = 5
     ): CoachFatigueCauseSummary {
         val safeWindow = windowDays.coerceAtLeast(1)
         val start = today.minusDays(safeWindow.toLong() - 1)
-        val contributions = history.asSequence()
+        val exerciseCauses = history.asSequence()
             .filter { result -> result.state.date in start..today }
             .flatMap { result -> result.recordContributions.asSequence() }
             .filter { contribution -> contribution.date in start..today }
-            .toList()
-        if (contributions.isEmpty()) return CoachFatigueCauseSummary.insufficient(safeWindow)
-
-        val ranked = contributions
             .groupBy { contribution -> contribution.stableKey.ifBlank { contribution.exerciseName } }
             .mapNotNull { (_, grouped) ->
                 val axes = grouped.fold(FatigueAxisValues()) { total, contribution ->
@@ -40,26 +38,36 @@ class CoachFatigueCauseAnalyzer {
                 }
                 val score = axes.values().sum()
                 if (score <= 0.0001) return@mapNotNull null
-                AggregatedCause(grouped.first().exerciseName, axes, score)
+                val affectedAxes = axisValues(axes)
+                    .filter { it.second > 0.0001 }
+                    .sortedByDescending { it.second }
+                    .take(2)
+                    .map { it.first }
+                CoachFatigueCause(
+                    rank = 0,
+                    label = grouped.first().exerciseName,
+                    detail = "최근 ${safeWindow}일 동안 ${affectedAxes.joinToString("·")} 부하에 많이 기여한 기록입니다.",
+                    contributionScore = score,
+                    affectedAxes = affectedAxes,
+                    sourceType = CoachFatigueCauseType.EXERCISE
+                )
             }
-            .sortedByDescending { cause -> cause.score }
-            .take(limit.coerceAtLeast(1))
 
-        if (ranked.isEmpty()) return CoachFatigueCauseSummary.insufficient(safeWindow)
-        val causes = ranked.mapIndexed { index, cause ->
-            val affectedAxes = axisValues(cause.axes).filter { it.second > 0.0001 }
-                .sortedByDescending { it.second }
-                .take(2)
-                .map { it.first }
-            CoachFatigueCause(
-                rank = index + 1,
-                label = cause.label,
-                detail = "최근 ${safeWindow}일 ${affectedAxes.joinToString("·")} 부담에 많이 누적된 기록입니다.",
-                contributionScore = cause.score,
-                affectedAxes = affectedAxes,
-                sourceType = CoachFatigueCauseType.EXERCISE
-            )
-        }
+        val latestCheckIn = checkIns.asSequence()
+            .filter { checkIn ->
+                runCatching { LocalDate.parse(checkIn.date) }.getOrNull()?.let { date -> date in start..today } == true
+            }
+            .maxByOrNull { checkIn -> checkIn.date }
+        val checkInCauses = CoachCheckInInterpreter().causes(
+            checkIn = latestCheckIn,
+            baseScore = exerciseCauses.maxOfOrNull { cause -> cause.contributionScore } ?: 50.0
+        )
+        val causes = (exerciseCauses + checkInCauses)
+            .sortedByDescending { cause -> cause.contributionScore }
+            .take(limit.coerceAtLeast(1))
+            .mapIndexed { index, cause -> cause.copy(rank = index + 1) }
+
+        if (causes.isEmpty()) return CoachFatigueCauseSummary.insufficient(safeWindow)
         val top = causes.first()
         return CoachFatigueCauseSummary(
             windowDays = safeWindow,
@@ -76,11 +84,5 @@ class CoachFatigueCauseAnalyzer {
         "관절/건/충격" to axes.jointTendonImpact,
         "동작 집중" to axes.movementFocus,
         "회복 지속" to axes.recoveryPressure
-    )
-
-    private data class AggregatedCause(
-        val label: String,
-        val axes: FatigueAxisValues,
-        val score: Double
     )
 }

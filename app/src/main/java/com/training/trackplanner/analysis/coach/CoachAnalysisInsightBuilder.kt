@@ -3,7 +3,8 @@ package com.training.trackplanner.analysis.coach
 object CoachAnalysisInsightBuilder {
     fun combine(
         fatigue: CoachFatigueCauseSummary,
-        transfer: BadmintonTransferCoverageSummary
+        transfer: BadmintonTransferCoverageSummary,
+        checkInGuidance: List<String> = emptyList()
     ): CoachAnalysisInsightSummary {
         val headline = when {
             fatigue.isDataSufficient && transfer.cautionAxes.isNotEmpty() ->
@@ -14,6 +15,6 @@ object CoachAnalysisInsightBuilder {
             transfer.isDataSufficient -> transfer.headline
             else -> null
         }
-        return CoachAnalysisInsightSummary(fatigue, transfer, headline)
+        return CoachAnalysisInsightSummary(fatigue, transfer, headline, checkInGuidance)
     }
 }

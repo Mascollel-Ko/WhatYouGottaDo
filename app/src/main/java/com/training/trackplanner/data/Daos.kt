@@ -458,6 +458,30 @@ interface DailyMetricDao {
 }
 
 @Dao
+interface DailyCheckInDao {
+    @Query("SELECT * FROM daily_check_ins WHERE date = :date LIMIT 1")
+    suspend fun getForDate(date: String): DailyCheckIn?
+
+    @Query("SELECT * FROM daily_check_ins WHERE date = :date LIMIT 1")
+    fun observeForDate(date: String): Flow<DailyCheckIn?>
+
+    @Query("SELECT * FROM daily_check_ins WHERE date BETWEEN :startDate AND :endDate ORDER BY date")
+    fun observeBetween(startDate: String, endDate: String): Flow<List<DailyCheckIn>>
+
+    @Query("SELECT * FROM daily_check_ins WHERE date BETWEEN :startDate AND :endDate ORDER BY date")
+    suspend fun between(startDate: String, endDate: String): List<DailyCheckIn>
+
+    @Query("SELECT * FROM daily_check_ins ORDER BY date")
+    suspend fun all(): List<DailyCheckIn>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(checkIn: DailyCheckIn)
+
+    @Query("DELETE FROM daily_check_ins WHERE date = :date")
+    suspend fun deleteForDate(date: String)
+}
+
+@Dao
 interface AppMetaDao {
     @Query("SELECT value FROM app_meta WHERE `key` = :key LIMIT 1")
     suspend fun value(key: String): String?

@@ -38,11 +38,23 @@ internal fun AnalysisLabContent(summary: PerformanceTrendSummary) {
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         LabIntroductionCard()
+        if (availableMetrics.none { descriptor -> descriptor.id in checkInMetricIds }) {
+            InfoCard("체크인 기록이 쌓이면 회복/컨디션 지표도 실험실에서 비교할 수 있습니다.")
+        }
         RelationshipExplorerCard(summary, availableMetrics)
         LabMetricCatalogCard(availableMetrics)
         LabFutureExpansionCard()
     }
 }
+
+private val checkInMetricIds = setOf(
+    TrendMetricId.SLEEP_HOURS,
+    TrendMetricId.OVERALL_FATIGUE_CHECKIN,
+    TrendMetricId.LOWER_BODY_FATIGUE_CHECKIN,
+    TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN,
+    TrendMetricId.FOCUS_MOTIVATION_CHECKIN,
+    TrendMetricId.RECOVERY_CHECKIN_COMPOSITE
+)
 
 @Composable
 private fun LabIntroductionCard() {

@@ -14,13 +14,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutEntry::class,
         WorkoutSet::class,
         DailyMetric::class,
+        DailyCheckIn::class,
         TrainingProgram::class,
         TrainingProgramItem::class,
         AppMeta::class,
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -29,6 +30,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
     abstract fun programDao(): ProgramDao
     abstract fun dailyMetricDao(): DailyMetricDao
+    abstract fun dailyCheckInDao(): DailyCheckInDao
     abstract fun appMetaDao(): AppMetaDao
     abstract fun initialUserProfileDao(): InitialUserProfileDao
     abstract fun runtimeExerciseMetadataDao(): RuntimeExerciseMetadataDao
@@ -323,6 +325,27 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `daily_check_ins` (
+                        `date` TEXT NOT NULL,
+                        `sleepHours` REAL,
+                        `overallFatigue` INTEGER,
+                        `lowerBodyFatigue` INTEGER,
+                        `jointTendonDiscomfort` INTEGER,
+                        `focusMotivation` INTEGER,
+                        `note` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`date`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -343,7 +366,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_10_11,
                         MIGRATION_11_12,
                         MIGRATION_12_13,
-                        MIGRATION_13_14
+                        MIGRATION_13_14,
+                        MIGRATION_14_15
                     )
                     .build()
                     .also { instance = it }

@@ -7,6 +7,7 @@ data class RecordCsvTransferResult(
     val format: String,
     val exerciseCount: Int = 0,
     val dailyMetricCount: Int = 0,
+    val dailyCheckInCount: Int = 0,
     val profileCount: Int = 0,
     val entryCount: Int = 0,
     val setCount: Int = 0,
@@ -14,7 +15,7 @@ data class RecordCsvTransferResult(
     val warningCount: Int = 0
 ) {
     fun summaryText(action: String): String =
-        "$action 완료: profile $profileCount, daily $dailyMetricCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
+        "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
 }
 
 sealed class RecordCsvImportData {
@@ -23,7 +24,8 @@ sealed class RecordCsvImportData {
         val profileRows: List<RestoreProfileRow>,
         val dailyRows: List<RestoreDailyRow>,
         val setRows: List<RestoreSetRow>,
-        val warningCount: Int
+        val warningCount: Int,
+        val checkInRows: List<RestoreCheckInRow> = emptyList()
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -36,6 +38,18 @@ data class RestoreDailyRow(
     val date: String,
     val sleepHours: Double?,
     val bodyWeightKg: Double?
+)
+
+data class RestoreCheckInRow(
+    val date: String,
+    val sleepHours: Double?,
+    val overallFatigue: Int?,
+    val lowerBodyFatigue: Int?,
+    val jointTendonDiscomfort: Int?,
+    val focusMotivation: Int?,
+    val note: String?,
+    val createdAt: Long?,
+    val updatedAt: Long?
 )
 
 data class RestoreProfileRow(
@@ -157,14 +171,22 @@ object RecordCsvBackupRestore {
         "detail2",
         "mode",
         "profile_key",
-        "profile_value"
+        "profile_value",
+        "overall_fatigue",
+        "lower_body_fatigue",
+        "joint_tendon_discomfort",
+        "focus_motivation",
+        "checkin_note",
+        "checkin_created_at",
+        "checkin_updated_at"
     )
 
     fun buildRestoreCsv(
         entriesWithSets: List<WorkoutEntryWithSets>,
         metrics: List<DailyMetric>,
         exercises: List<Exercise> = emptyList(),
-        initialProfile: InitialUserProfile? = null
+        initialProfile: InitialUserProfile? = null,
+        checkIns: List<DailyCheckIn> = emptyList()
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.id }
@@ -263,6 +285,26 @@ object RecordCsvBackupRestore {
                 )
             }
         }
+        checkIns.sortedBy { checkIn -> checkIn.date }.forEach { checkIn ->
+            builder.appendCsvRow(
+                restoreHeader.map { column ->
+                    when (column) {
+                        "schema_version" -> "2"
+                        "row_type" -> "check_in"
+                        "date" -> checkIn.date
+                        "sleep_hours" -> checkIn.sleepHours.formatOptional()
+                        "overall_fatigue" -> checkIn.overallFatigue?.toString().orEmpty()
+                        "lower_body_fatigue" -> checkIn.lowerBodyFatigue?.toString().orEmpty()
+                        "joint_tendon_discomfort" -> checkIn.jointTendonDiscomfort?.toString().orEmpty()
+                        "focus_motivation" -> checkIn.focusMotivation?.toString().orEmpty()
+                        "checkin_note" -> checkIn.note.orEmpty()
+                        "checkin_created_at" -> checkIn.createdAt.toString()
+                        "checkin_updated_at" -> checkIn.updatedAt.toString()
+                        else -> ""
+                    }
+                }
+            )
+        }
         entriesWithSets
             .groupBy { item -> item.entry.date }
             .toSortedMap()
@@ -328,6 +370,7 @@ object RecordCsvBackupRestore {
         val profileRows = mutableListOf<RestoreProfileRow>()
         val dailyRows = mutableListOf<RestoreDailyRow>()
         val setRows = mutableListOf<RestoreSetRow>()
+        val checkInRows = mutableListOf<RestoreCheckInRow>()
         rows.forEachIndexed { rowIndex, row ->
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             if (rowType == "profile") {
@@ -413,10 +456,24 @@ object RecordCsvBackupRestore {
                     sleepHours = row.safeDouble(index, "sleep_hours"),
                     bodyWeightKg = row.safeDouble(index, "body_weight_kg")
                 )
+                "check_in" -> {
+                    val candidate = RestoreCheckInRow(
+                        date = date,
+                        sleepHours = row.safeDouble(index, "sleep_hours"),
+                        overallFatigue = row.safeInt(index, "overall_fatigue"),
+                        lowerBodyFatigue = row.safeInt(index, "lower_body_fatigue"),
+                        jointTendonDiscomfort = row.safeInt(index, "joint_tendon_discomfort"),
+                        focusMotivation = row.safeInt(index, "focus_motivation"),
+                        note = row.value(index, "checkin_note").ifBlank { null },
+                        createdAt = row.safeLong(index, "checkin_created_at"),
+                        updatedAt = row.safeLong(index, "checkin_updated_at")
+                    )
+                    if (candidate.hasValidValues()) checkInRows += candidate else warnings += 1
+                }
                 else -> warnings += 1
             }
         }
-        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings)
+        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings, checkInRows)
     }
 
     private fun parseDailyTimeseries(
@@ -496,6 +553,9 @@ object RecordCsvBackupRestore {
     private fun List<String>.safeInt(index: Map<String, Int>, key: String): Int? =
         value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toIntOrNull()
 
+    private fun List<String>.safeLong(index: Map<String, Int>, key: String): Long? =
+        value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toLongOrNull()
+
     private fun List<String>.safeBool(index: Map<String, Int>, key: String): Boolean? =
         when (value(index, key).trim().lowercase(Locale.US)) {
             "1", "true", "yes", "y" -> true
@@ -505,6 +565,12 @@ object RecordCsvBackupRestore {
 
     private fun String.isValidDate(): Boolean =
         runCatching { LocalDate.parse(this) }.isSuccess
+
+    private fun RestoreCheckInRow.hasValidValues(): Boolean =
+        (sleepHours == null || sleepHours in 0.0..24.0) &&
+            listOf(overallFatigue, lowerBodyFatigue, jointTendonDiscomfort, focusMotivation)
+                .filterNotNull()
+                .all { value -> value in 1..5 }
 
     private fun Boolean.toCsvBool(): String = if (this) "1" else "0"
 

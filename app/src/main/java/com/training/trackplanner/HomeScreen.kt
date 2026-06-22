@@ -50,6 +50,7 @@ internal fun HomeScreen(
     val summary by viewModel.homeTodaySummary.collectAsState()
     val transferMessage by viewModel.recordTransferMessage.collectAsState()
     val initialProfile by viewModel.initialUserProfile.collectAsState()
+    val todayCheckIn by viewModel.todayCheckIn.collectAsState()
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
@@ -82,6 +83,12 @@ internal fun HomeScreen(
         }
         item {
             TodaySummaryCard(summary)
+        }
+        item {
+            HomeDailyCheckInCard(
+                checkIn = todayCheckIn,
+                onSave = viewModel::saveDailyCheckIn
+            )
         }
         item {
             RecordManagementCard(

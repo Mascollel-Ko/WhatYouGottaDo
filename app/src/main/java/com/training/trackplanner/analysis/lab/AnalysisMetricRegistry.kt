@@ -19,6 +19,12 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.BADMINTON_FATIGUE, "배드민턴 부담", "배드민턴 훈련에서 발생한 주간 피로 부담", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.LOCAL_BODY_PART_FATIGUE, "국소/부위 부담", "가장 높은 국소 부위의 주간 부담", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.RECOVERY_PERFORMANCE_PENALTY, "회복/수행 보정", "회복 상태와 수행 저하를 반영한 주간 지수", AnalysisMetricCategory.RECOVERY, false),
+        metric(TrendMetricId.SLEEP_HOURS, "수면시간", "체크인에 기록한 주간 평균 수면시간", AnalysisMetricCategory.RECOVERY, true, "시간"),
+        metric(TrendMetricId.OVERALL_FATIGUE_CHECKIN, "전신 피로 입력", "주간 평균 전신 피로 체크인", AnalysisMetricCategory.RECOVERY, false, "1~5"),
+        metric(TrendMetricId.LOWER_BODY_FATIGUE_CHECKIN, "하체 피로 입력", "주간 평균 하체 피로 체크인", AnalysisMetricCategory.RECOVERY, false, "1~5"),
+        metric(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN, "관절/건 불편감", "주간 평균 관절/건 불편감 체크인", AnalysisMetricCategory.RECOVERY, false, "1~5"),
+        metric(TrendMetricId.FOCUS_MOTIVATION_CHECKIN, "집중력/의욕", "주간 평균 집중력/의욕 체크인", AnalysisMetricCategory.RECOVERY, true, "1~5"),
+        metric(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE, "회복 체크인 종합", "수면과 주관적 체크인을 좋은 방향으로 정렬한 주간 종합값", AnalysisMetricCategory.RECOVERY, true, "1~5"),
         metric(TrendMetricId.STRENGTH_DELTA_NEXT, "다음 근력 변화", "다음 주 근력 지수의 변화량", AnalysisMetricCategory.DERIVED, null),
         metric(TrendMetricId.FATIGUE_DELTA_NEXT, "다음 피로 변화", "다음 주 피로 지수의 변화량", AnalysisMetricCategory.DERIVED, null)
     )
@@ -38,13 +44,14 @@ object AnalysisMetricRegistry {
         displayName: String,
         description: String,
         category: AnalysisMetricCategory,
-        higherIsBetter: Boolean?
+        higherIsBetter: Boolean?,
+        unit: String = "지수"
     ) = AnalysisMetricDescriptor(
         id = id,
         displayName = displayName,
         description = description,
         category = category,
-        unit = "지수",
+        unit = unit,
         timeGrain = AnalysisTimeGrain.WEEKLY,
         supportsScatter = true,
         supportsTimeSeries = true,

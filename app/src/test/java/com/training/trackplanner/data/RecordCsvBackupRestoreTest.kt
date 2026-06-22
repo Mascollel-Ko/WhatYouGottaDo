@@ -138,4 +138,29 @@ class RecordCsvBackupRestoreTest {
         assertTrue(parsed.profileRows.any { it.key == "painAreaTags" && it.value == "SHOULDER,LOW_BACK" })
         assertTrue(parsed.profileRows.any { it.key == "primaryGoal" && it.value == "BADMINTON_PERFORMANCE" })
     }
+
+    @Test
+    fun restoreCsvRoundTripsDailyCheckInAndKeepsNulls() {
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            checkIns = listOf(
+                DailyCheckIn(
+                    date = "2026-06-23",
+                    sleepHours = 6.5,
+                    overallFatigue = 4,
+                    lowerBodyFatigue = null,
+                    jointTendonDiscomfort = 2,
+                    focusMotivation = 5,
+                    note = "light day"
+                )
+            )
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val checkIn = parsed.checkInRows.single()
+        assertEquals(4, checkIn.overallFatigue)
+        assertEquals(null, checkIn.lowerBodyFatigue)
+        assertEquals("light day", checkIn.note)
+    }
 }

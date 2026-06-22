@@ -118,6 +118,32 @@ data class DailyMetric(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "daily_check_ins")
+data class DailyCheckIn(
+    @PrimaryKey val date: String,
+    val sleepHours: Double? = null,
+    val overallFatigue: Int? = null,
+    val lowerBodyFatigue: Int? = null,
+    val jointTendonDiscomfort: Int? = null,
+    val focusMotivation: Int? = null,
+    val note: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    fun validated(): DailyCheckIn {
+        require(runCatching { java.time.LocalDate.parse(date) }.isSuccess) {
+            "date must use ISO-8601 local date format."
+        }
+        require(sleepHours == null || sleepHours in 0.0..24.0) {
+            "sleepHours must be between 0 and 24."
+        }
+        listOf(overallFatigue, lowerBodyFatigue, jointTendonDiscomfort, focusMotivation)
+            .filterNotNull()
+            .forEach { value -> require(value in 1..5) { "Check-in scores must be between 1 and 5." } }
+        return this
+    }
+}
+
 @Entity(tableName = "training_programs")
 data class TrainingProgram(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

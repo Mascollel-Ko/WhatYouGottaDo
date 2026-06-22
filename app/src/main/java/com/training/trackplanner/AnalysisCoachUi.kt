@@ -74,7 +74,8 @@ internal fun CoachAnalysisContent(
         )
         CoachFatigueCauseCard(
             summary = coachInsight.fatigueCauses,
-            combinedHeadline = coachInsight.combinedHeadline
+            combinedHeadline = coachInsight.combinedHeadline,
+            checkInGuidance = coachInsight.checkInGuidance
         )
         BadmintonTransferCoverageCard(coachInsight)
         badmintonTransfer?.let { BadmintonTransferCard(it) }
@@ -91,7 +92,8 @@ internal fun CoachAnalysisContent(
 @Composable
 private fun CoachFatigueCauseCard(
     summary: CoachFatigueCauseSummary,
-    combinedHeadline: String?
+    combinedHeadline: String?,
+    checkInGuidance: List<String>
 ) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -105,6 +107,13 @@ private fun CoachFatigueCauseCard(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold
             )
+            checkInGuidance.take(3).forEach { guidance ->
+                Text(
+                    text = guidance,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             summary.causes.take(5).forEach { cause ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),

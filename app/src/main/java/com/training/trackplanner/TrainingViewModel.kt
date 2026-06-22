@@ -8,6 +8,7 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightBuilder
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
+import com.training.trackplanner.analysis.coach.CoachCheckInInterpreter
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseAnalyzer
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
 import com.training.trackplanner.analysis.fatigue.ContributionGrouping
@@ -23,6 +24,7 @@ import com.training.trackplanner.data.AnalysisStats
 import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyMetric
+import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
@@ -50,6 +52,7 @@ import java.time.LocalDate
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = TrainingRepository(TrainingDatabase.get(application), application)
+    private val currentDate = LocalDate.now()
 
     val exercises: StateFlow<List<Exercise>> = repository.exercises.stateIn(
         viewModelScope,
@@ -75,6 +78,21 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         null
     )
 
+    val todayCheckIn: StateFlow<DailyCheckIn?> = repository.observeCheckInForDate(currentDate.toString()).stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        null
+    )
+
+    val recentCheckIns: StateFlow<List<DailyCheckIn>> = repository.observeRecentCheckIns(
+        currentDate.minusDays(13).toString(),
+        currentDate.toString()
+    ).stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyList()
+    )
+
     private val _todayReadinessSummary = MutableStateFlow<TodayReadinessSummary?>(null)
     val todayReadinessSummary: StateFlow<TodayReadinessSummary?> =
         _todayReadinessSummary.asStateFlow()
@@ -92,6 +110,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     private var coachFatigueCauses = CoachFatigueCauseSummary.insufficient()
     private var coachTransferCoverage = BadmintonTransferCoverageSummary.insufficient()
+    private var coachCheckInGuidance: List<String> = emptyList()
     private val _coachAnalysisInsight = MutableStateFlow(CoachAnalysisInsightSummary.empty())
     val coachAnalysisInsight: StateFlow<CoachAnalysisInsightSummary> =
         _coachAnalysisInsight.asStateFlow()
@@ -137,6 +156,13 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun metricForDate(date: String): Flow<DailyMetric?> =
         repository.metricForDate(date)
+
+    fun saveDailyCheckIn(checkIn: DailyCheckIn) {
+        viewModelScope.launch {
+            repository.upsertDailyCheckIn(checkIn)
+            refreshAnalysisSummaries()
+        }
+    }
 
     fun addWorkout(date: String, exerciseId: Long, onAdded: (Long) -> Unit = {}) {
         viewModelScope.launch {
@@ -462,9 +488,19 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }.onSuccess { history ->
             fatigueAnalysisHistory = history
             rebuildFatigueAnalysis()
+            val today = history.lastOrNull()?.state?.date ?: currentDate
+            val checkIns = repository.recentCheckIns(
+                today.minusDays(13).toString(),
+                today.toString()
+            )
             coachFatigueCauses = CoachFatigueCauseAnalyzer().analyze(
-                today = history.lastOrNull()?.state?.date ?: LocalDate.now(),
-                history = history
+                today = today,
+                history = history,
+                checkIns = checkIns
+            )
+            coachCheckInGuidance = CoachCheckInInterpreter().guidance(
+                checkIn = checkIns.lastOrNull { it.date == today.toString() },
+                objectiveFatigue = history.lastOrNull()?.state
             )
             rebuildCoachAnalysisInsight()
         }.onFailure {
@@ -523,7 +559,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private fun rebuildCoachAnalysisInsight() {
         _coachAnalysisInsight.value = CoachAnalysisInsightBuilder.combine(
             fatigue = coachFatigueCauses,
-            transfer = coachTransferCoverage
+            transfer = coachTransferCoverage,
+            checkInGuidance = coachCheckInGuidance
         )
     }
 }

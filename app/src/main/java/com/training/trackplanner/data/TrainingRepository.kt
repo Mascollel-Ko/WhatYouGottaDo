@@ -20,6 +20,7 @@ import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
 import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
+import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
@@ -114,6 +115,7 @@ class TrainingRepository(
     private val workoutDao = db.workoutDao()
     private val programDao = db.programDao()
     private val dailyMetricDao = db.dailyMetricDao()
+    private val dailyCheckInDao = db.dailyCheckInDao()
     private val appMetaDao = db.appMetaDao()
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
@@ -123,6 +125,33 @@ class TrainingRepository(
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
     val analysisStats: Flow<AnalysisStats> = workoutDao.observeAnalysisStats()
     val initialUserProfile: Flow<InitialUserProfile?> = initialUserProfileDao.observeProfile()
+
+    fun observeCheckInForDate(date: String): Flow<DailyCheckIn?> =
+        dailyCheckInDao.observeForDate(date)
+
+    fun observeRecentCheckIns(startDate: String, endDate: String): Flow<List<DailyCheckIn>> =
+        dailyCheckInDao.observeBetween(startDate, endDate)
+
+    suspend fun checkInForDate(date: String): DailyCheckIn? = withContext(Dispatchers.IO) {
+        dailyCheckInDao.getForDate(date)
+    }
+
+    suspend fun recentCheckIns(startDate: String, endDate: String): List<DailyCheckIn> =
+        withContext(Dispatchers.IO) { dailyCheckInDao.between(startDate, endDate) }
+
+    suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) = withContext(Dispatchers.IO) {
+        val existing = dailyCheckInDao.getForDate(checkIn.date)
+        dailyCheckInDao.upsert(
+            checkIn.validated().copy(
+                createdAt = existing?.createdAt ?: checkIn.createdAt,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
+        dailyCheckInDao.deleteForDate(date)
+    }
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
@@ -249,12 +278,16 @@ class TrainingRepository(
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
-        PerformanceTrendEngine(resolvedRuntimeMetadataCatalog(exercises)).analyze(
+        val base = PerformanceTrendEngine(resolvedRuntimeMetadataCatalog(exercises)).analyze(
             today = today,
             exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         )
+        val checkInSeries = CheckInMetricSeriesBuilder.build(
+            dailyCheckInDao.between("0001-01-01", todayString)
+        )
+        base.copy(metricSeries = base.metricSeries + checkInSeries)
     }
 
     suspend fun badmintonTransferSummary(
@@ -291,9 +324,10 @@ class TrainingRepository(
     suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         val entries = workoutDao.allEntriesWithSets()
         val metrics = dailyMetricDao.allMetrics()
+        val checkIns = dailyCheckInDao.all()
         val exercises = exerciseDao.allExercises()
         val profile = initialUserProfileDao.profile()
-        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises, profile)
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises, profile, checkIns)
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
         } ?: error("백업 파일을 열 수 없습니다.")
@@ -301,6 +335,7 @@ class TrainingRepository(
             format = "restore",
             exerciseCount = exercises.size,
             dailyMetricCount = metrics.size,
+            dailyCheckInCount = checkIns.size,
             profileCount = if (profile != null) 1 else 0,
             entryCount = entries.size,
             setCount = entries.sumOf { item -> item.sets.size }
@@ -968,6 +1003,7 @@ class TrainingRepository(
     private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
         var exerciseCount = 0
         var dailyCount = 0
+        var checkInCount = 0
         var profileCount = 0
         var entryCount = 0
         var setCount = 0
@@ -993,6 +1029,23 @@ class TrainingRepository(
                     )
                     dailyCount += 1
                 }
+            }
+            data.checkInRows.forEach { row ->
+                val now = System.currentTimeMillis()
+                dailyCheckInDao.upsert(
+                    DailyCheckIn(
+                        date = row.date,
+                        sleepHours = row.sleepHours,
+                        overallFatigue = row.overallFatigue,
+                        lowerBodyFatigue = row.lowerBodyFatigue,
+                        jointTendonDiscomfort = row.jointTendonDiscomfort,
+                        focusMotivation = row.focusMotivation,
+                        note = row.note,
+                        createdAt = row.createdAt ?: now,
+                        updatedAt = row.updatedAt ?: now
+                    ).validated()
+                )
+                checkInCount += 1
             }
             data.setRows
                 .filter { row -> row.sleepHours != null || row.bodyWeightKg != null }
@@ -1062,6 +1115,7 @@ class TrainingRepository(
             format = "restore",
             exerciseCount = exerciseCount,
             dailyMetricCount = dailyCount,
+            dailyCheckInCount = checkInCount,
             profileCount = profileCount,
             entryCount = entryCount,
             setCount = setCount,

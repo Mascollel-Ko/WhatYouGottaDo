@@ -23,6 +23,12 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.BADMINTON_FATIGUE,
         TrendMetricId.LOCAL_BODY_PART_FATIGUE,
         TrendMetricId.RECOVERY_PERFORMANCE_PENALTY,
+        TrendMetricId.SLEEP_HOURS,
+        TrendMetricId.OVERALL_FATIGUE_CHECKIN,
+        TrendMetricId.LOWER_BODY_FATIGUE_CHECKIN,
+        TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN,
+        TrendMetricId.FOCUS_MOTIVATION_CHECKIN,
+        TrendMetricId.RECOVERY_CHECKIN_COMPOSITE,
         TrendMetricId.STRENGTH_DELTA_NEXT,
         TrendMetricId.FATIGUE_DELTA_NEXT
     )
@@ -46,6 +52,7 @@ class AnalysisMetricRegistryTest {
         val available = AnalysisMetricRegistry.scatterMetrics(series)
 
         assertEquals(listOf(TrendMetricId.STRENGTH_VOLUME), available.map { it.id })
+        assertTrue(available.none { it.id == TrendMetricId.SLEEP_HOURS })
     }
 
     @Test
@@ -53,5 +60,12 @@ class AnalysisMetricRegistryTest {
         assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsTimeSeries })
         assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsMultivariate })
         assertTrue(AnalysisMetricRegistry.descriptors.all { it.description.isNotBlank() })
+    }
+
+    @Test
+    fun checkInMetricDirectionsMatchTheirMeaning() {
+        assertEquals(true, AnalysisMetricRegistry.descriptor(TrendMetricId.FOCUS_MOTIVATION_CHECKIN)?.higherIsBetter)
+        assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.OVERALL_FATIGUE_CHECKIN)?.higherIsBetter)
+        assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN)?.higherIsBetter)
     }
 }
