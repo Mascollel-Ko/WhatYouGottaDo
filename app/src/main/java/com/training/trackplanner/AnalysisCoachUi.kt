@@ -29,6 +29,8 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.coach.BadmintonTransferAxisStatus
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
+import com.training.trackplanner.analysis.coach.CoachingSignalSeverity
+import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.fatigue.ContributionGrouping
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
@@ -54,6 +56,7 @@ internal fun CoachAnalysisContent(
     fatigueAnalysis: FatigueAnalysisUiState,
     badmintonTransfer: BadmintonTransferSummary?,
     coachInsight: CoachAnalysisInsightSummary,
+    coachingSignals: CoachingSignalsSummary,
     performanceTrend: PerformanceTrendSummary?,
     onPeriodChange: (FatigueAnalysisPeriod) -> Unit,
     onFatigueTargetToggle: (FatigueTarget) -> Unit,
@@ -70,6 +73,7 @@ internal fun CoachAnalysisContent(
             checkInGuidance = coachInsight.checkInGuidance
         )
         BadmintonTransferCoverageCard(coachInsight)
+        CoachingSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
             onPeriodChange = onPeriodChange,
@@ -86,6 +90,99 @@ internal fun CoachAnalysisContent(
             InfoCard("확인된 세트가 쌓이면 코치 분석의 신뢰도가 높아집니다.")
         }
         TrainingDistributionSummary(stats)
+    }
+}
+
+@Composable
+private fun CoachingSignalsCard(summary: CoachingSignalsSummary) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("수면 보정 코칭 신호", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            CoachingSignalRow(
+                label = "수면",
+                severity = summary.sleep.severity,
+                headline = summary.sleep.headline,
+                detail = summary.sleep.detail
+            )
+            val optionalRows = listOfNotNull(
+                summary.rpe?.let { signal ->
+                    CoachingSignalRowData(
+                        label = "RPE 대비 수행",
+                        severity = signal.severity,
+                        headline = signal.headline,
+                        detail = listOfNotNull(signal.detail, signal.sleepContext).joinToString(" ")
+                    )
+                },
+                summary.jointTendon?.let { signal ->
+                    CoachingSignalRowData(
+                        label = "관절/건 주의",
+                        severity = signal.severity,
+                        headline = signal.headline,
+                        detail = listOfNotNull(
+                            signal.detail,
+                            signal.relatedStressLabels.takeIf { it.isNotEmpty() }?.joinToString(prefix = "관련 부하: "),
+                            signal.sleepContext
+                        ).joinToString(" ")
+                    )
+                },
+                summary.courtRecovery?.let { signal ->
+                    CoachingSignalRowData(
+                        label = "코트 시간 회복 반응",
+                        severity = signal.severity,
+                        headline = signal.headline,
+                        detail = listOfNotNull(signal.detail, signal.sleepContext).joinToString(" ")
+                    )
+                }
+            )
+            if (optionalRows.isEmpty()) {
+                Text("추가 신호는 기록이 더 쌓이면 표시됩니다.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                optionalRows.take(3).forEach { row ->
+                    CoachingSignalRow(row.label, row.severity, row.headline, row.detail)
+                }
+            }
+        }
+    }
+}
+
+private data class CoachingSignalRowData(
+    val label: String,
+    val severity: CoachingSignalSeverity,
+    val headline: String,
+    val detail: String
+)
+
+@Composable
+private fun CoachingSignalRow(
+    label: String,
+    severity: CoachingSignalSeverity,
+    headline: String,
+    detail: String
+) {
+    val severityText = when (severity) {
+        CoachingSignalSeverity.NONE -> "기록 부족"
+        CoachingSignalSeverity.INFO -> "참고"
+        CoachingSignalSeverity.WATCH -> "주의"
+        CoachingSignalSeverity.CAUTION -> "강한 주의"
+    }
+    val severityColor = when (severity) {
+        CoachingSignalSeverity.CAUTION -> MaterialTheme.colorScheme.error
+        CoachingSignalSeverity.WATCH -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(severityText, style = MaterialTheme.typography.labelSmall, color = severityColor)
+            }
+            Text(headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

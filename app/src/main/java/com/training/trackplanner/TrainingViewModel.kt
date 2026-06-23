@@ -11,6 +11,7 @@ import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
 import com.training.trackplanner.analysis.coach.CoachCheckInInterpreter
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseAnalyzer
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
+import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.fatigue.ContributionGrouping
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisMapper
@@ -114,6 +115,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _coachAnalysisInsight = MutableStateFlow(CoachAnalysisInsightSummary.empty())
     val coachAnalysisInsight: StateFlow<CoachAnalysisInsightSummary> =
         _coachAnalysisInsight.asStateFlow()
+    private val _coachingSignalsSummary = MutableStateFlow(CoachingSignalsSummary.empty())
+    val coachingSignalsSummary: StateFlow<CoachingSignalsSummary> =
+        _coachingSignalsSummary.asStateFlow()
 
     private var fatigueAnalysisHistory: List<DailyFatigueResult> = emptyList()
     private var contributionSourcesUserSelected = false
@@ -502,6 +506,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 checkIn = checkIns.lastOrNull { it.date == today.toString() },
                 objectiveFatigue = history.lastOrNull()?.state
             )
+            _coachingSignalsSummary.value = repository.coachingSignalsSummary(history)
             rebuildCoachAnalysisInsight()
         }.onFailure {
             _fatigueAnalysisState.value = _fatigueAnalysisState.value.copy(

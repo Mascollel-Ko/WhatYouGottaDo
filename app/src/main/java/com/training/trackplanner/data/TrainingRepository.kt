@@ -9,6 +9,8 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEng
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageAnalyzer
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
+import com.training.trackplanner.analysis.coach.CoachingSignalsBuilder
+import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
@@ -363,6 +365,28 @@ class TrainingRepository(
             exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             latestFatigueState = latestFatigueState
+        )
+    }
+
+    suspend fun coachingSignalsSummary(
+        history: List<DailyFatigueResult>
+    ): CoachingSignalsSummary = withContext(Dispatchers.IO) {
+        val today = SystemAnalysisDateProvider().today()
+        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val startDate = today.minusDays(56).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val exercises = exerciseDao.allExercises()
+        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
+        val checkIns = dailyCheckInDao.between(startDate, todayString).withCanonicalSleep(
+            dailyMetrics.filter { metric -> metric.date >= startDate }
+        )
+        CoachingSignalsBuilder().build(
+            today = today,
+            dailyMetrics = dailyMetrics,
+            checkIns = checkIns,
+            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            exercises = exercises,
+            runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises),
+            history = history
         )
     }
 
