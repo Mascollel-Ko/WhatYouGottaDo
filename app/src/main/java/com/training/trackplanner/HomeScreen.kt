@@ -200,6 +200,10 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
             Text(
                 text = buildString {
                     append("피로도\n")
+                    summary.fatigueCard.phaseLabel?.let { label ->
+                        append(label)
+                        append("\n")
+                    }
                     append(summary.fatigueCard.primaryPrefix)
                     append(" ")
                     append(summary.fatigueCard.primary.score)
@@ -216,6 +220,27 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            summary.fatigueCard.headline?.let { headline ->
+                Text(
+                    text = headline,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            summary.fatigueCard.actionLabel?.let { action ->
+                Text(
+                    text = "권장: $action",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            summary.fatigueCard.detail?.let { detail ->
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SummaryPill(
                     modifier = Modifier.weight(1f),

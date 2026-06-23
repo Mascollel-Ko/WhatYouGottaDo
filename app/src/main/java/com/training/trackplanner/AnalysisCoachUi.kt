@@ -36,6 +36,7 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
+import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -53,6 +54,7 @@ import kotlin.math.abs
 internal fun CoachAnalysisContent(
     stats: AnalysisStats,
     readiness: TodayReadinessSummary?,
+    todayStatus: PhaseAwareTodayStatus?,
     fatigueAnalysis: FatigueAnalysisUiState,
     badmintonTransfer: BadmintonTransferSummary?,
     coachInsight: CoachAnalysisInsightSummary,
@@ -65,7 +67,8 @@ internal fun CoachAnalysisContent(
     onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        readiness?.let { TodayReadinessCard(it) }
+        todayStatus?.let { TodayReadinessCard(it) }
+            ?: readiness?.let { TodayReadinessCard(it) }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         CoachFatigueCauseCard(
             summary = coachInsight.fatigueCauses,
@@ -273,7 +276,28 @@ private fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
 }
 
 @Composable
-private fun TodayReadinessCard(summary: TodayReadinessSummary) {
+private fun TodayReadinessCard(status: PhaseAwareTodayStatus) {
+    TodayReadinessCard(
+        summary = status.current,
+        phaseLabel = status.phaseLabel,
+        headline = status.headline,
+        detail = status.detail,
+        actionLabel = status.actionLabel,
+        projected = status.projected,
+        keyAxes = status.keyAxes
+    )
+}
+
+@Composable
+private fun TodayReadinessCard(
+    summary: TodayReadinessSummary,
+    phaseLabel: String? = null,
+    headline: String = summary.headline,
+    detail: String = summary.shortReason,
+    actionLabel: String? = null,
+    projected: TodayReadinessSummary? = null,
+    keyAxes: List<String> = emptyList()
+) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = expanded) { expanded = false }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -281,6 +305,9 @@ private fun TodayReadinessCard(summary: TodayReadinessSummary) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("오늘 상태", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    phaseLabel?.let { label ->
+                        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    }
                     Text(
                         readinessStatusLabel(summary.status),
                         style = MaterialTheme.typography.labelLarge,
@@ -289,9 +316,21 @@ private fun TodayReadinessCard(summary: TodayReadinessSummary) {
                 }
                 AnalysisConfidencePill(summary.confidence)
             }
-            Text(summary.headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(summary.shortReason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            summary.primaryReasons.take(3).forEach { reason ->
+            Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            actionLabel?.let { action ->
+                Text("권장: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            }
+            projected?.let { projectedSummary ->
+                Text(
+                    "완료 예상: ${readinessStatusLabel(projectedSummary.status)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            keyAxes.take(3).forEach { axis ->
+                Text("• $axis", style = MaterialTheme.typography.bodySmall)
+            }
+            if (keyAxes.isEmpty()) summary.primaryReasons.take(3).forEach { reason ->
                 Text("• $reason", style = MaterialTheme.typography.bodySmall)
             }
             TextButton(onClick = { expanded = !expanded }) {

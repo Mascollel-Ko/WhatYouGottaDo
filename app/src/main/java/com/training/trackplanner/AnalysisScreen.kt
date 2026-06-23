@@ -22,6 +22,7 @@ private enum class AnalysisTab(val label: String) {
 internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val stats by viewModel.analysisStats.collectAsState()
     val readiness by viewModel.todayReadinessSummary.collectAsState()
+    val todayStatus by viewModel.phaseAwareTodayStatus.collectAsState()
     val fatigueAnalysis by viewModel.fatigueAnalysisState.collectAsState()
     val badmintonTransfer by viewModel.badmintonTransferSummary.collectAsState()
     val coachInsight by viewModel.coachAnalysisInsight.collectAsState()
@@ -52,6 +53,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                 CoachAnalysisContent(
                     stats = stats,
                     readiness = readiness,
+                    todayStatus = todayStatus,
                     fatigueAnalysis = fatigueAnalysis,
                     badmintonTransfer = badmintonTransfer,
                     coachInsight = coachInsight,
