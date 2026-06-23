@@ -10,7 +10,7 @@ class RuntimeExerciseMetadataPersistenceSchemaTest {
         val runtimeFields = logicalFields(RuntimeExerciseMetadata::class.java)
         val roomFields = logicalFields(RuntimeExerciseMetadataEntity::class.java)
 
-        assertEquals(34, runtimeFields.size)
+        assertEquals(35, runtimeFields.size)
         assertEquals(runtimeFields, roomFields)
     }
 

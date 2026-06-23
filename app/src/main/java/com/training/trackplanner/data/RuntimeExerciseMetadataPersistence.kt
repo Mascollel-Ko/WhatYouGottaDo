@@ -39,7 +39,8 @@ data class RuntimeExerciseMetadataEntity(
     val jointTendonImpactStressLevel: String,
     val movementFocusDemandLevel: String,
     val recoveryDurationClass: String,
-    val safeForSeedMutation: Boolean
+    val safeForSeedMutation: Boolean,
+    val appCueProfile: String = "NONE"
 )
 
 class RuntimeMetadataTypeConverters {
@@ -100,7 +101,8 @@ fun RuntimeExerciseMetadata.toEntity(): RuntimeExerciseMetadataEntity =
         jointTendonImpactStressLevel = jointTendonImpactStressLevel,
         movementFocusDemandLevel = movementFocusDemandLevel,
         recoveryDurationClass = recoveryDurationClass,
-        safeForSeedMutation = safeForSeedMutation
+        safeForSeedMutation = safeForSeedMutation,
+        appCueProfile = appCueProfile
     )
 
 fun RuntimeExerciseMetadataEntity.toRuntimeMetadata(): RuntimeExerciseMetadata =
@@ -138,5 +140,6 @@ fun RuntimeExerciseMetadataEntity.toRuntimeMetadata(): RuntimeExerciseMetadata =
         jointTendonImpactStressLevel = jointTendonImpactStressLevel,
         movementFocusDemandLevel = movementFocusDemandLevel,
         recoveryDurationClass = recoveryDurationClass,
-        safeForSeedMutation = safeForSeedMutation
+        safeForSeedMutation = safeForSeedMutation,
+        appCueProfile = appCueProfile
     )
