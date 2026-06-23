@@ -25,10 +25,10 @@ class PainGateEvaluator {
         val bodyParts = todayInputs.mapNotNull { input -> input.bodyPart }.distinct()
         val targets = bodyParts.map { part -> "$part 고강도 운동" }
         val reasons = buildList {
-            if (hardGate) add("통증 입력이 높아 해당 부위는 조절이 필요합니다.")
-            if (moderateGate) add("통증 입력이 있어 해당 부위 부담을 낮춥니다.")
+            if (hardGate) add("불편감 입력이 높아 해당 부위는 조절이 필요합니다.")
+            if (moderateGate) add("불편감 입력이 있어 해당 부위 부담을 낮춥니다.")
             if (targets.isEmpty() && (hardGate || moderateGate)) {
-                add("통증 입력이 있어 고강도 운동을 줄입니다.")
+                add("불편감 입력이 있어 고강도 운동을 줄입니다.")
             }
         }
 
@@ -40,7 +40,7 @@ class PainGateEvaluator {
                 else -> FatigueLevel.NORMAL
             },
             restrictedTargets = if (targets.isEmpty() && (hardGate || moderateGate)) {
-                listOf("통증 부위 고강도 운동")
+                listOf("불편감 부위 고강도 운동")
             } else {
                 targets
             },

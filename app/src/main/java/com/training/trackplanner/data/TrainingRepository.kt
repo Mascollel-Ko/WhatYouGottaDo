@@ -23,6 +23,8 @@ import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
+import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
+import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
@@ -202,22 +204,32 @@ class TrainingRepository(
     }
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
+        TodayReadinessEngine().analyze(todayReadinessInput())
+    }
+
+    suspend fun phaseAwareTodayStatus(): PhaseAwareTodayStatus = withContext(Dispatchers.IO) {
+        PhaseAwareTodayStatusBuilder().build(todayReadinessInput())
+    }
+
+    private suspend fun todayReadinessInput(): TodayReadinessEngineInput {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
-        TodayReadinessEngine().analyze(
-            TodayReadinessEngineInput(
-                today = today,
-                exercises = exercises,
-                entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-                dailyMetrics = dailyMetricDao.metricsUntil(todayString),
-                initialProfile = initialUserProfileDao.profile(),
-                runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-            )
+        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
+        return TodayReadinessEngineInput(
+            today = today,
+            exercises = exercises,
+            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            dailyMetrics = dailyMetrics,
+            dailyCheckIns = dailyCheckInDao
+                .between(today.minusDays(13).toString(), todayString)
+                .withCanonicalSleep(dailyMetrics),
+            initialProfile = initialUserProfileDao.profile(),
+            runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
         )
     }
 
-    suspend fun homeTodaySummary(): HomeTodaySummaryState = withContext(Dispatchers.IO) {
+    suspend fun homeTodaySummary(todayStatus: PhaseAwareTodayStatus? = null): HomeTodaySummaryState = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
@@ -291,7 +303,8 @@ class TrainingRepository(
                 current = todayState,
                 projected = projectedState,
                 confirmedSetCount = confirmedSetCount,
-                unconfirmedSetCount = unconfirmedSetCount
+                unconfirmedSetCount = unconfirmedSetCount,
+                todayStatus = todayStatus
             ),
             cautionReasons = todayState.cautionReasons,
             recentTrainingLoadSeries = currentTrainingLoadSeries,

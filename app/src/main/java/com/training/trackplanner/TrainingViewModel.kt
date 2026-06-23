@@ -19,6 +19,7 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
+import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.data.AnalysisStats
@@ -97,6 +98,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _todayReadinessSummary = MutableStateFlow<TodayReadinessSummary?>(null)
     val todayReadinessSummary: StateFlow<TodayReadinessSummary?> =
         _todayReadinessSummary.asStateFlow()
+
+    private val _phaseAwareTodayStatus = MutableStateFlow<PhaseAwareTodayStatus?>(null)
+    val phaseAwareTodayStatus: StateFlow<PhaseAwareTodayStatus?> =
+        _phaseAwareTodayStatus.asStateFlow()
 
     private val _homeTodaySummary = MutableStateFlow(HomeTodaySummaryState.empty())
     val homeTodaySummary: StateFlow<HomeTodaySummaryState> = _homeTodaySummary.asStateFlow()
@@ -514,12 +519,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 errorMessage = "피로도 기록을 불러오지 못했습니다."
             )
         }
+        val phaseStatus = runCatching {
+            repository.phaseAwareTodayStatus()
+        }.onSuccess { status ->
+            _phaseAwareTodayStatus.value = status
+            _todayReadinessSummary.value = status.current
+        }.getOrNull()
         runCatching {
-            repository.homeTodaySummary()
+            repository.homeTodaySummary(phaseStatus)
         }.onSuccess { summary ->
             _homeTodaySummary.value = summary
         }
-        val readinessSummary = runCatching {
+        val readinessSummary = phaseStatus?.current ?: runCatching {
             repository.todayReadinessSummary()
         }.onSuccess { summary ->
             _todayReadinessSummary.value = summary

@@ -135,7 +135,11 @@ data class HomeFatigueCardSummary(
     val primary: HomeFatigueReading,
     val projectionPrefix: String? = null,
     val projection: HomeFatigueReading? = null,
-    val statusText: String? = null
+    val statusText: String? = null,
+    val phaseLabel: String? = null,
+    val headline: String? = null,
+    val detail: String? = null,
+    val actionLabel: String? = null
 )
 
 data class HomeTodaySummaryState(

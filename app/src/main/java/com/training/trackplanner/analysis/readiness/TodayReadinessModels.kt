@@ -229,6 +229,7 @@ data class TodayReadinessEngineInput(
     val exercises: List<com.training.trackplanner.data.Exercise>,
     val entriesWithSets: List<com.training.trackplanner.data.WorkoutEntryWithSets>,
     val dailyMetrics: List<com.training.trackplanner.data.DailyMetric>,
+    val dailyCheckIns: List<com.training.trackplanner.data.DailyCheckIn> = emptyList(),
     val initialProfile: com.training.trackplanner.data.InitialUserProfile? = null,
     val runtimeMetadataCatalog: com.training.trackplanner.data.RuntimeExerciseMetadataCatalog =
         com.training.trackplanner.data.RuntimeExerciseMetadataCatalog.EMPTY,

@@ -128,9 +128,9 @@ class FatigueDetailSectionBuilder {
     private fun painSection(pain: PainGateSnapshot): FatigueDetailSection =
         FatigueDetailSection(
             type = FatigueDetailType.PAIN,
-            title = "통증/제한 신호",
+            title = "불편감/제한 신호",
             level = pain.level,
-            summary = pain.reasons.firstOrNull() ?: "통증 입력은 없습니다.",
+            summary = pain.reasons.firstOrNull() ?: "불편감 입력은 없습니다.",
             metrics = listOf(
                 MetricDisplayItem("게이트", if (pain.isLimited) "작동" else "없음"),
                 MetricDisplayItem("신뢰도", confidenceLabel(pain.confidence))

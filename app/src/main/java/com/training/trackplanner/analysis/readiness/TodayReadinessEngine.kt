@@ -33,7 +33,7 @@ class TodayReadinessEngine(
             today = input.today
         )
         val adaptiveSignals = input.adaptiveOutcomeSignals.ifEmpty {
-            outcomeSignalsFromMetrics(dailyLoads, input.dailyMetrics)
+            outcomeSignalsFromMetrics(dailyLoads, input.dailyMetrics, input.dailyCheckIns)
         }
         val adaptiveBaseline = adaptiveBaselineCalculator.calculate(
             dailyLoads = dailyLoads,
@@ -54,7 +54,8 @@ class TodayReadinessEngine(
         )
         val recovery = recoverySignalInterpreter.interpret(
             today = input.today,
-            dailyMetrics = input.dailyMetrics
+            dailyMetrics = input.dailyMetrics,
+            dailyCheckIns = input.dailyCheckIns
         )
         val performance = performanceDropDetector.detect(
             entriesWithSets = completedEntriesUntilToday,
@@ -64,7 +65,7 @@ class TodayReadinessEngine(
         )
         val pain = painGateEvaluator.evaluate(
             today = input.today,
-            painInputs = input.painInputs
+            painInputs = input.painInputs + painInputsFromCheckIns(input.dailyCheckIns)
         )
         val decision = decisionEngine.decide(
             pressure = pressure,
@@ -104,25 +105,54 @@ class TodayReadinessEngine(
 
     private fun outcomeSignalsFromMetrics(
         dailyLoads: List<DailyAnalysisLoad>,
-        dailyMetrics: List<com.training.trackplanner.data.DailyMetric>
+        dailyMetrics: List<com.training.trackplanner.data.DailyMetric>,
+        dailyCheckIns: List<com.training.trackplanner.data.DailyCheckIn> = emptyList()
     ): List<AdaptiveOutcomeSignal> {
-        if (dailyMetrics.isEmpty()) return emptyList()
+        if (dailyMetrics.isEmpty() && dailyCheckIns.isEmpty()) return emptyList()
         val metricsByDate = dailyMetrics.associateBy { metric -> metric.date }
+        val checkInsByDate = dailyCheckIns.associateBy { checkIn -> checkIn.date }
         return dailyLoads.flatMap { daily ->
             daily.categoryLoads.keys.mapNotNull { category ->
                 val nextThreeDays = (1..3).map { offset -> daily.date.plusDays(offset.toLong()).toString() }
                 val nextMetrics = nextThreeDays.mapNotNull { date -> metricsByDate[date] }
-                if (nextMetrics.isEmpty()) return@mapNotNull null
+                val nextCheckIns = nextThreeDays.mapNotNull { date -> checkInsByDate[date] }
+                if (nextMetrics.isEmpty() && nextCheckIns.isEmpty()) return@mapNotNull null
                 val sleepStable = nextMetrics.mapNotNull { metric -> metric.sleepHours }.all { hours -> hours >= 6.5 }
+                val fatigueIncrease = nextCheckIns.any { checkIn ->
+                    (checkIn.overallFatigue ?: 0) >= 4 || (checkIn.lowerBodyFatigue ?: 0) >= 4
+                }
+                val discomfortPresent = nextCheckIns.any { checkIn ->
+                    (checkIn.jointTendonDiscomfort ?: 0) >= 4
+                }
                 AdaptiveOutcomeSignal(
                     date = daily.date,
                     category = category,
-                    recoveryStable = sleepStable,
-                    painPresent = false,
+                    recoveryStable = sleepStable && !fatigueIncrease && !discomfortPresent,
+                    painPresent = discomfortPresent,
                     performanceDrop = false,
-                    fatigueIncrease = !sleepStable
+                    fatigueIncrease = !sleepStable || fatigueIncrease
                 )
             }
         }
     }
+
+    private fun painInputsFromCheckIns(
+        dailyCheckIns: List<com.training.trackplanner.data.DailyCheckIn>
+    ): List<PainInput> =
+        dailyCheckIns.mapNotNull { checkIn ->
+            val score = when (checkIn.jointTendonDiscomfort) {
+                null -> return@mapNotNull null
+                5 -> 7
+                4 -> 5
+                3 -> 4
+                else -> return@mapNotNull null
+            }
+            val date = runCatching { java.time.LocalDate.parse(checkIn.date) }.getOrNull() ?: return@mapNotNull null
+            PainInput(
+                date = date,
+                score = score,
+                bodyPart = "관절/건",
+                worsening = checkIn.jointTendonDiscomfort >= 5
+            )
+        }
 }
