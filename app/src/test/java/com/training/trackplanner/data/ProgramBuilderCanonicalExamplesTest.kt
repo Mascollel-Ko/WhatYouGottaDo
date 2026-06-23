@@ -15,7 +15,7 @@ class ProgramBuilderCanonicalExamplesTest {
 
         val diagnostics = ProgramSlotCoverageDiagnostics().analyze(exercises, catalog)
 
-        assertEquals(235, exercises.size)
+        assertEquals(239, exercises.size)
         assertEquals(ProgramSlotId.entries.size, diagnostics.size)
         assertTrue(diagnostics.all { it.legacyFallbackMatchCount == 0 })
         assertTrue(diagnostics.all { it.nameFallbackMatchCount == 0 })
@@ -49,8 +49,8 @@ class ProgramBuilderCanonicalExamplesTest {
         val exercises = loadSeedExercises()
         val metadata = ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
         val catalog = RuntimeExerciseMetadataCatalog.of(metadata)
-        assertEquals(235, exercises.size)
-        assertEquals(235, catalog.size)
+        assertEquals(239, exercises.size)
+        assertEquals(239, catalog.size)
 
         (representativeExamples() + Example("7 days / 8 weeks / 80:20 fallback", 7, 8, 45, 0.80))
             .forEach { example ->

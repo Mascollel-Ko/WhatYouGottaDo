@@ -254,12 +254,20 @@ object RecordCsvBackupRestore {
             )
         }
         val metricsByDate = metrics.associateBy { metric -> metric.date }
-        val dates = (entriesWithSets.map { item -> item.entry.date } + metrics.map { metric -> metric.date })
+        val fallbackCheckInSleepByDate = checkIns
+            .filter { checkIn -> metricsByDate[checkIn.date]?.sleepHours == null && checkIn.sleepHours != null }
+            .associate { checkIn -> checkIn.date to checkIn.sleepHours }
+        val dates = (
+            entriesWithSets.map { item -> item.entry.date } +
+                metrics.map { metric -> metric.date } +
+                fallbackCheckInSleepByDate.keys
+            )
             .distinct()
             .sorted()
         dates.forEach { date ->
             val metric = metricsByDate[date]
-            if (metric != null) {
+            val fallbackSleep = fallbackCheckInSleepByDate[date]
+            if (metric != null || fallbackSleep != null) {
                 builder.appendCsvRow(
                     listOf(
                         "1",
@@ -279,8 +287,8 @@ object RecordCsvBackupRestore {
                         "",
                         "",
                         "",
-                        metric.sleepHours.formatOptional(),
-                        metric.bodyWeightKg.formatOptional()
+                        (metric?.sleepHours ?: fallbackSleep).formatOptional(),
+                        metric?.bodyWeightKg.formatOptional()
                     )
                 )
             }
@@ -292,7 +300,7 @@ object RecordCsvBackupRestore {
                         "schema_version" -> "2"
                         "row_type" -> "check_in"
                         "date" -> checkIn.date
-                        "sleep_hours" -> checkIn.sleepHours.formatOptional()
+                        "sleep_hours" -> ""
                         "overall_fatigue" -> checkIn.overallFatigue?.toString().orEmpty()
                         "lower_body_fatigue" -> checkIn.lowerBodyFatigue?.toString().orEmpty()
                         "joint_tendon_discomfort" -> checkIn.jointTendonDiscomfort?.toString().orEmpty()

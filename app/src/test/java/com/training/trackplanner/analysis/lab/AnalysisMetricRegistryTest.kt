@@ -68,4 +68,15 @@ class AnalysisMetricRegistryTest {
         assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.OVERALL_FATIGUE_CHECKIN)?.higherIsBetter)
         assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN)?.higherIsBetter)
     }
+
+    @Test
+    fun metricCategoryDisplayLabelsAreKoreanNotRawEnumNames() {
+        assertEquals("근력", AnalysisMetricCategory.STRENGTH.displayLabelKo())
+        assertEquals("배드민턴", AnalysisMetricCategory.BADMINTON.displayLabelKo())
+        assertEquals("피로", AnalysisMetricCategory.FATIGUE.displayLabelKo())
+        assertEquals("전이", AnalysisMetricCategory.TRANSFER.displayLabelKo())
+        assertEquals("회복/컨디션", AnalysisMetricCategory.RECOVERY.displayLabelKo())
+        assertEquals("훈련량", AnalysisMetricCategory.VOLUME.displayLabelKo())
+        assertEquals("파생 지표", AnalysisMetricCategory.DERIVED.displayLabelKo())
+    }
 }

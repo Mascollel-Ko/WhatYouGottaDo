@@ -447,6 +447,12 @@ interface DailyMetricDao {
     @Query("SELECT * FROM daily_metrics WHERE date = :date LIMIT 1")
     fun observeMetric(date: String): Flow<DailyMetric?>
 
+    @Query("SELECT * FROM daily_metrics WHERE date = :date LIMIT 1")
+    suspend fun metric(date: String): DailyMetric?
+
+    @Query("SELECT * FROM daily_metrics WHERE date BETWEEN :startDate AND :endDate ORDER BY date")
+    fun observeBetween(startDate: String, endDate: String): Flow<List<DailyMetric>>
+
     @Query("SELECT * FROM daily_metrics WHERE date <= :date ORDER BY date")
     suspend fun metricsUntil(date: String): List<DailyMetric>
 

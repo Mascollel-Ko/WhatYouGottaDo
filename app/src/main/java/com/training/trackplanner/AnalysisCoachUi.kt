@@ -64,6 +64,12 @@ internal fun CoachAnalysisContent(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         readiness?.let { TodayReadinessCard(it) }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
+        CoachFatigueCauseCard(
+            summary = coachInsight.fatigueCauses,
+            combinedHeadline = coachInsight.combinedHeadline,
+            checkInGuidance = coachInsight.checkInGuidance
+        )
+        BadmintonTransferCoverageCard(coachInsight)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
             onPeriodChange = onPeriodChange,
@@ -72,12 +78,6 @@ internal fun CoachAnalysisContent(
             onContributionGroupingChange = onContributionGroupingChange,
             onContributionSourcesApply = onContributionSourcesApply
         )
-        CoachFatigueCauseCard(
-            summary = coachInsight.fatigueCauses,
-            combinedHeadline = coachInsight.combinedHeadline,
-            checkInGuidance = coachInsight.checkInGuidance
-        )
-        BadmintonTransferCoverageCard(coachInsight)
         badmintonTransfer?.let { BadmintonTransferCard(it) }
             ?: InfoCard("배드민턴 전이 분석을 계산하고 있습니다.")
         performanceTrend?.let { PerformanceTrendCard(it) }

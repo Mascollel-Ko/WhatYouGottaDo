@@ -10850,6 +10850,230 @@
     {
         "source":  "BUILT_IN",
         "category":  "기능성운동",
+        "name":  "메디신볼 로테이셔널 스로우",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "몸통과 골반을 순서대로 회전하며 메디신볼을 벽이나 파트너 방향으로 던진다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "medicine_ball_rotational_throw",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 사이드 슬램",
+        "detail1":  "복사근/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "측면 방향으로 회전하며 메디신볼을 대각선 아래로 내리쳐 회전 파워와 몸통 제어를 함께 훈련한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "medicine_ball_side_slam",
+        "movementPattern":  [
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "OBLIQUE"
+                           ],
+        "secondaryMuscles":  [
+                                 "GLUTE",
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "TRANSVERSE",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 3스텝 가속 던지기",
+        "detail1":  "가속/하체파워/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "짧은 3스텝 가속 후 메디신볼을 전방으로 던져 첫 스텝 추진과 하체-몸통 힘 전달을 훈련한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "medicine_ball_three_step_acceleration_throw",
+        "movementPattern":  [
+                                "ROTATION_CORE",
+                                "ACCELERATION_DECELERATION_TRANSITION"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "GLUTE"
+                           ],
+        "secondaryMuscles":  [
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "MULTI_PLANAR",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL",
+                               "HIP_STABILITY"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "TRUNK_CONTROL_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 3스텝 감속 던지기",
+        "detail1":  "감속/하체제어/코어",
+        "detail2":  "둔근/어깨/전완",
+        "mode":  "메디신볼, 무게*횟수",
+        "description":  "짧은 접근 후 감속하며 메디신볼을 던져 제동 제어와 움직임에서 힘 전달로 전환하는 능력을 훈련한다.",
+        "defaultRestSeconds":  75,
+        "stableKey":  "medicine_ball_three_step_deceleration_throw",
+        "movementPattern":  [
+                                "SINGLE_LEG_DECEL",
+                                "DECELERATION_SUPPORT",
+                                "ROTATION_CORE"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "GLUTE"
+                           ],
+        "secondaryMuscles":  [
+                                 "SHOULDER",
+                                 "FOREARM",
+                                 "GRIP"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "UNILATERAL",
+        "plane":  "MULTI_PLANAR",
+        "isUnilateral":  true,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL",
+                               "HIP_STABILITY",
+                               "KNEE_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  "DECELERATION_SUPPORT",
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "HIGH_LOAD",
+                            "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
         "name":  "메디신볼 로테이셔널 스쿱 토스",
         "detail1":  "복사근/코어",
         "detail2":  "둔근/어깨/전완",
@@ -10954,6 +11178,62 @@
         "loadProfile":  [
                             "HIGH_LOAD",
                             "SHOULDER_STRESS_HIGH"
+                        ],
+        "metadataConfidence":  "SEED_REVIEWED"
+    },
+    {
+        "source":  "BUILT_IN",
+        "category":  "기능성운동",
+        "name":  "메디신볼 슬램",
+        "detail1":  "순발력/코어",
+        "detail2":  "메디신볼",
+        "mode":  "메디신볼, 횟수 또는 시간",
+        "description":  "메디신볼을 바닥으로 강하게 내리쳐 전신 파워와 몸통 고정을 함께 훈련한다.",
+        "defaultRestSeconds":  60,
+        "stableKey":  "ex_26ac0c19",
+        "movementPattern":  [
+                                "VERTICAL_PUSH"
+                            ],
+        "movementCategory":  "FUNCTIONAL",
+        "primaryMuscles":  [
+                               "CORE",
+                               "SHOULDER"
+                           ],
+        "secondaryMuscles":  [
+                                 "TRICEPS",
+                                 "FOREARM"
+                             ],
+        "equipment":  [
+                          "MEDICINE_BALL"
+                      ],
+        "forceType":  "POWER",
+        "bodyRegion":  "WHOLE_BODY",
+        "laterality":  "BILATERAL",
+        "plane":  "SAGITTAL",
+        "isUnilateral":  false,
+        "equipmentTags":  [
+                              "MEDICINE_BALL"
+                          ],
+        "trainingRole":  [
+                             "POWER"
+                         ],
+        "stabilityRoles":  [
+                               "CORE_STABILITY",
+                               "TRUNK_CONTROL"
+                           ],
+        "sportTransferDirect":  [
+
+                                ],
+        "sportTransferSupportive":  [
+                                        "TRUNK_CONTROL_SUPPORT",
+                                        "SHOULDER_STABILITY_SUPPORT"
+                                    ],
+        "accessoryRoles":  [
+
+                           ],
+        "loadProfile":  [
+                            "SHOULDER_STRESS_HIGH",
+                            "MODERATE_LOAD"
                         ],
         "metadataConfidence":  "SEED_REVIEWED"
     },

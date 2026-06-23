@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.DailyCheckIn
+import com.training.trackplanner.data.DailyMetric
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -30,5 +31,20 @@ class CheckInMetricSeriesBuilderTest {
         ).getValue(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE).single().value!!
 
         assertTrue(good > bad)
+    }
+
+    @Test
+    fun sleepHoursUseCanonicalDailyMetricWhenBothSourcesExist() {
+        val series = CheckInMetricSeriesBuilder.build(
+            checkIns = listOf(DailyCheckIn(date = "2026-06-22", sleepHours = 4.0, overallFatigue = 5)),
+            dailyMetrics = listOf(DailyMetric(date = "2026-06-22", sleepHours = 7.5))
+        )
+
+        assertEquals(7.5, series.getValue(TrendMetricId.SLEEP_HOURS).single().value ?: 0.0, 0.001)
+        assertEquals(
+            2.5,
+            series.getValue(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE).single().value ?: 0.0,
+            0.001
+        )
     }
 }

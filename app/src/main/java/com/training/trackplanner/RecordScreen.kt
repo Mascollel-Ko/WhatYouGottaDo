@@ -55,10 +55,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ActivityKind
 import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.resolvedActivityKind
 import java.time.LocalDate
 
 @Composable
@@ -400,6 +402,7 @@ private fun WorkoutEntryCard(
     val entry = entryWithSets.entry
     val sets = entryWithSets.sets.sortedBy { it.setIndex }
     val showWeight = shouldShowWeight(entry)
+    val isSportDurationInput = shouldUseSportDurationInput(entry, exercise, showWeight)
     val hasConfirmedSet = sets.any { set -> set.confirmed }
     var showBulkEditDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showDetails by rememberSaveable(entry.id) { mutableStateOf(false) }
@@ -543,6 +546,7 @@ private fun WorkoutEntryCard(
                     set = set,
                     sets = sets,
                     showWeight = showWeight,
+                    isSportDurationInput = isSportDurationInput,
                     canDelete = true,
                     onUpdateSet = onUpdateSet,
                     onDeleteSet = { targetSet ->
@@ -681,6 +685,7 @@ private fun WorkoutSetRow(
     set: WorkoutSet,
     sets: List<WorkoutSet>,
     showWeight: Boolean,
+    isSportDurationInput: Boolean,
     canDelete: Boolean,
     onUpdateSet: (WorkoutSet) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
@@ -692,9 +697,12 @@ private fun WorkoutSetRow(
     var repsText by rememberSaveable(set.id) { mutableStateOf(set.reps.toString()) }
     var weightText by rememberSaveable(set.id) { mutableStateOf(formatDecimal(set.weightKg)) }
     var secondsText by rememberSaveable(set.id) { mutableStateOf(set.seconds.toString()) }
+    var sportHoursText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).hours.toString()) }
+    var sportMinutesText by rememberSaveable(set.id) { mutableStateOf(totalDurationToHoursMinutes(set.seconds).minutes.toString()) }
     var repsFocused by rememberSaveable(set.id) { mutableStateOf(false) }
     var weightFocused by rememberSaveable(set.id) { mutableStateOf(false) }
     var secondsFocused by rememberSaveable(set.id) { mutableStateOf(false) }
+    var sportDurationFocused by rememberSaveable(set.id) { mutableStateOf(false) }
     var showRpeDialog by rememberSaveable(set.id) { mutableStateOf(false) }
     var showRestDialog by rememberSaveable(set.id) { mutableStateOf(false) }
     var isExpanded by rememberSaveable(set.id) { mutableStateOf(false) }
@@ -706,6 +714,29 @@ private fun WorkoutSetRow(
         if (!repsFocused) repsText = set.reps.toString()
         if (!weightFocused) weightText = formatDecimal(set.weightKg)
         if (!secondsFocused) secondsText = set.seconds.toString()
+        if (!sportDurationFocused) {
+            val parts = totalDurationToHoursMinutes(set.seconds)
+            sportHoursText = parts.hours.toString()
+            sportMinutesText = parts.minutes.toString()
+        }
+    }
+
+    fun applySportDuration(hoursText: String = sportHoursText, minutesText: String = sportMinutesText) {
+        val seconds = hoursMinutesToStoredDuration(
+            hours = hoursText.toIntOrNull() ?: 0,
+            minutes = minutesText.toIntOrNull() ?: 0
+        )
+        onUpdateSet(set.copy(seconds = seconds))
+    }
+
+    fun normalizeSportDurationText() {
+        val parts = normalizeHoursMinutes(
+            hours = sportHoursText.toIntOrNull() ?: 0,
+            minutes = sportMinutesText.toIntOrNull() ?: 0
+        )
+        sportHoursText = parts.hours.toString()
+        sportMinutesText = parts.minutes.toString()
+        onUpdateSet(set.copy(seconds = hoursMinutesToStoredDuration(parts.hours, parts.minutes)))
     }
 
     if (showRpeDialog) {
@@ -788,12 +819,20 @@ private fun WorkoutSetRow(
                         )
                     }
                     CompactChip(
-                        text = if (set.seconds > 0 && !showWeight) "${set.seconds}초" else "${set.reps}회",
+                        text = if (set.seconds > 0 && !showWeight) {
+                            if (isSportDurationInput) formatSportDurationLabel(set.seconds) else "${set.seconds}초"
+                        } else {
+                            "${set.reps}회"
+                        },
                         onClick = {
-                            editField = if (set.seconds > 0 && !showWeight) {
-                                SetEditField.Seconds
+                            if (isSportDurationInput) {
+                                isExpanded = true
                             } else {
-                                SetEditField.Reps
+                                editField = if (set.seconds > 0 && !showWeight) {
+                                    SetEditField.Seconds
+                                } else {
+                                    SetEditField.Reps
+                                }
                             }
                         }
                     )
@@ -901,6 +940,39 @@ private fun WorkoutSetRow(
                             }
                         }
                     )
+                } else if (isSportDurationInput) {
+                    CompactNumberField(
+                        modifier = Modifier.width(62.dp),
+                        value = sportHoursText,
+                        suffix = "시간",
+                        keyboardType = KeyboardType.Number,
+                        onValueChange = {
+                            if (it.isUnsignedInt()) {
+                                sportHoursText = it
+                                applySportDuration(hoursText = it)
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            sportDurationFocused = focused
+                            if (!focused) normalizeSportDurationText()
+                        }
+                    )
+                    CompactNumberField(
+                        modifier = Modifier.width(56.dp),
+                        value = sportMinutesText,
+                        suffix = "분",
+                        keyboardType = KeyboardType.Number,
+                        onValueChange = {
+                            if (it.isUnsignedInt()) {
+                                sportMinutesText = it
+                                applySportDuration(minutesText = it)
+                            }
+                        },
+                        onFocusChanged = { focused ->
+                            sportDurationFocused = focused
+                            if (!focused) normalizeSportDurationText()
+                        }
+                    )
                 } else {
                     CompactNumberField(
                         modifier = Modifier.width(56.dp),
@@ -938,7 +1010,9 @@ private fun WorkoutSetRow(
                     Checkbox(
                         modifier = Modifier.size(40.dp),
                         checked = set.confirmed,
+                        enabled = !isSportDurationInput || set.seconds > 0 || set.confirmed,
                         onCheckedChange = { checked ->
+                            if (checked && isSportDurationInput && set.seconds <= 0) return@Checkbox
                             val updated = set.copy(confirmed = checked)
                             onUpdateSet(updated)
                             if (checked && !set.confirmed && effectiveRestSeconds > 0) {
@@ -951,6 +1025,13 @@ private fun WorkoutSetRow(
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
+            }
+            if (isSportDurationInput && set.seconds <= 0) {
+                Text(
+                    text = "스포츠 기록은 0시간 0분으로 완료할 수 없습니다.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1614,6 +1695,16 @@ private fun conditionSummary(sleepHours: Double?, bodyWeightKg: Double?): String
 
 private fun shouldShowWeight(entry: WorkoutEntry): Boolean =
     entry.category != "스포츠" && entry.category != "유산소운동"
+
+private fun shouldUseSportDurationInput(
+    entry: WorkoutEntry,
+    exercise: Exercise?,
+    showWeight: Boolean
+): Boolean {
+    if (showWeight) return false
+    if (exercise?.resolvedActivityKind() == ActivityKind.SPORT_SESSION) return true
+    return entry.category == "스포츠" || entry.category.equals("sport", ignoreCase = true)
+}
 
 private fun planSummary(sets: List<WorkoutSet>, showWeight: Boolean): String {
     if (sets.isEmpty()) return "계획 0세트"

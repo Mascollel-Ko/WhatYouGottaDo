@@ -12,6 +12,16 @@ enum class AnalysisMetricCategory {
     DERIVED
 }
 
+fun AnalysisMetricCategory.displayLabelKo(): String = when (this) {
+    AnalysisMetricCategory.STRENGTH -> "근력"
+    AnalysisMetricCategory.BADMINTON -> "배드민턴"
+    AnalysisMetricCategory.FATIGUE -> "피로"
+    AnalysisMetricCategory.TRANSFER -> "전이"
+    AnalysisMetricCategory.RECOVERY -> "회복/컨디션"
+    AnalysisMetricCategory.VOLUME -> "훈련량"
+    AnalysisMetricCategory.DERIVED -> "파생 지표"
+}
+
 enum class AnalysisTimeGrain {
     DAILY,
     WEEKLY

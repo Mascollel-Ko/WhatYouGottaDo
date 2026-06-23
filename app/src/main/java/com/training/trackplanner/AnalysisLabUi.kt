@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.AnalysisMetricDescriptor
 import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
+import com.training.trackplanner.analysis.lab.displayLabelKo
 import com.training.trackplanner.analysis.trends.PerformanceChartSpecBuilder
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.ScatterRelationshipAnalyzer
@@ -177,7 +178,7 @@ private fun LabMetricCatalogCard(metrics: List<AnalysisMetricDescriptor>) {
             Text("현재 데이터가 있는 주간 지표 ${metrics.size}개", style = MaterialTheme.typography.bodySmall)
             metrics.groupBy { it.category }.forEach { (category, descriptors) ->
                 Text(
-                    "${category.name}: ${descriptors.joinToString { it.displayName }}",
+                    "${category.displayLabelKo()}: ${descriptors.joinToString { it.displayName }}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -196,10 +197,10 @@ private fun LabFutureExpansionCard() {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("확장 기반", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             listOf(
+                "체크인 지표 고도화",
+                "자동 패턴 탐지",
                 "다변량 분석",
                 "다변량 시계열 분석",
-                "자동 패턴 탐지",
-                "주관적 컨디션 체크인 연동",
                 "배드민턴 세션 후 피드백 연동"
             ).forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
             Text(

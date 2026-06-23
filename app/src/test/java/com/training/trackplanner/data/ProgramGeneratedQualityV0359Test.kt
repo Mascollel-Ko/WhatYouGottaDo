@@ -40,8 +40,8 @@ class ProgramGeneratedQualityV0359Test {
         )
 
         assertEquals(14, results.size)
-        assertEquals(235, exercises.size)
-        assertEquals(235, catalog.size)
+        assertEquals(239, exercises.size)
+        assertEquals(239, catalog.size)
         assertTrue(results.values.all { it.items.isNotEmpty() })
         assertFalse(results.values.any { result -> result.items.any(ProgramSkeletonItem::directSportSession) })
         assertTrue(audits.values.all { it.hardIssueCodes.isEmpty() })

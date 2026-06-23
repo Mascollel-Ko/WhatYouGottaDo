@@ -158,9 +158,30 @@ class RecordCsvBackupRestoreTest {
         )
 
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        assertEquals(6.5, parsed.dailyRows.single().sleepHours ?: 0.0, 0.001)
         val checkIn = parsed.checkInRows.single()
+        assertEquals(null, checkIn.sleepHours)
         assertEquals(4, checkIn.overallFatigue)
         assertEquals(null, checkIn.lowerBodyFatigue)
         assertEquals("light day", checkIn.note)
+    }
+
+    @Test
+    fun restoreCsvExportsCanonicalSleepOnlyOnceWhenMetricAndCheckInDiffer() {
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = listOf(DailyMetric(date = "2026-06-23", sleepHours = 7.25)),
+            checkIns = listOf(
+                DailyCheckIn(
+                    date = "2026-06-23",
+                    sleepHours = 5.0,
+                    overallFatigue = 3
+                )
+            )
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        assertEquals(7.25, parsed.dailyRows.single().sleepHours ?: 0.0, 0.001)
+        assertEquals(null, parsed.checkInRows.single().sleepHours)
     }
 }
