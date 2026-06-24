@@ -419,4 +419,4 @@ Current release facts:
 - Version code: `304045`
 - Room DB version: `12`
 - Exercise seed version: `6`
-- Canonical handoff: `outputs/v0.3.4.5_reproduction_handoff.md`
+- Historical handoff summary: `docs/archive/v0.3.6.5_outputs_archive.md`

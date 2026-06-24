@@ -18,3 +18,4 @@ local.properties
 
 # Local generated workspace artifacts
 work/
+outputs/
