@@ -153,6 +153,14 @@ class ProgramBuilder internal constructor(
                         intensityMultiplier = week.intensityMultiplier,
                         today = today
                     )
+                    val reasonLabels = ProgramExerciseReasonBuilder.labels(
+                        candidate = picked,
+                        role = role,
+                        requestedSlot = requestedSlot,
+                        dayIntensity = day.intensity,
+                        week = week,
+                        fatigueGate = fatigueGate
+                    )
                     generated += ProgramSkeletonItem(
                         localId = "${week.weekIndex}-${day.dayOfWeek}-${itemIndex + 1}-${picked.exercise.id}",
                         weekNumber = week.weekIndex,
@@ -204,7 +212,8 @@ class ProgramBuilder internal constructor(
                         slotCapabilityConfidence = picked.slotCapabilities.confidence.name,
                         slotCapabilityWarnings = picked.slotCapabilities.warnings,
                         requestedTemplateSlot = requestedSlot?.name.orEmpty(),
-                        requiredTemplateAnchor = templateSlot.required
+                        requiredTemplateAnchor = templateSlot.required,
+                        reasonLabels = reasonLabels
                     )
                 }
             }

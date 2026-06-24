@@ -709,7 +709,7 @@ private fun ProgramSkeletonItemEditor(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "${item.selectionReason} · ${item.weightSource}",
+                        text = "이유: ${item.displayReasonLabels().joinToString(" · ")}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1182,6 +1182,13 @@ private fun ProgramItemEditor(
         }
     }
 }
+
+private fun ProgramSkeletonItem.displayReasonLabels(): List<String> =
+    reasonLabels
+        .filter(String::isNotBlank)
+        .distinct()
+        .take(4)
+        .ifEmpty { listOf("프로그램 균형", "슬롯 조건 충족") }
 
 @Composable
 private fun ProgramNumberField(
