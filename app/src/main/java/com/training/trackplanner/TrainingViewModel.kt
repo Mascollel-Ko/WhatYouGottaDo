@@ -35,6 +35,7 @@ import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.RecordCsvPreflightSummary
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgramItem
@@ -132,6 +133,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _recordTransferMessage = MutableStateFlow<String?>(null)
     val recordTransferMessage: StateFlow<String?> =
         _recordTransferMessage.asStateFlow()
+
+    private val _recordRestorePreflight = MutableStateFlow<RecordCsvPreflightSummary?>(null)
+    val recordRestorePreflight: StateFlow<RecordCsvPreflightSummary?> =
+        _recordRestorePreflight.asStateFlow()
+    private var pendingRestoreUri: Uri? = null
 
     private val _exerciseRuntimeMetadata = MutableStateFlow<Map<Long, RuntimeExerciseMetadata>>(emptyMap())
     val exerciseRuntimeMetadata: StateFlow<Map<Long, RuntimeExerciseMetadata>> =
@@ -476,6 +482,38 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 _recordTransferMessage.value = "기록 백업 실패: ${error.message ?: "알 수 없는 오류"}"
             }
         }
+    }
+
+    fun previewRestoreRecords(uri: Uri) {
+        viewModelScope.launch {
+            runCatching {
+                repository.previewRecordsBackup(uri)
+            }.onSuccess { summary ->
+                pendingRestoreUri = uri
+                _recordRestorePreflight.value = summary
+                _recordTransferMessage.value = if (summary.canImport) {
+                    null
+                } else {
+                    "복원 전 확인 필요: 차단 오류 ${summary.blockingCount}개"
+                }
+            }.onFailure { error ->
+                pendingRestoreUri = null
+                _recordRestorePreflight.value = null
+                _recordTransferMessage.value = "기록 복원 미리보기 실패: ${error.message ?: "알 수 없는 오류"}"
+            }
+        }
+    }
+
+    fun confirmRestoreRecords() {
+        val uri = pendingRestoreUri ?: return
+        pendingRestoreUri = null
+        _recordRestorePreflight.value = null
+        restoreRecords(uri)
+    }
+
+    fun dismissRestorePreview() {
+        pendingRestoreUri = null
+        _recordRestorePreflight.value = null
     }
 
     fun restoreRecords(uri: Uri) {

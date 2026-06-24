@@ -427,10 +427,25 @@ class TrainingRepository(
         )
     }
 
+    suspend fun previewRecordsBackup(uri: Uri): RecordCsvPreflightSummary = withContext(Dispatchers.IO) {
+        val text = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { reader ->
+            reader.readText()
+        } ?: error("복원 파일을 열 수 없습니다.")
+        RecordCsvBackupRestore.preflight(text)
+    }
+
     suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         val text = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { reader ->
             reader.readText()
         } ?: error("복원 파일을 열 수 없습니다.")
+        val preflight = RecordCsvBackupRestore.preflight(text)
+        if (!preflight.canImport) {
+            val blockingMessage = preflight.issues
+                .firstOrNull { issue -> issue.severity == RecordCsvPreflightSeverity.BLOCKING }
+                ?.message
+                .orEmpty()
+            error("복원 파일에 차단 오류가 있습니다: $blockingMessage")
+        }
         when (val data = RecordCsvBackupRestore.parse(text)) {
             is RecordCsvImportData.Restore -> importRestoreCsv(data)
             is RecordCsvImportData.DailyTimeseries -> importDailyTimeseriesCsv(data)

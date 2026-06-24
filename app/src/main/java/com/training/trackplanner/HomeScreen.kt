@@ -14,12 +14,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.RecordCsvPreflightSeverity
+import com.training.trackplanner.data.RecordCsvPreflightSummary
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -49,6 +53,7 @@ internal fun HomeScreen(
     val today = remember { LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) }
     val summary by viewModel.homeTodaySummary.collectAsState()
     val transferMessage by viewModel.recordTransferMessage.collectAsState()
+    val restorePreflight by viewModel.recordRestorePreflight.collectAsState()
     val initialProfile by viewModel.initialUserProfile.collectAsState()
     val todayCheckIn by viewModel.todayCheckIn.collectAsState()
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
@@ -60,7 +65,7 @@ internal fun HomeScreen(
     val restoreLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let(viewModel::restoreRecords)
+        uri?.let(viewModel::previewRestoreRecords)
     }
 
     LazyColumn(
@@ -124,6 +129,14 @@ internal fun HomeScreen(
                 viewModel.saveInitialUserProfile(profile)
                 showInitialProfile = false
             }
+        )
+    }
+
+    restorePreflight?.let { summary ->
+        RestorePreflightDialog(
+            summary = summary,
+            onConfirm = viewModel::confirmRestoreRecords,
+            onDismiss = viewModel::dismissRestorePreview
         )
     }
 }
@@ -391,6 +404,93 @@ private fun RecordManagementCard(
         }
     }
 }
+
+@Composable
+private fun RestorePreflightDialog(
+    summary: RecordCsvPreflightSummary,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val blocking = summary.blockingCount > 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("복원 전 확인") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "파일 형식: ${summary.displayFormat()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "기간: ${summary.dateRangeText()}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "기록 ${summary.entryCount}개 · 세트 ${summary.setCount}개 · 일일 지표 ${summary.dailyMetricCount}개 · 체크인 ${summary.dailyCheckInCount}개",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    text = "경고 ${summary.warningCount}개 · 차단 ${summary.blockingCount}개",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (blocking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (summary.issues.isNotEmpty()) {
+                    Text(
+                        text = if (blocking) "가져올 수 없는 항목" else "주의 필요",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    summary.issues.take(5).forEach { issue ->
+                        Text(
+                            text = "- ${issue.severity.displayPrefix()} ${issue.displayText()}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (issue.severity == RecordCsvPreflightSeverity.BLOCKING) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                    if (summary.issues.size > 5) {
+                        Text(
+                            text = "외 ${summary.issues.size - 5}개",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = if (blocking) onDismiss else onConfirm
+            ) {
+                Text(if (blocking) "닫기" else "복원하기")
+            }
+        },
+        dismissButton = {
+            if (!blocking) {
+                TextButton(onClick = onDismiss) {
+                    Text("취소")
+                }
+            }
+        }
+    )
+}
+
+private fun RecordCsvPreflightSummary.displayFormat(): String =
+    when (format) {
+        "restore" -> "전체 복원 CSV"
+        "daily_timeseries" -> "일일 요약 CSV"
+        else -> format
+    }
+
+private fun RecordCsvPreflightSeverity.displayPrefix(): String =
+    when (this) {
+        RecordCsvPreflightSeverity.INFO -> "정보"
+        RecordCsvPreflightSeverity.WARNING -> "주의"
+        RecordCsvPreflightSeverity.BLOCKING -> "차단"
+    }
 
 @Composable
 private fun InitialProfileCard(

@@ -184,4 +184,92 @@ class RecordCsvBackupRestoreTest {
         assertEquals(7.25, parsed.dailyRows.single().sleepHours ?: 0.0, 0.001)
         assertEquals(null, parsed.checkInRows.single().sleepHours)
     }
+
+    @Test
+    fun preflightSummarizesValidRestoreBeforeImport() {
+        val entry = WorkoutEntry(
+            id = 10,
+            date = "2026-06-15",
+            exerciseId = 1,
+            exerciseName = "Test Squat",
+            category = "Strength"
+        )
+        val set = WorkoutSet(
+            entryId = 10,
+            setIndex = 1,
+            reps = 5,
+            weightKg = 100.0,
+            confirmed = true
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set))),
+            metrics = listOf(DailyMetric(date = "2026-06-15", sleepHours = 7.0, bodyWeightKg = 72.0)),
+            checkIns = listOf(DailyCheckIn(date = "2026-06-15", overallFatigue = 2))
+        )
+
+        val summary = RecordCsvBackupRestore.preflight(csv)
+
+        assertEquals("restore", summary.format)
+        assertEquals("2026-06-15", summary.dateRangeStart)
+        assertEquals("2026-06-15", summary.dateRangeEnd)
+        assertEquals(1, summary.entryCount)
+        assertEquals(1, summary.setCount)
+        assertEquals(1, summary.dailyMetricCount)
+        assertEquals(1, summary.dailyCheckInCount)
+        assertEquals(true, summary.canImport)
+    }
+
+    @Test
+    fun preflightBlocksRestoreMissingDateColumn() {
+        val csv = """
+            schema_version,row_type,exercise_name
+            1,set,Test Squat
+        """.trimIndent()
+
+        val summary = RecordCsvBackupRestore.preflight(csv)
+
+        assertEquals(false, summary.canImport)
+        assertTrue(summary.issues.any { issue -> issue.code == "MISSING_DATE_COLUMN" })
+    }
+
+    @Test
+    fun preflightWarnsInvalidDate() {
+        val csv = """
+            schema_version,row_type,date,sleep_hours,body_weight_kg
+            1,daily,not-a-date,7,72
+        """.trimIndent()
+
+        val summary = RecordCsvBackupRestore.preflight(csv)
+
+        assertEquals(true, summary.canImport)
+        assertTrue(summary.issues.any { issue -> issue.code == "INVALID_DATE" })
+    }
+
+    @Test
+    fun preflightWarnsLikelySleepBodyWeightSwap() {
+        val csv = """
+            schema_version,row_type,date,sleep_hours,body_weight_kg
+            1,daily,2026-06-15,72,7
+        """.trimIndent()
+
+        val summary = RecordCsvBackupRestore.preflight(csv)
+
+        assertTrue(summary.issues.any { issue -> issue.code == "SLEEP_BODY_WEIGHT_SWAP" })
+        assertTrue(summary.issues.any { issue -> issue.code == "SLEEP_HOURS_RANGE" })
+    }
+
+    @Test
+    fun preflightWarnsManyUnconfirmedPlannedZeroWeights() {
+        val rows = (1..6).joinToString("\n") { index ->
+            "1,set,2026-06-15,e$index,$index,Test Squat,Strength,0,60,,,,$index,0,5,0,0,,"
+        }
+        val csv = """
+            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,rpe,max_reps,notes,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,body_weight_kg
+            $rows
+        """.trimIndent()
+
+        val summary = RecordCsvBackupRestore.preflight(csv)
+
+        assertTrue(summary.issues.any { issue -> issue.code == "PLANNED_ZERO_WEIGHT_SHARE" })
+    }
 }

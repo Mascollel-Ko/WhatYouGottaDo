@@ -18,6 +18,56 @@ data class RecordCsvTransferResult(
         "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
 }
 
+enum class RecordCsvPreflightSeverity {
+    INFO,
+    WARNING,
+    BLOCKING
+}
+
+data class RecordCsvPreflightIssue(
+    val severity: RecordCsvPreflightSeverity,
+    val code: String,
+    val message: String,
+    val rowNumber: Int? = null
+) {
+    fun displayText(): String =
+        rowNumber?.let { row -> "행 $row: $message" } ?: message
+}
+
+data class RecordCsvPreflightSummary(
+    val format: String,
+    val schemaVersions: Set<String> = emptySet(),
+    val dateRangeStart: String? = null,
+    val dateRangeEnd: String? = null,
+    val exerciseCount: Int = 0,
+    val profileCount: Int = 0,
+    val dailyMetricCount: Int = 0,
+    val dailyCheckInCount: Int = 0,
+    val entryCount: Int = 0,
+    val setCount: Int = 0,
+    val parsedRowCount: Int = 0,
+    val skippedRowCount: Int = 0,
+    val issues: List<RecordCsvPreflightIssue> = emptyList()
+) {
+    val warningCount: Int
+        get() = issues.count { issue -> issue.severity == RecordCsvPreflightSeverity.WARNING }
+
+    val blockingCount: Int
+        get() = issues.count { issue -> issue.severity == RecordCsvPreflightSeverity.BLOCKING }
+
+    val canImport: Boolean
+        get() = blockingCount == 0
+
+    fun dateRangeText(): String =
+        if (dateRangeStart == null || dateRangeEnd == null) {
+            "없음"
+        } else if (dateRangeStart == dateRangeEnd) {
+            dateRangeStart
+        } else {
+            "$dateRangeStart ~ $dateRangeEnd"
+        }
+}
+
 sealed class RecordCsvImportData {
     data class Restore(
         val exerciseRows: List<RestoreExerciseRow>,
@@ -352,6 +402,33 @@ object RecordCsvBackupRestore {
         return builder.toString()
     }
 
+    fun preflight(text: String): RecordCsvPreflightSummary {
+        val rows = text.lineSequence()
+            .filter { line -> line.isNotBlank() }
+            .map(::parseCsvLine)
+            .toList()
+        if (rows.isEmpty()) {
+            return RecordCsvPreflightSummary(
+                format = "unknown",
+                issues = listOf(
+                    RecordCsvPreflightIssue(
+                        severity = RecordCsvPreflightSeverity.BLOCKING,
+                        code = "EMPTY_FILE",
+                        message = "CSV 파일이 비어 있습니다."
+                    )
+                )
+            )
+        }
+        val header = rows.first().map { value -> value.trim() }
+        val index = header.withIndex().associate { (i, name) -> name to i }
+        val bodyRows = rows.drop(1)
+        return if ("row_type" in index) {
+            preflightRestore(bodyRows, index)
+        } else {
+            preflightDailyTimeseries(bodyRows, index)
+        }
+    }
+
     fun parse(text: String): RecordCsvImportData {
         val rows = text.lineSequence()
             .filter { line -> line.isNotBlank() }
@@ -366,6 +443,281 @@ object RecordCsvBackupRestore {
             parseRestore(rows.drop(1), index)
         } else {
             parseDailyTimeseries(rows.drop(1), index)
+        }
+    }
+
+    private fun preflightRestore(
+        rows: List<List<String>>,
+        index: Map<String, Int>
+    ): RecordCsvPreflightSummary {
+        val issues = mutableListOf<RecordCsvPreflightIssue>()
+        if ("date" !in index) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.BLOCKING,
+                code = "MISSING_DATE_COLUMN",
+                message = "복원 CSV에 date 컬럼이 없습니다."
+            )
+        }
+        if ("schema_version" !in index) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.INFO,
+                code = "MISSING_SCHEMA_VERSION",
+                message = "schema_version 컬럼이 없어 레거시 백업으로 처리합니다."
+            )
+        }
+        val schemaVersions = rows.mapNotNull { row ->
+            row.value(index, "schema_version").trim().takeIf { value -> value.isNotEmpty() }
+        }.toSet()
+        schemaVersions
+            .filterNot { version -> version == "1" || version == "2" }
+            .forEach { version ->
+                issues += RecordCsvPreflightIssue(
+                    severity = RecordCsvPreflightSeverity.WARNING,
+                    code = "UNKNOWN_SCHEMA_VERSION",
+                    message = "알 수 없는 schema_version $version 값이 있습니다."
+                )
+            }
+
+        addRestoreRowIssues(rows, index, issues)
+        rows.forEachIndexed { rowIndex, row ->
+            addSuspiciousMetricIssues(
+                row = row,
+                index = index,
+                rowNumber = rowIndex + 2,
+                issues = issues
+            )
+        }
+
+        val data = parseRestore(rows, index)
+        addDuplicateDateIssues("daily", data.dailyRows.map { row -> row.date }, issues)
+        addDuplicateDateIssues("check_in", data.checkInRows.map { row -> row.date }, issues)
+        addPlannedZeroWeightIssue(data.setRows, issues)
+
+        val detailedWarnings = issues.count { issue -> issue.severity == RecordCsvPreflightSeverity.WARNING }
+        val parserOnlyWarnings = (data.warningCount - detailedWarnings).coerceAtLeast(0)
+        if (parserOnlyWarnings > 0) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "PARSER_SKIPPED_ROWS",
+                message = "가져올 수 없는 행이 ${parserOnlyWarnings}개 있습니다."
+            )
+        }
+
+        val dates = (data.dailyRows.map { row -> row.date } +
+            data.checkInRows.map { row -> row.date } +
+            data.setRows.map { row -> row.date })
+            .filter { date -> date.isValidDate() }
+            .sorted()
+        val entryCount = data.setRows
+            .map { row -> row.date to row.entryKey }
+            .distinct()
+            .size
+        return RecordCsvPreflightSummary(
+            format = "restore",
+            schemaVersions = schemaVersions,
+            dateRangeStart = dates.firstOrNull(),
+            dateRangeEnd = dates.lastOrNull(),
+            exerciseCount = data.exerciseRows.size,
+            profileCount = data.profileRows.size,
+            dailyMetricCount = data.dailyRows.size,
+            dailyCheckInCount = data.checkInRows.size,
+            entryCount = entryCount,
+            setCount = data.setRows.size,
+            parsedRowCount = data.exerciseRows.size + data.profileRows.size +
+                data.dailyRows.size + data.checkInRows.size + data.setRows.size,
+            skippedRowCount = data.warningCount,
+            issues = issues
+        )
+    }
+
+    private fun preflightDailyTimeseries(
+        rows: List<List<String>>,
+        index: Map<String, Int>
+    ): RecordCsvPreflightSummary {
+        val issues = mutableListOf<RecordCsvPreflightIssue>()
+        if ("date" !in index) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.BLOCKING,
+                code = "MISSING_DATE_COLUMN",
+                message = "CSV에 date 컬럼이 없습니다."
+            )
+        }
+        if ("date" in index) {
+            rows.forEachIndexed { rowIndex, row ->
+                val date = row.value(index, "date").trim()
+                if (!date.isValidDate()) {
+                    issues += RecordCsvPreflightIssue(
+                        severity = RecordCsvPreflightSeverity.WARNING,
+                        code = "INVALID_DATE",
+                        message = "날짜를 읽을 수 없어 행을 건너뜁니다.",
+                        rowNumber = rowIndex + 2
+                    )
+                }
+                addSuspiciousMetricIssues(
+                    row = row,
+                    index = index,
+                    rowNumber = rowIndex + 2,
+                    issues = issues
+                )
+            }
+        }
+        val data = parseDailyTimeseries(rows, index)
+        addDuplicateDateIssues("daily", data.rows.map { row -> row.date }, issues)
+        val detailedWarnings = issues.count { issue -> issue.severity == RecordCsvPreflightSeverity.WARNING }
+        val parserOnlyWarnings = (data.warningCount - detailedWarnings).coerceAtLeast(0)
+        if (parserOnlyWarnings > 0) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "PARSER_SKIPPED_ROWS",
+                message = "가져올 수 없는 행이 ${parserOnlyWarnings}개 있습니다."
+            )
+        }
+        val dates = data.rows.map { row -> row.date }
+            .filter { date -> date.isValidDate() }
+            .sorted()
+        return RecordCsvPreflightSummary(
+            format = "daily_timeseries",
+            dateRangeStart = dates.firstOrNull(),
+            dateRangeEnd = dates.lastOrNull(),
+            dailyMetricCount = data.rows.count { row -> row.sleepHours != null || row.bodyWeightKg != null },
+            entryCount = data.rows.sumOf { row -> row.totalEntries },
+            setCount = data.rows.sumOf { row -> row.totalSets },
+            parsedRowCount = data.rows.size,
+            skippedRowCount = data.warningCount,
+            issues = issues
+        )
+    }
+
+    private fun addRestoreRowIssues(
+        rows: List<List<String>>,
+        index: Map<String, Int>,
+        issues: MutableList<RecordCsvPreflightIssue>
+    ) {
+        val knownTypes = setOf("profile", "exercise", "daily", "set", "check_in")
+        val dateRequiredTypes = setOf("daily", "set", "check_in")
+        rows.forEachIndexed { rowIndex, row ->
+            val rowNumber = rowIndex + 2
+            val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
+            if (rowType !in knownTypes) {
+                issues += RecordCsvPreflightIssue(
+                    severity = RecordCsvPreflightSeverity.WARNING,
+                    code = "UNKNOWN_ROW_TYPE",
+                    message = "알 수 없는 row_type '$rowType' 값이 있어 행을 건너뜁니다.",
+                    rowNumber = rowNumber
+                )
+                return@forEachIndexed
+            }
+            if (rowType in dateRequiredTypes && "date" in index) {
+                val date = row.value(index, "date").trim()
+                if (!date.isValidDate()) {
+                    issues += RecordCsvPreflightIssue(
+                        severity = RecordCsvPreflightSeverity.WARNING,
+                        code = "INVALID_DATE",
+                        message = "날짜를 읽을 수 없어 행을 건너뜁니다.",
+                        rowNumber = rowNumber
+                    )
+                }
+            }
+            if (rowType == "set" &&
+                row.value(index, "exercise_name").isBlank() &&
+                row.value(index, "stable_key").isBlank()
+            ) {
+                issues += RecordCsvPreflightIssue(
+                    severity = RecordCsvPreflightSeverity.WARNING,
+                    code = "UNKNOWN_EXERCISE_IDENTIFIER",
+                    message = "운동 이름과 stableKey가 비어 있어 임시 운동으로 복원됩니다.",
+                    rowNumber = rowNumber
+                )
+            }
+        }
+    }
+
+    private fun addSuspiciousMetricIssues(
+        row: List<String>,
+        index: Map<String, Int>,
+        rowNumber: Int,
+        issues: MutableList<RecordCsvPreflightIssue>
+    ) {
+        val sleepRaw = row.value(index, "sleep_hours").trim()
+        val bodyRaw = row.value(index, "body_weight_kg").trim()
+        val sleep = sleepRaw.toDoubleOrNull()
+        val bodyWeight = bodyRaw.toDoubleOrNull()
+
+        if (sleepRaw.isNotEmpty() && sleep == null) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "INVALID_SLEEP_HOURS",
+                message = "수면시간 값을 숫자로 읽을 수 없습니다.",
+                rowNumber = rowNumber
+            )
+        }
+        if (bodyRaw.isNotEmpty() && bodyWeight == null) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "INVALID_BODY_WEIGHT",
+                message = "체중 값을 숫자로 읽을 수 없습니다.",
+                rowNumber = rowNumber
+            )
+        }
+        if (sleep != null && (sleep < 0.0 || sleep > 24.0)) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "SLEEP_HOURS_RANGE",
+                message = "수면시간이 0~24시간 범위를 벗어났습니다.",
+                rowNumber = rowNumber
+            )
+        }
+        if (bodyWeight != null && (bodyWeight < 25.0 || bodyWeight > 250.0)) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "BODY_WEIGHT_RANGE",
+                message = "체중 값이 일반적인 범위를 벗어났습니다.",
+                rowNumber = rowNumber
+            )
+        }
+        if (sleep != null && bodyWeight != null && sleep in 25.0..250.0 && bodyWeight in 0.0..24.0) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "SLEEP_BODY_WEIGHT_SWAP",
+                message = "수면/체중 값이 뒤섞였을 가능성이 있습니다.",
+                rowNumber = rowNumber
+            )
+        }
+    }
+
+    private fun addDuplicateDateIssues(
+        rowType: String,
+        dates: List<String>,
+        issues: MutableList<RecordCsvPreflightIssue>
+    ) {
+        dates.groupingBy { date -> date }
+            .eachCount()
+            .filterValues { count -> count > 1 }
+            .keys
+            .forEach { date ->
+                issues += RecordCsvPreflightIssue(
+                    severity = RecordCsvPreflightSeverity.WARNING,
+                    code = "DUPLICATE_${rowType.uppercase(Locale.US)}_DATE",
+                    message = "$date 날짜의 $rowType 행이 중복되어 마지막 값이 우선될 수 있습니다."
+                )
+            }
+    }
+
+    private fun addPlannedZeroWeightIssue(
+        setRows: List<RestoreSetRow>,
+        issues: MutableList<RecordCsvPreflightIssue>
+    ) {
+        val plannedRows = setRows.filter { row -> !row.setConfirmed }
+        if (plannedRows.size < 5) return
+        val zeroWeightRows = plannedRows.count { row ->
+            row.weightKg == 0.0 && row.seconds <= 0
+        }
+        if (zeroWeightRows.toDouble() / plannedRows.size >= 0.5) {
+            issues += RecordCsvPreflightIssue(
+                severity = RecordCsvPreflightSeverity.WARNING,
+                code = "PLANNED_ZERO_WEIGHT_SHARE",
+                message = "미확인 계획 세트의 중량 0 값이 많습니다. 오래된 백업이면 계획 중량이 비어 있을 수 있습니다."
+            )
         }
     }
 
