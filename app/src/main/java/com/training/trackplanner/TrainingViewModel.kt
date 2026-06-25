@@ -524,6 +524,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }.onSuccess { status ->
             _phaseAwareTodayStatus.value = status
             _todayReadinessSummary.value = status.current
+            rebuildFatigueAnalysis()
         }.getOrNull()
         runCatching {
             repository.homeTodaySummary(phaseStatus)
@@ -534,6 +535,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             repository.todayReadinessSummary()
         }.onSuccess { summary ->
             _todayReadinessSummary.value = summary
+            rebuildFatigueAnalysis()
         }.getOrNull()
         runCatching {
             repository.badmintonTransferSummary(readinessSummary)
@@ -568,7 +570,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             contributionTarget = contributionTarget,
             grouping = grouping,
             selectedSourceKeys = selectedSourceKeys,
-            defaultSourcesWhenEmpty = defaultSourcesWhenEmpty
+            defaultSourcesWhenEmpty = defaultSourcesWhenEmpty,
+            fatiguePresentation = _phaseAwareTodayStatus.value?.current?.fatiguePresentation
+                ?: _todayReadinessSummary.value?.fatiguePresentation
         )
     }
 

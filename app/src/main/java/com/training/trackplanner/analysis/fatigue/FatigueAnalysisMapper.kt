@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.fatigue
 
+import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -12,7 +13,8 @@ object FatigueAnalysisMapper {
         contributionTarget: FatigueTarget = FatigueTarget.OVERALL,
         grouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
         selectedSourceKeys: Set<String> = emptySet(),
-        defaultSourcesWhenEmpty: Boolean = true
+        defaultSourcesWhenEmpty: Boolean = true,
+        fatiguePresentation: FatiguePresentationSnapshot? = null
     ): FatigueAnalysisUiState {
         if (history.isEmpty()) {
             return FatigueAnalysisUiState(
@@ -71,11 +73,15 @@ object FatigueAnalysisMapper {
         } else {
             validSelectedSources
         }
-        val axisItems = axisItems(window.last().state)
+        val legacyOfiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points
+        val simpleOfiSeries = fatiguePresentation?.let { presentation ->
+            legacyOfiSeries.withLatestValue(presentation.overallScore.coerceIn(0, 100).toDouble())
+        } ?: legacyOfiSeries
+        val axisItems = fatiguePresentation?.toAxisItems() ?: axisItems(window.last().state)
 
         return FatigueAnalysisUiState(
             simple = FatigueSimpleUiState(
-                ofiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points,
+                ofiSeries = simpleOfiSeries,
                 highLoadItems = axisItems.sortedByDescending { it.score }.filter { it.score > 0 }.take(2),
                 availableLoadItems = axisItems.sortedBy { it.score }.take(2)
             ),
@@ -165,6 +171,19 @@ object FatigueAnalysisMapper {
         FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, state.movementFocusScore),
         FatigueLoadItem(FatigueTarget.RECOVERY_PRESSURE.name, FatigueTarget.RECOVERY_PRESSURE.label, state.recoveryPressureScore)
     )
+
+    private fun FatiguePresentationSnapshot.toAxisItems(): List<FatigueLoadItem> = listOf(
+        FatigueLoadItem(FatigueTarget.NEUROMUSCULAR.name, FatigueTarget.NEUROMUSCULAR.label, neuralScore.clampScore()),
+        FatigueLoadItem(FatigueTarget.SYSTEMIC_MUSCULAR.name, FatigueTarget.SYSTEMIC_MUSCULAR.label, systemicScore.clampScore()),
+        FatigueLoadItem(FatigueTarget.LOCAL_MUSCULAR.name, FatigueTarget.LOCAL_MUSCULAR.label, localMuscleScore.clampScore()),
+        FatigueLoadItem(FatigueTarget.JOINT_TENDON_IMPACT.name, FatigueTarget.JOINT_TENDON_IMPACT.label, jointTendonScore.clampScore()),
+        FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, focusScore.clampScore())
+    )
+
+    private fun List<FatigueTimePoint>.withLatestValue(value: Double): List<FatigueTimePoint> =
+        if (isEmpty()) this else dropLast(1) + last().copy(value = value)
+
+    private fun Int.clampScore(): Int = coerceIn(0, 100)
 
     private fun DailyFatigueState.valueFor(target: FatigueTarget): Double = when (target) {
         FatigueTarget.OVERALL -> overallFatigueIndex.toDouble()

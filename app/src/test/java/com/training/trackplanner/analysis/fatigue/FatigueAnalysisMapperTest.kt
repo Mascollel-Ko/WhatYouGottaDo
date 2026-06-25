@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.fatigue
 
+import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
+import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -15,6 +17,77 @@ class FatigueAnalysisMapperTest {
         assertEquals(2, state.simple.highLoadItems.size)
         assertEquals(2, state.simple.availableLoadItems.size)
         assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun `readiness presentation overrides simple overview values`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            fatiguePresentation = presentation(
+                overall = 88,
+                neural = 91,
+                local = 15,
+                joint = 76,
+                systemic = 44,
+                focus = 22
+            )
+        )
+
+        assertEquals(88.0, state.simple.ofiSeries.last().value, 0.0001)
+        assertEquals(91, state.simple.highLoadItems.first().score)
+        assertEquals(FatigueTarget.NEUROMUSCULAR.label, state.simple.highLoadItems.first().label)
+        assertEquals(15, state.simple.availableLoadItems.first().score)
+    }
+
+    @Test
+    fun `null readiness presentation keeps legacy simple overview values`() {
+        val history = history(14)
+        val state = FatigueAnalysisMapper.map(
+            history = history,
+            fatiguePresentation = null
+        )
+
+        assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
+        assertEquals(history.last().state.recoveryPressureScore, state.simple.highLoadItems.first().score)
+    }
+
+    @Test
+    fun `readiness presentation scores are clamped for analysis overview`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            fatiguePresentation = presentation(
+                overall = 140,
+                neural = 140,
+                local = -5,
+                joint = 76,
+                systemic = 44,
+                focus = 22
+            )
+        )
+
+        assertEquals(100.0, state.simple.ofiSeries.last().value, 0.0001)
+        assertTrue(state.simple.highLoadItems.all { item -> item.score in 0..100 })
+        assertTrue(state.simple.availableLoadItems.all { item -> item.score in 0..100 })
+    }
+
+    @Test
+    fun `readiness presentation overview labels do not expose raw enum names`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            fatiguePresentation = presentation(
+                overall = 88,
+                neural = 91,
+                local = 15,
+                joint = 76,
+                systemic = 44,
+                focus = 22
+            )
+        )
+        val labels = (state.simple.highLoadItems + state.simple.availableLoadItems).map { item -> item.label }
+
+        assertTrue(labels.none { label -> label.contains("NEURAL") })
+        assertTrue(labels.none { label -> label.contains("ELASTIC_SSC") })
+        assertTrue(labels.none { label -> label.contains("BADMINTON_COURT") })
     }
 
     @Test
@@ -177,4 +250,38 @@ class FatigueAnalysisMapperTest {
             )
         }
     }
+
+    private fun presentation(
+        overall: Int,
+        neural: Int,
+        local: Int,
+        joint: Int,
+        systemic: Int,
+        focus: Int
+    ): FatiguePresentationSnapshot =
+        FatiguePresentationSnapshot(
+            overallScore = overall,
+            neuralScore = neural,
+            localMuscleScore = local,
+            jointTendonScore = joint,
+            systemicScore = systemic,
+            focusScore = focus,
+            highCategories = emptyList(),
+            highBodyParts = emptyList(),
+            gate = TrainingGateSnapshot(
+                overallScore = overall,
+                heavyLowerRestricted = false,
+                highImpactRestricted = false,
+                codReactiveRestricted = false,
+                upperPushRestricted = false,
+                overheadRestricted = false,
+                gripForearmRestricted = false,
+                volumeFactor = 1.0,
+                rpeCap = null,
+                reasons = emptyList()
+            ),
+            reduceToday = emptyList(),
+            availableToday = emptyList(),
+            reasons = emptyList()
+        )
 }
