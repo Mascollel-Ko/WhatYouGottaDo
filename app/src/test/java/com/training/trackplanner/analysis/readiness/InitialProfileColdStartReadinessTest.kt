@@ -8,9 +8,11 @@ import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 class InitialProfileColdStartReadinessTest {
     private val today = LocalDate.parse("2026-06-15")
@@ -106,6 +108,39 @@ class InitialProfileColdStartReadinessTest {
 
         assertEquals(ReadinessStatus.CAUTION, summary.status)
         assertTrue(summary.adaptiveBaselineNotes.any { it.contains("초기 프로필") })
+    }
+
+    @Test
+    fun profileSummaryAdjustmentPreservesFatiguePresentation() {
+        val presentation = fatiguePresentation()
+        val summary = TodayReadinessSummary(
+            status = ReadinessStatus.READY,
+            headline = "ready",
+            shortReason = "ready",
+            primaryReasons = emptyList(),
+            recommendedModes = emptyList(),
+            restrictedModes = emptyList(),
+            confidence = AnalysisConfidence.MEDIUM,
+            detailSections = emptyList(),
+            adaptiveBaselineNotes = emptyList(),
+            generatedAt = LocalDateTime.of(2026, 6, 15, 12, 0),
+            fatiguePresentation = presentation
+        )
+
+        val adjusted = InitialProfileReadinessAdjuster().adjustSummary(
+            summary = summary,
+            today = today,
+            dailyLoads = emptyList(),
+            pressure = FatiguePressureSnapshot(
+                categoryPressures = emptyMap(),
+                baselineGroupPressures = emptyMap(),
+                bodyPartPressures = emptyMap()
+            ),
+            initialProfile = lowAdaptationProfile()
+        )
+
+        assertEquals(ReadinessStatus.CAUTION, adjusted.status)
+        assertSame(presentation, adjusted.fatiguePresentation)
     }
 
     @Test
@@ -327,6 +362,33 @@ class InitialProfileColdStartReadinessTest {
             seconds = seconds,
             confirmed = confirmed,
             rpe = rpe
+        )
+
+    private fun fatiguePresentation(): FatiguePresentationSnapshot =
+        FatiguePresentationSnapshot(
+            overallScore = 42,
+            neuralScore = 40,
+            localMuscleScore = 41,
+            jointTendonScore = 39,
+            systemicScore = 42,
+            focusScore = 38,
+            highCategories = emptyList(),
+            highBodyParts = emptyList(),
+            gate = TrainingGateSnapshot(
+                overallScore = 42,
+                heavyLowerRestricted = false,
+                highImpactRestricted = false,
+                codReactiveRestricted = false,
+                upperPushRestricted = false,
+                overheadRestricted = false,
+                gripForearmRestricted = false,
+                volumeFactor = 1.0,
+                rpeCap = null,
+                reasons = emptyList()
+            ),
+            reduceToday = emptyList(),
+            availableToday = emptyList(),
+            reasons = emptyList()
         )
 
     private fun severity(status: ReadinessStatus): Int =
