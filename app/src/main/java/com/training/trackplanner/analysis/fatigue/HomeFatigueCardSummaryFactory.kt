@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.fatigue
 
+import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 
@@ -16,10 +17,14 @@ object HomeFatigueCardSummaryFactory {
         val primaryState = if (hasConfirmedWork) current else preWorkout
         val primaryPrefix = if (hasConfirmedWork) "현재" else "운동 전"
         val primaryReading = todayStatus?.current?.let { summary ->
-            primaryState.toReading(summary.status.homeLabel())
+            summary.fatiguePresentation?.toReading(summary.status.homeLabel())
+                ?: primaryState.toReading(summary.status.homeLabel())
         } ?: primaryState.toReading()
         val projectedReading = projected?.let { state ->
-            todayStatus?.projected?.let { summary -> state.toReading(summary.status.homeLabel()) } ?: state.toReading()
+            todayStatus?.projected?.let { summary ->
+                summary.fatiguePresentation?.toReading(summary.status.homeLabel())
+                    ?: state.toReading(summary.status.homeLabel())
+            } ?: state.toReading()
         }
 
         return when {
@@ -60,11 +65,17 @@ object HomeFatigueCardSummaryFactory {
             label = labelOverride ?: qualitativeLabel()
         )
 
+    private fun FatiguePresentationSnapshot.toReading(label: String): HomeFatigueReading =
+        HomeFatigueReading(
+            score = overallScore.coerceIn(0, 100),
+            label = label
+        )
+
     private fun ReadinessStatus.homeLabel(): String = when (this) {
         ReadinessStatus.READY -> "진행 가능"
-        ReadinessStatus.CAUTION -> "조절 권장"
-        ReadinessStatus.FATIGUED -> "회복 필요"
-        ReadinessStatus.LIMITED -> "부담 낮추기"
+        ReadinessStatus.CAUTION -> "주의"
+        ReadinessStatus.FATIGUED -> "감량 권장"
+        ReadinessStatus.LIMITED -> "휴식 권장"
     }
 
     private fun DailyFatigueState.qualitativeLabel(): String {

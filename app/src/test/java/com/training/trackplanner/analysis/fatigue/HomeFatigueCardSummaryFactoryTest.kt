@@ -1,10 +1,13 @@
 package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
+import com.training.trackplanner.analysis.readiness.FatigueAvailability
+import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TodayStatusPhase
+import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -49,7 +52,7 @@ class HomeFatigueCardSummaryFactoryTest {
         assertEquals(54, summary.primary.score)
         assertEquals("진행 가능", summary.primary.label)
         assertEquals("남은 계획 후 예상", summary.projectionPrefix)
-        assertEquals("조절 권장", summary.projection?.label)
+        assertEquals("주의", summary.projection?.label)
         assertEquals("남은 계획 판단", summary.phaseLabel)
         assertTrue(summary.headline?.contains("남은 계획") == true)
     }
@@ -89,7 +92,86 @@ class HomeFatigueCardSummaryFactoryTest {
         assertNull(summary.projection)
         assertEquals("계획 완료", summary.statusText)
         assertEquals("운동 후 회복 판단", summary.phaseLabel)
-        assertEquals("조절 권장", summary.primary.label)
+        assertEquals("주의", summary.primary.label)
+    }
+
+    @Test
+    fun readinessFatiguePresentationIsPreferredForPrimaryReading() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = state(30),
+            projected = null,
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 0,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.READY,
+                projected = null,
+                phase = TodayStatusPhase.COMPLETED,
+                currentPresentation = presentation(82)
+            )
+        )
+
+        assertEquals(82, summary.primary.score)
+        assertEquals("진행 가능", summary.primary.label)
+    }
+
+    @Test
+    fun nullReadinessFatiguePresentationFallsBackToLegacyState() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = state(54),
+            projected = null,
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 0,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.READY,
+                projected = null,
+                phase = TodayStatusPhase.COMPLETED
+            )
+        )
+
+        assertEquals(54, summary.primary.score)
+        assertEquals("진행 가능", summary.primary.label)
+    }
+
+    @Test
+    fun readinessFatiguePresentationScoreIsClamped() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = state(30),
+            projected = null,
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 0,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.FATIGUED,
+                projected = null,
+                phase = TodayStatusPhase.COMPLETED,
+                currentPresentation = presentation(140)
+            )
+        )
+
+        assertEquals(100, summary.primary.score)
+        assertEquals("감량 권장", summary.primary.label)
+    }
+
+    @Test
+    fun readinessFatiguePresentationIsPreferredForProjectedReading() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = state(30),
+            projected = state(40),
+            confirmedSetCount = 0,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.READY,
+                projected = ReadinessStatus.LIMITED,
+                phase = TodayStatusPhase.REMAINING_PLAN,
+                projectedPresentation = presentation(91)
+            )
+        )
+
+        assertEquals(91, summary.projection?.score)
+        assertEquals("휴식 권장", summary.projection?.label)
     }
 
     private fun state(
@@ -119,12 +201,14 @@ class HomeFatigueCardSummaryFactoryTest {
     private fun phaseStatus(
         current: ReadinessStatus,
         projected: ReadinessStatus?,
-        phase: TodayStatusPhase
+        phase: TodayStatusPhase,
+        currentPresentation: FatiguePresentationSnapshot? = null,
+        projectedPresentation: FatiguePresentationSnapshot? = null
     ): PhaseAwareTodayStatus =
         PhaseAwareTodayStatus(
             phase = phase,
-            current = readiness(current),
-            projected = projected?.let(::readiness),
+            current = readiness(current, currentPresentation),
+            projected = projected?.let { status -> readiness(status, projectedPresentation) },
             plannedSetCount = 6,
             confirmedSetCount = if (phase == TodayStatusPhase.COMPLETED) 6 else 3,
             unconfirmedSetCount = if (phase == TodayStatusPhase.REMAINING_PLAN) 3 else 0,
@@ -139,7 +223,10 @@ class HomeFatigueCardSummaryFactoryTest {
             keyAxes = emptyList()
         )
 
-    private fun readiness(status: ReadinessStatus): TodayReadinessSummary =
+    private fun readiness(
+        status: ReadinessStatus,
+        fatiguePresentation: FatiguePresentationSnapshot? = null
+    ): TodayReadinessSummary =
         TodayReadinessSummary(
             status = status,
             headline = "headline",
@@ -150,6 +237,40 @@ class HomeFatigueCardSummaryFactoryTest {
             confidence = AnalysisConfidence.MEDIUM,
             detailSections = emptyList(),
             adaptiveBaselineNotes = emptyList(),
-            generatedAt = LocalDateTime.of(2026, 6, 20, 10, 0)
+            generatedAt = LocalDateTime.of(2026, 6, 20, 10, 0),
+            fatiguePresentation = fatiguePresentation
+        )
+
+    private fun presentation(score: Int): FatiguePresentationSnapshot =
+        FatiguePresentationSnapshot(
+            overallScore = score,
+            neuralScore = 0,
+            localMuscleScore = 0,
+            jointTendonScore = 0,
+            systemicScore = 0,
+            focusScore = 0,
+            highCategories = emptyList(),
+            highBodyParts = emptyList(),
+            gate = TrainingGateSnapshot(
+                overallScore = score,
+                heavyLowerRestricted = false,
+                highImpactRestricted = false,
+                codReactiveRestricted = false,
+                upperPushRestricted = false,
+                overheadRestricted = false,
+                gripForearmRestricted = false,
+                volumeFactor = 1.0,
+                rpeCap = null,
+                reasons = emptyList()
+            ),
+            reduceToday = emptyList(),
+            availableToday = listOf(
+                FatigueAvailability(
+                    key = "low_risk_skill",
+                    label = "Low-risk skill work",
+                    reason = "Low burden"
+                )
+            ),
+            reasons = emptyList()
         )
 }
