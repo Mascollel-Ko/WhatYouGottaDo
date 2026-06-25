@@ -1,6 +1,8 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
+import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
+import kotlin.math.roundToInt
 
 enum class FatigueSlotGroup {
     STRENGTH_ANCHOR,
@@ -23,8 +25,27 @@ enum class FatigueSlotDisposition {
     AVOID
 }
 
+private val HEAVY_LOWER_SLOTS = setOf(
+    ProgramSlotId.LOWER_SQUAT_PATTERN,
+    ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN
+)
+private val HIGH_IMPACT_SLOTS = setOf(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME)
+private val COD_REACTIVE_SLOTS = setOf(
+    ProgramSlotId.BADMINTON_DECEL_COD,
+    ProgramSlotId.BADMINTON_FOOTWORK_REACTION,
+    ProgramSlotId.POWER_REACTIVE_LOW_VOLUME
+)
+private val UPPER_PUSH_SLOTS = setOf(ProgramSlotId.UPPER_PUSH_SUPPORT)
+private val OVERHEAD_SLOTS = setOf(
+    ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT,
+    ProgramSlotId.OVERHEAD_SMASH_SUPPORT
+)
+private val GRIP_FOREARM_SLOTS = setOf(ProgramSlotId.FOREARM_GRIP_ELBOW_SUPPORT)
+
 internal class FatigueSlotPolicy {
     fun gate(state: DailyFatigueState?): ProgramFatigueGate = ProgramFatigueGate.from(state)
+
+    fun gate(trainingGate: TrainingGateSnapshot?): ProgramFatigueGate = ProgramFatigueGate.from(trainingGate)
 
     fun adapt(planned: PlannedSlot, gate: ProgramFatigueGate): PlannedSlot = when (gate.band) {
         ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.LIGHT)
@@ -50,6 +71,28 @@ internal class FatigueSlotPolicy {
                     !candidate.isHighIntensityCod
             FatigueSlotDisposition.NORMAL,
             FatigueSlotDisposition.CONTROLLED -> true
+        }
+    }
+
+    fun adjustTodayItem(
+        item: TrainingProgramItem,
+        candidate: ProgramCandidate?,
+        gate: ProgramFatigueGate
+    ): TrainingProgramItem? {
+        val action = when {
+            candidate == null -> TodayGateAction.KEEP
+            !gate.allowsHighImpact && candidate.matchesHighImpactWork() -> TodayGateAction.AVOID
+            !gate.allowsHighIntensityCod && candidate.matchesCodReactiveWork() -> TodayGateAction.AVOID
+            !gate.allowsOverhead && candidate.matchesOverheadWork() -> TodayGateAction.AVOID
+            (!gate.allowsHeavyLower || gate.lowerBodyRestricted) && candidate.matchesHeavyLowerWork() -> TodayGateAction.DOWNGRADE
+            !gate.allowsUpperPush && candidate.matchesUpperPushWork() -> TodayGateAction.DOWNGRADE
+            !gate.allowsGripForearm && candidate.matchesGripForearmWork() -> TodayGateAction.DOWNGRADE
+            else -> TodayGateAction.KEEP
+        }
+        return when (action) {
+            TodayGateAction.AVOID -> null
+            TodayGateAction.DOWNGRADE -> item.scaledSets(gate.volumeFactor, forceMinimum = true)
+            TodayGateAction.KEEP -> item.scaledSets(gate.volumeFactor, forceMinimum = false)
         }
     }
 
@@ -132,13 +175,19 @@ internal data class ProgramFatigueGate(
     val allowsHeavyLower: Boolean,
     val allowsHighImpact: Boolean,
     val allowsHighIntensityCod: Boolean,
-    val lowerBodyRestricted: Boolean
+    val lowerBodyRestricted: Boolean,
+    val allowsUpperPush: Boolean = true,
+    val allowsOverhead: Boolean = true,
+    val allowsGripForearm: Boolean = true
 ) {
     fun allows(candidate: ProgramCandidate): Boolean {
         if (!allowsHeavyLower && candidate.isHeavyLower) return false
         if (!allowsHighImpact && candidate.isHighImpact) return false
         if (!allowsHighIntensityCod && candidate.isHighIntensityCod) return false
         if (lowerBodyRestricted && candidate.isHeavyLower) return false
+        if (!allowsUpperPush && candidate.matchesUpperPushWork()) return false
+        if (!allowsOverhead && candidate.matchesOverheadWork()) return false
+        if (!allowsGripForearm && candidate.matchesGripForearmWork()) return false
         return true
     }
 
@@ -169,5 +218,82 @@ internal data class ProgramFatigueGate(
                 lowerBodyRestricted = localRestricted
             )
         }
+
+        fun from(trainingGate: TrainingGateSnapshot?): ProgramFatigueGate {
+            if (trainingGate == null) return unrestricted()
+            val volumeFactor = trainingGate.volumeFactor.coerceIn(0.0, 1.0)
+            val hasTypedRestriction = trainingGate.heavyLowerRestricted ||
+                trainingGate.highImpactRestricted ||
+                trainingGate.codReactiveRestricted ||
+                trainingGate.upperPushRestricted ||
+                trainingGate.overheadRestricted ||
+                trainingGate.gripForearmRestricted
+            return ProgramFatigueGate(
+                band = if (hasTypedRestriction || volumeFactor < 1.0) {
+                    ProgramFatigueBand.YELLOW
+                } else {
+                    ProgramFatigueBand.GREEN
+                },
+                volumeFactor = volumeFactor,
+                rpeCap = trainingGate.rpeCap?.coerceIn(1, 10) ?: 9,
+                allowsHeavyLower = !trainingGate.heavyLowerRestricted,
+                allowsHighImpact = !trainingGate.highImpactRestricted,
+                allowsHighIntensityCod = !trainingGate.codReactiveRestricted,
+                lowerBodyRestricted = trainingGate.heavyLowerRestricted,
+                allowsUpperPush = !trainingGate.upperPushRestricted,
+                allowsOverhead = !trainingGate.overheadRestricted,
+                allowsGripForearm = !trainingGate.gripForearmRestricted
+            )
+        }
+
+        private fun unrestricted(): ProgramFatigueGate = ProgramFatigueGate(
+            band = ProgramFatigueBand.GREEN,
+            volumeFactor = 1.0,
+            rpeCap = 9,
+            allowsHeavyLower = true,
+            allowsHighImpact = true,
+            allowsHighIntensityCod = true,
+            lowerBodyRestricted = false
+        )
     }
+}
+
+private enum class TodayGateAction {
+    KEEP,
+    DOWNGRADE,
+    AVOID
+}
+
+private fun ProgramCandidate.matchesHeavyLowerWork(): Boolean =
+    isHeavyLower || hasProgramSlot(HEAVY_LOWER_SLOTS)
+
+private fun ProgramCandidate.matchesHighImpactWork(): Boolean =
+    isHighImpact || hasProgramSlot(HIGH_IMPACT_SLOTS)
+
+private fun ProgramCandidate.matchesCodReactiveWork(): Boolean =
+    isHighIntensityCod || hasProgramSlot(COD_REACTIVE_SLOTS)
+
+private fun ProgramCandidate.matchesUpperPushWork(): Boolean =
+    hasProgramSlot(UPPER_PUSH_SLOTS)
+
+private fun ProgramCandidate.matchesOverheadWork(): Boolean =
+    hasProgramSlot(OVERHEAD_SLOTS)
+
+private fun ProgramCandidate.matchesGripForearmWork(): Boolean =
+    hasProgramSlot(GRIP_FOREARM_SLOTS)
+
+private fun ProgramCandidate.hasProgramSlot(slots: Set<ProgramSlotId>): Boolean =
+    slots.any { slot -> slotCapabilities.hasAny(slot) }
+
+private fun TrainingProgramItem.scaledSets(
+    volumeFactor: Double,
+    forceMinimum: Boolean
+): TrainingProgramItem {
+    val original = setCount.coerceAtLeast(1)
+    val scaled = if (forceMinimum) {
+        1
+    } else {
+        (original * volumeFactor.coerceIn(0.0, 1.0)).roundToInt().coerceAtLeast(1)
+    }.coerceAtMost(original)
+    return if (scaled == setCount) this else copy(setCount = scaled)
 }
