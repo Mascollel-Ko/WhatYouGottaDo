@@ -85,7 +85,8 @@ data class TodayReadinessSummary(
     val confidence: AnalysisConfidence,
     val detailSections: List<FatigueDetailSection>,
     val adaptiveBaselineNotes: List<String>,
-    val generatedAt: LocalDateTime
+    val generatedAt: LocalDateTime,
+    val fatiguePresentation: FatiguePresentationSnapshot? = null
 )
 
 data class DailyLoadContribution(

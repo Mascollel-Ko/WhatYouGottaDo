@@ -7,6 +7,7 @@ import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -55,6 +56,34 @@ class TodayReadinessEngineTest {
 
         assertEquals(ReadinessStatus.READY, summary.status)
         assertEquals(AnalysisConfidence.LOW, summary.confidence)
+        assertNotNull(summary.fatiguePresentation)
+        assertEquals(0, summary.fatiguePresentation?.overallScore)
+    }
+
+    @Test
+    fun readinessOutputExposesFatiguePresentationSnapshot() {
+        val exercise = heavyExercise()
+        val summary = TodayReadinessEngine().analyze(
+            TodayReadinessEngineInput(
+                today = today,
+                exercises = listOf(exercise),
+                entriesWithSets = listOf(
+                    record(
+                        exercise = exercise,
+                        confirmedSets = listOf(set(reps = 8, weightKg = 180.0, confirmed = true, rpe = 9.0))
+                    )
+                ),
+                dailyMetrics = emptyList()
+            )
+        )
+
+        val presentation = summary.fatiguePresentation
+        assertNotNull(presentation)
+        presentation!!
+        assertTrue(presentation.overallScore in 0..100)
+        assertTrue(presentation.neuralScore in 0..100)
+        assertTrue(presentation.neuralScore > 0)
+        assertTrue(presentation.gate.heavyLowerRestricted)
     }
 
     @Test

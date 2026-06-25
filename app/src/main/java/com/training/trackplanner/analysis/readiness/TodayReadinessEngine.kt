@@ -13,7 +13,8 @@ class TodayReadinessEngine(
     private val painGateEvaluator: PainGateEvaluator = PainGateEvaluator(),
     private val decisionEngine: TodayReadinessDecisionEngine = TodayReadinessDecisionEngine(),
     private val detailSectionBuilder: FatigueDetailSectionBuilder = FatigueDetailSectionBuilder(),
-    private val initialProfileAdjuster: InitialProfileReadinessAdjuster = InitialProfileReadinessAdjuster()
+    private val initialProfileAdjuster: InitialProfileReadinessAdjuster = InitialProfileReadinessAdjuster(),
+    private val fatiguePresentationMapper: FatiguePresentationMapper = FatiguePresentationMapper()
 ) {
     fun analyze(input: TodayReadinessEngineInput): TodayReadinessSummary {
         val exerciseMap = input.exercises.associateBy { exercise -> exercise.id }
@@ -52,6 +53,7 @@ class TodayReadinessEngine(
             stats = statisticalBaseline,
             adaptiveBaseline = readinessBaseline
         )
+        val fatiguePresentation = fatiguePresentationMapper.map(pressure)
         val recovery = recoverySignalInterpreter.interpret(
             today = input.today,
             dailyMetrics = input.dailyMetrics,
@@ -92,7 +94,8 @@ class TodayReadinessEngine(
             confidence = decision.confidence,
             detailSections = detailSections,
             adaptiveBaselineNotes = decision.sentence.adaptiveBaselineNotes,
-            generatedAt = LocalDateTime.now()
+            generatedAt = LocalDateTime.now(),
+            fatiguePresentation = fatiguePresentation
         )
         return initialProfileAdjuster.adjustSummary(
             summary = summary,
