@@ -88,7 +88,8 @@ class DailyAnalysisLoadAggregator {
                 baselineGroupLoads = baselineGroupLoads(features.adaptiveBaselineGroups, categoryLoads),
                 completedSets = features.completedSets,
                 totalReps = features.totalReps ?: 0,
-                durationMinutes = features.durationMinutes
+                durationMinutes = features.durationMinutes,
+                averageRpe = features.averageRpe
             )
         }
 

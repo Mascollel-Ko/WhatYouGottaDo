@@ -99,7 +99,8 @@ data class DailyLoadContribution(
     val baselineGroupLoads: Map<String, Double>,
     val completedSets: Int,
     val totalReps: Int,
-    val durationMinutes: Double?
+    val durationMinutes: Double?,
+    val averageRpe: Double? = null
 )
 
 data class DailyAnalysisLoad(
