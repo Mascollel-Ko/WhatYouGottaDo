@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
@@ -42,6 +43,15 @@ class RuntimeExerciseMetadataResolverTest {
 
         assertEquals("ROOM_SLOT", resolved.programSlot)
         assertEquals("RANDOM_BEEP_CUE", resolved.appCueProfile)
+    }
+
+    @Test
+    fun catalogResolveFailsWhenBuiltInExerciseLosesCanonicalStableKey() {
+        val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트")
+        val catalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical))
+        val corruptedDbExercise = exercise("lost_barbell_back_squat", "스쿼트")
+
+        assertNull(catalog.resolve(corruptedDbExercise))
     }
 
     private fun exercise(stableKey: String, name: String) = Exercise(

@@ -10,6 +10,9 @@ import com.training.trackplanner.analysis.readiness.PainGateSnapshot
 import com.training.trackplanner.analysis.readiness.PerformanceSignalSnapshot
 import com.training.trackplanner.analysis.readiness.RecoverySignalSnapshot
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadata
+import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -73,6 +76,68 @@ class PerformanceTrendEngineTest {
         assertTrue(latest.rawVolume < 300.0 * 5.0)
         assertTrue(latest.intensityIndex in 50.0..160.0)
         assertTrue(latest.volumeIndex in 50.0..160.0)
+    }
+
+    @Test
+    fun canonicalSquatAndDeadliftFeedStrengthWeekRawMetricsAndMovePerformanceIndex() {
+        val catalog = canonicalRuntimeCatalog()
+        val squat = canonicalExercise(101, catalog, "barbell_back_squat")
+        val deadlift = canonicalExercise(102, catalog, "barbell_deadlift")
+        val entries = (0 until 8).flatMap { index ->
+            val date = today.minusWeeks((7 - index).toLong())
+            listOf(
+                record(
+                    squat,
+                    date,
+                    listOf(set(reps = 5, weightKg = 90.0 + index * 5.0, confirmed = true, rpe = 8.0))
+                ),
+                record(
+                    deadlift,
+                    date,
+                    listOf(set(reps = 3, weightKg = 120.0 + index * 7.5, confirmed = true, rpe = 8.5))
+                )
+            )
+        }
+        val weeks = WeeklyAnalysisAggregator().aggregate(today, entries, emptyList())
+
+        val result = StrengthPerformanceIndexCalculator(catalog).calculate(
+            weeks = weeks,
+            exerciseMap = listOf(squat, deadlift).associateBy(Exercise::id),
+            allDailyMetrics = emptyList()
+        )
+        val latest = result.last()
+
+        assertTrue("rawVolume should include canonical squat/deadlift records", latest.rawVolume > 0.0)
+        assertTrue("effectiveSets should include canonical squat/deadlift records", latest.effectiveSets > 0)
+        assertTrue("raw intensity should produce a squat exercise score", squat.id in latest.exerciseScores)
+        assertTrue("raw intensity should produce a deadlift exercise score", deadlift.id in latest.exerciseScores)
+        assertFalse(componentReport(latest), latest.allStrengthComponentsAreFallback100())
+    }
+
+    @Test
+    fun singleWeekStrengthPerformanceFallbackShowsRawDataWasPresentButBaselinesWereMissing() {
+        val catalog = canonicalRuntimeCatalog()
+        val squat = canonicalExercise(201, catalog, "barbell_back_squat")
+        val entries = listOf(
+            record(
+                squat,
+                today,
+                listOf(set(reps = 5, weightKg = 160.0, confirmed = true, rpe = 8.0))
+            )
+        )
+        val weeks = WeeklyAnalysisAggregator().aggregate(today, entries, emptyList())
+
+        val latest = StrengthPerformanceIndexCalculator(catalog)
+            .calculate(weeks, mapOf(squat.id to squat), emptyList())
+            .last()
+
+        assertTrue("rawVolume proves the set reached rawVolumeByWeek", latest.rawVolume > 0.0)
+        assertTrue("effectiveSets proves the set reached effectiveSetsByWeek", latest.effectiveSets > 0)
+        assertTrue("exerciseScores proves the set reached rawIntensityByWeek", squat.id in latest.exerciseScores)
+        assertEquals(componentReport(latest), 100.0, latest.intensityIndex, 0.001)
+        assertEquals(componentReport(latest), 100.0, latest.volumeIndex, 0.001)
+        assertEquals(componentReport(latest), 100.0, latest.efficiencyIndex, 0.001)
+        assertEquals(componentReport(latest), 100.0, latest.performanceIndex, 0.001)
     }
 
     @Test
@@ -261,6 +326,41 @@ class PerformanceTrendEngineTest {
             analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
             metadataConfidence = "HIGH"
         )
+
+    private fun canonicalRuntimeCatalog(): RuntimeExerciseMetadataCatalog =
+        RuntimeExerciseMetadataCatalog.of(canonicalRows())
+
+    private fun canonicalExercise(
+        id: Long,
+        catalog: RuntimeExerciseMetadataCatalog,
+        stableKey: String
+    ): Exercise {
+        val metadata = catalog.resolveByStableKey(stableKey) ?: error("Missing canonical metadata for $stableKey")
+        return Exercise(
+            id = id,
+            name = metadata.exerciseName,
+            category = "근력운동",
+            stableKey = metadata.stableKey
+        )
+    }
+
+    private fun canonicalRows(): List<RuntimeExerciseMetadata> =
+        RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(canonicalMetadataFile().readText(Charsets.UTF_8))
+
+    private fun canonicalMetadataFile(): File = sequenceOf(
+        File("src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}"),
+        File("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
+    ).firstOrNull(File::isFile) ?: error("Canonical metadata test asset not found.")
+
+    private fun StrengthWeekIndex.allStrengthComponentsAreFallback100(): Boolean =
+        listOf(intensityIndex, volumeIndex, efficiencyIndex, performanceIndex).all { value ->
+            kotlin.math.abs(value - 100.0) < 0.001
+        }
+
+    private fun componentReport(index: StrengthWeekIndex): String =
+        "intensity=${index.intensityIndex}, volume=${index.volumeIndex}, efficiency=${index.efficiencyIndex}, " +
+            "performance=${index.performanceIndex}, rawVolume=${index.rawVolume}, " +
+            "effectiveSets=${index.effectiveSets}, exerciseScores=${index.exerciseScores}"
 
     private fun record(
         exercise: Exercise,
