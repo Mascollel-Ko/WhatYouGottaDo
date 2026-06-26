@@ -96,6 +96,19 @@ internal class FatigueSlotPolicy {
         }
     }
 
+    fun adjustItemForResolvedDate(
+        item: TrainingProgramItem,
+        itemDate: String,
+        todayDate: String?,
+        candidate: ProgramCandidate?,
+        gate: ProgramFatigueGate?
+    ): TrainingProgramItem? =
+        if (todayDate == null || gate == null || itemDate != todayDate) {
+            item
+        } else {
+            adjustTodayItem(item, candidate, gate)
+        }
+
     fun disposition(
         slot: ProgramSlotId,
         band: ProgramFatigueBand,

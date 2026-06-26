@@ -82,6 +82,27 @@ class FatigueSlotPolicyTest {
     }
 
     @Test
+    fun upperPushRestrictionDowngradesMatchingUpperPushSlotAndLeavesUnrelatedSlotsAlone() {
+        val item = item(setCount = 4)
+        val gate = gate(upperPushRestricted = true)
+
+        val upperPush = policy.adjustTodayItem(
+            item = item,
+            candidate = candidate(ProgramSlotId.UPPER_PUSH_SUPPORT),
+            gate = gate
+        )
+        val unrelated = policy.adjustTodayItem(
+            item = item,
+            candidate = candidate(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+            gate = gate
+        )
+
+        assertNotNull(upperPush)
+        assertEquals(1, upperPush!!.setCount)
+        assertEquals(item, unrelated)
+    }
+
+    @Test
     fun gripForearmRestrictionDowngradesMatchingGripSlot() {
         val item = item(setCount = 4)
         val adjusted = policy.adjustTodayItem(
@@ -134,6 +155,55 @@ class FatigueSlotPolicyTest {
         )
 
         assertEquals(4, item.setCount)
+    }
+
+    @Test
+    fun resolvedDateBoundaryAppliesGateOnlyToProgramItemsBeingInsertedForToday() {
+        val item = item(setCount = 4)
+        val today = "2026-06-26"
+        val future = "2026-06-27"
+        val gate = gate(heavyLowerRestricted = true)
+        val candidate = candidate(ProgramSlotId.LOWER_SQUAT_PATTERN)
+
+        // This boundary handles TrainingProgramItem rows before insertion only;
+        // existing WorkoutEntry/WorkoutSet rows are not retroactively rewritten here.
+        val todayAdjusted = policy.adjustItemForResolvedDate(item, today, today, candidate, gate)
+        val futureUnchanged = policy.adjustItemForResolvedDate(item, future, today, candidate, gate)
+
+        assertNotNull(todayAdjusted)
+        assertEquals(1, todayAdjusted!!.setCount)
+        assertEquals(item, futureUnchanged)
+        assertEquals(4, item.setCount)
+    }
+
+    @Test
+    fun resolvedDateBoundaryPreservesLegacyInsertionWhenGateIsNull() {
+        val item = item(setCount = 4)
+
+        val adjusted = policy.adjustItemForResolvedDate(
+            item = item,
+            itemDate = "2026-06-26",
+            todayDate = "2026-06-26",
+            candidate = candidate(ProgramSlotId.LOWER_SQUAT_PATTERN),
+            gate = null
+        )
+
+        assertEquals(item, adjusted)
+    }
+
+    @Test
+    fun resolvedDateBoundarySkipsAvoidedTodayItemButLeavesFutureItemUnchanged() {
+        val item = item(setCount = 3)
+        val today = "2026-06-26"
+        val future = "2026-06-27"
+        val gate = gate(highImpactRestricted = true)
+        val candidate = candidate(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME)
+
+        val skippedToday = policy.adjustItemForResolvedDate(item, today, today, candidate, gate)
+        val futureUnchanged = policy.adjustItemForResolvedDate(item, future, today, candidate, gate)
+
+        assertNull(skippedToday)
+        assertEquals(item, futureUnchanged)
     }
 
     @Test

@@ -932,15 +932,13 @@ class TrainingRepository(
             val now = System.currentTimeMillis()
             items.forEachIndexed { index, item ->
                 val itemDate = dateForProgramItem(startDate, item)
-                val adjustedItem = if (todayGateContext?.date == itemDate) {
-                    fatigueSlotPolicy.adjustTodayItem(
-                        item = item,
-                        candidate = todayGateContext.candidatesByExerciseId[item.exerciseId],
-                        gate = todayGateContext.gate
-                    ) ?: return@forEachIndexed
-                } else {
-                    item
-                }
+                val adjustedItem = fatigueSlotPolicy.adjustItemForResolvedDate(
+                    item = item,
+                    itemDate = itemDate,
+                    todayDate = todayGateContext?.date,
+                    candidate = todayGateContext?.candidatesByExerciseId?.get(item.exerciseId),
+                    gate = todayGateContext?.gate
+                ) ?: return@forEachIndexed
                 val entryId = workoutDao.insertEntry(
                     WorkoutEntry(
                         date = itemDate,
