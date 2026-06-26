@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.BaselineTrend
 import com.training.trackplanner.analysis.readiness.FatigueCategoryKey
@@ -13,6 +14,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.RuntimeExerciseMetadataResolver
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -138,6 +140,79 @@ class PerformanceTrendEngineTest {
         assertEquals(componentReport(latest), 100.0, latest.volumeIndex, 0.001)
         assertEquals(componentReport(latest), 100.0, latest.efficiencyIndex, 0.001)
         assertEquals(componentReport(latest), 100.0, latest.performanceIndex, 0.001)
+    }
+
+    @Test
+    fun lostCanonicalStableKeyStillFeedsChartFacingStrengthSeriesThroughUniqueNameMetadata() {
+        val analysisToday = LocalDate.parse("2026-06-26")
+        val canonicalCatalog = canonicalRuntimeCatalog()
+        val squat = canonicalExercise(301, canonicalCatalog, "barbell_back_squat")
+            .copy(stableKey = "lost_barbell_back_squat")
+        val deadlift = canonicalExercise(302, canonicalCatalog, "barbell_deadlift")
+            .copy(stableKey = "lost_barbell_deadlift")
+        val exercises = listOf(squat, deadlift)
+        val runtimeCatalog = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = canonicalCatalog,
+            persistedRows = emptyList()
+        ).catalog(exercises)
+        val entries = (0 until 8).flatMap { index ->
+            val date = analysisToday.minusWeeks((7 - index).toLong())
+            listOf(
+                record(
+                    squat,
+                    date,
+                    listOf(set(reps = 5, weightKg = 85.0 + index * 6.0, confirmed = true, rpe = 8.0))
+                ),
+                record(
+                    deadlift,
+                    date,
+                    listOf(set(reps = 3, weightKg = 125.0 + index * 10.0, confirmed = true, rpe = 8.5))
+                )
+            )
+        }
+        val groupedWeeks = WeeklyAnalysisAggregator().aggregate(analysisToday, entries, emptyList())
+        val squatFeatures = AnalysisFeatureExtractor.fromExercise(squat, runtimeCatalog.resolve(squat))
+        val deadliftFeatures = AnalysisFeatureExtractor.fromExercise(deadlift, runtimeCatalog.resolve(deadlift))
+
+        val summary = PerformanceTrendEngine(runtimeCatalog).analyze(
+            today = analysisToday,
+            exercises = exercises,
+            entriesWithSets = entries,
+            dailyMetrics = emptyList()
+        )
+        val chartPoints = summary.strengthPerformanceSeries.dataPoints.mapNotNull { point -> point.value }
+
+        assertEquals("all confirmed records should enter weekly aggregation", entries.size, groupedWeeks.sumOf { week -> week.entries.size })
+        assertTrue(squatFeatures.estimated1RmEligible)
+        assertTrue(deadliftFeatures.estimated1RmEligible)
+        assertEquals("ESTIMATED_1RM", squatFeatures.progressMetricType)
+        assertEquals("ESTIMATED_1RM", deadliftFeatures.progressMetricType)
+        assertTrue("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
+        assertTrue("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
+        assertTrue(
+            "confirmed squat/deadlift records should reach raw strength inputs",
+            summary.strengthWeeks.any { week -> week.rawVolume > 0.0 || week.effectiveSets > 0 }
+        )
+        assertTrue(
+            "rawVolume should include lost-key canonical squat/deadlift records",
+            summary.strengthWeeks.any { week -> week.rawVolume > 0.0 }
+        )
+        assertTrue(
+            "effectiveSets should include lost-key canonical squat/deadlift records",
+            summary.strengthWeeks.any { week -> week.effectiveSets > 0 }
+        )
+        assertTrue(
+            "exerciseScores should include squat/deadlift intensity inputs",
+            summary.strengthWeeks.any { week -> squat.id in week.exerciseScores || deadlift.id in week.exerciseScores }
+        )
+        assertFalse(
+            "strengthPerformanceSeries should move when multi-week squat/deadlift loads change: $chartPoints",
+            chartPoints.allApproximatelyEqual()
+        )
+        assertEquals(
+            summary.strengthPerformanceSeries.dataPoints,
+            summary.dashboardChartSpecs.first().lineSeries.single().points
+        )
     }
 
     @Test
@@ -356,6 +431,9 @@ class PerformanceTrendEngineTest {
         listOf(intensityIndex, volumeIndex, efficiencyIndex, performanceIndex).all { value ->
             kotlin.math.abs(value - 100.0) < 0.001
         }
+
+    private fun List<Double>.allApproximatelyEqual(): Boolean =
+        size > 1 && all { value -> kotlin.math.abs(value - first()) < 0.001 }
 
     private fun componentReport(index: StrengthWeekIndex): String =
         "intensity=${index.intensityIndex}, volume=${index.volumeIndex}, efficiency=${index.efficiencyIndex}, " +

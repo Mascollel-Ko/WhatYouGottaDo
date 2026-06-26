@@ -2,8 +2,8 @@ package com.training.trackplanner.data
 
 import java.util.Locale
 
-private fun String.isLegacyImportedKey(): Boolean =
-    isBlank() || startsWith("imported_", ignoreCase = true)
+private fun String.catalogLookupKey(): String =
+    trim().lowercase(Locale.ROOT)
 
 data class MetadataTokenField(
     val raw: String,
@@ -107,10 +107,12 @@ class RuntimeExerciseMetadataCatalog private constructor(
 ) {
     private val byStableKey = metadata
         .filter { it.stableKey.isNotBlank() }
-        .associateBy { it.stableKey.trim().lowercase(Locale.ROOT) }
-    private val byExerciseName = metadata
+        .associateBy { it.stableKey.catalogLookupKey() }
+    private val byUniqueExerciseName = metadata
         .filter { it.exerciseName.isNotBlank() }
-        .associateBy { it.exerciseName.trim().lowercase(Locale.ROOT) }
+        .groupBy { it.exerciseName.catalogLookupKey() }
+        .filterValues { rows -> rows.size == 1 }
+        .mapValues { (_, rows) -> rows.single() }
 
     val size: Int
         get() = byStableKey.size
@@ -118,21 +120,21 @@ class RuntimeExerciseMetadataCatalog private constructor(
     fun all(): List<RuntimeExerciseMetadata> = byStableKey.values.toList()
 
     fun resolveByStableKey(stableKey: String): RuntimeExerciseMetadata? =
-        byStableKey[stableKey.trim().lowercase(Locale.ROOT)]
+        byStableKey[stableKey.catalogLookupKey()]
 
     fun resolveLegacyName(exerciseName: String): RuntimeExerciseMetadata? =
-        byExerciseName[exerciseName.trim().lowercase(Locale.ROOT)]
+        byUniqueExerciseName[exerciseName.catalogLookupKey()]
 
     fun resolve(stableKey: String, exerciseName: String, allowNameFallback: Boolean): RuntimeExerciseMetadata? =
         resolveByStableKey(stableKey)
             ?: if (allowNameFallback) resolveLegacyName(exerciseName) else null
 
-    fun resolve(exercise: Exercise): RuntimeExerciseMetadata? =
-        resolve(
-            stableKey = exercise.stableKey,
-            exerciseName = exercise.name,
-            allowNameFallback = exercise.isCustom || exercise.stableKey.isLegacyImportedKey()
-        )
+    fun resolve(exercise: Exercise): RuntimeExerciseMetadata? {
+        resolveByStableKey(exercise.stableKey)?.let { metadata -> return metadata }
+        // Exact unique-name fallback keeps older DB rows analyzable when their preserved stableKey
+        // predates the canonical metadata key. Ambiguous display names intentionally do not match.
+        return resolveLegacyName(exercise.name)
+    }
 
     companion object {
         val EMPTY = RuntimeExerciseMetadataCatalog(emptyList())

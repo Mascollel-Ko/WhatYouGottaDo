@@ -42,7 +42,7 @@ class RuntimeExerciseMetadataResolver(
 
     fun resolve(exercise: Exercise): RuntimeExerciseMetadata {
         val persisted = persistedByStableKey[exercise.stableKey]
-        val canonical = canonicalCatalog.resolveByStableKey(exercise.stableKey)
+        val canonical = canonicalCatalog.resolve(exercise)
         return when {
             persisted != null && canonical != null -> persisted.copy(
                 appCueProfile = canonical.appCueProfile

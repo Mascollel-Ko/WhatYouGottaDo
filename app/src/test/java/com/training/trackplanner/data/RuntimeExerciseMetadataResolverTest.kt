@@ -46,10 +46,35 @@ class RuntimeExerciseMetadataResolverTest {
     }
 
     @Test
-    fun catalogResolveFailsWhenBuiltInExerciseLosesCanonicalStableKey() {
+    fun catalogResolveUsesUniqueCanonicalNameWhenBuiltInExerciseLosesStableKey() {
         val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트")
         val catalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical))
         val corruptedDbExercise = exercise("lost_barbell_back_squat", "스쿼트")
+
+        assertSame(canonical, catalog.resolve(corruptedDbExercise))
+    }
+
+    @Test
+    fun resolverCatalogKeepsLostStableKeyExerciseLinkedToCanonicalMetadata() {
+        val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트")
+            .copy(progressMetricType = "ESTIMATED_1RM")
+        val resolver = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical)),
+            persistedRows = emptyList()
+        )
+        val corruptedDbExercise = exercise("lost_barbell_back_squat", "스쿼트")
+        val catalog = resolver.catalog(listOf(corruptedDbExercise))
+
+        assertEquals("ESTIMATED_1RM", resolver.resolve(corruptedDbExercise).progressMetricType)
+        assertEquals("ESTIMATED_1RM", catalog.resolve(corruptedDbExercise)?.progressMetricType)
+    }
+
+    @Test
+    fun catalogNameFallbackIgnoresAmbiguousExerciseNames() {
+        val first = RuntimeExerciseMetadataDefaults.forIdentity("first_key", "Duplicate")
+        val second = RuntimeExerciseMetadataDefaults.forIdentity("second_key", "Duplicate")
+        val catalog = RuntimeExerciseMetadataCatalog.of(listOf(first, second))
+        val corruptedDbExercise = exercise("lost_key", "Duplicate")
 
         assertNull(catalog.resolve(corruptedDbExercise))
     }
