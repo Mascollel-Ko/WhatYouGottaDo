@@ -143,6 +143,22 @@ class MetadataSanityCheckerTest {
     }
 
     @Test
+    fun exerciseAnalysisMapperFallsBackFromRuntimeDefaultMetadataToExerciseRow() {
+        val exercise = SeedData.exercisesFromParsedRows(seedRows())
+            .first { candidate -> candidate.estimated1RmEligible }
+        val runtimeDefault = RuntimeExerciseMetadataDefaults.forIdentity(exercise.stableKey, exercise.name)
+
+        val features = ExerciseAnalysisMapper.fromExercise(exercise, runtimeDefault)
+
+        assertEquals("ESTIMATED_1RM", features.progressMetricType)
+        assertEquals(exercise.strengthProgressionGroup, features.strengthProgressionGroup)
+        assertTrue(features.estimated1RmEligible)
+        assertTrue(features.volumeLoadEligible)
+        assertTrue("STRENGTH_PROGRESS" in features.analysisEligibility)
+        assertTrue("HYPERTROPHY_VOLUME" in features.analysisEligibility)
+    }
+
+    @Test
     fun exerciseAnalysisMapperDistinguishesPlannedAndCompletedSets() {
         val exercise = SeedData.exercisesFromParsedRows(seedRows())
             .first { candidate -> candidate.estimated1RmEligible }

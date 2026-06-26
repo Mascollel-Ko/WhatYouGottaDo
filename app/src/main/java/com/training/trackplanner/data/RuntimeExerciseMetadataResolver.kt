@@ -43,13 +43,26 @@ class RuntimeExerciseMetadataResolver(
     fun resolve(exercise: Exercise): RuntimeExerciseMetadata {
         val persisted = persistedByStableKey[exercise.stableKey]
         val canonical = canonicalCatalog.resolve(exercise)
+        val exerciseDerived = RuntimeExerciseMetadataDefaults.forExercise(exercise)
+        val repairSource = canonical ?: exerciseDerived
         return when {
             persisted != null && canonical != null -> persisted.copy(
+                progressMetricType = persisted.progressMetricType.ifSet() ?: repairSource.progressMetricType,
+                strengthProgressionGroup = persisted.strengthProgressionGroup.ifSet()
+                    ?: repairSource.strengthProgressionGroup,
+                analysisEligibility = persisted.analysisEligibility.takeIf { field -> field.values.isNotEmpty() }
+                    ?: repairSource.analysisEligibility,
                 appCueProfile = canonical.appCueProfile
             )
-            persisted != null -> persisted
+            persisted != null -> persisted.copy(
+                progressMetricType = persisted.progressMetricType.ifSet() ?: repairSource.progressMetricType,
+                strengthProgressionGroup = persisted.strengthProgressionGroup.ifSet()
+                    ?: repairSource.strengthProgressionGroup,
+                analysisEligibility = persisted.analysisEligibility.takeIf { field -> field.values.isNotEmpty() }
+                    ?: repairSource.analysisEligibility
+            )
             canonical != null -> canonical
-            else -> RuntimeExerciseMetadataDefaults.forExercise(exercise)
+            else -> exerciseDerived
         }
     }
 
@@ -57,9 +70,73 @@ class RuntimeExerciseMetadataResolver(
         RuntimeExerciseMetadataCatalog.of(exercises.map(::resolve))
 }
 
+private fun String.ifSet(): String? =
+    takeUnless { value ->
+        value.isBlank() ||
+            value.equals("NONE", ignoreCase = true) ||
+            value.equals("NOT_APPLICABLE", ignoreCase = true)
+    }
+
 object RuntimeExerciseMetadataDefaults {
-    fun forExercise(exercise: Exercise): RuntimeExerciseMetadata =
-        forIdentity(exercise.stableKey, exercise.name)
+    fun forExercise(exercise: Exercise): RuntimeExerciseMetadata {
+        val progressMetricType = exercise.progressMetricType.ifSet()
+            ?: if (exercise.estimated1RmEligible) "ESTIMATED_1RM"
+            else if (exercise.volumeLoadEligible) "VOLUME_LOAD"
+            else "NOT_APPLICABLE"
+        val analysisTokens = exercise.analysisEligibility.splitRuntimeTokens().toMutableSet()
+        if (exercise.estimated1RmEligible) analysisTokens += "STRENGTH_PROGRESS"
+        if (exercise.volumeLoadEligible) analysisTokens += "HYPERTROPHY_VOLUME"
+        val analysisEligibility = MetadataTokenField.parse(
+            analysisTokens.takeIf { it.isNotEmpty() }?.joinToString("|") ?: "NONE"
+        )
+        val strengthProgressionGroup = exercise.strengthProgressionGroup.ifSet()
+            ?: exercise.mainLiftGroup.ifSet()
+            ?: exercise.familyId.ifSet()
+            ?: "NOT_APPLICABLE"
+
+        return RuntimeExerciseMetadata(
+            stableKey = exercise.stableKey,
+            exerciseName = exercise.name,
+            activityKind = exercise.activityKind.ifSet() ?: "EXERCISE",
+            planningEligibility = exercise.planningEligibility.ifSet() ?: "PROGRAM_SELECTABLE",
+            movementFamily = exercise.movementPattern.ifSet() ?: "NOT_APPLICABLE",
+            movementSubtype = exercise.movementCategory.ifSet() ?: "NOT_APPLICABLE",
+            programSlot = "NOT_APPLICABLE",
+            redundancyGroup = exercise.familyId.ifSet() ?: "NOT_APPLICABLE",
+            progressMetricType = progressMetricType,
+            strengthProgressionGroup = strengthProgressionGroup,
+            analysisEligibility = analysisEligibility,
+            primaryStressProfile = exercise.loadProfile.ifSet()
+                ?: exercise.fatigueCategories.splitRuntimeTokens().firstOrNull()
+                ?: "LOW_LOAD_PREHAB_CONTROL_STRESS",
+            secondaryStressTags = MetadataTokenField.parse(exercise.fatigueCategories),
+            tendonStressTags = MetadataTokenField.parse(exercise.jointStressTags),
+            ligamentJointStabilityStressTags = MetadataTokenField.parse(exercise.jointStressTags),
+            jointImpactStressTags = MetadataTokenField.parse(exercise.jointStressTags),
+            cognitiveStressTags = MetadataTokenField.parse("NONE"),
+            sportContextTags = MetadataTokenField.parse(exercise.courtMovementTypes),
+            recoveryDecayProfile = exercise.recoveryDecayProfile.ifSet() ?: "SHORT",
+            stressMagnitudeHint = exercise.loadProfile.ifSet() ?: "LOW",
+            badmintonTransferLevel = exercise.badmintonTransferStrength.ifSet() ?: "NONE",
+            badmintonTransferType = MetadataTokenField.parse(exercise.badmintonTransferRoles),
+            badmintonSkillTargets = MetadataTokenField.parse(exercise.badmintonSkillTargets),
+            badmintonPhysicalQualities = MetadataTokenField.parse(exercise.courtMovementTypes),
+            transferConfidence = "NONE",
+            sourceConfidenceLevel = exercise.metadataConfidence.ifSet() ?: "HEURISTIC_ACCEPTED",
+            finalSourceStatus = if (exercise.metadataConfidence.ifSet() != null) {
+                "SOURCE_ACCEPTED"
+            } else {
+                "SOURCE_ACCEPTED_WITH_LIMITATION"
+            },
+            neuromuscularStressLevel = levelFromWeight(exercise.neuralHeavyWeight + exercise.neuralSpeedWeight),
+            systemicMuscularStressLevel = levelFromWeight(exercise.systemicLoadWeight),
+            localMuscularStressLevel = levelFromWeight(exercise.localLoadWeight),
+            jointTendonImpactStressLevel = levelFromWeight(exercise.decelerationWeight + exercise.elasticSscWeight),
+            movementFocusDemandLevel = exercise.stabilityDemandLevel.ifSet() ?: "LOW",
+            recoveryDurationClass = exercise.recoveryDecayProfile.ifSet() ?: "SHORT",
+            safeForSeedMutation = false
+        )
+    }
 
     fun forIdentity(stableKey: String, exerciseName: String): RuntimeExerciseMetadata =
         RuntimeExerciseMetadata(
@@ -99,6 +176,19 @@ object RuntimeExerciseMetadataDefaults {
             safeForSeedMutation = false
         )
 }
+
+private fun String.splitRuntimeTokens(): Set<String> =
+    split(',', '|', '/', ';')
+        .map { value -> value.trim() }
+        .filter { value -> value.isNotEmpty() && !value.equals("NONE", ignoreCase = true) }
+        .toSet()
+
+private fun levelFromWeight(weight: Double): String =
+    when {
+        weight >= 0.7 -> "HIGH"
+        weight >= 0.35 -> "MODERATE"
+        else -> "LOW"
+    }
 
 data class RuntimeMetadataEditorOptions(
     private val valuesByField: Map<String, List<String>>

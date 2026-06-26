@@ -3,6 +3,7 @@ package com.training.trackplanner.data
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RuntimeExerciseMetadataResolverTest {
@@ -77,6 +78,58 @@ class RuntimeExerciseMetadataResolverTest {
         val corruptedDbExercise = exercise("lost_key", "Duplicate")
 
         assertNull(catalog.resolve(corruptedDbExercise))
+    }
+
+    @Test
+    fun stalePersistedDefaultMetadataDoesNotOverrideCanonicalAnalysisFields() {
+        val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "Back Squat").copy(
+            progressMetricType = "ESTIMATED_1RM",
+            strengthProgressionGroup = "SQUAT",
+            analysisEligibility = MetadataTokenField.parse("STRENGTH_PROGRESS|HYPERTROPHY_VOLUME")
+        )
+        val corruptedDbExercise = exercise("lost_barbell_back_squat", "Back Squat")
+        val stalePersisted = RuntimeExerciseMetadataDefaults.forExercise(corruptedDbExercise)
+        val resolver = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical)),
+            persistedRows = listOf(stalePersisted)
+        )
+
+        val resolved = resolver.resolve(corruptedDbExercise)
+        val catalogResolved = resolver.catalog(listOf(corruptedDbExercise)).resolve(corruptedDbExercise)
+
+        assertEquals("lost_barbell_back_squat", resolved.stableKey)
+        assertEquals("ESTIMATED_1RM", resolved.progressMetricType)
+        assertEquals("SQUAT", resolved.strengthProgressionGroup)
+        assertTrue("STRENGTH_PROGRESS" in resolved.analysisEligibility)
+        assertEquals(ProgressMetricRuntimeBehavior.ESTIMATED_1RM, resolved.progressBehavior)
+        assertEquals("ESTIMATED_1RM", catalogResolved?.progressMetricType)
+        assertTrue("STRENGTH_PROGRESS" in catalogResolved!!.analysisEligibility)
+    }
+
+    @Test
+    fun exerciseRowMetadataRepairsStalePersistedDefaultWhenCanonicalIsMissing() {
+        val dbExercise = exercise("legacy_squat_key", "Legacy Squat").copy(
+            progressMetricType = "",
+            strengthProgressionGroup = "SQUAT",
+            estimated1RmEligible = true,
+            volumeLoadEligible = true,
+            analysisEligibility = "",
+            movementPattern = "SQUAT",
+            movementCategory = "STRENGTH",
+            trainingRole = "MAIN_STRENGTH"
+        )
+        val stalePersisted = RuntimeExerciseMetadataDefaults.forIdentity(dbExercise.stableKey, dbExercise.name)
+        val resolver = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+            persistedRows = listOf(stalePersisted)
+        )
+
+        val resolved = resolver.resolve(dbExercise)
+
+        assertEquals("ESTIMATED_1RM", resolved.progressMetricType)
+        assertEquals("SQUAT", resolved.strengthProgressionGroup)
+        assertTrue("STRENGTH_PROGRESS" in resolved.analysisEligibility)
+        assertTrue("HYPERTROPHY_VOLUME" in resolved.analysisEligibility)
     }
 
     private fun exercise(stableKey: String, name: String) = Exercise(

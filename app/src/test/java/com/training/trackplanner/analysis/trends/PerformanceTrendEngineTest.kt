@@ -14,6 +14,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.RuntimeExerciseMetadataResolver
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -212,6 +213,60 @@ class PerformanceTrendEngineTest {
         assertEquals(
             summary.strengthPerformanceSeries.dataPoints,
             summary.dashboardChartSpecs.first().lineSeries.single().points
+        )
+    }
+
+    @Test
+    fun stalePersistedMetadataForLostCanonicalStableKeyStillMovesStrengthSeries() {
+        val analysisToday = LocalDate.parse("2026-06-26")
+        val canonicalCatalog = canonicalRuntimeCatalog()
+        val squat = canonicalExercise(401, canonicalCatalog, "barbell_back_squat")
+            .copy(stableKey = "lost_barbell_back_squat")
+        val deadlift = canonicalExercise(402, canonicalCatalog, "barbell_deadlift")
+            .copy(stableKey = "lost_barbell_deadlift")
+        val exercises = listOf(squat, deadlift)
+        val runtimeCatalog = RuntimeExerciseMetadataResolver(
+            canonicalCatalog = canonicalCatalog,
+            persistedRows = exercises.map(RuntimeExerciseMetadataDefaults::forExercise)
+        ).catalog(exercises)
+        val entries = (0 until 8).flatMap { index ->
+            val date = analysisToday.minusWeeks((7 - index).toLong())
+            listOf(
+                record(
+                    squat,
+                    date,
+                    listOf(set(reps = 5, weightKg = 85.0 + index * 6.0, confirmed = true, rpe = 8.0))
+                ),
+                record(
+                    deadlift,
+                    date,
+                    listOf(set(reps = 3, weightKg = 125.0 + index * 10.0, confirmed = true, rpe = 8.5))
+                )
+            )
+        }
+        val squatFeatures = AnalysisFeatureExtractor.fromExercise(squat, runtimeCatalog.resolve(squat))
+        val deadliftFeatures = AnalysisFeatureExtractor.fromExercise(deadlift, runtimeCatalog.resolve(deadlift))
+
+        val summary = PerformanceTrendEngine(runtimeCatalog).analyze(
+            today = analysisToday,
+            exercises = exercises,
+            entriesWithSets = entries,
+            dailyMetrics = emptyList()
+        )
+        val chartPoints = summary.strengthPerformanceSeries.dataPoints.mapNotNull { point -> point.value }
+
+        assertTrue(squatFeatures.estimated1RmEligible)
+        assertTrue(deadliftFeatures.estimated1RmEligible)
+        assertEquals("ESTIMATED_1RM", squatFeatures.progressMetricType)
+        assertEquals("ESTIMATED_1RM", deadliftFeatures.progressMetricType)
+        assertTrue("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
+        assertTrue("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
+        assertTrue("rawVolume should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.rawVolume > 0.0 })
+        assertTrue("effectiveSets should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.effectiveSets > 0 })
+        assertTrue("exerciseScores should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.exerciseScores.isNotEmpty() })
+        assertFalse(
+            "strengthPerformanceSeries should move with stale persisted metadata present: $chartPoints",
+            chartPoints.allApproximatelyEqual()
         )
     }
 

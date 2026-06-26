@@ -114,7 +114,32 @@ object ExerciseAnalysisMapper {
             .takeIf { it.isNotEmpty() }
             ?.sumOf { set -> set.reps * set.weightKg }
         val totalSeconds = completedSets.sumOf { set -> set.seconds }
-        val estimated1Rm = if (exercise.estimated1RmEligible) {
+        val progressMetricType = runtimeMetadata?.progressMetricType?.ifSet()
+            ?: exercise.progressMetricType.ifSet()
+            ?: if (exercise.estimated1RmEligible) "ESTIMATED_1RM"
+            else if (exercise.volumeLoadEligible) "VOLUME_LOAD"
+            else ""
+        val strengthProgressionGroup = runtimeMetadata?.strengthProgressionGroup?.ifSet()
+            ?: exercise.strengthProgressionGroup.ifSet()
+            ?: exercise.mainLiftGroup.ifSet()
+            ?: exercise.familyId.ifSet()
+            ?: ""
+        val analysisEligibility = runtimeMetadata
+            ?.analysisEligibility
+            ?.values
+            ?.toSet()
+            ?.takeIf { values -> values.isNotEmpty() }
+            ?: exercise.derivedAnalysisEligibility()
+        val progressBehavior = com.training.trackplanner.data.ExerciseMetadataAdapter
+            .progressMetricBehavior(progressMetricType)
+        val estimated1RmEligible = progressBehavior == com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM ||
+            exercise.estimated1RmEligible
+        val volumeLoadEligible = progressBehavior in setOf(
+            com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM,
+            com.training.trackplanner.data.ProgressMetricRuntimeBehavior.LOAD_REPS,
+            com.training.trackplanner.data.ProgressMetricRuntimeBehavior.VOLUME_LOAD
+        ) || exercise.volumeLoadEligible
+        val estimated1Rm = if (estimated1RmEligible) {
             completedSets
                 .filter { set -> set.weightKg > 0.0 && set.reps in 1..12 }
                 .maxOfOrNull { set -> set.weightKg * (1.0 + set.reps / 30.0) }
@@ -130,11 +155,7 @@ object ExerciseAnalysisMapper {
                 ?.takeIf { it.isNotBlank() }
                 ?: exercise.activityKind,
             metadataConfidence = exercise.metadataConfidence,
-            analysisEligibility = runtimeMetadata
-                ?.analysisEligibility
-                ?.values
-                ?.toSet()
-                ?: exercise.analysisEligibility.splitTokens(),
+            analysisEligibility = analysisEligibility,
             movementPattern = exercise.movementPattern,
             movementCategory = exercise.movementCategory,
             primaryMuscles = exercise.primaryMuscles.splitTokens(),
@@ -162,31 +183,13 @@ object ExerciseAnalysisMapper {
             recoveryDecayProfile = runtimeMetadata?.recoveryDecayProfile
                 ?.takeIf { it.isNotBlank() }
                 ?: exercise.recoveryDecayProfile,
-            progressMetricType = runtimeMetadata?.progressMetricType
-                ?.takeIf { it.isNotBlank() }
-                ?: exercise.progressMetricType,
-            strengthProgressionGroup = runtimeMetadata?.strengthProgressionGroup
-                ?.takeIf { it.isNotBlank() }
-                ?: exercise.strengthProgressionGroup,
+            progressMetricType = progressMetricType,
+            strengthProgressionGroup = strengthProgressionGroup,
             hypertrophyVolumeGroup = exercise.hypertrophyVolumeGroup,
             mainLiftGroup = exercise.mainLiftGroup,
             accessoryContributionGroup = exercise.accessoryContributionGroup,
-            estimated1RmEligible = runtimeMetadata
-                ?.takeIf { it.progressMetricType.isNotBlank() }
-                ?.progressBehavior
-                ?.let { it == com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM }
-                ?: exercise.estimated1RmEligible,
-            volumeLoadEligible = runtimeMetadata
-                ?.takeIf { it.progressMetricType.isNotBlank() }
-                ?.progressBehavior
-                ?.let { behavior ->
-                    behavior in setOf(
-                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM,
-                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.LOAD_REPS,
-                        com.training.trackplanner.data.ProgressMetricRuntimeBehavior.VOLUME_LOAD
-                    )
-                }
-                ?: exercise.volumeLoadEligible,
+            estimated1RmEligible = estimated1RmEligible,
+            volumeLoadEligible = volumeLoadEligible,
             badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens(),
             badmintonTransferStrength = runtimeMetadata?.badmintonTransferLevel
                 ?.takeIf { it.isNotBlank() }
@@ -249,4 +252,18 @@ object ExerciseAnalysisMapper {
             .map { value -> value.trim() }
             .filter { value -> value.isNotEmpty() && value != "NONE" }
             .toSet()
+
+    private fun String.ifSet(): String? =
+        takeUnless { value ->
+            value.isBlank() ||
+                value.equals("NONE", ignoreCase = true) ||
+                value.equals("NOT_APPLICABLE", ignoreCase = true)
+        }
+
+    private fun Exercise.derivedAnalysisEligibility(): Set<String> =
+        analysisEligibility.splitTokens() +
+            listOfNotNull(
+                "STRENGTH_PROGRESS".takeIf { estimated1RmEligible },
+                "HYPERTROPHY_VOLUME".takeIf { volumeLoadEligible }
+            )
 }
