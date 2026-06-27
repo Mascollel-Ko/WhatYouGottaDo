@@ -43,10 +43,16 @@ class FatigueAnalysisMapperTest {
             .single { it.key == FatigueTarget.OVERALL.name }
             .points
             .last()
+        val previousActualPoint = state.detail.fatigueTrendSeries
+            .single { it.key == FatigueTarget.OVERALL.name }
+            .points
+            .dropLast(1)
+            .last()
 
         assertEquals(actualLastPoint, state.simple.ofiSeries.last())
-        assertEquals(actualLastPoint, state.simple.projectedOfiOverlay.first())
+        assertEquals(previousActualPoint, state.simple.projectedOfiOverlay.first())
         assertEquals(99.0, state.simple.projectedOfiOverlay.last().value, 0.001)
+        assertEquals(actualLastPoint.date, state.simple.projectedOfiOverlay.last().date)
     }
 
     @Test
@@ -63,8 +69,19 @@ class FatigueAnalysisMapperTest {
         )
 
         assertTrue(withoutUnconfirmed.simple.projectedOfiOverlay.isEmpty())
-        assertEquals(withUnconfirmed.simple.ofiSeries.last(), withUnconfirmed.simple.projectedOfiOverlay.first())
+        assertEquals(withUnconfirmed.simple.ofiSeries.dropLast(1).last(), withUnconfirmed.simple.projectedOfiOverlay.first())
         assertEquals(88.0, withUnconfirmed.simple.projectedOfiOverlay.last().value, 0.001)
+    }
+
+    @Test
+    fun `projected overlay is skipped when historical OFI has fewer than two points`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(1),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        assertTrue(state.simple.projectedOfiOverlay.isEmpty())
     }
 
     @Test

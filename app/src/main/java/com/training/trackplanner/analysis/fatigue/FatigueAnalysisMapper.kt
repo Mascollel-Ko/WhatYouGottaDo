@@ -170,9 +170,10 @@ object FatigueAnalysisMapper {
         projectedScore: Double?,
         enabled: Boolean
     ): List<FatigueTimePoint> {
-        val last = actual.lastOrNull()
-        if (!enabled || last == null || projectedScore == null) return emptyList()
-        return listOf(last, last.copy(value = projectedScore.coerceIn(0.0, 100.0)))
+        if (!enabled || actual.size < 2 || projectedScore == null) return emptyList()
+        val previous = actual[actual.lastIndex - 1]
+        val current = actual.last()
+        return listOf(previous, current.copy(value = projectedScore.coerceIn(0.0, 100.0)))
     }
 
     private fun axisItems(state: DailyFatigueState): List<FatigueLoadItem> = listOf(
