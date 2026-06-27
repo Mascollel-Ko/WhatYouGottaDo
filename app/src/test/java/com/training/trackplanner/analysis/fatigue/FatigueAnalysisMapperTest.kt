@@ -20,9 +20,10 @@ class FatigueAnalysisMapperTest {
     }
 
     @Test
-    fun `readiness presentation overrides simple overview values`() {
+    fun `readiness presentation overrides simple load items but not historical OFI series`() {
+        val history = history(14)
         val state = FatigueAnalysisMapper.map(
-            history = history(14),
+            history = history,
             fatiguePresentation = presentation(
                 overall = 88,
                 neural = 91,
@@ -33,7 +34,7 @@ class FatigueAnalysisMapperTest {
             )
         )
 
-        assertEquals(88.0, state.simple.ofiSeries.last().value, 0.0001)
+        assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
         assertEquals(91, state.simple.highLoadItems.first().score)
         assertEquals(FatigueTarget.NEUROMUSCULAR.label, state.simple.highLoadItems.first().label)
         assertEquals(15, state.simple.availableLoadItems.first().score)
@@ -53,8 +54,9 @@ class FatigueAnalysisMapperTest {
 
     @Test
     fun `readiness presentation scores are clamped for analysis overview`() {
+        val history = history(14)
         val state = FatigueAnalysisMapper.map(
-            history = history(14),
+            history = history,
             fatiguePresentation = presentation(
                 overall = 140,
                 neural = 140,
@@ -65,9 +67,80 @@ class FatigueAnalysisMapperTest {
             )
         )
 
-        assertEquals(100.0, state.simple.ofiSeries.last().value, 0.0001)
+        assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
         assertTrue(state.simple.highLoadItems.all { item -> item.score in 0..100 })
         assertTrue(state.simple.availableLoadItems.all { item -> item.score in 0..100 })
+    }
+
+    @Test
+    fun `simple OFI series matches detail overall historical series`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            fatiguePresentation = presentation(
+                overall = 99,
+                neural = 91,
+                local = 15,
+                joint = 76,
+                systemic = 44,
+                focus = 22
+            ),
+            projectedOverallFatigueScore = 99.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        val detailOverall = state.detail.fatigueTrendSeries
+            .single { it.key == FatigueTarget.OVERALL.name }
+            .points
+
+        assertEquals(detailOverall, state.simple.ofiSeries)
+    }
+
+    @Test
+    fun `projected fatigue does not overwrite final simple OFI point`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 99.0,
+            hasRemainingUnconfirmedWork = true
+        )
+        val detailOverall = state.detail.fatigueTrendSeries
+            .single { it.key == FatigueTarget.OVERALL.name }
+            .points
+        val actualLastPoint = detailOverall.last()
+        val previousActualPoint = detailOverall.dropLast(1).last()
+
+        assertEquals(actualLastPoint, state.simple.ofiSeries.last())
+        assertEquals(previousActualPoint, state.simple.projectedOfiOverlay.first())
+        assertEquals(actualLastPoint.date, state.simple.projectedOfiOverlay.last().date)
+        assertEquals(99.0, state.simple.projectedOfiOverlay.last().value, 0.001)
+    }
+
+    @Test
+    fun `projected overlay is emitted only when unconfirmed work remains`() {
+        val withoutUnconfirmed = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = false
+        )
+        val withUnconfirmed = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        assertTrue(withoutUnconfirmed.simple.projectedOfiOverlay.isEmpty())
+        assertEquals(withUnconfirmed.simple.ofiSeries.dropLast(1).last(), withUnconfirmed.simple.projectedOfiOverlay.first())
+        assertEquals(88.0, withUnconfirmed.simple.projectedOfiOverlay.last().value, 0.001)
+    }
+
+    @Test
+    fun `projected overlay is skipped when historical OFI has fewer than two points`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(1),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        assertTrue(state.simple.projectedOfiOverlay.isEmpty())
     }
 
     @Test

@@ -536,6 +536,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             repository.homeTodaySummary(phaseStatus)
         }.onSuccess { summary ->
             _homeTodaySummary.value = summary
+            rebuildFatigueAnalysis()
         }
         val readinessSummary = phaseStatus?.current ?: runCatching {
             repository.todayReadinessSummary()
@@ -578,7 +579,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             selectedSourceKeys = selectedSourceKeys,
             defaultSourcesWhenEmpty = defaultSourcesWhenEmpty,
             fatiguePresentation = _phaseAwareTodayStatus.value?.current?.fatiguePresentation
-                ?: _todayReadinessSummary.value?.fatiguePresentation
+                ?: _todayReadinessSummary.value?.fatiguePresentation,
+            projectedOverallFatigueScore = _homeTodaySummary.value.projectedFatigueScore?.toDouble()
+                ?: _homeTodaySummary.value.projectedFatigueSeries?.lastOrNull()?.value,
+            hasRemainingUnconfirmedWork = _homeTodaySummary.value.unconfirmedSetCount > 0
         )
     }
 

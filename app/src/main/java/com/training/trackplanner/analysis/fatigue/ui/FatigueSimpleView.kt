@@ -27,8 +27,23 @@ internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
                     points = state.ofiSeries
                 )
             ),
-            selectedKeys = setOf(FatigueTarget.OVERALL.name)
+            selectedKeys = setOf(FatigueTarget.OVERALL.name),
+            projectedOverlay = state.projectedOfiOverlay
         )
+        if (state.projectedOfiOverlay.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "현재",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "운동 후 예상",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)

@@ -14,7 +14,9 @@ object FatigueAnalysisMapper {
         grouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
         selectedSourceKeys: Set<String> = emptySet(),
         defaultSourcesWhenEmpty: Boolean = true,
-        fatiguePresentation: FatiguePresentationSnapshot? = null
+        fatiguePresentation: FatiguePresentationSnapshot? = null,
+        projectedOverallFatigueScore: Double? = null,
+        hasRemainingUnconfirmedWork: Boolean = false
     ): FatigueAnalysisUiState {
         if (history.isEmpty()) {
             return FatigueAnalysisUiState(
@@ -73,15 +75,17 @@ object FatigueAnalysisMapper {
         } else {
             validSelectedSources
         }
-        val legacyOfiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points
-        val simpleOfiSeries = fatiguePresentation?.let { presentation ->
-            legacyOfiSeries.withLatestValue(presentation.overallScore.coerceIn(0, 100).toDouble())
-        } ?: legacyOfiSeries
+        val actualOfiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points
         val axisItems = fatiguePresentation?.toAxisItems() ?: axisItems(window.last().state)
 
         return FatigueAnalysisUiState(
             simple = FatigueSimpleUiState(
-                ofiSeries = simpleOfiSeries,
+                ofiSeries = actualOfiSeries,
+                projectedOfiOverlay = projectedOverlay(
+                    actual = actualOfiSeries,
+                    projectedScore = projectedOverallFatigueScore,
+                    enabled = hasRemainingUnconfirmedWork
+                ),
                 highLoadItems = axisItems.sortedByDescending { it.score }.filter { it.score > 0 }.take(2),
                 availableLoadItems = axisItems.sortedBy { it.score }.take(2)
             ),
@@ -180,8 +184,16 @@ object FatigueAnalysisMapper {
         FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, focusScore.clampScore())
     )
 
-    private fun List<FatigueTimePoint>.withLatestValue(value: Double): List<FatigueTimePoint> =
-        if (isEmpty()) this else dropLast(1) + last().copy(value = value)
+    private fun projectedOverlay(
+        actual: List<FatigueTimePoint>,
+        projectedScore: Double?,
+        enabled: Boolean
+    ): List<FatigueTimePoint> {
+        if (!enabled || actual.size < 2 || projectedScore == null) return emptyList()
+        val previous = actual[actual.lastIndex - 1]
+        val current = actual.last()
+        return listOf(previous, current.copy(value = projectedScore.coerceIn(0.0, 100.0)))
+    }
 
     private fun Int.clampScore(): Int = coerceIn(0, 100)
 
