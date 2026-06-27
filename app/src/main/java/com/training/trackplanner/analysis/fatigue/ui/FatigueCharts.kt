@@ -22,17 +22,27 @@ import java.time.format.DateTimeFormatter
 
 private data class ChartLine(
     val key: String,
-    val points: List<FatigueTimePoint>
+    val points: List<FatigueTimePoint>,
+    val color: Color? = null
 )
 
 @Composable
 internal fun FatigueTrendChart(
     series: List<FatigueSeries>,
     selectedKeys: Set<String>,
+    projectedOverlay: List<FatigueTimePoint> = emptyList(),
     emptyMessage: String = "운동 기록이 쌓이면 표시됩니다.",
     modifier: Modifier = Modifier
 ) {
-    val lines = series.filter { it.key in selectedKeys }.map { ChartLine(it.key, it.points) }
+    val projectedColor = MaterialTheme.colorScheme.error
+    val actualColor = MaterialTheme.colorScheme.primary
+    val actualLines = series.filter { it.key in selectedKeys }.mapIndexed { index, item ->
+        ChartLine(item.key, item.points, if (projectedOverlay.isNotEmpty() && index == 0) actualColor else null)
+    }
+    val lines =
+        projectedOverlay.takeIf { it.isNotEmpty() }
+            ?.let { listOf(ChartLine("PROJECTED", it, projectedColor)) }
+            .orEmpty() + actualLines
     FatigueLineChart(lines, fixedMaximum = 100.0, emptyMessage = emptyMessage, modifier = modifier)
 }
 
@@ -86,6 +96,7 @@ private fun FatigueLineChart(
                 drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
             }
             lines.forEachIndexed { lineIndex, line ->
+                val color = line.color ?: colors[lineIndex % colors.size]
                 val path = Path()
                 var started = false
                 line.points.forEach { point ->
@@ -96,10 +107,10 @@ private fun FatigueLineChart(
                         path.moveTo(x, y)
                         started = true
                     }
-                    drawCircle(colors[lineIndex % colors.size], radius = 3.5f, center = Offset(x, y))
+                    drawCircle(color, radius = 3.5f, center = Offset(x, y))
                 }
                 if (started) {
-                    drawPath(path, colors[lineIndex % colors.size], style = Stroke(width = 3f))
+                    drawPath(path, color, style = Stroke(width = 3f))
                 }
             }
         }

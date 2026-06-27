@@ -156,7 +156,8 @@ data class HomeTodaySummaryState(
     val projectedTrainingLoadSeries: List<MiniTrendPoint>?,
     val recentFatigueSeries: List<MiniTrendPoint>,
     val projectedFatigueSeries: List<MiniTrendPoint>?,
-    val confidence: FatigueConfidence
+    val confidence: FatigueConfidence,
+    val projectedFatigueScore: Int? = null
 ) {
     companion object {
         fun empty(date: LocalDate = LocalDate.now()): HomeTodaySummaryState =

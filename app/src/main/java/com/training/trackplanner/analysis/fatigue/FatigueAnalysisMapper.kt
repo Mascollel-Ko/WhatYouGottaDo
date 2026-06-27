@@ -12,7 +12,9 @@ object FatigueAnalysisMapper {
         contributionTarget: FatigueTarget = FatigueTarget.OVERALL,
         grouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
         selectedSourceKeys: Set<String> = emptySet(),
-        defaultSourcesWhenEmpty: Boolean = true
+        defaultSourcesWhenEmpty: Boolean = true,
+        projectedOverallFatigueScore: Double? = null,
+        hasRemainingUnconfirmedWork: Boolean = false
     ): FatigueAnalysisUiState {
         if (history.isEmpty()) {
             return FatigueAnalysisUiState(
@@ -72,10 +74,16 @@ object FatigueAnalysisMapper {
             validSelectedSources
         }
         val axisItems = axisItems(window.last().state)
+        val actualOfiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points
 
         return FatigueAnalysisUiState(
             simple = FatigueSimpleUiState(
-                ofiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points,
+                ofiSeries = actualOfiSeries,
+                projectedOfiOverlay = projectedOverlay(
+                    actual = actualOfiSeries,
+                    projectedScore = projectedOverallFatigueScore,
+                    enabled = hasRemainingUnconfirmedWork
+                ),
                 highLoadItems = axisItems.sortedByDescending { it.score }.filter { it.score > 0 }.take(2),
                 availableLoadItems = axisItems.sortedBy { it.score }.take(2)
             ),
@@ -155,6 +163,16 @@ object FatigueAnalysisMapper {
         }.toSortedMap().map { (weekStart, weekPoints) ->
             FatigueTimePoint(weekStart, weekPoints.map { it.value }.average())
         }
+    }
+
+    private fun projectedOverlay(
+        actual: List<FatigueTimePoint>,
+        projectedScore: Double?,
+        enabled: Boolean
+    ): List<FatigueTimePoint> {
+        val last = actual.lastOrNull()
+        if (!enabled || last == null || projectedScore == null) return emptyList()
+        return listOf(last, last.copy(value = projectedScore.coerceIn(0.0, 100.0)))
     }
 
     private fun axisItems(state: DailyFatigueState): List<FatigueLoadItem> = listOf(

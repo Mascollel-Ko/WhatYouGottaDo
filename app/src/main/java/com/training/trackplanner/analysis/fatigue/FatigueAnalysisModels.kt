@@ -57,6 +57,7 @@ data class FatigueContributionSeries(
 
 data class FatigueSimpleUiState(
     val ofiSeries: List<FatigueTimePoint> = emptyList(),
+    val projectedOfiOverlay: List<FatigueTimePoint> = emptyList(),
     val highLoadItems: List<FatigueLoadItem> = emptyList(),
     val availableLoadItems: List<FatigueLoadItem> = emptyList()
 )

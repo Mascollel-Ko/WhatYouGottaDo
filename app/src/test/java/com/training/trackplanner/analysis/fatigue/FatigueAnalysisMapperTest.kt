@@ -18,6 +18,56 @@ class FatigueAnalysisMapperTest {
     }
 
     @Test
+    fun `simple OFI series matches detail overall historical series`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 99.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        val detailOverall = state.detail.fatigueTrendSeries
+            .single { it.key == FatigueTarget.OVERALL.name }
+            .points
+
+        assertEquals(detailOverall, state.simple.ofiSeries)
+    }
+
+    @Test
+    fun `projected fatigue does not overwrite final simple OFI point`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 99.0,
+            hasRemainingUnconfirmedWork = true
+        )
+        val actualLastPoint = state.detail.fatigueTrendSeries
+            .single { it.key == FatigueTarget.OVERALL.name }
+            .points
+            .last()
+
+        assertEquals(actualLastPoint, state.simple.ofiSeries.last())
+        assertEquals(actualLastPoint, state.simple.projectedOfiOverlay.first())
+        assertEquals(99.0, state.simple.projectedOfiOverlay.last().value, 0.001)
+    }
+
+    @Test
+    fun `projected overlay is emitted only when unconfirmed work remains`() {
+        val withoutUnconfirmed = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = false
+        )
+        val withUnconfirmed = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 88.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        assertTrue(withoutUnconfirmed.simple.projectedOfiOverlay.isEmpty())
+        assertEquals(withUnconfirmed.simple.ofiSeries.last(), withUnconfirmed.simple.projectedOfiOverlay.first())
+        assertEquals(88.0, withUnconfirmed.simple.projectedOfiOverlay.last().value, 0.001)
+    }
+
+    @Test
     fun `detail state exposes OFI and all six fatigue axes`() {
         val state = FatigueAnalysisMapper.map(
             history = history(14),

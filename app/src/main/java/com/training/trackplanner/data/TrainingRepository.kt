@@ -317,7 +317,8 @@ class TrainingRepository(
                 current = currentFatigueSeries,
                 projectedTodayValue = projectedState?.overallFatigueIndex?.toDouble()
             ),
-            confidence = todayState.confidence
+            confidence = todayState.confidence,
+            projectedFatigueScore = projectedState?.overallFatigueIndex
         )
     }
 
