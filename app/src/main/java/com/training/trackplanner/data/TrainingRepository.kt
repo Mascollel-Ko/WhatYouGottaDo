@@ -1986,7 +1986,7 @@ class TrainingRepository(
     }
 
     private fun seedExercisesByStableKey(): Map<String, Exercise> =
-        ExerciseSeedMetadataPolicy.seedMap(SeedData.exercises(context))
+        SeedData.exactExerciseMetadataByStableKey(context)
 
     private fun Exercise.needsAnalysisMetadataRefresh(): Boolean =
         compoundType.isBlank() ||

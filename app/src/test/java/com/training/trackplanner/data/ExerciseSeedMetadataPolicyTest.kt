@@ -5,34 +5,38 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.util.Locale
 
 class ExerciseSeedMetadataPolicyTest {
     @Test
-    fun builtInBackupExportUsesSeedMetadataEvenWhenDbRowIsStale() {
-        val seeds = seedExercises()
-        val seedByStableKey = ExerciseSeedMetadataPolicy.seedMap(seeds)
+    fun builtInBackupExportUsesExactSeedMetadataEvenWhenDbRowIsStale() {
+        val seeds = exactSeedMap()
 
-        riskyBuiltIns(seeds).forEach { seed ->
+        riskyBuiltIns(seeds.values.toList()).forEach { seed ->
             val staleDbExercise = seed.copy(
+                primaryMuscles = "BROKEN",
+                secondaryMuscles = "BROKEN",
+                equipment = "BROKEN",
                 movementPattern = "SQUAT",
                 movementCategory = "STRENGTH",
                 forceType = "SQUAT",
                 bodyRegion = "UPPER",
+                laterality = "BROKEN",
+                plane = "BROKEN",
                 metadataConfidence = "LOW"
             )
 
-            val exportExercise = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(staleDbExercise, seedByStableKey)
+            val exportExercise = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(staleDbExercise, seeds)
 
             assertSeedMetadata(seed, exportExercise)
-            assertFalse(exportExercise.movementPattern == "SQUAT" && exportExercise.forceType == "SQUAT")
+            assertTrue(exportExercise.movementPattern.contains("|"))
         }
     }
 
     @Test
     fun builtInBackupImportIgnoresCorruptedCsvMetadata() {
-        val seeds = seedExercises()
-        val seedByStableKey = ExerciseSeedMetadataPolicy.seedMap(seeds)
-        val seed = seeds.first { it.name == "인클라인 덤벨 플라이" }
+        val seeds = exactSeedMap()
+        val seed = seeds.values.first { exercise -> exercise.movementPattern.contains("|") }
         val corruptedCsvExercise = seed.copy(
             movementPattern = "SQUAT",
             movementCategory = "STRENGTH",
@@ -41,19 +45,18 @@ class ExerciseSeedMetadataPolicyTest {
             metadataConfidence = "LOW"
         )
 
-        val imported = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(corruptedCsvExercise, seedByStableKey)
+        val imported = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(corruptedCsvExercise, seeds)
 
         assertSeedMetadata(seed, imported)
     }
 
     @Test
-    fun builtInRoundTripDoesNotReexportRiskyRowsAsSquatSquatUpper() {
-        val seeds = seedExercises()
-        val seedByStableKey = ExerciseSeedMetadataPolicy.seedMap(seeds)
-        val repaired = riskyBuiltIns(seeds).map { seed ->
+    fun builtInRoundTripReexportsSeedPipeMetadata() {
+        val seeds = exactSeedMap()
+        val repaired = riskyBuiltIns(seeds.values.toList()).map { seed ->
             ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(
                 seed.copy(movementPattern = "SQUAT", forceType = "SQUAT", bodyRegion = "UPPER"),
-                seedByStableKey
+                seeds
             )
         }
         val parsed = RecordCsvBackupRestore.parse(
@@ -65,38 +68,38 @@ class ExerciseSeedMetadataPolicyTest {
         ) as RecordCsvImportData.Restore
 
         parsed.exerciseRows.forEach { row ->
-            val seed = seeds.single { it.stableKey == row.stableKey }
+            val seed = seeds.getValue(row.stableKey.seedLookupKey())
             assertFalse(row.movementPattern == "SQUAT" && row.forceType == "SQUAT" && row.bodyRegion == "UPPER")
             assertEquals(seed.movementPattern, row.movementPattern)
             assertEquals(seed.forceType, row.forceType)
             assertEquals(seed.bodyRegion, row.bodyRegion)
+            assertTrue(row.movementPattern.contains("|"))
         }
     }
 
     @Test
-    fun allSeedExercisesExportWithSeedMetadataFields() {
-        val seeds = seedExercises()
-        val seedByStableKey = ExerciseSeedMetadataPolicy.seedMap(seeds)
+    fun allSeedExercisesExportWithExactSeedCsvMetadataFields() {
+        val rawRows = seedRowsByStableKey()
+        val seeds = exactSeedMap()
 
-        seeds.forEach { seed ->
-            val stale = seed.copy(
-                primaryMuscles = "BROKEN",
-                secondaryMuscles = "BROKEN",
-                equipment = "BROKEN",
-                movementPattern = "SQUAT",
-                movementCategory = "STRENGTH",
-                forceType = "SQUAT",
-                bodyRegion = "UPPER",
-                laterality = "BROKEN",
-                plane = "BROKEN",
-                trainingRole = "BROKEN",
-                sportTransferDirect = "BROKEN",
-                sportTransferSupportive = "BROKEN",
-                loadProfile = "BROKEN",
-                metadataConfidence = "LOW"
+        assertEquals(239, rawRows.size)
+        assertEquals(rawRows.size, seeds.size)
+
+        val parsed = RecordCsvBackupRestore.parse(
+            RecordCsvBackupRestore.buildRestoreCsv(
+                entriesWithSets = emptyList(),
+                metrics = emptyList(),
+                exercises = seeds.values.toList()
             )
+        ) as RecordCsvImportData.Restore
+        val rawPipeCount = rawRows.values.count { row -> row.value("movement_pattern").contains("|") }
+        val exportPipeCount = parsed.exerciseRows.count { row -> row.movementPattern.contains("|") }
 
-            assertSeedMetadata(seed, ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(stale, seedByStableKey))
+        assertEquals(rawRows.size, parsed.exerciseRows.size)
+        assertEquals(rawPipeCount, exportPipeCount)
+        assertTrue(exportPipeCount > 0)
+        parsed.exerciseRows.forEach { row ->
+            assertRawSeedMetadata(rawRows.getValue(row.stableKey.seedLookupKey()), row)
         }
     }
 
@@ -112,17 +115,17 @@ class ExerciseSeedMetadataPolicyTest {
             isCustom = true
         )
 
-        assertEquals(custom, ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(custom, ExerciseSeedMetadataPolicy.seedMap(seedExercises())))
+        assertEquals(custom, ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(custom, exactSeedMap()))
     }
 
     @Test
     fun seedMetadataRepairIsIdempotent() {
-        val seeds = seedExercises()
-        val seedByStableKey = ExerciseSeedMetadataPolicy.seedMap(seeds)
-        val stale = seeds.first { it.name == "딥스" }.copy(movementPattern = "SQUAT", forceType = "SQUAT")
+        val seeds = exactSeedMap()
+        val stale = seeds.values.first { exercise -> exercise.movementPattern.contains("|") }
+            .copy(movementPattern = "SQUAT", forceType = "SQUAT")
 
-        val once = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(stale, seedByStableKey)
-        val twice = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(once, seedByStableKey)
+        val once = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(stale, seeds)
+        val twice = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(once, seeds)
 
         assertEquals(once, twice)
     }
@@ -137,20 +140,8 @@ class ExerciseSeedMetadataPolicyTest {
         assertEquals(FatigueForceType.BRACE.name, mapped.forceType)
     }
 
-    private fun riskyBuiltIns(seeds: List<Exercise>): List<Exercise> {
-        val names = listOf(
-            "덤벨 풀오버",
-            "딥스",
-            "벤치 딥스",
-            "스트레이트암 풀다운",
-            "원암 스트레이트암 풀다운",
-            "원암 케이블 플라이",
-            "인클라인 덤벨 플라이",
-            "케이블 플라이",
-            "플랫 덤벨 플라이"
-        )
-        return names.map { name -> seeds.single { seed -> seed.name == name } }
-    }
+    private fun riskyBuiltIns(seeds: List<Exercise>): List<Exercise> =
+        seeds.filter { exercise -> exercise.movementPattern.contains("|") }.take(9)
 
     private fun assertSeedMetadata(seed: Exercise, actual: Exercise) {
         assertEquals(seed.primaryMuscles, actual.primaryMuscles)
@@ -169,8 +160,25 @@ class ExerciseSeedMetadataPolicyTest {
         assertEquals(seed.metadataConfidence, actual.metadataConfidence)
     }
 
-    private fun seedExercises(): List<Exercise> =
-        SeedData.exercisesFromParsedRows(seedRows())
+    private fun assertRawSeedMetadata(seedRow: Map<String, String>, actual: RestoreExerciseRow) {
+        assertEquals(seedRow.value("primary_muscles"), actual.primaryMuscles)
+        assertEquals(seedRow.value("secondary_muscles"), actual.secondaryMuscles)
+        assertEquals(seedRow.value("equipment_tags"), actual.equipment)
+        assertEquals(seedRow.value("movement_pattern"), actual.movementPattern)
+        assertEquals(seedRow.value("movement_category"), actual.movementCategory)
+        assertEquals(seedRow.value("force_type"), actual.forceType)
+        assertEquals(seedRow.value("body_region"), actual.bodyRegion)
+        assertEquals(seedRow.value("laterality"), actual.laterality)
+        assertEquals(seedRow.value("plane"), actual.plane)
+    }
+
+    private fun exactSeedMap(): Map<String, Exercise> =
+        SeedData.exactExerciseMetadataFromParsedRows(seedRows())
+
+    private fun seedRowsByStableKey(): Map<String, Map<String, String>> =
+        seedRows()
+            .filter { row -> row["row_type"] == "exercise" }
+            .associateBy { row -> row.value("stable_key").seedLookupKey() }
 
     private fun seedRows(): List<Map<String, String>> {
         val file = listOf(
@@ -210,4 +218,10 @@ class ExerciseSeedMetadataPolicyTest {
         values += current.toString()
         return values
     }
+
+    private fun Map<String, String>.value(key: String): String =
+        this[key]?.trim().orEmpty()
+
+    private fun String.seedLookupKey(): String =
+        trim().lowercase(Locale.ROOT)
 }

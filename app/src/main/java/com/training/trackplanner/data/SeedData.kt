@@ -41,6 +41,43 @@ object SeedData {
     internal fun exercisesFromParsedRows(rows: List<Map<String, String>>): List<Exercise> =
         exercisesFromParsedRows(rows, emptyList())
 
+    internal fun exactExerciseMetadataByStableKey(context: Context): Map<String, Exercise> {
+        val imageMappings = exerciseImageMappings(context)
+        val rows = csvRows(context)
+        return exactExerciseMetadataFromParsedRows(rows, imageMappings)
+    }
+
+    internal fun exactExerciseMetadataFromParsedRows(rows: List<Map<String, String>>): Map<String, Exercise> =
+        exactExerciseMetadataFromParsedRows(rows, emptyList())
+
+    private fun exactExerciseMetadataFromParsedRows(
+        rows: List<Map<String, String>>,
+        imageMappings: List<ExerciseImageMapping>
+    ): Map<String, Exercise> {
+        val generatedByStableKey = exercisesFromParsedRows(rows, imageMappings)
+            .associateBy { exercise -> exercise.stableKey.normalizedSeedKey() }
+        return rows
+            .filter { row -> row["row_type"] == "exercise" }
+            .mapNotNull { row ->
+                val name = normalizedExerciseName(row.value("exercise_name"))
+                val stableKey = row.value("stable_key").ifBlank { stableKeyFor(name) }
+                val generated = generatedByStableKey[stableKey.normalizedSeedKey()] ?: return@mapNotNull null
+                stableKey.normalizedSeedKey() to generated.copy(
+                    primaryMuscles = row.value("primary_muscles"),
+                    secondaryMuscles = row.value("secondary_muscles"),
+                    equipment = row.value("equipment_tags"),
+                    equipmentTags = row.value("equipment_tags"),
+                    movementPattern = row.value("movement_pattern"),
+                    movementCategory = row.value("movement_category"),
+                    forceType = row.value("force_type"),
+                    bodyRegion = row.value("body_region"),
+                    laterality = row.value("laterality"),
+                    plane = row.value("plane")
+                )
+            }
+            .toMap()
+    }
+
     private fun exercisesFromParsedRows(
         rows: List<Map<String, String>>,
         imageMappings: List<ExerciseImageMapping>
@@ -378,6 +415,9 @@ object SeedData {
 
     private fun String.normalizedForMapping(): String =
         trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), "")
+
+    private fun String.normalizedSeedKey(): String =
+        trim().lowercase(Locale.ROOT)
 
     private fun canonicalFamilyRole(value: String): String {
         val normalized = value.trim().uppercase(Locale.ROOT)
