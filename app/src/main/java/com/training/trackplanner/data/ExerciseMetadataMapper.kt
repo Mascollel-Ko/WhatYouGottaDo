@@ -249,7 +249,7 @@ object ExerciseMetadataMapper {
             "SHOULDER_ISOLATION",
             "SHOULDER_HORIZONTAL_ABDUCTION"
         ) || forceToken == "ISOLATION" -> MovementPattern.ISOLATION
-        else -> MovementPattern.SQUAT
+        else -> MovementPattern.ISOLATION
     }
 
     private fun MetadataSource.toMovementCategory(pattern: MovementPattern): MovementCategory = when {

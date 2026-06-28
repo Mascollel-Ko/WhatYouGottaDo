@@ -34,6 +34,30 @@ internal object ExerciseStableKeyPolicy {
     }
 }
 
+internal object ExerciseSeedMetadataPolicy {
+    fun applyBuiltInSeedMetadata(
+        exercise: Exercise,
+        seedByStableKey: Map<String, Exercise>
+    ): Exercise {
+        val seed = seedByStableKey[exercise.stableKey.seedLookupKey()] ?: return exercise
+        return seed.copy(
+            id = exercise.id,
+            stableKey = seed.stableKey,
+            imageAssetName = seed.imageAssetName.ifBlank { exercise.imageAssetName },
+            isActive = exercise.isActive,
+            archivedAt = exercise.archivedAt,
+            isCustom = false,
+            needsReview = exercise.needsReview || seed.needsReview
+        )
+    }
+
+    fun seedMap(exercises: List<Exercise>): Map<String, Exercise> =
+        exercises.associateBy { exercise -> exercise.stableKey.seedLookupKey() }
+
+    fun isBuiltInStableKey(stableKey: String, seedByStableKey: Map<String, Exercise>): Boolean =
+        stableKey.seedLookupKey() in seedByStableKey
+}
+
 class RuntimeExerciseMetadataResolver(
     private val canonicalCatalog: RuntimeExerciseMetadataCatalog,
     persistedRows: Collection<RuntimeExerciseMetadata>
@@ -76,6 +100,8 @@ private fun String.ifSet(): String? =
             value.equals("NONE", ignoreCase = true) ||
             value.equals("NOT_APPLICABLE", ignoreCase = true)
     }
+
+private fun String.seedLookupKey(): String = trim().lowercase()
 
 object RuntimeExerciseMetadataDefaults {
     fun forExercise(exercise: Exercise): RuntimeExerciseMetadata {

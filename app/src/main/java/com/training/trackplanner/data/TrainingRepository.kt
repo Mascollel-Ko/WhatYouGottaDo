@@ -419,8 +419,15 @@ class TrainingRepository(
         val metrics = dailyMetricDao.allMetrics()
         val checkIns = dailyCheckInDao.all()
         val exercises = exerciseDao.allExercises()
+        val seedByStableKey = seedExercisesByStableKey()
         val profile = initialUserProfileDao.profile()
-        val csv = RecordCsvBackupRestore.buildRestoreCsv(entries, metrics, exercises, profile, checkIns)
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entries,
+            metrics,
+            exercises.map { exercise -> ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey) },
+            profile,
+            checkIns
+        )
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
         } ?: error("백업 파일을 열 수 없습니다.")
@@ -1130,12 +1137,13 @@ class TrainingRepository(
         var setCount = 0
         var skipped = 0
         db.withTransaction {
+            val seedByStableKey = seedExercisesByStableKey()
             data.profileRows.toInitialUserProfile()?.let { profile ->
                 initialUserProfileDao.upsert(profile)
                 profileCount = 1
             }
             data.exerciseRows.forEach { row ->
-                if (upsertRestoredExercise(row)) {
+                if (upsertRestoredExercise(row, seedByStableKey)) {
                     exerciseCount += 1
                 }
             }
@@ -1212,7 +1220,8 @@ class TrainingRepository(
                     val exercise = findOrCreateImportedExercise(
                         name = first.exerciseName,
                         category = first.category,
-                        stableKey = first.stableKey
+                        stableKey = first.stableKey,
+                        seedByStableKey = seedByStableKey
                     )
                     val confirmedCount = importedSets.count { row -> row.setConfirmed }
                     val entryId = workoutDao.insertEntry(
@@ -1391,7 +1400,10 @@ class TrainingRepository(
             existing.sets.sortedBy { set -> set.setIndex }.matchesRestoreRows(rows)
         }
 
-    private suspend fun upsertRestoredExercise(row: RestoreExerciseRow): Boolean {
+    private suspend fun upsertRestoredExercise(
+        row: RestoreExerciseRow,
+        seedByStableKey: Map<String, Exercise>
+    ): Boolean {
         val stableKey = row.stableKey.ifBlank {
             if (row.isCustom) {
                 "imported_${row.name.stableToken()}"
@@ -1401,52 +1413,57 @@ class TrainingRepository(
             }
         }
         val category = row.category.ifBlank { "근력운동" }
-        val restored = ExerciseMetadataMapper.applyLegacyMetadata(
-            Exercise(
-                name = row.name,
-                category = category,
-                detail1 = row.detail1,
-                detail2 = row.detail2,
-                mode = row.mode,
-                description = row.description,
-                defaultRestSeconds = row.defaultRestSeconds,
-                stableKey = stableKey,
-                movementPattern = row.movementPattern,
-                movementCategory = row.movementCategory,
-                primaryMuscles = row.primaryMuscles,
-                secondaryMuscles = row.secondaryMuscles,
-                equipment = row.equipment,
-                equipmentTags = row.equipment,
-                forceType = row.forceType,
-                bodyRegion = row.bodyRegion,
-                plane = row.plane,
-                laterality = row.laterality,
-                trainingRole = row.trainingRole,
-                sportTransferDirect = row.sportTransferDirect,
-                sportTransferSupportive = row.sportTransferSupportive,
-                loadProfile = row.loadProfile,
-                metadataConfidence = row.metadataConfidence.ifBlank { MetadataConfidence.LOW.name }
-            )
-        ).copy(
+        val csvExercise = Exercise(
+            name = row.name,
+            category = category,
+            detail1 = row.detail1,
+            detail2 = row.detail2,
+            mode = row.mode,
+            description = row.description,
+            defaultRestSeconds = row.defaultRestSeconds,
+            stableKey = stableKey,
+            movementPattern = row.movementPattern,
+            movementCategory = row.movementCategory,
+            primaryMuscles = row.primaryMuscles,
+            secondaryMuscles = row.secondaryMuscles,
+            equipment = row.equipment,
+            equipmentTags = row.equipment,
+            forceType = row.forceType,
+            bodyRegion = row.bodyRegion,
+            plane = row.plane,
+            laterality = row.laterality,
+            trainingRole = row.trainingRole,
+            sportTransferDirect = row.sportTransferDirect,
+            sportTransferSupportive = row.sportTransferSupportive,
+            loadProfile = row.loadProfile,
+            metadataConfidence = row.metadataConfidence.ifBlank { MetadataConfidence.LOW.name },
             imageAssetName = row.imageAssetName,
             isActive = row.isActive,
             archivedAt = if (row.isActive) null else System.currentTimeMillis(),
             isCustom = row.isCustom,
             needsReview = row.needsReview
         )
+        val restored = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey)) {
+            ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(csvExercise, seedByStableKey)
+        } else {
+            ExerciseMetadataMapper.applyLegacyMetadata(csvExercise)
+        }
         val existing = exerciseDao.findByStableKey(stableKey) ?: exerciseDao.findByName(row.name)
         if (existing == null) {
             exerciseDao.insertExercise(restored)
         } else {
-            exerciseDao.updateExercise(
-                restored.copy(
-                    id = existing.id,
-                    stableKey = existing.stableKey,
-                    imageAssetName = restored.imageAssetName.ifBlank { existing.imageAssetName },
-                    isCustom = existing.isCustom || restored.isCustom,
-                    needsReview = existing.needsReview || restored.needsReview
-                )
+            val updated = restored.copy(
+                id = existing.id,
+                stableKey = existing.stableKey.ifBlank { restored.stableKey },
+                imageAssetName = restored.imageAssetName.ifBlank { existing.imageAssetName },
+                isCustom = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey)) {
+                    false
+                } else {
+                    existing.isCustom || restored.isCustom
+                },
+                needsReview = existing.needsReview || restored.needsReview
             )
+            exerciseDao.updateExercise(ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(updated, seedByStableKey))
         }
         return true
     }
@@ -1624,7 +1641,8 @@ class TrainingRepository(
         name: String,
         category: String,
         forceFatigueOnly: Boolean = false,
-        stableKey: String = ""
+        stableKey: String = "",
+        seedByStableKey: Map<String, Exercise> = emptyMap()
     ): Exercise {
         val resolvedStableKey = stableKey.takeIf { it.isNotBlank() }
             ?: canonicalRuntimeMetadataCatalog.resolveLegacyName(name)?.stableKey
@@ -1632,16 +1650,23 @@ class TrainingRepository(
             ?.let { key -> exerciseDao.findByStableKey(key) }
             ?: exerciseDao.findByName(name)
         existingExercise?.let { existing ->
+            val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(existing, seedByStableKey)
             val updated = if (forceFatigueOnly) {
-                existing.withFatigueOnlyPlanningMetadata()
+                seedBacked.withFatigueOnlyPlanningMetadata()
             } else {
-                existing.withInferredPlanningMetadata()
+                seedBacked.withInferredPlanningMetadata()
             }
             if (updated != existing) {
                 exerciseDao.updateExercise(updated)
             }
             return updated
         }
+        resolvedStableKey
+            ?.let { key -> seedByStableKey[key.trim().lowercase()] }
+            ?.let { seed ->
+                val insertedId = exerciseDao.insertExercise(seed)
+                return if (insertedId > 0) seed.copy(id = insertedId) else exerciseDao.findByStableKey(seed.stableKey) ?: seed
+            }
         val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
             Exercise(
                 name = name,
@@ -1693,7 +1718,7 @@ class TrainingRepository(
             "유산소운동" -> MovementPattern.LOCOMOTION.name
             "스포츠" -> MovementPattern.FOOTWORK.name
             "기능성운동" -> MovementPattern.ANTI_ROTATION.name
-            else -> MovementPattern.SQUAT.name
+            else -> MovementPattern.ISOLATION.name
         }
 
     private fun String.defaultMovementCategory(): String =
@@ -1715,7 +1740,7 @@ class TrainingRepository(
         when (this) {
             "유산소운동", "스포츠" -> FatigueForceType.ACCELERATE.name
             "기능성운동" -> FatigueForceType.BRACE.name
-            else -> FatigueForceType.SQUAT.name
+            else -> FatigueForceType.BRACE.name
         }
 
     private fun String.defaultPlane(): String =
@@ -1945,14 +1970,23 @@ class TrainingRepository(
         value(key)?.toIntOrNull() ?: 0
 
     private suspend fun refreshExerciseAnalysisMetadata() {
+        val seedByStableKey = seedExercisesByStableKey()
         exerciseDao.allExercises().forEach { exercise ->
-            if (!exercise.needsAnalysisMetadataRefresh()) return@forEach
-            val mapped = ExerciseMetadataMapper.applyLegacyMetadata(exercise)
+            val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey)
+            val mapped = if (seedBacked != exercise) {
+                seedBacked
+            } else {
+                if (!exercise.needsAnalysisMetadataRefresh()) return@forEach
+                ExerciseMetadataMapper.applyLegacyMetadata(exercise)
+            }
             if (mapped != exercise) {
                 exerciseDao.updateExercise(mapped)
             }
         }
     }
+
+    private fun seedExercisesByStableKey(): Map<String, Exercise> =
+        ExerciseSeedMetadataPolicy.seedMap(SeedData.exercises(context))
 
     private fun Exercise.needsAnalysisMetadataRefresh(): Boolean =
         compoundType.isBlank() ||
