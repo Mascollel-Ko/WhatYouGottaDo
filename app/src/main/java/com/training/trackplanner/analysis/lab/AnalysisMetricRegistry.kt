@@ -25,13 +25,15 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN, "관절/건 불편감", "주간 평균 관절/건 불편감 체크인", AnalysisMetricCategory.RECOVERY, false, "1~5"),
         metric(TrendMetricId.FOCUS_MOTIVATION_CHECKIN, "집중력/의욕", "주간 평균 집중력/의욕 체크인", AnalysisMetricCategory.RECOVERY, true, "1~5"),
         metric(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE, "회복 체크인 종합", "수면과 주관적 체크인을 좋은 방향으로 정렬한 주간 종합값", AnalysisMetricCategory.RECOVERY, true, "1~5"),
-        metric(TrendMetricId.SMASH_SPEED_TOP3_AVG, "스매시 Top3 평균 속도", "주간 스매시 속도 상위 3회 평균", AnalysisMetricCategory.BADMINTON, true, "km/h"),
-        metric(TrendMetricId.SMASH_SPEED_BEST, "스매시 최고 속도", "주간 스매시 최고 속도", AnalysisMetricCategory.BADMINTON, true, "km/h"),
-        metric(TrendMetricId.SMASH_SPEED_AVG, "스매시 평균 속도", "주간 스매시 평균 속도", AnalysisMetricCategory.BADMINTON, true, "km/h"),
-        metric(TrendMetricId.SMASH_ATTEMPT_COUNT, "스매시 속도 시도 수", "주간 스매시 속도 기록 횟수", AnalysisMetricCategory.BADMINTON, true, "회"),
+        metric(TrendMetricId.SMASH_SPEED_TOP3_AVG, "스매시 Top3 평균 속도", "주간 스매시 속도 상위 3회 평균", AnalysisMetricCategory.SMASH_SPEED, true, "km/h"),
+        metric(TrendMetricId.SMASH_SPEED_BEST, "스매시 최고 속도", "주간 스매시 최고 속도", AnalysisMetricCategory.SMASH_SPEED, true, "km/h"),
+        metric(TrendMetricId.SMASH_SPEED_AVG, "스매시 평균 속도", "주간 스매시 평균 속도", AnalysisMetricCategory.SMASH_SPEED, true, "km/h"),
+        metric(TrendMetricId.SMASH_ATTEMPT_COUNT, "스매시 속도 시도 수", "주간 스매시 속도 기록 횟수", AnalysisMetricCategory.SMASH_SPEED, true, "회"),
+        metric(TrendMetricId.SQUAT_E1RM, "스쿼트 e1RM", "대표 스쿼트 confirmed set 기준 당일 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg", AnalysisTimeGrain.DAILY),
+        metric(TrendMetricId.DEADLIFT_E1RM, "데드리프트 e1RM", "컨벤셔널 데드리프트 confirmed set 기준 당일 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg", AnalysisTimeGrain.DAILY),
         metric(TrendMetricId.STRENGTH_DELTA_NEXT, "다음 근력 변화", "다음 주 근력 지수의 변화량", AnalysisMetricCategory.DERIVED, null),
         metric(TrendMetricId.FATIGUE_DELTA_NEXT, "다음 피로 변화", "다음 주 피로 지수의 변화량", AnalysisMetricCategory.DERIVED, null)
-    )
+    ) + muscleLoadMetrics()
 
     fun descriptor(id: TrendMetricId): AnalysisMetricDescriptor? =
         descriptors.firstOrNull { descriptor -> descriptor.id == id }
@@ -49,17 +51,51 @@ object AnalysisMetricRegistry {
         description: String,
         category: AnalysisMetricCategory,
         higherIsBetter: Boolean?,
-        unit: String = "지수"
+        unit: String = "지수",
+        timeGrain: AnalysisTimeGrain = AnalysisTimeGrain.WEEKLY
     ) = AnalysisMetricDescriptor(
         id = id,
         displayName = displayName,
         description = description,
         category = category,
         unit = unit,
-        timeGrain = AnalysisTimeGrain.WEEKLY,
+        timeGrain = timeGrain,
         supportsScatter = true,
         supportsTimeSeries = true,
         supportsMultivariate = true,
         higherIsBetter = higherIsBetter
     )
+
+    private fun muscleLoadMetrics(): List<AnalysisMetricDescriptor> =
+        StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().flatMap { bucket ->
+            listOf(
+                metric(
+                    bucket.dailyMetric,
+                    "${bucket.label} 운동량",
+                    "${bucket.label} 당일 운동량 지수",
+                    AnalysisMetricCategory.MUSCLE_LOAD,
+                    false,
+                    "운동량 지수",
+                    AnalysisTimeGrain.DAILY
+                ),
+                metric(
+                    bucket.threeDayMetric,
+                    "${bucket.label} 최근 3일 운동량",
+                    "${bucket.label} 최근 3일 누적 운동량 지수",
+                    AnalysisMetricCategory.MUSCLE_LOAD,
+                    false,
+                    "운동량 지수",
+                    AnalysisTimeGrain.DAILY
+                ),
+                metric(
+                    bucket.sevenDayMetric,
+                    "${bucket.label} 최근 7일 운동량",
+                    "${bucket.label} 최근 7일 누적 운동량 지수",
+                    AnalysisMetricCategory.MUSCLE_LOAD,
+                    false,
+                    "운동량 지수",
+                    AnalysisTimeGrain.DAILY
+                )
+            )
+        }
 }

@@ -24,6 +24,7 @@ import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
+import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
@@ -369,10 +370,11 @@ class TrainingRepository(
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
+        val entries = workoutDao.entriesWithSetsUntil(todayString)
         val base = PerformanceTrendEngine(resolvedRuntimeMetadataCatalog(exercises)).analyze(
             today = today,
             exercises = exercises,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            entriesWithSets = entries,
             dailyMetrics = dailyMetrics
         )
         val checkInSeries = CheckInMetricSeriesBuilder.build(
@@ -382,7 +384,11 @@ class TrainingRepository(
         val smashSpeedSeries = SmashSpeedMetricSeriesBuilder.build(
             records = smashSpeedDao.between("0001-01-01", todayString)
         )
-        base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries)
+        val strengthAndMuscleSeries = StrengthAndMuscleMetricSeriesBuilder.build(
+            entriesWithSets = entries,
+            exercises = exercises
+        )
+        base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries)
     }
 
     suspend fun badmintonTransferSummary(

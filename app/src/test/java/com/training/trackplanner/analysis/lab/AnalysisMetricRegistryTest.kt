@@ -33,9 +33,13 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.SMASH_SPEED_BEST,
         TrendMetricId.SMASH_SPEED_AVG,
         TrendMetricId.SMASH_ATTEMPT_COUNT,
+        TrendMetricId.SQUAT_E1RM,
+        TrendMetricId.DEADLIFT_E1RM,
         TrendMetricId.STRENGTH_DELTA_NEXT,
         TrendMetricId.FATIGUE_DELTA_NEXT
-    )
+    ) + StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().flatMap { bucket ->
+        listOf(bucket.dailyMetric, bucket.threeDayMetric, bucket.sevenDayMetric)
+    }.toSet()
 
     @Test
     fun registryContainsEveryRelationshipExplorerMetricExactlyOnce() {
@@ -78,16 +82,20 @@ class AnalysisMetricRegistryTest {
         assertEquals(true, AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.higherIsBetter)
         assertEquals("km/h", AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.unit)
         assertEquals("회", AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_ATTEMPT_COUNT)?.unit)
+        assertEquals(AnalysisMetricCategory.SMASH_SPEED, AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_BEST)?.category)
     }
 
     @Test
     fun metricCategoryDisplayLabelsAreKoreanNotRawEnumNames() {
+        assertEquals("성과", AnalysisMetricCategory.PERFORMANCE.displayLabelKo())
         assertEquals("근력", AnalysisMetricCategory.STRENGTH.displayLabelKo())
         assertEquals("배드민턴", AnalysisMetricCategory.BADMINTON.displayLabelKo())
-        assertEquals("피로", AnalysisMetricCategory.FATIGUE.displayLabelKo())
-        assertEquals("전이", AnalysisMetricCategory.TRANSFER.displayLabelKo())
+        assertEquals("피로/회복", AnalysisMetricCategory.FATIGUE.displayLabelKo())
+        assertEquals("배드민턴 전이", AnalysisMetricCategory.TRANSFER.displayLabelKo())
         assertEquals("회복/컨디션", AnalysisMetricCategory.RECOVERY.displayLabelKo())
-        assertEquals("훈련량", AnalysisMetricCategory.VOLUME.displayLabelKo())
+        assertEquals("전체 운동량", AnalysisMetricCategory.VOLUME.displayLabelKo())
+        assertEquals("근육군별 운동량", AnalysisMetricCategory.MUSCLE_LOAD.displayLabelKo())
+        assertEquals("스매시 속도", AnalysisMetricCategory.SMASH_SPEED.displayLabelKo())
         assertEquals("파생 지표", AnalysisMetricCategory.DERIVED.displayLabelKo())
     }
 }

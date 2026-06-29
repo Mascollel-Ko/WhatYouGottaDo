@@ -145,6 +145,11 @@ private fun MetricAxisDropdown(
                             Column {
                                 Text(descriptor.displayName)
                                 Text(
+                                    descriptor.category.displayLabelKo(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
                                     descriptor.description,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -175,10 +180,12 @@ private fun LabMetricCatalogCard(metrics: List<AnalysisMetricDescriptor>) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("사용 가능한 지표", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("현재 데이터가 있는 주간 지표 ${metrics.size}개", style = MaterialTheme.typography.bodySmall)
+            Text("현재 데이터가 있는 지표 ${metrics.size}개", style = MaterialTheme.typography.bodySmall)
             metrics.groupBy { it.category }.forEach { (category, descriptors) ->
+                val preview = descriptors.take(6).joinToString { it.displayName }
+                val suffix = if (descriptors.size > 6) " 외 ${descriptors.size - 6}개" else ""
                 Text(
-                    "${category.displayLabelKo()}: ${descriptors.joinToString { it.displayName }}",
+                    "${category.displayLabelKo()}: $preview$suffix",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
