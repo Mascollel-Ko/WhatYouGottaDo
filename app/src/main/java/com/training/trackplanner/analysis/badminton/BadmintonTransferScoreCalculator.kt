@@ -77,11 +77,20 @@ class BadmintonTransferScoreCalculator(
             record.sets,
             runtimeMetadataCatalog.resolve(exercise)
         )
-        val transferType = BadmintonTransferMetadataMapper.transferType(features)
-        val transferWeight = BadmintonTransferConstants.transferWeight(transferType)
-        if (transferWeight <= 0.0) return null
         val axes = BadmintonTransferMetadataMapper.transferAxes(features)
         if (axes.isEmpty()) return null
+        val rawTransferType = BadmintonTransferMetadataMapper.transferType(features)
+        val transferType = if (
+            rawTransferType == BadmintonTransferType.NONE &&
+            BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes &&
+            BadmintonTransferMetadataMapper.isGeneralStrengthFoundation(features)
+        ) {
+            BadmintonTransferType.GENERAL_STRENGTH
+        } else {
+            rawTransferType
+        }
+        val transferWeight = BadmintonTransferConstants.transferWeight(transferType)
+        if (transferWeight <= 0.0) return null
         val exerciseLoad = exerciseLoad(completedSets, features)
         val totalStimulus = exerciseLoad * transferWeight
         if (totalStimulus <= 0.0) return null

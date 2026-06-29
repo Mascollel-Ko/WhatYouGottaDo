@@ -200,6 +200,23 @@ class BadmintonTransferAnalysisEngineTest {
     }
 
     @Test
+    fun legacyRawLowerFoundationRecordsProduceStimulusWithoutTransferType() {
+        val exercises = listOf(
+            transferExercise("스쿼트", "raw_squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY", id = 21, transferStrength = "", analysisEligibility = ""),
+            transferExercise("데드리프트", "raw_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 22, transferStrength = "", analysisEligibility = ""),
+            transferExercise("루마니안 데드리프트", "raw_rdl", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 23, transferStrength = "", analysisEligibility = "")
+        )
+        val entries = exercises.map { exercise ->
+            record(exercise, today.minusDays(1), listOf(set(reps = 5, weightKg = 80.0, confirmed = true)))
+        }
+
+        val snapshot = BadmintonTransferScoreCalculator().calculateWindow(today, 14, exercises, entries)
+
+        assertTrue((snapshot.axisStimulus[BadmintonTransferAxis.LOWER_BODY_STRENGTH] ?: 0.0) > 0.0)
+        assertTrue(snapshot.sampleEntryCount > 0)
+    }
+
+    @Test
     fun recommendationSkipsLowerBodyWhenAbsoluteFoundationStimulusExists() {
         val recommendation = BadmintonTransferRecommendationBuilder().build(
             snapshot = transferSnapshot(
@@ -303,7 +320,9 @@ class BadmintonTransferAnalysisEngineTest {
         stableKey: String,
         movementPattern: String,
         forceType: String,
-        id: Long = stableKey.hashCode().toLong().let { value -> if (value == 0L) 1L else kotlin.math.abs(value) }
+        id: Long = stableKey.hashCode().toLong().let { value -> if (value == 0L) 1L else kotlin.math.abs(value) },
+        transferStrength: String = "GENERAL",
+        analysisEligibility: String = "BADMINTON_TRANSFER"
     ): Exercise =
         Exercise(
             id = id,
@@ -312,8 +331,8 @@ class BadmintonTransferAnalysisEngineTest {
             stableKey = stableKey,
             movementPattern = movementPattern,
             forceType = forceType,
-            badmintonTransferStrength = "GENERAL",
-            analysisEligibility = "BADMINTON_TRANSFER",
+            badmintonTransferStrength = transferStrength,
+            analysisEligibility = analysisEligibility,
             metadataConfidence = "HIGH"
         )
 

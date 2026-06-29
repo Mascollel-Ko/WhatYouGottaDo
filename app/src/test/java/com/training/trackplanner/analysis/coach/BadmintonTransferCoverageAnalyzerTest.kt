@@ -6,6 +6,10 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferWindowSnaps
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.FatigueConfidence
 import com.training.trackplanner.analysis.fatigue.FatigueReadinessLabel
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.WorkoutEntry
+import com.training.trackplanner.data.WorkoutEntryWithSets
+import com.training.trackplanner.data.WorkoutSet
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -102,6 +106,38 @@ class BadmintonTransferCoverageAnalyzerTest {
 
         val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
         assertEquals(TransferAxisStatusType.LOW, lowerBody.status)
+    }
+
+    @Test
+    fun rawLowerFoundationRecordsAreNotReportedAsMissing() {
+        val today = LocalDate.of(2026, 6, 22)
+        val exercise = Exercise(
+            id = 99,
+            name = "raw squat",
+            category = "strength",
+            stableKey = "raw_squat",
+            movementPattern = "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN",
+            forceType = "LOWER_BODY"
+        )
+        val entry = WorkoutEntry(
+            id = 990,
+            date = today.minusDays(1).toString(),
+            exerciseId = exercise.id,
+            exerciseName = exercise.name,
+            category = exercise.category
+        )
+        val record = WorkoutEntryWithSets(
+            entry = entry,
+            sets = listOf(
+                WorkoutSet(entryId = entry.id, setIndex = 1, reps = 5, weightKg = 80.0, confirmed = true)
+            )
+        )
+
+        val summary = analyzer.analyze(today, listOf(exercise), listOf(record), state())
+        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
+
+        assertTrue(summary.isDataSufficient)
+        assertFalse(lowerBody.status == TransferAxisStatusType.MISSING)
     }
 
     @Test
