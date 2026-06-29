@@ -184,4 +184,45 @@ class RecordCsvBackupRestoreTest {
         assertEquals(7.25, parsed.dailyRows.single().sleepHours ?: 0.0, 0.001)
         assertEquals(null, parsed.checkInRows.single().sleepHours)
     }
+
+    @Test
+    fun restoreCsvRoundTripsSmashSpeedRows() {
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            smashSpeeds = listOf(
+                SmashSpeedRecord(
+                    id = 7,
+                    date = "2026-06-29",
+                    speedKmh = 231.5,
+                    attemptIndex = 2,
+                    note = "external app"
+                )
+            )
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val row = parsed.smashSpeedRows.single()
+
+        assertTrue(csv.contains(",smash_speed,"))
+        assertEquals(7L, row.smashSpeedId)
+        assertEquals("2026-06-29", row.date)
+        assertEquals(231.5, row.speedKmh, 0.001)
+        assertEquals(2, row.attemptIndex)
+        assertEquals("external app", row.note)
+    }
+
+    @Test
+    fun invalidSmashSpeedRowsAreSkippedWithWarning() {
+        val csv = """
+            schema_version,row_type,date,speed_kmh,attempt_index
+            3,smash_speed,2026-06-29,0,1
+            3,smash_speed,2026-06-29,230,2
+        """.trimIndent()
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+
+        assertEquals(1, parsed.smashSpeedRows.size)
+        assertEquals(1, parsed.warningCount)
+    }
 }

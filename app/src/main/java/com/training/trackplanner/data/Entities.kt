@@ -144,6 +144,35 @@ data class DailyCheckIn(
     }
 }
 
+@Entity(
+    tableName = "smash_speed_records",
+    indices = [Index(value = ["date"])]
+)
+data class SmashSpeedRecord(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: String,
+    val speedKmh: Double,
+    val attemptIndex: Int? = null,
+    val source: String = "external_app",
+    val note: String? = null,
+    val parentWorkoutEntryId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+) {
+    fun validated(): SmashSpeedRecord {
+        require(runCatching { java.time.LocalDate.parse(date) }.isSuccess) {
+            "date must use ISO-8601 local date format."
+        }
+        require(speedKmh in 1.0..500.0) {
+            "speedKmh must be between 1 and 500."
+        }
+        require(attemptIndex == null || attemptIndex > 0) {
+            "attemptIndex must be positive."
+        }
+        return this
+    }
+}
+
 @Entity(tableName = "training_programs")
 data class TrainingProgram(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

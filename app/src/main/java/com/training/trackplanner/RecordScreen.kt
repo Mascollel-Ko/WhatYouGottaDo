@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ActivityKind
 import com.training.trackplanner.data.RecordEntryOrdering
+import com.training.trackplanner.data.SmashSpeedRecord
+import com.training.trackplanner.data.SmashSpeedSummary
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -83,6 +85,9 @@ internal fun RecordScreen(
     val entries by remember(selectedDate) {
         viewModel.entriesForDate(selectedDate)
     }.collectAsState(initial = emptyList())
+    val smashSpeeds by remember(selectedDate) {
+        viewModel.smashSpeedsForDate(selectedDate)
+    }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
     val listState = rememberLazyListState()
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.id } }
@@ -98,7 +103,7 @@ internal fun RecordScreen(
         val entryIndex = sortedEntries.indexOfFirst { it.entry.id == entryId }
         if (entryIndex < 0) return@LaunchedEffect
         if (pendingAddedAfterConfirmed) {
-            val leadingItems = 3 + if (showPermissionHint) 1 else 0
+            val leadingItems = 4 + if (showPermissionHint) 1 else 0
             listState.animateScrollToItem((leadingItems + entryIndex - 1).coerceAtLeast(0))
         } else {
             listState.animateScrollToItem(0)
@@ -186,6 +191,14 @@ internal fun RecordScreen(
                 date = selectedDate,
                 viewModel = viewModel,
                 onAddExercise = { showExercisePicker = true }
+            )
+        }
+        item {
+            SmashSpeedCard(
+                date = selectedDate,
+                records = smashSpeeds,
+                onAdd = { speed -> viewModel.addSmashSpeed(selectedDate, speed) },
+                onDelete = viewModel::deleteSmashSpeed
             )
         }
         if (entries.isEmpty()) {
@@ -288,6 +301,89 @@ private fun DailyMetricCard(
                     }
                 ) {
                     Text("저장")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SmashSpeedCard(
+    date: String,
+    records: List<SmashSpeedRecord>,
+    onAdd: (Double) -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    val summary = remember(date, records) { SmashSpeedSummary.from(date, records) }
+    var expanded by rememberSaveable(date) { mutableStateOf(records.isNotEmpty()) }
+    var speedText by rememberSaveable(date) { mutableStateOf("") }
+    val speed = speedText.toDoubleOrNull()
+    val canSave = speed != null && speed in 1.0..500.0
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("스매시 속도", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = smashSpeedSummaryText(summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                OutlinedButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "접기" else "기록")
+                }
+            }
+            if (expanded) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        modifier = Modifier.weight(1f),
+                        value = speedText,
+                        onValueChange = { if (isDecimalInput(it)) speedText = it },
+                        label = { Text("속도") },
+                        suffix = { Text("km/h") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true
+                    )
+                    Button(
+                        enabled = canSave,
+                        onClick = {
+                            speed?.let(onAdd)
+                            speedText = ""
+                        }
+                    ) {
+                        Text("추가")
+                    }
+                }
+                if (records.isEmpty()) {
+                    Text(
+                        text = "기록 없음",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    records.forEach { record ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${record.attemptIndex ?: "-"}회 · ${formatDecimal(record.speedKmh)} km/h",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            TextButton(onClick = { onDelete(record.id) }) {
+                                Text("삭제")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1682,6 +1778,13 @@ private data class WeightSuggestion(
     val sourceSetId: Long,
     val kg: Double
 )
+
+private fun smashSpeedSummaryText(summary: SmashSpeedSummary): String =
+    if (summary.attemptCount == 0) {
+        "기록 없음"
+    } else {
+        "최고 ${formatDecimal(summary.bestSpeedKmh ?: 0.0)} · Top3 ${formatDecimal(summary.top3AverageSpeedKmh ?: 0.0)} · ${summary.attemptCount}회"
+    }
 
 private fun conditionSummary(sleepHours: Double?, bodyWeightKg: Double?): String =
     if (sleepHours == null && bodyWeightKg == null) {

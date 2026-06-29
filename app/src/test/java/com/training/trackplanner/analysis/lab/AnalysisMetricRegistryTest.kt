@@ -29,6 +29,10 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN,
         TrendMetricId.FOCUS_MOTIVATION_CHECKIN,
         TrendMetricId.RECOVERY_CHECKIN_COMPOSITE,
+        TrendMetricId.SMASH_SPEED_TOP3_AVG,
+        TrendMetricId.SMASH_SPEED_BEST,
+        TrendMetricId.SMASH_SPEED_AVG,
+        TrendMetricId.SMASH_ATTEMPT_COUNT,
         TrendMetricId.STRENGTH_DELTA_NEXT,
         TrendMetricId.FATIGUE_DELTA_NEXT
     )
@@ -67,6 +71,13 @@ class AnalysisMetricRegistryTest {
         assertEquals(true, AnalysisMetricRegistry.descriptor(TrendMetricId.FOCUS_MOTIVATION_CHECKIN)?.higherIsBetter)
         assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.OVERALL_FATIGUE_CHECKIN)?.higherIsBetter)
         assertEquals(false, AnalysisMetricRegistry.descriptor(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN)?.higherIsBetter)
+    }
+
+    @Test
+    fun smashSpeedMetricsAreHigherIsBetterAndUseSpeedUnits() {
+        assertEquals(true, AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.higherIsBetter)
+        assertEquals("km/h", AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.unit)
+        assertEquals("회", AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_ATTEMPT_COUNT)?.unit)
     }
 
     @Test

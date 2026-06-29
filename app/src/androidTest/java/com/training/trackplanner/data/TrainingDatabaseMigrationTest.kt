@@ -222,6 +222,23 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate16To17AddsSmashSpeedRecords() {
+        helper.createDatabase(TEST_DB, 16).close()
+
+        helper.runMigrationsAndValidate(TEST_DB, 17, true, TrainingDatabase.MIGRATION_16_17).use { database ->
+            val columns = buildSet {
+                database.query("PRAGMA table_info(smash_speed_records)").use { cursor ->
+                    val nameIndex = cursor.getColumnIndexOrThrow("name")
+                    while (cursor.moveToNext()) add(cursor.getString(nameIndex))
+                }
+            }
+            check("date" in columns)
+            check("speedKmh" in columns)
+            check("attemptIndex" in columns)
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

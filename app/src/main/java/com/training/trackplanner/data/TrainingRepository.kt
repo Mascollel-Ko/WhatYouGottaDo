@@ -23,6 +23,7 @@ import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
+import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
@@ -128,6 +129,7 @@ class TrainingRepository(
     private val programDao = db.programDao()
     private val dailyMetricDao = db.dailyMetricDao()
     private val dailyCheckInDao = db.dailyCheckInDao()
+    private val smashSpeedDao = db.smashSpeedDao()
     private val appMetaDao = db.appMetaDao()
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
@@ -153,6 +155,25 @@ class TrainingRepository(
         ) { checkIns, metrics ->
             checkIns.withCanonicalSleep(metrics)
         }
+
+    fun observeSmashSpeedsForDate(date: String): Flow<List<SmashSpeedRecord>> =
+        smashSpeedDao.observeForDate(date)
+
+    suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = withContext(Dispatchers.IO) {
+        val attemptIndex = smashSpeedDao.forDate(date).size + 1
+        smashSpeedDao.upsert(
+            SmashSpeedRecord(
+                date = date,
+                speedKmh = speedKmh,
+                attemptIndex = attemptIndex,
+                note = note
+            ).validated()
+        )
+    }
+
+    suspend fun deleteSmashSpeed(recordId: Long) = withContext(Dispatchers.IO) {
+        smashSpeedDao.deleteById(recordId)
+    }
 
     suspend fun checkInForDate(date: String): DailyCheckIn? = withContext(Dispatchers.IO) {
         dailyCheckInDao.getForDate(date).withCanonicalSleep(date, dailyMetricDao.metric(date))
@@ -358,7 +379,10 @@ class TrainingRepository(
             checkIns = dailyCheckInDao.between("0001-01-01", todayString),
             dailyMetrics = dailyMetrics
         )
-        base.copy(metricSeries = base.metricSeries + checkInSeries)
+        val smashSpeedSeries = SmashSpeedMetricSeriesBuilder.build(
+            records = smashSpeedDao.between("0001-01-01", todayString)
+        )
+        base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries)
     }
 
     suspend fun badmintonTransferSummary(
@@ -419,6 +443,7 @@ class TrainingRepository(
         val entries = workoutDao.allEntriesWithSets()
         val metrics = dailyMetricDao.allMetrics()
         val checkIns = dailyCheckInDao.all()
+        val smashSpeeds = smashSpeedDao.all()
         val exercises = exerciseDao.allExercises()
         val seedByStableKey = seedExercisesByStableKey()
         val profile = initialUserProfileDao.profile()
@@ -427,7 +452,8 @@ class TrainingRepository(
             metrics,
             exercises.map { exercise -> ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey) },
             profile,
-            checkIns
+            checkIns,
+            smashSpeeds
         )
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
@@ -437,6 +463,7 @@ class TrainingRepository(
             exerciseCount = exercises.size,
             dailyMetricCount = metrics.size,
             dailyCheckInCount = checkIns.size,
+            smashSpeedCount = smashSpeeds.size,
             profileCount = if (profile != null) 1 else 0,
             entryCount = entries.size,
             setCount = entries.sumOf { item -> item.sets.size }
@@ -1133,6 +1160,7 @@ class TrainingRepository(
         var exerciseCount = 0
         var dailyCount = 0
         var checkInCount = 0
+        var smashSpeedCount = 0
         var profileCount = 0
         var entryCount = 0
         var setCount = 0
@@ -1189,6 +1217,32 @@ class TrainingRepository(
                     ).validated()
                 )
                 checkInCount += 1
+            }
+            data.smashSpeedRows.forEach { row ->
+                val existing = smashSpeedDao.forDate(row.date)
+                val duplicate = existing.any { record ->
+                    record.attemptIndex == row.attemptIndex &&
+                        kotlin.math.abs(record.speedKmh - row.speedKmh) < 0.001 &&
+                        record.note == row.note
+                }
+                if (duplicate) {
+                    skipped += 1
+                } else {
+                    val now = System.currentTimeMillis()
+                    smashSpeedDao.upsert(
+                        SmashSpeedRecord(
+                            date = row.date,
+                            speedKmh = row.speedKmh,
+                            attemptIndex = row.attemptIndex,
+                            source = row.source ?: "external_app",
+                            note = row.note,
+                            parentWorkoutEntryId = row.parentWorkoutEntryId,
+                            createdAt = row.createdAt ?: now,
+                            updatedAt = row.updatedAt ?: now
+                        ).validated()
+                    )
+                    smashSpeedCount += 1
+                }
             }
             data.setRows
                 .filter { row -> row.sleepHours != null || row.bodyWeightKg != null }
@@ -1261,6 +1315,7 @@ class TrainingRepository(
             exerciseCount = exerciseCount,
             dailyMetricCount = dailyCount,
             dailyCheckInCount = checkInCount,
+            smashSpeedCount = smashSpeedCount,
             profileCount = profileCount,
             entryCount = entryCount,
             setCount = setCount,

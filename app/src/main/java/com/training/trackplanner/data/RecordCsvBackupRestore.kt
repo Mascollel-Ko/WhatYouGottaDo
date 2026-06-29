@@ -8,6 +8,7 @@ data class RecordCsvTransferResult(
     val exerciseCount: Int = 0,
     val dailyMetricCount: Int = 0,
     val dailyCheckInCount: Int = 0,
+    val smashSpeedCount: Int = 0,
     val profileCount: Int = 0,
     val entryCount: Int = 0,
     val setCount: Int = 0,
@@ -25,7 +26,8 @@ sealed class RecordCsvImportData {
         val dailyRows: List<RestoreDailyRow>,
         val setRows: List<RestoreSetRow>,
         val warningCount: Int,
-        val checkInRows: List<RestoreCheckInRow> = emptyList()
+        val checkInRows: List<RestoreCheckInRow> = emptyList(),
+        val smashSpeedRows: List<RestoreSmashSpeedRow> = emptyList()
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -48,6 +50,18 @@ data class RestoreCheckInRow(
     val jointTendonDiscomfort: Int?,
     val focusMotivation: Int?,
     val note: String?,
+    val createdAt: Long?,
+    val updatedAt: Long?
+)
+
+data class RestoreSmashSpeedRow(
+    val date: String,
+    val smashSpeedId: Long?,
+    val speedKmh: Double,
+    val attemptIndex: Int?,
+    val source: String?,
+    val note: String?,
+    val parentWorkoutEntryId: Long?,
     val createdAt: Long?,
     val updatedAt: Long?
 )
@@ -178,7 +192,15 @@ object RecordCsvBackupRestore {
         "focus_motivation",
         "checkin_note",
         "checkin_created_at",
-        "checkin_updated_at"
+        "checkin_updated_at",
+        "smash_speed_id",
+        "speed_kmh",
+        "attempt_index",
+        "source",
+        "smash_note",
+        "parent_workout_entry_id",
+        "smash_created_at",
+        "smash_updated_at"
     )
 
     fun buildRestoreCsv(
@@ -186,7 +208,8 @@ object RecordCsvBackupRestore {
         metrics: List<DailyMetric>,
         exercises: List<Exercise> = emptyList(),
         initialProfile: InitialUserProfile? = null,
-        checkIns: List<DailyCheckIn> = emptyList()
+        checkIns: List<DailyCheckIn> = emptyList(),
+        smashSpeeds: List<SmashSpeedRecord> = emptyList()
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.id }
@@ -313,6 +336,28 @@ object RecordCsvBackupRestore {
                 }
             )
         }
+        smashSpeeds
+            .sortedWith(compareBy<SmashSpeedRecord> { it.date }.thenBy { it.attemptIndex ?: Int.MAX_VALUE }.thenBy { it.id })
+            .forEach { record ->
+                builder.appendCsvRow(
+                    restoreHeader.map { column ->
+                        when (column) {
+                            "schema_version" -> "3"
+                            "row_type" -> "smash_speed"
+                            "date" -> record.date
+                            "smash_speed_id" -> record.id.takeIf { it > 0 }?.toString().orEmpty()
+                            "speed_kmh" -> record.speedKmh.formatNumber()
+                            "attempt_index" -> record.attemptIndex?.toString().orEmpty()
+                            "source" -> record.source
+                            "smash_note" -> record.note.orEmpty()
+                            "parent_workout_entry_id" -> record.parentWorkoutEntryId?.toString().orEmpty()
+                            "smash_created_at" -> record.createdAt.toString()
+                            "smash_updated_at" -> record.updatedAt.toString()
+                            else -> ""
+                        }
+                    }
+                )
+            }
         entriesWithSets
             .groupBy { item -> item.entry.date }
             .toSortedMap()
@@ -379,6 +424,7 @@ object RecordCsvBackupRestore {
         val dailyRows = mutableListOf<RestoreDailyRow>()
         val setRows = mutableListOf<RestoreSetRow>()
         val checkInRows = mutableListOf<RestoreCheckInRow>()
+        val smashSpeedRows = mutableListOf<RestoreSmashSpeedRow>()
         rows.forEachIndexed { rowIndex, row ->
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             if (rowType == "profile") {
@@ -478,10 +524,28 @@ object RecordCsvBackupRestore {
                     )
                     if (candidate.hasValidValues()) checkInRows += candidate else warnings += 1
                 }
+                "smash_speed" -> {
+                    val speedKmh = row.safeDouble(index, "speed_kmh")
+                    if (speedKmh == null || speedKmh !in 1.0..500.0) {
+                        warnings += 1
+                    } else {
+                        smashSpeedRows += RestoreSmashSpeedRow(
+                            date = date,
+                            smashSpeedId = row.safeLong(index, "smash_speed_id"),
+                            speedKmh = speedKmh,
+                            attemptIndex = row.safeInt(index, "attempt_index"),
+                            source = row.value(index, "source").ifBlank { null },
+                            note = row.value(index, "smash_note").ifBlank { null },
+                            parentWorkoutEntryId = row.safeLong(index, "parent_workout_entry_id"),
+                            createdAt = row.safeLong(index, "smash_created_at"),
+                            updatedAt = row.safeLong(index, "smash_updated_at")
+                        )
+                    }
+                }
                 else -> warnings += 1
             }
         }
-        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings, checkInRows)
+        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings, checkInRows, smashSpeedRows)
     }
 
     private fun parseDailyTimeseries(

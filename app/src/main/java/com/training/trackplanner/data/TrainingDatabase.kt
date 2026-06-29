@@ -15,13 +15,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         WorkoutSet::class,
         DailyMetric::class,
         DailyCheckIn::class,
+        SmashSpeedRecord::class,
         TrainingProgram::class,
         TrainingProgramItem::class,
         AppMeta::class,
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -31,6 +32,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun programDao(): ProgramDao
     abstract fun dailyMetricDao(): DailyMetricDao
     abstract fun dailyCheckInDao(): DailyCheckInDao
+    abstract fun smashSpeedDao(): SmashSpeedDao
     abstract fun appMetaDao(): AppMetaDao
     abstract fun initialUserProfileDao(): InitialUserProfileDao
     abstract fun runtimeExerciseMetadataDao(): RuntimeExerciseMetadataDao
@@ -352,6 +354,27 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `smash_speed_records` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `date` TEXT NOT NULL,
+                        `speedKmh` REAL NOT NULL,
+                        `attemptIndex` INTEGER,
+                        `source` TEXT NOT NULL,
+                        `note` TEXT,
+                        `parentWorkoutEntryId` INTEGER,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_smash_speed_records_date` ON `smash_speed_records` (`date`)")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -374,7 +397,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_12_13,
                         MIGRATION_13_14,
                         MIGRATION_14_15,
-                        MIGRATION_15_16
+                        MIGRATION_15_16,
+                        MIGRATION_16_17
                     )
                     .build()
                     .also { instance = it }

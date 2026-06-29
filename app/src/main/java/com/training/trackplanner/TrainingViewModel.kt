@@ -36,6 +36,7 @@ import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.RuntimeExerciseMetadata
+import com.training.trackplanner.data.SmashSpeedRecord
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgram
@@ -148,6 +149,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         repository.entriesForDate(date)
 
+    fun smashSpeedsForDate(date: String): Flow<List<SmashSpeedRecord>> =
+        repository.observeSmashSpeedsForDate(date)
+
     fun entryCount(date: String): Flow<Int> =
         repository.entryCount(date)
 
@@ -169,6 +173,20 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun saveDailyCheckIn(checkIn: DailyCheckIn) {
         viewModelScope.launch {
             repository.upsertDailyCheckIn(checkIn)
+            refreshAnalysisSummaries()
+        }
+    }
+
+    fun addSmashSpeed(date: String, speedKmh: Double) {
+        viewModelScope.launch {
+            repository.addSmashSpeed(date, speedKmh)
+            refreshAnalysisSummaries()
+        }
+    }
+
+    fun deleteSmashSpeed(recordId: Long) {
+        viewModelScope.launch {
+            repository.deleteSmashSpeed(recordId)
             refreshAnalysisSummaries()
         }
     }

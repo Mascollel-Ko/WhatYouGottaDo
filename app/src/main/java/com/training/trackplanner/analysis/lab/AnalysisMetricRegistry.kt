@@ -25,6 +25,10 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.JOINT_TENDON_DISCOMFORT_CHECKIN, "관절/건 불편감", "주간 평균 관절/건 불편감 체크인", AnalysisMetricCategory.RECOVERY, false, "1~5"),
         metric(TrendMetricId.FOCUS_MOTIVATION_CHECKIN, "집중력/의욕", "주간 평균 집중력/의욕 체크인", AnalysisMetricCategory.RECOVERY, true, "1~5"),
         metric(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE, "회복 체크인 종합", "수면과 주관적 체크인을 좋은 방향으로 정렬한 주간 종합값", AnalysisMetricCategory.RECOVERY, true, "1~5"),
+        metric(TrendMetricId.SMASH_SPEED_TOP3_AVG, "스매시 Top3 평균 속도", "주간 스매시 속도 상위 3회 평균", AnalysisMetricCategory.BADMINTON, true, "km/h"),
+        metric(TrendMetricId.SMASH_SPEED_BEST, "스매시 최고 속도", "주간 스매시 최고 속도", AnalysisMetricCategory.BADMINTON, true, "km/h"),
+        metric(TrendMetricId.SMASH_SPEED_AVG, "스매시 평균 속도", "주간 스매시 평균 속도", AnalysisMetricCategory.BADMINTON, true, "km/h"),
+        metric(TrendMetricId.SMASH_ATTEMPT_COUNT, "스매시 속도 시도 수", "주간 스매시 속도 기록 횟수", AnalysisMetricCategory.BADMINTON, true, "회"),
         metric(TrendMetricId.STRENGTH_DELTA_NEXT, "다음 근력 변화", "다음 주 근력 지수의 변화량", AnalysisMetricCategory.DERIVED, null),
         metric(TrendMetricId.FATIGUE_DELTA_NEXT, "다음 피로 변화", "다음 주 피로 지수의 변화량", AnalysisMetricCategory.DERIVED, null)
     )

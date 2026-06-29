@@ -87,6 +87,27 @@ interface ExerciseDao {
 }
 
 @Dao
+interface SmashSpeedDao {
+    @Query("SELECT * FROM smash_speed_records WHERE date = :date ORDER BY COALESCE(attemptIndex, id), id")
+    fun observeForDate(date: String): Flow<List<SmashSpeedRecord>>
+
+    @Query("SELECT * FROM smash_speed_records WHERE date = :date ORDER BY COALESCE(attemptIndex, id), id")
+    suspend fun forDate(date: String): List<SmashSpeedRecord>
+
+    @Query("SELECT * FROM smash_speed_records WHERE date BETWEEN :startDate AND :endDate ORDER BY date, COALESCE(attemptIndex, id), id")
+    suspend fun between(startDate: String, endDate: String): List<SmashSpeedRecord>
+
+    @Query("SELECT * FROM smash_speed_records ORDER BY date, COALESCE(attemptIndex, id), id")
+    suspend fun all(): List<SmashSpeedRecord>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(record: SmashSpeedRecord): Long
+
+    @Query("DELETE FROM smash_speed_records WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
+
+@Dao
 interface RuntimeExerciseMetadataDao {
     @Query("SELECT * FROM runtime_exercise_metadata WHERE stableKey = :stableKey LIMIT 1")
     suspend fun findByStableKey(stableKey: String): RuntimeExerciseMetadataEntity?
