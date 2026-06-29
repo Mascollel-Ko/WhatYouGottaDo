@@ -79,6 +79,27 @@ class BadmintonTransferAnalysisEngineTest {
     }
 
     @Test
+    fun topExerciseDisplayNameUsesEntryNameBeforeFallbackExerciseName() {
+        val exercise = lateralExercise(name = "운동" + "113")
+        val summary = BadmintonTransferAnalysisEngine().analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(
+                record(
+                    exercise,
+                    today.minusDays(1),
+                    listOf(set(reps = 10, confirmed = true)),
+                    entryName = "랜덤 풋워크"
+                )
+            ),
+            readinessSummary = readiness(ReadinessStatus.READY)
+        )
+
+        assertEquals("랜덤 풋워크", summary.metrics.topTransferExercises7d.single().exerciseName)
+        assertFalse(summary.chartData.topExerciseBars.single().label.matches(Regex("""운동\s*\d+""")))
+    }
+
+    @Test
     fun plannedSetsDoNotFeedTransferStimulus() {
         val exercise = lateralExercise()
         val confirmedOnly = BadmintonTransferAnalysisEngine().analyze(
@@ -289,13 +310,14 @@ class BadmintonTransferAnalysisEngineTest {
         exercise: Exercise,
         date: LocalDate,
         confirmedSets: List<WorkoutSet>,
-        plannedSets: List<WorkoutSet> = emptyList()
+        plannedSets: List<WorkoutSet> = emptyList(),
+        entryName: String = exercise.name
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
             id = exercise.id * 100 + date.dayOfYear,
             date = date.toString(),
             exerciseId = exercise.id,
-            exerciseName = exercise.name,
+            exerciseName = entryName,
             category = exercise.category
         )
         val sets = (confirmedSets + plannedSets).mapIndexed { index, set ->

@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.fatigue
 
+import com.training.trackplanner.analysis.features.AnalysisExerciseDisplayNameResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -149,7 +150,7 @@ class DailyFatigueCalculator(
         return RecordFatigueContribution(
             date = date,
             stableKey = exercise.stableKey,
-            exerciseName = exercise.name,
+            exerciseName = AnalysisExerciseDisplayNameResolver.resolve(record.entry, exercise, metadataCatalog),
             trainingLoad = recordLoad,
             axes = axes,
             recoveryDurationClass = baseDuration,

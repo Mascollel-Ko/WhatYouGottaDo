@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.badminton
 
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
+import com.training.trackplanner.analysis.features.AnalysisExerciseDisplayNameResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -90,7 +91,7 @@ class BadmintonTransferScoreCalculator(
         return TransferContribution(
             date = date,
             exerciseId = exercise.id,
-            exerciseName = exercise.name,
+            exerciseName = AnalysisExerciseDisplayNameResolver.resolve(record.entry, exercise, runtimeMetadataCatalog),
             transferType = rawTransferType,
             axes = axes,
             totalStimulus = totalStimulus

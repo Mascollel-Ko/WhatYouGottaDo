@@ -59,7 +59,8 @@ class PerformanceChartSpecBuilder {
     fun badmintonDetail(
         mode: DetailChartMode,
         selectedMetrics: List<TrendMetricId>,
-        badmintonWeeks: List<BadmintonWeekIndex>
+        badmintonWeeks: List<BadmintonWeekIndex>,
+        exerciseDisplayNamesById: Map<Long, String> = emptyMap()
     ): ChartSpec {
         val sanitized = DetailChartSelector.sanitizeSelection(
             mode,
@@ -88,7 +89,7 @@ class PerformanceChartSpecBuilder {
                     ?.entries
                     ?.sortedByDescending { entry -> entry.value }
                     ?.take(6)
-                    ?.map { entry -> BarItem("운동 ${entry.key}", entry.value) }
+                    ?.map { entry -> BarItem(exerciseDisplayNamesById[entry.key] ?: "운동 ${entry.key}", entry.value) }
                     .orEmpty()
             )
             DetailChartMode.RELATIONSHIP -> ChartSpec(ChartType.SCATTER, "관계 분석")

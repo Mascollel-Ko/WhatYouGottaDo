@@ -174,7 +174,8 @@ data class PerformanceTrendSummary(
     val strengthWeeks: List<StrengthWeekIndex> = emptyList(),
     val badmintonWeeks: List<BadmintonWeekIndex> = emptyList(),
     val fatigueWeeks: List<FatigueWeekIndex> = emptyList(),
-    val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap()
+    val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
+    val exerciseDisplayNamesById: Map<Long, String> = emptyMap()
 )
 
 data class PerformanceDetailSection(

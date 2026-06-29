@@ -449,7 +449,12 @@ private fun PerformanceDetailSectionView(section: PerformanceDetailSection, summ
     val chartBuilder = remember { PerformanceChartSpecBuilder() }
     val chartSpec = when (section.type) {
         PerformanceDetailSectionType.STRENGTH -> chartBuilder.strengthDetail(mode, selectedMetrics.toList(), summary.strengthWeeks)
-        PerformanceDetailSectionType.BADMINTON -> chartBuilder.badmintonDetail(mode, selectedMetrics.toList(), summary.badmintonWeeks)
+        PerformanceDetailSectionType.BADMINTON -> chartBuilder.badmintonDetail(
+            mode,
+            selectedMetrics.toList(),
+            summary.badmintonWeeks,
+            summary.exerciseDisplayNamesById
+        )
         PerformanceDetailSectionType.FATIGUE -> chartBuilder.fatigueDetail(mode, selectedMetrics.toList(), summary.fatigueWeeks)
         PerformanceDetailSectionType.RELATIONSHIP -> return
     }

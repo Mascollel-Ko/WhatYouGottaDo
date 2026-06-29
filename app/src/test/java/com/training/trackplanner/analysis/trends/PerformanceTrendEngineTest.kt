@@ -295,6 +295,35 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun badmintonRankingChartUsesResolvedExerciseNameInsteadOfFallbackIdLabel() {
+        val exercise = badmintonExercise(name = "운동" + "113")
+        val entries = (0 until 2).map { index ->
+            record(
+                exercise,
+                today.minusWeeks(index.toLong()),
+                listOf(set(seconds = 600, confirmed = true)),
+                entryName = "랜덤 풋워크"
+            )
+        }
+
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = entries,
+            dailyMetrics = emptyList()
+        )
+        val ranking = PerformanceChartSpecBuilder().badmintonDetail(
+            mode = DetailChartMode.RANKING,
+            selectedMetrics = emptyList(),
+            badmintonWeeks = summary.badmintonWeeks,
+            exerciseDisplayNamesById = summary.exerciseDisplayNamesById
+        )
+
+        assertEquals("랜덤 풋워크", ranking.bars.single().label)
+        assertFalse(ranking.bars.single().label.matches(Regex("""운동\s*\d+""")))
+    }
+
+    @Test
     fun fatigueCompositeUsesPressurePercentileZScoreAndRecoveryPenalty() {
         val pressure = FatiguePressureSnapshot(
             categoryPressures = mapOf(
@@ -499,13 +528,14 @@ class PerformanceTrendEngineTest {
         exercise: Exercise,
         date: LocalDate,
         confirmedSets: List<WorkoutSet>,
-        plannedSets: List<WorkoutSet> = emptyList()
+        plannedSets: List<WorkoutSet> = emptyList(),
+        entryName: String = exercise.name
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
             id = exercise.id * 100 + date.dayOfYear,
             date = date.toString(),
             exerciseId = exercise.id,
-            exerciseName = exercise.name,
+            exerciseName = entryName,
             category = exercise.category
         )
         val sets = (confirmedSets + plannedSets).mapIndexed { index, set ->
