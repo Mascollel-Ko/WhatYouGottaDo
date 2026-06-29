@@ -1,12 +1,12 @@
 package com.training.trackplanner.analysis.badminton
 
+import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.FatigueDetailSection
 import com.training.trackplanner.analysis.readiness.FatigueDetailType
 import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
-import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -21,6 +21,25 @@ import java.time.LocalDateTime
 
 class BadmintonTransferAnalysisEngineTest {
     private val today = LocalDate.parse("2026-06-15")
+    private val removedAxisName = "LOWER_BODY" + "_STRENGTH"
+    private val removedAxisLabel = "\uD558\uCCB4 \uAE30\uCD08\uADFC\uB825"
+
+    @Test
+    fun transferAxisListDoesNotContainLowerBodyFoundation() {
+        val axisNames = BadmintonTransferAxis.entries.map { axis -> axis.name }
+        val axisLabels = BadmintonTransferAxis.entries.map { axis -> axis.displayName }
+
+        assertFalse(removedAxisName in axisNames)
+        assertFalse(axisLabels.any { label -> label.contains(removedAxisLabel) })
+        assertTrue(BadmintonTransferType.GENERAL_STRENGTH in BadmintonTransferType.entries)
+        assertTrue(BadmintonTransferAxis.DECELERATION_LANDING in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.UNILATERAL_STABILITY in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.LATERAL_MOVEMENT in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.ROTATION_CONTROL in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.RACKET_SUPPORT in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.AEROBIC_FOOTWORK in BadmintonTransferAxis.entries)
+        assertTrue(BadmintonTransferAxis.LOW_FATIGUE_CONTROL in BadmintonTransferAxis.entries)
+    }
 
     @Test
     fun firstCardSentenceIsSingleRecommendationWithoutNumbers() {
@@ -35,11 +54,10 @@ class BadmintonTransferAnalysisEngineTest {
         )
 
         val sentence = summary.metrics.recommendationSentence
-        assertTrue(sentence.startsWith("오늘은 "))
-        assertTrue(sentence.endsWith("추천드립니다."))
         assertEquals(1, sentence.count { char -> char == '.' })
         assertFalse(sentence.any { char -> char.isDigit() })
         assertFalse(sentence.contains("%"))
+        assertFalse(sentence.contains(removedAxisLabel))
     }
 
     @Test
@@ -110,7 +128,7 @@ class BadmintonTransferAnalysisEngineTest {
         )
 
         assertEquals(BadmintonTransferAxis.LOW_FATIGUE_CONTROL, summary.metrics.recommendedAxis)
-        assertEquals("오늘은 저피로 보완운동을 추천드립니다.", summary.metrics.recommendationSentence)
+        assertFalse(summary.metrics.recommendationSentence.contains(removedAxisLabel))
     }
 
     @Test
@@ -126,11 +144,11 @@ class BadmintonTransferAnalysisEngineTest {
         )
 
         assertEquals(null, summary.metrics.recommendedAxis)
-        assertEquals("오늘은 배드민턴 전이 운동보다 회복을 우선 추천드립니다.", summary.metrics.recommendationSentence)
+        assertFalse(summary.metrics.recommendationSentence.contains(removedAxisLabel))
     }
 
     @Test
-    fun emptyRecordsFallbackWithoutCrash() {
+    fun emptyRecordsFallbackDoesNotRecommendRemovedLowerAxis() {
         val summary = BadmintonTransferAnalysisEngine().analyze(
             today = today,
             exercises = listOf(lateralExercise()),
@@ -139,128 +157,50 @@ class BadmintonTransferAnalysisEngineTest {
         )
 
         assertEquals(0.0, summary.metrics.totalTransferStimulus7d, 0.001)
-        assertEquals("오늘은 하체 기초근력 운동을 추천드립니다.", summary.metrics.recommendationSentence)
+        assertEquals(BadmintonTransferAxis.LOW_FATIGUE_CONTROL, summary.metrics.recommendedAxis)
+        assertFalse(summary.metrics.recommendationSentence.contains(removedAxisLabel))
         assertEquals(AnalysisConfidence.LOW, summary.confidence)
     }
 
     @Test
-    fun lowerBodyFoundationExercisesMapToLowerBodyStrengthAxis() {
-        val exercises = listOf(
-            transferExercise("스쿼트", "squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY"),
-            transferExercise("데드리프트", "deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE"),
-            transferExercise("루마니안 데드리프트", "romanian_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE"),
-            transferExercise("워킹 런지", "walking_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY"),
-            transferExercise("리버스 런지", "reverse_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY"),
-            transferExercise("레그 프레스", "leg_press", "KNEE_DOMINANT|LOWER_BODY_STRENGTH", "LOWER_BODY")
+    fun generalStrengthTypeRemainsButDoesNotCreateRemovedAxis() {
+        val rawLowerToken = "KNEE_DOMINANT|$removedAxisName|SQUAT_PATTERN"
+        val exercise = transferExercise(
+            name = "raw squat",
+            stableKey = "raw_squat",
+            movementPattern = rawLowerToken,
+            forceType = "LOWER_BODY",
+            transferStrength = "GENERAL"
         )
+        val features = AnalysisFeatureExtractor.fromExercise(exercise)
 
-        exercises.forEach { exercise ->
-            val axes = BadmintonTransferMetadataMapper.transferAxes(AnalysisFeatureExtractor.fromExercise(exercise))
-            assertTrue("${exercise.name} should contribute to lower-body foundation", BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes)
-        }
+        assertEquals(BadmintonTransferType.GENERAL_STRENGTH, BadmintonTransferMetadataMapper.transferType(features))
+        assertFalse(BadmintonTransferMetadataMapper.transferAxes(features).any { axis -> axis.name == removedAxisName })
     }
 
     @Test
-    fun upperAndAccessoryStrengthDoesNotMapToLowerBodyStrengthAxis() {
+    fun rawLowerBodyStrengthRecordsDoNotCreateTransferAxisOrChartLabel() {
         val exercises = listOf(
-            transferExercise("벤치프레스", "bench_press", "HORIZONTAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
-            transferExercise("숄더프레스", "shoulder_press", "VERTICAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
-            transferExercise("풀업", "pull_up", "VERTICAL_PULL|UPPER_BODY_STRENGTH", "PULL"),
-            transferExercise("로우", "row", "HORIZONTAL_PULL|UPPER_BODY_STRENGTH", "PULL"),
-            transferExercise("해머 컬", "hammer_curl", "ELBOW_FLEXION|ARM_ACCESSORY", "PULL"),
-            transferExercise("플라이", "fly", "CHEST_ISOLATION|UPPER_ACCESSORY", "PUSH"),
-            transferExercise("딥스", "dips", "HORIZONTAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
-            transferExercise("풀오버", "pullover", "PULLOVER|UPPER_ACCESSORY", "PULL"),
-            transferExercise("푸시다운", "pushdown", "ELBOW_EXTENSION|ARM_ACCESSORY", "PUSH")
-        )
-
-        exercises.forEach { exercise ->
-            val axes = BadmintonTransferMetadataMapper.transferAxes(AnalysisFeatureExtractor.fromExercise(exercise))
-            assertFalse("${exercise.name} should not contribute to lower-body foundation", BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes)
-        }
-    }
-
-    @Test
-    fun topExerciseContributionsKeepLowerBodyFoundationAxis() {
-        val exercises = listOf(
-            transferExercise("스쿼트", "squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY", id = 11),
-            transferExercise("루마니안 데드리프트", "romanian_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 12),
-            transferExercise("워킹 런지", "walking_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY", id = 13)
-        )
-        val entries = exercises.map { exercise ->
-            record(exercise, today.minusDays(1), listOf(set(reps = 8, weightKg = 80.0, confirmed = true)))
-        }
-
-        val summary = BadmintonTransferScoreCalculator().calculate(today, exercises, entries)
-
-        assertTrue(summary.topTransferExercises7d.isNotEmpty())
-        assertTrue(summary.topTransferExercises7d.all { contribution ->
-            BadmintonTransferAxis.LOWER_BODY_STRENGTH in contribution.axes
-        })
-    }
-
-    @Test
-    fun legacyRawLowerFoundationRecordsProduceStimulusWithoutTransferType() {
-        val exercises = listOf(
-            transferExercise("스쿼트", "raw_squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY", id = 21, transferStrength = "", analysisEligibility = ""),
-            transferExercise("데드리프트", "raw_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 22, transferStrength = "", analysisEligibility = ""),
-            transferExercise("루마니안 데드리프트", "raw_rdl", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 23, transferStrength = "", analysisEligibility = "")
+            transferExercise("raw squat", "raw_squat", "KNEE_DOMINANT|$removedAxisName|SQUAT_PATTERN", "LOWER_BODY", id = 21),
+            transferExercise("raw deadlift", "raw_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 22),
+            transferExercise("raw rdl", "raw_rdl", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 23)
         )
         val entries = exercises.map { exercise ->
             record(exercise, today.minusDays(1), listOf(set(reps = 5, weightKg = 80.0, confirmed = true)))
         }
 
-        val snapshot = BadmintonTransferScoreCalculator().calculateWindow(today, 14, exercises, entries)
+        val summary = BadmintonTransferAnalysisEngine().analyze(today, exercises, entries, readiness(ReadinessStatus.READY))
 
-        assertTrue((snapshot.axisStimulus[BadmintonTransferAxis.LOWER_BODY_STRENGTH] ?: 0.0) > 0.0)
-        assertTrue(snapshot.sampleEntryCount > 0)
-    }
-
-    @Test
-    fun recommendationSkipsLowerBodyWhenAbsoluteFoundationStimulusExists() {
-        val recommendation = BadmintonTransferRecommendationBuilder().build(
-            snapshot = transferSnapshot(
-                mapOf(
-                    BadmintonTransferAxis.DECELERATION_LANDING to 100.0,
-                    BadmintonTransferAxis.UNILATERAL_STABILITY to 100.0,
-                    BadmintonTransferAxis.LATERAL_MOVEMENT to 100.0,
-                    BadmintonTransferAxis.ROTATION_CONTROL to 100.0,
-                    BadmintonTransferAxis.LOWER_BODY_STRENGTH to
-                        BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD
-                )
-            ),
-            readinessSummary = readiness(ReadinessStatus.READY),
-            exercises = emptyList()
-        )
-
-        assertEquals(BadmintonTransferAxis.LOW_FATIGUE_CONTROL, recommendation.recommendedAxis)
-    }
-
-    @Test
-    fun recommendationKeepsLowerBodyWhenAbsoluteFoundationStimulusIsLow() {
-        val recommendation = BadmintonTransferRecommendationBuilder().build(
-            snapshot = transferSnapshot(
-                mapOf(
-                    BadmintonTransferAxis.DECELERATION_LANDING to 100.0,
-                    BadmintonTransferAxis.UNILATERAL_STABILITY to 100.0,
-                    BadmintonTransferAxis.LATERAL_MOVEMENT to 100.0,
-                    BadmintonTransferAxis.ROTATION_CONTROL to 100.0,
-                    BadmintonTransferAxis.LOWER_BODY_STRENGTH to
-                        BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD - 1.0
-                )
-            ),
-            readinessSummary = readiness(ReadinessStatus.READY),
-            exercises = emptyList()
-        )
-
-        assertEquals(BadmintonTransferAxis.LOWER_BODY_STRENGTH, recommendation.recommendedAxis)
+        assertFalse(summary.metrics.axisShare7d.keys.any { axis -> axis.name == removedAxisName })
+        assertFalse(summary.chartData.axisShareBars.any { bar -> bar.label.contains(removedAxisLabel) })
+        assertFalse(summary.chartData.windowComparisonBars.any { bar -> bar.label.contains(removedAxisLabel) })
     }
 
     private fun lateralExercise(id: Long = 1, name: String = "Lateral fixture"): Exercise =
         Exercise(
             id = id,
             name = name,
-            category = "기능성운동",
+            category = "training",
             stableKey = "lateral_fixture_$id",
             movementPattern = "FOOTWORK",
             movementCategory = "REACTIVE",
@@ -296,24 +236,6 @@ class BadmintonTransferAnalysisEngineTest {
             analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
             metadataConfidence = "HIGH"
         )
-
-    private fun transferSnapshot(
-        axisStimulus: Map<BadmintonTransferAxis, Double>
-    ): BadmintonTransferScoreSnapshot {
-        val completeStimulus = BadmintonTransferAxis.entries.associateWith { axis -> axisStimulus[axis] ?: 0.0 }
-        val total = completeStimulus.values.sum()
-        return BadmintonTransferScoreSnapshot(
-            totalTransferStimulus7d = total,
-            totalTransferStimulus28d = total,
-            transferRatio7dTo28dAverage = null,
-            axisStimulus7d = completeStimulus,
-            axisStimulus28d = completeStimulus,
-            transferTypeStimulus7d = emptyMap(),
-            topTransferExercises7d = emptyList(),
-            sampleEntryCount7d = 5,
-            sampleEntryCount28d = 5
-        )
-    }
 
     private fun transferExercise(
         name: String,

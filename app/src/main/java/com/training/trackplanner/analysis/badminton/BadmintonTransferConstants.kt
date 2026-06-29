@@ -8,8 +8,6 @@ internal object BadmintonTransferConstants {
     const val DEFAULT_TIMED_DRILL_UNIT_SECONDS = 30.0
     const val MAX_INTENSITY_FACTOR = 2.0
     const val LOW_AXIS_THRESHOLD = 0.12
-    const val LOWER_BODY_AXIS_THRESHOLD = 0.10
-    const val LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD = 5.0
     const val TOP_EXERCISE_LIMIT = 5
     const val CANDIDATE_LIMIT = 5
 
@@ -18,7 +16,9 @@ internal object BadmintonTransferConstants {
         BadmintonTransferAxis.UNILATERAL_STABILITY,
         BadmintonTransferAxis.LATERAL_MOVEMENT,
         BadmintonTransferAxis.ROTATION_CONTROL,
-        BadmintonTransferAxis.LOWER_BODY_STRENGTH
+        BadmintonTransferAxis.RACKET_SUPPORT,
+        BadmintonTransferAxis.AEROBIC_FOOTWORK,
+        BadmintonTransferAxis.LOW_FATIGUE_CONTROL
     )
 
     fun transferWeight(type: BadmintonTransferType): Double =
@@ -43,9 +43,5 @@ internal object BadmintonTransferConstants {
     fun intensityFactor(averageWeightKg: Double): Double =
         (1.0 + averageWeightKg / 100.0).coerceIn(1.0, MAX_INTENSITY_FACTOR)
 
-    fun shareThreshold(axis: BadmintonTransferAxis): Double =
-        when (axis) {
-            BadmintonTransferAxis.LOWER_BODY_STRENGTH -> LOWER_BODY_AXIS_THRESHOLD
-            else -> LOW_AXIS_THRESHOLD
-        }
+    fun shareThreshold(axis: BadmintonTransferAxis): Double = LOW_AXIS_THRESHOLD
 }

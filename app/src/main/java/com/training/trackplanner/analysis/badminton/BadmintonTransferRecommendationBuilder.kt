@@ -22,8 +22,8 @@ class BadmintonTransferRecommendationBuilder(
             cautionLevel == BadmintonTransferCautionLevel.HIGH -> lowFatigueAxis(axisShares)
             snapshot.totalTransferStimulus7d <= BadmintonTransferConstants.EPSILON &&
                 snapshot.totalTransferStimulus28d <= BadmintonTransferConstants.EPSILON ->
-                BadmintonTransferAxis.LOWER_BODY_STRENGTH
-            else -> lowPriorityAxis(axisShares, snapshot.axisStimulus7d)
+                BadmintonTransferAxis.LOW_FATIGUE_CONTROL
+            else -> lowPriorityAxis(axisShares)
         }
         val sentence = sentenceFor(recommendedAxis, cautionLevel, snapshot)
         val candidates = recommendedAxis?.let { axis ->
@@ -43,9 +43,7 @@ class BadmintonTransferRecommendationBuilder(
         val hasVeryHigh = summary.detailSections.any { section ->
             section.level in setOf(FatigueLevel.VERY_HIGH, FatigueLevel.LIMITED)
         }
-        val hasHigh = summary.detailSections.any { section ->
-            section.level >= FatigueLevel.HIGH
-        }
+        val hasHigh = summary.detailSections.any { section -> section.level >= FatigueLevel.HIGH }
         return when {
             summary.status == ReadinessStatus.LIMITED || hasVeryHigh -> BadmintonTransferCautionLevel.VERY_HIGH
             summary.status == ReadinessStatus.FATIGUED || hasHigh -> BadmintonTransferCautionLevel.HIGH
@@ -62,17 +60,8 @@ class BadmintonTransferRecommendationBuilder(
             BadmintonTransferAxis.ROTATION_CONTROL
         }
 
-    private fun lowPriorityAxis(
-        axisShares: Map<BadmintonTransferAxis, Double>,
-        axisStimulus: Map<BadmintonTransferAxis, Double>
-    ): BadmintonTransferAxis =
+    private fun lowPriorityAxis(axisShares: Map<BadmintonTransferAxis, Double>): BadmintonTransferAxis =
         BadmintonTransferConstants.recommendationPriority.firstOrNull { axis ->
-            if (
-                axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH &&
-                (axisStimulus[axis] ?: 0.0) >= BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD
-            ) {
-                return@firstOrNull false
-            }
             (axisShares[axis] ?: 0.0) < BadmintonTransferConstants.shareThreshold(axis)
         } ?: BadmintonTransferAxis.LOW_FATIGUE_CONTROL
 
@@ -88,7 +77,7 @@ class BadmintonTransferRecommendationBuilder(
                 "오늘은 저피로 보완운동을 추천드립니다."
             snapshot.totalTransferStimulus7d <= BadmintonTransferConstants.EPSILON &&
                 snapshot.totalTransferStimulus28d <= BadmintonTransferConstants.EPSILON ->
-                "오늘은 하체 기초근력 운동을 추천드립니다."
+                "오늘은 저피로 보완운동을 추천드립니다."
             axis == BadmintonTransferAxis.DECELERATION_LANDING ->
                 "오늘은 감속·착지 제어 운동을 추천드립니다."
             axis == BadmintonTransferAxis.UNILATERAL_STABILITY ->
@@ -97,15 +86,13 @@ class BadmintonTransferRecommendationBuilder(
                 "오늘은 측면 이동 보완 운동을 추천드립니다."
             axis == BadmintonTransferAxis.ROTATION_CONTROL ->
                 "오늘은 회전 제어 운동을 추천드립니다."
-            axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH ->
-                "오늘은 하체 기초근력 운동을 추천드립니다."
             axis == BadmintonTransferAxis.RACKET_SUPPORT ->
                 "오늘은 라켓 보조 운동을 추천드립니다."
             axis == BadmintonTransferAxis.AEROBIC_FOOTWORK ->
                 "오늘은 풋워크 지속성 운동을 추천드립니다."
             axis == BadmintonTransferAxis.LOW_FATIGUE_CONTROL ->
                 "오늘은 저피로 보완운동을 추천드립니다."
-            else -> "오늘은 균형 유지형 보완운동을 추천드립니다."
+            else -> "오늘은 균형 유지용 보완운동을 추천드립니다."
         }
 
     private fun exerciseCandidates(

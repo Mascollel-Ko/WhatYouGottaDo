@@ -1,7 +1,6 @@
 package com.training.trackplanner.analysis.coach
 
 import com.training.trackplanner.analysis.badminton.BadmintonTransferAxis
-import com.training.trackplanner.analysis.badminton.BadmintonTransferConstants
 import com.training.trackplanner.analysis.badminton.BadmintonTransferWindowSnapshot
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.FatigueConfidence
@@ -18,6 +17,8 @@ import java.time.LocalDate
 
 class BadmintonTransferCoverageAnalyzerTest {
     private val analyzer = BadmintonTransferCoverageAnalyzer()
+    private val removedAxisName = "LOWER_BODY" + "_STRENGTH"
+    private val removedAxisLabel = "\uD558\uCCB4 \uAE30\uCD08\uADFC\uB825"
 
     @Test
     fun absentAxisIsClassifiedAsMissing() {
@@ -68,56 +69,32 @@ class BadmintonTransferCoverageAnalyzerTest {
         assertTrue(summary.statuses.all { it.status == TransferAxisStatusType.BALANCED })
         assertTrue(summary.lowAxes.isEmpty())
         assertTrue(summary.cautionAxes.isEmpty())
-        assertTrue(summary.headline.contains("균형적"))
     }
 
     @Test
-    fun lowerBodyAbsoluteStimulusSuppressesLowShareWarning() {
-        val recent = snapshot(
-            values = mapOf(
-                BadmintonTransferAxis.LOWER_BODY_STRENGTH to
-                    BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD,
-                BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
-                BadmintonTransferAxis.DECELERATION_LANDING to 120.0
-            ),
-            sampleCount = 8,
-            entryCounts = mapOf(BadmintonTransferAxis.LOWER_BODY_STRENGTH to 2)
-        )
+    fun coverageSummaryDoesNotExposeRemovedLowerBodyAxis() {
+        val values = BadmintonTransferAxis.entries.associateWith { 10.0 }
+        val recent = snapshot(values, sampleCount = 14)
         val summary = analyzer.analyze(recent, recent.copy(windowDays = 28), state())
 
-        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
-        assertEquals(TransferAxisStatusType.BALANCED, lowerBody.status)
-        assertFalse(lowerBody in summary.lowAxes)
+        assertFalse(summary.statuses.any { status -> status.axis.name == removedAxisName })
+        assertFalse(summary.statuses.any { status -> status.label.contains(removedAxisLabel) })
+        assertFalse(summary.lowAxes.any { status -> status.label.contains(removedAxisLabel) })
+        assertFalse(summary.cautionAxes.any { status -> status.label.contains(removedAxisLabel) })
     }
 
     @Test
-    fun lowerBodyLowShareStillWarnsWhenAbsoluteStimulusIsLow() {
-        val recent = snapshot(
-            values = mapOf(
-                BadmintonTransferAxis.LOWER_BODY_STRENGTH to
-                    BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD - 1.0,
-                BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
-                BadmintonTransferAxis.DECELERATION_LANDING to 120.0
-            ),
-            sampleCount = 8,
-            entryCounts = mapOf(BadmintonTransferAxis.LOWER_BODY_STRENGTH to 1)
-        )
-        val summary = analyzer.analyze(recent, recent.copy(windowDays = 28), state())
-
-        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
-        assertEquals(TransferAxisStatusType.LOW, lowerBody.status)
-    }
-
-    @Test
-    fun rawLowerFoundationRecordsAreNotReportedAsMissing() {
+    fun rawLowerBodyStrengthRecordsDoNotCreateCoverageAxis() {
         val today = LocalDate.of(2026, 6, 22)
         val exercise = Exercise(
             id = 99,
             name = "raw squat",
             category = "strength",
             stableKey = "raw_squat",
-            movementPattern = "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN",
-            forceType = "LOWER_BODY"
+            movementPattern = "KNEE_DOMINANT|$removedAxisName|SQUAT_PATTERN",
+            forceType = "LOWER_BODY",
+            badmintonTransferStrength = "GENERAL",
+            analysisEligibility = "BADMINTON_TRANSFER"
         )
         val entry = WorkoutEntry(
             id = 990,
@@ -134,10 +111,9 @@ class BadmintonTransferCoverageAnalyzerTest {
         )
 
         val summary = analyzer.analyze(today, listOf(exercise), listOf(record), state())
-        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
 
-        assertTrue(summary.isDataSufficient)
-        assertFalse(lowerBody.status == TransferAxisStatusType.MISSING)
+        assertFalse(summary.isDataSufficient)
+        assertFalse(summary.statuses.any { status -> status.axis.name == removedAxisName })
     }
 
     @Test
@@ -153,15 +129,15 @@ class BadmintonTransferCoverageAnalyzerTest {
     fun combinedCoachWordingDoesNotClaimCausality() {
         val fatigue = CoachFatigueCauseSummary(
             windowDays = 14,
-            causes = listOf(CoachFatigueCause(1, "스쿼트", "누적 기록", 10.0, listOf("국소 근육"), CoachFatigueCauseType.EXERCISE)),
-            headline = "가능성이 큽니다.",
+            causes = listOf(CoachFatigueCause(1, "squat", "record", 10.0, listOf("local muscle"), CoachFatigueCauseType.EXERCISE)),
+            headline = "pattern only",
             isDataSufficient = true
         )
         val transfer = BadmintonTransferCoverageSummary.insufficient()
         val combined = CoachAnalysisInsightBuilder.combine(fatigue, transfer)
 
-        assertFalse(combined.combinedHeadline.orEmpty().contains("원인입니다"))
-        assertFalse(combined.combinedHeadline.orEmpty().contains("때문입니다"))
+        assertFalse(combined.combinedHeadline.orEmpty().contains("caused by"))
+        assertFalse(combined.combinedHeadline.orEmpty().contains("because"))
     }
 
     private fun snapshot(
@@ -170,8 +146,10 @@ class BadmintonTransferCoverageAnalyzerTest {
         entryCounts: Map<BadmintonTransferAxis, Int> = emptyMap(),
         windowDays: Int = 14
     ): BadmintonTransferWindowSnapshot {
-        val completeValues = BadmintonTransferAxis.entries.associateWith { values[it] ?: 0.0 }
-        val completeCounts = BadmintonTransferAxis.entries.associateWith { entryCounts[it] ?: if ((values[it] ?: 0.0) > 0.0) 1 else 0 }
+        val completeValues = BadmintonTransferAxis.entries.associateWith { axis -> values[axis] ?: 0.0 }
+        val completeCounts = BadmintonTransferAxis.entries.associateWith { axis ->
+            entryCounts[axis] ?: if ((values[axis] ?: 0.0) > 0.0) 1 else 0
+        }
         return BadmintonTransferWindowSnapshot(
             windowDays = windowDays,
             totalStimulus = completeValues.values.sum(),

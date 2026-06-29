@@ -15,7 +15,6 @@ enum class BadmintonTransferAxis(val displayName: String) {
     UNILATERAL_STABILITY("편측 안정성"),
     LATERAL_MOVEMENT("측면 이동"),
     ROTATION_CONTROL("회전 제어"),
-    LOWER_BODY_STRENGTH("하체 기초근력"),
     RACKET_SUPPORT("라켓 보조"),
     AEROBIC_FOOTWORK("풋워크 지속성"),
     LOW_FATIGUE_CONTROL("저피로 제어")

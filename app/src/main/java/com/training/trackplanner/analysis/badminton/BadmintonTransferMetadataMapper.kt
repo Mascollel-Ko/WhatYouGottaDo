@@ -88,10 +88,6 @@ internal object BadmintonTransferMetadataMapper {
             axes += BadmintonTransferAxis.ROTATION_CONTROL
         }
 
-        if (isGeneralStrengthFoundation(features)) {
-            axes += BadmintonTransferAxis.LOWER_BODY_STRENGTH
-        }
-
         if (
             "OVERHEAD_POWER" in transferTokens ||
             "SHOULDER_CARE" in transferTokens ||
@@ -160,57 +156,4 @@ internal object BadmintonTransferMetadataMapper {
         }
     }
 
-    fun effectiveTransferType(
-        rawTransferType: BadmintonTransferType,
-        axes: Set<BadmintonTransferAxis>,
-        features: AnalysisExerciseFeatures
-    ): BadmintonTransferType =
-        if (
-            rawTransferType == BadmintonTransferType.NONE &&
-            BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes &&
-            isGeneralStrengthFoundation(features)
-        ) {
-            BadmintonTransferType.GENERAL_STRENGTH
-        } else {
-            rawTransferType
-        }
-
-    fun isGeneralStrengthFoundation(features: AnalysisExerciseFeatures): Boolean {
-        val movementPatternTokens = features.movementPattern.tokens()
-        val transferTokens = features.badmintonTransferRoles +
-            features.canonicalBadmintonTransferTypes +
-            features.badmintonPhysicalQualities
-        return features.movementPattern in setOf("SQUAT", "HINGE", "LUNGE") ||
-            features.forceType in setOf("LOWER_BODY", "HINGE") ||
-            movementPatternTokens.any { token ->
-                token in setOf(
-                    "KNEE_DOMINANT",
-                    "HIP_HINGE",
-                    "LOWER_BODY_STRENGTH",
-                    "SQUAT_PATTERN",
-                    "LUNGE_PATTERN",
-                    "POSTERIOR_CHAIN_STRENGTH",
-                    "UNILATERAL_LOWER"
-                )
-            } ||
-            transferTokens.any { token ->
-                token in setOf(
-                    "LOWER_BODY_FORCE",
-                    "LOWER_BODY_SUPPORTIVE",
-                    "HIP_KNEE_EXTENSION_STRENGTH"
-                )
-            } ||
-            features.adaptiveBaselineGroups.any { group ->
-                group in setOf("HEAVY_LOWER", "HINGE", "SQUAT_PATTERN")
-            } ||
-            features.balanceContributionTags.any { tag ->
-                tag in setOf("LOWER_PUSH", "LOWER_PULL", "POSTERIOR_CHAIN", "ANTERIOR_CHAIN")
-            }
-    }
-
-    private fun String.tokens(): Set<String> =
-        split('|', ',', '/', ';', ' ')
-            .map { token -> token.trim() }
-            .filter { token -> token.isNotEmpty() }
-            .toSet()
 }
