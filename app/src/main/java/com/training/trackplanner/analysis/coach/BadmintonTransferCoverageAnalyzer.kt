@@ -43,10 +43,14 @@ class BadmintonTransferCoverageAnalyzer(
             val relatedFatigue = relatedFatigueScore(axis, latestFatigueState)
             val repeated = (recent.axisEntryCounts[axis] ?: 0) >= 2
             val elevatedFromBaseline = baselineShare == null || recentShare >= baselineShare * 1.15
+            val lowShare = recentShare < targetShare * 0.5
+            val absoluteLowerFoundationPresent =
+                axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH &&
+                    stimulus >= BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD
             val status = when {
                 stimulus <= BadmintonTransferConstants.EPSILON -> TransferAxisStatusType.MISSING
                 recent.sampleEntryCount < 3 -> TransferAxisStatusType.BALANCED
-                recentShare < targetShare * 0.5 -> TransferAxisStatusType.LOW
+                lowShare && !absoluteLowerFoundationPresent -> TransferAxisStatusType.LOW
                 recentShare >= highShare && relatedFatigue >= 75 && repeated && elevatedFromBaseline ->
                     TransferAxisStatusType.OVERLOADED
                 recentShare >= highShare -> TransferAxisStatusType.HIGH
@@ -58,7 +62,7 @@ class BadmintonTransferCoverageAnalyzer(
                 status = status,
                 recentShare = recentShare,
                 baselineShare = baselineShare,
-                detail = detail(status, recent.windowDays)
+                detail = detail(status, recent.windowDays, absoluteLowerFoundationPresent && lowShare)
             )
         }
         val lowAxes = statuses
@@ -101,11 +105,19 @@ class BadmintonTransferCoverageAnalyzer(
         }
     }
 
-    private fun detail(status: TransferAxisStatusType, windowDays: Int): String = when (status) {
+    private fun detail(
+        status: TransferAxisStatusType,
+        windowDays: Int,
+        absoluteLowerFoundationPresent: Boolean = false
+    ): String = when {
+        absoluteLowerFoundationPresent ->
+            "최근 전이 자극 중 비중은 낮지만, 하체 근력 운동 자체는 수행 중입니다."
+        else -> when (status) {
         TransferAxisStatusType.MISSING -> "최근 ${windowDays}일 기록이 없습니다."
         TransferAxisStatusType.LOW -> "최근 ${windowDays}일 비중이 낮습니다."
         TransferAxisStatusType.BALANCED -> "최근 기록 기준 범위에 있습니다."
         TransferAxisStatusType.HIGH -> "최근 비중이 높게 누적되었습니다."
         TransferAxisStatusType.OVERLOADED -> "최근 비중과 관련 피로축이 함께 높게 잡힙니다."
     }
+}
 }

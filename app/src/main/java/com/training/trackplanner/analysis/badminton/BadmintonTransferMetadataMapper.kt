@@ -20,6 +20,7 @@ internal object BadmintonTransferMetadataMapper {
 
     fun transferAxes(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> {
         val axes = linkedSetOf<BadmintonTransferAxis>()
+        val movementPatternTokens = features.movementPattern.tokens()
         val skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
         val transferTokens = features.badmintonTransferRoles +
             features.canonicalBadmintonTransferTypes +
@@ -90,6 +91,25 @@ internal object BadmintonTransferMetadataMapper {
 
         if (
             features.movementPattern in setOf("SQUAT", "HINGE", "LUNGE") ||
+            features.forceType in setOf("LOWER_BODY", "HINGE") ||
+            movementPatternTokens.any { token ->
+                token in setOf(
+                    "KNEE_DOMINANT",
+                    "HIP_HINGE",
+                    "LOWER_BODY_STRENGTH",
+                    "SQUAT_PATTERN",
+                    "LUNGE_PATTERN",
+                    "POSTERIOR_CHAIN_STRENGTH",
+                    "UNILATERAL_LOWER"
+                )
+            } ||
+            transferTokens.any { token ->
+                token in setOf(
+                    "LOWER_BODY_FORCE",
+                    "LOWER_BODY_SUPPORTIVE",
+                    "HIP_KNEE_EXTENSION_STRENGTH"
+                )
+            } ||
             features.adaptiveBaselineGroups.any { group ->
                 group in setOf("HEAVY_LOWER", "HINGE", "SQUAT_PATTERN")
             } ||
@@ -167,4 +187,10 @@ internal object BadmintonTransferMetadataMapper {
             else -> BadmintonTransferFatigueCost.LOW
         }
     }
+
+    private fun String.tokens(): Set<String> =
+        split('|', ',', '/', ';', ' ')
+            .map { token -> token.trim() }
+            .filter { token -> token.isNotEmpty() }
+            .toSet()
 }

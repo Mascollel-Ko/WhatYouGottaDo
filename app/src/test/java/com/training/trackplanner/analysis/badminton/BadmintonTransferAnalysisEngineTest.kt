@@ -6,6 +6,7 @@ import com.training.trackplanner.analysis.readiness.FatigueDetailType
 import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
+import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -142,6 +143,62 @@ class BadmintonTransferAnalysisEngineTest {
         assertEquals(AnalysisConfidence.LOW, summary.confidence)
     }
 
+    @Test
+    fun lowerBodyFoundationExercisesMapToLowerBodyStrengthAxis() {
+        val exercises = listOf(
+            transferExercise("스쿼트", "squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY"),
+            transferExercise("데드리프트", "deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE"),
+            transferExercise("루마니안 데드리프트", "romanian_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE"),
+            transferExercise("워킹 런지", "walking_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY"),
+            transferExercise("리버스 런지", "reverse_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY"),
+            transferExercise("레그 프레스", "leg_press", "KNEE_DOMINANT|LOWER_BODY_STRENGTH", "LOWER_BODY")
+        )
+
+        exercises.forEach { exercise ->
+            val axes = BadmintonTransferMetadataMapper.transferAxes(AnalysisFeatureExtractor.fromExercise(exercise))
+            assertTrue("${exercise.name} should contribute to lower-body foundation", BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes)
+        }
+    }
+
+    @Test
+    fun upperAndAccessoryStrengthDoesNotMapToLowerBodyStrengthAxis() {
+        val exercises = listOf(
+            transferExercise("벤치프레스", "bench_press", "HORIZONTAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
+            transferExercise("숄더프레스", "shoulder_press", "VERTICAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
+            transferExercise("풀업", "pull_up", "VERTICAL_PULL|UPPER_BODY_STRENGTH", "PULL"),
+            transferExercise("로우", "row", "HORIZONTAL_PULL|UPPER_BODY_STRENGTH", "PULL"),
+            transferExercise("해머 컬", "hammer_curl", "ELBOW_FLEXION|ARM_ACCESSORY", "PULL"),
+            transferExercise("플라이", "fly", "CHEST_ISOLATION|UPPER_ACCESSORY", "PUSH"),
+            transferExercise("딥스", "dips", "HORIZONTAL_PUSH|UPPER_BODY_STRENGTH", "PUSH"),
+            transferExercise("풀오버", "pullover", "PULLOVER|UPPER_ACCESSORY", "PULL"),
+            transferExercise("푸시다운", "pushdown", "ELBOW_EXTENSION|ARM_ACCESSORY", "PUSH")
+        )
+
+        exercises.forEach { exercise ->
+            val axes = BadmintonTransferMetadataMapper.transferAxes(AnalysisFeatureExtractor.fromExercise(exercise))
+            assertFalse("${exercise.name} should not contribute to lower-body foundation", BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes)
+        }
+    }
+
+    @Test
+    fun topExerciseContributionsKeepLowerBodyFoundationAxis() {
+        val exercises = listOf(
+            transferExercise("스쿼트", "squat", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|SQUAT_PATTERN", "LOWER_BODY", id = 11),
+            transferExercise("루마니안 데드리프트", "romanian_deadlift", "HIP_HINGE|POSTERIOR_CHAIN_STRENGTH", "HINGE", id = 12),
+            transferExercise("워킹 런지", "walking_lunge", "KNEE_DOMINANT|LOWER_BODY_STRENGTH|LUNGE_PATTERN|UNILATERAL_LOWER", "LOWER_BODY", id = 13)
+        )
+        val entries = exercises.map { exercise ->
+            record(exercise, today.minusDays(1), listOf(set(reps = 8, weightKg = 80.0, confirmed = true)))
+        }
+
+        val summary = BadmintonTransferScoreCalculator().calculate(today, exercises, entries)
+
+        assertTrue(summary.topTransferExercises7d.isNotEmpty())
+        assertTrue(summary.topTransferExercises7d.all { contribution ->
+            BadmintonTransferAxis.LOWER_BODY_STRENGTH in contribution.axes
+        })
+    }
+
     private fun lateralExercise(id: Long = 1, name: String = "Lateral fixture"): Exercise =
         Exercise(
             id = id,
@@ -180,6 +237,25 @@ class BadmintonTransferAnalysisEngineTest {
             mobilityDemandLevel = "MODERATE",
             balanceContributionTags = "UNILATERAL_LOWER|KNEE_CONTROL",
             analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
+            metadataConfidence = "HIGH"
+        )
+
+    private fun transferExercise(
+        name: String,
+        stableKey: String,
+        movementPattern: String,
+        forceType: String,
+        id: Long = stableKey.hashCode().toLong().let { value -> if (value == 0L) 1L else kotlin.math.abs(value) }
+    ): Exercise =
+        Exercise(
+            id = id,
+            name = name,
+            category = "strength",
+            stableKey = stableKey,
+            movementPattern = movementPattern,
+            forceType = forceType,
+            badmintonTransferStrength = "GENERAL",
+            analysisEligibility = "BADMINTON_TRANSFER",
             metadataConfidence = "HIGH"
         )
 

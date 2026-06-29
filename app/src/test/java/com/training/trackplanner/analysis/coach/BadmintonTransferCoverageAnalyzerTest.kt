@@ -67,6 +67,41 @@ class BadmintonTransferCoverageAnalyzerTest {
     }
 
     @Test
+    fun lowerBodyAbsoluteStimulusSuppressesLowShareWarning() {
+        val recent = snapshot(
+            values = mapOf(
+                BadmintonTransferAxis.LOWER_BODY_STRENGTH to 10.0,
+                BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
+                BadmintonTransferAxis.DECELERATION_LANDING to 120.0
+            ),
+            sampleCount = 8,
+            entryCounts = mapOf(BadmintonTransferAxis.LOWER_BODY_STRENGTH to 2)
+        )
+        val summary = analyzer.analyze(recent, recent.copy(windowDays = 28), state())
+
+        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
+        assertEquals(TransferAxisStatusType.BALANCED, lowerBody.status)
+        assertFalse(lowerBody in summary.lowAxes)
+    }
+
+    @Test
+    fun lowerBodyLowShareStillWarnsWhenAbsoluteStimulusIsLow() {
+        val recent = snapshot(
+            values = mapOf(
+                BadmintonTransferAxis.LOWER_BODY_STRENGTH to 4.0,
+                BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
+                BadmintonTransferAxis.DECELERATION_LANDING to 120.0
+            ),
+            sampleCount = 8,
+            entryCounts = mapOf(BadmintonTransferAxis.LOWER_BODY_STRENGTH to 1)
+        )
+        val summary = analyzer.analyze(recent, recent.copy(windowDays = 28), state())
+
+        val lowerBody = summary.statuses.single { it.axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH }
+        assertEquals(TransferAxisStatusType.LOW, lowerBody.status)
+    }
+
+    @Test
     fun noTransferRecordsReturnsSafeInsufficientSummary() {
         val empty = snapshot(emptyMap(), sampleCount = 0)
         val summary = analyzer.analyze(empty, empty.copy(windowDays = 28), null)
