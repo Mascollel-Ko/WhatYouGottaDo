@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.coach
 
 import com.training.trackplanner.analysis.badminton.BadmintonTransferAxis
+import com.training.trackplanner.analysis.badminton.BadmintonTransferConstants
 import com.training.trackplanner.analysis.badminton.BadmintonTransferWindowSnapshot
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.FatigueConfidence
@@ -70,7 +71,8 @@ class BadmintonTransferCoverageAnalyzerTest {
     fun lowerBodyAbsoluteStimulusSuppressesLowShareWarning() {
         val recent = snapshot(
             values = mapOf(
-                BadmintonTransferAxis.LOWER_BODY_STRENGTH to 10.0,
+                BadmintonTransferAxis.LOWER_BODY_STRENGTH to
+                    BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD,
                 BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
                 BadmintonTransferAxis.DECELERATION_LANDING to 120.0
             ),
@@ -88,7 +90,8 @@ class BadmintonTransferCoverageAnalyzerTest {
     fun lowerBodyLowShareStillWarnsWhenAbsoluteStimulusIsLow() {
         val recent = snapshot(
             values = mapOf(
-                BadmintonTransferAxis.LOWER_BODY_STRENGTH to 4.0,
+                BadmintonTransferAxis.LOWER_BODY_STRENGTH to
+                    BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD - 1.0,
                 BadmintonTransferAxis.LATERAL_MOVEMENT to 260.0,
                 BadmintonTransferAxis.DECELERATION_LANDING to 120.0
             ),

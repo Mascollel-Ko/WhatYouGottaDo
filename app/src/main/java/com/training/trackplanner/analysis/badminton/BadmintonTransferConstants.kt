@@ -9,7 +9,7 @@ internal object BadmintonTransferConstants {
     const val MAX_INTENSITY_FACTOR = 2.0
     const val LOW_AXIS_THRESHOLD = 0.12
     const val LOWER_BODY_AXIS_THRESHOLD = 0.10
-    const val LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD = 10.0
+    const val LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD = 5.0
     const val TOP_EXERCISE_LIMIT = 5
     const val CANDIDATE_LIMIT = 5
 

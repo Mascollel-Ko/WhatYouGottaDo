@@ -23,7 +23,7 @@ class BadmintonTransferRecommendationBuilder(
             snapshot.totalTransferStimulus7d <= BadmintonTransferConstants.EPSILON &&
                 snapshot.totalTransferStimulus28d <= BadmintonTransferConstants.EPSILON ->
                 BadmintonTransferAxis.LOWER_BODY_STRENGTH
-            else -> lowPriorityAxis(axisShares)
+            else -> lowPriorityAxis(axisShares, snapshot.axisStimulus7d)
         }
         val sentence = sentenceFor(recommendedAxis, cautionLevel, snapshot)
         val candidates = recommendedAxis?.let { axis ->
@@ -62,8 +62,17 @@ class BadmintonTransferRecommendationBuilder(
             BadmintonTransferAxis.ROTATION_CONTROL
         }
 
-    private fun lowPriorityAxis(axisShares: Map<BadmintonTransferAxis, Double>): BadmintonTransferAxis =
+    private fun lowPriorityAxis(
+        axisShares: Map<BadmintonTransferAxis, Double>,
+        axisStimulus: Map<BadmintonTransferAxis, Double>
+    ): BadmintonTransferAxis =
         BadmintonTransferConstants.recommendationPriority.firstOrNull { axis ->
+            if (
+                axis == BadmintonTransferAxis.LOWER_BODY_STRENGTH &&
+                (axisStimulus[axis] ?: 0.0) >= BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD
+            ) {
+                return@firstOrNull false
+            }
             (axisShares[axis] ?: 0.0) < BadmintonTransferConstants.shareThreshold(axis)
         } ?: BadmintonTransferAxis.LOW_FATIGUE_CONTROL
 

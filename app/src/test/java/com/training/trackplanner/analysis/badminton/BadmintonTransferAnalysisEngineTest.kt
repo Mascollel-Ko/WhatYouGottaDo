@@ -199,6 +199,46 @@ class BadmintonTransferAnalysisEngineTest {
         })
     }
 
+    @Test
+    fun recommendationSkipsLowerBodyWhenAbsoluteFoundationStimulusExists() {
+        val recommendation = BadmintonTransferRecommendationBuilder().build(
+            snapshot = transferSnapshot(
+                mapOf(
+                    BadmintonTransferAxis.DECELERATION_LANDING to 100.0,
+                    BadmintonTransferAxis.UNILATERAL_STABILITY to 100.0,
+                    BadmintonTransferAxis.LATERAL_MOVEMENT to 100.0,
+                    BadmintonTransferAxis.ROTATION_CONTROL to 100.0,
+                    BadmintonTransferAxis.LOWER_BODY_STRENGTH to
+                        BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD
+                )
+            ),
+            readinessSummary = readiness(ReadinessStatus.READY),
+            exercises = emptyList()
+        )
+
+        assertEquals(BadmintonTransferAxis.LOW_FATIGUE_CONTROL, recommendation.recommendedAxis)
+    }
+
+    @Test
+    fun recommendationKeepsLowerBodyWhenAbsoluteFoundationStimulusIsLow() {
+        val recommendation = BadmintonTransferRecommendationBuilder().build(
+            snapshot = transferSnapshot(
+                mapOf(
+                    BadmintonTransferAxis.DECELERATION_LANDING to 100.0,
+                    BadmintonTransferAxis.UNILATERAL_STABILITY to 100.0,
+                    BadmintonTransferAxis.LATERAL_MOVEMENT to 100.0,
+                    BadmintonTransferAxis.ROTATION_CONTROL to 100.0,
+                    BadmintonTransferAxis.LOWER_BODY_STRENGTH to
+                        BadmintonTransferConstants.LOWER_BODY_FOUNDATION_ABSOLUTE_STIMULUS_THRESHOLD - 1.0
+                )
+            ),
+            readinessSummary = readiness(ReadinessStatus.READY),
+            exercises = emptyList()
+        )
+
+        assertEquals(BadmintonTransferAxis.LOWER_BODY_STRENGTH, recommendation.recommendedAxis)
+    }
+
     private fun lateralExercise(id: Long = 1, name: String = "Lateral fixture"): Exercise =
         Exercise(
             id = id,
@@ -239,6 +279,24 @@ class BadmintonTransferAnalysisEngineTest {
             analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
             metadataConfidence = "HIGH"
         )
+
+    private fun transferSnapshot(
+        axisStimulus: Map<BadmintonTransferAxis, Double>
+    ): BadmintonTransferScoreSnapshot {
+        val completeStimulus = BadmintonTransferAxis.entries.associateWith { axis -> axisStimulus[axis] ?: 0.0 }
+        val total = completeStimulus.values.sum()
+        return BadmintonTransferScoreSnapshot(
+            totalTransferStimulus7d = total,
+            totalTransferStimulus28d = total,
+            transferRatio7dTo28dAverage = null,
+            axisStimulus7d = completeStimulus,
+            axisStimulus28d = completeStimulus,
+            transferTypeStimulus7d = emptyMap(),
+            topTransferExercises7d = emptyList(),
+            sampleEntryCount7d = 5,
+            sampleEntryCount28d = 5
+        )
+    }
 
     private fun transferExercise(
         name: String,
