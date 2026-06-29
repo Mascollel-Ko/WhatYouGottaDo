@@ -96,10 +96,10 @@ class HomeFatigueCardSummaryFactoryTest {
     }
 
     @Test
-    fun readinessFatiguePresentationIsPreferredForPrimaryReading() {
+    fun primaryReadingUsesOfiWhenReadinessPresentationHasDifferentScore() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
-            current = state(30),
+            current = state(60),
             projected = null,
             confirmedSetCount = 1,
             unconfirmedSetCount = 0,
@@ -111,7 +111,7 @@ class HomeFatigueCardSummaryFactoryTest {
             )
         )
 
-        assertEquals(82, summary.primary.score)
+        assertEquals(60, summary.primary.score)
         assertEquals("진행 가능", summary.primary.label)
     }
 
@@ -135,7 +135,7 @@ class HomeFatigueCardSummaryFactoryTest {
     }
 
     @Test
-    fun readinessFatiguePresentationScoreIsClamped() {
+    fun readinessPresentationOverallScoreDoesNotClampOrReplacePrimaryOfi() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
             current = state(30),
@@ -150,16 +150,16 @@ class HomeFatigueCardSummaryFactoryTest {
             )
         )
 
-        assertEquals(100, summary.primary.score)
+        assertEquals(30, summary.primary.score)
         assertEquals("감량 권장", summary.primary.label)
     }
 
     @Test
-    fun readinessFatiguePresentationIsPreferredForProjectedReading() {
+    fun projectedReadingUsesProjectedOfiWhenReadinessPresentationHasDifferentScore() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
             current = state(30),
-            projected = state(40),
+            projected = state(72),
             confirmedSetCount = 0,
             unconfirmedSetCount = 3,
             todayStatus = phaseStatus(
@@ -170,8 +170,57 @@ class HomeFatigueCardSummaryFactoryTest {
             )
         )
 
-        assertEquals(91, summary.projection?.score)
+        assertEquals(72, summary.projection?.score)
         assertEquals("휴식 권장", summary.projection?.label)
+    }
+
+    @Test
+    fun cardPrimaryScoreMatchesTodayGraphOfiPoint() {
+        val current = state(60)
+        val todayPoint = MiniTrendPoint(current.date, current.overallFatigueIndex.toDouble())
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = current,
+            projected = null,
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 0,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.CAUTION,
+                projected = null,
+                phase = TodayStatusPhase.COMPLETED,
+                currentPresentation = presentation(80)
+            )
+        )
+
+        assertEquals(todayPoint.value.toInt(), summary.primary.score)
+        assertTrue(summary.primary.label.isNotBlank())
+    }
+
+    @Test
+    fun readinessGuidanceTextIsPreservedWhenScoresStayOnOfi() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(20),
+            current = state(60),
+            projected = state(72),
+            confirmedSetCount = 3,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.CAUTION,
+                projected = ReadinessStatus.LIMITED,
+                phase = TodayStatusPhase.REMAINING_PLAN,
+                currentPresentation = presentation(80),
+                projectedPresentation = presentation(90)
+            )
+        )
+
+        assertEquals(60, summary.primary.score)
+        assertEquals(72, summary.projection?.score)
+        assertTrue(summary.primary.label.isNotBlank())
+        assertTrue(summary.projection?.label?.isNotBlank() == true)
+        assertTrue(summary.phaseLabel?.isNotBlank() == true)
+        assertTrue(summary.headline?.isNotBlank() == true)
+        assertTrue(summary.detail?.isNotBlank() == true)
+        assertTrue(summary.actionLabel?.isNotBlank() == true)
     }
 
     private fun state(

@@ -2,6 +2,10 @@ package com.training.trackplanner.analysis.readiness
 
 import java.time.LocalDateTime
 
+/**
+ * Interprets OFI, fatigue axes, sleep, check-ins, pain, and performance drops into today's training decision.
+ * OFI remains the shared home/analysis/lab summary score; this engine does not replace it with another score.
+ */
 class TodayReadinessEngine(
     private val aggregator: DailyAnalysisLoadAggregator = DailyAnalysisLoadAggregator(),
     private val residualCalculator: ResidualFatigueCalculator = ResidualFatigueCalculator(),
