@@ -80,15 +80,7 @@ class BadmintonTransferScoreCalculator(
         val axes = BadmintonTransferMetadataMapper.transferAxes(features)
         if (axes.isEmpty()) return null
         val rawTransferType = BadmintonTransferMetadataMapper.transferType(features)
-        val transferType = if (
-            rawTransferType == BadmintonTransferType.NONE &&
-            BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes &&
-            BadmintonTransferMetadataMapper.isGeneralStrengthFoundation(features)
-        ) {
-            BadmintonTransferType.GENERAL_STRENGTH
-        } else {
-            rawTransferType
-        }
+        val transferType = BadmintonTransferMetadataMapper.effectiveTransferType(rawTransferType, axes, features)
         val transferWeight = BadmintonTransferConstants.transferWeight(transferType)
         if (transferWeight <= 0.0) return null
         val exerciseLoad = exerciseLoad(completedSets, features)
@@ -104,6 +96,77 @@ class BadmintonTransferScoreCalculator(
             axes = axes,
             totalStimulus = totalStimulus
         )
+    }
+
+    fun debugRows(
+        today: LocalDate,
+        windowDays: Int,
+        exercises: List<Exercise>,
+        entriesWithSets: List<WorkoutEntryWithSets>
+    ): List<String> {
+        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+        val safeWindowDays = windowDays.coerceAtLeast(1)
+        val start = today.minusDays(safeWindowDays.toLong() - 1)
+        return entriesWithSets.map { record ->
+            debugRow(record, exerciseMap[record.entry.exerciseId], start, today)
+        }
+    }
+
+    private fun debugRow(
+        record: WorkoutEntryWithSets,
+        exercise: Exercise?,
+        start: LocalDate,
+        today: LocalDate
+    ): String {
+        val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
+        val completedSets = record.sets.filter { set -> set.confirmed }
+        val runtimeMetadata = exercise?.let { runtimeMetadataCatalog.resolve(it) }
+        val base = linkedMapOf(
+            "date" to record.entry.date,
+            "exerciseId" to record.entry.exerciseId.toString(),
+            "exerciseName" to record.entry.exerciseName,
+            "stableKey" to exercise?.stableKey.orEmpty(),
+            "setCount" to record.sets.size.toString(),
+            "confirmedSetCount" to completedSets.size.toString(),
+            "load" to "reps=${completedSets.sumOf { set -> set.reps }},weightAvg=${completedSets.map { set -> set.weightKg }.filter { it > 0.0 }.average().takeUnless { it.isNaN() } ?: 0.0}",
+            "rawMovementPattern" to exercise?.movementPattern.orEmpty(),
+            "rawForceType" to exercise?.forceType.orEmpty(),
+            "rawBodyRegion" to exercise?.bodyRegion.orEmpty(),
+            "rawTrainingRole" to exercise?.trainingRole.orEmpty(),
+            "rawBadmintonTransferStrength" to exercise?.badmintonTransferStrength.orEmpty(),
+            "rawAnalysisEligibility" to exercise?.analysisEligibility.orEmpty(),
+            "runtimeResolved" to (runtimeMetadata != null).toString(),
+            "runtimeBadmintonTransferLevel" to runtimeMetadata?.badmintonTransferLevel.orEmpty(),
+            "runtimeBadmintonPhysicalQualities" to runtimeMetadata?.badmintonPhysicalQualities?.values.orEmpty().joinToString("|"),
+            "runtimeMovementFamily" to runtimeMetadata?.movementFamily.orEmpty(),
+            "runtimeProgramSlot" to runtimeMetadata?.programSlot.orEmpty()
+        )
+        fun finish(reason: String, kept: Boolean = false, extra: Map<String, String> = emptyMap()): String =
+            (base + extra + mapOf("kept" to kept.toString(), "droppedReason" to reason))
+                .entries.joinToString(", ") { (key, value) -> "$key=$value" }
+
+        if (date == null) return finish("PARSE_DATE_FAILED")
+        if (date !in start..today) return finish("DATE_OUT_OF_WINDOW")
+        if (exercise == null) return finish("NO_EXERCISE")
+        if (completedSets.isEmpty()) return finish("NO_CONFIRMED_SETS")
+
+        val features = AnalysisFeatureExtractor.fromRecord(exercise, record.entry, record.sets, runtimeMetadata)
+        val axes = BadmintonTransferMetadataMapper.transferAxes(features)
+        val rawTransferType = BadmintonTransferMetadataMapper.transferType(features)
+        val effectiveTransferType = BadmintonTransferMetadataMapper.effectiveTransferType(rawTransferType, axes, features)
+        val isFoundation = BadmintonTransferMetadataMapper.isGeneralStrengthFoundation(features)
+        val computed = mapOf(
+            "rawTransferType" to rawTransferType.name,
+            "effectiveTransferType" to effectiveTransferType.name,
+            "axes" to axes.joinToString("|") { axis -> axis.name },
+            "isGeneralStrengthFoundation" to isFoundation.toString()
+        )
+        if (axes.isEmpty()) return finish("AXES_EMPTY", extra = computed + ("totalStimulus" to "0.0"))
+        val transferWeight = BadmintonTransferConstants.transferWeight(effectiveTransferType)
+        if (transferWeight <= 0.0) return finish("TRANSFER_WEIGHT_ZERO", extra = computed + ("totalStimulus" to "0.0"))
+        val totalStimulus = exerciseLoad(completedSets, features) * transferWeight
+        if (totalStimulus <= 0.0) return finish("TOTAL_STIMULUS_ZERO", extra = computed + ("totalStimulus" to totalStimulus.toString()))
+        return finish("NONE", kept = true, extra = computed + ("totalStimulus" to totalStimulus.toString()))
     }
 
     private fun exerciseLoad(

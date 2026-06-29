@@ -160,6 +160,21 @@ internal object BadmintonTransferMetadataMapper {
         }
     }
 
+    fun effectiveTransferType(
+        rawTransferType: BadmintonTransferType,
+        axes: Set<BadmintonTransferAxis>,
+        features: AnalysisExerciseFeatures
+    ): BadmintonTransferType =
+        if (
+            rawTransferType == BadmintonTransferType.NONE &&
+            BadmintonTransferAxis.LOWER_BODY_STRENGTH in axes &&
+            isGeneralStrengthFoundation(features)
+        ) {
+            BadmintonTransferType.GENERAL_STRENGTH
+        } else {
+            rawTransferType
+        }
+
     fun isGeneralStrengthFoundation(features: AnalysisExerciseFeatures): Boolean {
         val movementPatternTokens = features.movementPattern.tokens()
         val transferTokens = features.badmintonTransferRoles +

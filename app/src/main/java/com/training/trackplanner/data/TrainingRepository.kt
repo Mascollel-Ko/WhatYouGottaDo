@@ -381,10 +381,17 @@ class TrainingRepository(
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
-        BadmintonTransferCoverageAnalyzer(resolvedRuntimeMetadataCatalog(exercises)).analyze(
+        val entries = workoutDao.entriesWithSetsUntil(todayString)
+        val analyzer = BadmintonTransferCoverageAnalyzer(resolvedRuntimeMetadataCatalog(exercises))
+        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            analyzer.debugRows(today, 14, exercises, entries).forEach { row ->
+                Log.d("BadmintonTransferDrop", row)
+            }
+        }
+        analyzer.analyze(
             today = today,
             exercises = exercises,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
+            entriesWithSets = entries,
             latestFatigueState = latestFatigueState
         )
     }

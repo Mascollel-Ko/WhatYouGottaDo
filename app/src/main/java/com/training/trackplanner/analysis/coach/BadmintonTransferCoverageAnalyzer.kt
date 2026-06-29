@@ -26,6 +26,14 @@ class BadmintonTransferCoverageAnalyzer(
         latestFatigueState = latestFatigueState
     )
 
+    fun debugRows(
+        today: LocalDate,
+        windowDays: Int,
+        exercises: List<Exercise>,
+        entriesWithSets: List<WorkoutEntryWithSets>
+    ): List<String> =
+        scoreCalculator.debugRows(today, windowDays, exercises, entriesWithSets)
+
     fun analyze(
         recent: BadmintonTransferWindowSnapshot,
         baseline: BadmintonTransferWindowSnapshot,
