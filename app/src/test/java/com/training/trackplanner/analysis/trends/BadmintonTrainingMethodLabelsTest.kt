@@ -12,6 +12,15 @@ class BadmintonTrainingMethodLabelsTest {
         assertEquals("감속", BadmintonTrainingMethodLabels.label("DECELERATION"))
         assertEquals("오버헤드", BadmintonTrainingMethodLabels.label("OVERHEAD_POWER"))
         assertEquals("반응/민첩", BadmintonTrainingMethodLabels.label("REACTIVE"))
+        assertEquals("보조운동", BadmintonTrainingMethodLabels.label("ACCESSORY"))
+        assertEquals("기초지원", BadmintonTrainingMethodLabels.label("SUPPORT"))
+    }
+
+    @Test
+    fun descriptionsAreAvailableForUserFacingLabels() {
+        assertTrue(BadmintonTrainingMethodLabels.description("ACCESSORY").isNotBlank())
+        assertTrue(BadmintonTrainingMethodLabels.description("SUPPORT").isNotBlank())
+        assertTrue(BadmintonTrainingMethodLabels.description("REACTION_RANDOM").contains("반응"))
     }
 
     @Test

@@ -76,6 +76,34 @@ class BadmintonTrainingLoadIndexCalculator(
             }
             .sortedBy { point -> point.date }
 
+    fun methodExamples(
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        exerciseMap: Map<Long, Exercise>,
+        displayNamesById: Map<Long, String>
+    ): Map<String, List<String>> {
+        val examples = linkedMapOf<String, MutableList<String>>()
+        entriesWithSets
+            .filter { record -> record.sets.any { set -> set.confirmed } }
+            .forEach { record ->
+                val exercise = exerciseMap[record.entry.exerciseId] ?: return@forEach
+                val features = featuresFor(record, exerciseMap) ?: return@forEach
+                val dose = record.badmintonDose(features)
+                if (dose <= 0.0) return@forEach
+                val name = displayName(record, exercise, displayNamesById)
+                if (name.isBlank()) return@forEach
+                BadmintonTrainingMethodLabels.keysFrom(
+                    courtMovementTypes = features.courtMovementTypes,
+                    transferRoles = features.badmintonTransferRoles,
+                    sportContextTags = features.sportContextTags,
+                    movementCategory = features.movementCategory
+                ).forEach { key ->
+                    val list = examples.getOrPut(key) { mutableListOf() }
+                    if (name !in list && list.size < 2) list += name
+                }
+            }
+        return examples
+    }
+
     private fun standardized(values: List<Double?>, index: Int): StandardizedComponent {
         val (baseline, confidence) = TrendMath.baselineFor(values, index)
         return StandardizedComponent(
@@ -173,6 +201,16 @@ class BadmintonTrainingLoadIndexCalculator(
             if (supportWeight <= 0.0) 0.0 else baseDose() * supportWeight * features.supportCorrection()
         }
     }
+
+    private fun displayName(
+        record: WorkoutEntryWithSets,
+        exercise: Exercise,
+        displayNamesById: Map<Long, String>
+    ): String =
+        listOf(displayNamesById[exercise.id], record.entry.exerciseName, exercise.name)
+            .filterNotNull()
+            .firstOrNull { name -> !name.matches(Regex("""운동\s*\d+""")) }
+            .orEmpty()
 
     private fun featuresFor(
         record: WorkoutEntryWithSets,

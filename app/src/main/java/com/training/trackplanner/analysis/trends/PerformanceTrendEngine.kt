@@ -40,6 +40,7 @@ class PerformanceTrendEngine(
         val strengthWeeks = strengthCalculator.calculate(weeks, exerciseMap, dailyMetrics)
         val badmintonWeeks = badmintonCalculator.calculate(weeks, exerciseMap)
         val badmintonDailyLoads = badmintonCalculator.dailyLoads(entriesWithSets, exerciseMap)
+        val badmintonMethodExamples = badmintonCalculator.methodExamples(entriesWithSets, exerciseMap, exerciseDisplayNamesById)
         val fatigueWeeks = fatigueWeeks(today, weeks, entriesWithSets, exercises, dailyMetrics)
         val repRangeWeeks = repRangeWeeks(weeks)
         val metricSeries = metricSeries(strengthWeeks, badmintonWeeks, fatigueWeeks)
@@ -94,6 +95,7 @@ class PerformanceTrendEngine(
             fatigueWeeks = fatigueWeeks,
             repRangeWeeks = repRangeWeeks,
             metricSeries = metricSeries,
+            badmintonMethodExamples = badmintonMethodExamples,
             exerciseDisplayNamesById = exerciseDisplayNamesById
         )
         return provisional.copy(

@@ -321,6 +321,8 @@ class PerformanceTrendEngineTest {
 
         assertEquals("랜덤 풋워크", ranking.bars.single().label)
         assertFalse(ranking.bars.single().label.matches(Regex("""운동\s*\d+""")))
+        assertTrue(summary.badmintonMethodExamples.values.flatten().contains("랜덤 풋워크"))
+        assertFalse(summary.badmintonMethodExamples.values.flatten().any { it.matches(Regex("""운동\s*\d+""")) })
     }
 
     @Test
@@ -345,6 +347,7 @@ class PerformanceTrendEngineTest {
         assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTION_RANDOM"] ?: 0.0 > 0.0)
         assertTrue(summary.badmintonDailyLoads.single().methodRaw["DECELERATION"] ?: 0.0 > 0.0)
         assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTIVE"] ?: 0.0 > 0.0)
+        assertTrue(summary.badmintonMethodExamples["REACTION_RANDOM"].orEmpty().contains(exercise.name))
         assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
     }
 

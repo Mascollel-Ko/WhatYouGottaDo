@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
@@ -39,6 +40,7 @@ internal fun AnalysisChartSpecView(spec: ChartSpec) {
         ChartType.PIE -> AnalysisBarList(spec.bars.ifEmpty {
             spec.slices.map { slice -> BarItem(slice.label, slice.value) }
         })
+        ChartType.STACKED_BAR -> AnalysisStackedBarChart(spec = spec, modifier = Modifier.height(170.dp))
         ChartType.SCATTER -> AnalysisScatterChart(spec = spec, modifier = Modifier.height(170.dp))
     }
 }
@@ -100,6 +102,54 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                 drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
             }
             drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+        }
+    }
+}
+
+@Composable
+private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifier) {
+    val groups = spec.stackedBars.filter { group -> group.segments.any { it.value > 0.0 } }
+    if (groups.isEmpty()) {
+        InfoCard("주별로 표시할 배드민턴 관련 훈련 기록이 없습니다.")
+        return
+    }
+    val colors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.outline,
+        MaterialTheme.colorScheme.primaryContainer
+    )
+    val labels = groups.flatMap { group -> group.segments.map { it.label } }.distinct()
+    val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Canvas(modifier = modifier.fillMaxWidth()) {
+            val slot = size.width / groups.size.coerceAtLeast(1)
+            val barWidth = slot * 0.62f
+            groups.forEachIndexed { groupIndex, group ->
+                var bottom = size.height
+                group.segments.forEach { segment ->
+                    val height = (size.height * (segment.value / maxTotal)).toFloat()
+                    val color = colors[labels.indexOf(segment.label).coerceAtLeast(0) % colors.size]
+                    drawRect(
+                        color = color,
+                        topLeft = Offset(groupIndex * slot + (slot - barWidth) / 2f, bottom - height),
+                        size = Size(barWidth, height)
+                    )
+                    bottom -= height
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            labels.forEachIndexed { index, label ->
+                Surface(shape = RoundedCornerShape(8.dp), color = colors[index % colors.size].copy(alpha = 0.22f)) {
+                    Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = label, style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
     }
 }

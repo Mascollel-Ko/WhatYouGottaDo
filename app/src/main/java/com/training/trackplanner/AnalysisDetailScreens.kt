@@ -1,17 +1,23 @@
 package com.training.trackplanner
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -31,11 +37,13 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
+import com.training.trackplanner.analysis.lab.MuscleBucketSelection
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
+import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodSeries
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -199,7 +207,8 @@ private fun BadmintonTransferCoverageSentenceCard(insight: CoachAnalysisInsightS
 @Composable
 private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
     var mode by rememberSaveable { mutableStateOf(BadmintonLoadMode.TOTAL) }
-    val methodTotals = badmintonMethodTotals(summary)
+    var showMethodDescription by rememberSaveable { mutableStateOf(false) }
+    val methodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads)
     val methodKeys = methodTotals.keys.toList()
     var selectedMethod by rememberSaveable(methodTotals.keys.joinToString()) {
         mutableStateOf(methodTotals.maxByOrNull { it.value }?.key.orEmpty())
@@ -255,19 +264,86 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
         if (methodTotals.isNotEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("배드민턴 관련 훈련 구성", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = { showMethodDescription = true }) {
+                            Text("설명")
+                        }
+                    }
+                    AnalysisChartSpecView(
+                        ChartSpec(
+                            type = ChartType.HORIZONTAL_BAR,
+                            title = "배드민턴 관련 훈련 구성",
+                            bars = methodTotals.entries
+                                .sortedByDescending { it.value }
+                                .map { (key, value) -> BarItem(BadmintonTrainingMethodLabels.label(key), value) }
+                        )
+                    )
+                    Text(
+                        "기존 배드민턴 메타데이터 태그를 기준으로 선택 기간의 구성을 보여줍니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             AnalysisSectionChart(
-                title = "훈련방법별 구성",
+                title = "주별 배드민턴 관련 훈련 구성",
                 spec = ChartSpec(
-                    type = ChartType.HORIZONTAL_BAR,
-                    title = "훈련방법별 구성",
-                    bars = methodTotals.entries
-                        .sortedByDescending { it.value }
-                        .map { (key, value) -> BarItem(BadmintonTrainingMethodLabels.label(key), value) }
+                    type = ChartType.STACKED_BAR,
+                    title = "주별 배드민턴 관련 훈련 구성",
+                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads)
                 ),
-                note = "기존 배드민턴 메타데이터 태그를 기준으로 선택 기간의 구성을 보여줍니다."
+                note = "각 주마다 배드민턴 관련 훈련이 어떤 유형으로 구성됐는지 보여줍니다. 월별이 아니라 주별 집계입니다."
+            )
+        }
+        if (showMethodDescription) {
+            BadmintonMethodDescriptionDialog(
+                methodKeys = methodKeys,
+                examples = summary.badmintonMethodExamples,
+                onDismiss = { showMethodDescription = false }
             )
         }
     }
+}
+
+@Composable
+private fun BadmintonMethodDescriptionDialog(
+    methodKeys: List<String>,
+    examples: Map<String, List<String>>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기")
+            }
+        },
+        title = { Text("배드민턴 관련 훈련 구성 설명") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                methodKeys.forEach { key ->
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(BadmintonTrainingMethodLabels.label(key), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(BadmintonTrainingMethodLabels.description(key), style = MaterialTheme.typography.bodySmall)
+                        val sample = examples[key].orEmpty().take(2)
+                        Text(
+                            text = if (sample.isEmpty()) "예시 운동: 기록 없음" else "예시 운동: ${sample.joinToString(", ")}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -304,8 +380,9 @@ private fun MuscleLoadShareCard(summary: PerformanceTrendSummary) {
 private fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
     val buckets = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().toList()
     val available = buckets.filter { bucket -> summary.metricSeries[bucket.dailyMetric].orEmpty().any { it.value != null } }
-    val defaults = available.take(3).map { it.dailyMetric }.toSet()
+    val defaults = MuscleBucketSelection.defaultMetrics(available, summary.metricSeries)
     val selected = remember { mutableStateListOf<TrendMetricId>().apply { addAll(defaults) } }
+    var showPicker by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("근육군별 운동량 비율 추이", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -313,17 +390,113 @@ private fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
                 InfoCard("근육군별 운동량 기록이 부족합니다.")
                 return@Column
             }
-            AnalysisMetricChipRow(
-                metrics = available.map { it.dailyMetric },
-                selectedMetrics = selected.toList(),
-                onToggle = { metric ->
-                    if (metric in selected) selected.remove(metric) else selected.add(metric)
-                    if (selected.isEmpty()) selected.add(metric)
-                }
-            )
+            Surface(
+                modifier = Modifier.clickable { showPicker = true },
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                    text = MuscleBucketSelection.summary(selected, available),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
             AnalysisChartSpecView(muscleShareTrendSpec(summary, selected.toList()))
         }
     }
+    if (showPicker) {
+        MuscleBucketPickerDialog(
+            available = available,
+            selected = selected.toSet(),
+            defaults = defaults,
+            onDismiss = { showPicker = false },
+            onApply = { metrics ->
+                selected.clear()
+                selected.addAll(metrics)
+                showPicker = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun MuscleBucketPickerDialog(
+    available: List<StrengthAndMuscleMetricSeriesBuilder.MuscleBucket>,
+    selected: Set<TrendMetricId>,
+    defaults: Set<TrendMetricId>,
+    onDismiss: () -> Unit,
+    onApply: (List<TrendMetricId>) -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val draft = remember(selected) { mutableStateListOf<TrendMetricId>().apply { addAll(selected) } }
+    val filtered = MuscleBucketSelection.filter(available, query)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = draft.isNotEmpty(),
+                onClick = { onApply(draft.toList()) }
+            ) {
+                Text("적용")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                draft.clear()
+                draft.addAll(defaults)
+            }) {
+                Text("초기화")
+            }
+        },
+        title = { Text("근육군 선택") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    label = { Text("검색") }
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MuscleBucketSelection.quickGroups.forEach { group ->
+                        AnalysisSelectableChip(group.label, false) {
+                            val groupMetrics = available
+                                .filter { bucket -> bucket in group.buckets }
+                                .map { it.dailyMetric }
+                            if (groupMetrics.isNotEmpty()) {
+                                draft.clear()
+                                draft.addAll(groupMetrics)
+                            }
+                        }
+                    }
+                }
+                Text(MuscleBucketSelection.summary(draft, available), style = MaterialTheme.typography.labelMedium)
+                if (draft.isEmpty()) {
+                    Text("최소 1개 이상 선택하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 300.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filtered.forEach { bucket ->
+                        AnalysisSelectableChip(bucket.label, bucket.dailyMetric in draft) {
+                            if (bucket.dailyMetric in draft) draft.remove(bucket.dailyMetric) else draft.add(bucket.dailyMetric)
+                        }
+                    }
+                    if (filtered.isEmpty()) {
+                        Text("검색 결과가 없습니다.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -499,13 +672,3 @@ private fun weeklyBadmintonPoints(
         .map { (week, points) ->
             TrendDataPoint(week, points.sumOf { point -> point.valueFor(mode, method) }.takeIf { it > 0.0 })
         }
-
-private fun badmintonMethodTotals(summary: PerformanceTrendSummary): Map<String, Double> {
-    val totals = linkedMapOf<String, Double>()
-    summary.badmintonDailyLoads.forEach { point ->
-        point.methodRaw.forEach { (key, value) ->
-            if (value > 0.0) totals[key] = (totals[key] ?: 0.0) + value
-        }
-    }
-    return totals.entries.sortedByDescending { it.value }.associate { it.key to it.value }
-}

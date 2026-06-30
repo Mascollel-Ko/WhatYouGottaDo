@@ -7,6 +7,7 @@ enum class ChartType {
     LINE,
     BAR,
     HORIZONTAL_BAR,
+    STACKED_BAR,
     PIE,
     SCATTER
 }
@@ -137,6 +138,16 @@ data class PieSlice(
     val value: Double
 )
 
+data class StackedBarSegment(
+    val label: String,
+    val value: Double
+)
+
+data class StackedBarGroup(
+    val label: String,
+    val segments: List<StackedBarSegment>
+)
+
 data class ScatterPoint(
     val x: Double,
     val y: Double,
@@ -148,6 +159,7 @@ data class ChartSpec(
     val title: String,
     val lineSeries: List<ChartSeries> = emptyList(),
     val bars: List<BarItem> = emptyList(),
+    val stackedBars: List<StackedBarGroup> = emptyList(),
     val slices: List<PieSlice> = emptyList(),
     val scatterPoints: List<ScatterPoint> = emptyList(),
     val forecastRange: ForecastRange? = null,
@@ -250,6 +262,7 @@ data class PerformanceTrendSummary(
     val fatigueWeeks: List<FatigueWeekIndex> = emptyList(),
     val repRangeWeeks: List<RepRangeWeekShare> = emptyList(),
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
+    val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
     val exerciseDisplayNamesById: Map<Long, String> = emptyMap()
 )
 
