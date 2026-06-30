@@ -1,9 +1,9 @@
 package com.training.trackplanner
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,9 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-private enum class AnalysisTab(val label: String) {
-    COACH("코치 분석"),
-    LAB("실험실")
+private enum class AnalysisDestination(val title: String, val body: String) {
+    FATIGUE("오늘 컨디션 및 피로도 분석", "현재 피로 상태와 피로 축별 주요 기여 운동을 봅니다."),
+    BADMINTON("배드민턴 전이 분석", "배드민턴 관련 훈련 자극과 주간 흐름을 봅니다."),
+    STRENGTH("근력운동 추이 분석", "주요 리프팅, 근육군, 반복수 구간 흐름을 봅니다.")
 }
 
 @Composable
@@ -28,7 +29,8 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val coachInsight by viewModel.coachAnalysisInsight.collectAsState()
     val coachingSignals by viewModel.coachingSignalsSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
-    var selectedTab by rememberSaveable { mutableStateOf(AnalysisTab.COACH) }
+    var destination by rememberSaveable { mutableStateOf<AnalysisDestination?>(null) }
+    BackHandler(enabled = destination != null) { destination = null }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -37,38 +39,44 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     ) {
         item {
             ScreenHeader(
-                title = "분석",
-                body = "코치 해석과 탐색 도구를 목적에 맞게 나누어 봅니다."
+                title = destination?.title ?: "분석",
+                body = destination?.body ?: "필요한 분석 화면으로 들어가 핵심 지표를 확인합니다."
             )
         }
-        item {
-            AnalysisChipRow(
-                labels = AnalysisTab.entries.map { tab -> tab.label },
-                selected = selectedTab.ordinal,
-                onSelect = { index -> selectedTab = AnalysisTab.entries[index] }
-            )
-        }
-        when (selectedTab) {
-            AnalysisTab.COACH -> item {
-                CoachAnalysisContent(
+        if (destination == null) {
+            item {
+                AnalysisHubContent(
                     stats = stats,
-                    readiness = readiness,
-                    todayStatus = todayStatus,
-                    fatigueAnalysis = fatigueAnalysis,
-                    badmintonTransfer = badmintonTransfer,
-                    coachInsight = coachInsight,
-                    coachingSignals = coachingSignals,
-                    performanceTrend = performanceTrend,
-                    onPeriodChange = viewModel::selectFatigueAnalysisPeriod,
-                    onFatigueTargetToggle = viewModel::toggleFatigueTrendTarget,
-                    onContributionTargetChange = viewModel::selectFatigueContributionTarget,
-                    onContributionGroupingChange = viewModel::selectFatigueContributionGrouping,
-                    onContributionSourcesApply = viewModel::selectFatigueContributionSources
+                    onFatigueClick = { destination = AnalysisDestination.FATIGUE },
+                    onBadmintonClick = { destination = AnalysisDestination.BADMINTON },
+                    onStrengthClick = { destination = AnalysisDestination.STRENGTH }
                 )
             }
-            AnalysisTab.LAB -> item {
-                performanceTrend?.let { summary -> AnalysisLabContent(summary) }
-                    ?: Text("성과 지표를 계산하고 있습니다.")
+        } else {
+            item { AnalysisBackButton(onClick = { destination = null }) }
+            item {
+                when (destination) {
+                    AnalysisDestination.FATIGUE -> FatigueAndConditionAnalysisContent(
+                        readiness = readiness,
+                        todayStatus = todayStatus,
+                        fatigueAnalysis = fatigueAnalysis,
+                        coachInsight = coachInsight,
+                        coachingSignals = coachingSignals,
+                        performanceTrend = performanceTrend,
+                        onPeriodChange = viewModel::selectFatigueAnalysisPeriod,
+                        onFatigueTargetToggle = viewModel::toggleFatigueTrendTarget,
+                        onContributionTargetChange = viewModel::selectFatigueContributionTarget,
+                        onContributionGroupingChange = viewModel::selectFatigueContributionGrouping,
+                        onContributionSourcesApply = viewModel::selectFatigueContributionSources
+                    )
+                    AnalysisDestination.BADMINTON -> BadmintonTransferAnalysisContent(
+                        coachInsight = coachInsight,
+                        badmintonTransfer = badmintonTransfer,
+                        performanceTrend = performanceTrend
+                    )
+                    AnalysisDestination.STRENGTH -> StrengthTrendAnalysisContent(performanceTrend)
+                    null -> Unit
+                }
             }
         }
     }

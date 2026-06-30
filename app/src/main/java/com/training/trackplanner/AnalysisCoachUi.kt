@@ -97,7 +97,7 @@ internal fun CoachAnalysisContent(
 }
 
 @Composable
-private fun CoachingSignalsCard(summary: CoachingSignalsSummary) {
+internal fun CoachingSignalsCard(summary: CoachingSignalsSummary) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("수면 보정 코칭 신호", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -259,7 +259,7 @@ private fun BadmintonTransferCoverageCard(insight: CoachAnalysisInsightSummary) 
 }
 
 @Composable
-private fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
+internal fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -276,7 +276,7 @@ private fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
 }
 
 @Composable
-private fun TodayReadinessCard(status: PhaseAwareTodayStatus) {
+internal fun TodayReadinessCard(status: PhaseAwareTodayStatus) {
     TodayReadinessCard(
         summary = status.current,
         phaseLabel = status.phaseLabel,
@@ -289,7 +289,7 @@ private fun TodayReadinessCard(status: PhaseAwareTodayStatus) {
 }
 
 @Composable
-private fun TodayReadinessCard(
+internal fun TodayReadinessCard(
     summary: TodayReadinessSummary,
     phaseLabel: String? = null,
     headline: String = summary.headline,
@@ -373,11 +373,17 @@ private fun readinessStatusLabel(status: ReadinessStatus): String = when (status
 }
 
 @Composable
-private fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
+internal fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     var chartMode by rememberSaveable { mutableStateOf(BadmintonTransferDetailChartMode.AXIS_SHARE) }
+    val allowedChartModes = listOf(
+        BadmintonTransferDetailChartMode.AXIS_SHARE,
+        BadmintonTransferDetailChartMode.WINDOW_COMPARISON
+    )
+    val effectiveChartMode = chartMode.takeIf { it in allowedChartModes }
+        ?: BadmintonTransferDetailChartMode.AXIS_SHARE
     BackHandler(enabled = expanded) { expanded = false }
-    val chartItems = when (chartMode) {
+    val chartItems = when (effectiveChartMode) {
         BadmintonTransferDetailChartMode.AXIS_SHARE -> summary.chartData.axisShareBars
         BadmintonTransferDetailChartMode.TRANSFER_TYPE_SHARE -> summary.chartData.transferTypeShareBars
         BadmintonTransferDetailChartMode.WINDOW_COMPARISON -> summary.chartData.windowComparisonBars
@@ -394,9 +400,9 @@ private fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
             if (expanded) {
                 Text(summary.metrics.detailInsightText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 AnalysisChipRow(
-                    labels = BadmintonTransferDetailChartMode.entries.map { it.displayName },
-                    selected = BadmintonTransferDetailChartMode.entries.indexOf(chartMode),
-                    onSelect = { chartMode = BadmintonTransferDetailChartMode.entries[it] }
+                    labels = allowedChartModes.map { it.displayName },
+                    selected = allowedChartModes.indexOf(effectiveChartMode).coerceAtLeast(0),
+                    onSelect = { chartMode = allowedChartModes[it] }
                 )
                 TransferBarList(chartItems)
                 if (summary.metrics.recommendedExerciseCandidates.isNotEmpty()) {
@@ -515,7 +521,7 @@ private fun TransferBarList(items: List<BadmintonTransferBarItem>) {
 }
 
 @Composable
-private fun TrainingDistributionSummary(stats: AnalysisStats) {
+internal fun TrainingDistributionSummary(stats: AnalysisStats) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("훈련 분포 요약", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
