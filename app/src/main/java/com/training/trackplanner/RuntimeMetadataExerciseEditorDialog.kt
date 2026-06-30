@@ -216,7 +216,9 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 40.dp),
                     onClick = {
                         val rest = restText.toIntOrNull()
                         error = when {
