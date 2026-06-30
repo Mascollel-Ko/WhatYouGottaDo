@@ -51,6 +51,7 @@ enum class TrendMetricId {
     SMASH_SPEED_BEST,
     SMASH_SPEED_AVG,
     SMASH_ATTEMPT_COUNT,
+    BENCH_PRESS_E1RM,
     SQUAT_E1RM,
     DEADLIFT_E1RM,
     MUSCLE_QUADS_LOAD_DAILY,
@@ -213,6 +214,24 @@ data class FatigueWeekIndex(
     val bodyPartScores: Map<String, Double>
 )
 
+data class BadmintonDailyLoadPoint(
+    val date: LocalDate,
+    val courtRaw: Double,
+    val footworkReactiveRaw: Double,
+    val supportRaw: Double
+) {
+    val totalRaw: Double
+        get() = courtRaw + footworkReactiveRaw + supportRaw
+}
+
+data class RepRangeWeekShare(
+    val weekStart: LocalDate,
+    val lowRepShare: Double,
+    val moderateRepShare: Double,
+    val highRepShare: Double,
+    val confirmedSetCount: Int
+)
+
 data class PerformanceTrendSummary(
     val strengthPerformanceSeries: CompositeTrendSeries,
     val badmintonTrainingSeries: CompositeTrendSeries,
@@ -224,7 +243,9 @@ data class PerformanceTrendSummary(
     val dashboardChartSpecs: List<ChartSpec>,
     val strengthWeeks: List<StrengthWeekIndex> = emptyList(),
     val badmintonWeeks: List<BadmintonWeekIndex> = emptyList(),
+    val badmintonDailyLoads: List<BadmintonDailyLoadPoint> = emptyList(),
     val fatigueWeeks: List<FatigueWeekIndex> = emptyList(),
+    val repRangeWeeks: List<RepRangeWeekShare> = emptyList(),
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
     val exerciseDisplayNamesById: Map<Long, String> = emptyMap()
 )

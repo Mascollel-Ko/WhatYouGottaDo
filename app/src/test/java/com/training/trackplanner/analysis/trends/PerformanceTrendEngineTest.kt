@@ -324,6 +324,56 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun badmintonDailyLoadsUseConfirmedSetsAndWeeklyPointsRemainWeekly() {
+        val exercise = badmintonExercise()
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(
+                record(
+                    exercise,
+                    today.minusDays(1),
+                    listOf(set(seconds = 600, confirmed = true)),
+                    plannedSets = listOf(set(seconds = 3600, confirmed = false))
+                )
+            ),
+            dailyMetrics = emptyList()
+        )
+
+        assertEquals(1, summary.badmintonDailyLoads.size)
+        assertTrue(summary.badmintonDailyLoads.single().totalRaw > 0.0)
+        assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
+    }
+
+    @Test
+    fun repRangeSharesUseConfirmedPerformedRepsAndIncludeFiveInLowRange() {
+        val strength = strengthExercise()
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(strength),
+            entriesWithSets = listOf(
+                record(
+                    strength,
+                    today,
+                    listOf(
+                        set(reps = 5, weightKg = 100.0, confirmed = true),
+                        set(reps = 6, weightKg = 90.0, confirmed = true),
+                        set(reps = 10, weightKg = 60.0, confirmed = true)
+                    ),
+                    plannedSets = listOf(set(reps = 3, weightKg = 200.0, confirmed = false))
+                )
+            ),
+            dailyMetrics = emptyList()
+        )
+
+        val latest = summary.repRangeWeeks.last { it.confirmedSetCount > 0 }
+        assertEquals(3, latest.confirmedSetCount)
+        assertEquals(100.0 / 3.0, latest.lowRepShare, 0.001)
+        assertEquals(100.0 / 3.0, latest.moderateRepShare, 0.001)
+        assertEquals(100.0 / 3.0, latest.highRepShare, 0.001)
+    }
+
+    @Test
     fun fatigueCompositeUsesPressurePercentileZScoreAndRecoveryPenalty() {
         val pressure = FatiguePressureSnapshot(
             categoryPressures = mapOf(

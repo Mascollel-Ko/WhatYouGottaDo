@@ -99,6 +99,7 @@ internal fun TrendMetricId.label(): String =
         TrendMetricId.SMASH_SPEED_BEST -> "스매시 최고 속도"
         TrendMetricId.SMASH_SPEED_AVG -> "스매시 평균 속도"
         TrendMetricId.SMASH_ATTEMPT_COUNT -> "스매시 속도 시도 수"
+        TrendMetricId.BENCH_PRESS_E1RM -> "주간 벤치프레스 e1RM 최고"
         TrendMetricId.SQUAT_E1RM -> "주간 스쿼트 e1RM 최고"
         TrendMetricId.DEADLIFT_E1RM -> "주간 데드리프트 e1RM 최고"
         TrendMetricId.MUSCLE_QUADS_LOAD_DAILY -> "주간 대퇴사두 운동량"

@@ -33,6 +33,7 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.SMASH_SPEED_BEST,
         TrendMetricId.SMASH_SPEED_AVG,
         TrendMetricId.SMASH_ATTEMPT_COUNT,
+        TrendMetricId.BENCH_PRESS_E1RM,
         TrendMetricId.SQUAT_E1RM,
         TrendMetricId.DEADLIFT_E1RM,
         TrendMetricId.STRENGTH_DELTA_NEXT,

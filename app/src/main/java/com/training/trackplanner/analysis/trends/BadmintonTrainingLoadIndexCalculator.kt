@@ -6,6 +6,7 @@ import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import java.time.LocalDate
 
 class BadmintonTrainingLoadIndexCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
@@ -51,6 +52,28 @@ class BadmintonTrainingLoadIndexCalculator(
             )
         }
     }
+
+    fun dailyLoads(
+        entriesWithSets: List<WorkoutEntryWithSets>,
+        exerciseMap: Map<Long, Exercise>
+    ): List<BadmintonDailyLoadPoint> =
+        entriesWithSets
+            .filter { record -> record.sets.any { set -> set.confirmed } }
+            .groupBy { record -> runCatching { LocalDate.parse(record.entry.date) }.getOrNull() }
+            .mapNotNull { (date, records) ->
+                date ?: return@mapNotNull null
+                val court = records.courtVolumeRaw(exerciseMap)
+                val footwork = records.footworkReactiveRaw(exerciseMap)
+                val support = records.supportRaw(exerciseMap)
+                if (court + footwork + support <= 0.0) return@mapNotNull null
+                BadmintonDailyLoadPoint(
+                    date = date,
+                    courtRaw = court,
+                    footworkReactiveRaw = footwork,
+                    supportRaw = support
+                )
+            }
+            .sortedBy { point -> point.date }
 
     private fun standardized(values: List<Double?>, index: Int): StandardizedComponent {
         val (baseline, confidence) = TrendMath.baselineFor(values, index)

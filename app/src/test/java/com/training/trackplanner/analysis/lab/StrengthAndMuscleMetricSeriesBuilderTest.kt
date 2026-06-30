@@ -11,6 +11,27 @@ import org.junit.Test
 
 class StrengthAndMuscleMetricSeriesBuilderTest {
     @Test
+    fun benchPressE1rmUsesConfirmedMainBenchSetsOnly() {
+        val bench = exercise(1, "벤치프레스", "barbell_bench_press")
+        val dumbbellBench = exercise(2, "덤벨 벤치프레스", "dumbbell_bench_press")
+        val series = build(
+            exercises = listOf(bench, dumbbellBench),
+            records = listOf(
+                record(
+                    "2026-06-10",
+                    bench,
+                    set(1, 100.0, 5),
+                    set(2, 200.0, 5, confirmed = false)
+                ),
+                record("2026-06-10", dumbbellBench, set(3, 50.0, 8))
+            )
+        )
+
+        assertEquals(116.666, series.value(TrendMetricId.BENCH_PRESS_E1RM, "2026-06-08"), 0.01)
+        assertEquals(1, series.getValue(TrendMetricId.BENCH_PRESS_E1RM).size)
+    }
+
+    @Test
     fun squatE1rmUsesEpleyAndDailyMax() {
         val exercise = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(
@@ -121,6 +142,8 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
     @Test
     fun labRegistryIncludesStrengthPerformanceAndMuscleLoadCandidates() {
         assertEquals("주간 스쿼트 e1RM 최고", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.displayName)
+        assertEquals("주간 벤치프레스 e1RM 최고", AnalysisMetricRegistry.descriptor(TrendMetricId.BENCH_PRESS_E1RM)?.displayName)
+        assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.BENCH_PRESS_E1RM)?.unit)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.unit)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.DEADLIFT_E1RM)?.unit)
         assertEquals(AnalysisTimeGrain.WEEKLY, AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.timeGrain)
@@ -170,8 +193,8 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
             sets = sets.toList()
         )
 
-    private fun set(index: Int, weight: Double, reps: Int, rpe: Double? = null): WorkoutSet =
-        WorkoutSet(entryId = 1, setIndex = index, weightKg = weight, reps = reps, confirmed = true, rpe = rpe)
+    private fun set(index: Int, weight: Double, reps: Int, rpe: Double? = null, confirmed: Boolean = true): WorkoutSet =
+        WorkoutSet(entryId = 1, setIndex = index, weightKg = weight, reps = reps, confirmed = confirmed, rpe = rpe)
 
     private fun Map<TrendMetricId, List<com.training.trackplanner.analysis.trends.TrendDataPoint>>.value(
         metric: TrendMetricId,

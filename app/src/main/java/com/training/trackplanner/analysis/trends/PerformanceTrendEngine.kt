@@ -39,7 +39,9 @@ class PerformanceTrendEngine(
         val weeks = weeklyAggregator.aggregate(today, entriesWithSets, dailyMetrics)
         val strengthWeeks = strengthCalculator.calculate(weeks, exerciseMap, dailyMetrics)
         val badmintonWeeks = badmintonCalculator.calculate(weeks, exerciseMap)
+        val badmintonDailyLoads = badmintonCalculator.dailyLoads(entriesWithSets, exerciseMap)
         val fatigueWeeks = fatigueWeeks(today, weeks, entriesWithSets, exercises, dailyMetrics)
+        val repRangeWeeks = repRangeWeeks(weeks)
         val metricSeries = metricSeries(strengthWeeks, badmintonWeeks, fatigueWeeks)
         val confidence = TrendMath.combineConfidence(
             listOf(
@@ -88,7 +90,9 @@ class PerformanceTrendEngine(
             dashboardChartSpecs = emptyList(),
             strengthWeeks = strengthWeeks,
             badmintonWeeks = badmintonWeeks,
+            badmintonDailyLoads = badmintonDailyLoads,
             fatigueWeeks = fatigueWeeks,
+            repRangeWeeks = repRangeWeeks,
             metricSeries = metricSeries,
             exerciseDisplayNamesById = exerciseDisplayNamesById
         )
@@ -188,6 +192,26 @@ class PerformanceTrendEngine(
             TrendMetricId.STRENGTH_INTENSITY_ONLY to strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.intensityIndex) }
         )
     }
+
+    private fun repRangeWeeks(weeks: List<WeeklyTrainingData>): List<RepRangeWeekShare> =
+        weeks.map { week ->
+            val reps = week.entries
+                .flatMap { record -> record.sets }
+                .filter { set -> set.confirmed && set.reps > 0 }
+                .map { set -> set.reps }
+            val total = reps.size
+            if (total == 0) {
+                RepRangeWeekShare(week.weekStart, 0.0, 0.0, 0.0, 0)
+            } else {
+                RepRangeWeekShare(
+                    weekStart = week.weekStart,
+                    lowRepShare = reps.count { it in 1..5 }.toDouble() / total * 100.0,
+                    moderateRepShare = reps.count { it in 6..9 }.toDouble() / total * 100.0,
+                    highRepShare = reps.count { it >= 10 }.toDouble() / total * 100.0,
+                    confirmedSetCount = total
+                )
+            }
+        }
 
     private fun nextDelta(points: List<TrendDataPoint>): List<TrendDataPoint> =
         points.mapIndexed { index, point ->

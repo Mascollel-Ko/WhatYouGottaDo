@@ -16,6 +16,7 @@ object StrengthAndMuscleMetricSeriesBuilder {
         exercises: List<Exercise>
     ): Map<TrendMetricId, List<TrendDataPoint>> {
         val exercisesById = exercises.associateBy { it.id }
+        val benchE1rmByDate = mutableMapOf<LocalDate, Double>()
         val squatE1rmByDate = mutableMapOf<LocalDate, Double>()
         val deadliftE1rmByDate = mutableMapOf<LocalDate, Double>()
         val dailyLoads = MuscleBucket.values().associateWith { mutableMapOf<LocalDate, Double>() }
@@ -30,6 +31,9 @@ object StrengthAndMuscleMetricSeriesBuilder {
 
             confirmedSets.forEach { set ->
                 e1rmFor(set)?.let { e1rm ->
+                    if (isMainBenchPress(exercise, record.entry)) {
+                        benchE1rmByDate.merge(date, e1rm, ::maxOf)
+                    }
                     if (isMainSquat(exercise, record.entry)) {
                         squatE1rmByDate.merge(date, e1rm, ::maxOf)
                     }
@@ -50,6 +54,7 @@ object StrengthAndMuscleMetricSeriesBuilder {
         }
 
         val result = mutableMapOf(
+            TrendMetricId.BENCH_PRESS_E1RM to weeklyBestSeries(benchE1rmByDate),
             TrendMetricId.SQUAT_E1RM to weeklyBestSeries(squatE1rmByDate),
             TrendMetricId.DEADLIFT_E1RM to weeklyBestSeries(deadliftE1rmByDate)
         )
@@ -128,6 +133,19 @@ object StrengthAndMuscleMetricSeriesBuilder {
         val name = entry.exerciseName.lowercase()
         return ("스쿼트" in name || "squat" in name) &&
             listOf("런지", "lunge", "레그 프레스", "leg press", "스플릿", "split", "불가리안", "bulgarian", "점프", "jump", "고블릿", "goblet", "프론트", "front")
+                .none { token -> token in name }
+    }
+
+    private fun isMainBenchPress(exercise: Exercise?, entry: WorkoutEntry): Boolean {
+        val key = exercise?.stableKey.orEmpty().lowercase()
+        if (key.isNotBlank()) {
+            if (key in setOf("bench_press", "barbell_bench_press", "flat_barbell_bench_press")) return true
+            if ("bench_press" in key && listOf("dumbbell", "incline", "decline", "close_grip", "floor").none { token -> token in key }) return true
+            return false
+        }
+        val name = entry.exerciseName.lowercase()
+        return ("벤치프레스" in name || "벤치 프레스" in name || "bench press" in name) &&
+            listOf("덤벨", "dumbbell", "인클라인", "incline", "디클라인", "decline", "클로즈", "close", "플로어", "floor", "플라이", "fly")
                 .none { token -> token in name }
     }
 
