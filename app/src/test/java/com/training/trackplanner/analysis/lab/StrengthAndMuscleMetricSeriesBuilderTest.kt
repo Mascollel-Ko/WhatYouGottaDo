@@ -141,6 +141,20 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         assertTrue(series.keys.all { id -> AnalysisMetricRegistry.descriptor(id) != null })
     }
 
+    @Test
+    fun customExerciseMuscleMetadataDrivesWeeklyLoad() {
+        val custom = exercise(1, "내 커스텀 하체운동", "user_ex_custom_lower").copy(
+            isCustom = true,
+            primaryMuscles = "QUADRICEPS",
+            secondaryMuscles = "GLUTE"
+        )
+        val series = build(listOf(record("2026-06-10", custom, set(1, 100.0, 5, rpe = 8.0))), listOf(custom))
+
+        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(287.5, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertTrue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY in AnalysisMetricRegistry.scatterMetrics(series).map { it.id })
+    }
+
     private fun build(
         records: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>

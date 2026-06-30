@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -106,6 +107,49 @@ class RecordCsvBackupRestoreTest {
         assertEquals(1, parsed.exerciseRows.size)
         assertEquals("test_squat", parsed.exerciseRows.first().stableKey)
         assertEquals("exercise_images/local_downloads/test_squat.png", parsed.exerciseRows.first().imageAssetName)
+    }
+
+    @Test
+    fun restoreCsvRoundTripsCustomExerciseRawAndRuntimeMetadata() {
+        val exercise = Exercise(
+            id = 1,
+            name = "내 커스텀 로테이션",
+            category = "근력",
+            stableKey = "user_ex_custom_rotation",
+            primaryMuscles = "OBLIQUE",
+            secondaryMuscles = "SHOULDER",
+            movementPattern = "ROTATION",
+            forceType = "ROTATE",
+            bodyRegion = "TRUNK",
+            isCustom = true
+        )
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            movementFamily = "ROTATIONAL_KINETIC_CHAIN",
+            badmintonTransferLevel = "SUPPORTIVE",
+            badmintonTransferType = MetadataTokenField.parse("ROTATION_POWER"),
+            localMuscularStressLevel = "HIGH",
+            safeForSeedMutation = false
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            exercises = listOf(exercise),
+            runtimeMetadata = listOf(metadata)
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val exerciseRow = parsed.exerciseRows.single()
+        val runtimeRow = parsed.runtimeMetadataRows.single()
+
+        assertEquals("OBLIQUE", exerciseRow.primaryMuscles)
+        assertEquals("SHOULDER", exerciseRow.secondaryMuscles)
+        assertEquals("ROTATION", exerciseRow.movementPattern)
+        assertTrue(exerciseRow.isCustom)
+        assertEquals("user_ex_custom_rotation", runtimeRow.stableKey)
+        assertEquals("ROTATIONAL_KINETIC_CHAIN", runtimeRow.movementFamily)
+        assertEquals("SUPPORTIVE", runtimeRow.badmintonTransferLevel)
+        assertEquals(listOf("ROTATION_POWER"), runtimeRow.badmintonTransferType.values)
+        assertFalse(runtimeRow.safeForSeedMutation)
     }
 
     @Test

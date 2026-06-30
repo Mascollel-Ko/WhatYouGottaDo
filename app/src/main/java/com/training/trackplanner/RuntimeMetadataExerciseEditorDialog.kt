@@ -27,7 +27,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
+import com.training.trackplanner.data.ExerciseTaxonomy
+import com.training.trackplanner.data.FatigueForceType
+import com.training.trackplanner.data.FatigueTrainingRole
 import com.training.trackplanner.data.MetadataTokenField
+import com.training.trackplanner.data.MovementCategory
+import com.training.trackplanner.data.MovementPattern
 
 @Composable
 internal fun RuntimeMetadataExerciseEditorDialog(
@@ -43,6 +48,11 @@ internal fun RuntimeMetadataExerciseEditorDialog(
 
     fun token(values: List<String>): MetadataTokenField =
         MetadataTokenField(raw = values.joinToString("|"), values = values)
+    fun splitExerciseTokens(raw: String): List<String> =
+        raw.split(',', '|', '/', ';')
+            .map(String::trim)
+            .filter(String::isNotBlank)
+    fun joinExerciseTokens(values: List<String>): String = values.joinToString(",")
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -107,6 +117,30 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("3. 동작 분류") {
+                            MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted()) {
+                                exercise = exercise.copy(primaryMuscles = joinExerciseTokens(it))
+                            }
+                            MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted()) {
+                                exercise = exercise.copy(secondaryMuscles = joinExerciseTokens(it))
+                            }
+                            MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted()) {
+                                exercise = exercise.copy(equipment = joinExerciseTokens(it), equipmentTags = joinExerciseTokens(it))
+                            }
+                            MetadataSingleSelectField("원본 동작 패턴", exercise.movementPattern, MovementPattern.entries.map { it.name }) {
+                                exercise = exercise.copy(movementPattern = it)
+                            }
+                            MetadataSingleSelectField("원본 동작 분류", exercise.movementCategory, MovementCategory.entries.map { it.name }) {
+                                exercise = exercise.copy(movementCategory = it)
+                            }
+                            MetadataSingleSelectField("힘/부하 유형", exercise.forceType, FatigueForceType.entries.map { it.name }) {
+                                exercise = exercise.copy(forceType = it)
+                            }
+                            MetadataSingleSelectField("신체 부위", exercise.bodyRegion, ExerciseTaxonomy.bodyRegions.sorted()) {
+                                exercise = exercise.copy(bodyRegion = it)
+                            }
+                            MetadataSingleSelectField("운동 역할", exercise.trainingRole, FatigueTrainingRole.entries.map { it.name }) {
+                                exercise = exercise.copy(trainingRole = it)
+                            }
                             MetadataSingleSelectField("동작 계열", metadata.movementFamily, options.values("movementFamily", metadata.movementFamily)) { metadata = metadata.copy(movementFamily = it) }
                             MetadataSingleSelectField("동작 세부형", metadata.movementSubtype, options.values("movementSubtype", metadata.movementSubtype)) { metadata = metadata.copy(movementSubtype = it) }
                         }

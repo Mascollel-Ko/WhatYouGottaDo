@@ -452,6 +452,7 @@ class TrainingRepository(
         val smashSpeeds = smashSpeedDao.all()
         val exercises = exerciseDao.allExercises()
         val seedByStableKey = seedExercisesByStableKey()
+        val runtimeMetadata = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         val profile = initialUserProfileDao.profile()
         val csv = RecordCsvBackupRestore.buildRestoreCsv(
             entries,
@@ -459,7 +460,8 @@ class TrainingRepository(
             exercises.map { exercise -> ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey) },
             profile,
             checkIns,
-            smashSpeeds
+            smashSpeeds,
+            runtimeMetadata
         )
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
@@ -1181,6 +1183,11 @@ class TrainingRepository(
                 if (upsertRestoredExercise(row, seedByStableKey)) {
                     exerciseCount += 1
                 }
+            }
+            data.runtimeMetadataRows.forEach { metadata ->
+                runtimeExerciseMetadataDao.upsert(
+                    metadata.copy(safeForSeedMutation = false).toEntity()
+                )
             }
             val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
             data.dailyRows.forEach { row ->

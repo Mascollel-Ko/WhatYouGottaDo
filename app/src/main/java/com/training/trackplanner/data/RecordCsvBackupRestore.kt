@@ -27,7 +27,8 @@ sealed class RecordCsvImportData {
         val setRows: List<RestoreSetRow>,
         val warningCount: Int,
         val checkInRows: List<RestoreCheckInRow> = emptyList(),
-        val smashSpeedRows: List<RestoreSmashSpeedRow> = emptyList()
+        val smashSpeedRows: List<RestoreSmashSpeedRow> = emptyList(),
+        val runtimeMetadataRows: List<RuntimeExerciseMetadata> = emptyList()
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -200,7 +201,39 @@ object RecordCsvBackupRestore {
         "smash_note",
         "parent_workout_entry_id",
         "smash_created_at",
-        "smash_updated_at"
+        "smash_updated_at",
+        "runtime_activity_kind",
+        "runtime_planning_eligibility",
+        "runtime_movement_family",
+        "runtime_movement_subtype",
+        "runtime_program_slot",
+        "runtime_redundancy_group",
+        "runtime_progress_metric_type",
+        "runtime_strength_progression_group",
+        "runtime_analysis_eligibility",
+        "runtime_primary_stress_profile",
+        "runtime_secondary_stress_tags",
+        "runtime_tendon_stress_tags",
+        "runtime_ligament_joint_stability_stress_tags",
+        "runtime_joint_impact_stress_tags",
+        "runtime_cognitive_stress_tags",
+        "runtime_sport_context_tags",
+        "runtime_recovery_decay_profile",
+        "runtime_stress_magnitude_hint",
+        "runtime_badminton_transfer_level",
+        "runtime_badminton_transfer_type",
+        "runtime_badminton_skill_targets",
+        "runtime_badminton_physical_qualities",
+        "runtime_transfer_confidence",
+        "runtime_source_confidence_level",
+        "runtime_final_source_status",
+        "runtime_neuromuscular_stress_level",
+        "runtime_systemic_muscular_stress_level",
+        "runtime_local_muscular_stress_level",
+        "runtime_joint_tendon_impact_stress_level",
+        "runtime_movement_focus_demand_level",
+        "runtime_recovery_duration_class",
+        "runtime_app_cue_profile"
     )
 
     fun buildRestoreCsv(
@@ -209,10 +242,12 @@ object RecordCsvBackupRestore {
         exercises: List<Exercise> = emptyList(),
         initialProfile: InitialUserProfile? = null,
         checkIns: List<DailyCheckIn> = emptyList(),
-        smashSpeeds: List<SmashSpeedRecord> = emptyList()
+        smashSpeeds: List<SmashSpeedRecord> = emptyList(),
+        runtimeMetadata: List<RuntimeExerciseMetadata> = emptyList()
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.id }
+        fun MetadataTokenField.exportRaw(): String = raw.ifBlank { values.joinToString("|") }
         builder.appendLine(restoreHeader.joinToString(","))
         initialProfile?.toCsvPairs()?.forEach { (key, value) ->
             builder.appendCsvRow(
@@ -276,6 +311,54 @@ object RecordCsvBackupRestore {
                 )
             )
         }
+        runtimeMetadata
+            .filter { metadata -> metadata.stableKey.isNotBlank() }
+            .sortedBy { metadata -> metadata.stableKey }
+            .forEach { metadata ->
+                builder.appendCsvRow(
+                    restoreHeader.map { column ->
+                        when (column) {
+                            "schema_version" -> "4"
+                            "row_type" -> "runtime_metadata"
+                            "exercise_name" -> metadata.exerciseName
+                            "stable_key" -> metadata.stableKey
+                            "runtime_activity_kind" -> metadata.activityKind
+                            "runtime_planning_eligibility" -> metadata.planningEligibility
+                            "runtime_movement_family" -> metadata.movementFamily
+                            "runtime_movement_subtype" -> metadata.movementSubtype
+                            "runtime_program_slot" -> metadata.programSlot
+                            "runtime_redundancy_group" -> metadata.redundancyGroup
+                            "runtime_progress_metric_type" -> metadata.progressMetricType
+                            "runtime_strength_progression_group" -> metadata.strengthProgressionGroup
+                            "runtime_analysis_eligibility" -> metadata.analysisEligibility.exportRaw()
+                            "runtime_primary_stress_profile" -> metadata.primaryStressProfile
+                            "runtime_secondary_stress_tags" -> metadata.secondaryStressTags.exportRaw()
+                            "runtime_tendon_stress_tags" -> metadata.tendonStressTags.exportRaw()
+                            "runtime_ligament_joint_stability_stress_tags" -> metadata.ligamentJointStabilityStressTags.exportRaw()
+                            "runtime_joint_impact_stress_tags" -> metadata.jointImpactStressTags.exportRaw()
+                            "runtime_cognitive_stress_tags" -> metadata.cognitiveStressTags.exportRaw()
+                            "runtime_sport_context_tags" -> metadata.sportContextTags.exportRaw()
+                            "runtime_recovery_decay_profile" -> metadata.recoveryDecayProfile
+                            "runtime_stress_magnitude_hint" -> metadata.stressMagnitudeHint
+                            "runtime_badminton_transfer_level" -> metadata.badmintonTransferLevel
+                            "runtime_badminton_transfer_type" -> metadata.badmintonTransferType.exportRaw()
+                            "runtime_badminton_skill_targets" -> metadata.badmintonSkillTargets.exportRaw()
+                            "runtime_badminton_physical_qualities" -> metadata.badmintonPhysicalQualities.exportRaw()
+                            "runtime_transfer_confidence" -> metadata.transferConfidence
+                            "runtime_source_confidence_level" -> metadata.sourceConfidenceLevel
+                            "runtime_final_source_status" -> metadata.finalSourceStatus
+                            "runtime_neuromuscular_stress_level" -> metadata.neuromuscularStressLevel
+                            "runtime_systemic_muscular_stress_level" -> metadata.systemicMuscularStressLevel
+                            "runtime_local_muscular_stress_level" -> metadata.localMuscularStressLevel
+                            "runtime_joint_tendon_impact_stress_level" -> metadata.jointTendonImpactStressLevel
+                            "runtime_movement_focus_demand_level" -> metadata.movementFocusDemandLevel
+                            "runtime_recovery_duration_class" -> metadata.recoveryDurationClass
+                            "runtime_app_cue_profile" -> metadata.appCueProfile
+                            else -> ""
+                        }
+                    }
+                )
+            }
         val metricsByDate = metrics.associateBy { metric -> metric.date }
         val fallbackCheckInSleepByDate = checkIns
             .filter { checkIn -> metricsByDate[checkIn.date]?.sleepHours == null && checkIn.sleepHours != null }
@@ -425,8 +508,56 @@ object RecordCsvBackupRestore {
         val setRows = mutableListOf<RestoreSetRow>()
         val checkInRows = mutableListOf<RestoreCheckInRow>()
         val smashSpeedRows = mutableListOf<RestoreSmashSpeedRow>()
+        val runtimeMetadataRows = mutableListOf<RuntimeExerciseMetadata>()
         rows.forEachIndexed { rowIndex, row ->
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
+            if (rowType == "runtime_metadata") {
+                val stableKey = row.value(index, "stable_key").trim()
+                val exerciseName = row.value(index, "exercise_name").trim()
+                if (stableKey.isBlank()) {
+                    warnings += 1
+                } else {
+                    val base = RuntimeExerciseMetadataDefaults.forIdentity(stableKey, exerciseName)
+                    fun value(column: String, fallback: String): String =
+                        row.value(index, column).ifBlank { fallback }
+                    runtimeMetadataRows += base.copy(
+                        activityKind = value("runtime_activity_kind", base.activityKind),
+                        planningEligibility = value("runtime_planning_eligibility", base.planningEligibility),
+                        movementFamily = value("runtime_movement_family", base.movementFamily),
+                        movementSubtype = value("runtime_movement_subtype", base.movementSubtype),
+                        programSlot = value("runtime_program_slot", base.programSlot),
+                        redundancyGroup = value("runtime_redundancy_group", base.redundancyGroup),
+                        progressMetricType = value("runtime_progress_metric_type", base.progressMetricType),
+                        strengthProgressionGroup = value("runtime_strength_progression_group", base.strengthProgressionGroup),
+                        analysisEligibility = MetadataTokenField.parse(value("runtime_analysis_eligibility", base.analysisEligibility.raw)),
+                        primaryStressProfile = value("runtime_primary_stress_profile", base.primaryStressProfile),
+                        secondaryStressTags = MetadataTokenField.parse(value("runtime_secondary_stress_tags", base.secondaryStressTags.raw)),
+                        tendonStressTags = MetadataTokenField.parse(value("runtime_tendon_stress_tags", base.tendonStressTags.raw)),
+                        ligamentJointStabilityStressTags = MetadataTokenField.parse(value("runtime_ligament_joint_stability_stress_tags", base.ligamentJointStabilityStressTags.raw)),
+                        jointImpactStressTags = MetadataTokenField.parse(value("runtime_joint_impact_stress_tags", base.jointImpactStressTags.raw)),
+                        cognitiveStressTags = MetadataTokenField.parse(value("runtime_cognitive_stress_tags", base.cognitiveStressTags.raw)),
+                        sportContextTags = MetadataTokenField.parse(value("runtime_sport_context_tags", base.sportContextTags.raw)),
+                        recoveryDecayProfile = value("runtime_recovery_decay_profile", base.recoveryDecayProfile),
+                        stressMagnitudeHint = value("runtime_stress_magnitude_hint", base.stressMagnitudeHint),
+                        badmintonTransferLevel = value("runtime_badminton_transfer_level", base.badmintonTransferLevel),
+                        badmintonTransferType = MetadataTokenField.parse(value("runtime_badminton_transfer_type", base.badmintonTransferType.raw)),
+                        badmintonSkillTargets = MetadataTokenField.parse(value("runtime_badminton_skill_targets", base.badmintonSkillTargets.raw)),
+                        badmintonPhysicalQualities = MetadataTokenField.parse(value("runtime_badminton_physical_qualities", base.badmintonPhysicalQualities.raw)),
+                        transferConfidence = value("runtime_transfer_confidence", base.transferConfidence),
+                        sourceConfidenceLevel = value("runtime_source_confidence_level", base.sourceConfidenceLevel),
+                        finalSourceStatus = value("runtime_final_source_status", base.finalSourceStatus),
+                        neuromuscularStressLevel = value("runtime_neuromuscular_stress_level", base.neuromuscularStressLevel),
+                        systemicMuscularStressLevel = value("runtime_systemic_muscular_stress_level", base.systemicMuscularStressLevel),
+                        localMuscularStressLevel = value("runtime_local_muscular_stress_level", base.localMuscularStressLevel),
+                        jointTendonImpactStressLevel = value("runtime_joint_tendon_impact_stress_level", base.jointTendonImpactStressLevel),
+                        movementFocusDemandLevel = value("runtime_movement_focus_demand_level", base.movementFocusDemandLevel),
+                        recoveryDurationClass = value("runtime_recovery_duration_class", base.recoveryDurationClass),
+                        safeForSeedMutation = false,
+                        appCueProfile = value("runtime_app_cue_profile", base.appCueProfile)
+                    )
+                }
+                return@forEachIndexed
+            }
             if (rowType == "profile") {
                 val key = row.value(index, "profile_key").trim()
                 if (key.isBlank()) {
@@ -545,7 +676,16 @@ object RecordCsvBackupRestore {
                 else -> warnings += 1
             }
         }
-        return RecordCsvImportData.Restore(exerciseRows, profileRows, dailyRows, setRows, warnings, checkInRows, smashSpeedRows)
+        return RecordCsvImportData.Restore(
+            exerciseRows,
+            profileRows,
+            dailyRows,
+            setRows,
+            warnings,
+            checkInRows,
+            smashSpeedRows,
+            runtimeMetadataRows
+        )
     }
 
     private fun parseDailyTimeseries(
