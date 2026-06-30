@@ -343,11 +343,14 @@ class PerformanceTrendEngineTest {
         )
 
         assertEquals(1, summary.badmintonDailyLoads.size)
-        assertTrue(summary.badmintonDailyLoads.single().totalRaw > 0.0)
-        assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTION_RANDOM"] ?: 0.0 > 0.0)
-        assertTrue(summary.badmintonDailyLoads.single().methodRaw["DECELERATION"] ?: 0.0 > 0.0)
-        assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTIVE"] ?: 0.0 > 0.0)
-        assertTrue(summary.badmintonMethodExamples["REACTION_RANDOM"].orEmpty().contains(exercise.name))
+        val daily = summary.badmintonDailyLoads.single()
+        assertTrue(daily.totalRaw > 0.0)
+        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["REACTION"] ?: 0.0, 0.001)
+        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["DECELERATION"] ?: 0.0, 0.001)
+        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["FOOTWORK"] ?: 0.0, 0.001)
+        assertFalse("role/body-part keys must not leak into transfer objective chart", "GRIP_FOREARM" in daily.methodRaw)
+        assertFalse("movement category must not leak into transfer objective chart", "REACTIVE" in daily.methodRaw)
+        assertTrue(summary.badmintonMethodExamples["REACTION"].orEmpty().contains(exercise.name))
         assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
     }
 

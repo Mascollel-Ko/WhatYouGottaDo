@@ -94,8 +94,7 @@ class BadmintonTrainingLoadIndexCalculator(
                 BadmintonTrainingMethodLabels.keysFrom(
                     courtMovementTypes = features.courtMovementTypes,
                     transferRoles = features.badmintonTransferRoles,
-                    sportContextTags = features.sportContextTags,
-                    movementCategory = features.movementCategory
+                    skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
                 ).forEach { key ->
                     val list = examples.getOrPut(key) { mutableListOf() }
                     if (name !in list && list.size < 2) list += name
@@ -174,13 +173,11 @@ class BadmintonTrainingLoadIndexCalculator(
             val keys = BadmintonTrainingMethodLabels.keysFrom(
                 courtMovementTypes = features.courtMovementTypes,
                 transferRoles = features.badmintonTransferRoles,
-                sportContextTags = features.sportContextTags,
-                movementCategory = features.movementCategory
+                skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
             )
             if (keys.isEmpty()) return@forEach
-            // Split the same dose across multiple existing metadata tags to avoid inflated totals.
-            val share = dose / keys.size
-            keys.forEach { key -> totals[key] = (totals[key] ?: 0.0) + share }
+            // ponytail: multi-label transfer stimulus is intentionally duplicated per objective, not split 1/n.
+            keys.forEach { key -> totals[key] = (totals[key] ?: 0.0) + dose }
         }
         return totals
     }

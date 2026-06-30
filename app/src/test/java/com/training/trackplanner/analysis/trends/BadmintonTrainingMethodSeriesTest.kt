@@ -23,14 +23,14 @@ class BadmintonTrainingMethodSeriesTest {
     }
 
     @Test
-    fun totalsDoNotDuplicateAlreadySplitMethodRawValues() {
+    fun totalsPreserveDuplicatedMultiLabelStimulus() {
         val totals = BadmintonTrainingMethodSeries.totals(
             listOf(
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 10.0, 0.0, mapOf("FOOTWORK" to 5.0, "REACTION" to 5.0))
+                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 10.0, 0.0, mapOf("FOOTWORK" to 10.0, "REACTION" to 10.0))
             )
         )
 
-        assertEquals(5.0, totals.getValue("FOOTWORK"), 0.001)
-        assertEquals(5.0, totals.getValue("REACTION"), 0.001)
+        assertEquals(10.0, totals.getValue("FOOTWORK"), 0.001)
+        assertEquals(10.0, totals.getValue("REACTION"), 0.001)
     }
 }

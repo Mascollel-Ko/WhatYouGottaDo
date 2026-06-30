@@ -21,7 +21,7 @@ object BadmintonTrainingMethodSeries {
             .mapNotNull { (week, rows) ->
                 val byLabel = linkedMapOf<String, Double>()
                 rows.forEach { point ->
-                    // ponytail: methodRaw already splits multi-tag exercises 1/n, so this sums without overcounting.
+                    // ponytail: methodRaw intentionally duplicates multi-label stimulus per transfer objective.
                     point.methodRaw.forEach { (key, value) ->
                         val label = BadmintonTrainingMethodLabels.label(key)
                         if (value > 0.0) byLabel[label] = (byLabel[label] ?: 0.0) + value

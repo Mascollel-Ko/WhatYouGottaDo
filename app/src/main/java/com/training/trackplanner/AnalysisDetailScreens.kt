@@ -227,7 +227,7 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                 )
                 if (mode == BadmintonLoadMode.METHOD) {
                     if (methodTotals.isEmpty()) {
-                        InfoCard("훈련방법별 메타데이터가 있는 기록이 부족합니다.")
+                        InfoCard("전이 목적 메타데이터가 있는 기록이 부족합니다.")
                     } else {
                         AnalysisChipRow(
                             labels = methodKeys.map(BadmintonTrainingMethodLabels::label),
@@ -267,35 +267,35 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("배드민턴 관련 훈련 구성", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("배드민턴 전이 목적별 자극량", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         TextButton(onClick = { showMethodDescription = true }) {
-                            Text("설명")
+                            Text("전이 목적 설명")
                         }
                     }
                     AnalysisChartSpecView(
                         ChartSpec(
                             type = ChartType.HORIZONTAL_BAR,
-                            title = "배드민턴 관련 훈련 구성",
+                            title = "배드민턴 전이 목적별 자극량",
                             bars = methodTotals.entries
                                 .sortedByDescending { it.value }
                                 .map { (key, value) -> BarItem(BadmintonTrainingMethodLabels.label(key), value) }
                         )
                     )
                     Text(
-                        "기존 배드민턴 메타데이터 태그를 기준으로 선택 기간의 구성을 보여줍니다.",
+                        "이 차트는 전체 대비 나눠 보는 표가 아니라 전이 목적별 자극량을 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             AnalysisSectionChart(
-                title = "주별 배드민턴 관련 훈련 구성",
+                title = "주별 배드민턴 전이 자극량",
                 spec = ChartSpec(
                     type = ChartType.STACKED_BAR,
-                    title = "주별 배드민턴 관련 훈련 구성",
+                    title = "주별 배드민턴 전이 자극량",
                     stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads)
                 ),
-                note = "각 주마다 배드민턴 관련 훈련이 어떤 유형으로 구성됐는지 보여줍니다. 월별이 아니라 주별 집계입니다."
+                note = "각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다."
             )
         }
         if (showMethodDescription) {
@@ -321,7 +321,7 @@ private fun BadmintonMethodDescriptionDialog(
                 Text("닫기")
             }
         },
-        title = { Text("배드민턴 관련 훈련 구성 설명") },
+        title = { Text("배드민턴 전이 목적 설명") },
         text = {
             Column(
                 modifier = Modifier
@@ -636,7 +636,7 @@ private enum class BadmintonLoadMode(val label: String) {
     TOTAL("전체"),
     DIRECT("직접"),
     TRANSFER("전이"),
-    METHOD("훈련방법별")
+    METHOD("전이 목적")
 }
 
 private data class RepRangeLine(
@@ -648,7 +648,7 @@ private fun badmintonSeriesLabel(mode: BadmintonLoadMode, method: String): Strin
     BadmintonLoadMode.TOTAL -> "전체 배드민턴 관련 훈련량"
     BadmintonLoadMode.DIRECT -> "직접 배드민턴 훈련량"
     BadmintonLoadMode.TRANSFER -> "배드민턴 전이 훈련량"
-    BadmintonLoadMode.METHOD -> BadmintonTrainingMethodLabels.label(method.ifBlank { "훈련방법별" })
+    BadmintonLoadMode.METHOD -> BadmintonTrainingMethodLabels.label(method.ifBlank { "전이 목적" })
 }
 
 private fun com.training.trackplanner.analysis.trends.BadmintonDailyLoadPoint.valueFor(
