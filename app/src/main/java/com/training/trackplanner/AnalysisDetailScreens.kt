@@ -266,11 +266,13 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
         if (methodTotals.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("배드민턴 전이 목적별 자극량", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        TextButton(onClick = { showMethodDescription = true }) {
-                            Text("전이 목적 설명")
-                        }
+                    Text(
+                        "배드민턴 전이 목적별 자극량",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(onClick = { showMethodDescription = true }) {
+                        Text("설명 보기")
                     }
                     AnalysisChartSpecView(
                         ChartSpec(

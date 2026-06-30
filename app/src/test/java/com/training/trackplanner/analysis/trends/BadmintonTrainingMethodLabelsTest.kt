@@ -39,4 +39,16 @@ class BadmintonTrainingMethodLabelsTest {
         assertFalse("GRIP_FOREARM" in keys)
         assertFalse("SHOULDER_CARE" in keys)
     }
+
+    @Test
+    fun keysFromCanExcludeGenericAntiRotationObjective() {
+        val keys = BadmintonTrainingMethodLabels.keysFrom(
+            courtMovementTypes = emptySet(),
+            transferRoles = setOf("ANTI_ROTATION_STABILITY"),
+            skillTargets = setOf("ANTI_ROTATION_STABILITY"),
+            includeAntiRotation = false
+        )
+
+        assertFalse("ANTI_ROTATION" in keys)
+    }
 }

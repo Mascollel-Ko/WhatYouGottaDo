@@ -91,11 +91,7 @@ class BadmintonTrainingLoadIndexCalculator(
                 if (dose <= 0.0) return@forEach
                 val name = displayName(record, exercise, displayNamesById)
                 if (name.isBlank()) return@forEach
-                BadmintonTrainingMethodLabels.keysFrom(
-                    courtMovementTypes = features.courtMovementTypes,
-                    transferRoles = features.badmintonTransferRoles,
-                    skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
-                ).forEach { key ->
+                features.transferObjectiveKeys().forEach { key ->
                     val list = examples.getOrPut(key) { mutableListOf() }
                     if (name !in list && list.size < 2) list += name
                 }
@@ -170,11 +166,7 @@ class BadmintonTrainingLoadIndexCalculator(
             val features = featuresFor(record, exerciseMap) ?: return@forEach
             val dose = record.badmintonDose(features)
             if (dose <= 0.0) return@forEach
-            val keys = BadmintonTrainingMethodLabels.keysFrom(
-                courtMovementTypes = features.courtMovementTypes,
-                transferRoles = features.badmintonTransferRoles,
-                skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
-            )
+            val keys = features.transferObjectiveKeys()
             if (keys.isEmpty()) return@forEach
             // ponytail: multi-label transfer stimulus is intentionally duplicated per objective, not split 1/n.
             keys.forEach { key -> totals[key] = (totals[key] ?: 0.0) + dose }
@@ -250,6 +242,37 @@ class BadmintonTrainingLoadIndexCalculator(
         if ("OVERHEAD_REPETITION" in fatigueCategories) correction *= 1.05
         if ("GRIP_FOREARM" in fatigueCategories) correction *= 1.05
         return correction
+    }
+
+    private fun AnalysisExerciseFeatures.transferObjectiveKeys(): Set<String> =
+        BadmintonTrainingMethodLabels.keysFrom(
+            courtMovementTypes = courtMovementTypes,
+            transferRoles = badmintonTransferRoles,
+            skillTargets = badmintonSkillTargets + canonicalBadmintonSkillTargets,
+            includeAntiRotation = hasExplicitAntiRotationTransferObjective()
+        )
+
+    private fun AnalysisExerciseFeatures.hasExplicitAntiRotationTransferObjective(): Boolean {
+        val text = listOf(exerciseName, stableKey, movementSubtype, programSlot, redundancyGroup)
+            .joinToString(" ")
+            .uppercase()
+        val explicitNames = listOf(
+            "PALLOF",
+            "SUITCASE",
+            "LANDMINE_ANTI_ROTATION",
+            "ANTI_ROTATION_PRESS",
+            "ANTI_ROTATION_HOLD",
+            "항회전",
+            "회전저항",
+            "팔로프",
+            "수트케이스"
+        )
+        val standingOneArmCableRow =
+            ("ONE_ARM" in text || "원암" in text) &&
+                ("CABLE" in text || "케이블" in text) &&
+                ("ROW" in text || "로우" in text) &&
+                ("STANDING" in text || "서서" in text)
+        return explicitNames.any { token -> token in text } || standingOneArmCableRow
     }
 
     private fun WorkoutEntryWithSets.durationMinutes(): Double =

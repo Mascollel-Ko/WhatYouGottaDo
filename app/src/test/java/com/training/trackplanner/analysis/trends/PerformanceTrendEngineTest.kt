@@ -355,6 +355,43 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun genericCoreSupportDoesNotBecomeAntiRotationTransferObjective() {
+        val exercise = antiRotationSupportExercise(
+            id = 31,
+            name = "Dead bug fixture",
+            stableKey = "dead_bug_fixture"
+        )
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(record(exercise, today.minusDays(1), listOf(set(reps = 10, confirmed = true)))),
+            dailyMetrics = emptyList()
+        )
+
+        val daily = summary.badmintonDailyLoads.single()
+        assertTrue(daily.totalRaw > 0.0)
+        assertFalse("generic core/stability must not inflate anti-rotation transfer objective", "ANTI_ROTATION" in daily.methodRaw)
+    }
+
+    @Test
+    fun explicitAntiRotationExerciseCountsAsAntiRotationTransferObjective() {
+        val exercise = antiRotationSupportExercise(
+            id = 32,
+            name = "Pallof press fixture",
+            stableKey = "pallof_press_fixture"
+        )
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(record(exercise, today.minusDays(1), listOf(set(reps = 10, confirmed = true)))),
+            dailyMetrics = emptyList()
+        )
+
+        val daily = summary.badmintonDailyLoads.single()
+        assertTrue((daily.methodRaw["ANTI_ROTATION"] ?: 0.0) > 0.0)
+    }
+
+    @Test
     fun repRangeSharesUseConfirmedPerformedRepsAndIncludeFiveInLowRange() {
         val strength = strengthExercise()
         val summary = PerformanceTrendEngine().analyze(
@@ -541,6 +578,39 @@ class PerformanceTrendEngineTest {
             stabilityDemandLevel = "HIGH",
             mobilityDemandLevel = "MODERATE",
             balanceContributionTags = "UNILATERAL_LOWER|KNEE_CONTROL",
+            analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
+            metadataConfidence = "HIGH"
+        )
+
+    private fun antiRotationSupportExercise(id: Long, name: String, stableKey: String): Exercise =
+        Exercise(
+            id = id,
+            name = name,
+            category = "기능성운동",
+            stableKey = stableKey,
+            movementPattern = "ANTI_ROTATION",
+            movementCategory = "STABILITY",
+            primaryMuscles = "CORE",
+            secondaryMuscles = "SHOULDERS",
+            equipment = "CABLE",
+            compoundType = "DRILL",
+            forceType = "BRACE",
+            plane = "TRANSVERSE",
+            laterality = "BILATERAL",
+            axialLoadLevel = "LOW",
+            trainingRole = "STABILITY",
+            badmintonTransferRoles = "ANTI_ROTATION_STABILITY",
+            fatigueCategories = "ANTI_ROTATION",
+            adaptiveBaselineGroups = "ANTI_ROTATION",
+            recoveryDecayProfile = "MEDIUM",
+            antiRotationWeight = 0.75,
+            localLoadWeight = 0.25,
+            progressMetricType = "QUALITY_BASED",
+            badmintonTransferStrength = "SUPPORTIVE",
+            badmintonSkillTargets = "ANTI_ROTATION_STABILITY",
+            stabilityDemandLevel = "HIGH",
+            mobilityDemandLevel = "LOW",
+            balanceContributionTags = "ANTI_ROTATION",
             analysisEligibility = "FATIGUE|BADMINTON_TRANSFER|BALANCE",
             metadataConfidence = "HIGH"
         )

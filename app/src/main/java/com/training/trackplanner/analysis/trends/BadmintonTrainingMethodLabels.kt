@@ -30,12 +30,14 @@ object BadmintonTrainingMethodLabels {
     fun keysFrom(
         courtMovementTypes: Set<String>,
         transferRoles: Set<String>,
-        skillTargets: Set<String>
+        skillTargets: Set<String>,
+        includeAntiRotation: Boolean = true
     ): Set<String> =
         (courtMovementTypes + transferRoles + skillTargets)
             .map { it.uppercase() }
             .flatMap(::objectivesFor)
             .toSet()
+            .let { keys -> if (includeAntiRotation) keys else keys - "ANTI_ROTATION" }
 
     private fun objectivesFor(key: String): Set<String> = when (key) {
         "FIRST_STEP", "ACCELERATION" -> setOf("ACCELERATION")
