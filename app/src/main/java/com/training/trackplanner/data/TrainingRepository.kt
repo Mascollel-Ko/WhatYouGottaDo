@@ -563,6 +563,7 @@ class TrainingRepository(
     suspend fun exerciseEditorData(exerciseId: Long?): ExerciseRuntimeMetadataEditorData =
         withContext(Dispatchers.IO) {
             val persistedRows = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            val resolver = RuntimeExerciseMetadataResolver(canonicalRuntimeMetadataCatalog, persistedRows)
             val options = RuntimeMetadataEditorOptions.from(
                 canonicalRuntimeMetadataCatalog.all() + persistedRows
             )
@@ -576,9 +577,15 @@ class TrainingRepository(
             val metadata = if (exerciseId == null) {
                 RuntimeExerciseMetadataDefaults.forIdentity("", "")
             } else {
-                RuntimeExerciseMetadataResolver(canonicalRuntimeMetadataCatalog, persistedRows).resolve(exercise)
+                resolver.resolve(exercise)
             }
-            ExerciseRuntimeMetadataEditorData(exercise, metadata, options)
+            val copySources = exerciseDao.allExercises()
+                .asSequence()
+                .filter { source -> source.id != exercise.id && source.name.isNotBlank() }
+                .sortedBy { source -> source.name }
+                .map { source -> ExerciseMetadataCopySource(source, resolver.resolve(source)) }
+                .toList()
+            ExerciseRuntimeMetadataEditorData(exercise, metadata, options, copySources)
         }
 
     suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): Long =

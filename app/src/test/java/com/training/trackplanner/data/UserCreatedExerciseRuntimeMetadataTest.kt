@@ -77,4 +77,58 @@ class UserCreatedExerciseRuntimeMetadataTest {
         assertTrue("MY_EXPERIMENTAL_SLOT" in options.values("programSlot"))
         assertTrue("SUPPORTIVE" in options.values("badmintonTransferLevel"))
     }
+
+    @Test
+    fun copyMetadataFromExistingExerciseKeepsNewCustomIdentity() {
+        val draft = Exercise(
+            id = 0,
+            name = "내 커스텀 운동",
+            category = "근력",
+            stableKey = "",
+            isCustom = true
+        )
+        val source = Exercise(
+            id = 10,
+            name = "스쿼트",
+            category = "근력운동",
+            stableKey = "barbell_back_squat",
+            primaryMuscles = "QUADRICEPS",
+            secondaryMuscles = "GLUTE",
+            movementPattern = "SQUAT",
+            forceType = "SQUAT",
+            bodyRegion = "LOWER",
+            isCustom = false
+        )
+        val copied = draft.copyEditableMetadataFrom(source)
+
+        assertEquals("내 커스텀 운동", copied.name)
+        assertEquals("", copied.stableKey)
+        assertTrue(copied.isCustom)
+        assertEquals("QUADRICEPS", copied.primaryMuscles)
+        assertEquals("GLUTE", copied.secondaryMuscles)
+        assertEquals("SQUAT", copied.movementPattern)
+        assertEquals("LOWER", copied.bodyRegion)
+    }
+
+    @Test
+    fun copyRuntimeMetadataFromExistingExerciseKeepsNewCustomIdentity() {
+        val draft = RuntimeExerciseMetadataDefaults.forIdentity("", "내 커스텀 운동")
+        val source = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트").copy(
+            movementFamily = "SQUAT_VARIANTS",
+            programSlot = "MAIN_LOWER_STRENGTH",
+            badmintonTransferLevel = "GENERAL",
+            neuromuscularStressLevel = "HIGH",
+            appCueProfile = "RANDOM_BEEP_CUE"
+        )
+        val copied = draft.copyEditableMetadataFrom(source)
+
+        assertEquals("", copied.stableKey)
+        assertEquals("내 커스텀 운동", copied.exerciseName)
+        assertEquals("SQUAT_VARIANTS", copied.movementFamily)
+        assertEquals("MAIN_LOWER_STRENGTH", copied.programSlot)
+        assertEquals("GENERAL", copied.badmintonTransferLevel)
+        assertEquals("HIGH", copied.neuromuscularStressLevel)
+        assertEquals("NONE", copied.appCueProfile)
+        assertFalse(copied.safeForSeedMutation)
+    }
 }

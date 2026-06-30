@@ -5,12 +5,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.training.trackplanner.data.ExerciseMetadataCopySource
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.FatigueForceType
@@ -33,6 +40,7 @@ import com.training.trackplanner.data.FatigueTrainingRole
 import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.MovementCategory
 import com.training.trackplanner.data.MovementPattern
+import com.training.trackplanner.data.copyEditableMetadataFrom
 
 @Composable
 internal fun RuntimeMetadataExerciseEditorDialog(
@@ -44,6 +52,8 @@ internal fun RuntimeMetadataExerciseEditorDialog(
     var metadata by remember(initial) { mutableStateOf(initial.metadata) }
     var restText by remember(initial) { mutableStateOf(initial.exercise.defaultRestSeconds.toString()) }
     var error by remember(initial) { mutableStateOf<String?>(null) }
+    var showCopyDialog by remember { mutableStateOf(false) }
+    var copiedFrom by remember(initial) { mutableStateOf<String?>(null) }
     val options = initial.options
 
     fun token(values: List<String>): MetadataTokenField =
@@ -59,7 +69,13 @@ internal fun RuntimeMetadataExerciseEditorDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .navigationBarsPadding()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
                         if (exercise.id == 0L) "사용자 운동 추가" else "운동 메타데이터 수정",
@@ -102,6 +118,15 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 singleLine = true
                             )
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { showCopyDialog = true }
+                            ) {
+                                Text("기존 운동에서 불러오기")
+                            }
+                            copiedFrom?.let { sourceName ->
+                                Text("불러온 운동: $sourceName", style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                     item {
@@ -218,4 +243,92 @@ internal fun RuntimeMetadataExerciseEditorDialog(
             }
         }
     }
+    if (showCopyDialog) {
+        ExerciseMetadataCopyDialog(
+            sources = initial.copySources,
+            onDismiss = { showCopyDialog = false },
+            onSelect = { source ->
+                val preserveName = exercise.name
+                val preserveStableKey = exercise.stableKey
+                val preserveId = exercise.id
+                val preserveCustom = exercise.isCustom
+                val preserveActive = exercise.isActive
+                val preserveArchivedAt = exercise.archivedAt
+                val preserveDescription = exercise.description
+                val copyRest = restText.isBlank() ||
+                    (initial.exercise.id == 0L && restText == initial.exercise.defaultRestSeconds.toString())
+                exercise = exercise.copyEditableMetadataFrom(source.exercise).copy(
+                    id = preserveId,
+                    name = preserveName,
+                    stableKey = preserveStableKey,
+                    description = preserveDescription,
+                    isCustom = preserveCustom,
+                    isActive = preserveActive,
+                    archivedAt = preserveArchivedAt
+                )
+                if (copyRest && source.exercise.defaultRestSeconds in 0..3600) {
+                    restText = source.exercise.defaultRestSeconds.toString()
+                }
+                metadata = metadata.copyEditableMetadataFrom(source.metadata)
+                copiedFrom = source.exercise.name
+                showCopyDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun ExerciseMetadataCopyDialog(
+    sources: List<ExerciseMetadataCopySource>,
+    onDismiss: () -> Unit,
+    onSelect: (ExerciseMetadataCopySource) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val filtered = remember(sources, query) {
+        val needle = query.trim()
+        sources.filter { source ->
+            needle.isBlank() || source.exercise.name.contains(needle, ignoreCase = true)
+        }.take(80)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("기존 운동에서 불러오기") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text("운동 검색") },
+                    singleLine = true
+                )
+                if (filtered.isEmpty()) {
+                    Text("검색 결과가 없습니다.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
+                        items(filtered, key = { it.exercise.id }) { source ->
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onSelect(source) }
+                            ) {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(source.exercise.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        listOf(source.exercise.category, source.metadata.programSlot)
+                                            .filter(String::isNotBlank)
+                                            .joinToString(" · "),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("닫기") }
+        }
+    )
 }

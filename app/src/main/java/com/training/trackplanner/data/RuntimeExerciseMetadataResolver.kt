@@ -364,5 +364,78 @@ data class RuntimeMetadataEditorOptions(
 data class ExerciseRuntimeMetadataEditorData(
     val exercise: Exercise,
     val metadata: RuntimeExerciseMetadata,
-    val options: RuntimeMetadataEditorOptions
+    val options: RuntimeMetadataEditorOptions,
+    val copySources: List<ExerciseMetadataCopySource> = emptyList()
 )
+
+data class ExerciseMetadataCopySource(
+    val exercise: Exercise,
+    val metadata: RuntimeExerciseMetadata
+)
+
+internal fun Exercise.copyEditableMetadataFrom(source: Exercise): Exercise =
+    copy(
+        category = source.category,
+        familyId = source.familyId,
+        familyName = source.familyName,
+        familyRole = source.familyRole,
+        familyE1rmMultiplier = source.familyE1rmMultiplier,
+        movementPattern = source.movementPattern,
+        movementCategory = source.movementCategory,
+        primaryMuscles = source.primaryMuscles,
+        secondaryMuscles = source.secondaryMuscles,
+        equipment = source.equipment,
+        equipmentTags = source.equipmentTags,
+        compoundType = source.compoundType,
+        forceType = source.forceType,
+        bodyRegion = source.bodyRegion,
+        plane = source.plane,
+        laterality = source.laterality,
+        axialLoadLevel = source.axialLoadLevel,
+        trainingRole = source.trainingRole,
+        stabilityRoles = source.stabilityRoles,
+        sportTransferDirect = source.sportTransferDirect,
+        sportTransferSupportive = source.sportTransferSupportive,
+        badmintonTransferRoles = source.badmintonTransferRoles,
+        fatigueCategories = source.fatigueCategories,
+        adaptiveBaselineGroups = source.adaptiveBaselineGroups,
+        accessoryRoles = source.accessoryRoles,
+        loadProfile = source.loadProfile,
+        recoveryDecayProfile = source.recoveryDecayProfile,
+        systemicLoadWeight = source.systemicLoadWeight,
+        neuralHeavyWeight = source.neuralHeavyWeight,
+        neuralSpeedWeight = source.neuralSpeedWeight,
+        localLoadWeight = source.localLoadWeight,
+        decelerationWeight = source.decelerationWeight,
+        elasticSscWeight = source.elasticSscWeight,
+        rotationPowerWeight = source.rotationPowerWeight,
+        antiRotationWeight = source.antiRotationWeight,
+        overheadSwingWeight = source.overheadSwingWeight,
+        gripLoadWeight = source.gripLoadWeight,
+        progressMetricType = source.progressMetricType,
+        strengthProgressionGroup = source.strengthProgressionGroup,
+        hypertrophyVolumeGroup = source.hypertrophyVolumeGroup,
+        mainLiftGroup = source.mainLiftGroup,
+        accessoryContributionGroup = source.accessoryContributionGroup,
+        estimated1RmEligible = source.estimated1RmEligible,
+        volumeLoadEligible = source.volumeLoadEligible,
+        badmintonTransferStrength = source.badmintonTransferStrength,
+        courtMovementTypes = source.courtMovementTypes,
+        badmintonSkillTargets = source.badmintonSkillTargets,
+        jointStressTags = source.jointStressTags,
+        stabilityDemandLevel = source.stabilityDemandLevel,
+        mobilityDemandLevel = source.mobilityDemandLevel,
+        balanceContributionTags = source.balanceContributionTags,
+        analysisEligibility = source.analysisEligibility,
+        activityKind = source.activityKind,
+        planningEligibility = source.planningEligibility,
+        metadataConfidence = source.metadataConfidence
+    )
+
+internal fun RuntimeExerciseMetadata.copyEditableMetadataFrom(source: RuntimeExerciseMetadata): RuntimeExerciseMetadata =
+    source.copy(
+        stableKey = stableKey,
+        exerciseName = exerciseName,
+        safeForSeedMutation = false,
+        appCueProfile = appCueProfile
+    )
