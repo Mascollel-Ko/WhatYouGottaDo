@@ -16,11 +16,11 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         val series = build(
             exercises = listOf(exercise),
             records = listOf(
-                record("2026-06-10", exercise, set(1, 100.0, 5), set(2, 90.0, 8))
+                record("2026-06-10", exercise, set(1, 100.0, 5), set(2, 110.0, 2))
             )
         )
 
-        assertEquals(116.666, series.value(TrendMetricId.SQUAT_E1RM, "2026-06-10"), 0.01)
+        assertEquals(117.333, series.value(TrendMetricId.SQUAT_E1RM, "2026-06-08"), 0.01)
     }
 
     @Test
@@ -50,8 +50,24 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
             )
         )
 
-        assertEquals(176.0, series.value(TrendMetricId.DEADLIFT_E1RM, "2026-06-10"), 0.01)
+        assertEquals(176.0, series.value(TrendMetricId.DEADLIFT_E1RM, "2026-06-08"), 0.01)
         assertEquals(1, series.getValue(TrendMetricId.DEADLIFT_E1RM).size)
+    }
+
+    @Test
+    fun stableExerciseMetadataResolvesImportedLookingDisplayName() {
+        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
+        val series = build(
+            exercises = listOf(squat),
+            records = listOf(
+                WorkoutEntryWithSets(
+                    entry = WorkoutEntry(date = "2026-06-10", exerciseId = squat.id, exerciseName = "운동113", category = "근력"),
+                    sets = listOf(set(1, 100.0, 5))
+                )
+            )
+        )
+
+        assertEquals(116.666, series.value(TrendMetricId.SQUAT_E1RM, "2026-06-08"), 0.01)
     }
 
     @Test
@@ -67,10 +83,10 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5, rpe = 8.0))), listOf(squat))
 
-        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(287.5, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-10"), 0.01)
+        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(287.5, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-08"), 0.01)
     }
 
     @Test
@@ -78,35 +94,51 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         val deadlift = exercise(1, "데드리프트", "conventional_deadlift")
         val series = build(listOf(record("2026-06-10", deadlift, set(1, 160.0, 3, rpe = 9.0))), listOf(deadlift))
 
-        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-10"), 0.01)
-        assertEquals(156.0, series.value(TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_DAILY, "2026-06-10"), 0.01)
+        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(156.0, series.value(TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_DAILY, "2026-06-08"), 0.01)
     }
 
     @Test
-    fun rollingWindowsIncludeTargetDate() {
+    fun muscleLoadAggregatesByWeekAndDoesNotCarryForwardMissingWeeks() {
         val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(
             exercises = listOf(squat),
             records = listOf(
                 record("2026-06-08", squat, set(1, 100.0, 1, rpe = 7.0)),
                 record("2026-06-09", squat, set(2, 200.0, 1, rpe = 7.0)),
-                record("2026-06-10", squat, set(3, 300.0, 1, rpe = 7.0))
+                record("2026-06-10", squat, set(3, 300.0, 1, rpe = 7.0)),
+                record("2026-06-22", squat, set(4, 400.0, 1, rpe = 7.0))
             )
         )
 
-        assertEquals(600.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_3D, "2026-06-10"), 0.01)
-        assertEquals(600.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_7D, "2026-06-10"), 0.01)
+        assertEquals(600.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(400.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-22"), 0.01)
+        assertTrue(series.getValue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY).none { point -> point.weekStart.toString() == "2026-06-15" })
     }
 
     @Test
     fun labRegistryIncludesStrengthPerformanceAndMuscleLoadCandidates() {
+        assertEquals("주간 스쿼트 e1RM 최고", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.displayName)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.unit)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.DEADLIFT_E1RM)?.unit)
+        assertEquals(AnalysisTimeGrain.WEEKLY, AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.timeGrain)
         assertEquals(AnalysisMetricCategory.PERFORMANCE, AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.category)
         assertEquals(AnalysisMetricCategory.MUSCLE_LOAD, AnalysisMetricRegistry.descriptor(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY)?.category)
         assertEquals("운동량 지수", AnalysisMetricRegistry.descriptor(TrendMetricId.MUSCLE_QUADS_LOAD_7D)?.unit)
+    }
+
+    @Test
+    fun labSelectorExposesWeeklyGeneratedMetricsWithoutKeyMismatch() {
+        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
+        val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5))), listOf(squat))
+
+        val available = AnalysisMetricRegistry.scatterMetrics(series).map { descriptor -> descriptor.id }
+
+        assertTrue(TrendMetricId.SQUAT_E1RM in available)
+        assertTrue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY in available)
+        assertTrue(series.keys.all { id -> AnalysisMetricRegistry.descriptor(id) != null })
     }
 
     private fun build(

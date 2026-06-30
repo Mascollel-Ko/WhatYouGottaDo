@@ -6,7 +6,9 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 object StrengthAndMuscleMetricSeriesBuilder {
     fun build(
@@ -48,8 +50,8 @@ object StrengthAndMuscleMetricSeriesBuilder {
         }
 
         val result = mutableMapOf(
-            TrendMetricId.SQUAT_E1RM to e1rmSeries(squatE1rmByDate),
-            TrendMetricId.DEADLIFT_E1RM to e1rmSeries(deadliftE1rmByDate)
+            TrendMetricId.SQUAT_E1RM to weeklyBestSeries(squatE1rmByDate),
+            TrendMetricId.DEADLIFT_E1RM to weeklyBestSeries(deadliftE1rmByDate)
         )
         if (datesWithConfirmedSets.isEmpty()) return result
 
@@ -62,11 +64,9 @@ object StrengthAndMuscleMetricSeriesBuilder {
         MuscleBucket.values().forEach { bucket ->
             val daily = dailyLoads.getValue(bucket)
             if (daily.values.none { value -> value > 0.0 }) return@forEach
-            result[bucket.dailyMetric] = dates.map { date ->
-                TrendDataPoint(date, daily[date] ?: 0.0)
-            }
-            result[bucket.threeDayMetric] = rollingSeries(dates, daily, 3)
-            result[bucket.sevenDayMetric] = rollingSeries(dates, daily, 7)
+            result[bucket.dailyMetric] = weeklySumSeries(daily)
+            result[bucket.threeDayMetric] = weeklySumSeries(rollingMap(dates, daily, 3), daily.keys)
+            result[bucket.sevenDayMetric] = weeklySumSeries(rollingMap(dates, daily, 7), daily.keys)
         }
         return result
     }
@@ -78,20 +78,36 @@ object StrengthAndMuscleMetricSeriesBuilder {
             null
         }
 
-    private fun e1rmSeries(values: Map<LocalDate, Double>): List<TrendDataPoint> =
-        values.toSortedMap().map { (date, value) -> TrendDataPoint(date, value) }
+    private fun weeklyBestSeries(values: Map<LocalDate, Double>): List<TrendDataPoint> =
+        values.entries
+            .groupBy { (date, _) -> date.weekStart() }
+            .toSortedMap()
+            .map { (week, rows) -> TrendDataPoint(week, rows.maxOf { (_, value) -> value }) }
 
-    private fun rollingSeries(
+    private fun rollingMap(
         dates: List<LocalDate>,
         daily: Map<LocalDate, Double>,
         days: Long
-    ): List<TrendDataPoint> = dates.map { date ->
-        val start = date.minusDays(days - 1)
-        val value = generateSequence(start) { it.plusDays(1) }
+    ): Map<LocalDate, Double> = dates.associateWith { date ->
+        generateSequence(date.minusDays(days - 1)) { it.plusDays(1) }
             .takeWhile { day -> !day.isAfter(date) }
             .sumOf { day -> daily[day] ?: 0.0 }
-        TrendDataPoint(date, value)
     }
+
+    private fun weeklySumSeries(values: Map<LocalDate, Double>, sourceDates: Set<LocalDate> = values.keys): List<TrendDataPoint> {
+        val sourceWeeks = sourceDates.map { date -> date.weekStart() }.toSet()
+        return values.entries
+            .filter { (date, _) -> date.weekStart() in sourceWeeks }
+            .groupBy { (date, _) -> date.weekStart() }
+            .toSortedMap()
+            .mapNotNull { (week, rows) ->
+                val value = rows.sumOf { (_, value) -> value }
+                if (value > 0.0) TrendDataPoint(week, value) else null
+            }
+    }
+
+    private fun LocalDate.weekStart(): LocalDate =
+        with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
     private fun rpeWeight(rpe: Double?): Double = when {
         rpe == null -> 1.0

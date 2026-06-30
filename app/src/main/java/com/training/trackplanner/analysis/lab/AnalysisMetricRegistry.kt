@@ -29,8 +29,8 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.SMASH_SPEED_BEST, "스매시 최고 속도", "주간 스매시 최고 속도", AnalysisMetricCategory.SMASH_SPEED, true, "km/h"),
         metric(TrendMetricId.SMASH_SPEED_AVG, "스매시 평균 속도", "주간 스매시 평균 속도", AnalysisMetricCategory.SMASH_SPEED, true, "km/h"),
         metric(TrendMetricId.SMASH_ATTEMPT_COUNT, "스매시 속도 시도 수", "주간 스매시 속도 기록 횟수", AnalysisMetricCategory.SMASH_SPEED, true, "회"),
-        metric(TrendMetricId.SQUAT_E1RM, "스쿼트 e1RM", "대표 스쿼트 confirmed set 기준 당일 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg", AnalysisTimeGrain.DAILY),
-        metric(TrendMetricId.DEADLIFT_E1RM, "데드리프트 e1RM", "컨벤셔널 데드리프트 confirmed set 기준 당일 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg", AnalysisTimeGrain.DAILY),
+        metric(TrendMetricId.SQUAT_E1RM, "주간 스쿼트 e1RM 최고", "대표 스쿼트 confirmed set 기준 주간 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg"),
+        metric(TrendMetricId.DEADLIFT_E1RM, "주간 데드리프트 e1RM 최고", "컨벤셔널 데드리프트 confirmed set 기준 주간 최고 추정 1RM", AnalysisMetricCategory.PERFORMANCE, true, "kg"),
         metric(TrendMetricId.STRENGTH_DELTA_NEXT, "다음 근력 변화", "다음 주 근력 지수의 변화량", AnalysisMetricCategory.DERIVED, null),
         metric(TrendMetricId.FATIGUE_DELTA_NEXT, "다음 피로 변화", "다음 주 피로 지수의 변화량", AnalysisMetricCategory.DERIVED, null)
     ) + muscleLoadMetrics()
@@ -71,30 +71,27 @@ object AnalysisMetricRegistry {
             listOf(
                 metric(
                     bucket.dailyMetric,
-                    "${bucket.label} 운동량",
-                    "${bucket.label} 당일 운동량 지수",
+                    "주간 ${bucket.label} 운동량",
+                    "${bucket.label} 주간 운동량 지수",
                     AnalysisMetricCategory.MUSCLE_LOAD,
                     false,
-                    "운동량 지수",
-                    AnalysisTimeGrain.DAILY
+                    "운동량 지수"
                 ),
                 metric(
                     bucket.threeDayMetric,
-                    "${bucket.label} 최근 3일 운동량",
-                    "${bucket.label} 최근 3일 누적 운동량 지수",
+                    "주간 ${bucket.label} 최근 3일 운동량",
+                    "${bucket.label} 주간 최근 3일 누적 운동량 지수",
                     AnalysisMetricCategory.MUSCLE_LOAD,
                     false,
-                    "운동량 지수",
-                    AnalysisTimeGrain.DAILY
+                    "운동량 지수"
                 ),
                 metric(
                     bucket.sevenDayMetric,
-                    "${bucket.label} 최근 7일 운동량",
-                    "${bucket.label} 최근 7일 누적 운동량 지수",
+                    "주간 ${bucket.label} 최근 7일 운동량",
+                    "${bucket.label} 주간 최근 7일 누적 운동량 지수",
                     AnalysisMetricCategory.MUSCLE_LOAD,
                     false,
-                    "운동량 지수",
-                    AnalysisTimeGrain.DAILY
+                    "운동량 지수"
                 )
             )
         }
