@@ -342,6 +342,9 @@ class PerformanceTrendEngineTest {
 
         assertEquals(1, summary.badmintonDailyLoads.size)
         assertTrue(summary.badmintonDailyLoads.single().totalRaw > 0.0)
+        assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTION_RANDOM"] ?: 0.0 > 0.0)
+        assertTrue(summary.badmintonDailyLoads.single().methodRaw["DECELERATION"] ?: 0.0 > 0.0)
+        assertTrue(summary.badmintonDailyLoads.single().methodRaw["REACTIVE"] ?: 0.0 > 0.0)
         assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
     }
 

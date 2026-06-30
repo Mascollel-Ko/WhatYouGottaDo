@@ -70,7 +70,8 @@ class BadmintonTrainingLoadIndexCalculator(
                     date = date,
                     courtRaw = court,
                     footworkReactiveRaw = footwork,
-                    supportRaw = support
+                    supportRaw = support,
+                    methodRaw = records.methodRaw(exerciseMap)
                 )
             }
             .sortedBy { point -> point.date }
@@ -133,6 +134,45 @@ class BadmintonTrainingLoadIndexCalculator(
             }
             record.entry.exerciseId to dose
         }.filterValues { value -> value > 0.0 }
+
+    private fun List<WorkoutEntryWithSets>.methodRaw(
+        exerciseMap: Map<Long, Exercise>
+    ): Map<String, Double> {
+        val totals = mutableMapOf<String, Double>()
+        forEach { record ->
+            val features = featuresFor(record, exerciseMap) ?: return@forEach
+            val dose = record.badmintonDose(features)
+            if (dose <= 0.0) return@forEach
+            val keys = BadmintonTrainingMethodLabels.keysFrom(
+                courtMovementTypes = features.courtMovementTypes,
+                transferRoles = features.badmintonTransferRoles,
+                sportContextTags = features.sportContextTags,
+                movementCategory = features.movementCategory
+            )
+            if (keys.isEmpty()) return@forEach
+            // Split the same dose across multiple existing metadata tags to avoid inflated totals.
+            val share = dose / keys.size
+            keys.forEach { key -> totals[key] = (totals[key] ?: 0.0) + share }
+        }
+        return totals
+    }
+
+    private fun WorkoutEntryWithSets.badmintonDose(features: AnalysisExerciseFeatures): Double = when {
+        features.isShuttlePlaySession() -> durationMinutes() * PerformanceTrendConstants.badmintonIntensityFactor(features.averageRpe)
+        features.isFootworkReactive() -> {
+            val dose = when {
+                durationMinutes() > 0.0 -> durationMinutes() *
+                    PerformanceTrendConstants.DRILL_DENSITY_FACTOR *
+                    features.reactiveWeight()
+                else -> completedReps().toDouble() * features.reactiveWeight()
+            }
+            if ("TEST_ONLY" in features.analysisEligibility) dose * 0.35 else dose
+        }
+        else -> {
+            val supportWeight = PerformanceTrendConstants.badmintonSupportWeight(features.badmintonTransferStrength)
+            if (supportWeight <= 0.0) 0.0 else baseDose() * supportWeight * features.supportCorrection()
+        }
+    }
 
     private fun featuresFor(
         record: WorkoutEntryWithSets,

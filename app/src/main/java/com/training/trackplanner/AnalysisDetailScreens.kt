@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -33,15 +35,19 @@ import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuild
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
+import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.RepRangeWeekShare
+import com.training.trackplanner.analysis.trends.TrendChartRange
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
+import java.time.DayOfWeek
+import java.time.temporal.TemporalAdjusters
 
 @Composable
 internal fun FatigueAndConditionAnalysisContent(
@@ -192,7 +198,37 @@ private fun BadmintonTransferCoverageSentenceCard(insight: CoachAnalysisInsightS
 
 @Composable
 private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
+    var mode by rememberSaveable { mutableStateOf(BadmintonLoadMode.TOTAL) }
+    val methodTotals = badmintonMethodTotals(summary)
+    val methodKeys = methodTotals.keys.toList()
+    var selectedMethod by rememberSaveable(methodTotals.keys.joinToString()) {
+        mutableStateOf(methodTotals.maxByOrNull { it.value }?.key.orEmpty())
+    }
+    if (selectedMethod !in methodKeys) {
+        selectedMethod = methodTotals.maxByOrNull { it.value }?.key.orEmpty()
+    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("배드민턴 관련 훈련량 선택", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                AnalysisChipRow(
+                    labels = BadmintonLoadMode.entries.map { it.label },
+                    selected = BadmintonLoadMode.entries.indexOf(mode),
+                    onSelect = { index -> mode = BadmintonLoadMode.entries[index] }
+                )
+                if (mode == BadmintonLoadMode.METHOD) {
+                    if (methodTotals.isEmpty()) {
+                        InfoCard("훈련방법별 메타데이터가 있는 기록이 부족합니다.")
+                    } else {
+                        AnalysisChipRow(
+                            labels = methodKeys.map(BadmintonTrainingMethodLabels::label),
+                            selected = methodKeys.indexOf(selectedMethod).coerceAtLeast(0),
+                            onSelect = { index -> selectedMethod = methodKeys[index] }
+                        )
+                    }
+                }
+            }
+        }
         AnalysisSectionChart(
             title = "배드민턴 관련 훈련량(일별)",
             spec = ChartSpec(
@@ -200,8 +236,10 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                 title = "배드민턴 관련 훈련량(일별)",
                 lineSeries = listOf(
                     ChartSeries(
-                        "일별 총량",
-                        summary.badmintonDailyLoads.map { point -> TrendDataPoint(point.date, point.totalRaw) }
+                        badmintonSeriesLabel(mode, selectedMethod),
+                        summary.badmintonDailyLoads.map { point ->
+                            TrendDataPoint(point.date, point.valueFor(mode, selectedMethod))
+                        }
                     )
                 )
             ),
@@ -212,14 +250,23 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
             spec = ChartSpec(
                 type = ChartType.LINE,
                 title = "배드민턴 관련 훈련량(주별)",
-                lineSeries = listOf(
-                    ChartSeries("직접 배드민턴 훈련량", summary.badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.courtRaw) }),
-                    ChartSeries("풋워크/반응 훈련량", summary.badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.footworkReactiveRaw) }),
-                    ChartSeries("배드민턴 전이 훈련량", summary.badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.supportRaw) })
-                )
+                lineSeries = listOf(ChartSeries(badmintonSeriesLabel(mode, selectedMethod), weeklyBadmintonPoints(summary, mode, selectedMethod)))
             ),
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
+        if (methodTotals.isNotEmpty()) {
+            AnalysisSectionChart(
+                title = "훈련방법별 구성",
+                spec = ChartSpec(
+                    type = ChartType.HORIZONTAL_BAR,
+                    title = "훈련방법별 구성",
+                    bars = methodTotals.entries
+                        .sortedByDescending { it.value }
+                        .map { (key, value) -> BarItem(BadmintonTrainingMethodLabels.label(key), value) }
+                ),
+                note = "기존 배드민턴 메타데이터 태그를 기준으로 선택 기간의 구성을 보여줍니다."
+            )
+        }
     }
 }
 
@@ -294,31 +341,41 @@ private fun RepRangeShareCard(weeks: List<RepRangeWeekShare>) {
 
 @Composable
 private fun RepRangeShareTrendCard(weeks: List<RepRangeWeekShare>) {
-    var selected by rememberSaveable { mutableStateOf(0) }
-    val labels = listOf("저반복/고강도", "중반복/중강도", "고반복/볼륨")
+    val ranges = listOf(
+        RepRangeLine("저반복/고강도", RepRangeWeekShare::lowRepShare),
+        RepRangeLine("중반복/중강도", RepRangeWeekShare::moderateRepShare),
+        RepRangeLine("고반복/볼륨", RepRangeWeekShare::highRepShare)
+    )
+    val selected = remember { mutableStateListOf<Int>().apply { addAll(ranges.indices) } }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("반복수 구간 비중 추이", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            AnalysisChipRow(labels = labels, selected = selected, onSelect = { selected = it })
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ranges.forEachIndexed { index, range ->
+                    AnalysisSelectableChip(range.label, index in selected) {
+                        if (index in selected) selected.remove(index) else selected.add(index)
+                        if (selected.isEmpty()) selected.add(index)
+                    }
+                }
+            }
+            val lineSeries = selected.sorted().map { index ->
+                val range = ranges[index]
+                ChartSeries(
+                    range.label,
+                    weeks.map { week -> TrendDataPoint(week.weekStart, range.value(week).takeIf { week.confirmedSetCount > 0 }) }
+                )
+            }
+            val yRange = TrendChartRange.percent(lineSeries.flatMap { series -> series.points.mapNotNull { it.value } })
             AnalysisChartSpecView(
                 ChartSpec(
                     type = ChartType.LINE,
                     title = "반복수 구간 비중 추이",
-                    lineSeries = listOf(
-                        ChartSeries(
-                            labels[selected],
-                            weeks.map { week ->
-                                TrendDataPoint(
-                                    week.weekStart,
-                                    when (selected) {
-                                        0 -> week.lowRepShare
-                                        1 -> week.moderateRepShare
-                                        else -> week.highRepShare
-                                    }.takeIf { week.confirmedSetCount > 0 }
-                                )
-                            }
-                        )
-                    )
+                    lineSeries = lineSeries,
+                    yMin = yRange?.first,
+                    yMax = yRange?.second
                 )
             )
         }
@@ -372,20 +429,24 @@ private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetri
             summary.metricSeries[bucket.dailyMetric].orEmpty().firstOrNull { it.weekStart == week }?.value ?: 0.0
         }
     }
+    val series = selectedMetrics.mapNotNull { metric ->
+        val descriptor = AnalysisMetricRegistry.descriptor(metric) ?: return@mapNotNull null
+        ChartSeries(
+            descriptor.displayName.removePrefix("주간 ").removeSuffix(" 운동량"),
+            weekStarts.map { week ->
+                val value = summary.metricSeries[metric].orEmpty().firstOrNull { it.weekStart == week }?.value ?: 0.0
+                val total = totalsByWeek[week] ?: 0.0
+                TrendDataPoint(week, if (total > 0.0) value / total * 100.0 else null)
+            }
+        )
+    }
+    val yRange = TrendChartRange.percent(series.flatMap { item -> item.points.mapNotNull { it.value } })
     return ChartSpec(
         type = ChartType.LINE,
         title = "근육군별 운동량 비율 추이",
-        lineSeries = selectedMetrics.mapNotNull { metric ->
-            val descriptor = AnalysisMetricRegistry.descriptor(metric) ?: return@mapNotNull null
-            ChartSeries(
-                descriptor.displayName.removePrefix("주간 ").removeSuffix(" 운동량"),
-                weekStarts.map { week ->
-                    val value = summary.metricSeries[metric].orEmpty().firstOrNull { it.weekStart == week }?.value ?: 0.0
-                    val total = totalsByWeek[week] ?: 0.0
-                    TrendDataPoint(week, if (total > 0.0) value / total * 100.0 else null)
-                }
-            )
-        }
+        lineSeries = series,
+        yMin = yRange?.first,
+        yMax = yRange?.second
     )
 }
 
@@ -396,4 +457,55 @@ private fun latestRepRangeShare(weeks: List<RepRangeWeekShare>): List<BarItem> {
         BarItem("중반복/중강도(6~9회)", latest.moderateRepShare),
         BarItem("고반복/볼륨(10회 이상)", latest.highRepShare)
     )
+}
+
+private enum class BadmintonLoadMode(val label: String) {
+    TOTAL("전체"),
+    DIRECT("직접"),
+    TRANSFER("전이"),
+    METHOD("훈련방법별")
+}
+
+private data class RepRangeLine(
+    val label: String,
+    val value: (RepRangeWeekShare) -> Double
+)
+
+private fun badmintonSeriesLabel(mode: BadmintonLoadMode, method: String): String = when (mode) {
+    BadmintonLoadMode.TOTAL -> "전체 배드민턴 관련 훈련량"
+    BadmintonLoadMode.DIRECT -> "직접 배드민턴 훈련량"
+    BadmintonLoadMode.TRANSFER -> "배드민턴 전이 훈련량"
+    BadmintonLoadMode.METHOD -> BadmintonTrainingMethodLabels.label(method.ifBlank { "훈련방법별" })
+}
+
+private fun com.training.trackplanner.analysis.trends.BadmintonDailyLoadPoint.valueFor(
+    mode: BadmintonLoadMode,
+    method: String
+): Double = when (mode) {
+    BadmintonLoadMode.TOTAL -> totalRaw
+    BadmintonLoadMode.DIRECT -> courtRaw + footworkReactiveRaw
+    BadmintonLoadMode.TRANSFER -> supportRaw
+    BadmintonLoadMode.METHOD -> methodRaw[method] ?: 0.0
+}
+
+private fun weeklyBadmintonPoints(
+    summary: PerformanceTrendSummary,
+    mode: BadmintonLoadMode,
+    method: String
+): List<TrendDataPoint> =
+    summary.badmintonDailyLoads
+        .groupBy { point -> point.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+        .toSortedMap()
+        .map { (week, points) ->
+            TrendDataPoint(week, points.sumOf { point -> point.valueFor(mode, method) }.takeIf { it > 0.0 })
+        }
+
+private fun badmintonMethodTotals(summary: PerformanceTrendSummary): Map<String, Double> {
+    val totals = linkedMapOf<String, Double>()
+    summary.badmintonDailyLoads.forEach { point ->
+        point.methodRaw.forEach { (key, value) ->
+            if (value > 0.0) totals[key] = (totals[key] ?: 0.0) + value
+        }
+    }
+    return totals.entries.sortedByDescending { it.value }.associate { it.key to it.value }
 }

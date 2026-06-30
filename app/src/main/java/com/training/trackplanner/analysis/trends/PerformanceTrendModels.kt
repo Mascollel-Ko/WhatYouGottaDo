@@ -151,7 +151,9 @@ data class ChartSpec(
     val slices: List<PieSlice> = emptyList(),
     val scatterPoints: List<ScatterPoint> = emptyList(),
     val forecastRange: ForecastRange? = null,
-    val emphasizeValue: Boolean = false
+    val emphasizeValue: Boolean = false,
+    val yMin: Double? = null,
+    val yMax: Double? = null
 ) {
     val visibleLineCount: Int
         get() = lineSeries.size
@@ -218,7 +220,8 @@ data class BadmintonDailyLoadPoint(
     val date: LocalDate,
     val courtRaw: Double,
     val footworkReactiveRaw: Double,
-    val supportRaw: Double
+    val supportRaw: Double,
+    val methodRaw: Map<String, Double> = emptyMap()
 ) {
     val totalRaw: Double
         get() = courtRaw + footworkReactiveRaw + supportRaw

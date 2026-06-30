@@ -58,8 +58,8 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         InfoCard("기록 부족")
         return
     }
-    val min = (allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0
-    val max = (allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0
+    val min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0)
+    val max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
     Canvas(modifier = modifier.fillMaxWidth()) {
         repeat(3) { index ->
             val y = size.height * (index + 1) / 4f
@@ -188,7 +188,7 @@ internal fun AnalysisMetricChipRow(
 }
 
 @Composable
-private fun AnalysisSelectableChip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun AnalysisSelectableChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
