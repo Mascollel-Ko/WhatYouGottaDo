@@ -231,43 +231,133 @@ data class RuntimeMetadataEditorOptions(
                 metadata.map(selector).filter(String::isNotBlank).distinct()
             fun tokens(selector: (RuntimeExerciseMetadata) -> MetadataTokenField): List<String> =
                 metadata.flatMap { selector(it).values }.filter(String::isNotBlank).distinct()
+            fun merged(field: String, observed: List<String>): List<String> =
+                (defaultValuesByField[field].orEmpty() + observed)
+                    .filter(String::isNotBlank)
+                    .distinct()
 
             return RuntimeMetadataEditorOptions(
                 mapOf(
-                    "activityKind" to single(RuntimeExerciseMetadata::activityKind),
-                    "planningEligibility" to single(RuntimeExerciseMetadata::planningEligibility),
-                    "movementFamily" to single(RuntimeExerciseMetadata::movementFamily),
-                    "movementSubtype" to single(RuntimeExerciseMetadata::movementSubtype),
-                    "programSlot" to single(RuntimeExerciseMetadata::programSlot),
-                    "redundancyGroup" to single(RuntimeExerciseMetadata::redundancyGroup),
-                    "progressMetricType" to single(RuntimeExerciseMetadata::progressMetricType),
-                    "strengthProgressionGroup" to single(RuntimeExerciseMetadata::strengthProgressionGroup),
-                    "analysisEligibility" to tokens(RuntimeExerciseMetadata::analysisEligibility),
-                    "primaryStressProfile" to single(RuntimeExerciseMetadata::primaryStressProfile),
-                    "secondaryStressTags" to tokens(RuntimeExerciseMetadata::secondaryStressTags),
-                    "tendonStressTags" to tokens(RuntimeExerciseMetadata::tendonStressTags),
-                    "ligamentJointStabilityStressTags" to tokens(RuntimeExerciseMetadata::ligamentJointStabilityStressTags),
-                    "jointImpactStressTags" to tokens(RuntimeExerciseMetadata::jointImpactStressTags),
-                    "cognitiveStressTags" to tokens(RuntimeExerciseMetadata::cognitiveStressTags),
-                    "sportContextTags" to tokens(RuntimeExerciseMetadata::sportContextTags),
-                    "recoveryDecayProfile" to single(RuntimeExerciseMetadata::recoveryDecayProfile),
-                    "stressMagnitudeHint" to single(RuntimeExerciseMetadata::stressMagnitudeHint),
-                    "badmintonTransferLevel" to single(RuntimeExerciseMetadata::badmintonTransferLevel),
-                    "badmintonTransferType" to tokens(RuntimeExerciseMetadata::badmintonTransferType),
-                    "badmintonSkillTargets" to tokens(RuntimeExerciseMetadata::badmintonSkillTargets),
-                    "badmintonPhysicalQualities" to tokens(RuntimeExerciseMetadata::badmintonPhysicalQualities),
-                    "transferConfidence" to single(RuntimeExerciseMetadata::transferConfidence),
-                    "sourceConfidenceLevel" to single(RuntimeExerciseMetadata::sourceConfidenceLevel),
-                    "finalSourceStatus" to single(RuntimeExerciseMetadata::finalSourceStatus),
-                    "neuromuscularStressLevel" to single(RuntimeExerciseMetadata::neuromuscularStressLevel),
-                    "systemicMuscularStressLevel" to single(RuntimeExerciseMetadata::systemicMuscularStressLevel),
-                    "localMuscularStressLevel" to single(RuntimeExerciseMetadata::localMuscularStressLevel),
-                    "jointTendonImpactStressLevel" to single(RuntimeExerciseMetadata::jointTendonImpactStressLevel),
-                    "movementFocusDemandLevel" to single(RuntimeExerciseMetadata::movementFocusDemandLevel),
-                    "recoveryDurationClass" to single(RuntimeExerciseMetadata::recoveryDurationClass)
+                    "activityKind" to merged("activityKind", single(RuntimeExerciseMetadata::activityKind)),
+                    "planningEligibility" to merged("planningEligibility", single(RuntimeExerciseMetadata::planningEligibility)),
+                    "movementFamily" to merged("movementFamily", single(RuntimeExerciseMetadata::movementFamily)),
+                    "movementSubtype" to merged("movementSubtype", single(RuntimeExerciseMetadata::movementSubtype)),
+                    "programSlot" to merged("programSlot", single(RuntimeExerciseMetadata::programSlot)),
+                    "redundancyGroup" to merged("redundancyGroup", single(RuntimeExerciseMetadata::redundancyGroup)),
+                    "progressMetricType" to merged("progressMetricType", single(RuntimeExerciseMetadata::progressMetricType)),
+                    "strengthProgressionGroup" to merged("strengthProgressionGroup", single(RuntimeExerciseMetadata::strengthProgressionGroup)),
+                    "analysisEligibility" to merged("analysisEligibility", tokens(RuntimeExerciseMetadata::analysisEligibility)),
+                    "primaryStressProfile" to merged("primaryStressProfile", single(RuntimeExerciseMetadata::primaryStressProfile)),
+                    "secondaryStressTags" to merged("secondaryStressTags", tokens(RuntimeExerciseMetadata::secondaryStressTags)),
+                    "tendonStressTags" to merged("tendonStressTags", tokens(RuntimeExerciseMetadata::tendonStressTags)),
+                    "ligamentJointStabilityStressTags" to merged("ligamentJointStabilityStressTags", tokens(RuntimeExerciseMetadata::ligamentJointStabilityStressTags)),
+                    "jointImpactStressTags" to merged("jointImpactStressTags", tokens(RuntimeExerciseMetadata::jointImpactStressTags)),
+                    "cognitiveStressTags" to merged("cognitiveStressTags", tokens(RuntimeExerciseMetadata::cognitiveStressTags)),
+                    "sportContextTags" to merged("sportContextTags", tokens(RuntimeExerciseMetadata::sportContextTags)),
+                    "recoveryDecayProfile" to merged("recoveryDecayProfile", single(RuntimeExerciseMetadata::recoveryDecayProfile)),
+                    "stressMagnitudeHint" to merged("stressMagnitudeHint", single(RuntimeExerciseMetadata::stressMagnitudeHint)),
+                    "badmintonTransferLevel" to merged("badmintonTransferLevel", single(RuntimeExerciseMetadata::badmintonTransferLevel)),
+                    "badmintonTransferType" to merged("badmintonTransferType", tokens(RuntimeExerciseMetadata::badmintonTransferType)),
+                    "badmintonSkillTargets" to merged("badmintonSkillTargets", tokens(RuntimeExerciseMetadata::badmintonSkillTargets)),
+                    "badmintonPhysicalQualities" to merged("badmintonPhysicalQualities", tokens(RuntimeExerciseMetadata::badmintonPhysicalQualities)),
+                    "transferConfidence" to merged("transferConfidence", single(RuntimeExerciseMetadata::transferConfidence)),
+                    "sourceConfidenceLevel" to merged("sourceConfidenceLevel", single(RuntimeExerciseMetadata::sourceConfidenceLevel)),
+                    "finalSourceStatus" to merged("finalSourceStatus", single(RuntimeExerciseMetadata::finalSourceStatus)),
+                    "neuromuscularStressLevel" to merged("neuromuscularStressLevel", single(RuntimeExerciseMetadata::neuromuscularStressLevel)),
+                    "systemicMuscularStressLevel" to merged("systemicMuscularStressLevel", single(RuntimeExerciseMetadata::systemicMuscularStressLevel)),
+                    "localMuscularStressLevel" to merged("localMuscularStressLevel", single(RuntimeExerciseMetadata::localMuscularStressLevel)),
+                    "jointTendonImpactStressLevel" to merged("jointTendonImpactStressLevel", single(RuntimeExerciseMetadata::jointTendonImpactStressLevel)),
+                    "movementFocusDemandLevel" to merged("movementFocusDemandLevel", single(RuntimeExerciseMetadata::movementFocusDemandLevel)),
+                    "recoveryDurationClass" to merged("recoveryDurationClass", single(RuntimeExerciseMetadata::recoveryDurationClass))
                 )
             )
         }
+
+        private val levels = listOf("LOW", "MODERATE", "HIGH", "VERY_HIGH")
+        private val durations = listOf("SHORT", "MEDIUM", "LONG", "VERY_LONG")
+        private val defaultValuesByField = mapOf(
+            "activityKind" to listOf("EXERCISE", "SPORT_SESSION"),
+            "planningEligibility" to listOf("PROGRAM_SELECTABLE", "FATIGUE_ONLY", "ANALYSIS_ONLY", "HIDDEN"),
+            "movementFamily" to MovementPattern.entries.map { it.name } + ProgramSlotId.entries.map { it.name } + listOf("NOT_APPLICABLE"),
+            "movementSubtype" to MovementPattern.entries.map { it.name } + listOf("NOT_APPLICABLE"),
+            "programSlot" to ProgramSlotId.entries.map { it.name } + listOf(
+                "NOT_APPLICABLE",
+                "MAIN_LOWER_STRENGTH",
+                "MAIN_HINGE_STRENGTH",
+                "HORIZONTAL_PULL_STRENGTH",
+                "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY",
+                "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY",
+                "BADMINTON_FOOTWORK",
+                "DECELERATION_LANDING",
+                "ROTATIONAL_KINETIC_CHAIN",
+                "SCAPULAR_SHOULDER_SUPPORT",
+                "TRUNK_ANTI_ROTATION_STABILITY",
+                "POWER_REACTIVE_LOW_VOLUME",
+                "RECOVERY_PREHAB_LIGHT"
+            ),
+            "redundancyGroup" to ProgramSlotId.entries.map { it.name } + listOf("NOT_APPLICABLE"),
+            "progressMetricType" to listOf(
+                "NOT_APPLICABLE",
+                "LOAD_REPS",
+                "VOLUME_LOAD",
+                "ESTIMATED_1RM",
+                "REPS_OR_TIME",
+                "SESSION_DURATION",
+                "TIME_DISTANCE",
+                "QUALITY_BASED",
+                "COUNT_ONLY"
+            ),
+            "strengthProgressionGroup" to StrengthProgressionGroup.entries.map { it.name } + ProgramSlotId.entries.map { it.name },
+            "analysisEligibility" to AnalysisEligibility.entries.map { it.name },
+            "primaryStressProfile" to listOf(
+                "LOW_LOAD_PREHAB_CONTROL_STRESS",
+                "HEAVY_AXIAL_LOWER_STRESS",
+                "HINGE_POSTERIOR_CHAIN_STRESS",
+                "HORIZONTAL_PUSH_STRESS",
+                "HORIZONTAL_ROW_STRESS",
+                "VERTICAL_PULL_STRESS",
+                "OVERHEAD_PUSH_STRESS",
+                "ROTATIONAL_CORE_STABILITY_STRESS",
+                "PLYOMETRIC_LANDING_STRESS",
+                "COURT_SPORT_MOVEMENT_STRESS",
+                "CARDIO_CONDITIONING_STRESS"
+            ),
+            "secondaryStressTags" to FatigueCategory.entries.map { it.name } + listOf(
+                "QUAD_LOAD",
+                "HAMSTRING_LOAD",
+                "GLUTE_LOAD",
+                "CHEST_LOAD",
+                "LAT_LOAD",
+                "TRICEPS_LOAD",
+                "BICEPS_LOAD",
+                "GRIP_FOREARM_LOAD",
+                "CORE_BRACING_LOAD",
+                "NEURAL_LOAD",
+                "ROTATION_POWER_LOAD",
+                "DECELERATION_LOAD",
+                "ELASTIC_SSC_LOAD"
+            ),
+            "tendonStressTags" to JointStressTag.entries.map { it.name } + listOf("PATELLAR_TENDON_STRESS", "ACHILLES_TENDON_STRESS", "ROTATOR_CUFF_TENDON_STRESS"),
+            "ligamentJointStabilityStressTags" to JointStressTag.entries.map { it.name } + listOf("KNEE_VALGUS_CONTROL_STRESS", "LUMBOPELVIC_CONTROL_STRESS", "SHOULDER_SCAPULAR_STABILITY_STRESS"),
+            "jointImpactStressTags" to listOf("DECELERATION_IMPACT", "JUMP_LANDING_IMPACT_STRESS", "COURT_DECELERATION_IMPACT", "LOW_LEVEL_REACTIVE_IMPACT"),
+            "cognitiveStressTags" to listOf("REACTION_LOAD", "DECISION_MAKING_LOAD", "MOTOR_LEARNING_LOAD", "TECHNICAL_CONCENTRATION_LOAD"),
+            "sportContextTags" to listOf("BADMINTON_DIRECT_TRANSFER", "BADMINTON_FOOTWORK", "BADMINTON_MULTI_SHUTTLE", "GENERAL_CONDITIONING", "OTHER_SPORT_SESSION"),
+            "recoveryDecayProfile" to durations,
+            "stressMagnitudeHint" to levels,
+            "badmintonTransferLevel" to BadmintonTransferStrength.entries.map { it.name },
+            "badmintonTransferType" to BadmintonTransferRole.entries.map { it.name },
+            "badmintonSkillTargets" to BadmintonSkillTarget.entries.map { it.name },
+            "badmintonPhysicalQualities" to CourtMovementType.entries.map { it.name } + BalanceContributionTag.entries.map { it.name },
+            "transferConfidence" to listOf("NONE", "LOW", "MEDIUM", "HIGH"),
+            "sourceConfidenceLevel" to listOf("HEURISTIC_ACCEPTED", "ANATOMY_SUPPORTED", "SOURCE_WEAK_BUT_ACCEPTABLE", "VERIFIED_FAMILY", "VERIFIED_EXACT"),
+            "finalSourceStatus" to listOf("SOURCE_ACCEPTED", "SOURCE_ACCEPTED_WITH_LIMITATION"),
+            "neuromuscularStressLevel" to levels,
+            "systemicMuscularStressLevel" to levels,
+            "localMuscularStressLevel" to levels,
+            "jointTendonImpactStressLevel" to levels,
+            "movementFocusDemandLevel" to levels,
+            "recoveryDurationClass" to durations
+        )
     }
 }
 

@@ -3,6 +3,7 @@ package com.training.trackplanner.data
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UserCreatedExerciseRuntimeMetadataTest {
@@ -45,5 +46,35 @@ class UserCreatedExerciseRuntimeMetadataTest {
         assertEquals("ROTATIONAL_KINETIC_CHAIN", resolved.movementFamily)
         assertEquals("SUPPORTIVE", resolved.badmintonTransferLevel)
         assertEquals("HIGH", resolved.localMuscularStressLevel)
+    }
+
+    @Test
+    fun newCustomExercisePickerOptionsUseFullValidSetsNotOnlyDefaults() {
+        val options = RuntimeMetadataEditorOptions.from(emptyList())
+
+        assertEquals(setOf("EXERCISE", "SPORT_SESSION"), options.values("activityKind").toSet())
+        assertTrue("PROGRAM_SELECTABLE" in options.values("planningEligibility"))
+        assertTrue("FATIGUE_ONLY" in options.values("planningEligibility"))
+        assertTrue("ROTATIONAL_KINETIC_CHAIN" in options.values("programSlot"))
+        assertTrue("LOAD_REPS" in options.values("progressMetricType"))
+        assertTrue("ESTIMATED_1RM" in options.values("progressMetricType"))
+        assertEquals(setOf("DIRECT", "GENERAL", "NONE", "SUPPORTIVE"), options.values("badmintonTransferLevel").toSet())
+        assertEquals(setOf("HIGH", "LOW", "MODERATE", "VERY_HIGH"), options.values("neuromuscularStressLevel").toSet())
+        assertEquals(setOf("LONG", "MEDIUM", "SHORT", "VERY_LONG"), options.values("recoveryDurationClass").toSet())
+        assertTrue(options.values("primaryStressProfile").size > 1)
+        assertTrue(options.values("secondaryStressTags").size > 1)
+    }
+
+    @Test
+    fun pickerOptionsKeepPersistedCustomValuesThatAreNotInDefaults() {
+        val custom = RuntimeExerciseMetadataDefaults.forIdentity("user_ex_custom", "Custom").copy(
+            programSlot = "MY_EXPERIMENTAL_SLOT",
+            badmintonTransferLevel = "SUPPORTIVE"
+        )
+
+        val options = RuntimeMetadataEditorOptions.from(listOf(custom))
+
+        assertTrue("MY_EXPERIMENTAL_SLOT" in options.values("programSlot"))
+        assertTrue("SUPPORTIVE" in options.values("badmintonTransferLevel"))
     }
 }
