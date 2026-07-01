@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.BarItem
@@ -46,12 +47,19 @@ internal fun AnalysisChartSpecView(spec: ChartSpec) {
 }
 
 @Composable
-internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) {
-    val colors = listOf(
+internal fun analysisChartPalette(): List<Color> =
+    listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.tertiary,
-        MaterialTheme.colorScheme.secondary
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.outline,
+        MaterialTheme.colorScheme.primaryContainer
     )
+
+@Composable
+internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) {
+    val colors = analysisChartPalette()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
     val forecastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value } }
@@ -113,15 +121,12 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         InfoCard("주별로 표시할 배드민턴 관련 훈련 기록이 없습니다.")
         return
     }
-    val colors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.tertiary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.error,
-        MaterialTheme.colorScheme.outline,
-        MaterialTheme.colorScheme.primaryContainer
-    )
+    val colors = analysisChartPalette()
     val labels = groups.flatMap { group -> group.segments.map { it.label } }.distinct()
+    val colorIndexByLabel = groups
+        .flatMap { group -> group.segments }
+        .groupBy { segment -> segment.label }
+        .mapValues { (_, segments) -> segments.firstNotNullOfOrNull { it.colorIndex } }
     val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Canvas(modifier = modifier.fillMaxWidth()) {
@@ -131,7 +136,8 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                 var bottom = size.height
                 group.segments.forEach { segment ->
                     val height = (size.height * (segment.value / maxTotal)).toFloat()
-                    val color = colors[labels.indexOf(segment.label).coerceAtLeast(0) % colors.size]
+                    val colorIndex = segment.colorIndex ?: labels.indexOf(segment.label).coerceAtLeast(0)
+                    val color = colors[colorIndex % colors.size]
                     drawRect(
                         color = color,
                         topLeft = Offset(groupIndex * slot + (slot - barWidth) / 2f, bottom - height),
@@ -146,7 +152,8 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             labels.forEachIndexed { index, label ->
-                Surface(shape = RoundedCornerShape(8.dp), color = colors[index % colors.size].copy(alpha = 0.22f)) {
+                val colorIndex = colorIndexByLabel[label] ?: index
+                Surface(shape = RoundedCornerShape(8.dp), color = colors[colorIndex % colors.size].copy(alpha = 0.22f)) {
                     Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = label, style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -192,8 +199,9 @@ private fun AnalysisBarList(items: List<BarItem>) {
         return
     }
     val max = items.maxOf { abs(it.value) }.coerceAtLeast(1.0)
+    val colors = analysisChartPalette()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.take(6).forEach { item ->
+        items.take(6).forEachIndexed { index, item ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(item.label, style = MaterialTheme.typography.labelMedium)
@@ -202,7 +210,7 @@ private fun AnalysisBarList(items: List<BarItem>) {
                 Surface(
                     modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat()).height(8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = colors[(item.colorIndex ?: index) % colors.size]
                 ) {}
             }
         }

@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -111,10 +113,29 @@ internal fun BadmintonTransferAnalysisContent(
     badmintonTransfer: BadmintonTransferSummary?,
     performanceTrend: PerformanceTrendSummary?
 ) {
+    val methodTotals = performanceTrend
+        ?.let { BadmintonTrainingMethodSeries.totals(it.badmintonDailyLoads) }
+        .orEmpty()
+    val availableMethodKeys = methodTotals.keys.toList().ifEmpty { BadmintonTrainingMethodSeries.objectiveKeys }
+    val defaultMethodKeys = defaultBadmintonMethodKeys(methodTotals, availableMethodKeys)
+    var selectedMethodKeysText by rememberSaveable(availableMethodKeys.joinToString("|")) {
+        mutableStateOf(defaultMethodKeys.joinToString("|"))
+    }
+    val selectedMethodKeys = selectedMethodKeysText
+        .split("|")
+        .filter { it in availableMethodKeys }
+        .ifEmpty { defaultMethodKeys }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        performanceTrend?.let { BadmintonTransferObjectiveSentenceCard(it) }
+        performanceTrend?.let { BadmintonTransferObjectiveSentenceCard(it, selectedMethodKeys.toSet()) }
             ?: InfoCard("배드민턴 전이 목적별 자극량을 계산하고 있습니다.")
-        performanceTrend?.let { BadmintonTrainingLoadCharts(it) }
+        performanceTrend?.let {
+            BadmintonTrainingLoadCharts(
+                summary = it,
+                availableMethodKeys = availableMethodKeys,
+                selectedMethodKeys = selectedMethodKeys,
+                onSelectedMethodKeysChange = { keys -> selectedMethodKeysText = keys.joinToString("|") }
+            )
+        }
             ?: InfoCard("배드민턴 훈련량 추세를 계산하고 있습니다.")
     }
 }
@@ -184,8 +205,11 @@ private fun FatigueAxisCauseCard(
 }
 
 @Composable
-private fun BadmintonTransferObjectiveSentenceCard(summary: PerformanceTrendSummary) {
-    val methodSummary = BadmintonTrainingMethodSeries.summary(summary.badmintonDailyLoads)
+private fun BadmintonTransferObjectiveSentenceCard(
+    summary: PerformanceTrendSummary,
+    selectedMethodKeys: Set<String>
+) {
+    val methodSummary = BadmintonTrainingMethodSeries.summary(summary.badmintonDailyLoads, selectedMethodKeys)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(methodSummary.sentence, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -199,10 +223,18 @@ private fun BadmintonTransferObjectiveSentenceCard(summary: PerformanceTrendSumm
 }
 
 @Composable
-private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
+private fun BadmintonTrainingLoadCharts(
+    summary: PerformanceTrendSummary,
+    availableMethodKeys: List<String>,
+    selectedMethodKeys: List<String>,
+    onSelectedMethodKeysChange: (List<String>) -> Unit
+) {
     var mode by rememberSaveable { mutableStateOf(BadmintonLoadMode.TOTAL) }
     var showMethodDescription by rememberSaveable { mutableStateOf(false) }
+    var showMethodPicker by rememberSaveable { mutableStateOf(false) }
     val methodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads)
+    val selectedMethodSet = selectedMethodKeys.toSet()
+    val selectedMethodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads, selectedMethodSet)
     val methodKeys = methodTotals.keys.toList()
     var selectedMethod by rememberSaveable(methodTotals.keys.joinToString()) {
         mutableStateOf(methodTotals.maxByOrNull { it.value }?.key.orEmpty())
@@ -232,6 +264,20 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                 }
             }
         }
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showMethodPicker = true },
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Text(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
+                text = badmintonMethodSelectionSummary(selectedMethodKeys),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
         AnalysisSectionChart(
             title = "배드민턴 관련 훈련량(일별)",
             spec = ChartSpec(
@@ -257,7 +303,7 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
             ),
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
-        val comparisonGroups = BadmintonTrainingMethodSeries.recentComparisonGroups(summary.badmintonDailyLoads)
+        val comparisonGroups = BadmintonTrainingMethodSeries.recentComparisonGroups(summary.badmintonDailyLoads, selectedMethodSet)
         if (comparisonGroups.isNotEmpty()) {
             AnalysisSectionChart(
                 title = "최근 7일 vs 28일 전이 목적 비교",
@@ -269,7 +315,7 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                 note = "라켓 보조 같은 구 전이축이 아니라 풋워크, 가속, 감속, 리액션 등 전이 목적 기준으로 비교합니다."
             )
         }
-        if (methodTotals.isNotEmpty()) {
+        if (selectedMethodTotals.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -284,9 +330,15 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                         ChartSpec(
                             type = ChartType.HORIZONTAL_BAR,
                             title = "배드민턴 전이 목적별 자극량",
-                            bars = methodTotals.entries
+                            bars = selectedMethodTotals.entries
                                 .sortedByDescending { it.value }
-                                .map { (key, value) -> BarItem(BadmintonTrainingMethodLabels.label(key), value) }
+                                .map { (key, value) ->
+                                    BarItem(
+                                        BadmintonTrainingMethodLabels.label(key),
+                                        value,
+                                        BadmintonTrainingMethodSeries.colorIndex(key)
+                                    )
+                                }
                         )
                     )
                     Text(
@@ -301,16 +353,30 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
                 spec = ChartSpec(
                     type = ChartType.STACKED_BAR,
                     title = "주별 배드민턴 전이 자극량",
-                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads)
+                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet)
                 ),
                 note = "각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다."
             )
+        } else {
+            InfoCard("선택한 전이 목적의 기록이 없습니다.")
         }
         if (showMethodDescription) {
             BadmintonMethodDescriptionDialog(
-                methodKeys = methodKeys,
+                methodKeys = selectedMethodKeys,
                 examples = summary.badmintonMethodExamples,
                 onDismiss = { showMethodDescription = false }
+            )
+        }
+        if (showMethodPicker) {
+            BadmintonMethodPickerDialog(
+                available = availableMethodKeys,
+                selected = selectedMethodKeys.toSet(),
+                defaults = defaultBadmintonMethodKeys(methodTotals, availableMethodKeys).toSet(),
+                onDismiss = { showMethodPicker = false },
+                onApply = { keys ->
+                    onSelectedMethodKeysChange(keys)
+                    showMethodPicker = false
+                }
             )
         }
     }
@@ -355,19 +421,120 @@ private fun BadmintonMethodDescriptionDialog(
 }
 
 @Composable
+private fun BadmintonMethodPickerDialog(
+    available: List<String>,
+    selected: Set<String>,
+    defaults: Set<String>,
+    onDismiss: () -> Unit,
+    onApply: (List<String>) -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val draft = remember(selected) { mutableStateListOf<String>().apply { addAll(selected) } }
+    val filtered = filterBadmintonMethodKeys(available, query)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = draft.isNotEmpty(),
+                onClick = { onApply(draft.toList()) }
+            ) {
+                Text("적용")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                draft.clear()
+                draft.addAll(defaults.ifEmpty { available.take(1).toSet() })
+            }) {
+                Text("초기화")
+            }
+        },
+        title = { Text("전이 목적 선택") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    label = { Text("검색") }
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        draft.clear()
+                        draft.addAll(available)
+                    }) {
+                        Text("전체 선택")
+                    }
+                    TextButton(onClick = {
+                        draft.clear()
+                        draft.addAll(defaults.ifEmpty { available.take(1).toSet() })
+                    }) {
+                        Text("권장 선택")
+                    }
+                }
+                Text(badmintonMethodSelectionSummary(draft), style = MaterialTheme.typography.labelMedium)
+                if (draft.isEmpty()) {
+                    Text("최소 1개 이상 선택하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 320.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    filtered.forEach { key ->
+                        val checked = key in draft
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (checked) draft.remove(key) else draft.add(key)
+                                },
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Checkbox(
+                                checked = checked,
+                                onCheckedChange = { isChecked ->
+                                    if (isChecked) {
+                                        if (key !in draft) draft.add(key)
+                                    } else {
+                                        draft.remove(key)
+                                    }
+                                }
+                            )
+                            Text(
+                                modifier = Modifier.padding(top = 12.dp),
+                                text = BadmintonTrainingMethodLabels.label(key),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                    if (filtered.isEmpty()) {
+                        Text("검색 결과가 없습니다.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
 private fun MainLiftE1rmCard(summary: PerformanceTrendSummary) {
+    val spec = metricLineSpec(
+        title = "주요 운동 e1RM",
+        summary = summary,
+        metrics = listOf(
+            TrendMetricId.BENCH_PRESS_E1RM,
+            TrendMetricId.SQUAT_E1RM,
+            TrendMetricId.DEADLIFT_E1RM
+        )
+    )
     AnalysisSectionChart(
         title = "주요 운동 e1RM",
-        spec = metricLineSpec(
-            title = "주요 운동 e1RM",
-            summary = summary,
-            metrics = listOf(
-                TrendMetricId.BENCH_PRESS_E1RM,
-                TrendMetricId.SQUAT_E1RM,
-                TrendMetricId.DEADLIFT_E1RM
-            )
-        ),
-        note = "확인된 실제 수행 세트만 사용하며, 기록 없는 주는 0으로 채우지 않습니다."
+        spec = spec,
+        note = "확인된 실제 수행 세트만 사용하며, 기록 없는 주는 0으로 채우지 않습니다.",
+        footer = { ChartSeriesLegend(spec.lineSeries) }
     )
 }
 
@@ -564,13 +731,54 @@ private fun RepRangeShareTrendCard(weeks: List<RepRangeWeekShare>) {
 }
 
 @Composable
-private fun AnalysisSectionChart(title: String, spec: ChartSpec, note: String? = null) {
+private fun AnalysisSectionChart(
+    title: String,
+    spec: ChartSpec,
+    note: String? = null,
+    footer: @Composable (() -> Unit)? = null
+) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             AnalysisChartSpecView(spec)
+            footer?.invoke()
             note?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartSeriesLegend(series: List<ChartSeries>) {
+    if (series.isEmpty()) return
+    val colors = analysisChartPalette()
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        series.forEachIndexed { index, item ->
+            val latest = item.points.lastOrNull { point -> point.value != null }?.value
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = colors[index % colors.size].copy(alpha = 0.18f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(8.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        color = colors[index % colors.size]
+                    ) {}
+                    Text(
+                        text = latest?.let { "${item.label} · ${formatDecimal(it)}kg" } ?: item.label,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
         }
     }
@@ -638,6 +846,38 @@ private fun latestRepRangeShare(weeks: List<RepRangeWeekShare>): List<BarItem> {
         BarItem("중반복/중강도(6~9회)", latest.moderateRepShare),
         BarItem("고반복/볼륨(10회 이상)", latest.highRepShare)
     )
+}
+
+private fun defaultBadmintonMethodKeys(
+    totals: Map<String, Double>,
+    available: List<String>
+): List<String> {
+    val fallback = listOf("FOOTWORK", "ACCELERATION", "REACTION", "DECELERATION")
+        .filter { it in available }
+    return totals.entries
+        .sortedByDescending { it.value }
+        .map { it.key }
+        .take(4)
+        .ifEmpty { fallback }
+        .ifEmpty { available.take(1) }
+}
+
+private fun badmintonMethodSelectionSummary(keys: Collection<String>): String {
+    val labels = keys.map(BadmintonTrainingMethodLabels::label)
+    return when {
+        labels.isEmpty() -> "전이 목적 선택"
+        labels.size <= 3 -> labels.joinToString(", ") + " 선택됨"
+        else -> "${labels.take(2).joinToString(", ")} 외 ${labels.size - 2}개 선택됨"
+    }
+}
+
+private fun filterBadmintonMethodKeys(available: List<String>, query: String): List<String> {
+    val needle = query.trim()
+    if (needle.isEmpty()) return available
+    return available.filter { key ->
+        key.contains(needle, ignoreCase = true) ||
+            BadmintonTrainingMethodLabels.label(key).contains(needle, ignoreCase = true)
+    }
 }
 
 private enum class BadmintonLoadMode(val label: String) {

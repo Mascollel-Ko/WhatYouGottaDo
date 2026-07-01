@@ -16,7 +16,11 @@ object BadmintonTrainingMethodSeries {
         "ROTATION_POWER"
     )
 
-    fun totals(points: List<BadmintonDailyLoadPoint>): Map<String, Double> {
+    fun colorIndex(key: String): Int =
+        objectiveKeys.indexOf(key.uppercase()).takeIf { it >= 0 } ?: 0
+
+    fun totals(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): Map<String, Double> {
+        val allowed = selectedKeys?.map { it.uppercase() }?.toSet()
         val totals = linkedMapOf<String, Double>()
         points.forEach { point ->
             point.methodRaw.forEach { (key, value) ->
@@ -25,23 +29,30 @@ object BadmintonTrainingMethodSeries {
                     courtMovementTypes = emptySet(),
                     transferRoles = setOf(key),
                     skillTargets = emptySet()
-                ).forEach { objective ->
-                    if (objective in objectiveKeys) totals[objective] = (totals[objective] ?: 0.0) + value
-                }
+                )
+                    .filter { objective -> objective in objectiveKeys }
+                    .filter { objective -> allowed == null || objective in allowed }
+                    .forEach { objective ->
+                        totals[objective] = (totals[objective] ?: 0.0) + value
+                    }
             }
         }
         return totals.entries.sortedByDescending { it.value }.associate { it.key to it.value }
     }
 
-    fun summary(points: List<BadmintonDailyLoadPoint>): BadmintonTrainingMethodSummary {
+    fun summary(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): BadmintonTrainingMethodSummary {
         val today = points.maxOfOrNull { it.date }
             ?: return BadmintonTrainingMethodSummary("최근 7일 배드민턴 전이 목적 기록이 부족합니다.", emptyList(), emptyList())
-        val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today })
+        val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today }, selectedKeys)
         if (recent7.isEmpty()) {
             return BadmintonTrainingMethodSummary("최근 7일 배드민턴 전이 목적 기록이 부족합니다.", emptyList(), emptyList())
         }
         val topKeys = recent7.entries.take(2).map { it.key }
-        val lowKeys = objectiveKeys
+        val candidateKeys = selectedKeys
+            ?.map { it.uppercase() }
+            ?.filter { it in objectiveKeys }
+            ?: objectiveKeys
+        val lowKeys = candidateKeys
             .filter { it !in topKeys }
             .sortedBy { recent7[it] ?: 0.0 }
             .take(2)
@@ -55,10 +66,10 @@ object BadmintonTrainingMethodSeries {
         return BadmintonTrainingMethodSummary(sentence, topKeys, lowKeys)
     }
 
-    fun recentComparisonGroups(points: List<BadmintonDailyLoadPoint>): List<StackedBarGroup> {
+    fun recentComparisonGroups(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
         val today = points.maxOfOrNull { it.date } ?: return emptyList()
-        val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today })
-        val recent28 = totals(points.filter { it.date >= today.minusDays(27) && it.date <= today })
+        val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today }, selectedKeys)
+        val recent28 = totals(points.filter { it.date >= today.minusDays(27) && it.date <= today }, selectedKeys)
             .mapValues { (_, value) -> value / 28.0 * 7.0 }
         if (recent7.isEmpty() && recent28.isEmpty()) return emptyList()
         return listOf(
@@ -67,33 +78,45 @@ object BadmintonTrainingMethodSeries {
         )
     }
 
-    fun weeklyStackedGroups(points: List<BadmintonDailyLoadPoint>): List<StackedBarGroup> =
-        points
+    fun weeklyStackedGroups(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
+        val allowed = selectedKeys?.map { it.uppercase() }?.toSet()
+        return points
             .groupBy { point -> point.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
             .toSortedMap()
             .mapNotNull { (week, rows) ->
-                val byLabel = linkedMapOf<String, Double>()
+                val byKey = linkedMapOf<String, Double>()
                 rows.forEach { point ->
                     // ponytail: methodRaw intentionally duplicates multi-label stimulus per transfer objective.
                     point.methodRaw.forEach { (key, value) ->
-                        val label = BadmintonTrainingMethodLabels.label(key)
-                        if (value > 0.0) byLabel[label] = (byLabel[label] ?: 0.0) + value
+                        if (value <= 0.0) return@forEach
+                        BadmintonTrainingMethodLabels.keysFrom(
+                            courtMovementTypes = emptySet(),
+                            transferRoles = setOf(key),
+                            skillTargets = emptySet()
+                        )
+                            .filter { objective -> objective in objectiveKeys }
+                            .filter { objective -> allowed == null || objective in allowed }
+                            .forEach { objective ->
+                                byKey[objective] = (byKey[objective] ?: 0.0) + value
+                            }
                     }
                 }
-                val segments = byLabel.entries
-                    .filter { it.value > 0.0 }
-                    .map { (label, value) -> StackedBarSegment(label, value) }
+                val segments = objectiveKeys.mapNotNull { key ->
+                    val value = byKey[key]?.takeIf { it > 0.0 } ?: return@mapNotNull null
+                    StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key))
+                }
                 if (segments.isEmpty()) null else StackedBarGroup(week.toString(), segments)
             }
+    }
 
     private fun Map<String, Double>.toSegments(): List<StackedBarSegment> =
         entries
             .filter { (_, value) -> value > 0.0 }
             .sortedByDescending { (_, value) -> value }
-            .map { (key, value) -> StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value) }
+            .map { (key, value) -> StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key)) }
 
     private fun List<String>.joinToLabelText(): String =
-        joinToString("와 ") { key -> BadmintonTrainingMethodLabels.label(key) }
+        joinToString("·") { key -> BadmintonTrainingMethodLabels.label(key) }
 }
 
 data class BadmintonTrainingMethodSummary(

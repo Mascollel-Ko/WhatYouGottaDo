@@ -21,7 +21,7 @@ class BadmintonTrainingMethodSeriesTest {
 
         assertEquals(listOf("2026-06-01", "2026-06-08"), groups.map { it.label })
         assertEquals(15.0, groups.first().segments.single().value, 0.001)
-        assertEquals("리액션", groups.last().segments.single().label)
+        assertEquals(BadmintonTrainingMethodLabels.label("REACTION"), groups.last().segments.single().label)
     }
 
     @Test
@@ -56,6 +56,64 @@ class BadmintonTrainingMethodSeriesTest {
     }
 
     @Test
+    fun totalsCanFilterSelectedObjectivesOnly() {
+        val totals = BadmintonTrainingMethodSeries.totals(
+            points = listOf(
+                BadmintonDailyLoadPoint(
+                    LocalDate.parse("2026-06-01"),
+                    0.0,
+                    30.0,
+                    0.0,
+                    mapOf("FOOTWORK" to 10.0, "REACTION" to 12.0, "ACCELERATION" to 8.0)
+                )
+            ),
+            selectedKeys = setOf("FOOTWORK", "REACTION")
+        )
+
+        assertEquals(setOf("REACTION", "FOOTWORK"), totals.keys)
+        assertEquals(12.0, totals.getValue("REACTION"), 0.001)
+        assertEquals(10.0, totals.getValue("FOOTWORK"), 0.001)
+    }
+
+    @Test
+    fun recentComparisonGroupsRespectSelectedObjectivesAndStableColors() {
+        val selected = setOf("FOOTWORK", "REACTION")
+        val groups = BadmintonTrainingMethodSeries.recentComparisonGroups(
+            points = listOf(
+                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 0.0, 0.0, mapOf("DECELERATION" to 28.0)),
+                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-10"), 0.0, 0.0, 0.0, mapOf("FOOTWORK" to 14.0, "REACTION" to 7.0))
+            ),
+            selectedKeys = selected
+        )
+
+        val labels = selected.map(BadmintonTrainingMethodLabels::label).toSet()
+        val segments = groups.flatMap { it.segments }
+        assertTrue(segments.all { it.label in labels })
+        assertTrue(segments.any { it.colorIndex == BadmintonTrainingMethodSeries.colorIndex("FOOTWORK") })
+        assertTrue(segments.any { it.colorIndex == BadmintonTrainingMethodSeries.colorIndex("REACTION") })
+    }
+
+    @Test
+    fun weeklyStackedGroupsRespectSelectedObjectivesAndStableColors() {
+        val groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(
+            points = listOf(
+                BadmintonDailyLoadPoint(
+                    LocalDate.parse("2026-06-01"),
+                    0.0,
+                    0.0,
+                    0.0,
+                    mapOf("FOOTWORK" to 10.0, "REACTION" to 6.0, "ACCELERATION" to 3.0)
+                )
+            ),
+            selectedKeys = setOf("REACTION")
+        )
+
+        val segment = groups.single().segments.single()
+        assertEquals(BadmintonTrainingMethodLabels.label("REACTION"), segment.label)
+        assertEquals(BadmintonTrainingMethodSeries.colorIndex("REACTION"), segment.colorIndex)
+    }
+
+    @Test
     fun summaryUsesTransferObjectiveLabelsNotLegacyAxisLabels() {
         val summary = BadmintonTrainingMethodSeries.summary(
             listOf(
@@ -77,9 +135,9 @@ class BadmintonTrainingMethodSeriesTest {
         )
 
         assertTrue(summary.topKeys.contains("FOOTWORK"))
-        assertTrue(summary.sentence.contains("풋워크"))
-        listOf("라켓 보조", "전이축 비중", "편측 안정성", "저피로 제어").forEach { legacyLabel ->
-            assertFalse(summary.sentence.contains(legacyLabel))
+        assertTrue(summary.sentence.contains(BadmintonTrainingMethodLabels.label("FOOTWORK")))
+        listOf("RACKET_SUPPORT", "UNILATERAL_STABILITY", "LOW_FATIGUE_CONTROL").forEach { legacyKey ->
+            assertFalse(summary.sentence.contains(legacyKey))
         }
     }
 
@@ -116,8 +174,8 @@ class BadmintonTrainingMethodSeriesTest {
 
         assertEquals(listOf("최근 7일", "최근 28일 평균(7일 환산)"), groups.map { it.label })
         val labels = groups.flatMap { group -> group.segments.map { it.label } }
-        assertTrue("풋워크" in labels)
-        assertTrue("감속" in labels)
-        assertFalse("라켓 보조" in labels)
+        assertTrue(BadmintonTrainingMethodLabels.label("FOOTWORK") in labels)
+        assertTrue(BadmintonTrainingMethodLabels.label("DECELERATION") in labels)
+        assertFalse(BadmintonTrainingMethodLabels.label("RACKET_SUPPORT") in labels)
     }
 }
