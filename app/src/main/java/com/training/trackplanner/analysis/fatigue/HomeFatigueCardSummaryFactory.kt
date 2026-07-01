@@ -29,7 +29,7 @@ object HomeFatigueCardSummaryFactory {
             unconfirmedSetCount > 0 && projected != null -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
                 primary = primaryReading,
-                projectionPrefix = if (hasConfirmedWork) "남은 계획 후 예상" else "계획 후 예상",
+                projectionPrefix = "계획 완료 시",
                 projection = projectedReading,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
@@ -39,7 +39,6 @@ object HomeFatigueCardSummaryFactory {
             hasConfirmedWork -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
                 primary = primaryReading,
-                statusText = "계획 완료",
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
                 detail = todayStatus?.detail,
@@ -48,7 +47,6 @@ object HomeFatigueCardSummaryFactory {
             else -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
                 primary = primaryReading,
-                statusText = "오늘 계획 없음",
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
                 detail = todayStatus?.detail,

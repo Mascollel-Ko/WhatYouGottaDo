@@ -28,7 +28,7 @@ class HomeFatigueCardSummaryFactoryTest {
 
         assertEquals("운동 전", summary.primaryPrefix)
         assertEquals(42, summary.primary.score)
-        assertEquals("계획 후 예상", summary.projectionPrefix)
+        assertEquals("계획 완료 시", summary.projectionPrefix)
         assertEquals(61, summary.projection?.score)
         assertNull(summary.statusText)
     }
@@ -51,7 +51,7 @@ class HomeFatigueCardSummaryFactoryTest {
         assertEquals("현재", summary.primaryPrefix)
         assertEquals(54, summary.primary.score)
         assertEquals("진행 가능", summary.primary.label)
-        assertEquals("남은 계획 후 예상", summary.projectionPrefix)
+        assertEquals("계획 완료 시", summary.projectionPrefix)
         assertEquals("주의", summary.projection?.label)
         assertEquals("남은 계획 판단", summary.phaseLabel)
         assertTrue(summary.headline?.contains("남은 계획") == true)
@@ -69,7 +69,7 @@ class HomeFatigueCardSummaryFactoryTest {
 
         assertEquals("운동 전", summary.primaryPrefix)
         assertNull(summary.projection)
-        assertEquals("오늘 계획 없음", summary.statusText)
+        assertNull(summary.statusText)
     }
 
     @Test
@@ -90,9 +90,31 @@ class HomeFatigueCardSummaryFactoryTest {
         assertEquals("현재", summary.primaryPrefix)
         assertEquals(70, summary.primary.score)
         assertNull(summary.projection)
-        assertEquals("계획 완료", summary.statusText)
-        assertEquals("운동 후 회복 판단", summary.phaseLabel)
+        assertNull(summary.statusText)
+        assertEquals("현재 회복 판단", summary.phaseLabel)
         assertEquals("주의", summary.primary.label)
+    }
+
+    @Test
+    fun completedPlanIgnoresProjectionEvenIfCallerPassesProjectedState() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(54),
+            projected = state(80),
+            confirmedSetCount = 6,
+            unconfirmedSetCount = 0,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.CAUTION,
+                projected = null,
+                phase = TodayStatusPhase.COMPLETED
+            )
+        )
+
+        assertEquals("현재", summary.primaryPrefix)
+        assertNull(summary.projection)
+        assertNull(summary.projectionPrefix)
+        assertNull(summary.statusText)
+        assertTrue(summary.detail?.contains("남은 계획") != true)
     }
 
     @Test
@@ -261,7 +283,7 @@ class HomeFatigueCardSummaryFactoryTest {
             plannedSetCount = 6,
             confirmedSetCount = if (phase == TodayStatusPhase.COMPLETED) 6 else 3,
             unconfirmedSetCount = if (phase == TodayStatusPhase.REMAINING_PLAN) 3 else 0,
-            phaseLabel = if (phase == TodayStatusPhase.REMAINING_PLAN) "남은 계획 판단" else "운동 후 회복 판단",
+            phaseLabel = if (phase == TodayStatusPhase.REMAINING_PLAN) "남은 계획 판단" else "현재 회복 판단",
             headline = if (phase == TodayStatusPhase.REMAINING_PLAN) {
                 "남은 계획을 조절해 진행하세요."
             } else {

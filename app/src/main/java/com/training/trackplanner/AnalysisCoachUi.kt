@@ -309,7 +309,7 @@ internal fun TodayReadinessCard(
                         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     Text(
-                        readinessStatusLabel(summary.status),
+                        "현재 상태: ${readinessStatusLabel(summary.status)}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -319,11 +319,11 @@ internal fun TodayReadinessCard(
             Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             actionLabel?.let { action ->
-                Text("권장: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text("판단: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             projected?.let { projectedSummary ->
                 Text(
-                    "완료 예상: ${readinessStatusLabel(projectedSummary.status)}",
+                    "계획 완료 시: ${readinessStatusLabel(projectedSummary.status)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }

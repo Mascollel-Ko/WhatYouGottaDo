@@ -52,9 +52,32 @@ class PhaseAwareTodayStatusBuilderTest {
 
         assertEquals(TodayStatusPhase.COMPLETED, status.phase)
         assertNull(status.projected)
-        assertTrue(status.phaseLabel.contains("운동 후"))
-        assertTrue(status.headline.contains("운동 후"))
+        assertEquals("현재 회복 판단", status.phaseLabel)
         assertFalse(status.detail.contains("주의하세요"))
+        assertFalse(status.detail.contains("남은 계획"))
+        assertFalse(status.detail.contains("계획 완료"))
+        assertFalse(status.detail.contains("완료 예상"))
+    }
+
+    @Test
+    fun completedPhaseUsesCurrentRecoveryWordingOnly() {
+        val status = PhaseAwareTodayStatusBuilder().build(
+            input(
+                entries = listOf(
+                    record(
+                        confirmedSets = listOf(set(reps = 8, weightKg = 260.0, confirmed = true, rpe = 9.0))
+                    )
+                )
+            )
+        )
+        val text = listOf(status.headline, status.detail, status.actionLabel).joinToString(" ")
+
+        assertEquals(TodayStatusPhase.COMPLETED, status.phase)
+        assertNull(status.projected)
+        assertFalse(text.contains("남은 계획"))
+        assertFalse(text.contains("계획 완료 시"))
+        assertFalse(text.contains("완료 예상"))
+        assertTrue(text.contains("현재") || text.contains("오늘 기록된 운동"))
     }
 
     @Test

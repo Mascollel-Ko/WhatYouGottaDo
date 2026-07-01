@@ -85,6 +85,10 @@ class PhaseAwareTodayStatusBuilder(
         val headline = when {
             projected.status == ReadinessStatus.READY ->
                 "남은 계획을 마쳐도 현재 기준에서는 관리 가능한 범위입니다."
+            projected.status == ReadinessStatus.CAUTION ->
+                "계획이 적절하며 운동 후 휴식이 필요합니다."
+            projected.status == ReadinessStatus.FATIGUED ->
+                "계획의 강도가 높습니다. 다음 날 운동에 영향을 줄 수 있습니다."
             gotWorse ->
                 "남은 계획을 모두 마치면 부담이 더 올라갈 수 있습니다."
             else ->
@@ -133,25 +137,25 @@ class PhaseAwareTodayStatusBuilder(
             }
         }
         val detail = if (noPlan) {
-            "기록이나 계획이 쌓이면 오늘 상태 판단을 더 구체화할 수 있습니다."
+            "오늘 기록된 운동 기준으로는 피로가 과도하지 않습니다."
         } else {
             when (current.status) {
                 ReadinessStatus.READY ->
-                    "계획 수행 뒤에도 회복 범위가 안정적으로 보입니다. 다음 계획은 유지해도 됩니다."
+                    "오늘 기록된 운동 기준으로는 피로가 과도하지 않습니다."
                 ReadinessStatus.CAUTION ->
-                    "오늘은 경고가 아니라 운동 결과로 생긴 회복 필요 상태로 해석하는 편이 맞습니다. 다음 세션은 같은 부담을 조금 줄이세요."
+                    "현재 일부 피로 신호가 올라왔습니다. 휴식과 수면을 우선하세요."
                 ReadinessStatus.FATIGUED ->
-                    "오늘 훈련으로 누적 부담이 높아졌습니다. 다음 세션은 하체 고강도, 점프, 방향전환, 고반복 오버헤드를 줄이세요."
+                    "현재 피로가 누적된 상태입니다. 추가 고강도 운동은 피하는 편이 좋습니다."
                 ReadinessStatus.LIMITED ->
-                    "불편감 입력이나 제한 신호가 있어 다음 세션은 부담이 낮은 선택지가 우선입니다."
+                    "현재 제한 신호가 있어 회복과 부담 조절을 우선하세요."
             }
         }
         val action = if (noPlan) {
             "상태 확인"
         } else {
             when (current.status) {
-                ReadinessStatus.READY -> "다음 계획 유지"
-                ReadinessStatus.CAUTION -> "내일 조정"
+                ReadinessStatus.READY -> "현재 유지"
+                ReadinessStatus.CAUTION -> "회복 보강"
                 ReadinessStatus.FATIGUED -> "회복 우선"
                 ReadinessStatus.LIMITED -> "부담 낮추기"
             }
@@ -163,7 +167,7 @@ class PhaseAwareTodayStatusBuilder(
             plannedSetCount = plannedSetCount,
             confirmedSetCount = confirmedSetCount,
             unconfirmedSetCount = unconfirmedSetCount,
-            phaseLabel = if (noPlan) "오늘 상태" else "운동 후 회복 판단",
+            phaseLabel = if (noPlan) "오늘 상태" else "현재 회복 판단",
             headline = headline,
             detail = detail,
             actionLabel = action,

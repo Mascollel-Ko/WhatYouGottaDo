@@ -213,13 +213,16 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
-            Text(
-                text = summary.fatigueCard.projection?.let { projection ->
-                    "${summary.fatigueCard.projectionPrefix} ${projection.score} · ${projection.label}"
-                } ?: summary.fatigueCard.statusText.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            val planText = summary.fatigueCard.projection?.let { projection ->
+                "${summary.fatigueCard.projectionPrefix} ${projection.score} · ${projection.label}"
+            } ?: summary.fatigueCard.statusText.orEmpty()
+            if (planText.isNotBlank()) {
+                Text(
+                    text = planText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             summary.fatigueCard.headline?.let { headline ->
                 Text(
                     text = headline,
@@ -229,7 +232,7 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
             }
             summary.fatigueCard.actionLabel?.let { action ->
                 Text(
-                    text = "권장: $action",
+                    text = "판단: $action",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
