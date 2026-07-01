@@ -21,7 +21,9 @@ internal fun AnalysisHubContent(
     stats: AnalysisStats,
     onFatigueClick: () -> Unit,
     onBadmintonClick: () -> Unit,
-    onStrengthClick: () -> Unit
+    onStrengthClick: () -> Unit,
+    onRelationshipLabClick: () -> Unit,
+    onLaggedLabClick: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         AnalysisHubCard(
@@ -40,6 +42,17 @@ internal fun AnalysisHubContent(
             onClick = onStrengthClick
         )
         TrainingDistributionSummary(stats)
+        Text("실험실", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        AnalysisHubCard(
+            title = "관계 탐색",
+            body = "두 지표의 같은 기간 관계를 살펴봅니다.",
+            onClick = onRelationshipLabClick
+        )
+        AnalysisHubCard(
+            title = "시계열 분석",
+            body = "한 지표 변화 뒤 다른 지표가 몇 주 뒤 어떻게 움직였는지 봅니다.",
+            onClick = onLaggedLabClick
+        )
     }
 }
 

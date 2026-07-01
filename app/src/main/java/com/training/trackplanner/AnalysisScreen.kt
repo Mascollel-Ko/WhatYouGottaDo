@@ -16,7 +16,9 @@ import androidx.compose.ui.unit.dp
 private enum class AnalysisDestination(val title: String, val body: String) {
     FATIGUE("오늘 컨디션 및 피로도 분석", "현재 피로 상태와 피로 축별 주요 기여 운동을 봅니다."),
     BADMINTON("배드민턴 전이 분석", "배드민턴 관련 훈련 자극과 주간 흐름을 봅니다."),
-    STRENGTH("근력운동 추이 분석", "주요 리프팅, 근육군, 반복수 구간 흐름을 봅니다.")
+    STRENGTH("근력운동 추이 분석", "주요 리프트, 근육군, 반복수 구간 흐름을 봅니다."),
+    RELATIONSHIP_LAB("관계 탐색", "같은 기간의 두 지표가 함께 움직이는지 봅니다."),
+    LAGGED_LAB("시계열 분석", "한 지표가 변한 뒤 다른 지표가 몇 주 뒤 어떻게 움직였는지 봅니다.")
 }
 
 @Composable
@@ -40,7 +42,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
         item {
             ScreenHeader(
                 title = destination?.title ?: "분석",
-                body = destination?.body ?: "필요한 분석 화면으로 들어가 핵심 지표를 확인합니다."
+                body = destination?.body ?: "필요한 분석 화면으로 들어가 훈련 지표를 확인합니다."
             )
         }
         if (destination == null) {
@@ -49,7 +51,9 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                     stats = stats,
                     onFatigueClick = { destination = AnalysisDestination.FATIGUE },
                     onBadmintonClick = { destination = AnalysisDestination.BADMINTON },
-                    onStrengthClick = { destination = AnalysisDestination.STRENGTH }
+                    onStrengthClick = { destination = AnalysisDestination.STRENGTH },
+                    onRelationshipLabClick = { destination = AnalysisDestination.RELATIONSHIP_LAB },
+                    onLaggedLabClick = { destination = AnalysisDestination.LAGGED_LAB }
                 )
             }
         } else {
@@ -75,6 +79,10 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                         performanceTrend = performanceTrend
                     )
                     AnalysisDestination.STRENGTH -> StrengthTrendAnalysisContent(performanceTrend)
+                    AnalysisDestination.RELATIONSHIP_LAB -> performanceTrend?.let { AnalysisLabContent(it) }
+                        ?: InfoCard("관계 탐색 지표를 계산하고 있습니다.")
+                    AnalysisDestination.LAGGED_LAB -> performanceTrend?.let { LaggedTimeSeriesAnalysisContent(it) }
+                        ?: InfoCard("시계열 분석 지표를 계산하고 있습니다.")
                     null -> Unit
                 }
             }
