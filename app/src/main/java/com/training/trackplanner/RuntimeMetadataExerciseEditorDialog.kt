@@ -46,13 +46,15 @@ import com.training.trackplanner.data.copyEditableMetadataFrom
 internal fun RuntimeMetadataExerciseEditorDialog(
     initial: ExerciseRuntimeMetadataEditorData,
     onDismiss: () -> Unit,
-    onSave: (ExerciseRuntimeMetadataEditorData) -> Unit
+    onSave: (ExerciseRuntimeMetadataEditorData) -> Unit,
+    onReset: (() -> Unit)? = null
 ) {
     var exercise by remember(initial) { mutableStateOf(initial.exercise) }
     var metadata by remember(initial) { mutableStateOf(initial.metadata) }
     var restText by remember(initial) { mutableStateOf(initial.exercise.defaultRestSeconds.toString()) }
     var error by remember(initial) { mutableStateOf<String?>(null) }
     var showCopyDialog by remember { mutableStateOf(false) }
+    var showResetConfirm by remember { mutableStateOf(false) }
     var copiedFrom by remember(initial) { mutableStateOf<String?>(null) }
     val options = initial.options
 
@@ -215,6 +217,14 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                if (onReset != null && exercise.id > 0L) {
+                    OutlinedButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showResetConfirm = true }
+                    ) {
+                        Text("기본값으로 되돌리기")
+                    }
+                }
                 Button(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -274,6 +284,19 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                 metadata = metadata.copyEditableMetadataFrom(source.metadata)
                 copiedFrom = source.exercise.name
                 showCopyDialog = false
+            }
+        )
+    }
+    if (showResetConfirm && onReset != null) {
+        AlertDialog(
+            onDismissRequest = { showResetConfirm = false },
+            title = { Text("기본값으로 되돌리기") },
+            text = { Text("사용자 메타데이터 수정값을 삭제하고 기본값으로 되돌립니다.") },
+            confirmButton = {
+                TextButton(onClick = onReset) { Text("되돌리기") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetConfirm = false }) { Text("취소") }
             }
         )
     }

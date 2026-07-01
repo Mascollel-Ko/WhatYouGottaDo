@@ -153,6 +153,46 @@ class RecordCsvBackupRestoreTest {
     }
 
     @Test
+    fun restoreCsvRoundTripsBuiltInExerciseMetadataOverride() {
+        val exercise = Exercise(
+            id = 1,
+            name = "Deadlift",
+            category = "Strength",
+            stableKey = "deadlift",
+            primaryMuscles = "HAMSTRING,GLUTE,ERECTOR_SPINAE,QUADRICEPS",
+            secondaryMuscles = "FOREARM",
+            movementPattern = "HINGE",
+            forceType = "PULL",
+            bodyRegion = "LOWER",
+            isCustom = false
+        )
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            movementFamily = "HINGE",
+            programSlot = "MAIN_HINGE_STRENGTH",
+            badmintonTransferLevel = "GENERAL",
+            safeForSeedMutation = false
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            exercises = listOf(exercise),
+            runtimeMetadata = listOf(metadata)
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val exerciseRow = parsed.exerciseRows.single()
+        val runtimeRow = parsed.runtimeMetadataRows.single()
+
+        assertFalse(exerciseRow.isCustom)
+        assertEquals("deadlift", exerciseRow.stableKey)
+        assertTrue("QUADRICEPS" in exerciseRow.primaryMuscles)
+        assertEquals("deadlift", runtimeRow.stableKey)
+        assertEquals("MAIN_HINGE_STRENGTH", runtimeRow.programSlot)
+        assertEquals("GENERAL", runtimeRow.badmintonTransferLevel)
+        assertFalse(runtimeRow.safeForSeedMutation)
+    }
+
+    @Test
     fun restoreCsvExportsAndParsesInitialProfileRows() {
         val csv = RecordCsvBackupRestore.buildRestoreCsv(
             entriesWithSets = emptyList(),

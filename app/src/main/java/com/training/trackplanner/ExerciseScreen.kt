@@ -123,7 +123,12 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     detailCandidate?.let { exercise ->
         ExerciseInfoDialog(
             exercise = exercise,
-            onDismiss = { detailCandidate = null }
+            onDismiss = { detailCandidate = null },
+            metadata = runtimeMetadataById[exercise.id],
+            onEditMetadata = {
+                detailCandidate = null
+                viewModel.loadExerciseEditor(exercise.id) { editorData = it }
+            }
         )
     }
 
@@ -138,6 +143,16 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                         editorData = null
                     }.onFailure { error ->
                         managementMessage = error.message ?: "운동을 저장하지 못했습니다."
+                    }
+                }
+            },
+            onReset = {
+                viewModel.resetExerciseMetadataOverride(data.exercise.id) { result ->
+                    result.onSuccess {
+                        managementMessage = "메타데이터 기본값으로 되돌렸습니다."
+                        editorData = null
+                    }.onFailure { error ->
+                        managementMessage = error.message ?: "메타데이터를 되돌리지 못했습니다."
                     }
                 }
             }

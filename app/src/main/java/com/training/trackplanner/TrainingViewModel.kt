@@ -420,6 +420,20 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun resetExerciseMetadataOverride(
+        exerciseId: Long,
+        onResult: (Result<Boolean>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val result = runCatching { repository.resetExerciseMetadataOverride(exerciseId) }
+            if (result.isSuccess) {
+                refreshExerciseRuntimeMetadataInternal()
+                refreshAnalysisSummaries()
+            }
+            onResult(result)
+        }
+    }
+
     private suspend fun refreshExerciseRuntimeMetadataInternal() {
         _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseId()
     }

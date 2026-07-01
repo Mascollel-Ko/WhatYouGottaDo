@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadata
 import java.time.LocalDate
 import java.util.Locale
 
@@ -380,8 +381,15 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
 @Composable
 internal fun ExerciseInfoDialog(
     exercise: Exercise,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    metadata: RuntimeExerciseMetadata? = null,
+    onEditMetadata: (() -> Unit)? = null
 ) {
+    val displayExercise = metadata
+        ?.exerciseName
+        ?.takeIf { name -> name.isNotBlank() }
+        ?.let { name -> exercise.copy(name = name) }
+        ?: exercise
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -390,17 +398,24 @@ internal fun ExerciseInfoDialog(
             }
         },
         title = { Text("운동 정보") },
+        dismissButton = {
+            if (onEditMetadata != null) {
+                TextButton(onClick = onEditMetadata) {
+                    Text("메타데이터 수정")
+                }
+            }
+        },
         text = {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 560.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    ExerciseDetailCard(exercise)
+                    ExerciseDetailCard(displayExercise)
                 }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        exercise.infoTags().forEach { (label, value) ->
+                        displayExercise.infoTags(metadata).forEach { (label, value) ->
                             Text(
                                 text = "$label: $value",
                                 style = MaterialTheme.typography.bodySmall,
@@ -414,7 +429,7 @@ internal fun ExerciseInfoDialog(
     )
 }
 
-private fun Exercise.infoTags(): List<Pair<String, String>> =
+private fun Exercise.infoTags(metadata: RuntimeExerciseMetadata? = null): List<Pair<String, String>> =
     listOf(
         "주동근" to primaryMuscles,
         "보조근" to secondaryMuscles,
@@ -426,7 +441,13 @@ private fun Exercise.infoTags(): List<Pair<String, String>> =
         "훈련역할" to trainingRole,
         "직접전이" to sportTransferDirect,
         "보조전이" to sportTransferSupportive,
-        "메타" to metadataConfidence
+        "메타" to metadataConfidence,
+        "프로그램 슬롯" to metadata?.programSlot.orEmpty(),
+        "전이 수준" to metadata?.badmintonTransferLevel.orEmpty(),
+        "전이 목적" to metadata?.badmintonTransferType?.values.orEmpty().joinToString(","),
+        "주 스트레스" to metadata?.primaryStressProfile.orEmpty(),
+        "신경계 피로" to metadata?.neuromuscularStressLevel.orEmpty(),
+        "회복 기간" to metadata?.recoveryDurationClass.orEmpty()
     ).filter { (_, value) -> value.isNotBlank() }
 
 @Composable
