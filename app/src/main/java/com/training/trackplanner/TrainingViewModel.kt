@@ -450,10 +450,17 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         sourceStart: String,
         sourceEnd: String,
         targetStart: String,
-        conflictMode: CalendarConflictMode
+        conflictMode: CalendarConflictMode,
+        keepConfirmed: Boolean = false
     ) {
         viewModelScope.launch {
-            repository.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode)
+            repository.copyDateRangeAsPlan(
+                sourceStart = sourceStart,
+                sourceEnd = sourceEnd,
+                targetStart = targetStart,
+                conflictMode = conflictMode,
+                keepConfirmed = keepConfirmed
+            )
             refreshAnalysisSummaries()
         }
     }

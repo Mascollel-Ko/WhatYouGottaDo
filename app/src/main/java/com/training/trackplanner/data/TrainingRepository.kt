@@ -1161,7 +1161,8 @@ class TrainingRepository(
         sourceStart: String,
         sourceEnd: String,
         targetStart: String,
-        conflictMode: CalendarConflictMode
+        conflictMode: CalendarConflictMode,
+        keepConfirmed: Boolean = false
     ) = withContext(Dispatchers.IO) {
         db.withTransaction {
             val sourceDates = dateRange(sourceStart, sourceEnd)
@@ -1182,7 +1183,7 @@ class TrainingRepository(
                     copyEntriesToDate(
                         sourceEntries = entries,
                         targetDate = targetDates[index],
-                        keepConfirmed = false,
+                        keepConfirmed = keepConfirmed,
                         baseCreatedAt = createdAt
                     )
                     createdAt += entries.size

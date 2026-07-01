@@ -106,6 +106,10 @@ internal fun RecordCalendarScreen(
                 rangeCopy = CalendarRangeCopy(sourceStart = sourceDate)
                 actionMenuDate = null
             },
+            onRangeCopyWithState = {
+                rangeCopy = CalendarRangeCopy(sourceStart = sourceDate, keepConfirmed = true)
+                actionMenuDate = null
+            },
             onRangeDelete = {
                 rangeDelete = CalendarRangeDelete(sourceStart = sourceDate)
                 actionMenuDate = null
@@ -224,8 +228,8 @@ internal fun RecordCalendarScreen(
             }
             rangeCopy?.let { state ->
                 val text = when {
-                    state.sourceEnd == null -> "${state.sourceStart}부터 복사할 끝 날짜 선택"
-                    else -> "${state.sourceStart}~${state.sourceEnd} 붙여넣을 시작 날짜 선택"
+                    state.sourceEnd == null -> "${state.sourceStart} ${state.label()} 끝 날짜 선택"
+                    else -> "${state.sourceStart}~${state.sourceEnd} ${state.label()} 붙여넣을 시작 날짜 선택"
                 }
                 ActionModeCard(
                     text = text,
@@ -426,6 +430,7 @@ private fun CalendarActionDialog(
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onRangeCopy: () -> Unit,
+    onRangeCopyWithState: () -> Unit,
     onRangeDelete: () -> Unit
 ) {
     AlertDialog(
@@ -444,6 +449,9 @@ private fun CalendarActionDialog(
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeCopy) {
                     Text("선택복사")
+                }
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeCopyWithState) {
+                    Text("기록 상태까지 선택 복사")
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeDelete) {
                     Text("선택 삭제")
@@ -657,13 +665,14 @@ private fun handleCalendarDateClick(
             val execution = CalendarExecution.RangeCopy(
                 sourceStart = rangeCopy.sourceStart,
                 sourceEnd = rangeCopy.sourceEnd,
-                targetStart = date
+                targetStart = date,
+                keepConfirmed = rangeCopy.keepConfirmed
             )
             viewModel.loadCalendarConflictSummary(targetDates) { summary ->
                 if (summary.hasExistingEntries) {
                     onPendingConflict(
                         PendingConflict(
-                            title = "선택복사",
+                            title = rangeCopy.label(),
                             execution = execution,
                             summary = summary
                         )
@@ -724,7 +733,8 @@ private fun executeCalendarExecution(
             sourceStart = execution.sourceStart,
             sourceEnd = execution.sourceEnd,
             targetStart = execution.targetStart,
-            conflictMode = conflictMode
+            conflictMode = conflictMode,
+            keepConfirmed = execution.keepConfirmed
         )
     }
 }
@@ -768,8 +778,11 @@ private data class CalendarPendingAction(
 
 private data class CalendarRangeCopy(
     val sourceStart: String,
-    val sourceEnd: String? = null
-)
+    val sourceEnd: String? = null,
+    val keepConfirmed: Boolean = false
+) {
+    fun label(): String = if (keepConfirmed) "기록 상태까지 선택 복사" else "선택복사"
+}
 
 private data class CalendarRangeDelete(
     val sourceStart: String
@@ -814,7 +827,8 @@ private sealed interface CalendarExecution {
     data class RangeCopy(
         val sourceStart: String,
         val sourceEnd: String,
-        val targetStart: String
+        val targetStart: String,
+        val keepConfirmed: Boolean
     ) : CalendarExecution
 }
 
