@@ -204,8 +204,7 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                         append(label)
                         append("\n")
                     }
-                    append(summary.fatigueCard.primaryPrefix)
-                    append(" ")
+                    append("현재 상태: ")
                     append(summary.fatigueCard.primary.score)
                     append(" · ")
                     append(summary.fatigueCard.primary.label)
@@ -214,7 +213,7 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 fontWeight = FontWeight.SemiBold
             )
             val planText = summary.fatigueCard.projection?.let { projection ->
-                "${summary.fatigueCard.projectionPrefix} ${projection.score} · ${projection.label}"
+                "${summary.fatigueCard.projectionPrefix}: ${projection.score} · ${projection.label}"
             } ?: summary.fatigueCard.statusText.orEmpty()
             if (planText.isNotBlank()) {
                 Text(

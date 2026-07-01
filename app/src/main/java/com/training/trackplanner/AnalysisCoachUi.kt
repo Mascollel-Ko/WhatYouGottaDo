@@ -316,16 +316,16 @@ internal fun TodayReadinessCard(
                 }
                 AnalysisConfidencePill(summary.confidence)
             }
-            Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            actionLabel?.let { action ->
-                Text("판단: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
             projected?.let { projectedSummary ->
                 Text(
                     "계획 완료 시: ${readinessStatusLabel(projectedSummary.status)}",
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            actionLabel?.let { action ->
+                Text("판단: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             keyAxes.take(3).forEach { axis ->
                 Text("• $axis", style = MaterialTheme.typography.bodySmall)
@@ -366,10 +366,10 @@ private fun ReadinessModeList(title: String, values: List<String>) {
 }
 
 private fun readinessStatusLabel(status: ReadinessStatus): String = when (status) {
-    ReadinessStatus.READY -> "진행 가능"
-    ReadinessStatus.CAUTION -> "조절 권장"
+    ReadinessStatus.READY -> "보통"
+    ReadinessStatus.CAUTION -> "주의"
     ReadinessStatus.FATIGUED -> "피로 누적"
-    ReadinessStatus.LIMITED -> "제한 우선"
+    ReadinessStatus.LIMITED -> "피로 심화"
 }
 
 @Composable

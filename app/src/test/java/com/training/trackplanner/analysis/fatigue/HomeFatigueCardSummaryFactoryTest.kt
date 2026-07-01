@@ -1,4 +1,4 @@
-package com.training.trackplanner.analysis.fatigue
+﻿package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.FatigueAvailability
@@ -50,7 +50,7 @@ class HomeFatigueCardSummaryFactoryTest {
 
         assertEquals("현재", summary.primaryPrefix)
         assertEquals(54, summary.primary.score)
-        assertEquals("진행 가능", summary.primary.label)
+        assertEquals("보통", summary.primary.label)
         assertEquals("계획 완료 시", summary.projectionPrefix)
         assertEquals("주의", summary.projection?.label)
         assertEquals("남은 계획 판단", summary.phaseLabel)
@@ -118,6 +118,64 @@ class HomeFatigueCardSummaryFactoryTest {
     }
 
     @Test
+    fun remainingPlanShowsProjectionEvenWhenCurrentAndProjectedLabelsMatch() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(70),
+            current = state(70),
+            projected = state(72),
+            confirmedSetCount = 3,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.FATIGUED,
+                projected = ReadinessStatus.FATIGUED,
+                phase = TodayStatusPhase.REMAINING_PLAN
+            )
+        )
+
+        assertEquals("피로 누적", summary.primary.label)
+        assertEquals("계획 완료 시", summary.projectionPrefix)
+        assertEquals("피로 누적", summary.projection?.label)
+    }
+
+    @Test
+    fun remainingPlanShowsNormalCurrentAndFatiguedProjection() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(42),
+            projected = state(72),
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.READY,
+                projected = ReadinessStatus.FATIGUED,
+                phase = TodayStatusPhase.REMAINING_PLAN
+            )
+        )
+
+        assertEquals("보통", summary.primary.label)
+        assertEquals("피로 누적", summary.projection?.label)
+    }
+
+    @Test
+    fun remainingPlanShowsNormalCurrentAndDeepenedProjection() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(42),
+            projected = state(88),
+            confirmedSetCount = 1,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.READY,
+                projected = ReadinessStatus.LIMITED,
+                phase = TodayStatusPhase.REMAINING_PLAN
+            )
+        )
+
+        assertEquals("보통", summary.primary.label)
+        assertEquals("피로 심화", summary.projection?.label)
+    }
+
+    @Test
     fun primaryReadingUsesOfiWhenReadinessPresentationHasDifferentScore() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
@@ -134,7 +192,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(60, summary.primary.score)
-        assertEquals("진행 가능", summary.primary.label)
+        assertEquals("보통", summary.primary.label)
     }
 
     @Test
@@ -153,7 +211,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(54, summary.primary.score)
-        assertEquals("진행 가능", summary.primary.label)
+        assertEquals("보통", summary.primary.label)
     }
 
     @Test
@@ -173,7 +231,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(30, summary.primary.score)
-        assertEquals("감량 권장", summary.primary.label)
+        assertEquals("피로 누적", summary.primary.label)
     }
 
     @Test
@@ -193,7 +251,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(72, summary.projection?.score)
-        assertEquals("휴식 권장", summary.projection?.label)
+        assertEquals("피로 심화", summary.projection?.label)
     }
 
     @Test

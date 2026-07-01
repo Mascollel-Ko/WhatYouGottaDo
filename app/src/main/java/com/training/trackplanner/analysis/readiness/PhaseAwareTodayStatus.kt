@@ -75,11 +75,14 @@ class PhaseAwareTodayStatusBuilder(
         confirmedSetCount: Int,
         unconfirmedSetCount: Int
     ): PhaseAwareTodayStatus {
-        val action = when (projected.status) {
-            ReadinessStatus.READY -> "계획대로 진행 가능"
-            ReadinessStatus.CAUTION -> "일부 수정 권장"
-            ReadinessStatus.FATIGUED -> "강도 축소 권장"
-            ReadinessStatus.LIMITED -> "오늘은 중단/회복 권장"
+        val action = when {
+            projected.status == ReadinessStatus.READY -> "계획대로 진행 가능"
+            projected.status == ReadinessStatus.CAUTION ->
+                "계획이 적절하며 운동 후 휴식이 필요합니다."
+            projected.status == ReadinessStatus.FATIGUED && current.status == ReadinessStatus.READY ->
+                "계획이 적절하며 운동 후 휴식이 필요합니다."
+            projected.status == ReadinessStatus.FATIGUED -> "강도 축소 권장"
+            else -> "계획의 강도가 높습니다. 다음 날 운동에 영향을 줄 수 있습니다."
         }
         val gotWorse = projected.status.ordinal > current.status.ordinal
         val headline = when {

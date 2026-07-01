@@ -62,10 +62,10 @@ object HomeFatigueCardSummaryFactory {
         )
 
     private fun ReadinessStatus.homeLabel(): String = when (this) {
-        ReadinessStatus.READY -> "진행 가능"
+        ReadinessStatus.READY -> "보통"
         ReadinessStatus.CAUTION -> "주의"
-        ReadinessStatus.FATIGUED -> "감량 권장"
-        ReadinessStatus.LIMITED -> "휴식 권장"
+        ReadinessStatus.FATIGUED -> "피로 누적"
+        ReadinessStatus.LIMITED -> "피로 심화"
     }
 
     private fun DailyFatigueState.qualitativeLabel(): String {
