@@ -2,6 +2,9 @@
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.FatigueAvailability
+import com.training.trackplanner.analysis.readiness.FatigueDetailSection
+import com.training.trackplanner.analysis.readiness.FatigueDetailType
+import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
@@ -135,6 +138,32 @@ class HomeFatigueCardSummaryFactoryTest {
         assertEquals("피로 누적", summary.primary.label)
         assertEquals("계획 완료 시", summary.projectionPrefix)
         assertEquals("피로 누적", summary.projection?.label)
+    }
+
+    @Test
+    fun remainingPlanKeepsSingleAxisCurrentLabelWhenProjectionAccumulates() {
+        val summary = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(54),
+            projected = state(72),
+            confirmedSetCount = 3,
+            unconfirmedSetCount = 3,
+            todayStatus = phaseStatus(
+                current = ReadinessStatus.FATIGUED,
+                projected = ReadinessStatus.FATIGUED,
+                phase = TodayStatusPhase.REMAINING_PLAN,
+                currentSections = listOf(section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH)),
+                projectedSections = listOf(
+                    section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH),
+                    section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
+                )
+            )
+        )
+
+        assertEquals("동작 집중 부담 높음", summary.primary.label)
+        assertEquals("계획 완료 시", summary.projectionPrefix)
+        assertEquals("피로 누적", summary.projection?.label)
+        assertEquals("일부 수정 권장", summary.actionLabel)
     }
 
     @Test
@@ -332,12 +361,14 @@ class HomeFatigueCardSummaryFactoryTest {
         projected: ReadinessStatus?,
         phase: TodayStatusPhase,
         currentPresentation: FatiguePresentationSnapshot? = null,
-        projectedPresentation: FatiguePresentationSnapshot? = null
+        projectedPresentation: FatiguePresentationSnapshot? = null,
+        currentSections: List<FatigueDetailSection> = emptyList(),
+        projectedSections: List<FatigueDetailSection> = emptyList()
     ): PhaseAwareTodayStatus =
         PhaseAwareTodayStatus(
             phase = phase,
-            current = readiness(current, currentPresentation),
-            projected = projected?.let { status -> readiness(status, projectedPresentation) },
+            current = readiness(current, currentPresentation, currentSections),
+            projected = projected?.let { status -> readiness(status, projectedPresentation, projectedSections) },
             plannedSetCount = 6,
             confirmedSetCount = if (phase == TodayStatusPhase.COMPLETED) 6 else 3,
             unconfirmedSetCount = if (phase == TodayStatusPhase.REMAINING_PLAN) 3 else 0,
@@ -354,7 +385,8 @@ class HomeFatigueCardSummaryFactoryTest {
 
     private fun readiness(
         status: ReadinessStatus,
-        fatiguePresentation: FatiguePresentationSnapshot? = null
+        fatiguePresentation: FatiguePresentationSnapshot? = null,
+        sections: List<FatigueDetailSection> = emptyList()
     ): TodayReadinessSummary =
         TodayReadinessSummary(
             status = status,
@@ -364,10 +396,25 @@ class HomeFatigueCardSummaryFactoryTest {
             recommendedModes = emptyList(),
             restrictedModes = emptyList(),
             confidence = AnalysisConfidence.MEDIUM,
-            detailSections = emptyList(),
+            detailSections = sections,
             adaptiveBaselineNotes = emptyList(),
             generatedAt = LocalDateTime.of(2026, 6, 20, 10, 0),
             fatiguePresentation = fatiguePresentation
+        )
+
+    private fun section(
+        type: FatigueDetailType,
+        title: String,
+        level: FatigueLevel
+    ): FatigueDetailSection =
+        FatigueDetailSection(
+            type = type,
+            title = title,
+            level = level,
+            summary = "",
+            metrics = emptyList(),
+            relatedCategories = emptyList(),
+            restrictedTargets = emptyList()
         )
 
     private fun presentation(score: Int): FatiguePresentationSnapshot =

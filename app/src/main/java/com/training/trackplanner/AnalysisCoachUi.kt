@@ -37,7 +37,7 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
-import com.training.trackplanner.analysis.readiness.ReadinessStatus
+import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.DetailChartMode
@@ -309,7 +309,7 @@ internal fun TodayReadinessCard(
                         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     Text(
-                        "현재 상태: ${readinessStatusLabel(summary.status)}",
+                        "현재 상태: ${TodayFatigueStatusLabeler.label(summary)}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -318,7 +318,7 @@ internal fun TodayReadinessCard(
             }
             projected?.let { projectedSummary ->
                 Text(
-                    "계획 완료 시: ${readinessStatusLabel(projectedSummary.status)}",
+                    "계획 완료 시: ${TodayFatigueStatusLabeler.label(projectedSummary)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -363,13 +363,6 @@ internal fun TodayReadinessCard(
 private fun ReadinessModeList(title: String, values: List<String>) {
     if (values.isEmpty()) return
     Text("$title: ${values.joinToString(" · ")}", style = MaterialTheme.typography.bodySmall)
-}
-
-private fun readinessStatusLabel(status: ReadinessStatus): String = when (status) {
-    ReadinessStatus.READY -> "보통"
-    ReadinessStatus.CAUTION -> "주의"
-    ReadinessStatus.FATIGUED -> "피로 누적"
-    ReadinessStatus.LIMITED -> "피로 심화"
 }
 
 @Composable

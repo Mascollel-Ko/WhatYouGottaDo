@@ -1,7 +1,7 @@
 package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
-import com.training.trackplanner.analysis.readiness.ReadinessStatus
+import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
 
 object HomeFatigueCardSummaryFactory {
     fun create(
@@ -17,11 +17,11 @@ object HomeFatigueCardSummaryFactory {
         val primaryPrefix = if (hasConfirmedWork) "현재" else "운동 전"
         // OFI is the shared home/analysis/lab summary score. Readiness only supplies labels and guidance here.
         val primaryReading = todayStatus?.current?.let { summary ->
-            primaryState.toReading(summary.status.homeLabel())
+            primaryState.toReading(TodayFatigueStatusLabeler.label(summary))
         } ?: primaryState.toReading()
         val projectedReading = projected?.let { state ->
             todayStatus?.projected?.let { summary ->
-                state.toReading(summary.status.homeLabel())
+                state.toReading(TodayFatigueStatusLabeler.label(summary))
             } ?: state.toReading()
         }
 
@@ -60,13 +60,6 @@ object HomeFatigueCardSummaryFactory {
             score = overallFatigueIndex,
             label = labelOverride ?: qualitativeLabel()
         )
-
-    private fun ReadinessStatus.homeLabel(): String = when (this) {
-        ReadinessStatus.READY -> "보통"
-        ReadinessStatus.CAUTION -> "주의"
-        ReadinessStatus.FATIGUED -> "피로 누적"
-        ReadinessStatus.LIMITED -> "피로 심화"
-    }
 
     private fun DailyFatigueState.qualitativeLabel(): String {
         if (overallFatigueIndex < 40) return "양호"
