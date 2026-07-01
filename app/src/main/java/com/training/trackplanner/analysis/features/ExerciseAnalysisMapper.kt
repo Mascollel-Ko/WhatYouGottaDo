@@ -146,6 +146,22 @@ object ExerciseAnalysisMapper {
         } else {
             null
         }
+        val runtimeStressTags = runtimeMetadata?.let { metadata ->
+            metadata.secondaryStressTags.values.toSet() +
+                metadata.tendonStressTags.values +
+                metadata.ligamentJointStabilityStressTags.values +
+                metadata.jointImpactStressTags.values +
+                metadata.cognitiveStressTags.values +
+                metadata.sportContextTags.values +
+                listOfNotNull(metadata.primaryStressProfile.ifSet())
+        }.orEmpty()
+        val runtimeJointStressTags = runtimeMetadata?.let { metadata ->
+            metadata.tendonStressTags.values.toSet() +
+                metadata.ligamentJointStabilityStressTags.values +
+                metadata.jointImpactStressTags.values
+        }.orEmpty()
+        val runtimeTransferTypes = runtimeMetadata?.badmintonTransferType?.values?.toSet().orEmpty()
+        val runtimePhysicalQualities = runtimeMetadata?.badmintonPhysicalQualities?.values?.toSet().orEmpty()
 
         return AnalysisExerciseFeatures(
             exerciseId = exercise.id,
@@ -156,8 +172,8 @@ object ExerciseAnalysisMapper {
                 ?: exercise.activityKind,
             metadataConfidence = exercise.metadataConfidence,
             analysisEligibility = analysisEligibility,
-            movementPattern = exercise.movementPattern,
-            movementCategory = exercise.movementCategory,
+            movementPattern = runtimeMetadata?.movementFamily?.ifSet() ?: exercise.movementPattern,
+            movementCategory = runtimeMetadata?.movementSubtype?.ifSet() ?: exercise.movementCategory,
             primaryMuscles = exercise.primaryMuscles.splitTokens(),
             secondaryMuscles = exercise.secondaryMuscles.splitTokens(),
             equipment = exercise.equipment.ifBlank { exercise.equipmentTags }.splitTokens(),
@@ -178,7 +194,8 @@ object ExerciseAnalysisMapper {
             overheadSwingWeight = exercise.overheadSwingWeight,
             gripLoadWeight = exercise.gripLoadWeight,
             fatigueCategories = exercise.fatigueCategories.splitTokens() +
-                runtimeMetadata?.broadLegacyFatigueCategories().orEmpty(),
+                runtimeMetadata?.broadLegacyFatigueCategories().orEmpty() +
+                runtimeStressTags,
             adaptiveBaselineGroups = exercise.adaptiveBaselineGroups.splitTokens(),
             recoveryDecayProfile = runtimeMetadata?.recoveryDecayProfile
                 ?.takeIf { it.isNotBlank() }
@@ -190,17 +207,17 @@ object ExerciseAnalysisMapper {
             accessoryContributionGroup = exercise.accessoryContributionGroup,
             estimated1RmEligible = estimated1RmEligible,
             volumeLoadEligible = volumeLoadEligible,
-            badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens(),
+            badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens() + runtimeTransferTypes,
             badmintonTransferStrength = runtimeMetadata?.badmintonTransferLevel
                 ?.takeIf { it.isNotBlank() }
                 ?: exercise.badmintonTransferStrength,
-            courtMovementTypes = exercise.courtMovementTypes.splitTokens(),
+            courtMovementTypes = exercise.courtMovementTypes.splitTokens() + runtimePhysicalQualities,
             badmintonSkillTargets = runtimeMetadata
                 ?.badmintonSkillTargets
                 ?.values
                 ?.toSet()
                 ?: exercise.badmintonSkillTargets.splitTokens(),
-            jointStressTags = exercise.jointStressTags.splitTokens(),
+            jointStressTags = exercise.jointStressTags.splitTokens() + runtimeJointStressTags,
             stabilityDemandLevel = exercise.stabilityDemandLevel,
             mobilityDemandLevel = exercise.mobilityDemandLevel,
             balanceContributionTags = exercise.balanceContributionTags.splitTokens(),

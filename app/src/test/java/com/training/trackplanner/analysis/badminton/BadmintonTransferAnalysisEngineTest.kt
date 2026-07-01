@@ -8,6 +8,8 @@ import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -215,6 +217,37 @@ class BadmintonTransferAnalysisEngineTest {
         assertFalse(summary.metrics.axisShare7d.keys.any { axis -> axis.name == removedAxisName })
         assertFalse(summary.chartData.axisShareBars.any { bar -> bar.label.contains(removedAxisLabel) })
         assertFalse(summary.chartData.windowComparisonBars.any { bar -> bar.label.contains(removedAxisLabel) })
+    }
+
+    @Test
+    fun runtimeMovementOverrideFeedsBadmintonTransferAnalysis() {
+        val exercise = transferExercise(
+            name = "사용자 수정 운동",
+            stableKey = "barbell_deadlift",
+            movementPattern = "HINGE",
+            forceType = "PULL",
+            transferStrength = "NONE",
+            analysisEligibility = ""
+        )
+        val runtimeOverride = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            movementFamily = "FOOTWORK",
+            movementSubtype = "SKILL_DRILL",
+            badmintonTransferLevel = "SUPPORTIVE"
+        )
+
+        val summary = BadmintonTransferAnalysisEngine(
+            RuntimeExerciseMetadataCatalog.of(listOf(runtimeOverride))
+        ).analyze(
+            today = today,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(
+                record(exercise, today.minusDays(1), listOf(set(reps = 10, confirmed = true)))
+            ),
+            readinessSummary = readiness(ReadinessStatus.READY)
+        )
+
+        assertTrue(summary.metrics.totalTransferStimulus7d > 0.0)
+        assertTrue((summary.metrics.axisShare7d[BadmintonTransferAxis.LATERAL_MOVEMENT] ?: 0.0) > 0.0)
     }
 
     private fun lateralExercise(id: Long = 1, name: String = "Lateral fixture"): Exercise =

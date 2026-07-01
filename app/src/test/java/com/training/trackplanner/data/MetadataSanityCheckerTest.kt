@@ -159,6 +159,46 @@ class MetadataSanityCheckerTest {
     }
 
     @Test
+    fun exerciseAnalysisMapperUsesRuntimeMetadataOverridesForAnalysisTokens() {
+        val exercise = Exercise(
+            id = 44,
+            name = "사용자 수정 운동",
+            category = "근력",
+            stableKey = "barbell_deadlift",
+            movementPattern = "HINGE",
+            movementCategory = "STRENGTH",
+            badmintonTransferStrength = "GENERAL"
+        )
+        val override = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            movementFamily = "FOOTWORK",
+            movementSubtype = "SKILL_DRILL",
+            primaryStressProfile = "COURT_SPORT_MOVEMENT_STRESS",
+            secondaryStressTags = MetadataTokenField.parse("DECELERATION|ELASTIC_SSC"),
+            tendonStressTags = MetadataTokenField.parse("ACHILLES_TENDON_STRESS"),
+            ligamentJointStabilityStressTags = MetadataTokenField.parse("KNEE_VALGUS_CONTROL_STRESS"),
+            jointImpactStressTags = MetadataTokenField.parse("JUMP_LANDING_IMPACT_STRESS"),
+            cognitiveStressTags = MetadataTokenField.parse("REACTION_LOAD"),
+            sportContextTags = MetadataTokenField.parse("BADMINTON_FOOTWORK"),
+            badmintonTransferLevel = "SUPPORTIVE",
+            badmintonTransferType = MetadataTokenField.parse("FOOTWORK|ACCELERATION"),
+            badmintonPhysicalQualities = MetadataTokenField.parse("FIRST_STEP|LATERAL_MOVE")
+        )
+
+        val features = ExerciseAnalysisMapper.fromExercise(exercise, override)
+
+        assertEquals("FOOTWORK", features.movementPattern)
+        assertEquals("SKILL_DRILL", features.movementCategory)
+        assertEquals("SUPPORTIVE", features.badmintonTransferStrength)
+        assertTrue("FOOTWORK" in features.badmintonTransferRoles)
+        assertTrue("ACCELERATION" in features.badmintonTransferRoles)
+        assertTrue("FIRST_STEP" in features.courtMovementTypes)
+        assertTrue("DECELERATION" in features.fatigueCategories)
+        assertTrue("ELASTIC_SSC" in features.fatigueCategories)
+        assertTrue("REACTION_LOAD" in features.fatigueCategories)
+        assertTrue("ACHILLES_TENDON_STRESS" in features.jointStressTags)
+    }
+
+    @Test
     fun exerciseAnalysisMapperDistinguishesPlannedAndCompletedSets() {
         val exercise = SeedData.exercisesFromParsedRows(seedRows())
             .first { candidate -> candidate.estimated1RmEligible }
