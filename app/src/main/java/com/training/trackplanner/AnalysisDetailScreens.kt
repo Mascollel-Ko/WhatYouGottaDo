@@ -112,9 +112,8 @@ internal fun BadmintonTransferAnalysisContent(
     performanceTrend: PerformanceTrendSummary?
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        BadmintonTransferCoverageSentenceCard(coachInsight)
-        badmintonTransfer?.let { BadmintonTransferCard(it) }
-            ?: InfoCard("배드민턴 전이 분석을 계산하고 있습니다.")
+        performanceTrend?.let { BadmintonTransferObjectiveSentenceCard(it) }
+            ?: InfoCard("배드민턴 전이 목적별 자극량을 계산하고 있습니다.")
         performanceTrend?.let { BadmintonTrainingLoadCharts(it) }
             ?: InfoCard("배드민턴 훈련량 추세를 계산하고 있습니다.")
     }
@@ -185,20 +184,16 @@ private fun FatigueAxisCauseCard(
 }
 
 @Composable
-private fun BadmintonTransferCoverageSentenceCard(insight: CoachAnalysisInsightSummary) {
-    val summary = insight.transferCoverage
+private fun BadmintonTransferObjectiveSentenceCard(summary: PerformanceTrendSummary) {
+    val methodSummary = BadmintonTrainingMethodSeries.summary(summary.badmintonDailyLoads)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(summary.headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            if (!summary.isDataSufficient) return@Column
-            if (summary.lowAxes.isNotEmpty()) {
-                Text("부족축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                summary.lowAxes.take(4).forEach { TransferAxisRow(it) }
-            }
-            if (summary.cautionAxes.isNotEmpty()) {
-                Text("과잉·주의축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
-                summary.cautionAxes.take(3).forEach { TransferAxisRow(it) }
-            }
+            Text(methodSummary.sentence, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                "아래 차트와 같은 배드민턴 전이 목적 기준으로 요약합니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -262,6 +257,18 @@ private fun BadmintonTrainingLoadCharts(summary: PerformanceTrendSummary) {
             ),
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
+        val comparisonGroups = BadmintonTrainingMethodSeries.recentComparisonGroups(summary.badmintonDailyLoads)
+        if (comparisonGroups.isNotEmpty()) {
+            AnalysisSectionChart(
+                title = "최근 7일 vs 28일 전이 목적 비교",
+                spec = ChartSpec(
+                    type = ChartType.STACKED_BAR,
+                    title = "최근 7일 vs 28일 전이 목적 비교",
+                    stackedBars = comparisonGroups
+                ),
+                note = "라켓 보조 같은 구 전이축이 아니라 풋워크, 가속, 감속, 리액션 등 전이 목적 기준으로 비교합니다."
+            )
+        }
         if (methodTotals.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
