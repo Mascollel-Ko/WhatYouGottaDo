@@ -244,7 +244,7 @@ class HomeFatigueCardSummaryFactoryTest {
     }
 
     @Test
-    fun readinessPresentationOverallScoreDoesNotClampOrReplacePrimaryOfi() {
+    fun readinessPresentationOverallScoreDoesNotReplaceAxisBasedLabel() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
             current = state(30),
@@ -260,11 +260,11 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(30, summary.primary.score)
-        assertEquals("피로 누적", summary.primary.label)
+        assertEquals("보통", summary.primary.label)
     }
 
     @Test
-    fun projectedReadingUsesProjectedOfiWhenReadinessPresentationHasDifferentScore() {
+    fun projectedReadingUsesProjectedOfiAndAxisBasedLabel() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(20),
             current = state(30),
@@ -280,7 +280,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(72, summary.projection?.score)
-        assertEquals("피로 심화", summary.projection?.label)
+        assertEquals("보통", summary.projection?.label)
     }
 
     @Test

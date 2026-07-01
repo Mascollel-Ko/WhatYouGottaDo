@@ -48,7 +48,37 @@ class TodayFatigueStatusLabelerTest {
         assertEquals("피로 심화", TodayFatigueStatusLabeler.label(summary))
     }
 
-    private fun summary(vararg sections: FatigueDetailSection): TodayReadinessSummary =
+    @Test
+    fun presentationGroupsNeuralSubtypesAsOneCurrentAxis() {
+        val summary = summary(
+            section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
+            section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
+            presentation = presentation(neural = 75)
+        )
+
+        assertEquals("신경계 피로 높음", TodayFatigueStatusLabeler.label(summary))
+        assertEquals("현재 높음", TodayFatigueStatusLabeler.axisStates(summary).first { it.label == "신경계" }.displayLabel)
+    }
+
+    @Test
+    fun presentationIsTheCurrentAxisSourceForLabelAndAxisStatus() {
+        val summary = summary(
+            section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
+            section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
+            presentation = presentation(neural = 20, focus = 75)
+        )
+
+        val axes = TodayFatigueStatusLabeler.axisStates(summary).associateBy { it.label }
+
+        assertEquals("동작 집중 부담 높음", TodayFatigueStatusLabeler.label(summary))
+        assertEquals("낮음", axes.getValue("신경계").displayLabel)
+        assertEquals("현재 높음", axes.getValue("동작 집중").displayLabel)
+    }
+
+    private fun summary(
+        vararg sections: FatigueDetailSection,
+        presentation: FatiguePresentationSnapshot? = null
+    ): TodayReadinessSummary =
         TodayReadinessSummary(
             status = ReadinessStatus.FATIGUED,
             headline = "headline",
@@ -59,7 +89,8 @@ class TodayFatigueStatusLabelerTest {
             confidence = AnalysisConfidence.MEDIUM,
             detailSections = sections.toList(),
             adaptiveBaselineNotes = emptyList(),
-            generatedAt = LocalDateTime.of(2026, 6, 20, 10, 0)
+            generatedAt = LocalDateTime.of(2026, 6, 20, 10, 0),
+            fatiguePresentation = presentation
         )
 
     private fun section(
@@ -75,5 +106,38 @@ class TodayFatigueStatusLabelerTest {
             metrics = emptyList(),
             relatedCategories = emptyList(),
             restrictedTargets = emptyList()
+        )
+
+    private fun presentation(
+        neural: Int = 0,
+        systemic: Int = 0,
+        local: Int = 0,
+        joint: Int = 0,
+        focus: Int = 0
+    ): FatiguePresentationSnapshot =
+        FatiguePresentationSnapshot(
+            overallScore = listOf(neural, systemic, local, joint, focus).maxOrNull() ?: 0,
+            neuralScore = neural,
+            localMuscleScore = local,
+            jointTendonScore = joint,
+            systemicScore = systemic,
+            focusScore = focus,
+            highCategories = emptyList(),
+            highBodyParts = emptyList(),
+            gate = TrainingGateSnapshot(
+                overallScore = 0,
+                heavyLowerRestricted = false,
+                highImpactRestricted = false,
+                codReactiveRestricted = false,
+                upperPushRestricted = false,
+                overheadRestricted = false,
+                gripForearmRestricted = false,
+                volumeFactor = 1.0,
+                rpeCap = null,
+                reasons = emptyList()
+            ),
+            reduceToday = emptyList(),
+            availableToday = emptyList(),
+            reasons = emptyList()
         )
 }

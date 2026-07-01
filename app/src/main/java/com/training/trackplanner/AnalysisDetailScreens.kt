@@ -40,6 +40,7 @@ import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
 import com.training.trackplanner.analysis.lab.MuscleBucketSelection
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
+import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
@@ -75,7 +76,12 @@ internal fun FatigueAndConditionAnalysisContent(
         todayStatus?.let { TodayReadinessCard(it) }
             ?: readiness?.let { TodayReadinessCard(it) }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
-        FatigueAxisCauseCard(fatigueAnalysis, coachInsight.fatigueCauses, coachInsight.combinedHeadline, coachInsight.checkInGuidance)
+        FatigueAxisCauseCard(
+            readiness = todayStatus?.current ?: readiness,
+            summary = coachInsight.fatigueCauses,
+            combinedHeadline = coachInsight.combinedHeadline,
+            checkInGuidance = coachInsight.checkInGuidance
+        )
         CoachingSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
@@ -131,14 +137,12 @@ internal fun StrengthTrendAnalysisContent(performanceTrend: PerformanceTrendSumm
 
 @Composable
 private fun FatigueAxisCauseCard(
-    fatigueAnalysis: FatigueAnalysisUiState,
+    readiness: TodayReadinessSummary?,
     summary: CoachFatigueCauseSummary,
     combinedHeadline: String?,
     checkInGuidance: List<String>
 ) {
-    val latestByAxis = fatigueAnalysis.detail.fatigueTrendSeries
-        .filter { series -> series.key != FatigueTarget.OVERALL.name }
-        .associate { series -> series.label to series.points.lastOrNull()?.value }
+    val axes = readiness?.let(TodayFatigueStatusLabeler::axisStates).orEmpty()
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("피로도별 현재 상태와 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -150,10 +154,9 @@ private fun FatigueAxisCauseCard(
             checkInGuidance.take(2).forEach { guidance ->
                 Text(guidance, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
-            FatigueTarget.entries.filter { it != FatigueTarget.OVERALL }.forEach { target ->
-                val score = latestByAxis[target.label]
+            axes.forEach { axis ->
                 val causes = summary.causes
-                    .filter { cause -> target.label in cause.affectedAxes }
+                    .filter { cause -> axis.label in cause.affectedAxes }
                     .take(2)
                     .map { cause -> cause.label }
                 Surface(
@@ -163,8 +166,8 @@ private fun FatigueAxisCauseCard(
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(target.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                            Text(fatigueScoreLabel(score), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Text(axis.displayLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         }
                         Text(
                             "주요 기여 운동: ${causes.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "최근 기여 운동 없음"}",
@@ -174,15 +177,11 @@ private fun FatigueAxisCauseCard(
                     }
                 }
             }
+            if (axes.isEmpty()) {
+                Text("현재 피로 축을 계산하고 있습니다.", style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
-}
-
-private fun fatigueScoreLabel(score: Double?): String = when {
-    score == null -> "기록 부족"
-    score >= 70.0 -> "현재 높음"
-    score >= 45.0 -> "보통"
-    else -> "낮음"
 }
 
 @Composable
