@@ -1,5 +1,7 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
+import com.training.trackplanner.analysis.trends.TrendMetricId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -107,6 +109,61 @@ class RecordCsvBackupRestoreTest {
         assertEquals(1, parsed.exerciseRows.size)
         assertEquals("test_squat", parsed.exerciseRows.first().stableKey)
         assertEquals("exercise_images/local_downloads/test_squat.png", parsed.exerciseRows.first().imageAssetName)
+    }
+
+    @Test
+    fun restoreCsvKeepsLowercaseQuadricepsOverrideUsableForMuscleLoad() {
+        val exercise = Exercise(
+            id = 1,
+            name = "Deadlift override",
+            category = "근력운동",
+            stableKey = "conventional_deadlift",
+            primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps",
+            secondaryMuscles = "FOREARM"
+        )
+        val entry = WorkoutEntry(
+            id = 10,
+            date = "2026-06-10",
+            exerciseId = exercise.id,
+            exerciseName = exercise.name,
+            category = exercise.category
+        )
+        val set = WorkoutSet(
+            entryId = entry.id,
+            setIndex = 1,
+            weightKg = 160.0,
+            reps = 3,
+            rpe = 9.0,
+            confirmed = true
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry = entry, sets = listOf(set))),
+            metrics = emptyList(),
+            exercises = listOf(exercise)
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+        val restored = parsed.exerciseRows.single().let { row ->
+            Exercise(
+                id = exercise.id,
+                name = row.name,
+                category = row.category,
+                stableKey = row.stableKey,
+                primaryMuscles = row.primaryMuscles,
+                secondaryMuscles = row.secondaryMuscles
+            )
+        }
+        val series = StrengthAndMuscleMetricSeriesBuilder.build(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry = entry, sets = listOf(set))),
+            exercises = listOf(restored)
+        )
+
+        assertEquals("HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps", parsed.exerciseRows.single().primaryMuscles)
+        assertEquals(
+            624.0,
+            series.getValue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY).single().value ?: 0.0,
+            0.01
+        )
     }
 
     @Test

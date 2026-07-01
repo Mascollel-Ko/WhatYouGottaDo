@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.lab
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -178,25 +179,26 @@ object StrengthAndMuscleMetricSeriesBuilder {
 
     private fun String.toMuscleTokens(): List<String> =
         split(',', '|', '/', ';')
-            .map { token -> token.trim().uppercase() }
-            .filter { token -> token.isNotBlank() }
+            .mapNotNull(ExerciseTaxonomy::canonicalMuscleToken)
+            .distinct()
 
-    private fun bucketForToken(token: String): MuscleBucket? = when {
-        "QUAD" in token || "대퇴사두" in token -> MuscleBucket.QUADS
-        "HAMSTRING" in token || "햄스트링" in token -> MuscleBucket.HAMSTRINGS
-        "GLUTE" in token || "둔근" in token -> MuscleBucket.GLUTES
-        "CALF" in token || "CALVES" in token || "GASTROCNEMIUS" in token || "SOLEUS" in token || "종아리" in token -> MuscleBucket.CALVES
-        "ADDUCTOR" in token || "ABDUCTOR" in token || "내전" in token || "외전" in token -> MuscleBucket.ADDUCTOR_ABDUCTOR
-        "ERECTOR" in token || "SPINAL" in token || "LOW_BACK" in token || "POSTERIOR_CHAIN" in token || "척추" in token || "후면사슬" in token -> MuscleBucket.POSTERIOR_CHAIN_ERECTORS
-        "CHEST" in token || "PECTORAL" in token || "가슴" in token -> MuscleBucket.CHEST
-        "BACK" in token || "LAT" in token || "광배" in token || token == "등" -> MuscleBucket.BACK_LATS
-        "SHOULDER" in token || "DELT" in token || "어깨" in token -> MuscleBucket.SHOULDERS
-        "BICEP" in token || "이두" in token -> MuscleBucket.BICEPS
-        "TRICEP" in token || "삼두" in token -> MuscleBucket.TRICEPS
-        "FOREARM" in token || "GRIP" in token || "전완" in token || "그립" in token -> MuscleBucket.FOREARM_GRIP
-        "ANTERIOR_CORE" in token || "ABS" in token || "ABDOMINAL" in token || "복근" in token || "전면코어" in token -> MuscleBucket.ANTERIOR_CORE
-        "LATERAL_CORE" in token || "OBLIQUE" in token || "SIDE_CORE" in token || "측면코어" in token -> MuscleBucket.LATERAL_CORE
-        "ANTI_ROTATION" in token || "ROTATION" in token || "ROTATIONAL" in token || "항회전" in token || "회전코어" in token -> MuscleBucket.ROTATION_CORE
+    private fun bucketForToken(token: String): MuscleBucket? = when (token) {
+        "QUADRICEPS", "RECTUS_FEMORIS" -> MuscleBucket.QUADS
+        "HAMSTRING" -> MuscleBucket.HAMSTRINGS
+        "GLUTE", "GLUTE_MEDIUS" -> MuscleBucket.GLUTES
+        "CALF", "TIBIALIS" -> MuscleBucket.CALVES
+        "HIP_ADDUCTOR" -> MuscleBucket.ADDUCTOR_ABDUCTOR
+        "ERECTOR_SPINAE" -> MuscleBucket.POSTERIOR_CHAIN_ERECTORS
+        "CHEST", "UPPER_CHEST" -> MuscleBucket.CHEST
+        "BACK", "LAT", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> MuscleBucket.BACK_LATS
+        "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "ROTATOR_CUFF", "SCAPULAR_STABILIZERS" ->
+            MuscleBucket.SHOULDERS
+        "BICEPS" -> MuscleBucket.BICEPS
+        "TRICEPS" -> MuscleBucket.TRICEPS
+        "FOREARM", "GRIP" -> MuscleBucket.FOREARM_GRIP
+        "CORE", "DEEP_CORE" -> MuscleBucket.ANTERIOR_CORE
+        "OBLIQUE" -> MuscleBucket.LATERAL_CORE
+        "ROTATION_CORE" -> MuscleBucket.ROTATION_CORE
         else -> null
     }
 

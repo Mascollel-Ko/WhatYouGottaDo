@@ -122,6 +122,36 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
     }
 
     @Test
+    fun deadliftQuadricepsOverrideIncreasesQuadLoad() {
+        val seedDeadlift = exercise(1, "데드리프트", "conventional_deadlift").copy(
+            primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE",
+            secondaryMuscles = "FOREARM"
+        )
+        val overriddenDeadlift = seedDeadlift.copy(
+            primaryMuscles = "HAMSTRING|GLUTE|ERECTOR_SPINAE|quadriceps"
+        )
+        val records = listOf(record("2026-06-10", seedDeadlift, set(1, 160.0, 3, rpe = 9.0)))
+
+        val seedSeries = build(records, listOf(seedDeadlift))
+        val overrideSeries = build(records, listOf(overriddenDeadlift))
+
+        assertTrue(seedSeries[TrendMetricId.MUSCLE_QUADS_LOAD_DAILY].orEmpty().isEmpty())
+        assertEquals(624.0, overrideSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+    }
+
+    @Test
+    fun koreanAndEnglishMuscleAliasesNormalizeToSameQuadBucket() {
+        val koreanAlias = exercise(1, "대퇴근 테스트", "user_ex_korean_quad").copy(primaryMuscles = "대퇴근")
+        val englishAlias = exercise(2, "Quadriceps test", "user_ex_english_quad").copy(primaryMuscles = "quadriceps")
+
+        val koreanSeries = build(listOf(record("2026-06-10", koreanAlias, set(1, 100.0, 5, rpe = 8.0))), listOf(koreanAlias))
+        val englishSeries = build(listOf(record("2026-06-10", englishAlias, set(1, 100.0, 5, rpe = 8.0))), listOf(englishAlias))
+
+        assertEquals(575.0, koreanSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(575.0, englishSeries.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
+    }
+
+    @Test
     fun muscleLoadAggregatesByWeekAndDoesNotCarryForwardMissingWeeks() {
         val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(

@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.readiness
 
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
@@ -170,30 +171,25 @@ class DailyAnalysisLoadAggregator {
     }
 
     private fun muscleBodyParts(token: String): List<String> {
-        val normalized = token.trim().uppercase()
-        if (normalized.isBlank()) return emptyList()
-        return when {
-            normalized.hasAny("QUAD", "대퇴", "허벅지", "사두") -> listOf("quads")
-            normalized.hasAny("HAMSTRING", "햄스트링") -> listOf("hamstrings")
-            normalized.hasAny("GLUTE", "둔근") -> listOf("glutes")
-            normalized.hasAny("CALF", "ACHILLES", "종아리", "아킬레스") -> listOf("calves_achilles")
-            normalized.hasAny("ERECTOR", "LOW_BACK", "SPINE", "척추", "기립") -> listOf("erectors_low_back")
-            normalized.hasAny("CHEST", "PECTOR", "가슴", "흉근") -> listOf("chest")
-            normalized.hasAny("LAT", "BACK", "등", "광배") -> listOf("lats_upper_back")
-            normalized.hasAny("SHOULDER", "DELTOID", "어깨", "삼각") -> listOf("shoulders")
-            normalized.hasAny("ROTATOR", "회전근") -> listOf("rotator_cuff")
-            normalized.hasAny("BICEP", "FLEXOR", "이두") -> listOf("elbow_flexors")
-            normalized.hasAny("TRICEP", "EXTENSOR", "삼두") -> listOf("elbow_extensors")
-            normalized.hasAny("FOREARM", "GRIP", "전완", "그립", "손목") -> listOf("forearm_grip")
-            normalized.hasAny("CORE", "ABS", "OBLIQUE", "복부", "코어", "몸통") -> listOf("core_abs_obliques")
-            normalized.hasAny("ADDUCTOR", "ABDUCTOR", "HIP", "고관절", "내전", "외전") ->
-                listOf("hips_adductors_abductors")
+        return when (ExerciseTaxonomy.canonicalMuscleToken(token)) {
+            "QUADRICEPS", "RECTUS_FEMORIS" -> listOf("quads")
+            "HAMSTRING" -> listOf("hamstrings")
+            "GLUTE", "GLUTE_MEDIUS" -> listOf("glutes")
+            "CALF", "TIBIALIS" -> listOf("calves_achilles")
+            "ERECTOR_SPINAE" -> listOf("erectors_low_back")
+            "CHEST", "UPPER_CHEST" -> listOf("chest")
+            "LAT", "BACK", "RHOMBOID", "TRAPEZIUS", "LOWER_TRAP" -> listOf("lats_upper_back")
+            "SHOULDER", "ANTERIOR_DELTOID", "LATERAL_DELTOID", "REAR_DELT", "SCAPULAR_STABILIZERS" ->
+                listOf("shoulders")
+            "ROTATOR_CUFF" -> listOf("rotator_cuff")
+            "BICEPS" -> listOf("elbow_flexors")
+            "TRICEPS" -> listOf("elbow_extensors")
+            "FOREARM", "GRIP" -> listOf("forearm_grip")
+            "CORE", "DEEP_CORE", "OBLIQUE", "ROTATION_CORE" -> listOf("core_abs_obliques")
+            "HIP_ADDUCTOR" -> listOf("hips_adductors_abductors")
             else -> emptyList()
         }
     }
-
-    private fun String.hasAny(vararg fragments: String): Boolean =
-        fragments.any { fragment -> contains(fragment, ignoreCase = true) }
 
     private fun String.axisMultiplier(): Double =
         when (uppercase()) {
