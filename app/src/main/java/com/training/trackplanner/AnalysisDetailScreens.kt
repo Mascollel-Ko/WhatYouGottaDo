@@ -577,7 +577,12 @@ private fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            AnalysisChartSpecView(muscleShareTrendSpec(summary, selected.toList()))
+            val spec = muscleShareTrendSpec(summary, selected.toList())
+            AnalysisChartSpecView(spec)
+            ChartSeriesLegend(
+                series = spec.lineSeries,
+                latestValueFormatter = { "${formatDecimal(it)}%" }
+            )
         }
     }
     if (showPicker) {
@@ -750,7 +755,10 @@ private fun AnalysisSectionChart(
 }
 
 @Composable
-private fun ChartSeriesLegend(series: List<ChartSeries>) {
+private fun ChartSeriesLegend(
+    series: List<ChartSeries>,
+    latestValueFormatter: ((Double) -> String)? = { "${formatDecimal(it)}kg" }
+) {
     if (series.isEmpty()) return
     val colors = analysisChartPalette()
     Row(
@@ -774,10 +782,12 @@ private fun ChartSeriesLegend(series: List<ChartSeries>) {
                         shape = RoundedCornerShape(8.dp),
                         color = colors[index % colors.size]
                     ) {}
-                    Text(
-                        text = latest?.let { "${item.label} · ${formatDecimal(it)}kg" } ?: item.label,
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                    val label = if (latestValueFormatter != null && latest != null) {
+                        "${item.label} · ${latestValueFormatter(latest)}"
+                    } else {
+                        item.label
+                    }
+                    Text(text = label, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
