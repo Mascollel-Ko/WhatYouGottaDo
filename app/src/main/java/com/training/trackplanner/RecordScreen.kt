@@ -17,14 +17,17 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1524,9 +1527,10 @@ private fun BulkEditDialog(
     var operation by remember { mutableStateOf<BulkOperation?>(null) }
     var valueText by rememberSaveable(operation?.label.orEmpty()) { mutableStateOf("") }
     var includeConfirmed by rememberSaveable { mutableStateOf(false) }
-    val value = valueText.toDoubleOrNull()
+    val selected = operation
     val hasConfirmed = sets.any { it.confirmed }
     val lastPositiveKg = sets.firstOrNull { it.weightKg > 0.0 }?.weightKg
+    val copySource = sets.firstOrNull()
     val operations = buildList {
         if (showWeight) {
             add(BulkOperation("kg 설정", BulkField.Weight, BulkMode.Set))
@@ -1535,47 +1539,30 @@ private fun BulkEditDialog(
         }
         add(BulkOperation("횟수 +", BulkField.Reps, BulkMode.Increase))
         add(BulkOperation("횟수 -", BulkField.Reps, BulkMode.Decrease))
+        add(BulkOperation("RPE 설정", BulkField.Rpe, BulkMode.Set))
         add(BulkOperation("휴식 설정", BulkField.Rest, BulkMode.Set))
         add(BulkOperation("휴식 +", BulkField.Rest, BulkMode.Increase))
         add(BulkOperation("휴식 -", BulkField.Rest, BulkMode.Decrease))
+        add(BulkOperation("선택 복사", BulkField.Copy, BulkMode.CopyValues))
+        add(BulkOperation("기록 상태까지 선택 복사", BulkField.Copy, BulkMode.CopyValuesAndStatus))
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("일괄 편집") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                operation?.let { selected ->
+            Column(
+                modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                selected?.let { selected ->
                     Text(selected.label)
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = valueText,
-                        onValueChange = {
-                            val allowed = when (selected.field) {
-                                BulkField.Weight -> isDecimalInput(it)
-                                BulkField.Reps, BulkField.Rest -> it.isUnsignedInt()
-                            }
-                            if (allowed) valueText = it
-                        },
-                        label = {
-                            Text(
-                                when (selected.field) {
-                                    BulkField.Weight -> "kg"
-                                    BulkField.Reps -> "횟수"
-                                    BulkField.Rest -> "초"
-                                }
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = if (selected.field == BulkField.Weight) {
-                                KeyboardType.Decimal
-                            } else {
-                                KeyboardType.Number
-                            }
-                        ),
-                        singleLine = true
+                    BulkOperationEditor(
+                        operation = selected,
+                        valueText = valueText,
+                        sourceSet = copySource,
+                        onValueChange = { valueText = it }
                     )
-                    QuickValueRow(selected.field) { valueText = it }
                     if (hasConfirmed) {
                         OutlinedButton(
                             modifier = Modifier.fillMaxWidth(),
@@ -1631,77 +1618,267 @@ private fun BulkEditDialog(
             }
         },
         confirmButton = {
-            val selected = operation
-            Button(
-                enabled = selected != null && value != null,
-                onClick = {
-                    if (selected != null && value != null) {
-                        sets.filter { includeConfirmed || !it.confirmed }
-                            .forEach { set -> onUpdateSet(applyBulkOperation(entry, set, selected, value)) }
+            if (selected != null) {
+                Button(
+                    enabled = canApplyBulkOperation(selected, valueText, copySource),
+                    onClick = {
+                        applyBulkOperationToTargets(
+                            entry = entry,
+                            sets = sets,
+                            operation = selected,
+                            valueText = valueText,
+                            includeConfirmed = includeConfirmed,
+                            onUpdateSet = onUpdateSet
+                        )
+                        onDismiss()
                     }
-                    onDismiss()
+                ) {
+                    Text(if (includeConfirmed) "완료 포함 적용" else "적용")
                 }
-            ) {
-                Text(if (includeConfirmed) "완료 포함 적용" else "적용")
             }
         },
         dismissButton = {
-            TextButton(
-                onClick = {
-                    if (operation == null) onDismiss() else operation = null
+            Row {
+                if (selected != null) {
+                    TextButton(onClick = { valueText = defaultBulkValue(selected) }) {
+                        Text("초기화")
+                    }
+                    TextButton(onClick = { operation = null }) {
+                        Text("메뉴")
+                    }
                 }
-            ) {
-                Text(if (operation == null) "닫기" else "뒤로")
+                TextButton(onClick = onDismiss) {
+                    Text(if (selected == null) "닫기" else "취소")
+                }
             }
         }
     )
 }
 
 @Composable
-private fun QuickValueRow(field: BulkField, onSelect: (String) -> Unit) {
-    val values = when (field) {
-        BulkField.Weight -> listOf("2.5", "5")
-        BulkField.Reps -> listOf("1", "2")
-        BulkField.Rest -> listOf("15", "30", "60")
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        values.forEach { value ->
+private fun BulkOperationEditor(
+    operation: BulkOperation,
+    valueText: String,
+    sourceSet: WorkoutSet?,
+    onValueChange: (String) -> Unit
+) {
+    when {
+        operation.field == BulkField.Copy -> {
+            Text(
+                text = sourceSet?.let { source ->
+                    "기준: ${source.setIndex}세트 · ${source.reps}회 · ${formatWeight(source.weightKg)}kg · RPE ${source.rpe?.let(::formatRpe) ?: "-"} · ${if (source.confirmed) "완료" else "미확인"}"
+                } ?: "복사할 기준 세트가 없습니다.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        operation.field == BulkField.Rpe -> {
+            Text(
+                text = "적용 예정: ${bulkRpeLabel(valueText)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            BulkQuickValueRow(listOf("6", "7", "8", "9", "10")) { onValueChange(it) }
             OutlinedButton(
-                modifier = Modifier.weight(1f),
-                onClick = { onSelect(value) }
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onValueChange(BULK_CLEAR_RPE) }
             ) {
-                Text(value)
+                Text("RPE 없음")
+            }
+        }
+        operation.mode == BulkMode.Increase || operation.mode == BulkMode.Decrease -> {
+            Text(
+                text = "적용 예정: ${bulkDeltaLabel(operation, valueText)}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            BulkQuickValueRow(quickValues(operation.field)) { value ->
+                onValueChange(addBulkDelta(valueText, value))
+            }
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = valueText,
+                onValueChange = { value ->
+                    val allowed = if (operation.field == BulkField.Weight) isDecimalInput(value) else value.isUnsignedInt()
+                    if (allowed) onValueChange(value)
+                },
+                label = { Text(if (operation.field == BulkField.Weight) "누적 kg" else "누적 횟수") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (operation.field == BulkField.Weight) KeyboardType.Decimal else KeyboardType.Number
+                ),
+                singleLine = true
+            )
+        }
+        else -> {
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = valueText,
+                onValueChange = { value ->
+                    val allowed = when (operation.field) {
+                        BulkField.Weight -> isDecimalInput(value)
+                        BulkField.Reps, BulkField.Rest -> value.isUnsignedInt()
+                        BulkField.Rpe -> isDecimalInput(value)
+                        BulkField.Copy -> true
+                    }
+                    if (allowed) onValueChange(value)
+                },
+                label = {
+                    Text(
+                        when (operation.field) {
+                            BulkField.Weight -> "kg"
+                            BulkField.Reps -> "횟수"
+                            BulkField.Rest -> "초"
+                            BulkField.Rpe -> "RPE"
+                            BulkField.Copy -> ""
+                        }
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (operation.field == BulkField.Weight || operation.field == BulkField.Rpe) {
+                        KeyboardType.Decimal
+                    } else {
+                        KeyboardType.Number
+                    }
+                ),
+                singleLine = true
+            )
+            BulkQuickValueRow(quickValues(operation.field)) { onValueChange(it) }
+        }
+    }
+}
+
+@Composable
+private fun BulkQuickValueRow(values: List<String>, onSelect: (String) -> Unit) {
+    values.chunked(4).forEach { row ->
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            row.forEach { value ->
+                OutlinedButton(
+                    modifier = Modifier.weight(1f).defaultMinSize(minWidth = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp),
+                    onClick = { onSelect(value) }
+                ) {
+                    Text(value)
+                }
+            }
+            repeat(4 - row.size) {
+                Column(modifier = Modifier.weight(1f)) {}
             }
         }
     }
 }
 
-private enum class BulkField {
+private fun quickValues(field: BulkField): List<String> = when (field) {
+    BulkField.Weight -> listOf("1", "2", "2.5", "5")
+    BulkField.Reps -> listOf("1", "2")
+    BulkField.Rest -> listOf("15", "30", "60")
+    BulkField.Rpe -> listOf("6", "7", "8", "9", "10")
+    BulkField.Copy -> emptyList()
+}
+
+internal enum class BulkField {
     Weight,
     Reps,
-    Rest
+    Rest,
+    Rpe,
+    Copy
 }
 
-private enum class BulkMode {
+internal enum class BulkMode {
     Set,
     Increase,
-    Decrease
+    Decrease,
+    CopyValues,
+    CopyValuesAndStatus
 }
 
-private data class BulkOperation(
+internal data class BulkOperation(
     val label: String,
     val field: BulkField,
     val mode: BulkMode
 )
 
-private fun defaultBulkValue(operation: BulkOperation): String =
+private const val BULK_CLEAR_RPE = "__CLEAR_RPE__"
+
+internal fun defaultBulkValue(operation: BulkOperation): String =
     when (operation.field) {
         BulkField.Weight -> if (operation.mode == BulkMode.Set) "" else "2.5"
         BulkField.Reps -> "1"
         BulkField.Rest -> if (operation.mode == BulkMode.Set) "60" else "30"
+        BulkField.Rpe,
+        BulkField.Copy -> ""
     }
 
-private fun applyBulkOperation(
+internal fun addBulkDelta(current: String, option: String): String {
+    val sum = (current.toDoubleOrNull() ?: 0.0) + (option.toDoubleOrNull() ?: 0.0)
+    return formatWeight(sum)
+}
+
+private fun bulkDeltaLabel(operation: BulkOperation, valueText: String): String {
+    val value = valueText.toDoubleOrNull() ?: 0.0
+    val sign = if (operation.mode == BulkMode.Decrease) "-" else "+"
+    val unit = when (operation.field) {
+        BulkField.Weight -> "kg"
+        BulkField.Reps -> "회"
+        else -> ""
+    }
+    return "$sign${formatWeight(value)}$unit"
+}
+
+private fun bulkRpeLabel(valueText: String): String =
+    if (valueText == BULK_CLEAR_RPE) "RPE 없음" else valueText.toDoubleOrNull()?.let(::formatRpe) ?: "-"
+
+internal fun canApplyBulkOperation(
+    operation: BulkOperation,
+    valueText: String,
+    sourceSet: WorkoutSet?
+): Boolean = when (operation.field) {
+    BulkField.Copy -> sourceSet != null
+    BulkField.Rpe -> valueText == BULK_CLEAR_RPE || valueText.toDoubleOrNull()?.let { it in 0.0..10.0 } == true
+    BulkField.Weight -> valueText.toDoubleOrNull() != null
+    BulkField.Reps,
+    BulkField.Rest -> valueText.toIntOrNull() != null
+}
+
+private fun applyBulkOperationToTargets(
+    entry: WorkoutEntry,
+    sets: List<WorkoutSet>,
+    operation: BulkOperation,
+    valueText: String,
+    includeConfirmed: Boolean,
+    onUpdateSet: (WorkoutSet) -> Unit
+) {
+    val source = sets.firstOrNull()
+    val value = valueText.toDoubleOrNull()
+    sets.filter { includeConfirmed || !it.confirmed }
+        .filter { operation.field != BulkField.Copy || it.id != source?.id }
+        .forEach { set ->
+            val updated = when (operation.field) {
+                BulkField.Copy -> source?.let {
+                    copyBulkSetValues(it, set, includeStatus = operation.mode == BulkMode.CopyValuesAndStatus)
+                } ?: set
+                BulkField.Rpe -> set.copy(rpe = if (valueText == BULK_CLEAR_RPE) null else value?.coerceIn(0.0, 10.0))
+                else -> value?.let { applyBulkOperation(entry, set, operation, it) } ?: set
+            }
+            onUpdateSet(updated)
+        }
+}
+
+internal fun copyBulkSetValues(
+    source: WorkoutSet,
+    target: WorkoutSet,
+    includeStatus: Boolean
+): WorkoutSet =
+    target.copy(
+        reps = source.reps,
+        weightKg = source.weightKg,
+        seconds = source.seconds,
+        manualWeight = source.manualWeight,
+        rpe = source.rpe,
+        restSecondsOverride = source.restSecondsOverride,
+        confirmed = if (includeStatus) source.confirmed else target.confirmed
+    )
+
+internal fun applyBulkOperation(
     entry: WorkoutEntry,
     set: WorkoutSet,
     operation: BulkOperation,
@@ -1713,6 +1890,8 @@ private fun applyBulkOperation(
                 BulkMode.Set -> rawValue
                 BulkMode.Increase -> set.weightKg + rawValue
                 BulkMode.Decrease -> set.weightKg - rawValue
+                BulkMode.CopyValues,
+                BulkMode.CopyValuesAndStatus -> set.weightKg
             }.coerceAtLeast(0.0)
             set.copy(weightKg = newWeight, manualWeight = true)
         }
@@ -1722,6 +1901,8 @@ private fun applyBulkOperation(
                 BulkMode.Set -> delta
                 BulkMode.Increase -> set.reps + delta
                 BulkMode.Decrease -> set.reps - delta
+                BulkMode.CopyValues,
+                BulkMode.CopyValuesAndStatus -> set.reps
             }.coerceAtLeast(0)
             set.copy(reps = newReps)
         }
@@ -1732,9 +1913,13 @@ private fun applyBulkOperation(
                 BulkMode.Set -> delta
                 BulkMode.Increase -> base + delta
                 BulkMode.Decrease -> base - delta
+                BulkMode.CopyValues,
+                BulkMode.CopyValuesAndStatus -> base
             }.coerceAtLeast(0)
             set.copy(restSecondsOverride = nextRest)
         }
+        BulkField.Rpe,
+        BulkField.Copy -> set
     }
 
 @Composable
