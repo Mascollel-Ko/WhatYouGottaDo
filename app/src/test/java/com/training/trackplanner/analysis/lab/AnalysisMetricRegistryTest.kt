@@ -65,6 +65,46 @@ class AnalysisMetricRegistryTest {
     }
 
     @Test
+    fun timeSeriesCandidatesRequireEnoughNonConstantValues() {
+        val series = mapOf(
+            TrendMetricId.STRENGTH_VOLUME to weeklyValues(8) { it.toDouble() },
+            TrendMetricId.FATIGUE_COMPOSITE to weeklyValues(8) { 1.0 },
+            TrendMetricId.SLEEP_HOURS to weeklyValues(2) { it.toDouble() }
+        )
+
+        val xCandidates = AnalysisMetricRegistry.timeSeriesXMetrics(series).map { it.id }
+        val yCandidates = AnalysisMetricRegistry.timeSeriesYMetrics(series).map { it.id }
+        val controlCandidates = AnalysisMetricRegistry.timeSeriesControlMetrics(series).map { it.id }
+
+        assertTrue(TrendMetricId.STRENGTH_VOLUME in xCandidates)
+        assertTrue(TrendMetricId.FATIGUE_COMPOSITE !in yCandidates)
+        assertTrue(TrendMetricId.SLEEP_HOURS !in controlCandidates)
+    }
+
+    @Test
+    fun timeSeriesRoleFiltersSeparateInputsOutcomesAndControls() {
+        val quadLoad = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.QUADS.sevenDayMetric
+        val series = mapOf(
+            TrendMetricId.SQUAT_E1RM to weeklyValues(8) { 100.0 + it },
+            TrendMetricId.STRENGTH_VOLUME to weeklyValues(8) { 500.0 + it * 10.0 },
+            TrendMetricId.SLEEP_HOURS to weeklyValues(8) { 6.0 + (it % 3) * 0.5 },
+            quadLoad to weeklyValues(8) { 1000.0 + it * 50.0 }
+        )
+
+        val xCandidates = AnalysisMetricRegistry.timeSeriesXMetrics(series).map { it.id }
+        val yCandidates = AnalysisMetricRegistry.timeSeriesYMetrics(series).map { it.id }
+        val controlCandidates = AnalysisMetricRegistry.timeSeriesControlMetrics(series).map { it.id }
+
+        assertTrue(TrendMetricId.STRENGTH_VOLUME in xCandidates)
+        assertTrue(quadLoad in xCandidates)
+        assertTrue(TrendMetricId.SQUAT_E1RM !in xCandidates)
+        assertTrue(TrendMetricId.SQUAT_E1RM in yCandidates)
+        assertTrue(TrendMetricId.SLEEP_HOURS in controlCandidates)
+        assertTrue(TrendMetricId.STRENGTH_VOLUME in controlCandidates)
+        assertTrue(TrendMetricId.SQUAT_E1RM !in controlCandidates)
+    }
+
+    @Test
     fun registryDescriptorsAreReadyForFutureTimeSeriesAndMultivariateUse() {
         assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsTimeSeries })
         assertTrue(AnalysisMetricRegistry.descriptors.all { it.supportsMultivariate })
@@ -98,5 +138,12 @@ class AnalysisMetricRegistryTest {
         assertEquals("근육군별 운동량", AnalysisMetricCategory.MUSCLE_LOAD.displayLabelKo())
         assertEquals("스매시 속도", AnalysisMetricCategory.SMASH_SPEED.displayLabelKo())
         assertEquals("파생 지표", AnalysisMetricCategory.DERIVED.displayLabelKo())
+    }
+}
+
+private fun weeklyValues(count: Int, valueAt: (Int) -> Double): List<TrendDataPoint> {
+    val start = LocalDate.of(2026, 1, 5)
+    return (0 until count).map { index ->
+        TrendDataPoint(start.plusWeeks(index.toLong()), valueAt(index))
     }
 }

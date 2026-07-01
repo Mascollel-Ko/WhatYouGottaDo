@@ -46,6 +46,52 @@ object AnalysisMetricRegistry {
         descriptor.supportsScatter && (!requireAvailableData || metricSeries[descriptor.id].orEmpty().any { it.value != null })
     }
 
+    fun timeSeriesXMetrics(metricSeries: Map<TrendMetricId, List<TrendDataPoint>>): List<AnalysisMetricDescriptor> =
+        usableTimeSeriesMetrics(metricSeries).filter { descriptor ->
+            descriptor.category in setOf(
+                AnalysisMetricCategory.BADMINTON,
+                AnalysisMetricCategory.TRANSFER,
+                AnalysisMetricCategory.VOLUME,
+                AnalysisMetricCategory.MUSCLE_LOAD,
+                AnalysisMetricCategory.FATIGUE,
+                AnalysisMetricCategory.RECOVERY,
+                AnalysisMetricCategory.STRENGTH
+            )
+        }
+
+    fun timeSeriesYMetrics(metricSeries: Map<TrendMetricId, List<TrendDataPoint>>): List<AnalysisMetricDescriptor> =
+        usableTimeSeriesMetrics(metricSeries).filter { descriptor ->
+            descriptor.category in setOf(
+                AnalysisMetricCategory.PERFORMANCE,
+                AnalysisMetricCategory.SMASH_SPEED,
+                AnalysisMetricCategory.FATIGUE,
+                AnalysisMetricCategory.RECOVERY,
+                AnalysisMetricCategory.STRENGTH
+            )
+        }
+
+    fun timeSeriesControlMetrics(metricSeries: Map<TrendMetricId, List<TrendDataPoint>>): List<AnalysisMetricDescriptor> =
+        usableTimeSeriesMetrics(metricSeries).filter { descriptor ->
+            descriptor.category in setOf(
+                AnalysisMetricCategory.RECOVERY,
+                AnalysisMetricCategory.VOLUME,
+                AnalysisMetricCategory.BADMINTON,
+                AnalysisMetricCategory.FATIGUE,
+                AnalysisMetricCategory.MUSCLE_LOAD
+            )
+        }
+
+    private fun usableTimeSeriesMetrics(
+        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>,
+        minPoints: Int = 8
+    ): List<AnalysisMetricDescriptor> = descriptors.filter { descriptor ->
+        descriptor.supportsTimeSeries && metricSeries[descriptor.id].orEmpty()
+            .mapNotNull { point -> point.value }
+            .let { values ->
+                values.size >= minPoints && ((values.maxOrNull() ?: 0.0) - (values.minOrNull() ?: 0.0)) > 1e-9
+            }
+    }
+
     private fun metric(
         id: TrendMetricId,
         displayName: String,

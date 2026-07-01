@@ -64,35 +64,57 @@ internal fun AnalysisLabContent(summary: PerformanceTrendSummary) {
 
 @Composable
 internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
-    val metrics = remember(summary.metricSeries) {
-        AnalysisMetricRegistry.descriptors.filter { descriptor ->
-            descriptor.supportsTimeSeries && summary.metricSeries[descriptor.id].orEmpty().any { it.value != null }
-        }
+    val xMetrics = remember(summary.metricSeries) {
+        AnalysisMetricRegistry.timeSeriesXMetrics(summary.metricSeries)
     }
-    val availableIds = metrics.map { it.id }
-    val defaultX = preferredMetric(TrendMetricId.BADMINTON_TRAINING, availableIds, 0)
-    val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, availableIds, 1)
+    val yMetrics = remember(summary.metricSeries) {
+        AnalysisMetricRegistry.timeSeriesYMetrics(summary.metricSeries)
+    }
+    val controlMetrics = remember(summary.metricSeries) {
+        AnalysisMetricRegistry.timeSeriesControlMetrics(summary.metricSeries)
+    }
+    val xIds = xMetrics.map { it.id }
+    val yIds = yMetrics.map { it.id }
+    val controlIds = controlMetrics.map { it.id }
+    val defaultX = preferredMetric(TrendMetricId.BADMINTON_TRAINING, xIds, 0)
+    val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, yIds, 0)
+    val defaultControls = remember(controlIds) { recommendedControlMetrics(controlIds) }
     var xMetric by rememberSaveable { mutableStateOf(defaultX) }
     var yMetric by rememberSaveable { mutableStateOf(defaultY) }
-    val controls = remember { mutableStateListOf<TrendMetricId>() }
+    val controls = remember(defaultControls) { mutableStateListOf<TrendMetricId>().apply { addAll(defaultControls) } }
     var showControls by rememberSaveable { mutableStateOf(false) }
     var result by remember { mutableStateOf<LaggedTimeSeriesResult?>(null) }
-    LaunchedEffect(availableIds) {
-        if (xMetric !in availableIds) xMetric = defaultX
-        if (yMetric !in availableIds || yMetric == xMetric) yMetric = availableIds.firstOrNull { it != xMetric } ?: defaultY
-        controls.removeAll { it !in availableIds || it == xMetric || it == yMetric }
+    LaunchedEffect(xIds, yIds, controlIds) {
+        if (xMetric !in xIds) xMetric = defaultX
+        if (yMetric !in yIds || yMetric == xMetric) {
+            yMetric = yIds.firstOrNull { it != xMetric } ?: defaultY
+        }
+        controls.removeAll { it !in controlIds || it == xMetric || it == yMetric }
+        if (controls.isEmpty()) {
+            controls.addAll(defaultControls.filter { it != xMetric && it != yMetric })
+        }
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         LabLaggedIntroCard()
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("시계열 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                if (metrics.size < 2) {
+                if (xMetrics.isEmpty() || yMetrics.isEmpty()) {
                     InfoCard("시계열 분석에 사용할 주간 지표가 부족합니다.")
                     return@Column
                 }
-                MetricAxisDropdown("X 변수", xMetric, metrics) { xMetric = it; result = null }
-                MetricAxisDropdown("Y 변수", yMetric, metrics) { yMetric = it; result = null }
+                MetricAxisDropdown("X 변수", xMetric, xMetrics) {
+                    xMetric = it
+                    if (yMetric == xMetric) yMetric = yIds.firstOrNull { id -> id != xMetric } ?: yMetric
+                    controls.removeAll { id -> id == xMetric || id == yMetric }
+                    result = null
+                }
+                MetricAxisDropdown("Y 변수", yMetric, yMetrics) {
+                    yMetric = it
+                    if (xMetric == yMetric) xMetric = xIds.firstOrNull { id -> id != yMetric } ?: xMetric
+                    controls.removeAll { id -> id == xMetric || id == yMetric }
+                    result = null
+                }
                 Surface(
                     modifier = Modifier.fillMaxWidth().clickable { showControls = true },
                     shape = RoundedCornerShape(8.dp),
@@ -100,7 +122,7 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
                 ) {
                     Text(
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                        text = controlSummary(controls, metrics),
+                        text = controlSummary(controls, controlMetrics),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -130,12 +152,12 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
     if (showControls) {
         MetricMultiSelectDialog(
             title = "통제 변수 선택",
-            metrics = metrics.filter { it.id != xMetric && it.id != yMetric },
+            metrics = controlMetrics.filter { it.id != xMetric && it.id != yMetric },
             selected = controls.toSet(),
             onDismiss = { showControls = false },
             onApply = { selected ->
                 controls.clear()
-                controls.addAll(selected)
+                controls.addAll(selected.take(3))
                 result = null
                 showControls = false
             }
@@ -164,6 +186,16 @@ private fun LaggedResultCard(result: LaggedTimeSeriesResult) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("시차 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(result.summary, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "자동 보정 변수: ${result.automaticAdjustments.joinToString(", ")}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "선택 통제 변수: ${controlSummary(result.controls, AnalysisMetricRegistry.descriptors)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             if (result.points.isEmpty()) {
                 InfoCard("분석 가능한 주간 데이터가 부족합니다. 최소 8~12주 이상의 기록이 필요합니다.")
             } else {
@@ -182,10 +214,15 @@ private fun LaggedResultCard(result: LaggedTimeSeriesResult) {
                 }
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                LabResultMetric("관측 주", "${result.observations}")
+                LabResultMetric("후보 주", "${result.candidateWeeks}")
+                LabResultMetric("사용 주", "${result.observations}")
                 LabResultMetric("신뢰도", analysisConfidenceLabel(result.confidence))
-                LabResultMetric("통제 변수", "${result.controls.size}개")
             }
+            Text(
+                "80% 구간은 잔차분산을 반영한 탐색적 근사 구간입니다. 값은 표준화된 변화량 기준이며, 표본이 적으면 방향만 참고하세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             result.warnings.forEach { warning ->
                 Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -406,6 +443,13 @@ private fun controlSummary(selected: Collection<TrendMetricId>, metrics: List<An
         else -> "${names.take(2).joinToString(", ")} 외 ${names.size - 2}개"
     }
 }
+
+private fun recommendedControlMetrics(available: List<TrendMetricId>): List<TrendMetricId> =
+    listOf(
+        TrendMetricId.SLEEP_HOURS,
+        TrendMetricId.FATIGUE_COMPOSITE,
+        TrendMetricId.STRENGTH_VOLUME
+    ).filter { it in available }.take(3)
 
 @Composable
 private fun LabMetricCatalogCard(metrics: List<AnalysisMetricDescriptor>) {

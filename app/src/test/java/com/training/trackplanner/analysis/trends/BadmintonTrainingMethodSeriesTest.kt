@@ -178,4 +178,27 @@ class BadmintonTrainingMethodSeriesTest {
         assertTrue(BadmintonTrainingMethodLabels.label("DECELERATION") in labels)
         assertFalse(BadmintonTrainingMethodLabels.label("RACKET_SUPPORT") in labels)
     }
+
+    @Test
+    fun summaryDoesNotEmitLowerBodyDeficitLanguage() {
+        val summary = BadmintonTrainingMethodSeries.summary(
+            listOf(
+                BadmintonDailyLoadPoint(
+                    LocalDate.parse("2026-06-10"),
+                    0.0,
+                    30.0,
+                    0.0,
+                    mapOf(
+                        "FOOTWORK" to 15.0,
+                        "ACCELERATION" to 10.0,
+                        "REACTION" to 5.0
+                    )
+                )
+            )
+        )
+
+        listOf("하체 부족", "하체 결핍", "lower body deficit").forEach { forbidden ->
+            assertFalse(summary.sentence.contains(forbidden, ignoreCase = true))
+        }
+    }
 }
