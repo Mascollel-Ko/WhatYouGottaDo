@@ -25,13 +25,11 @@ import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
-import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -145,6 +143,20 @@ class TrainingRepository(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao
     )
+    private val dailyStatusService = DailyStatusService(
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao
+    )
+    private val dailyReadinessInputService = DailyReadinessInputService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        initialUserProfileDao = initialUserProfileDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        dailyStatusService = dailyStatusService
+    )
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -152,20 +164,10 @@ class TrainingRepository(
     val initialUserProfile: Flow<InitialUserProfile?> = initialUserProfileDao.observeProfile()
 
     fun observeCheckInForDate(date: String): Flow<DailyCheckIn?> =
-        combine(
-            dailyCheckInDao.observeForDate(date),
-            dailyMetricDao.observeMetric(date)
-        ) { checkIn, metric ->
-            checkIn.withCanonicalSleep(date, metric)
-        }
+        dailyStatusService.observeCheckInForDate(date)
 
     fun observeRecentCheckIns(startDate: String, endDate: String): Flow<List<DailyCheckIn>> =
-        combine(
-            dailyCheckInDao.observeBetween(startDate, endDate),
-            dailyMetricDao.observeBetween(startDate, endDate)
-        ) { checkIns, metrics ->
-            checkIns.withCanonicalSleep(metrics)
-        }
+        dailyStatusService.observeRecentCheckIns(startDate, endDate)
 
     fun observeSmashSpeedsForDate(date: String): Flow<List<SmashSpeedRecord>> =
         smashSpeedDao.observeForDate(date)
@@ -186,61 +188,17 @@ class TrainingRepository(
         smashSpeedDao.deleteById(recordId)
     }
 
-    suspend fun checkInForDate(date: String): DailyCheckIn? = withContext(Dispatchers.IO) {
-        dailyCheckInDao.getForDate(date).withCanonicalSleep(date, dailyMetricDao.metric(date))
-    }
+    suspend fun checkInForDate(date: String): DailyCheckIn? =
+        dailyStatusService.checkInForDate(date)
 
     suspend fun recentCheckIns(startDate: String, endDate: String): List<DailyCheckIn> =
-        withContext(Dispatchers.IO) {
-            dailyCheckInDao.between(startDate, endDate).withCanonicalSleep(
-                dailyMetricDao.metricsUntil(endDate).filter { metric -> metric.date >= startDate }
-            )
-        }
+        dailyStatusService.recentCheckIns(startDate, endDate)
 
-    suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) = withContext(Dispatchers.IO) {
-        val existing = dailyCheckInDao.getForDate(checkIn.date)
-        val existingMetric = dailyMetricDao.metric(checkIn.date)
-        if (checkIn.sleepHours != null || existingMetric != null) {
-            dailyMetricDao.upsert(
-                DailyMetric(
-                    date = checkIn.date,
-                    sleepHours = checkIn.sleepHours ?: existingMetric?.sleepHours,
-                    bodyWeightKg = existingMetric?.bodyWeightKg,
-                    updatedAt = System.currentTimeMillis()
-                )
-            )
-        }
-        val canonicalSleep = dailyMetricDao.metric(checkIn.date)?.sleepHours ?: checkIn.sleepHours
-        dailyCheckInDao.upsert(
-            checkIn.copy(sleepHours = canonicalSleep).validated().copy(
-                createdAt = existing?.createdAt ?: checkIn.createdAt,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
-    }
+    suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) =
+        dailyStatusService.upsertDailyCheckIn(checkIn)
 
-    suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
-        dailyCheckInDao.deleteForDate(date)
-    }
-
-    private fun DailyCheckIn?.withCanonicalSleep(date: String, metric: DailyMetric?): DailyCheckIn? {
-        val canonicalSleep = metric?.sleepHours ?: this?.sleepHours
-        return when {
-            this != null -> copy(sleepHours = canonicalSleep)
-            canonicalSleep != null -> DailyCheckIn(date = date, sleepHours = canonicalSleep)
-            else -> null
-        }
-    }
-
-    private fun List<DailyCheckIn>.withCanonicalSleep(metrics: List<DailyMetric>): List<DailyCheckIn> {
-        val metricsByDate = metrics.associateBy { metric -> metric.date }
-        val checkInsByDate = associateBy { checkIn -> checkIn.date }
-        return (checkInsByDate.keys + metricsByDate.filterValues { metric -> metric.sleepHours != null }.keys)
-            .sorted()
-            .mapNotNull { date ->
-                checkInsByDate[date].withCanonicalSleep(date, metricsByDate[date])
-            }
-    }
+    suspend fun deleteDailyCheckIn(date: String) =
+        dailyStatusService.deleteDailyCheckIn(date)
 
     suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
         TodayReadinessEngine().analyze(todayReadinessInput())
@@ -250,23 +208,8 @@ class TrainingRepository(
         PhaseAwareTodayStatusBuilder().build(todayReadinessInput())
     }
 
-    private suspend fun todayReadinessInput(): TodayReadinessEngineInput {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
-        return TodayReadinessEngineInput(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-            dailyMetrics = dailyMetrics,
-            dailyCheckIns = dailyCheckInDao
-                .between(today.minusDays(13).toString(), todayString)
-                .withCanonicalSleep(dailyMetrics),
-            initialProfile = initialUserProfileDao.profile(),
-            runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-        )
-    }
+    private suspend fun todayReadinessInput() =
+        dailyReadinessInputService.build()
 
     suspend fun homeTodaySummary(todayStatus: PhaseAwareTodayStatus? = null): HomeTodaySummaryState = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
@@ -416,7 +359,8 @@ class TrainingRepository(
         val startDate = today.minusDays(56).format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
-        val checkIns = dailyCheckInDao.between(startDate, todayString).withCanonicalSleep(
+        val checkIns = dailyStatusService.canonicalizeCheckIns(
+            dailyCheckInDao.between(startDate, todayString),
             dailyMetrics.filter { metric -> metric.date >= startDate }
         )
         CoachingSignalsBuilder().build(
@@ -469,7 +413,7 @@ class TrainingRepository(
         programDao.observeItems(programId)
 
     fun metricForDate(date: String): Flow<DailyMetric?> =
-        dailyMetricDao.observeMetric(date)
+        dailyStatusService.metricForDate(date)
 
     suspend fun saveInitialUserProfile(profile: InitialUserProfile) = withContext(Dispatchers.IO) {
         val existing = initialUserProfileDao.profile()
@@ -1083,16 +1027,7 @@ class TrainingRepository(
         date: String,
         sleepHours: Double?,
         bodyWeightKg: Double?
-    ) = withContext(Dispatchers.IO) {
-        dailyMetricDao.upsert(
-            DailyMetric(
-                date = date,
-                sleepHours = sleepHours,
-                bodyWeightKg = bodyWeightKg,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
-    }
+    ) = dailyStatusService.saveDailyMetric(date, sleepHours, bodyWeightKg)
 
     private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
         var exerciseCount = 0
