@@ -22,16 +22,12 @@ import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
 import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
-import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
-import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
-import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessEngineInput
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
-import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -135,6 +131,15 @@ class TrainingRepository(
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val performanceTrendSummaryService = PerformanceTrendSummaryService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        smashSpeedDao = smashSpeedDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+    )
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -366,31 +371,7 @@ class TrainingRepository(
         }
 
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
-        val entries = workoutDao.entriesWithSetsUntil(todayString)
-        val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-        val base = PerformanceTrendEngine(runtimeMetadataCatalog).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = entries,
-            dailyMetrics = dailyMetrics
-        )
-        val checkInSeries = CheckInMetricSeriesBuilder.build(
-            checkIns = dailyCheckInDao.between("0001-01-01", todayString),
-            dailyMetrics = dailyMetrics
-        )
-        val smashSpeedSeries = SmashSpeedMetricSeriesBuilder.build(
-            records = smashSpeedDao.between("0001-01-01", todayString)
-        )
-        val strengthAndMuscleSeries = StrengthAndMuscleMetricSeriesBuilder.build(
-            entriesWithSets = entries,
-            exercises = exercises,
-            runtimeMetadataCatalog = runtimeMetadataCatalog
-        )
-        base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries)
+        performanceTrendSummaryService.build()
     }
 
     suspend fun badmintonTransferSummary(
