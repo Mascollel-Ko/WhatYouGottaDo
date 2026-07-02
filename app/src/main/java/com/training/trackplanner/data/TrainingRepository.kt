@@ -9,7 +9,6 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEng
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageAnalyzer
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
-import com.training.trackplanner.analysis.coach.CoachingSignalsBuilder
 import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
@@ -17,14 +16,8 @@ import com.training.trackplanner.analysis.engine.AnalysisEngineV3
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
-import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
-import com.training.trackplanner.analysis.fatigue.HomeFatigueCardSummaryFactory
-import com.training.trackplanner.analysis.fatigue.HomeMiniChartSeriesBuilder
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
-import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
-import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatusBuilder
-import com.training.trackplanner.analysis.readiness.TodayReadinessEngine
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
@@ -157,6 +150,25 @@ class TrainingRepository(
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         dailyStatusService = dailyStatusService
     )
+    private val todayStatusSummaryService = TodayStatusSummaryService(
+        dailyReadinessInputService = dailyReadinessInputService
+    )
+    private val homeSummaryService = HomeSummaryService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        initialUserProfileDao = initialUserProfileDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+    )
+    private val coachingSignalsSummaryService = CoachingSignalsSummaryService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        dailyStatusService = dailyStatusService
+    )
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
@@ -200,109 +212,14 @@ class TrainingRepository(
     suspend fun deleteDailyCheckIn(date: String) =
         dailyStatusService.deleteDailyCheckIn(date)
 
-    suspend fun todayReadinessSummary(): TodayReadinessSummary = withContext(Dispatchers.IO) {
-        TodayReadinessEngine().analyze(todayReadinessInput())
-    }
+    suspend fun todayReadinessSummary(): TodayReadinessSummary =
+        todayStatusSummaryService.todayReadinessSummary()
 
-    suspend fun phaseAwareTodayStatus(): PhaseAwareTodayStatus = withContext(Dispatchers.IO) {
-        PhaseAwareTodayStatusBuilder().build(todayReadinessInput())
-    }
+    suspend fun phaseAwareTodayStatus(): PhaseAwareTodayStatus =
+        todayStatusSummaryService.phaseAwareTodayStatus()
 
-    private suspend fun todayReadinessInput() =
-        dailyReadinessInputService.build()
-
-    suspend fun homeTodaySummary(todayStatus: PhaseAwareTodayStatus? = null): HomeTodaySummaryState = withContext(Dispatchers.IO) {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-        val entries = workoutDao.entriesWithSetsUntil(todayString)
-        val initialProfile = initialUserProfileDao.profile()
-        val calculator = DailyFatigueCalculator(runtimeMetadataCatalog)
-        val results = calculator.calculateSeries(
-            endDate = today,
-            days = 7,
-            exercises = exercises,
-            entriesWithSets = entries,
-            initialProfile = initialProfile
-        )
-        val todayEntries = entries.filter { it.entry.date == todayString }
-        val confirmedSetCount = todayEntries.sumOf { item -> item.sets.count { it.confirmed } }
-        val unconfirmedSetCount = todayEntries.sumOf { item -> item.sets.count { !it.confirmed } }
-        val todayState = results.last().state
-        val preWorkoutState = calculator.calculate(
-            targetDate = today,
-            exercises = exercises,
-            entriesWithSets = entries.filterNot { it.entry.date == todayString },
-            initialProfile = initialProfile
-        ).state
-        val projectedState = if (unconfirmedSetCount > 0) {
-            val projectedEntries = entries.map { item ->
-                if (item.entry.date != todayString) item
-                else item.copy(sets = item.sets.map { set -> set.copy(confirmed = true) })
-            }
-            calculator.calculate(
-                targetDate = today,
-                exercises = exercises,
-                entriesWithSets = projectedEntries,
-                initialProfile = initialProfile
-            ).state
-        } else {
-            null
-        }
-        val firstConfirmedWorkoutDate = entries.asSequence()
-            .filter { item -> item.sets.any { it.confirmed } }
-            .mapNotNull { item -> runCatching { LocalDate.parse(item.entry.date) }.getOrNull() }
-            .minOrNull()
-        val confirmedChartResults = if (firstConfirmedWorkoutDate == null) {
-            emptyList()
-        } else {
-            val periodStart = today.minusDays(6)
-            val chartStart = maxOf(periodStart, firstConfirmedWorkoutDate)
-            results.filter { result -> result.state.date >= chartStart }
-        }
-        val chartResults = if (unconfirmedSetCount > 0 && confirmedChartResults.size < 2) {
-            results.takeLast(2)
-        } else {
-            confirmedChartResults
-        }
-        val currentTrainingLoadSeries = chartResults.map { result ->
-            MiniTrendPoint(result.state.date, result.state.confirmedTrainingLoad)
-        }
-        val currentFatigueSeries = chartResults.map { result ->
-            MiniTrendPoint(result.state.date, result.state.overallFatigueIndex.toDouble())
-        }
-        HomeTodaySummaryState(
-            date = today,
-            plannedExerciseCount = todayEntries.size,
-            confirmedSetCount = confirmedSetCount,
-            unconfirmedSetCount = unconfirmedSetCount,
-            fatigueLabel = todayState.readinessLabel,
-            fatigueScore = todayState.overallFatigueIndex,
-            fatigueHeadline = FatigueLabelResolver.headline(todayState.readinessLabel),
-            fatigueCard = HomeFatigueCardSummaryFactory.create(
-                preWorkout = preWorkoutState,
-                current = todayState,
-                projected = projectedState,
-                confirmedSetCount = confirmedSetCount,
-                unconfirmedSetCount = unconfirmedSetCount,
-                todayStatus = todayStatus
-            ),
-            cautionReasons = todayState.cautionReasons,
-            recentTrainingLoadSeries = currentTrainingLoadSeries,
-            projectedTrainingLoadSeries = HomeMiniChartSeriesBuilder.projected(
-                current = currentTrainingLoadSeries,
-                projectedTodayValue = projectedState?.confirmedTrainingLoad
-            ),
-            recentFatigueSeries = currentFatigueSeries,
-            projectedFatigueSeries = HomeMiniChartSeriesBuilder.projected(
-                current = currentFatigueSeries,
-                projectedTodayValue = projectedState?.overallFatigueIndex?.toDouble()
-            ),
-            confidence = todayState.confidence,
-            projectedFatigueScore = projectedState?.overallFatigueIndex
-        )
-    }
+    suspend fun homeTodaySummary(todayStatus: PhaseAwareTodayStatus? = null): HomeTodaySummaryState =
+        homeSummaryService.build(todayStatus)
 
     suspend fun fatigueAnalysisHistory(days: Int = 28 * 7): List<DailyFatigueResult> =
         withContext(Dispatchers.IO) {
@@ -353,26 +270,8 @@ class TrainingRepository(
 
     suspend fun coachingSignalsSummary(
         history: List<DailyFatigueResult>
-    ): CoachingSignalsSummary = withContext(Dispatchers.IO) {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val startDate = today.minusDays(56).format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
-        val checkIns = dailyStatusService.canonicalizeCheckIns(
-            dailyCheckInDao.between(startDate, todayString),
-            dailyMetrics.filter { metric -> metric.date >= startDate }
-        )
-        CoachingSignalsBuilder().build(
-            today = today,
-            dailyMetrics = dailyMetrics,
-            checkIns = checkIns,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-            exercises = exercises,
-            runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises),
-            history = history
-        )
-    }
+    ): CoachingSignalsSummary =
+        coachingSignalsSummaryService.build(history)
 
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         workoutDao.observeEntriesWithSets(date)
