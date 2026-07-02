@@ -102,12 +102,6 @@ data class ExerciseDeleteResult(
     val referenced: Boolean
 )
 
-private data class TodayProgramGateContext(
-    val date: String,
-    val gate: ProgramFatigueGate,
-    val candidatesByExerciseId: Map<Long, ProgramCandidate>
-)
-
 class TrainingRepository(
     private val db: TrainingDatabase,
     private val context: Context
@@ -135,6 +129,14 @@ class TrainingRepository(
         db = db,
         exerciseDao = exerciseDao,
         workoutDao = workoutDao
+    )
+    private val programPlanService = ProgramPlanService(
+        db = db,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        programDao = programDao,
+        runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog,
+        prescriptionNoteFormatter = ::noteFromPrescription
     )
     private val dailyStatusService = DailyStatusService(
         dailyMetricDao = dailyMetricDao,
@@ -171,7 +173,7 @@ class TrainingRepository(
     )
 
     val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
-    val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
+    val programs: Flow<List<TrainingProgram>> = programPlanService.programs
     val analysisStats: Flow<AnalysisStats> = workoutDao.observeAnalysisStats()
     val initialUserProfile: Flow<InitialUserProfile?> = initialUserProfileDao.observeProfile()
 
@@ -309,7 +311,7 @@ class TrainingRepository(
         workoutDao.observeDailySummariesBetween(startDate, endDate)
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
-        programDao.observeItems(programId)
+        programPlanService.programItems(programId)
 
     fun metricForDate(date: String): Flow<DailyMetric?> =
         dailyStatusService.metricForDate(date)
@@ -555,12 +557,7 @@ class TrainingRepository(
     }
 
     suspend fun createProgram() = withContext(Dispatchers.IO) {
-        programDao.insertProgram(
-            TrainingProgram(
-                name = "새 프로그램",
-                durationDays = 28
-            )
-        )
+        programPlanService.createProgram()
     }
 
     suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
@@ -592,59 +589,11 @@ class TrainingRepository(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
     ): Long = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            val now = System.currentTimeMillis()
-            val request = skeleton.request
-            val program = TrainingProgram(
-                id = existingProgramId ?: 0,
-                name = skeleton.suggestedName.ifBlank { request.name.ifBlank { "새 프로그램" } },
-                durationDays = skeleton.durationDays,
-                createdAt = existingProgramId?.let { programDao.findProgram(it)?.createdAt } ?: now,
-                goal = request.goal.name,
-                weeklyTrainingDays = request.weeklyTrainingDays,
-                sessionMinutes = request.sessionMinutes,
-                availableEquipment = request.availableEquipment.joinToString("|"),
-                excludedExerciseText = request.excludedExerciseText,
-                badmintonTransferRatio = request.badmintonTransferRatio,
-                sportStrengthRatio = request.sportStrengthRatio,
-                periodizationType = skeleton.periodizationType.name,
-                updatedAt = now
-            )
-            val programId = if (existingProgramId != null && programDao.findProgram(existingProgramId) != null) {
-                programDao.updateProgram(program)
-                programDao.deleteProgramItems(existingProgramId)
-                existingProgramId
-            } else {
-                programDao.insertProgram(program)
-            }
-            programDao.insertProgramItems(
-                skeleton.items.map { item ->
-                    TrainingProgramItem(
-                        programId = programId,
-                        weekNumber = item.weekNumber,
-                        dayOfWeek = item.dayOfWeek,
-                        orderIndex = item.orderIndex,
-                        exerciseId = item.exerciseId,
-                        exerciseName = item.exerciseName,
-                        category = item.category,
-                        restSeconds = item.restSeconds,
-                        prescription = item.prescription,
-                        setCount = item.setCount.coerceAtLeast(1),
-                        reps = item.reps,
-                        weightKg = item.weightKg,
-                        seconds = item.seconds
-                    )
-                }
-            )
-            programId
-        }
+        programPlanService.saveGeneratedProgram(existingProgramId, skeleton)
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            programDao.deleteProgramItems(programId)
-            programDao.deleteProgram(programId)
-        }
+        programPlanService.deleteProgram(programId)
     }
 
     suspend fun addExerciseToProgram(
@@ -653,61 +602,27 @@ class TrainingRepository(
         dayOfWeek: Int,
         exerciseId: Long
     ) = withContext(Dispatchers.IO) {
-        val exercise = exerciseDao.findById(exerciseId) ?: return@withContext
-        val nextOrder = (programDao.itemsForProgramDay(programId, weekNumber, dayOfWeek)
-            .maxOfOrNull { it.orderIndex } ?: 0) + 1
-        programDao.insertProgramItem(
-            TrainingProgramItem(
-                programId = programId,
-                weekNumber = weekNumber,
-                dayOfWeek = dayOfWeek,
-                orderIndex = nextOrder,
-                exerciseId = exercise.id,
-                exerciseName = exercise.name,
-                category = exercise.category,
-                restSeconds = exercise.defaultRestSeconds,
-                prescription = "",
-                setCount = 1,
-                reps = 0,
-                weightKg = 0.0,
-                seconds = if (exercise.mode.contains("시간") || exercise.category in timedCategories) 30 else 0
-            )
-        )
+        programPlanService.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseId)
     }
 
     suspend fun updateProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
-        programDao.updateProgramItem(item)
+        programPlanService.updateProgramItem(item)
     }
 
     suspend fun deleteProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
-        programDao.deleteProgramItem(item)
-        reindexProgramDay(item.programId, item.weekNumber, item.dayOfWeek)
+        programPlanService.deleteProgramItem(item)
     }
 
     suspend fun programHasDateConflicts(programId: Long, startDate: String): Boolean =
         withContext(Dispatchers.IO) {
-            programApplyConflictSummary(programId, startDate).hasExistingEntries
+            programPlanService.programHasDateConflicts(programId, startDate)
         }
 
     suspend fun programApplyConflictSummary(
         programId: Long,
         startDate: String
     ): ProgramApplyConflictSummary = withContext(Dispatchers.IO) {
-        val program = programDao.findProgram(programId)
-        val programItems = programDao.itemsForProgram(programId)
-        val range = program?.dateRangeFor(startDate)
-        if (program == null || programItems.isEmpty() || range == null) {
-            ProgramApplyConflictSummary()
-        } else {
-            ProgramApplyConflictSummary(
-                affectedDateCount = program.durationDays,
-                existingEntryCount = workoutDao.countPlannedOnlyEntriesBetween(range.first, range.second),
-                existingConfirmedSetCount = workoutDao.countConfirmedSetsBetween(range.first, range.second),
-                startDate = range.first,
-                endDate = range.second,
-                newPlannedEntryCount = programItems.size
-            )
-        }
+        programPlanService.programApplyConflictSummary(programId, startDate)
     }
 
     suspend fun applyProgramToDates(
@@ -716,72 +631,7 @@ class TrainingRepository(
         mode: ProgramApplyMode,
         trainingGate: TrainingGateSnapshot? = null
     ) = withContext(Dispatchers.IO) {
-        val program = programDao.findProgram(programId) ?: return@withContext
-        val items = programDao.itemsForProgram(program.id)
-        if (items.isEmpty()) return@withContext
-        val range = program.dateRangeFor(startDate) ?: return@withContext
-        val fatigueSlotPolicy = FatigueSlotPolicy.DEFAULT
-        val todayGateContext = trainingGate?.let { gateSnapshot ->
-            val today = SystemAnalysisDateProvider().today().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val exercises = exerciseDao.allExercises()
-            val metadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-            TodayProgramGateContext(
-                date = today,
-                gate = fatigueSlotPolicy.gate(gateSnapshot),
-                candidatesByExerciseId = exercises.associate { exercise ->
-                    val metadata = metadataCatalog.resolve(exercise)
-                    exercise.id to ProgramCandidate(
-                        exercise = exercise,
-                        metadata = metadata,
-                        canonical = metadata != null,
-                        slotCapabilities = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
-                    )
-                }
-            )
-        }
-        db.withTransaction {
-            if (mode == ProgramApplyMode.Overwrite) {
-                workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
-                workoutDao.deletePlannedOnlyEntriesBetween(range.first, range.second)
-            }
-
-            val now = System.currentTimeMillis()
-            items.forEachIndexed { index, item ->
-                val itemDate = dateForProgramItem(startDate, item)
-                val adjustedItem = fatigueSlotPolicy.adjustItemForResolvedDate(
-                    item = item,
-                    itemDate = itemDate,
-                    todayDate = todayGateContext?.date,
-                    candidate = todayGateContext?.candidatesByExerciseId?.get(item.exerciseId),
-                    gate = todayGateContext?.gate
-                ) ?: return@forEachIndexed
-                val entryId = workoutDao.insertEntry(
-                    WorkoutEntry(
-                        date = itemDate,
-                        exerciseId = adjustedItem.exerciseId,
-                        exerciseName = adjustedItem.exerciseName,
-                        category = adjustedItem.category,
-                        restSeconds = adjustedItem.restSeconds,
-                        notes = noteFromPrescription(adjustedItem.prescription),
-                        createdAt = now + index,
-                        displayOrder = index + 1
-                    )
-                )
-                repeat(adjustedItem.setCount.coerceAtLeast(1)) { setIndex ->
-                    workoutDao.insertSet(
-                        WorkoutSet(
-                            entryId = entryId,
-                            setIndex = setIndex + 1,
-                            reps = adjustedItem.reps,
-                            weightKg = adjustedItem.weightKg,
-                            seconds = adjustedItem.seconds,
-                            confirmed = false,
-                            manualWeight = adjustedItem.weightKg > 0.0
-                        )
-                    )
-                }
-            }
-        }
+        programPlanService.applyProgramToDates(programId, startDate, mode, trainingGate)
     }
 
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
@@ -1620,29 +1470,6 @@ class TrainingRepository(
         }
     }
 
-    private suspend fun reindexProgramDay(programId: Long, weekNumber: Int, dayOfWeek: Int) {
-        programDao.itemsForProgramDay(programId, weekNumber, dayOfWeek)
-            .forEachIndexed { index, remaining ->
-                programDao.updateProgramItemOrder(remaining.id, index + 1)
-            }
-    }
-
-    private fun targetDates(startDate: String, items: List<TrainingProgramItem>): List<String> =
-        items.map { dateForProgramItem(startDate, it) }.distinct()
-
-    private fun TrainingProgram.dateRangeFor(startDate: String): Pair<String, String>? =
-        runCatching {
-            val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
-            val end = start.plusDays(durationDays.coerceAtLeast(1).toLong() - 1L)
-            start.format(DateTimeFormatter.ISO_LOCAL_DATE) to end.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        }.getOrNull()
-
-    private fun dateForProgramItem(startDate: String, item: TrainingProgramItem): String {
-        val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
-        val daysFromStart = ((item.weekNumber - 1) * 7L) + (item.dayOfWeek - 1L)
-        return start.plusDays(daysFromStart).format(DateTimeFormatter.ISO_LOCAL_DATE)
-    }
-
     private suspend fun copyEntriesToDate(
         sourceEntries: List<WorkoutEntryWithSets>,
         targetDate: String,
@@ -1821,6 +1648,5 @@ class TrainingRepository(
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"
         const val TIMESERIES_IMPORT_NOTE = "CSV daily_timeseries import"
-        val timedCategories = setOf("유산소운동", "스포츠")
     }
 }
