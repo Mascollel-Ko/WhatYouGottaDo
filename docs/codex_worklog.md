@@ -36,3 +36,10 @@
   - DailyCheckIn score/null/default 의미는 바꾸지 않았다.
   - backup import/export 내부 DailyMetric/DailyCheckIn 처리 로직은 이번 작업에서 건드리지 않았다.
 
+## v0.4.0.8 Final Status Correction
+
+- 확인 일시: 2026-07-03
+- main push 여부: 완료.
+- tag push 여부: `v0.4.0.8` 완료.
+- 기준: `main`, `origin/main`, `v0.4.0.8`이 모두 `5387eb6401fd112e8e2f8827be7417efbfeeea60`을 가리킴을 확인.
+- 비고: 이전 worklog의 "push 예정/tag 예정" 문구는 최종 release 후 상태로 보정함.
