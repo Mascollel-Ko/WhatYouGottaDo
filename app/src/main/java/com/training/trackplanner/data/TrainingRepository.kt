@@ -371,7 +371,8 @@ class TrainingRepository(
         val exercises = exerciseDao.allExercises()
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
-        val base = PerformanceTrendEngine(resolvedRuntimeMetadataCatalog(exercises)).analyze(
+        val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
+        val base = PerformanceTrendEngine(runtimeMetadataCatalog).analyze(
             today = today,
             exercises = exercises,
             entriesWithSets = entries,
@@ -386,7 +387,8 @@ class TrainingRepository(
         )
         val strengthAndMuscleSeries = StrengthAndMuscleMetricSeriesBuilder.build(
             entriesWithSets = entries,
-            exercises = exercises
+            exercises = exercises,
+            runtimeMetadataCatalog = runtimeMetadataCatalog
         )
         base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries)
     }
