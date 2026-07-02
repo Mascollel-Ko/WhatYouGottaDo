@@ -83,3 +83,11 @@
   - Home summary text, warning, confidence, projected fatigue 의미는 변경하지 않았다.
   - coaching signals source/priority/fallback은 변경하지 않았다.
   - backup/import/export 내부 경로는 이번 작업에서 건드리지 않았다.
+
+## v0.4.0.9 Baseline Verification
+
+- Checked at: 2026-07-03 08:44 +09:00
+- CLI result: `HEAD`, `origin/main`, and `v0.4.0.9` all point to `038a97918ac8bceb194670915d304b33a0f2d114`.
+- `TrainingRepository.kt` line count: 1826.
+- GitHub web UI appeared stale/inconsistent in some views, but the local Git baseline is consistent.
+- Next work proceeds as `v0.4.1.0` Program planning service extraction.
