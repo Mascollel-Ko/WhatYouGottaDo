@@ -43,3 +43,43 @@
 - tag push 여부: `v0.4.0.8` 완료.
 - 기준: `main`, `origin/main`, `v0.4.0.8`이 모두 `5387eb6401fd112e8e2f8827be7417efbfeeea60`을 가리킴을 확인.
 - 비고: 이전 worklog의 "push 예정/tag 예정" 문구는 최종 release 후 상태로 보정함.
+
+## v0.4.0.9 Home Summary Service Extraction
+
+- 작업 목표: `TrainingRepository`의 Home summary, coaching signals, today status 조립 책임 일부를 behavior-preserving service로 분리.
+- 원인: v0.4.0.8까지 daily status/readiness input service는 분리되었지만 Home summary, projected fatigue 조립, coaching signals 입력 조립은 repository에 남아 있었다.
+- 수정 내용:
+  - `HomeSummaryService` 추가.
+  - `CoachingSignalsSummaryService` 추가.
+  - `TodayStatusSummaryService` 추가.
+  - `TrainingRepository`의 public API는 유지하고 내부 구현을 service로 위임.
+- 수정 이유: Home 상태와 코칭 요약은 사용자 체감 화면이라 로직 변경 없이 read-only 조립 책임만 줄이는 것이 가장 안전하다.
+- 수정 결과:
+  - `TrainingRepository`가 Home/coaching/today status 조립을 직접 수행하지 않고 service에 위임한다.
+  - ViewModel/UI call site는 변경하지 않았다.
+  - readiness, projected fatigue, coaching signal priority/fallback/text, DailyMetric/DailyCheckIn, record, metadata, backup, analysis, plan, UI 동작은 변경하지 않았다.
+- 수정한 파일 목록:
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/HomeSummaryService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/CoachingSignalsSummaryService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/TodayStatusSummaryService.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.0.9_release_notes.md`
+- 새 service/class/file:
+  - `HomeSummaryService`
+  - `CoachingSignalsSummaryService`
+  - `TodayStatusSummaryService`
+- 실행한 테스트:
+  - Focused Home/CoachingSignals/TodayReadiness/DailyCheckIn/RecordCsvBackupRestore tests: passed.
+  - Full `testDebugUnitTest` / `assembleDebug`: passed.
+- 커밋 해시:
+  - `0af5e383bb31238f553817a77554ef58270d99aa` `refactor(repository): extract home summary services`
+- main push 여부: final release verification 후 push 예정.
+- tag push 여부: `v0.4.0.9` final release verification 후 push 예정.
+- 다음 작업 후보:
+  - `fatigueAnalysisHistory` 또는 badminton transfer read-only summary 조립 분리 검토.
+- 주의할 점:
+  - Home summary text, warning, confidence, projected fatigue 의미는 변경하지 않았다.
+  - coaching signals source/priority/fallback은 변경하지 않았다.
+  - backup/import/export 내부 경로는 이번 작업에서 건드리지 않았다.
