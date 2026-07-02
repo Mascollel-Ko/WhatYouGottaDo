@@ -448,53 +448,23 @@ class TrainingRepository(
         workoutDao.observeEntriesWithSets(date)
 
     suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
-        val entries = workoutDao.allEntriesWithSets()
-        val metrics = dailyMetricDao.allMetrics()
-        val checkIns = dailyCheckInDao.all()
-        val smashSpeeds = smashSpeedDao.all()
-        val exercises = exerciseDao.allExercises()
-        val seedByStableKey = seedExercisesByStableKey()
-        val runtimeMetadata = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-        val runtimeOverrideKeys = runtimeMetadata.map { metadata -> metadata.stableKey.metadataOverrideKey() }.toSet()
-        val profile = initialUserProfileDao.profile()
-        val csv = RecordCsvBackupRestore.buildRestoreCsv(
-            entries,
-            metrics,
-            exercises.map { exercise ->
-                if (exercise.stableKey.metadataOverrideKey() in runtimeOverrideKeys) {
-                    exercise
-                } else {
-                    ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey)
-                }
-            },
-            profile,
-            checkIns,
-            smashSpeeds,
-            runtimeMetadata
-        )
-        context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
-            writer.write(csv)
-        } ?: error("백업 파일을 열 수 없습니다.")
-        RecordCsvTransferResult(
-            format = "restore",
-            exerciseCount = exercises.size,
-            dailyMetricCount = metrics.size,
-            dailyCheckInCount = checkIns.size,
-            smashSpeedCount = smashSpeeds.size,
-            profileCount = if (profile != null) 1 else 0,
-            entryCount = entries.size,
-            setCount = entries.sumOf { item -> item.sets.size }
-        )
+        BackupExportService(
+            context = context,
+            workoutDao = workoutDao,
+            dailyMetricDao = dailyMetricDao,
+            dailyCheckInDao = dailyCheckInDao,
+            smashSpeedDao = smashSpeedDao,
+            exerciseDao = exerciseDao,
+            initialUserProfileDao = initialUserProfileDao,
+            runtimeExerciseMetadataDao = runtimeExerciseMetadataDao
+        ).export(uri)
     }
 
     suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
-        val text = context.contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { reader ->
-            reader.readText()
-        } ?: error("복원 파일을 열 수 없습니다.")
-        when (val data = RecordCsvBackupRestore.parse(text)) {
-            is RecordCsvImportData.Restore -> importRestoreCsv(data)
-            is RecordCsvImportData.DailyTimeseries -> importDailyTimeseriesCsv(data)
-        }
+        BackupImportService(
+            restoreImporter = ::importRestoreCsv,
+            dailyTimeseriesImporter = ::importDailyTimeseriesCsv
+        ).import(context, uri)
     }
 
     fun entryCount(date: String): Flow<Int> =
@@ -557,14 +527,14 @@ class TrainingRepository(
 
     private suspend fun upsertSeedExercises() {
         val runtimeOverrideKeys = runtimeExerciseMetadataDao.all()
-            .map { metadata -> metadata.stableKey.metadataOverrideKey() }
-            .toSet()
+            .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            .let(ExerciseMetadataOverrideBackupMapper::overrideKeys)
         SeedData.exercises(context).forEach { seed ->
             val existing = exerciseDao.findByStableKey(seed.stableKey)
                 ?: exerciseDao.findByName(seed.name)
             if (existing == null) {
                 exerciseDao.insertExercise(seed)
-            } else if (existing.stableKey.metadataOverrideKey() in runtimeOverrideKeys) {
+            } else if (ExerciseMetadataOverrideBackupMapper.hasOverride(existing.stableKey, runtimeOverrideKeys)) {
                 return@forEach
             } else {
                 ExerciseStableKeyPolicy.mergeSeed(existing, seed)?.let { merged ->
@@ -634,7 +604,7 @@ class TrainingRepository(
             db.withTransaction {
                 val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction false
                 runtimeExerciseMetadataDao.deleteByStableKey(exercise.stableKey)
-                val seed = seedExercisesByStableKey()[exercise.stableKey.metadataOverrideKey()]
+                val seed = seedExercisesByStableKey()[ExerciseMetadataOverrideBackupMapper.overrideKey(exercise.stableKey)]
                 if (seed != null) {
                     exerciseDao.updateExercise(
                         seed.copy(
@@ -1220,9 +1190,7 @@ class TrainingRepository(
         var skipped = 0
         db.withTransaction {
             val seedByStableKey = seedExercisesByStableKey()
-            val restoredRuntimeOverrideKeys = data.runtimeMetadataRows
-                .map { metadata -> metadata.stableKey.metadataOverrideKey() }
-                .toSet()
+            val restoredRuntimeOverrideKeys = ExerciseMetadataOverrideBackupMapper.overrideKeys(data.runtimeMetadataRows)
             data.profileRows.toInitialUserProfile()?.let { profile ->
                 initialUserProfileDao.upsert(profile)
                 profileCount = 1
@@ -1561,7 +1529,7 @@ class TrainingRepository(
             isCustom = row.isCustom,
             needsReview = row.needsReview
         )
-        val hasRestoredOverride = stableKey.metadataOverrideKey() in restoredRuntimeOverrideKeys
+        val hasRestoredOverride = ExerciseMetadataOverrideBackupMapper.hasOverride(stableKey, restoredRuntimeOverrideKeys)
         val restored = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey) && !hasRestoredOverride) {
             ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(csvExercise, seedByStableKey)
         } else {
@@ -2093,11 +2061,11 @@ class TrainingRepository(
     private suspend fun refreshExerciseAnalysisMetadata() {
         val seedByStableKey = seedExercisesByStableKey()
         val runtimeOverrideKeys = runtimeExerciseMetadataDao.all()
-            .map { metadata -> metadata.stableKey.metadataOverrideKey() }
-            .toSet()
+            .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            .let(ExerciseMetadataOverrideBackupMapper::overrideKeys)
         exerciseDao.allExercises().forEach { exercise ->
             val hasBuiltInOverride = ExerciseSeedMetadataPolicy.isBuiltInStableKey(exercise.stableKey, seedByStableKey) &&
-                exercise.stableKey.metadataOverrideKey() in runtimeOverrideKeys
+                ExerciseMetadataOverrideBackupMapper.hasOverride(exercise.stableKey, runtimeOverrideKeys)
             if (hasBuiltInOverride) return@forEach
             val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey)
             val mapped = if (seedBacked != exercise) {
@@ -2114,8 +2082,6 @@ class TrainingRepository(
 
     private fun seedExercisesByStableKey(): Map<String, Exercise> =
         SeedData.exactExerciseMetadataByStableKey(context)
-
-    private fun String.metadataOverrideKey(): String = trim().lowercase()
 
     private fun Exercise.needsAnalysisMetadataRefresh(): Boolean =
         compoundType.isBlank() ||
