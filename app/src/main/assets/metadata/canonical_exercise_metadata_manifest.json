@@ -1,8 +1,8 @@
 {
     "schemaVersion": 2,
   "metadataVersion": "v0.3.6.2.1",
-  "appVersion": "v0.4.0.9",
-  "createdForAppVersion": "v0.4.0.9",
+  "appVersion": "v0.4.1.0",
+  "createdForAppVersion": "v0.4.1.0",
     "taxonomyRevision": "pass3.1-semantic-recalibrated-v0.3.6.2.1-medicine-ball-hotfix",
     "asset": "canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
     "rowCount": 239,

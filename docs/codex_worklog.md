@@ -91,3 +91,47 @@
 - `TrainingRepository.kt` line count: 1826.
 - GitHub web UI appeared stale/inconsistent in some views, but the local Git baseline is consistent.
 - Next work proceeds as `v0.4.1.0` Program planning service extraction.
+
+## v0.4.1.0 Program Planning Service Extraction
+
+- Baseline: CLI confirmed `HEAD`, `origin/main`, and `v0.4.0.9` all pointed to `038a97918ac8bceb194670915d304b33a0f2d114` before v0.4.1.0 work.
+- Baseline repair: not needed.
+- Work target: reduce the remaining `TrainingRepository` god object responsibility by extracting program planning / persistence / apply orchestration.
+- Cause: after v0.4.0.6-v0.4.0.9 service extractions, program save/apply/delete/read orchestration still lived directly in `TrainingRepository`.
+- Changes:
+  - Added `ProgramPlanService`.
+  - Delegated program observation, item observation, create/save/delete, item mutation, conflict summary, and apply-to-dates calls from `TrainingRepository`.
+  - Moved program apply transaction logic, generated-program persistence mapping, program-item reindexing, program date mapping, and program prescription note wiring into the service.
+  - Left `generateProgramSkeleton`, `ProgramSkeletonGenerator`, ProgramBuilder validation, plan UI, record mutation, metadata, backup, analysis, readiness, and home paths unchanged.
+- Reason: program persistence/apply orchestration is a bounded repository responsibility that can be extracted without changing caller-facing APIs or generation behavior.
+- Result:
+  - `TrainingRepository.kt` line count changed from 1826 to 1652 before release docs.
+  - `ProgramPlanService.kt` contains the moved orchestration logic.
+  - TrainingRepository public API and ViewModel/UI call sites remain stable.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.0_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `ProgramPlanService`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*Program*" --tests "*Plan*" --tests "*RecordCsvBackupRestoreTest" --tests "*RecordMutation*"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `84a2416` `docs(worklog): record v0.4.0.9 baseline verification`
+  - `aaa88dc` `refactor(repository): extract program planning service`
+- main push status: pending final verification.
+- tag push status: `v0.4.1.0` pending final verification.
+- Next work candidates:
+  - Continue repository read-only summary extraction only if another bounded responsibility remains clear.
+  - Avoid ProgramBuilder algorithm refactors in repository extraction releases.
+- Cautions:
+  - ProgramBuilder / ProgramBuilderValidation behavior was not changed.
+  - DAO call order and transaction boundaries inside moved program persistence/apply code were preserved.
+  - record/metadata/backup/analysis/readiness/home/UI paths were not modified.
