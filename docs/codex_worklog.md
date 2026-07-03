@@ -318,3 +318,67 @@
   - Do not move calculation engines into this service.
   - Do not merge this service with PerformanceTrendSummaryService unless metric ownership is re-audited.
   - Do not change metadata override priority or runtime catalog resolution in a repository extraction release.
+
+## v0.4.1.4 Read Query and Program Generation Service Extraction
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `cc92d8bc954d4dba6473b8dfabddc5e93dcdf7fe`; `v0.4.1.3` tag points to the same commit.
+- Existing audit map reused:
+  - `docs/v0.4.1.0_repository_audit.md` lists direct read-only DAO flows/counts as low-risk cleanup and program generation input assembly as a medium-risk bounded candidate.
+  - `docs/v0.4.1.1_calendar_record_extraction_audit.md` confirmed calendar/program apply/backup boundaries remain separate.
+- Current-code consistency check:
+  - simple read-only query/observe/count functions still lived in `TrainingRepository`.
+  - `generateProgramSkeleton` input assembly still lived in `TrainingRepository`.
+  - read query responsibility and program generation responsibility were independent.
+  - `ProgramSkeletonGenerator`, `ProgramBuilder`, and `ProgramBuilderValidation` did not need changes.
+- Work target:
+  - Commit 1: extract read query service.
+  - Commit 2: extract program generation service.
+- Cause: `TrainingRepository` still owned simple read query facade methods and program skeleton generation input assembly after prior extractions.
+- Changes:
+  - Added `RepositoryReadQueryService`.
+  - Delegated simple exercise, analysis stats, profile, entries, set counts, and daily summary read queries.
+  - Added `ProgramGenerationService`.
+  - Delegated `generateProgramSkeleton` input assembly.
+  - Bumped app version to `v0.4.1.4` / `401004`.
+  - Added `docs/v0.4.1.4_release_notes.md`.
+- Reason: these are bounded responsibilities; keeping them as separate services avoids coupling read queries to program generation.
+- Result:
+  - `TrainingRepository.kt` line count changed from 1489 to 1479 before release docs.
+  - Commit 1 and Commit 2 were kept separate.
+  - The two services do not reference each other.
+  - Public repository APIs and ViewModel/UI call sites remain stable.
+  - `ProgramSkeletonGenerator`, `ProgramBuilder`, and `ProgramBuilderValidation` were not changed.
+  - generated program behavior meaning was not changed.
+  - metadata resolver path preserved.
+  - fatigue calculation input meaning preserved.
+  - backup, record, calendar, program persistence, analysis, home, readiness, and UI paths were not changed.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/data/RepositoryReadQueryService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.4_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `RepositoryReadQueryService`
+  - `ProgramGenerationService`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed after Commit 1.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ProgramBuilder*" --tests "*ProgramBuilderValidation*" --tests "*ProgramSkeletonGeneratorTest*" --tests "*ProgramPlan*" --tests "*ProgramGeneratorUsesResolvedRuntimeMetadataTest*" --tests "*RecordCsvBackupRestoreTest*" --tests "*AnalysisMetricRegistryTest*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed after Commit 2.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `c2c7fcc` `refactor(repository): extract read query service`
+  - `9662021` `refactor(repository): extract program generation service`
+- main push status: pending final verification.
+- tag push status: `v0.4.1.4` pending final verification.
+- Next work candidate:
+  - Re-check remaining repository responsibilities before choosing another extraction. Restore/import, seed/bootstrap, and metadata editor remain higher risk.
+- Cautions:
+  - Keep read query and program generation services independent.
+  - Do not route program generation through read query service unless a future audit proves value.
+  - Do not change ProgramBuilder or metadata resolver behavior in repository extraction releases.
