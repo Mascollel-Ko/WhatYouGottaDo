@@ -540,3 +540,79 @@
   - Runtime metadata resolver algorithm and canonical metadata policy should stay separately audited before any future changes.
 - Next work candidate:
   - Re-audit remaining `TrainingRepository` responsibilities after observing this metadata editor extraction in CI.
+
+## v0.4.1.7 Backup Restore Importer Test-First Extraction
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `946467e6590b5cbb3a795b73221552922f0df55a`; `v0.4.1.6` tag points to the same commit.
+- Work target:
+  - Phase 1: add focused restore import behavior tests before production changes.
+  - Phase 2: move restore CSV import orchestration out of `TrainingRepository` into `BackupRestoreImportService`.
+  - Phase 3: bump to `v0.4.1.7` and run focused + full verification.
+- Cause:
+  - `TrainingRepository` still owned the restore CSV import body after earlier backup import/export orchestration extraction.
+  - Restore import is high risk because it restores exercises, runtime metadata overrides, daily metrics, check-ins, smash speed rows, workout entries, and sets.
+- Current-code consistency check:
+  - `TrainingRepository.importRecordsBackup(...)` still used `BackupImportService`.
+  - `TrainingRepository.importRestoreCsv(...)` still contained restore body logic before this work.
+  - Existing daily-timeseries import remained separate and was not moved.
+- Phase 1 test coverage added:
+  - `restoreBackupPreservesRuntimeMetadataOverridePrecedence`
+  - `restoreBackupPreservesCustomExerciseStableKeyAndOverride`
+  - `restoreBackupUsesDailyMetricSleepAsCanonicalCheckInSleep`
+  - `restoreBackupPromotesCheckInSleepWhenDailyMetricMissing`
+  - `restoreBackupSkipsDuplicateSmashSpeedRows`
+  - `restoreBackupGroupsSetsPreservesStateAndSkipsDuplicateEntries`
+- Phase 1 result:
+  - Focused restore behavior tests passed before production extraction.
+  - No production bug was identified.
+- Phase 2 extraction:
+  - Added `BackupRestoreImportService`.
+  - Moved restore CSV import orchestration to the service.
+  - Kept `TrainingRepository.importRecordsBackup(...)` public API unchanged.
+  - Kept `BackupImportService` dispatch behavior unchanged.
+  - Kept daily-timeseries import behavior unchanged.
+  - Kept shared restore helper methods in `TrainingRepository` and injected them into the new service to avoid changing shared daily-timeseries helper behavior.
+- Behavior preserved:
+  - Runtime metadata override restore and `safeForSeedMutation = false`.
+  - Custom exercise stableKey handling.
+  - DailyMetric / DailyCheckIn sleep canonicalization and promotion.
+  - Smash speed duplicate skip.
+  - Workout entry/set grouping, confirmed/unconfirmed restore, duplicate skip, and result counts.
+  - Backup format, export format, metadata resolver semantics, analysis, UI, Room schema, and ViewModel call sites.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt`
+  - `app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt`
+  - `docs/v0.4.1.7_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `BackupRestoreImportService`
+  - `app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt`
+- New test file:
+  - `app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt`
+- `TrainingRepository.kt` line count:
+  - Before: 1376
+  - After: 1223
+- Tests run:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*BackupRestoreImportBehaviorTest*"` before extraction: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RecordCsvBackupRestoreTest*" --tests "*ExerciseMetadataEditorBehaviorTest*" --tests "*RuntimeExerciseMetadataResolverTest*" --tests "*ExerciseSeedMetadataPolicyTest*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin` after extraction: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*BackupRestoreImportBehaviorTest*"` after extraction: passed.
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `b2f0c87` `test(backup): cover restore import behavior`
+  - `e9efd1a` `refactor(repository): extract backup restore import service`
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.7` pending final release commit and push.
+- Remaining risk areas:
+  - Restore helper internals remain sensitive and should not be reformatted or "improved" without dedicated tests.
+  - Daily-timeseries import remains in `TrainingRepository`; do not merge it into restore service without a separate audit.
+- Next work candidate:
+  - Re-audit the remaining import/daily-timeseries helper boundary before another repository extraction.
