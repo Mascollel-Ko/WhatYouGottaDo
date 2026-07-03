@@ -616,3 +616,61 @@
   - Daily-timeseries import remains in `TrainingRepository`; do not merge it into restore service without a separate audit.
 - Next work candidate:
   - Re-audit the remaining import/daily-timeseries helper boundary before another repository extraction.
+
+## v0.4.1.8 Backup Restore Importer Extraction Completion
+
+- Checked at: 2026-07-04 +09:00
+- Baseline: latest `origin/main` at `9248ec2e55dd8615b8d409b9b770cde51b30640f`; `v0.4.1.7` tag points to the same commit.
+- Work target:
+  - Verify that the v0.4.1.7 backup restore importer extraction is fully wired into production flow.
+  - Remove any remaining private `TrainingRepository.importRestoreCsv(...)` body only if it still exists.
+  - Bump release metadata to `v0.4.1.8`.
+- Current-code consistency check:
+  - `TrainingRepository.importRecordsBackup(...)` already delegates `restoreImporter` to `backupRestoreImportService::importRestoreCsv`.
+  - `BackupRestoreImportService.importRestoreCsv(...)` exists and is used by the production import flow.
+  - Private `TrainingRepository.importRestoreCsv(...)` is already absent.
+  - `importDailyTimeseriesCsv(...)` remains in `TrainingRepository`, unchanged.
+- Cause:
+  - The follow-up request assumed v0.4.1.7 had added the restore service/tests but had not completed wiring/removal.
+  - CLI inspection showed the extraction completion was already present in the v0.4.1.7 baseline.
+- Changes:
+  - No production Kotlin refactor was needed.
+  - Bumped `versionName` to `v0.4.1.8` and `versionCode` to `401008`.
+  - Updated canonical metadata manifest app version fields to `v0.4.1.8`.
+  - Added `docs/v0.4.1.8_release_notes.md`.
+  - Appended this worklog entry.
+- Behavior preserved:
+  - Backup CSV format unchanged.
+  - Restore semantics unchanged.
+  - Import result counts and duplicate detection unchanged.
+  - Runtime metadata override restore and `safeForSeedMutation = false` unchanged.
+  - Custom exercise stableKey restore unchanged.
+  - DailyMetric / DailyCheckIn sleep canonicalization unchanged.
+  - Smash speed restore unchanged.
+  - Workout entry/set restore and confirmed/unconfirmed handling unchanged.
+  - Metadata resolver semantics, analysis, UI, Room schema, and ViewModel call sites unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.8_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - None.
+- `TrainingRepository.kt` line count:
+  - Before: 1223
+  - After: 1223
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*BackupRestore*" --tests "*RecordCsvBackupRestoreTest*" --tests "*ExerciseMetadataEditorBehaviorTest*" --tests "*RuntimeExerciseMetadataResolverTest*" --tests "*ExerciseSeedMetadataPolicyTest*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.8` pending final release commit and push.
+- Remaining risk areas:
+  - Daily-timeseries import remains in `TrainingRepository` and should not be moved without a separate audit.
+  - Restore helper callbacks remain behavior-sensitive; avoid cleanup-only rewrites without tests.
+- Next work candidate:
+  - Re-audit remaining daily-timeseries import and restore helper boundaries before any further backup import extraction.
