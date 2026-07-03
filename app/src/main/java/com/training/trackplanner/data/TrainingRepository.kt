@@ -11,7 +11,6 @@ import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
-import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
@@ -154,6 +153,12 @@ class TrainingRepository(
         programDao = programDao,
         runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog,
         prescriptionNoteFormatter = ::noteFromPrescription
+    )
+    private val programGenerationService = ProgramGenerationService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        initialUserProfileDao = initialUserProfileDao,
+        runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog
     )
     private val dailyStatusService = DailyStatusService(
         dailyMetricDao = dailyMetricDao,
@@ -545,27 +550,7 @@ class TrainingRepository(
 
     suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
         withContext(Dispatchers.IO) {
-            val exercises = exerciseDao.allExercises()
-            val today = SystemAnalysisDateProvider().today()
-            val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val history = workoutDao.entriesWithSetsUntil(todayString)
-            val metadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-            val fatigueState = runCatching {
-                DailyFatigueCalculator(metadataCatalog).calculate(
-                    targetDate = today,
-                    exercises = exercises,
-                    entriesWithSets = history,
-                    initialProfile = initialUserProfileDao.profile()
-                ).state
-            }.getOrNull()
-            ProgramSkeletonGenerator().generate(
-                request = request,
-                exercises = exercises,
-                history = history,
-                today = today,
-                runtimeMetadataCatalog = metadataCatalog,
-                fatigueState = fatigueState
-            )
+            programGenerationService.generateProgramSkeleton(request)
         }
 
     suspend fun saveGeneratedProgram(
