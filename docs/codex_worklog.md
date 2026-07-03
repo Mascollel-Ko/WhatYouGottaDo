@@ -264,3 +264,57 @@
   - ProgramPlanService planned-only overwrite remains separate.
   - RecordMutationService single entry/set completion and display-order rules remain separate.
   - Calendar helpers must not be reused for backup restore/import without a separate audit.
+
+## v0.4.1.3 Analysis Summary Service Extraction
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `39026404e4d6a9ee712421f486797a6630a50369`; `v0.4.1.2` tag points to the same commit.
+- Existing audit map reused:
+  - `docs/v0.4.1.0_repository_audit.md` lists `AnalysisSummaryService` as a medium-risk bounded extraction candidate.
+  - `docs/v0.4.1.1_calendar_record_extraction_audit.md` confirmed calendar/backup boundaries remain separate.
+- Current-code consistency check:
+  - `fatigueAnalysisHistory`, `badmintonTransferSummary`, and `badmintonTransferCoverageSummary` still lived in `TrainingRepository`.
+  - The three methods were read-only summary assembly.
+  - They used the same runtime metadata catalog resolver path and clear `entriesWithSetsUntil(todayString)` date-window semantics.
+  - No Lab/Bayesian/lagged analysis helper was shared with the moved code.
+- Work target: extract only those read-only analysis summary methods into `AnalysisSummaryService`.
+- Cause: `TrainingRepository` still owned bounded fatigue and badminton transfer summary assembly after prior repository extractions.
+- Changes:
+  - Added `AnalysisSummaryService`.
+  - Delegated `fatigueAnalysisHistory`, `badmintonTransferSummary`, and `badmintonTransferCoverageSummary`.
+  - Bumped app version to `v0.4.1.3` / `401003`.
+  - Added `docs/v0.4.1.3_release_notes.md`.
+- Reason: this is the smallest useful analysis extraction; calculation engines, metric registries, metadata resolver behavior, and UI paths stay untouched.
+- Result:
+  - `TrainingRepository.kt` line count changed from 1510 to 1489 before release docs.
+  - Public repository APIs and ViewModel/UI call sites remain stable.
+  - metadata resolver path preserved.
+  - date-window/history range preserved.
+  - empty/insufficient fallback behavior preserved by leaving calculators/analyzers unchanged.
+  - fatigue/badminton transfer calculations were not changed.
+  - Lab/Bayesian/lagged analysis, backup, record, calendar, program, home, readiness, and UI paths were not changed.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/data/AnalysisSummaryService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.3_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `AnalysisSummaryService`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*DailyFatigueCalculatorTest" --tests "*BadmintonTransferAnalysisEngineTest" --tests "*BadmintonTransferCoverageAnalyzerTest" --tests "*RuntimeExerciseMetadataResolverTest" --tests "*ExerciseSeedMetadataPolicyTest" --tests "*RecordCsvBackupRestoreTest" --tests "*AnalysisMetricRegistryTest" --tests "*PerformanceTrendSummaryServiceTest" --tests "*StrengthAndMuscleMetricSeriesBuilderTest"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `cefe906` `refactor(repository): extract analysis summary service`
+- main push status: pending final verification.
+- tag push status: `v0.4.1.3` pending final verification.
+- Next work candidate:
+  - Re-check remaining repository responsibilities before choosing another extraction. Do not assume restore/import, metadata editor, or seed/bootstrap is safe.
+- Cautions:
+  - Do not move calculation engines into this service.
+  - Do not merge this service with PerformanceTrendSummaryService unless metric ownership is re-audited.
+  - Do not change metadata override priority or runtime catalog resolution in a repository extraction release.
