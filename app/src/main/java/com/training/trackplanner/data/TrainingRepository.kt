@@ -143,6 +143,26 @@ class TrainingRepository(
             )
         }
     )
+    private val dailyTimeseriesImportService = DailyTimeseriesImportService(
+        db = db,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        confirmedCategoryCounts = { row -> row.confirmedCategoryCounts() },
+        findOrCreateConfirmedExercise = { category ->
+            findOrCreateImportedExercise(
+                name = "CSV 복원 $category",
+                category = category,
+                forceFatigueOnly = true
+            )
+        },
+        findOrCreatePlannedExercise = {
+            findOrCreateImportedExercise(
+                name = "CSV 복원 계획",
+                category = "근력운동",
+                forceFatigueOnly = true
+            )
+        }
+    )
     private val readQueryService = RepositoryReadQueryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -312,7 +332,7 @@ class TrainingRepository(
     suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         BackupImportService(
             restoreImporter = backupRestoreImportService::importRestoreCsv,
-            dailyTimeseriesImporter = ::importDailyTimeseriesCsv
+            dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv
         ).import(context, uri)
     }
 
@@ -570,124 +590,6 @@ class TrainingRepository(
         sleepHours: Double?,
         bodyWeightKg: Double?
     ) = dailyStatusService.saveDailyMetric(date, sleepHours, bodyWeightKg)
-
-    private suspend fun importDailyTimeseriesCsv(
-        data: RecordCsvImportData.DailyTimeseries
-    ): RecordCsvTransferResult {
-        var dailyCount = 0
-        var entryCount = 0
-        var setCount = 0
-        var skipped = 0
-        db.withTransaction {
-            data.rows.forEach { row ->
-                if (row.sleepHours != null || row.bodyWeightKg != null) {
-                    dailyMetricDao.upsert(
-                        DailyMetric(
-                            date = row.date,
-                            sleepHours = row.sleepHours,
-                            bodyWeightKg = row.bodyWeightKg
-                        )
-                    )
-                    dailyCount += 1
-                }
-
-                val existing = workoutDao.entriesWithSets(row.date)
-                if (existing.any { item -> item.entry.notes == TIMESERIES_IMPORT_NOTE }) {
-                    skipped += 1
-                    return@forEach
-                }
-
-                val confirmedCategoryCounts = row.confirmedCategoryCounts()
-                if (confirmedCategoryCounts.isEmpty() && row.plannedEntries <= 0) return@forEach
-
-                val confirmedTotal = confirmedCategoryCounts.values.sum().coerceAtLeast(1)
-                confirmedCategoryCounts.forEach { (category, categoryCount) ->
-                    val ratio = categoryCount.toDouble() / confirmedTotal
-                    val reps = (row.totalReps * ratio).toInt().coerceAtLeast(0)
-                    val tonnage = row.totalTonnageKg * ratio
-                    val seconds = (row.totalSeconds * ratio).toInt().coerceAtLeast(0)
-                    val setsForCategory = (row.totalSets * ratio).toInt().coerceAtLeast(1)
-                    val weight = if (reps > 0 && tonnage > 0.0) tonnage / reps else 0.0
-                    val exercise = findOrCreateImportedExercise(
-                        name = "CSV 복원 $category",
-                        category = category,
-                        forceFatigueOnly = true
-                    )
-                    val entryId = workoutDao.insertEntry(
-                        WorkoutEntry(
-                            date = row.date,
-                            exerciseId = exercise.id,
-                            exerciseName = exercise.name,
-                            category = category,
-                            notes = TIMESERIES_IMPORT_NOTE,
-                            completedAt = System.currentTimeMillis()
-                        )
-                    )
-                    workoutDao.insertSet(
-                        WorkoutSet(
-                            entryId = entryId,
-                            setIndex = 1,
-                            reps = reps,
-                            weightKg = weight,
-                            seconds = seconds,
-                            confirmed = true,
-                            manualWeight = weight > 0.0
-                        )
-                    )
-                    entryCount += 1
-                    setCount += 1
-                    repeat((setsForCategory - 1).coerceAtLeast(0)) { index ->
-                        workoutDao.insertSet(
-                            WorkoutSet(
-                                entryId = entryId,
-                                setIndex = index + 2,
-                                reps = 0,
-                                weightKg = 0.0,
-                                seconds = 0,
-                                confirmed = true,
-                                manualWeight = false
-                            )
-                        )
-                        setCount += 1
-                    }
-                }
-
-                if (row.plannedEntries > 0) {
-                    val exercise = findOrCreateImportedExercise(
-                        name = "CSV 복원 계획",
-                        category = "근력운동",
-                        forceFatigueOnly = true
-                    )
-                    val entryId = workoutDao.insertEntry(
-                        WorkoutEntry(
-                            date = row.date,
-                            exerciseId = exercise.id,
-                            exerciseName = exercise.name,
-                            category = exercise.category,
-                            notes = TIMESERIES_IMPORT_NOTE
-                        )
-                    )
-                    workoutDao.insertSet(
-                        WorkoutSet(
-                            entryId = entryId,
-                            setIndex = 1,
-                            confirmed = false
-                        )
-                    )
-                    entryCount += 1
-                    setCount += 1
-                }
-            }
-        }
-        return RecordCsvTransferResult(
-            format = "daily_timeseries",
-            dailyMetricCount = dailyCount,
-            entryCount = entryCount,
-            setCount = setCount,
-            skippedDuplicateCount = skipped,
-            warningCount = data.warningCount
-        )
-    }
 
     private suspend fun hasDuplicateRestoreEntry(
         first: RestoreSetRow,
