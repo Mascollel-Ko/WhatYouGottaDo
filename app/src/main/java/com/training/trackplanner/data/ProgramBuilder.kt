@@ -13,6 +13,8 @@ class ProgramBuilder internal constructor(
     private val fatigueSlotPolicy: FatigueSlotPolicy = FatigueSlotPolicy.DEFAULT,
     private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
 ) {
+    private val prescriptionPolicy = ProgramPrescriptionPolicy()
+
     fun build(
         request: ProgramSkeletonRequest,
         exercises: List<Exercise>,
@@ -64,11 +66,11 @@ class ProgramBuilder internal constructor(
             schedule.forEachIndexed { dayIndex, day ->
                 val exerciseSlots = templateCatalog.exerciseSlots(
                     day,
-                    exerciseCount(normalized.dailyAvailableMinutes)
+                    prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
                 )
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
-                var estimatedSessionSeconds = warmupReserveSeconds(normalized.dailyAvailableMinutes)
+                var estimatedSessionSeconds = prescriptionPolicy.warmupReserveSeconds(normalized.dailyAvailableMinutes)
                 var timeBudgetReached = false
                 exerciseSlots.forEachIndexed { itemIndex, templateSlot ->
                     if (timeBudgetReached) return@forEachIndexed
@@ -124,17 +126,17 @@ class ProgramBuilder internal constructor(
                         }
                         return@forEachIndexed
                     }
-                    var prescription = prescribe(picked, role, week, fatigueGate)
-                    var itemDurationSeconds = estimateItemDurationSeconds(picked, prescription)
+                    var prescription = prescriptionPolicy.prescribe(picked, role, week, fatigueGate)
+                    var itemDurationSeconds = prescriptionPolicy.estimateItemDurationSeconds(picked, prescription)
                     if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
                         timeBudgetTrimmed = true
                         if (templateSlot.required) {
-                            prescription = fitRequiredPrescription(
+                            prescription = prescriptionPolicy.fitRequiredPrescription(
                                 candidate = picked,
                                 prescription = prescription,
                                 remainingSeconds = sessionBudgetSeconds - estimatedSessionSeconds
                             )
-                            itemDurationSeconds = estimateItemDurationSeconds(picked, prescription)
+                            itemDurationSeconds = prescriptionPolicy.estimateItemDurationSeconds(picked, prescription)
                             if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
                                 warnings += "TEMPLATE_REQUIRED_SLOT_OVERRUN: ${templateSelection.templateId}/${templateSlot.targetSlot}"
                             }
@@ -366,40 +368,6 @@ class ProgramBuilder internal constructor(
         return !(hasHeavyLower && hasImpact && hasCod)
     }
 
-    private fun prescribe(
-        candidate: ProgramCandidate,
-        role: ProgramExerciseRole,
-        week: ProgramWeekPlan,
-        gate: ProgramFatigueGate
-    ): ProgramPrescription {
-        val timed = candidate.isTimed
-        val baseSets = when (role) {
-            ProgramExerciseRole.ANCHOR -> 4
-            ProgramExerciseRole.TRANSFER -> if (candidate.isHighImpact) 3 else 4
-            ProgramExerciseRole.PREHAB -> 2
-            else -> 3
-        }
-        val sets = max(1, (baseSets * week.volumeMultiplier * gate.volumeFactor).roundToInt())
-        val reps = when {
-            timed -> 0
-            role == ProgramExerciseRole.ANCHOR -> 5
-            role == ProgramExerciseRole.TRANSFER && candidate.isHighImpact -> 5
-            role == ProgramExerciseRole.PREHAB -> 15
-            role == ProgramExerciseRole.CORE -> 10
-            else -> 10
-        }
-        val seconds = if (timed) {
-            when {
-                candidate.isSportLike -> 15 * 60
-                role == ProgramExerciseRole.TRANSFER -> 20
-                else -> 30
-            }
-        } else 0
-        val plannedRpe = week.targetRpeMax.roundToInt().coerceAtMost(gate.rpeCap)
-        val label = if (timed) "${sets}세트 · ${seconds}초" else "${sets}×${reps}"
-        return ProgramPrescription(sets, reps, seconds, plannedRpe, label)
-    }
-
     private fun reasonTokens(
         candidate: ProgramCandidate,
         role: ProgramExerciseRole,
@@ -423,46 +391,6 @@ class ProgramBuilder internal constructor(
 
     private fun defaultName(request: ProgramSkeletonRequest): String =
         "${request.durationWeeks}주 ${request.badmintonSpecificityRatio}:${100 - request.badmintonSpecificityRatio} 프로그램"
-
-    private fun exerciseCount(minutes: Int): Int = when (minutes) {
-        in 15..25 -> 3
-        in 26..40 -> 4
-        in 41..60 -> 5
-        in 61..80 -> 6
-        else -> 7
-    }
-
-    private fun warmupReserveSeconds(minutes: Int): Int = when {
-        minutes <= 30 -> 5 * 60
-        minutes <= 60 -> 8 * 60
-        else -> 10 * 60
-    }
-
-    private fun estimateItemDurationSeconds(
-        candidate: ProgramCandidate,
-        prescription: ProgramPrescription
-    ): Int {
-        val workPerSet = when {
-            prescription.seconds > 0 -> prescription.seconds
-            prescription.reps > 0 -> prescription.reps * 4
-            else -> 30
-        }
-        val work = prescription.setCount * workPerSet
-        val rest = (prescription.setCount - 1).coerceAtLeast(0) * candidate.exercise.defaultRestSeconds
-        return 45 + work + rest
-    }
-
-    private fun fitRequiredPrescription(
-        candidate: ProgramCandidate,
-        prescription: ProgramPrescription,
-        remainingSeconds: Int
-    ): ProgramPrescription {
-        for (sets in prescription.setCount downTo 1) {
-            val reduced = prescription.copy(setCount = sets)
-            if (estimateItemDurationSeconds(candidate, reduced) <= remainingSeconds) return reduced
-        }
-        return prescription.copy(setCount = 1)
-    }
 
     private companion object {
         val EXPANDED_RECOVERY_SLOTS = setOf(
@@ -917,14 +845,6 @@ internal data class ProgramCandidate(
         )
     }
 }
-
-private data class ProgramPrescription(
-    val setCount: Int,
-    val reps: Int,
-    val seconds: Int,
-    val rpe: Int,
-    val label: String
-)
 
 private data class ProgramWeightSuggestion(val weightKg: Double, val source: String)
 

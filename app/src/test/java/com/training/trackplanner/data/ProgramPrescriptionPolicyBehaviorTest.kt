@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ProgramPrescriptionPolicyBehaviorTest {
-    private val builder = ProgramBuilder()
+    private val policy = ProgramPrescriptionPolicy()
 
     @Test
     fun exerciseCount_usesCurrentMinuteBands() {
@@ -21,16 +21,16 @@ class ProgramPrescriptionPolicyBehaviorTest {
         )
 
         expected.forEach { (minutes, count) ->
-            assertEquals(count, invokeExerciseCount(minutes))
+            assertEquals(count, policy.exerciseCount(minutes))
         }
     }
 
     @Test
     fun warmupReserve_usesCurrentMinuteBands() {
-        assertEquals(5 * 60, invokeWarmupReserveSeconds(30))
-        assertEquals(8 * 60, invokeWarmupReserveSeconds(31))
-        assertEquals(8 * 60, invokeWarmupReserveSeconds(60))
-        assertEquals(10 * 60, invokeWarmupReserveSeconds(61))
+        assertEquals(5 * 60, policy.warmupReserveSeconds(30))
+        assertEquals(8 * 60, policy.warmupReserveSeconds(31))
+        assertEquals(8 * 60, policy.warmupReserveSeconds(60))
+        assertEquals(10 * 60, policy.warmupReserveSeconds(61))
     }
 
     @Test
@@ -38,29 +38,29 @@ class ProgramPrescriptionPolicyBehaviorTest {
         val week = week(volumeMultiplier = 1.0)
         val gate = gate(volumeFactor = 1.0)
 
-        val anchor = invokePrescribe(candidate(), ProgramExerciseRole.ANCHOR, week, gate)
-        assertEquals(4, anchor.intField("setCount"))
-        assertEquals(5, anchor.intField("reps"))
+        val anchor = policy.prescribe(candidate(), ProgramExerciseRole.ANCHOR, week, gate)
+        assertEquals(4, anchor.setCount)
+        assertEquals(5, anchor.reps)
 
-        val prehab = invokePrescribe(candidate(), ProgramExerciseRole.PREHAB, week, gate)
-        assertEquals(2, prehab.intField("setCount"))
-        assertEquals(15, prehab.intField("reps"))
+        val prehab = policy.prescribe(candidate(), ProgramExerciseRole.PREHAB, week, gate)
+        assertEquals(2, prehab.setCount)
+        assertEquals(15, prehab.reps)
 
-        val core = invokePrescribe(candidate(), ProgramExerciseRole.CORE, week, gate)
-        assertEquals(3, core.intField("setCount"))
-        assertEquals(10, core.intField("reps"))
+        val core = policy.prescribe(candidate(), ProgramExerciseRole.CORE, week, gate)
+        assertEquals(3, core.setCount)
+        assertEquals(10, core.reps)
 
-        val highImpactTransfer = invokePrescribe(highImpactCandidate(), ProgramExerciseRole.TRANSFER, week, gate)
-        assertEquals(3, highImpactTransfer.intField("setCount"))
-        assertEquals(5, highImpactTransfer.intField("reps"))
+        val highImpactTransfer = policy.prescribe(highImpactCandidate(), ProgramExerciseRole.TRANSFER, week, gate)
+        assertEquals(3, highImpactTransfer.setCount)
+        assertEquals(5, highImpactTransfer.reps)
 
-        val reduced = invokePrescribe(
+        val reduced = policy.prescribe(
             candidate(),
             ProgramExerciseRole.ANCHOR,
             week(volumeMultiplier = 0.50),
             gate(volumeFactor = 0.25)
         )
-        assertEquals(1, reduced.intField("setCount"))
+        assertEquals(1, reduced.setCount)
     }
 
     @Test
@@ -68,128 +68,72 @@ class ProgramPrescriptionPolicyBehaviorTest {
         val week = week()
         val gate = gate()
 
-        val sportLike = invokePrescribe(
+        val sportLike = policy.prescribe(
             timedCandidate(progressMetricType = "SESSION_DURATION", activityKind = "SPORT_SESSION"),
             ProgramExerciseRole.SUPPORT,
             week,
             gate
         )
-        assertEquals(0, sportLike.intField("reps"))
-        assertEquals(15 * 60, sportLike.intField("seconds"))
-        assertEquals("3세트 · 900초", sportLike.stringField("label"))
+        assertEquals(0, sportLike.reps)
+        assertEquals(15 * 60, sportLike.seconds)
+        assertEquals("3세트 · 900초", sportLike.label)
 
-        val transfer = invokePrescribe(
+        val transfer = policy.prescribe(
             timedCandidate(progressMetricType = "REPS_OR_TIME"),
             ProgramExerciseRole.TRANSFER,
             week,
             gate
         )
-        assertEquals(20, transfer.intField("seconds"))
-        assertEquals("4세트 · 20초", transfer.stringField("label"))
+        assertEquals(20, transfer.seconds)
+        assertEquals("4세트 · 20초", transfer.label)
 
-        val defaultTimed = invokePrescribe(
+        val defaultTimed = policy.prescribe(
             timedCandidate(progressMetricType = "QUALITY_BASED"),
             ProgramExerciseRole.ACCESSORY,
             week,
             gate
         )
-        assertEquals(30, defaultTimed.intField("seconds"))
-        assertEquals("3세트 · 30초", defaultTimed.stringField("label"))
+        assertEquals(30, defaultTimed.seconds)
+        assertEquals("3세트 · 30초", defaultTimed.label)
     }
 
     @Test
     fun prescription_capsRpeByFatigueGate() {
-        val prescription = invokePrescribe(
+        val prescription = policy.prescribe(
             candidate(),
             ProgramExerciseRole.ANCHOR,
             week(targetRpeMax = 8.6),
             gate(rpeCap = 7)
         )
 
-        assertEquals(7, prescription.intField("rpe"))
+        assertEquals(7, prescription.rpe)
     }
 
     @Test
     fun durationEstimate_usesCurrentWorkSetupAndRestRules() {
         val repCandidate = candidate(defaultRestSeconds = 120)
-        val repPrescription = invokePrescribe(repCandidate, ProgramExerciseRole.ANCHOR, week(), gate())
-        assertEquals(45 + 4 * (5 * 4) + 3 * 120, invokeEstimateItemDuration(repCandidate, repPrescription))
+        val repPrescription = policy.prescribe(repCandidate, ProgramExerciseRole.ANCHOR, week(), gate())
+        assertEquals(45 + 4 * (5 * 4) + 3 * 120, policy.estimateItemDurationSeconds(repCandidate, repPrescription))
 
         val timedCandidate = timedCandidate(progressMetricType = "REPS_OR_TIME", defaultRestSeconds = 30)
-        val timedPrescription = invokePrescribe(timedCandidate, ProgramExerciseRole.TRANSFER, week(), gate())
-        assertEquals(45 + 4 * 20 + 3 * 30, invokeEstimateItemDuration(timedCandidate, timedPrescription))
+        val timedPrescription = policy.prescribe(timedCandidate, ProgramExerciseRole.TRANSFER, week(), gate())
+        assertEquals(45 + 4 * 20 + 3 * 30, policy.estimateItemDurationSeconds(timedCandidate, timedPrescription))
     }
 
     @Test
     fun fitRequiredPrescription_reducesSetsToCurrentLargestFittingCount() {
         val candidate = candidate(defaultRestSeconds = 120)
-        val prescription = invokePrescribe(candidate, ProgramExerciseRole.ANCHOR, week(), gate())
+        val prescription = policy.prescribe(candidate, ProgramExerciseRole.ANCHOR, week(), gate())
 
-        val reduced = invokeFitRequiredPrescription(candidate, prescription, remainingSeconds = 300)
-        assertEquals(2, reduced.intField("setCount"))
-        assertEquals(5, reduced.intField("reps"))
-        assertEquals(8, reduced.intField("rpe"))
+        val reduced = policy.fitRequiredPrescription(candidate, prescription, remainingSeconds = 300)
+        assertEquals(2, reduced.setCount)
+        assertEquals(5, reduced.reps)
+        assertEquals(8, reduced.rpe)
 
-        val minimum = invokeFitRequiredPrescription(candidate, prescription, remainingSeconds = 40)
-        assertEquals(1, minimum.intField("setCount"))
-        assertEquals("4×5", minimum.stringField("label"))
+        val minimum = policy.fitRequiredPrescription(candidate, prescription, remainingSeconds = 40)
+        assertEquals(1, minimum.setCount)
+        assertEquals("4×5", minimum.label)
     }
-
-    private fun invokeExerciseCount(minutes: Int): Int =
-        ProgramBuilder::class.java
-            .getDeclaredMethod("exerciseCount", Int::class.javaPrimitiveType)
-            .apply { isAccessible = true }
-            .invoke(builder, minutes) as Int
-
-    private fun invokeWarmupReserveSeconds(minutes: Int): Int =
-        ProgramBuilder::class.java
-            .getDeclaredMethod("warmupReserveSeconds", Int::class.javaPrimitiveType)
-            .apply { isAccessible = true }
-            .invoke(builder, minutes) as Int
-
-    private fun invokePrescribe(
-        candidate: ProgramCandidate,
-        role: ProgramExerciseRole,
-        week: ProgramWeekPlan,
-        gate: ProgramFatigueGate
-    ): Any =
-        ProgramBuilder::class.java
-            .getDeclaredMethod(
-                "prescribe",
-                ProgramCandidate::class.java,
-                ProgramExerciseRole::class.java,
-                ProgramWeekPlan::class.java,
-                ProgramFatigueGate::class.java
-            )
-            .apply { isAccessible = true }
-            .invoke(builder, candidate, role, week, gate)!!
-
-    private fun invokeEstimateItemDuration(candidate: ProgramCandidate, prescription: Any): Int =
-        ProgramBuilder::class.java
-            .getDeclaredMethod("estimateItemDurationSeconds", ProgramCandidate::class.java, prescription.javaClass)
-            .apply { isAccessible = true }
-            .invoke(builder, candidate, prescription) as Int
-
-    private fun invokeFitRequiredPrescription(
-        candidate: ProgramCandidate,
-        prescription: Any,
-        remainingSeconds: Int
-    ): Any =
-        ProgramBuilder::class.java
-            .getDeclaredMethod(
-                "fitRequiredPrescription",
-                ProgramCandidate::class.java,
-                prescription.javaClass,
-                Int::class.javaPrimitiveType
-            )
-            .apply { isAccessible = true }
-            .invoke(builder, candidate, prescription, remainingSeconds)!!
-
-    private fun Any.intField(name: String): Int =
-        javaClass.getDeclaredField(name).apply { isAccessible = true }.getInt(this)
-
-    private fun Any.stringField(name: String): String =
-        javaClass.getDeclaredField(name).apply { isAccessible = true }.get(this) as String
 
     private fun candidate(defaultRestSeconds: Int = 90): ProgramCandidate {
         val exercise = Exercise(
