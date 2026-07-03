@@ -128,6 +128,10 @@ class TrainingRepository(
     private val smashSpeedService = SmashSpeedService(
         smashSpeedDao = smashSpeedDao
     )
+    private val calendarRecordService = CalendarRecordService(
+        db = db,
+        workoutDao = workoutDao
+    )
     private val recordMutationService = RecordMutationService(
         db = db,
         exerciseDao = exerciseDao,
@@ -631,24 +635,11 @@ class TrainingRepository(
 
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
         withContext(Dispatchers.IO) {
-            if (dates.isEmpty()) {
-                CalendarConflictSummary()
-            } else {
-                CalendarConflictSummary(
-                    affectedDateCount = dates.size,
-                    existingDateCount = workoutDao.countDatesWithEntries(dates),
-                    existingEntryCount = workoutDao.countEntriesOnDates(dates),
-                    existingSetCount = workoutDao.countSetsOnDates(dates),
-                    existingConfirmedSetCount = workoutDao.countConfirmedSetsOnDates(dates)
-                )
-            }
+            calendarRecordService.calendarConflictSummary(dates)
         }
 
     suspend fun deleteDate(date: String) = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            workoutDao.deleteSetsOnDates(listOf(date))
-            workoutDao.deleteEntriesOnDates(listOf(date))
-        }
+        calendarRecordService.deleteDate(date)
     }
 
     suspend fun deleteDateRange(
@@ -656,34 +647,7 @@ class TrainingRepository(
         endDate: String,
         includeConfirmed: Boolean
     ) = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            val dates = dateRange(startDate, endDate)
-            if (dates.isEmpty()) return@withTransaction
-            if (includeConfirmed) {
-                workoutDao.deleteSetsOnDates(dates)
-                workoutDao.deleteEntriesOnDates(dates)
-            } else {
-                val entries = dates.flatMap { date -> workoutDao.entriesWithSets(date) }
-                entries.forEach { entryWithSets ->
-                    entryWithSets.sets
-                        .filter { set -> !set.confirmed }
-                        .forEach { set -> workoutDao.deleteSet(set) }
-
-                    val remainingSets = workoutDao.setsForEntry(entryWithSets.entry.id)
-                        .sortedBy { set -> set.setIndex }
-                    if (remainingSets.isEmpty()) {
-                        workoutDao.deleteEntryById(entryWithSets.entry.id)
-                    } else {
-                        remainingSets.forEachIndexed { index, set ->
-                            val nextIndex = index + 1
-                            if (set.setIndex != nextIndex) {
-                                workoutDao.updateSetIndex(set.id, nextIndex)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        calendarRecordService.deleteDateRange(startDate, endDate, includeConfirmed)
     }
 
     suspend fun copyDate(
@@ -692,20 +656,7 @@ class TrainingRepository(
         keepConfirmed: Boolean,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            val sourceEntries = workoutDao.entriesWithSets(sourceDate)
-            if (sourceEntries.isEmpty()) return@withTransaction
-            if (conflictMode == CalendarConflictMode.Overwrite) {
-                workoutDao.deleteSetsOnDates(listOf(targetDate))
-                workoutDao.deleteEntriesOnDates(listOf(targetDate))
-            }
-            copyEntriesToDate(
-                sourceEntries = sourceEntries,
-                targetDate = targetDate,
-                keepConfirmed = keepConfirmed,
-                baseCreatedAt = nextCreatedAt()
-            )
-        }
+        calendarRecordService.copyDate(sourceDate, targetDate, keepConfirmed, conflictMode)
     }
 
     suspend fun moveDate(
@@ -713,23 +664,7 @@ class TrainingRepository(
         targetDate: String,
         conflictMode: CalendarConflictMode
     ) = withContext(Dispatchers.IO) {
-        if (sourceDate == targetDate) return@withContext
-        db.withTransaction {
-            val sourceEntries = workoutDao.entriesWithSets(sourceDate)
-            if (sourceEntries.isEmpty()) return@withTransaction
-            if (conflictMode == CalendarConflictMode.Overwrite) {
-                workoutDao.deleteSetsOnDates(listOf(targetDate))
-                workoutDao.deleteEntriesOnDates(listOf(targetDate))
-            }
-            copyEntriesToDate(
-                sourceEntries = sourceEntries,
-                targetDate = targetDate,
-                keepConfirmed = true,
-                baseCreatedAt = nextCreatedAt()
-            )
-            workoutDao.deleteSetsOnDates(listOf(sourceDate))
-            workoutDao.deleteEntriesOnDates(listOf(sourceDate))
-        }
+        calendarRecordService.moveDate(sourceDate, targetDate, conflictMode)
     }
 
     suspend fun copyDateRangeAsPlan(
@@ -739,32 +674,7 @@ class TrainingRepository(
         conflictMode: CalendarConflictMode,
         keepConfirmed: Boolean = false
     ) = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            val sourceDates = dateRange(sourceStart, sourceEnd)
-            val sourceEntriesByDate = sourceDates.map { sourceDate ->
-                sourceDate to workoutDao.entriesWithSets(sourceDate)
-            }
-            val targetStartDate = LocalDate.parse(targetStart, DateTimeFormatter.ISO_LOCAL_DATE)
-            val targetDates = sourceDates.mapIndexed { index, _ ->
-                targetStartDate.plusDays(index.toLong()).format(DateTimeFormatter.ISO_LOCAL_DATE)
-            }
-            if (conflictMode == CalendarConflictMode.Overwrite && targetDates.isNotEmpty()) {
-                workoutDao.deleteSetsOnDates(targetDates)
-                workoutDao.deleteEntriesOnDates(targetDates)
-            }
-            var createdAt = nextCreatedAt()
-            sourceEntriesByDate.forEachIndexed { index, (_, entries) ->
-                if (entries.isNotEmpty()) {
-                    copyEntriesToDate(
-                        sourceEntries = entries,
-                        targetDate = targetDates[index],
-                        keepConfirmed = keepConfirmed,
-                        baseCreatedAt = createdAt
-                    )
-                    createdAt += entries.size
-                }
-            }
-        }
+        calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
     }
 
     suspend fun saveDailyMetric(
@@ -1464,53 +1374,6 @@ class TrainingRepository(
             programDao.insertProgramItems(items)
         }
     }
-
-    private suspend fun copyEntriesToDate(
-        sourceEntries: List<WorkoutEntryWithSets>,
-        targetDate: String,
-        keepConfirmed: Boolean,
-        baseCreatedAt: Long
-    ) {
-        sourceEntries.forEachIndexed { entryIndex, entryWithSets ->
-            val confirmedCount = entryWithSets.sets.count { it.confirmed }
-            val copiedEntryId = workoutDao.insertEntry(
-                entryWithSets.entry.copy(
-                    id = 0,
-                    date = targetDate,
-                    createdAt = baseCreatedAt + entryIndex,
-                    completedAt = if (keepConfirmed && confirmedCount > 0) System.currentTimeMillis() else null,
-                    displayOrder = entryIndex + 1,
-                    firstConfirmedAt = if (keepConfirmed && confirmedCount > 0) {
-                        System.currentTimeMillis()
-                    } else {
-                        null
-                    }
-                )
-            )
-            entryWithSets.sets.sortedBy { it.setIndex }.forEach { sourceSet ->
-                workoutDao.insertSet(
-                    sourceSet.copy(
-                        id = 0,
-                        entryId = copiedEntryId,
-                        confirmed = keepConfirmed && sourceSet.confirmed
-                    )
-                )
-            }
-        }
-    }
-
-    private fun dateRange(startDate: String, endDate: String): List<String> {
-        val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
-        val end = LocalDate.parse(endDate, DateTimeFormatter.ISO_LOCAL_DATE)
-        val first = minOf(start, end)
-        val last = maxOf(start, end)
-        val days = last.toEpochDay() - first.toEpochDay()
-        return (0L..days).map { offset ->
-            first.plusDays(offset).format(DateTimeFormatter.ISO_LOCAL_DATE)
-        }
-    }
-
-    private fun nextCreatedAt(): Long = System.currentTimeMillis()
 
     private fun noteFromPrescription(prescription: String): String {
         val trimmed = prescription.trim()
