@@ -674,3 +674,75 @@
   - Restore helper callbacks remain behavior-sensitive; avoid cleanup-only rewrites without tests.
 - Next work candidate:
   - Re-audit remaining daily-timeseries import and restore helper boundaries before any further backup import extraction.
+
+## v0.4.1.9 Daily-Timeseries Import Test-First Extraction
+
+- Checked at: 2026-07-04 +09:00
+- Baseline: latest `origin/main` at `f6484def5831d12d71ad9ab01e697fd4b11be907`; `v0.4.1.8` tag points to the same commit.
+- Work target:
+  - Add focused daily-timeseries CSV import behavior tests first.
+  - Move the daily-timeseries import body out of `TrainingRepository`.
+  - Keep `TrainingRepository.importRecordsBackup(...)` public API unchanged.
+  - Bump release metadata to `v0.4.1.9`.
+- Current-code consistency check:
+  - `TrainingRepository.importRecordsBackup(...)` already delegates restore import to `backupRestoreImportService::importRestoreCsv`.
+  - `TrainingRepository.importRecordsBackup(...)` still delegated daily-timeseries import to private `::importDailyTimeseriesCsv` before this work.
+  - `TrainingRepository.importDailyTimeseriesCsv(...)` still contained the daily-timeseries import body before this work.
+- Phase 1 test coverage added:
+  - `dailyTimeseriesImport_importsMetricsAndGeneratedEntries`
+  - `dailyTimeseriesImport_skipsGeneratedEntriesWhenDateAlreadyImported`
+  - `dailyTimeseriesImport_keepsExistingNullOverwritePolicyForPartialMetricRows`
+  - `dailyTimeseriesImport_reportsWarningsAndSkipsInvalidDateRows`
+- Phase 1 result:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*DailyTimeseriesImportBehaviorTest*"` passed before production extraction.
+- Phase 2 extraction:
+  - Added `DailyTimeseriesImportService`.
+  - Moved the daily-timeseries import flow out of `TrainingRepository`.
+  - Wired `BackupImportService` `dailyTimeseriesImporter` to `dailyTimeseriesImportService::importDailyTimeseriesCsv`.
+  - Removed the private `TrainingRepository.importDailyTimeseriesCsv(...)` body.
+  - Kept daily-timeseries category mapping and imported exercise creation as repository callbacks to avoid changing existing metadata/category helper behavior.
+- Behavior preserved:
+  - Daily-timeseries CSV format unchanged.
+  - Date parsing and warning behavior unchanged.
+  - DailyMetric upsert behavior unchanged.
+  - sleepHours/bodyWeightKg null overwrite behavior unchanged.
+  - Duplicate date entry skip behavior unchanged.
+  - Import result counts unchanged.
+  - Backup restore behavior unchanged.
+  - Metadata resolution, analysis, UI, Room schema, and ViewModel call sites unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/DailyTimeseriesImportService.kt`
+  - `app/src/test/java/com/training/trackplanner/data/DailyTimeseriesImportBehaviorTest.kt`
+  - `docs/v0.4.1.9_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `DailyTimeseriesImportService`
+  - `app/src/main/java/com/training/trackplanner/data/DailyTimeseriesImportService.kt`
+- New test file:
+  - `app/src/test/java/com/training/trackplanner/data/DailyTimeseriesImportBehaviorTest.kt`
+- `TrainingRepository.kt` line count:
+  - Before: 1223
+  - After: 1125
+- Tests run:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*DailyTimeseriesImportBehaviorTest*"` before extraction: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed after extraction.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*DailyTimeseries*" --tests "*BackupRestore*" --tests "*RecordCsvBackupRestoreTest*" --tests "*AnalysisSummaryServiceTest*"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RuntimeExerciseMetadataResolverTest*" --tests "*ExerciseSeedMetadataPolicyTest*" --tests "*ExerciseMetadataEditorBehaviorTest*"`: passed.
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `4328edf` `test(backup): cover daily timeseries import behavior`
+  - `22bf844` `refactor(repository): extract daily timeseries import service`
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.9` pending final release commit and push.
+- Remaining risk areas:
+  - The daily-timeseries category mapping remains in `TrainingRepository` as a callback; move it only with a separate small test if needed.
+  - Backup restore and daily-timeseries import should remain separate services unless a future audit shows a safe shared boundary.
+- Next work candidate:
+  - Re-audit remaining `TrainingRepository` callbacks/helpers after observing v0.4.1.9 in CI.
