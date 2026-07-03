@@ -42,6 +42,9 @@ import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
+import com.training.trackplanner.data.defaultProgramWeekDaySchedule
+import com.training.trackplanner.data.emptyProgramSkeleton
+import com.training.trackplanner.data.withResolvedWeekDaySchedule
 import java.time.LocalDate
 
 @Composable
@@ -235,6 +238,8 @@ private fun ProgramEditorScreen(
     onSaved: (Long) -> Unit
 ) {
     val context = LocalContext.current
+    val exercises by viewModel.exercises.collectAsState()
+    val runtimeMetadataByExerciseId by viewModel.exerciseRuntimeMetadata.collectAsState()
     val existingItems by if (program != null) {
         remember(program.id) { viewModel.programItems(program.id) }.collectAsState(initial = emptyList())
     } else {
@@ -276,10 +281,11 @@ private fun ProgramEditorScreen(
     var skeleton by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
+    var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(program?.id, existingItems) {
         if (program != null && skeleton == null && existingItems.isNotEmpty()) {
-            skeleton = skeletonFromProgram(program, existingItems)
+            skeleton = skeletonFromProgram(program, existingItems).withResolvedWeekDaySchedule()
         }
     }
 
@@ -308,16 +314,43 @@ private fun ProgramEditorScreen(
         return valid
     }
 
-    fun generateSkeleton(clearExisting: Boolean) {
+    fun startBlankProgram() {
         if (!requireProgramName()) return
         val request = currentRequest()
-        if (clearExisting) skeleton = null
+        skeleton = emptyProgramSkeleton(
+            request = request,
+            weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
+        )
+    }
+
+    fun generateSkeleton() {
+        if (!requireProgramName()) return
+        val request = currentRequest()
         viewModel.generateProgramSkeleton(request) { generated ->
             skeleton = generated.copy(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
-            )
+            ).withResolvedWeekDaySchedule()
         }
+    }
+
+    if (confirmRegenerate) {
+        AlertDialog(
+            onDismissRequest = { confirmRegenerate = false },
+            title = { Text("자동 골자로 대체") },
+            text = { Text("현재 작성 중인 구성이 자동 골자로 대체됩니다.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        confirmRegenerate = false
+                        generateSkeleton()
+                    }
+                ) { Text("대체") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRegenerate = false }) { Text("취소") }
+            }
+        )
     }
 
     LazyColumn(
@@ -439,15 +472,21 @@ private fun ProgramEditorScreen(
                     )
                     Button(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { generateSkeleton(clearExisting = false) }
+                        onClick = { startBlankProgram() }
                     ) {
-                        Text("자동으로 골자 만들기")
+                        Text("빈 프로그램으로 시작")
                     }
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = { generateSkeleton(clearExisting = true) }
+                        onClick = {
+                            if (skeleton?.items?.isNotEmpty() == true) {
+                                confirmRegenerate = true
+                            } else {
+                                generateSkeleton()
+                            }
+                        }
                     ) {
-                        Text("전부 새로 만들기")
+                        Text(if (skeleton == null) "자동 골자 만들기" else "자동 골자 다시 만들기")
                     }
                     } else {
                         Text(
@@ -463,18 +502,9 @@ private fun ProgramEditorScreen(
             item {
                 ProgramSkeletonPreview(
                     skeleton = currentSkeleton,
-                    onUpdateItem = { updated ->
-                        skeleton = currentSkeleton.copy(
-                            items = currentSkeleton.items.map { item ->
-                                if (item.localId == updated.localId) updated else item
-                            }
-                        )
-                    },
-                    onDeleteItem = { target ->
-                        skeleton = currentSkeleton.copy(
-                            items = currentSkeleton.items.filterNot { it.localId == target.localId }
-                        )
-                    }
+                    exercises = exercises,
+                    metadataByExerciseId = runtimeMetadataByExerciseId,
+                    onSkeletonChange = { skeleton = it }
                 )
             }
         } ?: item {
