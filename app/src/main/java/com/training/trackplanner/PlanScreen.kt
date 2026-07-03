@@ -282,6 +282,8 @@ private fun ProgramEditorScreen(
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
     var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
+    var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
     LaunchedEffect(program?.id, existingItems) {
         if (program != null && skeleton == null && existingItems.isNotEmpty()) {
@@ -321,6 +323,8 @@ private fun ProgramEditorScreen(
             request = request,
             weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
         )
+        autoSkeletonCreated = false
+        showSkeletonOptions = false
     }
 
     fun generateSkeleton() {
@@ -331,6 +335,8 @@ private fun ProgramEditorScreen(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
             ).withResolvedWeekDaySchedule()
+            autoSkeletonCreated = true
+            showSkeletonOptions = true
         }
     }
 
@@ -388,6 +394,7 @@ private fun ProgramEditorScreen(
                         singleLine = true
                     )
                     if (program == null) {
+                        if (showSkeletonOptions) {
                     ProgramDropdown(
                         label = "프로그램 목적",
                         selected = goal,
@@ -470,6 +477,7 @@ private fun ProgramEditorScreen(
                         label = { Text("제외 운동 / 통증 메모") },
                         minLines = 2
                     )
+                        }
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { startBlankProgram() }
@@ -479,14 +487,16 @@ private fun ProgramEditorScreen(
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            if (skeleton?.items?.isNotEmpty() == true) {
+                            if (!showSkeletonOptions) {
+                                showSkeletonOptions = true
+                            } else if (skeleton?.items?.isNotEmpty() == true) {
                                 confirmRegenerate = true
                             } else {
                                 generateSkeleton()
                             }
                         }
                     ) {
-                        Text(if (skeleton == null) "자동 골자 만들기" else "자동 골자 다시 만들기")
+                        Text(if (autoSkeletonCreated) "자동 골자 다시 만들기" else "자동 골자 만들기")
                     }
                     } else {
                         Text(
