@@ -462,3 +462,81 @@
 - Cautions:
   - Keep these tests behavior-focused; do not turn them into calculation-spec tests unless the calculation engine itself is being changed.
   - Calendar append ordering is covered through the existing visible-order policy without changing the audited copied-batch `displayOrder` behavior.
+
+## v0.4.1.6 Exercise Metadata Editor Test-First Extraction
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `b5734aff26e967a48ef8ea1e9fde256043d28411`; `v0.4.1.5` tag points to the same commit.
+- Existing audit map reused:
+  - `docs/v0.4.1.0_repository_audit.md` identified exercise metadata editor / runtime metadata override persistence as a higher-risk remaining repository responsibility.
+- Current-code consistency check:
+  - `exerciseEditorData`, `saveExerciseEditor`, `resetExerciseMetadataOverride`, runtime metadata resolution facade methods, `setExerciseActive`, and `deleteExerciseIfUnused` still lived in `TrainingRepository`.
+  - Seed/bootstrap, backup/restore, resolver algorithm, analysis/fatigue/badminton transfer/Lab, UI/ViewModel, and Room schema changes were not required.
+- Work target:
+  - Phase 1: lock existing exercise metadata editor behavior with focused regression tests.
+  - Phase 2: extract the locked behavior into `ExerciseMetadataEditorService`.
+  - Phase 3: bump to `v0.4.1.6` and run focused + full verification.
+- Cause:
+  - `TrainingRepository` still owned metadata editor data assembly, editor save, override reset, runtime metadata facade resolution, active/archive toggling, and unused custom exercise deletion after prior repository extractions.
+- Changes:
+  - Added `ExerciseMetadataEditorBehaviorTest`.
+  - Added `ExerciseMetadataEditorService`.
+  - Delegated existing `TrainingRepository` public APIs to the new service.
+  - Bumped app version to `v0.4.1.6` / `401006`.
+  - Updated `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json` app version fields.
+  - Added `docs/v0.4.1.6_release_notes.md`.
+- Phase 1 test cases added:
+  - `exerciseEditorDataForNewExerciseReturnsCustomDraftDefaultsAndSortedCopySources`
+  - `exerciseEditorDataForExistingExerciseReturnsEffectiveMetadataAndExcludesSelfCopySource`
+  - `saveExerciseEditorCreatesCustomExerciseWithUniqueStableKeyAndOverride`
+  - `saveExerciseEditorUpdatesExistingExerciseWhilePreservingStableKey`
+  - `saveExerciseEditorValidationFailsWithoutPartialWrites`
+  - `resetExerciseMetadataOverrideForSeedExerciseDeletesOverrideAndRestoresSeedRow`
+  - `resetExerciseMetadataOverrideForMissingExerciseReturnsFalse`
+  - `resolveRuntimeMetadataAndByExerciseIdReflectOverridePriorityForAllExercises`
+  - `setExerciseActivePreservesMetadataOverride`
+  - `deleteExerciseIfUnusedDeletesOnlyUnusedCustomExerciseAndItsOverride`
+- Phase 1 result:
+  - Initial test run exposed a test-only assertion issue around localized validation message substrings.
+  - Test was adjusted to assert the existing validation failure type and no partial writes.
+  - No production bug was identified.
+- Phase 2 extraction:
+  - Moved editor data assembly, save validation/transaction, override reset transaction, runtime metadata resolution facade, active/archive update, unused custom exercise deletion, and user stable-key generation into `ExerciseMetadataEditorService`.
+  - Kept `TrainingRepository` as the public facade.
+  - Kept ViewModel/UI call sites unchanged.
+  - Kept seed/bootstrap, backup/restore, metadata resolver semantics, analysis/fatigue/badminton transfer/Lab, home/readiness, and program behavior unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataEditorService.kt`
+  - `app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt`
+  - `docs/v0.4.1.6_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `ExerciseMetadataEditorService`
+  - `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataEditorService.kt`
+- New test file:
+  - `app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt`
+- `TrainingRepository.kt` line count:
+  - Before: 1479
+  - After: 1376
+- Tests run:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ExerciseMetadataEditor*"`: failed once due test-only validation-message assertion; passed after test-only correction.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ExerciseMetadataEditor*"` after extraction: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RuntimeExerciseMetadataResolverTest*" --tests "*ExerciseSeedMetadataPolicyTest*" --tests "*RecordCsvBackupRestoreTest*" --tests "*AnalysisSummaryServiceTest*"`: passed.
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `132c559` `test(repository): cover exercise metadata editor behavior`
+  - `ceca98b` `refactor(repository): extract exercise metadata editor service`
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.6` pending final release commit and push.
+- Remaining risk areas:
+  - Seed/bootstrap repair and backup/restore internals remain out of scope.
+  - Runtime metadata resolver algorithm and canonical metadata policy should stay separately audited before any future changes.
+- Next work candidate:
+  - Re-audit remaining `TrainingRepository` responsibilities after observing this metadata editor extraction in CI.
