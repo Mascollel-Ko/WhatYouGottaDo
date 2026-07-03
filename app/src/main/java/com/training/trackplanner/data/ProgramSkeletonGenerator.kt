@@ -161,6 +161,7 @@ data class GeneratedProgramSkeleton(
     val periodizationType: ProgramPeriodizationType,
     val weekPlans: List<ProgramWeekPlan>,
     val items: List<ProgramSkeletonItem>,
+    val weekDaySchedule: Map<Int, Set<Int>> = emptyMap(),
     val warnings: List<String> = emptyList(),
     val validationIssues: List<String> = emptyList(),
     val validationDetails: List<ProgramValidationIssue> = emptyList(),
