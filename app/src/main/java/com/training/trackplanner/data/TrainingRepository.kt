@@ -114,6 +114,11 @@ class TrainingRepository(
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val readQueryService = RepositoryReadQueryService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        initialUserProfileDao = initialUserProfileDao
+    )
     private val performanceTrendSummaryService = PerformanceTrendSummaryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -184,10 +189,10 @@ class TrainingRepository(
         dailyStatusService = dailyStatusService
     )
 
-    val exercises: Flow<List<Exercise>> = exerciseDao.observeExercises()
+    val exercises: Flow<List<Exercise>> = readQueryService.exercises
     val programs: Flow<List<TrainingProgram>> = programPlanService.programs
-    val analysisStats: Flow<AnalysisStats> = workoutDao.observeAnalysisStats()
-    val initialUserProfile: Flow<InitialUserProfile?> = initialUserProfileDao.observeProfile()
+    val analysisStats: Flow<AnalysisStats> = readQueryService.analysisStats
+    val initialUserProfile: Flow<InitialUserProfile?> = readQueryService.initialUserProfile
 
     fun observeCheckInForDate(date: String): Flow<DailyCheckIn?> =
         dailyStatusService.observeCheckInForDate(date)
@@ -254,7 +259,7 @@ class TrainingRepository(
         coachingSignalsSummaryService.build(history)
 
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
-        workoutDao.observeEntriesWithSets(date)
+        readQueryService.entriesForDate(date)
 
     suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         BackupExportService(
@@ -277,16 +282,16 @@ class TrainingRepository(
     }
 
     fun entryCount(date: String): Flow<Int> =
-        workoutDao.observeEntryCount(date)
+        readQueryService.entryCount(date)
 
     fun plannedSetCount(date: String): Flow<Int> =
-        workoutDao.observePlannedSetCount(date)
+        readQueryService.plannedSetCount(date)
 
     fun confirmedSetCount(date: String): Flow<Int> =
-        workoutDao.observeConfirmedSetCount(date)
+        readQueryService.confirmedSetCount(date)
 
     fun dailySummaries(startDate: String, endDate: String): Flow<List<DailyRecordSummary>> =
-        workoutDao.observeDailySummariesBetween(startDate, endDate)
+        readQueryService.dailySummaries(startDate, endDate)
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         programPlanService.programItems(programId)
