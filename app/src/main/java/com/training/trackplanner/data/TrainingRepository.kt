@@ -125,6 +125,9 @@ class TrainingRepository(
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
     )
+    private val smashSpeedService = SmashSpeedService(
+        smashSpeedDao = smashSpeedDao
+    )
     private val recordMutationService = RecordMutationService(
         db = db,
         exerciseDao = exerciseDao,
@@ -184,22 +187,14 @@ class TrainingRepository(
         dailyStatusService.observeRecentCheckIns(startDate, endDate)
 
     fun observeSmashSpeedsForDate(date: String): Flow<List<SmashSpeedRecord>> =
-        smashSpeedDao.observeForDate(date)
+        smashSpeedService.observeForDate(date)
 
     suspend fun addSmashSpeed(date: String, speedKmh: Double, note: String? = null) = withContext(Dispatchers.IO) {
-        val attemptIndex = smashSpeedDao.forDate(date).size + 1
-        smashSpeedDao.upsert(
-            SmashSpeedRecord(
-                date = date,
-                speedKmh = speedKmh,
-                attemptIndex = attemptIndex,
-                note = note
-            ).validated()
-        )
+        smashSpeedService.add(date, speedKmh, note)
     }
 
     suspend fun deleteSmashSpeed(recordId: Long) = withContext(Dispatchers.IO) {
-        smashSpeedDao.deleteById(recordId)
+        smashSpeedService.delete(recordId)
     }
 
     suspend fun checkInForDate(date: String): DailyCheckIn? =
