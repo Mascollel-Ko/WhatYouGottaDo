@@ -122,6 +122,27 @@ class TrainingRepository(
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         seedExercisesByStableKey = ::seedExercisesByStableKey
     )
+    private val backupRestoreImportService = BackupRestoreImportService(
+        db = db,
+        initialUserProfileDao = initialUserProfileDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        smashSpeedDao = smashSpeedDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        seedExercisesByStableKey = ::seedExercisesByStableKey,
+        profileFromRows = { rows -> rows.toInitialUserProfile() },
+        upsertRestoredExercise = ::upsertRestoredExercise,
+        hasDuplicateRestoreEntry = ::hasDuplicateRestoreEntry,
+        findOrCreateImportedExercise = { name, category, stableKey, seedByStableKey ->
+            findOrCreateImportedExercise(
+                name = name,
+                category = category,
+                stableKey = stableKey,
+                seedByStableKey = seedByStableKey
+            )
+        }
+    )
     private val readQueryService = RepositoryReadQueryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -290,7 +311,7 @@ class TrainingRepository(
 
     suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         BackupImportService(
-            restoreImporter = ::importRestoreCsv,
+            restoreImporter = backupRestoreImportService::importRestoreCsv,
             dailyTimeseriesImporter = ::importDailyTimeseriesCsv
         ).import(context, uri)
     }
@@ -549,180 +570,6 @@ class TrainingRepository(
         sleepHours: Double?,
         bodyWeightKg: Double?
     ) = dailyStatusService.saveDailyMetric(date, sleepHours, bodyWeightKg)
-
-    private suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
-        var exerciseCount = 0
-        var dailyCount = 0
-        var checkInCount = 0
-        var smashSpeedCount = 0
-        var profileCount = 0
-        var entryCount = 0
-        var setCount = 0
-        var skipped = 0
-        db.withTransaction {
-            val seedByStableKey = seedExercisesByStableKey()
-            val restoredRuntimeOverrideKeys = ExerciseMetadataOverrideBackupMapper.overrideKeys(data.runtimeMetadataRows)
-            data.profileRows.toInitialUserProfile()?.let { profile ->
-                initialUserProfileDao.upsert(profile)
-                profileCount = 1
-            }
-            data.exerciseRows.forEach { row ->
-                if (upsertRestoredExercise(row, seedByStableKey, restoredRuntimeOverrideKeys)) {
-                    exerciseCount += 1
-                }
-            }
-            data.runtimeMetadataRows.forEach { metadata ->
-                runtimeExerciseMetadataDao.upsert(
-                    metadata.copy(safeForSeedMutation = false).toEntity()
-                )
-            }
-            val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
-            data.dailyRows.forEach { row ->
-                if (row.sleepHours != null || row.bodyWeightKg != null) {
-                    val metric = DailyMetric(
-                        date = row.date,
-                        sleepHours = row.sleepHours,
-                        bodyWeightKg = row.bodyWeightKg
-                    )
-                    dailyMetricDao.upsert(metric)
-                    importedDailyMetrics[row.date] = metric
-                    dailyCount += 1
-                }
-            }
-            data.checkInRows.forEach { row ->
-                val now = System.currentTimeMillis()
-                val canonicalMetric = importedDailyMetrics[row.date]
-                val canonicalSleep = canonicalMetric?.sleepHours ?: row.sleepHours
-                if (canonicalMetric?.sleepHours == null && row.sleepHours != null) {
-                    val promotedMetric = DailyMetric(
-                        date = row.date,
-                        sleepHours = row.sleepHours,
-                        bodyWeightKg = canonicalMetric?.bodyWeightKg
-                    )
-                    dailyMetricDao.upsert(promotedMetric)
-                    importedDailyMetrics[row.date] = promotedMetric
-                    if (canonicalMetric == null) dailyCount += 1
-                }
-                dailyCheckInDao.upsert(
-                    DailyCheckIn(
-                        date = row.date,
-                        sleepHours = canonicalSleep,
-                        overallFatigue = row.overallFatigue,
-                        lowerBodyFatigue = row.lowerBodyFatigue,
-                        jointTendonDiscomfort = row.jointTendonDiscomfort,
-                        focusMotivation = row.focusMotivation,
-                        note = row.note,
-                        createdAt = row.createdAt ?: now,
-                        updatedAt = row.updatedAt ?: now
-                    ).validated()
-                )
-                checkInCount += 1
-            }
-            data.smashSpeedRows.forEach { row ->
-                val existing = smashSpeedDao.forDate(row.date)
-                val duplicate = existing.any { record ->
-                    record.attemptIndex == row.attemptIndex &&
-                        kotlin.math.abs(record.speedKmh - row.speedKmh) < 0.001 &&
-                        record.note == row.note
-                }
-                if (duplicate) {
-                    skipped += 1
-                } else {
-                    val now = System.currentTimeMillis()
-                    smashSpeedDao.upsert(
-                        SmashSpeedRecord(
-                            date = row.date,
-                            speedKmh = row.speedKmh,
-                            attemptIndex = row.attemptIndex,
-                            source = row.source ?: "external_app",
-                            note = row.note,
-                            parentWorkoutEntryId = row.parentWorkoutEntryId,
-                            createdAt = row.createdAt ?: now,
-                            updatedAt = row.updatedAt ?: now
-                        ).validated()
-                    )
-                    smashSpeedCount += 1
-                }
-            }
-            data.setRows
-                .filter { row -> row.sleepHours != null || row.bodyWeightKg != null }
-                .distinctBy { row -> row.date }
-                .forEach { row ->
-                    val existingMetric = importedDailyMetrics[row.date] ?: dailyMetricDao.metric(row.date)
-                    val metric = DailyMetric(
-                        date = row.date,
-                        sleepHours = row.sleepHours ?: existingMetric?.sleepHours,
-                        bodyWeightKg = row.bodyWeightKg ?: existingMetric?.bodyWeightKg
-                    )
-                    dailyMetricDao.upsert(metric)
-                    importedDailyMetrics[row.date] = metric
-                    dailyCount += 1
-                }
-            data.setRows
-                .groupBy { row -> row.entryKey }
-                .values
-                .sortedWith(
-                    compareBy<List<RestoreSetRow>> { rows -> rows.first().date }
-                        .thenBy { rows -> rows.first().entryOrder }
-                )
-                .forEach { rows ->
-                    val first = rows.first()
-                    val importedSets = rows.sortedBy { row -> row.setIndex }
-                    if (hasDuplicateRestoreEntry(first, importedSets)) {
-                        skipped += 1
-                        return@forEach
-                    }
-                    val exercise = findOrCreateImportedExercise(
-                        name = first.exerciseName,
-                        category = first.category,
-                        stableKey = first.stableKey,
-                        seedByStableKey = seedByStableKey
-                    )
-                    val confirmedCount = importedSets.count { row -> row.setConfirmed }
-                    val entryId = workoutDao.insertEntry(
-                        WorkoutEntry(
-                            date = first.date,
-                            exerciseId = exercise.id,
-                            exerciseName = exercise.name,
-                            category = first.category,
-                            restSeconds = first.restSeconds,
-                            notes = first.notes,
-                            rpe = first.rpe,
-                            maxReps = first.maxReps,
-                            completedAt = if (confirmedCount > 0) System.currentTimeMillis() else null
-                        )
-                    )
-                    importedSets.forEachIndexed { index, row ->
-                        workoutDao.insertSet(
-                            WorkoutSet(
-                                entryId = entryId,
-                                setIndex = index + 1,
-                                reps = row.reps,
-                                weightKg = row.weightKg,
-                                seconds = row.seconds,
-                                confirmed = row.setConfirmed,
-                                manualWeight = row.weightKg > 0.0,
-                                rpe = row.rpe
-                            )
-                        )
-                        setCount += 1
-                    }
-                    entryCount += 1
-                }
-        }
-        return RecordCsvTransferResult(
-            format = "restore",
-            exerciseCount = exerciseCount,
-            dailyMetricCount = dailyCount,
-            dailyCheckInCount = checkInCount,
-            smashSpeedCount = smashSpeedCount,
-            profileCount = profileCount,
-            entryCount = entryCount,
-            setCount = setCount,
-            skippedDuplicateCount = skipped,
-            warningCount = data.warningCount
-        )
-    }
 
     private suspend fun importDailyTimeseriesCsv(
         data: RecordCsvImportData.DailyTimeseries
