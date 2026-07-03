@@ -25,6 +25,7 @@ class CoverageAccountingPolicy {
         slot in profile.primary -> CoverageCredit.PARTIAL
         slot in profile.secondary -> CoverageCredit.PARTIAL
         slot in profile.weakMatches -> CoverageCredit.WEAK
+        slot in profile.allCapabilities -> CoverageCredit.WEAK
         else -> CoverageCredit.NONE
     }
 

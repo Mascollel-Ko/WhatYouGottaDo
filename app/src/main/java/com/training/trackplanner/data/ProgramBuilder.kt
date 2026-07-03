@@ -14,6 +14,8 @@ class ProgramBuilder internal constructor(
     private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
 ) {
     private val prescriptionPolicy = ProgramPrescriptionPolicy()
+    private val candidateInventory = ProgramCandidateInventory(slotCapabilityResolver)
+    private val slotCandidateQuery = ProgramSlotCandidateQuery(coveragePolicy)
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -41,26 +43,19 @@ class ProgramBuilder internal constructor(
             .split(',', '\n', ';')
             .map(String::trim)
             .filter(String::isNotBlank)
-        val candidates = exercises.asSequence()
-            .filter(Exercise::isActive)
-            .map { exercise ->
-                val metadata = runtimeMetadataCatalog.resolve(exercise)
-                ProgramCandidate(
-                    exercise = exercise,
-                    metadata = metadata,
-                    canonical = metadata != null,
-                    slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
-                )
-            }
-            .filter(ProgramCandidate::isProgramSelectable)
-            .filter { it.matchesEquipment(normalized.availableEquipment) }
-            .filter { candidate -> excludedTerms.none { candidate.exercise.name.contains(it, ignoreCase = true) } }
-            .toList()
+        val inventory = candidateInventory.collect(
+            exercises = exercises,
+            runtimeMetadataCatalog = runtimeMetadataCatalog,
+            availableEquipment = normalized.availableEquipment,
+            excludedTerms = excludedTerms
+        )
+        val candidates = inventory.candidates
 
         val historyWeights = ProgramHistoryWeightIndex(history, exercises)
         val generated = mutableListOf<ProgramSkeletonItem>()
         val selectionHistory = ProgramSelectionHistory()
         val warnings = mutableListOf<String>()
+        val candidateTraces = mutableListOf<ProgramCandidateTrace>()
         var timeBudgetTrimmed = false
         weekPlans.forEach { week ->
             schedule.forEachIndexed { dayIndex, day ->
@@ -71,31 +66,28 @@ class ProgramBuilder internal constructor(
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
                 var estimatedSessionSeconds = prescriptionPolicy.warmupReserveSeconds(normalized.dailyAvailableMinutes)
-                var timeBudgetReached = false
                 exerciseSlots.forEachIndexed { itemIndex, templateSlot ->
-                    if (timeBudgetReached) return@forEachIndexed
                     val role = templateSlot.role
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
-                    val scored = candidates.asSequence()
-                        .filterNot { candidate -> selected.any { it.exercise.id == candidate.exercise.id } }
-                        .filter { candidate ->
+                    val query = slotCandidateQuery.query(
+                        inventory = inventory,
+                        selected = selected,
+                        plannedSlot = day,
+                        templateSlot = templateSlot,
+                        week = week,
+                        weekNumber = week.weekIndex,
+                        absoluteDay = absoluteDay,
+                        repeatAllowed = { candidate ->
                             selectionHistory.allowsRepeat(
                                 candidate = candidate,
                                 absoluteDay = absoluteDay,
                                 minimumGapDays = templateSlot.minimumRepeatGapDays
                             )
-                        }
-                        .filter { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) }
-                        .filter { candidate ->
-                            candidate.allowedForTemplateSlot(
-                                plannedSlot = day.slot,
-                                templateSlot = templateSlot,
-                                coveragePolicy = coveragePolicy
-                            )
-                        }
-                        .filter { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) }
-                        .map { candidate ->
-                            candidate to score(
+                        },
+                        fatigueAllowed = { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) },
+                        sessionAllowed = { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) },
+                        score = { candidate ->
+                            score(
                                 candidate = candidate,
                                 role = role,
                                 slot = day.slot,
@@ -109,18 +101,20 @@ class ProgramBuilder internal constructor(
                                 exposureTarget = templateSlot.targetSlot?.let(exposureTargets::get),
                                 totalWeeks = normalized.durationWeeks
                             )
-                        }
-                        .sortedByDescending { it.second }
-                        .take(3)
-                        .toList()
+                        },
+                        selectionPoolSize = selectionPoolSize(normalized),
+                        selectedCount = 0
+                    )
                     val picked = chooseControlledCandidate(
-                        scored = scored,
+                        scored = query.scored,
                         weekIndex = week.weekIndex,
                         dayIndex = dayIndex,
                         itemIndex = itemIndex,
                         preference = normalized.varietyPreference
                     )
                     if (picked == null) {
+                        candidateTraces += query.trace
+                        warnings += query.trace.warnings
                         if (templateSlot.required) {
                             warnings += "TEMPLATE_REQUIRED_SLOT_UNFILLED: ${templateSelection.templateId}/${templateSlot.targetSlot}"
                         }
@@ -141,10 +135,27 @@ class ProgramBuilder internal constructor(
                                 warnings += "TEMPLATE_REQUIRED_SLOT_OVERRUN: ${templateSelection.templateId}/${templateSlot.targetSlot}"
                             }
                         } else {
-                            timeBudgetReached = true
-                            return@forEachIndexed
+                            val fitted = prescriptionPolicy.fitOptionalPrescription(
+                                candidate = picked,
+                                prescription = prescription,
+                                remainingSeconds = sessionBudgetSeconds - estimatedSessionSeconds
+                            )
+                            if (fitted == null) {
+                                timeBudgetTrimmed = true
+                                val trimmedTrace = query.trace.copy(
+                                    warnings = query.trace.warnings + "PROGRAM_SLOT_TIME_BUDGET_TRIMMED"
+                                )
+                                candidateTraces += trimmedTrace
+                                warnings += trimmedTrace.warnings
+                                return@forEachIndexed
+                            }
+                            prescription = fitted
+                            itemDurationSeconds = prescriptionPolicy.estimateItemDurationSeconds(picked, prescription)
+                            timeBudgetTrimmed = true
                         }
                     }
+                    candidateTraces += query.trace.copy(selected = 1)
+                    warnings += query.trace.warnings
                     selected += picked
                     selectionHistory.record(picked, week.weekIndex, absoluteDay, coveragePolicy)
                     estimatedSessionSeconds += itemDurationSeconds
@@ -226,7 +237,8 @@ class ProgramBuilder internal constructor(
             periodizationType = periodization,
             weekPlans = weekPlans,
             items = generated,
-            warnings = warnings,
+            candidateTraces = candidateTraces,
+            warnings = warnings.distinct(),
             templateId = templateSelection.templateId,
             representativeTemplate = templateSelection.representative
         )
@@ -235,7 +247,7 @@ class ProgramBuilder internal constructor(
             .map { warning ->
                 ProgramValidationIssue(
                     code = warning.substringBefore(':'),
-                    severity = ProgramValidationSeverity.HARD,
+                    severity = ProgramValidationSeverity.WARNING,
                     message = warning.substringAfter(':').trim()
                 )
             }
@@ -247,7 +259,7 @@ class ProgramBuilder internal constructor(
         return result.copy(
             validationIssues = renderedIssues,
             validationDetails = issues,
-            warnings = warnings + visibleIssues
+            warnings = (warnings + visibleIssues).distinct()
         )
     }
 
@@ -336,16 +348,17 @@ class ProgramBuilder internal constructor(
         itemIndex: Int,
         preference: ProgramVarietyPreference
     ): ProgramCandidate? {
-        val first = scored.firstOrNull() ?: return null
-        val second = scored.getOrNull(1)
-        if (second == null || first.second - second.second > 0.35) return first.first
+        scored.firstOrNull() ?: return null
         val poolSize = when (preference) {
-            ProgramVarietyPreference.LOW -> 2
-            ProgramVarietyPreference.NORMAL -> 3
-            ProgramVarietyPreference.HIGH -> 3
+            ProgramVarietyPreference.LOW -> 4
+            ProgramVarietyPreference.NORMAL -> 6
+            ProgramVarietyPreference.HIGH -> 8
         }.coerceAtMost(scored.size)
         return scored[(weekIndex + dayIndex + itemIndex) % poolSize].first
     }
+
+    private fun selectionPoolSize(request: ProgramSkeletonRequest): Int =
+        max(8, prescriptionPolicy.exerciseCount(request.dailyAvailableMinutes) * 3)
 
     private fun sessionAllows(
         selected: List<ProgramCandidate>,

@@ -79,6 +79,18 @@ internal class ProgramPrescriptionPolicy {
         }
         return prescription.copy(setCount = 1)
     }
+
+    fun fitOptionalPrescription(
+        candidate: ProgramCandidate,
+        prescription: ProgramPrescription,
+        remainingSeconds: Int
+    ): ProgramPrescription? {
+        for (sets in prescription.setCount downTo 1) {
+            val reduced = prescription.copy(setCount = sets)
+            if (estimateItemDurationSeconds(candidate, reduced) <= remainingSeconds) return reduced
+        }
+        return null
+    }
 }
 
 internal data class ProgramPrescription(

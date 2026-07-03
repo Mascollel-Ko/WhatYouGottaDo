@@ -162,11 +162,32 @@ data class GeneratedProgramSkeleton(
     val weekPlans: List<ProgramWeekPlan>,
     val items: List<ProgramSkeletonItem>,
     val weekDaySchedule: Map<Int, Set<Int>> = emptyMap(),
+    val candidateTraces: List<ProgramCandidateTrace> = emptyList(),
     val warnings: List<String> = emptyList(),
     val validationIssues: List<String> = emptyList(),
     val validationDetails: List<ProgramValidationIssue> = emptyList(),
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false
+)
+
+data class ProgramCandidateTrace(
+    val weekNumber: Int,
+    val dayOfWeek: Int,
+    val requestedTemplateSlot: String,
+    val role: String,
+    val allActive: Int,
+    val programSelectable: Int,
+    val equipmentMatched: Int,
+    val notExcludedByUser: Int,
+    val capabilityMatched: Int,
+    val repeatAllowed: Int,
+    val fatigueAllowed: Int,
+    val templateAllowed: Int,
+    val sessionAllowed: Int,
+    val scored: Int,
+    val selectionPool: Int,
+    val selected: Int,
+    val warnings: List<String> = emptyList()
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

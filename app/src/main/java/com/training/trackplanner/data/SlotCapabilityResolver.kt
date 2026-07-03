@@ -12,44 +12,54 @@ data class SlotCapabilityProfile(
     val weakMatches: Set<ProgramSlotId>,
     val source: SlotCapabilitySource,
     val confidence: SlotCapabilityConfidence = SlotCapabilityConfidence.NONE,
-    val warnings: List<String> = emptyList()
+    val warnings: List<String> = emptyList(),
+    val allCapabilities: Set<ProgramSlotId> = primary + secondary + weakMatches
 ) {
     fun hasAny(vararg ids: ProgramSlotId): Boolean =
-        ids.any { it in primary || it in secondary || it in weakMatches }
+        ids.any { it in allCapabilities }
 }
 
 class SlotCapabilityResolver {
     fun resolve(exercise: Exercise, metadata: RuntimeExerciseMetadata?): SlotCapabilityProfile {
+        val legacyMatches = matchSlots(legacyTokens(exercise))
+        val nameMatches = explicitNameFallback(exercise.name)
         if (metadata != null) {
             val identityMatches = matchSlots(metadataIdentityTokens(metadata))
             val supportingMatches = matchSlots(metadataSupportingTokens(metadata))
                 .filterNot(identityMatches::contains)
             if (identityMatches.isNotEmpty() || supportingMatches.isNotEmpty()) {
+                val structuredMatches = identityMatches + supportingMatches
+                val fallbackMatches = (legacyMatches + nameMatches)
+                    .filterNot(structuredMatches::contains)
                 return structuredProfile(
                     identityMatches = identityMatches,
-                    supportingMatches = supportingMatches,
+                    supportingMatches = supportingMatches + fallbackMatches,
                     source = SlotCapabilitySource.RUNTIME_METADATA,
                     confidence = if (identityMatches.isNotEmpty()) {
                         SlotCapabilityConfidence.HIGH
                     } else {
                         SlotCapabilityConfidence.MODERATE
+                    },
+                    baseWarnings = buildList {
+                        if (fallbackMatches.isNotEmpty()) add("RUNTIME_METADATA_FALLBACK_CAPABILITY_ADDED")
                     }
                 )
             }
         }
 
-        val legacyMatches = if (metadata == null) matchSlots(legacyTokens(exercise)) else emptyList()
         if (legacyMatches.isNotEmpty()) {
             return structuredProfile(
                 identityMatches = legacyMatches,
-                supportingMatches = emptyList(),
+                supportingMatches = nameMatches.filterNot(legacyMatches::contains),
                 source = SlotCapabilitySource.LEGACY_METADATA,
                 confidence = SlotCapabilityConfidence.LOW,
-                baseWarnings = listOf("LEGACY_METADATA_FALLBACK")
+                baseWarnings = buildList {
+                    if (metadata != null) add("RUNTIME_METADATA_NO_SLOT_MATCH")
+                    add("LEGACY_METADATA_FALLBACK")
+                }
             )
         }
 
-        val nameMatches = explicitNameFallback(exercise.name)
         if (nameMatches.isNotEmpty()) {
             return SlotCapabilityProfile(
                 primary = emptySet(),
@@ -61,7 +71,8 @@ class SlotCapabilityResolver {
                     if (metadata != null) add("RUNTIME_METADATA_NO_SLOT_MATCH")
                     add("NAME_ONLY_FALLBACK")
                     if (nameMatches.size > MAX_WEAK) add("CAPABILITY_TRUNCATED")
-                }
+                },
+                allCapabilities = nameMatches.toSet()
             )
         }
 
@@ -92,7 +103,8 @@ class SlotCapabilityResolver {
             warnings = buildList {
                 addAll(baseWarnings)
                 if (ordered.size > MAX_PRIMARY + MAX_SECONDARY + MAX_WEAK) add("CAPABILITY_TRUNCATED")
-            }
+            },
+            allCapabilities = ordered.toSet()
         )
     }
 
@@ -165,7 +177,6 @@ class SlotCapabilityResolver {
                 "LANDMINE_PRESS",
                 "HALF_KNEELING_PRESS",
                 "OVERHEAD_PRESS",
-                "VERTICAL_PUSH",
                 "SHOULDER_PRESS",
                 "KETTLEBELL_PRESS",
                 "PUSH_PRESS"

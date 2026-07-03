@@ -65,6 +65,32 @@ class ProgramArchitectureFoundationTest {
     }
 
     @Test
+    fun capabilityResolverKeepsLegacyFallbackWhenRuntimeMetadataHasNoSlotMatch() {
+        val exercise = Exercise(
+            id = 2,
+            name = "Split squat",
+            category = "strength",
+            stableKey = "test_split_squat",
+            movementPattern = "LUNGE_SPLIT_SQUAT",
+            movementCategory = "UNILATERAL_LOWER_ACCESSORY",
+            trainingRole = "MAIN_STRENGTH"
+        )
+        val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            movementFamily = "UNCLASSIFIED",
+            movementSubtype = "UNCLASSIFIED",
+            programSlot = "UNCLASSIFIED",
+            redundancyGroup = "UNCLASSIFIED",
+            strengthProgressionGroup = "UNCLASSIFIED",
+            primaryStressProfile = "UNCLASSIFIED"
+        )
+
+        val profile = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
+
+        assertTrue(profile.hasAny(ProgramSlotId.SINGLE_LEG_STRENGTH_CONTROL))
+        assertTrue("LEGACY_METADATA_FALLBACK" in profile.warnings)
+    }
+
+    @Test
     fun exposureTargetsScaleByDaysAndWindowWithoutUnlimitedDemand() {
         val slot = ProgramSlotId.UPPER_PULL_ANCHOR
         val lowDays = ExposureTargetTable.numericTarget(slot, availableDaysPerWeek = 1, windowWeeks = 2)
