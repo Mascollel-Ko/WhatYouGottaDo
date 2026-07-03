@@ -382,3 +382,83 @@
   - Keep read query and program generation services independent.
   - Do not route program generation through read query service unless a future audit proves value.
   - Do not change ProgramBuilder or metadata resolver behavior in repository extraction releases.
+
+## v0.4.1.5 Calendar/Analysis Service Test Hardening
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `92475f56cab4d4ce18f4cf20a85ca84d50551e0d`; `v0.4.1.4` tag points to the same commit.
+- Work target:
+  - Add dedicated regression tests for `CalendarRecordService`.
+  - Add dedicated regression tests for `AnalysisSummaryService`.
+- Cause:
+  - Recent repository extractions moved behavior-sensitive calendar record orchestration and read-only analysis summary assembly into separate services.
+  - Those services needed focused regression tests before further repository cleanup.
+- Reason for test-only work:
+  - This is a stabilization release, not a feature or refactor release.
+  - Production Kotlin code was intentionally left unchanged.
+- Changes:
+  - Added JVM unit-test Room/Robolectric support in `app/build.gradle.kts`.
+  - Added `CalendarRecordServiceTest`.
+  - Added `AnalysisSummaryServiceTest`.
+  - Bumped app version to `v0.4.1.5` / `401005`.
+  - Updated `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json` app version fields.
+  - Added `docs/v0.4.1.5_release_notes.md`.
+- Calendar test cases added:
+  - `copyDateKeepConfirmedTruePreservesMixedSetState`
+  - `copyDateKeepConfirmedFalseCopiesAsPlan`
+  - `copyDateOverwriteClearsDestinationBeforeCopy`
+  - `copyDateAppendKeepsDestinationAndAddsCopiedRecords`
+  - `deleteDateRangeWithoutConfirmedKeepsConfirmedSetsAndReindexes`
+  - `deleteDateRangeWithConfirmedDeletesAllRecordsInRange`
+  - `copyDateRangeAsPlanCopiesOffsetsAsUnconfirmed`
+  - `moveDateCopiesToTargetAndDeletesSource`
+  - `calendarConflictSummaryCountsExistingDatesEntriesAndSets`
+- Analysis test cases added:
+  - `fatigueAnalysisHistoryReturnsRepresentativeSeriesForConfirmedRecords`
+  - `fatigueAnalysisHistoryEmptyDataKeepsSafeFallbackSeries`
+  - `badmintonTransferSummaryUsesWindowedConfirmedTransferRecords`
+  - `badmintonTransferCoverageSummaryReturnsNormalPathForTransferRecords`
+  - `persistedRuntimeMetadataOverrideEnablesBadmintonTransferSummary`
+  - `analysisSummariesIgnoreFutureAndOutOfWindowRecords`
+- Audit preservation coverage:
+  - confirmed/unconfirmed copy behavior.
+  - overwrite/append calendar copy behavior.
+  - completedAt/firstConfirmedAt behavior for state-preserving copies.
+  - display/set ordering behavior under existing calendar policy.
+  - date/LocalDate offset handling.
+  - fatigue empty fallback and representative series behavior.
+  - badminton transfer metadata override and date-window behavior.
+- Production code changed:
+  - No production Kotlin code changed.
+  - No Room entity/DAO/schema changed.
+  - No service extraction or behavior change was made.
+- Found gaps / TODO:
+  - No production bug was identified.
+  - The first `AnalysisSummaryServiceTest` run failed at compile time because the test referenced sample-count fields that are not exposed by `BadmintonTransferMetrics`; the test was corrected to assert public summary invariants instead.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `app/src/test/java/com/training/trackplanner/data/CalendarRecordServiceTest.kt`
+  - `app/src/test/java/com/training/trackplanner/data/AnalysisSummaryServiceTest.kt`
+  - `docs/v0.4.1.5_release_notes.md`
+  - `docs/codex_worklog.md`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*CalendarRecordServiceTest*"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*AnalysisSummaryServiceTest*"`: passed after correcting the test-only compile error above.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RecordBulkEditTest*" --tests "*RecordCsvBackupRestoreTest*" --tests "*RuntimeExerciseMetadataResolverTest*" --tests "*ExerciseSeedMetadataPolicyTest*" --tests "*AnalysisMetricRegistryTest*" --tests "*StrengthAndMuscleMetricSeriesBuilderTest*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `0cc1456` `test(repository): cover calendar record service behavior`
+  - `b8d7c6e` `test(repository): cover analysis summary service behavior`
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.5` pending final release commit and push.
+- Next work candidate:
+  - Do not continue repository refactors until these new tests are observed in CI.
+  - Re-audit any future restore/import, seed/bootstrap, or metadata editor extraction separately.
+- Cautions:
+  - Keep these tests behavior-focused; do not turn them into calculation-spec tests unless the calculation engine itself is being changed.
+  - Calendar append ordering is covered through the existing visible-order policy without changing the audited copied-batch `displayOrder` behavior.
