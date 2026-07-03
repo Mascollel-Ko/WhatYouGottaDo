@@ -145,3 +145,46 @@
 - main push status: completed.
 - tag push status: `v0.4.1.0` completed.
 - 비고: 이전 worklog의 pending 문구는 release/tag push 전 기록이며, 이 항목으로 최종 상태를 보정함.
+
+## v0.4.1.1 Smash Speed Service Extraction
+
+- Checked at: 2026-07-03 11:32 +09:00
+- Baseline: latest `origin/main` at `c17a6ee939dad316d161afe7425cc7abdbfa8166`; `v0.4.1.0` tag remains at `23e88bf41f9731470de715aa0951c84d2bba8093`.
+- Work target: extract smash speed read/write responsibility from `TrainingRepository`.
+- Cause: v0.4.1.0 repository audit identified smash speed read/write as the smallest low-risk remaining repository responsibility.
+- Changes:
+  - Added `SmashSpeedService`.
+  - Delegated `observeSmashSpeedsForDate`, `addSmashSpeed`, and `deleteSmashSpeed` from `TrainingRepository`.
+  - Added `SmashSpeedServiceTest` for add attempt-index behavior and delete behavior.
+  - Bumped app version to `v0.4.1.1` / `401001`.
+  - Added `docs/v0.4.1.1_release_notes.md`.
+- Reason: smash speed is a small DAO-only path, safer than calendar copy/delete or restore/import extraction.
+- Result:
+  - `TrainingRepository.kt` line count changed from 1652 to 1647 before release docs.
+  - Public repository APIs and ViewModel/UI call sites remain stable.
+  - Lab metric, backup/export/import, record, metadata, analysis, plan, home, readiness, and UI paths were not changed.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/src/main/java/com/training/trackplanner/data/SmashSpeedService.kt`
+  - `app/src/test/java/com/training/trackplanner/data/SmashSpeedServiceTest.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.1_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `SmashSpeedService`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*SmashSpeed*" --tests "*AnalysisMetricRegistryTest" --tests "*RecordCsvBackupRestoreTest"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - `b322637` `refactor(repository): extract smash speed service`
+- main push status: pending final verification.
+- tag push status: `v0.4.1.1` pending final verification.
+- Next work candidate:
+  - Re-check `TrainingRepository.kt` line count and audit before deciding whether `CalendarRecordService` is worth the risk.
+- Cautions:
+  - Calendar copy/delete remains intentionally untouched because confirmed/unconfirmed, overwrite, timestamp, and display-order behavior is riskier.
+  - Backup/import/export and Lab metric calculation were not modified.
