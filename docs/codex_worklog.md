@@ -135,3 +135,13 @@
   - ProgramBuilder / ProgramBuilderValidation behavior was not changed.
   - DAO call order and transaction boundaries inside moved program persistence/apply code were preserved.
   - record/metadata/backup/analysis/readiness/home/UI paths were not modified.
+
+## v0.4.1.0 Final Status Correction
+
+- 확인 일시: 2026-07-03 11:01 +09:00
+- 기준 commit: `23e88bf41f9731470de715aa0951c84d2bba8093`
+- `origin/main`: `23e88bf41f9731470de715aa0951c84d2bba8093`
+- `v0.4.1.0`: `23e88bf41f9731470de715aa0951c84d2bba8093`
+- main push status: completed.
+- tag push status: `v0.4.1.0` completed.
+- 비고: 이전 worklog의 pending 문구는 release/tag push 전 기록이며, 이 항목으로 최종 상태를 보정함.
