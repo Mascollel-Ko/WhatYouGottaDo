@@ -218,3 +218,49 @@
   - Keep ProgramPlanService planned-only overwrite separate from calendar overwrite.
   - Keep RecordMutationService single entry/set completion and display-order logic separate.
   - Do not reuse calendar copy/delete helpers in restore/import.
+
+## v0.4.1.2 Calendar Record Service Extraction
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: latest `origin/main` at `cb36b0fd2a3585167e43c2b13b71f7ed5ab83a11`; `v0.4.1.1` tag remains at `9e1bcafb3cfc19e5903b63cf5d89dec846c9def0`.
+- Work target: extract only the audited low-risk calendar record delete/copy/move/range-copy responsibility from `TrainingRepository`.
+- Cause: v0.4.1.1 calendar extraction audit identified a minimal service boundary for date-level record operations.
+- Changes:
+  - Added `CalendarRecordService`.
+  - Delegated `calendarConflictSummary`, `deleteDate`, `deleteDateRange`, `copyDate`, `moveDate`, and `copyDateRangeAsPlan`.
+  - Moved private `copyEntriesToDate`, `dateRange`, and `nextCreatedAt` helpers into the new service.
+  - Bumped app version to `v0.4.1.2` / `401002`.
+  - Added `docs/v0.4.1.2_release_notes.md`.
+- Reason: this is the smallest useful repository extraction after the audit; higher-risk program apply, record mutation, backup/restore, DAO/schema, and UI paths stay untouched.
+- Result:
+  - `TrainingRepository.kt` line count changed from 1647 to 1510 before release docs.
+  - Public repository APIs and ViewModel/UI call sites remain stable.
+  - confirmed/unconfirmed handling preserved.
+  - overwrite/append behavior preserved.
+  - completedAt/firstConfirmedAt behavior preserved.
+  - displayOrder/setIndex behavior preserved.
+  - ProgramPlanService, RecordMutationService, backup/restore, DAO/schema, metadata, analysis, home, readiness, and UI paths were not changed.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/data/CalendarRecordService.kt`
+  - `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `docs/v0.4.1.2_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `CalendarRecordService`
+- Tests run:
+  - `.\\gradlew.bat --version`: passed after one quoting-only retry.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RecordBulkEditTest" --tests "*RecordCsvBackupRestoreTest" --tests "*RecordMutation*" --tests "*ProgramPlan*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugAndroidTestKotlin`: passed.
+- Commit hash:
+  - `1c88ece` `refactor(repository): extract calendar record service`
+- main push status: pending final verification.
+- tag push status: `v0.4.1.2` pending final verification.
+- Next work candidate:
+  - Re-check `TrainingRepository.kt` after this extraction before choosing another responsibility. Do not assume program apply or restore/import is safe.
+- Cautions:
+  - ProgramPlanService planned-only overwrite remains separate.
+  - RecordMutationService single entry/set completion and display-order rules remain separate.
+  - Calendar helpers must not be reused for backup restore/import without a separate audit.
