@@ -5,9 +5,7 @@ import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
-import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEngine
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
-import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageAnalyzer
 import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
@@ -125,6 +123,13 @@ class TrainingRepository(
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
     )
+    private val analysisSummaryService = AnalysisSummaryService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        initialUserProfileDao = initialUserProfileDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+    )
     private val smashSpeedService = SmashSpeedService(
         smashSpeedDao = smashSpeedDao
     )
@@ -224,16 +229,7 @@ class TrainingRepository(
 
     suspend fun fatigueAnalysisHistory(days: Int = 28 * 7): List<DailyFatigueResult> =
         withContext(Dispatchers.IO) {
-            val today = SystemAnalysisDateProvider().today()
-            val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val exercises = exerciseDao.allExercises()
-            DailyFatigueCalculator(resolvedRuntimeMetadataCatalog(exercises)).calculateSeries(
-                endDate = today,
-                days = days.coerceIn(1, 28 * 7),
-                exercises = exercises,
-                entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-                initialProfile = initialUserProfileDao.profile()
-            )
+            analysisSummaryService.fatigueAnalysisHistory(days)
         }
 
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
@@ -243,30 +239,13 @@ class TrainingRepository(
     suspend fun badmintonTransferSummary(
         readinessSummary: TodayReadinessSummary? = null
     ): BadmintonTransferSummary = withContext(Dispatchers.IO) {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        BadmintonTransferAnalysisEngine(runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-            readinessSummary = readinessSummary
-        )
+        analysisSummaryService.badmintonTransferSummary(readinessSummary)
     }
 
     suspend fun badmintonTransferCoverageSummary(
         latestFatigueState: DailyFatigueState?
     ): BadmintonTransferCoverageSummary = withContext(Dispatchers.IO) {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val entries = workoutDao.entriesWithSetsUntil(todayString)
-        BadmintonTransferCoverageAnalyzer(resolvedRuntimeMetadataCatalog(exercises)).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = entries,
-            latestFatigueState = latestFatigueState
-        )
+        analysisSummaryService.badmintonTransferCoverageSummary(latestFatigueState)
     }
 
     suspend fun coachingSignalsSummary(
