@@ -188,3 +188,33 @@
 - Cautions:
   - Calendar copy/delete remains intentionally untouched because confirmed/unconfirmed, overwrite, timestamp, and display-order behavior is riskier.
   - Backup/import/export and Lab metric calculation were not modified.
+
+## v0.4.1.1 Calendar Record Extraction Audit
+
+- Checked at: 2026-07-03 +09:00
+- Baseline: `HEAD`, `origin/main`, and `v0.4.1.1` all pointed to `9e1bcafb3cfc19e5903b63cf5d89dec846c9def0`.
+- Work target: document CalendarRecordService extraction risk before code changes.
+- Cause: date-level record copy/delete touches confirmed/unconfirmed state, overwrite behavior, completed timestamps, display order, set order, ProgramPlanService boundaries, and backup/restore separation.
+- Changes:
+  - Audited date delete/range delete behavior.
+  - Audited single-date copy, move, range copy, and preserve-state copy behavior.
+  - Audited batch edit status-copy boundaries.
+  - Audited RecordMutationService single entry/set mutation boundaries.
+  - Audited ProgramPlanService apply-to-dates boundaries.
+  - Audited backup/restore boundaries.
+  - Added `docs/v0.4.1.1_calendar_record_extraction_audit.md`.
+- Reason: a documentation-only audit is safer than immediately extracting CalendarRecordService after multiple repository refactors.
+- Result:
+  - production code changed: no.
+  - test code changed: no.
+  - version/tag changed: no.
+  - Minimum future extraction candidate is limited to calendar conflict summary plus date copy/delete helpers.
+- Modified files:
+  - `docs/codex_worklog.md`
+  - `docs/v0.4.1.1_calendar_record_extraction_audit.md`
+- Next work candidate:
+  - Possible `CalendarRecordService`, only if it keeps `TrainingRepository` public APIs stable and does not touch `RecordMutationService`, `ProgramPlanService`, backup/restore, DAO queries, UI, version, or schema.
+- Cautions:
+  - Keep ProgramPlanService planned-only overwrite separate from calendar overwrite.
+  - Keep RecordMutationService single entry/set completion and display-order logic separate.
+  - Do not reuse calendar copy/delete helpers in restore/import.
