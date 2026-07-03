@@ -746,3 +746,72 @@
   - Backup restore and daily-timeseries import should remain separate services unless a future audit shows a safe shared boundary.
 - Next work candidate:
   - Re-audit remaining `TrainingRepository` callbacks/helpers after observing v0.4.1.9 in CI.
+
+## v0.4.1.10 ProgramBuilder Policy Extraction
+
+- Checked at: 2026-07-04 +09:00
+- Baseline: latest `origin/main` at `c44c1537f3953375175e84ea2d7779372110a60f`; `v0.4.1.9` tag points to the same commit.
+- Work target:
+  - Add focused ProgramBuilder prescription/duration/session-fit behavior tests first.
+  - Move only the tested prescription policy helpers out of `ProgramBuilder`.
+  - Keep generated program behavior and ProgramBuilder public behavior unchanged.
+  - Bump release metadata to `v0.4.1.10`.
+- Current-code consistency check:
+  - `ProgramBuilder.kt` still owned `prescribe`, `exerciseCount`, `warmupReserveSeconds`, `estimateItemDurationSeconds`, and `fitRequiredPrescription`.
+  - Those helpers were separable without changing candidate selection, template selection, fatigue gate filtering, warnings, validation, repository, Room, metadata, backup, or analysis paths.
+- Phase 1 test coverage added:
+  - exercise count minute bands.
+  - warmup reserve minute bands.
+  - role-based sets/reps and volume/fatigue factors.
+  - timed exercise seconds and label format.
+  - fatigue gate RPE cap.
+  - item duration estimate.
+  - required-slot fit reduction.
+- Phase 1 result:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ProgramPrescriptionPolicyBehaviorTest*"` passed before extraction.
+- Phase 2 extraction:
+  - Added `ProgramPrescriptionPolicy`.
+  - Moved `prescribe`, `exerciseCount`, `warmupReserveSeconds`, `estimateItemDurationSeconds`, and `fitRequiredPrescription` out of `ProgramBuilder`.
+  - Updated `ProgramBuilder` to delegate only those helpers to the new policy.
+  - Updated the behavior test to call `ProgramPrescriptionPolicy` directly after extraction.
+- Behavior preserved:
+  - Candidate selection unchanged.
+  - Template selection unchanged.
+  - Fatigue gate semantics unchanged.
+  - Generated program output shape, warnings, and validation unchanged.
+  - Repository, ViewModel/UI, Room schema, metadata, backup, and analysis paths unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`
+  - `app/src/main/java/com/training/trackplanner/data/ProgramBuilder.kt`
+  - `app/src/main/java/com/training/trackplanner/data/ProgramPrescriptionPolicy.kt`
+  - `app/src/test/java/com/training/trackplanner/data/ProgramPrescriptionPolicyBehaviorTest.kt`
+  - `docs/v0.4.1.10_release_notes.md`
+  - `docs/codex_worklog.md`
+- New service/class/file:
+  - `ProgramPrescriptionPolicy`
+  - `ProgramPrescription`
+  - `docs/v0.4.1.10_release_notes.md`
+- New test file:
+  - `app/src/test/java/com/training/trackplanner/data/ProgramPrescriptionPolicyBehaviorTest.kt`
+- `ProgramBuilder.kt` line count:
+  - Before: 978
+  - After: 898
+- Tests run:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ProgramPrescriptionPolicyBehaviorTest*"` before extraction: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed after extraction.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ProgramPrescriptionPolicyBehaviorTest*"` after extraction: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*ProgramPrescription*" --tests "*ProgramBuilder*" --tests "*ProgramSkeletonGenerator*" --tests "*ProgramGeneratorUsesResolvedRuntimeMetadata*" --tests "*ProgramTemplateCatalog*" --tests "*ProgramGeneratedQuality*" --tests "*ProgramFallbackRolePolicy*" --tests "*ProgramCoveragePolicy*" --tests "*ProgramArchitectureFoundation*"`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*RecordMutation*" --tests "*BackupRestore*" --tests "*DailyTimeseries*"`: passed.
+  - final `.\\gradlew.bat --version`, `compileDebugKotlin`, `testDebugUnitTest`, and `assembleDebug` pending release verification.
+- Commit hash:
+  - `01f2e18` `test(program): cover prescription and duration policies`
+  - `0361f82` `refactor(program): extract prescription policy`
+  - release commit pending.
+- main push status: pending final release commit and push.
+- tag push status: `v0.4.1.10` pending final release commit and push.
+- Remaining risk areas:
+  - `ProgramBuilder` still owns candidate scoring and slot selection; do not move those without separate tests.
+  - `ProgramPrescriptionPolicy.fitRequiredPrescription` preserves the existing label behavior when reducing set count.
+- Next work candidate:
+  - Re-audit remaining `ProgramBuilder` scoring/selection helpers after observing v0.4.1.10 in CI.
