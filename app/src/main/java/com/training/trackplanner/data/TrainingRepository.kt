@@ -113,6 +113,15 @@ class TrainingRepository(
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val exerciseMetadataEditorService = ExerciseMetadataEditorService(
+        db = db,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        programDao = programDao,
+        runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        seedExercisesByStableKey = ::seedExercisesByStableKey
+    )
     private val readQueryService = RepositoryReadQueryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -365,159 +374,48 @@ class TrainingRepository(
 
     suspend fun exerciseEditorData(exerciseId: Long?): ExerciseRuntimeMetadataEditorData =
         withContext(Dispatchers.IO) {
-            val persistedRows = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-            val resolver = RuntimeExerciseMetadataResolver(canonicalRuntimeMetadataCatalog, persistedRows)
-            val options = RuntimeMetadataEditorOptions.from(
-                canonicalRuntimeMetadataCatalog.all() + persistedRows
-            )
-            val exercise = exerciseId?.let { exerciseDao.findById(it) }
-                ?: Exercise(
-                    name = "",
-                    category = "근력운동",
-                    stableKey = "",
-                    isCustom = true
-                )
-            val metadata = if (exerciseId == null) {
-                RuntimeExerciseMetadataDefaults.forIdentity("", "")
-            } else {
-                resolver.resolve(exercise)
-            }
-            val copySources = exerciseDao.allExercises()
-                .asSequence()
-                .filter { source -> source.id != exercise.id && source.name.isNotBlank() }
-                .sortedBy { source -> source.name }
-                .map { source -> ExerciseMetadataCopySource(source, resolver.resolve(source)) }
-                .toList()
-            ExerciseRuntimeMetadataEditorData(exercise, metadata, options, copySources)
+            exerciseMetadataEditorService.exerciseEditorData(exerciseId)
         }
 
     suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): Long =
         withContext(Dispatchers.IO) {
-            require(data.exercise.name.isNotBlank()) { "운동 이름을 입력하세요." }
-            require(data.exercise.category.isNotBlank()) { "분류를 입력하세요." }
-            require(data.exercise.defaultRestSeconds in 0..3600) { "휴식 시간은 0~3600초로 입력하세요." }
-            db.withTransaction {
-                val existing = data.exercise.id.takeIf { it > 0 }?.let { exerciseDao.findById(it) }
-                val savedExercise = if (existing == null) {
-                    insertUserExerciseWithUniqueKey(data.exercise)
-                } else {
-                    val stableKey = existing.stableKey.ifBlank {
-                        uniqueUserExerciseStableKey()
-                    }
-                    ExerciseStableKeyPolicy.preserveOnEdit(existing, data.exercise, stableKey)
-                        .also { exerciseDao.updateExercise(it) }
-                }
-                runtimeExerciseMetadataDao.upsert(
-                    data.metadata.copy(
-                        stableKey = savedExercise.stableKey,
-                        exerciseName = savedExercise.name,
-                        safeForSeedMutation = false
-                    ).toEntity()
-                )
-                savedExercise.id
-            }
+            exerciseMetadataEditorService.saveExerciseEditor(data)
         }
 
     suspend fun resetExerciseMetadataOverride(exerciseId: Long): Boolean =
         withContext(Dispatchers.IO) {
-            db.withTransaction {
-                val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction false
-                runtimeExerciseMetadataDao.deleteByStableKey(exercise.stableKey)
-                val seed = seedExercisesByStableKey()[ExerciseMetadataOverrideBackupMapper.overrideKey(exercise.stableKey)]
-                if (seed != null) {
-                    exerciseDao.updateExercise(
-                        seed.copy(
-                            id = exercise.id,
-                            stableKey = seed.stableKey,
-                            imageAssetName = seed.imageAssetName.ifBlank { exercise.imageAssetName },
-                            isActive = exercise.isActive,
-                            archivedAt = exercise.archivedAt,
-                            isCustom = false,
-                            needsReview = exercise.needsReview || seed.needsReview
-                        )
-                    )
-                }
-                true
-            }
+            exerciseMetadataEditorService.resetExerciseMetadataOverride(exerciseId)
         }
 
     suspend fun resolveRuntimeMetadata(exercise: Exercise): RuntimeExerciseMetadata =
         withContext(Dispatchers.IO) {
-            RuntimeExerciseMetadataResolver(
-                canonicalRuntimeMetadataCatalog,
-                runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-            ).resolve(exercise)
+            exerciseMetadataEditorService.resolveRuntimeMetadata(exercise)
         }
 
     suspend fun resolvedRuntimeMetadataByExerciseId(): Map<Long, RuntimeExerciseMetadata> =
         withContext(Dispatchers.IO) {
-            val exercises = exerciseDao.allExercises()
-            val catalog = resolvedRuntimeMetadataCatalog(exercises)
-            exercises.associate { exercise ->
-                exercise.id to (catalog.resolve(exercise) ?: RuntimeExerciseMetadataDefaults.forExercise(exercise))
-            }
+            exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseId()
         }
 
     private suspend fun repairCustomExerciseStableKeys() {
         exerciseDao.customExercisesWithBlankStableKey().forEach { exercise ->
-            exerciseDao.updateExercise(exercise.copy(stableKey = uniqueUserExerciseStableKey()))
-        }
-    }
-
-    private suspend fun insertUserExerciseWithUniqueKey(draft: Exercise): Exercise {
-        repeat(USER_KEY_RETRY_LIMIT) {
-            val candidate = draft.copy(
-                id = 0,
-                stableKey = uniqueUserExerciseStableKey(),
-                isCustom = true
+            exerciseDao.updateExercise(
+                exercise.copy(stableKey = exerciseMetadataEditorService.uniqueUserExerciseStableKey())
             )
-            val id = exerciseDao.insertExercise(candidate)
-            if (id > 0) return candidate.copy(id = id)
         }
-        error("사용자 운동 식별자를 생성하지 못했습니다.")
-    }
-
-    private suspend fun uniqueUserExerciseStableKey(): String {
-        repeat(USER_KEY_RETRY_LIMIT) {
-            val candidate = UserExerciseStableKeyGenerator.generate()
-            if (exerciseDao.findByStableKey(candidate) == null) return candidate
-        }
-        error("사용자 운동 식별자 충돌을 해결하지 못했습니다.")
     }
 
     private suspend fun resolvedRuntimeMetadataCatalog(
         exercises: List<Exercise>
     ): RuntimeExerciseMetadataCatalog =
-        RuntimeExerciseMetadataResolver(
-            canonicalRuntimeMetadataCatalog,
-            runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-        ).catalog(exercises)
+        exerciseMetadataEditorService.resolvedRuntimeMetadataCatalog(exercises)
 
     suspend fun setExerciseActive(exerciseId: Long, active: Boolean) = withContext(Dispatchers.IO) {
-        val exercise = exerciseDao.findById(exerciseId) ?: return@withContext
-        exerciseDao.updateExercise(
-            exercise.copy(
-                isActive = active,
-                archivedAt = if (active) null else System.currentTimeMillis()
-            )
-        )
+        exerciseMetadataEditorService.setExerciseActive(exerciseId, active)
     }
 
     suspend fun deleteExerciseIfUnused(exerciseId: Long): ExerciseDeleteResult = withContext(Dispatchers.IO) {
-        db.withTransaction {
-            val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction ExerciseDeleteResult(
-                deleted = false,
-                referenced = false
-            )
-            val referenced = workoutDao.countEntriesForExercise(exerciseId) > 0 ||
-                programDao.countProgramItemsForExercise(exerciseId) > 0
-            if (referenced || !exercise.isCustom) {
-                return@withTransaction ExerciseDeleteResult(deleted = false, referenced = true)
-            }
-            runtimeExerciseMetadataDao.deleteByStableKey(exercise.stableKey)
-            exerciseDao.deleteExercise(exercise)
-            ExerciseDeleteResult(deleted = true, referenced = false)
-        }
+        exerciseMetadataEditorService.deleteExerciseIfUnused(exerciseId)
     }
 
     suspend fun addWorkoutEntry(date: String, exerciseId: Long): Long = withContext(Dispatchers.IO) {
@@ -1469,7 +1367,6 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val USER_KEY_RETRY_LIMIT = 8
         const val EXERCISE_SEED_VERSION = 7
         const val PROGRAM_SEED_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
