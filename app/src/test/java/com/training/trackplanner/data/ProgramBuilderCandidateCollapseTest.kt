@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
 
@@ -46,6 +47,96 @@ class ProgramBuilderCandidateCollapseTest {
         assertTrue(requiredTrace.programSelectable >= requiredTrace.equipmentMatched)
         assertTrue(requiredTrace.equipmentMatched >= requiredTrace.notExcludedByUser)
         assertTrue(requiredTrace.scored >= requiredTrace.selectionPool)
+    }
+
+    @Test
+    fun slotQueryUsesAdaptivePoolInsteadOfFixedTopThree() {
+        val inventory = ProgramCandidateInventoryResult(
+            allActive = 10,
+            programSelectable = 10,
+            equipmentMatched = 10,
+            notExcludedByUser = 10,
+            candidates = (1..10).map { id ->
+                candidate(
+                    id = id,
+                    slotCapabilities = SlotCapabilityProfile(
+                        primary = setOf(ProgramSlotId.UPPER_PULL_ANCHOR),
+                        secondary = emptySet(),
+                        weakMatches = emptySet(),
+                        source = SlotCapabilitySource.RUNTIME_METADATA,
+                        confidence = SlotCapabilityConfidence.HIGH
+                    )
+                )
+            }
+        )
+        val result = ProgramSlotCandidateQuery().query(
+            inventory = inventory,
+            selected = emptyList(),
+            plannedSlot = plannedSlot(),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.UPPER_PULL_ANCHOR, ProgramExerciseRole.ANCHOR, required = true),
+            week = week(),
+            weekNumber = 1,
+            absoluteDay = 1,
+            repeatAllowed = { true },
+            fatigueAllowed = { true },
+            sessionAllowed = { true },
+            score = { candidate -> 100.0 - candidate.exercise.id },
+            selectionPoolSize = 8,
+            selectedCount = 0
+        )
+
+        assertEquals(8, result.scored.size)
+        assertTrue(result.trace.selectionPool > 3)
+    }
+
+    @Test
+    fun requiredSlotCanUseWeakFallbackInsteadOfBecomingUnfilled() {
+        val inventory = ProgramCandidateInventoryResult(
+            allActive = 1,
+            programSelectable = 1,
+            equipmentMatched = 1,
+            notExcludedByUser = 1,
+            candidates = listOf(
+                candidate(
+                    id = 1,
+                    slotCapabilities = SlotCapabilityProfile(
+                        primary = emptySet(),
+                        secondary = emptySet(),
+                        weakMatches = setOf(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN),
+                        source = SlotCapabilitySource.RUNTIME_METADATA,
+                        confidence = SlotCapabilityConfidence.MODERATE
+                    )
+                )
+            )
+        )
+        val result = ProgramSlotCandidateQuery().query(
+            inventory = inventory,
+            selected = emptyList(),
+            plannedSlot = plannedSlot(),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.ROTATIONAL_KINETIC_CHAIN, ProgramExerciseRole.SUPPORT, required = true),
+            week = week(),
+            weekNumber = 1,
+            absoluteDay = 1,
+            repeatAllowed = { true },
+            fatigueAllowed = { true },
+            sessionAllowed = { true },
+            score = { 1.0 },
+            selectionPoolSize = 8,
+            selectedCount = 0
+        )
+
+        assertEquals(1, result.scored.size)
+        assertTrue(result.trace.warnings.any { it.startsWith("TEMPLATE_REQUIRED_SLOT_FALLBACK_USED") })
+    }
+
+    @Test
+    fun tightSessionBudgetTrimsSlotsWithoutDroppingWholeSessions() {
+        val result = build(Scenario("tight budget 5d 4w", 5, 4, 15, 0.70, 6))
+        val sessions = result.items.groupBy { it.weekNumber to it.dayOfWeek }
+
+        assertTrue(sessions.isNotEmpty())
+        assertTrue(sessions.values.all { it.isNotEmpty() })
+        assertTrue(result.candidateTraces.any { "PROGRAM_SLOT_TIME_BUDGET_TRIMMED" in it.warnings })
     }
 
     private fun build(scenario: Scenario): GeneratedProgramSkeleton = ProgramBuilder().build(
@@ -113,6 +204,36 @@ class ProgramBuilderCandidateCollapseTest {
     private fun canonicalFile(): File = existingFile("src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
     private fun existingFile(relative: String): File = sequenceOf(File(relative), File("app/$relative")).firstOrNull(File::exists)
         ?: error("Missing test asset: $relative")
+
+    private fun candidate(id: Int, slotCapabilities: SlotCapabilityProfile): ProgramCandidate = ProgramCandidate(
+        exercise = Exercise(
+            id = id.toLong(),
+            name = "Candidate $id",
+            category = "strength",
+            stableKey = "candidate_$id"
+        ),
+        metadata = null,
+        canonical = false,
+        slotCapabilities = slotCapabilities
+    )
+
+    private fun plannedSlot(): PlannedSlot = PlannedSlot(
+        dayOfWeek = 1,
+        slot = ProgramTrainingSlot.UPPER_STRENGTH_SCAP,
+        intensity = ProgramDayIntensity.MODERATE
+    )
+
+    private fun week(): ProgramWeekPlan = ProgramWeekPlan(
+        weekIndex = 1,
+        weekType = ProgramWeekType.ADAPT.name,
+        volumeMultiplier = 1.0,
+        intensityMultiplier = 1.0,
+        heavyExposureLimit = 1,
+        lowerBodyFatigueLimit = 1.0,
+        axialLoadLimit = 1,
+        plyometricLimit = 1,
+        deloadFlag = false
+    )
 
     private data class Scenario(
         val label: String,
