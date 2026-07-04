@@ -24,6 +24,7 @@ class ProgramBuilder internal constructor(
     private val periodizationPolicy = ProgramPeriodizationPlanPolicy()
     private val foundationAnchorPolicy = ProgramFoundationAnchorPolicy()
     private val rerankingPolicy = ProgramCandidateRerankingPolicy()
+    private val beamSelectionPolicy = ProgramBeamSelectionPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -145,12 +146,20 @@ class ProgramBuilder internal constructor(
                         ),
                         selectedCount = 0
                     )
-                    val picked = varietyPolicy.chooseControlledCandidate(
+                    val scoreContext = ProgramCandidateScoreContext(
+                        request = normalized,
+                        week = week,
+                        periodizedWeek = periodizedWeek,
+                        plannedSlot = day,
+                        templateSlot = templateSlot,
+                        selectedInSession = selected,
+                        generatedItems = generated
+                    )
+                    val picked = beamSelectionPolicy.choose(
                         scored = query.scored,
-                        weekIndex = week.weekIndex,
-                        dayIndex = dayIndex,
-                        itemIndex = itemIndex,
-                        preference = normalized.varietyPreference
+                        context = scoreContext,
+                        classification = inventory.reservoir::classification,
+                        desiredExerciseCount = prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
                     )
                     if (picked == null) {
                         candidateTraces += query.trace

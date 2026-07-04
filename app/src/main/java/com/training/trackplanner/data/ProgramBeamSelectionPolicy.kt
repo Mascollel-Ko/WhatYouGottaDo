@@ -1,0 +1,62 @@
+package com.training.trackplanner.data
+
+import kotlin.math.max
+
+internal class ProgramBeamSelectionPolicy {
+    fun candidateWindow(
+        scored: List<Pair<ProgramCandidate, Double>>,
+        desiredExerciseCount: Int
+    ): List<Pair<ProgramCandidate, Double>> {
+        if (scored.isEmpty()) return emptyList()
+        val size = max(MIN_SLOT_CANDIDATES, desiredExerciseCount * 2).coerceAtMost(MAX_SLOT_CANDIDATES)
+        return scored.take(size.coerceAtMost(scored.size))
+    }
+
+    fun choose(
+        scored: List<Pair<ProgramCandidate, Double>>,
+        context: ProgramCandidateScoreContext,
+        classification: (ProgramCandidate) -> ProgramCandidateClassification,
+        desiredExerciseCount: Int
+    ): ProgramCandidate? {
+        val window = candidateWindow(scored, desiredExerciseCount)
+        if (window.isEmpty()) return null
+        return window
+            .take(BEAM_SIZE.coerceAtMost(window.size))
+            .maxByOrNull { (candidate, score) ->
+                score + beamAdjustment(candidate, classification(candidate), context)
+            }
+            ?.first
+    }
+
+    private fun beamAdjustment(
+        candidate: ProgramCandidate,
+        classification: ProgramCandidateClassification,
+        context: ProgramCandidateScoreContext
+    ): Double {
+        var adjustment = 0.0
+        if (classification.tier == ProgramCandidateTier.FOUNDATION_MAIN_WORTHY &&
+            context.selectedInSession.none { selected ->
+                selected.slotCapabilities.hasAny(ProgramSlotId.LOWER_SQUAT_PATTERN) ||
+                    selected.slotCapabilities.hasAny(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN) ||
+                    selected.slotCapabilities.hasAny(ProgramSlotId.UPPER_PULL_ANCHOR)
+            }
+        ) {
+            adjustment += 1.0
+        }
+        if (classification.corePattern == ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION &&
+            context.generatedItems.any { it.stableKey == candidate.exercise.stableKey }
+        ) {
+            adjustment -= 4.0
+        }
+        if (context.selectedInSession.any { it.exercise.stableKey == candidate.exercise.stableKey }) {
+            adjustment -= 100.0
+        }
+        return adjustment
+    }
+
+    private companion object {
+        const val MIN_SLOT_CANDIDATES = 6
+        const val MAX_SLOT_CANDIDATES = 12
+        const val BEAM_SIZE = 6
+    }
+}

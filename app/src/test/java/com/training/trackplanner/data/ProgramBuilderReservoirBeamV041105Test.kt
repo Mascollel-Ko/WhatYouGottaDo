@@ -215,6 +215,29 @@ class ProgramBuilderReservoirBeamV041105Test {
         assertTrue("repeated trunk flexion should be penalized", repeatedCoreAdjustment < 0.0)
     }
 
+    @Test
+    fun beamSelectionKeepsAWideSlotCandidateWindow() {
+        val policy = ProgramBeamSelectionPolicy()
+        val scored = (1L..10L).map { id ->
+            candidate(
+                id = id,
+                name = "Candidate $id",
+                equipment = "BARBELL",
+                stableKey = "candidate_$id",
+                capabilities = SlotCapabilityProfile(
+                    primary = setOf(ProgramSlotId.UPPER_PULL_ANCHOR),
+                    secondary = emptySet(),
+                    weakMatches = emptySet(),
+                    source = SlotCapabilitySource.RUNTIME_METADATA,
+                    confidence = SlotCapabilityConfidence.HIGH
+                )
+            ) to (100.0 - id)
+        }
+
+        assertTrue("slot selection should inspect more than a fixed top three",
+            policy.candidateWindow(scored, desiredExerciseCount = 4).size >= 6)
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem
