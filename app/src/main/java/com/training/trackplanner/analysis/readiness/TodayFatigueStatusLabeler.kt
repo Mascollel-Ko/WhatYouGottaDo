@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
+
 object TodayFatigueStatusLabeler {
     fun label(summary: TodayReadinessSummary): String {
         val axes = axisStates(summary)
@@ -79,9 +81,9 @@ object TodayFatigueStatusLabeler {
 
     private fun levelFromScore(score: Int): FatigueLevel =
         when {
-            score >= 90 -> FatigueLevel.VERY_HIGH
-            score >= 70 -> FatigueLevel.HIGH
-            score >= 60 -> FatigueLevel.ELEVATED
+            score >= FatigueThresholds.PRESENTATION_VERY_HIGH_SCORE -> FatigueLevel.VERY_HIGH
+            score >= FatigueThresholds.PRESENTATION_RESTRICTED_SCORE -> FatigueLevel.HIGH
+            score >= FatigueThresholds.PRESENTATION_ELEVATED_SCORE -> FatigueLevel.ELEVATED
             score >= 35 -> FatigueLevel.NORMAL
             else -> FatigueLevel.LOW
         }

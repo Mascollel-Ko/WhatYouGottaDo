@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.data.InitialUserProfile
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -111,7 +112,7 @@ class InitialProfileReadinessAdjuster(
         val hasHighPressure = pressure.categoryPressures.values.any { item -> item.level >= FatigueLevel.HIGH } ||
             pressure.bodyPartPressures.values.any { item -> item.level >= FatigueLevel.HIGH }
         val hasVeryHighPressure = pressure.categoryPressures.values.any { item ->
-            (item.pressure ?: 0.0) > 1.60
+            (item.pressure ?: 0.0) > FatigueThresholds.PRESSURE_VERY_HIGH_RATIO
         }
 
         val adjustedStatus = when (summary.status) {

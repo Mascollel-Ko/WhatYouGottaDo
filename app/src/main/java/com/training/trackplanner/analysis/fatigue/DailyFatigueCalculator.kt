@@ -83,14 +83,14 @@ class DailyFatigueCalculator(
             val previousGroupKeys = aggregateGroups(date.minusDays(1), contributions)
                 .map { it.groupType to it.groupKey }
                 .toSet()
-            val repeatedLocalGroup = scores.localMuscular >= 80.0 && currentGroups.any { group ->
+            val repeatedLocalGroup = scores.localMuscular >= FatigueThresholds.AXIS_HIGH_COUNT_START && currentGroups.any { group ->
                 group.localFatigue > 0.0 && (group.groupType to group.groupKey) in previousGroupKeys
             }
             val cautionReasons = buildList {
-                if (scores.jointTendonImpact >= 90.0) add("JOINT_TENDON_CAUTION")
-                if (scores.neuromuscular >= 90.0) add("POWER_REACTION_CAUTION")
-                if (scores.recoveryPressure >= 90.0) add("RECOVERY_DEBT_HIGH")
-                if (axisScores.count { it >= 80 } >= 3) add("GLOBAL_HIGH_FATIGUE")
+                if (scores.jointTendonImpact >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("JOINT_TENDON_CAUTION")
+                if (scores.neuromuscular >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("POWER_REACTION_CAUTION")
+                if (scores.recoveryPressure >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("RECOVERY_DEBT_HIGH")
+                if (axisScores.count { it >= FatigueThresholds.AXIS_HIGH_COUNT_START } >= 3) add("GLOBAL_HIGH_FATIGUE")
                 if (repeatedLocalGroup) add("LOCAL_GROUP_REPEAT_CAUTION")
             }
             DailyFatigueResult(

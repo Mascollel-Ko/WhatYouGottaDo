@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
+
 class FatiguePressureCalculator {
     fun calculate(
         residual: ResidualFatigueSnapshot,
@@ -90,26 +92,26 @@ class FatiguePressureCalculator {
         val candidates = mutableListOf<FatigueLevel>()
         pressure?.let { value ->
             candidates += when {
-                value > 1.60 -> FatigueLevel.VERY_HIGH
-                value >= 1.35 -> FatigueLevel.HIGH
-                value >= 1.15 -> FatigueLevel.ELEVATED
+                value > FatigueThresholds.PRESSURE_VERY_HIGH_RATIO -> FatigueLevel.VERY_HIGH
+                value >= FatigueThresholds.PRESSURE_HIGH_RATIO -> FatigueLevel.HIGH
+                value >= FatigueThresholds.PRESSURE_ELEVATED_RATIO -> FatigueLevel.ELEVATED
                 value >= 0.75 -> FatigueLevel.NORMAL
                 else -> FatigueLevel.LOW
             }
         }
         zScore?.let { value ->
             candidates += when {
-                value > 2.0 -> FatigueLevel.VERY_HIGH
-                value >= 1.5 -> FatigueLevel.HIGH
-                value >= 1.0 -> FatigueLevel.ELEVATED
+                value > FatigueThresholds.Z_VERY_HIGH -> FatigueLevel.VERY_HIGH
+                value >= FatigueThresholds.Z_HIGH -> FatigueLevel.HIGH
+                value >= FatigueThresholds.Z_ELEVATED -> FatigueLevel.ELEVATED
                 else -> FatigueLevel.NORMAL
             }
         }
         percentile?.let { value ->
             candidates += when {
-                value > 95.0 -> FatigueLevel.VERY_HIGH
-                value >= 85.0 -> FatigueLevel.HIGH
-                value >= 75.0 -> FatigueLevel.ELEVATED
+                value >= FatigueThresholds.PERCENTILE_VERY_HIGH -> FatigueLevel.VERY_HIGH
+                value >= FatigueThresholds.PERCENTILE_HIGH -> FatigueLevel.HIGH
+                value >= FatigueThresholds.PERCENTILE_ELEVATED -> FatigueLevel.ELEVATED
                 else -> FatigueLevel.NORMAL
             }
         }

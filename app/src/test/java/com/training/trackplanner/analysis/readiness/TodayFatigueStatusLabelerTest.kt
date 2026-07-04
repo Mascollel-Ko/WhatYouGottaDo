@@ -53,7 +53,7 @@ class TodayFatigueStatusLabelerTest {
         val summary = summary(
             section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
             section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
-            presentation = presentation(neural = 75)
+            presentation = presentation(neural = 82)
         )
 
         assertEquals("신경계 피로 높음", TodayFatigueStatusLabeler.label(summary))
@@ -65,7 +65,7 @@ class TodayFatigueStatusLabelerTest {
         val summary = summary(
             section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
             section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
-            presentation = presentation(neural = 20, focus = 75)
+            presentation = presentation(neural = 20, focus = 82)
         )
 
         val axes = TodayFatigueStatusLabeler.axisStates(summary).associateBy { it.label }

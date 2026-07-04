@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import kotlin.math.roundToInt
 
 class FatiguePresentationMapper {
@@ -331,16 +332,18 @@ class FatiguePresentationMapper {
 
     private fun volumeFactor(overallScore: Int): Double =
         when {
-            overallScore >= 75 -> 0.25
-            overallScore >= 60 -> 0.50
-            overallScore >= 45 -> 0.75
+            overallScore >= FatigueThresholds.PRESENTATION_VOLUME_RED_START -> 0.25
+            overallScore >= FatigueThresholds.PRESENTATION_VOLUME_ORANGE_START -> 0.50
+            overallScore >= FatigueThresholds.PRESENTATION_VOLUME_YELLOW_START -> 0.75
             else -> 1.0
         }
 
     private fun rpeCap(overallScore: Int, neuralScore: Int, neuralHeavyScore: Int): Int? =
         when {
-            neuralScore >= RESTRICTED_SCORE || neuralHeavyScore >= RESTRICTED_SCORE || overallScore >= 60 -> 7
-            overallScore >= 45 -> 8
+            neuralScore >= RESTRICTED_SCORE ||
+                neuralHeavyScore >= RESTRICTED_SCORE ||
+                overallScore >= FatigueThresholds.PRESENTATION_VOLUME_ORANGE_START -> 7
+            overallScore >= FatigueThresholds.PRESENTATION_VOLUME_YELLOW_START -> 8
             else -> null
         }
 
@@ -376,9 +379,9 @@ class FatiguePresentationMapper {
     private fun Int.clampScore(): Int = coerceIn(0, 100)
 
     private companion object {
-        const val CAUTION_SCORE = 60
-        const val RESTRICTED_SCORE = 70
-        const val VERY_HIGH_SCORE = 90
+        const val CAUTION_SCORE = FatigueThresholds.PRESENTATION_ELEVATED_SCORE
+        const val RESTRICTED_SCORE = FatigueThresholds.PRESENTATION_RESTRICTED_SCORE
+        const val VERY_HIGH_SCORE = FatigueThresholds.PRESENTATION_VERY_HIGH_SCORE
         const val SUPPORTING_AXIS_WEIGHT = 0.20
         const val SUPPORTING_BODY_PART_WEIGHT = 0.60
         const val BADMINTON_SYSTEMIC_SUPPORT_WEIGHT = 0.60

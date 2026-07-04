@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.coach
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
@@ -27,11 +28,13 @@ class JointTendonWarningAnalyzer {
         val latestJointScore = history.lastOrNull { it.state.date <= today }?.state?.jointTendonImpactScore
         val stressLabels = recentJointStressLabels(start, today, entriesWithSets, exercises, runtimeMetadataCatalog)
         val hasMetadataStress = stressLabels.isNotEmpty()
-        val shouldWarn = (maxDiscomfort ?: 0) >= 4 || (latestJointScore ?: 0) >= 80
+        val shouldWarn = (maxDiscomfort ?: 0) >= 4 ||
+            (latestJointScore ?: 0) >= FatigueThresholds.AXIS_HIGH_COUNT_START
         if (!shouldWarn) return null
 
         val severity = when {
-            (maxDiscomfort ?: 0) >= 5 || (latestJointScore ?: 0) >= 90 -> CoachingSignalSeverity.CAUTION
+            (maxDiscomfort ?: 0) >= 5 ||
+                (latestJointScore ?: 0) >= FatigueThresholds.DAILY_AXIS_CAUTION_START -> CoachingSignalSeverity.CAUTION
             else -> CoachingSignalSeverity.WATCH
         }
         val sleepContext = if (sleepSignal.severity.priority() >= CoachingSignalSeverity.WATCH.priority()) {

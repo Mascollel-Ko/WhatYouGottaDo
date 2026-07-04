@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import kotlin.math.roundToInt
 
@@ -240,14 +241,14 @@ internal data class ProgramFatigueGate(
         fun from(state: DailyFatigueState?): ProgramFatigueGate {
             val ofi = state?.overallFatigueIndex ?: 0
             val band = when (ofi) {
-                in 0..44 -> ProgramFatigueBand.GREEN
-                in 45..59 -> ProgramFatigueBand.YELLOW
-                in 60..74 -> ProgramFatigueBand.ORANGE
+                in 0 until FatigueThresholds.PROGRAM_YELLOW_START -> ProgramFatigueBand.GREEN
+                in FatigueThresholds.PROGRAM_YELLOW_START until FatigueThresholds.PROGRAM_ORANGE_START -> ProgramFatigueBand.YELLOW
+                in FatigueThresholds.PROGRAM_ORANGE_START until FatigueThresholds.PROGRAM_RED_START -> ProgramFatigueBand.ORANGE
                 else -> ProgramFatigueBand.RED
             }
-            val jointRestricted = (state?.jointTendonImpactScore ?: 0) >= 65
-            val neuralRestricted = (state?.neuromuscularScore ?: 0) >= 70
-            val localRestricted = (state?.localMuscularScore ?: 0) >= 70
+            val jointRestricted = (state?.jointTendonImpactScore ?: 0) >= FatigueThresholds.PROGRAM_JOINT_RESTRICTED_START
+            val neuralRestricted = (state?.neuromuscularScore ?: 0) >= FatigueThresholds.PROGRAM_AXIS_RESTRICTED_START
+            val localRestricted = (state?.localMuscularScore ?: 0) >= FatigueThresholds.PROGRAM_AXIS_RESTRICTED_START
             return ProgramFatigueGate(
                 band = band,
                 volumeFactor = when (band) {

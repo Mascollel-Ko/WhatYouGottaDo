@@ -71,13 +71,44 @@ object OverallFatigueIndexCalculator {
     }
 }
 
+object FatigueThresholds {
+    const val OFI_ELEVATED_START = 75
+    const val OFI_CAUTION_START = 87
+    const val OFI_HIGH_START = 98
+    const val AXIS_HIGH_COUNT_START = 92
+    const val DAILY_AXIS_CAUTION_START = 100
+
+    const val PROGRAM_YELLOW_START = 52
+    const val PROGRAM_ORANGE_START = 69
+    const val PROGRAM_RED_START = 87
+    const val PROGRAM_JOINT_RESTRICTED_START = 75
+    const val PROGRAM_AXIS_RESTRICTED_START = 81
+
+    const val PRESENTATION_ELEVATED_SCORE = 69
+    const val PRESENTATION_RESTRICTED_SCORE = 81
+    const val PRESENTATION_VERY_HIGH_SCORE = 100
+    const val PRESENTATION_VOLUME_YELLOW_START = 52
+    const val PRESENTATION_VOLUME_ORANGE_START = 69
+    const val PRESENTATION_VOLUME_RED_START = 87
+
+    const val PRESSURE_ELEVATED_RATIO = 1.3225
+    const val PRESSURE_HIGH_RATIO = 1.5525
+    const val PRESSURE_VERY_HIGH_RATIO = 1.84
+    const val Z_ELEVATED = 1.15
+    const val Z_HIGH = 1.725
+    const val Z_VERY_HIGH = 2.30
+    const val PERCENTILE_ELEVATED = 87.0
+    const val PERCENTILE_HIGH = 98.0
+    const val PERCENTILE_VERY_HIGH = 100.0
+}
+
 object FatigueLabelResolver {
     fun label(ofi: Int): FatigueReadinessLabel =
         when (ofi.coerceIn(0, 100)) {
             in 0..39 -> FatigueReadinessLabel.LOW
-            in 40..64 -> FatigueReadinessLabel.NORMAL
-            in 65..74 -> FatigueReadinessLabel.ELEVATED
-            in 75..84 -> FatigueReadinessLabel.CAUTION
+            in 40 until FatigueThresholds.OFI_ELEVATED_START -> FatigueReadinessLabel.NORMAL
+            in FatigueThresholds.OFI_ELEVATED_START until FatigueThresholds.OFI_CAUTION_START -> FatigueReadinessLabel.ELEVATED
+            in FatigueThresholds.OFI_CAUTION_START until FatigueThresholds.OFI_HIGH_START -> FatigueReadinessLabel.CAUTION
             else -> FatigueReadinessLabel.HIGH_FATIGUE
         }
 
@@ -91,7 +122,9 @@ object FatigueLabelResolver {
         }
 
     fun shouldRecommendRest(ofi: Int, axisScores: List<Int>, jointVeryHigh: Boolean): Boolean =
-        ofi >= 85 || axisScores.count { it >= 80 } >= 3 || jointVeryHigh
+        ofi >= FatigueThresholds.OFI_HIGH_START ||
+            axisScores.count { it >= FatigueThresholds.AXIS_HIGH_COUNT_START } >= 3 ||
+            jointVeryHigh
 }
 
 object InitialProfileBaselineSeeder {

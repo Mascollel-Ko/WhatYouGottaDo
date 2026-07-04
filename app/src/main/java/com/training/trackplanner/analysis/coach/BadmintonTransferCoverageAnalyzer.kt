@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.badminton.BadmintonTransferConstants
 import com.training.trackplanner.analysis.badminton.BadmintonTransferScoreCalculator
 import com.training.trackplanner.analysis.badminton.BadmintonTransferWindowSnapshot
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -48,7 +49,10 @@ class BadmintonTransferCoverageAnalyzer(
                 stimulus <= BadmintonTransferConstants.EPSILON -> TransferAxisStatusType.MISSING
                 recent.sampleEntryCount < 3 -> TransferAxisStatusType.BALANCED
                 lowShare -> TransferAxisStatusType.LOW
-                recentShare >= highShare && relatedFatigue >= 75 && repeated && elevatedFromBaseline ->
+                recentShare >= highShare &&
+                    relatedFatigue >= FatigueThresholds.OFI_CAUTION_START &&
+                    repeated &&
+                    elevatedFromBaseline ->
                     TransferAxisStatusType.OVERLOADED
                 recentShare >= highShare -> TransferAxisStatusType.HIGH
                 else -> TransferAxisStatusType.BALANCED

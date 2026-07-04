@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.coach
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -115,6 +116,6 @@ class CourtDurationRecoveryAnalyzer {
     ) {
         fun hasNextDayStrain(): Boolean =
             listOfNotNull(nextOverallFatigue, nextLowerBodyFatigue, nextJointDiscomfort).any { it >= 4 } ||
-                (nextOfi ?: 0) >= 75
+                (nextOfi ?: 0) >= FatigueThresholds.OFI_CAUTION_START
     }
 }

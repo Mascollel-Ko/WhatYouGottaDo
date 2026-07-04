@@ -63,7 +63,7 @@ object HomeFatigueCardSummaryFactory {
 
     private fun DailyFatigueState.qualitativeLabel(): String {
         if (overallFatigueIndex < 40) return "양호"
-        if (overallFatigueIndex < 65) return "적정"
+        if (overallFatigueIndex < FatigueThresholds.OFI_ELEVATED_START) return "적정"
 
         val dominantAxis = listOf(
             neuromuscularScore to "신경계 피로 주의",
