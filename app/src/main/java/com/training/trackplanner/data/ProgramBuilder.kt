@@ -215,7 +215,7 @@ class ProgramBuilder internal constructor(
                     val weight = weightSuggestionPolicy.suggest(
                         exercise = picked.exercise,
                         targetReps = prescription.reps,
-                        intensityMultiplier = week.intensityMultiplier,
+                        intensityMultiplier = week.intensityMultiplier * fatigueGate.planningLoadFactor(),
                         today = today
                     )
                     generated += ProgramSkeletonItem(
@@ -327,3 +327,10 @@ class ProgramBuilder internal constructor(
 }
 
 private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
+
+private fun ProgramFatigueGate.planningLoadFactor(): Double = when (band) {
+    ProgramFatigueBand.GREEN -> 1.0
+    ProgramFatigueBand.YELLOW -> 0.95
+    ProgramFatigueBand.ORANGE -> 0.85
+    ProgramFatigueBand.RED -> 0.70
+}

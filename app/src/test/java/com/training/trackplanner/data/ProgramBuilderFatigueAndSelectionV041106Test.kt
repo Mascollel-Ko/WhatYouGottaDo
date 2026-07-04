@@ -23,6 +23,27 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     }
 
     @Test
+    fun redPlanningFatigueDownscalesFoundationAnchorPrescription() {
+        val prescription = ProgramPrescriptionPolicy().prescribe(
+            candidate = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN),
+            role = ProgramExerciseRole.ANCHOR,
+            week = week(),
+            gate = ProgramFatigueGate(
+                band = ProgramFatigueBand.RED,
+                volumeFactor = 0.25,
+                rpeCap = 7,
+                allowsHeavyLower = false,
+                allowsHighImpact = false,
+                allowsHighIntensityCod = false,
+                lowerBodyRestricted = true
+            )
+        )
+
+        assertTrue("foundation anchor should be kept as a small dose", prescription.setCount in 1..2)
+        assertTrue("red planning fatigue should cap heavy lower RPE", prescription.rpe <= 6)
+    }
+
+    @Test
     fun currentRequestHasOnlyFreeTextExerciseAvoidance() {
         val fieldNames = ProgramSkeletonRequest::class.java.declaredFields.map { it.name }.toSet()
 
@@ -62,5 +83,19 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
                 source = SlotCapabilitySource.RUNTIME_METADATA,
                 confidence = SlotCapabilityConfidence.HIGH
             )
+        )
+
+    private fun week(): ProgramWeekPlan =
+        ProgramWeekPlan(
+            weekIndex = 1,
+            weekType = ProgramWeekType.BUILD.name,
+            volumeMultiplier = 1.0,
+            intensityMultiplier = 1.0,
+            heavyExposureLimit = 2,
+            lowerBodyFatigueLimit = 8.0,
+            axialLoadLimit = 2,
+            plyometricLimit = 1,
+            deloadFlag = false,
+            targetRpeMax = 8.0
         )
 }

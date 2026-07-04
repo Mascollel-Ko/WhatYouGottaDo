@@ -20,6 +20,13 @@ internal class ProgramPrescriptionPolicy(
             else -> 3
         }
         val sets = max(1, (baseSets * week.volumeMultiplier * gate.volumeFactor).roundToInt())
+            .let { plannedSets ->
+                if (candidate.isHeavyLower && gate.band >= ProgramFatigueBand.ORANGE) {
+                    plannedSets.coerceAtMost(2)
+                } else {
+                    plannedSets
+                }
+            }
         val reps = when {
             timed -> 0
             role == ProgramExerciseRole.ANCHOR -> 5
@@ -37,7 +44,12 @@ internal class ProgramPrescriptionPolicy(
         } else {
             0
         }
-        val plannedRpe = week.targetRpeMax.roundToInt().coerceAtMost(gate.rpeCap)
+        val plannedRpeCap = if (candidate.isHeavyLower && gate.band == ProgramFatigueBand.RED) {
+            gate.rpeCap.coerceAtMost(6)
+        } else {
+            gate.rpeCap
+        }
+        val plannedRpe = week.targetRpeMax.roundToInt().coerceAtMost(plannedRpeCap)
         val label = if (timed) "${sets}세트 · ${seconds}초" else "${sets}×${reps}"
         return ProgramPrescription(sets, reps, seconds, plannedRpe, label)
     }
