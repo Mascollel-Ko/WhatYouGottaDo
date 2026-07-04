@@ -1,5 +1,6 @@
 package com.training.trackplanner.data
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,11 +37,71 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
                 allowsHighImpact = false,
                 allowsHighIntensityCod = false,
                 lowerBodyRestricted = true
-            )
+            ),
+            useCase = ProgramFatigueUseCase.PROGRAM_PLANNING
         )
 
         assertTrue("foundation anchor should be kept as a small dose", prescription.setCount in 1..2)
         assertTrue("red planning fatigue should cap heavy lower RPE", prescription.rpe <= 6)
+    }
+
+    @Test
+    fun orangePlanningFatigueKeepsFoundationIntensityAndPrescription() {
+        val orangeGate = ProgramFatigueGate(
+            band = ProgramFatigueBand.ORANGE,
+            volumeFactor = 0.50,
+            rpeCap = 7,
+            allowsHeavyLower = false,
+            allowsHighImpact = false,
+            allowsHighIntensityCod = false,
+            lowerBodyRestricted = true
+        )
+        val planned = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD)
+        val hinge = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN)
+
+        assertEquals(
+            ProgramDayIntensity.HARD,
+            FatigueSlotPolicy.DEFAULT.adapt(planned, orangeGate, ProgramFatigueUseCase.PROGRAM_PLANNING).intensity
+        )
+        assertTrue(FatigueSlotPolicy.DEFAULT.allows(hinge, orangeGate, ProgramFatigueUseCase.PROGRAM_PLANNING))
+
+        val prescription = ProgramPrescriptionPolicy().prescribe(
+            candidate = hinge,
+            role = ProgramExerciseRole.ANCHOR,
+            week = week(),
+            gate = orangeGate,
+            useCase = ProgramFatigueUseCase.PROGRAM_PLANNING
+        )
+
+        assertEquals(4, prescription.setCount)
+    }
+
+    @Test
+    fun redPlanningFatigueBlocksExplosiveButKeepsFoundationAnchor() {
+        val redGate = ProgramFatigueGate(
+            band = ProgramFatigueBand.RED,
+            volumeFactor = 0.25,
+            rpeCap = 7,
+            allowsHeavyLower = false,
+            allowsHighImpact = false,
+            allowsHighIntensityCod = false,
+            lowerBodyRestricted = true
+        )
+
+        assertTrue(
+            FatigueSlotPolicy.DEFAULT.allows(
+                candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN),
+                redGate,
+                ProgramFatigueUseCase.PROGRAM_PLANNING
+            )
+        )
+        assertFalse(
+            FatigueSlotPolicy.DEFAULT.allows(
+                explosiveCandidate(),
+                redGate,
+                ProgramFatigueUseCase.PROGRAM_PLANNING
+            )
+        )
     }
 
     @Test
@@ -216,6 +277,33 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
                 confidence = SlotCapabilityConfidence.HIGH
             )
         )
+
+    private fun explosiveCandidate(): ProgramCandidate {
+        val exercise = Exercise(
+            id = 2,
+            name = "Fixture jump",
+            category = "power",
+            stableKey = "fixture_jump",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+        return ProgramCandidate(
+            exercise = exercise,
+            metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+                movementFamily = "PLYOMETRIC",
+                movementSubtype = "JUMP",
+                programSlot = ProgramSlotId.POWER_REACTIVE_LOW_VOLUME.name,
+                stressMagnitudeHint = "HIGH"
+            ),
+            canonical = true,
+            slotCapabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.POWER_REACTIVE_LOW_VOLUME),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+    }
 
     private fun week(): ProgramWeekPlan =
         ProgramWeekPlan(

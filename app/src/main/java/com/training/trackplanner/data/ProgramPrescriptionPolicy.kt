@@ -10,7 +10,8 @@ internal class ProgramPrescriptionPolicy(
         candidate: ProgramCandidate,
         role: ProgramExerciseRole,
         week: ProgramWeekPlan,
-        gate: ProgramFatigueGate
+        gate: ProgramFatigueGate,
+        useCase: ProgramFatigueUseCase = ProgramFatigueUseCase.TODAY_EXECUTION
     ): ProgramPrescription {
         val timed = candidate.isTimed
         val baseSets = when (role) {
@@ -19,9 +20,22 @@ internal class ProgramPrescriptionPolicy(
             ProgramExerciseRole.PREHAB -> 2
             else -> 3
         }
-        val sets = max(1, (baseSets * week.volumeMultiplier * gate.volumeFactor).roundToInt())
+        val fatigueVolumeFactor = if (
+            useCase == ProgramFatigueUseCase.PROGRAM_PLANNING &&
+            gate.band != ProgramFatigueBand.RED
+        ) {
+            1.0
+        } else {
+            gate.volumeFactor
+        }
+        val sets = max(1, (baseSets * week.volumeMultiplier * fatigueVolumeFactor).roundToInt())
             .let { plannedSets ->
-                if (candidate.isHeavyLower && gate.band >= ProgramFatigueBand.ORANGE) {
+                val shouldCapHeavyLower = if (useCase == ProgramFatigueUseCase.PROGRAM_PLANNING) {
+                    gate.band == ProgramFatigueBand.RED
+                } else {
+                    gate.band >= ProgramFatigueBand.ORANGE
+                }
+                if (candidate.isHeavyLower && shouldCapHeavyLower) {
                     plannedSets.coerceAtMost(2)
                 } else {
                     plannedSets

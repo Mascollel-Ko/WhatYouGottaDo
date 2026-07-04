@@ -60,7 +60,6 @@ internal class FatigueSlotPolicy {
     ): PlannedSlot = when {
         useCase == ProgramFatigueUseCase.PROGRAM_PLANNING && planned.intensity == ProgramDayIntensity.HARD -> when (gate.band) {
             ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.MODERATE)
-            ProgramFatigueBand.ORANGE -> planned.copy(intensity = ProgramDayIntensity.MODERATE)
             else -> planned
         }
         gate.band == ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.LIGHT)
@@ -95,7 +94,7 @@ internal class FatigueSlotPolicy {
     }
 
     private fun allowsForPlanning(candidate: ProgramCandidate, gate: ProgramFatigueGate): Boolean {
-        if (gate.band >= ProgramFatigueBand.ORANGE && candidate.matchesExplosivePlanningWork()) {
+        if (gate.band == ProgramFatigueBand.RED && candidate.matchesExplosivePlanningWork()) {
             return false
         }
         val primarySlot = candidate.slotCapabilities.primary.firstOrNull() ?: return true

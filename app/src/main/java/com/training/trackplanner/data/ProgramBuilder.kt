@@ -168,7 +168,13 @@ class ProgramBuilder internal constructor(
                         }
                         return@forEachIndexed
                     }
-                    var prescription = prescriptionPolicy.prescribe(picked, role, week, fatigueGate)
+                    var prescription = prescriptionPolicy.prescribe(
+                        candidate = picked,
+                        role = role,
+                        week = week,
+                        gate = fatigueGate,
+                        useCase = ProgramFatigueUseCase.PROGRAM_PLANNING
+                    )
                     var itemDurationSeconds = prescriptionPolicy.estimateItemDurationSeconds(picked, prescription)
                     if (estimatedSessionSeconds + itemDurationSeconds > sessionBudgetSeconds) {
                         timeBudgetTrimmed = true
@@ -272,7 +278,7 @@ class ProgramBuilder internal constructor(
         }
         if (candidates.size < 8) warnings += "조건에 맞는 운동 후보가 적어 일부 세션 구성이 짧을 수 있습니다."
         if (fatigueGate.band != ProgramFatigueBand.GREEN) {
-            warnings += "계획 피로도 참고: ${fatigueGate.band.name} · 볼륨 ${fatigueGate.volumeFactor.toPercent()} · RPE 상한 ${fatigueGate.rpeCap}. 메인 운동은 제거하지 않고 강도만 낮춥니다."
+            warnings += "계획 피로도 참고: ${fatigueGate.band.name} · 볼륨 ${fatigueGate.planningLoadFactor().toPercent()} · RPE 상한 ${fatigueGate.rpeCap}. RED 전에는 메인 운동을 줄이지 않고 계획합니다."
         }
         if (timeBudgetTrimmed) {
             warnings += "세션 시간 예산에 맞춰 일부 보조 항목을 줄였습니다."
@@ -327,8 +333,8 @@ private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
 
 private fun ProgramFatigueGate.planningLoadFactor(): Double = when (band) {
     ProgramFatigueBand.GREEN -> 1.0
-    ProgramFatigueBand.YELLOW -> 0.95
-    ProgramFatigueBand.ORANGE -> 0.85
+    ProgramFatigueBand.YELLOW -> 1.0
+    ProgramFatigueBand.ORANGE -> 1.0
     ProgramFatigueBand.RED -> 0.70
 }
 
