@@ -9,7 +9,7 @@ class ProgramBuildProgressStateTest {
     fun runningCompletedAndFailedStatesCarryUiData() {
         val running: ProgramBuildProgressState = ProgramBuildProgressState.Running(
             progressPercent = 40,
-            message = "1차 프로그램을 구성하는 중입니다."
+            message = "주기화에 맞춰 주차별 역할을 정하고 메인 운동 후보를 비교하는 중입니다."
         )
         val completed: ProgramBuildProgressState = ProgramBuildProgressState.Completed(
             skeleton = emptyProgramSkeleton(request(), emptyMap()),
@@ -18,6 +18,7 @@ class ProgramBuildProgressStateTest {
         val failed: ProgramBuildProgressState = ProgramBuildProgressState.Failed("자동 골자 생성에 실패했습니다.")
 
         assertEquals(40, (running as ProgramBuildProgressState.Running).progressPercent)
+        assertTrue(running.message.contains("메인 운동 후보"))
         assertTrue((completed as ProgramBuildProgressState.Completed).summary.messages.isNotEmpty())
         assertTrue((failed as ProgramBuildProgressState.Failed).message.contains("실패"))
     }

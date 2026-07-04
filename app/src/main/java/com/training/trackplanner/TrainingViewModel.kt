@@ -52,6 +52,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -262,18 +263,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 withTimeout(12_000) {
                     _programBuildProgress.value = ProgramBuildProgressState.Running(
                         progressPercent = 25,
-                        message = "운동 후보를 고르는 중입니다."
+                        message = "운동 후보를 넓게 모으는 중입니다."
                     )
                     val generated = withContext(Dispatchers.Default) {
                         _programBuildProgress.value = ProgramBuildProgressState.Running(
                             progressPercent = 40,
-                            message = "1차 프로그램을 구성하는 중입니다."
+                            message = "주기화에 맞춰 주차별 역할을 정하고 메인 운동 후보를 비교하는 중입니다."
                         )
                         repository.generateProgramSkeleton(request)
                     }
                     _programBuildProgress.value = ProgramBuildProgressState.Running(
                         progressPercent = 85,
-                        message = "운동 배치를 조정하는 중입니다."
+                        message = "부위·피로도·전이 목적 균형을 조정하는 중입니다."
                     )
                     generated
                 }
@@ -289,7 +290,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 onResult(generated)
             }.onFailure { error ->
                 _programBuildProgress.value = ProgramBuildProgressState.Failed(
-                    message = error.message ?: "자동 골자 생성에 실패했습니다."
+                    message = if (error is TimeoutCancellationException) {
+                        "자동 골자 생성 시간이 길어졌습니다. 조건을 조금 줄이고 다시 시도해 주세요."
+                    } else {
+                        error.message ?: "자동 골자 생성에 실패했습니다."
+                    }
                 )
             }
         }
