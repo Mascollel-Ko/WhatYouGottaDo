@@ -18,6 +18,7 @@ class ProgramBuilder internal constructor(
     private val sessionConstraintPolicy = ProgramSessionConstraintPolicy()
     private val reasonFormatter = ProgramSelectionReasonFormatter()
     private val compositionPolicy = ProgramCompositionPolicy()
+    private val sessionDensityPolicy = ProgramSessionDensityPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -237,6 +238,7 @@ class ProgramBuilder internal constructor(
         if (timeBudgetTrimmed) {
             warnings += "세션 시간 예산에 맞춰 일부 보조 항목을 줄였습니다."
         }
+        warnings += sessionDensityPolicy.warnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
         val periodization = choosePeriodization(normalized)
         val result = GeneratedProgramSkeleton(

@@ -3,7 +3,9 @@ package com.training.trackplanner.data
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-internal class ProgramPrescriptionPolicy {
+internal class ProgramPrescriptionPolicy(
+    private val sessionDensityPolicy: ProgramSessionDensityPolicy = ProgramSessionDensityPolicy()
+) {
     fun prescribe(
         candidate: ProgramCandidate,
         role: ProgramExerciseRole,
@@ -40,13 +42,7 @@ internal class ProgramPrescriptionPolicy {
         return ProgramPrescription(sets, reps, seconds, plannedRpe, label)
     }
 
-    fun exerciseCount(minutes: Int): Int = when (minutes) {
-        in 15..25 -> 3
-        in 26..40 -> 4
-        in 41..60 -> 5
-        in 61..80 -> 6
-        else -> 7
-    }
+    fun exerciseCount(minutes: Int): Int = sessionDensityPolicy.targetExerciseCount(minutes)
 
     fun warmupReserveSeconds(minutes: Int): Int = when {
         minutes <= 30 -> 5 * 60

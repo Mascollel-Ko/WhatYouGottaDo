@@ -1,5 +1,6 @@
 package com.training.trackplanner.data
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,6 +42,10 @@ class ProgramBuilderQualityV041104Test {
         assertTrue("6-corner shadow footwork remains allowed when selected", result.items.none {
             it.exerciseName.contains("6코너", ignoreCase = true) && it.directSportSession
         })
+        assertFalse(
+            "45 minute reproduction should meet useful density",
+            "PROGRAM_SESSION_DENSITY_UNDER_TARGET" in result.warnings
+        )
     }
 
     @Test
@@ -59,6 +64,15 @@ class ProgramBuilderQualityV041104Test {
             "60:40 composition should not warn for strength anchor underuse",
             "PROGRAM_STRENGTH_ANCHOR_UNDERUSED" in standard.warnings
         )
+    }
+
+    @Test
+    fun sessionDensityPolicyRequiresUsefulMinimumOnlyWhenTimeAllows() {
+        val policy = ProgramSessionDensityPolicy()
+
+        assertEquals(3, policy.usefulMinimumExerciseCount(30))
+        assertEquals(4, policy.usefulMinimumExerciseCount(45))
+        assertEquals(5, policy.targetExerciseCount(45))
     }
 
     @Test
