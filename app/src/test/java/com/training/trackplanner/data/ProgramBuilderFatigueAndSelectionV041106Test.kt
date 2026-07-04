@@ -63,12 +63,30 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     }
 
     @Test
-    fun currentRequestHasOnlyFreeTextExerciseAvoidance() {
+    fun requestCarriesSelectedExerciseStableKeysAlongsideLegacyMemo() {
         val fieldNames = ProgramSkeletonRequest::class.java.declaredFields.map { it.name }.toSet()
 
         assertTrue("free-text memo field still exists", "excludedExerciseText" in fieldNames)
-        assertFalse("selected excluded stableKey field is not wired yet", "excludedExerciseStableKeys" in fieldNames)
-        assertFalse("selected preferred stableKey field is not wired yet", "preferredExerciseStableKeys" in fieldNames)
+        assertTrue("selected excluded stableKey field is wired", "excludedExerciseStableKeys" in fieldNames)
+        assertTrue("selected preferred stableKey field is wired", "preferredExerciseStableKeys" in fieldNames)
+    }
+
+    @Test
+    fun requestStableKeySelectionsDefaultToEmptySets() {
+        val request = ProgramSkeletonRequest(
+            name = "fixture",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = 5,
+            sessionMinutes = 45,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "legacy memo",
+            badmintonTransferRatio = 0.60,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO
+        )
+
+        assertTrue(request.excludedExerciseStableKeys.isEmpty())
+        assertTrue(request.preferredExerciseStableKeys.isEmpty())
     }
 
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =

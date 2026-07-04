@@ -85,7 +85,9 @@ data class ProgramSkeletonRequest(
     val periodizationType: ProgramPeriodizationType,
     val durationWeeks: Int = 4,
     val badmintonEventProfile: BadmintonEventProfile = BadmintonEventProfile.NOT_SPECIFIED,
-    val varietyPreference: ProgramVarietyPreference = ProgramVarietyPreference.NORMAL
+    val varietyPreference: ProgramVarietyPreference = ProgramVarietyPreference.NORMAL,
+    val excludedExerciseStableKeys: Set<String> = emptySet(),
+    val preferredExerciseStableKeys: Set<String> = emptySet()
 ) {
     val availableDaysPerWeek: Int get() = weeklyTrainingDays.coerceIn(1, 7)
     val dailyAvailableMinutes: Int get() = sessionMinutes.coerceIn(15, 120)

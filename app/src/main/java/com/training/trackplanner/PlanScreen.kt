@@ -277,6 +277,12 @@ private fun ProgramEditorScreen(
     var excludedText by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.excludedExerciseText.orEmpty())
     }
+    var excludedExerciseStableKeys by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf(emptyList<String>())
+    }
+    var preferredExerciseStableKeys by rememberSaveable(program?.id ?: 0L) {
+        mutableStateOf(emptyList<String>())
+    }
     var selectedEquipment by remember(program?.id) {
         mutableStateOf<Set<String>>(program?.availableEquipment.toEquipmentSet().ifEmpty { defaultProgramEquipmentTokens })
     }
@@ -308,7 +314,9 @@ private fun ProgramEditorScreen(
             badmintonTransferRatio = badmintonRatio,
             sportStrengthRatio = sportStrengthRatio,
             periodizationType = periodizationType,
-            durationWeeks = durationWeeks
+            durationWeeks = durationWeeks,
+            excludedExerciseStableKeys = excludedExerciseStableKeys.toSet(),
+            preferredExerciseStableKeys = preferredExerciseStableKeys.toSet()
         )
 
     fun requireProgramName(): Boolean {
