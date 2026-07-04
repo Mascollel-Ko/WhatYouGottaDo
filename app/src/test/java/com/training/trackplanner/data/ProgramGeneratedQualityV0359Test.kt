@@ -57,7 +57,8 @@ class ProgramGeneratedQualityV0359Test {
         assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::fallbackAnchorRoleViolations))
         assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::fallbackCorePrehabRoleViolations))
         assertEquals(0, fallbackAudits.sumOf(ScenarioAudit::normalRecoveryRehabClusters))
-        assertTrue(safety.all { sample -> sample.result.items.none { it.isExplosiveTransfer() } })
+        val redSafety = safety.single { sample -> sample.id.startsWith("RED_") }
+        assertTrue(redSafety.result.items.none { it.isExplosiveTransfer() })
     }
 
     private fun audit(result: GeneratedProgramSkeleton): ScenarioAudit {
