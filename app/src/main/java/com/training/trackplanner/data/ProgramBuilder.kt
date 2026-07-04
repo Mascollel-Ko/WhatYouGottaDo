@@ -49,7 +49,7 @@ class ProgramBuilder internal constructor(
         val exposureTargets = templateCatalog.exposureTargets(templateSelection, normalized)
             .associateBy(NumericExposureTarget::slot)
         val schedule = templateSelection.sessions.map { planned ->
-            fatigueSlotPolicy.adapt(planned, fatigueGate)
+            fatigueSlotPolicy.adapt(planned, fatigueGate, ProgramFatigueUseCase.PROGRAM_PLANNING)
         }
         val excludedTerms = normalized.excludedExerciseText
             .split(',', '\n', ';')
@@ -108,7 +108,9 @@ class ProgramBuilder internal constructor(
                                 minimumGapDays = templateSlot.minimumRepeatGapDays
                             )
                         },
-                        fatigueAllowed = { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) },
+                        fatigueAllowed = { candidate ->
+                            fatigueSlotPolicy.allows(candidate, fatigueGate, ProgramFatigueUseCase.PROGRAM_PLANNING)
+                        },
                         sessionAllowed = { candidate ->
                             sessionConstraintPolicy.sessionAllows(selected, candidate, day.slot, week, fatigueGate)
                         },

@@ -6,7 +6,7 @@ import org.junit.Test
 
 class ProgramBuilderFatigueAndSelectionV041106Test {
     @Test
-    fun currentFatigueGateCanRemoveFoundationAnchorBeforePlanningDownscale() {
+    fun planningFatigueKeepsFoundationAnchorWhileTodayExecutionCanBlockIt() {
         val redGate = ProgramFatigueGate(
             band = ProgramFatigueBand.RED,
             volumeFactor = 0.25,
@@ -16,8 +16,10 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             allowsHighIntensityCod = false,
             lowerBodyRestricted = true
         )
+        val hinge = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN)
 
-        assertFalse(FatigueSlotPolicy.DEFAULT.allows(candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN), redGate))
+        assertFalse(FatigueSlotPolicy.DEFAULT.allows(hinge, redGate, ProgramFatigueUseCase.TODAY_EXECUTION))
+        assertTrue(FatigueSlotPolicy.DEFAULT.allows(hinge, redGate, ProgramFatigueUseCase.PROGRAM_PLANNING))
     }
 
     @Test

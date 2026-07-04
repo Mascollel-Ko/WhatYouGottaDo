@@ -25,6 +25,11 @@ enum class FatigueSlotDisposition {
     AVOID
 }
 
+enum class ProgramFatigueUseCase {
+    PROGRAM_PLANNING,
+    TODAY_EXECUTION
+}
+
 private val HEAVY_LOWER_SLOTS = setOf(
     ProgramSlotId.LOWER_SQUAT_PATTERN,
     ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN
@@ -47,9 +52,18 @@ internal class FatigueSlotPolicy {
 
     fun gate(trainingGate: TrainingGateSnapshot?): ProgramFatigueGate = ProgramFatigueGate.from(trainingGate)
 
-    fun adapt(planned: PlannedSlot, gate: ProgramFatigueGate): PlannedSlot = when (gate.band) {
-        ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.LIGHT)
-        ProgramFatigueBand.ORANGE -> planned.copy(
+    fun adapt(
+        planned: PlannedSlot,
+        gate: ProgramFatigueGate,
+        useCase: ProgramFatigueUseCase = ProgramFatigueUseCase.TODAY_EXECUTION
+    ): PlannedSlot = when {
+        useCase == ProgramFatigueUseCase.PROGRAM_PLANNING && planned.intensity == ProgramDayIntensity.HARD -> when (gate.band) {
+            ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.MODERATE)
+            ProgramFatigueBand.ORANGE -> planned.copy(intensity = ProgramDayIntensity.MODERATE)
+            else -> planned
+        }
+        gate.band == ProgramFatigueBand.RED -> planned.copy(intensity = ProgramDayIntensity.LIGHT)
+        gate.band == ProgramFatigueBand.ORANGE -> planned.copy(
             intensity = if (planned.intensity == ProgramDayIntensity.HARD) {
                 ProgramDayIntensity.MODERATE
             } else {
@@ -59,7 +73,12 @@ internal class FatigueSlotPolicy {
         else -> planned
     }
 
-    fun allows(candidate: ProgramCandidate, gate: ProgramFatigueGate): Boolean {
+    fun allows(
+        candidate: ProgramCandidate,
+        gate: ProgramFatigueGate,
+        useCase: ProgramFatigueUseCase = ProgramFatigueUseCase.TODAY_EXECUTION
+    ): Boolean {
+        if (useCase == ProgramFatigueUseCase.PROGRAM_PLANNING) return allowsForPlanning(candidate, gate)
         if (!gate.allows(candidate)) return false
         val primarySlot = candidate.slotCapabilities.primary.firstOrNull() ?: return true
         return when (disposition(primarySlot, gate.band, candidate.isRehabLikeActivation)) {
@@ -71,6 +90,16 @@ internal class FatigueSlotPolicy {
                     !candidate.isHighIntensityCod
             FatigueSlotDisposition.NORMAL,
             FatigueSlotDisposition.CONTROLLED -> true
+        }
+    }
+
+    private fun allowsForPlanning(candidate: ProgramCandidate, gate: ProgramFatigueGate): Boolean {
+        val primarySlot = candidate.slotCapabilities.primary.firstOrNull() ?: return true
+        return when (disposition(primarySlot, gate.band, candidate.isRehabLikeActivation)) {
+            FatigueSlotDisposition.AVOID -> candidate.isRecovery || candidate.isRehabLikeActivation
+            FatigueSlotDisposition.NORMAL,
+            FatigueSlotDisposition.CONTROLLED,
+            FatigueSlotDisposition.LOW_LOAD_ONLY -> true
         }
     }
 
