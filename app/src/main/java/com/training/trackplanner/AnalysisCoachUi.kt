@@ -35,6 +35,7 @@ import com.training.trackplanner.analysis.fatigue.ContributionGrouping
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
+import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
@@ -318,7 +319,7 @@ internal fun TodayReadinessCard(
             }
             projected?.let { projectedSummary ->
                 Text(
-                    "계획 완료 시: ${TodayFatigueStatusLabeler.label(projectedSummary)}",
+                    "운동 후 예상 부하: ${projectedReadinessLoadLabel(projectedSummary)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -356,6 +357,17 @@ internal fun TodayReadinessCard(
                 }
             }
         }
+    }
+}
+
+private fun projectedReadinessLoadLabel(summary: TodayReadinessSummary): String {
+    val score = summary.fatiguePresentation?.overallScore
+    return when {
+        score == null -> TodayFatigueStatusLabeler.label(summary)
+        score >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"
+        score >= FatigueThresholds.OFI_CAUTION_START -> "회복 확인 필요"
+        score >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
+        else -> "예상 부하 보통"
     }
 }
 

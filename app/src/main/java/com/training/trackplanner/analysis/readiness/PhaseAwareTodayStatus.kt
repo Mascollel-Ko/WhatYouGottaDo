@@ -75,38 +75,7 @@ class PhaseAwareTodayStatusBuilder(
         confirmedSetCount: Int,
         unconfirmedSetCount: Int
     ): PhaseAwareTodayStatus {
-        val action = when {
-            projected.status == ReadinessStatus.READY -> "계획대로 진행 가능"
-            projected.status == ReadinessStatus.CAUTION ->
-                "계획이 적절하며 운동 후 휴식이 필요합니다."
-            projected.status == ReadinessStatus.FATIGUED && current.status == ReadinessStatus.READY ->
-                "계획이 적절하며 운동 후 휴식이 필요합니다."
-            projected.status == ReadinessStatus.FATIGUED -> "강도 축소 권장"
-            else -> "계획의 강도가 높습니다. 다음 날 운동에 영향을 줄 수 있습니다."
-        }
-        val gotWorse = projected.status.ordinal > current.status.ordinal
-        val headline = when {
-            projected.status == ReadinessStatus.READY ->
-                "남은 계획을 마쳐도 현재 기준에서는 관리 가능한 범위입니다."
-            projected.status == ReadinessStatus.CAUTION ->
-                "계획이 적절하며 운동 후 휴식이 필요합니다."
-            projected.status == ReadinessStatus.FATIGUED ->
-                "계획의 강도가 높습니다. 다음 날 운동에 영향을 줄 수 있습니다."
-            gotWorse ->
-                "남은 계획을 모두 마치면 부담이 더 올라갈 수 있습니다."
-            else ->
-                "현재 상태를 기준으로 남은 계획을 조절해 진행하세요."
-        }
-        val detail = when (projected.status) {
-            ReadinessStatus.READY ->
-                "현재 상태와 계획 완료 예상 모두 진행 가능한 범위입니다. 기록된 컨디션이 안정적이면 계획대로 진행해도 됩니다."
-            ReadinessStatus.CAUTION ->
-                "현재 상태보다 계획 완료 예상의 부담이 커집니다. 남은 세트는 RPE를 낮추거나 반복 수를 줄이는 쪽이 낫습니다."
-            ReadinessStatus.FATIGUED ->
-                "남은 계획을 모두 수행하면 회복 부담이 커질 수 있습니다. 고강도 하체, 점프, 방향전환 계열은 줄이는 편이 낫습니다."
-            ReadinessStatus.LIMITED ->
-                "남은 계획보다 회복과 부담 조절을 우선하세요. 불편감이 있는 부위와 고강도 항목은 제외하는 편이 낫습니다."
-        }
+        val expectedLoadCopy = remainingPlanExpectedLoadCopy(current, projected)
         return PhaseAwareTodayStatus(
             phase = TodayStatusPhase.REMAINING_PLAN,
             current = current,
@@ -114,12 +83,46 @@ class PhaseAwareTodayStatusBuilder(
             plannedSetCount = plannedSetCount,
             confirmedSetCount = confirmedSetCount,
             unconfirmedSetCount = unconfirmedSetCount,
-            phaseLabel = "남은 계획 판단",
-            headline = headline,
-            detail = detail,
-            actionLabel = action,
+            phaseLabel = "남은 계획 예상 부하",
+            headline = expectedLoadCopy.headline,
+            detail = expectedLoadCopy.detail,
+            actionLabel = expectedLoadCopy.actionLabel,
             keyAxes = keyAxes(projected)
         )
+    }
+
+    private fun remainingPlanExpectedLoadCopy(
+        current: TodayReadinessSummary,
+        projected: TodayReadinessSummary
+    ): ExpectedLoadCopy {
+        val gotWorse = projected.status.ordinal > current.status.ordinal
+        return when {
+            projected.status == ReadinessStatus.READY -> ExpectedLoadCopy(
+                headline = "남은 계획을 마쳐도 예상 부하는 평소 범위입니다.",
+                detail = "현재 컨디션이 안정적이면 계획대로 진행해도 됩니다.",
+                actionLabel = "계획대로 진행 가능"
+            )
+            projected.status == ReadinessStatus.CAUTION && !gotWorse -> ExpectedLoadCopy(
+                headline = "남은 계획의 예상 부하는 관리 가능한 범위입니다.",
+                detail = "같은 날 운동 후 예상치입니다. 회복 미완료 여부는 다음 날 컨디션과 피로 흐름으로 다시 확인하세요.",
+                actionLabel = "현재 강도 유지"
+            )
+            projected.status == ReadinessStatus.CAUTION -> ExpectedLoadCopy(
+                headline = "남은 계획을 마치면 운동 후 예상 부하가 올라갑니다.",
+                detail = "같은 날 운동 후 예상치입니다. 회복 미완료 여부는 다음 날 컨디션과 피로 흐름으로 다시 확인하세요.",
+                actionLabel = "RPE/세트 여유 조절"
+            )
+            projected.status == ReadinessStatus.FATIGUED -> ExpectedLoadCopy(
+                headline = "남은 계획 후 예상 부하가 높습니다.",
+                detail = "현재 상태 경고가 아니라 운동 후 예상치입니다. 다음 날 회복 흐름이 낮으면 남은 고강도 항목을 줄이세요.",
+                actionLabel = "고강도 항목 조절"
+            )
+            else -> ExpectedLoadCopy(
+                headline = "남은 계획 후 예상 부하가 매우 높습니다.",
+                detail = "현재 불편감이나 관절/건 신호가 있으면 해당 항목을 줄이고 회복을 우선하세요.",
+                actionLabel = "고부하 항목 조절"
+            )
+        }
     }
 
     private fun completedStatus(
@@ -185,3 +188,9 @@ class PhaseAwareTodayStatusBuilder(
             .ifEmpty { summary.primaryReasons }
             .take(3)
 }
+
+private data class ExpectedLoadCopy(
+    val headline: String,
+    val detail: String,
+    val actionLabel: String
+)

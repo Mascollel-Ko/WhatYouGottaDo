@@ -35,7 +35,8 @@ class PhaseAwareTodayStatusBuilderTest {
         assertEquals(ReadinessStatus.READY, status.current.status)
         assertNotNull(status.projected)
         assertTrue(status.projected!!.status.ordinal >= status.current.status.ordinal)
-        assertEquals("남은 계획 판단", status.phaseLabel)
+        assertEquals("남은 계획 예상 부하", status.phaseLabel)
+        assertTrue(status.headline.contains("예상 부하"))
     }
 
     @Test
@@ -78,6 +79,28 @@ class PhaseAwareTodayStatusBuilderTest {
         assertFalse(text.contains("계획 완료 시"))
         assertFalse(text.contains("완료 예상"))
         assertTrue(text.contains("현재") || text.contains("오늘 기록된 운동"))
+    }
+
+    @Test
+    fun remainingPlanWordingSeparatesProjectedLoadFromUnrecoveredFatigue() {
+        val status = PhaseAwareTodayStatusBuilder().build(
+            input(
+                entries = listOf(
+                    record(
+                        confirmedSets = listOf(set(reps = 8, weightKg = 180.0, confirmed = true, rpe = 8.0)),
+                        plannedSets = List(6) { set(reps = 8, weightKg = 300.0, confirmed = false, rpe = 9.0) }
+                    )
+                )
+            )
+        )
+        val text = listOf(status.phaseLabel, status.headline, status.detail, status.actionLabel).joinToString(" ")
+
+        assertEquals(TodayStatusPhase.REMAINING_PLAN, status.phase)
+        assertTrue(text.contains("예상 부하"))
+        assertTrue(text.contains("다음 날"))
+        listOf("회복이 안 됐습니다", "과훈련", "진단", "주의하세요").forEach { banned ->
+            assertFalse(text.contains(banned))
+        }
     }
 
     @Test
