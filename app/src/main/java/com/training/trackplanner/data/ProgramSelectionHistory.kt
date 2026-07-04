@@ -15,10 +15,10 @@ internal class ProgramSelectionHistory {
         val stablePenalty = when {
             candidate.isRehabLikeActivation && stableGap <= 14 -> 6.0
             candidate.isRehabLikeActivation && stableGap <= 28 -> 2.5
-            candidate.isAnchor && stableGap <= 7 -> 0.45
-            candidate.isAnchor && stableGap <= 14 -> 0.15
-            stableGap <= 7 -> 4.5
-            stableGap <= 14 -> 2.0
+            candidate.isAnchor && stableGap <= 7 -> 0.75
+            candidate.isAnchor && stableGap <= 14 -> 0.25
+            stableGap <= 7 -> 5.5
+            stableGap <= 14 -> 2.6
             else -> 0.0
         }
         val redundancyKey = candidate.metadata?.redundancyGroup.orEmpty()
@@ -29,8 +29,8 @@ internal class ProgramSelectionHistory {
             ?: Int.MAX_VALUE
         val redundancyPenalty = when {
             redundancyKey.isBlank() || redundancyKey == "NOT_APPLICABLE" -> 0.0
-            redundancyGap <= 3 -> 1.4
-            redundancyGap <= 7 -> 0.7
+            redundancyGap <= 3 -> 1.8
+            redundancyGap <= 7 -> 1.0
             else -> 0.0
         }
         val familyKey = candidate.metadata?.movementFamily.orEmpty()
@@ -38,7 +38,8 @@ internal class ProgramSelectionHistory {
         val familyPenalty = when {
             familyKey.isBlank() || familyKey == "NOT_APPLICABLE" -> 0.0
             familyCount <= 1 -> 0.0
-            else -> (familyCount - 1) * 0.65
+            candidate.isCore -> familyCount * 0.9
+            else -> (familyCount - 1) * 0.85
         }
         return stablePenalty + redundancyPenalty + familyPenalty
     }

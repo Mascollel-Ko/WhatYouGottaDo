@@ -38,4 +38,31 @@ internal class ProgramVarietyPolicy {
     ) {
         history.record(candidate, weekIndex, absoluteDay, coveragePolicy)
     }
+
+    fun distributionWarnings(items: List<ProgramSkeletonItem>, request: ProgramSkeletonRequest): List<String> {
+        val weeklyStableOveruse = items
+            .filterNot { it.selectionRole == ProgramExerciseRole.ANCHOR.name }
+            .groupBy { Triple(it.weekNumber, it.stableKey, it.selectionRole) }
+            .any { (key, rows) -> key.second.isNotBlank() && rows.size > 2 }
+        val lowDistinctWeek = if (request.availableDaysPerWeek >= 5) {
+            items.groupBy(ProgramSkeletonItem::weekNumber).any { (_, rows) ->
+                rows.map(ProgramSkeletonItem::stableKey).filter(String::isNotBlank).toSet().size < 8
+            }
+        } else {
+            false
+        }
+        val transferTargetOveruse = items
+            .filter { it.selectionRole == ProgramExerciseRole.TRANSFER.name }
+            .groupBy { it.redundancyGroup.ifBlank { it.stableKey } }
+            .any { (key, rows) ->
+                key.isNotBlank() && key != "NOT_APPLICABLE" &&
+                    rows.map(ProgramSkeletonItem::weekNumber).distinct().size >= request.durationWeeks &&
+                    rows.size > request.durationWeeks * 2
+            }
+        return buildList {
+            if (weeklyStableOveruse) add("PROGRAM_WEEKLY_STABLEKEY_OVERUSE")
+            if (lowDistinctWeek) add("PROGRAM_WEEKLY_DISTINCT_EXERCISE_LOW")
+            if (transferTargetOveruse) add("PROGRAM_WIDE_TRANSFER_TARGET_OVERUSE")
+        }
+    }
 }

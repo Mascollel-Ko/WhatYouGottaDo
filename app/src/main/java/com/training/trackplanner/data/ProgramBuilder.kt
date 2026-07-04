@@ -239,6 +239,7 @@ class ProgramBuilder internal constructor(
             warnings += "세션 시간 예산에 맞춰 일부 보조 항목을 줄였습니다."
         }
         warnings += sessionDensityPolicy.warnings(generated, normalized)
+        warnings += varietyPolicy.distributionWarnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
         val periodization = choosePeriodization(normalized)
         val result = GeneratedProgramSkeleton(

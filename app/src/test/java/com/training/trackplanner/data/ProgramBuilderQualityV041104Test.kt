@@ -20,6 +20,7 @@ class ProgramBuilderQualityV041104Test {
         val loadedItems = result.items.filter(::isLoadedStrengthItem)
         val firstWeek = result.items.filter { it.weekNumber == 1 }
         val firstWeekSlots = firstWeek.map(ProgramSkeletonItem::requestedTemplateSlot).toSet()
+        val firstWeekDistinct = firstWeek.map(ProgramSkeletonItem::stableKey).filter(String::isNotBlank).toSet()
         val stableKeyRepeat = result.items
             .groupBy(ProgramSkeletonItem::stableKey)
             .filterKeys(String::isNotBlank)
@@ -34,6 +35,7 @@ class ProgramBuilderQualityV041104Test {
         assertTrue("week 1 needs a lower strength anchor", firstWeekSlots.any { it in LOWER_ANCHOR_SLOTS })
         assertTrue("week 1 needs an upper strength anchor/support", firstWeekSlots.any { it in UPPER_ANCHOR_SLOTS })
         assertTrue("week 1 needs core or trunk stability", ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name in firstWeekSlots)
+        assertTrue("week 1 should preserve useful exercise variety", firstWeekDistinct.size >= 8)
         assertFalse("non-anchor exercise repeated too often", stableKeyRepeat.any { (key, count) ->
             count > 6 && result.items.none { it.stableKey == key && it.selectionRole == ProgramExerciseRole.ANCHOR.name }
         })
@@ -73,6 +75,22 @@ class ProgramBuilderQualityV041104Test {
         assertEquals(3, policy.usefulMinimumExerciseCount(30))
         assertEquals(4, policy.usefulMinimumExerciseCount(45))
         assertEquals(5, policy.targetExerciseCount(45))
+    }
+
+    @Test
+    fun varietyPolicyFlagsRepeatedWeeklyAndProgramWideTargets() {
+        val result = reproductionPlan()
+        val repeated = result.items.map { item ->
+            item.copy(
+                selectionRole = ProgramExerciseRole.TRANSFER.name,
+                stableKey = "same_transfer",
+                redundancyGroup = "SAME_TRANSFER"
+            )
+        }
+        val warnings = ProgramVarietyPolicy().distributionWarnings(repeated, result.request)
+
+        assertTrue("weekly stable-key overuse should be flagged", "PROGRAM_WEEKLY_STABLEKEY_OVERUSE" in warnings)
+        assertTrue("program-wide transfer target overuse should be flagged", "PROGRAM_WIDE_TRANSFER_TARGET_OVERUSE" in warnings)
     }
 
     @Test
