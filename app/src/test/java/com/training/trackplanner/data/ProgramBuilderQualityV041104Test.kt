@@ -94,6 +94,36 @@ class ProgramBuilderQualityV041104Test {
     }
 
     @Test
+    fun dayIntensityPolicyFlagsFlatIntensityAndConsecutiveHighLowerStress() {
+        val result = reproductionPlan()
+        val policy = ProgramDayIntensityPolicy()
+        val flatWarnings = policy.warnings(
+            result.items.map { item -> item.copy(dayIntensity = ProgramDayIntensity.MODERATE.name) },
+            result.request
+        )
+        val clusteredWarnings = policy.warnings(
+            result.items.map { item ->
+                if (item.weekNumber == 1 && item.dayOfWeek in setOf(1, 2)) {
+                    item.copy(
+                        dayIntensity = ProgramDayIntensity.HARD.name,
+                        trainingSlot = ProgramTrainingSlot.LOWER_STRENGTH_HEAVY.name,
+                        requestedTemplateSlot = ProgramSlotId.LOWER_SQUAT_PATTERN.name,
+                        stressMagnitudeHint = "VERY_HIGH"
+                    )
+                } else {
+                    item
+                }
+            },
+            result.request
+        )
+
+        assertTrue("flat plans should miss hard days", "PROGRAM_INTENSITY_NO_HARD_DAY" in flatWarnings)
+        assertTrue("flat plans should miss light days", "PROGRAM_INTENSITY_NO_LIGHT_DAY" in flatWarnings)
+        assertTrue("consecutive high lower stress should be flagged",
+            "PROGRAM_HIGH_LOWER_FATIGUE_CLUSTER" in clusteredWarnings)
+    }
+
+    @Test
     fun simpleQualityAuditAllowsRecoveredWeeklyImbalanceButFlagsRepeatedProgramWideImbalance() {
         val result = reproductionPlan()
         val recovered = simpleAudit(result)

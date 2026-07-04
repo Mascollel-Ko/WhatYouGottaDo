@@ -19,6 +19,7 @@ class ProgramBuilder internal constructor(
     private val reasonFormatter = ProgramSelectionReasonFormatter()
     private val compositionPolicy = ProgramCompositionPolicy()
     private val sessionDensityPolicy = ProgramSessionDensityPolicy()
+    private val dayIntensityPolicy = ProgramDayIntensityPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -240,6 +241,7 @@ class ProgramBuilder internal constructor(
         }
         warnings += sessionDensityPolicy.warnings(generated, normalized)
         warnings += varietyPolicy.distributionWarnings(generated, normalized)
+        warnings += dayIntensityPolicy.warnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
         val periodization = choosePeriodization(normalized)
         val result = GeneratedProgramSkeleton(
