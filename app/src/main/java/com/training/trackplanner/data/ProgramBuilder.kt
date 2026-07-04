@@ -276,7 +276,7 @@ class ProgramBuilder internal constructor(
         }
         if (candidates.size < 8) warnings += "조건에 맞는 운동 후보가 적어 일부 세션 구성이 짧을 수 있습니다."
         if (fatigueGate.band != ProgramFatigueBand.GREEN) {
-            warnings += "현재 피로도 ${fatigueGate.band.name} · 볼륨 ${fatigueGate.volumeFactor.toPercent()} · RPE 상한 ${fatigueGate.rpeCap}"
+            warnings += "계획 피로도 참고: ${fatigueGate.band.name} · 볼륨 ${fatigueGate.volumeFactor.toPercent()} · RPE 상한 ${fatigueGate.rpeCap}. 메인 운동은 제거하지 않고 강도만 낮춥니다."
         }
         if (timeBudgetTrimmed) {
             warnings += "세션 시간 예산에 맞춰 일부 보조 항목을 줄였습니다."

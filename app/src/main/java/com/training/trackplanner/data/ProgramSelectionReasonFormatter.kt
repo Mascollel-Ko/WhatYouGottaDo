@@ -11,6 +11,6 @@ internal class ProgramSelectionReasonFormatter {
             ?.let { add("동작:$it") }
         if (candidate.badmintonFit >= 0.8) add("전이:${candidate.metadata?.badmintonTransferLevel}")
         if (candidate.metadata?.appCueProfile == "RANDOM_BEEP_CUE") add("앱 cue 가능")
-        if (gate.band != ProgramFatigueBand.GREEN) add("피로:${gate.band.name}")
+        if (gate.band != ProgramFatigueBand.GREEN) add("계획피로조정:${gate.band.name}")
     }.joinToString(" / ")
 }

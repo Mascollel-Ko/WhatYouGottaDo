@@ -44,6 +44,25 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     }
 
     @Test
+    fun planningFatigueReasonUsesAdjustmentLanguage() {
+        val reason = ProgramSelectionReasonFormatter().format(
+            candidate = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN),
+            role = ProgramExerciseRole.ANCHOR,
+            gate = ProgramFatigueGate(
+                band = ProgramFatigueBand.RED,
+                volumeFactor = 0.25,
+                rpeCap = 7,
+                allowsHeavyLower = false,
+                allowsHighImpact = false,
+                allowsHighIntensityCod = false,
+                lowerBodyRestricted = true
+            )
+        )
+
+        assertTrue(reason.contains("계획피로조정:RED"))
+    }
+
+    @Test
     fun currentRequestHasOnlyFreeTextExerciseAvoidance() {
         val fieldNames = ProgramSkeletonRequest::class.java.declaredFields.map { it.name }.toSet()
 
