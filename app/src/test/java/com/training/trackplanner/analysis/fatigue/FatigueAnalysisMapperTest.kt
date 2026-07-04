@@ -128,8 +128,10 @@ class FatigueAnalysisMapperTest {
         )
 
         assertTrue(withoutUnconfirmed.simple.projectedOfiOverlay.isEmpty())
+        assertEquals(null, withoutUnconfirmed.simple.projectedOfiNote)
         assertEquals(withUnconfirmed.simple.ofiSeries.dropLast(1).last(), withUnconfirmed.simple.projectedOfiOverlay.first())
         assertEquals(88.0, withUnconfirmed.simple.projectedOfiOverlay.last().value, 0.001)
+        assertTrue(withUnconfirmed.simple.projectedOfiNote?.contains("다음 날 회복") == true)
     }
 
     @Test
@@ -141,6 +143,18 @@ class FatigueAnalysisMapperTest {
         )
 
         assertTrue(state.simple.projectedOfiOverlay.isEmpty())
+    }
+
+    @Test
+    fun `projected spike note separates expected load from unrecovered fatigue`() {
+        val state = FatigueAnalysisMapper.map(
+            history = history(14),
+            projectedOverallFatigueScore = 80.0,
+            hasRemainingUnconfirmedWork = true
+        )
+
+        assertTrue(state.simple.projectedOfiNote?.contains("운동 후 예상 부하 상승") == true)
+        assertTrue(state.simple.projectedOfiNote?.contains("다음 날 흐름") == true)
     }
 
     @Test

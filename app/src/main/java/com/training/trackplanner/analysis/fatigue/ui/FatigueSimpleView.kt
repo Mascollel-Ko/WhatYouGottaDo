@@ -38,9 +38,16 @@ internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "운동 후 예상",
+                    "운동 후 예상 부하",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
+                )
+            }
+            state.projectedOfiNote?.let { note ->
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
