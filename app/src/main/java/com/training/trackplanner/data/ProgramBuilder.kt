@@ -315,6 +315,7 @@ class ProgramBuilder internal constructor(
             warnings = (warnings + visibleIssues).distinct()
         )
         return optimizationPolicy.optimize(validated, inventory.reservoir)
+            .withExerciseConstraintSummary()
     }
 
     private fun defaultName(request: ProgramSkeletonRequest): String =
@@ -329,4 +330,28 @@ private fun ProgramFatigueGate.planningLoadFactor(): Double = when (band) {
     ProgramFatigueBand.YELLOW -> 0.95
     ProgramFatigueBand.ORANGE -> 0.85
     ProgramFatigueBand.RED -> 0.70
+}
+
+internal fun GeneratedProgramSkeleton.withExerciseConstraintSummary(): GeneratedProgramSkeleton {
+    val excludedCount = request.excludedExerciseStableKeys.count(String::isNotBlank)
+    val preferred = request.preferredExerciseStableKeys.filter(String::isNotBlank).toSet()
+    val preferredSelected = items.map(ProgramSkeletonItem::stableKey).toSet().intersect(preferred).size
+    val messages = buildList {
+        if (excludedCount > 0) add("선택한 제외 운동 ${excludedCount}개를 후보에서 제외했습니다.")
+        if (preferred.isNotEmpty()) {
+            if (preferredSelected > 0) {
+                add("우선 포함 운동 ${preferredSelected}개를 가능한 범위에서 반영했습니다.")
+            }
+            if (preferredSelected < preferred.size) {
+                add("일부 우선 포함 운동은 장비, 시간, 안전 조건 때문에 반영되지 않았습니다.")
+            }
+        }
+    }
+    if (messages.isEmpty()) return this
+    return copy(
+        warnings = (warnings + messages).distinct(),
+        optimizationSummary = optimizationSummary.copy(
+            messages = (optimizationSummary.messages + messages).distinct()
+        )
+    )
 }

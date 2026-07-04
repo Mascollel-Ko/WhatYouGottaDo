@@ -145,6 +145,45 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
         assertTrue(boosted > neutral)
     }
 
+    @Test
+    fun exerciseConstraintSummaryReportsExcludedAndPreferredSelections() {
+        val request = baseRequest().copy(
+            excludedExerciseStableKeys = setOf("captain_chair_leg_raise"),
+            preferredExerciseStableKeys = setOf("fixture_hinge", "missing_preferred")
+        )
+        val skeleton = GeneratedProgramSkeleton(
+            suggestedName = "fixture",
+            durationDays = 28,
+            request = request,
+            periodizationType = ProgramPeriodizationType.AUTO,
+            weekPlans = listOf(week()),
+            items = listOf(
+                ProgramSkeletonItem(
+                    localId = "1",
+                    weekNumber = 1,
+                    dayOfWeek = 1,
+                    orderIndex = 1,
+                    exerciseId = 1,
+                    exerciseName = "Fixture hinge",
+                    category = "strength",
+                    restSeconds = 90,
+                    prescription = "1x5",
+                    setCount = 1,
+                    reps = 5,
+                    weightKg = 0.0,
+                    seconds = 0,
+                    selectionReason = "",
+                    weightSource = "",
+                    stableKey = "fixture_hinge"
+                )
+            )
+        ).withExerciseConstraintSummary()
+
+        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("제외 운동 1개") })
+        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("우선 포함 운동 1개") })
+        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("반영되지 않았습니다") })
+    }
+
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
