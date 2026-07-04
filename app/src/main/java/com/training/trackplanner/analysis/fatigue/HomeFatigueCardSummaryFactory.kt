@@ -20,16 +20,14 @@ object HomeFatigueCardSummaryFactory {
             primaryState.toReading(TodayFatigueStatusLabeler.label(summary))
         } ?: primaryState.toReading()
         val projectedReading = projected?.let { state ->
-            todayStatus?.projected?.let { summary ->
-                state.toReading(TodayFatigueStatusLabeler.label(summary))
-            } ?: state.toReading()
+            state.toProjectedReading(todayStatus?.projected?.let(TodayFatigueStatusLabeler::label))
         }
 
         return when {
             unconfirmedSetCount > 0 && projected != null -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
                 primary = primaryReading,
-                projectionPrefix = "계획 완료 시",
+                projectionPrefix = "운동 후 예상 부하",
                 projection = projectedReading,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
@@ -60,6 +58,29 @@ object HomeFatigueCardSummaryFactory {
             score = overallFatigueIndex,
             label = labelOverride ?: qualitativeLabel()
         )
+
+    private fun DailyFatigueState.toProjectedReading(readinessLabel: String?): HomeFatigueReading {
+        val maxAxis = maxOf(
+            neuromuscularScore,
+            systemicMuscularScore,
+            localMuscularScore,
+            jointTendonImpactScore,
+            movementFocusScore,
+            recoveryPressureScore
+        )
+        val label = when {
+            overallFatigueIndex >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"
+            overallFatigueIndex >= FatigueThresholds.OFI_CAUTION_START -> "회복 확인 필요"
+            maxAxis >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
+            overallFatigueIndex >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
+            readinessLabel in setOf("피로 누적", "피로 심화", "주의") -> "예상 부하 보통"
+            else -> "예상 부하 보통"
+        }
+        return HomeFatigueReading(
+            score = overallFatigueIndex,
+            label = label
+        )
+    }
 
     private fun DailyFatigueState.qualitativeLabel(): String {
         if (overallFatigueIndex < 40) return "양호"
