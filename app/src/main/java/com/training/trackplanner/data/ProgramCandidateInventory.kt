@@ -5,7 +5,8 @@ internal data class ProgramCandidateInventoryResult(
     val programSelectable: Int,
     val equipmentMatched: Int,
     val notExcludedByUser: Int,
-    val candidates: List<ProgramCandidate>
+    val candidates: List<ProgramCandidate>,
+    val reservoir: ProgramCandidateReservoir = ProgramCandidateReservoir(candidates)
 )
 
 internal class ProgramCandidateInventory(
@@ -36,7 +37,8 @@ internal class ProgramCandidateInventory(
             programSelectable = selectable.size,
             equipmentMatched = equipmentMatched.size,
             notExcludedByUser = notExcluded.size,
-            candidates = notExcluded
+            candidates = notExcluded,
+            reservoir = ProgramCandidateReservoir(notExcluded)
         )
     }
 }

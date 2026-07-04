@@ -83,6 +83,47 @@ class ProgramBuilderReservoirBeamV041105Test {
             item.primarySlotCapabilities.any(FOUNDATION_SLOT_NAMES::contains))
     }
 
+    @Test
+    fun candidateReservoirClassifiesFoundationLoadedAndCorePatterns() {
+        val policy = ProgramCandidateClassificationPolicy()
+        val squat = candidate(
+            id = 1,
+            name = "Barbell back squat",
+            equipment = "BARBELL",
+            stableKey = "barbell_back_squat",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.LOWER_SQUAT_PATTERN),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+        val captainChair = candidate(
+            id = 2,
+            name = "Captain chair leg raise",
+            equipment = "BODYWEIGHT",
+            stableKey = "captain_chair_leg_raise",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.MODERATE
+            )
+        )
+        val reservoir = ProgramCandidateReservoir(listOf(squat, captainChair))
+
+        assertTrue(policy.classify(squat).tier == ProgramCandidateTier.FOUNDATION_MAIN_WORTHY)
+        assertTrue(ProgramFoundationPattern.SQUAT in reservoir.classification(squat).foundationPatterns)
+        assertTrue(reservoir.classification(captainChair).tier == ProgramCandidateTier.CORE_ACCESSORY_PREHAB)
+        assertTrue(
+            reservoir.classification(captainChair).corePattern ==
+                ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION
+        )
+        assertTrue("reservoir should keep hard-gate-eligible candidates", reservoir.candidates.size == 2)
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem
@@ -194,6 +235,27 @@ class ProgramBuilderReservoirBeamV041105Test {
             primarySlotCapabilities = listOf(ProgramSlotId.BADMINTON_FOOTWORK_REACTION.name),
             requestedTemplateSlot = ProgramSlotId.BADMINTON_FOOTWORK_REACTION.name,
             directSportSession = false
+        )
+
+    private fun candidate(
+        id: Long,
+        name: String,
+        equipment: String,
+        stableKey: String,
+        capabilities: SlotCapabilityProfile
+    ): ProgramCandidate =
+        ProgramCandidate(
+            exercise = Exercise(
+                id = id,
+                name = name,
+                category = "strength",
+                stableKey = stableKey,
+                equipment = equipment,
+                planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+            ),
+            metadata = null,
+            canonical = false,
+            slotCapabilities = capabilities
         )
 
     private companion object {
