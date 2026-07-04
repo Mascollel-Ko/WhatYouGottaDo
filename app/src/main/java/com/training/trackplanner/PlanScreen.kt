@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
@@ -500,6 +501,20 @@ private fun ProgramEditorScreen(
                         label = { Text("제외 운동 / 통증 메모") },
                         minLines = 2
                     )
+                    ExerciseStableKeyPicker(
+                        title = "제외할 운동 선택",
+                        exercises = exercises,
+                        selectedStableKeys = excludedExerciseStableKeys,
+                        onChange = { excludedExerciseStableKeys = it },
+                        enabled = !generationRunning
+                    )
+                    ExerciseStableKeyPicker(
+                        title = "우선 포함할 운동 선택",
+                        exercises = exercises,
+                        selectedStableKeys = preferredExerciseStableKeys,
+                        onChange = { preferredExerciseStableKeys = it },
+                        enabled = !generationRunning
+                    )
                         }
                     Button(
                         modifier = Modifier.fillMaxWidth(),
@@ -818,6 +833,69 @@ private fun ProgramApplyCard(
                 }
             ) {
                 Text("시작일 적용")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ExerciseStableKeyPicker(
+    title: String,
+    exercises: List<Exercise>,
+    selectedStableKeys: List<String>,
+    onChange: (List<String>) -> Unit,
+    enabled: Boolean
+) {
+    var query by rememberSaveable(title) { mutableStateOf("") }
+    val selected = selectedStableKeys.toSet()
+    val selectedExercises = exercises
+        .filter { it.stableKey in selected }
+        .sortedBy { it.name.lowercase() }
+    val options = programExerciseSelectionOptions(
+        exercises = exercises,
+        query = query,
+        selectedStableKeys = selectedStableKeys
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = query,
+            onValueChange = { if (enabled) query = it },
+            enabled = enabled,
+            label = { Text("운동 검색") },
+            singleLine = true
+        )
+        selectedExercises.forEach { exercise ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    modifier = Modifier.weight(1f),
+                    text = exercise.name,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                TextButton(
+                    enabled = enabled,
+                    onClick = { onChange(selectedStableKeys - exercise.stableKey) }
+                ) {
+                    Text("해제")
+                }
+            }
+        }
+        options.forEach { exercise ->
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = enabled,
+                onClick = {
+                    onChange((selectedStableKeys + exercise.stableKey).distinct())
+                    query = ""
+                }
+            ) {
+                Text(exercise.name)
             }
         }
     }

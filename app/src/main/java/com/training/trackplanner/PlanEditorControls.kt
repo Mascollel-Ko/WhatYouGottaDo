@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
 
@@ -214,3 +215,20 @@ private val defaultProgramEquipment = listOf(
 )
 
 internal val defaultProgramEquipmentTokens = defaultProgramEquipment.map { it.token }.toSet()
+
+internal fun programExerciseSelectionOptions(
+    exercises: List<Exercise>,
+    query: String,
+    selectedStableKeys: Collection<String>,
+    limit: Int = 6
+): List<Exercise> {
+    val normalizedQuery = query.trim()
+    val selected = selectedStableKeys.toSet()
+    return exercises
+        .asSequence()
+        .filter { it.isActive && it.stableKey.isNotBlank() && it.stableKey !in selected }
+        .filter { normalizedQuery.isBlank() || it.name.contains(normalizedQuery, ignoreCase = true) }
+        .sortedBy { it.name.lowercase() }
+        .take(limit)
+        .toList()
+}
