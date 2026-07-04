@@ -1,10 +1,47 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProgramBuilderReservoirBeamV041105Test {
+    @Test
+    fun periodizationInputDerivesWeekRolesAndDayProfiles() {
+        val request = request(periodizationType = ProgramPeriodizationType.AUTO)
+        val catalog = ProgramTemplateCatalog.DEFAULT
+        val policy = ProgramPeriodizationPlanPolicy()
+        val selectedType = policy.resolveType(request)
+        val baseWeeks = catalog.weekPlans(request.durationWeeks, FatigueSlotPolicy.DEFAULT.gate(null as DailyFatigueState?))
+        val schedule = catalog.slots(request.availableDaysPerWeek)
+        val wavePlan = policy.plan(
+            request = request,
+            type = selectedType,
+            weekPlans = policy.weekPlans(request, selectedType, baseWeeks),
+            schedule = schedule
+        )
+        val linearPlan = policy.plan(
+            request = request.copy(periodizationType = ProgramPeriodizationType.LINEAR_STRENGTH),
+            type = ProgramPeriodizationType.LINEAR_STRENGTH,
+            weekPlans = policy.weekPlans(request, ProgramPeriodizationType.LINEAR_STRENGTH, baseWeeks),
+            schedule = schedule
+        )
+        val undulatingPlan = policy.plan(
+            request = request.copy(periodizationType = ProgramPeriodizationType.DAILY_UNDULATING),
+            type = ProgramPeriodizationType.DAILY_UNDULATING,
+            weekPlans = policy.weekPlans(request, ProgramPeriodizationType.DAILY_UNDULATING, baseWeeks),
+            schedule = schedule
+        )
+
+        assertTrue(selectedType == ProgramPeriodizationType.BADMINTON_WAVE)
+        assertTrue("badminton wave should not use identical week roles",
+            wavePlan.map(ProgramPeriodizationWeekPlan::role).distinct().size > 1)
+        assertTrue("linear strength should prioritize foundation roles",
+            linearPlan.take(3).all { it.role == ProgramWeekRole.LINEAR_FOUNDATION })
+        assertTrue("daily undulating should keep hard/medium/light day profile differences",
+            undulatingPlan.first().dayProfiles.values.toSet().size > 1)
+    }
+
     @Test
     fun badSkeletonWithMissingAnchorsAndRepeatedCoreCannotScorePerfect() {
         val skeleton = skeleton(
@@ -86,6 +123,20 @@ class ProgramBuilderReservoirBeamV041105Test {
             }
         )
     }
+
+    private fun request(periodizationType: ProgramPeriodizationType): ProgramSkeletonRequest =
+        ProgramSkeletonRequest(
+            name = "reservoir selection gap fixture",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = 5,
+            sessionMinutes = 45,
+            availableEquipment = setOf("BARBELL", "DUMBBELL", "MACHINE", "CABLE", "BODYWEIGHT"),
+            excludedExerciseText = "",
+            badmintonTransferRatio = 0.60,
+            sportStrengthRatio = "AUTO",
+            periodizationType = periodizationType,
+            durationWeeks = 4
+        )
 
     private fun repeatedCaptainChairItem(week: Int, day: Int, order: Int): ProgramSkeletonItem =
         ProgramSkeletonItem(

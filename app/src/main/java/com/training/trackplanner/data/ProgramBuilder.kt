@@ -21,6 +21,7 @@ class ProgramBuilder internal constructor(
     private val sessionDensityPolicy = ProgramSessionDensityPolicy()
     private val dayIntensityPolicy = ProgramDayIntensityPolicy()
     private val optimizationPolicy = ProgramOptimizationPolicy()
+    private val periodizationPolicy = ProgramPeriodizationPlanPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -37,7 +38,9 @@ class ProgramBuilder internal constructor(
             badmintonTransferRatio = request.badmintonTransferRatio.coerceIn(0.0, 0.9)
         )
         val fatigueGate = fatigueSlotPolicy.gate(fatigueState)
-        val weekPlans = templateCatalog.weekPlans(normalized.durationWeeks, fatigueGate)
+        val periodization = periodizationPolicy.resolveType(normalized)
+        val baseWeekPlans = templateCatalog.weekPlans(normalized.durationWeeks, fatigueGate)
+        val weekPlans = baseWeekPlans
         val templateSelection = templateCatalog.select(normalized)
         val exposureTargets = templateCatalog.exposureTargets(templateSelection, normalized)
             .associateBy(NumericExposureTarget::slot)
@@ -62,8 +65,13 @@ class ProgramBuilder internal constructor(
         val warnings = mutableListOf<String>()
         val candidateTraces = mutableListOf<ProgramCandidateTrace>()
         var timeBudgetTrimmed = false
+        val periodizationWeeks = periodizationPolicy.plan(normalized, periodization, weekPlans, schedule)
         weekPlans.forEach { week ->
-            schedule.forEachIndexed { dayIndex, day ->
+            val weekSchedule = periodizationPolicy.scheduleForWeek(
+                base = schedule,
+                periodizedWeek = periodizationWeeks.first { it.weekIndex == week.weekIndex }
+            )
+            weekSchedule.forEachIndexed { dayIndex, day ->
                 val exerciseSlots = templateCatalog.exerciseSlots(
                     day,
                     prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
@@ -244,7 +252,6 @@ class ProgramBuilder internal constructor(
         warnings += varietyPolicy.distributionWarnings(generated, normalized)
         warnings += dayIntensityPolicy.warnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
-        val periodization = choosePeriodization(normalized)
         val result = GeneratedProgramSkeleton(
             suggestedName = normalized.name.ifBlank { defaultName(normalized) },
             durationDays = normalized.durationWeeks * 7,
@@ -278,14 +285,6 @@ class ProgramBuilder internal constructor(
         )
         return optimizationPolicy.optimize(validated)
     }
-
-    private fun choosePeriodization(request: ProgramSkeletonRequest): ProgramPeriodizationType =
-        request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
-            ?: if (request.badmintonTransferRatio >= 0.5) {
-                ProgramPeriodizationType.BADMINTON_WAVE
-            } else {
-                ProgramPeriodizationType.STEP_DELOAD
-            }
 
     private fun defaultName(request: ProgramSkeletonRequest): String =
         "${request.durationWeeks}주 ${request.badmintonSpecificityRatio}:${100 - request.badmintonSpecificityRatio} 프로그램"
