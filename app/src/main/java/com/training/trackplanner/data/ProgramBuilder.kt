@@ -20,6 +20,7 @@ class ProgramBuilder internal constructor(
     private val compositionPolicy = ProgramCompositionPolicy()
     private val sessionDensityPolicy = ProgramSessionDensityPolicy()
     private val dayIntensityPolicy = ProgramDayIntensityPolicy()
+    private val optimizationPolicy = ProgramOptimizationPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -270,11 +271,12 @@ class ProgramBuilder internal constructor(
         val visibleIssues = issues
             .filter { it.severity != ProgramValidationSeverity.SOFT_PENALTY }
             .map(ProgramValidationIssue::render)
-        return result.copy(
+        val validated = result.copy(
             validationIssues = renderedIssues,
             validationDetails = issues,
             warnings = (warnings + visibleIssues).distinct()
         )
+        return optimizationPolicy.optimize(validated)
     }
 
     private fun choosePeriodization(request: ProgramSkeletonRequest): ProgramPeriodizationType =

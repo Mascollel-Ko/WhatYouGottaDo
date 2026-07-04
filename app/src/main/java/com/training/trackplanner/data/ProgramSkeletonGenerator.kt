@@ -166,6 +166,9 @@ data class GeneratedProgramSkeleton(
     val warnings: List<String> = emptyList(),
     val validationIssues: List<String> = emptyList(),
     val validationDetails: List<ProgramValidationIssue> = emptyList(),
+    val evaluation: ProgramEvaluation? = null,
+    val optimizationSummary: ProgramOptimizationSummary = ProgramOptimizationSummary(),
+    val optimizationTrace: List<ProgramOptimizationTrace> = emptyList(),
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false
 )
