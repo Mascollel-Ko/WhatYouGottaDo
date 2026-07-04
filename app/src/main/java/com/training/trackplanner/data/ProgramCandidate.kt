@@ -107,6 +107,10 @@ internal data class ProgramCandidate(
         isCore || isRecovery -> 0.5
         else -> 0.25
     }
+    val isLoadedStrength: Boolean = splitTokens(exercise.equipment).any(LOADED_STRENGTH_EQUIPMENT::contains) &&
+        strengthFit >= 0.8 &&
+        !isDirectSportSession &&
+        !isRecovery
     val metadataConfidenceFit: Double = if (canonical) 0.8 else 0.0
     private val isLowerPattern: Boolean = slotCapabilities.hasAny(
         ProgramSlotId.LOWER_SQUAT_PATTERN,
@@ -365,6 +369,28 @@ internal data class ProgramCandidate(
             "DEAD_BUG",
             "SUPERMAN",
             "SCAPULAR_PULL_UP"
+        )
+        val LOADED_STRENGTH_EQUIPMENT = setOf(
+            "BARBELL",
+            "DUMBBELL",
+            "MACHINE",
+            "CABLE",
+            "SMITH_MACHINE",
+            "LEG_PRESS_MACHINE",
+            "HACK_SQUAT_MACHINE",
+            "LEG_CURL_MACHINE",
+            "LEG_EXTENSION_MACHINE",
+            "바벨",
+            "덤벨",
+            "머신",
+            "케이블",
+            "스미스",
+            "스미스머신",
+            "레그프레스",
+            "핵스쿼트",
+            "레그컬",
+            "레그익스텐션",
+            "EZ바"
         )
     }
 }

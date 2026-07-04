@@ -2,7 +2,6 @@ package com.training.trackplanner.data
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 import java.io.File
 
@@ -13,7 +12,6 @@ class ProgramBuilderQualityV041104Test {
         ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
     )
 
-    @Ignore("Reproduces the v0.4.1.10.3 all-equipment loaded-strength underuse gap; enabled by the loaded-strength fix.")
     @Test
     fun badmintonSupportFiveDayFortyFiveMinutePlanKeepsLoadedStrengthAndUsefulDensity() {
         val result = reproductionPlan()
@@ -28,7 +26,10 @@ class ProgramBuilderQualityV041104Test {
 
         assertTrue("expected 4 weeks x 5 sessions", sessions.size >= 20)
         assertTrue("45 minute sessions should usually have at least four exercises", sessions.values.count { it.size >= 4 } >= 16)
-        assertTrue("loaded barbell/dumbbell/machine/cable strength work should survive all-equipment selection", loadedItems.size >= 8)
+        assertTrue(
+            "loaded barbell/dumbbell/machine/cable strength work should survive all-equipment selection: ${loadedItems.size}",
+            loadedItems.size >= 8
+        )
         assertTrue("week 1 needs a lower strength anchor", firstWeekSlots.any { it in LOWER_ANCHOR_SLOTS })
         assertTrue("week 1 needs an upper strength anchor/support", firstWeekSlots.any { it in UPPER_ANCHOR_SLOTS })
         assertTrue("week 1 needs core or trunk stability", ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name in firstWeekSlots)
@@ -170,7 +171,18 @@ class ProgramBuilderQualityV041104Test {
             "LEG_PRESS_MACHINE",
             "HACK_SQUAT_MACHINE",
             "LEG_CURL_MACHINE",
-            "LEG_EXTENSION_MACHINE"
+            "LEG_EXTENSION_MACHINE",
+            "바벨",
+            "덤벨",
+            "머신",
+            "케이블",
+            "스미스",
+            "스미스머신",
+            "레그프레스",
+            "핵스쿼트",
+            "레그컬",
+            "레그익스텐션",
+            "EZ바"
         )
         val LOWER_ANCHOR_SLOTS = setOf(
             ProgramSlotId.LOWER_SQUAT_PATTERN.name,
