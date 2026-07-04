@@ -51,15 +51,11 @@ class ProgramBuilder internal constructor(
         val schedule = templateSelection.sessions.map { planned ->
             fatigueSlotPolicy.adapt(planned, fatigueGate, ProgramFatigueUseCase.PROGRAM_PLANNING)
         }
-        val excludedTerms = normalized.excludedExerciseText
-            .split(',', '\n', ';')
-            .map(String::trim)
-            .filter(String::isNotBlank)
         val inventory = candidateInventory.collect(
             exercises = exercises,
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             availableEquipment = normalized.availableEquipment,
-            excludedTerms = excludedTerms
+            excludedExerciseStableKeys = normalized.excludedExerciseStableKeys
         )
         val candidates = inventory.candidates
 

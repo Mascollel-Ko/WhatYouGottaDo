@@ -85,7 +85,7 @@ class ProgramBuilderV0352Test {
     }
 
     @Test
-    fun redFatigueRemovesHardDaysHeavyLowerAndHighImpact() {
+    fun redFatigueDownscalesFoundationAndRemovesHighImpact() {
         val result = fixture.generate(
             days = 5,
             weeks = 4,
@@ -94,8 +94,9 @@ class ProgramBuilderV0352Test {
             fatigue = fatigueState(ofi = 90, local = 90, joint = 92, neural = 90)
         )
 
-        assertTrue(result.items.all { it.dayIntensity == ProgramDayIntensity.LIGHT.name })
-        assertFalse(result.items.any { it.exerciseId in fixture.heavyOrImpactIds })
+        assertFalse(result.items.any { it.dayIntensity == ProgramDayIntensity.HARD.name })
+        assertFalse(result.items.any { it.exerciseId in fixture.highImpactIds })
+        assertTrue(result.items.filter { it.exerciseId in fixture.heavyLowerIds }.all { it.setCount <= 2 })
         assertTrue(result.items.all { item ->
             item.prescription.substringAfterLast("RPE ").toIntOrNull()?.let { it <= 7 } ?: true
         })
@@ -264,7 +265,8 @@ class ProgramBuilderV0352Test {
 private class ProgramFixture {
     val cueExerciseId = 8L
     val directSportExerciseId = 21L
-    val heavyOrImpactIds = setOf(1L, 2L, 9L, 10L)
+    val heavyLowerIds = setOf(1L, 2L)
+    val highImpactIds = setOf(9L, 10L)
 
     private val rows = listOf(
         row(1, "Back Squat", "SQUAT_VARIANTS", "MAIN_LOWER_STRENGTH", "SQUAT_HEAVY_AXIAL", "ESTIMATED_1RM", "GENERAL", "VERY_HIGH"),

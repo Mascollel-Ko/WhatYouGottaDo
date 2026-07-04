@@ -89,6 +89,62 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
         assertTrue(request.preferredExerciseStableKeys.isEmpty())
     }
 
+    @Test
+    fun inventoryHardExcludesSelectedStableKeysOnly() {
+        val kept = Exercise(
+            id = 1,
+            name = "Barbell squat",
+            category = "strength",
+            stableKey = "barbell_squat",
+            equipment = "BARBELL",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+        val excluded = Exercise(
+            id = 2,
+            name = "Captain chair leg raise",
+            category = "strength",
+            stableKey = "captain_chair_leg_raise",
+            equipment = "BODYWEIGHT",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+
+        val result = ProgramCandidateInventory().collect(
+            exercises = listOf(kept, excluded),
+            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+            availableEquipment = setOf("BARBELL", "BODYWEIGHT"),
+            excludedExerciseStableKeys = setOf("captain_chair_leg_raise")
+        )
+
+        assertTrue(result.candidates.any { it.exercise.stableKey == "barbell_squat" })
+        assertTrue(result.candidates.none { it.exercise.stableKey == "captain_chair_leg_raise" })
+    }
+
+    @Test
+    fun preferredStableKeyBoostsCandidateReranking() {
+        val preferred = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN)
+        val request = baseRequest().copy(preferredExerciseStableKeys = setOf(preferred.exercise.stableKey))
+        val context = ProgramCandidateScoreContext(
+            request = request,
+            week = week(),
+            periodizedWeek = ProgramPeriodizationWeekPlan(
+                weekIndex = 1,
+                role = ProgramWeekRole.FOUNDATION_LOAD,
+                dayProfiles = mapOf(1 to ProgramDayProfile.HARD_FOUNDATION)
+            ),
+            plannedSlot = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN, ProgramExerciseRole.ANCHOR),
+            selectedInSession = emptyList(),
+            generatedItems = emptyList()
+        )
+        val policy = ProgramCandidateRerankingPolicy()
+        val classification = ProgramCandidateClassificationPolicy().classify(preferred)
+
+        val boosted = policy.adjustment(preferred, classification, context)
+        val neutral = policy.adjustment(preferred, classification, context.copy(request = request.copy(preferredExerciseStableKeys = emptySet())))
+
+        assertTrue(boosted > neutral)
+    }
+
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
@@ -134,5 +190,18 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             plyometricLimit = 1,
             deloadFlag = false,
             targetRpeMax = 8.0
+        )
+
+    private fun baseRequest(): ProgramSkeletonRequest =
+        ProgramSkeletonRequest(
+            name = "fixture",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = 5,
+            sessionMinutes = 45,
+            availableEquipment = setOf("BARBELL", "BODYWEIGHT"),
+            excludedExerciseText = "",
+            badmintonTransferRatio = 0.60,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO
         )
 }

@@ -9,6 +9,7 @@ internal class ProgramCandidateRerankingPolicy(
         context: ProgramCandidateScoreContext
     ): Double {
         var score = 0.0
+        if (candidate.exercise.stableKey in context.request.preferredExerciseStableKeys) score += 3.0
         if (needsFoundation(context, classification)) score += 2.4
         if (needsLoadedStrength(context) && candidate.isLoadedStrength) score += 1.8
         if (context.request.dailyAvailableMinutes >= 40 &&
