@@ -124,6 +124,34 @@ class ProgramBuilderReservoirBeamV041105Test {
         assertTrue("reservoir should keep hard-gate-eligible candidates", reservoir.candidates.size == 2)
     }
 
+    @Test
+    fun foundationPolicyReservesAnchorsBeforeAccessorySlots() {
+        val policy = ProgramFoundationAnchorPolicy()
+        val request = request(periodizationType = ProgramPeriodizationType.BADMINTON_WAVE)
+        val periodizedWeek = ProgramPeriodizationWeekPlan(
+            weekIndex = 1,
+            role = ProgramWeekRole.FOUNDATION_LOAD,
+            dayProfiles = mapOf(1 to ProgramDayProfile.HARD_FOUNDATION)
+        )
+        val slots = policy.reserveSlots(
+            slots = listOf(
+                TemplateExerciseSlot(null, ProgramExerciseRole.CORE),
+                TemplateExerciseSlot(null, ProgramExerciseRole.PREHAB)
+            ),
+            request = request,
+            week = periodizedWeek,
+            plannedSlot = PlannedSlot(
+                dayOfWeek = 1,
+                slot = ProgramTrainingSlot.LOWER_STRENGTH,
+                intensity = ProgramDayIntensity.HARD
+            )
+        )
+
+        assertTrue(slots.first().targetSlot == ProgramSlotId.LOWER_SQUAT_PATTERN)
+        assertTrue(slots.first().role == ProgramExerciseRole.ANCHOR)
+        assertTrue(slots.first().required)
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem

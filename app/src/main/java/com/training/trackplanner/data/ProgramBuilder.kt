@@ -22,6 +22,7 @@ class ProgramBuilder internal constructor(
     private val dayIntensityPolicy = ProgramDayIntensityPolicy()
     private val optimizationPolicy = ProgramOptimizationPolicy()
     private val periodizationPolicy = ProgramPeriodizationPlanPolicy()
+    private val foundationAnchorPolicy = ProgramFoundationAnchorPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -67,14 +68,20 @@ class ProgramBuilder internal constructor(
         var timeBudgetTrimmed = false
         val periodizationWeeks = periodizationPolicy.plan(normalized, periodization, weekPlans, schedule)
         weekPlans.forEach { week ->
+            val periodizedWeek = periodizationWeeks.first { it.weekIndex == week.weekIndex }
             val weekSchedule = periodizationPolicy.scheduleForWeek(
                 base = schedule,
-                periodizedWeek = periodizationWeeks.first { it.weekIndex == week.weekIndex }
+                periodizedWeek = periodizedWeek
             )
             weekSchedule.forEachIndexed { dayIndex, day ->
-                val exerciseSlots = templateCatalog.exerciseSlots(
-                    day,
-                    prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
+                val exerciseSlots = foundationAnchorPolicy.reserveSlots(
+                    slots = templateCatalog.exerciseSlots(
+                        day,
+                        prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
+                    ),
+                    request = normalized,
+                    week = periodizedWeek,
+                    plannedSlot = day
                 )
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
@@ -252,6 +259,7 @@ class ProgramBuilder internal constructor(
         warnings += varietyPolicy.distributionWarnings(generated, normalized)
         warnings += dayIntensityPolicy.warnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
+        warnings += foundationAnchorPolicy.warnings(generated, normalized)
         val result = GeneratedProgramSkeleton(
             suggestedName = normalized.name.ifBlank { defaultName(normalized) },
             durationDays = normalized.durationWeeks * 7,
