@@ -1,7 +1,8 @@
 package com.training.trackplanner.data
 
 internal class ProgramScoringPolicy(
-    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
+    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT,
+    private val compositionPolicy: ProgramCompositionPolicy = ProgramCompositionPolicy()
 ) {
     fun score(
         candidate: ProgramCandidate,
@@ -55,12 +56,13 @@ internal class ProgramScoringPolicy(
             )
         } ?: 0.0
         val loadedStrengthBoost = loadedStrengthBoost(candidate, role, request)
+        val compositionFit = compositionPolicy.strengthAnchorAdjustment(candidate, role, request)
         return candidate.slotFit(slot) * 2.2 +
             candidate.roleFit(role) * 2.0 +
             coverageCredit * 3.0 + exposureBalance +
             candidate.templateSpecificityFit(templateSlot.targetSlot) +
             ratioFit * 1.8 +
-            intensityFit + phaseFit + loadedStrengthBoost +
+            intensityFit + phaseFit + loadedStrengthBoost + compositionFit +
             candidate.metadataConfidenceFit - repeatPenalty - rehabLikePenalty
     }
 

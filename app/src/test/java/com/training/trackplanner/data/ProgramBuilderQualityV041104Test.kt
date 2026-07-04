@@ -44,6 +44,24 @@ class ProgramBuilderQualityV041104Test {
     }
 
     @Test
+    fun badmintonSupportRatioVariantsPreserveStrengthAnchors() {
+        val highBadminton = reproductionPlan(badmintonTransferRatio = 0.90)
+        val standard = reproductionPlan(badmintonTransferRatio = 0.60)
+        val strengthBiased = reproductionPlan(badmintonTransferRatio = 0.40)
+
+        assertTrue("90:10 still needs minimum strength anchors", strengthAnchorItems(highBadminton).size >= 4)
+        assertTrue("60:40 should not be transfer-only", strengthAnchorItems(standard).size >= 8)
+        assertTrue(
+            "40:60 should keep at least as many strength anchors as 60:40",
+            strengthAnchorItems(strengthBiased).size >= strengthAnchorItems(standard).size
+        )
+        assertFalse(
+            "60:40 composition should not warn for strength anchor underuse",
+            "PROGRAM_STRENGTH_ANCHOR_UNDERUSED" in standard.warnings
+        )
+    }
+
+    @Test
     fun simpleQualityAuditAllowsRecoveredWeeklyImbalanceButFlagsRepeatedProgramWideImbalance() {
         val result = reproductionPlan()
         val recovered = simpleAudit(result)
@@ -61,7 +79,7 @@ class ProgramBuilderQualityV041104Test {
         assertTrue("repeated transfer imbalance should be detected", "PROGRAM_WIDE_TRANSFER_REPEAT" in repeatedBad.issues)
     }
 
-    private fun reproductionPlan(): GeneratedProgramSkeleton = ProgramBuilder().build(
+    private fun reproductionPlan(badmintonTransferRatio: Double = 0.60): GeneratedProgramSkeleton = ProgramBuilder().build(
         request = ProgramSkeletonRequest(
             name = "배드민턴 지원 웨이트",
             goal = ProgramGoal.BADMINTON_SUPPORT,
@@ -69,7 +87,7 @@ class ProgramBuilderQualityV041104Test {
             sessionMinutes = 45,
             availableEquipment = allEquipmentTokens(),
             excludedExerciseText = "",
-            badmintonTransferRatio = 0.60,
+            badmintonTransferRatio = badmintonTransferRatio,
             sportStrengthRatio = "AUTO",
             periodizationType = ProgramPeriodizationType.AUTO,
             durationWeeks = 4
@@ -102,6 +120,18 @@ class ProgramBuilderQualityV041104Test {
             item.secondarySlotCapabilities.any(STRENGTH_SLOTS::contains)
         return loaded && strengthSlot && item.badmintonTransferLevel != "DIRECT"
     }
+
+    private fun strengthAnchorItems(result: GeneratedProgramSkeleton): List<ProgramSkeletonItem> =
+        result.items.filter { item ->
+            item.selectionRole in setOf(ProgramExerciseRole.ANCHOR.name, ProgramExerciseRole.SUPPORT.name) &&
+                item.badmintonTransferLevel != "DIRECT" &&
+                isStrengthSlotItem(item)
+        }
+
+    private fun isStrengthSlotItem(item: ProgramSkeletonItem): Boolean =
+        item.requestedTemplateSlot in STRENGTH_SLOTS ||
+            item.primarySlotCapabilities.any(STRENGTH_SLOTS::contains) ||
+            item.secondarySlotCapabilities.any(STRENGTH_SLOTS::contains)
 
     private fun allEquipmentTokens(): Set<String> = exercises.flatMap { splitExerciseTokens(it.equipment) }.toSet()
 
