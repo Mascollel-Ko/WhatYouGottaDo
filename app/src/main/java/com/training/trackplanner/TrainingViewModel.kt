@@ -32,6 +32,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramSkeletonRequest
@@ -50,7 +51,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 
 class TrainingViewModel(application: Application) : AndroidViewModel(application) {
@@ -68,6 +72,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         SharingStarted.WhileSubscribed(5_000),
         emptyList()
     )
+
+    private val _programBuildProgress =
+        MutableStateFlow<ProgramBuildProgressState>(ProgramBuildProgressState.Idle)
+    val programBuildProgress: StateFlow<ProgramBuildProgressState> = _programBuildProgress.asStateFlow()
 
     val analysisStats: StateFlow<AnalysisStats> = repository.analysisStats.stateIn(
         viewModelScope,
@@ -244,8 +252,46 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         request: ProgramSkeletonRequest,
         onResult: (GeneratedProgramSkeleton) -> Unit
     ) {
+        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
         viewModelScope.launch {
-            onResult(repository.generateProgramSkeleton(request))
+            _programBuildProgress.value = ProgramBuildProgressState.Running(
+                progressPercent = 10,
+                message = "입력 조건을 확인하는 중입니다."
+            )
+            runCatching {
+                withTimeout(12_000) {
+                    _programBuildProgress.value = ProgramBuildProgressState.Running(
+                        progressPercent = 25,
+                        message = "운동 후보를 고르는 중입니다."
+                    )
+                    val generated = withContext(Dispatchers.Default) {
+                        _programBuildProgress.value = ProgramBuildProgressState.Running(
+                            progressPercent = 40,
+                            message = "1차 프로그램을 구성하는 중입니다."
+                        )
+                        repository.generateProgramSkeleton(request)
+                    }
+                    _programBuildProgress.value = ProgramBuildProgressState.Running(
+                        progressPercent = 85,
+                        message = "운동 배치를 조정하는 중입니다."
+                    )
+                    generated
+                }
+            }.onSuccess { generated ->
+                _programBuildProgress.value = ProgramBuildProgressState.Running(
+                    progressPercent = 95,
+                    message = "최종 프로그램을 정리하는 중입니다."
+                )
+                _programBuildProgress.value = ProgramBuildProgressState.Completed(
+                    skeleton = generated,
+                    summary = generated.optimizationSummary
+                )
+                onResult(generated)
+            }.onFailure { error ->
+                _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                    message = error.message ?: "자동 골자 생성에 실패했습니다."
+                )
+            }
         }
     }
 

@@ -15,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramGoal
@@ -281,6 +283,8 @@ private fun ProgramEditorScreen(
     var skeleton by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
+    val buildProgress by viewModel.programBuildProgress.collectAsState()
+    val generationRunning = buildProgress is ProgramBuildProgressState.Running
     var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
     var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
@@ -383,11 +387,13 @@ private fun ProgramEditorScreen(
                         modifier = Modifier.fillMaxWidth(),
                         value = nameText,
                         onValueChange = {
+                            if (generationRunning) return@OutlinedTextField
                             nameText = it
                             if (nameError && it.isNotBlank()) nameError = false
                         },
                         label = { Text("프로그램명") },
                         isError = nameError,
+                        enabled = !generationRunning,
                         supportingText = {
                             if (nameError) Text("프로그램명을 입력하세요.")
                         },
@@ -400,7 +406,8 @@ private fun ProgramEditorScreen(
                         selected = goal,
                         options = ProgramGoal.entries,
                         optionLabel = { it.displayLabel() },
-                        onSelect = { goal = it }
+                        onSelect = { goal = it },
+                        enabled = !generationRunning
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDropdown(
@@ -409,7 +416,8 @@ private fun ProgramEditorScreen(
                             selected = durationWeeks,
                             options = (2..12).toList(),
                             optionLabel = { "${it}주" },
-                            onSelect = { durationWeeks = it }
+                            onSelect = { durationWeeks = it },
+                            enabled = !generationRunning
                         )
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
@@ -417,7 +425,8 @@ private fun ProgramEditorScreen(
                             selected = weeklyDays,
                             options = (1..7).toList(),
                             optionLabel = { "주 ${it}일" },
-                            onSelect = { weeklyDays = it }
+                            onSelect = { weeklyDays = it },
+                            enabled = !generationRunning
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -427,7 +436,8 @@ private fun ProgramEditorScreen(
                             selected = sessionMinutes,
                             options = listOf(20, 30, 45, 60, 75, 90, 120),
                             optionLabel = { "${it}분" },
-                            onSelect = { sessionMinutes = it }
+                            onSelect = { sessionMinutes = it },
+                            enabled = !generationRunning
                         )
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
@@ -435,7 +445,8 @@ private fun ProgramEditorScreen(
                             selected = badmintonRatio,
                             options = badmintonRatioOptions.keys.toList(),
                             optionLabel = { ratio -> badmintonRatioOptions.getValue(ratio) },
-                            onSelect = { badmintonRatio = it }
+                            onSelect = { badmintonRatio = it },
+                            enabled = !generationRunning
                         )
                     }
                     Text(
@@ -450,7 +461,8 @@ private fun ProgramEditorScreen(
                             selected = sportStrengthRatio,
                             options = sportStrengthRatioOptions,
                             optionLabel = { it },
-                            onSelect = { sportStrengthRatio = it }
+                            onSelect = { sportStrengthRatio = it },
+                            enabled = !generationRunning
                         )
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
@@ -458,7 +470,8 @@ private fun ProgramEditorScreen(
                             selected = periodizationType,
                             options = ProgramPeriodizationType.entries,
                             optionLabel = { it.displayLabel() },
-                            onSelect = { periodizationType = it }
+                            onSelect = { periodizationType = it },
+                            enabled = !generationRunning
                         )
                     }
                     Text(
@@ -468,24 +481,28 @@ private fun ProgramEditorScreen(
                     )
                     EquipmentToggleGrid(
                         selected = selectedEquipment,
-                        onChange = { selectedEquipment = it }
+                        onChange = { selectedEquipment = it },
+                        enabled = !generationRunning
                     )
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
                         value = excludedText,
-                        onValueChange = { excludedText = it },
+                        onValueChange = { if (!generationRunning) excludedText = it },
+                        enabled = !generationRunning,
                         label = { Text("제외 운동 / 통증 메모") },
                         minLines = 2
                     )
                         }
                     Button(
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !generationRunning,
                         onClick = { startBlankProgram() }
                     ) {
                         Text("빈 프로그램으로 시작")
                     }
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
+                        enabled = !generationRunning,
                         onClick = {
                             if (!showSkeletonOptions) {
                                 showSkeletonOptions = true
@@ -506,6 +523,14 @@ private fun ProgramEditorScreen(
                         )
                     }
                 }
+            }
+        }
+        if (buildProgress !is ProgramBuildProgressState.Idle) {
+            item {
+                ProgramBuildProgressCard(
+                    progress = buildProgress,
+                    onRetry = { generateSkeleton() }
+                )
             }
         }
         skeleton?.let { currentSkeleton ->
@@ -536,7 +561,7 @@ private fun ProgramEditorScreen(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    enabled = skeleton?.items?.isNotEmpty() == true,
+                    enabled = skeleton?.items?.isNotEmpty() == true && !generationRunning,
                     onClick = {
                         if (!requireProgramName()) return@Button
                         val current = skeleton ?: return@Button
@@ -552,6 +577,56 @@ private fun ProgramEditorScreen(
                     }
                 ) {
                     Text("저장")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgramBuildProgressCard(
+    progress: ProgramBuildProgressState,
+    onRetry: () -> Unit
+) {
+    when (progress) {
+        ProgramBuildProgressState.Idle -> Unit
+        is ProgramBuildProgressState.Running -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    LinearProgressIndicator(
+                        progress = { progress.progressPercent / 100f },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(progress.message, style = MaterialTheme.typography.bodyMedium)
+                    Text("잠시만 기다려 주세요.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        is ProgramBuildProgressState.Completed -> {
+            val messages = progress.summary.messages
+            if (messages.isNotEmpty()) {
+                InfoCard(messages.joinToString("\n"))
+            }
+        }
+        is ProgramBuildProgressState.Failed -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(progress.message, style = MaterialTheme.typography.bodyMedium)
+                    OutlinedButton(onClick = onRetry) {
+                        Text("다시 시도")
+                    }
                 }
             }
         }

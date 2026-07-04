@@ -34,13 +34,14 @@ internal fun <T> ProgramDropdown(
     options: List<T>,
     optionLabel: (T) -> String,
     onSelect: (T) -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth()
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    enabled: Boolean = true
 ) {
     var expanded by rememberSaveable(label) { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         modifier = modifier,
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
+        onExpandedChange = { if (enabled) expanded = !expanded }
     ) {
         OutlinedTextField(
             modifier = Modifier
@@ -49,6 +50,7 @@ internal fun <T> ProgramDropdown(
             value = optionLabel(selected),
             onValueChange = {},
             readOnly = true,
+            enabled = enabled,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             singleLine = true
@@ -73,7 +75,8 @@ internal fun <T> ProgramDropdown(
 @Composable
 internal fun EquipmentToggleGrid(
     selected: Set<String>,
-    onChange: (Set<String>) -> Unit
+    onChange: (Set<String>) -> Unit,
+    enabled: Boolean = true
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -89,6 +92,7 @@ internal fun EquipmentToggleGrid(
                     if (isSelected) {
                         Button(
                             modifier = buttonModifier,
+                            enabled = enabled,
                             onClick = { onChange(selected - equipment.token) }
                         ) {
                             Text(equipment.label)
@@ -96,6 +100,7 @@ internal fun EquipmentToggleGrid(
                     } else {
                         OutlinedButton(
                             modifier = buttonModifier,
+                            enabled = enabled,
                             onClick = { onChange(selected + equipment.token) }
                         ) {
                             Text(equipment.label)
