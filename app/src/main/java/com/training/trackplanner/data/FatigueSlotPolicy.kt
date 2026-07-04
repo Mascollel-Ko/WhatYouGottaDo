@@ -94,6 +94,9 @@ internal class FatigueSlotPolicy {
     }
 
     private fun allowsForPlanning(candidate: ProgramCandidate, gate: ProgramFatigueGate): Boolean {
+        if (gate.band >= ProgramFatigueBand.ORANGE && candidate.matchesExplosivePlanningWork()) {
+            return false
+        }
         val primarySlot = candidate.slotCapabilities.primary.firstOrNull() ?: return true
         return when (disposition(primarySlot, gate.band, candidate.isRehabLikeActivation)) {
             FatigueSlotDisposition.AVOID -> candidate.isRecovery || candidate.isRehabLikeActivation
@@ -324,8 +327,20 @@ private fun ProgramCandidate.matchesOverheadWork(): Boolean =
 private fun ProgramCandidate.matchesGripForearmWork(): Boolean =
     hasProgramSlot(GRIP_FOREARM_SLOTS)
 
+private fun ProgramCandidate.matchesExplosivePlanningWork(): Boolean =
+    matchesHighImpactWork() ||
+        matchesCodReactiveWork() ||
+        listOf(
+            metadata?.movementSubtype.orEmpty(),
+            metadata?.movementFamily.orEmpty(),
+            metadata?.programSlot.orEmpty(),
+            metadata?.primaryStressProfile.orEmpty()
+        ).any { value -> EXPLOSIVE_PLANNING_TOKENS.any { token -> value.contains(token, ignoreCase = true) } }
+
 private fun ProgramCandidate.hasProgramSlot(slots: Set<ProgramSlotId>): Boolean =
     slots.any { slot -> slotCapabilities.hasAny(slot) }
+
+private val EXPLOSIVE_PLANNING_TOKENS = setOf("SLAM", "THROW", "TOSS", "PUSH_PRESS", "PLYOMETRIC", "EXPLOSIVE")
 
 private fun TrainingProgramItem.scaledSets(
     volumeFactor: Double,
