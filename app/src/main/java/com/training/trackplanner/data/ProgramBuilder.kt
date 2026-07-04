@@ -316,7 +316,7 @@ class ProgramBuilder internal constructor(
             validationDetails = issues,
             warnings = (warnings + visibleIssues).distinct()
         )
-        return optimizationPolicy.optimize(validated)
+        return optimizationPolicy.optimize(validated, inventory.reservoir)
     }
 
     private fun defaultName(request: ProgramSkeletonRequest): String =

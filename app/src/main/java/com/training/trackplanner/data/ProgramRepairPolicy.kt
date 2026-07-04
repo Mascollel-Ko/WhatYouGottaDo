@@ -1,10 +1,16 @@
 package com.training.trackplanner.data
 
-internal class ProgramRepairPolicy {
+internal class ProgramRepairPolicy(
+    private val issueDrivenRerankPolicy: ProgramIssueDrivenRerankPolicy = ProgramIssueDrivenRerankPolicy()
+) {
     fun repair(
         skeleton: GeneratedProgramSkeleton,
-        evaluation: ProgramEvaluation
+        evaluation: ProgramEvaluation,
+        reservoir: ProgramCandidateReservoir? = null
     ): ProgramRepairResult {
+        val issueDrivenRepair = issueDrivenRerankPolicy.repair(skeleton, evaluation, reservoir)
+        if (issueDrivenRepair.actions.isNotEmpty()) return issueDrivenRepair
+
         if (evaluation.issues.none {
                 it.type == ProgramEvaluationIssueType.HIGH_LOWER_BODY_FATIGUE_CLUSTER ||
                     it.type == ProgramEvaluationIssueType.NO_RECOVERY_AFTER_HIGH_FATIGUE_WEEK

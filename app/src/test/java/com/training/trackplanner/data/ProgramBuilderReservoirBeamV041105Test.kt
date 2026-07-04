@@ -320,6 +320,72 @@ class ProgramBuilderReservoirBeamV041105Test {
             "PROGRAM_CORE_ACCESSORY_STABLEKEY_OVERUSE" in warnings)
     }
 
+    @Test
+    fun issueDrivenRepairReopensWeakSlotForFoundationCandidate() {
+        val skeleton = skeleton(
+            days = listOf(1, 2, 4, 6, 7),
+            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+        )
+        val foundation = candidate(
+            id = 40,
+            name = "Barbell back squat",
+            equipment = "BARBELL",
+            stableKey = "barbell_back_squat",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.LOWER_SQUAT_PATTERN),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+        val evaluation = evaluationWith(ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR)
+
+        val repair = ProgramIssueDrivenRerankPolicy().repair(
+            skeleton = skeleton,
+            evaluation = evaluation,
+            reservoir = ProgramCandidateReservoir(listOf(foundation))
+        )
+
+        assertTrue("missing anchor issue should reopen a weak slot",
+            "REOPEN_WEAK_SLOT_FOR_FOUNDATION" in repair.actions)
+        assertTrue("foundation candidate should be inserted",
+            repair.skeleton.items.any { it.stableKey == "barbell_back_squat" })
+    }
+
+    @Test
+    fun issueDrivenRepairReplacesRepeatedCaptainChairWithAnotherCorePattern() {
+        val skeleton = skeleton(
+            days = listOf(1, 2, 4, 6, 7),
+            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+        )
+        val pallofPress = candidate(
+            id = 41,
+            name = "Cable pallof press",
+            equipment = "CABLE",
+            stableKey = "cable_pallof_press",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+        val evaluation = evaluationWith(ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION)
+
+        val repair = ProgramIssueDrivenRerankPolicy().repair(
+            skeleton = skeleton,
+            evaluation = evaluation,
+            reservoir = ProgramCandidateReservoir(listOf(pallofPress))
+        )
+
+        assertTrue("repeated core issue should reopen a core slot",
+            "REOPEN_REPEATED_CORE_SLOT" in repair.actions)
+        assertTrue("replacement core pattern should be inserted",
+            repair.skeleton.items.any { it.stableKey == "cable_pallof_press" })
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem
@@ -452,6 +518,26 @@ class ProgramBuilderReservoirBeamV041105Test {
             metadata = null,
             canonical = false,
             slotCapabilities = capabilities
+        )
+
+    private fun evaluationWith(issueType: ProgramEvaluationIssueType): ProgramEvaluation =
+        ProgramEvaluation(
+            overallScore = 55,
+            weeklyScores = emptyList(),
+            fatigueScore = 70,
+            strengthDistributionScore = 45,
+            badmintonTransferScore = 70,
+            densityScore = 70,
+            intensityDistributionScore = 70,
+            equipmentUtilizationScore = 45,
+            issues = listOf(
+                ProgramEvaluationIssue(
+                    issueType,
+                    ProgramEvaluationIssueSeverity.SEVERE,
+                    "fixture issue"
+                )
+            ),
+            suggestions = emptyList()
         )
 
     private companion object {
