@@ -1,11 +1,16 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.analysis.fatigue.DailyFatigueState
+import com.training.trackplanner.analysis.fatigue.FatigueConfidence
+import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class FatigueSlotPolicyTest {
     private val policy = FatigueSlotPolicy.DEFAULT
@@ -227,6 +232,29 @@ class FatigueSlotPolicyTest {
         assertTrue("planned RPE is not a planned program-item field yet", "plannedRpe" !in fieldNames)
     }
 
+    @Test
+    fun dailyFatigueStateUsesRelaxedProgramBands() {
+        assertEquals(ProgramFatigueBand.GREEN, policy.gate(fatigueState(51)).band)
+        assertEquals(ProgramFatigueBand.YELLOW, policy.gate(fatigueState(52)).band)
+        assertEquals(ProgramFatigueBand.YELLOW, policy.gate(fatigueState(68)).band)
+        assertEquals(ProgramFatigueBand.ORANGE, policy.gate(fatigueState(69)).band)
+        assertEquals(ProgramFatigueBand.ORANGE, policy.gate(fatigueState(86)).band)
+        assertEquals(ProgramFatigueBand.RED, policy.gate(fatigueState(87)).band)
+    }
+
+    @Test
+    fun axisRestrictionsUseRelaxedCutoffs() {
+        val jointBelow = policy.gate(fatigueState(ofi = 0, joint = 74))
+        val jointAt = policy.gate(fatigueState(ofi = 0, joint = 75))
+        val neuralBelow = policy.gate(fatigueState(ofi = 0, neural = 80))
+        val localBelow = policy.gate(fatigueState(ofi = 0, local = 80))
+
+        assertTrue(jointBelow.allowsHighImpact)
+        assertFalse(jointAt.allowsHighImpact)
+        assertEquals(9, neuralBelow.rpeCap)
+        assertTrue(localBelow.allowsHeavyLower)
+    }
+
     private fun gate(
         heavyLowerRestricted: Boolean = false,
         highImpactRestricted: Boolean = false,
@@ -281,5 +309,31 @@ class FatigueSlotPolicyTest {
                 source = SlotCapabilitySource.RUNTIME_METADATA,
                 confidence = SlotCapabilityConfidence.HIGH
             )
+        )
+
+    private fun fatigueState(
+        ofi: Int,
+        neural: Int = ofi,
+        local: Int = ofi,
+        joint: Int = ofi
+    ): DailyFatigueState =
+        DailyFatigueState(
+            date = LocalDate.of(2026, 7, 5),
+            neuromuscularFatigue = 0.0,
+            systemicMuscularFatigue = 0.0,
+            localMuscularFatigue = 0.0,
+            jointTendonImpactFatigue = 0.0,
+            movementFocusFatigue = 0.0,
+            recoveryPressure = 0.0,
+            neuromuscularScore = neural,
+            systemicMuscularScore = ofi,
+            localMuscularScore = local,
+            jointTendonImpactScore = joint,
+            movementFocusScore = ofi,
+            recoveryPressureScore = ofi,
+            overallFatigueIndex = ofi,
+            readinessLabel = FatigueLabelResolver.label(ofi),
+            cautionReasons = emptyList(),
+            confidence = FatigueConfidence.MEDIUM
         )
 }

@@ -75,6 +75,15 @@ class TodayFatigueStatusLabelerTest {
         assertEquals("현재 높음", axes.getValue("동작 집중").displayLabel)
     }
 
+    @Test
+    fun presentationScoreEightyIsElevatedNotHighAfterThresholdRelaxation() {
+        val summary = summary(presentation = presentation(focus = 80))
+
+        val maxLevel = TodayFatigueStatusLabeler.axisStates(summary).maxOf { it.level }
+
+        assertEquals(FatigueLevel.ELEVATED, maxLevel)
+    }
+
     private fun summary(
         vararg sections: FatigueDetailSection,
         presentation: FatiguePresentationSnapshot? = null

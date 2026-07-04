@@ -53,6 +53,52 @@ class FatiguePressureCalculatorHotfixTest {
         assertTrue(result.level.ordinal >= FatigueLevel.HIGH.ordinal)
     }
 
+    @Test
+    fun relativePressureThresholdsAreRelaxedByFifteenPercent() {
+        val belowRatio = FatiguePressureCalculator().calculate(
+            residual = residual(130.0),
+            stats = stats(zScore = null, percentile = null),
+            adaptiveBaseline = adaptive(tolerance = 100.0)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+        val atRatio = FatiguePressureCalculator().calculate(
+            residual = residual(133.0),
+            stats = stats(zScore = null, percentile = null),
+            adaptiveBaseline = adaptive(tolerance = 100.0)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertEquals(FatigueLevel.NORMAL, belowRatio.level)
+        assertEquals(FatigueLevel.ELEVATED, atRatio.level)
+    }
+
+    @Test
+    fun zScoreAndPercentileThresholdsAreRelaxedByFifteenPercent() {
+        val belowZ = FatiguePressureCalculator().calculate(
+            residual = residual(100.0),
+            stats = stats(zScore = 1.14, percentile = null),
+            adaptiveBaseline = adaptive(tolerance = null)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+        val atZ = FatiguePressureCalculator().calculate(
+            residual = residual(100.0),
+            stats = stats(zScore = 1.15, percentile = null),
+            adaptiveBaseline = adaptive(tolerance = null)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+        val belowPercentile = FatiguePressureCalculator().calculate(
+            residual = residual(100.0),
+            stats = stats(zScore = null, percentile = 86.0),
+            adaptiveBaseline = adaptive(tolerance = null)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+        val atPercentile = FatiguePressureCalculator().calculate(
+            residual = residual(100.0),
+            stats = stats(zScore = null, percentile = 87.0),
+            adaptiveBaseline = adaptive(tolerance = null)
+        ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
+
+        assertEquals(FatigueLevel.NORMAL, belowZ.level)
+        assertEquals(FatigueLevel.ELEVATED, atZ.level)
+        assertEquals(FatigueLevel.NORMAL, belowPercentile.level)
+        assertEquals(FatigueLevel.ELEVATED, atPercentile.level)
+    }
+
     private fun residual(load: Double): ResidualFatigueSnapshot =
         ResidualFatigueSnapshot(
             residualByCategory = mapOf(FatigueCategoryKey.SYSTEMIC to load),

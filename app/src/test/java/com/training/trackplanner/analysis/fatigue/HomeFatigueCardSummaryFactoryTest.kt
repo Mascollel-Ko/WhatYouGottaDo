@@ -76,6 +76,26 @@ class HomeFatigueCardSummaryFactoryTest {
     }
 
     @Test
+    fun projectedFatigueBelowRelaxedWarningThresholdKeepsNormalTrainingResponseLabel() {
+        val normalProjection = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(42),
+            projected = state(60),
+            confirmedSetCount = 0,
+            unconfirmedSetCount = 6
+        )
+        val elevatedButExpectedProjection = HomeFatigueCardSummaryFactory.create(
+            preWorkout = state(42),
+            current = state(42),
+            projected = state(74),
+            confirmedSetCount = 0,
+            unconfirmedSetCount = 6
+        )
+
+        assertEquals(normalProjection.projection?.label, elevatedButExpectedProjection.projection?.label)
+    }
+
+    @Test
     fun completedPlanShowsCurrentWithoutRemainingProjection() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(42),

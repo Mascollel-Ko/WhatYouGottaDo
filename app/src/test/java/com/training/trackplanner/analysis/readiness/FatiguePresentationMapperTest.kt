@@ -171,6 +171,19 @@ class FatiguePresentationMapperTest {
         assertTrue(result.highBodyParts.all { item -> item.score in 0..100 })
     }
 
+    @Test
+    fun elevatedPresentationScoresUseRelaxedCutoffs() {
+        val result = mapper.map(
+            snapshot(categories = mapOf(FatigueCategoryKey.SYSTEMIC to elevatedFloorPressure("SYSTEMIC")))
+        )
+
+        assertEquals(69, result.systemicScore)
+        assertFalse(result.gate.heavyLowerRestricted)
+        assertFalse(result.gate.highImpactRestricted)
+        assertFalse(result.gate.codReactiveRestricted)
+        assertTrue(result.reasons.isEmpty())
+    }
+
     private fun snapshot(
         categories: Map<FatigueCategoryKey, FatiguePressure> = emptyMap(),
         bodyParts: Map<String, FatiguePressure> = emptyMap()
@@ -197,6 +210,15 @@ class FatiguePresentationMapperTest {
             zScore = 8.0,
             percentile = 150.0,
             level = FatigueLevel.VERY_HIGH
+        )
+
+    private fun elevatedFloorPressure(key: String): FatiguePressure =
+        pressure(
+            key = key,
+            ratio = 1.0,
+            zScore = 0.0,
+            percentile = 0.0,
+            level = FatigueLevel.ELEVATED
         )
 
     private fun pressure(
