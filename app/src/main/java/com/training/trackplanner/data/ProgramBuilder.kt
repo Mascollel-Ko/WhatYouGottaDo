@@ -15,6 +15,7 @@ class ProgramBuilder internal constructor(
     private val slotCandidateQuery = ProgramSlotCandidateQuery(coveragePolicy)
     private val scoringPolicy = ProgramScoringPolicy(coveragePolicy)
     private val varietyPolicy = ProgramVarietyPolicy()
+    private val sessionConstraintPolicy = ProgramSessionConstraintPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -85,7 +86,9 @@ class ProgramBuilder internal constructor(
                             )
                         },
                         fatigueAllowed = { candidate -> fatigueSlotPolicy.allows(candidate, fatigueGate) },
-                        sessionAllowed = { candidate -> sessionAllows(selected, candidate, day.slot, week, fatigueGate) },
+                        sessionAllowed = { candidate ->
+                            sessionConstraintPolicy.sessionAllows(selected, candidate, day.slot, week, fatigueGate)
+                        },
                         score = { candidate ->
                             scoringPolicy.score(
                                 candidate = candidate,
@@ -266,27 +269,6 @@ class ProgramBuilder internal constructor(
         )
     }
 
-    private fun sessionAllows(
-        selected: List<ProgramCandidate>,
-        next: ProgramCandidate,
-        slot: ProgramTrainingSlot,
-        week: ProgramWeekPlan,
-        gate: ProgramFatigueGate
-    ): Boolean {
-        if (next.isRehabLikeActivation) {
-            val recoveryContext = slot in EXPANDED_RECOVERY_SLOTS || week.deloadFlag ||
-                gate.band == ProgramFatigueBand.RED
-            val cap = if (recoveryContext) 3 else 1
-            if (selected.count(ProgramCandidate::isRehabLikeActivation) >= cap) return false
-        }
-        if (selected.count(ProgramCandidate::isIsolation) >= 2 && next.isIsolation) return false
-        if (selected.any(ProgramCandidate::isHeavyLower) && next.isHeavyLower) return false
-        val hasHeavyLower = selected.any(ProgramCandidate::isHeavyLower) || next.isHeavyLower
-        val hasImpact = selected.any(ProgramCandidate::isHighImpact) || next.isHighImpact
-        val hasCod = selected.any(ProgramCandidate::isHighIntensityCod) || next.isHighIntensityCod
-        return !(hasHeavyLower && hasImpact && hasCod)
-    }
-
     private fun reasonTokens(
         candidate: ProgramCandidate,
         role: ProgramExerciseRole,
@@ -311,12 +293,6 @@ class ProgramBuilder internal constructor(
     private fun defaultName(request: ProgramSkeletonRequest): String =
         "${request.durationWeeks}주 ${request.badmintonSpecificityRatio}:${100 - request.badmintonSpecificityRatio} 프로그램"
 
-    private companion object {
-        val EXPANDED_RECOVERY_SLOTS = setOf(
-            ProgramTrainingSlot.RECOVERY_PREHAB,
-            ProgramTrainingSlot.MICRO_RECOVERY
-        )
-    }
 }
 
 private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
