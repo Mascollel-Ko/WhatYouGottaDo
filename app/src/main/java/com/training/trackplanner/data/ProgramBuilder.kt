@@ -23,6 +23,7 @@ class ProgramBuilder internal constructor(
     private val optimizationPolicy = ProgramOptimizationPolicy()
     private val periodizationPolicy = ProgramPeriodizationPlanPolicy()
     private val foundationAnchorPolicy = ProgramFoundationAnchorPolicy()
+    private val rerankingPolicy = ProgramCandidateRerankingPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -110,7 +111,7 @@ class ProgramBuilder internal constructor(
                             sessionConstraintPolicy.sessionAllows(selected, candidate, day.slot, week, fatigueGate)
                         },
                         score = { candidate ->
-                            scoringPolicy.score(
+                            val baseScore = scoringPolicy.score(
                                 candidate = candidate,
                                 role = role,
                                 slot = day.slot,
@@ -123,6 +124,19 @@ class ProgramBuilder internal constructor(
                                 templateSlot = templateSlot,
                                 exposureTarget = templateSlot.targetSlot?.let(exposureTargets::get),
                                 totalWeeks = normalized.durationWeeks
+                            )
+                            baseScore + rerankingPolicy.adjustment(
+                                candidate = candidate,
+                                classification = inventory.reservoir.classification(candidate),
+                                context = ProgramCandidateScoreContext(
+                                    request = normalized,
+                                    week = week,
+                                    periodizedWeek = periodizedWeek,
+                                    plannedSlot = day,
+                                    templateSlot = templateSlot,
+                                    selectedInSession = selected,
+                                    generatedItems = generated
+                                )
                             )
                         },
                         selectionPoolSize = varietyPolicy.selectionPoolSize(

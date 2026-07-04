@@ -152,6 +152,69 @@ class ProgramBuilderReservoirBeamV041105Test {
         assertTrue(slots.first().required)
     }
 
+    @Test
+    fun rerankingChangesCandidateScoreWithProgramContext() {
+        val policy = ProgramCandidateRerankingPolicy()
+        val request = request(periodizationType = ProgramPeriodizationType.BADMINTON_WAVE)
+        val week = ProgramWeekPlan(
+            weekIndex = 1,
+            weekType = ProgramWeekType.BUILD.name,
+            volumeMultiplier = 1.0,
+            intensityMultiplier = 1.0,
+            heavyExposureLimit = 2,
+            lowerBodyFatigueLimit = 8.0,
+            axialLoadLimit = 2,
+            plyometricLimit = 1,
+            deloadFlag = false
+        )
+        val context = ProgramCandidateScoreContext(
+            request = request,
+            week = week,
+            periodizedWeek = ProgramPeriodizationWeekPlan(
+                weekIndex = 1,
+                role = ProgramWeekRole.FOUNDATION_LOAD,
+                dayProfiles = mapOf(1 to ProgramDayProfile.HARD_FOUNDATION)
+            ),
+            plannedSlot = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.LOWER_SQUAT_PATTERN, ProgramExerciseRole.ANCHOR),
+            selectedInSession = emptyList(),
+            generatedItems = listOf(repeatedCaptainChairItem(week = 1, day = 1, order = 1))
+        )
+        val foundation = candidate(
+            id = 3,
+            name = "Barbell hinge",
+            equipment = "BARBELL",
+            stableKey = "barbell_hinge",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+        val captainChair = candidate(
+            id = 4,
+            name = "Captain chair leg raise",
+            equipment = "BODYWEIGHT",
+            stableKey = "captain_chair_leg_raise",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.MODERATE
+            )
+        )
+        val classifier = ProgramCandidateClassificationPolicy()
+
+        val foundationAdjustment = policy.adjustment(foundation, classifier.classify(foundation), context)
+        val repeatedCoreAdjustment = policy.adjustment(captainChair, classifier.classify(captainChair), context)
+
+        assertTrue("foundation deficit should raise foundation candidates", foundationAdjustment > 0.0)
+        assertTrue("repeated trunk flexion should be penalized", repeatedCoreAdjustment < 0.0)
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem
