@@ -25,6 +25,7 @@ class ProgramBuilder internal constructor(
     private val foundationAnchorPolicy = ProgramFoundationAnchorPolicy()
     private val rerankingPolicy = ProgramCandidateRerankingPolicy()
     private val beamSelectionPolicy = ProgramBeamSelectionPolicy()
+    private val corePatternPolicy = ProgramCorePatternPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -283,6 +284,7 @@ class ProgramBuilder internal constructor(
         warnings += dayIntensityPolicy.warnings(generated, normalized)
         warnings += compositionPolicy.warnings(generated, normalized)
         warnings += foundationAnchorPolicy.warnings(generated, normalized)
+        warnings += corePatternPolicy.warnings(generated, normalized)
         val result = GeneratedProgramSkeleton(
             suggestedName = normalized.name.ifBlank { defaultName(normalized) },
             durationDays = normalized.durationWeeks * 7,

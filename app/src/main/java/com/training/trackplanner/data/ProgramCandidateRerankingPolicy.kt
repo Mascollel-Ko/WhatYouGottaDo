@@ -1,6 +1,8 @@
 package com.training.trackplanner.data
 
-internal class ProgramCandidateRerankingPolicy {
+internal class ProgramCandidateRerankingPolicy(
+    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy()
+) {
     fun adjustment(
         candidate: ProgramCandidate,
         classification: ProgramCandidateClassification,
@@ -25,7 +27,7 @@ internal class ProgramCandidateRerankingPolicy {
         ) {
             score += 1.0
         }
-        score -= repeatedCorePenalty(classification, context)
+        score += corePatternPolicy.adjustment(candidate, classification, context)
         score -= repeatedTransferPenalty(classification, context)
         if (context.plannedSlot.intensity == ProgramDayIntensity.LIGHT && candidate.highStress) score -= 2.2
         return score
@@ -51,22 +53,6 @@ internal class ProgramCandidateRerankingPolicy {
                 item.exerciseName.contains(LOADED_NAME_HINTS, ignoreCase = true)
         }
         return weekLoaded < 2
-    }
-
-    private fun repeatedCorePenalty(
-        classification: ProgramCandidateClassification,
-        context: ProgramCandidateScoreContext
-    ): Double {
-        if (classification.corePattern == ProgramCorePattern.NONE) return 0.0
-        val repeated = context.generatedItems.count { item ->
-            item.weekNumber == context.week.weekIndex &&
-                item.corePattern() == classification.corePattern
-        }
-        return when {
-            classification.corePattern == ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION && repeated >= 1 -> 3.0
-            repeated >= 2 -> 1.5
-            else -> 0.0
-        }
     }
 
     private fun repeatedTransferPenalty(
@@ -99,21 +85,6 @@ internal class ProgramCandidateRerankingPolicy {
         return requestedTemplateSlot == name ||
             primarySlotCapabilities.any { it == name } ||
             secondarySlotCapabilities.any { it == name }
-    }
-
-    private fun ProgramSkeletonItem.corePattern(): ProgramCorePattern {
-        val text = listOf(exerciseName, stableKey, movementFamily, movementSubtype, redundancyGroup)
-            .joinToString("|")
-            .uppercase()
-        return when {
-            listOf("CAPTAIN", "LEG_RAISE", "HIP_FLEXOR", "CORE_FLEXION").any(text::contains) ->
-                ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION
-            "ANTI_ROTATION" in text || "PALLOF" in text -> ProgramCorePattern.ANTI_ROTATION
-            "ANTI_EXTENSION" in text || "DEAD_BUG" in text -> ProgramCorePattern.ANTI_EXTENSION
-            "SIDE_PLANK" in text || "LATERAL" in text -> ProgramCorePattern.LATERAL_STABILITY
-            "CARRY" in text || "FARMER" in text || "SUITCASE" in text -> ProgramCorePattern.CARRY
-            else -> ProgramCorePattern.NONE
-        }
     }
 
     private fun String.contains(tokens: Set<String>, ignoreCase: Boolean): Boolean =

@@ -238,6 +238,88 @@ class ProgramBuilderReservoirBeamV041105Test {
             policy.candidateWindow(scored, desiredExerciseCount = 4).size >= 6)
     }
 
+    @Test
+    fun corePatternPolicyRotatesAwayFromRepeatedCaptainChair() {
+        val policy = ProgramCorePatternPolicy()
+        val classifier = ProgramCandidateClassificationPolicy()
+        val request = request(periodizationType = ProgramPeriodizationType.BADMINTON_WAVE)
+        val context = ProgramCandidateScoreContext(
+            request = request,
+            week = ProgramWeekPlan(
+                weekIndex = 1,
+                weekType = ProgramWeekType.BUILD.name,
+                volumeMultiplier = 1.0,
+                intensityMultiplier = 1.0,
+                heavyExposureLimit = 2,
+                lowerBodyFatigueLimit = 8.0,
+                axialLoadLimit = 2,
+                plyometricLimit = 1,
+                deloadFlag = false
+            ),
+            periodizedWeek = ProgramPeriodizationWeekPlan(
+                weekIndex = 1,
+                role = ProgramWeekRole.TRANSFER_ACCESSORY,
+                dayProfiles = mapOf(1 to ProgramDayProfile.LIGHT_RECOVERY)
+            ),
+            plannedSlot = PlannedSlot(1, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY, ProgramExerciseRole.CORE),
+            selectedInSession = emptyList(),
+            generatedItems = listOf(repeatedCaptainChairItem(week = 1, day = 1, order = 1))
+        )
+        val repeatedCaptainChair = candidate(
+            id = 30,
+            name = "Captain chair leg raise",
+            equipment = "BODYWEIGHT",
+            stableKey = "captain_chair_leg_raise",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.MODERATE
+            )
+        )
+        val pallofPress = candidate(
+            id = 31,
+            name = "Cable pallof press",
+            equipment = "CABLE",
+            stableKey = "cable_pallof_press",
+            capabilities = SlotCapabilityProfile(
+                primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
+                secondary = emptySet(),
+                weakMatches = emptySet(),
+                source = SlotCapabilitySource.RUNTIME_METADATA,
+                confidence = SlotCapabilityConfidence.HIGH
+            )
+        )
+
+        val repeatedAdjustment = policy.adjustment(
+            repeatedCaptainChair,
+            classifier.classify(repeatedCaptainChair),
+            context
+        )
+        val rotatedAdjustment = policy.adjustment(pallofPress, classifier.classify(pallofPress), context)
+
+        assertTrue("repeated trunk flexion should be strongly penalized", repeatedAdjustment < -3.0)
+        assertTrue("anti-rotation core should be preferred after trunk flexion appears", rotatedAdjustment > 0.0)
+    }
+
+    @Test
+    fun corePatternPolicyWarnsWhenFillerRepeatsAcrossTheProgram() {
+        val policy = ProgramCorePatternPolicy()
+        val skeleton = skeleton(
+            days = listOf(1, 2, 4, 6, 7),
+            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+        )
+
+        val warnings = policy.warnings(skeleton.items, skeleton.request)
+
+        assertTrue("trunk flexion repetition should warn",
+            "PROGRAM_CORE_PATTERN_TRUNK_FLEXION_REPEAT" in warnings)
+        assertTrue("program-wide core accessory overuse should warn",
+            "PROGRAM_CORE_ACCESSORY_STABLEKEY_OVERUSE" in warnings)
+    }
+
     private fun skeleton(
         days: List<Int>,
         itemFactory: (week: Int, day: Int, order: Int) -> ProgramSkeletonItem
