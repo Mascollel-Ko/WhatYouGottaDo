@@ -6,7 +6,7 @@ import java.util.Locale
 
 internal data class ProgramWeightSuggestion(val weightKg: Double, val source: String)
 
-internal class ProgramHistoryWeightIndex(
+internal class ProgramWeightSuggestionPolicy(
     history: List<WorkoutEntryWithSets>,
     exercises: List<Exercise>
 ) {

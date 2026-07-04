@@ -16,6 +16,7 @@ class ProgramBuilder internal constructor(
     private val scoringPolicy = ProgramScoringPolicy(coveragePolicy)
     private val varietyPolicy = ProgramVarietyPolicy()
     private val sessionConstraintPolicy = ProgramSessionConstraintPolicy()
+    private val reasonFormatter = ProgramSelectionReasonFormatter()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -51,7 +52,7 @@ class ProgramBuilder internal constructor(
         )
         val candidates = inventory.candidates
 
-        val historyWeights = ProgramHistoryWeightIndex(history, exercises)
+        val weightSuggestionPolicy = ProgramWeightSuggestionPolicy(history, exercises)
         val generated = mutableListOf<ProgramSkeletonItem>()
         val selectionHistory = ProgramSelectionHistory()
         val warnings = mutableListOf<String>()
@@ -166,7 +167,7 @@ class ProgramBuilder internal constructor(
                     varietyPolicy.recordSelection(selectionHistory, picked, week.weekIndex, absoluteDay, coveragePolicy)
                     estimatedSessionSeconds += itemDurationSeconds
                     val requestedSlot = templateSlot.targetSlot ?: picked.resolvedSlotForRole(role)
-                    val weight = historyWeights.suggest(
+                    val weight = weightSuggestionPolicy.suggest(
                         exercise = picked.exercise,
                         targetReps = prescription.reps,
                         intensityMultiplier = week.intensityMultiplier,
@@ -192,7 +193,7 @@ class ProgramBuilder internal constructor(
                         reps = prescription.reps,
                         weightKg = weight.weightKg,
                         seconds = prescription.seconds,
-                        selectionReason = reasonTokens(picked, role, fatigueGate),
+                        selectionReason = reasonFormatter.format(picked, role, fatigueGate),
                         weightSource = weight.source,
                         trainingSlot = day.slot.name,
                         dayIntensity = day.intensity.name,
@@ -268,19 +269,6 @@ class ProgramBuilder internal constructor(
             warnings = (warnings + visibleIssues).distinct()
         )
     }
-
-    private fun reasonTokens(
-        candidate: ProgramCandidate,
-        role: ProgramExerciseRole,
-        gate: ProgramFatigueGate
-    ): String = buildList {
-        add("역할:${role.name}")
-        candidate.metadata?.movementFamily?.takeIf { it.isNotBlank() && it != "NOT_APPLICABLE" }
-            ?.let { add("동작:$it") }
-        if (candidate.badmintonFit >= 0.8) add("전이:${candidate.metadata?.badmintonTransferLevel}")
-        if (candidate.metadata?.appCueProfile == "RANDOM_BEEP_CUE") add("앱 cue 가능")
-        if (gate.band != ProgramFatigueBand.GREEN) add("피로:${gate.band.name}")
-    }.joinToString(" / ")
 
     private fun choosePeriodization(request: ProgramSkeletonRequest): ProgramPeriodizationType =
         request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
