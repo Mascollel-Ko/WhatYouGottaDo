@@ -2,7 +2,6 @@ package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import java.time.LocalDate
-import kotlin.math.max
 import kotlin.math.roundToInt
 
 class ProgramBuilder internal constructor(
@@ -15,6 +14,7 @@ class ProgramBuilder internal constructor(
     private val candidateInventory = ProgramCandidateInventory(slotCapabilityResolver)
     private val slotCandidateQuery = ProgramSlotCandidateQuery(coveragePolicy)
     private val scoringPolicy = ProgramScoringPolicy(coveragePolicy)
+    private val varietyPolicy = ProgramVarietyPolicy()
 
     fun build(
         request: ProgramSkeletonRequest,
@@ -77,7 +77,8 @@ class ProgramBuilder internal constructor(
                         weekNumber = week.weekIndex,
                         absoluteDay = absoluteDay,
                         repeatAllowed = { candidate ->
-                            selectionHistory.allowsRepeat(
+                            varietyPolicy.allowsRepeat(
+                                history = selectionHistory,
                                 candidate = candidate,
                                 absoluteDay = absoluteDay,
                                 minimumGapDays = templateSlot.minimumRepeatGapDays
@@ -101,10 +102,13 @@ class ProgramBuilder internal constructor(
                                 totalWeeks = normalized.durationWeeks
                             )
                         },
-                        selectionPoolSize = selectionPoolSize(normalized),
+                        selectionPoolSize = varietyPolicy.selectionPoolSize(
+                            request = normalized,
+                            exerciseCount = prescriptionPolicy.exerciseCount(normalized.dailyAvailableMinutes)
+                        ),
                         selectedCount = 0
                     )
-                    val picked = chooseControlledCandidate(
+                    val picked = varietyPolicy.chooseControlledCandidate(
                         scored = query.scored,
                         weekIndex = week.weekIndex,
                         dayIndex = dayIndex,
@@ -156,7 +160,7 @@ class ProgramBuilder internal constructor(
                     candidateTraces += query.trace.copy(selected = 1)
                     warnings += query.trace.warnings
                     selected += picked
-                    selectionHistory.record(picked, week.weekIndex, absoluteDay, coveragePolicy)
+                    varietyPolicy.recordSelection(selectionHistory, picked, week.weekIndex, absoluteDay, coveragePolicy)
                     estimatedSessionSeconds += itemDurationSeconds
                     val requestedSlot = templateSlot.targetSlot ?: picked.resolvedSlotForRole(role)
                     val weight = historyWeights.suggest(
@@ -261,25 +265,6 @@ class ProgramBuilder internal constructor(
             warnings = (warnings + visibleIssues).distinct()
         )
     }
-
-    private fun chooseControlledCandidate(
-        scored: List<Pair<ProgramCandidate, Double>>,
-        weekIndex: Int,
-        dayIndex: Int,
-        itemIndex: Int,
-        preference: ProgramVarietyPreference
-    ): ProgramCandidate? {
-        scored.firstOrNull() ?: return null
-        val poolSize = when (preference) {
-            ProgramVarietyPreference.LOW -> 4
-            ProgramVarietyPreference.NORMAL -> 6
-            ProgramVarietyPreference.HIGH -> 8
-        }.coerceAtMost(scored.size)
-        return scored[(weekIndex + dayIndex + itemIndex) % poolSize].first
-    }
-
-    private fun selectionPoolSize(request: ProgramSkeletonRequest): Int =
-        max(8, prescriptionPolicy.exerciseCount(request.dailyAvailableMinutes) * 3)
 
     private fun sessionAllows(
         selected: List<ProgramCandidate>,
