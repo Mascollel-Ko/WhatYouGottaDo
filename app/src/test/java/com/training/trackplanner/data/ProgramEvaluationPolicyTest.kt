@@ -45,6 +45,38 @@ class ProgramEvaluationPolicyTest {
     }
 
     @Test
+    fun repeatedCoreAndIdenticalWeeksCannotScorePerfect() {
+        val generated = reproductionPlan()
+        val weekOne = generated.items.filter { it.weekNumber == 1 }
+        val repeatedCoreWeeks = generated.copy(
+            items = generated.weekPlans.flatMap { week ->
+                weekOne.map { item ->
+                    item.copy(
+                        weekNumber = week.weekIndex,
+                        exerciseName = "Captain chair leg raise",
+                        selectionRole = ProgramExerciseRole.CORE.name,
+                        stableKey = "captain_chair_leg_raise",
+                        redundancyGroup = "CORE_FLEXION",
+                        movementFamily = "CORE_FLEXION_ANTERIOR_CORE",
+                        movementSubtype = "CAPTAINS_CHAIR_LEG_RAISE",
+                        requestedTemplateSlot = ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name,
+                        primarySlotCapabilities = listOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name),
+                        secondarySlotCapabilities = emptyList()
+                    )
+                }
+            }
+        )
+
+        val evaluation = policy.evaluate(repeatedCoreWeeks)
+
+        assertTrue("repeated core filler should cap overall score", evaluation.overallScore <= 90)
+        assertTrue("repeated core filler should be detected",
+            evaluation.issues.any { it.type == ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION })
+        assertTrue("identical week profiles should be detected",
+            evaluation.issues.any { it.type == ProgramEvaluationIssueType.NO_WEEK_VARIATION })
+    }
+
+    @Test
     fun fatigueClusterProducesIssue() {
         val generated = reproductionPlan()
         val clustered = generated.copy(

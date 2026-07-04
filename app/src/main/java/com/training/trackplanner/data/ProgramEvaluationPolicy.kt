@@ -1,10 +1,12 @@
 package com.training.trackplanner.data
 
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal class ProgramEvaluationPolicy(
     private val densityPolicy: ProgramSessionDensityPolicy = ProgramSessionDensityPolicy(),
-    private val dayIntensityPolicy: ProgramDayIntensityPolicy = ProgramDayIntensityPolicy()
+    private val dayIntensityPolicy: ProgramDayIntensityPolicy = ProgramDayIntensityPolicy(),
+    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy()
 ) {
     fun evaluate(skeleton: GeneratedProgramSkeleton): ProgramEvaluation {
         val weekly = skeleton.weekPlans.map { week ->
@@ -30,9 +32,10 @@ internal class ProgramEvaluationPolicy(
             emptyList()
         }
         val issues = (programIssues + recoveredIssues).distinctBy { it.type to it.message }
+        val adjustedOverall = (overall - issues.count { it.severity == ProgramEvaluationIssueSeverity.SEVERE } * 4)
+            .coerceIn(0, 100)
         return ProgramEvaluation(
-            overallScore = (overall - issues.count { it.severity == ProgramEvaluationIssueSeverity.SEVERE } * 4)
-                .coerceIn(0, 100),
+            overallScore = capOverallScore(adjustedOverall, issues),
             weeklyScores = weekly,
             fatigueScore = fatigueScore,
             strengthDistributionScore = strengthScore,
@@ -91,6 +94,14 @@ internal class ProgramEvaluationPolicy(
             if (movementFamilyOveruse(items)) {
                 add(issue(ProgramEvaluationIssueType.MUSCLE_GROUP_OVERUSE, ProgramEvaluationIssueSeverity.WARNING,
                     "One movement family dominates too much of the program."))
+            }
+            if (coreAccessoryOveruse(items, skeleton.request)) {
+                add(issue(ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION, ProgramEvaluationIssueSeverity.SEVERE,
+                    "One core or accessory filler repeats too often."))
+            }
+            if (weekProfilesRepeat(skeleton)) {
+                add(issue(ProgramEvaluationIssueType.NO_WEEK_VARIATION, ProgramEvaluationIssueSeverity.WARNING,
+                    "Week-to-week exercise profiles are too similar."))
             }
             if (dayIntensityPolicy.warnings(items, skeleton.request).contains("PROGRAM_HIGH_LOWER_FATIGUE_CLUSTER")) {
                 add(issue(ProgramEvaluationIssueType.HIGH_LOWER_BODY_FATIGUE_CLUSTER,
@@ -173,6 +184,39 @@ internal class ProgramEvaluationPolicy(
         return families.groupingBy { it }.eachCount().values.maxOrNull().orEmptyInt() > items.size / 3
     }
 
+    private fun coreAccessoryOveruse(items: List<ProgramSkeletonItem>, request: ProgramSkeletonRequest): Boolean =
+        items
+            .filter { item ->
+                item.selectionRole in CORE_ACCESSORY_ROLE_NAMES ||
+                    corePatternPolicy.corePattern(item) != ProgramCorePattern.NONE
+            }
+            .groupBy { it.stableKey.ifBlank { it.exerciseName } }
+            .any { (key, rows) -> key.isNotBlank() && rows.size > request.durationWeeks }
+
+    private fun weekProfilesRepeat(skeleton: GeneratedProgramSkeleton): Boolean {
+        if (skeleton.request.durationWeeks < 4) return false
+        val signatures = skeleton.items
+            .groupBy(ProgramSkeletonItem::weekNumber)
+            .map { (_, rows) ->
+                rows.sortedWith(compareBy(ProgramSkeletonItem::dayOfWeek, ProgramSkeletonItem::orderIndex))
+                    .joinToString("|") { item ->
+                        listOf(item.selectionRole, item.requestedTemplateSlot, item.stableKey).joinToString(":")
+                    }
+            }
+        return signatures.size >= 4 && signatures.distinct().size == 1
+    }
+
+    private fun capOverallScore(score: Int, issues: List<ProgramEvaluationIssue>): Int {
+        val issueTypes = issues.map(ProgramEvaluationIssue::type).toSet()
+        var capped = score
+        if (ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR in issueTypes) capped = min(capped, 92)
+        if (ProgramEvaluationIssueType.LOADED_STRENGTH_UNDERUSED in issueTypes) capped = min(capped, 92)
+        if (ProgramEvaluationIssueType.LOW_SESSION_DENSITY in issueTypes) capped = min(capped, 92)
+        if (ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION in issueTypes) capped = min(capped, 90)
+        if (ProgramEvaluationIssueType.NO_WEEK_VARIATION in issueTypes) capped = min(capped, 84)
+        return capped
+    }
+
     private fun isStrengthAnchor(item: ProgramSkeletonItem): Boolean =
         item.selectionRole in STRENGTH_ROLE_NAMES &&
             item.badmintonTransferLevel != "DIRECT" &&
@@ -217,6 +261,11 @@ internal class ProgramEvaluationPolicy(
             ProgramSlotId.UPPER_PUSH_SUPPORT.name,
             ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT.name,
             ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name
+        )
+        val CORE_ACCESSORY_ROLE_NAMES = setOf(
+            ProgramExerciseRole.CORE.name,
+            ProgramExerciseRole.PREHAB.name,
+            ProgramExerciseRole.ACCESSORY.name
         )
         val LOADED_EQUIPMENT = setOf(
             "BARBELL", "DUMBBELL", "MACHINE", "CABLE", "SMITH_MACHINE",
