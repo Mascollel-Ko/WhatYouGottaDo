@@ -24,7 +24,8 @@ internal class ProgramOptimizationPolicy(
                 beforeScore = currentEvaluation.overallScore,
                 afterScore = candidateEvaluation.overallScore,
                 accepted = accepted,
-                actions = repair.actions
+                actions = repair.actions,
+                details = repair.details
             )
             if (accepted) {
                 current = repair.skeleton

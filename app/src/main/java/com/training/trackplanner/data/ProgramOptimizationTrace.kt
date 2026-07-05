@@ -9,10 +9,12 @@ data class ProgramOptimizationTrace(
     val beforeScore: Int,
     val afterScore: Int,
     val accepted: Boolean,
-    val actions: List<String>
+    val actions: List<String>,
+    val details: List<String> = emptyList()
 )
 
 internal data class ProgramRepairResult(
     val skeleton: GeneratedProgramSkeleton,
-    val actions: List<String>
+    val actions: List<String>,
+    val details: List<String> = emptyList()
 )

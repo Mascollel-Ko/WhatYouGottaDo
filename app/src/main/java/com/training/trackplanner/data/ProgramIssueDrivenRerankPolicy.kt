@@ -111,7 +111,11 @@ internal class ProgramIssueDrivenRerankPolicy(
                 classification = reservoir.classification(replacement),
                 role = roleForSelectedMain(replacement.exercise.stableKey)
             ),
-            actions = listOf("REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN")
+            actions = listOf("REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN"),
+            details = listOf(
+                "week=${target.weekNumber};day=${target.dayOfWeek};slot=${target.orderIndex};" +
+                    "removed=${target.stableKey};inserted=${replacement.exercise.stableKey}"
+            )
         )
     }
 

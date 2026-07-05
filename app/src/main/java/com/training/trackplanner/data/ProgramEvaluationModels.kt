@@ -10,7 +10,8 @@ data class ProgramEvaluation(
     val intensityDistributionScore: Int,
     val equipmentUtilizationScore: Int,
     val issues: List<ProgramEvaluationIssue>,
-    val suggestions: List<String>
+    val suggestions: List<String>,
+    val capReasons: List<String> = emptyList()
 )
 
 data class WeeklyProgramEvaluation(

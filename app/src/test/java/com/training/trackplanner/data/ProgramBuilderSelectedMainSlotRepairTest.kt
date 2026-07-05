@@ -216,6 +216,10 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             repair.skeleton.items.any { it.stableKey == "barbell_back_squat" })
         assertFalse("captain chair should be removed from the repaired slot",
             repair.skeleton.items.all { it.stableKey in CAPTAIN_CHAIR_KEYS })
+        assertTrue("repair trace should record removed exercise",
+            repair.details.any { it.contains("removed=ex_a345e30b") })
+        assertTrue("repair trace should record inserted selected-main exercise",
+            repair.details.any { it.contains("inserted=barbell_back_squat") })
     }
 
     @Test
@@ -259,6 +263,16 @@ class ProgramBuilderSelectedMainSlotRepairTest {
         assertTrue(evaluation.issues.any { it.type == ProgramEvaluationIssueType.SELECTED_MAIN_MISSING })
         assertTrue("selected-main missing must cap score strongly, score=${evaluation.overallScore}",
             evaluation.overallScore <= 60)
+        assertTrue("evaluation should expose selected-main cap reason",
+            "SELECTED_MAIN_AVAILABLE_BUT_MISSING_MAX_60" in evaluation.capReasons)
+    }
+
+    @Test
+    fun generatedTraceExposesSelectedMainReservationKeys() {
+        val result = reproductionPlan()
+
+        assertTrue("selected-main reservation should be visible in candidate trace",
+            result.candidateTraces.any { it.selectedMainReservationStableKey in SELECTED_MAIN_KEYS })
     }
 
     private fun reproductionPlan(

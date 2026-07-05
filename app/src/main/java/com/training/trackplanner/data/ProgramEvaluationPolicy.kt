@@ -35,6 +35,7 @@ internal class ProgramEvaluationPolicy(
         val issues = (programIssues + recoveredIssues).distinctBy { it.type to it.message }
         val adjustedOverall = (overall - issues.count { it.severity == ProgramEvaluationIssueSeverity.SEVERE } * 4)
             .coerceIn(0, 100)
+        val capReasons = capReasons(issues)
         return ProgramEvaluation(
             overallScore = capOverallScore(adjustedOverall, issues),
             weeklyScores = weekly,
@@ -45,7 +46,8 @@ internal class ProgramEvaluationPolicy(
             intensityDistributionScore = intensityScore,
             equipmentUtilizationScore = equipmentScore,
             issues = issues,
-            suggestions = issues.map(::suggestionFor).distinct()
+            suggestions = issues.map(::suggestionFor).distinct(),
+            capReasons = capReasons
         )
     }
 
@@ -233,6 +235,17 @@ internal class ProgramEvaluationPolicy(
         if (ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION in issueTypes) capped = min(capped, 90)
         if (ProgramEvaluationIssueType.NO_WEEK_VARIATION in issueTypes) capped = min(capped, 84)
         return capped
+    }
+
+    private fun capReasons(issues: List<ProgramEvaluationIssue>): List<String> {
+        val issueTypes = issues.map(ProgramEvaluationIssue::type).toSet()
+        return buildList {
+            if (ProgramEvaluationIssueType.SELECTED_MAIN_MISSING in issueTypes) {
+                add("SELECTED_MAIN_AVAILABLE_BUT_MISSING_MAX_60")
+            }
+            if (ProgramEvaluationIssueType.NO_WEEK_VARIATION in issueTypes) add("NO_WEEK_VARIATION_MAX_84")
+            if (ProgramEvaluationIssueType.TOO_MUCH_CORE_REPETITION in issueTypes) add("CORE_REPETITION_MAX_90")
+        }
     }
 
     private fun isStrengthAnchor(item: ProgramSkeletonItem): Boolean =
