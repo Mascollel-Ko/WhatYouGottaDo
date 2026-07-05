@@ -250,13 +250,14 @@ internal class ProgramSlotCandidateQuery(
         scored: List<Pair<ProgramCandidate, Double>>,
         selectionPoolSize: Int
     ): List<Pair<ProgramCandidate, Double>> {
-        if (scored.size <= selectionPoolSize) return scored
+        val targetPoolSize = maxOf(30, selectionPoolSize)
+        if (scored.size <= targetPoolSize) return scored
         val best = scored.first().second
         val scoreWindow = scored.filter { best - it.second <= 2.0 }
-        return if (scoreWindow.size >= 8) {
+        return if (scoreWindow.size >= targetPoolSize) {
             scoreWindow
         } else {
-            scored.take(selectionPoolSize)
+            scored.take(targetPoolSize)
         }
     }
 

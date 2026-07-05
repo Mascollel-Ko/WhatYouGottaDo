@@ -181,6 +181,56 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     }
 
     @Test
+    fun inventoryKeepsSoftMismatchesButStillHardExcludesDirectSportAndSelectedKeys() {
+        val equipmentMismatch = Exercise(
+            id = 1,
+            name = "Barbell squat",
+            category = "strength",
+            stableKey = "barbell_squat",
+            equipment = "BARBELL",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+        val nonProgramSelectable = Exercise(
+            id = 2,
+            name = "Accessory row",
+            category = "strength",
+            stableKey = "accessory_row",
+            equipment = "BODYWEIGHT",
+            planningEligibility = "LAB_ONLY"
+        )
+        val directSportSession = Exercise(
+            id = 3,
+            name = "Badminton match",
+            category = "sport",
+            stableKey = "badminton_match",
+            equipment = "BODYWEIGHT",
+            activityKind = "SPORT_SESSION",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+        val excluded = Exercise(
+            id = 4,
+            name = "Excluded push up",
+            category = "strength",
+            stableKey = "excluded_push_up",
+            equipment = "BODYWEIGHT",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        )
+
+        val result = ProgramCandidateInventory().collect(
+            exercises = listOf(equipmentMismatch, nonProgramSelectable, directSportSession, excluded),
+            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+            availableEquipment = setOf("BODYWEIGHT"),
+            excludedExerciseStableKeys = setOf("excluded_push_up")
+        )
+
+        val stableKeys = result.candidates.map { it.exercise.stableKey }.toSet()
+        assertTrue("equipment mismatch is a soft scoring concern", "barbell_squat" in stableKeys)
+        assertTrue("non-program-selectable metadata is a soft scoring concern", "accessory_row" in stableKeys)
+        assertFalse("direct sport sessions remain hard-excluded unless explicitly preferred", "badminton_match" in stableKeys)
+        assertFalse("user excluded stable keys remain hard-excluded", "excluded_push_up" in stableKeys)
+    }
+
+    @Test
     fun preferredStableKeyBoostsCandidateReranking() {
         val preferred = candidate(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN)
         val request = baseRequest().copy(preferredExerciseStableKeys = setOf(preferred.exercise.stableKey))

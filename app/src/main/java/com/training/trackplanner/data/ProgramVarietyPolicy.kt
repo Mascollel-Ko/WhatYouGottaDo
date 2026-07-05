@@ -4,7 +4,7 @@ import kotlin.math.max
 
 internal class ProgramVarietyPolicy {
     fun selectionPoolSize(request: ProgramSkeletonRequest, exerciseCount: Int): Int =
-        max(8, exerciseCount * 3)
+        max(30, exerciseCount * 8)
 
     fun chooseControlledCandidate(
         scored: List<Pair<ProgramCandidate, Double>>,

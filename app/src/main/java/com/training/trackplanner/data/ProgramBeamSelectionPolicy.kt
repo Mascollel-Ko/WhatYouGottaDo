@@ -8,7 +8,7 @@ internal class ProgramBeamSelectionPolicy {
         desiredExerciseCount: Int
     ): List<Pair<ProgramCandidate, Double>> {
         if (scored.isEmpty()) return emptyList()
-        val size = max(MIN_SLOT_CANDIDATES, desiredExerciseCount * 2).coerceAtMost(MAX_SLOT_CANDIDATES)
+        val size = max(MIN_SLOT_CANDIDATES, desiredExerciseCount * 8).coerceAtMost(MAX_SLOT_CANDIDATES)
         return scored.take(size.coerceAtMost(scored.size))
     }
 
@@ -55,8 +55,8 @@ internal class ProgramBeamSelectionPolicy {
     }
 
     private companion object {
-        const val MIN_SLOT_CANDIDATES = 6
-        const val MAX_SLOT_CANDIDATES = 12
+        const val MIN_SLOT_CANDIDATES = 30
+        const val MAX_SLOT_CANDIDATES = 30
         const val BEAM_SIZE = 6
     }
 }

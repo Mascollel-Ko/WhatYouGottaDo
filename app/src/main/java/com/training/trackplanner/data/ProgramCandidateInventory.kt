@@ -19,7 +19,7 @@ internal class ProgramCandidateInventory(
         excludedExerciseStableKeys: Set<String> = emptySet()
     ): ProgramCandidateInventoryResult {
         val active = exercises.filter(Exercise::isActive)
-        val selectable = active.map { exercise ->
+        val hardEligible = active.map { exercise ->
             val metadata = runtimeMetadataCatalog.resolve(exercise)
             ProgramCandidate(
                 exercise = exercise,
@@ -27,14 +27,13 @@ internal class ProgramCandidateInventory(
                 canonical = metadata != null,
                 slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
             )
-        }.filter(ProgramCandidate::isProgramSelectable)
-        val equipmentMatched = selectable.filter { it.matchesEquipment(availableEquipment) }
+        }.filterNot(ProgramCandidate::isDirectSportSession)
         val normalizedExcluded = excludedExerciseStableKeys.filter(String::isNotBlank).toSet()
-        val notExcluded = equipmentMatched.filter { candidate -> candidate.exercise.stableKey !in normalizedExcluded }
+        val notExcluded = hardEligible.filter { candidate -> candidate.exercise.stableKey !in normalizedExcluded }
         return ProgramCandidateInventoryResult(
             allActive = active.size,
-            programSelectable = selectable.size,
-            equipmentMatched = equipmentMatched.size,
+            programSelectable = hardEligible.size,
+            equipmentMatched = hardEligible.size,
             notExcludedByUser = notExcluded.size,
             candidates = notExcluded,
             reservoir = ProgramCandidateReservoir(notExcluded)
