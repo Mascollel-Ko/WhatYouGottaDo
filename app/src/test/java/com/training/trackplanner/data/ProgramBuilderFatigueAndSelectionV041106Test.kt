@@ -240,9 +240,9 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             )
         ).withExerciseConstraintSummary()
 
-        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("제외 운동 1개") })
-        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("우선 포함 운동 1개") })
-        assertTrue(skeleton.optimizationSummary.messages.any { it.contains("반영되지 않았습니다") })
+        assertTrue(skeleton.optimizationSummary.messages.any { it == "PROGRAM_EXCLUDED_EXERCISES_APPLIED: 1" })
+        assertTrue(skeleton.optimizationSummary.messages.any { it == "PROGRAM_PREFERRED_EXERCISES_INCLUDED: 1/2" })
+        assertFalse(skeleton.optimizationSummary.messages.any { it.contains("반영되지 않았습니다") })
     }
 
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =

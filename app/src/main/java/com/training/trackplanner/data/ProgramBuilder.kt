@@ -361,6 +361,10 @@ class ProgramBuilder internal constructor(
             warnings = (warnings + visibleIssues).distinct()
         )
         return optimizationPolicy.optimize(validated, inventory.reservoir)
+            .withPreferredExerciseHardIncludes(
+                exercises = exercises,
+                runtimeMetadataCatalog = runtimeMetadataCatalog
+            )
             .withExerciseConstraintSummary()
     }
 
@@ -386,6 +390,260 @@ class ProgramBuilder internal constructor(
         return weekSelectedMain >= 2 &&
             programSelectedMainTypes.size >= minOf(3, availableSelectedMainStableKeys.size)
     }
+
+    private fun GeneratedProgramSkeleton.withPreferredExerciseHardIncludes(
+        exercises: List<Exercise>,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+    ): GeneratedProgramSkeleton {
+        val preferred = request.preferredExerciseStableKeys.filter(String::isNotBlank).toSet()
+        if (preferred.isEmpty()) return this
+
+        val excluded = request.excludedExerciseStableKeys.filter(String::isNotBlank).toSet()
+        val exercisesByStableKey = exercises
+            .filter { it.stableKey.isNotBlank() }
+            .associateBy(Exercise::stableKey)
+        val conflicts = preferred.intersect(excluded)
+        val missing = preferred
+            .filter { it !in conflicts && it !in exercisesByStableKey.keys }
+            .toSet()
+        val inactive = preferred
+            .filter { key -> key !in conflicts && key !in missing && exercisesByStableKey[key]?.isActive != true }
+            .toSet()
+        var adjusted = this
+        val issues = mutableListOf<ProgramValidationIssue>()
+        val outcomeMessages = mutableListOf<String>()
+
+        conflicts.sorted().forEach { key ->
+            issues += ProgramValidationIssue(
+                code = "PROGRAM_PREFERRED_EXCLUDED_CONFLICT",
+                severity = ProgramValidationSeverity.HARD,
+                message = "Preferred exercise '$key' is also excluded."
+            )
+        }
+        missing.sorted().forEach { key ->
+            issues += ProgramValidationIssue(
+                code = "PROGRAM_PREFERRED_EXERCISE_MISSING",
+                severity = ProgramValidationSeverity.HARD,
+                message = "Preferred exercise '$key' was not found in the exercise catalog."
+            )
+        }
+        inactive.sorted().forEach { key ->
+            issues += ProgramValidationIssue(
+                code = "PROGRAM_PREFERRED_EXERCISE_INACTIVE",
+                severity = ProgramValidationSeverity.HARD,
+                message = "Preferred exercise '$key' is inactive."
+            )
+        }
+
+        val placeable = preferred - conflicts - missing - inactive
+        placeable.sorted().forEach { key ->
+            if (adjusted.items.any { it.stableKey == key }) {
+                outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_INCLUDED: $key"
+                return@forEach
+            }
+            val exercise = exercisesByStableKey[key] ?: return@forEach
+            val candidate = preferredCandidate(exercise, runtimeMetadataCatalog)
+            val target = adjusted.preferredReplacementTarget(preferred)
+            adjusted = if (target != null) {
+                outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_FORCED: $key replaced ${target.stableKey.ifBlank { target.exerciseName }}"
+                adjusted.copy(
+                    items = adjusted.items.map { item ->
+                        if (item.localId == target.localId) {
+                            item.withPreferredCandidate(candidate, preferredRole(candidate))
+                        } else {
+                            item
+                        }
+                    }
+                )
+            } else {
+                outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_FORCED: $key appended"
+                adjusted.appendPreferredCandidate(candidate)
+            }
+        }
+
+        val mergedIssues = (adjusted.validationDetails + issues)
+            .distinctBy { "${it.code}:${it.message}" }
+        val renderedIssues = mergedIssues.map(ProgramValidationIssue::render)
+        return adjusted.copy(
+            validationDetails = mergedIssues,
+            validationIssues = renderedIssues,
+            warnings = (adjusted.warnings + renderedIssues + outcomeMessages).distinct(),
+            optimizationSummary = adjusted.optimizationSummary.copy(
+                messages = (adjusted.optimizationSummary.messages + outcomeMessages).distinct()
+            )
+        )
+    }
+
+    private fun preferredCandidate(
+        exercise: Exercise,
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+    ): ProgramCandidate {
+        val catalogMetadata = runtimeMetadataCatalog.resolve(exercise)
+        val metadata = catalogMetadata ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
+        return ProgramCandidate(
+            exercise = exercise,
+            metadata = metadata,
+            canonical = catalogMetadata != null,
+            slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
+        )
+    }
+
+    private fun GeneratedProgramSkeleton.preferredReplacementTarget(preferred: Set<String>): ProgramSkeletonItem? =
+        items.firstOrNull { item -> item.stableKey !in preferred && item.selectionRole in WEAK_PREFERRED_REPLACEMENT_ROLES }
+            ?: items.firstOrNull { item -> item.stableKey !in preferred && !item.requiredTemplateAnchor }
+            ?: items.firstOrNull { item -> item.stableKey !in preferred }
+
+    private fun ProgramSkeletonItem.withPreferredCandidate(
+        candidate: ProgramCandidate,
+        role: ProgramExerciseRole
+    ): ProgramSkeletonItem {
+        val requestedSlot = candidate.resolvedSlotForRole(role)
+            ?: requestedTemplateSlot.takeIf(String::isNotBlank)?.let { name ->
+                runCatching { ProgramSlotId.valueOf(name) }.getOrNull()
+            }
+        return copy(
+            exerciseId = candidate.exercise.id,
+            exerciseName = candidate.exercise.name,
+            category = candidate.exercise.category,
+            restSeconds = candidate.exercise.defaultRestSeconds,
+            stableKey = candidate.exercise.stableKey,
+            selectionRole = role.name,
+            movementFamily = candidate.metadata?.movementFamily.orEmpty(),
+            movementSubtype = candidate.metadata?.movementSubtype.orEmpty(),
+            metadataProgramSlot = candidate.metadata?.programSlot.orEmpty(),
+            redundancyGroup = candidate.metadata?.redundancyGroup.orEmpty(),
+            strengthProgressionGroup = candidate.metadata?.strengthProgressionGroup.orEmpty(),
+            primaryStressProfile = candidate.metadata?.primaryStressProfile.orEmpty(),
+            stressMagnitudeHint = candidate.metadata?.stressMagnitudeHint.orEmpty(),
+            neuromuscularStressLevel = candidate.metadata?.neuromuscularStressLevel.orEmpty(),
+            systemicMuscularStressLevel = candidate.metadata?.systemicMuscularStressLevel.orEmpty(),
+            localMuscularStressLevel = candidate.metadata?.localMuscularStressLevel.orEmpty(),
+            jointTendonImpactStressLevel = candidate.metadata?.jointTendonImpactStressLevel.orEmpty(),
+            movementFocusDemandLevel = candidate.metadata?.movementFocusDemandLevel.orEmpty(),
+            recoveryDurationClass = candidate.metadata?.recoveryDurationClass.orEmpty(),
+            badmintonTransferLevel = candidate.metadata?.badmintonTransferLevel.orEmpty(),
+            directSportSession = candidate.isDirectSportSession,
+            rehabLikeActivation = candidate.isRehabLikeActivation,
+            scapularStabilityExposure = candidate.isScapularStabilityExposure,
+            primarySlotCapabilities = candidate.slotCapabilities.primary.map(ProgramSlotId::name).sorted(),
+            secondarySlotCapabilities = candidate.slotCapabilities.secondary.map(ProgramSlotId::name).sorted(),
+            weakSlotCapabilities = candidate.slotCapabilities.weakMatches.map(ProgramSlotId::name).sorted(),
+            slotCapabilitySource = candidate.slotCapabilities.source.name,
+            slotCapabilityConfidence = candidate.slotCapabilities.confidence.name,
+            slotCapabilityWarnings = candidate.slotCapabilities.warnings,
+            requestedTemplateSlot = requestedSlot?.name.orEmpty()
+        )
+    }
+
+    private fun GeneratedProgramSkeleton.appendPreferredCandidate(candidate: ProgramCandidate): GeneratedProgramSkeleton {
+        val anchor = items.firstOrNull()
+        val weekNumber = anchor?.weekNumber ?: 1
+        val dayOfWeek = anchor?.dayOfWeek ?: 1
+        val orderIndex = items
+            .filter { it.weekNumber == weekNumber && it.dayOfWeek == dayOfWeek }
+            .maxOfOrNull(ProgramSkeletonItem::orderIndex)
+            ?.plus(1)
+            ?: 1
+        val week = weekPlans.firstOrNull { it.weekIndex == weekNumber } ?: ProgramWeekPlan(
+            weekIndex = weekNumber,
+            weekType = ProgramWeekType.BUILD.name,
+            volumeMultiplier = 1.0,
+            intensityMultiplier = 1.0,
+            heavyExposureLimit = 2,
+            lowerBodyFatigueLimit = 8.0,
+            axialLoadLimit = 2,
+            plyometricLimit = 1,
+            deloadFlag = false
+        )
+        val role = preferredRole(candidate)
+        val prescription = prescriptionPolicy.prescribe(
+            candidate = candidate,
+            role = role,
+            week = week,
+            gate = unrestrictedFatigueGate(),
+            useCase = ProgramFatigueUseCase.PROGRAM_PLANNING
+        )
+        val duration = prescriptionPolicy.estimateItemDurationSeconds(candidate, prescription)
+        return copy(
+            items = items + ProgramSkeletonItem(
+                localId = "$weekNumber-$dayOfWeek-$orderIndex-${candidate.exercise.id}-preferred",
+                weekNumber = weekNumber,
+                dayOfWeek = dayOfWeek,
+                orderIndex = orderIndex,
+                exerciseId = candidate.exercise.id,
+                exerciseName = candidate.exercise.name,
+                category = candidate.exercise.category,
+                restSeconds = candidate.exercise.defaultRestSeconds,
+                prescription = listOf(
+                    "PREFERRED_INCLUDE",
+                    prescription.label,
+                    "RPE ${prescription.rpe}"
+                ).joinToString(" · "),
+                setCount = prescription.setCount,
+                reps = prescription.reps,
+                weightKg = 0.0,
+                seconds = prescription.seconds,
+                selectionReason = "Preferred exercise included",
+                weightSource = "",
+                trainingSlot = anchor?.trainingSlot ?: ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
+                dayIntensity = anchor?.dayIntensity ?: ProgramDayIntensity.MODERATE.name,
+                stableKey = candidate.exercise.stableKey,
+                selectionRole = role.name,
+                movementFamily = candidate.metadata?.movementFamily.orEmpty(),
+                movementSubtype = candidate.metadata?.movementSubtype.orEmpty(),
+                metadataProgramSlot = candidate.metadata?.programSlot.orEmpty(),
+                redundancyGroup = candidate.metadata?.redundancyGroup.orEmpty(),
+                strengthProgressionGroup = candidate.metadata?.strengthProgressionGroup.orEmpty(),
+                primaryStressProfile = candidate.metadata?.primaryStressProfile.orEmpty(),
+                stressMagnitudeHint = candidate.metadata?.stressMagnitudeHint.orEmpty(),
+                neuromuscularStressLevel = candidate.metadata?.neuromuscularStressLevel.orEmpty(),
+                systemicMuscularStressLevel = candidate.metadata?.systemicMuscularStressLevel.orEmpty(),
+                localMuscularStressLevel = candidate.metadata?.localMuscularStressLevel.orEmpty(),
+                jointTendonImpactStressLevel = candidate.metadata?.jointTendonImpactStressLevel.orEmpty(),
+                movementFocusDemandLevel = candidate.metadata?.movementFocusDemandLevel.orEmpty(),
+                recoveryDurationClass = candidate.metadata?.recoveryDurationClass.orEmpty(),
+                badmintonTransferLevel = candidate.metadata?.badmintonTransferLevel.orEmpty(),
+                estimatedDurationSeconds = duration,
+                directSportSession = candidate.isDirectSportSession,
+                rehabLikeActivation = candidate.isRehabLikeActivation,
+                scapularStabilityExposure = candidate.isScapularStabilityExposure,
+                primarySlotCapabilities = candidate.slotCapabilities.primary.map(ProgramSlotId::name).sorted(),
+                secondarySlotCapabilities = candidate.slotCapabilities.secondary.map(ProgramSlotId::name).sorted(),
+                weakSlotCapabilities = candidate.slotCapabilities.weakMatches.map(ProgramSlotId::name).sorted(),
+                slotCapabilitySource = candidate.slotCapabilities.source.name,
+                slotCapabilityConfidence = candidate.slotCapabilities.confidence.name,
+                slotCapabilityWarnings = candidate.slotCapabilities.warnings,
+                requestedTemplateSlot = candidate.resolvedSlotForRole(role)?.name.orEmpty()
+            )
+        )
+    }
+
+    private fun preferredRole(candidate: ProgramCandidate): ProgramExerciseRole = when {
+        candidate.isAnchor || candidate.isLoadedStrength -> ProgramExerciseRole.ANCHOR
+        candidate.isCore -> ProgramExerciseRole.CORE
+        candidate.badmintonFit >= 0.9 -> ProgramExerciseRole.TRANSFER
+        else -> ProgramExerciseRole.SUPPORT
+    }
+
+    private fun unrestrictedFatigueGate(): ProgramFatigueGate =
+        ProgramFatigueGate(
+            band = ProgramFatigueBand.GREEN,
+            volumeFactor = 1.0,
+            rpeCap = 10,
+            allowsHeavyLower = true,
+            allowsHighImpact = true,
+            allowsHighIntensityCod = true,
+            lowerBodyRestricted = false
+        )
+
+    private companion object {
+        val WEAK_PREFERRED_REPLACEMENT_ROLES = setOf(
+            ProgramExerciseRole.CORE.name,
+            ProgramExerciseRole.PREHAB.name,
+            ProgramExerciseRole.ACCESSORY.name,
+            ProgramExerciseRole.TRANSFER.name
+        )
+    }
 }
 
 private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
@@ -410,13 +668,10 @@ internal fun GeneratedProgramSkeleton.withExerciseConstraintSummary(): Generated
     val preferred = request.preferredExerciseStableKeys.filter(String::isNotBlank).toSet()
     val preferredSelected = items.map(ProgramSkeletonItem::stableKey).toSet().intersect(preferred).size
     val messages = buildList {
-        if (excludedCount > 0) add("선택한 제외 운동 ${excludedCount}개를 후보에서 제외했습니다.")
+        if (excludedCount > 0) add("PROGRAM_EXCLUDED_EXERCISES_APPLIED: $excludedCount")
         if (preferred.isNotEmpty()) {
             if (preferredSelected > 0) {
-                add("우선 포함 운동 ${preferredSelected}개를 가능한 범위에서 반영했습니다.")
-            }
-            if (preferredSelected < preferred.size) {
-                add("일부 우선 포함 운동은 장비, 시간, 안전 조건 때문에 반영되지 않았습니다.")
+                add("PROGRAM_PREFERRED_EXERCISES_INCLUDED: $preferredSelected/${preferred.size}")
             }
         }
     }
