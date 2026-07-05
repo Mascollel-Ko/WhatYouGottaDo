@@ -224,11 +224,37 @@ internal fun programExerciseSelectionOptions(
 ): List<Exercise> {
     val normalizedQuery = query.trim()
     val selected = selectedStableKeys.toSet()
-    return exercises
+    val matches = exercises
         .asSequence()
         .filter { it.isActive && it.stableKey.isNotBlank() && it.stableKey !in selected }
-        .filter { normalizedQuery.isBlank() || it.name.contains(normalizedQuery, ignoreCase = true) }
+        .filter { normalizedQuery.isBlank() || it.matchesProgramExerciseSearch(normalizedQuery) }
         .sortedBy { it.name.lowercase() }
-        .take(limit)
         .toList()
+    return if (normalizedQuery.isBlank()) {
+        matches.take(limit)
+    } else {
+        matches
+    }
 }
+
+private fun Exercise.matchesProgramExerciseSearch(query: String): Boolean =
+    listOf(
+        name,
+        category,
+        detail1,
+        detail2,
+        stableKey,
+        movementPattern,
+        movementCategory,
+        equipment,
+        equipmentTags,
+        familyId,
+        familyName,
+        trainingRole,
+        stabilityRoles,
+        sportTransferDirect,
+        sportTransferSupportive,
+        badmintonTransferRoles,
+        primaryMuscles,
+        secondaryMuscles
+    ).any { it.contains(query, ignoreCase = true) }
