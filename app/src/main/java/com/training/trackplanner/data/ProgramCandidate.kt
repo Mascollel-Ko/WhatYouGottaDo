@@ -87,6 +87,7 @@ internal data class ProgramCandidate(
     val isAnchor: Boolean = identityHas("COMPOUND", "HEAVY_HINGE", "SQUAT_HEAVY", "VERTICAL_PULL", "HORIZONTAL_PULL")
     val isDirectSportSession: Boolean = metadata?.activityKind == "SPORT_SESSION" ||
         exercise.activityKind == "SPORT_SESSION" ||
+        exercise.resolvedActivityKind() == ActivityKind.SPORT_SESSION ||
         identityHas("BADMINTON_SESSION_SPORT_RECORDS", "OTHER_SPORT_SESSION_RECORDS") ||
         (metadata?.progressBehavior == ProgressMetricRuntimeBehavior.SESSION_DURATION &&
             has("BADMINTON_MATCH", "BADMINTON_LESSON", "DIRECT_PLAY_SESSION", "OTHER_SPORT_SESSION"))

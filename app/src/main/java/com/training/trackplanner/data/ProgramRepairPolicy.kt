@@ -44,7 +44,12 @@ internal class ProgramRepairPolicy(
         val targetWeek = highLowerDays.first().first
         return skeleton.copy(
             items = skeleton.items.map { item ->
-                if (item.weekNumber == targetWeek && item.dayOfWeek == targetDay && isHighLowerStress(item)) {
+                if (
+                    item.weekNumber == targetWeek &&
+                    item.dayOfWeek == targetDay &&
+                    !item.requiredTemplateAnchor &&
+                    isHighLowerStress(item)
+                ) {
                     item.copy(
                         trainingSlot = ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
                         dayIntensity = ProgramDayIntensity.LIGHT.name,

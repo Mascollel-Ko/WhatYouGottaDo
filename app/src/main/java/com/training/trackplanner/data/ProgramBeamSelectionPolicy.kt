@@ -41,6 +41,19 @@ internal class ProgramBeamSelectionPolicy {
         if (stableKey in context.request.preferredExerciseStableKeys) {
             adjustment += 200.0
         }
+        context.templateSlot.targetSlot?.let { target ->
+            if (context.templateSlot.role == ProgramExerciseRole.ANCHOR) {
+                if (candidate.slotCapabilities.hasAny(target)) adjustment += 30.0
+                if (classification.tier == ProgramCandidateTier.FOUNDATION_MAIN_WORTHY) adjustment += 20.0
+                if (classification.tier !in setOf(
+                        ProgramCandidateTier.FOUNDATION_MAIN_WORTHY,
+                        ProgramCandidateTier.LOADED_SUPPORT
+                    )
+                ) {
+                    adjustment -= 20.0
+                }
+            }
+        }
         val programRepeatCount = context.generatedItems.count { it.stableKey == stableKey }
         if (programRepeatCount > 0) {
             adjustment -= programRepeatCount * 12.0

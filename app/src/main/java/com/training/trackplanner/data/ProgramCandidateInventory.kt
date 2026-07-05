@@ -27,7 +27,7 @@ internal class ProgramCandidateInventory(
                 canonical = metadata != null,
                 slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
             )
-        }.filterNot(ProgramCandidate::isDirectSportSession)
+        }.filterNot { it.isHardExcludedFromProgramInventory() }
         val normalizedExcluded = excludedExerciseStableKeys.filter(String::isNotBlank).toSet()
         val notExcluded = hardEligible.filter { candidate -> candidate.exercise.stableKey !in normalizedExcluded }
         return ProgramCandidateInventoryResult(
@@ -37,6 +37,25 @@ internal class ProgramCandidateInventory(
             notExcludedByUser = notExcluded.size,
             candidates = notExcluded,
             reservoir = ProgramCandidateReservoir(notExcluded)
+        )
+    }
+
+    private fun ProgramCandidate.isHardExcludedFromProgramInventory(): Boolean {
+        if (isDirectSportSession) return true
+        if (exercise.resolvedActivityKind() != ActivityKind.TRAINING_EXERCISE) return true
+        if (metadata?.planningEligibility in HARD_PLANNING_EXCLUSIONS) return true
+        return exercise.resolvedPlanningEligibility() in HARD_LEGACY_PLANNING_EXCLUSIONS
+    }
+
+    private companion object {
+        val HARD_PLANNING_EXCLUSIONS = setOf(
+            PlanningEligibility.FATIGUE_ONLY.name,
+            PlanningEligibility.ANALYSIS_ONLY.name,
+            "HIDDEN"
+        )
+        val HARD_LEGACY_PLANNING_EXCLUSIONS = setOf(
+            PlanningEligibility.FATIGUE_ONLY,
+            PlanningEligibility.ANALYSIS_ONLY
         )
     }
 }

@@ -48,8 +48,12 @@ internal class ProgramFoundationAnchorPolicy {
         if (!plannedSlot.slot.supportsSelectedMainReservation()) return null
         val available = SELECTED_MAIN_ORDER.filter(availableSelectedMainStableKeys::contains)
         if (available.isEmpty()) return null
-        val currentWeekItems = generatedItems.filter { it.weekNumber == week.weekIndex }
+        val currentWeekItems = generatedItems.filter { it.weekNumber == week.weekIndex && it.requiredTemplateAnchor }
         val weekSelected = currentWeekItems.map(ProgramSkeletonItem::stableKey).filter(available::contains)
+        val weekSelectedAny = generatedItems
+            .filter { it.weekNumber == week.weekIndex }
+            .map(ProgramSkeletonItem::stableKey)
+            .filter(available::contains)
         val programSelected = generatedItems.map(ProgramSkeletonItem::stableKey).filter(available::contains).toSet()
         val key = when {
             weekSelected.size < WEEKLY_SELECTED_MAIN_TARGET ->
@@ -64,7 +68,7 @@ internal class ProgramFoundationAnchorPolicy {
             role = roleForSelectedMain(key),
             required = true,
             minimumRepeatGapDays = 7,
-            selectedMainStableKey = key
+            selectedMainStableKey = key.takeUnless { it in weekSelectedAny }.orEmpty()
         )
     }
 
@@ -169,7 +173,7 @@ internal class ProgramFoundationAnchorPolicy {
     }
 
     private companion object {
-        const val WEEKLY_SELECTED_MAIN_TARGET = 2
+        const val WEEKLY_SELECTED_MAIN_TARGET = 3
         const val PROGRAM_SELECTED_MAIN_DISTINCT_TARGET = 3
         val SELECTED_MAIN_ORDER = listOf(
             "barbell_back_squat",
