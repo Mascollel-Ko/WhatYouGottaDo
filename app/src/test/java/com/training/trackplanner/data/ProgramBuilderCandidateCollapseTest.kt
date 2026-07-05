@@ -97,8 +97,38 @@ class ProgramBuilderCandidateCollapseTest {
             selectedCount = 0
         )
 
-        assertEquals(8, result.scored.size)
-        assertTrue(result.trace.selectionPool > 3)
+        assertEquals(10, result.scored.size)
+        assertTrue(result.trace.selectionPool >= 10)
+    }
+
+    @Test
+    fun slotSelectionPoliciesKeepThirtyCandidatesWhenAvailable() {
+        val request = ProgramSkeletonRequest(
+            name = "wide pool fixture",
+            goal = ProgramGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = 5,
+            sessionMinutes = 45,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = 0.60,
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO
+        )
+        val scored = (1..40).map { id ->
+            candidate(
+                id = id,
+                slotCapabilities = SlotCapabilityProfile(
+                    primary = setOf(ProgramSlotId.UPPER_PULL_ANCHOR),
+                    secondary = emptySet(),
+                    weakMatches = emptySet(),
+                    source = SlotCapabilitySource.RUNTIME_METADATA,
+                    confidence = SlotCapabilityConfidence.HIGH
+                )
+            ) to (100.0 - id)
+        }
+
+        assertTrue(ProgramVarietyPolicy().selectionPoolSize(request, exerciseCount = 4) >= 30)
+        assertEquals(30, ProgramBeamSelectionPolicy().candidateWindow(scored, desiredExerciseCount = 4).size)
     }
 
     @Test
