@@ -192,7 +192,23 @@ data class ProgramCandidateTrace(
     val scored: Int,
     val selectionPool: Int,
     val selected: Int,
-    val warnings: List<String> = emptyList()
+    val warnings: List<String> = emptyList(),
+    val scoreAdjustments: List<ProgramCandidateScoreTrace> = emptyList()
+)
+
+data class ProgramCandidateScoreTrace(
+    val exerciseName: String,
+    val stableKey: String,
+    val baseScore: Double,
+    val contextRerankScore: Double,
+    val selectedMainBoostApplied: Boolean,
+    val captainChairPenaltyApplied: Boolean,
+    val finalScore: Double,
+    val hardGatePassed: Boolean = true,
+    val exclusionStage: String = "",
+    val exclusionReason: String = "",
+    val selectionWindowIncluded: Boolean = false,
+    val selected: Boolean = false
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

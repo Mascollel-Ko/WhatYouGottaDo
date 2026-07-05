@@ -89,6 +89,7 @@ class ProgramBuilder internal constructor(
                 exerciseSlots.forEachIndexed { itemIndex, templateSlot ->
                     val role = templateSlot.role
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
+                    val scoreTraceByExerciseId = mutableMapOf<Long, ProgramCandidateScoreTrace>()
                     val query = slotCandidateQuery.query(
                         inventory = inventory,
                         selected = selected,
@@ -126,7 +127,7 @@ class ProgramBuilder internal constructor(
                                 exposureTarget = templateSlot.targetSlot?.let(exposureTargets::get),
                                 totalWeeks = normalized.durationWeeks
                             )
-                            val rerankedScore = baseScore + rerankingPolicy.adjustment(
+                            val contextRerankScore = rerankingPolicy.adjustment(
                                 candidate = candidate,
                                 classification = inventory.reservoir.classification(candidate),
                                 context = ProgramCandidateScoreContext(
@@ -139,7 +140,29 @@ class ProgramBuilder internal constructor(
                                     generatedItems = generated
                                 )
                             )
-                            selectedExerciseScorePolicy.adjust(rerankedScore, candidate).score
+                            val adjustment = selectedExerciseScorePolicy.adjust(baseScore + contextRerankScore, candidate)
+                            scoreTraceByExerciseId[candidate.exercise.id] = ProgramCandidateScoreTrace(
+                                exerciseName = candidate.exercise.name,
+                                stableKey = candidate.exercise.stableKey,
+                                baseScore = baseScore,
+                                contextRerankScore = contextRerankScore,
+                                selectedMainBoostApplied = adjustment.selectedMainBoostApplied,
+                                captainChairPenaltyApplied = adjustment.captainChairPenaltyApplied,
+                                finalScore = adjustment.score
+                            )
+                            adjustment.score
+                        },
+                        scoreTrace = { candidate, finalScore ->
+                            scoreTraceByExerciseId[candidate.exercise.id]
+                                ?: ProgramCandidateScoreTrace(
+                                    exerciseName = candidate.exercise.name,
+                                    stableKey = candidate.exercise.stableKey,
+                                    baseScore = finalScore,
+                                    contextRerankScore = 0.0,
+                                    selectedMainBoostApplied = false,
+                                    captainChairPenaltyApplied = false,
+                                    finalScore = finalScore
+                                )
                         },
                         selectionPoolSize = varietyPolicy.selectionPoolSize(
                             request = normalized,
@@ -210,7 +233,7 @@ class ProgramBuilder internal constructor(
                             timeBudgetTrimmed = true
                         }
                     }
-                    candidateTraces += query.trace.copy(selected = 1)
+                    candidateTraces += query.trace.markSelected(picked)
                     warnings += query.trace.warnings
                     selected += picked
                     varietyPolicy.recordSelection(selectionHistory, picked, week.weekIndex, absoluteDay, coveragePolicy)
@@ -332,6 +355,14 @@ class ProgramBuilder internal constructor(
 }
 
 private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
+
+private fun ProgramCandidateTrace.markSelected(candidate: ProgramCandidate): ProgramCandidateTrace =
+    copy(
+        selected = 1,
+        scoreAdjustments = scoreAdjustments.map { trace ->
+            if (trace.stableKey == candidate.exercise.stableKey) trace.copy(selected = true) else trace
+        }
+    )
 
 private fun ProgramFatigueGate.planningLoadFactor(): Double = when (band) {
     ProgramFatigueBand.GREEN -> 1.0

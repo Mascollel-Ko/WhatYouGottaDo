@@ -20,6 +20,7 @@ internal class ProgramSlotCandidateQuery(
         fatigueAllowed: (ProgramCandidate) -> Boolean,
         sessionAllowed: (ProgramCandidate) -> Boolean,
         score: (ProgramCandidate) -> Double,
+        scoreTrace: ((ProgramCandidate, Double) -> ProgramCandidateScoreTrace)? = null,
         selectionPoolSize: Int,
         selectedCount: Int
     ): ProgramSlotCandidateQueryResult {
@@ -42,6 +43,14 @@ internal class ProgramSlotCandidateQuery(
             .map { candidate -> candidate to score(candidate) }
             .sortedByDescending { it.second }
         val pool = adaptiveSelectionPool(scored, selectionPoolSize)
+        val poolIds = pool.map { (candidate, _) -> candidate.exercise.id }.toSet()
+        val scoreAdjustments = scoreTrace?.let { trace ->
+            scored.map { (candidate, finalScore) ->
+                trace(candidate, finalScore).copy(
+                    selectionWindowIncluded = candidate.exercise.id in poolIds
+                )
+            }
+        }.orEmpty()
         val traceWarnings = buildList {
             addAll(templateResult.warnings)
             if (inventory.notExcludedByUser > 0 && capabilityMatched.size <= 2) add("PROGRAM_SLOT_LOW_CANDIDATE_COUNT")
@@ -68,7 +77,8 @@ internal class ProgramSlotCandidateQuery(
                 scored = scored.size,
                 selectionPool = pool.size,
                 selected = selectedCount,
-                warnings = traceWarnings
+                warnings = traceWarnings,
+                scoreAdjustments = scoreAdjustments
             )
         )
     }

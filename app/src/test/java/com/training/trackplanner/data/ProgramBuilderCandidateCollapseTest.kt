@@ -50,6 +50,18 @@ class ProgramBuilderCandidateCollapseTest {
     }
 
     @Test
+    fun candidateTraceIncludesScoreAdjustmentDetails() {
+        val result = build(Scenario("score trace 3d 4w", 3, 4, 60, 0.70, 6))
+        val traces = result.candidateTraces.flatMap(ProgramCandidateTrace::scoreAdjustments)
+
+        assertTrue(traces.any { it.selectionWindowIncluded })
+        assertTrue(traces.any { it.selected })
+        assertTrue(traces.all { it.exerciseName.isNotBlank() })
+        assertTrue(traces.all { it.stableKey.isNotBlank() })
+        assertTrue(traces.all { !it.finalScore.isNaN() && !it.finalScore.isInfinite() })
+    }
+
+    @Test
     fun slotQueryUsesAdaptivePoolInsteadOfFixedTopThree() {
         val inventory = ProgramCandidateInventoryResult(
             allActive = 10,
