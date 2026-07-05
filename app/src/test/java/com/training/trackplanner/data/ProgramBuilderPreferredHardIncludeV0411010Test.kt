@@ -36,6 +36,12 @@ class ProgramBuilderPreferredHardIncludeV0411010Test {
         assertFalse(result.validationDetails.any { it.code == "PROGRAM_PREFERRED_EXERCISE_MISSING" })
         assertFalse(result.validationDetails.any { it.code == "PROGRAM_PREFERRED_EXERCISE_INACTIVE" })
         assertFalse(result.validationDetails.any { it.code == "PROGRAM_PREFERRED_EXCLUDED_CONFLICT" })
+        assertTrue(
+            result.optimizationSummary.messages.any {
+                it.startsWith("PROGRAM_PREFERRED_EXERCISE_FORCED: ${preferred.stableKey}") ||
+                    it == "PROGRAM_PREFERRED_EXERCISE_INCLUDED: ${preferred.stableKey}"
+            }
+        )
     }
 
     @Test
@@ -55,6 +61,34 @@ class ProgramBuilderPreferredHardIncludeV0411010Test {
         val issue = result.validationDetails.single { it.code == "PROGRAM_PREFERRED_EXCLUDED_CONFLICT" }
         assertEquals(ProgramValidationSeverity.HARD, issue.severity)
         assertFalse(result.items.any { it.stableKey == conflictKey })
+    }
+
+    @Test
+    fun preferredOutcomeMessagesNameMissingInactiveAndConflictKeys() {
+        val inactive = exercise(
+            id = 99,
+            stableKey = "inactive_preferred",
+            name = "Inactive Preferred",
+            equipment = "BODYWEIGHT",
+            movementPattern = "SQUAT",
+            movementCategory = "LOWER_STRENGTH"
+        ).copy(isActive = false)
+        val conflictKey = "preferred_bodyweight_row"
+
+        val result = ProgramBuilder().build(
+            request = baseRequest().copy(
+                preferredExerciseStableKeys = setOf("missing_preferred", inactive.stableKey, conflictKey),
+                excludedExerciseStableKeys = setOf(conflictKey)
+            ),
+            exercises = bodyweightCatalog() + inactive,
+            history = emptyList(),
+            today = LocalDate.of(2026, 1, 5)
+        )
+
+        val messages = result.optimizationSummary.messages.toSet()
+        assertTrue("PROGRAM_PREFERRED_EXERCISE_MISSING: missing_preferred" in messages)
+        assertTrue("PROGRAM_PREFERRED_EXERCISE_INACTIVE: inactive_preferred" in messages)
+        assertTrue("PROGRAM_PREFERRED_EXCLUDED_CONFLICT: preferred_bodyweight_row" in messages)
     }
 
     private fun baseRequest(): ProgramSkeletonRequest =

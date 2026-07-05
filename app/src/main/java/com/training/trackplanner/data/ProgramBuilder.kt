@@ -419,6 +419,7 @@ class ProgramBuilder internal constructor(
                 severity = ProgramValidationSeverity.HARD,
                 message = "Preferred exercise '$key' is also excluded."
             )
+            outcomeMessages += "PROGRAM_PREFERRED_EXCLUDED_CONFLICT: $key"
         }
         missing.sorted().forEach { key ->
             issues += ProgramValidationIssue(
@@ -426,6 +427,7 @@ class ProgramBuilder internal constructor(
                 severity = ProgramValidationSeverity.HARD,
                 message = "Preferred exercise '$key' was not found in the exercise catalog."
             )
+            outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_MISSING: $key"
         }
         inactive.sorted().forEach { key ->
             issues += ProgramValidationIssue(
@@ -433,6 +435,7 @@ class ProgramBuilder internal constructor(
                 severity = ProgramValidationSeverity.HARD,
                 message = "Preferred exercise '$key' is inactive."
             )
+            outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_INACTIVE: $key"
         }
 
         val placeable = preferred - conflicts - missing - inactive
