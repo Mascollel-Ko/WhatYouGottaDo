@@ -20,14 +20,17 @@ internal class ProgramSlotCandidateQuery(
         repeatAllowed: (ProgramCandidate) -> Boolean,
         fatigueAllowed: (ProgramCandidate) -> Boolean,
         sessionAllowed: (ProgramCandidate) -> Boolean,
+        captainChairAllowed: (ProgramCandidate) -> Boolean = { true },
         score: (ProgramCandidate) -> Double,
         scoreTrace: ((ProgramCandidate, Double) -> ProgramCandidateScoreTrace)? = null,
         selectionPoolSize: Int,
         selectedCount: Int
     ): ProgramSlotCandidateQueryResult {
-        val base = inventory.candidates.filterNot { candidate ->
+        val unblockedBase = inventory.candidates.filterNot { candidate ->
             selected.any { it.exercise.id == candidate.exercise.id }
         }
+        val base = unblockedBase.filter(captainChairAllowed)
+        val captainChairBlocked = unblockedBase.size - base.size
         val selectedMainFiltered = templateSlot.selectedMainStableKey
             .takeIf(String::isNotBlank)
             ?.let { stableKey ->
@@ -67,6 +70,7 @@ internal class ProgramSlotCandidateQuery(
                     add("SELECTED_MAIN_SLOT_RESERVED: ${templateSlot.selectedMainStableKey}")
                 }
             }
+            if (captainChairBlocked > 0) add("CAPTAIN_CHAIR_BLOCKED_UNTIL_SELECTED_MAIN_READY")
             if (inventory.notExcludedByUser > 0 && capabilityMatched.size <= 2) add("PROGRAM_SLOT_LOW_CANDIDATE_COUNT")
             if (templateResult.templateCollapsed) add("PROGRAM_SLOT_TEMPLATE_GATE_COLLAPSED")
             if (repeatAllowedCandidates.isNotEmpty() && fatigueAllowedCandidates.isEmpty()) add("PROGRAM_SLOT_FATIGUE_GATE_COLLAPSED")
@@ -79,6 +83,12 @@ internal class ProgramSlotCandidateQuery(
                 dayOfWeek = plannedSlot.dayOfWeek,
                 requestedTemplateSlot = templateSlot.targetSlot?.name.orEmpty(),
                 selectedMainReservationStableKey = templateSlot.selectedMainStableKey,
+                captainChairBlockedCount = captainChairBlocked,
+                captainChairBlockReason = if (captainChairBlocked > 0) {
+                    "CAPTAIN_CHAIR_BLOCKED_UNTIL_SELECTED_MAIN_READY"
+                } else {
+                    ""
+                },
                 role = templateSlot.role.name,
                 allActive = inventory.allActive,
                 programSelectable = inventory.programSelectable,

@@ -46,6 +46,12 @@ internal class ProgramSelectedExerciseScorePolicy {
             candidate.metadata?.stableKey.orEmpty().normalizedIdentity() == normalized
     }
 
+    fun isSelectedMainStableKey(stableKey: String): Boolean =
+        stableKey.normalizedIdentity() in SELECTED_MAIN_STABLE_KEYS
+
+    fun isCaptainChairStableKey(stableKey: String): Boolean =
+        stableKey.normalizedIdentity() in CAPTAIN_CHAIR_STABLE_KEYS
+
     fun selectedMainStableKeys(): List<String> = SELECTED_MAIN_STABLE_KEYS.toList()
 
     private fun String.normalizedIdentity(): String =

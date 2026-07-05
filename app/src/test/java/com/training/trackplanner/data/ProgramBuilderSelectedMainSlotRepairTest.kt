@@ -150,6 +150,49 @@ class ProgramBuilderSelectedMainSlotRepairTest {
         assertEquals("barbell_back_squat", result.trace.selectedMainReservationStableKey)
     }
 
+    @Test
+    fun captainChairCanBeBlockedBeforeSelectedMainRequirementsAreMet() {
+        val result = ProgramSlotCandidateQuery().query(
+            inventory = ProgramCandidateInventoryResult(
+                allActive = 2,
+                programSelectable = 2,
+                equipmentMatched = 2,
+                notExcludedByUser = 2,
+                candidates = listOf(
+                    candidate(
+                        id = 10,
+                        stableKey = "ex_a345e30b",
+                        name = "Captain chair leg raise",
+                        slot = ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
+                    ),
+                    candidate(
+                        id = 11,
+                        stableKey = "dead_bug",
+                        name = "Dead bug",
+                        slot = ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY
+                    )
+                )
+            ),
+            selected = emptyList(),
+            plannedSlot = PlannedSlot(7, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT),
+            templateSlot = TemplateExerciseSlot(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY, ProgramExerciseRole.CORE),
+            week = week(),
+            weekNumber = 1,
+            absoluteDay = 7,
+            repeatAllowed = { true },
+            fatigueAllowed = { true },
+            sessionAllowed = { true },
+            captainChairAllowed = { candidate -> candidate.exercise.stableKey != "ex_a345e30b" },
+            score = { 1.0 },
+            selectionPoolSize = 8,
+            selectedCount = 0
+        )
+
+        assertEquals(listOf("dead_bug"), result.scored.map { it.first.exercise.stableKey })
+        assertEquals(1, result.trace.captainChairBlockedCount)
+        assertEquals("CAPTAIN_CHAIR_BLOCKED_UNTIL_SELECTED_MAIN_READY", result.trace.captainChairBlockReason)
+    }
+
     private fun reproductionPlan(
         excludedExerciseStableKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = ProgramBuilder().build(

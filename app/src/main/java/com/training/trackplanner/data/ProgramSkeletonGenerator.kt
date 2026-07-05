@@ -180,6 +180,8 @@ data class ProgramCandidateTrace(
     val dayOfWeek: Int,
     val requestedTemplateSlot: String,
     val selectedMainReservationStableKey: String = "",
+    val captainChairBlockedCount: Int = 0,
+    val captainChairBlockReason: String = "",
     val role: String,
     val allActive: Int,
     val programSelectable: Int,

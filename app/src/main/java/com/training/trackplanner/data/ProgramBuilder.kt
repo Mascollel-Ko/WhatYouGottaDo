@@ -118,6 +118,15 @@ class ProgramBuilder internal constructor(
                         sessionAllowed = { candidate ->
                             sessionConstraintPolicy.sessionAllows(selected, candidate, day.slot, week, fatigueGate)
                         },
+                        captainChairAllowed = { candidate ->
+                            !selectedExerciseScorePolicy.isCaptainChairLegRaise(candidate) ||
+                                captainChairCanBeConsidered(
+                                    request = normalized,
+                                    availableSelectedMainStableKeys = availableSelectedMainStableKeys,
+                                    generatedItems = generated,
+                                    weekNumber = week.weekIndex
+                                )
+                        },
                         score = { candidate ->
                             val baseScore = scoringPolicy.score(
                                 candidate = candidate,
@@ -358,6 +367,25 @@ class ProgramBuilder internal constructor(
     private fun defaultName(request: ProgramSkeletonRequest): String =
         "${request.durationWeeks}주 ${request.badmintonSpecificityRatio}:${100 - request.badmintonSpecificityRatio} 프로그램"
 
+    private fun captainChairCanBeConsidered(
+        request: ProgramSkeletonRequest,
+        availableSelectedMainStableKeys: Set<String>,
+        generatedItems: List<ProgramSkeletonItem>,
+        weekNumber: Int
+    ): Boolean {
+        if (request.goal != ProgramGoal.BADMINTON_SUPPORT || request.dailyAvailableMinutes < 40) return true
+        if (availableSelectedMainStableKeys.isEmpty()) return true
+        if (generatedItems.count { selectedExerciseScorePolicy.isCaptainChairStableKey(it.stableKey) } >= 1) return false
+        val weekSelectedMain = generatedItems.count { item ->
+            item.weekNumber == weekNumber && selectedExerciseScorePolicy.isSelectedMainStableKey(item.stableKey)
+        }
+        val programSelectedMainTypes = generatedItems
+            .map(ProgramSkeletonItem::stableKey)
+            .filter(selectedExerciseScorePolicy::isSelectedMainStableKey)
+            .toSet()
+        return weekSelectedMain >= 2 &&
+            programSelectedMainTypes.size >= minOf(3, availableSelectedMainStableKeys.size)
+    }
 }
 
 private fun Double.toPercent(): String = "${(this * 100).roundToInt()}%"
