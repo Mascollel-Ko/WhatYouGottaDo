@@ -34,6 +34,17 @@ internal class ProgramBeamSelectionPolicy {
         context: ProgramCandidateScoreContext
     ): Double {
         var adjustment = 0.0
+        val stableKey = candidate.exercise.stableKey
+        if (stableKey in context.request.excludedExerciseStableKeys) {
+            adjustment -= 10_000.0
+        }
+        if (stableKey in context.request.preferredExerciseStableKeys) {
+            adjustment += 200.0
+        }
+        val programRepeatCount = context.generatedItems.count { it.stableKey == stableKey }
+        if (programRepeatCount > 0) {
+            adjustment -= programRepeatCount * 12.0
+        }
         if (classification.tier == ProgramCandidateTier.FOUNDATION_MAIN_WORTHY &&
             context.selectedInSession.none { selected ->
                 selected.slotCapabilities.hasAny(ProgramSlotId.LOWER_SQUAT_PATTERN) ||
@@ -48,6 +59,15 @@ internal class ProgramBeamSelectionPolicy {
         ) {
             adjustment -= 4.0
         }
+        if (candidate.isLoadedStrength &&
+            context.request.dailyAvailableMinutes >= 40 &&
+            context.selectedInSession.none(ProgramCandidate::isLoadedStrength)
+        ) {
+            adjustment += 2.0
+        }
+        if (!candidate.matchesEquipment(context.request.availableEquipment)) {
+            adjustment -= 2.0
+        }
         if (context.selectedInSession.any { it.exercise.stableKey == candidate.exercise.stableKey }) {
             adjustment -= 100.0
         }
@@ -57,6 +77,6 @@ internal class ProgramBeamSelectionPolicy {
     private companion object {
         const val MIN_SLOT_CANDIDATES = 30
         const val MAX_SLOT_CANDIDATES = 30
-        const val BEAM_SIZE = 6
+        const val BEAM_SIZE = 30
     }
 }
