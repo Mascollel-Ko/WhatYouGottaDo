@@ -22,7 +22,7 @@ internal class ProgramSelectedExerciseScorePolicy {
         )
     }
 
-    private fun isSelectedMainExercise(candidate: ProgramCandidate): Boolean {
+    fun isSelectedMainExercise(candidate: ProgramCandidate): Boolean {
         val stableKey = candidate.exercise.stableKey.normalizedIdentity()
         if (stableKey in SELECTED_MAIN_STABLE_KEYS) return true
         val metadataKey = candidate.metadata?.stableKey.orEmpty().normalizedIdentity()
@@ -31,7 +31,7 @@ internal class ProgramSelectedExerciseScorePolicy {
             candidate.metadata?.exerciseName.orEmpty().normalizedName() in SELECTED_MAIN_NAMES
     }
 
-    private fun isCaptainChairLegRaise(candidate: ProgramCandidate): Boolean {
+    fun isCaptainChairLegRaise(candidate: ProgramCandidate): Boolean {
         val stableKey = candidate.exercise.stableKey.normalizedIdentity()
         if (stableKey in CAPTAIN_CHAIR_STABLE_KEYS) return true
         val metadataKey = candidate.metadata?.stableKey.orEmpty().normalizedIdentity()
@@ -39,6 +39,14 @@ internal class ProgramSelectedExerciseScorePolicy {
         return candidate.exercise.name.normalizedName() in CAPTAIN_CHAIR_NAMES ||
             candidate.metadata?.exerciseName.orEmpty().normalizedName() in CAPTAIN_CHAIR_NAMES
     }
+
+    fun matchesSelectedMainStableKey(candidate: ProgramCandidate, stableKey: String): Boolean {
+        val normalized = stableKey.normalizedIdentity()
+        return candidate.exercise.stableKey.normalizedIdentity() == normalized ||
+            candidate.metadata?.stableKey.orEmpty().normalizedIdentity() == normalized
+    }
+
+    fun selectedMainStableKeys(): List<String> = SELECTED_MAIN_STABLE_KEYS.toList()
 
     private fun String.normalizedIdentity(): String =
         trim().lowercase(Locale.US)

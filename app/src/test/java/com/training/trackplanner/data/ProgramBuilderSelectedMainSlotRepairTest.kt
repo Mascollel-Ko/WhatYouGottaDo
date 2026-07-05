@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -79,25 +80,101 @@ class ProgramBuilderSelectedMainSlotRepairTest {
         assertEquals(0, excluded.items.count { it.stableKey in SELECTED_MAIN_KEYS })
     }
 
+    @Test
+    fun selectedMainReservationTargetsExactStableKeysOnly() {
+        val slots = ProgramFoundationAnchorPolicy().reserveSlots(
+            slots = listOf(
+                TemplateExerciseSlot(null, ProgramExerciseRole.CORE),
+                TemplateExerciseSlot(null, ProgramExerciseRole.PREHAB)
+            ),
+            request = request(),
+            week = ProgramPeriodizationWeekPlan(
+                weekIndex = 1,
+                role = ProgramWeekRole.FOUNDATION_LOAD,
+                dayProfiles = mapOf(1 to ProgramDayProfile.HARD_FOUNDATION)
+            ),
+            plannedSlot = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
+            availableSelectedMainStableKeys = setOf("barbell_back_squat", "goblet_squat"),
+            generatedItems = emptyList()
+        )
+
+        assertEquals("barbell_back_squat", slots.first().selectedMainStableKey)
+        assertEquals(ProgramSlotId.LOWER_SQUAT_PATTERN, slots.first().targetSlot)
+        assertTrue(slots.first().required)
+    }
+
+    @Test
+    fun selectedMainReservationDoesNotAllowBroadFamilySubstitutes() {
+        val result = ProgramSlotCandidateQuery().query(
+            inventory = ProgramCandidateInventoryResult(
+                allActive = 2,
+                programSelectable = 2,
+                equipmentMatched = 2,
+                notExcludedByUser = 2,
+                candidates = listOf(
+                    candidate(
+                        id = 1,
+                        stableKey = "barbell_back_squat",
+                        name = "Back squat",
+                        slot = ProgramSlotId.LOWER_SQUAT_PATTERN
+                    ),
+                    candidate(
+                        id = 2,
+                        stableKey = "goblet_squat",
+                        name = "Goblet squat",
+                        slot = ProgramSlotId.LOWER_SQUAT_PATTERN
+                    )
+                )
+            ),
+            selected = emptyList(),
+            plannedSlot = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
+            templateSlot = TemplateExerciseSlot(
+                targetSlot = ProgramSlotId.LOWER_SQUAT_PATTERN,
+                role = ProgramExerciseRole.ANCHOR,
+                required = true,
+                selectedMainStableKey = "barbell_back_squat"
+            ),
+            week = week(),
+            weekNumber = 1,
+            absoluteDay = 1,
+            repeatAllowed = { true },
+            fatigueAllowed = { true },
+            sessionAllowed = { true },
+            score = { 1.0 },
+            selectionPoolSize = 8,
+            selectedCount = 0
+        )
+
+        assertEquals(listOf("barbell_back_squat"), result.scored.map { it.first.exercise.stableKey })
+        assertFalse(result.scored.any { it.first.exercise.stableKey == "goblet_squat" })
+        assertEquals("barbell_back_squat", result.trace.selectedMainReservationStableKey)
+    }
+
     private fun reproductionPlan(
         excludedExerciseStableKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = ProgramBuilder().build(
-        request = ProgramSkeletonRequest(
-            name = "selected main slot repair scenario",
-            goal = ProgramGoal.BADMINTON_SUPPORT,
-            weeklyTrainingDays = 5,
-            sessionMinutes = 45,
-            availableEquipment = allEquipmentTokens(),
-            excludedExerciseText = "",
-            badmintonTransferRatio = 0.60,
-            sportStrengthRatio = "AUTO",
-            periodizationType = ProgramPeriodizationType.AUTO,
-            durationWeeks = 4,
+        request = request(
             excludedExerciseStableKeys = excludedExerciseStableKeys
         ),
         exercises = exercises,
         history = emptyList(),
         runtimeMetadataCatalog = catalog
+    )
+
+    private fun request(
+        excludedExerciseStableKeys: Set<String> = emptySet()
+    ): ProgramSkeletonRequest = ProgramSkeletonRequest(
+        name = "selected main slot repair scenario",
+        goal = ProgramGoal.BADMINTON_SUPPORT,
+        weeklyTrainingDays = 5,
+        sessionMinutes = 45,
+        availableEquipment = allEquipmentTokens(),
+        excludedExerciseText = "",
+        badmintonTransferRatio = 0.60,
+        sportStrengthRatio = "AUTO",
+        periodizationType = ProgramPeriodizationType.AUTO,
+        durationWeeks = 4,
+        excludedExerciseStableKeys = excludedExerciseStableKeys
     )
 
     private fun allEquipmentTokens(): Set<String> = exercises.flatMap { splitExerciseTokens(it.equipment) }.toSet()
@@ -155,6 +232,49 @@ class ProgramBuilderSelectedMainSlotRepairTest {
     private fun canonicalFile(): File = existingFile("src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
     private fun existingFile(relative: String): File = sequenceOf(File(relative), File("app/$relative")).firstOrNull(File::exists)
         ?: error("Missing test asset: $relative")
+
+    private fun week(): ProgramWeekPlan = ProgramWeekPlan(
+        weekIndex = 1,
+        weekType = ProgramWeekType.BUILD.name,
+        volumeMultiplier = 1.0,
+        intensityMultiplier = 1.0,
+        heavyExposureLimit = 2,
+        lowerBodyFatigueLimit = 8.0,
+        axialLoadLimit = 2,
+        plyometricLimit = 1,
+        deloadFlag = false
+    )
+
+    private fun candidate(
+        id: Long,
+        stableKey: String,
+        name: String,
+        slot: ProgramSlotId
+    ): ProgramCandidate = ProgramCandidate(
+        exercise = Exercise(
+            id = id,
+            name = name,
+            category = "strength",
+            stableKey = stableKey,
+            equipment = "BARBELL",
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        ),
+        metadata = RuntimeExerciseMetadataDefaults.forExercise(
+            Exercise(id = id, name = name, category = "strength", stableKey = stableKey)
+        ).copy(
+            stableKey = stableKey,
+            exerciseName = name,
+            planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
+        ),
+        canonical = true,
+        slotCapabilities = SlotCapabilityProfile(
+            primary = setOf(slot),
+            secondary = emptySet(),
+            weakMatches = emptySet(),
+            source = SlotCapabilitySource.RUNTIME_METADATA,
+            confidence = SlotCapabilityConfidence.HIGH
+        )
+    )
 
     private companion object {
         val SELECTED_MAIN_KEYS = setOf(

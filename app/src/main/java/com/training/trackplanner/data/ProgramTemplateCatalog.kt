@@ -4,7 +4,8 @@ internal data class TemplateExerciseSlot(
     val targetSlot: ProgramSlotId?,
     val role: ProgramExerciseRole,
     val required: Boolean = false,
-    val minimumRepeatGapDays: Int = 0
+    val minimumRepeatGapDays: Int = 0,
+    val selectedMainStableKey: String = ""
 )
 
 internal data class PlannedSlot(

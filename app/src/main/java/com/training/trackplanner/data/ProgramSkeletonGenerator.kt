@@ -179,6 +179,7 @@ data class ProgramCandidateTrace(
     val weekNumber: Int,
     val dayOfWeek: Int,
     val requestedTemplateSlot: String,
+    val selectedMainReservationStableKey: String = "",
     val role: String,
     val allActive: Int,
     val programSelectable: Int,

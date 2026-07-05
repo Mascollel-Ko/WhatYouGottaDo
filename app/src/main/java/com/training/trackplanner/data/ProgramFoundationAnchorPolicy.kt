@@ -5,10 +5,21 @@ internal class ProgramFoundationAnchorPolicy {
         slots: List<TemplateExerciseSlot>,
         request: ProgramSkeletonRequest,
         week: ProgramPeriodizationWeekPlan,
-        plannedSlot: PlannedSlot
+        plannedSlot: PlannedSlot,
+        availableSelectedMainStableKeys: Set<String> = emptySet(),
+        generatedItems: List<ProgramSkeletonItem> = emptyList()
     ): List<TemplateExerciseSlot> {
         if (slots.isEmpty() || request.goal != ProgramGoal.BADMINTON_SUPPORT || request.dailyAvailableMinutes < 40) {
             return slots
+        }
+        selectedMainReservation(
+            request = request,
+            week = week,
+            plannedSlot = plannedSlot,
+            availableSelectedMainStableKeys = availableSelectedMainStableKeys,
+            generatedItems = generatedItems
+        )?.let { reserved ->
+            return listOf(reserved) + slots.drop(1)
         }
         if (slots.any { it.targetSlot != null }) return slots
         if (slots.any(TemplateExerciseSlot::required)) return slots
@@ -25,6 +36,36 @@ internal class ProgramFoundationAnchorPolicy {
             minimumRepeatGapDays = 7
         )
         return listOf(reserved) + slots.drop(1)
+    }
+
+    private fun selectedMainReservation(
+        request: ProgramSkeletonRequest,
+        week: ProgramPeriodizationWeekPlan,
+        plannedSlot: PlannedSlot,
+        availableSelectedMainStableKeys: Set<String>,
+        generatedItems: List<ProgramSkeletonItem>
+    ): TemplateExerciseSlot? {
+        if (!plannedSlot.slot.supportsSelectedMainReservation()) return null
+        val available = SELECTED_MAIN_ORDER.filter(availableSelectedMainStableKeys::contains)
+        if (available.isEmpty()) return null
+        val currentWeekItems = generatedItems.filter { it.weekNumber == week.weekIndex }
+        val weekSelected = currentWeekItems.map(ProgramSkeletonItem::stableKey).filter(available::contains)
+        val programSelected = generatedItems.map(ProgramSkeletonItem::stableKey).filter(available::contains).toSet()
+        val key = when {
+            weekSelected.size < WEEKLY_SELECTED_MAIN_TARGET ->
+                preferredForSlot(plannedSlot.slot).firstOrNull { it in available && it !in weekSelected } ?:
+                    available.firstOrNull { it !in weekSelected }
+            programSelected.size < minOf(PROGRAM_SELECTED_MAIN_DISTINCT_TARGET, available.size) ->
+                available.firstOrNull { it !in programSelected }
+            else -> null
+        } ?: return null
+        return TemplateExerciseSlot(
+            targetSlot = targetSlotForSelectedMain(key),
+            role = roleForSelectedMain(key),
+            required = true,
+            minimumRepeatGapDays = 7,
+            selectedMainStableKey = key
+        )
     }
 
     fun warnings(items: List<ProgramSkeletonItem>, request: ProgramSkeletonRequest): List<String> {
@@ -79,5 +120,63 @@ internal class ProgramFoundationAnchorPolicy {
         return requestedTemplateSlot == name ||
             primarySlotCapabilities.any { it == name } ||
             secondarySlotCapabilities.any { it == name }
+    }
+
+    private fun ProgramTrainingSlot.supportsSelectedMainReservation(): Boolean =
+        this in setOf(
+            ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT,
+            ProgramTrainingSlot.LOWER_TRANSFER_FULL,
+            ProgramTrainingSlot.UPPER_SCAP_CORE_FULL,
+            ProgramTrainingSlot.LOWER_STRENGTH,
+            ProgramTrainingSlot.UPPER_STRENGTH_SCAP,
+            ProgramTrainingSlot.BADMINTON_TRANSFER,
+            ProgramTrainingSlot.BADMINTON_COD_DECEL,
+            ProgramTrainingSlot.LOWER_STRENGTH_HEAVY,
+            ProgramTrainingSlot.POWER_REACTIVE_LIGHT,
+            ProgramTrainingSlot.UPPER_STRENGTH,
+            ProgramTrainingSlot.BADMINTON_COD,
+            ProgramTrainingSlot.POWER_REACTIVE
+        )
+
+    private fun preferredForSlot(slot: ProgramTrainingSlot): List<String> = when (slot) {
+        ProgramTrainingSlot.LOWER_STRENGTH,
+        ProgramTrainingSlot.LOWER_STRENGTH_HEAVY,
+        ProgramTrainingSlot.LOWER_TRANSFER_FULL,
+        ProgramTrainingSlot.BADMINTON_COD,
+        ProgramTrainingSlot.BADMINTON_COD_DECEL,
+        ProgramTrainingSlot.BADMINTON_TRANSFER,
+        ProgramTrainingSlot.POWER_REACTIVE,
+        ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> listOf("barbell_back_squat", "barbell_deadlift")
+        ProgramTrainingSlot.UPPER_STRENGTH,
+        ProgramTrainingSlot.UPPER_STRENGTH_SCAP,
+        ProgramTrainingSlot.UPPER_SCAP_CORE_FULL -> listOf("pull_up", "ex_32219f7a", "ex_8e1b313e")
+        else -> SELECTED_MAIN_ORDER
+    }
+
+    private fun targetSlotForSelectedMain(stableKey: String): ProgramSlotId = when (stableKey) {
+        "barbell_back_squat" -> ProgramSlotId.LOWER_SQUAT_PATTERN
+        "barbell_deadlift" -> ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN
+        "pull_up" -> ProgramSlotId.UPPER_PULL_ANCHOR
+        "ex_32219f7a",
+        "ex_8e1b313e" -> ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT
+        else -> ProgramSlotId.LOWER_SQUAT_PATTERN
+    }
+
+    private fun roleForSelectedMain(stableKey: String): ProgramExerciseRole = when (stableKey) {
+        "ex_32219f7a",
+        "ex_8e1b313e" -> ProgramExerciseRole.SUPPORT
+        else -> ProgramExerciseRole.ANCHOR
+    }
+
+    private companion object {
+        const val WEEKLY_SELECTED_MAIN_TARGET = 2
+        const val PROGRAM_SELECTED_MAIN_DISTINCT_TARGET = 3
+        val SELECTED_MAIN_ORDER = listOf(
+            "barbell_back_squat",
+            "barbell_deadlift",
+            "pull_up",
+            "ex_32219f7a",
+            "ex_8e1b313e"
+        )
     }
 }

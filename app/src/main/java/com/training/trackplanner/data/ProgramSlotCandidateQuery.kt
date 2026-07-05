@@ -6,7 +6,8 @@ internal data class ProgramSlotCandidateQueryResult(
 )
 
 internal class ProgramSlotCandidateQuery(
-    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT
+    private val coveragePolicy: CoverageAccountingPolicy = CoverageAccountingPolicy.DEFAULT,
+    private val selectedExerciseScorePolicy: ProgramSelectedExerciseScorePolicy = ProgramSelectedExerciseScorePolicy()
 ) {
     fun query(
         inventory: ProgramCandidateInventoryResult,
@@ -27,7 +28,13 @@ internal class ProgramSlotCandidateQuery(
         val base = inventory.candidates.filterNot { candidate ->
             selected.any { it.exercise.id == candidate.exercise.id }
         }
-        val capabilityMatched = base.filter { candidate ->
+        val selectedMainFiltered = templateSlot.selectedMainStableKey
+            .takeIf(String::isNotBlank)
+            ?.let { stableKey ->
+                base.filter { candidate -> selectedExerciseScorePolicy.matchesSelectedMainStableKey(candidate, stableKey) }
+            }
+            ?: base
+        val capabilityMatched = selectedMainFiltered.filter { candidate ->
             templateSlot.targetSlot?.let { candidate.slotCapabilities.hasAny(it) }
                 ?: (candidate.allowedForSlot(plannedSlot.slot) && candidate.allowedForRole(plannedSlot.slot, templateSlot.role))
         }
@@ -53,6 +60,13 @@ internal class ProgramSlotCandidateQuery(
         }.orEmpty()
         val traceWarnings = buildList {
             addAll(templateResult.warnings)
+            if (templateSlot.selectedMainStableKey.isNotBlank()) {
+                if (selectedMainFiltered.isEmpty()) {
+                    add("SELECTED_MAIN_SLOT_RESERVATION_FAILED: ${templateSlot.selectedMainStableKey}")
+                } else {
+                    add("SELECTED_MAIN_SLOT_RESERVED: ${templateSlot.selectedMainStableKey}")
+                }
+            }
             if (inventory.notExcludedByUser > 0 && capabilityMatched.size <= 2) add("PROGRAM_SLOT_LOW_CANDIDATE_COUNT")
             if (templateResult.templateCollapsed) add("PROGRAM_SLOT_TEMPLATE_GATE_COLLAPSED")
             if (repeatAllowedCandidates.isNotEmpty() && fatigueAllowedCandidates.isEmpty()) add("PROGRAM_SLOT_FATIGUE_GATE_COLLAPSED")
@@ -64,6 +78,7 @@ internal class ProgramSlotCandidateQuery(
                 weekNumber = weekNumber,
                 dayOfWeek = plannedSlot.dayOfWeek,
                 requestedTemplateSlot = templateSlot.targetSlot?.name.orEmpty(),
+                selectedMainReservationStableKey = templateSlot.selectedMainStableKey,
                 role = templateSlot.role.name,
                 allActive = inventory.allActive,
                 programSelectable = inventory.programSelectable,

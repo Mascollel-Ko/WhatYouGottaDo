@@ -59,6 +59,10 @@ class ProgramBuilder internal constructor(
             excludedExerciseStableKeys = normalized.excludedExerciseStableKeys
         )
         val candidates = inventory.candidates
+        val availableSelectedMainStableKeys = inventory.reservoir.candidates
+            .filter(selectedExerciseScorePolicy::isSelectedMainExercise)
+            .map { it.exercise.stableKey }
+            .toSet()
 
         val weightSuggestionPolicy = ProgramWeightSuggestionPolicy(history, exercises)
         val generated = mutableListOf<ProgramSkeletonItem>()
@@ -81,7 +85,9 @@ class ProgramBuilder internal constructor(
                     ),
                     request = normalized,
                     week = periodizedWeek,
-                    plannedSlot = day
+                    plannedSlot = day,
+                    availableSelectedMainStableKeys = availableSelectedMainStableKeys,
+                    generatedItems = generated
                 )
                 val selected = mutableListOf<ProgramCandidate>()
                 val sessionBudgetSeconds = normalized.dailyAvailableMinutes * 60
