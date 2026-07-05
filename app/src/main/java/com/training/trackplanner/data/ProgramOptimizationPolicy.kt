@@ -54,6 +54,7 @@ internal class ProgramOptimizationPolicy(
     }
 
     private fun messageForAction(action: String): String = when (action) {
+        "REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN" -> "洹쇰젰 硫붿씤 ?대룞???꾩옄?섏? ?딅룄濡?蹂댁젙?덉뒿?덈떎."
         "REOPEN_WEAK_SLOT_FOR_FOUNDATION" -> "근력운동과 배드민턴 전이훈련의 균형을 보정했습니다."
         "REOPEN_REPEATED_CORE_SLOT" -> "반복되는 코어 패턴을 다른 안정성 운동으로 조정했습니다."
         "SOFTEN_ADJACENT_HIGH_LOWER_DAY" -> "연속 하체 피로가 몰리지 않도록 일부 운동을 재배치했습니다."

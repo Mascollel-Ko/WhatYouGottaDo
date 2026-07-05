@@ -6,7 +6,8 @@ import kotlin.math.roundToInt
 internal class ProgramEvaluationPolicy(
     private val densityPolicy: ProgramSessionDensityPolicy = ProgramSessionDensityPolicy(),
     private val dayIntensityPolicy: ProgramDayIntensityPolicy = ProgramDayIntensityPolicy(),
-    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy()
+    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy(),
+    private val selectedExerciseScorePolicy: ProgramSelectedExerciseScorePolicy = ProgramSelectedExerciseScorePolicy()
 ) {
     fun evaluate(skeleton: GeneratedProgramSkeleton): ProgramEvaluation {
         val weekly = skeleton.weekPlans.map { week ->
@@ -75,6 +76,10 @@ internal class ProgramEvaluationPolicy(
     ): List<ProgramEvaluationIssue> {
         val items = skeleton.items
         val issues = buildList {
+            if (selectedMainMissing(skeleton)) {
+                add(issue(ProgramEvaluationIssueType.SELECTED_MAIN_MISSING, ProgramEvaluationIssueSeverity.SEVERE,
+                    "Exact selected-main exercises are available but missing from the generated plan."))
+            }
             if (strengthScore(items, skeleton.request, weekly = false) < 70) {
                 add(issue(ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR, ProgramEvaluationIssueSeverity.SEVERE,
                     "Program-wide strength anchors are under target."))
@@ -193,6 +198,18 @@ internal class ProgramEvaluationPolicy(
             .groupBy { it.stableKey.ifBlank { it.exerciseName } }
             .any { (key, rows) -> key.isNotBlank() && rows.size > request.durationWeeks }
 
+    private fun selectedMainMissing(skeleton: GeneratedProgramSkeleton): Boolean {
+        if (skeleton.request.goal != ProgramGoal.BADMINTON_SUPPORT || skeleton.request.dailyAvailableMinutes < 40) {
+            return false
+        }
+        val selectedMainAvailable = skeleton.candidateTraces.any { trace ->
+            trace.selectedMainReservationStableKey.isNotBlank() ||
+                trace.scoreAdjustments.any(ProgramCandidateScoreTrace::selectedMainBoostApplied)
+        }
+        return selectedMainAvailable &&
+            skeleton.items.none { selectedExerciseScorePolicy.isSelectedMainStableKey(it.stableKey) }
+    }
+
     private fun weekProfilesRepeat(skeleton: GeneratedProgramSkeleton): Boolean {
         if (skeleton.request.durationWeeks < 4) return false
         val signatures = skeleton.items
@@ -238,6 +255,7 @@ internal class ProgramEvaluationPolicy(
     ): ProgramEvaluationIssue = ProgramEvaluationIssue(type, severity, message)
 
     private fun suggestionFor(issue: ProgramEvaluationIssue): String = when (issue.type) {
+        ProgramEvaluationIssueType.SELECTED_MAIN_MISSING,
         ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR,
         ProgramEvaluationIssueType.LOADED_STRENGTH_UNDERUSED -> "근력운동과 배드민턴 전이훈련의 균형을 보정했습니다."
         ProgramEvaluationIssueType.LOW_SESSION_DENSITY -> "45분 세션에 맞게 운동 수를 조정했습니다."

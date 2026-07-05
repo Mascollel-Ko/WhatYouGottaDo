@@ -193,6 +193,31 @@ class ProgramBuilderSelectedMainSlotRepairTest {
         assertEquals("CAPTAIN_CHAIR_BLOCKED_UNTIL_SELECTED_MAIN_READY", result.trace.captainChairBlockReason)
     }
 
+    @Test
+    fun repairReopensCaptainChairSlotForExactSelectedMainExercise() {
+        val repair = ProgramIssueDrivenRerankPolicy().repair(
+            skeleton = captainChairOnlySkeleton(),
+            evaluation = evaluationWith(ProgramEvaluationIssueType.SELECTED_MAIN_MISSING),
+            reservoir = ProgramCandidateReservoir(
+                listOf(
+                    candidate(
+                        id = 20,
+                        stableKey = "barbell_back_squat",
+                        name = "Back squat",
+                        slot = ProgramSlotId.LOWER_SQUAT_PATTERN
+                    )
+                )
+            )
+        )
+
+        assertTrue("selected-main issue should reopen a weak filler slot",
+            "REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN" in repair.actions)
+        assertTrue("exact selected-main candidate should be inserted",
+            repair.skeleton.items.any { it.stableKey == "barbell_back_squat" })
+        assertFalse("captain chair should be removed from the repaired slot",
+            repair.skeleton.items.all { it.stableKey in CAPTAIN_CHAIR_KEYS })
+    }
+
     private fun reproductionPlan(
         excludedExerciseStableKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = ProgramBuilder().build(
@@ -317,6 +342,53 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             source = SlotCapabilitySource.RUNTIME_METADATA,
             confidence = SlotCapabilityConfidence.HIGH
         )
+    )
+
+    private fun captainChairOnlySkeleton(): GeneratedProgramSkeleton {
+        val request = request()
+        return GeneratedProgramSkeleton(
+            suggestedName = request.name,
+            durationDays = 28,
+            request = request,
+            periodizationType = ProgramPeriodizationType.BADMINTON_WAVE,
+            weekPlans = listOf(week()),
+            items = listOf(
+                ProgramSkeletonItem(
+                    localId = "1-1-1",
+                    weekNumber = 1,
+                    dayOfWeek = 1,
+                    orderIndex = 1,
+                    exerciseId = 100,
+                    exerciseName = "Captain chair leg raise",
+                    category = "strength",
+                    restSeconds = 60,
+                    prescription = "2x12",
+                    setCount = 2,
+                    reps = 12,
+                    weightKg = 0.0,
+                    seconds = 0,
+                    selectionReason = "",
+                    weightSource = "",
+                    stableKey = "ex_a345e30b",
+                    selectionRole = ProgramExerciseRole.CORE.name,
+                    primarySlotCapabilities = listOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name),
+                    requestedTemplateSlot = ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name
+                )
+            )
+        )
+    }
+
+    private fun evaluationWith(issueType: ProgramEvaluationIssueType): ProgramEvaluation = ProgramEvaluation(
+        overallScore = 55,
+        weeklyScores = emptyList(),
+        fatigueScore = 70,
+        strengthDistributionScore = 45,
+        badmintonTransferScore = 70,
+        densityScore = 70,
+        intensityDistributionScore = 70,
+        equipmentUtilizationScore = 45,
+        issues = listOf(ProgramEvaluationIssue(issueType, ProgramEvaluationIssueSeverity.SEVERE, "fixture issue")),
+        suggestions = emptyList()
     )
 
     private companion object {

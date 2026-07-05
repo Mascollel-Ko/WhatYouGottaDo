@@ -1,7 +1,8 @@
 package com.training.trackplanner.data
 
 internal class ProgramIssueDrivenRerankPolicy(
-    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy()
+    private val corePatternPolicy: ProgramCorePatternPolicy = ProgramCorePatternPolicy(),
+    private val selectedExerciseScorePolicy: ProgramSelectedExerciseScorePolicy = ProgramSelectedExerciseScorePolicy()
 ) {
     fun repair(
         skeleton: GeneratedProgramSkeleton,
@@ -10,6 +11,10 @@ internal class ProgramIssueDrivenRerankPolicy(
     ): ProgramRepairResult {
         if (reservoir == null) return ProgramRepairResult(skeleton, emptyList())
         val issueTypes = evaluation.issues.map(ProgramEvaluationIssue::type).toSet()
+        if (ProgramEvaluationIssueType.SELECTED_MAIN_MISSING in issueTypes) {
+            val selectedMainRepair = replaceWeakSlotWithSelectedMain(skeleton, reservoir)
+            if (selectedMainRepair.actions.isNotEmpty()) return selectedMainRepair
+        }
         val anchorRepair = if (
             ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR in issueTypes ||
             ProgramEvaluationIssueType.LOADED_STRENGTH_UNDERUSED in issueTypes
@@ -75,6 +80,56 @@ internal class ProgramIssueDrivenRerankPolicy(
             skeleton = skeleton.replace(target, replacement, reservoir.classification(replacement), ProgramExerciseRole.ANCHOR),
             actions = listOf("REOPEN_WEAK_SLOT_FOR_FOUNDATION")
         )
+    }
+
+    private fun replaceWeakSlotWithSelectedMain(
+        skeleton: GeneratedProgramSkeleton,
+        reservoir: ProgramCandidateReservoir
+    ): ProgramRepairResult {
+        val target = selectedMainReplacementTarget(skeleton) ?: return ProgramRepairResult(skeleton, emptyList())
+        val existingSelectedMain = skeleton.items.map(ProgramSkeletonItem::stableKey).toSet()
+        val replacement = reservoir.candidates.firstOrNull { candidate ->
+            selectedExerciseScorePolicy.isSelectedMainExercise(candidate) &&
+                candidate.exercise.stableKey !in existingSelectedMain &&
+                skeleton.items.none {
+                    it.weekNumber == target.weekNumber &&
+                        it.dayOfWeek == target.dayOfWeek &&
+                        it.stableKey == candidate.exercise.stableKey
+                }
+        } ?: reservoir.candidates.firstOrNull { candidate ->
+            selectedExerciseScorePolicy.isSelectedMainExercise(candidate) &&
+                skeleton.items.none {
+                    it.weekNumber == target.weekNumber &&
+                        it.dayOfWeek == target.dayOfWeek &&
+                        it.stableKey == candidate.exercise.stableKey
+                }
+        } ?: return ProgramRepairResult(skeleton, emptyList())
+        return ProgramRepairResult(
+            skeleton = skeleton.replace(
+                target = target,
+                candidate = replacement,
+                classification = reservoir.classification(replacement),
+                role = roleForSelectedMain(replacement.exercise.stableKey)
+            ),
+            actions = listOf("REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN")
+        )
+    }
+
+    private fun selectedMainReplacementTarget(skeleton: GeneratedProgramSkeleton): ProgramSkeletonItem? =
+        skeleton.items.firstOrNull { selectedExerciseScorePolicy.isCaptainChairStableKey(it.stableKey) }
+            ?: skeleton.items
+                .filter { item -> item.selectionRole in WEAK_ROLE_NAMES || corePatternPolicy.corePattern(item) != ProgramCorePattern.NONE }
+                .groupBy { it.stableKey.ifBlank { it.exerciseName } }
+                .values
+                .firstOrNull { it.size > 1 }
+                ?.firstOrNull()
+            ?: skeleton.items.firstOrNull { item -> item.selectionRole in WEAK_ROLE_NAMES }
+            ?: skeleton.items.firstOrNull { item -> item.selectionRole == ProgramExerciseRole.TRANSFER.name }
+
+    private fun roleForSelectedMain(stableKey: String): ProgramExerciseRole = when (stableKey) {
+        "ex_32219f7a",
+        "ex_8e1b313e" -> ProgramExerciseRole.SUPPORT
+        else -> ProgramExerciseRole.ANCHOR
     }
 
     private fun GeneratedProgramSkeleton.replace(

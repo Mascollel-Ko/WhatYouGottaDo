@@ -33,6 +33,7 @@ data class ProgramEvaluationIssue(
 enum class ProgramEvaluationIssueSeverity { INFO, WARNING, SEVERE }
 
 enum class ProgramEvaluationIssueType {
+    SELECTED_MAIN_MISSING,
     LOW_STRENGTH_ANCHOR,
     LOADED_STRENGTH_UNDERUSED,
     LOW_SESSION_DENSITY,
