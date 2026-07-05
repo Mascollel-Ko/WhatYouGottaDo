@@ -226,6 +226,7 @@ internal class ProgramEvaluationPolicy(
     private fun capOverallScore(score: Int, issues: List<ProgramEvaluationIssue>): Int {
         val issueTypes = issues.map(ProgramEvaluationIssue::type).toSet()
         var capped = score
+        if (ProgramEvaluationIssueType.SELECTED_MAIN_MISSING in issueTypes) capped = min(capped, 60)
         if (ProgramEvaluationIssueType.LOW_STRENGTH_ANCHOR in issueTypes) capped = min(capped, 92)
         if (ProgramEvaluationIssueType.LOADED_STRENGTH_UNDERUSED in issueTypes) capped = min(capped, 92)
         if (ProgramEvaluationIssueType.LOW_SESSION_DENSITY in issueTypes) capped = min(capped, 92)

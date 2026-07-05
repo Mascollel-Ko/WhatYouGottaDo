@@ -218,6 +218,49 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             repair.skeleton.items.all { it.stableKey in CAPTAIN_CHAIR_KEYS })
     }
 
+    @Test
+    fun selectedMainAvailableButMissingCapsEvaluationScore() {
+        val skeleton = captainChairOnlySkeleton().copy(
+            candidateTraces = listOf(
+                ProgramCandidateTrace(
+                    weekNumber = 1,
+                    dayOfWeek = 1,
+                    requestedTemplateSlot = ProgramSlotId.LOWER_SQUAT_PATTERN.name,
+                    role = ProgramExerciseRole.ANCHOR.name,
+                    allActive = 2,
+                    programSelectable = 2,
+                    equipmentMatched = 2,
+                    notExcludedByUser = 2,
+                    capabilityMatched = 1,
+                    repeatAllowed = 1,
+                    fatigueAllowed = 1,
+                    templateAllowed = 1,
+                    sessionAllowed = 1,
+                    scored = 1,
+                    selectionPool = 1,
+                    selected = 0,
+                    scoreAdjustments = listOf(
+                        ProgramCandidateScoreTrace(
+                            exerciseName = "Back squat",
+                            stableKey = "barbell_back_squat",
+                            baseScore = 100.0,
+                            contextRerankScore = 0.0,
+                            selectedMainBoostApplied = true,
+                            captainChairPenaltyApplied = false,
+                            finalScore = 140.0
+                        )
+                    )
+                )
+            )
+        )
+
+        val evaluation = ProgramEvaluationPolicy().evaluate(skeleton)
+
+        assertTrue(evaluation.issues.any { it.type == ProgramEvaluationIssueType.SELECTED_MAIN_MISSING })
+        assertTrue("selected-main missing must cap score strongly, score=${evaluation.overallScore}",
+            evaluation.overallScore <= 60)
+    }
+
     private fun reproductionPlan(
         excludedExerciseStableKeys: Set<String> = emptySet()
     ): GeneratedProgramSkeleton = ProgramBuilder().build(
