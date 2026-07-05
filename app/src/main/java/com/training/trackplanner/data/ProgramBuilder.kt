@@ -24,6 +24,7 @@ class ProgramBuilder internal constructor(
     private val periodizationPolicy = ProgramPeriodizationPlanPolicy()
     private val foundationAnchorPolicy = ProgramFoundationAnchorPolicy()
     private val rerankingPolicy = ProgramCandidateRerankingPolicy()
+    private val selectedExerciseScorePolicy = ProgramSelectedExerciseScorePolicy()
     private val beamSelectionPolicy = ProgramBeamSelectionPolicy()
     private val corePatternPolicy = ProgramCorePatternPolicy()
 
@@ -125,7 +126,7 @@ class ProgramBuilder internal constructor(
                                 exposureTarget = templateSlot.targetSlot?.let(exposureTargets::get),
                                 totalWeeks = normalized.durationWeeks
                             )
-                            baseScore + rerankingPolicy.adjustment(
+                            val rerankedScore = baseScore + rerankingPolicy.adjustment(
                                 candidate = candidate,
                                 classification = inventory.reservoir.classification(candidate),
                                 context = ProgramCandidateScoreContext(
@@ -138,6 +139,7 @@ class ProgramBuilder internal constructor(
                                     generatedItems = generated
                                 )
                             )
+                            selectedExerciseScorePolicy.adjust(rerankedScore, candidate).score
                         },
                         selectionPoolSize = varietyPolicy.selectionPoolSize(
                             request = normalized,
