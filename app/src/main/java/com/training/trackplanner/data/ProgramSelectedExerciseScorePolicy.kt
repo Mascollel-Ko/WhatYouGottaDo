@@ -11,11 +11,14 @@ internal data class ProgramSelectedExerciseScoreAdjustment(
 internal class ProgramSelectedExerciseScorePolicy {
     fun adjust(score: Double, candidate: ProgramCandidate): ProgramSelectedExerciseScoreAdjustment {
         val boosted = isSelectedMainExercise(candidate)
-        val multiplier = if (boosted) SELECTED_MAIN_EXERCISE_MULTIPLIER else 1.0
+        val penalized = isCaptainChairLegRaise(candidate)
+        val multiplier =
+            (if (boosted) SELECTED_MAIN_EXERCISE_MULTIPLIER else 1.0) *
+                (if (penalized) CAPTAIN_CHAIR_LEG_RAISE_MULTIPLIER else 1.0)
         return ProgramSelectedExerciseScoreAdjustment(
             score = score * multiplier,
             selectedMainBoostApplied = boosted,
-            captainChairPenaltyApplied = false
+            captainChairPenaltyApplied = penalized
         )
     }
 
@@ -28,6 +31,15 @@ internal class ProgramSelectedExerciseScorePolicy {
             candidate.metadata?.exerciseName.orEmpty().normalizedName() in SELECTED_MAIN_NAMES
     }
 
+    private fun isCaptainChairLegRaise(candidate: ProgramCandidate): Boolean {
+        val stableKey = candidate.exercise.stableKey.normalizedIdentity()
+        if (stableKey in CAPTAIN_CHAIR_STABLE_KEYS) return true
+        val metadataKey = candidate.metadata?.stableKey.orEmpty().normalizedIdentity()
+        if (metadataKey in CAPTAIN_CHAIR_STABLE_KEYS) return true
+        return candidate.exercise.name.normalizedName() in CAPTAIN_CHAIR_NAMES ||
+            candidate.metadata?.exerciseName.orEmpty().normalizedName() in CAPTAIN_CHAIR_NAMES
+    }
+
     private fun String.normalizedIdentity(): String =
         trim().lowercase(Locale.US)
 
@@ -38,6 +50,7 @@ internal class ProgramSelectedExerciseScorePolicy {
 
     private companion object {
         const val SELECTED_MAIN_EXERCISE_MULTIPLIER = 1.40
+        const val CAPTAIN_CHAIR_LEG_RAISE_MULTIPLIER = 0.70
 
         val SELECTED_MAIN_STABLE_KEYS = setOf(
             "barbell_back_squat",
@@ -56,6 +69,15 @@ internal class ProgramSelectedExerciseScorePolicy {
             "overhead press",
             "half kneeling one arm press",
             "half-kneeling one-arm press"
+        )
+
+        val CAPTAIN_CHAIR_STABLE_KEYS = setOf(
+            "ex_a345e30b",
+            "captain_chair_leg_raise"
+        )
+
+        val CAPTAIN_CHAIR_NAMES = setOf(
+            "captain chair leg raise"
         )
     }
 }
