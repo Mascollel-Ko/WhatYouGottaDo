@@ -35,6 +35,31 @@ internal class ProgramSlotAllocator {
                 )
             }
         }
+        context.dayRule.secondaryMainArea?.let { area ->
+            if (
+                items.size < caps.totalSlots &&
+                items.count { it.selectionRole == ProgramAutoSlotType.MAIN.name } < caps.mainCap
+            ) {
+                val tableLabel = context.intensityByArea[area] ?: ProgramIntensityLabel.MEDIUM_MEDIUM
+                val label = if (tableLabel == ProgramIntensityLabel.DELOAD) {
+                    ProgramIntensityLabel.DELOAD
+                } else {
+                    ProgramIntensityLabel.LOW_HIGH
+                }
+                items += item(
+                    context = context,
+                    spec = chooseMain(area, context.usage),
+                    orderIndex = items.size + 1,
+                    prescription = ProgramIntensityResolver.main(
+                        label = label,
+                        area = area,
+                        weekNumber = context.weekNumber
+                    ),
+                    reason = "Main / Secondary ${area.label}",
+                    trainingSlot = "MAIN_${area.name}"
+                )
+            }
+        }
 
         val badmintonTarget = ProgramRuleTables.badmintonTargetCount(
             ratio = context.request.badmintonTransferRatio,

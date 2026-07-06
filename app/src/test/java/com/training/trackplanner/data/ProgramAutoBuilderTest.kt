@@ -74,17 +74,61 @@ class ProgramAutoBuilderTest {
     }
 
     @Test
-    fun weakChestShoulderWorkIsAccessoryNotSecondMain() {
-        val skeleton = build(request(days = 3, minutes = 45, weeks = 3, ratio = 0.0))
-        val weekOneMiddleDay = skeleton.items.filter { it.weekNumber == 1 && it.dayOfWeek == 3 }
-        val weekTwoMiddleDay = skeleton.items.filter { it.weekNumber == 2 && it.dayOfWeek == 3 }
+    fun chestShoulderSplitUsesSecondaryMainNotAccessory() {
+        val skeleton = build(request(days = 3, minutes = 30, weeks = 3, ratio = 0.30))
 
-        assertEquals(1, weekOneMiddleDay.count { it.selectionRole == ProgramAutoSlotType.MAIN.name })
-        assertEquals("MAIN_CHEST", weekOneMiddleDay.first { it.selectionRole == ProgramAutoSlotType.MAIN.name }.trainingSlot)
-        assertTrue(weekOneMiddleDay.any { it.trainingSlot == "PAIRED_SHOULDER" })
-        assertEquals(1, weekTwoMiddleDay.count { it.selectionRole == ProgramAutoSlotType.MAIN.name })
-        assertEquals("MAIN_SHOULDER", weekTwoMiddleDay.first { it.selectionRole == ProgramAutoSlotType.MAIN.name }.trainingSlot)
-        assertTrue(weekTwoMiddleDay.any { it.trainingSlot == "PAIRED_CHEST" })
+        val weekOneMiddleDay = chestShoulderDay(skeleton, week = 1)
+        assertMainSlots(weekOneMiddleDay, "MAIN_CHEST", "MAIN_SHOULDER")
+        assertLowHighMain(weekOneMiddleDay.first { it.trainingSlot == "MAIN_SHOULDER" })
+        assertTrue(weekOneMiddleDay.size <= 3)
+
+        val weekTwoMiddleDay = chestShoulderDay(skeleton, week = 2)
+        assertMainSlots(weekTwoMiddleDay, "MAIN_SHOULDER", "MAIN_CHEST")
+        assertLowHighMain(weekTwoMiddleDay.first { it.trainingSlot == "MAIN_CHEST" })
+        assertTrue(weekTwoMiddleDay.size <= 3)
+    }
+
+    @Test
+    fun chestShoulderSecondaryMainPropagatesAcrossSupportedDurations() {
+        (3..8).forEach { weeks ->
+            val skeleton = build(request(days = 3, minutes = 45, weeks = weeks, ratio = 0.0))
+            (1..weeks).forEach { week ->
+                val day = chestShoulderDay(skeleton, week)
+                val expected = if (week % 2 == 1) {
+                    listOf("MAIN_CHEST", "MAIN_SHOULDER")
+                } else {
+                    listOf("MAIN_SHOULDER", "MAIN_CHEST")
+                }
+                assertMainSlots(day, expected[0], expected[1])
+                val secondary = day.first { it.trainingSlot == expected[1] }
+                if (skeleton.weekPlans.first { it.weekIndex == week }.deloadFlag) {
+                    assertEquals(2, secondary.setCount)
+                    assertEquals(6, secondary.reps)
+                } else {
+                    assertLowHighMain(secondary)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun zeroRatioKeepsChestShoulderSecondaryMainAndNoBadminton() {
+        val skeleton = build(request(days = 3, minutes = 45, weeks = 4, ratio = 0.0))
+
+        assertEquals(0, skeleton.items.count { it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name })
+        assertMainSlots(chestShoulderDay(skeleton, week = 1), "MAIN_CHEST", "MAIN_SHOULDER")
+        assertMainSlots(chestShoulderDay(skeleton, week = 2), "MAIN_SHOULDER", "MAIN_CHEST")
+    }
+
+    @Test
+    fun chestShoulderMainSlotCapsRespectSessionMinutes() {
+        listOf(30 to 3, 45 to 4, 60 to 5).forEach { (minutes, cap) ->
+            val skeleton = build(request(days = 3, minutes = minutes, weeks = 3, ratio = 0.30))
+            listOf(chestShoulderDay(skeleton, 1), chestShoulderDay(skeleton, 2)).forEach { day ->
+                assertEquals(2, day.count { it.selectionRole == ProgramAutoSlotType.MAIN.name })
+                assertTrue(day.size <= cap)
+            }
+        }
     }
 
     @Test
@@ -141,6 +185,26 @@ class ProgramAutoBuilderTest {
 
     private fun build(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
         ProgramAutoBuilder().build(request, exercises = emptyList())
+
+    private fun chestShoulderDay(skeleton: GeneratedProgramSkeleton, week: Int): List<ProgramSkeletonItem> =
+        skeleton.items.filter { it.weekNumber == week && it.dayOfWeek == 3 }
+
+    private fun assertMainSlots(
+        dayItems: List<ProgramSkeletonItem>,
+        first: String,
+        second: String
+    ) {
+        val mains = dayItems.filter { it.selectionRole == ProgramAutoSlotType.MAIN.name }
+        assertEquals(listOf(first, second), mains.map { it.trainingSlot })
+        assertFalse(dayItems.any { it.trainingSlot == first.replace("MAIN_", "PAIRED_") })
+        assertFalse(dayItems.any { it.trainingSlot == second.replace("MAIN_", "PAIRED_") })
+    }
+
+    private fun assertLowHighMain(item: ProgramSkeletonItem) {
+        assertEquals(ProgramAutoSlotType.MAIN.name, item.selectionRole)
+        assertEquals(3, item.setCount)
+        assertEquals(15, item.reps)
+    }
 
     private fun GeneratedProgramSkeleton.badmintonCountsPerDay(): List<Int> =
         items.groupBy { it.weekNumber to it.dayOfWeek }

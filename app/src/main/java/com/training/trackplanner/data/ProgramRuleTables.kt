@@ -10,6 +10,7 @@ internal data class ProgramDayRule(
     val label: String,
     val mainArea: ProgramMainArea?,
     val pairedPriorities: List<ProgramMainArea> = emptyList(),
+    val secondaryMainArea: ProgramMainArea? = null,
     val transferFocused: Boolean = false
 )
 
@@ -36,9 +37,17 @@ internal object ProgramRuleTables {
             3 -> listOf(
                 ProgramDayRule("Lower anterior", ProgramMainArea.LOWER_ANTERIOR, listOf(ProgramMainArea.LOWER_ANTERIOR)),
                 if (week % 2 == 1) {
-                    ProgramDayRule("Chest / shoulder A", ProgramMainArea.CHEST, listOf(ProgramMainArea.SHOULDER))
+                    ProgramDayRule(
+                        label = "Chest / shoulder A",
+                        mainArea = ProgramMainArea.CHEST,
+                        secondaryMainArea = ProgramMainArea.SHOULDER
+                    )
                 } else {
-                    ProgramDayRule("Chest / shoulder B", ProgramMainArea.SHOULDER, listOf(ProgramMainArea.CHEST))
+                    ProgramDayRule(
+                        label = "Chest / shoulder B",
+                        mainArea = ProgramMainArea.SHOULDER,
+                        secondaryMainArea = ProgramMainArea.CHEST
+                    )
                 },
                 ProgramDayRule(
                     "Lower posterior + back",
