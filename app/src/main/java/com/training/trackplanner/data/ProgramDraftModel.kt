@@ -1,14 +1,13 @@
 package com.training.trackplanner.data
 
 internal fun defaultProgramWeekDaySchedule(durationWeeks: Int, daysPerWeek: Int): Map<Int, Set<Int>> {
-    val days = when (daysPerWeek.coerceIn(1, 7)) {
-        1 -> setOf(3)
-        2 -> setOf(2, 5)
-        3 -> setOf(1, 3, 5)
-        4 -> setOf(1, 2, 4, 6)
-        5 -> setOf(1, 2, 3, 5, 6)
-        6 -> setOf(1, 2, 3, 4, 5, 6)
-        else -> (1..7).toSet()
+    val days = if (daysPerWeek < 3) {
+        when (daysPerWeek.coerceIn(1, 2)) {
+            1 -> setOf(3)
+            else -> setOf(2, 5)
+        }
+    } else {
+        ProgramDaySelector.defaultWeekdays(daysPerWeek).toSet()
     }
     return (1..durationWeeks.coerceIn(1, 12)).associateWith { days }
 }
@@ -50,13 +49,7 @@ internal fun GeneratedProgramSkeleton.withResolvedWeekDaySchedule(): GeneratedPr
     copy(weekDaySchedule = resolvedWeekDaySchedule())
 
 internal fun GeneratedProgramSkeleton.withWeekDays(weekNumber: Int, dayOfWeeks: Set<Int>): GeneratedProgramSkeleton {
-    val normalizedDays = dayOfWeeks.filter { it in 1..7 }.toSortedSet()
-    val currentSchedule = resolvedWeekDaySchedule().toMutableMap()
-    currentSchedule[weekNumber] = normalizedDays
-    return copy(
-        weekDaySchedule = currentSchedule,
-        items = items.filterNot { it.weekNumber == weekNumber && it.dayOfWeek !in normalizedDays }
-    ).reindexProgramDraft()
+    return ProgramDaySelector.replaceWeekdays(this, weekNumber, dayOfWeeks).reindexProgramDraft()
 }
 
 internal fun GeneratedProgramSkeleton.upsertDraftItem(item: ProgramSkeletonItem): GeneratedProgramSkeleton {
