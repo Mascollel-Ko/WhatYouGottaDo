@@ -259,13 +259,9 @@ internal fun ProgramCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (program.goal.isNotBlank() || program.periodizationType.isNotBlank()) {
+            if (program.weeklyTrainingDays > 0) {
                 Text(
-                    text = listOfNotNull(
-                        program.goal.toProgramGoal().displayLabel(),
-                        program.periodizationType.toProgramPeriodizationType().displayLabel(),
-                        "${program.weeklyTrainingDays.takeIf { it > 0 } ?: 0}일/주".takeIf { program.weeklyTrainingDays > 0 }
-                    ).joinToString(" · "),
+                    text = "${program.weeklyTrainingDays}일/주",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -8,6 +8,7 @@ internal class ProgramAutoBuilder(
         exercises: List<Exercise>
     ): GeneratedProgramSkeleton {
         val normalized = request.copy(
+            goal = ProgramGoal.BADMINTON_SUPPORT,
             durationWeeks = request.durationWeeks.coerceIn(3, 8),
             weeklyTrainingDays = request.weeklyTrainingDays.coerceIn(3, 7),
             sessionMinutes = when {
@@ -15,7 +16,13 @@ internal class ProgramAutoBuilder(
                 request.sessionMinutes <= 45 -> 45
                 else -> 60
             },
-            badmintonTransferRatio = nearestSupportedRatio(request.badmintonTransferRatio)
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
+            badmintonTransferRatio = nearestSupportedRatio(request.badmintonTransferRatio),
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO,
+            excludedExerciseStableKeys = emptySet(),
+            preferredExerciseStableKeys = emptySet()
         )
         val intensityTable = ProgramRuleTables.intensityTable(normalized.durationWeeks)
         val schedule = ProgramDaySelector.defaultSchedule(normalized.durationWeeks, normalized.weeklyTrainingDays)
@@ -72,12 +79,11 @@ internal class ProgramAutoBuilder(
         listOf(0.0, 0.30, 0.50, 0.70).minBy { kotlin.math.abs(it - value) }
 
     private fun resolvedPeriodization(request: ProgramSkeletonRequest): ProgramPeriodizationType =
-        request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
-            ?: if (request.badmintonTransferRatio > 0.0) {
-                ProgramPeriodizationType.BADMINTON_WAVE
-            } else {
-                ProgramPeriodizationType.LINEAR_STRENGTH
-            }
+        if (request.badmintonTransferRatio > 0.0) {
+            ProgramPeriodizationType.BADMINTON_WAVE
+        } else {
+            ProgramPeriodizationType.LINEAR_STRENGTH
+        }
 
     private fun weekPlans(
         intensityTable: List<Map<ProgramMainArea, ProgramIntensityLabel>>

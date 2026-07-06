@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
@@ -254,9 +253,6 @@ private fun ProgramEditorScreen(
     var nameError by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(false)
     }
-    var goal by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(program?.goal.toProgramGoal())
-    }
     var durationWeeks by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(((program?.durationDays ?: 28) / 7).coerceIn(3, 8))
     }
@@ -268,24 +264,6 @@ private fun ProgramEditorScreen(
     }
     var badmintonRatio by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.badmintonTransferRatio ?: 0.70).coerceIn(0.0, 0.90))
-    }
-    var sportStrengthRatio by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(program?.sportStrengthRatio?.ifBlank { "AUTO" } ?: "AUTO")
-    }
-    var periodizationType by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(program?.periodizationType.toProgramPeriodizationType())
-    }
-    var excludedText by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(program?.excludedExerciseText.orEmpty())
-    }
-    var excludedExerciseStableKeys by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(emptyList<String>())
-    }
-    var preferredExerciseStableKeys by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(emptyList<String>())
-    }
-    var selectedEquipment by remember(program?.id) {
-        mutableStateOf<Set<String>>(program?.availableEquipment.toEquipmentSet().ifEmpty { defaultProgramEquipmentTokens })
     }
     var skeleton by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
@@ -307,17 +285,15 @@ private fun ProgramEditorScreen(
     fun currentRequest(): ProgramSkeletonRequest =
         ProgramSkeletonRequest(
             name = normalizedProgramName(),
-            goal = goal,
+            goal = ProgramGoal.BADMINTON_SUPPORT,
             weeklyTrainingDays = weeklyDays,
             sessionMinutes = sessionMinutes,
-            availableEquipment = selectedEquipment,
-            excludedExerciseText = excludedText,
+            availableEquipment = emptySet(),
+            excludedExerciseText = "",
             badmintonTransferRatio = badmintonRatio,
-            sportStrengthRatio = sportStrengthRatio,
-            periodizationType = periodizationType,
-            durationWeeks = durationWeeks,
-            excludedExerciseStableKeys = excludedExerciseStableKeys.toSet(),
-            preferredExerciseStableKeys = preferredExerciseStableKeys.toSet()
+            sportStrengthRatio = "AUTO",
+            periodizationType = ProgramPeriodizationType.AUTO,
+            durationWeeks = durationWeeks
         )
 
     fun requireProgramName(): Boolean {
@@ -410,14 +386,6 @@ private fun ProgramEditorScreen(
                     )
                     if (program == null) {
                         if (showSkeletonOptions) {
-                    ProgramDropdown(
-                        label = "프로그램 목적",
-                        selected = goal,
-                        options = ProgramGoal.entries,
-                        optionLabel = { it.displayLabel() },
-                        onSelect = { goal = it },
-                        enabled = !generationRunning
-                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ProgramDropdown(
                             modifier = Modifier.weight(1f),
@@ -462,58 +430,6 @@ private fun ProgramEditorScreen(
                         text = "배드민턴 특이 훈련과 일반 근력의 우선순위를 조절합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f),
-                            label = "스포츠:근력 비율",
-                            selected = sportStrengthRatio,
-                            options = sportStrengthRatioOptions,
-                            optionLabel = { it },
-                            onSelect = { sportStrengthRatio = it },
-                            enabled = !generationRunning
-                        )
-                        ProgramDropdown(
-                            modifier = Modifier.weight(1f),
-                            label = "주기화",
-                            selected = periodizationType,
-                            options = ProgramPeriodizationType.entries,
-                            optionLabel = { it.displayLabel() },
-                            onSelect = { periodizationType = it },
-                            enabled = !generationRunning
-                        )
-                    }
-                    Text(
-                        text = "스포츠 활동 자체를 계획에 넣지 않고, 스포츠 전이성 보조운동과 일반 근력운동의 구성 비율만 조절합니다.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    EquipmentToggleGrid(
-                        selected = selectedEquipment,
-                        onChange = { selectedEquipment = it },
-                        enabled = !generationRunning
-                    )
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = excludedText,
-                        onValueChange = { if (!generationRunning) excludedText = it },
-                        enabled = !generationRunning,
-                        label = { Text("제외 운동 / 통증 메모") },
-                        minLines = 2
-                    )
-                    ExerciseStableKeyPicker(
-                        title = "제외할 운동 선택",
-                        exercises = exercises,
-                        selectedStableKeys = excludedExerciseStableKeys,
-                        onChange = { excludedExerciseStableKeys = it },
-                        enabled = !generationRunning
-                    )
-                    ExerciseStableKeyPicker(
-                        title = "우선 포함할 운동 선택",
-                        exercises = exercises,
-                        selectedStableKeys = preferredExerciseStableKeys,
-                        onChange = { preferredExerciseStableKeys = it },
-                        enabled = !generationRunning
                     )
                         }
                     Button(
@@ -838,87 +754,22 @@ private fun ProgramApplyCard(
     }
 }
 
-@Composable
-private fun ExerciseStableKeyPicker(
-    title: String,
-    exercises: List<Exercise>,
-    selectedStableKeys: List<String>,
-    onChange: (List<String>) -> Unit,
-    enabled: Boolean
-) {
-    var query by rememberSaveable(title) { mutableStateOf("") }
-    val selected = selectedStableKeys.toSet()
-    val selectedExercises = exercises
-        .filter { it.stableKey in selected }
-        .sortedBy { it.name.lowercase() }
-    val options = programExerciseSelectionOptions(
-        exercises = exercises,
-        query = query,
-        selectedStableKeys = selectedStableKeys
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(),
-            value = query,
-            onValueChange = { if (enabled) query = it },
-            enabled = enabled,
-            label = { Text("운동 검색") },
-            singleLine = true
-        )
-        selectedExercises.forEach { exercise ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = exercise.name,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                TextButton(
-                    enabled = enabled,
-                    onClick = { onChange(selectedStableKeys - exercise.stableKey) }
-                ) {
-                    Text("해제")
-                }
-            }
-        }
-        options.forEach { exercise ->
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                enabled = enabled,
-                onClick = {
-                    onChange((selectedStableKeys + exercise.stableKey).distinct())
-                    query = ""
-                }
-            ) {
-                Text(exercise.name)
-            }
-        }
-    }
-}
-
 private fun skeletonFromProgram(
     program: TrainingProgram,
     items: List<TrainingProgramItem>
 ): GeneratedProgramSkeleton {
     val request = ProgramSkeletonRequest(
         name = program.name,
-        goal = program.goal.toProgramGoal(),
+        goal = ProgramGoal.BADMINTON_SUPPORT,
         weeklyTrainingDays = (program.weeklyTrainingDays.takeIf { it > 0 } ?: 3),
         sessionMinutes = (program.sessionMinutes.takeIf { it > 0 } ?: 60),
-        availableEquipment = program.availableEquipment.toEquipmentSet().ifEmpty { defaultProgramEquipmentTokens },
-        excludedExerciseText = program.excludedExerciseText,
+        availableEquipment = emptySet(),
+        excludedExerciseText = "",
         badmintonTransferRatio = program.badmintonTransferRatio.coerceIn(0.0, 0.90),
-        sportStrengthRatio = program.sportStrengthRatio.ifBlank { "AUTO" },
-        periodizationType = program.periodizationType.toProgramPeriodizationType(),
+        sportStrengthRatio = "AUTO",
+        periodizationType = ProgramPeriodizationType.AUTO,
         durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
     )
-    val periodization = request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
-        ?: ProgramPeriodizationType.STEP_DELOAD
     val durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
     val weekPlans = (1..durationWeeks).map { week ->
         ProgramWeekPlan(
@@ -937,7 +788,7 @@ private fun skeletonFromProgram(
         suggestedName = program.name,
         durationDays = program.durationDays,
         request = request,
-        periodizationType = periodization,
+        periodizationType = ProgramPeriodizationType.AUTO,
         weekPlans = weekPlans,
         items = items.map { item ->
             ProgramSkeletonItem(
