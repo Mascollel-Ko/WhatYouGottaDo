@@ -54,6 +54,33 @@ class ProgramAutoBuilderTest {
     }
 
     @Test
+    fun removedFormInputsDoNotAffectDeterministicAutoSkeleton() {
+        val base = request(days = 5, minutes = 45, weeks = 4, ratio = 0.50)
+        val noisy = base.copy(
+            goal = ProgramGoal.STRENGTH,
+            availableEquipment = setOf("BARBELL", "DUMBBELL", "MACHINE", "CABLE"),
+            excludedExerciseText = "avoid everything",
+            sportStrengthRatio = "0/100",
+            periodizationType = ProgramPeriodizationType.LINEAR_STRENGTH,
+            excludedExerciseStableKeys = setOf("selected_excluded"),
+            preferredExerciseStableKeys = setOf("selected_required")
+        )
+
+        val baseSkeleton = build(base)
+        val noisySkeleton = build(noisy)
+
+        assertEquals(baseSkeleton.itemSignature(), noisySkeleton.itemSignature())
+        assertEquals(baseSkeleton.periodizationType, noisySkeleton.periodizationType)
+        assertEquals(ProgramGoal.BADMINTON_SUPPORT, noisySkeleton.request.goal)
+        assertEquals(emptySet<String>(), noisySkeleton.request.availableEquipment)
+        assertEquals("", noisySkeleton.request.excludedExerciseText)
+        assertEquals("AUTO", noisySkeleton.request.sportStrengthRatio)
+        assertEquals(ProgramPeriodizationType.AUTO, noisySkeleton.request.periodizationType)
+        assertEquals(emptySet<String>(), noisySkeleton.request.excludedExerciseStableKeys)
+        assertEquals(emptySet<String>(), noisySkeleton.request.preferredExerciseStableKeys)
+    }
+
+    @Test
     fun pairedMainAccessoriesAreUsedWhenSlotsAllow() {
         val skeleton = build(request(days = 4, minutes = 45, weeks = 4, ratio = 0.0))
         val reasons = skeleton.items.map { it.selectionReason }
@@ -210,6 +237,20 @@ class ProgramAutoBuilderTest {
         items.groupBy { it.weekNumber to it.dayOfWeek }
             .values
             .map { dayItems -> dayItems.count { it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name } }
+
+    private fun GeneratedProgramSkeleton.itemSignature(): List<String> =
+        items.map {
+            listOf(
+                it.weekNumber,
+                it.dayOfWeek,
+                it.orderIndex,
+                it.trainingSlot,
+                it.exerciseName,
+                it.selectionRole,
+                it.setCount,
+                it.reps
+            ).joinToString("|")
+        }
 
     private fun request(
         days: Int = 4,
