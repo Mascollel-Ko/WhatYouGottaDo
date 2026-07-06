@@ -32,9 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
-import com.training.trackplanner.data.ProgramDraftEvaluationSection
-import com.training.trackplanner.data.ProgramDraftEvaluator
-import com.training.trackplanner.data.ProgramDraftIssueSeverity
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
@@ -50,18 +47,13 @@ internal fun ProgramSkeletonPreview(
     metadataByExerciseId: Map<Long, RuntimeExerciseMetadata>,
     onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
 ) {
-    var tab by rememberSaveable(skeleton.suggestedName) { mutableStateOf("edit") }
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var selectedDay by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
-    var detailSection by remember { mutableStateOf<ProgramDraftEvaluationSection?>(null) }
     val schedule = skeleton.resolvedWeekDaySchedule()
     val selectedDays = schedule[selectedWeek].orEmpty().sorted()
-    val evaluation = remember(skeleton, metadataByExerciseId) {
-        ProgramDraftEvaluator.evaluate(skeleton, metadataByExerciseId)
-    }
 
     LaunchedEffect(schedule, selectedWeek) {
         if (selectedWeek !in schedule.keys) selectedWeek = schedule.keys.minOrNull() ?: 1
@@ -117,24 +109,6 @@ internal fun ProgramSkeletonPreview(
         )
     }
 
-    detailSection?.let { section ->
-        AlertDialog(
-            onDismissRequest = { detailSection = null },
-            title = { Text(section.title) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${section.score}점 · ${section.summary}", fontWeight = FontWeight.SemiBold)
-                    section.issues.forEach { issue ->
-                        Text("${issue.severity.label()} · ${issue.message}")
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { detailSection = null }) { Text("닫기") }
-            }
-        )
-    }
-
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -144,49 +118,31 @@ internal fun ProgramSkeletonPreview(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (tab == "edit") {
-                    Button(onClick = { tab = "edit" }) { Text("편집") }
-                    OutlinedButton(onClick = { tab = "eval" }) { Text("평가") }
-                } else {
-                    OutlinedButton(onClick = { tab = "edit" }) { Text("편집") }
-                    Button(onClick = { tab = "eval" }) { Text("평가") }
-                }
-            }
-            if (tab == "edit") {
-                ProgramDraftEditTab(
-                    skeleton = skeleton,
-                    selectedWeek = selectedWeek,
-                    selectedDay = selectedDay,
-                    selectedDays = selectedDays,
-                    onSelectWeek = { selectedWeek = it },
-                    onSelectDay = { selectedDay = it },
-                    onToggleDay = { day ->
-                        val currentDays = schedule[selectedWeek].orEmpty()
-                        if (day in currentDays) {
-                            val hasItems = skeleton.items.any { it.weekNumber == selectedWeek && it.dayOfWeek == day }
-                            if (hasItems) {
-                                removeDayTarget = day
-                            } else {
-                                onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays - day))
-                            }
+            ProgramDraftEditTab(
+                skeleton = skeleton,
+                selectedWeek = selectedWeek,
+                selectedDay = selectedDay,
+                selectedDays = selectedDays,
+                onSelectWeek = { selectedWeek = it },
+                onSelectDay = { selectedDay = it },
+                onToggleDay = { day ->
+                    val currentDays = schedule[selectedWeek].orEmpty()
+                    if (day in currentDays) {
+                        val hasItems = skeleton.items.any { it.weekNumber == selectedWeek && it.dayOfWeek == day }
+                        if (hasItems) {
+                            removeDayTarget = day
                         } else {
-                            onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays + day))
-                            selectedDay = day
+                            onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays - day))
                         }
-                    },
-                    onAddExercise = { showExercisePicker = true },
-                    onEditItem = { editingItem = it },
-                    onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
-                )
-            } else {
-                ProgramDraftEvaluationTab(
-                    overallScore = evaluation.overallScore,
-                    summary = evaluation.summary,
-                    sections = evaluation.sections,
-                    onOpenDetail = { detailSection = it }
-                )
-            }
+                    } else {
+                        onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays + day))
+                        selectedDay = day
+                    }
+                },
+                onAddExercise = { showExercisePicker = true },
+                onEditItem = { editingItem = it },
+                onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
+            )
         }
     }
 }
@@ -349,37 +305,6 @@ private fun ProgramDraftItemDialog(
     )
 }
 
-@Composable
-private fun ProgramDraftEvaluationTab(
-    overallScore: Int,
-    summary: String,
-    sections: List<ProgramDraftEvaluationSection>,
-    onOpenDetail: (ProgramDraftEvaluationSection) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("프로그램 평가 ${overallScore}점", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text(summary, style = MaterialTheme.typography.bodyMedium)
-        sections.forEach { section ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("${section.title} ${section.score}", fontWeight = FontWeight.SemiBold)
-                        Text(section.summary, style = MaterialTheme.typography.bodySmall)
-                    }
-                    TextButton(onClick = { onOpenDetail(section) }) { Text("자세히") }
-                }
-            }
-        }
-    }
-}
-
 private fun draftItemForExercise(
     exercise: Exercise,
     metadata: RuntimeExerciseMetadata,
@@ -424,12 +349,6 @@ private fun draftItemForExercise(
         badmintonTransferLevel = metadata.badmintonTransferLevel,
         primarySlotCapabilities = metadata.badmintonTransferType.values
     )
-}
-
-private fun ProgramDraftIssueSeverity.label(): String = when (this) {
-    ProgramDraftIssueSeverity.GOOD -> "좋음"
-    ProgramDraftIssueSeverity.CAUTION -> "주의"
-    ProgramDraftIssueSeverity.HIGH -> "높음"
 }
 
 private val timedCategories = setOf("유산소/운동", "스포츠")

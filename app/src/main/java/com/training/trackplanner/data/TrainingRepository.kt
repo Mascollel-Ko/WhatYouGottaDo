@@ -205,10 +205,7 @@ class TrainingRepository(
         prescriptionNoteFormatter = ::noteFromPrescription
     )
     private val programGenerationService = ProgramGenerationService(
-        exerciseDao = exerciseDao,
-        workoutDao = workoutDao,
-        initialUserProfileDao = initialUserProfileDao,
-        runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog
+        exerciseDao = exerciseDao
     )
     private val dailyStatusService = DailyStatusService(
         dailyMetricDao = dailyMetricDao,

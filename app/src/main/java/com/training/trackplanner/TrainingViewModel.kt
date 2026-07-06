@@ -263,18 +263,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 withTimeout(12_000) {
                     _programBuildProgress.value = ProgramBuildProgressState.Running(
                         progressPercent = 25,
-                        message = "운동 후보를 넓게 모으는 중입니다."
+                        message = "규칙표와 운동 풀을 확인하는 중입니다."
                     )
                     val generated = withContext(Dispatchers.Default) {
                         _programBuildProgress.value = ProgramBuildProgressState.Running(
                             progressPercent = 40,
-                            message = "주기화에 맞춰 주차별 역할을 정하고 메인 운동 후보를 비교하는 중입니다."
+                            message = "주차와 요일 슬롯을 배치하는 중입니다."
                         )
                         repository.generateProgramSkeleton(request)
                     }
                     _programBuildProgress.value = ProgramBuildProgressState.Running(
                         progressPercent = 85,
-                        message = "부위·피로도·전이 목적 균형을 조정하는 중입니다."
+                        message = "메인 운동과 보조운동을 정리하는 중입니다."
                     )
                     generated
                 }

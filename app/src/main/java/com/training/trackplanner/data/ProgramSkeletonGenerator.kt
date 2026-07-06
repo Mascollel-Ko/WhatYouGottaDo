@@ -215,9 +215,9 @@ data class ProgramCandidateScoreTrace(
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */
-class ProgramSkeletonGenerator(
-    private val builder: ProgramBuilder = ProgramBuilder()
-) {
+class ProgramSkeletonGenerator {
+    private val builder = ProgramAutoBuilder()
+
     fun generate(
         request: ProgramSkeletonRequest,
         exercises: List<Exercise>,
@@ -225,12 +225,5 @@ class ProgramSkeletonGenerator(
         today: LocalDate = LocalDate.now(),
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
         fatigueState: DailyFatigueState? = null
-    ): GeneratedProgramSkeleton = builder.build(
-        request = request,
-        exercises = exercises,
-        history = history,
-        today = today,
-        runtimeMetadataCatalog = runtimeMetadataCatalog,
-        fatigueState = fatigueState
-    )
+    ): GeneratedProgramSkeleton = builder.build(request = request, exercises = exercises)
 }

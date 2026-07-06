@@ -43,41 +43,6 @@ class ProgramDraftEditorModelTest {
         assertFalse(changed.items.any { it.localId == "w2-thu" })
     }
 
-    @Test
-    fun evaluation_changesWhenLoadChanges() {
-        val light = emptyProgramSkeleton(request(), defaultProgramWeekDaySchedule(4, 3))
-            .upsertDraftItem(item(localId = "light", weekNumber = 1, dayOfWeek = 1, setCount = 2, reps = 5, weightKg = 20.0))
-        val heavy = light.upsertDraftItem(
-            light.items.single().copy(setCount = 6, reps = 12, weightKg = 140.0, restSeconds = 30)
-        )
-
-        val lightScore = ProgramDraftEvaluator.evaluate(light, emptyMap()).fatigue.score
-        val heavyScore = ProgramDraftEvaluator.evaluate(heavy, emptyMap()).fatigue.score
-
-        assertTrue(heavyScore < lightScore)
-    }
-
-    @Test
-    fun evaluation_detectsStrengthAndTransferConcentration() {
-        val draft = emptyProgramSkeleton(request(), defaultProgramWeekDaySchedule(4, 3))
-            .upsertDraftItem(item(localId = "a", exerciseId = 1, weekNumber = 1, dayOfWeek = 1))
-            .upsertDraftItem(item(localId = "b", exerciseId = 2, weekNumber = 1, dayOfWeek = 3))
-            .upsertDraftItem(item(localId = "c", exerciseId = 3, weekNumber = 1, dayOfWeek = 5))
-        val metadata = listOf(1L, 2L, 3L).associateWith { id ->
-            RuntimeExerciseMetadataDefaults.forIdentity("exercise_$id", "Exercise $id").copy(
-                strengthProgressionGroup = "CHEST",
-                badmintonTransferType = MetadataTokenField.parse("ACCELERATION")
-            )
-        }
-
-        val evaluation = ProgramDraftEvaluator.evaluate(draft, metadata)
-
-        assertTrue(evaluation.strengthDistribution.score < 100)
-        assertTrue(evaluation.badmintonTransferDistribution.score < 100)
-        assertTrue(evaluation.strengthDistribution.issues.any { it.severity != ProgramDraftIssueSeverity.GOOD })
-        assertTrue(evaluation.badmintonTransferDistribution.issues.any { it.severity != ProgramDraftIssueSeverity.GOOD })
-    }
-
     private fun request(): ProgramSkeletonRequest =
         ProgramSkeletonRequest(
             name = "Draft",

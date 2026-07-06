@@ -189,8 +189,7 @@ internal fun String?.toEquipmentSet(): Set<String> =
         .filter { it.isNotBlank() }
         .toSet()
 
-internal val badmintonRatioOptions = (0..9).reversed().associate { step ->
-    val badminton = step * 10
+internal val badmintonRatioOptions = listOf(0, 30, 50, 70).associate { badminton ->
     (badminton / 100.0) to "$badminton:${100 - badminton}"
 }
 

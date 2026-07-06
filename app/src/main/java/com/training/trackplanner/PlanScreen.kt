@@ -258,7 +258,7 @@ private fun ProgramEditorScreen(
         mutableStateOf(program?.goal.toProgramGoal())
     }
     var durationWeeks by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(((program?.durationDays ?: 28) / 7).coerceIn(2, 12))
+        mutableStateOf(((program?.durationDays ?: 28) / 7).coerceIn(3, 8))
     }
     var weeklyDays by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
@@ -423,7 +423,7 @@ private fun ProgramEditorScreen(
                             modifier = Modifier.weight(1f),
                             label = "프로그램 기간",
                             selected = durationWeeks,
-                            options = (2..12).toList(),
+                            options = (3..8).toList(),
                             optionLabel = { "${it}주" },
                             onSelect = { durationWeeks = it },
                             enabled = !generationRunning
@@ -432,7 +432,7 @@ private fun ProgramEditorScreen(
                             modifier = Modifier.weight(1f),
                             label = "주당 운동일수",
                             selected = weeklyDays,
-                            options = (1..7).toList(),
+                            options = (3..7).toList(),
                             optionLabel = { "주 ${it}일" },
                             onSelect = { weeklyDays = it },
                             enabled = !generationRunning
@@ -443,7 +443,7 @@ private fun ProgramEditorScreen(
                             modifier = Modifier.weight(1f),
                             label = "하루 운동시간",
                             selected = sessionMinutes,
-                            options = listOf(20, 30, 45, 60, 75, 90, 120),
+                            options = listOf(30, 45, 60),
                             optionLabel = { "${it}분" },
                             onSelect = { sessionMinutes = it },
                             enabled = !generationRunning
@@ -915,11 +915,11 @@ private fun skeletonFromProgram(
         badmintonTransferRatio = program.badmintonTransferRatio.coerceIn(0.0, 0.90),
         sportStrengthRatio = program.sportStrengthRatio.ifBlank { "AUTO" },
         periodizationType = program.periodizationType.toProgramPeriodizationType(),
-        durationWeeks = (program.durationDays / 7).coerceIn(2, 12)
+        durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
     )
     val periodization = request.periodizationType.takeIf { it != ProgramPeriodizationType.AUTO }
         ?: ProgramPeriodizationType.STEP_DELOAD
-    val durationWeeks = (program.durationDays / 7).coerceIn(2, 12)
+    val durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
     val weekPlans = (1..durationWeeks).map { week ->
         ProgramWeekPlan(
             weekIndex = week,
