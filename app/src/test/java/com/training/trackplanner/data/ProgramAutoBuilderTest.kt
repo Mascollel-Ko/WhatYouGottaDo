@@ -92,6 +92,29 @@ class ProgramAutoBuilderTest {
     }
 
     @Test
+    fun squatMainReplacesAccessorySquatWithAllowedAlternative() {
+        val skeleton = build(
+            request = request(days = 4, minutes = 45, weeks = 4, ratio = 0.0),
+            exercises = listOf(
+                exercise(id = 1, name = "스쿼트", stableKey = "barbell_back_squat"),
+                exercise(id = 2, name = "프론트 스쿼트", stableKey = "front_squat")
+            )
+        )
+        val squatDay = skeleton.items
+            .filter { it.weekNumber == 1 }
+            .groupBy { it.dayOfWeek }
+            .values
+            .first { day -> day.any { it.trainingSlot == "MAIN_LOWER_ANTERIOR" } }
+        val mainSquat = squatDay.first { it.trainingSlot == "MAIN_LOWER_ANTERIOR" }
+        val pairedLower = squatDay.first { it.trainingSlot == "PAIRED_LOWER_ANTERIOR" }
+
+        assertEquals("barbell_back_squat", mainSquat.stableKey)
+        assertEquals(1, squatDay.count { it.stableKey == mainSquat.stableKey })
+        assertEquals("front_squat", pairedLower.stableKey)
+        assertTrue(pairedLower.exerciseName in setOf("레그 익스텐션", "핵스쿼트", "프론트 스쿼트", "스플릿스쿼트", "체어스쿼트"))
+    }
+
+    @Test
     fun threeDaySplitUsesBackAccessoryOnLowerPosteriorDay() {
         val skeleton = build(request(days = 3, minutes = 45, weeks = 3, ratio = 0.30))
         val weekOneLowerPosterior = skeleton.items.filter { it.weekNumber == 1 && it.dayOfWeek == 5 }
@@ -210,8 +233,20 @@ class ProgramAutoBuilderTest {
         }
     }
 
-    private fun build(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
-        ProgramAutoBuilder().build(request, exercises = emptyList())
+    private fun build(
+        request: ProgramSkeletonRequest,
+        exercises: List<Exercise> = emptyList()
+    ): GeneratedProgramSkeleton =
+        ProgramAutoBuilder().build(request, exercises = exercises)
+
+    private fun exercise(id: Long, name: String, stableKey: String): Exercise =
+        Exercise(
+            id = id,
+            name = name,
+            category = "근력운동",
+            stableKey = stableKey,
+            defaultRestSeconds = 90
+        )
 
     private fun chestShoulderDay(skeleton: GeneratedProgramSkeleton, week: Int): List<ProgramSkeletonItem> =
         skeleton.items.filter { it.weekNumber == week && it.dayOfWeek == 3 }

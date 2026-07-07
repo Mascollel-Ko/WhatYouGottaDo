@@ -109,7 +109,9 @@ internal object ProgramRuleTables {
             ProgramMainArea.LOWER_ANTERIOR,
             "스플릿스쿼트",
             "체어스쿼트",
-            "핵스쿼트"
+            "핵스쿼트",
+            "레그 익스텐션",
+            "프론트 스쿼트"
         ),
         ProgramMainArea.LOWER_POSTERIOR to paired(
             ProgramMainArea.LOWER_POSTERIOR,

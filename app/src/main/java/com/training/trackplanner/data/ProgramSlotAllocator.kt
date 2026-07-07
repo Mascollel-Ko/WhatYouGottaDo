@@ -82,7 +82,7 @@ internal class ProgramSlotAllocator {
             if (items.size >= caps.totalSlots) break
             items += item(
                 context = context,
-                spec = choosePaired(area, context.usage),
+                spec = choosePaired(area, context.usage, context.exercises, items),
                 orderIndex = items.size + 1,
                 prescription = ProgramIntensityResolver.strengthAccessory(highIntensityMain),
                 reason = "Strength accessory / Paired ${area.label}",
@@ -143,8 +143,27 @@ internal class ProgramSlotAllocator {
     private fun chooseMain(area: ProgramMainArea, usage: ProgramAutoUsage): ProgramExerciseSpec =
         choose(ProgramRuleTables.mainExercises.getValue(area), usage)
 
-    private fun choosePaired(area: ProgramMainArea, usage: ProgramAutoUsage): ProgramExerciseSpec =
-        choose(ProgramRuleTables.pairedAccessories.getValue(area), usage)
+    private fun choosePaired(
+        area: ProgramMainArea,
+        usage: ProgramAutoUsage,
+        exercises: List<Exercise>,
+        currentItems: List<ProgramSkeletonItem>
+    ): ProgramExerciseSpec {
+        val pool = ProgramRuleTables.pairedAccessories.getValue(area)
+        val mainSquatStableKey = currentItems
+            .firstOrNull { it.trainingSlot == "MAIN_${ProgramMainArea.LOWER_ANTERIOR.name}" }
+            ?.stableKey
+            ?.takeIf { it.isNotBlank() }
+        if (area != ProgramMainArea.LOWER_ANTERIOR || mainSquatStableKey == null) return choose(pool, usage)
+        val sorted = pool.sortedWith(programExerciseSpecComparator(pool, usage))
+        return sorted
+            .firstOrNull {
+                val stableKey = it.resolve(exercises).stableKey
+                stableKey.isNotBlank() && stableKey != mainSquatStableKey
+            }
+            ?: sorted.firstOrNull { it.resolve(exercises).stableKey != mainSquatStableKey }
+            ?: choose(pool, usage)
+    }
 
     private fun chooseSmall(part: ProgramSmallPart, usage: ProgramAutoUsage): ProgramExerciseSpec =
         choose(ProgramRuleTables.smallPartAccessories.getValue(part), usage)
@@ -153,11 +172,15 @@ internal class ProgramSlotAllocator {
         choose(ProgramRuleTables.badmintonAccessories.getValue(category), usage)
 
     private fun choose(pool: List<ProgramExerciseSpec>, usage: ProgramAutoUsage): ProgramExerciseSpec =
-        pool.minWith(
-            compareBy<ProgramExerciseSpec> { usage.exerciseCount(it.displayName) }
-                .thenBy { usage.groupCount(it.substitutionGroup.orEmpty()) }
-                .thenBy { pool.indexOf(it) }
-        )
+        pool.minWith(programExerciseSpecComparator(pool, usage))
+
+    private fun programExerciseSpecComparator(
+        pool: List<ProgramExerciseSpec>,
+        usage: ProgramAutoUsage
+    ): Comparator<ProgramExerciseSpec> =
+        compareBy<ProgramExerciseSpec> { usage.exerciseCount(it.displayName) }
+            .thenBy { usage.groupCount(it.substitutionGroup.orEmpty()) }
+            .thenBy { pool.indexOf(it) }
 
     private fun chooseBadmintonCategory(usage: ProgramAutoUsage): ProgramBadmintonCategory {
         val categories = ProgramBadmintonCategory.entries
