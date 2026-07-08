@@ -131,7 +131,8 @@ data class ChartSeries(
 data class BarItem(
     val label: String,
     val value: Double,
-    val colorIndex: Int? = null
+    val colorIndex: Int? = null,
+    val colorKey: String? = null
 )
 
 data class PieSlice(
@@ -142,7 +143,8 @@ data class PieSlice(
 data class StackedBarSegment(
     val label: String,
     val value: Double,
-    val colorIndex: Int? = null
+    val colorIndex: Int? = null,
+    val colorKey: String? = null
 )
 
 data class StackedBarGroup(

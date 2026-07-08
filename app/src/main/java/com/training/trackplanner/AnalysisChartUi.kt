@@ -22,6 +22,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -127,6 +128,10 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         .flatMap { group -> group.segments }
         .groupBy { segment -> segment.label }
         .mapValues { (_, segments) -> segments.firstNotNullOfOrNull { it.colorIndex } }
+    val colorKeyByLabel = groups
+        .flatMap { group -> group.segments }
+        .groupBy { segment -> segment.label }
+        .mapValues { (_, segments) -> segments.firstNotNullOfOrNull { it.colorKey } }
     val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Canvas(modifier = modifier.fillMaxWidth()) {
@@ -137,7 +142,8 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                 group.segments.forEach { segment ->
                     val height = (size.height * (segment.value / maxTotal)).toFloat()
                     val colorIndex = segment.colorIndex ?: labels.indexOf(segment.label).coerceAtLeast(0)
-                    val color = colors[colorIndex % colors.size]
+                    val color = segment.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
+                        ?: colors[colorIndex % colors.size]
                     drawRect(
                         color = color,
                         topLeft = Offset(groupIndex * slot + (slot - barWidth) / 2f, bottom - height),
@@ -153,7 +159,9 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         ) {
             labels.forEachIndexed { index, label ->
                 val colorIndex = colorIndexByLabel[label] ?: index
-                Surface(shape = RoundedCornerShape(8.dp), color = colors[colorIndex % colors.size].copy(alpha = 0.22f)) {
+                val color = colorKeyByLabel[label]?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
+                    ?: colors[colorIndex % colors.size]
+                Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.22f)) {
                     Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = label, style = MaterialTheme.typography.labelSmall)
                 }
             }
@@ -210,7 +218,8 @@ private fun AnalysisBarList(items: List<BarItem>) {
                 Surface(
                     modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat()).height(8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    color = colors[(item.colorIndex ?: index) % colors.size]
+                    color = item.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
+                        ?: colors[(item.colorIndex ?: index) % colors.size]
                 ) {}
             }
         }

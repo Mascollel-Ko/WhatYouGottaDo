@@ -327,7 +327,8 @@ private fun BadmintonTrainingLoadCharts(
                                     BarItem(
                                         BadmintonTrainingMethodLabels.label(key),
                                         value,
-                                        BadmintonTrainingMethodSeries.colorIndex(key)
+                                        BadmintonTrainingMethodSeries.colorIndex(key),
+                                        key
                                     )
                                 }
                         )

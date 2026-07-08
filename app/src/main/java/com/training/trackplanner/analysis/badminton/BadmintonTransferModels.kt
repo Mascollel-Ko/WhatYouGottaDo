@@ -51,7 +51,8 @@ data class BadmintonTransferExerciseStimulus(
 data class BadmintonTransferBarItem(
     val label: String,
     val value: Double,
-    val valueLabel: String
+    val valueLabel: String,
+    val colorKey: String? = null
 )
 
 data class BadmintonTransferChartData(

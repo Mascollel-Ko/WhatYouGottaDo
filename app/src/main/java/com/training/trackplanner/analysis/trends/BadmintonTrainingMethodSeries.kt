@@ -103,7 +103,7 @@ object BadmintonTrainingMethodSeries {
                 }
                 val segments = objectiveKeys.mapNotNull { key ->
                     val value = byKey[key]?.takeIf { it > 0.0 } ?: return@mapNotNull null
-                    StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key))
+                    StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key), key)
                 }
                 if (segments.isEmpty()) null else StackedBarGroup(week.toString(), segments)
             }
@@ -113,7 +113,9 @@ object BadmintonTrainingMethodSeries {
         entries
             .filter { (_, value) -> value > 0.0 }
             .sortedByDescending { (_, value) -> value }
-            .map { (key, value) -> StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key)) }
+            .map { (key, value) ->
+                StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key), key)
+            }
 
     private fun List<String>.joinToLabelText(): String =
         joinToString("·") { key -> BadmintonTrainingMethodLabels.label(key) }

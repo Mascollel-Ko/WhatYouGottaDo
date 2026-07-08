@@ -13,7 +13,7 @@ class BadmintonTransferChartDataBuilder {
 
     private fun axisShareBars(shares: Map<BadmintonTransferAxis, Double>): List<BadmintonTransferBarItem> =
         BadmintonTransferAxis.entries.map { axis ->
-            percentBar(axis.displayName, shares[axis] ?: 0.0)
+            percentBar(axis.displayName, shares[axis] ?: 0.0, axis.name)
         }
 
     private fun transferTypeShareBars(shares: Map<BadmintonTransferType, Double>): List<BadmintonTransferBarItem> =
@@ -23,7 +23,7 @@ class BadmintonTransferChartDataBuilder {
             BadmintonTransferType.GENERAL_STRENGTH,
             BadmintonTransferType.LOW
         ).map { type ->
-            percentBar(type.displayName, shares[type] ?: 0.0)
+            percentBar(type.displayName, shares[type] ?: 0.0, type.name)
         }
 
     private fun windowComparisonBars(
@@ -32,8 +32,8 @@ class BadmintonTransferChartDataBuilder {
     ): List<BadmintonTransferBarItem> =
         BadmintonTransferConstants.recommendationPriority.flatMap { axis ->
             listOf(
-                percentBar("${axis.displayName} 7일", shares7d[axis] ?: 0.0),
-                percentBar("${axis.displayName} 28일", shares28d[axis] ?: 0.0)
+                percentBar("${axis.displayName} 7일", shares7d[axis] ?: 0.0, axis.name),
+                percentBar("${axis.displayName} 28일", shares28d[axis] ?: 0.0, axis.name)
             )
         }
 
@@ -50,11 +50,12 @@ class BadmintonTransferChartDataBuilder {
         }
     }
 
-    private fun percentBar(label: String, share: Double): BadmintonTransferBarItem =
+    private fun percentBar(label: String, share: Double, colorKey: String): BadmintonTransferBarItem =
         BadmintonTransferBarItem(
             label = label,
             value = share.coerceIn(0.0, 1.0),
-            valueLabel = formatPercent(share)
+            valueLabel = formatPercent(share),
+            colorKey = colorKey
         )
 
     private fun formatPercent(value: Double): String =

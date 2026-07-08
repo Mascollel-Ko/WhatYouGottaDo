@@ -21,9 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
+import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
 import com.training.trackplanner.analysis.badminton.BadmintonTransferDetailChartMode
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.coach.BadmintonTransferAxisStatus
@@ -518,7 +520,8 @@ private fun TransferBarList(items: List<BadmintonTransferBarItem>) {
                 Surface(
                     modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat()).height(8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = item.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
+                        ?: MaterialTheme.colorScheme.primary
                 ) {}
             }
         }
