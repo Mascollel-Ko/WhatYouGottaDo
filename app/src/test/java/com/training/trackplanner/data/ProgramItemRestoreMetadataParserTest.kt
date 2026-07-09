@@ -68,4 +68,67 @@ class ProgramItemRestoreMetadataParserTest {
         assertTrue(result is ProgramItemRestoreMetadataParseResult.Failed)
         assertEquals(ProgramItemRestoreMetadataField.entries.toSet(), result.fallbackFields)
     }
+
+    @Test
+    fun structuredMetadataIsSourceOfTruthWhenPrescriptionChanges() {
+        val result = ProgramItemRestoreMetadataParser.resolve(
+            item(
+                prescription = "display text without metadata",
+                trainingSlot = "UPPER_STRENGTH",
+                dayIntensity = "LIGHT",
+                weightSource = "DIRECT_HISTORY_MEDIUM"
+            )
+        )
+
+        assertEquals("UPPER_STRENGTH", result.metadata.trainingSlot)
+        assertEquals("LIGHT", result.metadata.dayIntensity)
+        assertEquals("DIRECT_HISTORY_MEDIUM", result.metadata.weightSource)
+        assertTrue(result.legacyFields.isEmpty())
+        assertTrue(result.unresolvedFields.isEmpty())
+    }
+
+    @Test
+    fun legacyRowsUsePrescriptionOnlyWhenStructuredMetadataIsNull() {
+        val result = ProgramItemRestoreMetadataParser.resolve(
+            item(
+                prescription = "SLOT:BADMINTON_TRANSFER · DAY:HARD · RULE_TABLE"
+            )
+        )
+
+        assertEquals("BADMINTON_TRANSFER", result.metadata.trainingSlot)
+        assertEquals("HARD", result.metadata.dayIntensity)
+        assertEquals("RULE_TABLE", result.metadata.weightSource)
+        assertEquals(ProgramItemRestoreMetadataField.entries.toSet(), result.legacyFields)
+        assertTrue(result.unresolvedFields.isEmpty())
+    }
+
+    @Test
+    fun malformedLegacyRowsRemainExplicitlyUnresolved() {
+        val result = ProgramItemRestoreMetadataParser.resolve(
+            item(prescription = "legacy display only")
+        )
+
+        assertTrue(result.legacyFields.isEmpty())
+        assertEquals(ProgramItemRestoreMetadataField.entries.toSet(), result.unresolvedFields)
+    }
+
+    private fun item(
+        prescription: String,
+        trainingSlot: String? = null,
+        dayIntensity: String? = null,
+        weightSource: String? = null
+    ): TrainingProgramItem =
+        TrainingProgramItem(
+            programId = 1,
+            weekNumber = 1,
+            dayOfWeek = 1,
+            orderIndex = 1,
+            exerciseId = 1,
+            exerciseName = "Test",
+            category = "Strength",
+            prescription = prescription,
+            trainingSlot = trainingSlot,
+            dayIntensity = dayIntensity,
+            weightSource = weightSource
+        )
 }

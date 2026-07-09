@@ -239,6 +239,31 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate17To18AddsNullableProgramRestoreMetadata() {
+        helper.createDatabase(TEST_DB, 17).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO training_program_items (
+                    programId, weekNumber, dayOfWeek, orderIndex, exerciseId, exerciseName,
+                    category, restSeconds, prescription, setCount, reps, weightKg, seconds
+                ) VALUES (1, 1, 1, 1, 1, 'Legacy', 'Strength', 60, 'legacy', 3, 8, 40.0, 0)
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 18, true, TrainingDatabase.MIGRATION_17_18).use { database ->
+            database.query(
+                "SELECT trainingSlot, dayIntensity, weightSource FROM training_program_items"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.isNull(0))
+                check(cursor.isNull(1))
+                check(cursor.isNull(2))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

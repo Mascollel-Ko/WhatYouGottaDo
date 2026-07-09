@@ -39,7 +39,6 @@ import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
-import com.training.trackplanner.data.ProgramItemRestoreMetadataParseResult
 import com.training.trackplanner.data.ProgramItemRestoreMetadataParser
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
@@ -766,7 +765,7 @@ private fun skeletonFromProgram(
     items: List<TrainingProgramItem>
 ): GeneratedProgramSkeleton {
     val restoredItems = items.map { item ->
-        item to ProgramItemRestoreMetadataParser.parse(item.prescription)
+        item to ProgramItemRestoreMetadataParser.resolve(item)
     }
     val request = ProgramSkeletonRequest(
         name = program.name,
@@ -822,15 +821,16 @@ private fun skeletonFromProgram(
                 dayIntensity = metadata.dayIntensity
             )
         },
-        warnings = if (restoredItems.any { (_, result) ->
-                result !is ProgramItemRestoreMetadataParseResult.Success
+        warnings = buildList {
+            if (restoredItems.any { (_, result) -> result.legacyFields.isNotEmpty() }) {
+                add("$PROGRAM_ITEM_LEGACY_RESTORE_WARNING: legacy prescription metadata used")
             }
-        ) {
-            listOf("$PROGRAM_ITEM_RESTORE_WARNING: fallback metadata used")
-        } else {
-            emptyList()
+            if (restoredItems.any { (_, result) -> result.unresolvedFields.isNotEmpty() }) {
+                add("$PROGRAM_ITEM_RESTORE_WARNING: fallback metadata used")
+            }
         }
     )
 }
 
 private const val PROGRAM_ITEM_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_METADATA_FALLBACK"
+private const val PROGRAM_ITEM_LEGACY_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_LEGACY_FALLBACK"

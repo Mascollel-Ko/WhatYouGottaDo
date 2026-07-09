@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -375,6 +375,14 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `training_program_items` ADD COLUMN `trainingSlot` TEXT")
+                db.execSQL("ALTER TABLE `training_program_items` ADD COLUMN `dayIntensity` TEXT")
+                db.execSQL("ALTER TABLE `training_program_items` ADD COLUMN `weightSource` TEXT")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -398,7 +406,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_13_14,
                         MIGRATION_14_15,
                         MIGRATION_15_16,
-                        MIGRATION_16_17
+                        MIGRATION_16_17,
+                        MIGRATION_17_18
                     )
                     .build()
                     .also { instance = it }

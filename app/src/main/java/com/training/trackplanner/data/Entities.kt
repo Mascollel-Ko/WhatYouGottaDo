@@ -205,7 +205,10 @@ data class TrainingProgramItem(
     val setCount: Int = 1,
     val reps: Int = 0,
     val weightKg: Double = 0.0,
-    val seconds: Int = 0
+    val seconds: Int = 0,
+    val trainingSlot: String? = null,
+    val dayIntensity: String? = null,
+    val weightSource: String? = null
 )
 
 @Entity(tableName = "app_meta")

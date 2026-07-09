@@ -63,23 +63,7 @@ internal class ProgramPlanService(
             programDao.insertProgram(program)
         }
         programDao.insertProgramItems(
-            skeleton.items.map { item ->
-                TrainingProgramItem(
-                    programId = programId,
-                    weekNumber = item.weekNumber,
-                    dayOfWeek = item.dayOfWeek,
-                    orderIndex = item.orderIndex,
-                    exerciseId = item.exerciseId,
-                    exerciseName = item.exerciseName,
-                    category = item.category,
-                    restSeconds = item.restSeconds,
-                    prescription = item.prescription,
-                    setCount = item.setCount.coerceAtLeast(1),
-                    reps = item.reps,
-                    weightKg = item.weightKg,
-                    seconds = item.seconds
-                )
-            }
+            skeleton.items.map { item -> item.toTrainingProgramItem(programId) }
         )
         programId
     }
@@ -114,7 +98,10 @@ internal class ProgramPlanService(
                 setCount = 1,
                 reps = 0,
                 weightKg = 0.0,
-                seconds = if (exercise.mode.contains("시간") || exercise.category in timedCategories) 30 else 0
+                seconds = if (exercise.mode.contains("시간") || exercise.category in timedCategories) 30 else 0,
+                trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
+                dayIntensity = ProgramDayIntensity.MODERATE.name,
+                weightSource = "MANUAL_INPUT"
             )
         )
     }
@@ -250,3 +237,23 @@ internal class ProgramPlanService(
         val timedCategories = setOf("유산소운동", "스포츠")
     }
 }
+
+internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem =
+    TrainingProgramItem(
+        programId = programId,
+        weekNumber = weekNumber,
+        dayOfWeek = dayOfWeek,
+        orderIndex = orderIndex,
+        exerciseId = exerciseId,
+        exerciseName = exerciseName,
+        category = category,
+        restSeconds = restSeconds,
+        prescription = prescription,
+        setCount = setCount.coerceAtLeast(1),
+        reps = reps,
+        weightKg = weightKg,
+        seconds = seconds,
+        trainingSlot = trainingSlot.ifBlank { ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name },
+        dayIntensity = dayIntensity.ifBlank { ProgramDayIntensity.MODERATE.name },
+        weightSource = weightSource.ifBlank { "MANUAL_OR_EXISTING" }
+    )

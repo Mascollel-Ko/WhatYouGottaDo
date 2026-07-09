@@ -34,6 +34,12 @@ internal sealed interface ProgramItemRestoreMetadataParseResult {
     ) : ProgramItemRestoreMetadataParseResult
 }
 
+internal data class ProgramItemRestoreMetadataResolution(
+    val metadata: ProgramItemRestoreMetadata,
+    val legacyFields: Set<ProgramItemRestoreMetadataField>,
+    val unresolvedFields: Set<ProgramItemRestoreMetadataField>
+)
+
 internal object ProgramItemRestoreMetadataParser {
     private const val DEFAULT_TRAINING_SLOT = "FULL_BODY_BADMINTON_SUPPORT"
     private const val DEFAULT_DAY_INTENSITY = "MODERATE"
@@ -83,9 +89,46 @@ internal object ProgramItemRestoreMetadataParser {
         }
     }
 
+    fun resolve(item: TrainingProgramItem): ProgramItemRestoreMetadataResolution {
+        val structured = mapOf(
+            ProgramItemRestoreMetadataField.TRAINING_SLOT to item.trainingSlot.nonBlankOrNull(),
+            ProgramItemRestoreMetadataField.DAY_INTENSITY to item.dayIntensity.nonBlankOrNull(),
+            ProgramItemRestoreMetadataField.WEIGHT_SOURCE to item.weightSource.nonBlankOrNull()
+        )
+        val missingFields = structured.filterValues { it == null }.keys
+        if (missingFields.isEmpty()) {
+            return ProgramItemRestoreMetadataResolution(
+                metadata = ProgramItemRestoreMetadata(
+                    trainingSlot = item.trainingSlot!!,
+                    dayIntensity = item.dayIntensity!!,
+                    weightSource = item.weightSource!!
+                ),
+                legacyFields = emptySet(),
+                unresolvedFields = emptySet()
+            )
+        }
+
+        val legacy = parse(item.prescription)
+        val unresolvedFields = missingFields.intersect(legacy.fallbackFields)
+        return ProgramItemRestoreMetadataResolution(
+            metadata = ProgramItemRestoreMetadata(
+                trainingSlot = structured[ProgramItemRestoreMetadataField.TRAINING_SLOT]
+                    ?: legacy.metadata.trainingSlot,
+                dayIntensity = structured[ProgramItemRestoreMetadataField.DAY_INTENSITY]
+                    ?: legacy.metadata.dayIntensity,
+                weightSource = structured[ProgramItemRestoreMetadataField.WEIGHT_SOURCE]
+                    ?: legacy.metadata.weightSource
+            ),
+            legacyFields = missingFields - unresolvedFields,
+            unresolvedFields = unresolvedFields
+        )
+    }
+
     private fun List<String>.taggedValue(prefix: String): String? =
         firstOrNull { it.startsWith(prefix) }
             ?.removePrefix(prefix)
             ?.trim()
             ?.takeIf(metadataValue::matches)
+
+    private fun String?.nonBlankOrNull(): String? = this?.takeIf(String::isNotBlank)
 }
