@@ -39,6 +39,8 @@ import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
+import com.training.trackplanner.data.ProgramItemRestoreMetadataParseResult
+import com.training.trackplanner.data.ProgramItemRestoreMetadataParser
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramWeekPlan
@@ -473,6 +475,11 @@ private fun ProgramEditorScreen(
             }
         }
         skeleton?.let { currentSkeleton ->
+            if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
+                item {
+                    InfoCard("일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요.")
+                }
+            }
             item {
                 ProgramSkeletonPreview(
                     skeleton = currentSkeleton,
@@ -758,6 +765,9 @@ private fun skeletonFromProgram(
     program: TrainingProgram,
     items: List<TrainingProgramItem>
 ): GeneratedProgramSkeleton {
+    val restoredItems = items.map { item ->
+        item to ProgramItemRestoreMetadataParser.parse(item.prescription)
+    }
     val request = ProgramSkeletonRequest(
         name = program.name,
         goal = ProgramGoal.BADMINTON_SUPPORT,
@@ -790,7 +800,8 @@ private fun skeletonFromProgram(
         request = request,
         periodizationType = ProgramPeriodizationType.AUTO,
         weekPlans = weekPlans,
-        items = items.map { item ->
+        items = restoredItems.map { (item, parseResult) ->
+            val metadata = parseResult.metadata
             ProgramSkeletonItem(
                 localId = "existing-${item.id}",
                 weekNumber = item.weekNumber,
@@ -806,12 +817,20 @@ private fun skeletonFromProgram(
                 weightKg = item.weightKg,
                 seconds = item.seconds,
                 selectionReason = "기존 프로그램",
-                weightSource = item.prescription.substringAfterLast(" · ", "MANUAL_OR_EXISTING"),
-                trainingSlot = item.prescription.substringAfter("SLOT:", "FULL_BODY_BADMINTON_SUPPORT")
-                    .substringBefore(" · "),
-                dayIntensity = item.prescription.substringAfter("DAY:", "MODERATE")
-                    .substringBefore(" · ")
+                weightSource = metadata.weightSource,
+                trainingSlot = metadata.trainingSlot,
+                dayIntensity = metadata.dayIntensity
             )
+        },
+        warnings = if (restoredItems.any { (_, result) ->
+                result !is ProgramItemRestoreMetadataParseResult.Success
+            }
+        ) {
+            listOf("$PROGRAM_ITEM_RESTORE_WARNING: fallback metadata used")
+        } else {
+            emptyList()
         }
     )
 }
+
+private const val PROGRAM_ITEM_RESTORE_WARNING = "PROGRAM_ITEM_RESTORE_METADATA_FALLBACK"
