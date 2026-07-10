@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.metrics
 
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.core.AnalysisEntry
 import com.training.trackplanner.analysis.core.AnalysisExerciseMetadata
 import com.training.trackplanner.analysis.core.AnalysisInputSnapshot
@@ -22,10 +23,10 @@ data class CommonStrengthMetricsResult(
 object CommonStrengthMetrics {
     fun calculate(input: AnalysisInputSnapshot): CommonStrengthMetricsResult {
         val entries = input.completedEntriesUntilToday
-        val totalVolumeLoad = entries.sumOf { entry -> entry.volumeLoad() }
+        val totalVolumeLoad = entries.sumOf { entry -> entry.volumeLoad(input) }
         val volumeByExercise = entries
             .groupBy { it.exerciseName }
-            .mapValues { (_, groupedEntries) -> groupedEntries.sumOf { it.volumeLoad() } }
+            .mapValues { (_, groupedEntries) -> groupedEntries.sumOf { it.volumeLoad(input) } }
         val volumeByMovementPattern = entries.sumVolumeByMetadata(
             input = input,
             tokenSelector = { movementPattern }
@@ -77,7 +78,7 @@ object CommonStrengthMetrics {
     ): Map<String, Double> =
         groupBy { entry ->
             input.exerciseMetadataMap[entry.exerciseId]?.tokenSelector().orUnknown()
-        }.mapValues { (_, entries) -> entries.sumOf { it.volumeLoad() } }
+        }.mapValues { (_, entries) -> entries.sumOf { it.volumeLoad(input) } }
 
     private fun List<AnalysisEntry>.sumVolumeByMetadataTokens(
         input: AnalysisInputSnapshot,
@@ -89,7 +90,7 @@ object CommonStrengthMetrics {
                 ?.tokenSelector()
                 .tokensOrUnknown()
             tokens.forEach { token ->
-                result[token] = (result[token] ?: 0.0) + entry.volumeLoad()
+                result[token] = (result[token] ?: 0.0) + entry.volumeLoad(input)
             }
         }
         return result
@@ -143,8 +144,29 @@ object CommonStrengthMetrics {
         return ratioOrNull(setsByPattern[numerator] ?: 0, setsByPattern[denominator] ?: 0)
     }
 
-    private fun AnalysisEntry.volumeLoad(): Double =
-        sets.sumOf { set -> if (set.reps > 0 && set.weightKg > 0.0) set.reps * set.weightKg else 0.0 }
+    private fun AnalysisEntry.volumeLoad(input: AnalysisInputSnapshot): Double {
+        val metadata = input.exerciseMetadataMap[exerciseId]
+        val bodyWeightKg = input.conditionRecordsUntilToday
+            .filter { record -> record.date <= date }
+            .maxByOrNull { record -> record.date }
+            ?.bodyWeightKg
+        return sets.sumOf { set ->
+            val corrected = metadata?.let { item ->
+                BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+                    stableKey = item.stableKey,
+                    displayName = exerciseName,
+                    movementPattern = item.movementPattern,
+                    movementCategory = item.movementCategory,
+                    equipment = item.equipment.ifBlank { item.equipmentTags },
+                    category = item.category,
+                    reps = set.reps,
+                    weightKg = set.weightKg,
+                    bodyWeightKg = bodyWeightKg
+                )
+            }
+            corrected ?: if (set.reps > 0 && set.weightKg > 0.0) set.reps * set.weightKg else 0.0
+        }
+    }
 
     private fun String?.orUnknown(): String =
         this?.trim()?.takeIf { it.isNotEmpty() } ?: UNKNOWN

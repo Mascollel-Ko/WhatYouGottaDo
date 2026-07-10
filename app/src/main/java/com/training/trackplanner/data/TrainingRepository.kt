@@ -180,6 +180,7 @@ class TrainingRepository(
     private val analysisSummaryService = AnalysisSummaryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
@@ -227,6 +228,7 @@ class TrainingRepository(
     private val homeSummaryService = HomeSummaryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog

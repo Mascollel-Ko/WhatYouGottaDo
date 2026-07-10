@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.fatigue
 
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
+import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.analysis.features.AnalysisExerciseDisplayNameResolver
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
@@ -19,16 +21,18 @@ class DailyFatigueCalculator(
         targetDate: LocalDate,
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>,
-        initialProfile: InitialUserProfile?
+        initialProfile: InitialUserProfile?,
+        dailyMetrics: List<DailyMetric> = emptyList()
     ): DailyFatigueResult =
-        calculateSeries(targetDate, 1, exercises, entriesWithSets, initialProfile).single()
+        calculateSeries(targetDate, 1, exercises, entriesWithSets, initialProfile, dailyMetrics).single()
 
     fun calculateSeries(
         endDate: LocalDate,
         days: Int,
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>,
-        initialProfile: InitialUserProfile?
+        initialProfile: InitialUserProfile?,
+        dailyMetrics: List<DailyMetric> = emptyList()
     ): List<DailyFatigueResult> {
         val exerciseMap = exercises.associateBy { it.id }
         val records = entriesWithSets.mapNotNull { record ->
@@ -44,7 +48,17 @@ class DailyFatigueCalculator(
                 metadata = metadata,
                 confirmedSets = confirmedSets,
                 rpe = averageRpe(record, confirmedSets) ?: defaultRpe(metadata),
-                rawWorkload = calculateWorkload(record, confirmedSets, metadata)
+                rawWorkload = calculateWorkload(
+                    record = record,
+                    exercise = exercise,
+                    sets = confirmedSets,
+                    metadata = metadata,
+                    bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
+                        date = record.entry.date,
+                        dailyMetrics = dailyMetrics,
+                        initialProfile = initialProfile
+                    )
+                )
             )
         }.filter { it.date <= endDate }
 
@@ -346,12 +360,16 @@ class DailyFatigueCalculator(
 
     private fun calculateWorkload(
         record: WorkoutEntryWithSets,
+        exercise: Exercise,
         sets: List<WorkoutSet>,
-        metadata: ResolvedFatigueMetadata
+        metadata: ResolvedFatigueMetadata,
+        bodyWeightKg: Double?
     ): Double {
         val totalReps = sets.sumOf { it.reps }
         val totalSeconds = sets.sumOf { it.seconds }
-        val volumeLoad = sets.sumOf { it.weightKg * it.reps }
+        val volumeLoad = sets.sumOf { set ->
+            BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg)
+        }
         val rpe = averageRpe(record, sets) ?: defaultRpe(metadata)
         return when (metadata.progressMetricType) {
             "LOAD_REPS", "VOLUME_LOAD", "LOAD_REPS_OR_REPS", "MACHINE_LOAD_REPS", "REPS_AT_LOAD" ->

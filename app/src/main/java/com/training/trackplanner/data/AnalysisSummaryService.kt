@@ -14,6 +14,7 @@ import java.time.format.DateTimeFormatter
 internal class AnalysisSummaryService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
+    private val dailyMetricDao: DailyMetricDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog
@@ -27,7 +28,8 @@ internal class AnalysisSummaryService(
             days = days.coerceIn(1, 28 * 7),
             exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-            initialProfile = initialUserProfileDao.profile()
+            initialProfile = initialUserProfileDao.profile(),
+            dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         )
     }
 

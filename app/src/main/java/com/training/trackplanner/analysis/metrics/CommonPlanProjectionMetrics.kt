@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.metrics
 import com.training.trackplanner.analysis.core.AnalysisEntry
 import com.training.trackplanner.analysis.core.AnalysisExerciseMetadata
 import com.training.trackplanner.analysis.core.AnalysisInputSnapshot
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import java.time.LocalDate
 
 data class CommonPlanProjectionMetricsResult(
@@ -24,9 +25,9 @@ object CommonPlanProjectionMetrics {
     ): CommonPlanProjectionMetricsResult {
         val plannedNext7 = input.plannedEntriesFromTomorrow
             .filter { entry -> input.windows.future7Days.contains(entry.date) }
-        val plannedLoad = plannedNext7.sumOf { entry -> entry.loadCandidate() }
+        val plannedLoad = plannedNext7.sumOf { entry -> entry.loadCandidate(input) }
             .takeIf { plannedNext7.isNotEmpty() }
-        val plannedVolumeLoad = plannedNext7.sumOf { entry -> entry.volumeLoad() }
+        val plannedVolumeLoad = plannedNext7.sumOf { entry -> entry.volumeLoad(input) }
             .takeIf { plannedNext7.isNotEmpty() }
         val plannedDays = plannedNext7.map(AnalysisEntry::date).toSet()
 
@@ -102,19 +103,39 @@ object CommonPlanProjectionMetrics {
         return result
     }
 
-    private fun AnalysisEntry.loadCandidate(): Double =
+    private fun AnalysisEntry.loadCandidate(input: AnalysisInputSnapshot): Double =
         sets.sumOf { set ->
-            val volumeLoad = if (set.reps > 0 && set.weightKg > 0.0) {
-                set.reps * set.weightKg
-            } else {
-                0.0
-            }
+            val volumeLoad = set.volumeLoad(input, this)
             val timeLoad = if (set.seconds > 0) set.seconds / 60.0 else 0.0
             volumeLoad + timeLoad
         }
 
-    private fun AnalysisEntry.volumeLoad(): Double =
-        sets.sumOf { set -> if (set.reps > 0 && set.weightKg > 0.0) set.reps * set.weightKg else 0.0 }
+    private fun AnalysisEntry.volumeLoad(input: AnalysisInputSnapshot): Double =
+        sets.sumOf { set -> set.volumeLoad(input, this) }
+
+    private fun com.training.trackplanner.analysis.core.AnalysisSet.volumeLoad(
+        input: AnalysisInputSnapshot,
+        entry: AnalysisEntry
+    ): Double {
+        val metadata = input.exerciseMetadataMap[entry.exerciseId]
+        val bodyWeightKg = input.conditionRecordsUntilToday
+            .filter { record -> record.date <= entry.date }
+            .maxByOrNull { record -> record.date }
+            ?.bodyWeightKg
+        return metadata?.let { item ->
+            BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+                stableKey = item.stableKey,
+                displayName = entry.exerciseName,
+                movementPattern = item.movementPattern,
+                movementCategory = item.movementCategory,
+                equipment = item.equipment.ifBlank { item.equipmentTags },
+                category = item.category,
+                reps = reps,
+                weightKg = weightKg,
+                bodyWeightKg = bodyWeightKg
+            )
+        } ?: if (reps > 0 && weightKg > 0.0) reps * weightKg else 0.0
+    }
 
     private fun String?.orUnknown(): String =
         this?.trim()?.takeIf { it.isNotEmpty() } ?: UNKNOWN

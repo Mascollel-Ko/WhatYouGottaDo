@@ -172,6 +172,7 @@ class AnalysisSummaryServiceTest {
         AnalysisSummaryService(
             exerciseDao = db.exerciseDao(),
             workoutDao = db.workoutDao(),
+            dailyMetricDao = db.dailyMetricDao(),
             initialUserProfileDao = db.initialUserProfileDao(),
             runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao(),
             canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY

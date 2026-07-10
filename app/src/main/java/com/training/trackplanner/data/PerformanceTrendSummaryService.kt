@@ -40,7 +40,8 @@ internal class PerformanceTrendSummaryService(
         val strengthAndMuscleSeries = StrengthAndMuscleMetricSeriesBuilder.build(
             entriesWithSets = entries,
             exercises = exercises,
-            runtimeMetadataCatalog = runtimeMetadataCatalog
+            runtimeMetadataCatalog = runtimeMetadataCatalog,
+            dailyMetrics = dailyMetrics
         )
         return base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries)
     }

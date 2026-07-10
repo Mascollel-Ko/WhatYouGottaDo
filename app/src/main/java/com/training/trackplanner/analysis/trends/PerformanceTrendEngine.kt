@@ -118,7 +118,8 @@ class PerformanceTrendEngine(
         val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
             completedEntries,
             exerciseMap,
-            runtimeMetadataCatalog
+            runtimeMetadataCatalog,
+            dailyMetrics
         )
         return weeks.map { week ->
             val loadsUntilWeek = dailyLoads.filter { load -> load.date <= week.weekEnd }

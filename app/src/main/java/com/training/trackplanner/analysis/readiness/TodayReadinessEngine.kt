@@ -29,7 +29,9 @@ class TodayReadinessEngine(
         val dailyLoads = aggregator.aggregate(
             entriesWithSets = completedEntriesUntilToday,
             exerciseMap = exerciseMap,
-            runtimeMetadataCatalog = input.runtimeMetadataCatalog
+            runtimeMetadataCatalog = input.runtimeMetadataCatalog,
+            dailyMetrics = input.dailyMetrics,
+            initialProfile = input.initialProfile
         )
         val residual = residualCalculator.calculate(dailyLoads, input.today)
         val statisticalBaseline = statisticalBaselineCalculator.calculate(

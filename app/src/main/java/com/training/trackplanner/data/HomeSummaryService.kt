@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter
 internal class HomeSummaryService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
+    private val dailyMetricDao: DailyMetricDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog
@@ -26,6 +27,7 @@ internal class HomeSummaryService(
         val exercises = exerciseDao.allExercises()
         val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
+        val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val initialProfile = initialUserProfileDao.profile()
         val calculator = DailyFatigueCalculator(runtimeMetadataCatalog)
         val results = calculator.calculateSeries(
@@ -33,7 +35,8 @@ internal class HomeSummaryService(
             days = 7,
             exercises = exercises,
             entriesWithSets = entries,
-            initialProfile = initialProfile
+            initialProfile = initialProfile,
+            dailyMetrics = dailyMetrics
         )
         val todayEntries = entries.filter { it.entry.date == todayString }
         val confirmedSetCount = todayEntries.sumOf { item -> item.sets.count { it.confirmed } }
@@ -43,7 +46,8 @@ internal class HomeSummaryService(
             targetDate = today,
             exercises = exercises,
             entriesWithSets = entries.filterNot { it.entry.date == todayString },
-            initialProfile = initialProfile
+            initialProfile = initialProfile,
+            dailyMetrics = dailyMetrics
         ).state
         val projectedState = if (unconfirmedSetCount > 0) {
             val projectedEntries = entries.map { item ->
@@ -54,7 +58,8 @@ internal class HomeSummaryService(
                 targetDate = today,
                 exercises = exercises,
                 entriesWithSets = projectedEntries,
-                initialProfile = initialProfile
+                initialProfile = initialProfile,
+                dailyMetrics = dailyMetrics
             ).state
         } else {
             null
@@ -121,4 +126,3 @@ internal class HomeSummaryService(
             runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         ).catalog(exercises)
 }
-

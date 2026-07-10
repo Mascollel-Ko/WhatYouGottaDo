@@ -1,7 +1,9 @@
 package com.training.trackplanner.analysis.lab
 
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -14,7 +16,8 @@ object StrengthAndMuscleMetricSeriesBuilder {
     fun build(
         entriesWithSets: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>,
-        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+        dailyMetrics: List<DailyMetric> = emptyList()
     ): Map<TrendMetricId, List<TrendDataPoint>> {
         val exercisesById = exercises.associateBy { it.id }
         val benchE1rmByDate = mutableMapOf<LocalDate, Double>()
@@ -45,7 +48,16 @@ object StrengthAndMuscleMetricSeriesBuilder {
                 }
 
                 if (set.reps > 0 && set.weightKg >= 0.0) {
-                    val load = set.weightKg * set.reps * rpeWeight(set.rpe ?: record.entry.rpe)
+                    val bodyWeight = BodyweightEffectiveLoadCalculator.bodyWeightFor(
+                        date = record.entry.date,
+                        dailyMetrics = dailyMetrics,
+                        initialProfile = null
+                    )
+                    val setLoad = exercise?.let { item ->
+                        BodyweightEffectiveLoadCalculator.volumeLoad(item, set, bodyWeight)
+                    } ?: set.weightKg * set.reps
+                    val load = setLoad *
+                        rpeWeight(set.rpe ?: record.entry.rpe)
                     if (load > 0.0) {
                         MuscleLoadInputBuilder.contributions(exercise, record.entry, runtimeMetadata).forEach { (bucket, weight) ->
                             dailyLoads.getValue(bucket).merge(date, load * weight, Double::plus)

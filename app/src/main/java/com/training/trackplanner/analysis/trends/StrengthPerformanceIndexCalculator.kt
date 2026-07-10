@@ -2,12 +2,12 @@ package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
-import com.training.trackplanner.data.WorkoutSet
 
 class StrengthPerformanceIndexCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
@@ -165,7 +165,7 @@ class StrengthPerformanceIndexCalculator(
                 .lastOrNull()
             record.sets
                 .filter { set -> set.confirmed }
-                .sumOf { set -> set.setVolumeLoad(bodyWeight) * weight }
+                .sumOf { set -> BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeight) * weight }
         }
 
     private fun List<WorkoutEntryWithSets>.weeklyEffectiveSets(
@@ -286,7 +286,9 @@ class StrengthPerformanceIndexCalculator(
                 .filter { metric -> metric.date <= record.entry.date }
                 .mapNotNull { metric -> metric.bodyWeightKg }
                 .lastOrNull()
-            val volume = record.sets.filter { set -> set.confirmed }.sumOf { set -> set.setVolumeLoad(bodyWeight) }
+            val volume = record.sets
+                .filter { set -> set.confirmed }
+                .sumOf { set -> BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeight) }
             val key = when {
                 "SQUAT_PATTERN" in features.balanceContributionTags -> "SQUAT_PATTERN"
                 "HINGE" in features.balanceContributionTags -> "HINGE"
@@ -301,16 +303,6 @@ class StrengthPerformanceIndexCalculator(
             totals[key] = (totals[key] ?: 0.0) + volume
         }
         return totals
-    }
-
-    private fun WorkoutSet.setVolumeLoad(bodyWeightKg: Double?): Double {
-        if (weightKg > 0.0 && reps > 0) return weightKg * reps
-        if (reps > 0) {
-            val proxy = bodyWeightKg?.let { weight -> weight * PerformanceTrendConstants.BODYWEIGHT_LOAD_FACTOR }
-                ?: PerformanceTrendConstants.DEFAULT_BODYWEIGHT_PROXY
-            return proxy * reps
-        }
-        return 0.0
     }
 
     private fun AnalysisExerciseFeatures.isStrengthProgressEligible(): Boolean =

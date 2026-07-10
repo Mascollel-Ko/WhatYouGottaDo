@@ -1,8 +1,11 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
+import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseTaxonomy
+import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
@@ -11,22 +14,30 @@ class DailyAnalysisLoadAggregator {
     fun aggregate(
         entriesWithSets: List<WorkoutEntryWithSets>,
         exerciseMap: Map<Long, Exercise>,
-        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+        dailyMetrics: List<DailyMetric> = emptyList(),
+        initialProfile: InitialUserProfile? = null
     ): List<DailyAnalysisLoad> {
         val contributions = entriesWithSets.mapNotNull { entryWithSets ->
             val confirmedSets = entryWithSets.sets.filter { set -> set.confirmed }
             if (confirmedSets.isEmpty()) return@mapNotNull null
             val exercise = exerciseMap[entryWithSets.entry.exerciseId] ?: return@mapNotNull null
+            val date = runCatching { LocalDate.parse(entryWithSets.entry.date) }.getOrNull()
+                ?: return@mapNotNull null
+            val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
+                date = entryWithSets.entry.date,
+                dailyMetrics = dailyMetrics,
+                initialProfile = initialProfile
+            )
             val features = ExerciseAnalysisMapper.fromRecord(
                 exercise = exercise,
                 entry = entryWithSets.entry,
                 sets = entryWithSets.sets,
-                runtimeMetadata = runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadata = runtimeMetadataCatalog.resolve(exercise),
+                bodyWeightKg = bodyWeightKg
             )
             if (!features.isCompleted) return@mapNotNull null
 
-            val date = runCatching { LocalDate.parse(entryWithSets.entry.date) }.getOrNull()
-                ?: return@mapNotNull null
             val rpeModifier = TodayReadinessConstants.rpeModifier(features.averageRpe)
             val baseDose = baseDose(features)
             val systemicLoad = baseDose * features.systemicLoadWeight * rpeModifier *

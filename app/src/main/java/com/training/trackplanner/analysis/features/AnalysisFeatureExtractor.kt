@@ -16,7 +16,8 @@ object AnalysisFeatureExtractor {
         exercise: Exercise,
         entry: WorkoutEntry?,
         sets: List<WorkoutSet>,
-        runtimeMetadata: RuntimeExerciseMetadata? = null
+        runtimeMetadata: RuntimeExerciseMetadata? = null,
+        bodyWeightKg: Double? = null
     ): AnalysisExerciseFeatures =
-        ExerciseAnalysisMapper.fromRecord(exercise, entry, sets, runtimeMetadata)
+        ExerciseAnalysisMapper.fromRecord(exercise, entry, sets, runtimeMetadata, bodyWeightKg)
 }
