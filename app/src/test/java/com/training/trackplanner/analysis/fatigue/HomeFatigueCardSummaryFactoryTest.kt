@@ -31,7 +31,7 @@ class HomeFatigueCardSummaryFactoryTest {
 
         assertEquals("운동 전", summary.primaryPrefix)
         assertEquals(42, summary.primary.score)
-        assertEquals("운동 후 예상 부하", summary.projectionPrefix)
+        assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
         assertEquals(61, summary.projection?.score)
         assertNull(summary.statusText)
     }
@@ -54,8 +54,8 @@ class HomeFatigueCardSummaryFactoryTest {
         assertEquals("현재", summary.primaryPrefix)
         assertEquals(54, summary.primary.score)
         assertEquals("보통", summary.primary.label)
-        assertEquals("운동 후 예상 부하", summary.projectionPrefix)
-        assertEquals("예상 부하 증가", summary.projection?.label)
+        assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
+        assertEquals("예상 피로도 증가", summary.projection?.label)
         assertEquals("남은 계획 판단", summary.phaseLabel)
         assertTrue(summary.headline?.contains("남은 계획") == true)
     }
@@ -110,8 +110,8 @@ class HomeFatigueCardSummaryFactoryTest {
             )
         )
 
-        assertEquals("운동 후 예상 부하", summary.projectionPrefix)
-        assertEquals("예상 부하 보통", summary.projection?.label)
+        assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
+        assertEquals("예상 피로도 보통", summary.projection?.label)
         assertTrue(summary.projection?.label !in setOf("주의", "피로 누적", "피로 심화"))
     }
 
@@ -176,8 +176,8 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals("피로 누적", summary.primary.label)
-        assertEquals("운동 후 예상 부하", summary.projectionPrefix)
-        assertEquals("예상 부하 보통", summary.projection?.label)
+        assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
+        assertEquals("예상 피로도 보통", summary.projection?.label)
     }
 
     @Test
@@ -201,8 +201,8 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals("동작 집중 부담 높음", summary.primary.label)
-        assertEquals("운동 후 예상 부하", summary.projectionPrefix)
-        assertEquals("예상 부하 보통", summary.projection?.label)
+        assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
+        assertEquals("예상 피로도 보통", summary.projection?.label)
         assertEquals("일부 수정 권장", summary.actionLabel)
     }
 
@@ -222,7 +222,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals("보통", summary.primary.label)
-        assertEquals("예상 부하 보통", summary.projection?.label)
+        assertEquals("예상 피로도 보통", summary.projection?.label)
     }
 
     @Test
@@ -320,7 +320,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals(72, summary.projection?.score)
-        assertEquals("예상 부하 보통", summary.projection?.label)
+        assertEquals("예상 피로도 보통", summary.projection?.label)
     }
 
     @Test

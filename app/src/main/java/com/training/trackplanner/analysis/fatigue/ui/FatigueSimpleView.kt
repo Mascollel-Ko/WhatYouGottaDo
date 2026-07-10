@@ -18,7 +18,7 @@ import com.training.trackplanner.analysis.fatigue.FatigueTarget
 @Composable
 internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("전체 피로도", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+        Text("피로도 변화", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         FatigueTrendChart(
             series = listOf(
                 FatigueSeries(
@@ -38,7 +38,7 @@ internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    "운동 후 예상 부하",
+                    "끝나면 예상 피로도",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )

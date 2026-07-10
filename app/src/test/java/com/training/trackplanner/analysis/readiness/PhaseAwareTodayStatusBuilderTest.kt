@@ -35,8 +35,8 @@ class PhaseAwareTodayStatusBuilderTest {
         assertEquals(ReadinessStatus.READY, status.current.status)
         assertNotNull(status.projected)
         assertTrue(status.projected!!.status.ordinal >= status.current.status.ordinal)
-        assertEquals("남은 계획 예상 부하", status.phaseLabel)
-        assertTrue(status.headline.contains("예상 부하"))
+        assertEquals("끝나면 예상 피로도", status.phaseLabel)
+        assertTrue(status.headline.contains("예상 피로도"))
     }
 
     @Test
@@ -96,7 +96,7 @@ class PhaseAwareTodayStatusBuilderTest {
         val text = listOf(status.phaseLabel, status.headline, status.detail, status.actionLabel).joinToString(" ")
 
         assertEquals(TodayStatusPhase.REMAINING_PLAN, status.phase)
-        assertTrue(text.contains("예상 부하"))
+        assertTrue(text.contains("예상 피로도"))
         assertTrue(text.contains("다음 날"))
         listOf("회복이 안 됐습니다", "과훈련", "진단", "주의하세요").forEach { banned ->
             assertFalse(text.contains(banned))

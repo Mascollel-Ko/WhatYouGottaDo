@@ -13,7 +13,7 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.COURT_VOLUME, "셔틀 플레이 시간", "주간 코트 훈련량", AnalysisMetricCategory.BADMINTON, true),
         metric(TrendMetricId.FOOTWORK_REACTIVE, "풋워크/반응", "주간 풋워크 및 반응 훈련량", AnalysisMetricCategory.TRANSFER, true),
         metric(TrendMetricId.BADMINTON_SUPPORT, "보조훈련량", "배드민턴 지원 목적의 주간 훈련량", AnalysisMetricCategory.TRANSFER, true),
-        metric(TrendMetricId.FATIGUE_COMPOSITE, "피로도 종합지수", "주간 피로 부담의 종합 지수", AnalysisMetricCategory.FATIGUE, false),
+        metric(TrendMetricId.FATIGUE_COMPOSITE, "이번 주 누적 부담", "주간 residual/pressure 부담의 종합 지수", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.SYSTEMIC_FATIGUE, "전신 부담", "주간 전신성 피로 부담", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.STRENGTH_FATIGUE, "근력운동 부담", "근력운동에서 발생한 주간 피로 부담", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.BADMINTON_FATIGUE, "배드민턴 부담", "배드민턴 훈련에서 발생한 주간 피로 부담", AnalysisMetricCategory.FATIGUE, false),

@@ -83,7 +83,7 @@ class PhaseAwareTodayStatusBuilder(
             plannedSetCount = plannedSetCount,
             confirmedSetCount = confirmedSetCount,
             unconfirmedSetCount = unconfirmedSetCount,
-            phaseLabel = "남은 계획 예상 부하",
+            phaseLabel = "끝나면 예상 피로도",
             headline = expectedLoadCopy.headline,
             detail = expectedLoadCopy.detail,
             actionLabel = expectedLoadCopy.actionLabel,
@@ -98,23 +98,23 @@ class PhaseAwareTodayStatusBuilder(
         val gotWorse = projected.status.ordinal > current.status.ordinal
         return when {
             projected.status == ReadinessStatus.READY -> ExpectedLoadCopy(
-                headline = "남은 계획을 마쳐도 예상 부하는 평소 범위입니다.",
+                headline = "남은 계획을 마쳐도 예상 피로도는 평소 범위입니다.",
                 detail = "현재 컨디션이 안정적이면 계획대로 진행해도 됩니다.",
                 actionLabel = "계획대로 진행 가능"
             )
             projected.status == ReadinessStatus.CAUTION && !gotWorse -> ExpectedLoadCopy(
-                headline = "남은 계획의 예상 부하는 관리 가능한 범위입니다.",
+                headline = "남은 계획의 예상 피로도는 관리 가능한 범위입니다.",
                 detail = "같은 날 운동 후 예상치입니다. 회복 미완료 여부는 다음 날 컨디션과 피로 흐름으로 다시 확인하세요.",
                 actionLabel = "현재 강도 유지"
             )
             projected.status == ReadinessStatus.CAUTION -> ExpectedLoadCopy(
-                headline = "남은 계획을 마치면 운동 후 예상 부하가 올라갑니다.",
+                headline = "남은 계획을 마치면 예상 피로도가 올라갑니다.",
                 detail = "같은 날 운동 후 예상치입니다. 회복 미완료 여부는 다음 날 컨디션과 피로 흐름으로 다시 확인하세요.",
                 actionLabel = "RPE/세트 여유 조절"
             )
             projected.status == ReadinessStatus.FATIGUED -> ExpectedLoadCopy(
-                headline = "남은 계획 후 예상 부하가 높습니다.",
-                detail = "현재 상태 경고가 아니라 운동 후 예상치입니다. 다음 날 회복 흐름이 낮으면 남은 고강도 항목을 줄이세요.",
+                headline = "남은 계획 후 예상 피로도가 높습니다.",
+                detail = "현재 조절 신호가 아니라 운동 후 예상치입니다. 다음 날 회복 흐름이 낮으면 남은 고강도 항목을 줄이세요.",
                 actionLabel = "고강도 항목 조절"
             )
             else -> ExpectedLoadCopy(

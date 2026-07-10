@@ -14,7 +14,7 @@ enum class FatigueAnalysisPeriod(val weeks: Int, val label: String) {
 }
 
 enum class FatigueTarget(val label: String) {
-    OVERALL("전체 피로도"),
+    OVERALL("현재 피로도"),
     NEUROMUSCULAR("신경계"),
     SYSTEMIC_MUSCULAR("전신 근육"),
     LOCAL_MUSCULAR("국소 근육"),

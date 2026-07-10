@@ -23,7 +23,7 @@ internal fun FatigueDetailView(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         FatiguePeriodSelector(state.selectedPeriod, onPeriodChange)
-        Text("피로도 추이", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text("피로도 변화", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         FatigueTargetSelector(state.selectedFatigueTargets, multiple = true, onFatigueTargetToggle)
         FatigueTrendChart(
             series = state.fatigueTrendSeries,

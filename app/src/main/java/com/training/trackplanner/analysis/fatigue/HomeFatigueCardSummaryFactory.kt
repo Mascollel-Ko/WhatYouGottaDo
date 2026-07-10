@@ -27,7 +27,7 @@ object HomeFatigueCardSummaryFactory {
             unconfirmedSetCount > 0 && projected != null -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
                 primary = primaryReading,
-                projectionPrefix = "운동 후 예상 부하",
+                projectionPrefix = "끝나면 예상 피로도",
                 projection = projectedReading,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
@@ -71,10 +71,10 @@ object HomeFatigueCardSummaryFactory {
         val label = when {
             overallFatigueIndex >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"
             overallFatigueIndex >= FatigueThresholds.OFI_CAUTION_START -> "회복 확인 필요"
-            maxAxis >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
-            overallFatigueIndex >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
-            readinessLabel in setOf("피로 누적", "피로 심화", "주의") -> "예상 부하 보통"
-            else -> "예상 부하 보통"
+            maxAxis >= FatigueThresholds.OFI_ELEVATED_START -> "예상 피로도 증가"
+            overallFatigueIndex >= FatigueThresholds.OFI_ELEVATED_START -> "예상 피로도 증가"
+            readinessLabel in setOf("피로 누적", "피로 심화", "주의") -> "예상 피로도 보통"
+            else -> "예상 피로도 보통"
         }
         return HomeFatigueReading(
             score = overallFatigueIndex,

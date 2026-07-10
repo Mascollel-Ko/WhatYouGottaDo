@@ -209,14 +209,14 @@ object FatigueAnalysisMapper {
         val current = actual.last().value
         val projected = projectedScore.coerceIn(0.0, 100.0)
         return when {
-            projected < FatigueThresholds.OFI_ELEVATED_START -> "운동 후 예상 부하는 평소 범위입니다."
+            projected < FatigueThresholds.OFI_ELEVATED_START -> "끝나면 예상 피로도는 평소 범위입니다."
             projected < FatigueThresholds.OFI_CAUTION_START ->
-                "운동 후 예상 부하 상승입니다. 회복 미완료 여부는 다음 날 흐름에서 확인합니다."
+                "끝나면 예상 피로도 상승입니다. 회복 미완료 여부는 다음 날 흐름에서 확인합니다."
             projected >= FatigueThresholds.OFI_HIGH_START ->
-                "운동 후 예상 부하가 매우 높습니다. 다음 날 회복 흐름을 확인하세요."
+                "끝나면 예상 피로도가 매우 높습니다. 다음 날 회복 흐름을 확인하세요."
             projected > current ->
-                "운동 후 예상 부하가 높습니다. 다음 날 회복 흐름을 확인하세요."
-            else -> "운동 후 예상 부하는 현재 흐름과 비슷합니다."
+                "끝나면 예상 피로도가 높습니다. 다음 날 회복 흐름을 확인하세요."
+            else -> "끝나면 예상 피로도는 현재 흐름과 비슷합니다."
         }
     }
 

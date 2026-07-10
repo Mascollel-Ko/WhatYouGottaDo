@@ -307,12 +307,12 @@ internal fun TodayReadinessCard(
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("오늘 상태", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("주의할 피로 축", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     phaseLabel?.let { label ->
                         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     Text(
-                        "현재 상태: ${TodayFatigueStatusLabeler.label(summary)}",
+                        "주의할 피로 축: ${TodayFatigueStatusLabeler.label(summary)}",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -321,7 +321,7 @@ internal fun TodayReadinessCard(
             }
             projected?.let { projectedSummary ->
                 Text(
-                    "운동 후 예상 부하: ${projectedReadinessLoadLabel(projectedSummary)}",
+                    "끝나면 예상 피로도: ${projectedReadinessLoadLabel(projectedSummary)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -340,8 +340,8 @@ internal fun TodayReadinessCard(
                 Text(if (expanded) "세부 판단 닫기" else "세부 판단 보기")
             }
             if (expanded) {
-                ReadinessModeList("권장", summary.recommendedModes)
-                ReadinessModeList("제한", summary.restrictedModes)
+                ReadinessModeList("오늘 가능한 운동", summary.recommendedModes)
+                ReadinessModeList("오늘 조절할 운동", summary.restrictedModes)
                 summary.detailSections.forEach { section ->
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
@@ -366,10 +366,10 @@ private fun projectedReadinessLoadLabel(summary: TodayReadinessSummary): String 
     val score = summary.fatiguePresentation?.overallScore
     return when {
         score == null -> TodayFatigueStatusLabeler.label(summary)
-        score >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"
-        score >= FatigueThresholds.OFI_CAUTION_START -> "회복 확인 필요"
-        score >= FatigueThresholds.OFI_ELEVATED_START -> "예상 부하 증가"
-        else -> "예상 부하 보통"
+        score >= FatigueThresholds.PRESENTATION_VERY_HIGH_SCORE -> "회복 우선 확인"
+        score >= FatigueThresholds.PRESENTATION_RESTRICTED_SCORE -> "오늘 조절 필요"
+        score >= FatigueThresholds.PRESENTATION_ELEVATED_SCORE -> "주의 축 증가"
+        else -> "보통"
     }
 }
 

@@ -65,7 +65,7 @@ class PerformanceTrendEngine(
             confidence = badmintonWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
         )
         val fatigueSeries = compositeSeries(
-            title = "피로도 종합지수",
+            title = "이번 주 누적 부담",
             metricId = TrendMetricId.FATIGUE_COMPOSITE,
             points = metricSeries.getValue(TrendMetricId.FATIGUE_COMPOSITE),
             confidence = fatigueWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW

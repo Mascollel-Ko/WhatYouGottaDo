@@ -86,15 +86,15 @@ internal fun FatigueAndConditionAnalysisContent(
         )
         performanceTrend?.let { summary ->
             AnalysisSectionChart(
-                title = "피로도 종합지수(주별)",
+                title = "이번 주 누적 부담",
                 spec = ChartSpec(
                     type = ChartType.LINE,
-                    title = "피로도 종합지수(주별)",
-                    lineSeries = listOf(ChartSeries("피로도 종합지수", summary.fatigueCompositeSeries.dataPoints))
+                    title = "이번 주 누적 부담",
+                    lineSeries = listOf(ChartSeries("누적 부담 지수", summary.fatigueCompositeSeries.dataPoints))
                 ),
-                note = "주 단위로 집계한 종합 피로 흐름입니다."
+                note = "readiness residual/pressure를 주 단위로 집계한 부담 흐름입니다."
             )
-        } ?: InfoCard("피로도 추세를 계산하고 있습니다.")
+        } ?: InfoCard("누적 부담 추세를 계산하고 있습니다.")
     }
 }
 
@@ -156,7 +156,7 @@ private fun FatigueAxisCauseCard(
     val axes = readiness?.let(TodayFatigueStatusLabeler::axisStates).orEmpty()
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("피로도별 현재 상태와 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("주의할 피로 축과 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(
                 combinedHeadline ?: summary.headline,
                 style = MaterialTheme.typography.bodyMedium,
@@ -189,7 +189,7 @@ private fun FatigueAxisCauseCard(
                 }
             }
             if (axes.isEmpty()) {
-                Text("현재 피로 축을 계산하고 있습니다.", style = MaterialTheme.typography.bodySmall)
+                Text("주의할 피로 축을 계산하고 있습니다.", style = MaterialTheme.typography.bodySmall)
             }
         }
     }

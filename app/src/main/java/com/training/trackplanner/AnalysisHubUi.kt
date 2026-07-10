@@ -28,7 +28,7 @@ internal fun AnalysisHubContent(
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         AnalysisHubCard(
             title = "오늘 컨디션 및 피로도 분석",
-            body = "오늘 상태, 피로 축별 기여 운동, 최근 피로도 흐름",
+            body = "주의할 피로 축, 오늘 조절할 운동, 피로도 변화",
             onClick = onFatigueClick
         )
         AnalysisHubCard(

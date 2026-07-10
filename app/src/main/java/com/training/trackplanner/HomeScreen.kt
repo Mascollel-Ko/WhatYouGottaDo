@@ -199,12 +199,12 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
             )
             Text(
                 text = buildString {
-                    append("피로도\n")
+                    append("현재 피로도\n")
                     summary.fatigueCard.phaseLabel?.let { label ->
                         append(label)
                         append("\n")
                     }
-                    append("현재 상태: ")
+                    append("현재 피로도: ")
                     append(summary.fatigueCard.primary.score)
                     append(" · ")
                     append(summary.fatigueCard.primary.label)
@@ -266,7 +266,7 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 projectedPoints = summary.projectedTrainingLoadSeries
             )
             MiniTrendChart(
-                title = "최근 피로도",
+                title = "피로도 변화",
                 currentPoints = summary.recentFatigueSeries,
                 projectedPoints = summary.projectedFatigueSeries
             )
@@ -295,8 +295,8 @@ private fun MiniTrendChart(
             )
             if (projectedPoints != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("확정", style = MaterialTheme.typography.labelSmall, color = lineColor)
-                    Text("예상", style = MaterialTheme.typography.labelSmall, color = projectedColor)
+                    Text("현재", style = MaterialTheme.typography.labelSmall, color = lineColor)
+                    Text("끝나면 예상", style = MaterialTheme.typography.labelSmall, color = projectedColor)
                 }
             }
         }

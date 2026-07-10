@@ -153,7 +153,7 @@ class FatigueAnalysisMapperTest {
             hasRemainingUnconfirmedWork = true
         )
 
-        assertTrue(state.simple.projectedOfiNote?.contains("운동 후 예상 부하 상승") == true)
+        assertTrue(state.simple.projectedOfiNote?.contains("끝나면 예상 피로도 상승") == true)
         assertTrue(state.simple.projectedOfiNote?.contains("다음 날 흐름") == true)
     }
 

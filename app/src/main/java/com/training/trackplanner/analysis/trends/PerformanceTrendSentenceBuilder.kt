@@ -15,7 +15,7 @@ class PerformanceTrendSentenceBuilder {
         val strengthTrend = trendLabel(strength)
         val badmintonTrend = trendLabel(badminton)
         val fatigueTrend = trendLabel(fatigue)
-        return "근력운동은 $strengthTrend, 배드민턴 훈련량은 $badmintonTrend, 피로도는 $fatigueTrend 흐름입니다."
+        return "근력운동은 $strengthTrend, 배드민턴 훈련량은 $badmintonTrend, 이번 주 누적 부담은 $fatigueTrend 흐름입니다."
             .safeTrendSentence()
     }
 
@@ -37,7 +37,7 @@ class PerformanceTrendSentenceBuilder {
         if (latest == null) {
             "기록이 더 쌓이면 피로 부담 흐름을 볼 수 있습니다."
         } else {
-            "피로도 종합지수는 개인 기준선 대비 부담을 차트용으로 압축한 값입니다."
+            "이번 주 누적 부담은 개인 기준선 대비 residual/pressure를 차트용으로 압축한 값입니다."
         }
 
     private fun trendLabel(points: List<TrendDataPoint>): String {
@@ -83,7 +83,7 @@ internal fun TrendMetricId.label(): String =
         TrendMetricId.COURT_VOLUME -> "셔틀 플레이 시간"
         TrendMetricId.FOOTWORK_REACTIVE -> "풋워크/반응"
         TrendMetricId.BADMINTON_SUPPORT -> "보조훈련량"
-        TrendMetricId.FATIGUE_COMPOSITE -> "피로도 종합지수"
+        TrendMetricId.FATIGUE_COMPOSITE -> "이번 주 누적 부담"
         TrendMetricId.SYSTEMIC_FATIGUE -> "전신 부담"
         TrendMetricId.STRENGTH_FATIGUE -> "근력운동 부담"
         TrendMetricId.BADMINTON_FATIGUE -> "배드민턴 부담"
