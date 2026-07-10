@@ -113,7 +113,10 @@ object ExerciseAnalysisMapper {
             .ifEmpty { entry?.rpe?.let(::listOf) ?: emptyList() }
         val totalVolumeLoad = completedSets
             .takeIf { it.isNotEmpty() }
-            ?.sumOf { set -> BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg) }
+            ?.sumOf { set ->
+                DurationHoldLoadCalculator.holdLoad(exercise, set, set.rpe ?: entry?.rpe)
+                    ?: BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg)
+            }
         val totalSeconds = completedSets.sumOf { set -> set.seconds }
         val progressMetricType = runtimeMetadata?.progressMetricType?.ifSet()
             ?: exercise.progressMetricType.ifSet()

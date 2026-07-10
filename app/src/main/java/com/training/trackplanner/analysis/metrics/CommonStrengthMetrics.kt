@@ -4,6 +4,7 @@ import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalcul
 import com.training.trackplanner.analysis.core.AnalysisEntry
 import com.training.trackplanner.analysis.core.AnalysisExerciseMetadata
 import com.training.trackplanner.analysis.core.AnalysisInputSnapshot
+import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 
 data class CommonStrengthMetricsResult(
     val totalVolumeLoad: Double,
@@ -152,7 +153,16 @@ object CommonStrengthMetrics {
             ?.bodyWeightKg
         return sets.sumOf { set ->
             val corrected = metadata?.let { item ->
-                BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+                DurationHoldLoadCalculator.holdLoadOrNull(
+                    stableKey = item.stableKey,
+                    displayName = exerciseName,
+                    movementPattern = item.movementPattern,
+                    movementCategory = item.movementCategory,
+                    equipment = item.equipment.ifBlank { item.equipmentTags },
+                    category = item.category,
+                    seconds = set.seconds,
+                    rpe = set.rpe ?: rpe
+                ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
                     stableKey = item.stableKey,
                     displayName = exerciseName,
                     movementPattern = item.movementPattern,

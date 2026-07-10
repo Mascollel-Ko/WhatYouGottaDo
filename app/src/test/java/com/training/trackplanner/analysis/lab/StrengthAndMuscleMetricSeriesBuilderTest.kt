@@ -208,6 +208,19 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         assertTrue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY in AnalysisMetricRegistry.scatterMetrics(series).map { it.id })
     }
 
+    @Test
+    fun sidePlankDurationLoadContributesToLateralCoreAndHipStability() {
+        val sidePlank = exercise(1, "side plank", "side_plank")
+        val series = build(
+            listOf(record("2026-06-10", sidePlank, set(1, 0.0, 0, seconds = 30, rpe = 8.0))),
+            listOf(sidePlank)
+        )
+
+        assertEquals(18.975, series.value(TrendMetricId.MUSCLE_LATERAL_CORE_LOAD_DAILY, "2026-06-08"), 0.001)
+        assertEquals(8.625, series.value(TrendMetricId.MUSCLE_ADDUCTOR_ABDUCTOR_LOAD_DAILY, "2026-06-08"), 0.001)
+        assertEquals(3.45, series.value(TrendMetricId.MUSCLE_SHOULDERS_LOAD_DAILY, "2026-06-08"), 0.001)
+    }
+
     private fun build(
         records: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>
@@ -223,8 +236,15 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
             sets = sets.toList()
         )
 
-    private fun set(index: Int, weight: Double, reps: Int, rpe: Double? = null, confirmed: Boolean = true): WorkoutSet =
-        WorkoutSet(entryId = 1, setIndex = index, weightKg = weight, reps = reps, confirmed = confirmed, rpe = rpe)
+    private fun set(
+        index: Int,
+        weight: Double,
+        reps: Int,
+        rpe: Double? = null,
+        confirmed: Boolean = true,
+        seconds: Int = 0
+    ): WorkoutSet =
+        WorkoutSet(entryId = 1, setIndex = index, weightKg = weight, reps = reps, seconds = seconds, confirmed = confirmed, rpe = rpe)
 
     private fun Map<TrendMetricId, List<com.training.trackplanner.analysis.trends.TrendDataPoint>>.value(
         metric: TrendMetricId,

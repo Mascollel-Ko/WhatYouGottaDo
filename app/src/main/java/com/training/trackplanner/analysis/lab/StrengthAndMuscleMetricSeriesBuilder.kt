@@ -1,11 +1,14 @@
 package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
+import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
+import com.training.trackplanner.analysis.features.DurationHoldPolicy
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import java.time.DayOfWeek
@@ -47,19 +50,24 @@ object StrengthAndMuscleMetricSeriesBuilder {
                     }
                 }
 
-                if (set.reps > 0 && set.weightKg >= 0.0) {
+                if ((set.reps > 0 && set.weightKg >= 0.0) || set.seconds > 0) {
                     val bodyWeight = BodyweightEffectiveLoadCalculator.bodyWeightFor(
                         date = record.entry.date,
                         dailyMetrics = dailyMetrics,
                         initialProfile = null
                     )
+                    val rpe = set.rpe ?: record.entry.rpe
+                    val durationHoldLoad = exercise?.let { item ->
+                        DurationHoldLoadCalculator.holdLoad(item, set, rpe)
+                    }
                     val setLoad = exercise?.let { item ->
-                        BodyweightEffectiveLoadCalculator.volumeLoad(item, set, bodyWeight)
+                        durationHoldLoad ?: BodyweightEffectiveLoadCalculator.volumeLoad(item, set, bodyWeight)
                     } ?: set.weightKg * set.reps
-                    val load = setLoad *
-                        rpeWeight(set.rpe ?: record.entry.rpe)
+                    val load = if (durationHoldLoad != null) setLoad else setLoad * rpeWeight(rpe)
                     if (load > 0.0) {
-                        MuscleLoadInputBuilder.contributions(exercise, record.entry, runtimeMetadata).forEach { (bucket, weight) ->
+                        val contributions = durationHoldContributions(exercise, record.entry)
+                            ?: MuscleLoadInputBuilder.contributions(exercise, record.entry, runtimeMetadata)
+                        contributions.forEach { (bucket, weight) ->
                             dailyLoads.getValue(bucket).merge(date, load * weight, Double::plus)
                         }
                     }
@@ -88,6 +96,33 @@ object StrengthAndMuscleMetricSeriesBuilder {
             result[bucket.sevenDayMetric] = weeklySumSeries(rollingMap(dates, daily, 7), daily.keys)
         }
         return result
+    }
+
+    private fun durationHoldContributions(exercise: Exercise?, entry: WorkoutEntry): Map<MuscleBucket, Double>? {
+        val policy = DurationHoldLoadCalculator.policyFor(
+            stableKey = exercise?.stableKey.orEmpty(),
+            displayName = exercise?.name ?: entry.exerciseName,
+            movementPattern = exercise?.movementPattern.orEmpty(),
+            movementCategory = exercise?.movementCategory.orEmpty(),
+            equipment = exercise?.equipment?.ifBlank { exercise.equipmentTags }.orEmpty(),
+            mode = exercise?.mode.orEmpty(),
+            category = exercise?.category ?: entry.category
+        )
+        return when (policy) {
+            DurationHoldPolicy.PLANK -> mapOf(
+                MuscleBucket.ANTERIOR_CORE to 0.65,
+                MuscleBucket.GLUTES to 0.15,
+                MuscleBucket.SHOULDERS to 0.10,
+                MuscleBucket.ROTATION_CORE to 0.10
+            )
+            DurationHoldPolicy.SIDE_PLANK -> mapOf(
+                MuscleBucket.LATERAL_CORE to 0.55,
+                MuscleBucket.ADDUCTOR_ABDUCTOR to 0.25,
+                MuscleBucket.SHOULDERS to 0.10,
+                MuscleBucket.ANTERIOR_CORE to 0.10
+            )
+            null -> null
+        }
     }
 
     private fun e1rmFor(set: WorkoutSet): Double? =

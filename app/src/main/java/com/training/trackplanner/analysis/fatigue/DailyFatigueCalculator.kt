@@ -1,8 +1,9 @@
 package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
-import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.analysis.features.AnalysisExerciseDisplayNameResolver
+import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
+import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -368,7 +369,8 @@ class DailyFatigueCalculator(
         val totalReps = sets.sumOf { it.reps }
         val totalSeconds = sets.sumOf { it.seconds }
         val volumeLoad = sets.sumOf { set ->
-            BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg)
+            DurationHoldLoadCalculator.holdLoad(exercise, set, set.rpe ?: record.entry.rpe)
+                ?: BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg)
         }
         val rpe = averageRpe(record, sets) ?: defaultRpe(metadata)
         return when (metadata.progressMetricType) {

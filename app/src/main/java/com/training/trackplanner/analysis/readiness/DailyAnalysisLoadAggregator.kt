@@ -1,6 +1,9 @@
 package com.training.trackplanner.analysis.readiness
 
+import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
+import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
+import com.training.trackplanner.analysis.features.DurationHoldPolicy
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
@@ -96,7 +99,7 @@ class DailyAnalysisLoadAggregator {
                     elasticLoad = elasticLoad,
                     overheadLoad = overheadLoad,
                     gripLoad = gripLoad
-                ),
+                ).durationHoldBodyPartLoads(features, localLoad),
                 baselineGroupLoads = baselineGroupLoads(features.adaptiveBaselineGroups, categoryLoads),
                 completedSets = features.completedSets,
                 totalReps = features.totalReps ?: 0,
@@ -121,7 +124,7 @@ class DailyAnalysisLoadAggregator {
             .sortedBy { daily -> daily.date }
     }
 
-    private fun baseDose(features: com.training.trackplanner.analysis.features.AnalysisExerciseFeatures): Double {
+    private fun baseDose(features: AnalysisExerciseFeatures): Double {
         val volumeLoad = features.totalVolumeLoad ?: 0.0
         if (volumeLoad > 0.0) return volumeLoad
         val repsLoad = (features.totalReps ?: 0) * TodayReadinessConstants.BODYWEIGHT_PROXY_LOAD
@@ -177,6 +180,36 @@ class DailyAnalysisLoadAggregator {
         }
         if (gripLoad > 0.0) {
             loads.add("forearm_grip", gripLoad * TodayReadinessConstants.GRIP_FOREARM_SHARE)
+        }
+        return loads.filterValues { value -> value > 0.0 }
+    }
+
+    private fun Map<String, Double>.durationHoldBodyPartLoads(
+        features: AnalysisExerciseFeatures,
+        localLoad: Double
+    ): Map<String, Double> {
+        if (localLoad <= 0.0) return this
+        val policy = DurationHoldLoadCalculator.policyFor(
+            stableKey = features.stableKey,
+            displayName = features.exerciseName,
+            movementPattern = features.movementPattern,
+            movementCategory = features.movementCategory,
+            equipment = features.equipment.joinToString("|")
+        ) ?: return this
+        val loads = mutableMapOf<String, Double>()
+        when (policy) {
+            DurationHoldPolicy.PLANK -> {
+                loads.add("core_abs_obliques", localLoad * 0.65)
+                loads.add("glutes", localLoad * 0.15)
+                loads.add("shoulders", localLoad * 0.10)
+                loads.add("core_abs_obliques", localLoad * 0.10)
+            }
+            DurationHoldPolicy.SIDE_PLANK -> {
+                loads.add("core_abs_obliques", localLoad * 0.55)
+                loads.add("hips_adductors_abductors", localLoad * 0.25)
+                loads.add("shoulders", localLoad * 0.10)
+                loads.add("core_abs_obliques", localLoad * 0.10)
+            }
         }
         return loads.filterValues { value -> value > 0.0 }
     }

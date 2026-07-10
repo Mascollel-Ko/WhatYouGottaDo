@@ -4,6 +4,7 @@ import com.training.trackplanner.analysis.core.AnalysisEntry
 import com.training.trackplanner.analysis.core.AnalysisExerciseMetadata
 import com.training.trackplanner.analysis.core.AnalysisInputSnapshot
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
+import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 import java.time.LocalDate
 
 data class CommonPlanProjectionMetricsResult(
@@ -123,7 +124,16 @@ object CommonPlanProjectionMetrics {
             .maxByOrNull { record -> record.date }
             ?.bodyWeightKg
         return metadata?.let { item ->
-            BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+            DurationHoldLoadCalculator.holdLoadOrNull(
+                stableKey = item.stableKey,
+                displayName = entry.exerciseName,
+                movementPattern = item.movementPattern,
+                movementCategory = item.movementCategory,
+                equipment = item.equipment.ifBlank { item.equipmentTags },
+                category = item.category,
+                seconds = seconds,
+                rpe = rpe ?: entry.rpe
+            ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
                 stableKey = item.stableKey,
                 displayName = entry.exerciseName,
                 movementPattern = item.movementPattern,
