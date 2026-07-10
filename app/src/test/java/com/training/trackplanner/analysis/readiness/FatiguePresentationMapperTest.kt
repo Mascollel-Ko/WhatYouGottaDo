@@ -177,11 +177,29 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.SYSTEMIC to elevatedFloorPressure("SYSTEMIC")))
         )
 
-        assertEquals(69, result.systemicScore)
+        assertEquals(72, result.systemicScore)
         assertFalse(result.gate.heavyLowerRestricted)
         assertFalse(result.gate.highImpactRestricted)
         assertFalse(result.gate.codReactiveRestricted)
         assertTrue(result.reasons.isEmpty())
+    }
+
+    @Test
+    fun fatigueThresholdsKeepOfiStableAndRelaxReadinessGates() {
+        assertEquals(75, com.training.trackplanner.analysis.fatigue.FatigueThresholds.OFI_ELEVATED_START)
+        assertEquals(87, com.training.trackplanner.analysis.fatigue.FatigueThresholds.OFI_CAUTION_START)
+        assertEquals(98, com.training.trackplanner.analysis.fatigue.FatigueThresholds.OFI_HIGH_START)
+        assertEquals(72, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESENTATION_ELEVATED_SCORE)
+        assertEquals(84, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESENTATION_RESTRICTED_SCORE)
+        assertEquals(54, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESENTATION_VOLUME_YELLOW_START)
+        assertEquals(72, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESENTATION_VOLUME_ORANGE_START)
+        assertEquals(90, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESENTATION_VOLUME_RED_START)
+        assertEquals(1.3754, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESSURE_ELEVATED_RATIO, 0.00001)
+        assertEquals(1.6146, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESSURE_HIGH_RATIO, 0.00001)
+        assertEquals(1.9136, com.training.trackplanner.analysis.fatigue.FatigueThresholds.PRESSURE_VERY_HIGH_RATIO, 0.00001)
+        assertEquals(1.196, com.training.trackplanner.analysis.fatigue.FatigueThresholds.Z_ELEVATED, 0.00001)
+        assertEquals(1.794, com.training.trackplanner.analysis.fatigue.FatigueThresholds.Z_HIGH, 0.00001)
+        assertEquals(2.392, com.training.trackplanner.analysis.fatigue.FatigueThresholds.Z_VERY_HIGH, 0.00001)
     }
 
     private fun snapshot(

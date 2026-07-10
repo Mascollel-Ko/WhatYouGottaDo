@@ -45,7 +45,7 @@ class FatiguePressureCalculatorHotfixTest {
     @Test
     fun actualHighLoadCanStillBecomeHighFatigue() {
         val result = FatiguePressureCalculator().calculate(
-            residual = residual(160.0),
+            residual = residual(162.0),
             stats = stats(zScore = 1.7, percentile = 90.0),
             adaptiveBaseline = adaptive(tolerance = 100.0)
         ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
@@ -54,14 +54,14 @@ class FatiguePressureCalculatorHotfixTest {
     }
 
     @Test
-    fun relativePressureThresholdsAreRelaxedByFifteenPercent() {
+    fun relativePressureThresholdsUseReadinessHotfixCutoffs() {
         val belowRatio = FatiguePressureCalculator().calculate(
-            residual = residual(130.0),
+            residual = residual(137.0),
             stats = stats(zScore = null, percentile = null),
             adaptiveBaseline = adaptive(tolerance = 100.0)
         ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
         val atRatio = FatiguePressureCalculator().calculate(
-            residual = residual(133.0),
+            residual = residual(138.0),
             stats = stats(zScore = null, percentile = null),
             adaptiveBaseline = adaptive(tolerance = 100.0)
         ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
@@ -71,15 +71,15 @@ class FatiguePressureCalculatorHotfixTest {
     }
 
     @Test
-    fun zScoreAndPercentileThresholdsAreRelaxedByFifteenPercent() {
+    fun zScoreThresholdsUseReadinessHotfixCutoffsAndPercentilesStayStable() {
         val belowZ = FatiguePressureCalculator().calculate(
             residual = residual(100.0),
-            stats = stats(zScore = 1.14, percentile = null),
+            stats = stats(zScore = 1.195, percentile = null),
             adaptiveBaseline = adaptive(tolerance = null)
         ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
         val atZ = FatiguePressureCalculator().calculate(
             residual = residual(100.0),
-            stats = stats(zScore = 1.15, percentile = null),
+            stats = stats(zScore = 1.196, percentile = null),
             adaptiveBaseline = adaptive(tolerance = null)
         ).categoryPressures.getValue(FatigueCategoryKey.SYSTEMIC)
         val belowPercentile = FatiguePressureCalculator().calculate(
