@@ -863,3 +863,42 @@
   - pending.
 - tag push status:
   - `v0.4.2.4` pending.
+
+## v0.4.2.5 Fatigue Wording Hotfix
+
+- Baseline:
+  - Started from latest `origin/main` at `355f7b5` / `v0.4.2.4`.
+- Work target:
+  - Change only displayed strings for the separated OFI status and axis warning UI.
+  - Preserve OFI classifier logic, fatigue calculations, readiness thresholds, and projected/expected fatigue logic.
+- Cause:
+  - v0.4.2.4 separated OFI status from axis warnings, but final Korean copy needed exact wording and canonical axis names.
+- Changes:
+  - Changed the Home current line from `현재 피로도: <score> · <label>` to `현재 상태: <score> · <OFI label>`.
+  - Changed OFI display labels to include `피로도`, e.g. `피로도 보통`.
+  - Restored axis names `관절/건/충격` and `회복 지속`.
+  - Updated very-high, high, and all-good axis guidance strings.
+  - Bumped version metadata to `v0.4.2.5` / `402005`.
+- Behavior preserved:
+  - OFI canonical classifier still owns the overall status label.
+  - Axis warnings still do not overwrite the OFI label.
+  - Count line remains `축별 상태: 매우 높음(n), 높음(m), 보통(l), 낮음(r)`.
+  - Projected/expected fatigue logic unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/training/trackplanner/HomeScreen.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt`
+  - `docs/v0.4.2.5_release_notes.md`
+  - `docs/codex_worklog.md`
+- Focused test result:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*TodayFatigueStatusLabelerTest*" --tests "*HomeFatigueCardSummaryFactoryTest*"`: passed.
+- Final verification:
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+- Commit hash:
+  - pending.
+- main push status:
+  - pending.
+- tag push status:
+  - `v0.4.2.5` pending.

@@ -199,12 +199,12 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
             )
             Text(
                 text = buildString {
-                    append("현재 피로도\n")
+                    append("현재 상태\n")
                     summary.fatigueCard.phaseLabel?.let { label ->
                         append(label)
                         append("\n")
                     }
-                    append("현재 피로도: ")
+                    append("현재 상태: ")
                     append(summary.fatigueCard.primary.score)
                     append(" · ")
                     append(summary.fatigueCard.primary.label)

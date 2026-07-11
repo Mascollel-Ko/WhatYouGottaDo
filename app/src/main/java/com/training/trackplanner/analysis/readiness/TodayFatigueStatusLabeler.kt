@@ -55,9 +55,9 @@ object TodayFatigueStatusLabeler {
                 TodayFatigueAxisState("신경계", levelFromScore(presentation.neuralScore)),
                 TodayFatigueAxisState("전신 근육", levelFromScore(presentation.systemicScore)),
                 TodayFatigueAxisState("국소 근육", levelFromScore(presentation.localMuscleScore)),
-                TodayFatigueAxisState("관절/건 충격", levelFromScore(presentation.jointTendonScore)),
+                TodayFatigueAxisState("관절/건/충격", levelFromScore(presentation.jointTendonScore)),
                 TodayFatigueAxisState("동작 집중", levelFromScore(presentation.focusScore)),
-                TodayFatigueAxisState("회복 지연", recoveryLevel)
+                TodayFatigueAxisState("회복 지속", recoveryLevel)
             )
         }
 
@@ -66,31 +66,31 @@ object TodayFatigueStatusLabeler {
             TodayFatigueAxisState("신경계", maxLevel(summary, FatigueDetailType.NEURAL_HEAVY, FatigueDetailType.NEURAL_SPEED)),
             TodayFatigueAxisState("전신 근육", maxLevel(summary, FatigueDetailType.SYSTEMIC)),
             TodayFatigueAxisState("국소 근육", maxLevel(summary, FatigueDetailType.LOCAL_BODY_PART)),
-            TodayFatigueAxisState("관절/건 충격", jointLevel(summary)),
+            TodayFatigueAxisState("관절/건/충격", jointLevel(summary)),
             TodayFatigueAxisState("동작 집중", maxLevel(summary, FatigueDetailType.BADMINTON_COURT)),
-            TodayFatigueAxisState("회복 지연", recoveryLevel)
+            TodayFatigueAxisState("회복 지속", recoveryLevel)
         )
     }
 
     private fun axisMessage(axes: List<TodayFatigueAxisState>): String {
         val veryHighAxes = axes.filter { axis -> axis.level.isVeryHigh() }
         if (veryHighAxes.isNotEmpty()) {
-            return "${veryHighAxes.joinLabels()} 피로가 매우 높습니다. 해당 스트레스에 특히 주의하세요."
+            return "${veryHighAxes.joinLabels()} 피로도가 높습니다. 해당 스트레스에 대해 주의하세요."
         }
         val highAxes = axes.filter { axis -> axis.level == FatigueLevel.HIGH }
         if (highAxes.isNotEmpty()) {
-            return "${highAxes.joinLabels()} 피로가 높습니다. 해당 스트레스를 줄이면 좋습니다."
+            return "${highAxes.joinLabels()} 피로도가 높습니다. 해당 스트레스를 줄이면 좋습니다."
         }
-        return "모든 피로가 양호합니다. 가볍게 운동!"
+        return "모든 피로도가 양호합니다. 힘차게 운동!"
     }
 
     private fun ofiDisplayLabel(ofi: Int): String =
         when (FatigueLabelResolver.label(ofi)) {
-            FatigueReadinessLabel.LOW -> "낮음"
-            FatigueReadinessLabel.NORMAL -> "보통"
-            FatigueReadinessLabel.ELEVATED -> "주의"
-            FatigueReadinessLabel.CAUTION -> "높음"
-            FatigueReadinessLabel.HIGH_FATIGUE -> "매우 높음"
+            FatigueReadinessLabel.LOW -> "피로도 낮음"
+            FatigueReadinessLabel.NORMAL -> "피로도 보통"
+            FatigueReadinessLabel.ELEVATED -> "피로도 주의"
+            FatigueReadinessLabel.CAUTION -> "피로도 높음"
+            FatigueReadinessLabel.HIGH_FATIGUE -> "피로 심화"
         }
 
     private fun maxLevel(summary: TodayReadinessSummary, vararg types: FatigueDetailType): FatigueLevel =
