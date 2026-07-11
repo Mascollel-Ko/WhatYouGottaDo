@@ -79,6 +79,9 @@ class CoachFatigueCauseAnalyzerTest {
         assertTrue(summary.causes.first().affectedAxes.all { axis ->
             axis in setOf("신경계", "전신 근육", "국소 근육", "관절·건·충격", "동작·집중")
         })
+        assertTrue(summary.axisExerciseCauses.first().axisContributionScores.keys.all { axis ->
+            axis in setOf("신경계", "전신 근육", "국소 근육", "관절·건·충격", "동작·집중")
+        })
     }
 
     private fun result(date: LocalDate, contribution: RecordFatigueContribution?): DailyFatigueResult =

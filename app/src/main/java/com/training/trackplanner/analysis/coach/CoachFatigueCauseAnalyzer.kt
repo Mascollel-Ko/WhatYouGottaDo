@@ -36,10 +36,11 @@ class CoachFatigueCauseAnalyzer {
                         recoveryPressure = contribution.axes.recoveryPressure * generalDecay
                     )
                 }
-                val score = axisValues(axes).sumOf { it.second }
-                if (score <= 0.0001) return@mapNotNull null
-                val affectedAxes = axisValues(axes)
+                val axisScores = axisValues(axes)
                     .filter { it.second > 0.0001 }
+                val score = axisScores.sumOf { it.second }
+                if (score <= 0.0001) return@mapNotNull null
+                val affectedAxes = axisScores
                     .sortedByDescending { it.second }
                     .take(2)
                     .map { it.first }
@@ -49,7 +50,8 @@ class CoachFatigueCauseAnalyzer {
                     detail = "최근 ${safeWindow}일 동안 ${affectedAxes.joinToString("·")} 부하에 많이 기여한 기록입니다.",
                     contributionScore = score,
                     affectedAxes = affectedAxes,
-                    sourceType = CoachFatigueCauseType.EXERCISE
+                    sourceType = CoachFatigueCauseType.EXERCISE,
+                    axisContributionScores = axisScores.toMap()
                 )
             }
 
@@ -68,12 +70,13 @@ class CoachFatigueCauseAnalyzer {
             .mapIndexed { index, cause -> cause.copy(rank = index + 1) }
 
         if (causes.isEmpty()) return CoachFatigueCauseSummary.insufficient(safeWindow)
-        val top = causes.first()
+        val top = exerciseCauses.maxByOrNull { cause -> cause.contributionScore } ?: causes.first()
         return CoachFatigueCauseSummary(
             windowDays = safeWindow,
             causes = causes,
             headline = "최근 피로 상승은 ${top.label} 기록과 ${top.affectedAxes.joinToString("·")} 부담이 함께 누적된 영향일 가능성이 큽니다.",
-            isDataSufficient = true
+            isDataSufficient = true,
+            axisExerciseCauses = exerciseCauses.sortedByDescending { cause -> cause.contributionScore }
         )
     }
 

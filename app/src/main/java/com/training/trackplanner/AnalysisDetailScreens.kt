@@ -69,12 +69,9 @@ internal fun FatigueAndConditionAnalysisContent(
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
             fatigueState = fatigueAnalysis.currentState,
-            summary = coachInsight.fatigueCauses,
-            combinedHeadline = coachInsight.combinedHeadline,
-            checkInGuidance = coachInsight.checkInGuidance
+            summary = coachInsight.fatigueCauses
         )
-        PerformanceDiscomfortSignalsCard(coachingSignals)
-        CoachingSignalsCard(coachingSignals)
+        RecognitionSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
             onPeriodChange = onPeriodChange,

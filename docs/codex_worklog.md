@@ -998,3 +998,44 @@
   - pending.
 - tag push status:
   - no new tag for this cleanup.
+
+## Canonical OFI Fatigue Detail UI Follow-up
+
+- Baseline:
+  - Started from latest `origin/main` at `fa9ea52` / `v0.4.2.6`.
+- Work target:
+  - Add an expandable five-axis detail view to `주의할 피로 축과 주요 기여 운동`.
+  - Combine performance/discomfort and sleep coaching blocks into `인식 신호`.
+- Cause:
+  - The collapsed fatigue card did not let users compare all canonical axes or see axis-specific exercise contributors.
+  - Recognition signals were split across two top-level cards.
+- Changes:
+  - Added canonical axis contribution scores to the existing fatigue-cause model without changing OFI calculation or thresholds.
+  - Added `자세히 보기` / `접기` state; expanded content always shows 신경계, 전신 근육, 국소 근육, 관절·건·충격, and 동작·집중.
+  - Shows contributors only for high or very-high axes, deduplicates equal display names, and applies the 1.5x top-contributor rule.
+  - Replaced the two separate signal cards with one `인식 신호` card containing performance/discomfort and sleep subsections.
+- Behavior preserved:
+  - Canonical OFI remains the only fatigue-state source in the fatigue screen.
+  - Raw scores, thresholds, z-scores, percentiles, stable keys, and fallback IDs are not displayed.
+  - Performance/discomfort and sleep signals remain separate from OFI axis judgement.
+  - versionName/versionCode and tags are unchanged.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`
+  - `app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/coach/CoachAnalysisModels.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzer.kt`
+  - `app/src/test/java/com/training/trackplanner/FatigueAxisCauseCardTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzerTest.kt`
+  - `docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md`
+  - `docs/codex_worklog.md`
+- Verification:
+  - `.\gradlew.bat --version`: passed.
+  - Focused fatigue UI and cause tests: passed.
+  - `.\gradlew.bat :app:testDebugUnitTest`: passed.
+  - GitHub Actions: pending.
+- Commit hash:
+  - pending.
+- main push status:
+  - pending.
+- tag push status:
+  - no new tag requested.

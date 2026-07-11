@@ -17,14 +17,16 @@ data class CoachFatigueCause(
     val detail: String,
     val contributionScore: Double,
     val affectedAxes: List<String>,
-    val sourceType: CoachFatigueCauseType
+    val sourceType: CoachFatigueCauseType,
+    val axisContributionScores: Map<String, Double> = emptyMap()
 )
 
 data class CoachFatigueCauseSummary(
     val windowDays: Int,
     val causes: List<CoachFatigueCause>,
     val headline: String,
-    val isDataSufficient: Boolean
+    val isDataSufficient: Boolean,
+    val axisExerciseCauses: List<CoachFatigueCause> = causes
 ) {
     companion object {
         fun insufficient(windowDays: Int = 14) = CoachFatigueCauseSummary(
