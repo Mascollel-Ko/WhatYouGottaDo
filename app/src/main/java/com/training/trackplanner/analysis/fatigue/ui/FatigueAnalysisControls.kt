@@ -36,7 +36,7 @@ internal fun FatigueTargetSelector(
     onToggle: (FatigueTarget) -> Unit
 ) {
     SelectorRow {
-        FatigueTarget.entries.forEach { target ->
+        FatigueTarget.displayed.forEach { target ->
             FatigueSelectorChip(target.label, target in selected) {
                 if (multiple || target !in selected) onToggle(target)
             }

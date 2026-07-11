@@ -36,7 +36,7 @@ class CoachFatigueCauseAnalyzer {
                         recoveryPressure = contribution.axes.recoveryPressure * generalDecay
                     )
                 }
-                val score = axes.values().sum()
+                val score = axisValues(axes).sumOf { it.second }
                 if (score <= 0.0001) return@mapNotNull null
                 val affectedAxes = axisValues(axes)
                     .filter { it.second > 0.0001 }
@@ -81,8 +81,7 @@ class CoachFatigueCauseAnalyzer {
         "신경계" to axes.neuromuscular,
         "전신 근육" to axes.systemicMuscular,
         "국소 근육" to axes.localMuscular,
-        "관절/건/충격" to axes.jointTendonImpact,
-        "동작 집중" to axes.movementFocus,
-        "회복 지속" to axes.recoveryPressure
+        "관절·건·충격" to axes.jointTendonImpact,
+        "동작·집중" to axes.movementFocus
     )
 }

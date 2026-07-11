@@ -45,15 +45,15 @@ class JointTendonWarningAnalyzer {
         val headline = if ((maxDiscomfort ?: 0) >= 4) {
             "관절/건 불편감 입력을 확인합니다"
         } else {
-            "관절/건/충격 부하가 높습니다"
+            "관절·건·충격 부하가 높습니다"
         }
         val detail = when {
             (maxDiscomfort ?: 0) >= 4 && hasMetadataStress ->
-                "최근 불편감 입력과 관절/건/충격성 부하가 함께 보입니다. 점프, 감속, 고중량 하체는 강도를 낮춰 확인합니다."
+                "최근 불편감 입력과 관절·건·충격성 부하가 함께 보입니다. 점프, 감속, 고중량 하체는 강도를 낮춰 확인합니다."
             (maxDiscomfort ?: 0) >= 4 ->
                 "최근 불편감 입력이 높습니다. 운동 기록만으로 단정하지 않고 오늘 부하를 보수적으로 조절합니다."
             else ->
-                "최근 관절/건/충격 축 점수가 높습니다. 착지, 감속, 고중량 반복을 한 번 더 확인합니다."
+                "최근 관절·건·충격 축 점수가 높습니다. 착지, 감속, 고중량 반복을 한 번 더 확인합니다."
         }
 
         return JointTendonWarningSignal(

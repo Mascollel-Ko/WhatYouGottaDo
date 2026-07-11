@@ -37,7 +37,6 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
-import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
@@ -66,15 +65,15 @@ internal fun FatigueAndConditionAnalysisContent(
     onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        todayStatus?.let { TodayReadinessCard(it) }
-            ?: readiness?.let { TodayReadinessCard(it) }
+        fatigueAnalysis.currentState?.let { state -> CurrentFatigueStatusCard(state) }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
-            readiness = todayStatus?.current ?: readiness,
+            fatigueState = fatigueAnalysis.currentState,
             summary = coachInsight.fatigueCauses,
             combinedHeadline = coachInsight.combinedHeadline,
             checkInGuidance = coachInsight.checkInGuidance
         )
+        PerformanceDiscomfortSignalsCard(coachingSignals)
         CoachingSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
@@ -84,17 +83,21 @@ internal fun FatigueAndConditionAnalysisContent(
             onContributionGroupingChange = onContributionGroupingChange,
             onContributionSourcesApply = onContributionSourcesApply
         )
-        performanceTrend?.let { summary ->
+        if (fatigueAnalysis.simple.ofiSeries.isNotEmpty()) {
             AnalysisSectionChart(
                 title = "이번 주 누적 부담",
                 spec = ChartSpec(
                     type = ChartType.LINE,
                     title = "이번 주 누적 부담",
-                    lineSeries = listOf(ChartSeries("누적 부담 지수", summary.fatigueCompositeSeries.dataPoints))
+                    lineSeries = listOf(ChartSeries("현재 피로도", fatigueAnalysis.simple.ofiSeries.map { point ->
+                        TrendDataPoint(point.date, point.value)
+                    }))
                 ),
-                note = "readiness residual/pressure를 주 단위로 집계한 부담 흐름입니다."
+                note = "canonical OFI 기준으로 집계한 피로 흐름입니다."
             )
-        } ?: InfoCard("누적 부담 추세를 계산하고 있습니다.")
+        } else {
+            InfoCard("누적 부담 추세를 계산하고 있습니다.")
+        }
     }
 }
 
@@ -143,55 +146,6 @@ internal fun StrengthTrendAnalysisContent(performanceTrend: PerformanceTrendSumm
         MuscleLoadShareTrendCard(performanceTrend)
         RepRangeShareCard(performanceTrend.repRangeWeeks)
         RepRangeShareTrendCard(performanceTrend.repRangeWeeks)
-    }
-}
-
-@Composable
-private fun FatigueAxisCauseCard(
-    readiness: TodayReadinessSummary?,
-    summary: CoachFatigueCauseSummary,
-    combinedHeadline: String?,
-    checkInGuidance: List<String>
-) {
-    val axes = readiness?.let(TodayFatigueStatusLabeler::axisStates).orEmpty()
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("주의할 피로 축과 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(
-                combinedHeadline ?: summary.headline,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            checkInGuidance.take(2).forEach { guidance ->
-                Text(guidance, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
-            axes.forEach { axis ->
-                val causes = summary.causes
-                    .filter { cause -> axis.label in cause.affectedAxes }
-                    .take(2)
-                    .map { cause -> cause.label }
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                            Text(axis.displayLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Text(
-                            "주요 기여 운동: ${causes.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "최근 기여 운동 없음"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            if (axes.isEmpty()) {
-                Text("주의할 피로 축을 계산하고 있습니다.", style = MaterialTheme.typography.bodySmall)
-            }
-        }
     }
 }
 

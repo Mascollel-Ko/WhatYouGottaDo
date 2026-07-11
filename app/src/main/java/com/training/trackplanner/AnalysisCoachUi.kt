@@ -34,10 +34,10 @@ import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
 import com.training.trackplanner.analysis.coach.CoachingSignalSeverity
 import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.fatigue.ContributionGrouping
+import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
-import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
@@ -52,6 +52,7 @@ import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.AnalysisStats
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 @Composable
 internal fun CoachAnalysisContent(
@@ -70,15 +71,21 @@ internal fun CoachAnalysisContent(
     onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        todayStatus?.let { TodayReadinessCard(it) }
-            ?: readiness?.let { TodayReadinessCard(it) }
+        fatigueAnalysis.currentState?.let { state ->
+            CurrentFatigueStatusCard(
+                state = state,
+                projectedOfi = fatigueAnalysis.simple.projectedOfiOverlay.lastOrNull()?.value?.roundToInt()
+            )
+        }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
-        CoachFatigueCauseCard(
+        FatigueAxisCauseCard(
+            fatigueState = fatigueAnalysis.currentState,
             summary = coachInsight.fatigueCauses,
             combinedHeadline = coachInsight.combinedHeadline,
             checkInGuidance = coachInsight.checkInGuidance
         )
         BadmintonTransferCoverageCard(coachInsight)
+        PerformanceDiscomfortSignalsCard(coachingSignals)
         CoachingSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
@@ -110,53 +117,9 @@ internal fun CoachingSignalsCard(summary: CoachingSignalsSummary) {
                 headline = summary.sleep.headline,
                 detail = summary.sleep.detail
             )
-            val optionalRows = listOfNotNull(
-                summary.rpe?.let { signal ->
-                    CoachingSignalRowData(
-                        label = "RPE 대비 수행",
-                        severity = signal.severity,
-                        headline = signal.headline,
-                        detail = listOfNotNull(signal.detail, signal.sleepContext).joinToString(" ")
-                    )
-                },
-                summary.jointTendon?.let { signal ->
-                    CoachingSignalRowData(
-                        label = "관절/건 주의",
-                        severity = signal.severity,
-                        headline = signal.headline,
-                        detail = listOfNotNull(
-                            signal.detail,
-                            signal.relatedStressLabels.takeIf { it.isNotEmpty() }?.joinToString(prefix = "관련 부하: "),
-                            signal.sleepContext
-                        ).joinToString(" ")
-                    )
-                },
-                summary.courtRecovery?.let { signal ->
-                    CoachingSignalRowData(
-                        label = "코트 시간 회복 반응",
-                        severity = signal.severity,
-                        headline = signal.headline,
-                        detail = listOfNotNull(signal.detail, signal.sleepContext).joinToString(" ")
-                    )
-                }
-            )
-            if (optionalRows.isEmpty()) {
-                Text("추가 신호는 기록이 더 쌓이면 표시됩니다.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                optionalRows.take(3).forEach { row ->
-                    CoachingSignalRow(row.label, row.severity, row.headline, row.detail)
-                }
-            }
         }
     }
 }
-
-private data class CoachingSignalRowData(
-    val label: String,
-    val severity: CoachingSignalSeverity,
-    val headline: String,
-    val detail: String
-)
 
 @Composable
 private fun CoachingSignalRow(
@@ -193,14 +156,19 @@ private fun CoachingSignalRow(
 }
 
 @Composable
-private fun CoachFatigueCauseCard(
+internal fun FatigueAxisCauseCard(
+    fatigueState: DailyFatigueState?,
     summary: CoachFatigueCauseSummary,
     combinedHeadline: String?,
     checkInGuidance: List<String>
 ) {
+    val axes = fatigueState
+        ?.let(TodayFatigueStatusLabeler::axisStates)
+        .orEmpty()
+        .filter { axis -> axis.displayLabel == "높음" || axis.displayLabel == "매우 높음" }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("피로 상승 원인", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("주의할 피로 축과 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             if (!summary.isDataSufficient) {
                 Text(summary.headline, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 return@Column
@@ -217,21 +185,62 @@ private fun CoachFatigueCauseCard(
                     color = MaterialTheme.colorScheme.error
                 )
             }
-            summary.causes.take(5).forEach { cause ->
-                Row(
+            if (axes.isEmpty()) {
+                Text("현재 주의할 피로 축은 없습니다.", style = MaterialTheme.typography.bodySmall)
+            }
+            axes.forEach { axis ->
+                val causes = summary.causes
+                    .filter { cause -> axis.label in cause.affectedAxes }
+                    .take(2)
+                    .map { cause -> cause.label }
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    Text("${cause.rank}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Text(cause.label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Text(axis.displayLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        }
                         Text(
-                            cause.affectedAxes.joinToString(" · "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary
+                            TodayFatigueStatusLabeler.axisWarningSentence(axis),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Text(cause.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "주요 기여 운동: ${causes.takeIf { it.isNotEmpty() }?.joinToString(", ") ?: "최근 기여 운동 없음"}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun PerformanceDiscomfortSignalsCard(summary: CoachingSignalsSummary) {
+    val rows = listOfNotNull(
+        summary.rpe?.let { signal ->
+            Triple("수행 감소", signal.severity, "${signal.headline} ${signal.detail}".trim())
+        },
+        summary.jointTendon?.let { signal ->
+            Triple("불편감·제한", signal.severity, "${signal.headline} ${signal.detail}".trim())
+        },
+        summary.courtRecovery?.let { signal ->
+            Triple("코트 회복 반응", signal.severity, "${signal.headline} ${signal.detail}".trim())
+        }
+    )
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("수행 감소 및 불편감 신호 정리", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (rows.isEmpty()) {
+                Text("뚜렷한 수행 감소 또는 불편감 신호는 확인되지 않았습니다.", style = MaterialTheme.typography.bodyMedium)
+            } else {
+                rows.take(3).forEach { (label, severity, detail) ->
+                    CoachingSignalRow(label, severity, label, detail)
                 }
             }
         }
@@ -279,110 +288,42 @@ internal fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
 }
 
 @Composable
-internal fun TodayReadinessCard(status: PhaseAwareTodayStatus) {
-    TodayReadinessCard(
-        summary = status.current,
-        phaseLabel = status.phaseLabel,
-        headline = status.headline,
-        detail = status.detail,
-        actionLabel = status.actionLabel,
-        projected = status.projected,
-        keyAxes = status.keyAxes
-    )
-}
-
-@Composable
-internal fun TodayReadinessCard(
-    summary: TodayReadinessSummary,
-    phaseLabel: String? = null,
-    headline: String = summary.headline,
-    detail: String = summary.shortReason,
-    actionLabel: String? = null,
-    projected: TodayReadinessSummary? = null,
-    keyAxes: List<String> = emptyList()
+internal fun CurrentFatigueStatusCard(
+    state: DailyFatigueState,
+    projectedOfi: Int? = null
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val axisSummary = TodayFatigueStatusLabeler.axisSummary(summary)
-    BackHandler(enabled = expanded) { expanded = false }
+    val status = TodayFatigueStatusLabeler.currentSummary(state)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("주의할 피로 축", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    phaseLabel?.let { label ->
-                        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                    }
+                    Text("현재 피로도 상태와 판단", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     Text(
-                        axisSummary.axisMessage,
+                        "현재 상태: ${status.ofi} · ${status.ofiLabel}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        status.judgementMessage,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        axisSummary.levelCountMessage,
+                        status.axisMessage,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Text(status.levelCountMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                AnalysisConfidencePill(summary.confidence)
             }
-            projected?.let { projectedSummary ->
+            projectedOfi?.let { score ->
                 Text(
-                    "끝나면 예상 피로도: ${projectedReadinessLoadLabel(projectedSummary)}",
+                    "끝나면 예상 피로도: $score · ${TodayFatigueStatusLabeler.ofiDisplayLabel(score)}",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            actionLabel?.let { action ->
-                Text("판단: $action", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            }
-            keyAxes.take(3).forEach { axis ->
-                Text("• $axis", style = MaterialTheme.typography.bodySmall)
-            }
-            if (keyAxes.isEmpty()) summary.primaryReasons.take(3).forEach { reason ->
-                Text("• $reason", style = MaterialTheme.typography.bodySmall)
-            }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "세부 판단 닫기" else "세부 판단 보기")
-            }
-            if (expanded) {
-                ReadinessModeList("오늘 가능한 운동", summary.recommendedModes)
-                ReadinessModeList("오늘 조절할 운동", summary.restrictedModes)
-                summary.detailSections.forEach { section ->
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                            Text(section.summary, style = MaterialTheme.typography.bodySmall)
-                            section.metrics.take(4).forEach { metric ->
-                                Text("${metric.label}: ${metric.value}", style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
-}
-
-private fun projectedReadinessLoadLabel(summary: TodayReadinessSummary): String {
-    val score = summary.fatiguePresentation?.overallScore
-    return when {
-        score == null -> TodayFatigueStatusLabeler.label(summary)
-        score >= FatigueThresholds.PRESENTATION_VERY_HIGH_SCORE -> "회복 우선 확인"
-        score >= FatigueThresholds.PRESENTATION_RESTRICTED_SCORE -> "오늘 조절 필요"
-        score >= FatigueThresholds.PRESENTATION_ELEVATED_SCORE -> "주의 축 증가"
-        else -> "보통"
-    }
-}
-
-@Composable
-private fun ReadinessModeList(title: String, values: List<String>) {
-    if (values.isEmpty()) return
-    Text("$title: ${values.joinToString(" · ")}", style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable

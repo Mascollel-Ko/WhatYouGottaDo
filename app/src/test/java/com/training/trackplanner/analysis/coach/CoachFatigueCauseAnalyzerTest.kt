@@ -71,6 +71,16 @@ class CoachFatigueCauseAnalyzerTest {
         assertFalse(summary.headline.contains("때문입니다"))
     }
 
+    @Test
+    fun contributionAxesExposeOnlyCanonicalFatigueAxes() {
+        val summary = analyzer.analyze(today, listOf(result(today, contribution("스쿼트", 30.0, today))))
+
+        assertFalse(summary.causes.any { cause -> "회복 지속" in cause.affectedAxes })
+        assertTrue(summary.causes.first().affectedAxes.all { axis ->
+            axis in setOf("신경계", "전신 근육", "국소 근육", "관절·건·충격", "동작·집중")
+        })
+    }
+
     private fun result(date: LocalDate, contribution: RecordFatigueContribution?): DailyFatigueResult =
         DailyFatigueResult(
             state = state(date),

@@ -41,19 +41,19 @@ class CoachCheckInInterpreter {
         val base = baseScore.coerceAtLeast(1.0)
         return buildList {
             checkIn.sleepHours?.takeIf { it < 6.0 }?.let { hours ->
-                add(cause("수면 부족 / 회복 입력", "수면시간이 ${formatHours(hours)}시간으로 입력되었습니다.", base * 1.15, listOf("회복 지속", "전신 근육")))
+                add(cause("수면 부족 / 회복 입력", "수면시간이 ${formatHours(hours)}시간으로 입력되었습니다.", base * 1.15, listOf("전신 근육")))
             }
             checkIn.overallFatigue?.takeIf { it >= 4 }?.let { value ->
-                add(cause("전신 피로 입력 상승", "오늘 전신 피로가 $value/5로 입력되었습니다.", base * severity(value), listOf("전신 근육", "회복 지속")))
+                add(cause("전신 피로 입력 상승", "오늘 전신 피로가 $value/5로 입력되었습니다.", base * severity(value), listOf("전신 근육")))
             }
             checkIn.lowerBodyFatigue?.takeIf { it >= 4 }?.let { value ->
-                add(cause("하체 피로 입력 상승", "오늘 하체 피로가 $value/5로 입력되었습니다.", base * severity(value), listOf("국소 근육", "관절/건/충격")))
+                add(cause("하체 피로 입력 상승", "오늘 하체 피로가 $value/5로 입력되었습니다.", base * severity(value), listOf("국소 근육", "관절·건·충격")))
             }
             checkIn.jointTendonDiscomfort?.takeIf { it >= 4 }?.let { value ->
-                add(cause("관절/건 불편감 입력", "오늘 불편감이 $value/5로 입력되었습니다.", base * severity(value), listOf("관절/건/충격")))
+                add(cause("관절/건 불편감 입력", "오늘 불편감이 $value/5로 입력되었습니다.", base * severity(value), listOf("관절·건·충격")))
             }
             checkIn.focusMotivation?.takeIf { it <= 2 }?.let { value ->
-                add(cause("집중력/의욕 저하", "오늘 집중력/의욕이 $value/5로 입력되었습니다.", base * if (value == 1) 1.25 else 1.05, listOf("동작 집중", "신경계")))
+                add(cause("집중력/의욕 저하", "오늘 집중력/의욕이 $value/5로 입력되었습니다.", base * if (value == 1) 1.25 else 1.05, listOf("동작·집중", "신경계")))
             }
         }
     }

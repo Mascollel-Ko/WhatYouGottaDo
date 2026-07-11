@@ -668,8 +668,6 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             grouping = grouping,
             selectedSourceKeys = selectedSourceKeys,
             defaultSourcesWhenEmpty = defaultSourcesWhenEmpty,
-            fatiguePresentation = _phaseAwareTodayStatus.value?.current?.fatiguePresentation
-                ?: _todayReadinessSummary.value?.fatiguePresentation,
             projectedOverallFatigueScore = _homeTodaySummary.value.projectedFatigueScore?.toDouble()
                 ?: _homeTodaySummary.value.projectedFatigueSeries?.lastOrNull()?.value,
             hasRemainingUnconfirmedWork = _homeTodaySummary.value.unconfirmedSetCount > 0

@@ -20,7 +20,7 @@ class FatigueAnalysisMapperTest {
     }
 
     @Test
-    fun `readiness presentation overrides simple load items but not historical OFI series`() {
+    fun `readiness presentation does not override canonical simple load items`() {
         val history = history(14)
         val state = FatigueAnalysisMapper.map(
             history = history,
@@ -35,13 +35,13 @@ class FatigueAnalysisMapperTest {
         )
 
         assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
-        assertEquals(91, state.simple.highLoadItems.first().score)
-        assertEquals(FatigueTarget.NEUROMUSCULAR.label, state.simple.highLoadItems.first().label)
-        assertEquals(15, state.simple.availableLoadItems.first().score)
+        assertEquals(history.last().state.movementFocusScore, state.simple.highLoadItems.first().score)
+        assertEquals(FatigueTarget.MOVEMENT_FOCUS.label, state.simple.highLoadItems.first().label)
+        assertEquals(history.last().state.neuromuscularScore, state.simple.availableLoadItems.first().score)
     }
 
     @Test
-    fun `null readiness presentation keeps legacy simple overview values`() {
+    fun `simple overview uses canonical axes and excludes recovery pressure`() {
         val history = history(14)
         val state = FatigueAnalysisMapper.map(
             history = history,
@@ -49,11 +49,13 @@ class FatigueAnalysisMapperTest {
         )
 
         assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
-        assertEquals(history.last().state.recoveryPressureScore, state.simple.highLoadItems.first().score)
+        val labels = (state.simple.highLoadItems + state.simple.availableLoadItems).map { it.label }
+        assertEquals(history.last().state.movementFocusScore, state.simple.highLoadItems.first().score)
+        assertTrue("회복 지속" !in labels)
     }
 
     @Test
-    fun `readiness presentation scores are clamped for analysis overview`() {
+    fun `canonical overview scores are clamped for analysis overview`() {
         val history = history(14)
         val state = FatigueAnalysisMapper.map(
             history = history,
@@ -178,7 +180,7 @@ class FatigueAnalysisMapperTest {
     }
 
     @Test
-    fun `detail state exposes OFI and all six fatigue axes`() {
+    fun `detail state exposes OFI and five canonical fatigue axes`() {
         val state = FatigueAnalysisMapper.map(
             history = history(14),
             selectedTargets = setOf(
@@ -187,9 +189,10 @@ class FatigueAnalysisMapperTest {
             )
         )
 
-        assertEquals(7, state.detail.fatigueTrendSeries.size)
+        assertEquals(6, state.detail.fatigueTrendSeries.size)
         assertEquals(2, state.detail.selectedFatigueTargets.size)
         assertTrue(state.detail.fatigueTrendSeries.any { it.key == FatigueTarget.OVERALL.name })
+        assertTrue(state.detail.fatigueTrendSeries.none { it.key == FatigueTarget.RECOVERY_PRESSURE.name })
     }
 
     @Test

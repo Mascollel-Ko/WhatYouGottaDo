@@ -15,10 +15,10 @@ object HomeFatigueCardSummaryFactory {
         val hasConfirmedWork = confirmedSetCount > 0
         val primaryState = if (hasConfirmedWork) current else preWorkout
         val primaryPrefix = if (hasConfirmedWork) "현재" else "운동 전"
-        val statusSummary = TodayFatigueStatusLabeler.currentSummary(primaryState.overallFatigueIndex, todayStatus?.current)
+        val statusSummary = TodayFatigueStatusLabeler.currentSummary(primaryState)
         val primaryReading = primaryState.toReading(statusSummary.ofiLabel)
         val projectedReading = projected?.let { state ->
-            state.toProjectedReading(todayStatus?.projected?.let(TodayFatigueStatusLabeler::label))
+            state.toProjectedReading()
         }
 
         return when {
@@ -31,8 +31,7 @@ object HomeFatigueCardSummaryFactory {
                 levelCountMessage = statusSummary.levelCountMessage,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
-                detail = todayStatus?.detail,
-                actionLabel = todayStatus?.actionLabel
+                detail = todayStatus?.detail
             )
             hasConfirmedWork -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
@@ -41,8 +40,7 @@ object HomeFatigueCardSummaryFactory {
                 levelCountMessage = statusSummary.levelCountMessage,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
-                detail = todayStatus?.detail,
-                actionLabel = todayStatus?.actionLabel
+                detail = todayStatus?.detail
             )
             else -> HomeFatigueCardSummary(
                 primaryPrefix = primaryPrefix,
@@ -51,8 +49,7 @@ object HomeFatigueCardSummaryFactory {
                 levelCountMessage = statusSummary.levelCountMessage,
                 phaseLabel = todayStatus?.phaseLabel,
                 headline = todayStatus?.headline,
-                detail = todayStatus?.detail,
-                actionLabel = todayStatus?.actionLabel
+                detail = todayStatus?.detail
             )
         }
     }
@@ -63,21 +60,19 @@ object HomeFatigueCardSummaryFactory {
             label = labelOverride ?: qualitativeLabel()
         )
 
-    private fun DailyFatigueState.toProjectedReading(readinessLabel: String?): HomeFatigueReading {
+    private fun DailyFatigueState.toProjectedReading(): HomeFatigueReading {
         val maxAxis = maxOf(
             neuromuscularScore,
             systemicMuscularScore,
             localMuscularScore,
             jointTendonImpactScore,
-            movementFocusScore,
-            recoveryPressureScore
+            movementFocusScore
         )
         val label = when {
             overallFatigueIndex >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"
             overallFatigueIndex >= FatigueThresholds.OFI_CAUTION_START -> "회복 확인 필요"
             maxAxis >= FatigueThresholds.OFI_ELEVATED_START -> "예상 피로도 증가"
             overallFatigueIndex >= FatigueThresholds.OFI_ELEVATED_START -> "예상 피로도 증가"
-            readinessLabel in setOf("피로 누적", "피로 심화", "주의") -> "예상 피로도 보통"
             else -> "예상 피로도 보통"
         }
         return HomeFatigueReading(

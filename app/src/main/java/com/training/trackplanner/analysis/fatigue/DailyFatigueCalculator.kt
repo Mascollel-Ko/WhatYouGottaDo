@@ -92,8 +92,15 @@ class DailyFatigueCalculator(
                 observedDayCount = observedDates.size
             )
             val scores = scoreAxes(todayRaw.axes, baseline.axes)
-            val axisScores = scores.values().map(Double::roundToInt)
-            val ofi = OverallFatigueIndexCalculator.calculate(axisScores)
+            val canonicalAxisScores = listOf(
+                scores.neuromuscular,
+                scores.systemicMuscular,
+                scores.localMuscular,
+                scores.jointTendonImpact,
+                scores.movementFocus
+            ).map(Double::roundToInt)
+            val recoveryPressureScore = scores.recoveryPressure.roundToInt()
+            val ofi = OverallFatigueIndexCalculator.calculate(canonicalAxisScores)
             val currentGroups = aggregateGroups(date, contributions)
             val previousGroupKeys = aggregateGroups(date.minusDays(1), contributions)
                 .map { it.groupType to it.groupKey }
@@ -105,7 +112,7 @@ class DailyFatigueCalculator(
                 if (scores.jointTendonImpact >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("JOINT_TENDON_CAUTION")
                 if (scores.neuromuscular >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("POWER_REACTION_CAUTION")
                 if (scores.recoveryPressure >= FatigueThresholds.DAILY_AXIS_CAUTION_START) add("RECOVERY_DEBT_HIGH")
-                if (axisScores.count { it >= FatigueThresholds.AXIS_HIGH_COUNT_START } >= 3) add("GLOBAL_HIGH_FATIGUE")
+                if (canonicalAxisScores.count { it >= FatigueThresholds.AXIS_HIGH_COUNT_START } >= 3) add("GLOBAL_HIGH_FATIGUE")
                 if (repeatedLocalGroup) add("LOCAL_GROUP_REPEAT_CAUTION")
             }
             DailyFatigueResult(
@@ -117,12 +124,12 @@ class DailyFatigueCalculator(
                     jointTendonImpactFatigue = todayRaw.axes.jointTendonImpact,
                     movementFocusFatigue = todayRaw.axes.movementFocus,
                     recoveryPressure = todayRaw.axes.recoveryPressure,
-                    neuromuscularScore = axisScores[0],
-                    systemicMuscularScore = axisScores[1],
-                    localMuscularScore = axisScores[2],
-                    jointTendonImpactScore = axisScores[3],
-                    movementFocusScore = axisScores[4],
-                    recoveryPressureScore = axisScores[5],
+                    neuromuscularScore = canonicalAxisScores[0],
+                    systemicMuscularScore = canonicalAxisScores[1],
+                    localMuscularScore = canonicalAxisScores[2],
+                    jointTendonImpactScore = canonicalAxisScores[3],
+                    movementFocusScore = canonicalAxisScores[4],
+                    recoveryPressureScore = recoveryPressureScore,
                     overallFatigueIndex = ofi,
                     readinessLabel = FatigueLabelResolver.label(ofi),
                     cautionReasons = cautionReasons,

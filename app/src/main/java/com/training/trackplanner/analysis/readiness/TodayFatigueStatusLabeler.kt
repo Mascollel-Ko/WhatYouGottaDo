@@ -3,14 +3,23 @@ package com.training.trackplanner.analysis.readiness
 import com.training.trackplanner.analysis.fatigue.FatigueLabelResolver
 import com.training.trackplanner.analysis.fatigue.FatigueReadinessLabel
 import com.training.trackplanner.analysis.fatigue.FatigueThresholds
+import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 
 object TodayFatigueStatusLabeler {
+    fun currentSummary(state: DailyFatigueState): CurrentFatigueStatusSummary =
+        currentSummary(state.overallFatigueIndex, axisStates(state))
+
     fun currentSummary(ofi: Int, summary: TodayReadinessSummary?): CurrentFatigueStatusSummary {
         val axes = summary?.let(::axisStates).orEmpty()
+        return currentSummary(ofi, axes)
+    }
+
+    private fun currentSummary(ofi: Int, axes: List<TodayFatigueAxisState>): CurrentFatigueStatusSummary {
         val counts = axes.fold(LevelCounts()) { acc, axis -> acc.plus(axis.level) }
         return CurrentFatigueStatusSummary(
             ofi = ofi,
             ofiLabel = ofiDisplayLabel(ofi),
+            judgementMessage = judgementMessage(axes),
             axisMessage = axisMessage(axes),
             levelCountMessage = counts.message(),
             veryHighCount = counts.veryHigh,
@@ -20,8 +29,14 @@ object TodayFatigueStatusLabeler {
         )
     }
 
+    fun axisSummary(state: DailyFatigueState): CurrentFatigueAxisSummary =
+        axisSummary(axisStates(state))
+
     fun axisSummary(summary: TodayReadinessSummary): CurrentFatigueAxisSummary {
-        val axes = axisStates(summary)
+        return axisSummary(axisStates(summary))
+    }
+
+    private fun axisSummary(axes: List<TodayFatigueAxisState>): CurrentFatigueAxisSummary {
         val counts = axes.fold(LevelCounts()) { acc, axis -> acc.plus(axis.level) }
         return CurrentFatigueAxisSummary(
             axisMessage = axisMessage(axes),
@@ -46,18 +61,13 @@ object TodayFatigueStatusLabeler {
     }
 
     fun axisStates(summary: TodayReadinessSummary): List<TodayFatigueAxisState> {
-        val recoveryLevel = summary.detailSections
-            .firstOrNull { section -> section.type == FatigueDetailType.RECOVERY }
-            ?.level
-            ?: FatigueLevel.LOW
         summary.fatiguePresentation?.let { presentation ->
             return listOf(
                 TodayFatigueAxisState("신경계", levelFromScore(presentation.neuralScore)),
                 TodayFatigueAxisState("전신 근육", levelFromScore(presentation.systemicScore)),
                 TodayFatigueAxisState("국소 근육", levelFromScore(presentation.localMuscleScore)),
-                TodayFatigueAxisState("관절/건/충격", levelFromScore(presentation.jointTendonScore)),
-                TodayFatigueAxisState("동작 집중", levelFromScore(presentation.focusScore)),
-                TodayFatigueAxisState("회복 지속", recoveryLevel)
+                TodayFatigueAxisState("관절·건·충격", levelFromScore(presentation.jointTendonScore)),
+                TodayFatigueAxisState("동작·집중", levelFromScore(presentation.focusScore))
             )
         }
 
@@ -66,11 +76,25 @@ object TodayFatigueStatusLabeler {
             TodayFatigueAxisState("신경계", maxLevel(summary, FatigueDetailType.NEURAL_HEAVY, FatigueDetailType.NEURAL_SPEED)),
             TodayFatigueAxisState("전신 근육", maxLevel(summary, FatigueDetailType.SYSTEMIC)),
             TodayFatigueAxisState("국소 근육", maxLevel(summary, FatigueDetailType.LOCAL_BODY_PART)),
-            TodayFatigueAxisState("관절/건/충격", jointLevel(summary)),
-            TodayFatigueAxisState("동작 집중", maxLevel(summary, FatigueDetailType.BADMINTON_COURT)),
-            TodayFatigueAxisState("회복 지속", recoveryLevel)
+            TodayFatigueAxisState("관절·건·충격", jointLevel(summary)),
+            TodayFatigueAxisState("동작·집중", maxLevel(summary, FatigueDetailType.BADMINTON_COURT))
         )
     }
+
+    fun axisStates(state: DailyFatigueState): List<TodayFatigueAxisState> = listOf(
+        TodayFatigueAxisState("신경계", levelFromScore(state.neuromuscularScore)),
+        TodayFatigueAxisState("전신 근육", levelFromScore(state.systemicMuscularScore)),
+        TodayFatigueAxisState("국소 근육", levelFromScore(state.localMuscularScore)),
+        TodayFatigueAxisState("관절·건·충격", levelFromScore(state.jointTendonImpactScore)),
+        TodayFatigueAxisState("동작·집중", levelFromScore(state.movementFocusScore))
+    )
+
+    fun axisWarningSentence(axis: TodayFatigueAxisState): String =
+        if (axis.level.isVeryHigh()) {
+            "${axis.label} 피로도가 높습니다. 주의하세요."
+        } else {
+            "${axis.label} 피로도가 높습니다. 스트레스를 줄이면 좋습니다."
+        }
 
     private fun axisMessage(axes: List<TodayFatigueAxisState>): String {
         val veryHighAxes = axes.filter { axis -> axis.level.isVeryHigh() }
@@ -86,7 +110,13 @@ object TodayFatigueStatusLabeler {
         return "모든 피로도가 양호합니다. 힘차게 운동!"
     }
 
-    private fun ofiDisplayLabel(ofi: Int): String =
+    private fun judgementMessage(axes: List<TodayFatigueAxisState>): String {
+        val cautionAxes = axes.filter { axis -> axis.level == FatigueLevel.HIGH || axis.level.isVeryHigh() }
+        if (cautionAxes.isEmpty()) return "판단: 현재 특별히 조절이 필요한 피로도 축은 없습니다."
+        return "판단: ${cautionAxes.map { it.label }.joinKoreanLabels()} 피로도를 조절하면 좋습니다."
+    }
+
+    fun ofiDisplayLabel(ofi: Int): String =
         when (FatigueLabelResolver.label(ofi)) {
             FatigueReadinessLabel.LOW -> "피로도 낮음"
             FatigueReadinessLabel.NORMAL -> "피로도 보통"
@@ -125,6 +155,20 @@ object TodayFatigueStatusLabeler {
     private fun List<TodayFatigueAxisState>.joinLabels(): String =
         joinToString(", ") { axis -> axis.label }
 
+    private fun List<String>.joinKoreanLabels(): String =
+        when (size) {
+            0 -> ""
+            1 -> first()
+            2 -> "${this[0]}${this[0].josaAnd()} ${this[1]}"
+            else -> dropLast(1).joinToString(", ") + last().let { last -> "${dropLast(1).last().josaAnd()} $last" }
+        }
+
+    private fun String.josaAnd(): String {
+        val last = lastOrNull() ?: return "와"
+        if (last !in '\uAC00'..'\uD7A3') return "와"
+        return if (((last.code - 0xAC00) % 28) == 0) "와" else "과"
+    }
+
     private fun FatigueLevel.isVeryHigh(): Boolean =
         this == FatigueLevel.VERY_HIGH || this == FatigueLevel.LIMITED
 
@@ -150,6 +194,7 @@ object TodayFatigueStatusLabeler {
 data class CurrentFatigueStatusSummary(
     val ofi: Int,
     val ofiLabel: String,
+    val judgementMessage: String,
     val axisMessage: String,
     val levelCountMessage: String,
     val veryHighCount: Int,

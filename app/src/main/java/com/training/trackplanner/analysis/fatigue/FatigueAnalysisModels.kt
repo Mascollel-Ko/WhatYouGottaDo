@@ -18,9 +18,20 @@ enum class FatigueTarget(val label: String) {
     NEUROMUSCULAR("신경계"),
     SYSTEMIC_MUSCULAR("전신 근육"),
     LOCAL_MUSCULAR("국소 근육"),
-    JOINT_TENDON_IMPACT("관절/건/충격"),
-    MOVEMENT_FOCUS("동작 집중"),
-    RECOVERY_PRESSURE("회복 지속")
+    JOINT_TENDON_IMPACT("관절·건·충격"),
+    MOVEMENT_FOCUS("동작·집중"),
+    RECOVERY_PRESSURE("회복 지속");
+
+    companion object {
+        val displayed: List<FatigueTarget> = listOf(
+            OVERALL,
+            NEUROMUSCULAR,
+            SYSTEMIC_MUSCULAR,
+            LOCAL_MUSCULAR,
+            JOINT_TENDON_IMPACT,
+            MOVEMENT_FOCUS
+        )
+    }
 }
 
 enum class ContributionGrouping(val groupType: String, val label: String) {
@@ -78,6 +89,7 @@ data class FatigueDetailUiState(
 data class FatigueAnalysisUiState(
     val simple: FatigueSimpleUiState = FatigueSimpleUiState(),
     val detail: FatigueDetailUiState = FatigueDetailUiState(),
+    val currentState: DailyFatigueState? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null
 )

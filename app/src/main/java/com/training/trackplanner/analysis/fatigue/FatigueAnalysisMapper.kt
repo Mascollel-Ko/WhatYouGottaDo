@@ -1,11 +1,11 @@
 package com.training.trackplanner.analysis.fatigue
 
-import com.training.trackplanner.analysis.readiness.FatiguePresentationSnapshot
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
 object FatigueAnalysisMapper {
+    @Suppress("UNUSED_PARAMETER")
     fun map(
         history: List<DailyFatigueResult>,
         period: FatigueAnalysisPeriod = FatigueAnalysisPeriod.TWO_WEEKS,
@@ -14,16 +14,18 @@ object FatigueAnalysisMapper {
         grouping: ContributionGrouping = ContributionGrouping.REDUNDANCY_GROUP,
         selectedSourceKeys: Set<String> = emptySet(),
         defaultSourcesWhenEmpty: Boolean = true,
-        fatiguePresentation: FatiguePresentationSnapshot? = null,
+        fatiguePresentation: Any? = null,
         projectedOverallFatigueScore: Double? = null,
         hasRemainingUnconfirmedWork: Boolean = false
     ): FatigueAnalysisUiState {
+        val effectiveTargets = sanitizeTargets(selectedTargets)
+        val effectiveContributionTarget = contributionTarget.takeIf { it in FatigueTarget.displayed } ?: FatigueTarget.OVERALL
         if (history.isEmpty()) {
             return FatigueAnalysisUiState(
                 detail = FatigueDetailUiState(
                     selectedPeriod = period,
-                    selectedFatigueTargets = selectedTargets.ifEmpty { setOf(FatigueTarget.OVERALL) },
-                    contributionTarget = contributionTarget,
+                    selectedFatigueTargets = effectiveTargets,
+                    contributionTarget = effectiveContributionTarget,
                     contributionGrouping = grouping,
                     usesWeeklyAggregation = period.usesWeeklyAggregation
                 ),
@@ -48,13 +50,12 @@ object FatigueAnalysisMapper {
                 result.state.systemicMuscularScore > 0 ||
                 result.state.localMuscularScore > 0 ||
                 result.state.jointTendonImpactScore > 0 ||
-                result.state.movementFocusScore > 0 ||
-                result.state.recoveryPressureScore > 0
+                result.state.movementFocusScore > 0
         }
         if (!hasCalculatedFatigue) {
-            return emptyState(period, selectedTargets, contributionTarget, grouping)
+            return emptyState(period, effectiveTargets, effectiveContributionTarget, grouping)
         }
-        val trendSeries = FatigueTarget.entries.map { target ->
+        val trendSeries = FatigueTarget.displayed.map { target ->
             FatigueSeries(
                 key = target.name,
                 label = target.label,
@@ -64,7 +65,7 @@ object FatigueAnalysisMapper {
                 )
             )
         }
-        val contributionSeries = contributionSeries(window, contributionTarget, grouping, period)
+        val contributionSeries = contributionSeries(window, effectiveContributionTarget, grouping, period)
         val defaultSourceKeys = contributionSeries
             .take(DEFAULT_CONTRIBUTOR_COUNT)
             .map { it.sourceKey }
@@ -76,7 +77,7 @@ object FatigueAnalysisMapper {
             validSelectedSources
         }
         val actualOfiSeries = trendSeries.first { it.key == FatigueTarget.OVERALL.name }.points
-        val axisItems = fatiguePresentation?.toAxisItems() ?: axisItems(window.last().state)
+        val axisItems = axisItems(window.last().state)
 
         return FatigueAnalysisUiState(
             simple = FatigueSimpleUiState(
@@ -97,14 +98,15 @@ object FatigueAnalysisMapper {
             detail = FatigueDetailUiState(
                 selectedPeriod = period,
                 fatigueTrendSeries = trendSeries,
-                selectedFatigueTargets = selectedTargets.ifEmpty { setOf(FatigueTarget.OVERALL) },
-                contributionTarget = contributionTarget,
+                selectedFatigueTargets = effectiveTargets,
+                contributionTarget = effectiveContributionTarget,
                 contributionGrouping = grouping,
                 contributionSeries = contributionSeries,
                 selectedContributionSourceKeys = effectiveSelectedSources,
                 defaultContributionSourceKeys = defaultSourceKeys,
                 usesWeeklyAggregation = period.usesWeeklyAggregation
             ),
+            currentState = window.last().state,
             isLoading = false
         )
     }
@@ -177,16 +179,7 @@ object FatigueAnalysisMapper {
         FatigueLoadItem(FatigueTarget.SYSTEMIC_MUSCULAR.name, FatigueTarget.SYSTEMIC_MUSCULAR.label, state.systemicMuscularScore),
         FatigueLoadItem(FatigueTarget.LOCAL_MUSCULAR.name, FatigueTarget.LOCAL_MUSCULAR.label, state.localMuscularScore),
         FatigueLoadItem(FatigueTarget.JOINT_TENDON_IMPACT.name, FatigueTarget.JOINT_TENDON_IMPACT.label, state.jointTendonImpactScore),
-        FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, state.movementFocusScore),
-        FatigueLoadItem(FatigueTarget.RECOVERY_PRESSURE.name, FatigueTarget.RECOVERY_PRESSURE.label, state.recoveryPressureScore)
-    )
-
-    private fun FatiguePresentationSnapshot.toAxisItems(): List<FatigueLoadItem> = listOf(
-        FatigueLoadItem(FatigueTarget.NEUROMUSCULAR.name, FatigueTarget.NEUROMUSCULAR.label, neuralScore.clampScore()),
-        FatigueLoadItem(FatigueTarget.SYSTEMIC_MUSCULAR.name, FatigueTarget.SYSTEMIC_MUSCULAR.label, systemicScore.clampScore()),
-        FatigueLoadItem(FatigueTarget.LOCAL_MUSCULAR.name, FatigueTarget.LOCAL_MUSCULAR.label, localMuscleScore.clampScore()),
-        FatigueLoadItem(FatigueTarget.JOINT_TENDON_IMPACT.name, FatigueTarget.JOINT_TENDON_IMPACT.label, jointTendonScore.clampScore()),
-        FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, focusScore.clampScore())
+        FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, state.movementFocusScore)
     )
 
     private fun projectedOverlay(
@@ -220,7 +213,9 @@ object FatigueAnalysisMapper {
         }
     }
 
-    private fun Int.clampScore(): Int = coerceIn(0, 100)
+    private fun sanitizeTargets(targets: Set<FatigueTarget>): Set<FatigueTarget> =
+        targets.filterTo(mutableSetOf()) { target -> target in FatigueTarget.displayed }
+            .ifEmpty { setOf(FatigueTarget.OVERALL) }
 
     private fun DailyFatigueState.valueFor(target: FatigueTarget): Double = when (target) {
         FatigueTarget.OVERALL -> overallFatigueIndex.toDouble()

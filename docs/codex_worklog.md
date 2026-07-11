@@ -939,3 +939,62 @@
   - pending.
 - tag push status:
   - `v0.4.2.6` pending.
+
+## v0.4.2.6 Canonical OFI Fatigue Pipeline Cleanup
+
+- Baseline:
+  - Started from latest `origin/main` at `f7ab373` / `v0.4.2.6`.
+- Work target:
+  - Make the Analysis fatigue screen and Home fatigue card use canonical OFI as the single user-facing fatigue source.
+  - Keep readiness safety guardrails, performance decrease, discomfort, and movement limitation signals separate from fatigue-axis judgement.
+- Cause:
+  - The fatigue UI still mixed canonical OFI, readiness presentation axes, readiness detail sections, and recovery residual wording.
+  - This could expose `회복 지속` as a user-facing fatigue axis and blur the difference between fatigue load and safety/readiness signals.
+- Changes:
+  - Canonical OFI aggregation now uses only five displayed fatigue axes.
+  - Displayed axes are limited to `신경계`, `전신 근육`, `국소 근육`, `관절·건·충격`, and `동작·집중`.
+  - `회복 지속` is removed from fatigue-axis selector, graph series, current-axis summary, cause analyzer axes, and weekly burden display.
+  - Analysis top card now shows canonical current state, judgement, axis warning, and count line from `DailyFatigueState`.
+  - Removed the `세부 판단 보기` readiness detail UI from the fatigue screen.
+  - Added `수행 감소 및 불편감 신호 정리` for performance/discomfort safety signals.
+  - Kept `수면 보정 코칭 신호` as a separate coaching signal block.
+  - Updated single-axis warning copy so the axis name appears once and `해당 스트레스` is not used.
+- Modified files:
+  - `app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`
+  - `app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`
+  - `app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzer.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/coach/JointTendonWarningAnalyzer.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapper.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisModels.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/ui/FatigueAnalysisControls.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendSentenceBuilder.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzerTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt`
+  - `docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md`
+  - `docs/codex_worklog.md`
+- Behavior preserved:
+  - Readiness safety guardrails remain available as separate coaching signals.
+  - projected/expected fatigue calculation is not intentionally changed.
+  - versionName/versionCode unchanged.
+  - no tag created.
+- Existing dirty files:
+  - `outputs/*` dirty files were not touched or staged.
+- Verification:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*TodayFatigueStatusLabelerTest*" --tests "*HomeFatigueCardSummaryFactoryTest*" --tests "*FatigueAnalysisMapperTest*" --tests "*CoachFatigueCauseAnalyzerTest*" --tests "*CoachCheckInIntegrationTest*"`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+- Commit hash:
+  - pending.
+- main push status:
+  - pending.
+- tag push status:
+  - no new tag for this cleanup.

@@ -37,7 +37,7 @@ class PerformanceTrendSentenceBuilder {
         if (latest == null) {
             "기록이 더 쌓이면 피로 부담 흐름을 볼 수 있습니다."
         } else {
-            "이번 주 누적 부담은 개인 기준선 대비 residual/pressure를 차트용으로 압축한 값입니다."
+            "이번 주 누적 부담은 canonical OFI 흐름을 주간 단위로 확인하는 지표입니다."
         }
 
     private fun trendLabel(points: List<TrendDataPoint>): String {

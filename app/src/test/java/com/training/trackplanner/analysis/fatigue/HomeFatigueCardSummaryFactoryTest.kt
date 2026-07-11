@@ -184,7 +184,7 @@ class HomeFatigueCardSummaryFactoryTest {
     fun remainingPlanKeepsSingleAxisCurrentLabelWhenProjectionAccumulates() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(42),
-            current = state(54),
+            current = state(54, focusScore = 84),
             projected = state(72),
             confirmedSetCount = 3,
             unconfirmedSetCount = 3,
@@ -192,19 +192,19 @@ class HomeFatigueCardSummaryFactoryTest {
                 current = ReadinessStatus.FATIGUED,
                 projected = ReadinessStatus.FATIGUED,
                 phase = TodayStatusPhase.REMAINING_PLAN,
-                currentSections = listOf(section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH)),
+                currentSections = listOf(section(FatigueDetailType.BADMINTON_COURT, "동작·집중", FatigueLevel.HIGH)),
                 projectedSections = listOf(
-                    section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH),
+                    section(FatigueDetailType.BADMINTON_COURT, "동작·집중", FatigueLevel.HIGH),
                     section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
                 )
             )
         )
 
         assertEquals("피로도 보통", summary.primary.label)
-        assertEquals("동작 집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", summary.axisMessage)
+        assertEquals("동작·집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", summary.axisMessage)
         assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
         assertEquals("예상 피로도 보통", summary.projection?.label)
-        assertEquals("일부 수정 권장", summary.actionLabel)
+        assertNull(summary.actionLabel)
     }
 
     @Test
@@ -370,13 +370,16 @@ class HomeFatigueCardSummaryFactoryTest {
         assertTrue(summary.phaseLabel?.isNotBlank() == true)
         assertTrue(summary.headline?.isNotBlank() == true)
         assertTrue(summary.detail?.isNotBlank() == true)
-        assertTrue(summary.actionLabel?.isNotBlank() == true)
+        assertNull(summary.actionLabel)
     }
 
     private fun state(
         ofi: Int,
         systemicScore: Int = ofi,
-        localScore: Int = ofi
+        localScore: Int = ofi,
+        jointScore: Int = ofi,
+        focusScore: Int = ofi,
+        recoveryScore: Int = ofi
     ): DailyFatigueState = DailyFatigueState(
         date = LocalDate.of(2026, 6, 20),
         neuromuscularFatigue = 0.0,
@@ -388,9 +391,9 @@ class HomeFatigueCardSummaryFactoryTest {
         neuromuscularScore = ofi,
         systemicMuscularScore = systemicScore,
         localMuscularScore = localScore,
-        jointTendonImpactScore = ofi,
-        movementFocusScore = ofi,
-        recoveryPressureScore = ofi,
+        jointTendonImpactScore = jointScore,
+        movementFocusScore = focusScore,
+        recoveryPressureScore = recoveryScore,
         overallFatigueIndex = ofi,
         readinessLabel = FatigueLabelResolver.label(ofi),
         cautionReasons = emptyList(),
