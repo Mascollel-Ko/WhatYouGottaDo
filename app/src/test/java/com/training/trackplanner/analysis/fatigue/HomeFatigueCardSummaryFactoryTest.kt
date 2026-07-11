@@ -201,7 +201,7 @@ class HomeFatigueCardSummaryFactoryTest {
         )
 
         assertEquals("피로도 보통", summary.primary.label)
-        assertEquals("동작 집중 피로도가 높습니다. 해당 스트레스를 줄이면 좋습니다.", summary.axisMessage)
+        assertEquals("동작 집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", summary.axisMessage)
         assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
         assertEquals("예상 피로도 보통", summary.projection?.label)
         assertEquals("일부 수정 권장", summary.actionLabel)

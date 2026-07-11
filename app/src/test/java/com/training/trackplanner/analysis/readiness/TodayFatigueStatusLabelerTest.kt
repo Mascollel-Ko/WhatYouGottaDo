@@ -18,7 +18,7 @@ class TodayFatigueStatusLabelerTest {
         )
 
         assertEquals("피로도 보통", status.ofiLabel)
-        assertEquals("관절/건/충격 피로도가 높습니다. 해당 스트레스에 대해 주의하세요.", status.axisMessage)
+        assertEquals("관절/건/충격 피로도가 높습니다. 주의하세요.", status.axisMessage)
         assertEquals("축별 상태: 매우 높음(1), 높음(0), 보통(5), 낮음(0)", status.levelCountMessage)
         assertEquals(1, status.veryHighCount)
         assertEquals(0, status.highCount)
@@ -36,7 +36,7 @@ class TodayFatigueStatusLabelerTest {
             )
         )
 
-        assertEquals("신경계, 관절/건/충격 피로도가 높습니다. 해당 스트레스에 대해 주의하세요.", status.axisMessage)
+        assertEquals("신경계, 관절/건/충격 피로도가 높습니다. 주의하세요.", status.axisMessage)
         assertEquals(2, status.veryHighCount)
         assertEquals(1, status.highCount)
         assertFalse(status.axisMessage.contains("동작 집중"))
@@ -51,7 +51,7 @@ class TodayFatigueStatusLabelerTest {
             )
         )
 
-        assertEquals("신경계, 동작 집중 피로도가 높습니다. 해당 스트레스를 줄이면 좋습니다.", status.axisMessage)
+        assertEquals("신경계, 동작 집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", status.axisMessage)
         assertEquals(0, status.veryHighCount)
         assertEquals(2, status.highCount)
     }
@@ -92,7 +92,7 @@ class TodayFatigueStatusLabelerTest {
             )
         )
 
-        assertEquals("신경계, 관절/건/충격 피로도가 높습니다. 해당 스트레스를 줄이면 좋습니다.", status.axisMessage)
+        assertEquals("신경계, 관절/건/충격 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", status.axisMessage)
     }
 
     @Test

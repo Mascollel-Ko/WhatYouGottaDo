@@ -853,6 +853,9 @@
 - Focused test result:
   - `.\\gradlew.bat :app:testDebugUnitTest --tests "*TodayFatigueStatusLabelerTest*" --tests "*HomeFatigueCardSummaryFactoryTest*"`: passed.
 - Final verification:
+  - First `.\\gradlew.bat :app:testDebugUnitTest` attempt hit a transient Windows file-lock delete failure on `R.jar`.
+  - Retried `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+- Final verification:
   - `.\\gradlew.bat --version`: passed.
   - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
   - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
@@ -902,3 +905,37 @@
   - pending.
 - tag push status:
   - `v0.4.2.5` pending.
+
+## v0.4.2.6 Fatigue Axis Warning Wording Follow-up
+
+- Baseline:
+  - Started from latest `origin/main` at `c27061c` / `v0.4.2.5`.
+- Work target:
+  - Keep axis names in warning copy without repeating them awkwardly.
+  - Remove generic `해당 스트레스` wording from current-axis warning copy.
+- Cause:
+  - The previous wording either used generic wording or, during correction, repeated the axis list twice.
+- Changes:
+  - Very-high axis message now uses `<축 이름> 피로도가 높습니다. 주의하세요.`
+  - High axis message now uses `<축 이름> 피로도가 높습니다. 스트레스를 줄이면 좋습니다.`
+  - Bumped version metadata to `v0.4.2.6` / `402006`.
+- Behavior preserved:
+  - OFI canonical classifier still owns the overall status label.
+  - Axis warnings still do not overwrite the OFI label.
+  - Axis level count line unchanged.
+  - Projected/expected fatigue logic unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt`
+  - `docs/v0.4.2.6_release_notes.md`
+  - `docs/codex_worklog.md`
+- Focused test result:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*TodayFatigueStatusLabelerTest*" --tests "*HomeFatigueCardSummaryFactoryTest*"`: passed.
+- Commit hash:
+  - pending.
+- main push status:
+  - pending.
+- tag push status:
+  - `v0.4.2.6` pending.

@@ -75,11 +75,13 @@ object TodayFatigueStatusLabeler {
     private fun axisMessage(axes: List<TodayFatigueAxisState>): String {
         val veryHighAxes = axes.filter { axis -> axis.level.isVeryHigh() }
         if (veryHighAxes.isNotEmpty()) {
-            return "${veryHighAxes.joinLabels()} 피로도가 높습니다. 해당 스트레스에 대해 주의하세요."
+            val labels = veryHighAxes.joinLabels()
+            return "$labels 피로도가 높습니다. 주의하세요."
         }
         val highAxes = axes.filter { axis -> axis.level == FatigueLevel.HIGH }
         if (highAxes.isNotEmpty()) {
-            return "${highAxes.joinLabels()} 피로도가 높습니다. 해당 스트레스를 줄이면 좋습니다."
+            val labels = highAxes.joinLabels()
+            return "$labels 피로도가 높습니다. 스트레스를 줄이면 좋습니다."
         }
         return "모든 피로도가 양호합니다. 힘차게 운동!"
     }
