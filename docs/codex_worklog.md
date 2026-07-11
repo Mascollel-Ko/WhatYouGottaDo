@@ -1039,3 +1039,36 @@
   - pending.
 - tag push status:
   - no new tag requested.
+## Bayesian Time-Series Lab Dynamic Analysis
+
+- Baseline:
+  - Started from latest `origin/main` at `4b7d4be323eb893f7ef15787e8d4d6f60706945e`.
+  - Existing `outputs/*` changes were already dirty and were not modified or staged.
+- Audit result:
+  - The prior lab path was a weekly single-Y ridge-like lag regression. It did not implement a multivariate BVAR, Bayesian VECM, structural shock identification, or true IRF routing.
+- Changes:
+  - Added aligned weekly preprocessing, candidate screening, ADF/KPSS-style integration diagnostics, first-difference transformations for non-cointegrated I(1) series, Bayesian lag posterior selection, and horizon reduction from 8 down to 1.
+  - Added X-one/Y-many/Z-zero-or-more request handling and UI disclosure for selected model, actual horizon, lag posterior, transformations, aligned period, automatic endogenous variables, and Cholesky ordering.
+  - Added rolling-origin log-predictive-density endogenous-variable selection with a sample-based K cap and explicit selection diagnostics.
+  - Added Cholesky one-standard-deviation structural shocks, canonical temporal ordering, adjacent-order sensitivity diagnostics, Minnesota-style BVAR empirical-Bayes shrinkage, rank-1 Bayesian VECM, and explicit BVAR fallback.
+  - Preserved the old `LaggedTimeSeriesAnalyzer` public compatibility facade by delegating it to the new analyzer.
+- New files:
+  - `BayesianTimeSeriesModels.kt`
+  - `BayesianTimeSeriesSupport.kt`
+  - `BayesianLocalProjectionEstimator.kt`
+  - `BayesianDynamicEstimators.kt`
+  - `CointegrationAnalyzer.kt`
+  - `CholeskyShockIdentifier.kt`
+  - `EndogenousVariableSelector.kt`
+  - `BayesianTimeSeriesAnalyzer.kt`
+  - `docs/bayesian_time_series_lab_architecture.md`
+- Focused verification:
+  - `:app:compileDebugKotlin`: passed.
+  - `:app:testDebugUnitTest --tests "*LaggedTimeSeriesAnalyzerTest*"`: passed.
+- Version and release:
+  - Version name/code unchanged as requested.
+  - No release tag created or moved.
+- Commit:
+  - `feat(analysis): implement Bayesian time series lab`.
+- Pending at this log point:
+  - main push and GitHub Actions verification.
