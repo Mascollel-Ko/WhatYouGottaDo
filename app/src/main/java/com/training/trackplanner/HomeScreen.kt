@@ -222,6 +222,20 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            summary.fatigueCard.axisMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            summary.fatigueCard.levelCountMessage?.let { message ->
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             summary.fatigueCard.headline?.let { headline ->
                 Text(
                     text = headline,

@@ -136,6 +136,8 @@ data class HomeFatigueCardSummary(
     val projectionPrefix: String? = null,
     val projection: HomeFatigueReading? = null,
     val statusText: String? = null,
+    val axisMessage: String? = null,
+    val levelCountMessage: String? = null,
     val phaseLabel: String? = null,
     val headline: String? = null,
     val detail: String? = null,

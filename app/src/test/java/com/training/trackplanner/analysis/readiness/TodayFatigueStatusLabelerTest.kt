@@ -1,78 +1,131 @@
 package com.training.trackplanner.analysis.readiness
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 
 class TodayFatigueStatusLabelerTest {
     @Test
-    fun movementFocusOnlyHighUsesAxisSpecificCurrentLabel() {
-        val summary = summary(section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH))
-
-        val label = TodayFatigueStatusLabeler.label(summary)
-
-        assertEquals("동작 집중 부담 높음", label)
-        assertNotEquals("피로 누적", label)
-    }
-
-    @Test
-    fun projectedAccumulationDoesNotOverwriteSingleAxisCurrentLabel() {
-        val current = summary(section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH))
-        val projected = summary(
-            section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH),
-            section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
+    fun ofiNormalWithOneVeryHighAxisKeepsOverallLabelNormalAndSeparatesAxisWarning() {
+        val status = TodayFatigueStatusLabeler.currentSummary(
+            ofi = 42,
+            summary = summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation(joint = 100)
+            )
         )
 
-        assertEquals("동작 집중 부담 높음", TodayFatigueStatusLabeler.label(current))
-        assertEquals("피로 누적", TodayFatigueStatusLabeler.label(projected))
+        assertEquals("보통", status.ofiLabel)
+        assertEquals("관절/건 충격 피로가 매우 높습니다. 해당 스트레스에 특히 주의하세요.", status.axisMessage)
+        assertEquals("축별 상태: 매우 높음(1), 높음(0), 보통(5), 낮음(0)", status.levelCountMessage)
+        assertEquals(1, status.veryHighCount)
+        assertEquals(0, status.highCount)
+        assertEquals(5, status.normalCount)
+        assertEquals(0, status.lowCount)
+        assertFalse(status.ofiLabel.contains("피로 심화"))
     }
 
     @Test
-    fun twoCurrentHighAxesUseAccumulationLabel() {
+    fun veryHighAxisMessageListsOnlyVeryHighAxes() {
+        val status = TodayFatigueStatusLabeler.axisSummary(
+            summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation(neural = 100, joint = 100, focus = 84)
+            )
+        )
+
+        assertEquals("신경계, 관절/건 충격 피로가 매우 높습니다. 해당 스트레스에 특히 주의하세요.", status.axisMessage)
+        assertEquals(2, status.veryHighCount)
+        assertEquals(1, status.highCount)
+        assertFalse(status.axisMessage.contains("동작 집중"))
+    }
+
+    @Test
+    fun highAxisMessageListsHighAxesWhenNoVeryHighAxisExists() {
+        val status = TodayFatigueStatusLabeler.axisSummary(
+            summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation(neural = 84, focus = 84)
+            )
+        )
+
+        assertEquals("신경계, 동작 집중 피로가 높습니다. 해당 스트레스를 줄이면 좋습니다.", status.axisMessage)
+        assertEquals(0, status.veryHighCount)
+        assertEquals(2, status.highCount)
+    }
+
+    @Test
+    fun allGoodAxisMessageIsUsedWhenNoHighAxesExist() {
+        val status = TodayFatigueStatusLabeler.axisSummary(
+            summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation()
+            )
+        )
+
+        assertEquals("모든 피로가 양호합니다. 가볍게 운동!", status.axisMessage)
+        assertEquals("축별 상태: 매우 높음(0), 높음(0), 보통(6), 낮음(0)", status.levelCountMessage)
+    }
+
+    @Test
+    fun elevatedOfiLabelDoesNotNeedHighAxisWarning() {
+        val status = TodayFatigueStatusLabeler.currentSummary(
+            ofi = 80,
+            summary = summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation()
+            )
+        )
+
+        assertEquals("주의", status.ofiLabel)
+        assertEquals("모든 피로가 양호합니다. 가볍게 운동!", status.axisMessage)
+    }
+
+    @Test
+    fun axisMessageUsesCanonicalDisplayOrderInsteadOfInputOrder() {
+        val status = TodayFatigueStatusLabeler.axisSummary(
+            summary(
+                section(FatigueDetailType.PAIN, "관절 통증", FatigueLevel.HIGH),
+                section(FatigueDetailType.NEURAL_SPEED, "신경 반응", FatigueLevel.HIGH)
+            )
+        )
+
+        assertEquals("신경계, 관절/건 충격 피로가 높습니다. 해당 스트레스를 줄이면 좋습니다.", status.axisMessage)
+    }
+
+    @Test
+    fun levelCountsSumToAxisCount() {
         val summary = summary(
-            section(FatigueDetailType.BADMINTON_COURT, "동작 집중", FatigueLevel.HIGH),
-            section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
+            section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+            presentation = presentation(neural = 100, systemic = 84, local = 40, joint = 20, focus = 80)
         )
+        val status = TodayFatigueStatusLabeler.axisSummary(summary)
+        val axisCount = TodayFatigueStatusLabeler.axisStates(summary).size
 
-        assertEquals("피로 누적", TodayFatigueStatusLabeler.label(summary))
+        assertEquals(axisCount, status.veryHighCount + status.highCount + status.normalCount + status.lowCount)
     }
 
     @Test
-    fun systemicPlusAnotherHighAxisUsesDeepeningLabel() {
-        val summary = summary(
-            section(FatigueDetailType.SYSTEMIC, "전신 피로", FatigueLevel.HIGH),
-            section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
+    fun projectedAxisSummaryRemainsSeparateFromCurrentOfiStatus() {
+        val current = TodayFatigueStatusLabeler.currentSummary(
+            ofi = 42,
+            summary = summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation(joint = 100)
+            )
+        )
+        val projected = TodayFatigueStatusLabeler.axisSummary(
+            summary(
+                section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.NORMAL),
+                presentation = presentation(neural = 84, focus = 84)
+            )
         )
 
-        assertEquals("피로 심화", TodayFatigueStatusLabeler.label(summary))
-    }
-
-    @Test
-    fun presentationGroupsNeuralSubtypesAsOneCurrentAxis() {
-        val summary = summary(
-            section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
-            section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
-            presentation = presentation(neural = 85)
-        )
-
-        assertEquals("신경계 피로 높음", TodayFatigueStatusLabeler.label(summary))
-        assertEquals("현재 높음", TodayFatigueStatusLabeler.axisStates(summary).first { it.label == "신경계" }.displayLabel)
-    }
-
-    @Test
-    fun presentationIsTheCurrentAxisSourceForLabelAndAxisStatus() {
-        val summary = summary(
-            section(FatigueDetailType.NEURAL_HEAVY, "고중량/힘 기반 신경계 피로", FatigueLevel.HIGH),
-            section(FatigueDetailType.NEURAL_SPEED, "고속/반응 신경계 피로", FatigueLevel.HIGH),
-            presentation = presentation(neural = 20, focus = 85)
-        )
-
-        val axes = TodayFatigueStatusLabeler.axisStates(summary).associateBy { it.label }
-
-        assertEquals("동작 집중 부담 높음", TodayFatigueStatusLabeler.label(summary))
-        assertEquals("낮음", axes.getValue("신경계").displayLabel)
-        assertEquals("현재 높음", axes.getValue("동작 집중").displayLabel)
+        assertEquals("보통", current.ofiLabel)
+        assertTrue(current.axisMessage.contains("관절/건 충격"))
+        assertTrue(projected.axisMessage.contains("신경계, 동작 집중"))
     }
 
     @Test
@@ -118,11 +171,11 @@ class TodayFatigueStatusLabelerTest {
         )
 
     private fun presentation(
-        neural: Int = 0,
-        systemic: Int = 0,
-        local: Int = 0,
-        joint: Int = 0,
-        focus: Int = 0
+        neural: Int = 40,
+        systemic: Int = 40,
+        local: Int = 40,
+        joint: Int = 40,
+        focus: Int = 40
     ): FatiguePresentationSnapshot =
         FatiguePresentationSnapshot(
             overallScore = listOf(neural, systemic, local, joint, focus).maxOrNull() ?: 0,

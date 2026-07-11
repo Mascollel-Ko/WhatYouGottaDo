@@ -815,3 +815,51 @@
   - `ProgramPrescriptionPolicy.fitRequiredPrescription` preserves the existing label behavior when reducing set count.
 - Next work candidate:
   - Re-audit remaining `ProgramBuilder` scoring/selection helpers after observing v0.4.1.10 in CI.
+
+## v0.4.2.4 Fatigue OFI Status / Axis Warning Separation
+
+- Baseline:
+  - Started from latest `main` at `495d27d` after the v0.4.2.3 fatigue/readiness wording hotfix.
+- Work target:
+  - Keep the Home "현재 피로도 상태" overall label based only on canonical OFI.
+  - Move axis-specific high/very-high guidance into a separate current-axis message.
+  - Keep projected/expected fatigue wording separate from current-axis warnings.
+- Cause:
+  - The Home card combined an OFI score with an axis-derived label, so one very-high axis could make a normal OFI day look like an overall deep fatigue state.
+- Changes:
+  - Added `TodayFatigueStatusLabeler.currentSummary(...)` for OFI label plus separate current-axis guidance.
+  - Added `TodayFatigueStatusLabeler.axisSummary(...)` for analysis readiness UI axis guidance.
+  - Added `axisMessage` and `levelCountMessage` to `HomeFatigueCardSummary`.
+  - Updated Home and analysis readiness UI to show current-axis guidance below the overall status.
+  - Updated focused tests for OFI/axis separation, very-high priority over high axes, high-only axes, all-good message, canonical axis order, and level-count totals.
+  - Bumped version metadata to `v0.4.2.4` / `402004`.
+- Behavior preserved:
+  - OFI calculation unchanged.
+  - Fatigue axis calculation unchanged.
+  - Readiness thresholds unchanged.
+  - Projected/expected fatigue calculation and wording path unchanged except for avoiding current-label coupling.
+  - Plan, record, backup, metadata, and program logic unchanged.
+- Modified files:
+  - `app/build.gradle.kts`
+  - `app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`
+  - `app/src/main/java/com/training/trackplanner/HomeScreen.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt`
+  - `app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt`
+  - `app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt`
+  - `docs/v0.4.2.4_release_notes.md`
+  - `docs/codex_worklog.md`
+- Focused test result:
+  - `.\\gradlew.bat :app:testDebugUnitTest --tests "*TodayFatigueStatusLabelerTest*" --tests "*HomeFatigueCardSummaryFactoryTest*"`: passed.
+- Final verification:
+  - `.\\gradlew.bat --version`: passed.
+  - `.\\gradlew.bat :app:compileDebugKotlin`: passed.
+  - `.\\gradlew.bat :app:testDebugUnitTest`: passed.
+  - `.\\gradlew.bat :app:assembleDebug`: passed.
+- Commit hash:
+  - pending.
+- main push status:
+  - pending.
+- tag push status:
+  - `v0.4.2.4` pending.

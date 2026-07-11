@@ -302,6 +302,7 @@ internal fun TodayReadinessCard(
     keyAxes: List<String> = emptyList()
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
+    val axisSummary = TodayFatigueStatusLabeler.axisSummary(summary)
     BackHandler(enabled = expanded) { expanded = false }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -312,9 +313,14 @@ internal fun TodayReadinessCard(
                         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                     }
                     Text(
-                        "주의할 피로 축: ${TodayFatigueStatusLabeler.label(summary)}",
+                        axisSummary.axisMessage,
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        axisSummary.levelCountMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 AnalysisConfidencePill(summary.confidence)
