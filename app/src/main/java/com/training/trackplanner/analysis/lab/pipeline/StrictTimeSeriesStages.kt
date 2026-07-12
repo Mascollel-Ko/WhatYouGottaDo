@@ -228,11 +228,11 @@ internal enum class StrictPreparationFailureCode {
 }
 
 internal sealed interface StrictPreparationResult {
-    data class Success(val context: Any, val readinessDiagnostics: List<String>) : StrictPreparationResult
+    data class Success(val context: PreparedAnalysisContext, val readinessDiagnostics: List<String>) : StrictPreparationResult
     data class Failure(
         val code: StrictPreparationFailureCode,
         val diagnostics: List<String>,
-        val partialContext: Any? = null
+        val partialContext: PreparedAnalysisContext? = null
     ) : StrictPreparationResult
 }
 
