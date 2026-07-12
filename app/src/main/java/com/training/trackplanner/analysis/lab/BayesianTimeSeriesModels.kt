@@ -114,6 +114,11 @@ internal data class MetricLifecycleMetadata(
         if (availableFromWeek != null && availableUntilWeek != null) require(!availableFromWeek.isAfter(availableUntilWeek))
         require(notApplicableWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "not-applicable weeks must be ISO Monday" }
         require(versionDiscontinuityWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "version-discontinuity weeks must be ISO Monday" }
+        versionDiscontinuityRanges.sortedWith(compareBy<TimeSeriesWeekRange> { it.startWeek }.thenBy { it.endWeek })
+            .zipWithNext()
+            .forEach { (left, right) ->
+                require(left == right || left.endWeek.isBefore(right.startWeek)) { "version-discontinuity ranges must not overlap" }
+            }
     }
 
     fun fingerprint(): String = stableFingerprint(
@@ -124,7 +129,8 @@ internal data class MetricLifecycleMetadata(
             activationPolicy.name,
             notApplicableWeeks.sorted().joinToString(","),
             versionDiscontinuityWeeks.sorted().joinToString(","),
-            versionDiscontinuityRanges.joinToString(",") { "${it.startWeek}:${it.endWeek}" },
+            versionDiscontinuityRanges.distinct().sortedWith(compareBy<TimeSeriesWeekRange> { it.startWeek }.thenBy { it.endWeek })
+                .joinToString(",") { "${it.startWeek}:${it.endWeek}" },
             provenance.source,
             provenance.sourceVersion,
             provenance.registryVersion,
@@ -439,6 +445,7 @@ internal class PreparedMetricSeries private constructor(
                 if (cell.state == TimeSeriesCellState.CONFLICT) require(cell.conflictProvenance != null) { "conflict cell requires provenance" }
                 if (cell.transformation != null) require(cell.sourceCells.isNotEmpty()) { "transformed cell requires source-cell provenance" }
             }
+            validateLifecycleSemantics(cells, lifecycleMetadata)
             val summary = MetricDataQualitySummary.fromCells(cells)
             val segments = contiguousUsableSegments(cells)
             return PreparedMetricSeries(
@@ -457,6 +464,53 @@ internal class PreparedMetricSeries private constructor(
                 preparationVersion = preparationVersion
             )
         }
+
+        private fun validateLifecycleSemantics(
+            cells: List<TimeSeriesCell>,
+            lifecycleMetadata: MetricLifecycleMetadata
+        ) {
+            val activationWeek = lifecycleMetadata.availableFromWeek
+                ?: cells.firstOrNull { cell ->
+                    lifecycleMetadata.activationPolicy == MetricActivationPolicy.FIRST_OBSERVATION_ALLOWED &&
+                        cell.state in setOf(TimeSeriesCellState.OBSERVED_VALUE, TimeSeriesCellState.STRUCTURAL_ZERO)
+                }?.weekStart
+            cells.forEach { cell ->
+                val afterAvailability = lifecycleMetadata.availableUntilWeek?.let { cell.weekStart.isAfter(it) } == true
+                val notApplicable = cell.weekStart in lifecycleMetadata.notApplicableWeeks || afterAvailability
+                val versionDiscontinuous = cell.weekStart in lifecycleMetadata.versionDiscontinuityWeeks ||
+                    lifecycleMetadata.versionDiscontinuityRanges.any { it.contains(cell.weekStart) }
+                val derivedFromSameLifecycleState = cell.sourceCells.any { it.state == cell.state }
+                when (cell.state) {
+                    TimeSeriesCellState.STRUCTURAL_ZERO -> {
+                        require(lifecycleMetadata.structuralZeroAllowed) { "LIFECYCLE_CELL_INCONSISTENCY: structural zero is not allowed" }
+                        require(activationWeek != null && !cell.weekStart.isBefore(activationWeek)) { "LIFECYCLE_CELL_INCONSISTENCY: structural zero before activation" }
+                        require(!notApplicable && !versionDiscontinuous) { "LIFECYCLE_CELL_INCONSISTENCY: structural zero in inactive range" }
+                    }
+                    TimeSeriesCellState.PRE_METRIC_CREATION -> {
+                        require((activationWeek != null && cell.weekStart.isBefore(activationWeek)) || derivedFromSameLifecycleState) {
+                            "LIFECYCLE_CELL_INCONSISTENCY: pre-creation cell outside pre-activation range"
+                        }
+                    }
+                    TimeSeriesCellState.NOT_APPLICABLE -> {
+                        require(notApplicable || derivedFromSameLifecycleState) { "LIFECYCLE_CELL_INCONSISTENCY: not-applicable cell lacks metadata" }
+                    }
+                    TimeSeriesCellState.VERSION_DISCONTINUITY -> {
+                        require(versionDiscontinuous || derivedFromSameLifecycleState) { "LIFECYCLE_CELL_INCONSISTENCY: discontinuity cell lacks metadata" }
+                    }
+                    TimeSeriesCellState.OBSERVED_VALUE -> {
+                        require(activationWeek == null || !cell.weekStart.isBefore(activationWeek)) { "LIFECYCLE_CELL_INCONSISTENCY: observed value before activation" }
+                        require(!notApplicable && !versionDiscontinuous) { "LIFECYCLE_CELL_INCONSISTENCY: observed value in inactive range" }
+                    }
+                    TimeSeriesCellState.CONFLICT -> {
+                        require(cell.conflictProvenance != null) { "LIFECYCLE_CELL_INCONSISTENCY: conflict cell lacks provenance" }
+                    }
+                    TimeSeriesCellState.MISSING -> {
+                        require(activationWeek == null || !cell.weekStart.isBefore(activationWeek)) { "LIFECYCLE_CELL_INCONSISTENCY: missing cell before activation" }
+                        require(!notApplicable && !versionDiscontinuous) { "LIFECYCLE_CELL_INCONSISTENCY: missing cell in inactive range" }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -464,16 +518,128 @@ internal enum class PreparedTimeSeriesRowPolicy {
     COMMON_USABLE_ROWS
 }
 
+internal enum class SeriesTransformation(val id: String) {
+    LEVEL("level"),
+    FIRST_DIFFERENCE("first difference"),
+    EXCLUDED("excluded")
+}
+
+internal enum class IntegrationDiagnosticSource {
+    AUTOMATIC_INTEGRATION_DIAGNOSTIC
+}
+
+internal enum class InconclusiveTransformationPolicy {
+    EXCLUDE_CANDIDATE,
+    USE_DOCUMENTED_FALLBACK
+}
+
+internal data class MetricTransformationPlan(
+    val metric: TrendMetricId,
+    val integrationOrder: IntegrationOrder,
+    val transformation: SeriesTransformation,
+    val diagnosticSource: IntegrationDiagnosticSource,
+    val decisionReason: String,
+    val planVersion: String = TRANSFORMATION_PLAN_VERSION
+)
+
+internal data class TimeSeriesTransformationPlan(
+    val plansByMetric: Map<TrendMetricId, MetricTransformationPlan>,
+    val diagnostics: Map<TrendMetricId, IntegrationDiagnostic>,
+    val planFingerprint: String = stableFingerprint(
+        plansByMetric.toSortedMap(compareBy { it.name }).map { (metric, plan) ->
+            listOf(metric.name, plan.integrationOrder.name, plan.transformation.id, plan.decisionReason, plan.planVersion).joinToString(":")
+        }
+    ),
+    val planVersion: String = TRANSFORMATION_PLAN_VERSION
+)
+
+internal data class PreparedCandidateCatalog(
+    val weeks: List<LocalDate>,
+    val preparedSeriesByMetric: Map<TrendMetricId, PreparedMetricSeries>,
+    val transformationPlan: TimeSeriesTransformationPlan,
+    val excludedCandidates: Map<TrendMetricId, CandidateExclusion>,
+    val preparationFingerprint: String,
+    val preparationVersion: String = PREPARED_CANDIDATE_CATALOG_VERSION
+)
+
+internal data class CandidateExclusion(
+    val metric: TrendMetricId,
+    val reason: String
+)
+
+internal enum class TimeSeriesVariableRole {
+    SHOCK_SOURCE,
+    ENDOGENOUS_STATE,
+    RESPONSE,
+    CONTEMPORANEOUS_CONTROL,
+    LAGGED_CONTROL
+}
+
+internal data class VariableRowRequirement(
+    val metric: TrendMetricId,
+    val roles: Set<TimeSeriesVariableRole>,
+    val requireSourceValue: Boolean,
+    val requiredLagOffsets: Set<Int>,
+    val requiredTargetOffsets: Set<Int>,
+    val requireShockEstimationRows: Boolean = false
+) {
+    init {
+        require(roles.isNotEmpty()) { "ROLE_REQUIREMENT_MISSING: variable role required" }
+        require(requiredLagOffsets.all { it > 0 }) { "lag offsets must be positive" }
+        require(requiredTargetOffsets.all { it >= 0 }) { "target offsets must be non-negative" }
+    }
+
+    fun fingerprintPart(): String = listOf(
+        metric.name,
+        roles.map(TimeSeriesVariableRole::name).sorted().joinToString("|"),
+        requireSourceValue.toString(),
+        requiredLagOffsets.sorted().joinToString("|"),
+        requiredTargetOffsets.sorted().joinToString("|"),
+        requireShockEstimationRows.toString()
+    ).joinToString(":")
+}
+
+internal enum class HorizonSelectionPolicy {
+    REFERENCE_HORIZON
+}
+
+internal enum class RowComparisonPolicy {
+    COMMON_USABLE_ROWS
+}
+
+internal data class PreparedRowSpecification(
+    val orderedRequirements: List<VariableRowRequirement>,
+    val lag: Int,
+    val requestedHorizons: Set<Int>,
+    val horizonPolicy: HorizonSelectionPolicy,
+    val rowComparisonPolicy: RowComparisonPolicy,
+    val preparationVersion: String = PREPARED_ROW_SPECIFICATION_VERSION,
+    val specificationFingerprint: String = stableFingerprint(
+        listOf(
+            orderedRequirements.sortedBy { it.metric.name }.joinToString(",") { it.fingerprintPart() },
+            lag.toString(),
+            requestedHorizons.sorted().joinToString(","),
+            horizonPolicy.name,
+            rowComparisonPolicy.name,
+            preparationVersion
+        )
+    )
+)
+
 internal data class PreparedTimeSeriesRowIdentity(
     val sourceWeek: LocalDate,
     val targetWeek: LocalDate,
     val lagWeeks: List<LocalDate>,
     val metricSet: List<TrendMetricId>,
+    val requirements: List<VariableRowRequirement> = emptyList(),
     val transformations: Map<TrendMetricId, String>,
     val lag: Int,
     val horizon: Int,
+    val requestedHorizons: Set<Int> = setOf(horizon),
+    val horizonPolicy: HorizonSelectionPolicy = HorizonSelectionPolicy.REFERENCE_HORIZON,
     val preparationVersion: Int,
     val rowPolicy: PreparedTimeSeriesRowPolicy,
+    val rowComparisonPolicy: RowComparisonPolicy = RowComparisonPolicy.COMMON_USABLE_ROWS,
     val fingerprint: String
 )
 
@@ -483,6 +649,7 @@ internal class PreparedTimeSeriesSystem private constructor(
     val orderedMetrics: List<TrendMetricId>,
     val commonUsableRows: List<PreparedTimeSeriesRowIdentity>,
     val rowPolicy: PreparedTimeSeriesRowPolicy,
+    val rowSpecification: PreparedRowSpecification,
     val preparationVersion: Int,
     val preparationFingerprint: String,
     val diagnostics: List<String>
@@ -493,11 +660,16 @@ internal class PreparedTimeSeriesSystem private constructor(
             preparedSeries: Map<TrendMetricId, PreparedMetricSeries>,
             lag: Int,
             horizon: Int,
-            rowPolicy: PreparedTimeSeriesRowPolicy = PreparedTimeSeriesRowPolicy.COMMON_USABLE_ROWS
+            rowPolicy: PreparedTimeSeriesRowPolicy = PreparedTimeSeriesRowPolicy.COMMON_USABLE_ROWS,
+            rowRequirements: List<VariableRowRequirement>? = null,
+            requestedHorizons: Set<Int> = setOf(horizon),
+            horizonPolicy: HorizonSelectionPolicy = HorizonSelectionPolicy.REFERENCE_HORIZON,
+            rowComparisonPolicy: RowComparisonPolicy = RowComparisonPolicy.COMMON_USABLE_ROWS
         ): PreparedTimeSeriesSystem {
             require(orderedMetrics.isNotEmpty()) { "prepared system requires metrics" }
             require(lag >= 0) { "lag must be non-negative" }
             require(horizon >= 0) { "horizon must be non-negative" }
+            require(horizon in requestedHorizons) { "HORIZON_POLICY_MISMATCH: requested horizons must include the reference horizon" }
             val uniqueMetrics = orderedMetrics.distinct().sortedBy { it.name }
             val selected = uniqueMetrics.associateWith { metric ->
                 preparedSeries[metric] ?: error("prepared series missing for $metric")
@@ -509,21 +681,29 @@ internal class PreparedTimeSeriesSystem private constructor(
                 require(series.preparationVersion == version) { "prepared system preparation version mismatch for $metric" }
             }
             val transformations = selected.mapValues { (_, series) -> series.transformation }
+            val requirements = (rowRequirements ?: uniqueMetrics.map { metric ->
+                VariableRowRequirement(
+                    metric = metric,
+                    roles = setOf(TimeSeriesVariableRole.ENDOGENOUS_STATE, TimeSeriesVariableRole.RESPONSE),
+                    requireSourceValue = true,
+                    requiredLagOffsets = (1..lag).toSet(),
+                    requiredTargetOffsets = setOf(horizon)
+                )
+            }).sortedBy { it.metric.name }
+            val requirementMetrics = requirements.map { it.metric }.toSet()
+            require(uniqueMetrics.all { it in requirementMetrics }) { "ROLE_REQUIREMENT_MISSING: every metric needs a row requirement" }
+            val rowSpecification = PreparedRowSpecification(
+                orderedRequirements = requirements,
+                lag = lag,
+                requestedHorizons = requestedHorizons,
+                horizonPolicy = horizonPolicy,
+                rowComparisonPolicy = rowComparisonPolicy
+            )
             val rows = weeks.indices.mapNotNull { index ->
                 val targetIndex = index + horizon
                 if (index < lag || targetIndex !in weeks.indices) return@mapNotNull null
                 val lagIndices = (1..lag).map { index - it }
-                val included = selected.values.all { series ->
-                    val source = series.cells[index]
-                    val target = series.cells[targetIndex]
-                    val lags = lagIndices.map { series.cells[it] }
-                    source.isModelUsable() &&
-                        target.isModelUsable() &&
-                        lags.all(TimeSeriesCell::isModelUsable) &&
-                        lags.none { it.state == TimeSeriesCellState.VERSION_DISCONTINUITY } &&
-                        source.state != TimeSeriesCellState.VERSION_DISCONTINUITY &&
-                        target.state != TimeSeriesCellState.VERSION_DISCONTINUITY
-                }
+                val included = requirements.all { requirement -> selected.getValue(requirement.metric).satisfies(requirement, index) }
                 if (!included) return@mapNotNull null
                 val lagWeeks = lagIndices.map { weeks[it] }
                 val keyParts = listOf(
@@ -531,22 +711,30 @@ internal class PreparedTimeSeriesSystem private constructor(
                     weeks[targetIndex].toString(),
                     lagWeeks.joinToString(","),
                     uniqueMetrics.joinToString(",") { it.name },
+                    requirements.joinToString(",") { it.fingerprintPart() },
                     transformations.toSortedMap(compareBy { it.name }).entries.joinToString(",") { "${it.key.name}:${it.value}" },
                     lag.toString(),
-                    horizon.toString(),
+                    requestedHorizons.sorted().joinToString(","),
+                    horizonPolicy.name,
                     version.toString(),
-                    rowPolicy.name
+                    rowPolicy.name,
+                    rowComparisonPolicy.name,
+                    rowSpecification.specificationFingerprint
                 )
                 PreparedTimeSeriesRowIdentity(
                     sourceWeek = weeks[index],
                     targetWeek = weeks[targetIndex],
                     lagWeeks = lagWeeks,
                     metricSet = uniqueMetrics,
+                    requirements = requirements,
                     transformations = transformations,
                     lag = lag,
                     horizon = horizon,
+                    requestedHorizons = requestedHorizons,
+                    horizonPolicy = horizonPolicy,
                     preparationVersion = version,
                     rowPolicy = rowPolicy,
+                    rowComparisonPolicy = rowComparisonPolicy,
                     fingerprint = stableFingerprint(keyParts)
                 )
             }
@@ -555,6 +743,7 @@ internal class PreparedTimeSeriesSystem private constructor(
                     weeks.joinToString(","),
                     uniqueMetrics.joinToString(",") { it.name },
                     transformations.toSortedMap(compareBy { it.name }).entries.joinToString(",") { "${it.key.name}:${it.value}" },
+                    rowSpecification.specificationFingerprint,
                     rows.joinToString(",") { it.fingerprint },
                     version.toString(),
                     rowPolicy.name
@@ -566,10 +755,18 @@ internal class PreparedTimeSeriesSystem private constructor(
                 orderedMetrics = uniqueMetrics,
                 commonUsableRows = rows,
                 rowPolicy = rowPolicy,
+                rowSpecification = rowSpecification,
                 preparationVersion = version,
                 preparationFingerprint = systemFingerprint,
                 diagnostics = listOf("common usable rows derived from prepared cells: ${rows.size}")
             )
+        }
+
+        private fun PreparedMetricSeries.satisfies(requirement: VariableRowRequirement, sourceIndex: Int): Boolean {
+            if (requirement.requireSourceValue && !cells[sourceIndex].isModelUsable()) return false
+            if (requirement.requiredLagOffsets.any { offset -> cells.getOrNull(sourceIndex - offset)?.isModelUsable() != true }) return false
+            if (requirement.requiredTargetOffsets.any { offset -> cells.getOrNull(sourceIndex + offset)?.isModelUsable() != true }) return false
+            return true
         }
     }
 }
@@ -611,6 +808,10 @@ internal data class IntegrationDiagnostic(
     val kpssDifferenceStatistic: Double?,
     val message: String
 )
+
+internal const val TRANSFORMATION_PLAN_VERSION = "phase-a-transformation-plan-v1"
+internal const val PREPARED_CANDIDATE_CATALOG_VERSION = "phase-a-prepared-candidate-catalog-v1"
+internal const val PREPARED_ROW_SPECIFICATION_VERSION = "phase-a-row-spec-v1"
 
 internal data class BayesianLagPosterior(
     val probabilities: Map<Int, Double>,

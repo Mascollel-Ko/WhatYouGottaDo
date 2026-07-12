@@ -43,16 +43,23 @@ internal class BayesianVarEstimator {
         allowedSourceWeeks: Set<LocalDate>? = null
     ): SystemFit? {
         val raw = system.map { metric -> alignment.valuesByMetric[metric] ?: return null }
-        val standardized = raw.map(::standardize).takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
-        val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let(::standardize) ?: return null }
         val timeIndices = (lag until alignment.weeks.size).filter { time ->
             (allowedSourceWeeks == null || alignment.weeks[time] in allowedSourceWeeks) &&
             system.all { metric ->
                 alignment.valueAt(metric, time) != null &&
                     (1..lag).all { offset -> alignment.exactLag(metric, time, offset) != null } &&
-                    (!includeErrorCorrection || alignment.exactDifference(metric, time) != null)
+                (!includeErrorCorrection || alignment.exactDifference(metric, time) != null)
             } && controls.all { metric -> alignment.valueAt(metric, time) != null }
         }
+        val systemSampleIndices = timeIndices.flatMap { time ->
+            buildList {
+                add(time)
+                if (includeErrorCorrection) add(time - 1)
+                (1..lag).forEach { offset -> add(time - offset) }
+            }
+        }.distinct()
+        val standardized = raw.map { values -> standardize(values, systemSampleIndices) }.takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
+        val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let { standardize(it, timeIndices) } ?: return null }
         val rows = timeIndices.map { time ->
             val design = buildList {
                 add(1.0)
@@ -194,8 +201,6 @@ internal class BayesianVecmEstimator {
         beta: List<Double>
     ): VecmFit? {
         val raw = system.map { metric -> alignment.valuesByMetric[metric] ?: return null }
-        val standardized = raw.map(::standardize).takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
-        val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let(::standardize) ?: return null }
         val timeIndices = (lag until alignment.weeks.size).filter { time ->
             system.all { metric ->
                 alignment.exactDifference(metric, time) != null &&
@@ -203,6 +208,18 @@ internal class BayesianVecmEstimator {
                     (1 until lag).all { offset -> alignment.exactDifference(metric, time - offset) != null }
             } && controls.all { metric -> alignment.valueAt(metric, time) != null }
         }
+        val systemSampleIndices = timeIndices.flatMap { time ->
+            buildList {
+                add(time)
+                add(time - 1)
+                (1 until lag).forEach { offset ->
+                    add(time - offset)
+                    add(time - offset - 1)
+                }
+            }
+        }.distinct()
+        val standardized = raw.map { values -> standardize(values, systemSampleIndices) }.takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
+        val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let { standardize(it, timeIndices) } ?: return null }
         val rows = timeIndices.map { time ->
             val design = buildList {
                 add(1.0)
@@ -273,8 +290,9 @@ internal data class VecmFit(
 
 private data class SystemRow(val design: DoubleArray, val response: DoubleArray)
 
-private fun standardize(values: List<Double>): DoubleArray? {
-    val finite = values.filter(Double::isFinite)
+private fun standardize(values: List<Double>, sampleIndices: Collection<Int>? = null): DoubleArray? {
+    val finite = (sampleIndices ?: values.indices).mapNotNull { index -> values.getOrNull(index)?.takeIf(Double::isFinite) }
+    if (finite.isEmpty()) return null
     val mean = finite.average()
     val standardDeviation = sqrt(variance(finite))
     if (standardDeviation <= 1e-9) return null

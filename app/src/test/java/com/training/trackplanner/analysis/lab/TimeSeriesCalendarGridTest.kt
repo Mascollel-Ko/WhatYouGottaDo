@@ -239,7 +239,12 @@ class TimeSeriesCalendarGridTest {
                 } else {
                     TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, index.toDouble())
                 }
-            }
+            },
+            lifecycleMetadata = mapOf(
+                TrendMetricId.BADMINTON_TRAINING to MetricLifecycleMetadata(
+                    versionDiscontinuityWeeks = setOf(LocalDate.parse("2026-02-09"))
+                )
+            )
         )!!
 
         val result = TimeSeriesAlignmentService().stationarize(

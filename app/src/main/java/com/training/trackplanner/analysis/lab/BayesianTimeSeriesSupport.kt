@@ -254,9 +254,10 @@ internal class TimeSeriesAlignmentService {
                 metadata
             )
         }
-        return alignment.copy(
+        return TimeSeriesAlignment(
             weeks = weeks,
             valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> indices.map(values::get) },
+            excludedMetrics = alignment.excludedMetrics,
             missingRates = qualitySummaries.mapValues { (_, summary) -> summary.rawMissingRate },
             qualitySummaries = qualitySummaries,
             preparedSeries = prepared,
@@ -265,51 +266,84 @@ internal class TimeSeriesAlignmentService {
                     weeks,
                     cellsByMetric
                 )
-            }
+            },
+            rowExclusions = alignment.rowExclusions
         )
     }
 
-    fun stationarize(
+    fun transformationPlan(
         alignment: TimeSeriesAlignment,
-        diagnostics: List<IntegrationDiagnostic>
-    ): Pair<TimeSeriesAlignment, Map<TrendMetricId, String>>? {
-        val orders = diagnostics.associate { it.metric to it.levelOrder }
+        mandatoryMetrics: Set<TrendMetricId>,
+        policy: InconclusiveTransformationPolicy = InconclusiveTransformationPolicy.EXCLUDE_CANDIDATE
+    ): TimeSeriesTransformationPlan {
+        val diagnostics = alignment.valuesByMetric.keys.associateWith { metric ->
+            IntegrationOrderAnalyzer().diagnose(metric, alignment.valuesByMetric.getValue(metric).filter(Double::isFinite))
+        }
+        val plans = diagnostics.mapValues { (metric, diagnostic) ->
+            val mandatory = metric in mandatoryMetrics
+            val transformation = when (diagnostic.levelOrder) {
+                IntegrationOrder.I0 -> SeriesTransformation.LEVEL
+                IntegrationOrder.I1 -> SeriesTransformation.FIRST_DIFFERENCE
+                IntegrationOrder.I2_OR_HIGHER -> SeriesTransformation.EXCLUDED
+                IntegrationOrder.INCONCLUSIVE -> if (mandatory && policy == InconclusiveTransformationPolicy.EXCLUDE_CANDIDATE) {
+                    SeriesTransformation.LEVEL
+                } else {
+                    SeriesTransformation.EXCLUDED
+                }
+            }
+            MetricTransformationPlan(
+                metric = metric,
+                integrationOrder = diagnostic.levelOrder,
+                transformation = transformation,
+                diagnosticSource = IntegrationDiagnosticSource.AUTOMATIC_INTEGRATION_DIAGNOSTIC,
+                decisionReason = when {
+                    diagnostic.levelOrder == IntegrationOrder.INCONCLUSIVE && transformation == SeriesTransformation.LEVEL ->
+                        "USE_DOCUMENTED_FALLBACK: required user-selected metric kept in levels after inconclusive diagnostics"
+                    transformation == SeriesTransformation.EXCLUDED ->
+                        "INCONCLUSIVE_TRANSFORMATION: optional or unsupported metric excluded from automatic selection"
+                    transformation == SeriesTransformation.FIRST_DIFFERENCE -> "confirmed I(1) transformation"
+                    else -> "confirmed level transformation"
+                }
+            )
+        }
+        return TimeSeriesTransformationPlan(plans, diagnostics)
+    }
+
+    fun transformWithPlan(
+        alignment: TimeSeriesAlignment,
+        plan: TimeSeriesTransformationPlan
+    ): TimeSeriesAlignment? {
+        val includedPlans = plan.plansByMetric.filterValues { it.transformation != SeriesTransformation.EXCLUDED }
+        if (includedPlans.isEmpty()) return null
         val weeks = alignment.weeks
-        val cellsByMetric = alignment.valuesByMetric.mapValues { (metric, values) ->
+        val cellsByMetric = includedPlans.mapValues { (metric, metricPlan) ->
+            val values = alignment.valuesByMetric[metric] ?: return null
             values.indices.map { index ->
-                val transformation = if (orders[metric] == IntegrationOrder.I1) "first difference" else "level"
-                val sourceCells = if (orders[metric] == IntegrationOrder.I1) {
+                val transformation = metricPlan.transformation.id
+                val sourceCells = if (metricPlan.transformation == SeriesTransformation.FIRST_DIFFERENCE) {
                     buildList {
                         if (index == 0) {
                             add(alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index))
                         } else {
-                            add(
-                                alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index)
-                            )
-                            add(
-                                alignment.cellReference(TimeSeriesCellRole.LAG, 1, metric, index - 1)
-                            )
+                            add(alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index))
+                            add(alignment.cellReference(TimeSeriesCellRole.LAG, 1, metric, index - 1))
                         }
                     }
                 } else {
                     listOf(alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index))
                 }
-                when (orders[metric]) {
-                    IntegrationOrder.I1 -> {
+                when (metricPlan.transformation) {
+                    SeriesTransformation.FIRST_DIFFERENCE -> {
                         val value = if (index == 0) null else alignment.exactDifference(metric, index)
                         transformedCell(metric, weeks[index], value, transformation, sourceCells, alignment.grid?.cell(metric, index), alignment.grid?.cell(metric, index - 1))
                     }
-                    else -> {
+                    SeriesTransformation.LEVEL -> {
                         val value = values[index].takeIf(Double::isFinite)
                         transformedCell(metric, weeks[index], value, transformation, sourceCells, alignment.grid?.cell(metric, index), null)
                     }
+                    SeriesTransformation.EXCLUDED -> error("excluded transformation cannot be transformed")
                 }
             }
-        }
-        val transformed = cellsByMetric.mapValues { (_, cells) -> cells.map { it.value ?: Double.NaN } }
-        if (transformed.values.any { values -> values.count(Double::isFinite) < MIN_OBSERVATIONS }) return null
-        val descriptions = alignment.valuesByMetric.keys.associateWith { metric ->
-            if (orders[metric] == IntegrationOrder.I1) "first difference" else "level"
         }
         val qualitySummaries = cellsByMetric.mapValues { (_, cells) -> qualitySummary(cells) }
         val prepared = cellsByMetric.mapValues { (metric, cells) ->
@@ -318,18 +352,68 @@ internal class TimeSeriesAlignmentService {
                 metric,
                 weeks,
                 cells,
-                descriptions.getValue(metric),
+                includedPlans.getValue(metric).transformation.id,
                 metadata
             )
         }
-        return alignment.copy(
+        return TimeSeriesAlignment(
             weeks = weeks,
-            valuesByMetric = transformed,
+            valuesByMetric = cellsByMetric.mapValues { (_, cells) -> cells.map { it.value ?: Double.NaN } },
+            excludedMetrics = alignment.excludedMetrics + plan.plansByMetric
+                .filterValues { it.transformation == SeriesTransformation.EXCLUDED }
+                .mapValues { (_, metricPlan) -> metricPlan.decisionReason },
             missingRates = qualitySummaries.mapValues { (_, summary) -> summary.rawMissingRate },
             qualitySummaries = qualitySummaries,
             preparedSeries = prepared,
-            grid = TimeSeriesCalendarGrid.createValidated(weeks, cellsByMetric)
-        ) to descriptions
+            grid = TimeSeriesCalendarGrid.createValidated(weeks, cellsByMetric),
+            rowExclusions = alignment.rowExclusions
+        )
+    }
+
+    fun preparedCandidateCatalog(
+        alignment: TimeSeriesAlignment,
+        transformationPlan: TimeSeriesTransformationPlan
+    ): PreparedCandidateCatalog? {
+        val transformed = transformWithPlan(alignment, transformationPlan) ?: return null
+        return PreparedCandidateCatalog(
+            weeks = transformed.weeks,
+            preparedSeriesByMetric = transformed.preparedSeries,
+            transformationPlan = transformationPlan,
+            excludedCandidates = transformationPlan.plansByMetric
+                .filterValues { it.transformation == SeriesTransformation.EXCLUDED }
+                .mapValues { (metric, plan) -> CandidateExclusion(metric, plan.decisionReason) },
+            preparationFingerprint = stableFingerprint(
+                listOf(
+                    transformed.weeks.joinToString(","),
+                    transformationPlan.planFingerprint,
+                    transformed.preparedSeries.toSortedMap(compareBy { it.name }).entries.joinToString(",") {
+                        "${it.key.name}:${it.value.transformation}:${it.value.lifecycleMetadata.fingerprint()}"
+                    },
+                    PREPARED_CANDIDATE_CATALOG_VERSION
+                )
+            )
+        )
+    }
+
+    fun stationarize(
+        alignment: TimeSeriesAlignment,
+        diagnostics: List<IntegrationDiagnostic>
+    ): Pair<TimeSeriesAlignment, Map<TrendMetricId, String>>? {
+        val plan = TimeSeriesTransformationPlan(
+            plansByMetric = diagnostics.associate { diagnostic ->
+                diagnostic.metric to MetricTransformationPlan(
+                    metric = diagnostic.metric,
+                    integrationOrder = diagnostic.levelOrder,
+                    transformation = if (diagnostic.levelOrder == IntegrationOrder.I1) SeriesTransformation.FIRST_DIFFERENCE else SeriesTransformation.LEVEL,
+                    diagnosticSource = IntegrationDiagnosticSource.AUTOMATIC_INTEGRATION_DIAGNOSTIC,
+                    decisionReason = "legacy stationarize request"
+                )
+            },
+            diagnostics = diagnostics.associateBy(IntegrationDiagnostic::metric)
+        )
+        val transformed = transformWithPlan(alignment, plan) ?: return null
+        if (transformed.valuesByMetric.values.any { values -> values.count(Double::isFinite) < MIN_OBSERVATIONS }) return null
+        return transformed to transformed.preparedSeries.mapValues { (_, series) -> series.transformation }
     }
 
     private fun activationBoundary(

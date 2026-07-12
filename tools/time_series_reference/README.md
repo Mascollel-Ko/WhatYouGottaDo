@@ -21,7 +21,10 @@ overlapping diagnostic categories, structural-zero activation boundaries,
 observation conflicts, explicit revision-ordering schemes, input-order
 invariant conflict resolution, lifecycle metadata fingerprint preservation,
 prepared common-row identity, full-calendar transformation preservation,
-prepared-series screening contracts, and final-week horizon exclusion.
+prepared-series screening contracts, final-week horizon exclusion,
+transformation-plan-before-selection, role-aware horizon row requirements,
+training-row-only scaling, restricted-view identity, and lifecycle semantic
+validation.
 
 Run the companion source scan from the repository root:
 

@@ -5,7 +5,6 @@ import kotlin.math.floor
 
 internal class EndogenousVariableSelector(
     private val alignmentService: TimeSeriesAlignmentService = TimeSeriesAlignmentService(),
-    private val integrationOrderAnalyzer: IntegrationOrderAnalyzer = IntegrationOrderAnalyzer(),
     private val localProjectionEstimator: BayesianLocalProjectionEstimator = BayesianLocalProjectionEstimator(),
     private val choleskyShockIdentifier: CholeskyShockIdentifier = CholeskyShockIdentifier()
 ) {
@@ -40,7 +39,7 @@ internal class EndogenousVariableSelector(
         while (mandatory.size + selected.size < maxEndogenous && candidates.isNotEmpty()) {
             val currentSystem = mandatory + selected
             val ranked = candidates.mapNotNull { candidate ->
-                candidateRollingPredictiveGain(candidate, xMetric, yMetrics, controls, currentSystem, preparedSeries)?.let { candidate to it }
+                candidateRollingPredictiveGain(candidate, xMetric, yMetrics, controls, currentSystem, preparedSeries, requestedHorizon.coerceAtLeast(1))?.let { candidate to it }
             }
             val best = ranked.maxByOrNull { it.second }
             if (best == null || best.second < MIN_LOG_PREDICTIVE_GAIN) {
@@ -49,7 +48,13 @@ internal class EndogenousVariableSelector(
             }
             val expandedSystem = currentSystem + best.first
             val preparedSystem = runCatching {
-                PreparedTimeSeriesSystem.createValidated(expandedSystem + controls, preparedSeries, lag = BASE_LAG, horizon = requestedHorizon.coerceAtLeast(1))
+                PreparedTimeSeriesSystem.createValidated(
+                    expandedSystem + controls,
+                    preparedSeries,
+                    lag = BASE_LAG,
+                    horizon = requestedHorizon.coerceAtLeast(1),
+                    rowRequirements = rowRequirements(xMetric, yMetrics, expandedSystem, controls, BASE_LAG, requestedHorizon.coerceAtLeast(1))
+                )
             }.getOrNull()
             val commonSourceWeeks = preparedSystem?.commonUsableRows.orEmpty().map { it.sourceWeek }.toSet()
             val alignment = alignmentService.alignmentFromPrepared(expandedSystem + controls, preparedSeries)
@@ -81,26 +86,59 @@ internal class EndogenousVariableSelector(
         yMetrics: List<TrendMetricId>,
         controls: List<TrendMetricId>,
         currentSystem: List<TrendMetricId>,
-        preparedSeries: Map<TrendMetricId, PreparedMetricSeries>
+        preparedSeries: Map<TrendMetricId, PreparedMetricSeries>,
+        requestedHorizon: Int
     ): Double? {
         val expandedSystem = runCatching {
-            PreparedTimeSeriesSystem.createValidated((currentSystem + candidate) + controls, preparedSeries, lag = BASE_LAG, horizon = 1)
+            PreparedTimeSeriesSystem.createValidated(
+                (currentSystem + candidate) + controls,
+                preparedSeries,
+                lag = BASE_LAG,
+                horizon = requestedHorizon,
+                rowRequirements = rowRequirements(xMetric, yMetrics, currentSystem + candidate, controls, BASE_LAG, requestedHorizon)
+            )
         }.getOrNull() ?: return null
         val commonSourceWeeks = expandedSystem.commonUsableRows.map { it.sourceWeek }.toSet()
         val expanded = alignmentService.alignmentFromPrepared((currentSystem + candidate) + controls, preparedSeries) ?: return null
         val base = alignmentService.alignmentFromPrepared(currentSystem + controls, preparedSeries)
-            ?.let { alignmentService.restrictToWeeks(it, expanded.weeks) }
             ?: return null
-        val candidateDiagnostic = integrationOrderAnalyzer.diagnose(candidate, expanded.valuesByMetric[candidate].orEmpty().filter(Double::isFinite))
-        if (candidateDiagnostic.levelOrder == IntegrationOrder.I2_OR_HIGHER) return null
         val baseScore = yMetrics.mapNotNull { yMetric ->
-            localProjectionEstimator.rollingPredictiveScore(base, xMetric, yMetric, currentSystem, controls, allowedSourceWeeks = commonSourceWeeks)
+            localProjectionEstimator.rollingPredictiveScore(base, xMetric, yMetric, currentSystem, controls, horizon = requestedHorizon, allowedSourceWeeks = commonSourceWeeks)
         }
         val expandedScore = yMetrics.mapNotNull { yMetric ->
-            localProjectionEstimator.rollingPredictiveScore(expanded, xMetric, yMetric, currentSystem + candidate, controls, allowedSourceWeeks = commonSourceWeeks)
+            localProjectionEstimator.rollingPredictiveScore(expanded, xMetric, yMetric, currentSystem + candidate, controls, horizon = requestedHorizon, allowedSourceWeeks = commonSourceWeeks)
         }
         if (baseScore.size != yMetrics.size || expandedScore.size != yMetrics.size) return null
         return expandedScore.sumOf { it.logPredictiveDensity } - baseScore.sumOf { it.logPredictiveDensity }
+    }
+
+    private fun rowRequirements(
+        xMetric: TrendMetricId,
+        yMetrics: List<TrendMetricId>,
+        endogenous: List<TrendMetricId>,
+        controls: List<TrendMetricId>,
+        lag: Int,
+        horizon: Int
+    ): List<VariableRowRequirement> {
+        val lagOffsets = (1..lag).toSet()
+        val rolesByMetric = linkedMapOf<TrendMetricId, MutableSet<TimeSeriesVariableRole>>()
+        fun add(metric: TrendMetricId, vararg roles: TimeSeriesVariableRole) {
+            rolesByMetric.getOrPut(metric) { mutableSetOf() }.addAll(roles)
+        }
+        endogenous.forEach { add(it, TimeSeriesVariableRole.ENDOGENOUS_STATE) }
+        add(xMetric, TimeSeriesVariableRole.SHOCK_SOURCE)
+        yMetrics.forEach { add(it, TimeSeriesVariableRole.RESPONSE) }
+        controls.forEach { add(it, TimeSeriesVariableRole.CONTEMPORANEOUS_CONTROL) }
+        return rolesByMetric.map { (metric, roles) ->
+            VariableRowRequirement(
+                metric = metric,
+                roles = roles,
+                requireSourceValue = true,
+                requiredLagOffsets = if (TimeSeriesVariableRole.ENDOGENOUS_STATE in roles || TimeSeriesVariableRole.SHOCK_SOURCE in roles) lagOffsets else emptySet(),
+                requiredTargetOffsets = if (TimeSeriesVariableRole.RESPONSE in roles) setOf(horizon) else emptySet(),
+                requireShockEstimationRows = TimeSeriesVariableRole.SHOCK_SOURCE in roles
+            )
+        }
     }
 
     private fun maximumEndogenousCount(observations: Int, controlCount: Int, horizon: Int): Int {

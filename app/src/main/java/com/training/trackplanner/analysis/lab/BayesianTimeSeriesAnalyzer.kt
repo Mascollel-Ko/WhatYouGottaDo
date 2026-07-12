@@ -6,7 +6,6 @@ import com.training.trackplanner.analysis.trends.TrendMetricId
 
 internal class BayesianTimeSeriesAnalyzer(
     private val alignmentService: TimeSeriesAlignmentService = TimeSeriesAlignmentService(),
-    private val integrationOrderAnalyzer: IntegrationOrderAnalyzer = IntegrationOrderAnalyzer(),
     private val localProjectionEstimator: BayesianLocalProjectionEstimator = BayesianLocalProjectionEstimator(),
     private val cointegrationAnalyzer: CointegrationAnalyzer = CointegrationAnalyzer(),
     private val endogenousVariableSelector: EndogenousVariableSelector = EndogenousVariableSelector(),
@@ -27,14 +26,25 @@ internal class BayesianTimeSeriesAnalyzer(
         val required = listOf(request.xMetric) + yMetrics + controls
         val rawBaseAlignment = alignmentService.align(required, metricSeries)
             ?: return unavailable(request, warnings + "Selected series have no aligned weekly observations.")
-        val preparedCatalog = alignmentService.align(AnalysisMetricRegistry.descriptors.map { it.id }, metricSeries)
+        val levelCatalogAlignment = alignmentService.align(AnalysisMetricRegistry.descriptors.map { it.id }, metricSeries)
             ?.let { alignmentService.restrictToWeeks(it, rawBaseAlignment.weeks) }
-            ?.preparedSeries
             ?: return unavailable(request, warnings + "Selected series cannot be prepared on one canonical weekly calendar.", rawBaseAlignment)
+        val transformationPlan = alignmentService.transformationPlan(levelCatalogAlignment, required.toSet())
+        val requiredDiagnostics = required.mapNotNull { transformationPlan.diagnostics[it] }
+        if (requiredDiagnostics.any { it.levelOrder == IntegrationOrder.I2_OR_HIGHER }) {
+            return unavailable(
+                request,
+                warnings + "A required X/Y/Z series is I(2) or higher and cannot enter the Bayesian IRF system.",
+                rawBaseAlignment,
+                requiredDiagnostics
+            )
+        }
+        val preparedCatalog = alignmentService.preparedCandidateCatalog(levelCatalogAlignment, transformationPlan)?.preparedSeriesByMetric
+            ?: return unavailable(request, warnings + "TRANSFORMATION_PLAN_UNAVAILABLE: no transformed prepared catalog could be created.", rawBaseAlignment, requiredDiagnostics)
         val baseAlignment = alignmentService.alignmentFromPrepared(required, preparedCatalog)
-            ?: return unavailable(request, warnings + "Selected prepared series cannot be aligned on one weekly calendar.", rawBaseAlignment)
+            ?: return unavailable(request, warnings + "Selected transformed prepared series cannot be aligned on one weekly calendar.", rawBaseAlignment, requiredDiagnostics)
         if (baseAlignment.weeks.size < MIN_OBSERVATIONS) {
-            return unavailable(request, warnings + "At least 24 aligned weekly observations are required.", baseAlignment)
+            return unavailable(request, warnings + "At least 24 transformed aligned weekly observations are required.", baseAlignment, requiredDiagnostics)
         }
 
         val automaticSelection = endogenousVariableSelector.select(
@@ -46,12 +56,14 @@ internal class BayesianTimeSeriesAnalyzer(
             preparedSeries = preparedCatalog
         )
         val system = choleskyShockIdentifier.canonicalOrder(listOf(request.xMetric) + yMetrics + automaticSelection.metrics)
-        val levelAlignment = alignmentService.alignmentFromPrepared(system + controls, preparedCatalog)
+        val levelAlignment = alignmentService.alignmentFromPrepared(system + controls, levelCatalogAlignment.preparedSeries)
             ?: return unavailable(request, warnings + "The selected system cannot be aligned without filling missing values.", baseAlignment)
-        if (levelAlignment.weeks.size < MIN_OBSERVATIONS) {
-            return unavailable(request, warnings + "Aligned data are insufficient after automatic-variable screening.", levelAlignment)
+        val stationaryAlignment = alignmentService.alignmentFromPrepared(system + controls, preparedCatalog)
+            ?: return unavailable(request, warnings + "TRANSFORMATION_MISMATCH: selected system is missing transformed prepared series.", baseAlignment, requiredDiagnostics)
+        if (stationaryAlignment.weeks.size < MIN_OBSERVATIONS) {
+            return unavailable(request, warnings + "Aligned transformed data are insufficient after automatic-variable screening.", stationaryAlignment, requiredDiagnostics)
         }
-        val diagnostics = system.map { metric -> integrationOrderAnalyzer.diagnose(metric, levelAlignment.valuesByMetric.getValue(metric)) }
+        val diagnostics = system.mapNotNull { metric -> transformationPlan.diagnostics[metric] }
         val mandatoryDiagnostics = diagnostics.filter { it.metric == request.xMetric || it.metric in yMetrics }
         if (mandatoryDiagnostics.any { it.levelOrder == IntegrationOrder.I2_OR_HIGHER }) {
             return unavailable(
@@ -64,16 +76,9 @@ internal class BayesianTimeSeriesAnalyzer(
         }
 
         val cointegration = cointegrationAnalyzer.analyze(system, levelAlignment, diagnostics)
-        val stationarized = alignmentService.stationarize(levelAlignment, diagnostics)
-            ?: return unavailable(
-                request,
-                warnings + "The stationary transformation leaves too few aligned observations.",
-                levelAlignment,
-                diagnostics,
-                cointegration = cointegration,
-                automaticSelection = automaticSelection
-            )
-        val (stationaryAlignment, transformations) = stationarized
+        val transformations = (system + controls).distinct().associateWith { metric ->
+            transformationPlan.plansByMetric[metric]?.transformation?.id.orEmpty()
+        }
         val lagAndHorizon = selectLagAndHorizon(requestedHorizon, request.xMetric, yMetrics, system, controls, stationaryAlignment)
             ?: return unavailable(
                 request,

@@ -10,6 +10,9 @@ WRAPPER = TARGET / "StableLinearAlgebra.kt"
 MODELS = TARGET / "BayesianTimeSeriesModels.kt"
 SELECTOR = TARGET / "EndogenousVariableSelector.kt"
 SUPPORT = TARGET / "BayesianTimeSeriesSupport.kt"
+ANALYZER = TARGET / "BayesianTimeSeriesAnalyzer.kt"
+LP = TARGET / "BayesianLocalProjectionEstimator.kt"
+DYNAMIC = TARGET / "BayesianDynamicEstimators.kt"
 
 FORBIDDEN = [
     re.compile(r"MatrixUtils\.inverse"),
@@ -63,6 +66,10 @@ def main() -> int:
         violations.append("EndogenousVariableSelector.kt: candidate ranking must not accept raw TrendDataPoint maps")
     if "alignmentService.align(" in selector_text:
         violations.append("EndogenousVariableSelector.kt: selector ranking must consume prepared systems, not realign raw series")
+    if re.search(r"horizon\s*=\s*1\b", selector_text):
+        violations.append("EndogenousVariableSelector.kt: candidate ranking must use the requested horizon, not hard-coded horizon 1")
+    if "IntegrationOrderAnalyzer" in selector_text or ".diagnose(" in selector_text:
+        violations.append("EndogenousVariableSelector.kt: selector must not recompute transformation diagnostics")
 
     support_text = SUPPORT.read_text(encoding="utf-8")
     if "items.indexOf" in support_text:
@@ -71,6 +78,21 @@ def main() -> int:
         violations.append("BayesianTimeSeriesSupport.kt: conflict resolution must not use source-string ordering")
     if "RevisionOrderKey" in support_text:
         violations.append("BayesianTimeSeriesSupport.kt: heterogeneous revision fields must not be collapsed into one tuple")
+
+    analyzer_text = ANALYZER.read_text(encoding="utf-8")
+    selector_call = analyzer_text.find("endogenousVariableSelector.select")
+    plan_call = analyzer_text.find("transformationPlan(")
+    catalog_call = analyzer_text.find("preparedCandidateCatalog(")
+    if min(selector_call, plan_call, catalog_call) < 0 or not (plan_call < catalog_call < selector_call):
+        violations.append("BayesianTimeSeriesAnalyzer.kt: transformation plan and prepared catalog must be created before selector invocation")
+
+    lp_text = LP.read_text(encoding="utf-8")
+    if re.search(r"alignment\.copy\s*\(", lp_text):
+        violations.append("BayesianLocalProjectionEstimator.kt: slicing must not fall back to shallow alignment.copy")
+
+    dynamic_text = DYNAMIC.read_text(encoding="utf-8")
+    if "raw.map(::standardize)" in dynamic_text:
+        violations.append("BayesianDynamicEstimators.kt: compatibility estimators must not standardize full raw series before allowed-row restriction")
 
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")

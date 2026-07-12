@@ -64,7 +64,7 @@ internal class BayesianLocalProjectionEstimator {
         val logDensities = mutableListOf<Double>()
         var covered = 0
         origins.forEach { origin ->
-            val training = slice(alignment, origin + 1)
+            val training = slice(alignment, origin + 1) ?: return@forEach
             val fitted = fit(training, xMetric, yMetric, endogenous, controls, lag, horizon, emptyMap(), allowedSourceWeeks) ?: return@forEach
             val feature = featureVector(alignment, xMetric, endogenous, controls, lag, origin, emptyMap()) ?: return@forEach
             val standardizedFeature = standardizedFeature(feature, fitted)
@@ -158,12 +158,8 @@ internal class BayesianLocalProjectionEstimator {
             if (standardDeviation <= EPSILON) 0.0 else (value - fitted.featureMeans[index]) / standardDeviation
         }.toDoubleArray()
 
-    private fun slice(alignment: TimeSeriesAlignment, endExclusive: Int): TimeSeriesAlignment =
+    private fun slice(alignment: TimeSeriesAlignment, endExclusive: Int): TimeSeriesAlignment? =
         TimeSeriesAlignmentService().restrictToWeeks(alignment, alignment.weeks.take(endExclusive))
-            ?: alignment.copy(
-                weeks = alignment.weeks.take(endExclusive),
-                valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> values.take(endExclusive) }
-            )
 
     private fun minimumRows(endogenousCount: Int, controlCount: Int, lag: Int): Int =
         maxOf(MIN_OBSERVATIONS, 4 * (1 + endogenousCount * lag + controlCount + DETERMINISTIC_TERMS))

@@ -102,14 +102,14 @@
     "weeks_are_iso_mondays": true
   },
   "provenance": {
-    "generator_script_version": "phase-a-4",
+    "generator_script_version": "phase-a-5",
     "numpy_version": "2.3.5",
     "purpose": "Phase A calendar grid golden fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "257df8d155cd45e134a120d2f3255be2e71d1776",
+    "source_commit": "291e968aaae7883c38af4076487e31480131dc52",
     "tolerance": 1e-07
   },
   "quality_summary_denominators": {

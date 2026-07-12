@@ -22,15 +22,22 @@
       "prepared_system_creation"
     ]
   },
+  "lifecycle_semantic_validation": {
+    "duplicate_ranges_normalize_in_fingerprint": true,
+    "observed_value_rejected_in_not_applicable_range": true,
+    "observed_value_rejected_in_version_discontinuity_range": true,
+    "overlapping_version_discontinuity_ranges_rejected": true,
+    "structural_zero_requires_policy": true
+  },
   "provenance": {
-    "generator_script_version": "phase-a-4",
+    "generator_script_version": "phase-a-5",
     "numpy_version": "2.3.5",
     "purpose": "Phase A prepared-data pipeline contract fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "257df8d155cd45e134a120d2f3255be2e71d1776",
+    "source_commit": "291e968aaae7883c38af4076487e31480131dc52",
     "tolerance": 1e-07
   },
   "quality_summary_overlap": {
@@ -75,6 +82,12 @@
       "usable_count": 1
     }
   },
+  "restricted_view_identity": {
+    "lifecycle_fingerprint_preserved": true,
+    "quality_summary_recomputed_for_view": true,
+    "shallow_alignment_copy_allowed": false,
+    "source_preparation_fingerprint_preserved": true
+  },
   "revision_resolution": {
     "permutation_invariant": true,
     "rules": [
@@ -93,12 +106,54 @@
       "target_week",
       "lag_weeks",
       "ordered_metric_ids",
+      "metric_roles",
       "transformations",
       "lag",
-      "horizon",
+      "requested_horizon_set",
+      "horizon_policy",
       "preparation_version",
       "row_policy"
     ],
-    "policy": "COMMON_USABLE_ROWS"
+    "policy": "COMMON_USABLE_ROWS",
+    "role_requirements": {
+      "CONTEMPORANEOUS_CONTROL": [
+        "source_only"
+      ],
+      "ENDOGENOUS_STATE": [
+        "source",
+        "var_lags"
+      ],
+      "LAGGED_CONTROL": [
+        "source",
+        "declared_lags"
+      ],
+      "RESPONSE": [
+        "actual_requested_horizon_target"
+      ],
+      "SHOCK_SOURCE": [
+        "source",
+        "shock_lags"
+      ]
+    }
+  },
+  "scaling_sample_contract": {
+    "candidate_and_baseline_share_common_source_weeks": true,
+    "excluded_weeks_affect_scaling": false,
+    "standardization_sample": "validated_training_rows_only",
+    "test_rows_affect_training_scaling": false
+  },
+  "transformation_plan_contract": {
+    "candidate_scoring_uses_transformed_prepared_series": true,
+    "created_before_candidate_selection": true,
+    "fingerprint_inputs": [
+      "metric_id",
+      "integration_order",
+      "transformation",
+      "decision_reason",
+      "plan_version"
+    ],
+    "level_fallback_after_failed_transformation": false,
+    "optional_inconclusive_policy": "EXCLUDE_CANDIDATE",
+    "required_inconclusive_policy": "USE_DOCUMENTED_FALLBACK"
   }
 }

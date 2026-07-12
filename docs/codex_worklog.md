@@ -1363,3 +1363,71 @@ Call-Graph Audit
 Remaining
 - Push the branch and dispatch GitHub Actions for `feat/time-series-phase-a`.
 - PHASE B posterior sampling, PHASE C Bayesian Local Projection rebuild, PHASE D Johansen/Bayesian VECM, and final UI work remain explicitly out of scope.
+
+## Time-Series Analysis Phase A End-to-End Preparation Contract Correction
+
+Cause
+- Started from `feat/time-series-phase-a` at `291e968aaae7883c38af4076487e31480131dc52`.
+- The final end-to-end PHASE A audit confirmed four remaining contract gaps:
+  - automatic variable selection still happened before the final transformation plan;
+  - common-row identity treated every metric too much like an undifferentiated response and was not role/horizon explicit enough;
+  - slicing and compatibility scaling could bypass the validated prepared-data sample;
+  - `PreparedMetricSeries` did not fully validate lifecycle metadata semantics against cell states.
+- Existing dirty `outputs/*` files were preserved and were not staged or modified intentionally.
+
+Changes
+- Added immutable transformation-plan and prepared-candidate-catalog contracts.
+- Changed `BayesianTimeSeriesAnalyzer` to derive the transformation plan before selector invocation, build the transformed prepared catalog once, and use that same transformed catalog for selector ranking and final model preparation.
+- Changed inconclusive transformation handling: optional automatic candidates are excluded; required user-selected X/Y/Z metrics can use a documented level fallback without being labeled confirmed stationary.
+- Added variable roles, row requirements, requested-horizon policy, and row-specification fingerprints.
+- Changed automatic selector candidate comparisons to use the requested horizon and role-aware common source rows for both baseline and expanded systems.
+- Removed the local-projection shallow slicing fallback.
+- Changed BVAR/VECM compatibility scaling to calculate standardization parameters from the validated estimation/training rows only.
+- Strengthened lifecycle metadata validation for structural zeros, pre-creation, not-applicable, version-discontinuity, observed values, conflicts, metadata range order, and deterministic range fingerprints.
+- Extended static checks for selector ordering, horizon hard-coding, selector diagnostic recomputation, shallow LP slicing, and full-series standardization.
+- Extended reference fixtures and docs for transformation planning, role-aware rows, training-only scaling, restricted-view identity, and lifecycle semantic validation.
+
+Reason
+- PHASE B must not select variables on level data while fitting differences, compare candidates over different samples, let controls unnecessarily shrink response rows, or scale covariance inputs on excluded/future rows.
+- PHASE C must not let BVAR shock and BLP response paths use different transformed samples, stale sliced alignments, or horizon-1 candidate assumptions.
+- PHASE D must not let lifecycle-inconsistent cells, version-discontinuity crossings, or stale restricted views enter cointegration matrices.
+
+Result
+- PHASE A now guarantees transformation-before-selection, one transformed prepared catalog for selector/final preparation, explicit variable-role row identity, requested-horizon propagation, exact common-row comparison, exact slicing, training-sample scaling, lifecycle semantic validation, and static safeguards against the known bypasses.
+- PHASE B/C/D estimator work remains unstarted.
+- No app version, tag, main merge, or UI work was performed.
+
+Tests
+- `.\gradlew.bat --version`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed with bundled Python.
+- `python tools/check_time_series_numeric_sources.py`: passed with bundled Python.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*TimeSeriesPreparedPipelineContractTest"`: initially failed on derived lifecycle discontinuity strictness, then passed after allowing source-derived lifecycle states.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*TimeSeries*"`: initially failed because an old fixture used a version-discontinuity observation without metadata, then passed after adding explicit lifecycle metadata to the fixture.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*TimeSeriesPreparedPipelineContractTest" --tests "*TimeSeriesCalendarGridTest" --tests "*LaggedTimeSeriesAnalyzerTest" --tests "*StableLinearAlgebraTest"`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+- GitHub Actions: pending until this correction commit is pushed.
+
+File/Feature Map
+- `BayesianTimeSeriesModels.kt`: transformation plan/catalog models, variable-role row requirements, row-specification fingerprints, lifecycle semantic validation, metadata range fingerprint normalization.
+- `BayesianTimeSeriesSupport.kt`: transformation-plan creation, transformed prepared-catalog creation, metadata-preserving exact restriction, plan-backed stationarization.
+- `BayesianTimeSeriesAnalyzer.kt`: transformation-before-selection orchestration and final preparation from the same transformed catalog.
+- `EndogenousVariableSelector.kt`: requested-horizon candidate scoring and role-aware common-row requirements.
+- `BayesianLocalProjectionEstimator.kt`: exact validated rolling-fold slicing only.
+- `BayesianDynamicEstimators.kt`: allowed-row/training-row-only scaling for compatibility BVAR/VECM paths.
+- `TimeSeriesPreparedPipelineContractTest.kt`: regression coverage for transformation plan, shared transformed catalog, role-aware controls, horizon/role fingerprints, training-only scaling, and lifecycle semantic validation.
+- `TimeSeriesCalendarGridTest.kt`: lifecycle metadata fixture updated for explicit version-discontinuity semantics.
+- `tools/check_time_series_numeric_sources.py`: static guards for the end-to-end PHASE A bypasses.
+- `tools/time_series_reference/*`: deterministic contract fixtures and README coverage for the new prepared-data contracts.
+- `docs/bayesian_time_series_lab_architecture.md`: architecture, call-graph, file map, and downstream contract map update.
+
+Downstream Contract Map
+- PHASE B dependencies: one transformation plan before selection, role-aware common rows, requested-horizon fingerprints, common baseline/candidate source weeks, training-only scaling, lifecycle-consistent covariance inputs.
+- PHASE C dependencies: exact restricted views, no shallow sliced alignments, no future-target requirements for contemporaneous controls, BVAR/BLP sample identity through row fingerprints.
+- PHASE D dependencies: lifecycle metadata/cell-state consistency, preserved discontinuity provenance through transformations, no stale restricted lifecycle definition, and no lifecycle-prohibited cells in prepared systems.
+- Prohibited legacy/raw paths: selector raw `TrendDataPoint` ranking, selector stationarity recomputation, horizon-1 candidate hard-coding, shallow `alignment.copy(...)` slicing, full-calendar standardization before allowed-row restriction, and transformed-series fallback to levels.
+
+Remaining risks
+- Later PHASE B/C/D still need real posterior estimators, fold-specific transformation policy decisions, and final UI integration.
+- GitHub Actions run ID must be recorded after branch push.
