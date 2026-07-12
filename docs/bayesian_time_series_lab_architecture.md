@@ -44,7 +44,7 @@ The legacy graph may remain app-visible while PHASE B-E are incomplete. It canno
 
 ## Package Dependency Rules
 
-- `analysis.lab.pipeline` may import immutable trend metric definitions, raw `TrendDataPoint` only in `StrictTimeSeriesIngestion.kt`, Java/Kotlin standard library types, and its own preparation contracts.
+- `analysis.lab.pipeline` may import immutable trend metric definitions, raw `TrendDataPoint` only in `StrictTimeSeriesIngestion.kt`, the existing `TimeSeriesAlignmentService` resolver output only at that ingestion boundary, Java/Kotlin standard library types, and its own preparation contracts.
 - `analysis.lab.pipeline` must not import `LegacyTimeSeriesAnalyzer`, legacy LP/BVAR/VECM estimators, `CointegrationAnalyzer`, or `EndogenousVariableSelector`.
 - Legacy code must not import or instantiate strict pipeline internals.
 - Strict result types and legacy result types are distinct.
@@ -109,7 +109,7 @@ It does not contain posterior draws, IRFs, rank results, a VECM result, or stati
 
 | Production function | Accepts | Produces | Calendar | Lifecycle | Diagnostics | Transform | Representation | Rows | Scaling | Shock |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `RawTimeSeriesInput.fromTrendSeries/createValidated` | raw observations | sealed raw input | no | no | no | no | no | no | no | no |
+| `RawTimeSeriesInput.fromTrendSeries/createValidated` | resolver output or one resolved observation per metric/week | sealed raw input | no | no | no | no | no | no | no | no |
 | `RawTimeSeriesInput.ingest` via pipeline | raw input, request | calendar + lifecycle level catalog | yes | yes | no | no | no | no | no | no |
 | `SegmentAwareIntegrationAssessmentAuthority.assess` | lifecycle level catalog | segments + assessments | no | no | yes | no | no | no | no | no |
 | `CanonicalTransformationAuthority.createPlan` via context | assessments, policy | canonical transformation plan | no | no | no | yes | no | no | no | no |
@@ -193,7 +193,7 @@ Roles are explicit: `SHOCK_SOURCE`, `ENDOGENOUS_STATE`, `RESPONSE`, `CONTEMPORAN
 
 ## Future Structural-Shock Contract
 
-`BvarPosteriorSourceIdentity` binds a future BVAR posterior to the strict BVAR view, source metric, row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and accepted source-week domain. `IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite prepared-row shock series per draw, one covariance-draw fingerprint per draw, that source identity, ordering and normalization policy, and retained rejected-draw diagnostics. One deterministic mean series cannot satisfy the contract, and shock vectors are not full-calendar vectors.
+`BvarPosteriorSourceIdentity` binds a future BVAR posterior to the strict BVAR view, source metric, row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and the exact BVAR row-plan source-week domain. Caller-supplied subset or superset shock weeks are rejected. `IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite prepared-row shock series per draw, one covariance-draw fingerprint per draw, that source identity, ordering and normalization policy, and retained rejected-draw diagnostics. Accepted and rejected draw IDs are unique and disjoint, accepted draws are stored/fingerprinted in canonical draw-id order, rejected diagnostics are canonicalized for fingerprinting, one deterministic mean series cannot satisfy the contract, and shock vectors are not full-calendar vectors.
 
 PHASE A validates this shape only. It does not generate shocks.
 
@@ -246,6 +246,7 @@ Static and focused tests reject:
 - sub-32 integration diagnostics, fixed ADF/KPSS thresholds, legacy confirmed-status vocabulary, explicit transformation fallback, scaling clamps, horizon-zero sentinels, and duplicate row/scaling authorities;
 - transformed data in a Johansen view;
 - raw/fallback/single-mean/full-calendar BLP shocks;
+- caller-controlled shock-week subsets, non-canonical posterior draw fingerprinting, accepted/rejected draw overlap, and strict ingestion duplicate-revision resolution;
 - response-scale decisions in UI;
 - statistically ranked optional variables in PHASE A;
 - public fingerprint injection or stale-copy identity;
@@ -253,7 +254,7 @@ Static and focused tests reject:
 
 ## File Responsibility Map
 
-- `StrictTimeSeriesIngestion.kt`: only raw boundary, date canonicalization, calendar construction, conflict resolution, lifecycle cell derivation, strict entry point.
+- `StrictTimeSeriesIngestion.kt`: only raw boundary, existing resolver-output adapter, date canonicalization, calendar construction, lifecycle cell derivation, strict entry point; it consumes one resolved observation/conflict per metric/week and does not decide revision precedence.
 - `StrictTimeSeriesStages.kt`: calendar/lifecycle/level/request/result types and fingerprint primitive.
 - `StrictTimeSeriesDiagnostics.kt`: contiguous segments and segment-aware integration authority.
 - `StrictTimeSeriesRepresentation.kt`: inconclusive policies, canonical transformation, transformed series, estimator representation, response scale, future shock posterior.

@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
+import com.training.trackplanner.analysis.lab.TimeSeriesAlignmentService
+import com.training.trackplanner.analysis.lab.TimeSeriesObservation
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.io.File
@@ -149,18 +151,21 @@ class StrictTimeSeriesIntegrationContractTest {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val week = LocalDate.parse("2026-01-05")
-        val input = RawTimeSeriesInput.createValidated(
+        val alignment = requireNotNull(TimeSeriesAlignmentService().alignObservations(
+            listOf(x, y),
             listOf(
-                RawTimeSeriesObservation(x, week, 1.0, source = "resolver", sourceIndex = 1),
-                RawTimeSeriesObservation(x, week, 2.0, source = "resolver", sourceIndex = 2),
-                RawTimeSeriesObservation(y, week, 1.0, source = "resolver", sourceIndex = 3)
+                TimeSeriesObservation(x, week, 1.0, source = "resolver-a"),
+                TimeSeriesObservation(x, week, 2.0, source = "resolver-b"),
+                TimeSeriesObservation(y, week, 1.0, source = "resolver")
             )
-        )
+        ))
+        val input = RawTimeSeriesInput.fromResolvedAlignment(alignment)
         val catalog = input.ingest(StrictPreparationRequest(x, listOf(y)))
         val cell = catalog.seriesByMetric.getValue(x).cells.single()
 
         assertEquals(StrictCellState.CONFLICT, cell.state)
-        assertEquals(listOf(1, 2), cell.provenance.map { it.sourceIndex })
+        assertEquals(2, cell.provenance.size)
+        assertTrue(cell.provenance.all { it.conflictSelectionRule == "UNRESOLVED_CONFLICT" })
     }
 
     private fun diagnosticFor(values: List<Double?>): IntegrationOrderAssessment {

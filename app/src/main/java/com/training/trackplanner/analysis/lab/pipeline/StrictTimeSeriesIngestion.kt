@@ -1,5 +1,11 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
+import com.training.trackplanner.analysis.lab.ObservationConflictProvenance
+import com.training.trackplanner.analysis.lab.TimeSeriesAlignment
+import com.training.trackplanner.analysis.lab.TimeSeriesAlignmentService
+import com.training.trackplanner.analysis.lab.TimeSeriesCell
+import com.training.trackplanner.analysis.lab.TimeSeriesCellState
+import com.training.trackplanner.analysis.lab.TimeSeriesObservation
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.DayOfWeek
@@ -12,10 +18,14 @@ internal data class RawTimeSeriesObservation(
     val value: Double?,
     val declaredState: StrictCellState? = null,
     val source: String = "raw",
-    val sourceIndex: Int = 0
+    val sourceIndex: Int = 0,
+    val authoritativeProvenance: List<StrictObservationProvenance> = emptyList()
 ) {
     init {
         if (value != null) require(value.isFinite())
+        if (declaredState == StrictCellState.CONFLICT) require(authoritativeProvenance.size > 1) {
+            "strict conflict observations require authoritative conflict provenance"
+        }
     }
 }
 
@@ -56,21 +66,37 @@ internal class RawTimeSeriesInput private constructor(
         fun fromTrendSeries(
             seriesByMetric: Map<TrendMetricId, List<TrendDataPoint>>,
             lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
-        ): RawTimeSeriesInput = createValidated(
-            seriesByMetric.entries.flatMap { (metric, points) ->
-                points.mapIndexed { index, point ->
-                    RawTimeSeriesObservation(metric, point.weekStart, point.value, source = "TrendDataPoint", sourceIndex = index)
-                }
-            },
-            lifecycleByMetric
-        )
+        ): RawTimeSeriesInput {
+            val observations = seriesByMetric.entries.flatMap { (metric, points) ->
+                points.map { point -> TimeSeriesObservation(metric, point.weekStart, point.value, source = "TrendDataPoint") }
+            }
+            val alignment = TimeSeriesAlignmentService().alignObservations(seriesByMetric.keys, observations)
+                ?: error("resolved time-series alignment is unavailable")
+            return fromResolvedAlignment(alignment, lifecycleByMetric)
+        }
+
+        fun fromResolvedAlignment(
+            alignment: TimeSeriesAlignment,
+            lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
+        ): RawTimeSeriesInput {
+            val grid = alignment.grid ?: error("resolved alignment must carry a validated calendar grid")
+            return createValidated(
+                grid.cellsByMetric.values.flatten().mapIndexed { index, cell -> cell.toRawObservation(index) },
+                lifecycleByMetric
+            )
+        }
 
         fun createValidated(
             observations: Collection<RawTimeSeriesObservation>,
             lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
         ): RawTimeSeriesInput {
             require(observations.isNotEmpty()) { "raw observations cannot be empty" }
-            return RawTimeSeriesInput(observations.toList(), lifecycleByMetric.toMap())
+            val items = observations.toList()
+            val duplicateKeys = items.groupBy { it.metric to canonicalWeek(it.date) }.filterValues { it.size > 1 }.keys
+            require(duplicateKeys.isEmpty()) {
+                "strict ingestion requires one authoritative resolved observation per metric/week"
+            }
+            return RawTimeSeriesInput(items, lifecycleByMetric.toMap())
         }
 
         private fun lifecycleCell(
@@ -79,8 +105,11 @@ internal class RawTimeSeriesInput private constructor(
             lifecycle: StrictMetricLifecycle,
             observations: List<RawTimeSeriesObservation>
         ): LifecycleValidatedCell {
-            val provenance = observations.map { observation ->
-                StrictObservationProvenance(observation.source, observation.sourceIndex, observation.value, observation.declaredState)
+            require(observations.size <= 1) { "strict ingestion boundary received unresolved duplicate observations" }
+            val provenance = observations.flatMap { observation ->
+                observation.authoritativeProvenance.ifEmpty {
+                    listOf(StrictObservationProvenance(observation.source, observation.sourceIndex, observation.value, observation.declaredState))
+                }
             }.sortedWith(
                 compareBy<StrictObservationProvenance> { it.sourceIndex }
                     .thenBy { it.source }
@@ -100,14 +129,54 @@ internal class RawTimeSeriesInput private constructor(
                 if (week.isAfter(activeUntil)) return LifecycleValidatedCell(metric, week, StrictCellState.NOT_APPLICABLE, null, provenance)
             }
             if (observations.isEmpty()) return LifecycleValidatedCell(metric, week, StrictCellState.MISSING, null)
-            val states = observations.map { observation ->
-                observation.declaredState ?: if (observation.value == null) StrictCellState.MISSING else StrictCellState.OBSERVED_VALUE
+            val observation = observations.single()
+            val state = observation.declaredState ?: if (observation.value == null) StrictCellState.MISSING else StrictCellState.OBSERVED_VALUE
+            return LifecycleValidatedCell(metric, week, state, observation.value, provenance)
+        }
+
+        private fun TimeSeriesCell.toRawObservation(index: Int): RawTimeSeriesObservation =
+            RawTimeSeriesObservation(
+                metric = metric,
+                date = weekStart,
+                value = value,
+                declaredState = state.toStrictState(),
+                source = source ?: "TimeSeriesAlignmentService",
+                sourceIndex = index,
+                authoritativeProvenance = provenance(index)
+            )
+
+        private fun TimeSeriesCell.provenance(index: Int): List<StrictObservationProvenance> =
+            conflictProvenance?.toStrictProvenance() ?: listOf(
+                StrictObservationProvenance(
+                    source ?: "TimeSeriesAlignmentService",
+                    index,
+                    value,
+                    state.toStrictState()
+                )
+            )
+
+        private fun ObservationConflictProvenance.toStrictProvenance(): List<StrictObservationProvenance> =
+            candidates.sortedWith(
+                compareBy({ it.source.orEmpty() }, { it.value ?: Double.NEGATIVE_INFINITY }, { it.state?.name.orEmpty() }, { it.version.orEmpty() })
+            ).mapIndexed { index, candidate ->
+                StrictObservationProvenance(
+                    candidate.source ?: "TimeSeriesAlignmentService",
+                    index,
+                    candidate.value,
+                    candidate.state?.toStrictState(),
+                    selectionRule.name,
+                    unresolvedConflict
+                )
             }
-            val values = observations.map(RawTimeSeriesObservation::value)
-            if (states.distinct().size > 1 || values.distinct().size > 1) {
-                return LifecycleValidatedCell(metric, week, StrictCellState.CONFLICT, null, provenance)
-            }
-            return LifecycleValidatedCell(metric, week, states.first(), values.first(), provenance)
+
+        private fun TimeSeriesCellState.toStrictState(): StrictCellState = when (this) {
+            TimeSeriesCellState.OBSERVED_VALUE -> StrictCellState.OBSERVED_VALUE
+            TimeSeriesCellState.STRUCTURAL_ZERO -> StrictCellState.STRUCTURAL_ZERO
+            TimeSeriesCellState.MISSING -> StrictCellState.MISSING
+            TimeSeriesCellState.NOT_APPLICABLE -> StrictCellState.NOT_APPLICABLE
+            TimeSeriesCellState.PRE_METRIC_CREATION -> StrictCellState.PRE_METRIC_CREATION
+            TimeSeriesCellState.VERSION_DISCONTINUITY -> StrictCellState.VERSION_DISCONTINUITY
+            TimeSeriesCellState.CONFLICT -> StrictCellState.CONFLICT
         }
 
         private fun canonicalWeek(date: LocalDate): LocalDate =

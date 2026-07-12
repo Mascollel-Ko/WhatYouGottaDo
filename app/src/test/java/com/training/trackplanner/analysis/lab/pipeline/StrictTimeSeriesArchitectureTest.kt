@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
+import com.training.trackplanner.analysis.lab.TimeSeriesAlignmentService
+import com.training.trackplanner.analysis.lab.TimeSeriesObservation
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
@@ -37,10 +39,12 @@ class StrictTimeSeriesArchitectureTest {
     @Test
     fun conflictingRawObservationsNeverBecomeNumeric() {
         val metric = TrendMetricId.BADMINTON_TRAINING
-        val input = RawTimeSeriesInput.createValidated(
-            listOf(
-                RawTimeSeriesObservation(metric, LocalDate.parse("2026-01-05"), 1.0, sourceIndex = 0),
-                RawTimeSeriesObservation(metric, LocalDate.parse("2026-01-06"), 2.0, sourceIndex = 1)
+        val input = RawTimeSeriesInput.fromTrendSeries(
+            mapOf(
+                metric to listOf(
+                    TrendDataPoint(LocalDate.parse("2026-01-05"), 1.0),
+                    TrendDataPoint(LocalDate.parse("2026-01-06"), 2.0)
+                )
             )
         )
 
@@ -49,6 +53,22 @@ class StrictTimeSeriesArchitectureTest {
         assertEquals(StrictCellState.CONFLICT, cell.state)
         assertNull(cell.value)
         assertEquals(2, cell.provenance.size)
+    }
+
+    @Test
+    fun unresolvedDuplicateRawObservationsCannotBypassResolver() {
+        val metric = TrendMetricId.BADMINTON_TRAINING
+
+        assertTrue(
+            runCatching {
+                RawTimeSeriesInput.createValidated(
+                    listOf(
+                        RawTimeSeriesObservation(metric, LocalDate.parse("2026-01-05"), 1.0, sourceIndex = 0),
+                        RawTimeSeriesObservation(metric, LocalDate.parse("2026-01-06"), 2.0, sourceIndex = 1)
+                    )
+                )
+            }.isFailure
+        )
     }
 
     @Test
@@ -81,12 +101,14 @@ class StrictTimeSeriesArchitectureTest {
             RawTimeSeriesObservation(response, first, 1.0),
             RawTimeSeriesObservation(response, first.plusWeeks(1), 2.0)
         )
-        fun catalog(observations: List<RawTimeSeriesObservation>) = RawTimeSeriesInput.createValidated(
-            observations + responseObservations,
+        fun catalog(observations: List<TimeSeriesObservation>) = RawTimeSeriesInput.fromResolvedAlignment(
+            requireNotNull(TimeSeriesAlignmentService().alignObservations(listOf(metric, response), observations + responseObservations.map {
+                TimeSeriesObservation(response, it.date, it.value)
+            })),
             mapOf(metric to lifecycle)
         ).ingest(request)
-        val left = RawTimeSeriesObservation(metric, first, 1.0, source = "a", sourceIndex = 1)
-        val right = RawTimeSeriesObservation(metric, first, 2.0, source = "b", sourceIndex = 1)
+        val left = TimeSeriesObservation(metric, first, 1.0, source = "a")
+        val right = TimeSeriesObservation(metric, first, 2.0, source = "b")
         val forward = catalog(listOf(left, right)).seriesByMetric.getValue(metric)
         val reversed = catalog(listOf(right, left)).seriesByMetric.getValue(metric)
 

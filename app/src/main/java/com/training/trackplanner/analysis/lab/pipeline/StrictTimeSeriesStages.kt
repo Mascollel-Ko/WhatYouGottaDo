@@ -109,7 +109,9 @@ internal data class StrictObservationProvenance(
     val source: String,
     val sourceIndex: Int,
     val value: Double?,
-    val declaredState: StrictCellState?
+    val declaredState: StrictCellState?,
+    val conflictSelectionRule: String? = null,
+    val unresolvedConflict: Boolean? = null
 )
 
 internal data class LifecycleValidatedCell(
@@ -158,7 +160,7 @@ internal class LifecycleValidatedLevelSeries private constructor(
                         cell.state,
                         cell.value,
                         cell.provenance.sortedBy { it.sourceIndex }.joinToString("|") {
-                            "${it.source}:${it.sourceIndex}:${it.value}:${it.declaredState}"
+                            "${it.source}:${it.sourceIndex}:${it.value}:${it.declaredState}:${it.conflictSelectionRule}:${it.unresolvedConflict}"
                         }
                     ).joinToString(":")
                 }

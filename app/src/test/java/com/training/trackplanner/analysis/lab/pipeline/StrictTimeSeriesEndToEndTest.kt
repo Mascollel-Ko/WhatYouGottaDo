@@ -44,9 +44,24 @@ class StrictTimeSeriesEndToEndTest {
             add(RawTimeSeriesObservation(optional, weeks[2], 0.0, StrictCellState.STRUCTURAL_ZERO, sourceIndex = 2))
             add(RawTimeSeriesObservation(optional, weeks[3], null, StrictCellState.MISSING, sourceIndex = 3))
             (6 until weeks.size).forEach { index ->
-                add(RawTimeSeriesObservation(optional, weeks[index], 7.0, source = "primary", sourceIndex = index))
+                if (index != 20) {
+                    add(RawTimeSeriesObservation(optional, weeks[index], 7.0, source = "primary", sourceIndex = index))
+                }
             }
-            add(RawTimeSeriesObservation(optional, weeks[20], 8.0, source = "conflict", sourceIndex = 200))
+            add(
+                RawTimeSeriesObservation(
+                    optional,
+                    weeks[20],
+                    null,
+                    StrictCellState.CONFLICT,
+                    source = "TimeSeriesAlignmentService",
+                    sourceIndex = 20,
+                    authoritativeProvenance = listOf(
+                        StrictObservationProvenance("primary", 20, 7.0, StrictCellState.OBSERVED_VALUE, "UNRESOLVED_CONFLICT", true),
+                        StrictObservationProvenance("conflict", 200, 8.0, StrictCellState.OBSERVED_VALUE, "UNRESOLVED_CONFLICT", true)
+                    )
+                )
+            )
         }
         val request = StrictPreparationRequest(
             x,

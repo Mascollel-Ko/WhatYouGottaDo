@@ -577,25 +577,30 @@ internal class IdentifiedShockPosterior private constructor(
             require(orderedEndogenousMetrics == sourceIdentity.orderedEndogenousMetrics)
             require(posteriorDrawIds.size >= 2) { "posterior shock contract requires multiple draw-specific series" }
             require(posteriorDrawIds.distinct().size == posteriorDrawIds.size)
+            require(rejectedDrawDiagnostics.map { it.drawId }.distinct().size == rejectedDrawDiagnostics.size)
             val ids = posteriorDrawIds.toSet()
+            val rejectedIds = rejectedDrawDiagnostics.map { it.drawId }.toSet()
+            require(ids.none { it in rejectedIds })
             require(drawWeights.keys == ids && shockSeriesByDraw.keys == ids && sourceCovarianceDrawFingerprintByDraw.keys == ids)
             require(drawWeights.values.all { it.isFinite() && it > 0.0 })
             require(abs(drawWeights.values.sum() - 1.0) <= 1e-9)
             require(shockSeriesByDraw.values.all { values -> values.size == sourceIdentity.eligibleSourceWeeks.size && values.all(Double::isFinite) })
             require(sourceCovarianceDrawFingerprintByDraw.values.all(String::isNotBlank))
+            val canonicalDrawIds = posteriorDrawIds.sorted()
+            val canonicalRejected = rejectedDrawDiagnostics.sortedWith(compareBy<RejectedShockDrawDiagnostic> { it.drawId }.thenBy { it.reason })
             val fingerprint = strictFingerprint(
                 listOf(
                     sourceMetric.name,
                     orderedEndogenousMetrics.joinToString(",") { it.name },
                     structuralOrdering,
                     normalizationPolicy,
-                    posteriorDrawIds.joinToString(","),
-                    posteriorDrawIds.joinToString(",") { "$it:${drawWeights.getValue(it)}" },
-                    posteriorDrawIds.joinToString(",") { "$it:${shockSeriesByDraw.getValue(it).joinToString("|")}" },
+                    canonicalDrawIds.joinToString(","),
+                    canonicalDrawIds.joinToString(",") { "$it:${drawWeights.getValue(it)}" },
+                    canonicalDrawIds.joinToString(",") { "$it:${shockSeriesByDraw.getValue(it).joinToString("|")}" },
                     sourceIdentity.eligibleSourceWeeks.joinToString(","),
-                    posteriorDrawIds.joinToString(",") { "$it:${sourceCovarianceDrawFingerprintByDraw.getValue(it)}" },
+                    canonicalDrawIds.joinToString(",") { "$it:${sourceCovarianceDrawFingerprintByDraw.getValue(it)}" },
                     sourceIdentity.fingerprint,
-                    rejectedDrawDiagnostics.sortedBy { it.drawId }.joinToString(",") { "${it.drawId}:${it.reason}" },
+                    canonicalRejected.joinToString(",") { "${it.drawId}:${it.reason}" },
                     SHOCK_POSTERIOR_VERSION
                 )
             )
@@ -604,12 +609,12 @@ internal class IdentifiedShockPosterior private constructor(
                 orderedEndogenousMetrics,
                 structuralOrdering,
                 normalizationPolicy,
-                posteriorDrawIds,
-                drawWeights,
-                shockSeriesByDraw,
-                sourceCovarianceDrawFingerprintByDraw,
+                canonicalDrawIds,
+                canonicalDrawIds.associateWith { drawWeights.getValue(it) },
+                canonicalDrawIds.associateWith { shockSeriesByDraw.getValue(it) },
+                canonicalDrawIds.associateWith { sourceCovarianceDrawFingerprintByDraw.getValue(it) },
                 sourceIdentity,
-                rejectedDrawDiagnostics,
+                canonicalRejected,
                 fingerprint
             )
         }

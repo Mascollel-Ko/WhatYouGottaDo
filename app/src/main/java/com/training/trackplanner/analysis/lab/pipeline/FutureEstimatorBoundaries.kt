@@ -57,10 +57,12 @@ internal class BvarPosteriorSourceIdentity private constructor(
         ): BvarPosteriorSourceIdentity {
             require(sourceMetric in input.view.metrics)
             require(sourceBvarPosteriorFingerprint.isNotBlank())
-            val rowPlanWeeks = input.rowPlan.rows.map { it.sourceWeek }.toSet()
+            val rowPlanWeeks = input.rowPlan.rows.map { it.sourceWeek }
             val eligibleWeeks = eligibleSourceWeeks.toList()
-            require(eligibleWeeks.isNotEmpty() && eligibleWeeks.distinct().size == eligibleWeeks.size)
-            require(eligibleWeeks.all { it in rowPlanWeeks })
+            require(rowPlanWeeks.isNotEmpty())
+            require(eligibleWeeks == rowPlanWeeks) {
+                "BVAR shock eligible weeks must exactly match the authoritative row plan"
+            }
             val orderedMetrics = input.view.metrics
             val fingerprint = strictFingerprint(
                 listOf(

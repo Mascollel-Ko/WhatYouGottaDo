@@ -1502,6 +1502,51 @@ Remaining
 - PHASE E: automatic endogenous-variable ranking, model comparison, and final UI labels/integration.
 - None of those estimators or UI stages were started in this task.
 
+## PHASE A final shock/revision identity closure
+
+Cause
+- Continued only on `feat/time-series-phase-a` from exact baseline `2269947fb0c34c2cf52528f4d99ea97e78c2d370`.
+- The remaining PHASE A gaps were narrow: BVAR shock weeks still allowed caller-supplied subsets, shock posterior fingerprints still depended on accepted draw input order, and strict ingestion could still manufacture conflict cells from unresolved duplicate raw observations.
+- Approved dirty `outputs/*` files were left untouched and unstaged.
+
+Changes
+- Commit pending (`fix(analysis): close strict shock and revision identity gaps`): made `BvarPosteriorSourceIdentity` require eligible source weeks to exactly equal `input.rowPlan.rows.map { it.sourceWeek }`.
+- Canonicalized `IdentifiedShockPosterior` accepted draw ordering and rejected-diagnostic ordering before storing and fingerprinting.
+- Added accepted/rejected draw ID disjointness and duplicate rejected-draw validation.
+- Routed `RawTimeSeriesInput.fromTrendSeries` through the existing `TimeSeriesAlignmentService` resolver and added `fromResolvedAlignment` as the strict adapter.
+- Changed raw strict ingestion to reject duplicate metric/week observations and to consume one resolved observation or explicit conflict result per metric/week.
+- Preserved conflict provenance in strict provenance fields without adding a second resolver, RowPlanner, ScalingPlanner, context, pipeline layer, or estimator implementation.
+
+Reason
+- PHASE B/C estimators must not infer shock domains, posterior draw identity, or revision precedence outside the PHASE A authorities.
+- Exact row-plan equality blocks fake or partial shock domains.
+- Canonical draw identity makes semantic posterior identity independent of caller list ordering.
+- Existing typed revision/conflict resolution remains the sole revision authority; strict ingestion is now only a consumer.
+
+Result
+- Caller-controlled shock-week subset/superset inputs are rejected.
+- Shock posterior fingerprints are stable across accepted draw and rejected diagnostic permutation.
+- Raw duplicate revision bypass is rejected at the strict boundary; resolver output and explicit conflict provenance survive strict ingestion.
+- PHASE B, C, D, and E estimator implementation remains unstarted.
+
+Tests
+- `.\gradlew.bat --version`: passed with Android Studio JBR and repo-local `.gradle-user-home`.
+- Bundled Python `tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeriesRepresentationContractTest" --tests "*StrictTimeSeriesArchitectureTest" --tests "*StrictTimeSeriesIntegrationContractTest" --tests "*StrictTimeSeriesEndToEndTest"`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+
+Ponytail review
+- Ponytail was available in `full` mode as an over-engineering guard.
+- Review result: no new planner/resolver/context/pipeline abstraction was added; the fix reused existing PHASE A authorities.
+
+Remaining
+- PHASE B: actual BVAR posterior and structural shock estimation.
+- PHASE C: actual BLP estimation using draw-by-draw shock posterior input.
+- PHASE D: Johansen/VECM estimators.
+- PHASE E: candidate ranking/model comparison/UI integration.
+
 ## PHASE A strict integration and input-contract stabilization
 
 Cause

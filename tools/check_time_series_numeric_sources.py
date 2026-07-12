@@ -144,7 +144,8 @@ def main() -> int:
         for symbol in legacy_symbols:
             if symbol in text:
                 violations.append(f"{path.relative_to(ROOT)}: strict pipeline references legacy symbol {symbol}")
-        if re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.|StableLinearAlgebra\b)", text, re.MULTILINE):
+        legacy_import = re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.|StableLinearAlgebra\b)", text, re.MULTILINE)
+        if legacy_import and path != STRICT_INGESTION:
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline imports the legacy lab package")
         if re.search(r"\b(USE_DOCUMENTED_FALLBACK|ADF_REJECT|KPSS_RETAIN)\b", text):
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline must not use legacy fixed diagnostic thresholds or fallback policy")
@@ -184,6 +185,7 @@ def main() -> int:
 
     future_text = strict_sources.get(STRICT_FUTURE, "")
     representation_text = strict_sources.get(STRICT_REPRESENTATION, "")
+    ingestion_text = strict_sources.get(STRICT_INGESTION, "")
     if "IdentifiedShockPosterior" not in future_text or "DRAW_BY_DRAW_WITHOUT_MEAN_SHOCK_COLLAPSE" not in future_text:
         violations.append("FutureEstimatorBoundaries.kt: strict BLP must require draw-specific identified shock posterior propagation")
     if "BvarPosteriorSourceIdentity" not in future_text:
@@ -197,6 +199,19 @@ def main() -> int:
         violations.append("StrictTimeSeriesRepresentation.kt: shock posterior must use prepared eligible source weeks, not full-calendar shock vectors")
     if "sourceIdentity: BvarPosteriorSourceIdentity" not in representation_text or "eligibleSourceWeeks" not in representation_text:
         violations.append("StrictTimeSeriesRepresentation.kt: shock posterior must carry BVAR posterior source identity and eligible source weeks")
+    if "eligibleWeeks == rowPlanWeeks" not in future_text:
+        violations.append("FutureEstimatorBoundaries.kt: BVAR shock weeks must exactly match row-plan source weeks")
+    if "canonicalDrawIds" not in representation_text:
+        violations.append("StrictTimeSeriesRepresentation.kt: shock posterior fingerprints must use canonical draw ordering")
+    if "ids.none { it in rejectedIds }" not in representation_text:
+        violations.append("StrictTimeSeriesRepresentation.kt: accepted and rejected shock draw IDs must be disjoint")
+    if "TimeSeriesAlignmentService().alignObservations" not in ingestion_text:
+        violations.append("StrictTimeSeriesIngestion.kt: strict ingestion must consume the existing authoritative resolver output")
+    if "strict ingestion requires one authoritative resolved observation per metric/week" not in ingestion_text:
+        violations.append("StrictTimeSeriesIngestion.kt: unresolved duplicate raw observations must be rejected at the strict boundary")
+    for token in ("resolveObservationConflict", "maxRevision", "revisionNumber", "versionSequence", "authoritativeRevisionTime"):
+        if token in ingestion_text:
+            violations.append(f"StrictTimeSeriesIngestion.kt: strict ingestion must not implement revision precedence ({token})")
 
     views_text = strict_sources.get(STRICT_VIEWS, "")
     johansen_block = views_text[views_text.find("internal class JohansenPreparedView"):views_text.find("internal class VecmPreparedView")]

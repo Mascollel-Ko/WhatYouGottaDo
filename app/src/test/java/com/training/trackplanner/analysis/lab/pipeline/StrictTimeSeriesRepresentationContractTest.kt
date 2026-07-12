@@ -224,6 +224,101 @@ class StrictTimeSeriesRepresentationContractTest {
     }
 
     @Test
+    fun bvarPosteriorSourceIdentityRequiresExactAuthoritativeRowWeeks() {
+        val context = context()
+        val view = BvarPreparedView.from(context)
+        val rowPlan = RowPlanner.plan(context, view, 1, setOf(1), 1, HorizonPolicy.DECLARED_REFERENCE_HORIZON)
+        val scaling = ScalingPlanner.plan(context, view, rowPlan, rowPlan.rows.take(12).map { it.sourceWeek })
+        val input = FutureBvarInput.createValidated(view, rowPlan, scaling, "prior")
+        val rowWeeks = rowPlan.rows.map { it.sourceWeek }
+
+        val identity = BvarPosteriorSourceIdentity.createValidated(input, context.request.xMetric, "bvar-posterior")
+
+        assertEquals(rowWeeks, identity.eligibleSourceWeeks)
+        assertTrue(
+            runCatching {
+                BvarPosteriorSourceIdentity.createValidated(input, context.request.xMetric, "bvar-posterior", rowWeeks.drop(1))
+            }.isFailure
+        )
+        assertTrue(
+            runCatching {
+                BvarPosteriorSourceIdentity.createValidated(input, context.request.xMetric, "bvar-posterior", rowWeeks + rowWeeks.last().plusWeeks(1))
+            }.isFailure
+        )
+        assertTrue(
+            runCatching {
+                BvarPosteriorSourceIdentity.createValidated(input, context.request.xMetric, "bvar-posterior", rowWeeks + rowWeeks.last())
+            }.isFailure
+        )
+    }
+
+    @Test
+    fun shockPosteriorDrawIdentityIsCanonicalAndPermutationStable() {
+        val sourceIdentity = bvarPosteriorSourceIdentity()
+        val shockSize = sourceIdentity.eligibleSourceWeeks.size
+        val forward = IdentifiedShockPosterior.createValidated(
+            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
+            structuralOrdering = "temporal",
+            normalizationPolicy = "one-standard-deviation",
+            posteriorDrawIds = listOf("d1", "d2", "d3"),
+            drawWeights = mapOf("d1" to 0.2, "d2" to 0.3, "d3" to 0.5),
+            shockSeriesByDraw = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }, "d3" to List(shockSize) { 0.3 }),
+            sourceCovarianceDrawFingerprintByDraw = mapOf("d1" to "cov1", "d2" to "cov2", "d3" to "cov3"),
+            sourceIdentity = sourceIdentity,
+            rejectedDrawDiagnostics = listOf(RejectedShockDrawDiagnostic("r2", "non-SPD"), RejectedShockDrawDiagnostic("r1", "weight"))
+        )
+        val permuted = IdentifiedShockPosterior.createValidated(
+            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
+            structuralOrdering = "temporal",
+            normalizationPolicy = "one-standard-deviation",
+            posteriorDrawIds = listOf("d3", "d1", "d2"),
+            drawWeights = mapOf("d2" to 0.3, "d3" to 0.5, "d1" to 0.2),
+            shockSeriesByDraw = mapOf("d3" to List(shockSize) { 0.3 }, "d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }),
+            sourceCovarianceDrawFingerprintByDraw = mapOf("d2" to "cov2", "d1" to "cov1", "d3" to "cov3"),
+            sourceIdentity = sourceIdentity,
+            rejectedDrawDiagnostics = listOf(RejectedShockDrawDiagnostic("r1", "weight"), RejectedShockDrawDiagnostic("r2", "non-SPD"))
+        )
+
+        assertEquals(listOf("d1", "d2", "d3"), permuted.posteriorDrawIds)
+        assertEquals(forward.fingerprint, permuted.fingerprint)
+        assertEquals(forward.rejectedDrawDiagnostics, permuted.rejectedDrawDiagnostics)
+    }
+
+    @Test
+    fun shockPosteriorRejectsDrawSetAndWeightContractViolations() {
+        val sourceIdentity = bvarPosteriorSourceIdentity()
+        val shockSize = sourceIdentity.eligibleSourceWeeks.size
+        fun create(
+            drawIds: List<String> = listOf("d1", "d2"),
+            weights: Map<String, Double> = mapOf("d1" to 0.5, "d2" to 0.5),
+            shocks: Map<String, List<Double>> = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }),
+            rejected: List<RejectedShockDrawDiagnostic> = emptyList()
+        ) = IdentifiedShockPosterior.createValidated(
+            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
+            structuralOrdering = "temporal",
+            normalizationPolicy = "one-standard-deviation",
+            posteriorDrawIds = drawIds,
+            drawWeights = weights,
+            shockSeriesByDraw = shocks,
+            sourceCovarianceDrawFingerprintByDraw = drawIds.distinct().associateWith { "cov-$it" },
+            sourceIdentity = sourceIdentity,
+            rejectedDrawDiagnostics = rejected
+        )
+
+        assertTrue(runCatching { create(drawIds = listOf("d1", "d1")) }.isFailure)
+        assertTrue(runCatching { create(rejected = listOf(RejectedShockDrawDiagnostic("r1", "a"), RejectedShockDrawDiagnostic("r1", "b"))) }.isFailure)
+        assertTrue(runCatching { create(rejected = listOf(RejectedShockDrawDiagnostic("d1", "rejected"))) }.isFailure)
+        assertTrue(runCatching { create(weights = mapOf("d1" to 1.0)) }.isFailure)
+        assertTrue(runCatching { create(weights = mapOf("d1" to 0.0, "d2" to 1.0)) }.isFailure)
+        assertTrue(runCatching { create(weights = mapOf("d1" to Double.NaN, "d2" to 1.0)) }.isFailure)
+        assertTrue(runCatching { create(shocks = mapOf("d1" to List(shockSize - 1) { 0.1 }, "d2" to List(shockSize) { 0.2 })) }.isFailure)
+        assertTrue(runCatching { create(shocks = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }, "r1" to List(shockSize) { 0.3 })) }.isFailure)
+    }
+
+    @Test
     fun futureBlpInputRequiresShockPosteriorToCoverPreparedSourceRows() {
         val context = context()
         val view = BlpPreparedView.from(context)
@@ -241,7 +336,7 @@ class StrictTimeSeriesRepresentationContractTest {
         )
         assertTrue(
             runCatching {
-                FutureBlpInput.createValidated(view, rowPlan, shockPosterior(context, dropLastEligibleWeek = true), HorizonPolicy.PER_HORIZON)
+                FutureBlpInput.createValidated(view, rowPlan, shockPosterior(context, bvarLag = 2), HorizonPolicy.PER_HORIZON)
             }.isFailure
         )
         assertTrue(
@@ -275,22 +370,21 @@ class StrictTimeSeriesRepresentationContractTest {
     private fun bvarPosteriorSourceIdentity(
         context: PreparedAnalysisContext = context(),
         sourceMetric: TrendMetricId = context.request.xMetric,
-        dropLastEligibleWeek: Boolean = false
+        bvarLag: Int = 1
     ): BvarPosteriorSourceIdentity {
         val view = BvarPreparedView.from(context)
-        val rowPlan = RowPlanner.plan(context, view, 1, setOf(1), 1, HorizonPolicy.DECLARED_REFERENCE_HORIZON)
+        val rowPlan = RowPlanner.plan(context, view, bvarLag, setOf(1), 1, HorizonPolicy.DECLARED_REFERENCE_HORIZON)
         val scaling = ScalingPlanner.plan(context, view, rowPlan, rowPlan.rows.take(12).map { it.sourceWeek })
         val input = FutureBvarInput.createValidated(view, rowPlan, scaling, "prior")
-        val eligibleWeeks = rowPlan.rows.map { it.sourceWeek }.let { if (dropLastEligibleWeek) it.dropLast(1) else it }
-        return BvarPosteriorSourceIdentity.createValidated(input, sourceMetric, "bvar-posterior", eligibleWeeks)
+        return BvarPosteriorSourceIdentity.createValidated(input, sourceMetric, "bvar-posterior")
     }
 
     private fun shockPosterior(
         context: PreparedAnalysisContext,
         sourceMetric: TrendMetricId = context.request.xMetric,
-        dropLastEligibleWeek: Boolean = false
+        bvarLag: Int = 1
     ): IdentifiedShockPosterior {
-        val sourceIdentity = bvarPosteriorSourceIdentity(context, sourceMetric, dropLastEligibleWeek)
+        val sourceIdentity = bvarPosteriorSourceIdentity(context, sourceMetric, bvarLag)
         val shockSize = sourceIdentity.eligibleSourceWeeks.size
         return IdentifiedShockPosterior.createValidated(
             sourceMetric = sourceMetric,
