@@ -17,7 +17,10 @@ internal class BayesianTimeSeriesAnalyzer(
         metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
     ): BayesianTimeSeriesResult {
         val warnings = mutableListOf("Exploratory Bayesian time-series result; it does not establish causality.")
-        val requestedHorizon = request.requestedHorizon.coerceIn(MIN_HORIZON, MAX_HORIZON)
+        if (request.requestedHorizon < MIN_HORIZON || request.requestedHorizon > MAX_HORIZON) {
+            return unavailable(request, warnings + "Requested horizon must be between $MIN_HORIZON and $MAX_HORIZON.")
+        }
+        val requestedHorizon = request.requestedHorizon
         val yMetrics = request.yMetrics.distinct().filter { it != request.xMetric }
         if (yMetrics.isEmpty()) return unavailable(request, warnings + "Select at least one response Y.")
         val controls = request.controls.distinct().filter { it != request.xMetric && it !in yMetrics }
@@ -80,7 +83,7 @@ internal class BayesianTimeSeriesAnalyzer(
             warnings += "Requested horizon $requestedHorizon was reduced to $usedHorizon because the longer horizon fails the sample-size condition."
         }
 
-        if (cointegration.isSupported && cointegration.cointegrationVector != null) {
+        if (cointegration.supportedForModelRouting && cointegration.cointegrationVector != null) {
             val vecm = BayesianVecmEstimator().estimate(
                 levelAlignment,
                 system,

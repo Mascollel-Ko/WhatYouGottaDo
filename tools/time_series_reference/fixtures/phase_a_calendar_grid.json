@@ -1,4 +1,14 @@
 {
+  "conflicting_observations": [
+    {
+      "value": 10.0,
+      "week": "2026-01-05"
+    },
+    {
+      "value": 20.0,
+      "week": "2026-01-05"
+    }
+  ],
   "difference_checks": {
     "missing_week_difference_rejected": true
   },
@@ -17,6 +27,7 @@
     ]
   },
   "horizon_checks": {
+    "final_week_horizon_is_excluded": true,
     "h2_from_w01_targets_w03": true
   },
   "lag_checks": {
@@ -71,6 +82,15 @@
       }
     ]
   },
+  "metric_bounds": {
+    "selected_end_week": "2026-01-12",
+    "selected_start_week": "2025-12-22",
+    "unselected_metric_week": "2024-01-01"
+  },
+  "mixed_weekday_dates": {
+    "canonical_monday": "2026-01-05",
+    "raw_tuesday": "2026-01-06"
+  },
   "provenance": {
     "generator_script_version": "phase-a-2",
     "numpy_version": "2.3.5",
@@ -79,7 +99,7 @@
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "ef26caa79f25b059b10443a06a568ecbd527dbda",
+    "source_commit": "f7e1046be1fbb718ba06fa97230173a635117438",
     "tolerance": 1e-07
   },
   "series": {
@@ -112,6 +132,24 @@
       }
     ]
   },
+  "state_value_invalid_cases": [
+    {
+      "state": "OBSERVED_VALUE",
+      "value": null
+    },
+    {
+      "state": "OBSERVED_VALUE",
+      "value": "NaN"
+    },
+    {
+      "state": "STRUCTURAL_ZERO",
+      "value": 3.0
+    },
+    {
+      "state": "VERSION_DISCONTINUITY",
+      "value": 10.0
+    }
+  ],
   "structural_zero_metric": "BADMINTON_TRAINING",
   "weeks": [
     "2025-12-22",

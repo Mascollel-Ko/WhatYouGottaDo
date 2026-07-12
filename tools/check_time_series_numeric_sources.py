@@ -20,6 +20,8 @@ FORBIDDEN = [
     re.compile(r"\bfun\s+.*cholesky\s*\([^)]*\)\s*:\s*Array<DoubleArray>", re.IGNORECASE),
     re.compile(r"\bjitter\s*=\s*jitter\s*\*"),
     re.compile(r"/\s*(lower|upper)\[[^\]]+\]\[[^\]]+\]"),
+    re.compile(r"\bposteriorProbabilityRankPositive\b"),
+    re.compile(r"supportedForModelRouting\s*=\s*true"),
 ]
 
 WRAPPER_ONLY = [

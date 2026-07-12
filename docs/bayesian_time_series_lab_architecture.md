@@ -17,9 +17,11 @@ Before this change, `LaggedTimeSeriesAnalyzer` joined one X and one Y by week an
 
 ## Preprocessing And Screening
 
-`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. The canonical week key is the week-start `LocalDate`, so ISO year boundaries do not collapse into a shared week number. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, or version-discontinuity cell. Missing values are not forward-filled and are not converted into numeric zero. Structural zero is allowed only when the caller explicitly marks that metric as structural-zero capable.
+`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. Raw trend dates are canonicalized to ISO Monday week starts before alignment; explicit grid/cell week-start inputs must already be ISO Mondays. Grid bounds are calculated only from requested metrics and their requested lifecycle metadata. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, version-discontinuity, or conflict cell. Missing values are not forward-filled and are not converted into numeric zero. Structural zero is allowed only after an explicit `availableFromWeek` or the first valid observation establishes the metric activation week.
 
-Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Excluded rows can carry the target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
+Observation conflicts are deterministic. Exact duplicate observations can merge, same-source versioned observations use the latest version, and conflicting values without revision provenance become `CONFLICT` cells rather than being selected by source-string ordering. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, and lifecycle/conflict/missing states cannot carry numeric values.
+
+Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Every candidate source week is either included or excluded with a reason, including initial lag gaps and final target-outside-grid horizons. Excluded rows carry target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
 
 Candidate screening rejects a series with more than 25 percent missing observations in the required window or insufficient variation. The result keeps the aligned period and count for disclosure.
 
@@ -29,7 +31,9 @@ Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLi
 
 The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using Commons Math triangular solves instead of explicit inverse or app-owned triangular substitution, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and fails the whole result if the complete spectrum cannot pass residual and `V' B V` checks.
 
-Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is SPD. The regularized path may add bounded scale-relative diagonal jitter for small numerical noise, but materially indefinite matrices still fail. Callers receive regularization provenance, jitter amount, jitter ratio, condition number, and diagnostics through the result object.
+Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is SPD. The regularized path may add bounded scale-relative diagonal jitter for small full-rank numerical noise, but exact singular PSD, rank-deficient, non-finite, non-symmetric, and materially indefinite matrices fail with explicit failure codes. Callers receive the effective matrix, regularization provenance, jitter amount, jitter ratio, numerical rank, condition number, and diagnostics through the result object.
+
+Johansen-form primitives are strict by default. `S00` and `S11` must be strict SPD, and the primitive preserves `S00` solve provenance plus `S11` Cholesky provenance. Bounded regularization remains available only for the general symmetric-definite eigen primitive, where whitening, residuals, normalization, and `V' B V` checks all use the same effective `B` matrix.
 
 `IntegrationOrderAnalyzer` applies both ADF-style and KPSS-style diagnostics to levels and first differences. I(1) variables are first-differenced for the non-cointegrated local-projection/BVAR route; I(0) variables remain in levels. I(2)+ required variables stop the analysis. Inconclusive diagnostics do not force VECM.
 
@@ -55,7 +59,7 @@ The BVAR uses standardized series and empirical-Bayes Minnesota-style normal pri
 
 The analyzer compares the canonical order with an adjacent same-time-group reordering when one is available. A response-sign or peak-horizon change produces an order-sensitivity warning. The result also records the selected model, horizon reduction, lag posterior, transformations, cointegration decision, automatic endogenous selection, and warnings.
 
-The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the Johansen-form calculation, but it does not claim a full Johansen trace/max-eigen test or a Bayesian rank posterior. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic.
+The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the Johansen-form calculation, but it does not claim a full Johansen trace/max-eigen test or a Bayesian rank posterior. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic. The legacy score is diagnostic-only and cannot route to `BAYESIAN_VECM`.
 
 ## File / Feature Map
 

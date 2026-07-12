@@ -69,7 +69,7 @@ class StableLinearAlgebraTest {
         val item = fixture.getJSONObject("generalized_symmetric_eigen")
         val a = item.matrix("a")
         val b = item.matrix("b")
-        val result = StableLinearAlgebra.generalizedSymmetricEigen(a, b)
+        val result = StableLinearAlgebra.generalizedSymmetricEigenStrict(a, b)
         assertEquals(a.size, result.expectedCount)
         assertEquals(result.expectedCount, result.validCount)
         assertArrayClose(item.vector("values_desc"), result.eigenvalues, 1e-7)
@@ -78,7 +78,22 @@ class StableLinearAlgebraTest {
             assertTrue(result.residuals[index] < 1e-7)
         }
         assertTrue(result.bOrthogonalityError < 1e-7)
-        assertTrue(runCatching { StableLinearAlgebra.generalizedSymmetricEigen(a, b, residualTolerance = 1e-30) }.isFailure)
+        assertMatrixClose(b, result.effectiveB)
+        assertFalse(result.regularized)
+        assertTrue(runCatching { StableLinearAlgebra.generalizedSymmetricEigenStrict(a, b, residualTolerance = 1e-30) }.isFailure)
+    }
+
+    @Test
+    fun regularizedGeneralizedEigenUsesEffectiveBForValidation() {
+        val item = fixture.getJSONObject("regularized_generalized_symmetric_eigen")
+        val result = StableLinearAlgebra.generalizedSymmetricEigenRegularized(item.matrix("a"), item.matrix("b"))
+
+        assertTrue(result.regularized)
+        assertMatrixClose(item.matrix("effective_b"), result.effectiveB)
+        result.eigenvectors.forEachIndexed { index, vector ->
+            assertEquals(1.0, bInner(vector, result.effectiveB), 1e-7)
+            assertTrue(result.residuals[index] < 1e-7)
+        }
     }
 
     @Test
@@ -90,9 +105,38 @@ class StableLinearAlgebraTest {
             item.matrix("s10"),
             item.matrix("s11")
         )
-        assertEquals(result.expectedCount, result.validCount)
-        assertArrayClose(item.vector("values_desc"), result.eigenvalues, 1e-7)
-        assertTrue(result.residuals.all { it < 1e-7 })
+        assertEquals(result.eigenResult.expectedCount, result.eigenResult.validCount)
+        assertArrayClose(item.vector("values_desc"), result.eigenResult.eigenvalues, 1e-7)
+        assertTrue(result.eigenResult.residuals.all { it < 1e-7 })
+        assertFalse(result.s00SolveResult.regularized)
+        assertFalse(result.s11CholeskyResult.regularized)
+        assertEquals(result.s00SolveResult.numericalRank, item.matrix("s00").size)
+    }
+
+    @Test
+    fun johansenFormPrimitiveRejectsRankDeficientInputsInStrictMode() {
+        val rankDeficientS00 = fixture.getJSONObject("johansen_rank_deficient_s00")
+        assertTrue(
+            runCatching {
+                StableLinearAlgebra.johansenFormEigen(
+                    rankDeficientS00.matrix("s00"),
+                    rankDeficientS00.matrix("s01"),
+                    rankDeficientS00.matrix("s10"),
+                    rankDeficientS00.matrix("s11")
+                )
+            }.isFailure
+        )
+        val rankDeficientS11 = fixture.getJSONObject("johansen_rank_deficient_s11")
+        assertTrue(
+            runCatching {
+                StableLinearAlgebra.johansenFormEigen(
+                    rankDeficientS11.matrix("s00"),
+                    rankDeficientS11.matrix("s01"),
+                    rankDeficientS11.matrix("s10"),
+                    rankDeficientS11.matrix("s11")
+                )
+            }.isFailure
+        )
     }
 
     @Test
@@ -119,7 +163,16 @@ class StableLinearAlgebraTest {
         assertTrue(factor.regularized)
         assertTrue(factor.jitter > 0.0)
         assertTrue(factor.jitterRatio <= StableLinearAlgebra.MAX_PERMITTED_JITTER_RATIO)
+        assertEquals(factor.effectiveMatrix.size, factor.numericalRank)
         assertTrue(runCatching { StableLinearAlgebra.regularizedCholesky(fixture.getJSONObject("materially_indefinite").matrix("a")) }.isFailure)
+    }
+
+    @Test
+    fun singularPsdIsNotRegularizedIntoSpd() {
+        val singular = fixture.getJSONObject("exact_singular_psd").matrix("a")
+        val failure = runCatching { StableLinearAlgebra.regularizedCholesky(singular) }.exceptionOrNull()
+        assertTrue(failure is StableLinearAlgebra.CholeskyFailureException)
+        assertEquals(StableLinearAlgebra.CholeskyFailureCode.RANK_DEFICIENT, (failure as StableLinearAlgebra.CholeskyFailureException).code)
     }
 
     private fun existingFile(path: String): File = listOf(File(path), File("../$path")).first(File::exists)

@@ -318,7 +318,7 @@ private fun BayesianResultCard(result: BayesianTimeSeriesResult) {
             }
             result.cointegration?.let { diagnostic ->
                 Text(
-                    "공적분: ${diagnostic.message} (P(rank>0)=${formatAnalysisValue(diagnostic.posteriorProbabilityRankPositive)})",
+                    "공적분: ${diagnostic.message} (legacy score=${formatAnalysisValue(diagnostic.legacyHeuristicScore)})",
                     style = MaterialTheme.typography.labelSmall
                 )
             }

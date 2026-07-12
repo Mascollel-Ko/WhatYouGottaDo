@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.time.DayOfWeek
 import java.time.LocalDate
 
 internal enum class BayesianTimeSeriesModel {
@@ -48,6 +49,7 @@ internal class TimeSeriesCalendarGrid private constructor(
             require(weeks.isNotEmpty()) { "calendar grid cannot be empty" }
             require(weeks == weeks.sorted()) { "calendar weeks must be sorted" }
             require(weeks.distinct().size == weeks.size) { "calendar weeks must be unique" }
+            require(weeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "calendar weeks must use ISO Monday week starts" }
             weeks.zipWithNext().forEach { (left, right) ->
                 require(left.plusWeeks(1) == right) { "calendar weeks must be exactly seven days apart" }
             }
@@ -71,8 +73,17 @@ internal data class TimeSeriesCell(
     val value: Double?,
     val missingReason: String? = null,
     val source: String? = null,
-    val version: String? = null
-)
+    val version: String? = null,
+    val candidateCount: Int = 1,
+    val sourceCells: List<TimeSeriesCellReference> = emptyList(),
+    val transformation: String? = null,
+    val exclusionReason: TimeSeriesRowExclusionReason? = null
+) {
+    init {
+        require(weekStart.dayOfWeek == DayOfWeek.MONDAY) { "cell week must be an ISO Monday week start" }
+        validateStateValue(state, value)
+    }
+}
 
 internal data class MetricLifecycleMetadata(
     val availableFromWeek: LocalDate? = null,
@@ -81,12 +92,26 @@ internal data class MetricLifecycleMetadata(
     val notApplicableWeeks: Set<LocalDate> = emptySet(),
     val versionDiscontinuityWeeks: Set<LocalDate> = emptySet(),
     val versionDiscontinuityRanges: List<TimeSeriesWeekRange> = emptyList()
-)
+) {
+    init {
+        availableFromWeek?.let { require(it.dayOfWeek == DayOfWeek.MONDAY) { "availableFromWeek must be ISO Monday" } }
+        availableUntilWeek?.let { require(it.dayOfWeek == DayOfWeek.MONDAY) { "availableUntilWeek must be ISO Monday" } }
+        if (availableFromWeek != null && availableUntilWeek != null) require(!availableFromWeek.isAfter(availableUntilWeek))
+        require(notApplicableWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "not-applicable weeks must be ISO Monday" }
+        require(versionDiscontinuityWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "version-discontinuity weeks must be ISO Monday" }
+    }
+}
 
 internal data class TimeSeriesWeekRange(
     val startWeek: LocalDate,
     val endWeek: LocalDate
 ) {
+    init {
+        require(startWeek.dayOfWeek == DayOfWeek.MONDAY) { "range start must be ISO Monday" }
+        require(endWeek.dayOfWeek == DayOfWeek.MONDAY) { "range end must be ISO Monday" }
+        require(!startWeek.isAfter(endWeek)) { "range start must be before or equal to end" }
+    }
+
     fun contains(week: LocalDate): Boolean = !week.isBefore(startWeek) && !week.isAfter(endWeek)
 }
 
@@ -98,7 +123,13 @@ internal data class TimeSeriesObservation(
     val missingReason: String? = null,
     val source: String? = null,
     val version: String? = null
-)
+) {
+    init {
+        if (weekStart.dayOfWeek != DayOfWeek.MONDAY) require(state == null) { "explicit observation state requires ISO Monday week start" }
+        if (state != null) validateStateValue(state, value)
+        if (state == null && value != null) require(value.isFinite()) { "observation value must be finite" }
+    }
+}
 
 internal enum class TimeSeriesCellState {
     OBSERVED_VALUE,
@@ -106,7 +137,8 @@ internal enum class TimeSeriesCellState {
     MISSING,
     NOT_APPLICABLE,
     PRE_METRIC_CREATION,
-    VERSION_DISCONTINUITY
+    VERSION_DISCONTINUITY,
+    CONFLICT
 }
 
 internal data class TimeSeriesRowExclusion(
@@ -149,12 +181,15 @@ internal enum class TimeSeriesRowExclusionReason {
     MISSING_SOURCE,
     MISSING_LAG,
     MISSING_HORIZON,
+    SOURCE_BEFORE_REQUIRED_LAGS,
+    TARGET_OUTSIDE_GRID,
     DISCONTINUOUS_LAG,
     DISCONTINUOUS_DIFFERENCE,
     DISCONTINUOUS_HORIZON,
     PRE_METRIC_CREATION,
     VERSION_DISCONTINUITY,
     NOT_APPLICABLE,
+    CONFLICT,
     STRUCTURAL_ZERO_NOT_ALLOWED,
     INVALID_CELL_STATE
 }
@@ -177,13 +212,32 @@ internal data class BayesianLagPosterior(
 
 internal data class CointegrationDiagnostic(
     val rank: Int?,
-    val posteriorProbabilityRankPositive: Double,
+    val legacyHeuristicScore: Double,
     val johansenTraceStatistic: Double?,
     val isSupported: Boolean,
     val message: String,
     val cointegrationVector: List<Double>? = null,
-    val diagnostics: List<String> = emptyList()
+    val diagnostics: List<String> = emptyList(),
+    val diagnosticOnly: Boolean = true,
+    val supportedForModelRouting: Boolean = false,
+    val method: CointegrationDiagnosticMethod = CointegrationDiagnosticMethod.LEGACY_HEURISTIC
 )
+
+internal enum class CointegrationDiagnosticMethod {
+    LEGACY_HEURISTIC
+}
+
+private fun validateStateValue(state: TimeSeriesCellState, value: Double?) {
+    when (state) {
+        TimeSeriesCellState.OBSERVED_VALUE -> require(value != null && value.isFinite()) { "observed value must be finite" }
+        TimeSeriesCellState.STRUCTURAL_ZERO -> require(value == 0.0) { "structural zero must have value 0.0" }
+        TimeSeriesCellState.MISSING,
+        TimeSeriesCellState.NOT_APPLICABLE,
+        TimeSeriesCellState.PRE_METRIC_CREATION,
+        TimeSeriesCellState.VERSION_DISCONTINUITY,
+        TimeSeriesCellState.CONFLICT -> require(value == null) { "$state cannot carry a value" }
+    }
+}
 
 internal data class AutomaticEndogenousSelection(
     val metrics: List<TrendMetricId>,

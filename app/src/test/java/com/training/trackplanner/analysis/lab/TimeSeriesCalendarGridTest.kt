@@ -113,6 +113,107 @@ class TimeSeriesCalendarGridTest {
     }
 
     @Test
+    fun rawDatesAreCanonicalizedButExplicitWeekStartValidationRejectsTuesday() {
+        val alignment = TimeSeriesAlignmentService().align(
+            listOf(TrendMetricId.BADMINTON_TRAINING),
+            mapOf(TrendMetricId.BADMINTON_TRAINING to listOf(TrendDataPoint(LocalDate.parse("2026-01-06"), 1.0)))
+        )!!
+
+        assertEquals(LocalDate.parse("2026-01-05"), alignment.weeks.single())
+        assertTrue(
+            runCatching {
+                TimeSeriesObservation(
+                    TrendMetricId.BADMINTON_TRAINING,
+                    LocalDate.parse("2026-01-06"),
+                    null,
+                    TimeSeriesCellState.MISSING
+                )
+            }.isFailure
+        )
+    }
+
+    @Test
+    fun unselectedMetricsDoNotExpandGridBounds() {
+        val alignment = TimeSeriesAlignmentService().align(
+            listOf(TrendMetricId.BADMINTON_TRAINING),
+            mapOf(
+                TrendMetricId.BADMINTON_TRAINING to listOf(TrendDataPoint(LocalDate.parse("2026-01-05"), 1.0)),
+                TrendMetricId.FATIGUE_COMPOSITE to listOf(TrendDataPoint(LocalDate.parse("2024-01-01"), 9.0))
+            )
+        )!!
+
+        assertEquals(listOf(LocalDate.parse("2026-01-05")), alignment.weeks)
+    }
+
+    @Test
+    fun structuralZeroStartsOnlyAfterActivationWeek() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            observations = listOf(
+                TimeSeriesObservation(TrendMetricId.FATIGUE_COMPOSITE, LocalDate.parse("2026-01-05"), 1.0),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-19"), 2.0)
+            ),
+            lifecycleMetadata = mapOf(TrendMetricId.BADMINTON_TRAINING to MetricLifecycleMetadata(structuralZeroAllowed = true))
+        )!!
+
+        val states = alignment.grid!!.cellsByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).map(TimeSeriesCell::state)
+        assertEquals(TimeSeriesCellState.PRE_METRIC_CREATION, states[0])
+        assertEquals(TimeSeriesCellState.PRE_METRIC_CREATION, states[1])
+        assertEquals(TimeSeriesCellState.OBSERVED_VALUE, states[2])
+    }
+
+    @Test
+    fun conflictingObservationsBecomeConflictCellsInsteadOfArbitrarySourceChoice() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            observations = listOf(
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 10.0, source = "b"),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 20.0, source = "a")
+            )
+        )!!
+
+        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+        assertEquals(TimeSeriesCellState.CONFLICT, cell.state)
+        assertNull(cell.value)
+        assertNull(alignment.valueAt(TrendMetricId.BADMINTON_TRAINING, 0))
+    }
+
+    @Test
+    fun stateValueInvariantRejectsContradictions() {
+        assertTrue(runCatching { TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), null, TimeSeriesCellState.OBSERVED_VALUE) }.isFailure)
+        assertTrue(runCatching { TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), Double.NaN, TimeSeriesCellState.OBSERVED_VALUE) }.isFailure)
+        assertTrue(runCatching { TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), TimeSeriesCellState.STRUCTURAL_ZERO, 3.0) }.isFailure)
+        assertTrue(runCatching { TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), TimeSeriesCellState.VERSION_DISCONTINUITY, 1.0) }.isFailure)
+    }
+
+    @Test
+    fun stationarizePreservesLifecycleProvenanceAndRecomputesMissingRate() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            observations = (0..10).map { index ->
+                val week = LocalDate.parse("2026-01-05").plusWeeks(index.toLong())
+                if (index == 5) {
+                    TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, null, TimeSeriesCellState.VERSION_DISCONTINUITY)
+                } else {
+                    TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, index.toDouble())
+                }
+            }
+        )!!
+
+        val result = TimeSeriesAlignmentService().stationarize(
+            alignment,
+            listOf(IntegrationDiagnostic(TrendMetricId.BADMINTON_TRAINING, IntegrationOrder.I1, 0.0, 0.0, 0.0, 0.0, "fixture"))
+        )!!.first
+
+        val cells = result.grid!!.cellsByMetric.getValue(TrendMetricId.BADMINTON_TRAINING)
+        assertEquals(TimeSeriesCellState.OBSERVED_VALUE, cells[0].state)
+        assertEquals(TimeSeriesCellState.VERSION_DISCONTINUITY, cells[4].state)
+        assertEquals(TimeSeriesCellState.VERSION_DISCONTINUITY, cells[5].state)
+        assertTrue(cells[4].sourceCells.any { it.role == TimeSeriesCellRole.SOURCE })
+        assertTrue(result.missingRates.getValue(TrendMetricId.BADMINTON_TRAINING) > 0.0)
+    }
+
+    @Test
     fun gridRejectsInvalidWeekAndCellShapes() {
         val monday = LocalDate.parse("2026-01-05")
         val metric = TrendMetricId.BADMINTON_TRAINING
@@ -164,6 +265,31 @@ class TimeSeriesCalendarGridTest {
         assertTrue(exclusion.cellReferences.any { it.role == TimeSeriesCellRole.SOURCE && it.metric == TrendMetricId.FATIGUE_COMPOSITE })
         assertTrue(exclusion.cellReferences.any { it.role == TimeSeriesCellRole.TARGET && it.metric == TrendMetricId.FATIGUE_COMPOSITE })
         assertFalse(exclusion.cellReferences.map { it.role }.toSet().size == 1)
+    }
+
+    @Test
+    fun everySourceWeekIsIncludedOrExcludedWithBoundaryReasons() {
+        val alignment = fixture()
+        val (rows, exclusions) = alignment.buildExactRows(
+            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            targetMetric = TrendMetricId.BADMINTON_TRAINING,
+            lag = 1,
+            horizon = 1
+        )
+
+        assertEquals(alignment.weeks.size, rows.size + exclusions.size)
+        assertTrue(exclusions.any { it.reason == TimeSeriesRowExclusionReason.SOURCE_BEFORE_REQUIRED_LAGS })
+        assertTrue(exclusions.any { it.reason == TimeSeriesRowExclusionReason.TARGET_OUTSIDE_GRID })
+    }
+
+    @Test
+    fun lagAndHorizonInputValidationIsExplicit() {
+        val alignment = fixture()
+        assertTrue(runCatching { alignment.buildExactRows(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE, -1, 1) }.isFailure)
+        assertTrue(runCatching { alignment.buildExactRows(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE, 1, -1) }.isFailure)
+        val (rows, exclusions) = alignment.buildExactRows(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.BADMINTON_TRAINING, 0, 0)
+        assertTrue(rows.isNotEmpty())
+        assertEquals(alignment.weeks.size, rows.size + exclusions.size)
     }
 
     private fun fixture(): TimeSeriesAlignment {

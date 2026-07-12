@@ -127,15 +127,15 @@ class LaggedTimeSeriesAnalyzerTest {
     }
 
     @Test
-    fun cointegratedI1SeriesUseBayesianVecmRoute() {
+    fun legacyCointegrationDiagnosticDoesNotRouteToBayesianVecm() {
         val result = BayesianTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             cointegratedFixture(72)
         )
 
-        assertEquals(BayesianTimeSeriesModel.BAYESIAN_VECM, result.model)
-        assertTrue(result.cointegration!!.isSupported)
-        assertEquals(1, result.cointegration.rank)
+        assertFalse(result.model == BayesianTimeSeriesModel.BAYESIAN_VECM)
+        assertFalse(result.cointegration!!.supportedForModelRouting)
+        assertTrue(result.cointegration.diagnosticOnly)
     }
 
     private fun stationaryFixture(count: Int, includeStrength: Boolean = false): Map<TrendMetricId, List<TrendDataPoint>> {

@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.exp
 import kotlin.math.sqrt
@@ -15,7 +16,7 @@ internal class TimeSeriesAlignmentService {
     ): TimeSeriesAlignment? = alignObservations(
         metrics = metrics,
         observations = series.flatMap { (metric, points) ->
-            points.map { point -> TimeSeriesObservation(metric, point.weekStart, point.value) }
+            points.map { point -> TimeSeriesObservation(metric, canonicalWeekStart(point.weekStart), point.value) }
         },
         lifecycleMetadata = lifecycleMetadata + structuralZeroMetrics.associateWith {
             (lifecycleMetadata[it] ?: MetricLifecycleMetadata()).copy(structuralZeroAllowed = true)
@@ -29,17 +30,22 @@ internal class TimeSeriesAlignmentService {
     ): TimeSeriesAlignment? {
         val unique = metrics.distinct()
         if (unique.isEmpty()) return null
+        val requestedObservations = observations
+            .filter { it.metric in unique }
+            .map { it.copy(weekStart = canonicalWeekStart(it.weekStart)) }
+        val requestedMetadata = lifecycleMetadata.filterKeys { it in unique }
         val observationsByMetric = unique.associateWith { metric ->
-            observations.filter { it.metric == metric }.groupBy(TimeSeriesObservation::weekStart).mapValues { (_, items) -> resolveObservationConflict(items) }
+            requestedObservations.filter { it.metric == metric }.groupBy(TimeSeriesObservation::weekStart).mapValues { (_, items) -> resolveObservationConflict(items) }
         }
-        val bounds = observations.map { it.weekStart }.takeIf { it.isNotEmpty() } ?: return null
+        val bounds = boundsWeeks(requestedObservations, requestedMetadata).takeIf { it.isNotEmpty() } ?: return null
         val allWeeks = generateSequence(bounds.minOrNull()!!) { week ->
             week.plusWeeks(1).takeIf { it <= bounds.maxOrNull()!! }
         }.toList()
         val cellsByMetric = observationsByMetric.mapValues { (metric, values) ->
-            val metadata = lifecycleMetadata[metric] ?: MetricLifecycleMetadata()
+            val metadata = requestedMetadata[metric] ?: MetricLifecycleMetadata()
+            val structuralZeroFrom = metadata.availableFromWeek ?: values.values.filter { it.value != null }.minOfOrNull { it.weekStart }
             allWeeks.map { week ->
-                cellFor(metric, week, values[week], metadata)
+                cellFor(metric, week, values[week], metadata, structuralZeroFrom)
             }
         }
         val grid = TimeSeriesCalendarGrid.createValidated(allWeeks, cellsByMetric)
@@ -53,27 +59,37 @@ internal class TimeSeriesAlignmentService {
         )
     }
 
-    private fun resolveObservationConflict(items: List<TimeSeriesObservation>): TimeSeriesObservation =
-        items.sortedWith(
-            compareByDescending<TimeSeriesObservation> { it.value != null }
-                .thenBy { it.state?.ordinal ?: Int.MAX_VALUE }
-                .thenBy { it.source.orEmpty() }
-        ).first()
+    private fun resolveObservationConflict(items: List<TimeSeriesObservation>): TimeSeriesObservation {
+        val first = items.first()
+        if (items.all { it.value == first.value && it.state == first.state && it.missingReason == first.missingReason }) return first
+        val revisionOrdered = items.all { it.version != null && it.source == first.source }
+        if (revisionOrdered) return items.maxBy { it.version.orEmpty() }
+        return TimeSeriesObservation(
+            metric = first.metric,
+            weekStart = first.weekStart,
+            value = null,
+            state = TimeSeriesCellState.CONFLICT,
+            missingReason = "conflicting observations",
+            source = "conflict"
+        )
+    }
 
     private fun cellFor(
         metric: TrendMetricId,
         week: LocalDate,
         observation: TimeSeriesObservation?,
-        metadata: MetricLifecycleMetadata
+        metadata: MetricLifecycleMetadata,
+        structuralZeroFrom: LocalDate?
     ): TimeSeriesCell {
         val state = when {
-            metadata.availableFromWeek?.let { week.isBefore(it) } == true -> TimeSeriesCellState.PRE_METRIC_CREATION
+            observation?.state == TimeSeriesCellState.CONFLICT -> TimeSeriesCellState.CONFLICT
+            week in metadata.versionDiscontinuityWeeks || metadata.versionDiscontinuityRanges.any { it.contains(week) } -> TimeSeriesCellState.VERSION_DISCONTINUITY
             metadata.availableUntilWeek?.let { week.isAfter(it) } == true -> TimeSeriesCellState.NOT_APPLICABLE
             week in metadata.notApplicableWeeks -> TimeSeriesCellState.NOT_APPLICABLE
-            week in metadata.versionDiscontinuityWeeks || metadata.versionDiscontinuityRanges.any { it.contains(week) } -> TimeSeriesCellState.VERSION_DISCONTINUITY
+            (metadata.availableFromWeek ?: structuralZeroFrom)?.let { week.isBefore(it) } == true -> TimeSeriesCellState.PRE_METRIC_CREATION
             observation?.value != null -> TimeSeriesCellState.OBSERVED_VALUE
             observation?.state != null -> observation.state
-            metadata.structuralZeroAllowed -> TimeSeriesCellState.STRUCTURAL_ZERO
+            metadata.structuralZeroAllowed && structuralZeroFrom != null && !week.isBefore(structuralZeroFrom) -> TimeSeriesCellState.STRUCTURAL_ZERO
             else -> TimeSeriesCellState.MISSING
         }
         val value = when (state) {
@@ -88,7 +104,8 @@ internal class TimeSeriesAlignmentService {
             value = value,
             missingReason = observation?.missingReason,
             source = observation?.source,
-            version = observation?.version
+            version = observation?.version,
+            candidateCount = if (state == TimeSeriesCellState.CONFLICT) 2 else 1
         )
     }
 
@@ -129,32 +146,39 @@ internal class TimeSeriesAlignmentService {
         diagnostics: List<IntegrationDiagnostic>
     ): Pair<TimeSeriesAlignment, Map<TrendMetricId, String>>? {
         val orders = diagnostics.associate { it.metric to it.levelOrder }
-        val transformed = alignment.valuesByMetric.mapValues { (metric, values) ->
+        val weeks = alignment.weeks.drop(1)
+        val cellsByMetric = alignment.valuesByMetric.mapValues { (metric, values) ->
             values.indices.drop(1).map { index ->
+                val transformation = if (orders[metric] == IntegrationOrder.I1) "first difference" else "level"
+                val sourceCells = if (orders[metric] == IntegrationOrder.I1) {
+                    listOf(
+                        alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index),
+                        alignment.cellReference(TimeSeriesCellRole.LAG, 1, metric, index - 1)
+                    )
+                } else {
+                    listOf(alignment.cellReference(TimeSeriesCellRole.SOURCE, null, metric, index))
+                }
                 when (orders[metric]) {
-                    IntegrationOrder.I1 -> alignment.exactDifference(metric, index) ?: Double.NaN
-                    else -> values[index].takeIf(Double::isFinite) ?: Double.NaN
+                    IntegrationOrder.I1 -> {
+                        val value = alignment.exactDifference(metric, index)
+                        transformedCell(metric, weeks[index - 1], value, transformation, sourceCells, alignment.grid?.cell(metric, index), alignment.grid?.cell(metric, index - 1))
+                    }
+                    else -> {
+                        val value = values[index].takeIf(Double::isFinite)
+                        transformedCell(metric, weeks[index - 1], value, transformation, sourceCells, alignment.grid?.cell(metric, index), null)
+                    }
                 }
             }
         }
+        val transformed = cellsByMetric.mapValues { (_, cells) -> cells.map { it.value ?: Double.NaN } }
         if (transformed.values.any { values -> values.count(Double::isFinite) < MIN_OBSERVATIONS }) return null
         val descriptions = alignment.valuesByMetric.keys.associateWith { metric ->
             if (orders[metric] == IntegrationOrder.I1) "first difference" else "level"
         }
-        val weeks = alignment.weeks.drop(1)
-        val cellsByMetric = transformed.mapValues { (metric, values) ->
-            values.mapIndexed { index, value ->
-                TimeSeriesCell(
-                    metric = metric,
-                    weekStart = weeks[index],
-                    state = if (value.isFinite()) TimeSeriesCellState.OBSERVED_VALUE else TimeSeriesCellState.MISSING,
-                    value = value.takeIf(Double::isFinite)
-                )
-            }
-        }
         return alignment.copy(
             weeks = weeks,
             valuesByMetric = transformed,
+            missingRates = cellsByMetric.mapValues { (_, cells) -> cells.count { it.value == null }.toDouble() / weeks.size },
             grid = TimeSeriesCalendarGrid.createValidated(weeks, cellsByMetric)
         ) to descriptions
     }
@@ -278,6 +302,7 @@ internal fun TimeSeriesAlignment.valueAt(metric: TrendMetricId, index: Int): Dou
 }
 
 internal fun TimeSeriesAlignment.exactLag(metric: TrendMetricId, index: Int, lagWeeks: Int): Double? {
+    require(lagWeeks >= 0) { "lag must be non-negative" }
     val sourceIndex = index - lagWeeks
     if (sourceIndex < 0 || weeks[sourceIndex].plusWeeks(lagWeeks.toLong()) != weeks[index]) return null
     return valueAt(metric, sourceIndex)
@@ -291,6 +316,7 @@ internal fun TimeSeriesAlignment.exactDifference(metric: TrendMetricId, index: I
 }
 
 internal fun TimeSeriesAlignment.exactHorizon(metric: TrendMetricId, index: Int, horizon: Int): Double? {
+    require(horizon >= 0) { "horizon must be non-negative" }
     val targetIndex = index + horizon
     if (targetIndex !in weeks.indices || weeks[index].plusWeeks(horizon.toLong()) != weeks[targetIndex]) return null
     return valueAt(metric, targetIndex)
@@ -302,15 +328,19 @@ internal fun TimeSeriesAlignment.buildExactRows(
     lag: Int,
     horizon: Int
 ): Pair<List<TimeSeriesModelRow>, List<TimeSeriesRowExclusion>> {
+    require(lag >= 0) { "lag must be non-negative" }
+    require(horizon >= 0) { "horizon must be non-negative" }
     val rows = mutableListOf<TimeSeriesModelRow>()
     val exclusions = mutableListOf<TimeSeriesRowExclusion>()
-    for (index in lag until weeks.size - horizon) {
+    for (index in weeks.indices) {
         val targetIndex = index + horizon
         val target = exactHorizon(targetMetric, index, horizon)
         val source = valueAt(sourceMetric, index)
         val lags = (1..lag).map { offset -> exactLag(sourceMetric, index, offset) }
         val reason = when {
-            targetIndex !in weeks.indices || weeks[index].plusWeeks(horizon.toLong()) != weeks[targetIndex] -> TimeSeriesRowExclusionReason.DISCONTINUOUS_HORIZON
+            index < lag -> TimeSeriesRowExclusionReason.SOURCE_BEFORE_REQUIRED_LAGS
+            targetIndex !in weeks.indices -> TimeSeriesRowExclusionReason.TARGET_OUTSIDE_GRID
+            weeks[index].plusWeeks(horizon.toLong()) != weeks[targetIndex] -> TimeSeriesRowExclusionReason.DISCONTINUOUS_HORIZON
             target == null -> exclusionReason(grid?.cell(targetMetric, targetIndex), TimeSeriesRowExclusionReason.MISSING_TARGET)
             source == null -> exclusionReason(grid?.cell(sourceMetric, index), TimeSeriesRowExclusionReason.MISSING_SOURCE)
             lags.any { it == null } -> firstMissingLagReason(sourceMetric, index, lag)
@@ -328,7 +358,7 @@ internal fun TimeSeriesAlignment.buildExactRows(
             )
         } else {
             exclusions += TimeSeriesRowExclusion(
-                targetWeek = weeks.getOrElse(targetIndex.coerceAtMost(weeks.lastIndex)) { weeks[index] },
+                targetWeek = weeks.getOrNull(targetIndex) ?: weeks[index].plusWeeks(horizon.toLong()),
                 sourceWeek = weeks[index],
                 lagWeeks = (1..lag).mapNotNull { offset -> weeks.getOrNull(index - offset) },
                 horizon = horizon,
@@ -387,6 +417,7 @@ private fun exclusionReason(cell: TimeSeriesCell?, missingFallback: TimeSeriesRo
         TimeSeriesCellState.PRE_METRIC_CREATION -> TimeSeriesRowExclusionReason.PRE_METRIC_CREATION
         TimeSeriesCellState.VERSION_DISCONTINUITY -> TimeSeriesRowExclusionReason.VERSION_DISCONTINUITY
         TimeSeriesCellState.NOT_APPLICABLE -> TimeSeriesRowExclusionReason.NOT_APPLICABLE
+        TimeSeriesCellState.CONFLICT -> TimeSeriesRowExclusionReason.CONFLICT
         TimeSeriesCellState.STRUCTURAL_ZERO -> TimeSeriesRowExclusionReason.STRUCTURAL_ZERO_NOT_ALLOWED
         TimeSeriesCellState.OBSERVED_VALUE -> if (cell.value == null) TimeSeriesRowExclusionReason.INVALID_CELL_STATE else missingFallback
         TimeSeriesCellState.MISSING, null -> missingFallback
@@ -394,6 +425,53 @@ private fun exclusionReason(cell: TimeSeriesCell?, missingFallback: TimeSeriesRo
 
 private fun List<LocalDate>.isContiguousWeeks(): Boolean =
     isNotEmpty() && this == sorted() && distinct().size == size && zipWithNext().all { (left, right) -> left.plusWeeks(1) == right }
+
+internal fun canonicalWeekStart(date: LocalDate): LocalDate =
+    date.minusDays((date.dayOfWeek.value - DayOfWeek.MONDAY.value).toLong())
+
+private fun boundsWeeks(
+    observations: List<TimeSeriesObservation>,
+    metadata: Map<TrendMetricId, MetricLifecycleMetadata>
+): List<LocalDate> = observations.map { it.weekStart } +
+    metadata.values.flatMap { item ->
+        buildList {
+            item.availableFromWeek?.let(::add)
+            item.availableUntilWeek?.let(::add)
+            item.notApplicableWeeks.forEach(::add)
+            item.versionDiscontinuityWeeks.forEach(::add)
+            item.versionDiscontinuityRanges.forEach { range ->
+                add(range.startWeek)
+                add(range.endWeek)
+            }
+        }
+    }
+
+private fun transformedCell(
+    metric: TrendMetricId,
+    week: LocalDate,
+    value: Double?,
+    transformation: String,
+    sourceCells: List<TimeSeriesCellReference>,
+    current: TimeSeriesCell?,
+    previous: TimeSeriesCell?
+): TimeSeriesCell {
+    val blocking = listOfNotNull(current, previous).firstOrNull { it.state !in setOf(TimeSeriesCellState.OBSERVED_VALUE, TimeSeriesCellState.STRUCTURAL_ZERO) }
+    val state = when {
+        value != null && value.isFinite() -> TimeSeriesCellState.OBSERVED_VALUE
+        blocking != null -> blocking.state
+        else -> TimeSeriesCellState.MISSING
+    }
+    return TimeSeriesCell(
+        metric = metric,
+        weekStart = week,
+        state = state,
+        value = value?.takeIf(Double::isFinite),
+        missingReason = if (state == TimeSeriesCellState.OBSERVED_VALUE) null else "transformation unavailable: $state",
+        sourceCells = sourceCells,
+        transformation = transformation,
+        exclusionReason = if (state == TimeSeriesCellState.OBSERVED_VALUE) null else exclusionReason(blocking, TimeSeriesRowExclusionReason.MISSING_SOURCE)
+    )
+}
 
 internal fun variance(values: Collection<Double>): Double {
     if (values.isEmpty()) return 0.0

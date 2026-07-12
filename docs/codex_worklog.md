@@ -1179,3 +1179,58 @@ Tests
 Remaining
 - GitHub Actions branch verification must be dispatched after push.
 - BVAR posterior sampling, Bayesian LP posterior mixtures, full Johansen trace/max-eigen testing, Bayesian VECM replacement, and final UI changes remain deferred until explicit Phase B-D/E approval.
+
+## Time-Series Analysis Phase A Second Hardening Correction
+
+Cause
+- Started from `feat/time-series-phase-a` at `f7e1046be1fbb718ba06fa97230173a635117438`.
+- The follow-up PHASE A audit found remaining contract gaps: singular PSD matrices could still be regularized, Johansen-form provenance was not preserved enough, generalized eigen validation could mix original/effective `B`, calendar bounds could be influenced by unrequested metrics, structural zero activation was too broad, conflicts were resolved by arbitrary ordering, state/value contradictions were not rejected everywhere, stationarization collapsed lifecycle provenance, legacy cointegration still routed to VECM, and final/initial source weeks were not fully diagnosed.
+- Existing dirty `outputs/*` files remained ignored and were not staged.
+
+Changes
+- Added explicit Cholesky failure codes and effective matrix/numerical-rank provenance.
+- Rejected exact singular PSD and rank-deficient matrices before bounded jitter.
+- Made Johansen-form eigen strict by default and preserved `S00` solve plus `S11` Cholesky provenance.
+- Ensured generalized eigen regularized mode validates residuals, normalization, and orthogonality against the same effective `B` matrix.
+- Canonicalized raw trend dates to ISO Monday and required explicit grid/cell week starts to be Mondays.
+- Limited grid bounds to requested metrics and requested lifecycle metadata.
+- Made structural-zero fill start only after explicit availability or first valid observation.
+- Converted unresolvable duplicate observations into `CONFLICT` cells instead of selecting by source string.
+- Enforced state/value invariants for observations and cells.
+- Preserved lifecycle/source-cell provenance through stationarization and recalculated transformed missing rates.
+- Disabled legacy heuristic cointegration from `BAYESIAN_VECM` routing and renamed the score away from posterior-probability wording.
+- Changed exact-row diagnostics so every candidate source week is included or excluded with boundary reasons.
+
+Reason
+- PHASE A must be a trustworthy numeric/calendar foundation before later Bayesian phases use it.
+- Regularization cannot hide rank deficiency, calendar gaps cannot be silently compressed, and a diagnostic-only cointegration heuristic cannot drive model routing.
+
+Result
+- PHASE A now fails explicit bad inputs earlier and records the provenance needed by later Johansen/rank-posterior work.
+- PHASE B/C/D/E work remains unstarted.
+- No version, tag, main merge, or release work was performed.
+
+Tests
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed with bundled Python.
+- `python tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat --version`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StableLinearAlgebraTest*" --tests "*TimeSeriesCalendarGridTest*" --tests "*LaggedTimeSeriesAnalyzerTest*"`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+- GitHub Actions is pending until the correction commit is pushed.
+
+File/Feature Map
+- `StableLinearAlgebra.kt`: Cholesky failure codes, strict Johansen primitive, effective-B generalized eigen validation.
+- `BayesianTimeSeriesModels.kt`: cell/observation invariants, conflict state, routing-safe cointegration diagnostic fields.
+- `BayesianTimeSeriesSupport.kt`: canonical weeks, metric-bound filtering, structural-zero activation, conflict handling, transformed provenance, complete row exclusion diagnostics.
+- `CointegrationAnalyzer.kt`: legacy heuristic remains diagnostic-only.
+- `BayesianTimeSeriesAnalyzer.kt`: VECM routing requires explicit future routing support and rejects invalid requested horizons.
+- `AnalysisLabUi.kt`: displays legacy heuristic score without Bayesian posterior wording.
+- `StableLinearAlgebraTest.kt`, `TimeSeriesCalendarGridTest.kt`, `LaggedTimeSeriesAnalyzerTest.kt`: regression coverage for the corrected contracts.
+- `tools/time_series_reference/*`: regenerated edge-case fixtures.
+- `tools/check_time_series_numeric_sources.py`: scanner blocks legacy posterior naming and direct routing flags.
+
+Remaining
+- Dispatch GitHub Actions after commit push.
+- PHASE B posterior work, PHASE C LP rebuild, PHASE D Johansen/Bayesian VECM, and PHASE E UI integration remain blocked until explicit approval.

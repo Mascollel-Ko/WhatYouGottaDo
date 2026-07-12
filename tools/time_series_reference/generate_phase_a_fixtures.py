@@ -81,7 +81,11 @@ def linear_algebra_fixture() -> dict:
     johansen_values, johansen_vectors = scipy.linalg.eigh(johansen_a, s11)
     singular = scipy.linalg.svdvals(svd_a)
     rank_deficient = np.array([[1.0, 2.0], [2.0, 4.0]])
+    exact_singular_psd = np.array([[1.0, 1.0], [1.0, 1.0]])
     nearly_singular = np.diag([1.0, 1e-9])
+    regularized_b = np.diag([1.0, -1e-9])
+    regularized_b_effective = regularized_b + np.eye(2) * (1e-9 + 1e-11)
+    regularized_values, regularized_vectors = scipy.linalg.eigh(gen_a, regularized_b_effective)
 
     return {
         "provenance": provenance("Phase A linear algebra golden fixture"),
@@ -118,8 +122,12 @@ def linear_algebra_fixture() -> dict:
         "strict_spd": {
             "a": [[2.0, 0.1], [0.1, 1.0]],
         },
+        "exact_singular_psd": {
+            "a": as_list(exact_singular_psd),
+            "rank": int(np.linalg.matrix_rank(exact_singular_psd)),
+        },
         "regularizable_numerical_noise": {
-            "a": [[1.0, 0.0], [0.0, -1e-10]],
+            "a": [[1.0, 0.0], [0.0, -1e-9]],
         },
         "materially_indefinite": {
             "a": [[-1.0, 0.0], [0.0, 1.0]],
@@ -135,6 +143,13 @@ def linear_algebra_fixture() -> dict:
             "values_desc": as_list(gen_values[::-1]),
             "vectors_desc": as_list(gen_vectors[:, ::-1].T),
         },
+        "regularized_generalized_symmetric_eigen": {
+            "a": as_list(gen_a),
+            "b": as_list(regularized_b),
+            "effective_b": as_list(regularized_b_effective),
+            "values_desc": as_list(regularized_values[::-1]),
+            "vectors_desc": as_list(regularized_vectors[:, ::-1].T),
+        },
         "johansen_form": {
             "s00": as_list(s00),
             "s01": as_list(s01),
@@ -143,6 +158,18 @@ def linear_algebra_fixture() -> dict:
             "a": as_list(johansen_a),
             "values_desc": as_list(johansen_values[::-1]),
             "vectors_desc": as_list(johansen_vectors[:, ::-1].T),
+        },
+        "johansen_rank_deficient_s00": {
+            "s00": as_list(rank_deficient),
+            "s01": as_list(s01),
+            "s10": as_list(s10),
+            "s11": as_list(s11),
+        },
+        "johansen_rank_deficient_s11": {
+            "s00": as_list(s00),
+            "s01": as_list(s01),
+            "s10": as_list(s10),
+            "s11": as_list(rank_deficient),
         },
         "asymmetric_failure": {
             "a": [[1.0, 0.2], [0.4, 1.0]],
@@ -184,6 +211,16 @@ def calendar_fixture() -> dict:
         },
         "horizon_checks": {
             "h2_from_w01_targets_w03": True,
+            "final_week_horizon_is_excluded": True,
+        },
+        "mixed_weekday_dates": {
+            "raw_tuesday": "2026-01-06",
+            "canonical_monday": "2026-01-05",
+        },
+        "metric_bounds": {
+            "unselected_metric_week": "2024-01-01",
+            "selected_start_week": "2025-12-22",
+            "selected_end_week": "2026-01-12",
         },
         "lifecycle_observations": {
             "BADMINTON_TRAINING": [
@@ -208,6 +245,16 @@ def calendar_fixture() -> dict:
                 "version_discontinuity_weeks": ["2026-01-05"],
             },
         },
+        "conflicting_observations": [
+            {"week": "2026-01-05", "value": 10.0},
+            {"week": "2026-01-05", "value": 20.0}
+        ],
+        "state_value_invalid_cases": [
+            {"state": "OBSERVED_VALUE", "value": None},
+            {"state": "OBSERVED_VALUE", "value": "NaN"},
+            {"state": "STRUCTURAL_ZERO", "value": 3.0},
+            {"state": "VERSION_DISCONTINUITY", "value": 10.0}
+        ],
     }
 
 

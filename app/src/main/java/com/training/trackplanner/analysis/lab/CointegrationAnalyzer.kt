@@ -25,8 +25,9 @@ internal class CointegrationAnalyzer {
         val s11 = covariance(laggedLevels)
         val s01 = crossCovariance(differences, laggedLevels)
         val s10 = transpose(s01)
-        val eigenResult = runCatching { StableLinearAlgebra.johansenFormEigen(s00, s01, s10, s11) }.getOrNull()
+        val johansen = runCatching { StableLinearAlgebra.johansenFormEigen(s00, s01, s10, s11) }.getOrNull()
             ?: return CointegrationDiagnostic(null, 0.0, null, false, "generalized eigen primitive failed")
+        val eigenResult = johansen.eigenResult
         val eigen = eigenResult.eigenvalues.firstOrNull()?.coerceIn(0.0, 0.999999)
             ?: return CointegrationDiagnostic(null, 0.0, null, false, "generalized eigen primitive returned no valid roots")
         val trace = -laggedLevels.first().size * ln(1.0 - eigen)
@@ -34,16 +35,16 @@ internal class CointegrationAnalyzer {
         val supported = trace >= TRACE_RANK_ONE_THRESHOLD && heuristicProbability >= 0.80
         return CointegrationDiagnostic(
             rank = if (supported) 1 else 0,
-            posteriorProbabilityRankPositive = heuristicProbability,
+            legacyHeuristicScore = heuristicProbability,
             johansenTraceStatistic = trace,
-            isSupported = supported,
+            isSupported = false,
             message = if (supported) {
-                "Legacy heuristic cointegration screen supports a rank-1 compatibility route; full Johansen and Bayesian rank posterior are not implemented in Phase A"
+                "Legacy heuristic cointegration screen suggests rank-1 structure, but VECM routing is disabled until full Johansen and Bayesian rank posterior are implemented"
             } else {
                 "legacy heuristic cointegration evidence is insufficient or conflicted"
             },
-            cointegrationVector = eigenResult.eigenvectors.first().toList().takeIf { supported },
-            diagnostics = eigenResult.diagnostics + "legacy heuristic probability; not a Bayesian rank posterior"
+            cointegrationVector = null,
+            diagnostics = johansen.diagnostics + "legacy heuristic score; diagnostic only; not a Bayesian rank posterior"
         )
     }
 

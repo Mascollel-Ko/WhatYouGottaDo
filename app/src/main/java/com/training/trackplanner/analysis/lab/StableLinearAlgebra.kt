@@ -30,20 +30,38 @@ internal object StableLinearAlgebra {
 
     data class CholeskyResult(
         val factor: Array<DoubleArray>,
+        val effectiveMatrix: Array<DoubleArray>,
         val originalMatrixWasPositiveDefinite: Boolean,
         val regularized: Boolean,
         val jitter: Double,
         val jitterRatio: Double,
+        val numericalRank: Int,
         val attempts: Int,
         val conditionNumber: Double,
+        val failureCode: CholeskyFailureCode? = null,
         val diagnostics: List<String>
     )
+
+    enum class CholeskyFailureCode {
+        NON_SQUARE_INPUT,
+        NON_FINITE_INPUT,
+        NON_SYMMETRIC_INPUT,
+        RANK_DEFICIENT,
+        MATERIALLY_INDEFINITE,
+        EXCESSIVE_JITTER_REQUIRED
+    }
+
+    class CholeskyFailureException(
+        val code: CholeskyFailureCode,
+        message: String
+    ) : IllegalArgumentException(message)
 
     data class SpdSolveResult<T>(
         val solution: T,
         val regularized: Boolean,
         val jitter: Double,
         val jitterRatio: Double,
+        val numericalRank: Int,
         val conditionNumber: Double,
         val diagnostics: List<String>
     )
@@ -70,7 +88,21 @@ internal object StableLinearAlgebra {
         val maxResidual: Double,
         val bOrthogonalityError: Double,
         val bCholesky: CholeskyResult,
+        val originalB: Array<DoubleArray>,
+        val effectiveB: Array<DoubleArray>,
+        val regularized: Boolean,
+        val jitter: Double,
+        val jitterRatio: Double,
+        val failedPairIndices: List<Int>,
         val transformedRelativeAsymmetry: Double,
+        val diagnostics: List<String>
+    )
+
+    data class JohansenFormEigenResult(
+        val eigenResult: GeneralizedEigenResult,
+        val s00SolveResult: SpdSolveResult<Array<DoubleArray>>,
+        val s11CholeskyResult: CholeskyResult,
+        val aMatrix: Array<DoubleArray>,
         val diagnostics: List<String>
     )
 
@@ -86,6 +118,12 @@ internal object StableLinearAlgebra {
         return factor.solveResult(solution)
     }
 
+    fun solveSpdStrict(a: Array<DoubleArray>, matrixB: Array<DoubleArray>): SpdSolveResult<Array<DoubleArray>> {
+        val factor = strictCholesky(a)
+        val solution = decompositionFromFactor(factor.factor).solver.solve(matrix(matrixB)).data
+        return factor.solveResult(solution)
+    }
+
     fun solveLeastSquares(a: Array<DoubleArray>, b: DoubleArray): DoubleArray =
         leastSquaresSolver(matrix(a)).solve(MatrixUtils.createRealVector(b)).toArray()
 
@@ -93,14 +131,18 @@ internal object StableLinearAlgebra {
         leastSquaresSolver(matrix(a)).solve(matrix(matrixB)).data
 
     fun strictCholesky(a: Array<DoubleArray>): CholeskyResult {
+        validateMatrix(a)
         val prepared = prepareSymmetric(a)
         val decomposition = CholeskyDecomposition(matrix(prepared), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
+        val rank = rank(prepared)
         return CholeskyResult(
             factor = decomposition.l.data,
+            effectiveMatrix = prepared,
             originalMatrixWasPositiveDefinite = true,
             regularized = false,
             jitter = 0.0,
             jitterRatio = 0.0,
+            numericalRank = rank,
             attempts = 1,
             conditionNumber = conditionNumber(a),
             diagnostics = listOf("strict SPD")
@@ -112,25 +154,37 @@ internal object StableLinearAlgebra {
         policy: CholeskyRegularizationPolicy = CholeskyRegularizationPolicy()
     ): CholeskyResult {
         runCatching { strictCholesky(a) }.getOrNull()?.let { return it }
+        validateMatrix(a)
         val prepared = prepareSymmetric(a)
+        val singularValues = singularValues(prepared)
+        val numericalRank = rankFromSingularValues(singularValues, prepared.size, prepared.size)
+        if (numericalRank < prepared.size) {
+            throw CholeskyFailureException(CholeskyFailureCode.RANK_DEFICIENT, "SPD matrix is rank deficient")
+        }
         val spectrum = symmetricEigen(prepared).values
         val scale = diagonalScale(prepared)
         val minEigen = spectrum.minOrNull() ?: throw IllegalArgumentException("empty SPD matrix")
-        if (minEigen < -scale * policy.eigenToleranceRatio) throw IllegalArgumentException("matrix is materially indefinite")
+        if (minEigen < -scale * policy.eigenToleranceRatio) {
+            throw CholeskyFailureException(CholeskyFailureCode.MATERIALLY_INDEFINITE, "matrix is materially indefinite")
+        }
         if (policy.maxAttempts <= 0) throw IllegalArgumentException("regularization attempts disabled")
         val jitter = max(-minEigen + scale * POSITIVE_DEFINITE_TOLERANCE * 10.0, SMALL_SCALE * 10.0)
         val jitterRatio = jitter / scale
-        if (jitterRatio > policy.maxJitterRatio) throw IllegalArgumentException("jitter ratio $jitterRatio exceeds ${policy.maxJitterRatio}")
+        if (jitterRatio > policy.maxJitterRatio) {
+            throw CholeskyFailureException(CholeskyFailureCode.EXCESSIVE_JITTER_REQUIRED, "jitter ratio $jitterRatio exceeds ${policy.maxJitterRatio}")
+        }
         val jittered = Array(prepared.size) { row ->
             DoubleArray(prepared[row].size) { column -> prepared[row][column] + if (row == column) jitter else 0.0 }
         }
         val decomposition = CholeskyDecomposition(matrix(jittered), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
         return CholeskyResult(
             factor = decomposition.l.data,
+            effectiveMatrix = jittered,
             originalMatrixWasPositiveDefinite = false,
             regularized = true,
             jitter = jitter,
             jitterRatio = jitterRatio,
+            numericalRank = numericalRank,
             attempts = 1,
             conditionNumber = conditionNumber(prepared),
             diagnostics = listOf("bounded diagonal regularization")
@@ -185,8 +239,34 @@ internal object StableLinearAlgebra {
         b: Array<DoubleArray>,
         residualTolerance: Double = 1e-7,
         orthogonalityTolerance: Double = 1e-7
+    ): GeneralizedEigenResult = generalizedSymmetricEigenRegularized(a, b, residualTolerance, orthogonalityTolerance)
+
+    fun generalizedSymmetricEigenStrict(
+        a: Array<DoubleArray>,
+        b: Array<DoubleArray>,
+        residualTolerance: Double = 1e-7,
+        orthogonalityTolerance: Double = 1e-7
+    ): GeneralizedEigenResult = generalizedSymmetricEigenWithB(a, b, residualTolerance, orthogonalityTolerance, ::strictCholesky)
+
+    fun generalizedSymmetricEigenRegularized(
+        a: Array<DoubleArray>,
+        b: Array<DoubleArray>,
+        residualTolerance: Double = 1e-7,
+        orthogonalityTolerance: Double = 1e-7
+    ): GeneralizedEigenResult = generalizedSymmetricEigenWithB(a, b, residualTolerance, orthogonalityTolerance) { regularizedCholesky(it) }
+
+    private fun generalizedSymmetricEigenWithB(
+        a: Array<DoubleArray>,
+        b: Array<DoubleArray>,
+        residualTolerance: Double,
+        orthogonalityTolerance: Double,
+        bFactor: (Array<DoubleArray>) -> CholeskyResult
     ): GeneralizedEigenResult {
-        val bCholesky = regularizedCholesky(b)
+        validateMatrix(a)
+        validateMatrix(b)
+        val originalB = prepareSymmetric(b)
+        val bCholesky = bFactor(originalB)
+        val effectiveB = bCholesky.effectiveMatrix
         val lower = bCholesky.factor
         val y = applyLowerTriangular(lower, prepareSymmetric(a))
         val c = transpose(applyLowerTriangular(lower, transpose(y)))
@@ -199,12 +279,13 @@ internal object StableLinearAlgebra {
         if (eigen.values.size != expected) throw IllegalArgumentException("expected $expected eigenpairs, got ${eigen.values.size}")
         if (eigen.values.any { !it.isFinite() }) throw IllegalArgumentException("non-finite generalized eigenvalue")
         val vectors = Array(expected) { index ->
-            normalizeBMetric(applyUpperTriangular(transpose(lower), eigen.vectors[index]), b)
+            normalizeBMetric(applyUpperTriangular(transpose(lower), eigen.vectors[index]), effectiveB)
         }
-        val residuals = DoubleArray(expected) { index -> generalizedResidual(a, b, eigen.values[index], vectors[index]) }
+        val residuals = DoubleArray(expected) { index -> generalizedResidual(a, effectiveB, eigen.values[index], vectors[index]) }
         val maxResidual = residuals.maxOrNull() ?: Double.POSITIVE_INFINITY
-        val validCount = residuals.count { it <= residualTolerance }
-        val bOrthogonality = bOrthogonalityError(vectors, b)
+        val failedPairIndices = residuals.indices.filter { residuals[it] > residualTolerance }
+        val validCount = expected - failedPairIndices.size
+        val bOrthogonality = bOrthogonalityError(vectors, effectiveB)
         val diagnostics = bCholesky.diagnostics + listOf(
             "relative asymmetry=$asymmetry",
             "max residual=$maxResidual",
@@ -221,6 +302,12 @@ internal object StableLinearAlgebra {
             maxResidual = maxResidual,
             bOrthogonalityError = bOrthogonality,
             bCholesky = bCholesky,
+            originalB = originalB,
+            effectiveB = effectiveB,
+            regularized = bCholesky.regularized,
+            jitter = bCholesky.jitter,
+            jitterRatio = bCholesky.jitterRatio,
+            failedPairIndices = failedPairIndices,
             transformedRelativeAsymmetry = asymmetry,
             diagnostics = diagnostics
         )
@@ -231,9 +318,17 @@ internal object StableLinearAlgebra {
         s01: Array<DoubleArray>,
         s10: Array<DoubleArray>,
         s11: Array<DoubleArray>
-    ): GeneralizedEigenResult {
-        val solved = solveSpd(s00, s01)
-        return generalizedSymmetricEigen(multiply(s10, solved.solution), s11)
+    ): JohansenFormEigenResult {
+        val solved = solveSpdStrict(s00, s01)
+        val a = multiply(s10, solved.solution)
+        val eigen = generalizedSymmetricEigenStrict(a, s11)
+        return JohansenFormEigenResult(
+            eigenResult = eigen,
+            s00SolveResult = solved,
+            s11CholeskyResult = eigen.bCholesky,
+            aMatrix = a,
+            diagnostics = solved.diagnostics + eigen.diagnostics
+        )
     }
 
     fun logDetSpd(a: Array<DoubleArray>): LogDetResult {
@@ -300,7 +395,7 @@ internal object StableLinearAlgebra {
 
     private fun prepareSymmetric(a: Array<DoubleArray>): Array<DoubleArray> {
         val asymmetry = relativeAsymmetry(a)
-        if (asymmetry > SYMMETRY_TOLERANCE) throw IllegalArgumentException("Matrix is asymmetric: $asymmetry")
+        if (asymmetry > SYMMETRY_TOLERANCE) throw CholeskyFailureException(CholeskyFailureCode.NON_SYMMETRIC_INPUT, "Matrix is asymmetric: $asymmetry")
         return symmetrize(a)
     }
 
@@ -342,6 +437,15 @@ internal object StableLinearAlgebra {
 
     private fun matrix(a: Array<DoubleArray>): RealMatrix = MatrixUtils.createRealMatrix(a)
 
+    private fun validateMatrix(a: Array<DoubleArray>) {
+        if (a.isEmpty() || a.any { it.size != a.size }) {
+            throw CholeskyFailureException(CholeskyFailureCode.NON_SQUARE_INPUT, "matrix must be non-empty and square")
+        }
+        if (a.any { row -> row.any { !it.isFinite() } }) {
+            throw CholeskyFailureException(CholeskyFailureCode.NON_FINITE_INPUT, "matrix contains non-finite values")
+        }
+    }
+
     private fun column(values: DoubleArray): Array<DoubleArray> = Array(values.size) { row -> doubleArrayOf(values[row]) }
 
     private fun columnsToRows(columns: Array<DoubleArray>): Array<DoubleArray> =
@@ -353,6 +457,7 @@ internal object StableLinearAlgebra {
             regularized = regularized,
             jitter = jitter,
             jitterRatio = jitterRatio,
+            numericalRank = numericalRank,
             conditionNumber = conditionNumber,
             diagnostics = diagnostics
         )
