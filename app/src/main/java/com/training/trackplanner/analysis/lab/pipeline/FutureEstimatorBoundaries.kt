@@ -7,26 +7,42 @@ internal class FutureBvarInput private constructor(
     val view: BvarPreparedView,
     val rowPlan: PreparedRowPlan,
     val scalingPlan: PreparedScalingPlan,
+    orderedEndogenousMetrics: List<TrendMetricId>,
     val priorFingerprint: String,
     val fingerprint: String
 ) {
+    val orderedEndogenousMetrics: List<TrendMetricId> = orderedEndogenousMetrics.toList()
+
     companion object {
         fun createValidated(
             view: BvarPreparedView,
             rowPlan: PreparedRowPlan,
             scalingPlan: PreparedScalingPlan,
-            priorFingerprint: String
+            priorFingerprint: String,
+            orderedEndogenousMetrics: List<TrendMetricId> = view.metrics
         ): FutureBvarInput {
             require(priorFingerprint.isNotBlank())
             require(rowPlan.sourceViewFingerprint == view.fingerprint)
             require(scalingPlan.sourceViewFingerprint == view.fingerprint)
             require(scalingPlan.sourceRowPlanFingerprint == rowPlan.fingerprint)
+            require(orderedEndogenousMetrics.isNotEmpty())
+            require(orderedEndogenousMetrics.distinct().size == orderedEndogenousMetrics.size)
+            require(orderedEndogenousMetrics.toSet() == view.metrics.toSet())
             return FutureBvarInput(
                 view,
                 rowPlan,
                 scalingPlan,
+                orderedEndogenousMetrics,
                 priorFingerprint,
-                strictFingerprint(listOf(view.fingerprint, rowPlan.fingerprint, scalingPlan.fingerprint, priorFingerprint))
+                strictFingerprint(
+                    listOf(
+                        view.fingerprint,
+                        rowPlan.fingerprint,
+                        scalingPlan.fingerprint,
+                        orderedEndogenousMetrics.joinToString(",") { it.name },
+                        priorFingerprint
+                    )
+                )
             )
         }
     }
@@ -63,7 +79,7 @@ internal class BvarPosteriorSourceIdentity private constructor(
             require(eligibleWeeks == rowPlanWeeks) {
                 "BVAR shock eligible weeks must exactly match the authoritative row plan"
             }
-            val orderedMetrics = input.view.metrics
+            val orderedMetrics = input.orderedEndogenousMetrics
             val fingerprint = strictFingerprint(
                 listOf(
                     sourceMetric.name,

@@ -36,6 +36,15 @@ reconstruction, BVAR posterior source identity, row-domain multi-draw shock
 posterior shape, sole row/scaling authorities, and PHASE E ownership of optional
 statistical ranking.
 
+`phase_b_bvar_reference.json` adds the PHASE B independent conjugate BVAR
+reference values. It records raw stationary synthetic systems, the common
+row-plan standardized sample, design matrix orientation, zero-mean
+Minnesota-style prior constants, Matrix-Normal Inverse-Wishart posterior
+parameters, exact log marginal likelihoods, joint and marginal lag/lambda
+posterior weights, fixed covariance Cholesky structural shocks, reconstruction
+values, and variable-order sensitivity. It is a reference-only fixture and is
+not used by Android runtime code.
+
 Run the companion source scan from the repository root:
 
 ```powershell

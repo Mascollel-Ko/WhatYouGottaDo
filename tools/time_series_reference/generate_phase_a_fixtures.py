@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import scipy
 import scipy.linalg
+import scipy.special
 import statsmodels
 from statsmodels.tsa.stattools import adfuller, kpss
 
@@ -518,6 +519,153 @@ def prepared_pipeline_contract_fixture() -> dict:
     }
 
 
+def phase_b_design(values: np.ndarray, p: int, p_max: int) -> tuple[np.ndarray, np.ndarray]:
+    y = values[p_max:, :]
+    rows = []
+    for index in range(p_max, values.shape[0]):
+        row = [1.0]
+        for lag in range(1, p + 1):
+            row.extend(values[index - lag, :].tolist())
+        rows.append(row)
+    return y, np.array(rows, dtype=float)
+
+
+def phase_b_prior(k: int, p: int, lam: float, intercept_variance: float = 100.0, decay: float = 2.0):
+    q = 1 + k * p
+    b0 = np.zeros((q, k), dtype=float)
+    diagonal = np.empty(q, dtype=float)
+    diagonal[0] = intercept_variance
+    for index in range(1, q):
+        lag = ((index - 1) // k) + 1
+        diagonal[index] = lam * lam / (lag ** (2.0 * decay))
+    v0 = np.diag(diagonal)
+    v0_precision = np.diag(1.0 / diagonal)
+    nu0 = k + 2.0
+    s0 = np.eye(k)
+    return b0, v0, v0_precision, nu0, s0
+
+
+def phase_b_posterior(values: np.ndarray, p: int, p_max: int, lam: float) -> dict:
+    y, x = phase_b_design(values, p, p_max)
+    n, k = y.shape
+    b0, v0, v0_precision, nu0, s0 = phase_b_prior(k, p, lam)
+    precision = v0_precision + x.T @ x
+    vn = scipy.linalg.solve(precision, np.eye(precision.shape[0]), assume_a="pos")
+    bn = scipy.linalg.solve(precision, v0_precision @ b0 + x.T @ y, assume_a="pos")
+    residual = y - x @ bn
+    delta = bn - b0
+    sn = s0 + residual.T @ residual + delta.T @ v0_precision @ delta
+    sn = (sn + sn.T) / 2.0
+    nu_n = nu0 + n
+    log_det_v0 = np.linalg.slogdet(v0)[1]
+    log_det_vn = np.linalg.slogdet(vn)[1]
+    log_det_s0 = np.linalg.slogdet(s0)[1]
+    log_det_sn = np.linalg.slogdet(sn)[1]
+    log_ml = (
+        -0.5 * n * k * np.log(np.pi)
+        + 0.5 * k * (log_det_vn - log_det_v0)
+        + 0.5 * nu0 * log_det_s0
+        - 0.5 * nu_n * log_det_sn
+        + scipy.special.multigammaln(nu_n / 2.0, k)
+        - scipy.special.multigammaln(nu0 / 2.0, k)
+    )
+    return {
+        "p": p,
+        "lambda": lam,
+        "y": as_list(y),
+        "x": as_list(x),
+        "b0": as_list(b0),
+        "v0": as_list(v0),
+        "v0_precision": as_list(v0_precision),
+        "vn": as_list(vn),
+        "bn": as_list(bn),
+        "sn": as_list(sn),
+        "nu0": float(nu0),
+        "nuN": float(nu_n),
+        "log_det_v0": float(log_det_v0),
+        "log_det_vn": float(log_det_vn),
+        "log_det_s0": float(log_det_s0),
+        "log_det_sn": float(log_det_sn),
+        "multigammaln_nuN_half": float(scipy.special.multigammaln(nu_n / 2.0, k)),
+        "multigammaln_nu0_half": float(scipy.special.multigammaln(nu0 / 2.0, k)),
+        "log_marginal_likelihood": float(log_ml),
+    }
+
+
+def phase_b_fixture() -> dict:
+    rng = np.random.default_rng(SEED + 200)
+    n = 64
+    k2 = np.zeros((n, 2), dtype=float)
+    eps = rng.multivariate_normal([0.0, 0.0], [[1.0, 0.35], [0.35, 0.8]], size=n)
+    for index in range(1, n):
+        k2[index] = np.array([[0.45, 0.10], [-0.15, 0.35]]) @ k2[index - 1] + eps[index]
+    k3 = np.zeros((n, 3), dtype=float)
+    eps3 = rng.multivariate_normal([0.0, 0.0, 0.0], [[1.0, 0.2, 0.1], [0.2, 0.9, 0.25], [0.1, 0.25, 0.7]], size=n)
+    for index in range(2, n):
+        k3[index] = (
+            np.array([[0.40, 0.05, 0.0], [-0.10, 0.30, 0.08], [0.05, -0.08, 0.25]]) @ k3[index - 1]
+            + np.array([[0.10, 0.02, 0.0], [0.0, 0.08, 0.02], [0.03, 0.0, 0.06]]) @ k3[index - 2]
+            + eps3[index]
+        )
+    p_max = 2
+    training = k2[p_max:, :]
+    mean = training.mean(axis=0)
+    scale = training.std(axis=0, ddof=1)
+    standardized_k2 = (k2 - mean) / scale
+    models = [phase_b_posterior(standardized_k2, p, p_max, lam) for p in [1, 2] for lam in [0.1, 0.2]]
+    log_weights = np.array([model["log_marginal_likelihood"] for model in models], dtype=float)
+    probabilities = np.exp(log_weights - scipy.special.logsumexp(log_weights))
+    for model, probability in zip(models, probabilities):
+        model["posterior_probability"] = float(probability)
+    fixed_b = np.array([[0.05, -0.02], [0.30, 0.10], [-0.15, 0.25]])
+    fixed_sigma = np.array([[1.2, 0.4], [0.4, 0.9]])
+    fixed_y, fixed_x = phase_b_design(standardized_k2, 1, p_max)
+    residuals = fixed_y - fixed_x @ fixed_b
+    chol = scipy.linalg.cholesky(fixed_sigma, lower=True)
+    shocks = scipy.linalg.solve_triangular(chol, residuals.T, lower=True).T
+    reversed_values = standardized_k2[:, [1, 0]]
+    reversed_y, reversed_x = phase_b_design(reversed_values, 1, p_max)
+    reversed_residuals = reversed_y - reversed_x @ fixed_b[:, [1, 0]]
+    reversed_chol = scipy.linalg.cholesky(fixed_sigma[[1, 0]][:, [1, 0]], lower=True)
+    reversed_shocks = scipy.linalg.solve_triangular(reversed_chol, reversed_residuals.T, lower=True).T
+    return {
+        "provenance": provenance("Phase B conjugate BVAR posterior fixture") | {
+            "generator_script_version": "phase-b-1",
+            "matrix_orientation": "Y=n_by_K; X=n_by_(1+Kp); B=q_by_K; lag-major coefficient columns",
+            "inverse_wishart_parameterization": "Sigma ~ IW(nu, S); E[Sigma]=S/(nu-K-1)",
+            "model_prior": "uniform over canonical (p, lambda)",
+            "lambda_grid": [0.1, 0.2],
+            "lag_grid": [1, 2],
+            "tolerance": 1e-8,
+        },
+        "raw_k2": as_list(k2),
+        "standardization": {"mean": as_list(mean), "scale": as_list(scale)},
+        "design_k2_p1": {"y": as_list(phase_b_design(standardized_k2, 1, p_max)[0]), "x": as_list(phase_b_design(standardized_k2, 1, p_max)[1])},
+        "design_k3_p2": {"y": as_list(phase_b_design(k3, 2, 2)[0]), "x": as_list(phase_b_design(k3, 2, 2)[1])},
+        "posterior_models": models,
+        "marginal_lag": {
+            "1": float(sum(model["posterior_probability"] for model in models if model["p"] == 1)),
+            "2": float(sum(model["posterior_probability"] for model in models if model["p"] == 2)),
+        },
+        "marginal_lambda": {
+            "0.1": float(sum(model["posterior_probability"] for model in models if model["lambda"] == 0.1)),
+            "0.2": float(sum(model["posterior_probability"] for model in models if model["lambda"] == 0.2)),
+        },
+        "fixed_structural_shock": {
+            "b": as_list(fixed_b),
+            "sigma": as_list(fixed_sigma),
+            "cholesky": as_list(chol),
+            "residuals": as_list(residuals),
+            "shocks": as_list(shocks),
+            "reconstruction": as_list((chol @ shocks.T).T),
+        },
+        "variable_order_sensitivity": {
+            "baseline_first_shock": as_list(shocks[:, 0]),
+            "reversed_first_shock": as_list(reversed_shocks[:, 0]),
+        },
+    }
+
+
 def main() -> None:
     FIXTURES.mkdir(parents=True, exist_ok=True)
     (FIXTURES / "phase_a_linear_algebra.json").write_text(
@@ -534,6 +682,10 @@ def main() -> None:
     )
     (FIXTURES / "phase_a_integration_reference.json").write_text(
         json.dumps(integration_reference_fixture(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (FIXTURES / "phase_b_bvar_reference.json").write_text(
+        json.dumps(phase_b_fixture(), indent=2, sort_keys=True),
         encoding="utf-8",
     )
 
