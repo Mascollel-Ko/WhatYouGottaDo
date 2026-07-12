@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -104,7 +105,8 @@ internal data class MetricLifecycleMetadata(
     val activationPolicy: MetricActivationPolicy = MetricActivationPolicy.EXPLICIT_METADATA_ONLY,
     val notApplicableWeeks: Set<LocalDate> = emptySet(),
     val versionDiscontinuityWeeks: Set<LocalDate> = emptySet(),
-    val versionDiscontinuityRanges: List<TimeSeriesWeekRange> = emptyList()
+    val versionDiscontinuityRanges: List<TimeSeriesWeekRange> = emptyList(),
+    val provenance: LifecycleMetadataProvenance = LifecycleMetadataProvenance()
 ) {
     init {
         availableFromWeek?.let { require(it.dayOfWeek == DayOfWeek.MONDAY) { "availableFromWeek must be ISO Monday" } }
@@ -113,7 +115,34 @@ internal data class MetricLifecycleMetadata(
         require(notApplicableWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "not-applicable weeks must be ISO Monday" }
         require(versionDiscontinuityWeeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "version-discontinuity weeks must be ISO Monday" }
     }
+
+    fun fingerprint(): String = stableFingerprint(
+        listOf(
+            availableFromWeek?.toString().orEmpty(),
+            availableUntilWeek?.toString().orEmpty(),
+            structuralZeroAllowed.toString(),
+            activationPolicy.name,
+            notApplicableWeeks.sorted().joinToString(","),
+            versionDiscontinuityWeeks.sorted().joinToString(","),
+            versionDiscontinuityRanges.joinToString(",") { "${it.startWeek}:${it.endWeek}" },
+            provenance.source,
+            provenance.sourceVersion,
+            provenance.registryVersion,
+            provenance.derivedFromMetric?.name.orEmpty(),
+            provenance.inferencePolicy,
+            provenance.metadataVersion.toString()
+        )
+    )
 }
+
+internal data class LifecycleMetadataProvenance(
+    val source: String = "unspecified",
+    val sourceVersion: String = "unspecified",
+    val registryVersion: String = "unspecified",
+    val derivedFromMetric: TrendMetricId? = null,
+    val inferencePolicy: String = "explicit",
+    val metadataVersion: Int = 1
+)
 
 internal data class TimeSeriesWeekRange(
     val startWeek: LocalDate,
@@ -136,9 +165,11 @@ internal data class TimeSeriesObservation(
     val missingReason: String? = null,
     val source: String? = null,
     val version: String? = null,
-    val revisionNumber: Long? = version?.toLongOrNull(),
+    val revisionNumber: Long? = null,
     val observedAt: Instant? = null,
     val versionSequence: Long? = null,
+    val authoritativeRevisionTime: Instant? = null,
+    val revisionOrderingScheme: RevisionOrderingScheme? = null,
     val conflictProvenance: ObservationConflictProvenance? = null
 ) {
     init {
@@ -148,15 +179,59 @@ internal data class TimeSeriesObservation(
         if (state == TimeSeriesCellState.CONFLICT) require(conflictProvenance != null) { "conflict observation requires provenance" }
     }
 
-    fun revision(): ObservationRevision = ObservationRevision(revisionNumber, observedAt, versionSequence)
+    fun revision(): ObservationRevision = ObservationRevision(
+        scheme = revisionOrderingScheme ?: when {
+            revisionNumber != null -> RevisionOrderingScheme.REVISION_NUMBER
+            versionSequence != null -> RevisionOrderingScheme.VERSION_SEQUENCE
+            authoritativeRevisionTime != null -> RevisionOrderingScheme.AUTHORITATIVE_REVISION_TIME
+            else -> null
+        },
+        revisionNumber = revisionNumber,
+        versionSequence = versionSequence,
+        authoritativeRevisionTime = authoritativeRevisionTime
+    )
+}
+
+internal enum class RevisionOrderingScheme {
+    REVISION_NUMBER,
+    VERSION_SEQUENCE,
+    AUTHORITATIVE_REVISION_TIME
 }
 
 internal data class ObservationRevision(
+    val scheme: RevisionOrderingScheme? = null,
     val revisionNumber: Long? = null,
-    val observedAt: Instant? = null,
-    val versionSequence: Long? = null
+    val versionSequence: Long? = null,
+    val authoritativeRevisionTime: Instant? = null
 ) {
-    fun isOrdered(): Boolean = revisionNumber != null || observedAt != null || versionSequence != null
+    init {
+        when (scheme) {
+            RevisionOrderingScheme.REVISION_NUMBER -> {
+                require(revisionNumber != null) { "revision-number scheme requires revisionNumber" }
+                require(versionSequence == null && authoritativeRevisionTime == null) { "revision-number scheme cannot mix ordering fields" }
+            }
+            RevisionOrderingScheme.VERSION_SEQUENCE -> {
+                require(versionSequence != null) { "version-sequence scheme requires versionSequence" }
+                require(revisionNumber == null && authoritativeRevisionTime == null) { "version-sequence scheme cannot mix ordering fields" }
+            }
+            RevisionOrderingScheme.AUTHORITATIVE_REVISION_TIME -> {
+                require(authoritativeRevisionTime != null) { "authoritative-time scheme requires authoritativeRevisionTime" }
+                require(revisionNumber == null && versionSequence == null) { "authoritative-time scheme cannot mix ordering fields" }
+            }
+            null -> require(revisionNumber == null && versionSequence == null && authoritativeRevisionTime == null) {
+                "revision ordering fields require an explicit scheme"
+            }
+        }
+    }
+
+    fun isOrdered(): Boolean = scheme != null
+
+    fun orderValue(): Long? = when (scheme) {
+        RevisionOrderingScheme.REVISION_NUMBER -> revisionNumber
+        RevisionOrderingScheme.VERSION_SEQUENCE -> versionSequence
+        RevisionOrderingScheme.AUTHORITATIVE_REVISION_TIME -> authoritativeRevisionTime?.toEpochMilli()
+        null -> null
+    }
 }
 
 internal data class ObservationCandidateProvenance(
@@ -184,8 +259,12 @@ internal data class ObservationConflictProvenance(
 internal enum class ObservationConflictSelectionRule {
     IDENTICAL_DUPLICATE_MERGE,
     TYPED_REVISION_ORDER,
-    OBSERVED_AT_ORDER,
+    REVISION_NUMBER_ORDER,
     VERSION_SEQUENCE_ORDER,
+    AUTHORITATIVE_REVISION_TIME_ORDER,
+    HETEROGENEOUS_REVISION_SCHEME_CONFLICT,
+    PARTIAL_REVISION_METADATA_CONFLICT,
+    TIED_HIGHEST_REVISION_CONFLICT,
     UNRESOLVED_CONFLICT
 }
 
@@ -224,7 +303,7 @@ internal enum class TimeSeriesCellRole {
     LAG
 }
 
-internal data class MetricDataQualitySummary(
+internal class MetricDataQualitySummary private constructor(
     val totalWeeks: Int,
     val observedCount: Int,
     val structuralZeroCount: Int,
@@ -234,13 +313,94 @@ internal data class MetricDataQualitySummary(
     val versionDiscontinuityCount: Int,
     val conflictCount: Int,
     val transformationFailureCount: Int = 0,
+    val modelEligibleWeekCount: Int,
     val usableCount: Int,
+    val unusableCount: Int,
     val rawMissingRate: Double,
     val unusableRate: Double,
     val coverageRate: Double,
     val longestContiguousUsableRun: Int,
     val contiguousSegmentCount: Int
-)
+) {
+    override fun equals(other: Any?): Boolean =
+        other is MetricDataQualitySummary &&
+            totalWeeks == other.totalWeeks &&
+            observedCount == other.observedCount &&
+            structuralZeroCount == other.structuralZeroCount &&
+            missingCount == other.missingCount &&
+            preMetricCreationCount == other.preMetricCreationCount &&
+            notApplicableCount == other.notApplicableCount &&
+            versionDiscontinuityCount == other.versionDiscontinuityCount &&
+            conflictCount == other.conflictCount &&
+            transformationFailureCount == other.transformationFailureCount &&
+            modelEligibleWeekCount == other.modelEligibleWeekCount &&
+            usableCount == other.usableCount &&
+            unusableCount == other.unusableCount &&
+            rawMissingRate == other.rawMissingRate &&
+            unusableRate == other.unusableRate &&
+            coverageRate == other.coverageRate &&
+            longestContiguousUsableRun == other.longestContiguousUsableRun &&
+            contiguousSegmentCount == other.contiguousSegmentCount
+
+    override fun hashCode(): Int {
+        var result = totalWeeks
+        result = 31 * result + observedCount
+        result = 31 * result + structuralZeroCount
+        result = 31 * result + missingCount
+        result = 31 * result + preMetricCreationCount
+        result = 31 * result + notApplicableCount
+        result = 31 * result + versionDiscontinuityCount
+        result = 31 * result + conflictCount
+        result = 31 * result + transformationFailureCount
+        result = 31 * result + modelEligibleWeekCount
+        result = 31 * result + usableCount
+        result = 31 * result + unusableCount
+        result = 31 * result + rawMissingRate.hashCode()
+        result = 31 * result + unusableRate.hashCode()
+        result = 31 * result + coverageRate.hashCode()
+        result = 31 * result + longestContiguousUsableRun
+        result = 31 * result + contiguousSegmentCount
+        return result
+    }
+
+    companion object {
+        fun fromCells(cells: List<TimeSeriesCell>): MetricDataQualitySummary {
+            val observed = cells.count { it.state == TimeSeriesCellState.OBSERVED_VALUE }
+            val structuralZero = cells.count { it.state == TimeSeriesCellState.STRUCTURAL_ZERO }
+            val missing = cells.count { it.state == TimeSeriesCellState.MISSING }
+            val preCreation = cells.count { it.state == TimeSeriesCellState.PRE_METRIC_CREATION }
+            val notApplicable = cells.count { it.state == TimeSeriesCellState.NOT_APPLICABLE }
+            val versionDiscontinuity = cells.count { it.state == TimeSeriesCellState.VERSION_DISCONTINUITY }
+            val conflict = cells.count { it.state == TimeSeriesCellState.CONFLICT }
+            val transformationFailure = cells.count { it.hasTransformationFailure() }
+            val eligibleCells = cells.filter(TimeSeriesCell::isModelEligible)
+            val modelEligible = eligibleCells.size
+            val usable = eligibleCells.count(TimeSeriesCell::isModelUsable)
+            val unusable = modelEligible - usable
+            val segments = contiguousUsableSegments(cells)
+            val denominator = modelEligible.coerceAtLeast(1)
+            return MetricDataQualitySummary(
+                totalWeeks = cells.size,
+                observedCount = observed,
+                structuralZeroCount = structuralZero,
+                missingCount = missing,
+                preMetricCreationCount = preCreation,
+                notApplicableCount = notApplicable,
+                versionDiscontinuityCount = versionDiscontinuity,
+                conflictCount = conflict,
+                transformationFailureCount = transformationFailure,
+                modelEligibleWeekCount = modelEligible,
+                usableCount = usable,
+                unusableCount = unusable,
+                rawMissingRate = missing.toDouble() / denominator,
+                unusableRate = unusable.toDouble() / denominator,
+                coverageRate = usable.toDouble() / denominator,
+                longestContiguousUsableRun = segments.maxOfOrNull { it.length } ?: 0,
+                contiguousSegmentCount = segments.size
+            )
+        }
+    }
+}
 
 internal data class ContiguousUsableSegment(
     val startWeek: LocalDate,
@@ -248,7 +408,7 @@ internal data class ContiguousUsableSegment(
     val length: Int
 )
 
-internal data class PreparedMetricSeries(
+internal class PreparedMetricSeries private constructor(
     val metric: TrendMetricId,
     val weeks: List<LocalDate>,
     val cells: List<TimeSeriesCell>,
@@ -259,14 +419,157 @@ internal data class PreparedMetricSeries(
     val provenance: List<String>,
     val preparationVersion: Int = 1
 ) {
-    init {
-        require(weeks.isNotEmpty()) { "prepared series weeks cannot be empty" }
-        require(weeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "prepared weeks must be ISO Mondays" }
-        weeks.zipWithNext().forEach { (left, right) -> require(left.plusWeeks(1) == right) { "prepared weeks must be continuous" } }
-        require(cells.size == weeks.size) { "prepared cells must match weeks" }
-        cells.forEachIndexed { index, cell ->
-            require(cell.metric == metric) { "prepared cell metric mismatch" }
-            require(cell.weekStart == weeks[index]) { "prepared cell week mismatch" }
+    companion object {
+        fun createValidated(
+            metric: TrendMetricId,
+            weeks: List<LocalDate>,
+            cells: List<TimeSeriesCell>,
+            transformation: String,
+            lifecycleMetadata: MetricLifecycleMetadata,
+            provenance: List<String>,
+            preparationVersion: Int = 1
+        ): PreparedMetricSeries {
+            require(weeks.isNotEmpty()) { "prepared series weeks cannot be empty" }
+            require(weeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "prepared weeks must be ISO Mondays" }
+            weeks.zipWithNext().forEach { (left, right) -> require(left.plusWeeks(1) == right) { "prepared weeks must be continuous" } }
+            require(cells.size == weeks.size) { "prepared cells must match weeks" }
+            cells.forEachIndexed { index, cell ->
+                require(cell.metric == metric) { "prepared cell metric mismatch" }
+                require(cell.weekStart == weeks[index]) { "prepared cell week mismatch" }
+                if (cell.state == TimeSeriesCellState.CONFLICT) require(cell.conflictProvenance != null) { "conflict cell requires provenance" }
+                if (cell.transformation != null) require(cell.sourceCells.isNotEmpty()) { "transformed cell requires source-cell provenance" }
+            }
+            val summary = MetricDataQualitySummary.fromCells(cells)
+            val segments = contiguousUsableSegments(cells)
+            return PreparedMetricSeries(
+                metric = metric,
+                weeks = weeks.toList(),
+                cells = cells.toList(),
+                transformation = transformation,
+                qualitySummary = summary,
+                lifecycleMetadata = lifecycleMetadata,
+                contiguousSegments = segments,
+                provenance = provenance + listOf(
+                    "quality summary derived from cells",
+                    "contiguous segments derived from cells",
+                    "lifecycleFingerprint=${lifecycleMetadata.fingerprint()}"
+                ),
+                preparationVersion = preparationVersion
+            )
+        }
+    }
+}
+
+internal enum class PreparedTimeSeriesRowPolicy {
+    COMMON_USABLE_ROWS
+}
+
+internal data class PreparedTimeSeriesRowIdentity(
+    val sourceWeek: LocalDate,
+    val targetWeek: LocalDate,
+    val lagWeeks: List<LocalDate>,
+    val metricSet: List<TrendMetricId>,
+    val transformations: Map<TrendMetricId, String>,
+    val lag: Int,
+    val horizon: Int,
+    val preparationVersion: Int,
+    val rowPolicy: PreparedTimeSeriesRowPolicy,
+    val fingerprint: String
+)
+
+internal class PreparedTimeSeriesSystem private constructor(
+    val weeks: List<LocalDate>,
+    val seriesByMetric: Map<TrendMetricId, PreparedMetricSeries>,
+    val orderedMetrics: List<TrendMetricId>,
+    val commonUsableRows: List<PreparedTimeSeriesRowIdentity>,
+    val rowPolicy: PreparedTimeSeriesRowPolicy,
+    val preparationVersion: Int,
+    val preparationFingerprint: String,
+    val diagnostics: List<String>
+) {
+    companion object {
+        fun createValidated(
+            orderedMetrics: List<TrendMetricId>,
+            preparedSeries: Map<TrendMetricId, PreparedMetricSeries>,
+            lag: Int,
+            horizon: Int,
+            rowPolicy: PreparedTimeSeriesRowPolicy = PreparedTimeSeriesRowPolicy.COMMON_USABLE_ROWS
+        ): PreparedTimeSeriesSystem {
+            require(orderedMetrics.isNotEmpty()) { "prepared system requires metrics" }
+            require(lag >= 0) { "lag must be non-negative" }
+            require(horizon >= 0) { "horizon must be non-negative" }
+            val uniqueMetrics = orderedMetrics.distinct().sortedBy { it.name }
+            val selected = uniqueMetrics.associateWith { metric ->
+                preparedSeries[metric] ?: error("prepared series missing for $metric")
+            }
+            val weeks = selected.values.first().weeks
+            val version = selected.values.first().preparationVersion
+            selected.forEach { (metric, series) ->
+                require(series.weeks == weeks) { "prepared system week vector mismatch for $metric" }
+                require(series.preparationVersion == version) { "prepared system preparation version mismatch for $metric" }
+            }
+            val transformations = selected.mapValues { (_, series) -> series.transformation }
+            val rows = weeks.indices.mapNotNull { index ->
+                val targetIndex = index + horizon
+                if (index < lag || targetIndex !in weeks.indices) return@mapNotNull null
+                val lagIndices = (1..lag).map { index - it }
+                val included = selected.values.all { series ->
+                    val source = series.cells[index]
+                    val target = series.cells[targetIndex]
+                    val lags = lagIndices.map { series.cells[it] }
+                    source.isModelUsable() &&
+                        target.isModelUsable() &&
+                        lags.all(TimeSeriesCell::isModelUsable) &&
+                        lags.none { it.state == TimeSeriesCellState.VERSION_DISCONTINUITY } &&
+                        source.state != TimeSeriesCellState.VERSION_DISCONTINUITY &&
+                        target.state != TimeSeriesCellState.VERSION_DISCONTINUITY
+                }
+                if (!included) return@mapNotNull null
+                val lagWeeks = lagIndices.map { weeks[it] }
+                val keyParts = listOf(
+                    weeks[index].toString(),
+                    weeks[targetIndex].toString(),
+                    lagWeeks.joinToString(","),
+                    uniqueMetrics.joinToString(",") { it.name },
+                    transformations.toSortedMap(compareBy { it.name }).entries.joinToString(",") { "${it.key.name}:${it.value}" },
+                    lag.toString(),
+                    horizon.toString(),
+                    version.toString(),
+                    rowPolicy.name
+                )
+                PreparedTimeSeriesRowIdentity(
+                    sourceWeek = weeks[index],
+                    targetWeek = weeks[targetIndex],
+                    lagWeeks = lagWeeks,
+                    metricSet = uniqueMetrics,
+                    transformations = transformations,
+                    lag = lag,
+                    horizon = horizon,
+                    preparationVersion = version,
+                    rowPolicy = rowPolicy,
+                    fingerprint = stableFingerprint(keyParts)
+                )
+            }
+            val systemFingerprint = stableFingerprint(
+                listOf(
+                    weeks.joinToString(","),
+                    uniqueMetrics.joinToString(",") { it.name },
+                    transformations.toSortedMap(compareBy { it.name }).entries.joinToString(",") { "${it.key.name}:${it.value}" },
+                    rows.joinToString(",") { it.fingerprint },
+                    version.toString(),
+                    rowPolicy.name
+                )
+            )
+            return PreparedTimeSeriesSystem(
+                weeks = weeks,
+                seriesByMetric = selected,
+                orderedMetrics = uniqueMetrics,
+                commonUsableRows = rows,
+                rowPolicy = rowPolicy,
+                preparationVersion = version,
+                preparationFingerprint = systemFingerprint,
+                diagnostics = listOf("common usable rows derived from prepared cells: ${rows.size}")
+            )
         }
     }
 }
@@ -342,6 +645,50 @@ private fun validateStateValue(state: TimeSeriesCellState, value: Double?) {
         TimeSeriesCellState.VERSION_DISCONTINUITY,
         TimeSeriesCellState.CONFLICT -> require(value == null) { "$state cannot carry a value" }
     }
+}
+
+internal fun TimeSeriesCell.isModelEligible(): Boolean =
+    state !in setOf(TimeSeriesCellState.PRE_METRIC_CREATION, TimeSeriesCellState.NOT_APPLICABLE)
+
+internal fun TimeSeriesCell.isModelUsable(): Boolean =
+    state == TimeSeriesCellState.OBSERVED_VALUE || state == TimeSeriesCellState.STRUCTURAL_ZERO
+
+internal fun TimeSeriesCell.hasTransformationFailure(): Boolean =
+    missingReason?.startsWith("transformation unavailable") == true
+
+internal fun contiguousUsableSegments(cells: List<TimeSeriesCell>): List<ContiguousUsableSegment> {
+    val segments = mutableListOf<ContiguousUsableSegment>()
+    var start: LocalDate? = null
+    var previous: LocalDate? = null
+    var length = 0
+    fun flush() {
+        val s = start
+        val p = previous
+        if (s != null && p != null) segments += ContiguousUsableSegment(s, p, length)
+        start = null
+        previous = null
+        length = 0
+    }
+    cells.forEach { cell ->
+        if (cell.isModelUsable()) {
+            if (start == null) start = cell.weekStart
+            previous = cell.weekStart
+            length++
+        } else {
+            flush()
+        }
+    }
+    flush()
+    return segments
+}
+
+internal fun stableFingerprint(parts: List<String>): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    parts.forEach { part ->
+        digest.update(part.toByteArray(Charsets.UTF_8))
+        digest.update(0)
+    }
+    return digest.digest().joinToString("") { "%02x".format(it) }
 }
 
 internal data class AutomaticEndogenousSelection(

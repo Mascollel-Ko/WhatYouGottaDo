@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.time.LocalDate
 import kotlin.math.ln
 import kotlin.math.sqrt
 
@@ -50,19 +51,21 @@ internal class BayesianLocalProjectionEstimator {
         endogenous: List<TrendMetricId>,
         controls: List<TrendMetricId>,
         lag: Int = 1,
-        horizon: Int = 1
+        horizon: Int = 1,
+        allowedSourceWeeks: Set<LocalDate>? = null
     ): RollingPredictiveScore? {
         val minimumRows = minimumRows(endogenous.size, controls.size, lag)
         val minimumTraining = minimumRows + lag + horizon
         if (alignment.weeks.size < minimumTraining + MIN_ROLLING_ORIGINS) return null
         val firstOrigin = maxOf(minimumTraining - 1, alignment.weeks.size - horizon - MAX_ROLLING_ORIGINS)
-        val origins = (firstOrigin until alignment.weeks.size - horizon).toList()
+        val origins = (firstOrigin until alignment.weeks.size - horizon)
+            .filter { origin -> allowedSourceWeeks == null || alignment.weeks[origin] in allowedSourceWeeks }
         val errors = mutableListOf<Double>()
         val logDensities = mutableListOf<Double>()
         var covered = 0
         origins.forEach { origin ->
             val training = slice(alignment, origin + 1)
-            val fitted = fit(training, xMetric, yMetric, endogenous, controls, lag, horizon, emptyMap()) ?: return@forEach
+            val fitted = fit(training, xMetric, yMetric, endogenous, controls, lag, horizon, emptyMap(), allowedSourceWeeks) ?: return@forEach
             val feature = featureVector(alignment, xMetric, endogenous, controls, lag, origin, emptyMap()) ?: return@forEach
             val standardizedFeature = standardizedFeature(feature, fitted)
             val predicted = fitted.posterior.mean.indices.sumOf { index -> fitted.posterior.mean[index] * standardizedFeature[index] }
@@ -94,10 +97,12 @@ internal class BayesianLocalProjectionEstimator {
         controls: List<TrendMetricId>,
         lag: Int,
         horizon: Int,
-        structuralShock: Map<Int, Double>
+        structuralShock: Map<Int, Double>,
+        allowedSourceWeeks: Set<LocalDate>? = null
     ): FittedProjection? {
         val yValues = alignment.valuesByMetric[yMetric] ?: return null
         val rows = (lag until yValues.size - horizon).mapNotNull { time ->
+            if (allowedSourceWeeks != null && alignment.weeks[time] !in allowedSourceWeeks) return@mapNotNull null
             val response = alignment.exactHorizon(yMetric, time, horizon) ?: return@mapNotNull null
             val feature = featureVector(alignment, xMetric, endogenous, controls, lag, time, structuralShock) ?: return@mapNotNull null
             RegressionRow(response, feature)
@@ -153,10 +158,12 @@ internal class BayesianLocalProjectionEstimator {
             if (standardDeviation <= EPSILON) 0.0 else (value - fitted.featureMeans[index]) / standardDeviation
         }.toDoubleArray()
 
-    private fun slice(alignment: TimeSeriesAlignment, endExclusive: Int): TimeSeriesAlignment = alignment.copy(
-        weeks = alignment.weeks.take(endExclusive),
-        valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> values.take(endExclusive) }
-    )
+    private fun slice(alignment: TimeSeriesAlignment, endExclusive: Int): TimeSeriesAlignment =
+        TimeSeriesAlignmentService().restrictToWeeks(alignment, alignment.weeks.take(endExclusive))
+            ?: alignment.copy(
+                weeks = alignment.weeks.take(endExclusive),
+                valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> values.take(endExclusive) }
+            )
 
     private fun minimumRows(endogenousCount: Int, controlCount: Int, lag: Int): Int =
         maxOf(MIN_OBSERVATIONS, 4 * (1 + endogenousCount * lag + controlCount + DETERMINISTIC_TERMS))

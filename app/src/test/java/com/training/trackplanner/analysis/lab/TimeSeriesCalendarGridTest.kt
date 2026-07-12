@@ -215,7 +215,7 @@ class TimeSeriesCalendarGridTest {
         val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
         assertEquals(TimeSeriesCellState.OBSERVED_VALUE, cell.state)
         assertEquals(10.0, cell.value!!, 0.0)
-        assertEquals(ObservationConflictSelectionRule.TYPED_REVISION_ORDER, cell.conflictProvenance!!.selectionRule)
+        assertEquals(ObservationConflictSelectionRule.REVISION_NUMBER_ORDER, cell.conflictProvenance!!.selectionRule)
         assertEquals(2, cell.conflictProvenance.candidates.size)
     }
 

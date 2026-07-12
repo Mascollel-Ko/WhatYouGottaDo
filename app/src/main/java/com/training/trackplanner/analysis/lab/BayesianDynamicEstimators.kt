@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -38,12 +39,14 @@ internal class BayesianVarEstimator {
         system: List<TrendMetricId>,
         controls: List<TrendMetricId>,
         lag: Int,
-        includeErrorCorrection: Boolean
+        includeErrorCorrection: Boolean,
+        allowedSourceWeeks: Set<LocalDate>? = null
     ): SystemFit? {
         val raw = system.map { metric -> alignment.valuesByMetric[metric] ?: return null }
         val standardized = raw.map(::standardize).takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
         val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let(::standardize) ?: return null }
         val timeIndices = (lag until alignment.weeks.size).filter { time ->
+            (allowedSourceWeeks == null || alignment.weeks[time] in allowedSourceWeeks) &&
             system.all { metric ->
                 alignment.valueAt(metric, time) != null &&
                     (1..lag).all { offset -> alignment.exactLag(metric, time, offset) != null } &&

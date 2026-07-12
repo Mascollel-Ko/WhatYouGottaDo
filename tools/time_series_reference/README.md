@@ -16,8 +16,11 @@ SPD rejection, exact and numerical rank-deficient PSD rejection, strict versus
 bounded-jitter Cholesky, strict Johansen-form provenance, regularized
 generalized eigen validation against an effective `B`, calendar grid lifecycle
 cell states, metric-bound filtering, explicit activation-policy cases,
-quality-summary denominator rules, structural-zero activation boundaries,
-observation conflicts, full-calendar transformation preservation,
+quality-summary denominator rules, unique-cell unusable counting with
+overlapping diagnostic categories, structural-zero activation boundaries,
+observation conflicts, explicit revision-ordering schemes, input-order
+invariant conflict resolution, lifecycle metadata fingerprint preservation,
+prepared common-row identity, full-calendar transformation preservation,
 prepared-series screening contracts, and final-week horizon exclusion.
 
 Run the companion source scan from the repository root:

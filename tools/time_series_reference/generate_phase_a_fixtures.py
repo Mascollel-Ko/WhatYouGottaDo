@@ -29,7 +29,7 @@ def as_list(value):
 def provenance(purpose: str) -> dict:
     return {
         "schema_version": 1,
-        "generator_script_version": "phase-a-3",
+        "generator_script_version": "phase-a-4",
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
@@ -289,6 +289,76 @@ def calendar_fixture() -> dict:
     }
 
 
+def prepared_pipeline_contract_fixture() -> dict:
+    return {
+        "provenance": provenance("Phase A prepared-data pipeline contract fixture"),
+        "quality_summary_overlap": {
+            "eligible_cells": [
+                {"week": "2026-01-05", "state": "MISSING", "transformation_failure": True},
+                {"week": "2026-01-12", "state": "VERSION_DISCONTINUITY", "transformation_failure": True},
+                {"week": "2026-01-19", "state": "CONFLICT", "transformation_failure": True},
+                {"week": "2026-01-26", "state": "OBSERVED_VALUE", "transformation_failure": False},
+            ],
+            "excluded_from_denominator": [
+                {"week": "2026-02-02", "state": "PRE_METRIC_CREATION"},
+                {"week": "2026-02-09", "state": "NOT_APPLICABLE"},
+            ],
+            "expected": {
+                "model_eligible_week_count": 4,
+                "usable_count": 1,
+                "unusable_count": 3,
+                "transformation_failure_count": 3,
+                "unusable_rate": 0.75,
+                "coverage_rate": 0.25,
+            },
+        },
+        "lifecycle_fingerprint_contract": {
+            "preserve_under": ["restriction", "stationarization", "candidate_screening", "prepared_system_creation"],
+            "fingerprint_fields": [
+                "available_from_week",
+                "available_until_week",
+                "structural_zero_allowed",
+                "activation_policy",
+                "not_applicable_weeks",
+                "version_discontinuity_weeks",
+                "version_discontinuity_ranges",
+                "source",
+                "source_version",
+                "registry_version",
+                "derived_from_metric",
+                "inference_policy",
+                "metadata_version",
+            ],
+        },
+        "revision_resolution": {
+            "rules": [
+                "identical candidates merge regardless of input order",
+                "heterogeneous authoritative revision schemes produce CONFLICT",
+                "same highest revision with different values produces CONFLICT",
+                "same highest revision with identical values merges",
+                "ordinary observation time is not revision order",
+                "version strings are not lexically ordered",
+            ],
+            "permutation_invariant": True,
+        },
+        "row_identity": {
+            "policy": "COMMON_USABLE_ROWS",
+            "fingerprint_inputs": [
+                "canonical_source_week",
+                "target_week",
+                "lag_weeks",
+                "ordered_metric_ids",
+                "transformations",
+                "lag",
+                "horizon",
+                "preparation_version",
+                "row_policy",
+            ],
+            "candidate_and_baseline_scores_use_same_source_weeks": True,
+        },
+    }
+
+
 def main() -> None:
     FIXTURES.mkdir(parents=True, exist_ok=True)
     (FIXTURES / "phase_a_linear_algebra.json").write_text(
@@ -297,6 +367,10 @@ def main() -> None:
     )
     (FIXTURES / "phase_a_calendar_grid.json").write_text(
         json.dumps(calendar_fixture(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (FIXTURES / "phase_a_prepared_pipeline_contract.json").write_text(
+        json.dumps(prepared_pipeline_contract_fixture(), indent=2, sort_keys=True),
         encoding="utf-8",
     )
 

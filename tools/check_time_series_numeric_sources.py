@@ -7,6 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "app" / "src" / "main" / "java" / "com" / "training" / "trackplanner" / "analysis" / "lab"
 WRAPPER = TARGET / "StableLinearAlgebra.kt"
+MODELS = TARGET / "BayesianTimeSeriesModels.kt"
+SELECTOR = TARGET / "EndogenousVariableSelector.kt"
+SUPPORT = TARGET / "BayesianTimeSeriesSupport.kt"
 
 FORBIDDEN = [
     re.compile(r"MatrixUtils\.inverse"),
@@ -50,6 +53,25 @@ def main() -> int:
         violations.append("StableLinearAlgebra.kt: strictCholesky lacks condition-number success gate")
     if "isFinite()" not in strict_body:
         violations.append("StableLinearAlgebra.kt: strictCholesky lacks finite diagnostic gate")
+
+    selector_text = SELECTOR.read_text(encoding="utf-8")
+    if "TrendDataPoint" in selector_text:
+        violations.append("EndogenousVariableSelector.kt: selector production path must not depend on raw TrendDataPoint")
+    if re.search(r"fun\s+select\s*\([^)]*Map\s*<\s*TrendMetricId\s*,\s*List\s*<\s*TrendDataPoint", selector_text, re.DOTALL):
+        violations.append("EndogenousVariableSelector.kt: select must not accept raw TrendDataPoint maps")
+    if re.search(r"candidateRollingPredictiveGain\s*\([^)]*TrendDataPoint", selector_text, re.DOTALL):
+        violations.append("EndogenousVariableSelector.kt: candidate ranking must not accept raw TrendDataPoint maps")
+    if "alignmentService.align(" in selector_text:
+        violations.append("EndogenousVariableSelector.kt: selector ranking must consume prepared systems, not realign raw series")
+
+    support_text = SUPPORT.read_text(encoding="utf-8")
+    if "items.indexOf" in support_text:
+        violations.append("BayesianTimeSeriesSupport.kt: conflict resolution must not use input order as a revision tie-break")
+    if re.search(r"source\s*\.\s*(compareTo|lowercase|uppercase)|sortedBy\s*\{\s*it\.source", support_text):
+        violations.append("BayesianTimeSeriesSupport.kt: conflict resolution must not use source-string ordering")
+    if "RevisionOrderKey" in support_text:
+        violations.append("BayesianTimeSeriesSupport.kt: heterogeneous revision fields must not be collapsed into one tuple")
+
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")
         for pattern in FORBIDDEN:
@@ -61,6 +83,19 @@ def main() -> int:
                 if token in text:
                     line = text[: text.index(token)].count("\n") + 1
                     violations.append(f"{path.relative_to(ROOT)}:{line}: direct {token}; use StableLinearAlgebra")
+        if path != MODELS:
+            if "MetricDataQualitySummary(" in text:
+                line = text[: text.index("MetricDataQualitySummary(")].count("\n") + 1
+                violations.append(f"{path.relative_to(ROOT)}:{line}: construct MetricDataQualitySummary through fromCells")
+            if "PreparedMetricSeries(" in text:
+                line = text[: text.index("PreparedMetricSeries(")].count("\n") + 1
+                violations.append(f"{path.relative_to(ROOT)}:{line}: construct PreparedMetricSeries through createValidated")
+        if path == SUPPORT:
+            for match in re.finditer(r"MetricLifecycleMetadata\(\)", text):
+                line = text.count("\n", 0, match.start()) + 1
+                prefix = text[max(0, match.start() - 120):match.start()]
+                if "requestedMetadata" not in prefix and "lifecycleMetadata[it]" not in prefix:
+                    violations.append(f"{path.relative_to(ROOT)}:{line}: do not replace existing lifecycle metadata with defaults")
     if violations:
         print("\n".join(violations))
         return 1

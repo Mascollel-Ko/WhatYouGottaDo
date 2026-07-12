@@ -25,8 +25,14 @@ internal class BayesianTimeSeriesAnalyzer(
         if (yMetrics.isEmpty()) return unavailable(request, warnings + "Select at least one response Y.")
         val controls = request.controls.distinct().filter { it != request.xMetric && it !in yMetrics }
         val required = listOf(request.xMetric) + yMetrics + controls
-        val baseAlignment = alignmentService.align(required, metricSeries)
+        val rawBaseAlignment = alignmentService.align(required, metricSeries)
             ?: return unavailable(request, warnings + "Selected series have no aligned weekly observations.")
+        val preparedCatalog = alignmentService.align(AnalysisMetricRegistry.descriptors.map { it.id }, metricSeries)
+            ?.let { alignmentService.restrictToWeeks(it, rawBaseAlignment.weeks) }
+            ?.preparedSeries
+            ?: return unavailable(request, warnings + "Selected series cannot be prepared on one canonical weekly calendar.", rawBaseAlignment)
+        val baseAlignment = alignmentService.alignmentFromPrepared(required, preparedCatalog)
+            ?: return unavailable(request, warnings + "Selected prepared series cannot be aligned on one weekly calendar.", rawBaseAlignment)
         if (baseAlignment.weeks.size < MIN_OBSERVATIONS) {
             return unavailable(request, warnings + "At least 24 aligned weekly observations are required.", baseAlignment)
         }
@@ -37,10 +43,10 @@ internal class BayesianTimeSeriesAnalyzer(
             controls = controls,
             requestedHorizon = requestedHorizon,
             baseAlignment = baseAlignment,
-            metricSeries = metricSeries
+            preparedSeries = preparedCatalog
         )
         val system = choleskyShockIdentifier.canonicalOrder(listOf(request.xMetric) + yMetrics + automaticSelection.metrics)
-        val levelAlignment = alignmentService.align(system + controls, metricSeries)
+        val levelAlignment = alignmentService.alignmentFromPrepared(system + controls, preparedCatalog)
             ?: return unavailable(request, warnings + "The selected system cannot be aligned without filling missing values.", baseAlignment)
         if (levelAlignment.weeks.size < MIN_OBSERVATIONS) {
             return unavailable(request, warnings + "Aligned data are insufficient after automatic-variable screening.", levelAlignment)

@@ -1,6 +1,5 @@
 package com.training.trackplanner.analysis.lab
 
-import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import kotlin.math.floor
 
@@ -16,7 +15,7 @@ internal class EndogenousVariableSelector(
         controls: List<TrendMetricId>,
         requestedHorizon: Int,
         baseAlignment: TimeSeriesAlignment,
-        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
+        preparedSeries: Map<TrendMetricId, PreparedMetricSeries>
     ): AutomaticEndogenousSelection {
         val mandatory = (listOf(xMetric) + yMetrics).distinct()
         val maxEndogenous = maximumEndogenousCount(baseAlignment.weeks.size, controls.size, requestedHorizon)
@@ -25,16 +24,12 @@ internal class EndogenousVariableSelector(
             diagnostics += "Automatic endogenous selection was skipped because the required X/Y system exceeds the sample-based K cap ($maxEndogenous)."
             return AutomaticEndogenousSelection(emptyList(), diagnostics)
         }
-        val screeningPrepared = alignmentService.align(
-            AnalysisMetricRegistry.descriptors.map { it.id },
-            metricSeries
-        )?.let(alignmentService::prepareSeries).orEmpty()
         val candidates = AnalysisMetricRegistry.descriptors
             .asSequence()
             .filter { descriptor -> descriptor.supportsMultivariate && descriptor.id !in mandatory && descriptor.id !in controls }
             .filter { descriptor -> descriptor.category != AnalysisMetricCategory.DERIVED }
             .mapNotNull { descriptor ->
-                val reason = alignmentService.usablePreparedCandidate(descriptor.id, baseAlignment.weeks.toSet(), screeningPrepared)
+                val reason = alignmentService.usablePreparedCandidate(descriptor.id, baseAlignment.weeks.toSet(), preparedSeries)
                 if (reason != null) {
                     diagnostics += "${descriptor.displayName} excluded: $reason."
                     null
@@ -45,7 +40,7 @@ internal class EndogenousVariableSelector(
         while (mandatory.size + selected.size < maxEndogenous && candidates.isNotEmpty()) {
             val currentSystem = mandatory + selected
             val ranked = candidates.mapNotNull { candidate ->
-                candidateRollingPredictiveGain(candidate, xMetric, yMetrics, controls, currentSystem, metricSeries)?.let { candidate to it }
+                candidateRollingPredictiveGain(candidate, xMetric, yMetrics, controls, currentSystem, preparedSeries)?.let { candidate to it }
             }
             val best = ranked.maxByOrNull { it.second }
             if (best == null || best.second < MIN_LOG_PREDICTIVE_GAIN) {
@@ -53,8 +48,21 @@ internal class EndogenousVariableSelector(
                 break
             }
             val expandedSystem = currentSystem + best.first
-            val alignment = alignmentService.align(expandedSystem + controls, metricSeries)
-            val fit = alignment?.let { BayesianVarEstimator().fitSystem(it, expandedSystem, controls, lag = 1, includeErrorCorrection = false) }
+            val preparedSystem = runCatching {
+                PreparedTimeSeriesSystem.createValidated(expandedSystem + controls, preparedSeries, lag = BASE_LAG, horizon = requestedHorizon.coerceAtLeast(1))
+            }.getOrNull()
+            val commonSourceWeeks = preparedSystem?.commonUsableRows.orEmpty().map { it.sourceWeek }.toSet()
+            val alignment = alignmentService.alignmentFromPrepared(expandedSystem + controls, preparedSeries)
+            val fit = alignment?.let {
+                BayesianVarEstimator().fitSystem(
+                    it,
+                    expandedSystem,
+                    controls,
+                    lag = 1,
+                    includeErrorCorrection = false,
+                    allowedSourceWeeks = commonSourceWeeks
+                )
+            }
             if (fit == null || strictCholeskyFactorOrNull(fit.residualCovariance) == null || !choleskyShockIdentifier.posteriorPredictivePass(fit)) {
                 diagnostics += "${displayName(best.first)} excluded: the expanded Bayesian dynamic system failed stability or posterior predictive coverage checks."
                 candidates.remove(best.first)
@@ -73,17 +81,23 @@ internal class EndogenousVariableSelector(
         yMetrics: List<TrendMetricId>,
         controls: List<TrendMetricId>,
         currentSystem: List<TrendMetricId>,
-        series: Map<TrendMetricId, List<TrendDataPoint>>
+        preparedSeries: Map<TrendMetricId, PreparedMetricSeries>
     ): Double? {
-        val expanded = alignmentService.align((currentSystem + candidate) + controls, series) ?: return null
-        val base = alignmentService.align(currentSystem + controls, series)?.let { alignmentService.restrictToWeeks(it, expanded.weeks) } ?: return null
-        val candidateDiagnostic = integrationOrderAnalyzer.diagnose(candidate, expanded.valuesByMetric[candidate].orEmpty())
+        val expandedSystem = runCatching {
+            PreparedTimeSeriesSystem.createValidated((currentSystem + candidate) + controls, preparedSeries, lag = BASE_LAG, horizon = 1)
+        }.getOrNull() ?: return null
+        val commonSourceWeeks = expandedSystem.commonUsableRows.map { it.sourceWeek }.toSet()
+        val expanded = alignmentService.alignmentFromPrepared((currentSystem + candidate) + controls, preparedSeries) ?: return null
+        val base = alignmentService.alignmentFromPrepared(currentSystem + controls, preparedSeries)
+            ?.let { alignmentService.restrictToWeeks(it, expanded.weeks) }
+            ?: return null
+        val candidateDiagnostic = integrationOrderAnalyzer.diagnose(candidate, expanded.valuesByMetric[candidate].orEmpty().filter(Double::isFinite))
         if (candidateDiagnostic.levelOrder == IntegrationOrder.I2_OR_HIGHER) return null
         val baseScore = yMetrics.mapNotNull { yMetric ->
-            localProjectionEstimator.rollingPredictiveScore(base, xMetric, yMetric, currentSystem, controls)
+            localProjectionEstimator.rollingPredictiveScore(base, xMetric, yMetric, currentSystem, controls, allowedSourceWeeks = commonSourceWeeks)
         }
         val expandedScore = yMetrics.mapNotNull { yMetric ->
-            localProjectionEstimator.rollingPredictiveScore(expanded, xMetric, yMetric, currentSystem + candidate, controls)
+            localProjectionEstimator.rollingPredictiveScore(expanded, xMetric, yMetric, currentSystem + candidate, controls, allowedSourceWeeks = commonSourceWeeks)
         }
         if (baseScore.size != yMetrics.size || expandedScore.size != yMetrics.size) return null
         return expandedScore.sumOf { it.logPredictiveDensity } - baseScore.sumOf { it.logPredictiveDensity }

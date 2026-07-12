@@ -19,11 +19,15 @@ Before this change, `LaggedTimeSeriesAnalyzer` joined one X and one Y by week an
 
 `TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. Raw trend dates are canonicalized to ISO Monday week starts before alignment; explicit grid/cell week-start inputs must already be ISO Mondays. Grid bounds are calculated only from requested metrics and their requested lifecycle metadata. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, version-discontinuity, or conflict cell. Missing values are not forward-filled and are not converted into numeric zero. Lifecycle activation is explicit: `EXPLICIT_METADATA_ONLY` uses only `availableFromWeek`, `FIRST_OBSERVATION_ALLOWED` must be requested before the first valid observation can define activation, and `REGISTRY_DEFINED` is reserved for canonical registry metadata. Non-structural metrics do not treat the first observation as metric creation by default.
 
-Observation conflicts are deterministic and typed. Exact duplicate observations can merge, typed revision values can supersede older revisions, and conflicting values without valid ordering provenance become `CONFLICT` cells rather than being selected by source-string ordering or lexical version ordering. Conflict cells preserve candidate count, candidate values/states/sources/revisions, selected candidate when one exists, and the selection rule. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, lifecycle/missing states cannot carry numeric values, and conflict cells require provenance.
+Observation conflicts are deterministic and typed. Exact duplicate observations can merge, explicitly declared revision-number, version-sequence, or authoritative-revision-time values can supersede older revisions only within one shared ordering scheme, and conflicting values without valid ordering provenance become `CONFLICT` cells rather than being selected by input order, source-string ordering, ordinary observation time, or lexical version ordering. Heterogeneous revision schemes, partial revision metadata, and tied highest revisions with different values remain unresolved conflicts. Conflict cells preserve candidate count, candidate values/states/sources/revisions, selected candidate when one exists, and the selection rule. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, lifecycle/missing states cannot carry numeric values, and conflict cells require provenance.
 
 Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Every candidate source week is either included or excluded with a reason, including initial lag gaps and final target-outside-grid horizons. Excluded rows carry target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
 
-Data quality is no longer a single ambiguous missing-rate concept. Each prepared series has total weeks, observed/structural-zero/missing/pre-creation/not-applicable/version-discontinuity/conflict counts, raw missing rate, unusable rate, coverage rate, and contiguous usable-run diagnostics. Candidate screening consumes `PreparedMetricSeries` from the canonical grid and rejects conflict/version-discontinuity cells, high unusable rate, and insufficient variation. The deprecated raw screening adapter exists only to build a prepared series first.
+Data quality is no longer a single ambiguous missing-rate concept. Each prepared series has total weeks, observed/structural-zero/missing/pre-creation/not-applicable/version-discontinuity/conflict counts, model-eligible week count, usable/unusable counts, raw missing rate, unusable rate, coverage rate, and contiguous usable-run diagnostics. `MetricDataQualitySummary` is derived from cells through a factory so transformation-failure diagnostics cannot double-count a cell that is already missing, conflicted, or version-discontinuous. Pre-creation and not-applicable cells are excluded from the model-eligible denominator. Candidate screening consumes `PreparedMetricSeries` from the canonical grid and rejects conflict/version-discontinuity cells, high unusable rate, and insufficient variation. The deprecated raw screening adapter now requires an already validated alignment and cannot silently rebuild prepared series with default lifecycle metadata.
+
+`PreparedMetricSeries` is factory-created and carries a deterministic lifecycle metadata fingerprint. Restricting a series to a view range and stationarizing it preserve lifecycle metadata unchanged while recalculating cell-derived quality summaries and contiguous segments. If a prepared operation expects lifecycle metadata and cannot find it, it fails instead of substituting a new default object.
+
+`PreparedTimeSeriesSystem` is the selector-facing row contract. It validates that every included series shares the exact same week vector and preparation version, derives common usable rows under `COMMON_USABLE_ROWS`, and records deterministic row fingerprints from source week, target week, lag weeks, ordered metric IDs, transformations, lag, horizon, preparation version, and row policy. Automatic endogenous candidate ranking and stability checks now use the same prepared catalog and the same common source-week set instead of realigning raw `TrendDataPoint` maps or comparing baseline and candidate scores over different samples.
 
 ## Numeric Foundation
 
@@ -39,7 +43,7 @@ Johansen-form primitives are strict by default. `S00` and `S11` must be strict S
 
 ## Endogenous System And Lag Selection
 
-The mandatory endogenous block always contains X and every selected Y. `EndogenousVariableSelector` can add candidates only when they pass data-quality screening, the sample-based K cap, a dynamic-system stability check, posterior predictive coverage screening, and positive rolling-origin out-of-sample log predictive-density gain. It does not rank candidates by contemporaneous Pearson correlation.
+The mandatory endogenous block always contains X and every selected Y. `EndogenousVariableSelector` can add candidates only when they pass prepared data-quality screening, the sample-based K cap, a dynamic-system stability check on the prepared common rows, posterior predictive coverage screening, and positive rolling-origin out-of-sample log predictive-density gain computed over the same common source weeks for baseline and expanded candidate systems. It does not rank candidates by contemporaneous Pearson correlation and no production selector path accepts raw `TrendDataPoint` maps.
 
 The product cap is K=8. The sample cap is evaluated from the requested horizon, lag, controls, and deterministic intercept. The selector writes inclusion and exclusion reasons to the result diagnostics.
 
@@ -63,17 +67,28 @@ The current cointegration route remains a legacy heuristic isolated behind `Coin
 
 ## File / Feature Map
 
-- `BayesianTimeSeriesModels.kt`: request, alignment, prepared-series, data-quality, diagnostics, IRF, and result contracts.
+- `BayesianTimeSeriesModels.kt`: request, alignment, lifecycle metadata provenance/fingerprints, explicit revision schemes, conflict provenance, prepared-series factory, prepared-system row identity, data-quality, diagnostics, IRF, and result contracts.
 - `StableLinearAlgebra.kt`: Commons Math backed SPD solve, least squares, Cholesky, SVD, rank, condition number, symmetric eigen, generalized symmetric eigen, and log determinant primitives.
-- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, lifecycle activation, conflict resolution, prepared-series screening, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
-- `BayesianLocalProjectionEstimator.kt`: horizon-specific Bayesian LP posterior and rolling-origin predictive score.
-- `EndogenousVariableSelector.kt`: data screening, K cap, and greedy rolling-origin endogenous selection.
+- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, lifecycle activation/preservation, explicit conflict resolution, prepared-series screening, alignment reconstruction from prepared series, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
+- `BayesianLocalProjectionEstimator.kt`: horizon-specific Bayesian LP posterior and rolling-origin predictive score with optional prepared common-row source-week filtering.
+- `EndogenousVariableSelector.kt`: prepared-system data screening, K cap, common-row rolling predictive scoring, and greedy rolling-origin endogenous selection.
 - `CointegrationAnalyzer.kt`: legacy rank-one heuristic score; diagnostic-only and not model-routing input.
-- `BayesianDynamicEstimators.kt`: Minnesota-style BVAR, rank-1 Bayesian VECM, posterior predictive coverage, and dynamic IRFs.
+- `BayesianDynamicEstimators.kt`: Minnesota-style BVAR, rank-1 Bayesian VECM, posterior predictive coverage, dynamic IRFs, and optional prepared common-row source-week filtering for selector stability checks.
 - `CholeskyShockIdentifier.kt`: canonical order, structural shocks, and ordering sensitivity.
 - `BayesianTimeSeriesAnalyzer.kt`: transparent model routing and explicit unavailable/fallback handling.
 - `AnalysisLabUi.kt`: X/Y/Z selection, 1-8 horizon input, and shared multi-Y IRF result disclosure.
 - `LaggedTimeSeriesAnalyzer.kt`: compatibility facade for the old single-Y API; it delegates to the new implementation.
+
+## Call-Graph Audit
+
+- Selector entry point: `BayesianTimeSeriesAnalyzer.analyze()` prepares one descriptor-wide catalog, restricts it to the required base calendar, reconstructs required/final alignments from prepared series, and calls `EndogenousVariableSelector.select()` with `Map<TrendMetricId, PreparedMetricSeries>`.
+- Prepared selector entry point: `EndogenousVariableSelector.select()` screens candidates through `usablePreparedCandidate()`, builds `PreparedTimeSeriesSystem` for candidate systems, and passes its common source-week set into rolling predictive scoring and stability checks.
+- Raw-series overloads: `TimeSeriesAlignmentService.align()` remains the ingestion boundary from UI/trend data into prepared cells. `usableCandidate()` is deprecated compatibility code and no production selector path calls it.
+- Raw bypass prohibition: `EndogenousVariableSelector` no longer imports `TrendDataPoint`, accepts raw maps, or calls `alignmentService.align()`.
+- Metadata copy points: `alignObservations()` creates metadata only for truly metadata-free sources; `restrictToWeeks()` and `stationarize()` require existing prepared lifecycle metadata and preserve its fingerprint.
+- Quality-summary constructors: production code uses `MetricDataQualitySummary.fromCells()` through `PreparedMetricSeries.createValidated()`; manual summary and contiguous-segment injection are statically scanned.
+- Revision-resolution callers: `alignObservations()` groups observations by metric/week and calls `resolveObservationConflict()`, which validates explicit revision schemes and returns conflict cells for heterogeneous, partial, or tied-different revisions.
+- Prepared-system callers: automatic selector ranking/stability uses `PreparedTimeSeriesSystem.createValidated()`; later PHASE B estimators should use the same system boundary rather than raw `TrendDataPoint` maps.
 
 ## Boundaries
 
@@ -84,7 +99,7 @@ The current cointegration route remains a legacy heuristic isolated behind `Coin
 
 ## Downstream Contract Map
 
-- Phase B may rely on strict SPD failures for rank-deficient or ill-conditioned covariance inputs, regularization provenance on any jittered solve, `PreparedMetricSeries` as the estimator-facing data boundary, and `MetricDataQualitySummary.unusableRate` rather than a legacy missing-rate field.
-- Phase C may rely on transformed series preserving the complete weekly calendar, source-cell provenance, and explicit unavailable first-difference cells instead of compressed week vectors.
-- Phase D may rely on strict `S00`/`S11` Johansen-form primitives, complete generalized-eigen diagnostics, and legacy cointegration being unable to route as a supported rank result.
+- Phase B may rely on strict SPD failures for rank-deficient or ill-conditioned covariance inputs, regularization provenance on any jittered solve, `PreparedMetricSeries`/`PreparedTimeSeriesSystem` as the estimator-facing boundary, common-row fingerprints for lag selection, conflict-free included rows, preserved lifecycle metadata, and unique-cell `MetricDataQualitySummary.unusableRate` rather than a legacy missing-rate field.
+- Phase C may rely on transformed series preserving the complete weekly calendar, source-cell provenance, explicit unavailable first-difference cells instead of compressed week vectors, and row fingerprints that can prove BVAR shock and BLP response alignment.
+- Phase D may rely on strict `S00`/`S11` Johansen-form primitives, complete generalized-eigen diagnostics, preserved lifecycle/version-discontinuity metadata after slicing and stationarization, unresolved conflict cells being excluded from numeric prepared values, and legacy cointegration being unable to route as a supported rank result.
 - Phase E must display unavailable/legacy diagnostics as diagnostic-only and must not label the legacy score as a posterior probability, validated rank, or Johansen trace result.

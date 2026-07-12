@@ -1289,3 +1289,77 @@ Downstream Contract Map
 Remaining
 - Final local verification, commit hash, branch push, and GitHub Actions run ID must be recorded after completion.
 - All posterior/model-building work remains PHASE B or later and requires explicit approval.
+
+## Time-Series Analysis Phase A Prepared-Data Pipeline Correction
+
+Cause
+- Started from `feat/time-series-phase-a` at `257df8d155cd45e134a120d2f3255be2e71d1776`.
+- The follow-up PHASE A audit confirmed four prepared-data defects:
+  - `EndogenousVariableSelector` still used raw `TrendDataPoint` maps for predictive ranking and stability checks.
+  - `MetricDataQualitySummary.unusableRate` could double-count one cell when a state and transformation failure overlapped.
+  - Lifecycle metadata could be replaced by empty/default metadata during restriction, stationarization, or fallback preparation.
+  - Revision conflict resolution could compare incompatible ordering schemes or select arbitrarily among tied highest revisions.
+- Existing dirty `outputs/*` files were preserved and were not staged or modified intentionally.
+
+Changes
+- Added explicit `RevisionOrderingScheme`, lifecycle metadata provenance/fingerprints, `PreparedTimeSeriesSystem`, deterministic row fingerprints, model-eligible/usable/unusable counts, and factory-only `MetricDataQualitySummary` / `PreparedMetricSeries` creation.
+- Changed conflict resolution so identical duplicates merge, heterogeneous schemes conflict, partial revision metadata conflicts, tied highest revisions with different values conflict, ordinary observation time is not revision authority, and input order is not a tie-break.
+- Changed quality summaries to compute `unusableCount` from unique model-eligible cells rather than summing overlapping diagnostic subsets.
+- Preserved lifecycle metadata through `restrictToWeeks` and `stationarize`; missing prepared lifecycle metadata now fails instead of silently substituting defaults.
+- Changed `EndogenousVariableSelector` to consume a prepared catalog and `PreparedTimeSeriesSystem` common rows for screening, rolling predictive scoring, and stability checks.
+- Added optional common source-week filtering to rolling LP scoring and dynamic-system stability fitting.
+- Extended the static scan to block selector raw-series bypasses, manual summary/series construction outside the model factory, input-order conflict tie-breaks, source-string revision ordering, and unsafe lifecycle default replacement.
+- Added prepared-pipeline fixtures and contract tests for unique unusable counting, lifecycle fingerprints, revision scheme conflicts, permutation invariance, prepared-series validation, and prepared-system row identity.
+
+Reason
+- PHASE B must not compare BVAR candidates over different samples, inflate unusable rates, lose lifecycle metadata before lag selection, or let conflict values enter covariance estimation.
+- PHASE C must be able to prove BVAR shock and BLP response calendar alignment and must not inherit compressed or stale transformed rows.
+- PHASE D must not difference across lifecycle/version boundaries or let conflicting revisions enter Johansen matrices.
+
+Result
+- Selector candidate screening, ranking, and stability checks now use the same prepared calendar, transformed values, lifecycle states, conflict decisions, row policy, and common source-week identity.
+- Each eligible cell is counted exactly once as usable or unusable; transformation-failure count remains a diagnostic subset.
+- Lifecycle metadata fingerprints remain stable under valid slicing and stationarization.
+- Revision conflict resolution is explicit, scheme-safe, tie-safe, and permutation-invariant.
+- PHASE B/C/D estimator work was not started.
+
+Tests
+- `.\gradlew.bat --version`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*TimeSeries*"`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*TimeSeriesPreparedPipelineContractTest" --tests "*TimeSeriesCalendarGridTest" --tests "*LaggedTimeSeriesAnalyzerTest" --tests "*StableLinearAlgebraTest"`: passed.
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed with bundled Python.
+- `python tools/check_time_series_numeric_sources.py`: passed with bundled Python.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+- GitHub Actions: pending until this correction commit is pushed.
+
+File/Feature Map
+- `BayesianTimeSeriesModels.kt`: lifecycle provenance/fingerprints, explicit revision schemes, unique-cell quality summaries, prepared-series factory, prepared-system row identity.
+- `BayesianTimeSeriesSupport.kt`: conflict resolution rules, prepared alignment reconstruction, metadata-preserving restriction/stationarization, factory-based summaries.
+- `EndogenousVariableSelector.kt`: prepared catalog input, prepared-system common rows, raw selector bypass removal.
+- `BayesianTimeSeriesAnalyzer.kt`: one prepared catalog for automatic selection and final selected-system alignment.
+- `BayesianLocalProjectionEstimator.kt`: rolling predictive scoring can use prepared common source-week rows.
+- `BayesianDynamicEstimators.kt`: selector stability checks can use prepared common source-week rows.
+- `TimeSeriesPreparedPipelineContractTest.kt`: regression coverage for the four confirmed defects and prepared-system contracts.
+- `TimeSeriesCalendarGridTest.kt`: revision-ordering expectation updated to the explicit scheme rule.
+- `tools/check_time_series_numeric_sources.py`: static source guards for selector/raw, construction, lifecycle, and conflict-resolution bypasses.
+- `tools/time_series_reference/*`: prepared-pipeline contract fixture and README coverage update.
+- `docs/bayesian_time_series_lab_architecture.md`: prepared boundary, row identity, downstream contract map, and file responsibility map update.
+
+Downstream Contract Map
+- PHASE B may rely on `PreparedTimeSeriesSystem`, common usable rows, deterministic row fingerprints, conflict-free included rows, preserved lifecycle metadata, and unique-cell unusable rates.
+- PHASE C may rely on full-calendar transformed series, source-cell provenance, and row fingerprints for shock/response alignment.
+- PHASE D may rely on preserved lifecycle/version-discontinuity metadata and unresolved conflicts being excluded from numeric prepared rows.
+
+Call-Graph Audit
+- Selector entry point: `BayesianTimeSeriesAnalyzer.analyze()` prepares the catalog and calls `EndogenousVariableSelector.select()` with prepared series.
+- Raw-series overloads: `TimeSeriesAlignmentService.align()` remains the ingestion boundary; `usableCandidate()` remains deprecated compatibility only.
+- Prepared entry points: `alignmentFromPrepared()`, `PreparedMetricSeries.createValidated()`, and `PreparedTimeSeriesSystem.createValidated()`.
+- Metadata-copy points: `alignObservations()`, `restrictToWeeks()`, and `stationarize()`; restriction/stationarization now preserve lifecycle fingerprints.
+- Quality-summary constructors: only `MetricDataQualitySummary.fromCells()` inside the model factory path.
+- Revision-resolution callers: `alignObservations()` delegates grouped duplicate/conflict observations to `resolveObservationConflict()`.
+
+Remaining
+- Push the branch and dispatch GitHub Actions for `feat/time-series-phase-a`.
+- PHASE B posterior sampling, PHASE C Bayesian Local Projection rebuild, PHASE D Johansen/Bayesian VECM, and final UI work remain explicitly out of scope.

@@ -54,7 +54,7 @@ internal class TimeSeriesAlignmentService {
         val grid = TimeSeriesCalendarGrid.createValidated(allWeeks, cellsByMetric)
         val qualitySummaries = cellsByMetric.mapValues { (_, cells) -> qualitySummary(cells) }
         val preparedSeries = cellsByMetric.mapValues { (metric, cells) ->
-            preparedSeries(metric, allWeeks, cells, "level", qualitySummaries.getValue(metric), requestedMetadata[metric] ?: MetricLifecycleMetadata())
+            preparedSeries(metric, allWeeks, cells, "level", requestedMetadata[metric] ?: MetricLifecycleMetadata())
         }
         val missingRates = qualitySummaries.mapValues { (_, summary) -> summary.rawMissingRate }
         return TimeSeriesAlignment(
@@ -71,7 +71,7 @@ internal class TimeSeriesAlignmentService {
     private fun resolveObservationConflict(items: List<TimeSeriesObservation>): TimeSeriesObservation {
         val first = items.first()
         val provenanceCandidates = items.map { it.candidateProvenance() }
-        if (items.all { it.value == first.value && it.state == first.state && it.missingReason == first.missingReason }) {
+        if (items.all { it.semanticallyMatches(first) }) {
             return first.copy(
                 conflictProvenance = ObservationConflictProvenance(
                     candidates = provenanceCandidates,
@@ -82,9 +82,22 @@ internal class TimeSeriesAlignmentService {
                 )
             )
         }
-        val ordered = items.mapNotNull { item -> revisionOrderKey(item.revision())?.let { item to it } }
-        if (ordered.size == items.size) {
-            val selected = ordered.maxWith(compareBy<Pair<TimeSeriesObservation, RevisionOrderKey>> { it.second }.thenBy { items.indexOf(it.first) }).first
+        val revisions = items.map { it.revision() }
+        val ordered = items.zip(revisions)
+        val orderedCount = revisions.count(ObservationRevision::isOrdered)
+        val conflictRule = when {
+            orderedCount == 0 -> ObservationConflictSelectionRule.UNRESOLVED_CONFLICT
+            orderedCount != items.size -> ObservationConflictSelectionRule.PARTIAL_REVISION_METADATA_CONFLICT
+            revisions.map { it.scheme }.distinct().size != 1 -> ObservationConflictSelectionRule.HETEROGENEOUS_REVISION_SCHEME_CONFLICT
+            else -> null
+        }
+        if (conflictRule != null) return conflictObservation(first, provenanceCandidates, conflictRule)
+
+        val maxRevision = revisions.mapNotNull(ObservationRevision::orderValue).maxOrNull()
+            ?: return conflictObservation(first, provenanceCandidates, ObservationConflictSelectionRule.UNRESOLVED_CONFLICT)
+        val tiedHighest = ordered.filter { (_, revision) -> revision.orderValue() == maxRevision }.map { it.first }
+        if (tiedHighest.size == 1) {
+            val selected = tiedHighest.single()
             return selected.copy(
                 conflictProvenance = ObservationConflictProvenance(
                     candidates = provenanceCandidates,
@@ -95,10 +108,30 @@ internal class TimeSeriesAlignmentService {
                 )
             )
         }
+        if (tiedHighest.all { it.semanticallyMatches(tiedHighest.first()) }) {
+            val selected = tiedHighest.first()
+            return selected.copy(
+                conflictProvenance = ObservationConflictProvenance(
+                    candidates = provenanceCandidates,
+                    selectedCandidate = selected.candidateProvenance(),
+                    selectionRule = ObservationConflictSelectionRule.IDENTICAL_DUPLICATE_MERGE,
+                    identicalCandidates = true,
+                    unresolvedConflict = false
+                )
+            )
+        }
+        return conflictObservation(first, provenanceCandidates, ObservationConflictSelectionRule.TIED_HIGHEST_REVISION_CONFLICT)
+    }
+
+    private fun conflictObservation(
+        first: TimeSeriesObservation,
+        provenanceCandidates: List<ObservationCandidateProvenance>,
+        selectionRule: ObservationConflictSelectionRule
+    ): TimeSeriesObservation {
         val provenance = ObservationConflictProvenance(
             candidates = provenanceCandidates,
             selectedCandidate = null,
-            selectionRule = ObservationConflictSelectionRule.UNRESOLVED_CONFLICT,
+            selectionRule = selectionRule,
             identicalCandidates = false,
             unresolvedConflict = true
         )
@@ -150,10 +183,30 @@ internal class TimeSeriesAlignmentService {
     }
 
     fun prepareSeries(alignment: TimeSeriesAlignment): Map<TrendMetricId, PreparedMetricSeries> =
-        alignment.preparedSeries.takeIf { it.isNotEmpty() } ?: alignment.grid?.cellsByMetric.orEmpty().mapValues { (metric, cells) ->
-            val summary = alignment.qualitySummaries[metric] ?: qualitySummary(cells)
-            preparedSeries(metric, alignment.weeks, cells, cells.firstOrNull()?.transformation ?: "level", summary, MetricLifecycleMetadata())
-        }
+        alignment.preparedSeries.takeIf { it.isNotEmpty() }
+            ?: error("alignment has no validated prepared series")
+
+    fun alignmentFromPrepared(
+        metrics: Collection<TrendMetricId>,
+        prepared: Map<TrendMetricId, PreparedMetricSeries>
+    ): TimeSeriesAlignment? {
+        val unique = metrics.distinct()
+        if (unique.isEmpty()) return null
+        val selected = unique.associateWith { metric -> prepared[metric] ?: return null }
+        val weeks = selected.values.first().weeks
+        if (selected.values.any { it.weeks != weeks }) return null
+        val cellsByMetric = selected.mapValues { (_, series) -> series.cells }
+        val qualitySummaries = selected.mapValues { (_, series) -> series.qualitySummary }
+        return TimeSeriesAlignment(
+            weeks = weeks,
+            valuesByMetric = cellsByMetric.mapValues { (_, cells) -> cells.map { it.value ?: Double.NaN } },
+            excludedMetrics = emptyMap(),
+            missingRates = qualitySummaries.mapValues { (_, summary) -> summary.rawMissingRate },
+            qualitySummaries = qualitySummaries,
+            preparedSeries = selected,
+            grid = TimeSeriesCalendarGrid.createValidated(weeks, cellsByMetric)
+        )
+    }
 
     fun usablePreparedCandidate(
         metric: TrendMetricId,
@@ -192,7 +245,14 @@ internal class TimeSeriesAlignmentService {
         val cellsByMetric = alignment.grid?.let { grid -> grid.cellsByMetric.mapValues { (_, cells) -> indices.map(cells::get) } }.orEmpty()
         val qualitySummaries = cellsByMetric.mapValues { (_, cells) -> qualitySummary(cells) }
         val prepared = cellsByMetric.mapValues { (metric, cells) ->
-            preparedSeries(metric, weeks, cells, cells.firstOrNull()?.transformation ?: "level", qualitySummaries.getValue(metric), MetricLifecycleMetadata())
+            val metadata = alignment.preparedSeries[metric]?.lifecycleMetadata ?: return null
+            preparedSeries(
+                metric,
+                weeks,
+                cells,
+                cells.firstOrNull()?.transformation ?: "level",
+                metadata
+            )
         }
         return alignment.copy(
             weeks = weeks,
@@ -253,7 +313,14 @@ internal class TimeSeriesAlignmentService {
         }
         val qualitySummaries = cellsByMetric.mapValues { (_, cells) -> qualitySummary(cells) }
         val prepared = cellsByMetric.mapValues { (metric, cells) ->
-            preparedSeries(metric, weeks, cells, descriptions.getValue(metric), qualitySummaries.getValue(metric), MetricLifecycleMetadata())
+            val metadata = alignment.preparedSeries[metric]?.lifecycleMetadata ?: return null
+            preparedSeries(
+                metric,
+                weeks,
+                cells,
+                descriptions.getValue(metric),
+                metadata
+            )
         }
         return alignment.copy(
             weeks = weeks,
@@ -277,26 +344,17 @@ internal class TimeSeriesAlignmentService {
     private fun TimeSeriesObservation.candidateProvenance(): ObservationCandidateProvenance =
         ObservationCandidateProvenance(metric, weekStart, value, state, source, revision(), version)
 
-    private data class RevisionOrderKey(
-        val revisionNumber: Long,
-        val observedAtEpochMilli: Long,
-        val versionSequence: Long
-    ) : Comparable<RevisionOrderKey> {
-        override fun compareTo(other: RevisionOrderKey): Int =
-            compareValuesBy(this, other, RevisionOrderKey::revisionNumber, RevisionOrderKey::observedAtEpochMilli, RevisionOrderKey::versionSequence)
-    }
-
-    private fun revisionOrderKey(revision: ObservationRevision): RevisionOrderKey? = when {
-        revision.revisionNumber != null -> RevisionOrderKey(revision.revisionNumber, Long.MIN_VALUE, Long.MIN_VALUE)
-        revision.observedAt != null -> RevisionOrderKey(Long.MIN_VALUE, revision.observedAt.toEpochMilli(), Long.MIN_VALUE)
-        revision.versionSequence != null -> RevisionOrderKey(Long.MIN_VALUE, Long.MIN_VALUE, revision.versionSequence)
-        else -> null
-    }
+    private fun TimeSeriesObservation.semanticallyMatches(other: TimeSeriesObservation): Boolean =
+        metric == other.metric &&
+            weekStart == other.weekStart &&
+            value == other.value &&
+            state == other.state &&
+            missingReason == other.missingReason
 
     private fun selectionRule(revision: ObservationRevision): ObservationConflictSelectionRule = when {
-        revision.revisionNumber != null -> ObservationConflictSelectionRule.TYPED_REVISION_ORDER
-        revision.observedAt != null -> ObservationConflictSelectionRule.OBSERVED_AT_ORDER
-        revision.versionSequence != null -> ObservationConflictSelectionRule.VERSION_SEQUENCE_ORDER
+        revision.scheme == RevisionOrderingScheme.REVISION_NUMBER -> ObservationConflictSelectionRule.REVISION_NUMBER_ORDER
+        revision.scheme == RevisionOrderingScheme.VERSION_SEQUENCE -> ObservationConflictSelectionRule.VERSION_SEQUENCE_ORDER
+        revision.scheme == RevisionOrderingScheme.AUTHORITATIVE_REVISION_TIME -> ObservationConflictSelectionRule.AUTHORITATIVE_REVISION_TIME_ORDER
         else -> ObservationConflictSelectionRule.UNRESOLVED_CONFLICT
     }
 
@@ -305,74 +363,18 @@ internal class TimeSeriesAlignmentService {
         weeks: List<LocalDate>,
         cells: List<TimeSeriesCell>,
         transformation: String,
-        summary: MetricDataQualitySummary,
         lifecycleMetadata: MetricLifecycleMetadata
-    ): PreparedMetricSeries = PreparedMetricSeries(
+    ): PreparedMetricSeries = PreparedMetricSeries.createValidated(
         metric = metric,
         weeks = weeks,
         cells = cells,
         transformation = transformation,
-        qualitySummary = summary,
         lifecycleMetadata = lifecycleMetadata,
-        contiguousSegments = contiguousSegments(cells),
         provenance = listOf("canonical weekly grid", "state/value validated", "quality summary recalculated")
     )
 
-    private fun qualitySummary(cells: List<TimeSeriesCell>): MetricDataQualitySummary {
-        val observed = cells.count { it.state == TimeSeriesCellState.OBSERVED_VALUE }
-        val structuralZero = cells.count { it.state == TimeSeriesCellState.STRUCTURAL_ZERO }
-        val missing = cells.count { it.state == TimeSeriesCellState.MISSING }
-        val preCreation = cells.count { it.state == TimeSeriesCellState.PRE_METRIC_CREATION }
-        val notApplicable = cells.count { it.state == TimeSeriesCellState.NOT_APPLICABLE }
-        val versionDiscontinuity = cells.count { it.state == TimeSeriesCellState.VERSION_DISCONTINUITY }
-        val conflict = cells.count { it.state == TimeSeriesCellState.CONFLICT }
-        val usable = observed + structuralZero
-        val modelEligible = (cells.size - preCreation - notApplicable).coerceAtLeast(1)
-        val applicableActive = modelEligible
-        return MetricDataQualitySummary(
-            totalWeeks = cells.size,
-            observedCount = observed,
-            structuralZeroCount = structuralZero,
-            missingCount = missing,
-            preMetricCreationCount = preCreation,
-            notApplicableCount = notApplicable,
-            versionDiscontinuityCount = versionDiscontinuity,
-            conflictCount = conflict,
-            transformationFailureCount = cells.count { it.missingReason?.startsWith("transformation unavailable") == true },
-            usableCount = usable,
-            rawMissingRate = missing.toDouble() / applicableActive,
-            unusableRate = (missing + versionDiscontinuity + conflict + cells.count { it.missingReason?.startsWith("transformation unavailable") == true }).toDouble() / modelEligible,
-            coverageRate = usable.toDouble() / modelEligible,
-            longestContiguousUsableRun = contiguousSegments(cells).maxOfOrNull { it.length } ?: 0,
-            contiguousSegmentCount = contiguousSegments(cells).size
-        )
-    }
-
-    private fun contiguousSegments(cells: List<TimeSeriesCell>): List<ContiguousUsableSegment> {
-        val segments = mutableListOf<ContiguousUsableSegment>()
-        var start: LocalDate? = null
-        var previous: LocalDate? = null
-        var length = 0
-        fun flush() {
-            val s = start
-            val p = previous
-            if (s != null && p != null) segments += ContiguousUsableSegment(s, p, length)
-            start = null
-            previous = null
-            length = 0
-        }
-        cells.forEach { cell ->
-            if (cell.state in setOf(TimeSeriesCellState.OBSERVED_VALUE, TimeSeriesCellState.STRUCTURAL_ZERO)) {
-                if (start == null) start = cell.weekStart
-                previous = cell.weekStart
-                length++
-            } else {
-                flush()
-            }
-        }
-        flush()
-        return segments
-    }
+    private fun qualitySummary(cells: List<TimeSeriesCell>): MetricDataQualitySummary =
+        MetricDataQualitySummary.fromCells(cells)
 
     private companion object {
         const val MIN_OBSERVATIONS = 8

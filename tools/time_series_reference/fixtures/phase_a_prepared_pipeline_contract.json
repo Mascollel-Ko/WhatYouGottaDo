@@ -1,0 +1,104 @@
+{
+  "lifecycle_fingerprint_contract": {
+    "fingerprint_fields": [
+      "available_from_week",
+      "available_until_week",
+      "structural_zero_allowed",
+      "activation_policy",
+      "not_applicable_weeks",
+      "version_discontinuity_weeks",
+      "version_discontinuity_ranges",
+      "source",
+      "source_version",
+      "registry_version",
+      "derived_from_metric",
+      "inference_policy",
+      "metadata_version"
+    ],
+    "preserve_under": [
+      "restriction",
+      "stationarization",
+      "candidate_screening",
+      "prepared_system_creation"
+    ]
+  },
+  "provenance": {
+    "generator_script_version": "phase-a-4",
+    "numpy_version": "2.3.5",
+    "purpose": "Phase A prepared-data pipeline contract fixture",
+    "python_version": "3.12.13",
+    "rng_seed": 20260712,
+    "schema_version": 1,
+    "scipy_version": "1.18.0",
+    "source_commit": "257df8d155cd45e134a120d2f3255be2e71d1776",
+    "tolerance": 1e-07
+  },
+  "quality_summary_overlap": {
+    "eligible_cells": [
+      {
+        "state": "MISSING",
+        "transformation_failure": true,
+        "week": "2026-01-05"
+      },
+      {
+        "state": "VERSION_DISCONTINUITY",
+        "transformation_failure": true,
+        "week": "2026-01-12"
+      },
+      {
+        "state": "CONFLICT",
+        "transformation_failure": true,
+        "week": "2026-01-19"
+      },
+      {
+        "state": "OBSERVED_VALUE",
+        "transformation_failure": false,
+        "week": "2026-01-26"
+      }
+    ],
+    "excluded_from_denominator": [
+      {
+        "state": "PRE_METRIC_CREATION",
+        "week": "2026-02-02"
+      },
+      {
+        "state": "NOT_APPLICABLE",
+        "week": "2026-02-09"
+      }
+    ],
+    "expected": {
+      "coverage_rate": 0.25,
+      "model_eligible_week_count": 4,
+      "transformation_failure_count": 3,
+      "unusable_count": 3,
+      "unusable_rate": 0.75,
+      "usable_count": 1
+    }
+  },
+  "revision_resolution": {
+    "permutation_invariant": true,
+    "rules": [
+      "identical candidates merge regardless of input order",
+      "heterogeneous authoritative revision schemes produce CONFLICT",
+      "same highest revision with different values produces CONFLICT",
+      "same highest revision with identical values merges",
+      "ordinary observation time is not revision order",
+      "version strings are not lexically ordered"
+    ]
+  },
+  "row_identity": {
+    "candidate_and_baseline_scores_use_same_source_weeks": true,
+    "fingerprint_inputs": [
+      "canonical_source_week",
+      "target_week",
+      "lag_weeks",
+      "ordered_metric_ids",
+      "transformations",
+      "lag",
+      "horizon",
+      "preparation_version",
+      "row_policy"
+    ],
+    "policy": "COMMON_USABLE_ROWS"
+  }
+}
