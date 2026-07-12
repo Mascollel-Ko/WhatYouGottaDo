@@ -1431,3 +1431,73 @@ Downstream Contract Map
 Remaining risks
 - Later PHASE B/C/D still need real posterior estimators, fold-specific transformation policy decisions, and final UI integration.
 - GitHub Actions run ID must be recorded after branch push.
+
+## Time-Series Analysis PHASE A Single-Authority Architecture Closure
+
+Cause
+- Started from exact `feat/time-series-phase-a` baseline `e716163ef22fb0116725251179657233f7577e6f`.
+- Calendar construction, lifecycle interpretation, integration diagnostics, transformation, estimator representation, row eligibility, scaling, response interpretation, shock identity, and compatibility estimation were still distributed across generic alignment helpers.
+- Local guards could not prevent a later estimator from rebuilding an earlier decision or using a legacy score in a strict path.
+- The approved pre-existing dirty `outputs/*` files were preserved, never modified intentionally, never staged, and never committed.
+
+Changes
+- Commit A `deddfc366e1da6e4ea054f65e3f1a3e398320e5d` (`refactor(analysis): separate strict and legacy time-series paths`): added the isolated `analysis.lab.pipeline` package, immutable raw/calendar/lifecycle/level stages, the sole raw ingestion boundary, strict preparation result types, strict dependency checks, and the explicitly named `LegacyTimeSeriesAnalyzer` compatibility facade.
+- Commit B `5d6ffadd426596ac960953ff8ae91d610bf44723` (`refactor(analysis): add segment-aware representation contracts`): added exact contiguous-segment diagnostics, conservative integration aggregation, separate required/optional inconclusive policies, one canonical transformation authority, exact-once transformed series, BVAR/BLP/Johansen/VECM representation decisions, response-scale plans, and the multi-draw future shock-posterior contract.
+- Commit C `73c0dbd6f9940b98b202354c816e7799adcd1e37` (`refactor(analysis): centralize prepared context row and scaling authority`): added `PreparedAnalysisContext`, eligibility-only candidate catalog, purpose-specific estimator views, explicit variable roles and horizon policies, the sole `RowPlanner`, the sole training-row `ScalingPlanner`, and validated future PHASE B/C/D input bundles.
+- Commit D `pending (this commit)` (`refactor(analysis): close strict time-series preparation architecture`): added the production strict entry point, end-to-end preparation test, availability-end and deterministic conflict closure, legacy result disclosure, semantic static scans, updated contract fixtures, and the complete strict/legacy architecture and downstream responsibility maps.
+
+Reason
+- PHASE B-D need types that make raw data, stale fingerprints, locally selected rows, unrestricted scaling, transformed-level confusion, implicit shock differencing, and UI-defined response scales impossible to pass accidentally.
+- PHASE E owns statistical optional-variable ranking; PHASE A now exposes eligibility and exclusion diagnostics only.
+- A single root context is smaller and safer than continuing to add compatibility checks to every future estimator.
+
+Result
+- `StrictTimeSeriesPreparationPipeline` is the strict production entry and returns preparation readiness only.
+- Raw `TrendDataPoint` ends in `StrictTimeSeriesIngestion.kt`; no strict downstream helper receives raw observations.
+- One continuous ISO-Monday calendar and one lifecycle authority feed exact, non-concatenated segments.
+- Required inconclusive X/Y/Z fails; optional inconclusive metrics are excluded without level/difference fallback.
+- I(1) transforms once, while level and transformed series remain together under one root identity.
+- BVAR, BLP, Johansen, and VECM representations are distinct and factory-created from the root context.
+- Rows are role/horizon/purpose aware; contemporaneous controls do not require future targets.
+- Scaling uses only declared training rows.
+- Future BLP must accept a draw-specific `IdentifiedShockPosterior` and draw-wise response-scale policy; one deterministic mean shock is invalid.
+- Legacy compatibility analysis remains isolated and explicitly labeled; no PHASE B/C/D/E estimator or final UI integration was started.
+
+Tests
+- Baseline `git fetch --all --tags`, branch switch/pull, exact HEAD check, status, log, and `git diff --name-only -- outputs`: passed; only six approved `outputs/*` paths were dirty.
+- First Gradle command with Android Studio JBR and repo-local Gradle home, `.\gradlew.bat --version`: passed (Gradle 9.3.0, Java 21.0.10).
+- Commit A gate: bundled-Python `tools/check_time_series_numeric_sources.py` passed; `:app:compileDebugKotlin` passed; `*StrictTimeSeriesArchitectureTest` initially exposed a Kotlin synthetic-constructor test assumption, then passed after excluding synthetic constructors.
+- Commit B gate: `:app:compileDebugKotlin` passed; strict representation/architecture tests initially exposed an over-specific I0 fixture expectation, then all 10 tests passed with the conservative disagreement invariant.
+- Commit C gate: `:app:compileDebugKotlin` passed; context tests first found a nonexistent fixture enum and then an intentionally excessive outlier that correctly made integration inconclusive; both fixtures were corrected and all 17 strict tests passed.
+- Commit D fixture generation: bundled-Python `tools/time_series_reference/generate_phase_a_fixtures.py` passed.
+- Commit D static scan: bundled-Python `tools/check_time_series_numeric_sources.py` passed.
+- Commit D focused gate: `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeries*" --tests "*PreparedAnalysisContextContractTest" --tests "*TimeSeriesPreparedPipelineContractTest" --tests "*TimeSeriesCalendarGridTest" --tests "*LaggedTimeSeriesAnalyzerTest" --tests "*StableLinearAlgebraTest"` passed.
+- Final `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- Final `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- Final `.\gradlew.bat :app:assembleDebug`: passed.
+- GitHub Actions: pending until Commit D is pushed; final run ID, SHA, and result belong in the completion report.
+
+File/Feature Map
+- `analysis/lab/pipeline/StrictTimeSeriesStages.kt`: immutable lifecycle, calendar, level-series, request/result, and fingerprint foundation.
+- `analysis/lab/pipeline/StrictTimeSeriesIngestion.kt`: raw observation boundary, canonical week/calendar construction, conflict/lifecycle derivation, and strict production entry.
+- `analysis/lab/pipeline/StrictTimeSeriesDiagnostics.kt`: contiguous segments and segment-aware integration assessment authority.
+- `analysis/lab/pipeline/StrictTimeSeriesRepresentation.kt`: inconclusive policies, transformation, transformed catalog, estimator representation, response scale, and future shock posterior.
+- `analysis/lab/pipeline/PreparedAnalysisContext.kt`: root context and candidate eligibility catalog.
+- `analysis/lab/pipeline/PreparedEstimatorViews.kt`: BVAR/BLP/Johansen/VECM/candidate read-only views.
+- `analysis/lab/pipeline/PreparedRowAndScalingPlans.kt`: variable roles, horizon identity, row authority, and scaling authority.
+- `analysis/lab/pipeline/FutureEstimatorBoundaries.kt`: validated future BVAR/BLP/Johansen/VECM input bundles without estimator math.
+- `BayesianTimeSeriesAnalyzer.kt`, `LaggedTimeSeriesAnalyzer.kt`, `AnalysisLabUi.kt`: explicitly named legacy compatibility routing and disclosure.
+- `StrictTimeSeriesArchitectureTest.kt`: raw/calendar/conflict/identity/package-boundary contracts.
+- `StrictTimeSeriesRepresentationContractTest.kt`: segment/inconclusive/transformation/representation/response/shock contracts.
+- `PreparedAnalysisContextContractTest.kt`: context/view/row/horizon/scaling/candidate-deferral contracts.
+- `StrictTimeSeriesEndToEndTest.kt`: production-like raw-to-context closure across lifecycle states, I(0), I(1), optional inconclusive, multiple Y/Z, and horizons.
+- `tools/check_time_series_numeric_sources.py`: numeric and strict semantic architecture scan.
+- `tools/time_series_reference/*`: independent numeric fixtures plus explicit single-authority contract tables.
+- `docs/bayesian_time_series_lab_architecture.md`: strict/legacy graphs, phase ownership, stage map, authority audit, and downstream contracts.
+
+Remaining
+- PHASE B: real NIW/Minnesota BVAR posterior and draw-specific structural shock identification.
+- PHASE C: real Bayesian Local Projection with draw-wise shock propagation and response reconstruction.
+- PHASE D: validated Johansen diagnostics, rank posterior, and Bayesian VECM.
+- PHASE E: automatic endogenous-variable ranking, model comparison, and final UI labels/integration.
+- None of those estimators or UI stages were started in this task.

@@ -66,6 +66,35 @@ class StrictTimeSeriesArchitectureTest {
         assertTrue(LifecycleValidatedLevelSeries::class.java.declaredConstructors.filterNot { it.isSynthetic }.all { Modifier.isPrivate(it.modifiers) })
     }
 
+    @Test
+    fun availabilityEndCreatesLifecycleBoundaryAndConflictIdentityIsPermutationStable() {
+        val metric = TrendMetricId.BADMINTON_TRAINING
+        val response = TrendMetricId.FATIGUE_COMPOSITE
+        val first = LocalDate.parse("2026-01-05")
+        val lifecycle = StrictMetricLifecycle.createValidated(
+            availableFromWeek = first,
+            availableUntilWeek = first,
+            provenance = "registry"
+        )
+        val request = StrictPreparationRequest(metric, listOf(response))
+        val responseObservations = listOf(
+            RawTimeSeriesObservation(response, first, 1.0),
+            RawTimeSeriesObservation(response, first.plusWeeks(1), 2.0)
+        )
+        fun catalog(observations: List<RawTimeSeriesObservation>) = RawTimeSeriesInput.createValidated(
+            observations + responseObservations,
+            mapOf(metric to lifecycle)
+        ).ingest(request)
+        val left = RawTimeSeriesObservation(metric, first, 1.0, source = "a", sourceIndex = 1)
+        val right = RawTimeSeriesObservation(metric, first, 2.0, source = "b", sourceIndex = 1)
+        val forward = catalog(listOf(left, right)).seriesByMetric.getValue(metric)
+        val reversed = catalog(listOf(right, left)).seriesByMetric.getValue(metric)
+
+        assertEquals(StrictCellState.CONFLICT, forward.cells.first().state)
+        assertEquals(StrictCellState.NOT_APPLICABLE, forward.cells[1].state)
+        assertEquals(forward.fingerprint, reversed.fingerprint)
+    }
+
     private fun request(metric: TrendMetricId) = StrictPreparationRequest(
         xMetric = metric,
         yMetrics = listOf(TrendMetricId.FATIGUE_COMPOSITE)

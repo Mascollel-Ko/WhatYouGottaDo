@@ -126,8 +126,8 @@ internal class PreparedAnalysisContext private constructor(
                 )
             }
             val candidateCatalog = PreparedCandidateCatalog.createValidated(request, transformedCatalog, assessments, transformationPlan)
-            val segments = levelCatalog.seriesByMetric.mapValues { (_, series) ->
-                SegmentAwareIntegrationAssessmentAuthority.segments(series)
+            val segments = assessments.mapValues { (_, assessment) ->
+                assessment.segmentDiagnostics.map { it.segment }
             }
             val lifecycle = levelCatalog.seriesByMetric.mapValues { it.value.lifecycle }
             val diagnostics = buildList {

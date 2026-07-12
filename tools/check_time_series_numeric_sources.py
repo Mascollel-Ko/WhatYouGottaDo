@@ -8,6 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "app" / "src" / "main" / "java" / "com" / "training" / "trackplanner" / "analysis" / "lab"
 STRICT_PIPELINE = TARGET / "pipeline"
 STRICT_INGESTION = STRICT_PIPELINE / "StrictTimeSeriesIngestion.kt"
+STRICT_CONTEXT = STRICT_PIPELINE / "PreparedAnalysisContext.kt"
+STRICT_DIAGNOSTICS = STRICT_PIPELINE / "StrictTimeSeriesDiagnostics.kt"
+STRICT_REPRESENTATION = STRICT_PIPELINE / "StrictTimeSeriesRepresentation.kt"
+STRICT_ROW_SCALING = STRICT_PIPELINE / "PreparedRowAndScalingPlans.kt"
+STRICT_VIEWS = STRICT_PIPELINE / "PreparedEstimatorViews.kt"
+STRICT_FUTURE = STRICT_PIPELINE / "FutureEstimatorBoundaries.kt"
 WRAPPER = TARGET / "StableLinearAlgebra.kt"
 MODELS = TARGET / "BayesianTimeSeriesModels.kt"
 SELECTOR = TARGET / "EndogenousVariableSelector.kt"
@@ -104,8 +110,9 @@ def main() -> int:
         "CointegrationAnalyzer",
         "EndogenousVariableSelector",
     )
+    strict_sources = {path: path.read_text(encoding="utf-8") for path in STRICT_PIPELINE.rglob("*.kt")}
     for path in STRICT_PIPELINE.rglob("*.kt"):
-        text = path.read_text(encoding="utf-8")
+        text = strict_sources[path]
         if path != STRICT_INGESTION and "TrendDataPoint" in text:
             violations.append(f"{path.relative_to(ROOT)}: raw TrendDataPoint is allowed only at strict ingestion")
         for symbol in legacy_symbols:
@@ -115,6 +122,53 @@ def main() -> int:
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline imports the legacy lab package")
         if re.search(r"data\s+class\s+\w+\s*\([^)]*fingerprint\s*:", text, re.DOTALL):
             violations.append(f"{path.relative_to(ROOT)}: identity-bearing strict type must not expose data-class copy semantics")
+        if re.search(r"filter\s*\(\s*Double::isFinite\s*\)|filterNotNull\s*\(\s*\)", text):
+            violations.append(f"{path.relative_to(ROOT)}: strict path must not compress calendar gaps through finite/null filtering")
+        if re.search(r"\bhorizon\s*=\s*1\b", text):
+            violations.append(f"{path.relative_to(ROOT)}: strict preparation must not hard-code horizon 1")
+        if "exactDifference(" in text:
+            violations.append(f"{path.relative_to(ROOT)}: strict downstream code must not perform implicit differencing")
+
+    all_strict_text = "\n".join(strict_sources.values())
+    required_strict_contracts = (
+        "StrictTimeSeriesPreparationPipeline",
+        "PreparedAnalysisContext",
+        "PreparedEstimatorView",
+        "RowPlanner",
+        "ScalingPlanner",
+        "IdentifiedShockPosterior",
+        "FutureBvarInput",
+        "FutureBlpInput",
+        "FutureJohansenInput",
+        "FutureVecmInput",
+    )
+    for contract in required_strict_contracts:
+        if contract not in all_strict_text:
+            violations.append(f"strict pipeline: missing required contract {contract}")
+
+    for path, text in strict_sources.items():
+        if path not in {STRICT_REPRESENTATION, STRICT_CONTEXT} and "CanonicalTransformationAuthority.createPlan" in text:
+            violations.append(f"{path.relative_to(ROOT)}: transformation decisions must route through PreparedAnalysisContext")
+        if path != STRICT_ROW_SCALING and re.search(r"object\s+RowPlanner|object\s+ScalingPlanner", text):
+            violations.append(f"{path.relative_to(ROOT)}: duplicate row or scaling authority")
+        if path not in {STRICT_DIAGNOSTICS, STRICT_ROW_SCALING} and re.search(r"\.average\s*\(\s*\)", text):
+            violations.append(f"{path.relative_to(ROOT)}: estimator-local unrestricted scaling/statistics are forbidden")
+
+    future_text = strict_sources.get(STRICT_FUTURE, "")
+    if "IdentifiedShockPosterior" not in future_text or "DRAW_BY_DRAW_WITHOUT_MEAN_SHOCK_COLLAPSE" not in future_text:
+        violations.append("FutureEstimatorBoundaries.kt: strict BLP must require draw-specific identified shock posterior propagation")
+    if re.search(r"shock\s*\?:|exactDifference|List\s*<\s*Double\s*>\s*\?", future_text):
+        violations.append("FutureEstimatorBoundaries.kt: strict BLP exposes a raw or fallback shock path")
+
+    views_text = strict_sources.get(STRICT_VIEWS, "")
+    johansen_block = views_text[views_text.find("internal class JohansenPreparedView"):views_text.find("internal class VecmPreparedView")]
+    if "emptyMap()" not in johansen_block or "VALIDATED_LEVEL" not in johansen_block:
+        violations.append("PreparedEstimatorViews.kt: Johansen view must expose validated levels without transformed substitution")
+
+    if "internal class LegacyTimeSeriesAnalyzer" not in analyzer_text:
+        violations.append("BayesianTimeSeriesAnalyzer.kt: app-visible compatibility analyzer must be explicitly legacy")
+    if "Legacy compatibility analysis" not in analyzer_text:
+        violations.append("BayesianTimeSeriesAnalyzer.kt: legacy result must be labeled as compatibility output")
 
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")

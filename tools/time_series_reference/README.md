@@ -24,7 +24,11 @@ prepared common-row identity, full-calendar transformation preservation,
 prepared-series screening contracts, final-week horizon exclusion,
 transformation-plan-before-selection, role-aware horizon row requirements,
 training-row-only scaling, restricted-view identity, and lifecycle semantic
-validation.
+validation. The contract fixture also records the final strict stage order,
+segment boundaries and conservative aggregation, estimator representations,
+required/optional inconclusive policies, draw-wise response reconstruction,
+multi-draw shock-posterior shape, sole row/scaling authorities, and PHASE E
+ownership of optional statistical ranking.
 
 Run the companion source scan from the repository root:
 

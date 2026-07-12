@@ -81,7 +81,12 @@ internal class RawTimeSeriesInput private constructor(
         ): LifecycleValidatedCell {
             val provenance = observations.map { observation ->
                 StrictObservationProvenance(observation.source, observation.sourceIndex, observation.value, observation.declaredState)
-            }.sortedBy { it.sourceIndex }
+            }.sortedWith(
+                compareBy<StrictObservationProvenance> { it.sourceIndex }
+                    .thenBy { it.source }
+                    .thenBy { it.value }
+                    .thenBy { it.declaredState?.name }
+            )
             if (lifecycle.notApplicableRanges.any { it.contains(week) }) {
                 return LifecycleValidatedCell(metric, week, StrictCellState.NOT_APPLICABLE, null, provenance)
             }
@@ -92,7 +97,7 @@ internal class RawTimeSeriesInput private constructor(
                 if (week.isBefore(activeFrom)) return LifecycleValidatedCell(metric, week, StrictCellState.PRE_METRIC_CREATION, null, provenance)
             }
             lifecycle.availableUntilWeek?.let { activeUntil ->
-                if (week.isAfter(activeUntil)) return LifecycleValidatedCell(metric, week, StrictCellState.MISSING, null, provenance)
+                if (week.isAfter(activeUntil)) return LifecycleValidatedCell(metric, week, StrictCellState.NOT_APPLICABLE, null, provenance)
             }
             if (observations.isEmpty()) return LifecycleValidatedCell(metric, week, StrictCellState.MISSING, null)
             val states = observations.map { observation ->
@@ -130,4 +135,34 @@ internal class LifecycleValidatedLevelCatalog private constructor(
             return LifecycleValidatedLevelCatalog(calendar, seriesByMetric, fingerprint)
         }
     }
+}
+
+internal object StrictTimeSeriesPreparationPipeline {
+    fun prepare(
+        rawInput: RawTimeSeriesInput,
+        request: StrictPreparationRequest,
+        policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
+    ): StrictPreparationResult = runCatching {
+        PreparedAnalysisContext.createValidated(request, rawInput.ingest(request), policy)
+    }.getOrElse { failure ->
+        StrictPreparationResult.Failure(
+            StrictPreparationFailureCode.PREPARED_CONTEXT_INCONSISTENT,
+            listOf(failure.message ?: "strict preparation failed")
+        )
+    }
+
+    fun prepareTrendSeries(
+        seriesByMetric: Map<TrendMetricId, List<TrendDataPoint>>,
+        request: StrictPreparationRequest,
+        lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap(),
+        policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
+    ): StrictPreparationResult = runCatching {
+        RawTimeSeriesInput.fromTrendSeries(seriesByMetric, lifecycleByMetric)
+    }.map { input -> prepare(input, request, policy) }
+        .getOrElse { failure ->
+            StrictPreparationResult.Failure(
+                StrictPreparationFailureCode.INVALID_RAW_INPUT,
+                listOf(failure.message ?: "strict raw input validation failed")
+            )
+        }
 }

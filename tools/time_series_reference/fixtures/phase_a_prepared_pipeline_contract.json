@@ -30,14 +30,14 @@
     "structural_zero_requires_policy": true
   },
   "provenance": {
-    "generator_script_version": "phase-a-5",
+    "generator_script_version": "phase-a-6",
     "numpy_version": "2.3.5",
     "purpose": "Phase A prepared-data pipeline contract fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "291e968aaae7883c38af4076487e31480131dc52",
+    "source_commit": "73c0dbd6f9940b98b202354c816e7799adcd1e37",
     "tolerance": 1e-07
   },
   "quality_summary_overlap": {
@@ -142,6 +142,47 @@
     "standardization_sample": "validated_training_rows_only",
     "test_rows_affect_training_scaling": false
   },
+  "strict_single_authority_contract": {
+    "estimator_representations": {
+      "BLP": "CANONICAL_RESPONSE_PLUS_RESPONSE_SCALE_PLAN",
+      "BVAR": "CANONICAL_STATIONARY",
+      "JOHANSEN": "VALIDATED_LEVEL",
+      "VECM": "VALIDATED_LEVEL_AND_ALIGNED_FIRST_DIFFERENCE"
+    },
+    "optional_statistical_ranking_phase": "PHASE_E",
+    "response_uncertainty_policy": "TRANSFORM_EACH_POSTERIOR_DRAW_THEN_RECOMPUTE_INTERVALS",
+    "row_authority": "RowPlanner",
+    "scaling_authority": "ScalingPlanner",
+    "segment_aggregation": "ALL_ELIGIBLE_SEGMENTS_MUST_AGREE",
+    "segment_boundaries": [
+      "MISSING",
+      "PRE_METRIC_CREATION",
+      "NOT_APPLICABLE",
+      "VERSION_DISCONTINUITY",
+      "CONFLICT",
+      "ACTIVATION_BOUNDARY",
+      "AVAILABILITY_END"
+    ],
+    "shock_posterior": {
+      "draw_ids_preserved": true,
+      "draw_weights_validated": true,
+      "minimum_accepted_draws": 2,
+      "single_mean_shock_allowed": false
+    },
+    "stage_order": [
+      "RawTimeSeriesInput",
+      "CanonicalCalendar",
+      "LifecycleValidatedLevelSeries",
+      "IntegrationOrderAssessment",
+      "CanonicalTransformationPlan",
+      "EstimatorRepresentationPlan",
+      "TransformedPreparedSeries",
+      "PreparedAnalysisContext",
+      "PreparedEstimatorView",
+      "PreparedRowPlan",
+      "PreparedScalingPlan"
+    ]
+  },
   "transformation_plan_contract": {
     "candidate_scoring_uses_transformed_prepared_series": true,
     "created_before_candidate_selection": true,
@@ -153,7 +194,7 @@
       "plan_version"
     ],
     "level_fallback_after_failed_transformation": false,
-    "optional_inconclusive_policy": "EXCLUDE_CANDIDATE",
-    "required_inconclusive_policy": "USE_DOCUMENTED_FALLBACK"
+    "optional_inconclusive_policy": "EXCLUDE_FROM_ELIGIBLE_CANDIDATES",
+    "required_inconclusive_policy": "FAIL_STRICT_PREPARATION"
   }
 }

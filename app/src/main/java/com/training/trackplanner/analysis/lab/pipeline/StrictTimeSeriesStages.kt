@@ -179,7 +179,7 @@ internal class LifecycleValidatedLevelSeries private constructor(
                     require(!inNotApplicable && !inDiscontinuity)
                 }
                 StrictCellState.PRE_METRIC_CREATION -> require(activeFrom != null && cell.week.isBefore(activeFrom))
-                StrictCellState.NOT_APPLICABLE -> require(inNotApplicable)
+                StrictCellState.NOT_APPLICABLE -> require(inNotApplicable || (activeUntil != null && cell.week.isAfter(activeUntil)))
                 StrictCellState.VERSION_DISCONTINUITY -> require(inDiscontinuity)
                 StrictCellState.OBSERVED_VALUE -> {
                     require(activeFrom == null || !cell.week.isBefore(activeFrom))
@@ -191,7 +191,11 @@ internal class LifecycleValidatedLevelSeries private constructor(
                     require(activeUntil == null || !cell.week.isAfter(activeUntil))
                     require(!inNotApplicable && !inDiscontinuity)
                 }
-                StrictCellState.CONFLICT -> Unit
+                StrictCellState.CONFLICT -> {
+                    require(activeFrom == null || !cell.week.isBefore(activeFrom))
+                    require(activeUntil == null || !cell.week.isAfter(activeUntil))
+                    require(!inNotApplicable && !inDiscontinuity)
+                }
             }
         }
     }

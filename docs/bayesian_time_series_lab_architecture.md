@@ -1,110 +1,273 @@
 # Bayesian Time-Series Lab Architecture
 
-## Scope
+## Status
 
-The Analysis Lab time-series tool estimates exploratory weekly dynamic responses. It does not turn correlation into causality and does not silently substitute a correlation or a simple lagged regression when a dynamic model cannot be estimated.
+PHASE A is preparation-only. It creates immutable data, identity, row, scaling, response-scale, and future estimator-input contracts. It does not run a strict BVAR posterior, Bayesian Local Projection, Johansen rank analysis, Bayesian VECM, or automatic endogenous-variable ranking.
 
-## Previous Audit
+The existing app-visible dynamic analysis is compatibility behavior. Its entry point is explicitly named `LegacyTimeSeriesAnalyzer`; its result is not a `StrictPreparationResult` and cannot enter the strict package.
 
-Before this change, `LaggedTimeSeriesAnalyzer` joined one X and one Y by week and fitted a single ridge-like regression over a short fixed lag range. It was not a VAR, VECM, or structural IRF implementation. The result UI therefore now routes to the Bayesian dynamic analysis result instead of presenting the older calculation as an IRF.
+## Strict Pipeline Graph
 
-## User Inputs
+```text
+RawTimeSeriesInput
+  -> StrictTimeSeriesPreparationPipeline
+  -> CanonicalCalendar
+  -> LifecycleValidatedLevelCatalog / LifecycleValidatedLevelSeries
+  -> ContiguousUsableSegment
+  -> IntegrationOrderAssessment
+  -> CanonicalTransformationPlan
+  -> TransformedPreparedCatalog / TransformedPreparedSeries
+  -> EstimatorRepresentationPlan
+  -> ResponseScalePlan
+  -> PreparedCandidateCatalog
+  -> PreparedAnalysisContext
+  -> PreparedEstimatorView
+  -> PreparedRowPlan
+  -> PreparedScalingPlan
+  -> future PHASE B/C/D estimator boundary
+```
 
-- X: exactly one structural-shock target.
-- Y: one or more response metrics. Only these selected responses are displayed.
-- Z: zero or more exogenous controls. Z never enters the Cholesky ordering.
-- Horizon: default 2 weeks, selectable from 1 through 8. The estimator calculates h=0 through the used horizon. h=0 is labelled as a contemporaneous response, not a causal effect.
+No stage may recreate an earlier stage. Raw observations terminate in `StrictTimeSeriesIngestion.kt`; all later functions accept stage-specific prepared types.
 
-## Preprocessing And Screening
+## Legacy Pipeline Graph
 
-`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. Raw trend dates are canonicalized to ISO Monday week starts before alignment; explicit grid/cell week-start inputs must already be ISO Mondays. Grid bounds are calculated only from requested metrics and their requested lifecycle metadata. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, version-discontinuity, or conflict cell. Missing values are not forward-filled and are not converted into numeric zero. Lifecycle activation is explicit: `EXPLICIT_METADATA_ONLY` uses only `availableFromWeek`, `FIRST_OBSERVATION_ALLOWED` must be requested before the first valid observation can define activation, and `REGISTRY_DEFINED` is reserved for canonical registry metadata. Non-structural metrics do not treat the first observation as metric creation by default.
+```text
+AnalysisLabUi / LaggedTimeSeriesAnalyzer compatibility facade
+  -> LegacyTimeSeriesAnalyzer
+  -> TimeSeriesAlignmentService
+  -> EndogenousVariableSelector
+  -> legacy LP / BVAR / VECM / cointegration compatibility helpers
+  -> BayesianTimeSeriesResult (legacy compatibility result)
+```
 
-Observation conflicts are deterministic and typed. Exact duplicate observations can merge, explicitly declared revision-number, version-sequence, or authoritative-revision-time values can supersede older revisions only within one shared ordering scheme, and conflicting values without valid ordering provenance become `CONFLICT` cells rather than being selected by input order, source-string ordering, ordinary observation time, or lexical version ordering. Heterogeneous revision schemes, partial revision metadata, and tied highest revisions with different values remain unresolved conflicts. Conflict cells preserve candidate count, candidate values/states/sources/revisions, selected candidate when one exists, and the selection rule. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, lifecycle/missing states cannot carry numeric values, and conflict cells require provenance.
+The legacy graph may remain app-visible while PHASE B-E are incomplete. It cannot construct strict internal types, influence strict preparation readiness, or label its output as strict preparation or a completed strict Bayesian posterior.
 
-Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Every candidate source week is either included or excluded with a reason, including initial lag gaps and final target-outside-grid horizons. Excluded rows carry target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
+## Package Dependency Rules
 
-Data quality is no longer a single ambiguous missing-rate concept. Each prepared series has total weeks, observed/structural-zero/missing/pre-creation/not-applicable/version-discontinuity/conflict counts, model-eligible week count, usable/unusable counts, raw missing rate, unusable rate, coverage rate, and contiguous usable-run diagnostics. `MetricDataQualitySummary` is derived from cells through a factory so transformation-failure diagnostics cannot double-count a cell that is already missing, conflicted, or version-discontinuous. Pre-creation and not-applicable cells are excluded from the model-eligible denominator. Candidate screening consumes `PreparedMetricSeries` from the canonical grid and rejects conflict/version-discontinuity cells, high unusable rate, and insufficient variation. The deprecated raw screening adapter now requires an already validated alignment and cannot silently rebuild prepared series with default lifecycle metadata.
+- `analysis.lab.pipeline` may import immutable trend metric definitions, raw `TrendDataPoint` only in `StrictTimeSeriesIngestion.kt`, Java/Kotlin standard library types, and its own preparation contracts.
+- `analysis.lab.pipeline` must not import `LegacyTimeSeriesAnalyzer`, legacy LP/BVAR/VECM estimators, `CointegrationAnalyzer`, or `EndogenousVariableSelector`.
+- Legacy code must not import or instantiate strict pipeline internals.
+- Strict result types and legacy result types are distinct.
+- `tools/check_time_series_numeric_sources.py` enforces the package boundary and known semantic bypass patterns.
 
-`PreparedMetricSeries` is factory-created and carries a deterministic lifecycle metadata fingerprint. The factory validates lifecycle cell semantics: structural zeros require an enabled structural-zero policy and activation boundary, observed values cannot sit in not-applicable or version-discontinuity ranges, explicit not-applicable/discontinuity cells must be backed by metadata or source-cell provenance, conflicts require provenance, and duplicate lifecycle ranges normalize into stable fingerprints while overlapping discontinuity ranges fail. Restricting a series to a view range and stationarizing it preserve lifecycle metadata unchanged while recalculating cell-derived quality summaries and contiguous segments. If a prepared operation expects lifecycle metadata and cannot find it, it fails instead of substituting a new default object.
+## PHASE Ownership
 
-`TimeSeriesTransformationPlan` is created before automatic endogenous selection. The plan records the integration diagnostic, selected transformation, decision reason, policy version, and deterministic fingerprint for every metric. I(0) metrics stay in levels, I(1) metrics are transformed once into first differences, I(2)+ metrics are excluded, inconclusive optional candidates are excluded, and required user-selected X/Y/Z metrics may use a documented level fallback without claiming confirmed stationarity. `PreparedCandidateCatalog` then exposes only the validated transformed prepared series; selector ranking and final model preparation consume this same catalog.
+| Phase | Owns | Explicitly does not own |
+|---|---|---|
+| A | canonical ingestion, lifecycle validation, contiguous segments, integration assessments, transformation and representation plans, prepared context/views, rows, scaling, response scale, future shock contract, candidate eligibility | posterior estimation or statistical candidate ranking |
+| B | NIW/Matrix-Normal Inverse-Wishart BVAR, Minnesota prior, lag/lambda posterior, covariance draws, structural shock identification | raw ingestion, rows, scaling |
+| C | Bayesian Local Projection, AR(q) residual model, draw-wise shock propagation, posterior IRF mixture, response reconstruction | implicit shock differencing or UI-defined scales |
+| D | Johansen diagnostics, rank posterior, Bayesian VECM | regenerating level/difference pairs |
+| E | automatic endogenous-variable statistical ranking, final model comparison, UI labels/results | changing PHASE A preparation identities |
 
-`PreparedTimeSeriesSystem` is the selector-facing row contract. It validates that every included series shares the exact same week vector and preparation version, derives common usable rows under `COMMON_USABLE_ROWS`, and records deterministic row fingerprints from source week, target week, lag weeks, ordered metric IDs, metric roles, transformations, lag, requested horizon set, horizon policy, preparation version, and row policy. Variable roles are explicit: shock sources and endogenous states require source and declared lag rows, responses require the actual requested-horizon target, contemporaneous controls require source rows only, and lagged controls require only declared lags. Automatic endogenous candidate ranking and stability checks now use the same transformed prepared catalog and the same common source-week set instead of realigning raw `TrendDataPoint` maps or comparing baseline and candidate scores over different samples.
+Until PHASE E, strict preparation uses only explicitly required X, Y, and Z. Optional metrics receive eligibility/exclusion diagnostics but no predictive score and no selected set.
 
-## Numeric Foundation
+## Stage-Type Map
 
-Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLinearAlgebra`. Model code does not call Commons Math directly except through this wrapper. SPD systems use `CholeskyDecomposition` and `DecompositionSolver.solve`; least squares uses RRQR with SVD fallback; rank and condition number come from singular values; SPD log determinant comes from the Cholesky diagonal. The public condition number is the standard full-rank ratio of largest to smallest singular value, and rank-deficient matrices return infinity rather than a truncated effective condition number.
+| Stage | Type | Identity source |
+|---|---|---|
+| raw boundary | `RawTimeSeriesInput` | validated private raw copy; no downstream exposure |
+| calendar | `CanonicalCalendar` | complete ordered ISO-Monday week vector |
+| lifecycle level | `LifecycleValidatedLevelSeries` | calendar, cells, normalized lifecycle metadata |
+| segment | `ContiguousUsableSegment` | exact metric/week/value sequence |
+| integration | `IntegrationOrderAssessment` | every segment diagnostic and source level fingerprint |
+| transformation | `CanonicalTransformationDecision`, `CanonicalTransformationPlan` | assessment identities and policy |
+| transformed | `TransformedPreparedSeries` | level source identity and one canonical decision |
+| representation | `EstimatorRepresentationDecision`, `EstimatorRepresentationPlan` | transformation and assessment identities |
+| response scale | `ResponseScalePlan` | response transformation and draw-wise inversion policy |
+| candidates | `PreparedCandidateCatalog` | eligibility diagnostics and prepared series |
+| root | `PreparedAnalysisContext` | all preceding stage identities and request |
+| view | `BvarPreparedView`, `BlpPreparedView`, `JohansenPreparedView`, `VecmPreparedView`, `CandidateEligibilityView` | root identity, purpose, metrics, representation |
+| rows | `PreparedRowSpecification`, `PreparedRowPlan` | roles, lag, horizon set/policy, purpose, view |
+| scaling | `PreparedScalingPlan` | declared training rows, view, row plan, statistics |
+| future shock | `IdentifiedShockPosterior` | draw IDs, weights, week-specific shocks, covariance/BVAR/context/view identities |
 
-The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using Commons Math triangular solves instead of explicit inverse or app-owned triangular substitution, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and fails the whole result if the complete spectrum cannot pass residual and `V' B V` checks.
+Identity-bearing classes use private constructors, defensive copies, validated factories, and internally computed SHA-256 fingerprints. They are not public data classes, so `copy()` cannot retain stale identity.
 
-Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is square, finite, symmetric within tolerance, Cholesky-decomposable without jitter, full numerical rank, finite-conditioned, below `MAX_CONDITION_NUMBER`, and has finite factor entries. The regularized path may add bounded scale-relative diagonal jitter for small full-rank numerical noise, but exact singular PSD, rank-deficient, non-finite, non-symmetric, ill-conditioned, and materially indefinite matrices fail with explicit failure codes. Callers receive the original/effective matrix, strict failure code, regularization attempt/success flags, jitter amount, jitter ratio, numerical rank, condition number, minimum eigenvalue, matrix scale, and diagnostics through the result object.
+## PreparedAnalysisContext Schema
 
-Johansen-form primitives are strict by default. `S00` and `S11` must be strict SPD, and the primitive preserves `S00` solve provenance plus `S11` Cholesky provenance. Bounded regularization remains available only for the general symmetric-definite eigen primitive, where whitening, residuals, normalization, and `V' B V` checks all use the same effective `B` matrix.
+`PreparedAnalysisContext` contains:
 
-`IntegrationOrderAnalyzer` applies both ADF-style and KPSS-style diagnostics to levels and first differences. I(1) variables are first-differenced for the non-cointegrated local-projection/BVAR route; I(0) variables remain in levels. I(2)+ required variables stop the analysis. Inconclusive diagnostics do not force VECM.
+- the normalized request;
+- one `CanonicalCalendar`;
+- lifecycle metadata and validated level series for every requested metric;
+- exact contiguous segments and one integration assessment per metric;
+- one canonical transformation plan and transformed series;
+- one estimator representation plan;
+- one response-scale plan per Y;
+- one optional candidate eligibility catalog;
+- the conservative preparation policy;
+- readiness diagnostics stating that no estimator has run;
+- one root fingerprint shared by all views, row plans, and scaling plans.
 
-## Endogenous System And Lag Selection
+It does not contain posterior draws, IRFs, rank results, a VECM result, or statistically selected optional endogenous metrics.
 
-The mandatory endogenous block always contains X and every selected Y. `EndogenousVariableSelector` can add candidates only after the descriptor-wide transformation plan and transformed prepared catalog exist. It can add candidates only when they pass transformed prepared data-quality screening, the sample-based K cap, a dynamic-system stability check on role-aware prepared common rows, posterior predictive coverage screening, and positive rolling-origin out-of-sample log predictive-density gain computed over the same requested-horizon common source weeks for baseline and expanded candidate systems. It does not rerun stationarity diagnostics, rank candidates in levels when the final system uses differences, rank by contemporaneous Pearson correlation, or accept raw `TrendDataPoint` maps.
+## Single-Authority Table
 
-The product cap is K=8. The sample cap is evaluated from the requested horizon, lag, controls, and deterministic intercept. The selector writes inclusion and exclusion reasons to the result diagnostics.
+`yes` is permitted only in the named authority. A blank/no entry is forbidden for that responsibility.
 
-`BayesianTimeSeriesAnalyzer` evaluates lag candidates p=1 through p=4 with Bayesian model evidence and a decreasing lag prior with rho=0.5. A posterior probability of at least 0.70 uses a representative lag; otherwise all posterior-supported lags are averaged using the same lag posterior for every selected Y and every displayed horizon.
+| Production function | Accepts | Produces | Calendar | Lifecycle | Diagnostics | Transform | Representation | Rows | Scaling | Shock |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `RawTimeSeriesInput.fromTrendSeries/createValidated` | raw observations | sealed raw input | no | no | no | no | no | no | no | no |
+| `RawTimeSeriesInput.ingest` via pipeline | raw input, request | calendar + lifecycle level catalog | yes | yes | no | no | no | no | no | no |
+| `SegmentAwareIntegrationAssessmentAuthority.assess` | lifecycle level catalog | segments + assessments | no | no | yes | no | no | no | no | no |
+| `CanonicalTransformationAuthority.createPlan` via context | assessments, policy | canonical transformation plan | no | no | no | yes | no | no | no | no |
+| `TransformedPreparedCatalog.createValidated` via context | level catalog, transformation plan | transformed prepared catalog | no | no | no | applies fixed plan only | no | no | no | no |
+| `EstimatorRepresentationPlan.createValidated` via context | transformation plan, assessments | representation plan | no | no | no | no | yes | no | no | no |
+| `ResponseScalePlan.createValidated` via context | response transformation | response-scale plan | no | no | no | no | response interpretation only | no | no | no |
+| `PreparedAnalysisContext.createValidated` | level catalog, request, policy | root context | no | validates | orchestrates one authority | orchestrates one authority | orchestrates one authority | no | no | no |
+| view factories | root context | read-only estimator view | no | no | no | no | selects fixed representation | no | no | no |
+| `RowPlanner.plan` | context, view, roles, lag, horizon policy | row plan | no | no | no | no | no | yes | no | no |
+| `ScalingPlanner.plan` | context, view, row plan, training rows | scaling plan | no | no | no | no | no | no | yes | no |
+| `IdentifiedShockPosterior.createValidated` | future PHASE B draw output | validated posterior shock bundle | no | no | no | no | no | no | no | validates identity only |
 
-## Model Routes
+Strict helpers may read their accepted stage but may not change calendar, lifecycle, transformation, representation, rows, scaling, or shocks unless the table grants authority.
 
-1. **Bayesian Local Projection** is the default. Every selected Y and horizon has a separate Normal-prior posterior regression containing the Cholesky-identified X shock, lags of the endogenous system, and Z controls. Horizon validity requires `N_h >= max(24, 4d)`.
-2. **Bayesian VECM** is not routed in Phase A. The legacy cointegration screen is diagnostic-only until Phase D adds validated rank diagnostics and a supported cointegration vector.
-3. **Bayesian VAR** is an explicit fallback only when local projection cannot produce every requested horizon and the reduced-form posterior predictive check passes.
+## Canonical Calendar And Lifecycle
 
-The BVAR uses standardized series and empirical-Bayes Minnesota-style normal priors: own lags are shrunk less than cross lags, lag shrinkage decays with kappa=2, and the global shrinkage candidate is selected by model evidence. Compatibility scoring and stability checks calculate scaling parameters only from the validated estimation/training source-week set, not from excluded calendar weeks, future test rows, conflict weeks, pre-creation cells, or version-discontinuity ranges.
+Raw dates are canonicalized once to ISO Monday. The calendar spans every week between its bounds; no missing week is removed. Missing, pre-creation, not-applicable, version-discontinuity, structural-zero, observed, and conflict cells are explicit.
 
-## Structural Shocks And Diagnostics
+Lifecycle rules are validated before a level series exists:
 
-`CholeskyShockIdentifier` constructs a canonical temporal order from metric categories, so X is not automatically first. It uses the reduced-form residual covariance and Cholesky decomposition to derive a one-standard-deviation orthogonal innovation for X. This innovation is supplied to Bayesian Local Projection; BVAR and VECM use the same Cholesky convention for their impulse responses.
+- activation and availability bounds are ordered ISO Mondays;
+- not-applicable and discontinuity ranges are normalized and non-overlapping;
+- structural zero requires permission, known activation, an active week, and exact `0.0`;
+- pre-creation is strictly before activation;
+- observed/missing active cells cannot occupy prohibited lifecycle ranges;
+- conflicts carry all raw provenance and never expose a numeric value.
 
-The analyzer compares the canonical order with an adjacent same-time-group reordering when one is available. A response-sign or peak-horizon change produces an order-sensitivity warning. The result also records the selected model, horizon reduction, lag posterior, transformations, cointegration decision, automatic endogenous selection, and warnings.
+Restricted estimator views retain the root calendar identity. They do not redefine a shorter pseudo-calendar.
 
-The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the rank-one screen calculation, but it does not claim a full Johansen trace/max-eigen test or any posterior rank result. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic. The legacy score is diagnostic-only and cannot route to `BAYESIAN_VECM`.
+## Segment Diagnostic Policy
 
-## File / Feature Map
+`SegmentAwareIntegrationAssessmentAuthority` walks lifecycle-validated cells in calendar order. A segment ends at every missing, pre-creation, not-applicable, version-discontinuity, conflict, activation, or availability break. Separated finite cells are never concatenated.
 
-- `BayesianTimeSeriesModels.kt`: request, alignment, lifecycle metadata provenance/fingerprints, explicit revision schemes, conflict provenance, transformation-plan/catalog contracts, variable role row requirements, prepared-series factory, prepared-system row identity, data-quality, diagnostics, IRF, and result contracts.
-- `StableLinearAlgebra.kt`: Commons Math backed SPD solve, least squares, Cholesky, SVD, rank, condition number, symmetric eigen, generalized symmetric eigen, and log determinant primitives.
-- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, lifecycle activation/preservation, explicit conflict resolution, transformation-plan creation, prepared candidate catalog creation, prepared-series screening, alignment reconstruction from prepared series, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
-- `BayesianLocalProjectionEstimator.kt`: horizon-specific Bayesian LP posterior and rolling-origin predictive score with exact validated slicing and optional prepared common-row source-week filtering.
-- `EndogenousVariableSelector.kt`: transformed prepared-system data screening, requested-horizon K cap, role-aware common-row rolling predictive scoring, and greedy rolling-origin endogenous selection.
-- `CointegrationAnalyzer.kt`: legacy rank-one heuristic score; diagnostic-only and not model-routing input.
-- `BayesianDynamicEstimators.kt`: Minnesota-style BVAR, rank-1 Bayesian VECM, posterior predictive coverage, dynamic IRFs, optional prepared common-row source-week filtering for selector stability checks, and training-sample-only scaling.
-- `CholeskyShockIdentifier.kt`: canonical order, structural shocks, and ordering sensitivity.
-- `BayesianTimeSeriesAnalyzer.kt`: transparent model routing and explicit unavailable/fallback handling.
-- `AnalysisLabUi.kt`: X/Y/Z selection, 1-8 horizon input, and shared multi-Y IRF result disclosure.
-- `LaggedTimeSeriesAnalyzer.kt`: compatibility facade for the old single-Y API; it delegates to the new implementation.
+Each segment preserves exact weeks and values. Segments shorter than eight rows remain in diagnostics as excluded segments. Eligible segments are diagnosed independently with the declared `segment-aware-adf-kpss` method/version. A confirmed I(0) or I(1) assessment requires every eligible segment to agree. Disagreement, unresolved conflict, or unstable evidence is `INCONCLUSIVE`; no eligible segment is `INSUFFICIENT_CONTIGUOUS_SAMPLE`.
 
-## Call-Graph Audit
+## Inconclusive Policies
 
-- Analyzer request entry: `BayesianTimeSeriesAnalyzer.analyze()` aligns raw requested metrics only to establish the canonical base calendar, then builds the descriptor-wide level catalog, derives `TimeSeriesTransformationPlan`, creates `PreparedCandidateCatalog`, reconstructs required/final alignments from the transformed prepared catalog, and only then calls `EndogenousVariableSelector.select()`.
-- Prepared selector entry point: `EndogenousVariableSelector.select()` screens candidates through `usablePreparedCandidate()`, builds role-aware `PreparedTimeSeriesSystem` objects for candidate systems using the actual requested horizon, and passes the derived common source-week set into rolling predictive scoring and stability checks.
-- Candidate rolling scorer: baseline and expanded candidates both use the expanded system's role-aware common source-week set. Controls are not required to have future response targets unless explicitly declared as responses.
-- Restriction/slicing: `restrictToWeeks()` rebuilds validated cells, quality summaries, prepared series, contiguous segments, and grid state for a contiguous view. LP rolling folds discard invalid restrictions instead of falling back to shallow `alignment.copy(...)`.
-- Scaling: BVAR/VECM compatibility paths standardize from the validated estimation/training row sample, not the full calendar vector.
-- Raw-series overloads: `TimeSeriesAlignmentService.align()` remains the ingestion boundary from UI/trend data into prepared cells. `usableCandidate()` is deprecated compatibility code and no production selector path calls it.
-- Raw bypass prohibition: `EndogenousVariableSelector` no longer imports `TrendDataPoint`, accepts raw maps, or calls `alignmentService.align()`.
-- Metadata copy points: `alignObservations()` creates metadata only for truly metadata-free sources; `restrictToWeeks()` and `transformWithPlan()` require existing prepared lifecycle metadata and preserve its fingerprint.
-- Quality-summary constructors: production code uses `MetricDataQualitySummary.fromCells()` through `PreparedMetricSeries.createValidated()`; manual summary and contiguous-segment injection are statically scanned.
-- Revision-resolution callers: `alignObservations()` groups observations by metric/week and calls `resolveObservationConflict()`, which validates explicit revision schemes and returns conflict cells for heterogeneous, partial, or tied-different revisions.
-- Prepared-system callers: automatic selector ranking/stability uses `PreparedTimeSeriesSystem.createValidated()` with variable role requirements; later PHASE B estimators should use the same system boundary rather than raw `TrendDataPoint` maps.
+- Optional metric default: `EXCLUDE_FROM_ELIGIBLE_CANDIDATES`. Diagnostics and level data remain available; no level or difference is guessed.
+- Required X/Y/Z default: `FAIL_STRICT_PREPARATION`. The result is `INCONCLUSIVE_TRANSFORMATION`; no context or model-ready representation is returned.
+- `REQUIRE_EXPLICIT_ROBUSTNESS_PLAN` is a named future policy contract, not an implicit fallback.
 
-## Boundaries
+## Canonical Transformation Authority
 
-- Results are exploratory dynamic associations, not confirmed causal effects.
-- The tool returns `UNAVAILABLE` instead of showing a correlation-style substitute whenever required diagnostics or horizon sample conditions fail.
-- No app version, release tag, backup format, or trend-series generation policy changed as part of this implementation.
-- Phase A does not implement BVAR posterior sampling, Bayesian Local Projection posterior mixtures, Johansen trace/max-eigen rank tests, Bayesian VECM, automatic model routing changes, or final IRF UI integration.
+Confirmed I(0) defaults to `LEVEL`; confirmed I(1) defaults to `FIRST_DIFFERENCE`. Explicit log policies are fingerprinted. The transformer accepts only `LifecycleValidatedLevelSeries`, so transformed series cannot be transformed again through the canonical API. First differences keep the full calendar, mark an unavailable first or boundary-crossing cell as missing, and preserve the source level fingerprint.
 
-## Downstream Contract Map
+No selector, view, row planner, scaler, UI, or future estimator may call an independent difference helper or choose a fallback representation.
 
-- Phase B may rely on strict SPD failures for rank-deficient or ill-conditioned covariance inputs, regularization provenance on any jittered solve, `PreparedMetricSeries`/`PreparedTimeSeriesSystem` as the estimator-facing boundary, transformation plans created before selector ranking, common-row fingerprints for lag and horizon selection, conflict-free included rows, preserved lifecycle metadata, role-aware controls, and unique-cell `MetricDataQualitySummary.unusableRate` rather than a legacy missing-rate field.
-- Phase C may rely on transformed series preserving the complete weekly calendar, source-cell provenance, explicit unavailable first-difference cells instead of compressed week vectors, exact restricted views, training-only scaling, requested-horizon row requirements, and row fingerprints that can prove BVAR shock and BLP response alignment.
-- Phase D may rely on strict `S00`/`S11` Johansen-form primitives, complete generalized-eigen diagnostics, preserved lifecycle/version-discontinuity metadata after slicing and transformation, lifecycle semantic validation before covariance matrices, unresolved conflict cells being excluded from numeric prepared values, and legacy cointegration being unable to route as a supported rank result.
-- Phase E must display unavailable/legacy diagnostics as diagnostic-only and must not label the legacy score as a posterior probability, validated rank, or Johansen trace result.
+## Estimator Representation Plan
+
+- PHASE B BVAR: canonical stationary transformed representation.
+- PHASE C BLP response: canonical response representation plus response-scale plan; shocks arrive separately as posterior draws.
+- PHASE D Johansen: validated I(1) level representation only.
+- PHASE D VECM: validated levels and aligned canonical first differences under the same root context.
+
+Level and transformed series coexist in the root context. Stationarization never discards levels.
+
+## Response-Scale Plan
+
+`ResponseScalePlan` distinguishes level, first-difference, log-level, and log-difference estimation. It defines display scale, identity/cumulative/exponential inversion, baseline requirements, exact inversion availability, interpretation label, and `TRANSFORM_EACH_POSTERIOR_DRAW_THEN_RECOMPUTE_INTERVALS`. UI code may not invent cumulative or percentage meaning.
+
+## Candidate Eligibility Catalog
+
+`PreparedCandidateCatalog` records eligible and excluded optional metrics using lifecycle validity, contiguous samples, integration status, transformation readiness, and data quality only. It contains no legacy LP/BVAR score and no selected optional set. `CandidateEligibilityView` cannot obtain a PHASE A row-ranking plan.
+
+## Role-Aware RowPlanner
+
+Roles are explicit: `SHOCK_SOURCE`, `ENDOGENOUS_STATE`, `RESPONSE`, `CONTEMPORANEOUS_CONTROL`, and `LAGGED_CONTROL`.
+
+- shock source: source and declared shock-estimation lags, no automatic future target;
+- endogenous state: source and declared VAR lags;
+- response: requested-horizon target, plus source only when the estimator purpose requires it;
+- contemporaneous control: source only;
+- lagged control: source and declared control lags only.
+
+`HorizonPolicy` supports `PER_HORIZON`, `SHARED_MULTI_HORIZON`, and `DECLARED_REFERENCE_HORIZON`. Row identity includes purpose, roles, transformations through the view, lag, requested horizon set, reference horizon, horizon policy, canonical weeks, view fingerprint, and root context. No horizon is hard-coded.
+
+## ScalingPlanner
+
+`ScalingPlanner` accepts a prepared view, its row plan, and an explicit non-empty subset of row-plan source weeks. Mean and scale are calculated only from those training rows. Excluded, future/test, missing, conflict, pre-creation, not-applicable, and discontinuity cells cannot enter. The scaling fingerprint includes root/view/row identities, ordered training rows, statistics, and policy.
+
+## Future Structural-Shock Contract
+
+`IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite week-aligned shock series per draw, one covariance-draw fingerprint per draw, source BVAR/context/system-view identities, ordering and normalization policy, and retained rejected-draw diagnostics. One deterministic mean series cannot satisfy the contract.
+
+PHASE A validates this shape only. It does not generate shocks.
+
+## Future Estimator Boundaries
+
+### PHASE B
+
+`FutureBvarInput` accepts only `BvarPreparedView`, its `PreparedRowPlan`, its `PreparedScalingPlan`, and prior identity. A posterior must later retain context/view/row/scaling/prior fingerprints. Raw observations, generic alignments, local transformations, rows, or scaling are forbidden.
+
+### PHASE C
+
+`FutureBlpInput` accepts only `BlpPreparedView`, its row plan, same-root `IdentifiedShockPosterior`, response-scale plans carried by the view, horizon policy, and draw-by-draw propagation policy. Raw X, optional shock fallback, implicit X difference, one mean shock, local response transformation, and local row selection are forbidden.
+
+### PHASE D
+
+`FutureJohansenInput` accepts a level-only `JohansenPreparedView` and its row plan. `FutureVecmInput` accepts a same-root level/difference `VecmPreparedView`, row plan, and rank configuration identity. Neither may regenerate differences.
+
+### PHASE E
+
+PHASE E may consume `CandidateEligibilityView` and final PHASE B/C estimators to compare candidates on common rows with posterior-aware scores. Until then, automatic ranking is disabled.
+
+## Fingerprint Rules
+
+- semantic content changes identity;
+- normalized equivalent lifecycle range order does not;
+- map/set iteration order is canonicalized;
+- constructors do not accept external fingerprints;
+- identity-bearing strict classes do not expose data-class copy;
+- a view changes view identity but retains root identity;
+- role, purpose, lag, horizon, row, training sample, representation, response scale, and future draw changes are fingerprinted.
+
+## Strict Preparation Result
+
+`StrictTimeSeriesPreparationPipeline` returns only:
+
+- `StrictPreparationResult.Success(context, readinessDiagnostics)`, explicitly stating no estimator has run; or
+- `StrictPreparationResult.Failure(code, diagnostics, partialContextWhereSafe)`.
+
+Preparation success is not a completed Bayesian result and is not displayed as one.
+
+## Forbidden Compatibility Paths
+
+Static and focused tests reject:
+
+- raw `TrendDataPoint` outside strict ingestion;
+- strict imports of legacy estimators/selector/cointegration;
+- finite/null filtering used to compress calendar identity;
+- independent or repeated differencing;
+- independent transformation, row, scaling, or horizon-1 logic;
+- transformed data in a Johansen view;
+- raw/fallback/single-mean BLP shocks;
+- response-scale decisions in UI;
+- statistically ranked optional variables in PHASE A;
+- public fingerprint injection or stale-copy identity;
+- legacy results labeled as strict preparation.
+
+## File Responsibility Map
+
+- `StrictTimeSeriesIngestion.kt`: only raw boundary, date canonicalization, calendar construction, conflict resolution, lifecycle cell derivation, strict entry point.
+- `StrictTimeSeriesStages.kt`: calendar/lifecycle/level/request/result types and fingerprint primitive.
+- `StrictTimeSeriesDiagnostics.kt`: contiguous segments and segment-aware integration authority.
+- `StrictTimeSeriesRepresentation.kt`: inconclusive policies, canonical transformation, transformed series, estimator representation, response scale, future shock posterior.
+- `PreparedAnalysisContext.kt`: root context and eligibility catalog factory.
+- `PreparedEstimatorViews.kt`: read-only purpose-specific views.
+- `PreparedRowAndScalingPlans.kt`: roles, horizon policies, sole row authority, sole scaling authority.
+- `FutureEstimatorBoundaries.kt`: validated PHASE B/C/D input bundles only; no estimator math.
+- `BayesianTimeSeriesAnalyzer.kt`: explicitly named `LegacyTimeSeriesAnalyzer` compatibility implementation.
+- `tools/check_time_series_numeric_sources.py`: numeric and strict architecture guards.
+
+## Legacy Retirement Plan
+
+1. Keep `LegacyTimeSeriesAnalyzer` isolated while strict PHASE B-D estimators do not exist.
+2. Implement PHASE B against `FutureBvarInput` only.
+3. Implement PHASE C against `FutureBlpInput` only.
+4. Implement PHASE D against the level/VECM boundaries only.
+5. Implement PHASE E ranking and UI labels only after B-D outputs exist.
+6. Replace app-visible legacy routing, then delete compatibility estimators and their generic alignment path.
+
+No PHASE B, C, D, or E estimator implementation is part of this closure.

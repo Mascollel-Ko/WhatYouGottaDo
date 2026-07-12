@@ -339,12 +339,13 @@ internal class EstimatorRepresentationDecision private constructor(
             require(decision.metric == assessment.metric)
             require(decision.integrationAssessmentFingerprint == assessment.fingerprint)
             val levelEligible = assessment.status == IntegrationAssessmentStatus.CONFIRMED_I1
+            val vecmEligible = levelEligible && decision.transformation == CanonicalSeriesTransformation.FIRST_DIFFERENCE
             val representation = EstimatorRepresentationDecision(
                 decision.metric,
                 if (decision.confirmed) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
                 if (decision.confirmed) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
                 if (levelEligible) EstimatorSeriesRepresentation.VALIDATED_LEVEL else EstimatorSeriesRepresentation.UNAVAILABLE,
-                if (levelEligible) EstimatorSeriesRepresentation.VALIDATED_LEVEL_AND_ALIGNED_FIRST_DIFFERENCE else EstimatorSeriesRepresentation.UNAVAILABLE,
+                if (vecmEligible) EstimatorSeriesRepresentation.VALIDATED_LEVEL_AND_ALIGNED_FIRST_DIFFERENCE else EstimatorSeriesRepresentation.UNAVAILABLE,
                 decision.fingerprint,
                 if (levelEligible) "I(1) level and stationary representations remain distinct" else "stationary representation only",
                 ""

@@ -15,7 +15,7 @@ internal class LegacyTimeSeriesAnalyzer(
         request: TimeSeriesAnalysisRequest,
         metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
     ): BayesianTimeSeriesResult {
-        val warnings = mutableListOf("Exploratory Bayesian time-series result; it does not establish causality.")
+        val warnings = mutableListOf("Legacy compatibility analysis; exploratory only and not a completed strict Bayesian result.")
         if (request.requestedHorizon < MIN_HORIZON || request.requestedHorizon > MAX_HORIZON) {
             return unavailable(request, warnings + "Requested horizon must be between $MIN_HORIZON and $MAX_HORIZON.")
         }

@@ -29,7 +29,7 @@ def as_list(value):
 def provenance(purpose: str) -> dict:
     return {
         "schema_version": 1,
-        "generator_script_version": "phase-a-5",
+        "generator_script_version": "phase-a-6",
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
@@ -367,8 +367,8 @@ def prepared_pipeline_contract_fixture() -> dict:
         },
         "transformation_plan_contract": {
             "created_before_candidate_selection": True,
-            "optional_inconclusive_policy": "EXCLUDE_CANDIDATE",
-            "required_inconclusive_policy": "USE_DOCUMENTED_FALLBACK",
+            "optional_inconclusive_policy": "EXCLUDE_FROM_ELIGIBLE_CANDIDATES",
+            "required_inconclusive_policy": "FAIL_STRICT_PREPARATION",
             "candidate_scoring_uses_transformed_prepared_series": True,
             "level_fallback_after_failed_transformation": False,
             "fingerprint_inputs": ["metric_id", "integration_order", "transformation", "decision_reason", "plan_version"],
@@ -391,6 +391,47 @@ def prepared_pipeline_contract_fixture() -> dict:
             "observed_value_rejected_in_version_discontinuity_range": True,
             "duplicate_ranges_normalize_in_fingerprint": True,
             "overlapping_version_discontinuity_ranges_rejected": True,
+        },
+        "strict_single_authority_contract": {
+            "stage_order": [
+                "RawTimeSeriesInput",
+                "CanonicalCalendar",
+                "LifecycleValidatedLevelSeries",
+                "IntegrationOrderAssessment",
+                "CanonicalTransformationPlan",
+                "EstimatorRepresentationPlan",
+                "TransformedPreparedSeries",
+                "PreparedAnalysisContext",
+                "PreparedEstimatorView",
+                "PreparedRowPlan",
+                "PreparedScalingPlan",
+            ],
+            "segment_boundaries": [
+                "MISSING",
+                "PRE_METRIC_CREATION",
+                "NOT_APPLICABLE",
+                "VERSION_DISCONTINUITY",
+                "CONFLICT",
+                "ACTIVATION_BOUNDARY",
+                "AVAILABILITY_END",
+            ],
+            "segment_aggregation": "ALL_ELIGIBLE_SEGMENTS_MUST_AGREE",
+            "estimator_representations": {
+                "BVAR": "CANONICAL_STATIONARY",
+                "BLP": "CANONICAL_RESPONSE_PLUS_RESPONSE_SCALE_PLAN",
+                "JOHANSEN": "VALIDATED_LEVEL",
+                "VECM": "VALIDATED_LEVEL_AND_ALIGNED_FIRST_DIFFERENCE",
+            },
+            "response_uncertainty_policy": "TRANSFORM_EACH_POSTERIOR_DRAW_THEN_RECOMPUTE_INTERVALS",
+            "shock_posterior": {
+                "minimum_accepted_draws": 2,
+                "draw_ids_preserved": True,
+                "draw_weights_validated": True,
+                "single_mean_shock_allowed": False,
+            },
+            "row_authority": "RowPlanner",
+            "scaling_authority": "ScalingPlanner",
+            "optional_statistical_ranking_phase": "PHASE_E",
         },
     }
 
