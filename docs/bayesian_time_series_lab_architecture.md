@@ -2,7 +2,7 @@
 
 ## Status
 
-PHASE A is preparation-only. It creates immutable data, identity, row, scaling, response-scale, and future estimator-input contracts. It does not run a strict BVAR posterior, Bayesian Local Projection, Johansen rank analysis, Bayesian VECM, or automatic endogenous-variable ranking.
+PHASE A is preparation-only. It creates immutable data, identity, row, scaling, response-scale, and future estimator-input contracts. PHASE B now consumes those prepared contracts to run a strict conjugate BVAR posterior and draw-specific Cholesky structural shock identification. PHASE A still does not run posterior estimation, Bayesian Local Projection, Johansen rank analysis, Bayesian VECM, or automatic endogenous-variable ranking.
 
 The existing app-visible dynamic analysis is compatibility behavior. Its entry point is explicitly named `LegacyTimeSeriesAnalyzer`; its result is not a `StrictPreparationResult` and cannot enter the strict package.
 
@@ -55,7 +55,7 @@ The legacy graph may remain app-visible while PHASE B-E are incomplete. It canno
 | Phase | Owns | Explicitly does not own |
 |---|---|---|
 | A | canonical ingestion, lifecycle validation, contiguous segments, integration assessments, transformation and representation plans, prepared context/views, rows, scaling, response scale, future shock contract, candidate eligibility | posterior estimation or statistical candidate ranking |
-| B | NIW/Matrix-Normal Inverse-Wishart BVAR, Minnesota prior, lag/lambda posterior, covariance draws, structural shock identification | raw ingestion, rows, scaling |
+| B | conjugate Matrix-Normal Inverse-Wishart BVAR posterior, standardized Minnesota-style prior, lag/lambda posterior, deterministic covariance/coefficient draws, draw-specific Cholesky structural shock identification | raw ingestion, rows, scaling, PHASE C responses |
 | C | Bayesian Local Projection, AR(q) residual model, draw-wise shock propagation, posterior IRF mixture, response reconstruction | implicit shock differencing or UI-defined scales |
 | D | Johansen diagnostics, rank posterior, Bayesian VECM | regenerating level/difference pairs |
 | E | automatic endogenous-variable statistical ranking, final model comparison, UI labels/results | changing PHASE A preparation identities |
@@ -191,17 +191,82 @@ Roles are explicit: `SHOCK_SOURCE`, `ENDOGENOUS_STATE`, `RESPONSE`, `CONTEMPORAN
 
 `ScalingPlanner` accepts a prepared view, its row plan, and an explicit non-empty subset of row-plan source weeks. Mean and sample scale are calculated only from those training rows. Excluded, future/test, missing, conflict, pre-creation, not-applicable, and discontinuity cells cannot enter. Scaling fails explicitly for fewer than three training values, non-finite training values, fewer than two distinguishable raw values, or a near-constant sample scale at or below the numeric floor. The scaling fingerprint includes root/view/row identities, ordered training rows, statistics, and policy.
 
-## Future Structural-Shock Contract
+## PHASE B BVAR Posterior
 
-`BvarPosteriorSourceIdentity` binds a future BVAR posterior to the strict BVAR view, source metric, row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and the exact BVAR row-plan source-week domain. Caller-supplied subset or superset shock weeks are rejected. `IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite prepared-row shock series per draw, one covariance-draw fingerprint per draw, that source identity, ordering and normalization policy, and retained rejected-draw diagnostics. Accepted and rejected draw IDs are unique and disjoint, accepted draws are stored/fingerprinted in canonical draw-id order, rejected diagnostics are canonicalized for fingerprinting, one deterministic mean series cannot satisfy the contract, and shock vectors are not full-calendar vectors.
+`BvarPhaseBEstimator` is the strict PHASE B production entry. It accepts only a `BvarPreparedView`, the authoritative BVAR `PreparedRowPlan`, the authoritative `PreparedScalingPlan`, an explicit ordered endogenous system, an explicit shock-source metric, a contiguous lag grid `1..pMax`, a versioned prior specification, and a posterior draw specification. It does not accept `TrendDataPoint`, raw weekly maps, unresolved observations, caller-created rows, caller-created scaling vectors, legacy estimator output, or UI state.
 
-PHASE A validates this shape only. It does not generate shocks.
+The BVAR design is centralized in `BvarPhaseBDesignMaterializer`:
+
+- `Y` is `n x K`;
+- `X` is `n x (1 + Kp)`;
+- the first `X` column is the intercept;
+- lag columns are lag-major: lag 1 all declared variables, lag 2 all declared variables, and so on;
+- the declared Cholesky/endogenous order is preserved and fingerprinted;
+- every lag/lambda candidate uses the same row-plan source weeks, same standardized `Y`, same scaling plan, and same ordered variables;
+- lower-lag candidates use fewer lag columns but never regain earlier rows.
+
+The prior is a conjugate standardized Matrix-Normal Inverse-Wishart prior:
+
+- `B | Sigma ~ MatrixNormal(B0, V0, Sigma)`;
+- `Sigma ~ InverseWishart(nu0, S0)`;
+- `B0 = 0`, including own lags;
+- intercept prior variance is `100.0`;
+- lag coefficient prior variance is `lambda^2 / lag^4`;
+- `nu0 = K + 2`;
+- `S0 = I_K`;
+- model prior is uniform over canonical `(p, lambda)` candidates.
+
+The posterior implementation uses strict SPD Cholesky solves and Cholesky log volumes. It does not use a generic matrix inverse, raw determinant, estimator-local jitter, NaN replacement, row filtering, local scaling, AIC/BIC, OLS fallback, Gibbs sampling, burn-in, thinning, or MCMC diagnostics.
+
+Model evidence uses the exact Matrix-Normal Inverse-Wishart marginal likelihood:
+
+```text
+log p(Y | model) =
+  - (nK / 2) * log(pi)
+  + (K / 2) * (log|Vn| - log|V0|)
+  + (nu0 / 2) * log|S0|
+  - (nuN / 2) * log|Sn|
+  + logGammaK(nuN / 2)
+  - logGammaK(nu0 / 2)
+```
+
+Joint model posterior probabilities are normalized with log-sum-exp over the full canonical grid. The result retains joint `(p, lambda)` posterior weights, marginal lag weights, marginal lambda weights, MAP diagnostics, posterior mean lag/lambda, entropy, and effective model count. It does not collapse to the MAP model.
+
+Posterior draws are direct independent conjugate draws:
+
+- `SigmaDraw ~ InverseWishart(nuN, Sn)` by Bartlett Wishart decomposition and strict triangular/SPD solves;
+- `BDraw | SigmaDraw ~ MatrixNormal(Bn, Vn, SigmaDraw)`;
+- deterministic seed derivation uses the first 64 bits of SHA-256 over input/model/draw/attempt/component identity;
+- every positive-probability model receives at least one accepted draw;
+- remaining draws use deterministic largest-remainder allocation;
+- each draw weight is `modelPosteriorWeight / acceptedDrawCountForModel`.
+
+## Structural-Shock Contract
+
+`BvarPosteriorSourceIdentity` binds the PHASE B posterior mixture to the strict BVAR view, source metric, ordered endogenous system, row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and exact BVAR row-plan source-week domain. Caller-supplied subset or superset shock weeks are rejected. `IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite prepared-row shock series per draw, one covariance-draw fingerprint per draw, that source identity, ordering and normalization policy, and retained rejected-draw diagnostics. Accepted and rejected draw IDs are unique and disjoint, accepted draws are stored/fingerprinted in canonical draw-id order, rejected diagnostics are canonicalized for fingerprinting, one deterministic mean series cannot satisfy the contract, and shock vectors are not full-calendar vectors.
+
+PHASE B computes draw-specific reduced-form residuals over the exact BVAR row-plan weeks:
+
+```text
+u_t = y_t - x_t * BDraw
+```
+
+For each accepted draw it uses the draw-specific covariance Cholesky factor:
+
+```text
+SigmaDraw = PDraw * PDraw'
+epsilon_t = solve(PDraw, u_t)
+```
+
+`PDraw` is lower triangular with positive diagonal. PHASE B does not sort the declared variable order, flip signs, use generalized impulse responses, use sign/long-run restrictions, use external instruments, average shocks across draws, or identify shocks from posterior mean covariance. The normalization policy is `UNIT_STRUCTURAL_STANDARD_DEVIATION`.
+
+Cholesky identification depends on the declared variable ordering and must not be presented as order-invariant causal identification.
 
 ## Future Estimator Boundaries
 
 ### PHASE B
 
-`FutureBvarInput` accepts only `BvarPreparedView`, its `PreparedRowPlan`, its `PreparedScalingPlan`, and prior identity. A posterior must later retain context/view/row/scaling/prior fingerprints. Raw observations, generic alignments, local transformations, rows, or scaling are forbidden.
+`FutureBvarInput` accepts only `BvarPreparedView`, its `PreparedRowPlan`, its `PreparedScalingPlan`, explicit ordered endogenous metrics, and internally derived prior identity. The PHASE B posterior retains context/view/row/scaling/prior/input/posterior fingerprints. Raw observations, generic alignments, local transformations, rows, or scaling are forbidden.
 
 ### PHASE C
 
@@ -262,16 +327,21 @@ Static and focused tests reject:
 - `PreparedEstimatorViews.kt`: read-only purpose-specific views.
 - `PreparedRowAndScalingPlans.kt`: roles, horizon policies, sole row authority, sole scaling authority.
 - `FutureEstimatorBoundaries.kt`: validated PHASE B/C/D input bundles and BVAR posterior source identity only; no estimator math.
+- `phaseb/BvarPhaseBModels.kt`: PHASE B immutable system, model grid, prior, draw, result, and structured failure contracts.
+- `phaseb/BvarPhaseBNumerics.kt`: common-sample design materialization, exact prior/posterior algebra, multivariate log-gamma, and model posterior weights.
+- `phaseb/BvarPosteriorSampler.kt`: deterministic random stream, inverse-Wishart and Matrix-Normal direct draws, and weighted model-mixture allocation.
+- `phaseb/BvarStructuralShockIdentifier.kt`: draw-specific residuals, Cholesky structural shocks, reconstruction validation, and existing `IdentifiedShockPosterior` integration.
+- `phaseb/BvarPhaseBEstimator.kt`: strict PHASE B orchestration over prepared inputs only.
 - `BayesianTimeSeriesAnalyzer.kt`: explicitly named `LegacyTimeSeriesAnalyzer` compatibility implementation.
 - `tools/check_time_series_numeric_sources.py`: numeric and strict architecture guards.
 
 ## Legacy Retirement Plan
 
 1. Keep `LegacyTimeSeriesAnalyzer` isolated while strict PHASE B-D estimators do not exist.
-2. Implement PHASE B against `FutureBvarInput` only.
+2. Use completed PHASE B `IdentifiedShockPosterior` as the only shock input to PHASE C.
 3. Implement PHASE C against `FutureBlpInput` only.
 4. Implement PHASE D against the level/VECM boundaries only.
 5. Implement PHASE E ranking and UI labels only after B-D outputs exist.
 6. Replace app-visible legacy routing, then delete compatibility estimators and their generic alignment path.
 
-No PHASE B, C, D, or E estimator implementation is part of this closure.
+PHASE C, D, and E estimator implementation is not part of PHASE B closure.

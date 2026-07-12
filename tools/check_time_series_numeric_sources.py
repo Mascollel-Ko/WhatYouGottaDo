@@ -14,6 +14,7 @@ STRICT_REPRESENTATION = STRICT_PIPELINE / "StrictTimeSeriesRepresentation.kt"
 STRICT_ROW_SCALING = STRICT_PIPELINE / "PreparedRowAndScalingPlans.kt"
 STRICT_VIEWS = STRICT_PIPELINE / "PreparedEstimatorViews.kt"
 STRICT_FUTURE = STRICT_PIPELINE / "FutureEstimatorBoundaries.kt"
+PHASE_B = TARGET / "phaseb"
 WRAPPER = TARGET / "StableLinearAlgebra.kt"
 MODELS = TARGET / "BayesianTimeSeriesModels.kt"
 SELECTOR = TARGET / "EndogenousVariableSelector.kt"
@@ -247,6 +248,41 @@ def main() -> int:
                 prefix = text[max(0, match.start() - 120):match.start()]
                 if "requestedMetadata" not in prefix and "lifecycleMetadata[it]" not in prefix:
                     violations.append(f"{path.relative_to(ROOT)}:{line}: do not replace existing lifecycle metadata with defaults")
+
+    if PHASE_B.exists():
+        phase_b_sources = {path: path.read_text(encoding="utf-8") for path in PHASE_B.rglob("*.kt")}
+        phase_b_text = "\n".join(phase_b_sources.values())
+        required_phase_b_contracts = (
+            "BvarPhaseBDesignMaterializer",
+            "BvarPosteriorAlgebra",
+            "BvarPosteriorSampler",
+            "BvarStructuralShockIdentifier",
+            "PhaseBDeterministicRandom",
+            "BvarPhaseBFailureCode",
+        )
+        for contract in required_phase_b_contracts:
+            if contract not in phase_b_text:
+                violations.append(f"phaseb: missing required PHASE B contract {contract}")
+        phase_b_forbidden = [
+            (r"\bTrendDataPoint\b", "PHASE B must not import raw TrendDataPoint"),
+            (r"filter\s*\(\s*Double::isFinite\s*\)|filterNotNull\s*\(\s*\)", "PHASE B must not locally filter prepared rows"),
+            (r"\.average\s*\(\s*\)", "PHASE B must not calculate local scaling statistics"),
+            (r"currentTimeMillis|nanoTime|Date\(|LocalDate\.now|java\.util\.Random|kotlin\.random\.Random|Random\.Default|SecureRandom", "PHASE B randomness must not use time or platform RNG"),
+            (r"\bAIC\b|\bBIC\b|OLS score|R-squared", "PHASE B model comparison must use exact marginal likelihood"),
+            (r"BayesianLocalProjection|BLP_RESPONSE|Johansen|Vecm|VECM|IRF|Impulse", "PHASE B package must not implement later estimator phases"),
+            (r"posterior-mean shock|mean structural shock|MAP-only", "PHASE B must not collapse posterior shocks"),
+            (r"RowPlanner|ScalingPlanner|PreparedAnalysisContext", "PHASE B must not create second preparation authorities"),
+        ]
+        for path, text in phase_b_sources.items():
+            if "import com.training.trackplanner.analysis.lab.pipeline.RowPlanner" in text or "import com.training.trackplanner.analysis.lab.pipeline.ScalingPlanner" in text:
+                violations.append(f"{path.relative_to(ROOT)}: PHASE B must consume row/scaling plans, not authorities")
+            for pattern, message in phase_b_forbidden:
+                for match in re.finditer(pattern, text):
+                    line = text.count("\n", 0, match.start()) + 1
+                    snippet = text[max(0, match.start() - 80):match.start()]
+                    if pattern == r"RowPlanner|ScalingPlanner|PreparedAnalysisContext" and "FutureBvarInput" in snippet:
+                        continue
+                    violations.append(f"{path.relative_to(ROOT)}:{line}: {message}")
     if violations:
         print("\n".join(violations))
         return 1

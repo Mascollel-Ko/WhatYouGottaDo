@@ -332,6 +332,7 @@ internal data class BvarPhaseBResult(
     val posteriorDraws: List<BvarPosteriorDraw>,
     val rejectedDrawDiagnostics: List<BvarRejectedDrawDiagnostic>,
     val identifiedShockPosterior: IdentifiedShockPosterior?,
+    val posteriorMixtureFingerprint: String,
     val numericalDiagnostics: List<String>,
     val warnings: List<String>,
     val fingerprint: String

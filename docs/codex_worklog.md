@@ -1,5 +1,47 @@
 # Codex Worklog
 
+## PHASE B Bayesian VAR Posterior And Structural Shocks
+
+Cause:
+- PHASE A prepared valid strict inputs but intentionally did not implement Bayesian estimation.
+- PHASE B needed a strict conjugate BVAR posterior that consumes only prepared view, row plan, scaling plan, explicit endogenous ordering, prior identity, and draw policy.
+
+Changes:
+- Commit 1 `0ab6588`: added PHASE B system/grid/prior/result/failure models, common-sample design materialization, exact Matrix-Normal Inverse-Wishart posterior parameters, exact marginal likelihood, log-sum-exp lag/lambda posterior weights, Python reference fixture generation, and core parity tests.
+- Commit 2 `9fba6d1`: added deterministic seed derivation, local PHASE B random stream, inverse-Wishart covariance draws, Matrix-Normal coefficient draws, deterministic largest-remainder allocation, weighted posterior draw mixture, and sampler tests.
+- Commit 3 `pending`: adds draw-specific reduced-form residuals, draw-specific Cholesky structural shocks, actual `BvarPosteriorSourceIdentity`, existing `IdentifiedShockPosterior` integration, scanner expansion, architecture documentation, and final tests.
+
+Reason:
+- The conjugate standardized BVAR keeps PHASE B bounded: all rows and scaling come from PHASE A, model comparison uses one common sample, and posterior draws are direct independent draws rather than MCMC.
+- Draw-specific shocks preserve covariance and coefficient uncertainty for future PHASE C BLP without averaging or MAP-only collapse.
+
+Result:
+- PHASE B now produces lag/lambda posterior inference, deterministic weighted posterior draws, and strict draw-specific source-shock series over the authoritative BVAR row-plan weeks.
+- PHASE C BLP, PHASE D Johansen/BVECM, PHASE E automatic ranking/UI/async integration, and legacy retirement remain unstarted.
+
+Numerical validation:
+- Reference fixture: `tools/time_series_reference/fixtures/phase_b_bvar_reference.json`.
+- Reference generator: `tools/time_series_reference/generate_phase_a_fixtures.py`, PHASE B fixture revision `phase-b-1`.
+- Reference stack records Python, NumPy, SciPy, statsmodels versions, matrix orientation, inverse-Wishart parameterization, lag grid, lambda grid, and tolerance.
+- Android tests compare posterior `Bn`, `Vn`, `Sn`, `nuN`, exact log marginal likelihood, model posterior probabilities, fixed residuals, and fixed structural shocks against the fixture.
+
+Ponytail review:
+- Ponytail was available and used only as full-mode over-engineering/duplication pressure.
+- Suggestions to collapse PHASE B into the legacy BVAR path or skip explicit fixture identity were rejected because they would violate the statistical, provenance, and boundary requirements.
+
+Tests:
+- Bundled Python `tools/time_series_reference/generate_phase_a_fixtures.py`: passed.
+- `tools/check_time_series_numeric_sources.py`: passed for Commit 1 and Commit 2, final pending.
+- `./gradlew :app:testDebugUnitTest --tests "*BvarPhaseBCoreTest*"`: passed.
+- `./gradlew :app:testDebugUnitTest --tests "*BvarPosteriorSamplerTest*"`: passed.
+- `./gradlew :app:testDebugUnitTest --tests "*BvarStructuralShockIdentifierTest*"`: passed.
+- Final focused/full Gradle validation pending.
+
+Remaining:
+- PHASE C Bayesian Local Projection.
+- PHASE D Johansen/BVECM.
+- PHASE E automatic endogenous-variable ranking, UI exposure, and async integration.
+
 ## v0.4.0.8 Daily Service Extraction
 
 - 작업 목표: `TrainingRepository`에 남아 있던 DailyMetric, DailyCheckIn, daily readiness input 책임 일부를 behavior-preserving service로 분리.
