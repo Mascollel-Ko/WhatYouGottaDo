@@ -1,0 +1,74 @@
+{
+  "difference_checks": {
+    "missing_week_difference_rejected": true
+  },
+  "expected_states": {
+    "BADMINTON_TRAINING": [
+      "OBSERVED_VALUE",
+      "OBSERVED_VALUE",
+      "STRUCTURAL_ZERO",
+      "OBSERVED_VALUE"
+    ],
+    "FATIGUE_COMPOSITE": [
+      "OBSERVED_VALUE",
+      "MISSING",
+      "OBSERVED_VALUE",
+      "OBSERVED_VALUE"
+    ]
+  },
+  "horizon_checks": {
+    "h2_from_w01_targets_w03": true
+  },
+  "lag_checks": {
+    "w04_is_not_w02_lag1": true,
+    "w04_uses_w03_lag1_when_w03_structural_zero": true
+  },
+  "provenance": {
+    "generator_script_version": "phase-a-1",
+    "numpy_version": "2.3.5",
+    "purpose": "Phase A calendar grid golden fixture",
+    "python_version": "3.12.13",
+    "rng_seed": 20260712,
+    "schema_version": 1,
+    "scipy_version": "1.18.0",
+    "source_commit": "25cb01448ea5926841a4b89d9738da135704059a",
+    "tolerance": 1e-07
+  },
+  "series": {
+    "BADMINTON_TRAINING": [
+      {
+        "value": 1.0,
+        "week": "2025-12-22"
+      },
+      {
+        "value": 2.0,
+        "week": "2025-12-29"
+      },
+      {
+        "value": 4.0,
+        "week": "2026-01-12"
+      }
+    ],
+    "FATIGUE_COMPOSITE": [
+      {
+        "value": 0.0,
+        "week": "2025-12-22"
+      },
+      {
+        "value": 3.0,
+        "week": "2026-01-05"
+      },
+      {
+        "value": 5.0,
+        "week": "2026-01-12"
+      }
+    ]
+  },
+  "structural_zero_metric": "BADMINTON_TRAINING",
+  "weeks": [
+    "2025-12-22",
+    "2025-12-29",
+    "2026-01-05",
+    "2026-01-12"
+  ]
+}

@@ -17,7 +17,19 @@ Before this change, `LaggedTimeSeriesAnalyzer` joined one X and one Y by week an
 
 ## Preprocessing And Screening
 
-`TimeSeriesAlignmentService` aligns only common weekly observations. It neither forward-fills missing values nor converts missing history into zero. Candidate screening rejects a series with more than 25 percent missing observations in the required window or insufficient variation. The result keeps the aligned period and count for disclosure.
+`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. The canonical week key is the week-start `LocalDate`, so ISO year boundaries do not collapse into a shared week number. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, or version-discontinuity cell. Missing values are not forward-filled and are not converted into numeric zero. Structural zero is allowed only when the caller explicitly marks that metric as structural-zero capable.
+
+Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Excluded rows can carry the target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
+
+Candidate screening rejects a series with more than 25 percent missing observations in the required window or insufficient variation. The result keeps the aligned period and count for disclosure.
+
+## Numeric Foundation
+
+Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLinearAlgebra`. Model code does not call Commons Math directly except through this wrapper. SPD systems use `CholeskyDecomposition` and `DecompositionSolver.solve`; least squares uses RRQR with SVD fallback; rank and condition number come from singular values; SPD log determinant comes from the Cholesky diagonal.
+
+The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using triangular solves instead of explicit inverse, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and drops eigenpairs whose residual exceeds tolerance.
+
+Unbounded jitter is not allowed. Cholesky failure first checks symmetry, rank, and condition number; only bounded scale-relative jitter is attempted, and the jitter ratio is exposed by the Cholesky result.
 
 `IntegrationOrderAnalyzer` applies both ADF-style and KPSS-style diagnostics to levels and first differences. I(1) variables are first-differenced for the non-cointegrated local-projection/BVAR route; I(0) variables remain in levels. I(2)+ required variables stop the analysis. Inconclusive diagnostics do not force VECM.
 
@@ -46,7 +58,8 @@ The analyzer compares the canonical order with an adjacent same-time-group reord
 ## File / Feature Map
 
 - `BayesianTimeSeriesModels.kt`: request, alignment, diagnostics, IRF, and result contracts.
-- `BayesianTimeSeriesSupport.kt`: alignment, screening, stationarity, normal-posterior regression, and matrix helpers.
+- `StableLinearAlgebra.kt`: Commons Math backed SPD solve, least squares, Cholesky, SVD, rank, condition number, symmetric eigen, generalized symmetric eigen, and log determinant primitives.
+- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, screening, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
 - `BayesianLocalProjectionEstimator.kt`: horizon-specific Bayesian LP posterior and rolling-origin predictive score.
 - `EndogenousVariableSelector.kt`: data screening, K cap, and greedy rolling-origin endogenous selection.
 - `CointegrationAnalyzer.kt`: Johansen-style rank evidence and the rank-1 cointegration vector.
@@ -61,3 +74,4 @@ The analyzer compares the canonical order with an adjacent same-time-group reord
 - Results are exploratory dynamic associations, not confirmed causal effects.
 - The tool returns `UNAVAILABLE` instead of showing a correlation-style substitute whenever required diagnostics or horizon sample conditions fail.
 - No app version, release tag, backup format, or trend-series generation policy changed as part of this implementation.
+- Phase A does not implement BVAR posterior sampling, Bayesian Local Projection posterior mixtures, Johansen trace/max-eigen rank tests, Bayesian VECM, automatic model routing changes, or final IRF UI integration.

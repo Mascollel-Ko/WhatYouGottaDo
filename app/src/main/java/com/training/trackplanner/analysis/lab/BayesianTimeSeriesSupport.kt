@@ -3,30 +3,42 @@ package com.training.trackplanner.analysis.lab
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
-import kotlin.math.abs
 import kotlin.math.exp
-import kotlin.math.ln
 import kotlin.math.sqrt
 
 internal class TimeSeriesAlignmentService {
     fun align(
         metrics: Collection<TrendMetricId>,
-        series: Map<TrendMetricId, List<TrendDataPoint>>
+        series: Map<TrendMetricId, List<TrendDataPoint>>,
+        structuralZeroMetrics: Set<TrendMetricId> = emptySet()
     ): TimeSeriesAlignment? {
         val unique = metrics.distinct()
         if (unique.isEmpty()) return null
         val maps = unique.associateWith { metric ->
             series[metric].orEmpty().mapNotNull { point -> point.value?.let { point.weekStart to it } }.toMap()
         }
-        val allWeeks = maps.values.flatMap { it.keys }.toSortedSet()
-        if (allWeeks.isEmpty()) return null
-        val missingRates = maps.mapValues { (_, values) -> 1.0 - values.size.toDouble() / allWeeks.size }
-        val commonWeeks = allWeeks.filter { week -> maps.values.all { values -> week in values } }
+        val bounds = maps.values.flatMap { it.keys }.takeIf { it.isNotEmpty() } ?: return null
+        val allWeeks = generateSequence(bounds.minOrNull()!!) { week ->
+            week.plusWeeks(1).takeIf { it <= bounds.maxOrNull()!! }
+        }.toList()
+        val cellsByMetric = maps.mapValues { (metric, values) ->
+            allWeeks.map { week ->
+                val value = values[week]
+                when {
+                    value != null -> TimeSeriesCell(week, TimeSeriesCellState.OBSERVED_VALUE, value)
+                    metric in structuralZeroMetrics -> TimeSeriesCell(week, TimeSeriesCellState.STRUCTURAL_ZERO, 0.0)
+                    else -> TimeSeriesCell(week, TimeSeriesCellState.MISSING, null)
+                }
+            }
+        }
+        val grid = TimeSeriesCalendarGrid(allWeeks, cellsByMetric)
+        val missingRates = cellsByMetric.mapValues { (_, cells) -> cells.count { it.state == TimeSeriesCellState.MISSING }.toDouble() / allWeeks.size }
         return TimeSeriesAlignment(
-            weeks = commonWeeks,
-            valuesByMetric = maps.mapValues { (_, values) -> commonWeeks.map(values::getValue) },
+            weeks = allWeeks,
+            valuesByMetric = cellsByMetric.mapValues { (_, cells) -> cells.map { it.value ?: Double.NaN } },
             excludedMetrics = emptyMap(),
-            missingRates = missingRates
+            missingRates = missingRates,
+            grid = grid
         )
     }
 
@@ -51,7 +63,13 @@ internal class TimeSeriesAlignmentService {
         if (indices.size != weeks.size) return null
         return alignment.copy(
             weeks = weeks,
-            valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> indices.map(values::get) }
+            valuesByMetric = alignment.valuesByMetric.mapValues { (_, values) -> indices.map(values::get) },
+            grid = alignment.grid?.let { grid ->
+                TimeSeriesCalendarGrid(
+                    weeks,
+                    grid.cellsByMetric.mapValues { (_, cells) -> indices.map(cells::get) }
+                )
+            }
         )
     }
 
@@ -61,18 +79,31 @@ internal class TimeSeriesAlignmentService {
     ): Pair<TimeSeriesAlignment, Map<TrendMetricId, String>>? {
         val orders = diagnostics.associate { it.metric to it.levelOrder }
         val transformed = alignment.valuesByMetric.mapValues { (metric, values) ->
-            when (orders[metric]) {
-                IntegrationOrder.I1 -> values.zipWithNext { first, second -> second - first }
-                else -> values.drop(1)
+            values.indices.drop(1).map { index ->
+                when (orders[metric]) {
+                    IntegrationOrder.I1 -> alignment.exactDifference(metric, index) ?: Double.NaN
+                    else -> values[index].takeIf(Double::isFinite) ?: Double.NaN
+                }
             }
         }
-        if (transformed.values.any { it.size < MIN_OBSERVATIONS }) return null
+        if (transformed.values.any { values -> values.count(Double::isFinite) < MIN_OBSERVATIONS }) return null
         val descriptions = alignment.valuesByMetric.keys.associateWith { metric ->
             if (orders[metric] == IntegrationOrder.I1) "first difference" else "level"
         }
+        val weeks = alignment.weeks.drop(1)
+        val cellsByMetric = transformed.mapValues { (_, values) ->
+            values.mapIndexed { index, value ->
+                TimeSeriesCell(
+                    weekStart = weeks[index],
+                    state = if (value.isFinite()) TimeSeriesCellState.OBSERVED_VALUE else TimeSeriesCellState.MISSING,
+                    value = value.takeIf(Double::isFinite)
+                )
+            }
+        }
         return alignment.copy(
-            weeks = alignment.weeks.drop(1),
-            valuesByMetric = transformed
+            weeks = weeks,
+            valuesByMetric = transformed,
+            grid = TimeSeriesCalendarGrid(weeks, cellsByMetric)
         ) to descriptions
     }
 
@@ -169,55 +200,87 @@ internal class BayesianLinearRegression private constructor() {
                 }
             }
             priorPrecision.indices.forEach { index -> xtx[index][index] += priorPrecision[index] }
-            val covarianceBase = invert(xtx) ?: return null
-            val mean = DoubleArray(columns) { row -> covarianceBase[row].indices.sumOf { col -> covarianceBase[row][col] * xty[col] } }
+            val covarianceBase = runCatching {
+                StableLinearAlgebra.solveSpd(xtx, identity(columns))
+            }.getOrNull() ?: return null
+            val mean = runCatching { StableLinearAlgebra.solveSpd(xtx, xty) }.getOrNull() ?: return null
             val residuals = x.indices.map { row -> y[row] - x[row].indices.sumOf { col -> x[row][col] * mean[col] } }
             val sigma2 = (residuals.sumOf { it * it } / maxOf(1, x.size - columns)).coerceAtLeast(1e-9)
             val covariance = Array(columns) { row -> DoubleArray(columns) { col -> covarianceBase[row][col] * sigma2 } }
-            val logEvidence = -0.5 * (x.size * ln(2.0 * Math.PI * sigma2) + residuals.sumOf { it * it } / sigma2 + logDeterminant(xtx))
+            val logEvidence = -0.5 * (x.size * kotlin.math.ln(2.0 * Math.PI * sigma2) + residuals.sumOf { it * it } / sigma2 + StableLinearAlgebra.logDetSpd(xtx))
             return Posterior(mean, covariance, sigma2, logEvidence)
         }
 
-        fun invert(matrix: Array<DoubleArray>): Array<DoubleArray>? {
-            val n = matrix.size
-            val augmented = Array(n) { row -> DoubleArray(n * 2) { col -> if (col < n) matrix[row][col] else if (col - n == row) 1.0 else 0.0 } }
-            for (pivot in 0 until n) {
-                val best = (pivot until n).maxBy { row -> abs(augmented[row][pivot]) }
-                if (abs(augmented[best][pivot]) <= 1e-10) return null
-                val swap = augmented[pivot]
-                augmented[pivot] = augmented[best]
-                augmented[best] = swap
-                val divisor = augmented[pivot][pivot]
-                augmented[pivot].indices.forEach { column -> augmented[pivot][column] /= divisor }
-                augmented.indices.filter { it != pivot }.forEach { row ->
-                    val factor = augmented[row][pivot]
-                    augmented[row].indices.forEach { column -> augmented[row][column] -= factor * augmented[pivot][column] }
-                }
-            }
-            return Array(n) { row -> augmented[row].copyOfRange(n, n * 2) }
-        }
+        private fun identity(size: Int): Array<DoubleArray> =
+            Array(size) { row -> DoubleArray(size) { column -> if (row == column) 1.0 else 0.0 } }
+    }
+}
 
-        private fun logDeterminant(matrix: Array<DoubleArray>): Double {
-            val copy = Array(matrix.size) { row -> matrix[row].copyOf() }
-            var logDet = 0.0
-            for (pivot in copy.indices) {
-                val best = (pivot until copy.size).maxBy { row -> abs(copy[row][pivot]) }
-                if (abs(copy[best][pivot]) <= 1e-10) return 1e6
-                if (best != pivot) {
-                    val swap = copy[pivot]
-                    copy[pivot] = copy[best]
-                    copy[best] = swap
+internal fun TimeSeriesAlignment.valueAt(metric: TrendMetricId, index: Int): Double? =
+    valuesByMetric[metric]?.getOrNull(index)?.takeIf(Double::isFinite)
+
+internal fun TimeSeriesAlignment.exactLag(metric: TrendMetricId, index: Int, lagWeeks: Int): Double? {
+    val sourceIndex = index - lagWeeks
+    if (sourceIndex < 0 || weeks[sourceIndex].plusWeeks(lagWeeks.toLong()) != weeks[index]) return null
+    return valueAt(metric, sourceIndex)
+}
+
+internal fun TimeSeriesAlignment.exactDifference(metric: TrendMetricId, index: Int): Double? {
+    if (index <= 0 || weeks[index - 1].plusWeeks(1) != weeks[index]) return null
+    val current = valueAt(metric, index) ?: return null
+    val previous = valueAt(metric, index - 1) ?: return null
+    return current - previous
+}
+
+internal fun TimeSeriesAlignment.exactHorizon(metric: TrendMetricId, index: Int, horizon: Int): Double? {
+    val targetIndex = index + horizon
+    if (targetIndex !in weeks.indices || weeks[index].plusWeeks(horizon.toLong()) != weeks[targetIndex]) return null
+    return valueAt(metric, targetIndex)
+}
+
+internal fun TimeSeriesAlignment.buildExactRows(
+    sourceMetric: TrendMetricId,
+    targetMetric: TrendMetricId,
+    lag: Int,
+    horizon: Int
+): Pair<List<TimeSeriesModelRow>, List<TimeSeriesRowExclusion>> {
+    val rows = mutableListOf<TimeSeriesModelRow>()
+    val exclusions = mutableListOf<TimeSeriesRowExclusion>()
+    for (index in lag until weeks.size - horizon) {
+        val target = exactHorizon(targetMetric, index, horizon)
+        val source = valueAt(sourceMetric, index)
+        val lags = (1..lag).map { offset -> exactLag(sourceMetric, index, offset) }
+        val reason = when {
+            index + horizon !in weeks.indices || weeks[index].plusWeeks(horizon.toLong()) != weeks[index + horizon] -> TimeSeriesRowExclusionReason.DISCONTINUOUS_HORIZON
+            target == null -> TimeSeriesRowExclusionReason.MISSING_TARGET
+            source == null -> TimeSeriesRowExclusionReason.MISSING_SOURCE
+            lags.any { it == null } -> TimeSeriesRowExclusionReason.MISSING_LAG
+            else -> null
+        }
+        if (reason == null) {
+            rows += TimeSeriesModelRow(
+                targetWeek = weeks[index + horizon],
+                sourceWeek = weeks[index],
+                lagWeeks = (1..lag).map { offset -> weeks[index - offset] },
+                horizon = horizon,
+                target = target!!,
+                source = source!!,
+                lags = lags.filterNotNull()
+            )
+        } else {
+            exclusions += TimeSeriesRowExclusion(
+                targetWeek = weeks.getOrElse((index + horizon).coerceAtMost(weeks.lastIndex)) { weeks[index] },
+                sourceWeek = weeks[index],
+                lagWeeks = (1..lag).mapNotNull { offset -> weeks.getOrNull(index - offset) },
+                horizon = horizon,
+                reason = reason,
+                cellStates = listOf(sourceMetric, targetMetric).distinct().associateWith { metric ->
+                    grid?.cell(metric, index)?.state ?: TimeSeriesCellState.MISSING
                 }
-                val value = abs(copy[pivot][pivot])
-                logDet += ln(value)
-                for (row in pivot + 1 until copy.size) {
-                    val factor = copy[row][pivot] / copy[pivot][pivot]
-                    for (column in pivot until copy.size) copy[row][column] -= factor * copy[pivot][column]
-                }
-            }
-            return logDet
+            )
         }
     }
+    return rows to exclusions
 }
 
 internal fun variance(values: Collection<Double>): Double {

@@ -43,7 +43,13 @@ internal class BayesianVarEstimator {
         val raw = system.map { metric -> alignment.valuesByMetric[metric] ?: return null }
         val standardized = raw.map(::standardize).takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
         val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let(::standardize) ?: return null }
-        val timeIndices = (lag until alignment.weeks.size).toList()
+        val timeIndices = (lag until alignment.weeks.size).filter { time ->
+            system.all { metric ->
+                alignment.valueAt(metric, time) != null &&
+                    (1..lag).all { offset -> alignment.exactLag(metric, time, offset) != null } &&
+                    (!includeErrorCorrection || alignment.exactDifference(metric, time) != null)
+            } && controls.all { metric -> alignment.valueAt(metric, time) != null }
+        }
         val rows = timeIndices.map { time ->
             val design = buildList {
                 add(1.0)
@@ -187,7 +193,13 @@ internal class BayesianVecmEstimator {
         val raw = system.map { metric -> alignment.valuesByMetric[metric] ?: return null }
         val standardized = raw.map(::standardize).takeIf { values -> values.all { it != null } }?.filterNotNull() ?: return null
         val controlValues = controls.map { metric -> alignment.valuesByMetric[metric]?.let(::standardize) ?: return null }
-        val timeIndices = (lag until alignment.weeks.size).toList()
+        val timeIndices = (lag until alignment.weeks.size).filter { time ->
+            system.all { metric ->
+                alignment.exactDifference(metric, time) != null &&
+                    alignment.exactLag(metric, time, 1) != null &&
+                    (1 until lag).all { offset -> alignment.exactDifference(metric, time - offset) != null }
+            } && controls.all { metric -> alignment.valueAt(metric, time) != null }
+        }
         val rows = timeIndices.map { time ->
             val design = buildList {
                 add(1.0)
@@ -259,27 +271,17 @@ internal data class VecmFit(
 private data class SystemRow(val design: DoubleArray, val response: DoubleArray)
 
 private fun standardize(values: List<Double>): DoubleArray? {
-    val mean = values.average()
-    val standardDeviation = sqrt(variance(values))
+    val finite = values.filter(Double::isFinite)
+    val mean = finite.average()
+    val standardDeviation = sqrt(variance(finite))
     if (standardDeviation <= 1e-9) return null
-    return DoubleArray(values.size) { index -> (values[index] - mean) / standardDeviation }
+    return DoubleArray(values.size) { index ->
+        values[index].takeIf(Double::isFinite)?.let { (it - mean) / standardDeviation } ?: Double.NaN
+    }
 }
 
 internal fun cholesky(matrix: Array<DoubleArray>): Array<DoubleArray>? {
-    val lower = Array(matrix.size) { DoubleArray(matrix.size) }
-    for (row in matrix.indices) {
-        for (column in 0..row) {
-            val sum = (0 until column).sumOf { index -> lower[row][index] * lower[column][index] }
-            if (row == column) {
-                val diagonal = matrix[row][row] - sum
-                if (diagonal <= 1e-10) return null
-                lower[row][column] = sqrt(diagonal)
-            } else {
-                lower[row][column] = (matrix[row][column] - sum) / lower[column][column]
-            }
-        }
-    }
-    return lower
+    return runCatching { StableLinearAlgebra.cholesky(matrix).lower }.getOrNull()
 }
 
 private const val Z80 = 1.28155

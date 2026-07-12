@@ -29,8 +29,61 @@ internal data class TimeSeriesAlignment(
     val weeks: List<LocalDate>,
     val valuesByMetric: Map<TrendMetricId, List<Double>>,
     val excludedMetrics: Map<TrendMetricId, String>,
-    val missingRates: Map<TrendMetricId, Double>
+    val missingRates: Map<TrendMetricId, Double>,
+    val grid: TimeSeriesCalendarGrid? = null,
+    val rowExclusions: List<TimeSeriesRowExclusion> = emptyList()
 )
+
+internal data class TimeSeriesCalendarGrid(
+    val weeks: List<LocalDate>,
+    val cellsByMetric: Map<TrendMetricId, List<TimeSeriesCell>>
+) {
+    fun cell(metric: TrendMetricId, index: Int): TimeSeriesCell? = cellsByMetric[metric]?.getOrNull(index)
+}
+
+internal data class TimeSeriesCell(
+    val weekStart: LocalDate,
+    val state: TimeSeriesCellState,
+    val value: Double?
+)
+
+internal enum class TimeSeriesCellState {
+    OBSERVED_VALUE,
+    STRUCTURAL_ZERO,
+    MISSING,
+    NOT_APPLICABLE,
+    PRE_METRIC_CREATION,
+    VERSION_DISCONTINUITY
+}
+
+internal data class TimeSeriesRowExclusion(
+    val targetWeek: LocalDate,
+    val sourceWeek: LocalDate?,
+    val lagWeeks: List<LocalDate>,
+    val horizon: Int,
+    val reason: TimeSeriesRowExclusionReason,
+    val cellStates: Map<TrendMetricId, TimeSeriesCellState>
+)
+
+internal data class TimeSeriesModelRow(
+    val targetWeek: LocalDate,
+    val sourceWeek: LocalDate,
+    val lagWeeks: List<LocalDate>,
+    val horizon: Int,
+    val target: Double,
+    val source: Double,
+    val lags: List<Double>
+)
+
+internal enum class TimeSeriesRowExclusionReason {
+    MISSING_TARGET,
+    MISSING_SOURCE,
+    MISSING_LAG,
+    MISSING_HORIZON,
+    DISCONTINUOUS_LAG,
+    DISCONTINUOUS_DIFFERENCE,
+    DISCONTINUOUS_HORIZON
+}
 
 internal data class IntegrationDiagnostic(
     val metric: TrendMetricId,

@@ -1072,3 +1072,69 @@
   - `feat(analysis): implement Bayesian time series lab`.
 - Pending at this log point:
   - main push and GitHub Actions verification.
+
+## Time-Series Analysis Phase A Numeric Foundation
+
+Cause
+- Started from latest `origin/main` at `25cb01448ea5926841a4b89d9738da135704059a` on branch `feat/time-series-phase-a`.
+- The previous lab implementation included hand-coded matrix inverse, determinant, Cholesky decomposition, and power-iteration eigen logic in the analysis path.
+- The alignment layer compressed the time axis to common observed weeks, which made lag, first-difference, and horizon rows depend on list positions rather than exact calendar weeks.
+- Existing `outputs/*` files were dirty before this work and were intentionally ignored and not staged.
+
+Pre-change numeric audit
+
+| File | Function | Current algorithm | Problem | Replacement |
+|---|---|---|---|---|
+| `BayesianTimeSeriesSupport.kt` | `BayesianLinearRegression.invert` | Gauss-Jordan inverse | explicit inverse and pivot logic lived in app code | `StableLinearAlgebra.solveSpd` |
+| `BayesianTimeSeriesSupport.kt` | `BayesianLinearRegression.logDeterminant` | custom elimination determinant | determinant path was not SPD-specific | `StableLinearAlgebra.logDetSpd` |
+| `BayesianDynamicEstimators.kt` | `cholesky` | hand-coded Cholesky | custom SPD decomposition and positivity threshold | `StableLinearAlgebra.cholesky` adapter |
+| `CointegrationAnalyzer.kt` | `analyze` | `S11^-1 S10 S00^-1 S01` via custom inverse | explicit inverse and asymmetric product | `StableLinearAlgebra.johansenFormEigen` |
+| `CointegrationAnalyzer.kt` | `largestEigenvalue` | Rayleigh quotient over dominant vector | single eigenvalue only | full generalized eigen spectrum |
+| `CointegrationAnalyzer.kt` | `dominantEigenvector` | power iteration | custom eigen solver and no residual validation | Commons Math `EigenDecomposition` through whitening |
+| `BayesianTimeSeriesSupport.kt` | `TimeSeriesAlignmentService.align` | common observed weeks only | compressed time axis hid calendar gaps | continuous weekly calendar grid with cell states |
+
+Changes
+- Added `implementation("org.apache.commons:commons-math3:3.6.1")`.
+- Added `StableLinearAlgebra` with SPD solves, least-squares solves, Cholesky, rank, condition number, singular values, symmetric eigen, generalized symmetric eigen, SPD log determinant, symmetry checks, positive-definite checks, and relative asymmetry.
+- Replaced app-owned inverse/determinant/Cholesky/power-iteration calls in the time-series lab path.
+- Added `TimeSeriesCalendarGrid`, `TimeSeriesCell`, `TimeSeriesCellState`, `TimeSeriesModelRow`, and row exclusion reasons.
+- Changed alignment to keep continuous weekly calendar weeks and distinguish observed values, structural zero, and missing cells.
+- Added exact lag, first-difference, horizon, and row-builder primitives.
+- Added Python/SciPy fixture generator under `tools/time_series_reference/` plus deterministic generated JSON fixtures.
+- Added `tools/check_time_series_numeric_sources.py` to block direct inverse, hand eigen, hand determinant, and direct decomposition usage outside the wrapper.
+
+Reason
+- Cholesky is the correct primitive for SPD systems and log determinants.
+- RRQR/SVD avoids normal-equation inverse for least-squares fallback.
+- Whitening `A v = lambda B v` through `B = L L'` avoids forming `B^-1 A` and preserves the symmetric-definite eigenproblem.
+- Continuous calendar weeks make missing values explicit and prevent W04 from becoming a fake lag-1 successor of W02.
+
+Result
+- PHASE A now provides a verified numeric foundation and time-indexing foundation only.
+- Kotlin tests compare Commons Math results to NumPy/SciPy golden fixtures for solves, SVD, symmetric eigen, generalized eigen, and Johansen-form primitive.
+- PHASE B BVAR posterior, PHASE C Bayesian Local Projection rebuild, PHASE D full Johansen/VECM, PHASE E UI integration, version bump, and tags remain intentionally untouched.
+
+Tests
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed using bundled Python plus installed SciPy.
+- `python tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat --version`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StableLinearAlgebraTest*" --tests "*TimeSeriesCalendarGridTest*" --tests "*LaggedTimeSeriesAnalyzerTest*"`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+- APK size: before 43,073,867 bytes; after 44,234,574 bytes; delta +1,160,707 bytes.
+
+File/Feature Map
+- `StableLinearAlgebra.kt`: Commons Math wrapper and bounded jitter policy.
+- `BayesianTimeSeriesModels.kt`: calendar grid, cell states, model rows, and row exclusion contracts.
+- `BayesianTimeSeriesSupport.kt`: continuous grid alignment, exact lag/difference/horizon helpers, and wrapper-backed posterior regression.
+- `BayesianDynamicEstimators.kt`: wrapper-backed Cholesky and valid calendar row filtering.
+- `BayesianLocalProjectionEstimator.kt`: exact horizon/difference/lag row construction.
+- `CointegrationAnalyzer.kt`: wrapper-backed Johansen-form primitive.
+- `StableLinearAlgebraTest.kt`: Kotlin golden fixture comparisons.
+- `TimeSeriesCalendarGridTest.kt`: continuous weekly grid and exact row exclusion coverage.
+- `tools/time_series_reference/*`: independent Python/SciPy reference generator and fixtures.
+- `tools/check_time_series_numeric_sources.py`: forbidden numeric source scanner.
+
+Remaining
+- BVAR posterior sampling, Bayesian LP posterior rebuild, full Johansen trace/max-eigen testing, Bayesian VECM routing, and final UI changes are deferred until explicit Phase B-D/E approval.

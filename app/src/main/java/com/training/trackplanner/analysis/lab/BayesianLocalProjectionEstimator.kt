@@ -68,7 +68,7 @@ internal class BayesianLocalProjectionEstimator {
             val predicted = fitted.posterior.mean.indices.sumOf { index -> fitted.posterior.mean[index] * standardizedFeature[index] }
             val predictiveVariance = fitted.posterior.residualVariance + quadraticForm(standardizedFeature, fitted.posterior.covariance)
             if (!predictiveVariance.isFinite() || predictiveVariance <= EPSILON) return@forEach
-            val actual = alignment.valuesByMetric[yMetric]?.getOrNull(origin + horizon) ?: return@forEach
+            val actual = alignment.exactHorizon(yMetric, origin, horizon) ?: return@forEach
             val actualStandardized = (actual - fitted.yMean) / fitted.yStandardDeviation
             val error = actualStandardized - predicted
             errors += error
@@ -98,7 +98,7 @@ internal class BayesianLocalProjectionEstimator {
     ): FittedProjection? {
         val yValues = alignment.valuesByMetric[yMetric] ?: return null
         val rows = (lag until yValues.size - horizon).mapNotNull { time ->
-            val response = yValues.getOrNull(time + horizon) ?: return@mapNotNull null
+            val response = alignment.exactHorizon(yMetric, time, horizon) ?: return@mapNotNull null
             val feature = featureVector(alignment, xMetric, endogenous, controls, lag, time, structuralShock) ?: return@mapNotNull null
             RegressionRow(response, feature)
         }
@@ -124,13 +124,11 @@ internal class BayesianLocalProjectionEstimator {
         time: Int,
         structuralShock: Map<Int, Double>
     ): DoubleArray? {
-        val xValues = alignment.valuesByMetric[xMetric] ?: return null
-        val shock = structuralShock[time] ?: (xValues.getOrNull(time) ?: return null) - (xValues.getOrNull(time - 1) ?: return null)
+        val shock = structuralShock[time] ?: alignment.exactDifference(xMetric, time) ?: return null
         val lags = endogenous.flatMap { metric ->
-            val values = alignment.valuesByMetric[metric] ?: return null
-            (1..lag).map { offset -> values.getOrNull(time - offset) ?: return null }
+            (1..lag).map { offset -> alignment.exactLag(metric, time, offset) ?: return null }
         }
-        val contemporaneousControls = controls.map { metric -> alignment.valuesByMetric[metric]?.getOrNull(time) ?: return null }
+        val contemporaneousControls = controls.map { metric -> alignment.valueAt(metric, time) ?: return null }
         return doubleArrayOf(shock) + lags.toDoubleArray() + contemporaneousControls.toDoubleArray()
     }
 

@@ -88,7 +88,7 @@ class LaggedTimeSeriesAnalyzerTest {
             mapOf(TrendMetricId.BADMINTON_TRAINING to x, TrendMetricId.FATIGUE_COMPOSITE to y)
         )!!
 
-        assertEquals(27, alignment.weeks.size)
+        assertEquals(32, alignment.weeks.size)
         assertTrue(alignment.valuesByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).contains(0.0))
         assertEquals(5.0 / 32.0, alignment.missingRates.getValue(TrendMetricId.FATIGUE_COMPOSITE), 1e-9)
     }
