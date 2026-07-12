@@ -30,7 +30,7 @@ internal class PreparedCandidateCatalog private constructor(
             transformationPlan: CanonicalTransformationPlan
         ): PreparedCandidateCatalog {
             val eligible = request.optionalCandidates.distinct().filter { metric ->
-                metric in transformedCatalog.seriesByMetric && assessments[metric]?.status in CONFIRMED_STATUSES
+                metric in transformedCatalog.seriesByMetric && assessments[metric]?.status in SUPPORTED_STATUSES
             }.sortedBy { it.name }
             val excluded = request.optionalCandidates.distinct().filterNot(eligible::contains).associateWith { metric ->
                 val assessment = assessments.getValue(metric)
@@ -58,9 +58,9 @@ internal class PreparedCandidateCatalog private constructor(
             )
         }
 
-        private val CONFIRMED_STATUSES = setOf(
-            IntegrationAssessmentStatus.CONFIRMED_I0,
-            IntegrationAssessmentStatus.CONFIRMED_I1
+        private val SUPPORTED_STATUSES = setOf(
+            IntegrationAssessmentStatus.SUPPORTED_I0,
+            IntegrationAssessmentStatus.SUPPORTED_I1
         )
     }
 }
@@ -111,7 +111,7 @@ internal class PreparedAnalysisContext private constructor(
             if (request.requiredMetrics.any { it !in transformedCatalog.seriesByMetric }) {
                 return StrictPreparationResult.Failure(
                     StrictPreparationFailureCode.TRANSFORMATION_PLAN_INCOMPLETE,
-                    listOf("every required X/Y/Z metric needs a confirmed transformed representation")
+                    listOf("every required X/Y/Z metric needs a supported transformed representation")
                 )
             }
             val representationPlan = EstimatorRepresentationPlan.createValidated(transformationPlan, assessments)

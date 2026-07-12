@@ -37,6 +37,9 @@ FORBIDDEN = [
     re.compile(r"\bposteriorProbabilityRankPositive\b"),
     re.compile(r"\bjohansenTraceStatistic\b"),
     re.compile(r"\bLEGACY_HEURISTIC\b"),
+    re.compile(r"\bCONFIRMED_I[01]\b"),
+    re.compile(r"\bREQUIRE_EXPLICIT_ROBUSTNESS_PLAN\b"),
+    re.compile(r"coerceAtLeast\s*\(\s*MIN_SCALE\s*\)"),
     re.compile(r"supportedForModelRouting\s*=\s*true"),
     re.compile(r"\.missingRates\b"),
     re.compile(r"weeks\.drop\s*\(\s*1\s*\)"),
@@ -111,6 +114,29 @@ def main() -> int:
         "EndogenousVariableSelector",
     )
     strict_sources = {path: path.read_text(encoding="utf-8") for path in STRICT_PIPELINE.rglob("*.kt")}
+    diagnostics_text = strict_sources.get(STRICT_DIAGNOSTICS, "")
+    if not re.search(r"MIN_INTEGRATION_SEGMENT_WEEKS\s*=\s*32\b", diagnostics_text):
+        violations.append("StrictTimeSeriesDiagnostics.kt: integration diagnostics must use a 32-week contiguous segment minimum")
+    if "statsmodels-adfuller-kpss-c" not in diagnostics_text:
+        violations.append("StrictTimeSeriesDiagnostics.kt: diagnostic method must name the statsmodels ADF/KPSS constant-only contract")
+    if not {"SUPPORTED_I0", "SUPPORTED_I1", "INSUFFICIENT_CONTIGUOUS_SAMPLE"}.issubset(set(re.findall(r"\b[A-Z_0-9]+\b", diagnostics_text))):
+        violations.append("StrictTimeSeriesDiagnostics.kt: supported/inconclusive status vocabulary is incomplete")
+
+    representation_text = strict_sources.get(STRICT_REPRESENTATION, "")
+    if "TRANSFORMATION_ASSESSMENT_CONFLICT" not in representation_text:
+        violations.append("StrictTimeSeriesRepresentation.kt: explicit transformation mismatch must fail with TRANSFORMATION_ASSESSMENT_CONFLICT")
+
+    stages_text = strict_sources.get(STRICT_PIPELINE / "StrictTimeSeriesStages.kt", "")
+    if not re.search(r"STRICT_HORIZON_RANGE\s*:\s*IntRange\s*=\s*1\.\.8\b", stages_text):
+        violations.append("StrictTimeSeriesStages.kt: strict horizon range must be exactly 1..8")
+
+    row_scaling_text = strict_sources.get(STRICT_ROW_SCALING, "")
+    if "HorizonPolicy.NOT_APPLICABLE" not in row_scaling_text or "planWithoutHorizon" not in row_scaling_text:
+        violations.append("PreparedRowAndScalingPlans.kt: non-horizon row plans must use explicit NOT_APPLICABLE policy")
+    for token in ("TOO_FEW_TRAINING_VALUES", "NEAR_CONSTANT_TRAINING_SERIES", "NON_FINITE_TRAINING_SERIES"):
+        if token not in row_scaling_text:
+            violations.append(f"PreparedRowAndScalingPlans.kt: missing scaling failure code {token}")
+
     for path in STRICT_PIPELINE.rglob("*.kt"):
         text = strict_sources[path]
         if path != STRICT_INGESTION and "TrendDataPoint" in text:
@@ -118,8 +144,10 @@ def main() -> int:
         for symbol in legacy_symbols:
             if symbol in text:
                 violations.append(f"{path.relative_to(ROOT)}: strict pipeline references legacy symbol {symbol}")
-        if re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.)", text, re.MULTILINE):
+        if re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.|StableLinearAlgebra\b)", text, re.MULTILINE):
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline imports the legacy lab package")
+        if re.search(r"\b(USE_DOCUMENTED_FALLBACK|ADF_REJECT|KPSS_RETAIN)\b", text):
+            violations.append(f"{path.relative_to(ROOT)}: strict pipeline must not use legacy fixed diagnostic thresholds or fallback policy")
         if re.search(r"data\s+class\s+\w+\s*\([^)]*fingerprint\s*:", text, re.DOTALL):
             violations.append(f"{path.relative_to(ROOT)}: identity-bearing strict type must not expose data-class copy semantics")
         if re.search(r"filter\s*\(\s*Double::isFinite\s*\)|filterNotNull\s*\(\s*\)", text):

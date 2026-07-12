@@ -11,8 +11,7 @@ internal enum class OptionalMetricInconclusivePolicy {
 }
 
 internal enum class RequiredMetricInconclusivePolicy {
-    FAIL_STRICT_PREPARATION,
-    REQUIRE_EXPLICIT_ROBUSTNESS_PLAN
+    FAIL_STRICT_PREPARATION
 }
 
 internal class StrictPreparationPolicy private constructor(
@@ -58,7 +57,7 @@ internal class CanonicalTransformationDecision private constructor(
     val metric: TrendMetricId,
     val integrationAssessmentFingerprint: String,
     val transformation: CanonicalSeriesTransformation,
-    val confirmed: Boolean,
+    val supported: Boolean,
     val policyForced: Boolean,
     val decisionReason: String,
     val transformationVersion: String,
@@ -69,18 +68,18 @@ internal class CanonicalTransformationDecision private constructor(
             metric: TrendMetricId,
             assessment: IntegrationOrderAssessment,
             transformation: CanonicalSeriesTransformation,
-            confirmed: Boolean,
+            supported: Boolean,
             policyForced: Boolean,
             decisionReason: String
         ): CanonicalTransformationDecision {
             require(metric == assessment.metric)
-            if (transformation != CanonicalSeriesTransformation.EXCLUDED) require(confirmed)
+            if (transformation != CanonicalSeriesTransformation.EXCLUDED) require(supported)
             val fingerprint = strictFingerprint(
                 listOf(
                     metric.name,
                     assessment.fingerprint,
                     transformation.name,
-                    confirmed,
+                    supported,
                     policyForced,
                     decisionReason,
                     TRANSFORMATION_VERSION
@@ -90,7 +89,7 @@ internal class CanonicalTransformationDecision private constructor(
                 metric,
                 assessment.fingerprint,
                 transformation,
-                confirmed,
+                supported,
                 policyForced,
                 decisionReason,
                 TRANSFORMATION_VERSION,
@@ -152,7 +151,7 @@ internal object CanonicalTransformationAuthority {
             )
         }
         val requiredFailures = request.requiredMetrics.mapNotNull { metric ->
-            assessments[metric]?.takeUnless { it.status in CONFIRMED_STATUSES }?.let { "$metric: ${it.status}" }
+            assessments[metric]?.takeUnless { it.status in SUPPORTED_STATUSES }?.let { "$metric: ${it.status}" }
                 ?: if (metric !in assessments) "$metric: missing assessment" else null
         }
         if (requiredFailures.isNotEmpty()) {
@@ -163,24 +162,30 @@ internal object CanonicalTransformationAuthority {
         }
         val decisions = assessments.toSortedMap(compareBy { it.name }).mapValues { (metric, assessment) ->
             val automatic = when (assessment.status) {
-                IntegrationAssessmentStatus.CONFIRMED_I0 -> CanonicalSeriesTransformation.LEVEL
-                IntegrationAssessmentStatus.CONFIRMED_I1 -> CanonicalSeriesTransformation.FIRST_DIFFERENCE
+                IntegrationAssessmentStatus.SUPPORTED_I0 -> CanonicalSeriesTransformation.LEVEL
+                IntegrationAssessmentStatus.SUPPORTED_I1 -> CanonicalSeriesTransformation.FIRST_DIFFERENCE
                 else -> CanonicalSeriesTransformation.EXCLUDED
             }
             val transformation = policy.explicitTransformations[metric] ?: automatic
+            if (metric in policy.explicitTransformations && transformation != automatic) {
+                return CanonicalTransformationPlanResult.Failure(
+                    StrictPreparationFailureCode.TRANSFORMATION_ASSESSMENT_CONFLICT,
+                    listOf("TRANSFORMATION_ASSESSMENT_CONFLICT: $metric requested ${transformation.name} but assessment ${assessment.status} requires ${automatic.name}")
+                )
+            }
             CanonicalTransformationDecision.createValidated(
                 metric,
                 assessment,
                 transformation,
-                confirmed = transformation != CanonicalSeriesTransformation.EXCLUDED,
+                supported = transformation != CanonicalSeriesTransformation.EXCLUDED,
                 policyForced = metric in policy.explicitTransformations,
                 decisionReason = if (metric in policy.explicitTransformations) {
                     "explicit canonical transformation policy: ${transformation.name}"
                 } else when (transformation) {
-                    CanonicalSeriesTransformation.LEVEL -> "confirmed I(0)"
-                    CanonicalSeriesTransformation.FIRST_DIFFERENCE -> "confirmed I(1); differenced once by canonical authority"
+                    CanonicalSeriesTransformation.LEVEL -> "supported I(0)"
+                    CanonicalSeriesTransformation.FIRST_DIFFERENCE -> "supported I(1); differenced once by canonical authority"
                     CanonicalSeriesTransformation.EXCLUDED -> when (policy.optionalInconclusivePolicy) {
-                        OptionalMetricInconclusivePolicy.EXCLUDE_FROM_ELIGIBLE_CANDIDATES -> "optional metric excluded because integration is unconfirmed"
+                        OptionalMetricInconclusivePolicy.EXCLUDE_FROM_ELIGIBLE_CANDIDATES -> "optional metric excluded because integration is unsupported or inconclusive"
                         OptionalMetricInconclusivePolicy.RETAIN_AS_DIAGNOSTIC_ONLY -> "optional metric retained as diagnostic only and excluded from modeling"
                     }
                     else -> error("unsupported automatic transformation")
@@ -192,9 +197,9 @@ internal object CanonicalTransformationAuthority {
         )
     }
 
-    private val CONFIRMED_STATUSES = setOf(
-        IntegrationAssessmentStatus.CONFIRMED_I0,
-        IntegrationAssessmentStatus.CONFIRMED_I1
+    private val SUPPORTED_STATUSES = setOf(
+        IntegrationAssessmentStatus.SUPPORTED_I0,
+        IntegrationAssessmentStatus.SUPPORTED_I1
     )
 }
 
@@ -215,7 +220,7 @@ internal class TransformedPreparedSeries private constructor(
             decision: CanonicalTransformationDecision
         ): TransformedPreparedSeries {
             require(source.metric == decision.metric)
-            require(decision.confirmed && decision.transformation != CanonicalSeriesTransformation.EXCLUDED)
+            require(decision.supported && decision.transformation != CanonicalSeriesTransformation.EXCLUDED)
             val cells = when (decision.transformation) {
                 CanonicalSeriesTransformation.LEVEL -> source.cells
                 CanonicalSeriesTransformation.FIRST_DIFFERENCE -> differenceCells(source, logValues = false)
@@ -338,12 +343,12 @@ internal class EstimatorRepresentationDecision private constructor(
         ): EstimatorRepresentationDecision {
             require(decision.metric == assessment.metric)
             require(decision.integrationAssessmentFingerprint == assessment.fingerprint)
-            val levelEligible = assessment.status == IntegrationAssessmentStatus.CONFIRMED_I1
+            val levelEligible = assessment.status == IntegrationAssessmentStatus.SUPPORTED_I1
             val vecmEligible = levelEligible && decision.transformation == CanonicalSeriesTransformation.FIRST_DIFFERENCE
             val representation = EstimatorRepresentationDecision(
                 decision.metric,
-                if (decision.confirmed) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
-                if (decision.confirmed) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
+                if (decision.supported) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
+                if (decision.supported) EstimatorSeriesRepresentation.CANONICAL_STATIONARY else EstimatorSeriesRepresentation.UNAVAILABLE,
                 if (levelEligible) EstimatorSeriesRepresentation.VALIDATED_LEVEL else EstimatorSeriesRepresentation.UNAVAILABLE,
                 if (vecmEligible) EstimatorSeriesRepresentation.VALIDATED_LEVEL_AND_ALIGNED_FIRST_DIFFERENCE else EstimatorSeriesRepresentation.UNAVAILABLE,
                 decision.fingerprint,
@@ -442,7 +447,7 @@ internal class ResponseScalePlan private constructor(
 ) {
     companion object {
         fun createValidated(decision: CanonicalTransformationDecision): ResponseScalePlan {
-            require(decision.confirmed)
+            require(decision.supported)
             val values = when (decision.transformation) {
                 CanonicalSeriesTransformation.LEVEL -> ScaleValues(
                     ResponseEstimationScale.LEVEL,

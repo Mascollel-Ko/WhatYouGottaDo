@@ -132,6 +132,15 @@ internal object StableLinearAlgebra {
         val diagnostics: List<String>
     )
 
+    data class OrdinaryLeastSquaresResult(
+        val coefficients: DoubleArray,
+        val tValues: DoubleArray,
+        val residualSumSquares: Double,
+        val aic: Double,
+        val rank: Int,
+        val conditionNumber: Double
+    )
+
     fun solveSpd(a: Array<DoubleArray>, b: DoubleArray): SpdSolveResult<DoubleArray> {
         val factor = regularizedCholesky(a)
         val solution = decompositionFromFactor(factor.factor).solver.solve(MatrixUtils.createRealVector(b)).toArray()
@@ -155,6 +164,33 @@ internal object StableLinearAlgebra {
 
     fun solveLeastSquares(a: Array<DoubleArray>, matrixB: Array<DoubleArray>): Array<DoubleArray> =
         leastSquaresSolver(matrix(a)).solve(matrix(matrixB)).data
+
+    fun ordinaryLeastSquares(x: Array<DoubleArray>, y: DoubleArray): OrdinaryLeastSquaresResult {
+        require(x.isNotEmpty() && x.size == y.size)
+        require(x.all { it.size == x[0].size && it.all(Double::isFinite) } && y.all(Double::isFinite))
+        val columns = x[0].size
+        val rank = rank(x)
+        if (rank < columns) throw IllegalArgumentException("OLS design rank $rank is below $columns")
+        val condition = effectiveConditionNumber(x)
+        if (!condition.isFinite() || condition > MAX_CONDITION_NUMBER) {
+            throw IllegalArgumentException("OLS design condition $condition exceeds $MAX_CONDITION_NUMBER")
+        }
+        val coefficients = solveLeastSquares(x, y)
+        val residuals = DoubleArray(y.size) { row -> y[row] - x[row].indices.sumOf { column -> x[row][column] * coefficients[column] } }
+        val ssr = residuals.sumOf { it * it }
+        if (!ssr.isFinite() || ssr <= 0.0 || y.size <= columns) throw IllegalArgumentException("OLS residual variance is not estimable")
+        val xtx = Array(columns) { row -> DoubleArray(columns) { column -> x.indices.sumOf { index -> x[index][row] * x[index][column] } } }
+        val inverse = solveLeastSquares(xtx, identity(columns))
+        val sigma2 = ssr / (y.size - columns)
+        val tValues = DoubleArray(columns) { index ->
+            val variance = sigma2 * inverse[index][index]
+            if (!variance.isFinite() || variance <= 0.0) throw IllegalArgumentException("OLS coefficient variance is not positive")
+            coefficients[index] / sqrt(variance)
+        }
+        val aic = y.size * (ln(2.0 * Math.PI) + 1.0 + ln(ssr / y.size)) + 2.0 * columns
+        if (!aic.isFinite()) throw IllegalArgumentException("OLS AIC is not finite")
+        return OrdinaryLeastSquaresResult(coefficients, tValues, ssr, aic, rank, condition)
+    }
 
     fun strictCholesky(a: Array<DoubleArray>): CholeskyResult {
         validateMatrix(a)
@@ -532,6 +568,9 @@ internal object StableLinearAlgebra {
         max(a.indices.map { abs(a[it][it]) }.average().takeIf { it.isFinite() } ?: 0.0, SMALL_SCALE)
 
     private fun matrix(a: Array<DoubleArray>): RealMatrix = MatrixUtils.createRealMatrix(a)
+
+    private fun identity(size: Int): Array<DoubleArray> =
+        Array(size) { row -> DoubleArray(size) { column -> if (row == column) 1.0 else 0.0 } }
 
     private fun validateMatrix(a: Array<DoubleArray>) {
         if (a.isEmpty() || a.any { it.size != a.size }) {

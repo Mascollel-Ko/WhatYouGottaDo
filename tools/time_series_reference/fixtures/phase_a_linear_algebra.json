@@ -285,14 +285,23 @@
     "rank": 1
   },
   "provenance": {
+    "adf_parameters": {
+      "autolag": "AIC",
+      "regression": "c"
+    },
     "generator_script_version": "phase-a-6",
+    "kpss_parameters": {
+      "nlags": "auto",
+      "regression": "c"
+    },
     "numpy_version": "2.3.5",
     "purpose": "Phase A linear algebra golden fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "73c0dbd6f9940b98b202354c816e7799adcd1e37",
+    "source_commit": "6fa92e3de21d8188ad33c8bc25b5e62ef7718878",
+    "statsmodels_version": "0.14.6",
     "tolerance": 1e-07
   },
   "rank_deficient_condition_number": {

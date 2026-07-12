@@ -1,7 +1,10 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.io.File
 import java.time.LocalDate
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -9,6 +12,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StrictTimeSeriesEndToEndTest {
+    private val integrationFixtures = JSONObject(existingFile("tools/time_series_reference/fixtures/phase_a_integration_reference.json").readText())
+        .getJSONObject("fixtures")
+
     @Test
     fun rawWeeklyDataProducesOneImmutablePreparationContextWithoutRunningEstimators() {
         val x = TrendMetricId.BADMINTON_TRAINING
@@ -16,10 +22,9 @@ class StrictTimeSeriesEndToEndTest {
         val y2 = TrendMetricId.STRENGTH_PERFORMANCE
         val z = TrendMetricId.SLEEP_HOURS
         val optional = TrendMetricId.STRENGTH_VOLUME
-        val weeks = weeks(36)
-        val walk = (0 until weeks.size).runningFold(0.0) { total, index ->
-            total + if (index % 2 == 0) 1.0 else -0.35
-        }.dropLast(1)
+        val stationary = fixtureValues("stationary_ar_03")
+        val walk = fixtureValues("random_walk")
+        val weeks = weeks(stationary.size)
         val lifecycle = StrictMetricLifecycle.createValidated(
             availableFromWeek = weeks[2],
             structuralZeroAllowed = true,
@@ -29,10 +34,10 @@ class StrictTimeSeriesEndToEndTest {
         )
         val required = buildList {
             weeks.forEachIndexed { index, week ->
-                add(RawTimeSeriesObservation(x, week, if (index % 2 == 0) 1.0 else -1.0, sourceIndex = index))
+                add(RawTimeSeriesObservation(x, week, stationary[index], sourceIndex = index))
                 add(RawTimeSeriesObservation(y1, week, walk[index], sourceIndex = index))
-                add(RawTimeSeriesObservation(y2, week, if (index % 2 == 0) 2.0 else -2.0, sourceIndex = index))
-                add(RawTimeSeriesObservation(z, week, if (index % 2 == 0) 3.0 else -3.0, sourceIndex = index))
+                add(RawTimeSeriesObservation(y2, week, stationary[index] * 2.0, sourceIndex = index))
+                add(RawTimeSeriesObservation(z, week, stationary[index] * 3.0, sourceIndex = index))
             }
         }
         val optionalObservations = buildList {
@@ -69,7 +74,7 @@ class StrictTimeSeriesEndToEndTest {
         assertNull(optionalSeries.cells[20].value)
 
         val segments = context.contiguousSegmentsByMetric.getValue(optional)
-        assertEquals(listOf(1, 14, 15), segments.map { it.length })
+        assertEquals(listOf(1, 14, 59), segments.map { it.length })
         assertTrue(segments.none { segment -> weeks[3] in segment.weeks || weeks[4] in segment.weeks || weeks[5] in segment.weeks || weeks[20] in segment.weeks })
         val assessment = context.integrationAssessmentsByMetric.getValue(optional)
         assertEquals(IntegrationAssessmentStatus.INCONCLUSIVE, assessment.status)
@@ -106,4 +111,14 @@ class StrictTimeSeriesEndToEndTest {
 
     private fun weeks(count: Int): List<LocalDate> =
         (0 until count).map { LocalDate.parse("2026-01-05").plusWeeks(it.toLong()) }
+
+    private fun fixtureValues(name: String): List<Double> =
+        integrationFixtures.getJSONObject(name).getJSONArray("values").toList().map { (it as Number).toDouble() }
+
+    private fun JSONArray.toList(): List<Any> = (0 until length()).map(::get)
+
+    private fun existingFile(path: String): File {
+        val cwd = File(requireNotNull(System.getProperty("user.dir")))
+        return generateSequence(cwd) { it.parentFile }.map { File(it, path) }.first(File::exists)
+    }
 }

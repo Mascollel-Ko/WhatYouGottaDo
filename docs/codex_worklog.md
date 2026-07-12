@@ -1501,3 +1501,39 @@ Remaining
 - PHASE D: validated Johansen diagnostics, rank posterior, and Bayesian VECM.
 - PHASE E: automatic endogenous-variable ranking, model comparison, and final UI labels/integration.
 - None of those estimators or UI stages were started in this task.
+
+## PHASE A strict integration and input-contract stabilization
+
+Cause
+- Continued only on `feat/time-series-phase-a` from exact baseline `6fa92e3de21d8188ad33c8bc25b5e62ef7718878`.
+- Segment diagnostics still used app-local ADF/KPSS thresholds and permissive short samples rather than the independent statsmodels reference contract.
+- Required/optional inconclusive handling, explicit transformation mismatch, row horizon identity, and scaling edge cases needed fixed tests and source guards before posterior-boundary work.
+- The approved dirty `outputs/*` files were left untouched and were not staged.
+
+Changes
+- Commit 1 pending (`fix(analysis): finalize strict integration and input contracts`): replaced legacy confirmed-status terminology with supported/inconclusive vocabulary, raised contiguous integration diagnostics to the 32-week minimum, and added statsmodels-compatible constant-only ADF/KPSS diagnostics with intermediate reference fields.
+- Added OLS support to `StableLinearAlgebra` so the strict diagnostics can route numerical fitting through the approved wrapper.
+- Made explicit transformation mismatches fail as `TRANSFORMATION_ASSESSMENT_CONFLICT` instead of falling through a documented fallback path.
+- Restricted product horizons to 1..8, added explicit `HorizonPolicy.NOT_APPLICABLE` for no-horizon row plans, and removed zero/empty sentinel behavior.
+- Replaced scaling clamping with declared failure modes for too-short, non-finite, indistinguishable, and near-constant training samples.
+- Added `StrictTimeSeriesIntegrationContractTest`, updated strict context/representation/end-to-end tests, and added deterministic statsmodels reference fixtures plus `statsmodels==0.14.6` to the reference requirements.
+- Updated `tools/check_time_series_numeric_sources.py`, `tools/time_series_reference/README.md`, and `docs/bayesian_time_series_lab_architecture.md` for the stricter PHASE A contracts.
+
+Reason
+- PHASE A must decide statistical support, transformation, rows, horizons, and scaling deterministically before PHASE B/C/D estimators exist.
+- Required metrics should fail closed when inconclusive; optional metrics should be excluded without fallback modeling.
+- No future estimator should be able to reintroduce fixed thresholds, horizon-zero sentinels, implicit transformation overrides, scaling clamps, or duplicate row/scaling authorities.
+
+Result
+- Strict integration support now matches deterministic statsmodels ADF/KPSS fixture statistics and preserves inconclusive/singular cases.
+- Required and optional inconclusive behavior is fixed by contract tests.
+- Row and scaling inputs have explicit strict identity and failure boundaries.
+- PHASE B, C, D, and E estimator implementation remains unstarted.
+
+Tests
+- `.\gradlew.bat --version`: passed with Android Studio JBR and repo-local `.gradle-user-home`.
+- Bundled Python `pip install statsmodels`: passed for reference tooling only.
+- Bundled Python `tools/time_series_reference/generate_phase_a_fixtures.py`: passed; statsmodels emitted expected KPSS boundary warnings.
+- Bundled Python `tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeriesIntegrationContractTest" --tests "*StrictTimeSeriesRepresentationContractTest" --tests "*PreparedAnalysisContextContractTest" --tests "*StrictTimeSeriesEndToEndTest" --tests "*StrictTimeSeriesArchitectureTest"`: initially exposed outdated test fixtures and then passed after switching to deterministic integration fixtures.

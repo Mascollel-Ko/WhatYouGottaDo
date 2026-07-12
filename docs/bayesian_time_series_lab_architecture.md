@@ -142,17 +142,17 @@ Restricted estimator views retain the root calendar identity. They do not redefi
 
 `SegmentAwareIntegrationAssessmentAuthority` walks lifecycle-validated cells in calendar order. A segment ends at every missing, pre-creation, not-applicable, version-discontinuity, conflict, activation, or availability break. Separated finite cells are never concatenated.
 
-Each segment preserves exact weeks and values. Segments shorter than eight rows remain in diagnostics as excluded segments. Eligible segments are diagnosed independently with the declared `segment-aware-adf-kpss` method/version. A confirmed I(0) or I(1) assessment requires every eligible segment to agree. Disagreement, unresolved conflict, or unstable evidence is `INCONCLUSIVE`; no eligible segment is `INSUFFICIENT_CONTIGUOUS_SAMPLE`.
+Each segment preserves exact weeks and values. Segments shorter than 32 rows remain in diagnostics as excluded segments. Eligible segments are diagnosed independently with the declared `statsmodels-adfuller-kpss-c` method/version: constant-only ADF with statsmodels-compatible autolag/AIC and MacKinnon p-value/critical values, plus constant-only KPSS with Hobijn auto lag and interpolated reference p-values. A supported I(0) or I(1) assessment requires every eligible segment to agree. Disagreement, unresolved conflict, or unstable evidence is `INCONCLUSIVE`; no eligible segment is `INSUFFICIENT_CONTIGUOUS_SAMPLE`.
 
 ## Inconclusive Policies
 
 - Optional metric default: `EXCLUDE_FROM_ELIGIBLE_CANDIDATES`. Diagnostics and level data remain available; no level or difference is guessed.
 - Required X/Y/Z default: `FAIL_STRICT_PREPARATION`. The result is `INCONCLUSIVE_TRANSFORMATION`; no context or model-ready representation is returned.
-- `REQUIRE_EXPLICIT_ROBUSTNESS_PLAN` is a named future policy contract, not an implicit fallback.
+- Explicit transformation policy can only restate the supported canonical assessment. A mismatch fails with `TRANSFORMATION_ASSESSMENT_CONFLICT`; there is no documented fallback override path.
 
 ## Canonical Transformation Authority
 
-Confirmed I(0) defaults to `LEVEL`; confirmed I(1) defaults to `FIRST_DIFFERENCE`. Explicit log policies are fingerprinted. The transformer accepts only `LifecycleValidatedLevelSeries`, so transformed series cannot be transformed again through the canonical API. First differences keep the full calendar, mark an unavailable first or boundary-crossing cell as missing, and preserve the source level fingerprint.
+Supported I(0) defaults to `LEVEL`; supported I(1) defaults to `FIRST_DIFFERENCE`. Explicit log policies are fingerprinted. The transformer accepts only `LifecycleValidatedLevelSeries`, so transformed series cannot be transformed again through the canonical API. First differences keep the full calendar, mark an unavailable first or boundary-crossing cell as missing, and preserve the source level fingerprint.
 
 No selector, view, row planner, scaler, UI, or future estimator may call an independent difference helper or choose a fallback representation.
 
@@ -183,11 +183,11 @@ Roles are explicit: `SHOCK_SOURCE`, `ENDOGENOUS_STATE`, `RESPONSE`, `CONTEMPORAN
 - contemporaneous control: source only;
 - lagged control: source and declared control lags only.
 
-`HorizonPolicy` supports `PER_HORIZON`, `SHARED_MULTI_HORIZON`, and `DECLARED_REFERENCE_HORIZON`. Row identity includes purpose, roles, transformations through the view, lag, requested horizon set, reference horizon, horizon policy, canonical weeks, view fingerprint, and root context. No horizon is hard-coded.
+`HorizonPolicy` supports `PER_HORIZON`, `SHARED_MULTI_HORIZON`, `DECLARED_REFERENCE_HORIZON`, and `NOT_APPLICABLE` for non-horizon estimator rows. Strict requested horizons are exactly 1..8; zero and empty horizon sets are rejected except through the explicit `NOT_APPLICABLE` no-horizon path. Row identity includes purpose, roles, transformations through the view, lag, requested horizon set, nullable reference horizon, horizon policy, canonical weeks, view fingerprint, and root context. No horizon is hard-coded.
 
 ## ScalingPlanner
 
-`ScalingPlanner` accepts a prepared view, its row plan, and an explicit non-empty subset of row-plan source weeks. Mean and scale are calculated only from those training rows. Excluded, future/test, missing, conflict, pre-creation, not-applicable, and discontinuity cells cannot enter. The scaling fingerprint includes root/view/row identities, ordered training rows, statistics, and policy.
+`ScalingPlanner` accepts a prepared view, its row plan, and an explicit non-empty subset of row-plan source weeks. Mean and sample scale are calculated only from those training rows. Excluded, future/test, missing, conflict, pre-creation, not-applicable, and discontinuity cells cannot enter. Scaling fails explicitly for fewer than three training values, non-finite training values, fewer than two distinguishable raw values, or a near-constant sample scale at or below the numeric floor. The scaling fingerprint includes root/view/row identities, ordered training rows, statistics, and policy.
 
 ## Future Structural-Shock Contract
 
@@ -241,6 +241,7 @@ Static and focused tests reject:
 - finite/null filtering used to compress calendar identity;
 - independent or repeated differencing;
 - independent transformation, row, scaling, or horizon-1 logic;
+- sub-32 integration diagnostics, fixed ADF/KPSS thresholds, legacy confirmed-status vocabulary, explicit transformation fallback, scaling clamps, horizon-zero sentinels, and duplicate row/scaling authorities;
 - transformed data in a Johansen view;
 - raw/fallback/single-mean BLP shocks;
 - response-scale decisions in UI;

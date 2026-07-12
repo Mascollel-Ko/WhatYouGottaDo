@@ -2,14 +2,20 @@ package com.training.trackplanner.analysis.lab.pipeline
 
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.io.File
 import java.lang.reflect.Modifier
 import java.time.LocalDate
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PreparedAnalysisContextContractTest {
+    private val integrationFixtures = JSONObject(existingFile("tools/time_series_reference/fixtures/phase_a_integration_reference.json").readText())
+        .getJSONObject("fixtures")
+
     @Test
     fun contextOwnsOneCalendarEveryPreparationDecisionAndCandidateEligibilityOnly() {
         val optional = TrendMetricId.STRENGTH_VOLUME
@@ -27,12 +33,13 @@ class PreparedAnalysisContextContractTest {
 
     @Test
     fun requiredInconclusiveMetricFailsBeforeContextExists() {
-        val weeks = weeks(24)
+        val yValues = fixtureValues("stationary_ar_03")
+        val weeks = weeks(yValues.size)
         val request = request()
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
                 request.xMetric to points(weeks) { 3.0 },
-                request.yMetrics.single() to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 }
+                request.yMetrics.single() to weeks.mapIndexed { index, week -> TrendDataPoint(week, yValues[index]) }
             )
         ).ingest(request)
 
@@ -49,12 +56,12 @@ class PreparedAnalysisContextContractTest {
     fun estimatorViewsShareRootIdentityAndKeepLevelAndTransformedRepresentationsSeparate() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(64)
-        val walk = (0 until 64).runningFold(0.0) { total, index -> total + if (index % 2 == 0) 1.0 else -0.35 }.dropLast(1)
+        val walk = fixtureValues("random_walk")
+        val weeks = weeks(walk.size)
         val request = StrictPreparationRequest(x, listOf(y), horizons = setOf(1, 2))
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
-                x to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 },
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, fixtureValues("stationary_ar_03")[index]) },
                 y to weeks.mapIndexed { index, week -> TrendDataPoint(week, walk[index]) }
             )
         ).ingest(request)
@@ -76,13 +83,14 @@ class PreparedAnalysisContextContractTest {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val control = TrendMetricId.SLEEP_HOURS
-        val weeks = weeks(24)
+        val values = fixtureValues("stationary_ar_03")
+        val weeks = weeks(values.size)
         val request = StrictPreparationRequest(x, listOf(y), controls = listOf(control), horizons = setOf(1, 2))
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
-                x to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 },
-                y to points(weeks) { if (it % 2 == 0) 2.0 else -2.0 },
-                control to weeks.mapIndexed { index, week -> TrendDataPoint(week, if (index == weeks.lastIndex) null else if (index % 2 == 0) 3.0 else -3.0) }
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, values[index]) },
+                y to weeks.mapIndexed { index, week -> TrendDataPoint(week, values[index] * 2.0) },
+                control to weeks.mapIndexed { index, week -> TrendDataPoint(week, if (index == weeks.lastIndex) null else values[index] * 3.0) }
             )
         ).ingest(request)
         val context = (PreparedAnalysisContext.createValidated(request, catalog) as StrictPreparationResult.Success).context
@@ -100,8 +108,10 @@ class PreparedAnalysisContextContractTest {
 
     @Test
     fun scalingUsesOnlyDeclaredTrainingRows() {
-        val clean = context()
-        val dirty = context(xValues = { index -> if (index == 23) 0.5 else if (index % 2 == 0) 1.0 else -1.0 })
+        val cleanValues = fixtureValues("stationary_ar_03")
+        val dirtyValues = cleanValues.toMutableList().also { it[23] = 0.5 }
+        val clean = context(xValues = cleanValues)
+        val dirty = context(xValues = dirtyValues)
         val cleanView = BvarPreparedView.from(clean)
         val dirtyView = BvarPreparedView.from(dirty)
         val cleanRows = RowPlanner.plan(clean, cleanView, 1, setOf(1), 1, HorizonPolicy.DECLARED_REFERENCE_HORIZON)
@@ -134,7 +144,7 @@ class PreparedAnalysisContextContractTest {
     fun futureVariableSelectionViewContainsEligibilityButRowRankingIsDisabled() {
         val optional = TrendMetricId.STRENGTH_VOLUME
         val context = context(
-            optionalValues = { index -> if (index % 2 == 0) 4.0 else -4.0 },
+            optionalValues = { index -> fixtureValues("stationary_ar_03")[index] * 4.0 },
             optional = listOf(optional)
         )
         val view = CandidateEligibilityView.from(context)
@@ -148,15 +158,16 @@ class PreparedAnalysisContextContractTest {
     }
 
     private fun context(
-        xValues: (Int) -> Double = { if (it % 2 == 0) 1.0 else -1.0 },
+        xValues: List<Double>? = null,
         optionalValues: ((Int) -> Double)? = null,
         optional: List<TrendMetricId> = emptyList()
     ): PreparedAnalysisContext {
-        val weeks = weeks(24)
+        val values = fixtureValues("stationary_ar_03")
+        val weeks = weeks(values.size)
         val request = request(optional)
         val series = mutableMapOf(
-            request.xMetric to points(weeks, xValues),
-            request.yMetrics.single() to points(weeks) { if (it % 2 == 0) 2.0 else -2.0 }
+            request.xMetric to weeks.mapIndexed { index, week -> TrendDataPoint(week, xValues?.get(index) ?: values[index]) },
+            request.yMetrics.single() to weeks.mapIndexed { index, week -> TrendDataPoint(week, values[index] * 2.0) }
         )
         optional.firstOrNull()?.let { metric -> series[metric] = points(weeks, optionalValues ?: { if (it % 2 == 0) 3.0 else -3.0 }) }
         val catalog = RawTimeSeriesInput.fromTrendSeries(series).ingest(request)
@@ -175,4 +186,14 @@ class PreparedAnalysisContextContractTest {
 
     private fun points(weeks: List<LocalDate>, value: (Int) -> Double): List<TrendDataPoint> =
         weeks.mapIndexed { index, week -> TrendDataPoint(week, value(index)) }
+
+    private fun fixtureValues(name: String): List<Double> =
+        integrationFixtures.getJSONObject(name).getJSONArray("values").toList().map { (it as Number).toDouble() }
+
+    private fun JSONArray.toList(): List<Any> = (0 until length()).map(::get)
+
+    private fun existingFile(path: String): File {
+        val cwd = File(requireNotNull(System.getProperty("user.dir")))
+        return generateSequence(cwd) { it.parentFile }.map { File(it, path) }.first(File::exists)
+    }
 }

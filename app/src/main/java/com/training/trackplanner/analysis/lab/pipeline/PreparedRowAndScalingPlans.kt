@@ -62,7 +62,8 @@ internal class VariableRowRequirement private constructor(
 internal enum class HorizonPolicy {
     PER_HORIZON,
     SHARED_MULTI_HORIZON,
-    DECLARED_REFERENCE_HORIZON
+    DECLARED_REFERENCE_HORIZON,
+    NOT_APPLICABLE
 }
 
 internal enum class StrictRowComparisonPolicy {
@@ -73,7 +74,7 @@ internal class PreparedRowSpecification private constructor(
     requirements: List<VariableRowRequirement>,
     val lag: Int,
     requestedHorizons: Set<Int>,
-    val referenceHorizon: Int,
+    val referenceHorizon: Int?,
     val horizonPolicy: HorizonPolicy,
     val estimatorPurpose: EstimatorPurpose,
     val rowComparisonPolicy: StrictRowComparisonPolicy,
@@ -88,15 +89,21 @@ internal class PreparedRowSpecification private constructor(
             requirements: List<VariableRowRequirement>,
             lag: Int,
             requestedHorizons: Set<Int>,
-            referenceHorizon: Int,
+            referenceHorizon: Int?,
             horizonPolicy: HorizonPolicy,
             estimatorPurpose: EstimatorPurpose,
             rowComparisonPolicy: StrictRowComparisonPolicy,
             sourceViewFingerprint: String
         ): PreparedRowSpecification {
             require(requirements.isNotEmpty() && requirements.map { it.metric }.distinct().size == requirements.size)
-            require(lag >= 0 && requestedHorizons.isNotEmpty() && requestedHorizons.all { it >= 0 })
-            require(referenceHorizon in requestedHorizons)
+            require(lag >= 0)
+            if (horizonPolicy == HorizonPolicy.NOT_APPLICABLE) {
+                require(requestedHorizons.isEmpty() && referenceHorizon == null)
+                require(estimatorPurpose != EstimatorPurpose.BLP_RESPONSE)
+            } else {
+                require(requestedHorizons.isNotEmpty() && requestedHorizons.all { it in STRICT_HORIZON_RANGE })
+                require(referenceHorizon in requestedHorizons)
+            }
             val ordered = requirements.sortedBy { it.metric.name }
             val fingerprint = strictFingerprint(
                 listOf(
@@ -249,7 +256,7 @@ internal object RowPlanner {
         view: PreparedEstimatorView,
         lag: Int,
         requestedHorizons: Set<Int>,
-        referenceHorizon: Int,
+        referenceHorizon: Int?,
         horizonPolicy: HorizonPolicy
     ): PreparedRowPlan {
         require(view.rootContextFingerprint == context.fingerprint)
@@ -258,7 +265,8 @@ internal object RowPlanner {
         }
         val targetOffsets = when (horizonPolicy) {
             HorizonPolicy.SHARED_MULTI_HORIZON -> requestedHorizons
-            HorizonPolicy.PER_HORIZON, HorizonPolicy.DECLARED_REFERENCE_HORIZON -> setOf(referenceHorizon)
+            HorizonPolicy.PER_HORIZON, HorizonPolicy.DECLARED_REFERENCE_HORIZON -> setOf(requireNotNull(referenceHorizon))
+            HorizonPolicy.NOT_APPLICABLE -> emptySet()
         }
         val requirements = VariableRoleAuthority.requirements(context, view.purpose, lag, targetOffsets)
             .filter { it.metric in view.metrics }
@@ -297,6 +305,12 @@ internal object RowPlanner {
         }
         return PreparedRowPlan.createValidated(view, specification, rows, exclusions)
     }
+
+    fun planWithoutHorizon(
+        context: PreparedAnalysisContext,
+        view: PreparedEstimatorView,
+        lag: Int
+    ): PreparedRowPlan = plan(context, view, lag, emptySet(), null, HorizonPolicy.NOT_APPLICABLE)
 }
 
 internal enum class ScalingPolicy {
@@ -307,6 +321,17 @@ internal data class ScalingStatistic(
     val mean: Double,
     val scale: Double
 )
+
+internal enum class ScalingFailureCode {
+    TOO_FEW_TRAINING_VALUES,
+    NEAR_CONSTANT_TRAINING_SERIES,
+    NON_FINITE_TRAINING_SERIES
+}
+
+internal class ScalingPlanFailureException(
+    val code: ScalingFailureCode,
+    message: String
+) : IllegalArgumentException("$code: $message")
 
 internal class PreparedScalingPlan private constructor(
     statisticsByMetric: Map<TrendMetricId, ScalingStatistic>,
@@ -378,9 +403,7 @@ internal object ScalingPlanner {
             val values = orderedTraining.map { week ->
                 view.value(metric, indexByWeek.getValue(week)) ?: error("training row lacks a finite prepared value for $metric")
             }
-            val mean = values.average()
-            val variance = values.sumOf { (it - mean) * (it - mean) } / values.size
-            ScalingStatistic(mean, sqrt(variance).coerceAtLeast(MIN_SCALE))
+            scalingStatistic(metric, values)
         }
         return PreparedScalingPlan.createValidated(
             view,
@@ -392,7 +415,32 @@ internal object ScalingPlanner {
         )
     }
 
-    private const val MIN_SCALE = 1e-9
+    private fun scalingStatistic(metric: TrendMetricId, values: List<Double>): ScalingStatistic {
+        if (values.size < 3) {
+            throw ScalingPlanFailureException(ScalingFailureCode.TOO_FEW_TRAINING_VALUES, "$metric has ${values.size} training values")
+        }
+        if (values.any { !it.isFinite() }) {
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric has non-finite training values")
+        }
+        if (values.map(Double::toRawBits).distinct().size < 2) {
+            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, "$metric has fewer than two distinguishable values")
+        }
+        val mean = values.average()
+        if (!mean.isFinite()) {
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric mean is not finite")
+        }
+        val variance = values.sumOf { (it - mean) * (it - mean) } / (values.size - 1)
+        if (!variance.isFinite() || variance < 0.0) {
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric variance is not finite")
+        }
+        val scale = sqrt(variance)
+        val maxAbs = values.maxOf { kotlin.math.abs(it) }
+        val minimumScale = maxOf(1e-12, 1e-10 * maxOf(1.0, maxAbs))
+        if (!scale.isFinite() || scale <= minimumScale) {
+            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, "$metric scale $scale <= $minimumScale")
+        }
+        return ScalingStatistic(mean, scale)
+    }
 }
 
 private fun LifecycleValidatedCell?.isUsable(): Boolean =

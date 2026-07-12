@@ -210,7 +210,9 @@ internal data class StrictPreparationRequest(
 ) {
     init {
         require(yMetrics.isNotEmpty())
-        require(horizons.isNotEmpty() && horizons.all { it >= 0 })
+        require(horizons.isNotEmpty() && horizons.all { it in STRICT_HORIZON_RANGE }) {
+            "strict product horizons must be 1 through 8"
+        }
         require(xMetric !in yMetrics)
     }
 
@@ -223,6 +225,7 @@ internal enum class StrictPreparationFailureCode {
     INVALID_LIFECYCLE_METADATA,
     INSUFFICIENT_CONTIGUOUS_SAMPLE,
     INCONCLUSIVE_TRANSFORMATION,
+    TRANSFORMATION_ASSESSMENT_CONFLICT,
     TRANSFORMATION_PLAN_INCOMPLETE,
     REPRESENTATION_PLAN_INCOMPLETE,
     RESPONSE_SCALE_PLAN_INCOMPLETE,
@@ -245,3 +248,5 @@ internal fun strictFingerprint(parts: Collection<Any?>): String {
     val canonical = parts.joinToString("\u001f") { it?.toString().orEmpty() }
     return digest.digest(canonical.toByteArray()).joinToString("") { "%02x".format(it) }
 }
+
+internal val STRICT_HORIZON_RANGE: IntRange = 1..8

@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import scipy
 import scipy.linalg
+import statsmodels
+from statsmodels.tsa.stattools import adfuller, kpss
 
 
 SEED = 20260712
@@ -33,10 +35,90 @@ def provenance(purpose: str) -> dict:
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
+        "statsmodels_version": statsmodels.__version__,
+        "adf_parameters": {"regression": "c", "autolag": "AIC"},
+        "kpss_parameters": {"regression": "c", "nlags": "auto"},
         "rng_seed": SEED,
         "source_commit": source_commit(),
         "purpose": purpose,
         "tolerance": 1e-7,
+    }
+
+
+def ar1(rng: np.random.Generator, phi: float, n: int, sigma: float = 1.0) -> np.ndarray:
+    values = np.zeros(n)
+    for index in range(1, n):
+        values[index] = phi * values[index - 1] + rng.normal(scale=sigma)
+    return values
+
+
+def walk(rng: np.random.Generator, n: int, drift: float = 0.0) -> np.ndarray:
+    return np.cumsum(rng.normal(size=n) + drift)
+
+
+def diagnostic_result(values: np.ndarray) -> dict:
+    result: dict[str, object] = {"values": as_list(values)}
+    try:
+        adf_stat, adf_p, adf_lag, adf_nobs, adf_crit, adf_aic = adfuller(values, regression="c", autolag="AIC")
+        result["adf"] = {
+            "status": "OK",
+            "statistic": float(adf_stat),
+            "p_value": float(adf_p),
+            "selected_lag": int(adf_lag),
+            "effective_nobs": int(adf_nobs),
+            "critical_values": {key: float(value) for key, value in adf_crit.items()},
+            "best_aic": float(adf_aic),
+        }
+    except Exception as error:
+        result["adf"] = {"status": "INCONCLUSIVE", "reason": str(error)}
+    try:
+        kpss_stat, kpss_p, kpss_lag, kpss_crit = kpss(values, regression="c", nlags="auto")
+        result["kpss"] = {
+            "status": "OK",
+            "statistic": float(kpss_stat),
+            "p_value": float(kpss_p),
+            "selected_lag": int(kpss_lag),
+            "critical_values": {key: float(value) for key, value in kpss_crit.items()},
+            "p_value_boundary": "table-boundary" if kpss_p in (0.01, 0.1) else None,
+        }
+    except Exception as error:
+        result["kpss"] = {"status": "INCONCLUSIVE", "reason": str(error)}
+    return result
+
+
+def integration_reference_fixture() -> dict:
+    rng = np.random.default_rng(SEED)
+    n = 80
+    random_walk = walk(np.random.default_rng(2), n, drift=0.05)
+    fixtures = {
+        "stationary_ar_03": ar1(rng, 0.3, n),
+        "stationary_ar_08": ar1(rng, 0.8, n),
+        "near_unit_root_ar_095": ar1(rng, 0.95, n),
+        "random_walk": random_walk,
+        "random_walk_with_drift": walk(np.random.default_rng(3), n, drift=0.2),
+        "stationary_first_difference_of_random_walk": np.diff(random_walk),
+        "constant_series": np.ones(n) * 3.0,
+        "near_constant_series": np.ones(n) + np.arange(n) * 1e-13,
+        "trend_stationary_constant_only": np.arange(n) * 0.05 + rng.normal(scale=0.2, size=n),
+        "insufficient_31_week_segment": ar1(rng, 0.3, 31),
+        "exactly_32_week_segment": ar1(rng, 0.3, 32),
+        "two_segments_i0_left": ar1(rng, 0.3, 40),
+        "two_segments_i0_right": ar1(rng, 0.4, 40),
+        "two_segments_i1_left": walk(np.random.default_rng(2), 40, drift=0.05),
+        "two_segments_i1_right": walk(np.random.default_rng(4), 40, drift=0.05),
+        "two_segments_disagree_left": ar1(rng, 0.3, 40),
+        "two_segments_disagree_right": walk(rng, 40),
+        "singular_adf_regression": np.array(([1.0, 2.0] * 40), dtype=float),
+        "lifecycle_separated_left": ar1(rng, 0.3, 40),
+        "lifecycle_separated_right": ar1(rng, 0.3, 40),
+    }
+    return {
+        "provenance": provenance("Phase A statsmodels ADF/KPSS integration fixture"),
+        "segment_policy": {
+            "minimum_integration_segment_weeks": 32,
+            "segment_aggregation": "all eligible segments must agree",
+        },
+        "fixtures": {name: diagnostic_result(values) for name, values in fixtures.items()},
     }
 
 
@@ -448,6 +530,10 @@ def main() -> None:
     )
     (FIXTURES / "phase_a_prepared_pipeline_contract.json").write_text(
         json.dumps(prepared_pipeline_contract_fixture(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    (FIXTURES / "phase_a_integration_reference.json").write_text(
+        json.dumps(integration_reference_fixture(), indent=2, sort_keys=True),
         encoding="utf-8",
     )
 

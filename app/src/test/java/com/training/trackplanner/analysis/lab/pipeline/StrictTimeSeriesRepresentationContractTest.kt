@@ -2,7 +2,10 @@ package com.training.trackplanner.analysis.lab.pipeline
 
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import java.io.File
 import java.time.LocalDate
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -10,14 +13,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StrictTimeSeriesRepresentationContractTest {
+    private val integrationFixtures = JSONObject(existingFile("tools/time_series_reference/fixtures/phase_a_integration_reference.json").readText())
+        .getJSONObject("fixtures")
+
     @Test
     fun diagnosticsPreserveSegmentsAndNeverCompressAcrossGapsOrLifecycleBoundaries() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(26)
+        val weeks = weeks(98)
         val lifecycle = StrictMetricLifecycle.createValidated(
-            notApplicableRanges = listOf(StrictWeekRange(weeks[8], weeks[8])),
-            versionDiscontinuityRanges = listOf(StrictWeekRange(weeks[17], weeks[17]))
+            notApplicableRanges = listOf(StrictWeekRange(weeks[32], weeks[32])),
+            versionDiscontinuityRanges = listOf(StrictWeekRange(weeks[65], weeks[65]))
         )
         val input = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
@@ -31,25 +37,27 @@ class StrictTimeSeriesRepresentationContractTest {
         val assessment = SegmentAwareIntegrationAssessmentAuthority.assess(catalog).getValue(x)
         val segments = assessment.segmentDiagnostics.map { it.segment }
 
-        assertEquals(listOf(8, 8, 8), segments.map { it.length })
-        assertTrue(segments.none { weeks[8] in it.weeks || weeks[17] in it.weeks })
+        assertEquals(listOf(32, 32, 32), segments.map { it.length })
+        assertTrue(segments.none { weeks[32] in it.weeks || weeks[65] in it.weeks })
         assertEquals(weeks[0], segments[0].startWeek)
-        assertEquals(weeks[16], segments[1].endWeek)
-        assertEquals(IntegrationAssessmentStatus.CONFIRMED_I0, assessment.status)
+        assertEquals(weeks[64], segments[1].endWeek)
+        assertTrue(assessment.segmentDiagnostics.all { it.eligible })
     }
 
     @Test
     fun disagreeingEligibleSegmentsAreInconclusive() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(21)
+        val left = fixtureValues("two_segments_i0_left")
+        val right = fixtureValues("two_segments_i1_left")
+        val weeks = weeks(left.size + 1 + right.size)
         val values = weeks.mapIndexed { index, week ->
             TrendDataPoint(
                 week,
                 when {
-                    index < 10 -> if (index % 2 == 0) 1.0 else -1.0
-                    index == 10 -> null
-                    else -> 5.0
+                    index < left.size -> left[index]
+                    index == left.size -> null
+                    else -> right[index - left.size - 1]
                 }
             )
         }
@@ -62,7 +70,6 @@ class StrictTimeSeriesRepresentationContractTest {
 
         assertEquals(IntegrationAssessmentStatus.INCONCLUSIVE, assessment.status)
         assertTrue(decisions.size > 1)
-        assertTrue(SegmentIntegrationDecision.UNSUPPORTED in decisions)
     }
 
     @Test
@@ -70,11 +77,12 @@ class StrictTimeSeriesRepresentationContractTest {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val optional = TrendMetricId.STRENGTH_VOLUME
-        val weeks = weeks(24)
+        val supported = fixtureValues("stationary_ar_03")
+        val weeks = weeks(supported.size)
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
-                x to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 },
-                y to points(weeks) { if (it % 2 == 0) 2.0 else -2.0 },
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, supported[index]) },
+                y to weeks.mapIndexed { index, week -> TrendDataPoint(week, supported[index] * 2.0) },
                 optional to points(weeks) { 7.0 }
             )
         ).ingest(request(x, y, listOf(optional)))
@@ -103,23 +111,23 @@ class StrictTimeSeriesRepresentationContractTest {
     fun i1SeriesIsDifferencedExactlyOnceWhileLevelSeriesRemainsAvailable() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(64)
-        val walk = (0 until 64).runningFold(0.0) { total, index -> total + if (index % 2 == 0) 1.0 else -0.35 }.dropLast(1)
+        val walk = fixtureValues("random_walk")
+        val weeks = weeks(walk.size)
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
                 x to weeks.mapIndexed { index, week -> TrendDataPoint(week, walk[index]) },
-                y to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 }
+                y to weeks.mapIndexed { index, week -> TrendDataPoint(week, fixtureValues("stationary_ar_03")[index]) }
             )
         ).ingest(request(x, y))
         val assessments = SegmentAwareIntegrationAssessmentAuthority.assess(catalog)
 
-        assertEquals(IntegrationAssessmentStatus.CONFIRMED_I1, assessments.getValue(x).status)
+        assertEquals(IntegrationAssessmentStatus.SUPPORTED_I1, assessments.getValue(x).status)
         val plan = (CanonicalTransformationAuthority.createPlan(catalog, assessments, request(x, y)) as CanonicalTransformationPlanResult.Success).plan
         val transformed = TransformedPreparedCatalog.createValidated(catalog, plan).seriesByMetric.getValue(x)
 
         assertEquals(CanonicalSeriesTransformation.FIRST_DIFFERENCE, transformed.transformation)
-        assertEquals(64, catalog.seriesByMetric.getValue(x).cells.size)
-        assertEquals(64, transformed.cells.size)
+        assertEquals(80, catalog.seriesByMetric.getValue(x).cells.size)
+        assertEquals(80, transformed.cells.size)
         assertEquals(StrictCellState.MISSING, transformed.cells.first().state)
         assertEquals(walk[1] - walk[0], transformed.cells[1].value!!, 0.0)
         assertEquals(catalog.seriesByMetric.getValue(x).fingerprint, transformed.sourceLevelFingerprint)
@@ -129,11 +137,11 @@ class StrictTimeSeriesRepresentationContractTest {
     fun estimatorRepresentationsKeepI1LevelsAndDifferencesDistinct() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(64)
-        val walk = (0 until 64).runningFold(0.0) { total, index -> total + if (index % 2 == 0) 1.0 else -0.35 }.dropLast(1)
+        val walk = fixtureValues("random_walk")
+        val weeks = weeks(walk.size)
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
-                x to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 },
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, fixtureValues("stationary_ar_03")[index]) },
                 y to weeks.mapIndexed { index, week -> TrendDataPoint(week, walk[index]) }
             )
         ).ingest(request(x, y))
@@ -151,31 +159,30 @@ class StrictTimeSeriesRepresentationContractTest {
     }
 
     @Test
-    fun responseScaleFingerprintTracksExplicitLogDifferenceInterpretation() {
+    fun contradictoryExplicitTransformationFailsStrictPreparation() {
         val x = TrendMetricId.BADMINTON_TRAINING
         val y = TrendMetricId.FATIGUE_COMPOSITE
-        val weeks = weeks(64)
-        val walk = (0 until 64).runningFold(10.0) { total, index -> total + if (index % 2 == 0) 1.0 else -0.35 }.dropLast(1)
+        val walk = fixtureValues("random_walk")
+        val weeks = weeks(walk.size)
         val catalog = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
-                x to points(weeks) { if (it % 2 == 0) 1.0 else -1.0 },
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, fixtureValues("stationary_ar_03")[index]) },
                 y to weeks.mapIndexed { index, week -> TrendDataPoint(week, walk[index]) }
             )
         ).ingest(request(x, y))
         val assessments = SegmentAwareIntegrationAssessmentAuthority.assess(catalog)
-        val defaultPlan = (CanonicalTransformationAuthority.createPlan(catalog, assessments, request(x, y)) as CanonicalTransformationPlanResult.Success).plan
-        val logPlan = (CanonicalTransformationAuthority.createPlan(
+        val mismatch = CanonicalTransformationAuthority.createPlan(
             catalog,
             assessments,
             request(x, y),
-            StrictPreparationPolicy.createValidated(explicitTransformations = mapOf(y to CanonicalSeriesTransformation.LOG_DIFFERENCE))
-        ) as CanonicalTransformationPlanResult.Success).plan
-        val defaultScale = ResponseScalePlan.createValidated(defaultPlan.decisionsByMetric.getValue(y))
-        val logScale = ResponseScalePlan.createValidated(logPlan.decisionsByMetric.getValue(y))
+            StrictPreparationPolicy.createValidated(explicitTransformations = mapOf(y to CanonicalSeriesTransformation.LEVEL))
+        )
 
-        assertEquals(ResponseDisplayScale.APPROXIMATE_PERCENT_RESPONSE, logScale.displayScale)
-        assertEquals(InverseTransformationRule.CUMULATIVE_EXPONENTIAL, logScale.inverseTransformationRule)
-        assertNotEquals(defaultScale.fingerprint, logScale.fingerprint)
+        assertTrue(mismatch is CanonicalTransformationPlanResult.Failure)
+        assertEquals(
+            StrictPreparationFailureCode.TRANSFORMATION_ASSESSMENT_CONFLICT,
+            (mismatch as CanonicalTransformationPlanResult.Failure).code
+        )
     }
 
     @Test
@@ -230,4 +237,14 @@ class StrictTimeSeriesRepresentationContractTest {
 
     private fun points(weeks: List<LocalDate>, value: (Int) -> Double): List<TrendDataPoint> =
         weeks.mapIndexed { index, week -> TrendDataPoint(week, value(index)) }
+
+    private fun fixtureValues(name: String): List<Double> =
+        integrationFixtures.getJSONObject(name).getJSONArray("values").toList().map { (it as Number).toDouble() }
+
+    private fun JSONArray.toList(): List<Any> = (0 until length()).map(::get)
+
+    private fun existingFile(path: String): File {
+        val cwd = File(requireNotNull(System.getProperty("user.dir")))
+        return generateSequence(cwd) { it.parentFile }.map { File(it, path) }.first(File::exists)
+    }
 }
