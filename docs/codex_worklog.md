@@ -1234,3 +1234,58 @@ File/Feature Map
 Remaining
 - Dispatch GitHub Actions after commit push.
 - PHASE B posterior work, PHASE C LP rebuild, PHASE D Johansen/Bayesian VECM, and PHASE E UI integration remain blocked until explicit approval.
+
+## Time-Series Analysis Phase A Final Contract Hardening
+
+Cause
+- Started from `feat/time-series-phase-a` at `c462b3d36d19b3e415e1489eb54dd95a300abad4`.
+- The final PHASE A audit found downstream-risk gaps that could leak into later phases: strict Cholesky success did not gate rank and condition number hard enough, generalized eigen validation needed explicit finite checks, lifecycle activation still allowed implicit first-observation creation, conflict provenance needed typed ordering, transformed calendars could be compressed, candidate screening could still bypass prepared cells, and legacy cointegration names still sounded too much like validated rank output.
+- Existing dirty `outputs/*` files were preserved and not staged.
+
+Changes
+- Tightened strict SPD success to require full numerical rank, finite condition diagnostics, `MAX_CONDITION_NUMBER`, finite factors, and no regularization.
+- Preserved regularized SPD provenance: strict failure code, attempt/success flags, effective matrix, jitter, jitter ratio, minimum eigenvalue, matrix scale, and bounded attempts.
+- Added explicit generalized-eigen finite gates for transformed matrices, eigenvalues, eigenvectors, B-metric normalization, residuals, and B-orthogonality.
+- Added `MetricActivationPolicy`, typed `ObservationRevision`, conflict provenance, `MetricDataQualitySummary`, and immutable `PreparedMetricSeries`.
+- Changed structural-zero and pre-creation classification so first observation only establishes activation when explicitly enabled.
+- Changed `stationarize()` to preserve the full weekly calendar; first-difference first cells become unavailable instead of dropping week 1.
+- Unified automatic candidate screening on prepared series and deprecated the raw screening adapter.
+- Renamed legacy cointegration fields to `legacySuggestedRank` and `legacyRankOneStatistic`, with method `LEGACY_RANK_ONE_HEURISTIC`.
+- Extended the Python fixture generator and static source scan for the final Phase A contracts.
+
+Reason
+- Later Bayesian phases need one safe input boundary and one calendar contract. Rank-deficient or ill-conditioned covariance, hidden jitter, unresolved conflicts, compressed calendars, and misleading legacy rank diagnostics must fail before model fitting rather than contaminating posterior work.
+
+Result
+- PHASE A now guarantees strict SPD/regularized SPD provenance, finite generalized-eigen diagnostics, explicit lifecycle activation, typed conflict resolution, structured data-quality summaries, full-calendar transformations, prepared-series candidate screening, and legacy diagnostic isolation.
+- PHASE A still deliberately does not implement NIW BVAR posterior sampling, Bayesian Local Projection posterior mixtures, Johansen trace/max-eigen tests, Bayesian rank posterior, Bayesian VECM, posterior IRFs, or final UI integration.
+
+Tests
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed with bundled Python.
+- `python tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StableLinearAlgebraTest*" --tests "*TimeSeriesCalendarGridTest*" --tests "*LaggedTimeSeriesAnalyzerTest*"`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+- GitHub Actions: pending after push.
+
+File/Feature Map
+- `StableLinearAlgebra.kt`: final strict/regularized SPD gates and finite generalized-eigen validation.
+- `BayesianTimeSeriesModels.kt`: activation policy, typed revisions, conflict provenance, data-quality summaries, prepared-series boundary, and legacy diagnostic names.
+- `BayesianTimeSeriesSupport.kt`: explicit lifecycle activation, typed conflict resolution, prepared candidate screening, full-calendar stationarization, transformed quality summaries, and prepared series.
+- `EndogenousVariableSelector.kt`: candidate screening now consumes prepared series instead of raw maps.
+- `CointegrationAnalyzer.kt`: legacy rank-one heuristic stays diagnostic-only and routing-disabled.
+- `BayesianTimeSeriesAnalyzer.kt`: legacy diagnostic routing checks use renamed diagnostic-only fields.
+- `StableLinearAlgebraTest.kt`, `TimeSeriesCalendarGridTest.kt`, `LaggedTimeSeriesAnalyzerTest.kt`: regression coverage for the final PHASE A contracts.
+- `tools/time_series_reference/*`: deterministic fixture coverage for numeric/calendar/prepared-series cases.
+- `tools/check_time_series_numeric_sources.py`: scanner for rank/condition gates, old legacy names, missing-rate direct reads, and dropped-week transforms.
+
+Downstream Contract Map
+- PHASE B may rely on strict covariance rejection, regularization provenance, prepared-series inputs, and unusable-rate summaries.
+- PHASE C may rely on uncompressed transformed calendars and source-cell provenance.
+- PHASE D may rely on strict Johansen-form primitives and complete generalized-eigen diagnostics, while legacy rank-one heuristics cannot route.
+- PHASE E may rely on legacy diagnostics being labeled diagnostic-only and not as posterior probabilities or validated rank results.
+
+Remaining
+- Final local verification, commit hash, branch push, and GitHub Actions run ID must be recorded after completion.
+- All posterior/model-building work remains PHASE B or later and requires explicit approval.

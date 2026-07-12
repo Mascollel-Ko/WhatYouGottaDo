@@ -90,7 +90,7 @@ class LaggedTimeSeriesAnalyzerTest {
 
         assertEquals(32, alignment.weeks.size)
         assertTrue(alignment.valuesByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).contains(0.0))
-        assertEquals(5.0 / 32.0, alignment.missingRates.getValue(TrendMetricId.FATIGUE_COMPOSITE), 1e-9)
+        assertEquals(5.0 / 32.0, alignment.qualitySummaries.getValue(TrendMetricId.FATIGUE_COMPOSITE).rawMissingRate, 1e-9)
     }
 
     @Test

@@ -44,8 +44,8 @@ class TimeSeriesCalendarGridTest {
 
         assertEquals(0.0, alignment.valueAt(TrendMetricId.BADMINTON_TRAINING, 2)!!, 0.0)
         assertNull(alignment.valueAt(TrendMetricId.FATIGUE_COMPOSITE, 1))
-        assertEquals(0.0, alignment.missingRates.getValue(TrendMetricId.BADMINTON_TRAINING), 0.0)
-        assertEquals(0.25, alignment.missingRates.getValue(TrendMetricId.FATIGUE_COMPOSITE), 0.0)
+        assertEquals(0.0, alignment.qualitySummaries.getValue(TrendMetricId.BADMINTON_TRAINING).rawMissingRate, 0.0)
+        assertEquals(0.25, alignment.qualitySummaries.getValue(TrendMetricId.FATIGUE_COMPOSITE).rawMissingRate, 0.0)
     }
 
     @Test
@@ -146,7 +146,7 @@ class TimeSeriesCalendarGridTest {
     }
 
     @Test
-    fun structuralZeroStartsOnlyAfterActivationWeek() {
+    fun unknownActivationDoesNotInferPreCreationFromFirstObservation() {
         val alignment = TimeSeriesAlignmentService().alignObservations(
             metrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
             observations = listOf(
@@ -154,6 +154,28 @@ class TimeSeriesCalendarGridTest {
                 TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-19"), 2.0)
             ),
             lifecycleMetadata = mapOf(TrendMetricId.BADMINTON_TRAINING to MetricLifecycleMetadata(structuralZeroAllowed = true))
+        )!!
+
+        val states = alignment.grid!!.cellsByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).map(TimeSeriesCell::state)
+        assertEquals(TimeSeriesCellState.MISSING, states[0])
+        assertEquals(TimeSeriesCellState.MISSING, states[1])
+        assertEquals(TimeSeriesCellState.OBSERVED_VALUE, states[2])
+    }
+
+    @Test
+    fun firstObservationActivationWorksOnlyWhenExplicitlyEnabled() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            observations = listOf(
+                TimeSeriesObservation(TrendMetricId.FATIGUE_COMPOSITE, LocalDate.parse("2026-01-05"), 1.0),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-19"), 2.0)
+            ),
+            lifecycleMetadata = mapOf(
+                TrendMetricId.BADMINTON_TRAINING to MetricLifecycleMetadata(
+                    structuralZeroAllowed = true,
+                    activationPolicy = MetricActivationPolicy.FIRST_OBSERVATION_ALLOWED
+                )
+            )
         )!!
 
         val states = alignment.grid!!.cellsByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).map(TimeSeriesCell::state)
@@ -174,8 +196,27 @@ class TimeSeriesCalendarGridTest {
 
         val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
         assertEquals(TimeSeriesCellState.CONFLICT, cell.state)
+        assertEquals(2, cell.candidateCount)
+        assertTrue(cell.conflictProvenance!!.unresolvedConflict)
         assertNull(cell.value)
         assertNull(alignment.valueAt(TrendMetricId.BADMINTON_TRAINING, 0))
+    }
+
+    @Test
+    fun typedRevisionOrderingWinsWithoutLexicalVersionOrdering() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            observations = listOf(
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 9.0, version = "9", revisionNumber = 9),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 10.0, version = "10", revisionNumber = 10)
+            )
+        )!!
+
+        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+        assertEquals(TimeSeriesCellState.OBSERVED_VALUE, cell.state)
+        assertEquals(10.0, cell.value!!, 0.0)
+        assertEquals(ObservationConflictSelectionRule.TYPED_REVISION_ORDER, cell.conflictProvenance!!.selectionRule)
+        assertEquals(2, cell.conflictProvenance.candidates.size)
     }
 
     @Test
@@ -184,6 +225,7 @@ class TimeSeriesCalendarGridTest {
         assertTrue(runCatching { TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), Double.NaN, TimeSeriesCellState.OBSERVED_VALUE) }.isFailure)
         assertTrue(runCatching { TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), TimeSeriesCellState.STRUCTURAL_ZERO, 3.0) }.isFailure)
         assertTrue(runCatching { TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), TimeSeriesCellState.VERSION_DISCONTINUITY, 1.0) }.isFailure)
+        assertTrue(runCatching { TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), TimeSeriesCellState.CONFLICT, null) }.isFailure)
     }
 
     @Test
@@ -206,11 +248,83 @@ class TimeSeriesCalendarGridTest {
         )!!.first
 
         val cells = result.grid!!.cellsByMetric.getValue(TrendMetricId.BADMINTON_TRAINING)
-        assertEquals(TimeSeriesCellState.OBSERVED_VALUE, cells[0].state)
-        assertEquals(TimeSeriesCellState.VERSION_DISCONTINUITY, cells[4].state)
+        assertEquals(alignment.weeks, result.weeks)
+        assertEquals(TimeSeriesCellState.MISSING, cells[0].state)
         assertEquals(TimeSeriesCellState.VERSION_DISCONTINUITY, cells[5].state)
-        assertTrue(cells[4].sourceCells.any { it.role == TimeSeriesCellRole.SOURCE })
-        assertTrue(result.missingRates.getValue(TrendMetricId.BADMINTON_TRAINING) > 0.0)
+        assertEquals(TimeSeriesCellState.VERSION_DISCONTINUITY, cells[6].state)
+        assertTrue(cells[5].sourceCells.any { it.role == TimeSeriesCellRole.SOURCE })
+        assertTrue(result.qualitySummaries.getValue(TrendMetricId.BADMINTON_TRAINING).unusableRate > 0.0)
+    }
+
+    @Test
+    fun allLevelStationarizationPreservesFirstWeekAndPreparedSeries() {
+        val weeks = (0 until 8).map { LocalDate.parse("2026-01-05").plusWeeks(it.toLong()) }
+        val alignment = TimeSeriesAlignmentService().align(
+            listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            mapOf(
+                TrendMetricId.BADMINTON_TRAINING to weeks.mapIndexed { index, week -> TrendDataPoint(week, index.toDouble()) },
+                TrendMetricId.FATIGUE_COMPOSITE to weeks.mapIndexed { index, week -> TrendDataPoint(week, index.toDouble() * 2.0) }
+            )
+        )!!
+        val result = TimeSeriesAlignmentService().stationarize(
+            alignment,
+            listOf(
+                IntegrationDiagnostic(TrendMetricId.BADMINTON_TRAINING, IntegrationOrder.I0, 0.0, 0.0, null, null, "fixture"),
+                IntegrationDiagnostic(TrendMetricId.FATIGUE_COMPOSITE, IntegrationOrder.I0, 0.0, 0.0, null, null, "fixture")
+            )
+        )!!.first
+
+        assertEquals(alignment.weeks, result.weeks)
+        assertEquals(alignment.weeks.first(), result.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).weeks.first())
+    }
+
+    @Test
+    fun qualitySummarySeparatesMissingLifecycleAndConflictCounts() {
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            observations = listOf(
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-12"), 1.0),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-19"), 2.0, source = "a"),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-19"), 3.0, source = "b")
+            ),
+            lifecycleMetadata = mapOf(
+                TrendMetricId.BADMINTON_TRAINING to MetricLifecycleMetadata(availableFromWeek = LocalDate.parse("2026-01-05"))
+            )
+        )!!
+
+        val summary = alignment.qualitySummaries.getValue(TrendMetricId.BADMINTON_TRAINING)
+        assertEquals(1, summary.missingCount)
+        assertEquals(1, summary.conflictCount)
+        assertEquals(0, summary.preMetricCreationCount)
+        assertTrue(summary.unusableRate > 0.0)
+        assertTrue(summary.coverageRate < 1.0)
+    }
+
+    @Test
+    fun candidateScreeningConsumesPreparedSeriesAndRejectsBlockingStates() {
+        val weeks = (0 until 8).map { LocalDate.parse("2026-01-05").plusWeeks(it.toLong()) }
+        val alignment = TimeSeriesAlignmentService().alignObservations(
+            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            observations = weeks.flatMapIndexed { index, week ->
+                if (index == 4) {
+                    listOf(
+                        TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, 1.0, source = "a"),
+                        TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, 2.0, source = "b")
+                    )
+                } else {
+                    listOf(TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, index.toDouble()))
+                }
+            }
+        )!!
+        val service = TimeSeriesAlignmentService()
+
+        val reason = service.usablePreparedCandidate(
+            TrendMetricId.BADMINTON_TRAINING,
+            weeks.toSet(),
+            service.prepareSeries(alignment)
+        )
+
+        assertEquals("series has unresolved conflict cells", reason)
     }
 
     @Test

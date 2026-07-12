@@ -17,13 +17,13 @@ Before this change, `LaggedTimeSeriesAnalyzer` joined one X and one Y by week an
 
 ## Preprocessing And Screening
 
-`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. Raw trend dates are canonicalized to ISO Monday week starts before alignment; explicit grid/cell week-start inputs must already be ISO Mondays. Grid bounds are calculated only from requested metrics and their requested lifecycle metadata. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, version-discontinuity, or conflict cell. Missing values are not forward-filled and are not converted into numeric zero. Structural zero is allowed only after an explicit `availableFromWeek` or the first valid observation establishes the metric activation week.
+`TimeSeriesAlignmentService` now builds a continuous weekly calendar grid from the first available week through the last available week. Raw trend dates are canonicalized to ISO Monday week starts before alignment; explicit grid/cell week-start inputs must already be ISO Mondays. Grid bounds are calculated only from requested metrics and their requested lifecycle metadata. Each metric/week cell records whether it is an observed value, structural zero, missing, not applicable, pre-metric-creation, version-discontinuity, or conflict cell. Missing values are not forward-filled and are not converted into numeric zero. Lifecycle activation is explicit: `EXPLICIT_METADATA_ONLY` uses only `availableFromWeek`, `FIRST_OBSERVATION_ALLOWED` must be requested before the first valid observation can define activation, and `REGISTRY_DEFINED` is reserved for canonical registry metadata. Non-structural metrics do not treat the first observation as metric creation by default.
 
-Observation conflicts are deterministic. Exact duplicate observations can merge, same-source versioned observations use the latest version, and conflicting values without revision provenance become `CONFLICT` cells rather than being selected by source-string ordering. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, and lifecycle/conflict/missing states cannot carry numeric values.
+Observation conflicts are deterministic and typed. Exact duplicate observations can merge, typed revision values can supersede older revisions, and conflicting values without valid ordering provenance become `CONFLICT` cells rather than being selected by source-string ordering or lexical version ordering. Conflict cells preserve candidate count, candidate values/states/sources/revisions, selected candidate when one exists, and the selection rule. State/value invariants are enforced at construction: observed values must be finite, structural zeros must be exactly `0.0`, lifecycle/missing states cannot carry numeric values, and conflict cells require provenance.
 
 Lag, first-difference, and horizon rows are valid only when the required calendar weeks exist exactly. A compressed list index is never treated as a week lag by itself. Every candidate source week is either included or excluded with a reason, including initial lag gaps and final target-outside-grid horizons. Excluded rows carry target week, source week, lag weeks, horizon, cell states, and exclusion reason for tests and diagnostics.
 
-Candidate screening rejects a series with more than 25 percent missing observations in the required window or insufficient variation. The result keeps the aligned period and count for disclosure.
+Data quality is no longer a single ambiguous missing-rate concept. Each prepared series has total weeks, observed/structural-zero/missing/pre-creation/not-applicable/version-discontinuity/conflict counts, raw missing rate, unusable rate, coverage rate, and contiguous usable-run diagnostics. Candidate screening consumes `PreparedMetricSeries` from the canonical grid and rejects conflict/version-discontinuity cells, high unusable rate, and insufficient variation. The deprecated raw screening adapter exists only to build a prepared series first.
 
 ## Numeric Foundation
 
@@ -31,7 +31,7 @@ Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLi
 
 The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using Commons Math triangular solves instead of explicit inverse or app-owned triangular substitution, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and fails the whole result if the complete spectrum cannot pass residual and `V' B V` checks.
 
-Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is SPD. The regularized path may add bounded scale-relative diagonal jitter for small full-rank numerical noise, but exact singular PSD, rank-deficient, non-finite, non-symmetric, and materially indefinite matrices fail with explicit failure codes. Callers receive the effective matrix, regularization provenance, jitter amount, jitter ratio, numerical rank, condition number, and diagnostics through the result object.
+Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is square, finite, symmetric within tolerance, Cholesky-decomposable without jitter, full numerical rank, finite-conditioned, below `MAX_CONDITION_NUMBER`, and has finite factor entries. The regularized path may add bounded scale-relative diagonal jitter for small full-rank numerical noise, but exact singular PSD, rank-deficient, non-finite, non-symmetric, ill-conditioned, and materially indefinite matrices fail with explicit failure codes. Callers receive the original/effective matrix, strict failure code, regularization attempt/success flags, jitter amount, jitter ratio, numerical rank, condition number, minimum eigenvalue, matrix scale, and diagnostics through the result object.
 
 Johansen-form primitives are strict by default. `S00` and `S11` must be strict SPD, and the primitive preserves `S00` solve provenance plus `S11` Cholesky provenance. Bounded regularization remains available only for the general symmetric-definite eigen primitive, where whitening, residuals, normalization, and `V' B V` checks all use the same effective `B` matrix.
 
@@ -48,7 +48,7 @@ The product cap is K=8. The sample cap is evaluated from the requested horizon, 
 ## Model Routes
 
 1. **Bayesian Local Projection** is the default. Every selected Y and horizon has a separate Normal-prior posterior regression containing the Cholesky-identified X shock, lags of the endogenous system, and Z controls. Horizon validity requires `N_h >= max(24, 4d)`.
-2. **Bayesian VECM** is available only for an all-I(1) endogenous block when the Johansen-style rank diagnostic and Bayesian rank posterior both support rank 1. The VECM keeps a rank-1 cointegration vector beta, Bayesian adjustment speeds alpha, and Bayesian short-run gamma terms.
+2. **Bayesian VECM** is not routed in Phase A. The legacy cointegration screen is diagnostic-only until Phase D adds validated rank diagnostics and a supported cointegration vector.
 3. **Bayesian VAR** is an explicit fallback only when local projection cannot produce every requested horizon and the reduced-form posterior predictive check passes.
 
 The BVAR uses standardized series and empirical-Bayes Minnesota-style normal priors: own lags are shrunk less than cross lags, lag shrinkage decays with kappa=2, and the global shrinkage candidate is selected by model evidence.
@@ -59,16 +59,16 @@ The BVAR uses standardized series and empirical-Bayes Minnesota-style normal pri
 
 The analyzer compares the canonical order with an adjacent same-time-group reordering when one is available. A response-sign or peak-horizon change produces an order-sensitivity warning. The result also records the selected model, horizon reduction, lag posterior, transformations, cointegration decision, automatic endogenous selection, and warnings.
 
-The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the Johansen-form calculation, but it does not claim a full Johansen trace/max-eigen test or a Bayesian rank posterior. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic. The legacy score is diagnostic-only and cannot route to `BAYESIAN_VECM`.
+The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the rank-one screen calculation, but it does not claim a full Johansen trace/max-eigen test or any posterior rank result. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic. The legacy score is diagnostic-only and cannot route to `BAYESIAN_VECM`.
 
 ## File / Feature Map
 
-- `BayesianTimeSeriesModels.kt`: request, alignment, diagnostics, IRF, and result contracts.
+- `BayesianTimeSeriesModels.kt`: request, alignment, prepared-series, data-quality, diagnostics, IRF, and result contracts.
 - `StableLinearAlgebra.kt`: Commons Math backed SPD solve, least squares, Cholesky, SVD, rank, condition number, symmetric eigen, generalized symmetric eigen, and log determinant primitives.
-- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, screening, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
+- `BayesianTimeSeriesSupport.kt`: continuous calendar alignment, lifecycle activation, conflict resolution, prepared-series screening, stationarity, exact lag/difference/horizon primitives, and normal-posterior regression.
 - `BayesianLocalProjectionEstimator.kt`: horizon-specific Bayesian LP posterior and rolling-origin predictive score.
 - `EndogenousVariableSelector.kt`: data screening, K cap, and greedy rolling-origin endogenous selection.
-- `CointegrationAnalyzer.kt`: Johansen-style rank evidence and the rank-1 cointegration vector.
+- `CointegrationAnalyzer.kt`: legacy rank-one heuristic score; diagnostic-only and not model-routing input.
 - `BayesianDynamicEstimators.kt`: Minnesota-style BVAR, rank-1 Bayesian VECM, posterior predictive coverage, and dynamic IRFs.
 - `CholeskyShockIdentifier.kt`: canonical order, structural shocks, and ordering sensitivity.
 - `BayesianTimeSeriesAnalyzer.kt`: transparent model routing and explicit unavailable/fallback handling.
@@ -81,3 +81,10 @@ The current cointegration route remains a legacy heuristic isolated behind `Coin
 - The tool returns `UNAVAILABLE` instead of showing a correlation-style substitute whenever required diagnostics or horizon sample conditions fail.
 - No app version, release tag, backup format, or trend-series generation policy changed as part of this implementation.
 - Phase A does not implement BVAR posterior sampling, Bayesian Local Projection posterior mixtures, Johansen trace/max-eigen rank tests, Bayesian VECM, automatic model routing changes, or final IRF UI integration.
+
+## Downstream Contract Map
+
+- Phase B may rely on strict SPD failures for rank-deficient or ill-conditioned covariance inputs, regularization provenance on any jittered solve, `PreparedMetricSeries` as the estimator-facing data boundary, and `MetricDataQualitySummary.unusableRate` rather than a legacy missing-rate field.
+- Phase C may rely on transformed series preserving the complete weekly calendar, source-cell provenance, and explicit unavailable first-difference cells instead of compressed week vectors.
+- Phase D may rely on strict `S00`/`S11` Johansen-form primitives, complete generalized-eigen diagnostics, and legacy cointegration being unable to route as a supported rank result.
+- Phase E must display unavailable/legacy diagnostics as diagnostic-only and must not label the legacy score as a posterior probability, validated rank, or Johansen trace result.

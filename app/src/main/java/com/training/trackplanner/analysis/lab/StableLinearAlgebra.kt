@@ -16,7 +16,7 @@ import org.apache.commons.math3.linear.SingularValueDecomposition
 internal object StableLinearAlgebra {
     const val SYMMETRY_TOLERANCE = 1e-9
     const val POSITIVE_DEFINITE_TOLERANCE = 1e-12
-    const val SINGULAR_VALUE_TOLERANCE = 1e-10
+    const val SINGULAR_VALUE_TOLERANCE = 1e-14
     const val MAX_CONDITION_NUMBER = 1e12
     const val MAX_PERMITTED_JITTER_RATIO = 1e-8
     const val MAX_JITTER_ATTEMPTS = 1
@@ -39,6 +39,11 @@ internal object StableLinearAlgebra {
         val attempts: Int,
         val conditionNumber: Double,
         val failureCode: CholeskyFailureCode? = null,
+        val strictFailureCode: CholeskyFailureCode? = null,
+        val regularizationAttempted: Boolean = false,
+        val regularizationSucceeded: Boolean = false,
+        val minEigenvalue: Double? = null,
+        val matrixScale: Double? = null,
         val diagnostics: List<String>
     )
 
@@ -48,6 +53,10 @@ internal object StableLinearAlgebra {
         NON_SYMMETRIC_INPUT,
         RANK_DEFICIENT,
         MATERIALLY_INDEFINITE,
+        ILL_CONDITIONED,
+        CHOLESKY_DECOMPOSITION_FAILED,
+        NON_FINITE_FACTOR,
+        NUMERICAL_DIAGNOSTIC_FAILURE,
         EXCESSIVE_JITTER_REQUIRED
     }
 
@@ -98,6 +107,23 @@ internal object StableLinearAlgebra {
         val diagnostics: List<String>
     )
 
+    enum class GeneralizedEigenFailureCode {
+        NON_FINITE_EIGENVALUE,
+        NON_FINITE_EIGENVECTOR,
+        INVALID_B_METRIC_NORM,
+        NON_FINITE_RESIDUAL,
+        RESIDUAL_TOLERANCE_EXCEEDED,
+        NON_FINITE_ORTHOGONALITY_ERROR,
+        B_ORTHOGONALITY_TOLERANCE_EXCEEDED,
+        INCOMPLETE_EIGEN_SPECTRUM,
+        NON_FINITE_TRANSFORMED_MATRIX
+    }
+
+    class GeneralizedEigenFailureException(
+        val code: GeneralizedEigenFailureCode,
+        message: String
+    ) : IllegalArgumentException(message)
+
     data class JohansenFormEigenResult(
         val eigenResult: GeneralizedEigenResult,
         val s00SolveResult: SpdSolveResult<Array<DoubleArray>>,
@@ -133,10 +159,28 @@ internal object StableLinearAlgebra {
     fun strictCholesky(a: Array<DoubleArray>): CholeskyResult {
         validateMatrix(a)
         val prepared = prepareSymmetric(a)
-        val decomposition = CholeskyDecomposition(matrix(prepared), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
         val rank = rank(prepared)
+        if (rank != prepared.size) {
+            throw CholeskyFailureException(CholeskyFailureCode.RANK_DEFICIENT, "strict SPD matrix rank $rank is below ${prepared.size}")
+        }
+        val condition = conditionNumber(prepared)
+        if (!condition.isFinite()) {
+            throw CholeskyFailureException(CholeskyFailureCode.NUMERICAL_DIAGNOSTIC_FAILURE, "strict SPD condition number is not finite")
+        }
+        if (condition > MAX_CONDITION_NUMBER) {
+            throw CholeskyFailureException(CholeskyFailureCode.ILL_CONDITIONED, "strict SPD condition number $condition exceeds $MAX_CONDITION_NUMBER")
+        }
+        val decomposition = try {
+            CholeskyDecomposition(matrix(prepared), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
+        } catch (error: RuntimeException) {
+            throw CholeskyFailureException(CholeskyFailureCode.CHOLESKY_DECOMPOSITION_FAILED, error.message ?: "strict Cholesky decomposition failed")
+        }
+        val factor = decomposition.l.data
+        if (!factor.isFiniteMatrix()) {
+            throw CholeskyFailureException(CholeskyFailureCode.NON_FINITE_FACTOR, "strict Cholesky factor contains non-finite values")
+        }
         return CholeskyResult(
-            factor = decomposition.l.data,
+            factor = factor,
             effectiveMatrix = prepared,
             originalMatrixWasPositiveDefinite = true,
             regularized = false,
@@ -144,7 +188,8 @@ internal object StableLinearAlgebra {
             jitterRatio = 0.0,
             numericalRank = rank,
             attempts = 1,
-            conditionNumber = conditionNumber(a),
+            conditionNumber = condition,
+            regularizationSucceeded = false,
             diagnostics = listOf("strict SPD")
         )
     }
@@ -153,7 +198,10 @@ internal object StableLinearAlgebra {
         a: Array<DoubleArray>,
         policy: CholeskyRegularizationPolicy = CholeskyRegularizationPolicy()
     ): CholeskyResult {
-        runCatching { strictCholesky(a) }.getOrNull()?.let { return it }
+        val strictFailure = runCatching { strictCholesky(a) }.fold(
+            onSuccess = { return it },
+            onFailure = { it as? CholeskyFailureException }
+        )
         validateMatrix(a)
         val prepared = prepareSymmetric(a)
         val singularValues = singularValues(prepared)
@@ -176,9 +224,21 @@ internal object StableLinearAlgebra {
         val jittered = Array(prepared.size) { row ->
             DoubleArray(prepared[row].size) { column -> prepared[row][column] + if (row == column) jitter else 0.0 }
         }
-        val decomposition = CholeskyDecomposition(matrix(jittered), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
+        val decomposition = try {
+            CholeskyDecomposition(matrix(jittered), SYMMETRY_TOLERANCE, POSITIVE_DEFINITE_TOLERANCE)
+        } catch (error: RuntimeException) {
+            throw CholeskyFailureException(CholeskyFailureCode.CHOLESKY_DECOMPOSITION_FAILED, error.message ?: "regularized Cholesky decomposition failed")
+        }
+        val factor = decomposition.l.data
+        if (!factor.isFiniteMatrix()) {
+            throw CholeskyFailureException(CholeskyFailureCode.NON_FINITE_FACTOR, "regularized Cholesky factor contains non-finite values")
+        }
+        val condition = conditionNumber(jittered)
+        if (!condition.isFinite()) {
+            throw CholeskyFailureException(CholeskyFailureCode.NUMERICAL_DIAGNOSTIC_FAILURE, "regularized condition number is not finite")
+        }
         return CholeskyResult(
-            factor = decomposition.l.data,
+            factor = factor,
             effectiveMatrix = jittered,
             originalMatrixWasPositiveDefinite = false,
             regularized = true,
@@ -186,8 +246,13 @@ internal object StableLinearAlgebra {
             jitterRatio = jitterRatio,
             numericalRank = numericalRank,
             attempts = 1,
-            conditionNumber = conditionNumber(prepared),
-            diagnostics = listOf("bounded diagonal regularization")
+            conditionNumber = condition,
+            strictFailureCode = strictFailure?.code,
+            regularizationAttempted = true,
+            regularizationSucceeded = true,
+            minEigenvalue = minEigen,
+            matrixScale = scale,
+            diagnostics = listOf("bounded diagonal regularization", "strict failure=${strictFailure?.code}")
         )
     }
 
@@ -271,17 +336,30 @@ internal object StableLinearAlgebra {
         val y = applyLowerTriangular(lower, prepareSymmetric(a))
         val c = transpose(applyLowerTriangular(lower, transpose(y)))
         val asymmetry = relativeAsymmetry(c)
+        if (!asymmetry.isFinite() || !c.isFiniteMatrix()) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_TRANSFORMED_MATRIX, "generalized eigen transformed matrix is non-finite")
+        }
         if (asymmetry > SYMMETRY_TOLERANCE) {
             throw IllegalArgumentException("Whitened matrix is asymmetric: $asymmetry")
         }
         val eigen = symmetricEigen(symmetrize(c))
         val expected = a.size
-        if (eigen.values.size != expected) throw IllegalArgumentException("expected $expected eigenpairs, got ${eigen.values.size}")
-        if (eigen.values.any { !it.isFinite() }) throw IllegalArgumentException("non-finite generalized eigenvalue")
+        if (eigen.values.size != expected || eigen.vectors.size != expected) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.INCOMPLETE_EIGEN_SPECTRUM, "expected $expected eigenpairs, got ${eigen.values.size}/${eigen.vectors.size}")
+        }
+        if (eigen.values.any { !it.isFinite() }) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_EIGENVALUE, "non-finite generalized eigenvalue")
+        }
+        if (eigen.vectors.any { !it.isFiniteVector() }) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_EIGENVECTOR, "non-finite generalized eigenvector")
+        }
         val vectors = Array(expected) { index ->
             normalizeBMetric(applyUpperTriangular(transpose(lower), eigen.vectors[index]), effectiveB)
         }
         val residuals = DoubleArray(expected) { index -> generalizedResidual(a, effectiveB, eigen.values[index], vectors[index]) }
+        if (residuals.any { !it.isFinite() }) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_RESIDUAL, "non-finite generalized eigen residual")
+        }
         val maxResidual = residuals.maxOrNull() ?: Double.POSITIVE_INFINITY
         val failedPairIndices = residuals.indices.filter { residuals[it] > residualTolerance }
         val validCount = expected - failedPairIndices.size
@@ -291,8 +369,18 @@ internal object StableLinearAlgebra {
             "max residual=$maxResidual",
             "B-orthogonality error=$bOrthogonality"
         )
-        if (validCount != expected) throw IllegalArgumentException("invalid generalized eigen residuals: ${residuals.joinToString()}")
-        if (bOrthogonality > orthogonalityTolerance) throw IllegalArgumentException("B-orthogonality error $bOrthogonality exceeds $orthogonalityTolerance")
+        if (!maxResidual.isFinite()) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_RESIDUAL, "maximum residual is non-finite")
+        }
+        if (validCount != expected) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.RESIDUAL_TOLERANCE_EXCEEDED, "invalid generalized eigen residuals: ${residuals.joinToString()}")
+        }
+        if (!bOrthogonality.isFinite()) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_ORTHOGONALITY_ERROR, "B-orthogonality error is non-finite")
+        }
+        if (bOrthogonality > orthogonalityTolerance) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.B_ORTHOGONALITY_TOLERANCE_EXCEEDED, "B-orthogonality error $bOrthogonality exceeds $orthogonalityTolerance")
+        }
         return GeneralizedEigenResult(
             eigenvalues = eigen.values,
             eigenvectors = vectors,
@@ -404,8 +492,16 @@ internal object StableLinearAlgebra {
 
     private fun normalizeBMetric(v: DoubleArray, b: Array<DoubleArray>): DoubleArray {
         val bv = multiply(b, column(v)).map { it[0] }.toDoubleArray()
-        val norm = sqrt(v.indices.sumOf { index -> v[index] * bv[index] }).coerceAtLeast(SMALL_SCALE)
-        return DoubleArray(v.size) { index -> v[index] / norm }
+        val normSquared = v.indices.sumOf { index -> v[index] * bv[index] }
+        if (!normSquared.isFinite() || normSquared <= 0.0) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.INVALID_B_METRIC_NORM, "invalid B-metric norm")
+        }
+        val norm = sqrt(normSquared)
+        val normalized = DoubleArray(v.size) { index -> v[index] / norm }
+        if (!normalized.isFiniteVector()) {
+            throw GeneralizedEigenFailureException(GeneralizedEigenFailureCode.NON_FINITE_EIGENVECTOR, "normalized generalized eigenvector is non-finite")
+        }
+        return normalized
     }
 
     private fun generalizedResidual(a: Array<DoubleArray>, b: Array<DoubleArray>, lambda: Double, v: DoubleArray): Double {
@@ -461,4 +557,8 @@ internal object StableLinearAlgebra {
             conditionNumber = conditionNumber,
             diagnostics = diagnostics
         )
+
+    private fun Array<DoubleArray>.isFiniteMatrix(): Boolean = all { row -> row.isFiniteVector() }
+
+    private fun DoubleArray.isFiniteVector(): Boolean = all(Double::isFinite)
 }

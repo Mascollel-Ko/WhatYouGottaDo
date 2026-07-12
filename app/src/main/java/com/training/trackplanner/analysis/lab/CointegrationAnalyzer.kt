@@ -18,7 +18,7 @@ internal class CointegrationAnalyzer {
             metrics.all { metric -> alignment.exactDifference(metric, time) != null && alignment.exactLag(metric, time, 1) != null }
         }
         val levels = rawLevels.mapIndexed { metricIndex, values -> validRows.map { time -> values[time - 1] } }
-        if (levels.any { it.size < 24 }) return CointegrationDiagnostic(null, 0.0, null, false, "insufficient observations for Johansen trace")
+        if (levels.any { it.size < 24 }) return CointegrationDiagnostic(null, 0.0, null, false, "insufficient observations for legacy rank-one screen")
         val differences = metrics.map { metric -> validRows.map { time -> alignment.exactDifference(metric, time)!! } }
         val laggedLevels = levels
         val s00 = covariance(differences)
@@ -34,17 +34,17 @@ internal class CointegrationAnalyzer {
         val heuristicProbability = 1.0 / (1.0 + exp(-(trace - TRACE_RANK_ONE_THRESHOLD) / 3.0))
         val supported = trace >= TRACE_RANK_ONE_THRESHOLD && heuristicProbability >= 0.80
         return CointegrationDiagnostic(
-            rank = if (supported) 1 else 0,
+            legacySuggestedRank = if (supported) 1 else 0,
             legacyHeuristicScore = heuristicProbability,
-            johansenTraceStatistic = trace,
+            legacyRankOneStatistic = trace,
             isSupported = false,
             message = if (supported) {
-                "Legacy heuristic cointegration screen suggests rank-1 structure, but VECM routing is disabled until full Johansen and Bayesian rank posterior are implemented"
+                "Legacy heuristic cointegration screen suggests rank-1 structure, but VECM routing is disabled until validated rank diagnostics are implemented"
             } else {
                 "legacy heuristic cointegration evidence is insufficient or conflicted"
             },
             cointegrationVector = null,
-            diagnostics = johansen.diagnostics + "legacy heuristic score; diagnostic only; not a Bayesian rank posterior"
+            diagnostics = johansen.diagnostics + "legacy heuristic score; diagnostic only; not a validated rank result"
         )
     }
 

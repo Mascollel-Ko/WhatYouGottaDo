@@ -29,7 +29,7 @@ def as_list(value):
 def provenance(purpose: str) -> dict:
     return {
         "schema_version": 1,
-        "generator_script_version": "phase-a-2",
+        "generator_script_version": "phase-a-3",
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
@@ -82,6 +82,8 @@ def linear_algebra_fixture() -> dict:
     singular = scipy.linalg.svdvals(svd_a)
     rank_deficient = np.array([[1.0, 2.0], [2.0, 4.0]])
     exact_singular_psd = np.array([[1.0, 1.0], [1.0, 1.0]])
+    high_condition_spd = np.diag([1.0, 1e-13])
+    numerically_rank_deficient = np.diag([1.0, 1e-16])
     nearly_singular = np.diag([1.0, 1e-9])
     regularized_b = np.diag([1.0, -1e-9])
     regularized_b_effective = regularized_b + np.eye(2) * (1e-9 + 1e-11)
@@ -121,6 +123,14 @@ def linear_algebra_fixture() -> dict:
         },
         "strict_spd": {
             "a": [[2.0, 0.1], [0.1, 1.0]],
+        },
+        "high_condition_spd": {
+            "a": as_list(high_condition_spd),
+            "condition_number": float(np.linalg.cond(high_condition_spd, 2)),
+        },
+        "numerically_rank_deficient": {
+            "a": as_list(numerically_rank_deficient),
+            "rank": int(np.linalg.matrix_rank(numerically_rank_deficient, tol=1e-14)),
         },
         "exact_singular_psd": {
             "a": as_list(exact_singular_psd),
@@ -255,6 +265,27 @@ def calendar_fixture() -> dict:
             {"state": "STRUCTURAL_ZERO", "value": 3.0},
             {"state": "VERSION_DISCONTINUITY", "value": 10.0}
         ],
+        "activation_policy_cases": {
+            "non_structural_before_first_observation": "MISSING",
+            "first_observation_policy_before_activation": "PRE_METRIC_CREATION",
+            "explicit_metadata_before_activation": "PRE_METRIC_CREATION",
+        },
+        "quality_summary_denominators": {
+            "raw_missing_rate": "missing / applicable_active_weeks",
+            "unusable_rate": "(missing + version_discontinuity + conflict + transformation_failure) / model_eligible_weeks",
+            "coverage_rate": "usable / model_eligible_weeks",
+            "exclude_from_denominator": ["PRE_METRIC_CREATION", "NOT_APPLICABLE"],
+        },
+        "transformation_calendar_contract": {
+            "all_i0_preserves_first_week": True,
+            "mixed_transformations_preserve_full_week_vector": True,
+            "first_difference_first_week_state": "MISSING",
+        },
+        "prepared_series_contract": {
+            "weeks_are_iso_mondays": True,
+            "weeks_are_continuous": True,
+            "candidate_screening_uses_prepared_series": True,
+        },
     }
 
 

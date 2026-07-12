@@ -21,7 +21,12 @@ FORBIDDEN = [
     re.compile(r"\bjitter\s*=\s*jitter\s*\*"),
     re.compile(r"/\s*(lower|upper)\[[^\]]+\]\[[^\]]+\]"),
     re.compile(r"\bposteriorProbabilityRankPositive\b"),
+    re.compile(r"\bjohansenTraceStatistic\b"),
+    re.compile(r"\bLEGACY_HEURISTIC\b"),
     re.compile(r"supportedForModelRouting\s*=\s*true"),
+    re.compile(r"\.missingRates\b"),
+    re.compile(r"weeks\.drop\s*\(\s*1\s*\)"),
+    re.compile(r"Bayesian rank posterior"),
 ]
 
 WRAPPER_ONLY = [
@@ -35,6 +40,16 @@ WRAPPER_ONLY = [
 
 def main() -> int:
     violations: list[str] = []
+    wrapper_text = WRAPPER.read_text(encoding="utf-8")
+    strict_start = wrapper_text.find("fun strictCholesky")
+    regularized_start = wrapper_text.find("fun regularizedCholesky")
+    strict_body = wrapper_text[strict_start:regularized_start] if strict_start >= 0 and regularized_start > strict_start else ""
+    if "rank != prepared.size" not in strict_body:
+        violations.append("StableLinearAlgebra.kt: strictCholesky lacks numerical-rank success gate")
+    if "MAX_CONDITION_NUMBER" not in strict_body:
+        violations.append("StableLinearAlgebra.kt: strictCholesky lacks condition-number success gate")
+    if "isFinite()" not in strict_body:
+        violations.append("StableLinearAlgebra.kt: strictCholesky lacks finite diagnostic gate")
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")
         for pattern in FORBIDDEN:

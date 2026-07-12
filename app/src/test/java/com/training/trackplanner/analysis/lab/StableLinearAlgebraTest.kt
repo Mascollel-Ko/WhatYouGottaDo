@@ -157,14 +157,27 @@ class StableLinearAlgebraTest {
         val strict = StableLinearAlgebra.strictCholesky(fixture.getJSONObject("strict_spd").matrix("a"))
         assertTrue(strict.originalMatrixWasPositiveDefinite)
         assertFalse(strict.regularized)
+        assertEquals(strict.factor.size, strict.numericalRank)
+        assertTrue(strict.conditionNumber.isFinite())
+        assertTrue(strict.conditionNumber <= StableLinearAlgebra.MAX_CONDITION_NUMBER)
+        assertTrue(strict.factor.all { row -> row.all(Double::isFinite) })
         assertFalse(StableLinearAlgebra.isStrictlyPositiveDefinite(fixture.getJSONObject("regularizable_numerical_noise").matrix("a")))
         val factor = StableLinearAlgebra.regularizedCholesky(fixture.getJSONObject("regularizable_numerical_noise").matrix("a"))
         assertFalse(factor.originalMatrixWasPositiveDefinite)
         assertTrue(factor.regularized)
+        assertTrue(factor.regularizationAttempted)
+        assertTrue(factor.regularizationSucceeded)
         assertTrue(factor.jitter > 0.0)
         assertTrue(factor.jitterRatio <= StableLinearAlgebra.MAX_PERMITTED_JITTER_RATIO)
         assertEquals(factor.effectiveMatrix.size, factor.numericalRank)
         assertTrue(runCatching { StableLinearAlgebra.regularizedCholesky(fixture.getJSONObject("materially_indefinite").matrix("a")) }.isFailure)
+        val excessive = runCatching {
+            StableLinearAlgebra.regularizedCholesky(
+                arrayOf(doubleArrayOf(1.0, 0.0), doubleArrayOf(0.0, -1e-13)),
+                StableLinearAlgebra.CholeskyRegularizationPolicy(maxJitterRatio = 1e-16)
+            )
+        }.exceptionOrNull()
+        assertEquals(StableLinearAlgebra.CholeskyFailureCode.EXCESSIVE_JITTER_REQUIRED, (excessive as StableLinearAlgebra.CholeskyFailureException).code)
     }
 
     @Test
@@ -173,6 +186,43 @@ class StableLinearAlgebraTest {
         val failure = runCatching { StableLinearAlgebra.regularizedCholesky(singular) }.exceptionOrNull()
         assertTrue(failure is StableLinearAlgebra.CholeskyFailureException)
         assertEquals(StableLinearAlgebra.CholeskyFailureCode.RANK_DEFICIENT, (failure as StableLinearAlgebra.CholeskyFailureException).code)
+    }
+
+    @Test
+    fun strictCholeskyRejectsRankDeficientAndIllConditionedSuccess() {
+        val rankFailure = runCatching {
+            StableLinearAlgebra.strictCholesky(fixture.getJSONObject("exact_singular_psd").matrix("a"))
+        }.exceptionOrNull()
+        assertEquals(StableLinearAlgebra.CholeskyFailureCode.RANK_DEFICIENT, (rankFailure as StableLinearAlgebra.CholeskyFailureException).code)
+        val numericalRankFailure = runCatching {
+            StableLinearAlgebra.strictCholesky(fixture.getJSONObject("numerically_rank_deficient").matrix("a"))
+        }.exceptionOrNull()
+        assertEquals(StableLinearAlgebra.CholeskyFailureCode.RANK_DEFICIENT, (numericalRankFailure as StableLinearAlgebra.CholeskyFailureException).code)
+
+        val conditionFailure = runCatching {
+            StableLinearAlgebra.strictCholesky(fixture.getJSONObject("high_condition_spd").matrix("a"))
+        }.exceptionOrNull()
+        assertEquals(StableLinearAlgebra.CholeskyFailureCode.ILL_CONDITIONED, (conditionFailure as StableLinearAlgebra.CholeskyFailureException).code)
+    }
+
+    @Test
+    fun generalizedEigenRejectsNonFiniteInputsAndKeepsFullSpectrumContract() {
+        val nonFinite = runCatching {
+            StableLinearAlgebra.generalizedSymmetricEigenStrict(
+                arrayOf(doubleArrayOf(1.0, Double.NaN), doubleArrayOf(Double.NaN, 1.0)),
+                arrayOf(doubleArrayOf(1.0, 0.0), doubleArrayOf(0.0, 1.0))
+            )
+        }.exceptionOrNull()
+        assertTrue(nonFinite is StableLinearAlgebra.CholeskyFailureException)
+
+        val item = fixture.getJSONObject("generalized_symmetric_eigen")
+        val result = StableLinearAlgebra.generalizedSymmetricEigenStrict(item.matrix("a"), item.matrix("b"))
+        assertEquals(result.expectedCount, result.eigenvalues.size)
+        assertEquals(result.expectedCount, result.eigenvectors.size)
+        assertTrue(result.eigenvalues.all(Double::isFinite))
+        assertTrue(result.eigenvectors.all { row -> row.all(Double::isFinite) })
+        assertTrue(result.maxResidual.isFinite())
+        assertTrue(result.bOrthogonalityError.isFinite())
     }
 
     private fun existingFile(path: String): File = listOf(File(path), File("../$path")).first(File::exists)

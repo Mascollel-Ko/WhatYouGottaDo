@@ -25,12 +25,16 @@ internal class EndogenousVariableSelector(
             diagnostics += "Automatic endogenous selection was skipped because the required X/Y system exceeds the sample-based K cap ($maxEndogenous)."
             return AutomaticEndogenousSelection(emptyList(), diagnostics)
         }
+        val screeningPrepared = alignmentService.align(
+            AnalysisMetricRegistry.descriptors.map { it.id },
+            metricSeries
+        )?.let(alignmentService::prepareSeries).orEmpty()
         val candidates = AnalysisMetricRegistry.descriptors
             .asSequence()
             .filter { descriptor -> descriptor.supportsMultivariate && descriptor.id !in mandatory && descriptor.id !in controls }
             .filter { descriptor -> descriptor.category != AnalysisMetricCategory.DERIVED }
             .mapNotNull { descriptor ->
-                val reason = alignmentService.usableCandidate(descriptor.id, baseAlignment.weeks.toSet(), metricSeries)
+                val reason = alignmentService.usablePreparedCandidate(descriptor.id, baseAlignment.weeks.toSet(), screeningPrepared)
                 if (reason != null) {
                     diagnostics += "${descriptor.displayName} excluded: $reason."
                     null

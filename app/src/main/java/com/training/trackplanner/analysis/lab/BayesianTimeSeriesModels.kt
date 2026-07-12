@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.lab
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 
 internal enum class BayesianTimeSeriesModel {
@@ -30,7 +31,10 @@ internal data class TimeSeriesAlignment(
     val weeks: List<LocalDate>,
     val valuesByMetric: Map<TrendMetricId, List<Double>>,
     val excludedMetrics: Map<TrendMetricId, String>,
+    @Deprecated("Use qualitySummaries; this compatibility field only exposes raw missing cells.")
     val missingRates: Map<TrendMetricId, Double>,
+    val qualitySummaries: Map<TrendMetricId, MetricDataQualitySummary> = emptyMap(),
+    val preparedSeries: Map<TrendMetricId, PreparedMetricSeries> = emptyMap(),
     val grid: TimeSeriesCalendarGrid? = null,
     val rowExclusions: List<TimeSeriesRowExclusion> = emptyList()
 )
@@ -77,18 +81,27 @@ internal data class TimeSeriesCell(
     val candidateCount: Int = 1,
     val sourceCells: List<TimeSeriesCellReference> = emptyList(),
     val transformation: String? = null,
-    val exclusionReason: TimeSeriesRowExclusionReason? = null
+    val exclusionReason: TimeSeriesRowExclusionReason? = null,
+    val conflictProvenance: ObservationConflictProvenance? = null
 ) {
     init {
         require(weekStart.dayOfWeek == DayOfWeek.MONDAY) { "cell week must be an ISO Monday week start" }
         validateStateValue(state, value)
+        if (state == TimeSeriesCellState.CONFLICT) require(conflictProvenance != null) { "conflict cell requires provenance" }
     }
+}
+
+internal enum class MetricActivationPolicy {
+    EXPLICIT_METADATA_ONLY,
+    FIRST_OBSERVATION_ALLOWED,
+    REGISTRY_DEFINED
 }
 
 internal data class MetricLifecycleMetadata(
     val availableFromWeek: LocalDate? = null,
     val availableUntilWeek: LocalDate? = null,
     val structuralZeroAllowed: Boolean = false,
+    val activationPolicy: MetricActivationPolicy = MetricActivationPolicy.EXPLICIT_METADATA_ONLY,
     val notApplicableWeeks: Set<LocalDate> = emptySet(),
     val versionDiscontinuityWeeks: Set<LocalDate> = emptySet(),
     val versionDiscontinuityRanges: List<TimeSeriesWeekRange> = emptyList()
@@ -122,13 +135,58 @@ internal data class TimeSeriesObservation(
     val state: TimeSeriesCellState? = null,
     val missingReason: String? = null,
     val source: String? = null,
-    val version: String? = null
+    val version: String? = null,
+    val revisionNumber: Long? = version?.toLongOrNull(),
+    val observedAt: Instant? = null,
+    val versionSequence: Long? = null,
+    val conflictProvenance: ObservationConflictProvenance? = null
 ) {
     init {
         if (weekStart.dayOfWeek != DayOfWeek.MONDAY) require(state == null) { "explicit observation state requires ISO Monday week start" }
         if (state != null) validateStateValue(state, value)
         if (state == null && value != null) require(value.isFinite()) { "observation value must be finite" }
+        if (state == TimeSeriesCellState.CONFLICT) require(conflictProvenance != null) { "conflict observation requires provenance" }
     }
+
+    fun revision(): ObservationRevision = ObservationRevision(revisionNumber, observedAt, versionSequence)
+}
+
+internal data class ObservationRevision(
+    val revisionNumber: Long? = null,
+    val observedAt: Instant? = null,
+    val versionSequence: Long? = null
+) {
+    fun isOrdered(): Boolean = revisionNumber != null || observedAt != null || versionSequence != null
+}
+
+internal data class ObservationCandidateProvenance(
+    val metric: TrendMetricId,
+    val weekStart: LocalDate,
+    val value: Double?,
+    val state: TimeSeriesCellState?,
+    val source: String?,
+    val revision: ObservationRevision,
+    val version: String?
+)
+
+internal data class ObservationConflictProvenance(
+    val candidates: List<ObservationCandidateProvenance>,
+    val selectedCandidate: ObservationCandidateProvenance?,
+    val selectionRule: ObservationConflictSelectionRule,
+    val identicalCandidates: Boolean,
+    val unresolvedConflict: Boolean
+) {
+    init {
+        require(candidates.isNotEmpty()) { "conflict provenance requires candidates" }
+    }
+}
+
+internal enum class ObservationConflictSelectionRule {
+    IDENTICAL_DUPLICATE_MERGE,
+    TYPED_REVISION_ORDER,
+    OBSERVED_AT_ORDER,
+    VERSION_SEQUENCE_ORDER,
+    UNRESOLVED_CONFLICT
 }
 
 internal enum class TimeSeriesCellState {
@@ -164,6 +222,53 @@ internal enum class TimeSeriesCellRole {
     SOURCE,
     TARGET,
     LAG
+}
+
+internal data class MetricDataQualitySummary(
+    val totalWeeks: Int,
+    val observedCount: Int,
+    val structuralZeroCount: Int,
+    val missingCount: Int,
+    val preMetricCreationCount: Int,
+    val notApplicableCount: Int,
+    val versionDiscontinuityCount: Int,
+    val conflictCount: Int,
+    val transformationFailureCount: Int = 0,
+    val usableCount: Int,
+    val rawMissingRate: Double,
+    val unusableRate: Double,
+    val coverageRate: Double,
+    val longestContiguousUsableRun: Int,
+    val contiguousSegmentCount: Int
+)
+
+internal data class ContiguousUsableSegment(
+    val startWeek: LocalDate,
+    val endWeek: LocalDate,
+    val length: Int
+)
+
+internal data class PreparedMetricSeries(
+    val metric: TrendMetricId,
+    val weeks: List<LocalDate>,
+    val cells: List<TimeSeriesCell>,
+    val transformation: String,
+    val qualitySummary: MetricDataQualitySummary,
+    val lifecycleMetadata: MetricLifecycleMetadata,
+    val contiguousSegments: List<ContiguousUsableSegment>,
+    val provenance: List<String>,
+    val preparationVersion: Int = 1
+) {
+    init {
+        require(weeks.isNotEmpty()) { "prepared series weeks cannot be empty" }
+        require(weeks.all { it.dayOfWeek == DayOfWeek.MONDAY }) { "prepared weeks must be ISO Mondays" }
+        weeks.zipWithNext().forEach { (left, right) -> require(left.plusWeeks(1) == right) { "prepared weeks must be continuous" } }
+        require(cells.size == weeks.size) { "prepared cells must match weeks" }
+        cells.forEachIndexed { index, cell ->
+            require(cell.metric == metric) { "prepared cell metric mismatch" }
+            require(cell.weekStart == weeks[index]) { "prepared cell week mismatch" }
+        }
+    }
 }
 
 internal data class TimeSeriesModelRow(
@@ -211,20 +316,20 @@ internal data class BayesianLagPosterior(
 )
 
 internal data class CointegrationDiagnostic(
-    val rank: Int?,
+    val legacySuggestedRank: Int?,
     val legacyHeuristicScore: Double,
-    val johansenTraceStatistic: Double?,
+    val legacyRankOneStatistic: Double?,
     val isSupported: Boolean,
     val message: String,
     val cointegrationVector: List<Double>? = null,
     val diagnostics: List<String> = emptyList(),
     val diagnosticOnly: Boolean = true,
     val supportedForModelRouting: Boolean = false,
-    val method: CointegrationDiagnosticMethod = CointegrationDiagnosticMethod.LEGACY_HEURISTIC
+    val method: CointegrationDiagnosticMethod = CointegrationDiagnosticMethod.LEGACY_RANK_ONE_HEURISTIC
 )
 
 internal enum class CointegrationDiagnosticMethod {
-    LEGACY_HEURISTIC
+    LEGACY_RANK_ONE_HEURISTIC
 }
 
 private fun validateStateValue(state: TimeSeriesCellState, value: Double?) {

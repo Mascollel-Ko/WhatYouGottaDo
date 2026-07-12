@@ -60,6 +60,19 @@
       ]
     ]
   },
+  "high_condition_spd": {
+    "a": [
+      [
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        1e-13
+      ]
+    ],
+    "condition_number": 10000000000000.0
+  },
   "johansen_form": {
     "a": [
       [
@@ -258,15 +271,28 @@
       ]
     ]
   },
+  "numerically_rank_deficient": {
+    "a": [
+      [
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        1e-16
+      ]
+    ],
+    "rank": 1
+  },
   "provenance": {
-    "generator_script_version": "phase-a-2",
+    "generator_script_version": "phase-a-3",
     "numpy_version": "2.3.5",
     "purpose": "Phase A linear algebra golden fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "f7e1046be1fbb718ba06fa97230173a635117438",
+    "source_commit": "c462b3d36d19b3e415e1489eb54dd95a300abad4",
     "tolerance": 1e-07
   },
   "rank_deficient_condition_number": {

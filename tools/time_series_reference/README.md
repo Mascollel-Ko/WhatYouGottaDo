@@ -11,11 +11,14 @@ Run from the repository root:
 
 The generated fixtures are deterministic for the fixed RNG seed and include
 Python, NumPy, SciPy, schema, seed, tolerance, and source commit provenance.
-The Phase A fixtures cover standard condition number behavior, exact singular
-PSD rejection, strict versus bounded-jitter Cholesky, strict Johansen-form
-provenance, regularized generalized eigen validation against an effective `B`,
-calendar grid lifecycle cell states, metric-bound filtering, structural-zero
-activation boundaries, observation conflicts, and final-week horizon exclusion.
+The Phase A fixtures cover standard condition number behavior, high-condition
+SPD rejection, exact and numerical rank-deficient PSD rejection, strict versus
+bounded-jitter Cholesky, strict Johansen-form provenance, regularized
+generalized eigen validation against an effective `B`, calendar grid lifecycle
+cell states, metric-bound filtering, explicit activation-policy cases,
+quality-summary denominator rules, structural-zero activation boundaries,
+observation conflicts, full-calendar transformation preservation,
+prepared-series screening contracts, and final-week horizon exclusion.
 
 Run the companion source scan from the repository root:
 

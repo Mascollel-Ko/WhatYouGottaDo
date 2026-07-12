@@ -122,7 +122,7 @@ internal class BayesianTimeSeriesAnalyzer(
                 )
             }
             warnings += "Cointegration was supported, but the Bayesian VECM numerical diagnostic failed; differenced Bayesian local projection is shown instead."
-        } else if (cointegration.johansenTraceStatistic != null) {
+        } else if (cointegration.legacyRankOneStatistic != null) {
             warnings += cointegration.message
         }
 
