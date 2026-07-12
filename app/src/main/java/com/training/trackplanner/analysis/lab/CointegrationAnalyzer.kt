@@ -25,20 +25,25 @@ internal class CointegrationAnalyzer {
         val s11 = covariance(laggedLevels)
         val s01 = crossCovariance(differences, laggedLevels)
         val s10 = transpose(s01)
-        val eigenPairs = runCatching { StableLinearAlgebra.johansenFormEigen(s00, s01, s10, s11) }.getOrNull()
+        val eigenResult = runCatching { StableLinearAlgebra.johansenFormEigen(s00, s01, s10, s11) }.getOrNull()
             ?: return CointegrationDiagnostic(null, 0.0, null, false, "generalized eigen primitive failed")
-        val leading = eigenPairs.firstOrNull() ?: return CointegrationDiagnostic(null, 0.0, null, false, "generalized eigen primitive returned no valid roots")
-        val eigen = leading.value.coerceIn(0.0, 0.999999)
+        val eigen = eigenResult.eigenvalues.firstOrNull()?.coerceIn(0.0, 0.999999)
+            ?: return CointegrationDiagnostic(null, 0.0, null, false, "generalized eigen primitive returned no valid roots")
         val trace = -laggedLevels.first().size * ln(1.0 - eigen)
-        val posterior = 1.0 / (1.0 + exp(-(trace - TRACE_RANK_ONE_THRESHOLD) / 3.0))
-        val supported = trace >= TRACE_RANK_ONE_THRESHOLD && posterior >= 0.80
+        val heuristicProbability = 1.0 / (1.0 + exp(-(trace - TRACE_RANK_ONE_THRESHOLD) / 3.0))
+        val supported = trace >= TRACE_RANK_ONE_THRESHOLD && heuristicProbability >= 0.80
         return CointegrationDiagnostic(
             rank = if (supported) 1 else 0,
-            posteriorProbabilityRankPositive = posterior,
+            posteriorProbabilityRankPositive = heuristicProbability,
             johansenTraceStatistic = trace,
             isSupported = supported,
-            message = if (supported) "Johansen trace and Bayesian rank posterior support rank 1" else "cointegration evidence is insufficient or conflicted",
-            cointegrationVector = leading.vector.toList().takeIf { supported }
+            message = if (supported) {
+                "Legacy heuristic cointegration screen supports a rank-1 compatibility route; full Johansen and Bayesian rank posterior are not implemented in Phase A"
+            } else {
+                "legacy heuristic cointegration evidence is insufficient or conflicted"
+            },
+            cointegrationVector = eigenResult.eigenvectors.first().toList().takeIf { supported },
+            diagnostics = eigenResult.diagnostics + "legacy heuristic probability; not a Bayesian rank posterior"
         )
     }
 

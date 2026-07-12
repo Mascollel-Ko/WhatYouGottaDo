@@ -25,11 +25,11 @@ Candidate screening rejects a series with more than 25 percent missing observati
 
 ## Numeric Foundation
 
-Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLinearAlgebra`. Model code does not call Commons Math directly except through this wrapper. SPD systems use `CholeskyDecomposition` and `DecompositionSolver.solve`; least squares uses RRQR with SVD fallback; rank and condition number come from singular values; SPD log determinant comes from the Cholesky diagonal.
+Phase A fixes the numeric backend on Apache Commons Math 3.6.1 through `StableLinearAlgebra`. Model code does not call Commons Math directly except through this wrapper. SPD systems use `CholeskyDecomposition` and `DecompositionSolver.solve`; least squares uses RRQR with SVD fallback; rank and condition number come from singular values; SPD log determinant comes from the Cholesky diagonal. The public condition number is the standard full-rank ratio of largest to smallest singular value, and rank-deficient matrices return infinity rather than a truncated effective condition number.
 
-The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using triangular solves instead of explicit inverse, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and drops eigenpairs whose residual exceeds tolerance.
+The wrapper also provides a symmetric-definite generalized eigen primitive for later Johansen work. It whitens `A v = lambda B v` with `B = L L'`, computes `C = L^-1 A L^-T` using Commons Math triangular solves instead of explicit inverse or app-owned triangular substitution, checks relative asymmetry before symmetrization, runs full-spectrum `EigenDecomposition`, restores `v = L^-T q`, normalizes `v' B v = 1`, and fails the whole result if the complete spectrum cannot pass residual and `V' B V` checks.
 
-Unbounded jitter is not allowed. Cholesky failure first checks symmetry, rank, and condition number; only bounded scale-relative jitter is attempted, and the jitter ratio is exposed by the Cholesky result.
+Strict positive definiteness and regularizable positive definiteness are separate checks. Strict Cholesky returns only when the original matrix is SPD. The regularized path may add bounded scale-relative diagonal jitter for small numerical noise, but materially indefinite matrices still fail. Callers receive regularization provenance, jitter amount, jitter ratio, condition number, and diagnostics through the result object.
 
 `IntegrationOrderAnalyzer` applies both ADF-style and KPSS-style diagnostics to levels and first differences. I(1) variables are first-differenced for the non-cointegrated local-projection/BVAR route; I(0) variables remain in levels. I(2)+ required variables stop the analysis. Inconclusive diagnostics do not force VECM.
 
@@ -54,6 +54,8 @@ The BVAR uses standardized series and empirical-Bayes Minnesota-style normal pri
 `CholeskyShockIdentifier` constructs a canonical temporal order from metric categories, so X is not automatically first. It uses the reduced-form residual covariance and Cholesky decomposition to derive a one-standard-deviation orthogonal innovation for X. This innovation is supplied to Bayesian Local Projection; BVAR and VECM use the same Cholesky convention for their impulse responses.
 
 The analyzer compares the canonical order with an adjacent same-time-group reordering when one is available. A response-sign or peak-horizon change produces an order-sensitivity warning. The result also records the selected model, horizon reduction, lag posterior, transformations, cointegration decision, automatic endogenous selection, and warnings.
+
+The current cointegration route remains a legacy heuristic isolated behind `CointegrationAnalyzer`. Phase A uses the hardened generalized eigen primitive for the Johansen-form calculation, but it does not claim a full Johansen trace/max-eigen test or a Bayesian rank posterior. Diagnostics explicitly mark this limitation until Phase D replaces the heuristic.
 
 ## File / Feature Map
 

@@ -29,7 +29,7 @@ def as_list(value):
 def provenance(purpose: str) -> dict:
     return {
         "schema_version": 1,
-        "generator_script_version": "phase-a-1",
+        "generator_script_version": "phase-a-2",
         "python_version": platform.python_version(),
         "numpy_version": np.__version__,
         "scipy_version": scipy.__version__,
@@ -59,6 +59,14 @@ def linear_algebra_fixture() -> dict:
         ]
     )
     ls_b = np.array([1.0, 2.0, 3.0, 4.0])
+    svd_a = np.array(
+        [
+            [1.0, 0.0, 0.2],
+            [0.0, 1.0, 0.3],
+            [1.0, 1.0, 2.0],
+            [2.0, 1.0, 3.5],
+        ]
+    )
     sym = np.array([[2.0, 0.5, 0.0], [0.5, 3.0, 0.4], [0.0, 0.4, 4.0]])
     gen_a = np.array([[2.0, 0.4], [0.4, 1.0]])
     gen_b = np.array([[1.5, 0.2], [0.2, 1.2]])
@@ -71,7 +79,9 @@ def linear_algebra_fixture() -> dict:
     sym_values, sym_vectors = scipy.linalg.eigh(sym)
     gen_values, gen_vectors = scipy.linalg.eigh(gen_a, gen_b)
     johansen_values, johansen_vectors = scipy.linalg.eigh(johansen_a, s11)
-    singular = scipy.linalg.svdvals(ls_a)
+    singular = scipy.linalg.svdvals(svd_a)
+    rank_deficient = np.array([[1.0, 2.0], [2.0, 4.0]])
+    nearly_singular = np.diag([1.0, 1e-9])
 
     return {
         "provenance": provenance("Phase A linear algebra golden fixture"),
@@ -84,9 +94,14 @@ def linear_algebra_fixture() -> dict:
             "log_det": float(np.linalg.slogdet(a_spd)[1]),
         },
         "near_singular_spd": {
-            "a": [[1.0, 0.0], [0.0, 1e-13]],
-            "condition_number": 1e13,
-            "should_fail_spd": True,
+            "a": as_list(nearly_singular),
+            "condition_number": float(np.linalg.cond(nearly_singular, 2)),
+            "should_fail_spd": False,
+        },
+        "rank_deficient_condition_number": {
+            "a": as_list(rank_deficient),
+            "rank": int(np.linalg.matrix_rank(rank_deficient)),
+            "condition_number_is_infinite": True,
         },
         "rank_deficient_least_squares": {
             "a": as_list(ls_a),
@@ -95,10 +110,19 @@ def linear_algebra_fixture() -> dict:
             "rank": int(np.linalg.matrix_rank(ls_a)),
         },
         "svd": {
-            "a": as_list(ls_a),
+            "a": as_list(svd_a),
             "singular_values": as_list(singular),
-            "condition_number": float(singular.max() / singular[singular > singular.max() * 1e-10].min()),
-            "rank": int(np.linalg.matrix_rank(ls_a)),
+            "condition_number": float(np.linalg.cond(svd_a, 2)),
+            "rank": int(np.linalg.matrix_rank(svd_a)),
+        },
+        "strict_spd": {
+            "a": [[2.0, 0.1], [0.1, 1.0]],
+        },
+        "regularizable_numerical_noise": {
+            "a": [[1.0, 0.0], [0.0, -1e-10]],
+        },
+        "materially_indefinite": {
+            "a": [[-1.0, 0.0], [0.0, 1.0]],
         },
         "symmetric_eigen": {
             "a": as_list(sym),
@@ -160,6 +184,29 @@ def calendar_fixture() -> dict:
         },
         "horizon_checks": {
             "h2_from_w01_targets_w03": True,
+        },
+        "lifecycle_observations": {
+            "BADMINTON_TRAINING": [
+                {"week": "2025-12-22", "value": 1.0},
+                {"week": "2025-12-29", "value": None, "state": "MISSING", "missing_reason": "user skipped entry"},
+                {"week": "2026-01-12", "value": 4.0},
+            ],
+            "FATIGUE_COMPOSITE": [
+                {"week": "2025-12-22", "value": 0.0},
+                {"week": "2026-01-05", "value": None, "state": "VERSION_DISCONTINUITY"},
+                {"week": "2026-01-12", "value": 5.0},
+            ],
+        },
+        "lifecycle_metadata": {
+            "BADMINTON_TRAINING": {
+                "available_from_week": "2025-12-29",
+                "structural_zero_allowed": True,
+                "not_applicable_weeks": ["2026-01-19"],
+            },
+            "FATIGUE_COMPOSITE": {
+                "available_from_week": "2025-12-22",
+                "version_discontinuity_weeks": ["2026-01-05"],
+            },
         },
     }
 

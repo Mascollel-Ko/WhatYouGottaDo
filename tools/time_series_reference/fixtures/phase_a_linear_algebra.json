@@ -113,6 +113,18 @@
       ]
     ]
   },
+  "materially_indefinite": {
+    "a": [
+      [
+        -1.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0
+      ]
+    ]
+  },
   "near_singular_spd": {
     "a": [
       [
@@ -121,11 +133,11 @@
       ],
       [
         0.0,
-        1e-13
+        1e-09
       ]
     ],
-    "condition_number": 10000000000000.0,
-    "should_fail_spd": true
+    "condition_number": 999999999.9999999,
+    "should_fail_spd": false
   },
   "non_pd_b_failure": {
     "a": [
@@ -150,15 +162,29 @@
     ]
   },
   "provenance": {
-    "generator_script_version": "phase-a-1",
+    "generator_script_version": "phase-a-2",
     "numpy_version": "2.3.5",
     "purpose": "Phase A linear algebra golden fixture",
     "python_version": "3.12.13",
     "rng_seed": 20260712,
     "schema_version": 1,
     "scipy_version": "1.18.0",
-    "source_commit": "25cb01448ea5926841a4b89d9738da135704059a",
+    "source_commit": "ef26caa79f25b059b10443a06a568ecbd527dbda",
     "tolerance": 1e-07
+  },
+  "rank_deficient_condition_number": {
+    "a": [
+      [
+        1.0,
+        2.0
+      ],
+      [
+        2.0,
+        4.0
+      ]
+    ],
+    "condition_number_is_infinite": true,
+    "rank": 1
   },
   "rank_deficient_least_squares": {
     "a": [
@@ -194,6 +220,18 @@
       -5.788356531650821e-16,
       1.0000000000000002,
       0.9999999999999993
+    ]
+  },
+  "regularizable_numerical_noise": {
+    "a": [
+      [
+        1.0,
+        0.0
+      ],
+      [
+        0.0,
+        -1e-10
+      ]
     ]
   },
   "spd_solve": {
@@ -254,17 +292,29 @@
       0.08642949989030353
     ]
   },
+  "strict_spd": {
+    "a": [
+      [
+        2.0,
+        0.1
+      ],
+      [
+        0.1,
+        1.0
+      ]
+    ]
+  },
   "svd": {
     "a": [
       [
         1.0,
         0.0,
-        1.0
+        0.2
       ],
       [
         0.0,
         1.0,
-        1.0
+        0.3
       ],
       [
         1.0,
@@ -274,15 +324,15 @@
       [
         2.0,
         1.0,
-        3.0
+        3.5
       ]
     ],
-    "condition_number": 4.391067076224637,
-    "rank": 2,
+    "condition_number": 7.422461818821462,
+    "rank": 3,
     "singular_values": [
-      4.776678116263642,
-      1.0878171600080742,
-      4.1430218088061647e-16
+      4.878342964947438,
+      1.0722894955114441,
+      0.6572405603457885
     ]
   },
   "symmetric_eigen": {

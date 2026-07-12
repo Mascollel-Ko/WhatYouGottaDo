@@ -34,17 +34,70 @@ internal data class TimeSeriesAlignment(
     val rowExclusions: List<TimeSeriesRowExclusion> = emptyList()
 )
 
-internal data class TimeSeriesCalendarGrid(
+internal class TimeSeriesCalendarGrid private constructor(
     val weeks: List<LocalDate>,
     val cellsByMetric: Map<TrendMetricId, List<TimeSeriesCell>>
 ) {
     fun cell(metric: TrendMetricId, index: Int): TimeSeriesCell? = cellsByMetric[metric]?.getOrNull(index)
+
+    companion object {
+        fun createValidated(
+            weeks: List<LocalDate>,
+            cellsByMetric: Map<TrendMetricId, List<TimeSeriesCell>>
+        ): TimeSeriesCalendarGrid {
+            require(weeks.isNotEmpty()) { "calendar grid cannot be empty" }
+            require(weeks == weeks.sorted()) { "calendar weeks must be sorted" }
+            require(weeks.distinct().size == weeks.size) { "calendar weeks must be unique" }
+            weeks.zipWithNext().forEach { (left, right) ->
+                require(left.plusWeeks(1) == right) { "calendar weeks must be exactly seven days apart" }
+            }
+            require(weeks.map { it.dayOfWeek }.distinct().size == 1) { "calendar week start day must be consistent" }
+            cellsByMetric.forEach { (metric, cells) ->
+                require(cells.size == weeks.size) { "cell count mismatch for $metric" }
+                cells.forEachIndexed { index, cell ->
+                    require(cell.weekStart == weeks[index]) { "cell week mismatch for $metric at $index" }
+                    require(cell.metric == metric) { "cell metric mismatch for $metric at $index" }
+                }
+            }
+            return TimeSeriesCalendarGrid(weeks, cellsByMetric)
+        }
+    }
 }
 
 internal data class TimeSeriesCell(
+    val metric: TrendMetricId,
     val weekStart: LocalDate,
     val state: TimeSeriesCellState,
-    val value: Double?
+    val value: Double?,
+    val missingReason: String? = null,
+    val source: String? = null,
+    val version: String? = null
+)
+
+internal data class MetricLifecycleMetadata(
+    val availableFromWeek: LocalDate? = null,
+    val availableUntilWeek: LocalDate? = null,
+    val structuralZeroAllowed: Boolean = false,
+    val notApplicableWeeks: Set<LocalDate> = emptySet(),
+    val versionDiscontinuityWeeks: Set<LocalDate> = emptySet(),
+    val versionDiscontinuityRanges: List<TimeSeriesWeekRange> = emptyList()
+)
+
+internal data class TimeSeriesWeekRange(
+    val startWeek: LocalDate,
+    val endWeek: LocalDate
+) {
+    fun contains(week: LocalDate): Boolean = !week.isBefore(startWeek) && !week.isAfter(endWeek)
+}
+
+internal data class TimeSeriesObservation(
+    val metric: TrendMetricId,
+    val weekStart: LocalDate,
+    val value: Double?,
+    val state: TimeSeriesCellState? = null,
+    val missingReason: String? = null,
+    val source: String? = null,
+    val version: String? = null
 )
 
 internal enum class TimeSeriesCellState {
@@ -62,8 +115,24 @@ internal data class TimeSeriesRowExclusion(
     val lagWeeks: List<LocalDate>,
     val horizon: Int,
     val reason: TimeSeriesRowExclusionReason,
-    val cellStates: Map<TrendMetricId, TimeSeriesCellState>
+    val cellReferences: List<TimeSeriesCellReference>,
+    val diagnostics: List<String> = emptyList()
 )
+
+internal data class TimeSeriesCellReference(
+    val role: TimeSeriesCellRole,
+    val lagOrder: Int?,
+    val metric: TrendMetricId,
+    val week: LocalDate?,
+    val state: TimeSeriesCellState?,
+    val valuePresent: Boolean
+)
+
+internal enum class TimeSeriesCellRole {
+    SOURCE,
+    TARGET,
+    LAG
+}
 
 internal data class TimeSeriesModelRow(
     val targetWeek: LocalDate,
@@ -82,7 +151,12 @@ internal enum class TimeSeriesRowExclusionReason {
     MISSING_HORIZON,
     DISCONTINUOUS_LAG,
     DISCONTINUOUS_DIFFERENCE,
-    DISCONTINUOUS_HORIZON
+    DISCONTINUOUS_HORIZON,
+    PRE_METRIC_CREATION,
+    VERSION_DISCONTINUITY,
+    NOT_APPLICABLE,
+    STRUCTURAL_ZERO_NOT_ALLOWED,
+    INVALID_CELL_STATE
 }
 
 internal data class IntegrationDiagnostic(
@@ -107,7 +181,8 @@ internal data class CointegrationDiagnostic(
     val johansenTraceStatistic: Double?,
     val isSupported: Boolean,
     val message: String,
-    val cointegrationVector: List<Double>? = null
+    val cointegrationVector: List<Double>? = null,
+    val diagnostics: List<String> = emptyList()
 )
 
 internal data class AutomaticEndogenousSelection(

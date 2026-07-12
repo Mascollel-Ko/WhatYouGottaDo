@@ -13,10 +13,13 @@ FORBIDDEN = [
     re.compile(r"\.getInverse\s*\("),
     re.compile(r"\bgaussJordan\b", re.IGNORECASE),
     re.compile(r"\bpowerIteration\b", re.IGNORECASE),
+    re.compile(r"\b(solveLower|solveUpper|forwardSubstitution|backSubstitution|forwardSolve|backwardSolve)\b"),
     re.compile(r"\blargestEigenvalue\b"),
     re.compile(r"\bdominantEigenvector\b"),
     re.compile(r"\bfun\s+(invert|inverse|determinant)\s*\("),
+    re.compile(r"\bfun\s+.*cholesky\s*\([^)]*\)\s*:\s*Array<DoubleArray>", re.IGNORECASE),
     re.compile(r"\bjitter\s*=\s*jitter\s*\*"),
+    re.compile(r"/\s*(lower|upper)\[[^\]]+\]\[[^\]]+\]"),
 ]
 
 WRAPPER_ONLY = [

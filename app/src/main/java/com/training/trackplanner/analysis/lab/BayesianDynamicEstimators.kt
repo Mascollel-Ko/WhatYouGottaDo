@@ -15,7 +15,7 @@ internal class BayesianVarEstimator {
         shockMetric: TrendMetricId
     ): Map<TrendMetricId, List<BayesianIrfPoint>>? {
         val fit = fitSystem(alignment, system, controls, lag, includeErrorCorrection = false) ?: return null
-        val impact = cholesky(fit.residualCovariance) ?: return null
+        val impact = strictCholeskyFactorOrNull(fit.residualCovariance) ?: return null
         val shockIndex = system.indexOf(shockMetric).takeIf { it >= 0 } ?: return null
         val history = Array(lag) { DoubleArray(system.size) }
         history[0] = DoubleArray(system.size) { index -> impact[index][shockIndex] }
@@ -155,7 +155,7 @@ internal class BayesianVecmEstimator {
     ): Map<TrendMetricId, List<BayesianIrfPoint>>? {
         if (cointegrationVector.size != system.size) return null
         val fit = fitVecm(alignment, system, controls, lag, cointegrationVector) ?: return null
-        val impact = cholesky(fit.residualCovariance) ?: return null
+        val impact = strictCholeskyFactorOrNull(fit.residualCovariance) ?: return null
         val shockIndex = system.indexOf(shockMetric).takeIf { it >= 0 } ?: return null
         val levels = DoubleArray(system.size)
         val deltaHistory = Array(maxOf(1, lag - 1)) { DoubleArray(system.size) }
@@ -280,8 +280,8 @@ private fun standardize(values: List<Double>): DoubleArray? {
     }
 }
 
-internal fun cholesky(matrix: Array<DoubleArray>): Array<DoubleArray>? {
-    return runCatching { StableLinearAlgebra.cholesky(matrix).lower }.getOrNull()
+internal fun strictCholeskyFactorOrNull(matrix: Array<DoubleArray>): Array<DoubleArray>? {
+    return runCatching { StableLinearAlgebra.strictCholesky(matrix).factor }.getOrNull()
 }
 
 private const val Z80 = 1.28155

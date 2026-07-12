@@ -51,7 +51,7 @@ internal class EndogenousVariableSelector(
             val expandedSystem = currentSystem + best.first
             val alignment = alignmentService.align(expandedSystem + controls, metricSeries)
             val fit = alignment?.let { BayesianVarEstimator().fitSystem(it, expandedSystem, controls, lag = 1, includeErrorCorrection = false) }
-            if (fit == null || cholesky(fit.residualCovariance) == null || !choleskyShockIdentifier.posteriorPredictivePass(fit)) {
+            if (fit == null || strictCholeskyFactorOrNull(fit.residualCovariance) == null || !choleskyShockIdentifier.posteriorPredictivePass(fit)) {
                 diagnostics += "${displayName(best.first)} excluded: the expanded Bayesian dynamic system failed stability or posterior predictive coverage checks."
                 candidates.remove(best.first)
                 continue

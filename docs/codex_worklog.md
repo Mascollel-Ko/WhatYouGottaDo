@@ -1138,3 +1138,44 @@ File/Feature Map
 
 Remaining
 - BVAR posterior sampling, Bayesian LP posterior rebuild, full Johansen trace/max-eigen testing, Bayesian VECM routing, and final UI changes are deferred until explicit Phase B-D/E approval.
+
+## Time-Series Analysis Phase A Hardening Correction
+
+Cause
+- Started from `feat/time-series-phase-a` at `ef26caa79f25b059b10443a06a568ecbd527dbda`.
+- Phase A needed a correction pass before review because the numeric wrapper still hid too much Cholesky regularization provenance, condition number handling needed to be the standard full-rank definition, generalized eigen handling needed all-or-fail validation, calendar cell states needed lifecycle provenance, and direct triangular substitution needed to be blocked by the static scanner.
+- Existing dirty `outputs/*` files remained outside the work and were not staged.
+
+Changes
+- Reworked `StableLinearAlgebra` results to expose strict/regularized Cholesky provenance, jitter amount, jitter ratio, condition number, and diagnostics.
+- Kept triangular solves inside the wrapper through Commons Math calls and removed app-owned triangular substitution from the shock path.
+- Changed condition number behavior so rank-deficient matrices return infinity, while a separate effective condition number remains available when needed.
+- Changed generalized symmetric eigen output to return the complete validated spectrum or fail the whole result.
+- Added lifecycle-aware `TimeSeriesObservation`, `MetricLifecycleMetadata`, calendar cell source/version/missing metadata, and strict continuous-grid validation.
+- Fixed exact row exclusion provenance so target/source/lag cells keep distinct roles and target horizon indexing cannot overwrite same-metric lag references.
+- Isolated the current cointegration route as a legacy heuristic in diagnostics instead of presenting it as a Bayesian rank posterior.
+- Expanded the static numeric source scan to detect direct triangular solver names and diagonal triangular division patterns.
+- Regenerated Phase A fixtures with standard condition number and lifecycle cell-state cases.
+
+Reason
+- Phase A is the numerical and calendar foundation. It should fail loudly when foundational invariants are not met instead of silently dropping eigenpairs, compressing week gaps, or hiding regularization.
+- Strict SPD and regularizable SPD are different contracts; callers need to know whether jitter affected a result.
+- Calendar rows must be auditable by input/lifecycle metadata, not just an enum state.
+
+Result
+- PHASE A remains a foundation-only branch. No app version, tag, release, or Phase B implementation was added.
+- Numeric, calendar, row exclusion, and source-scan invariants are now covered by focused tests and deterministic fixtures.
+- GitHub Actions is intended to run on the feature branch after the correction commit is pushed.
+
+Tests
+- `python tools/time_series_reference/generate_phase_a_fixtures.py`: passed with bundled Python.
+- `python tools/check_time_series_numeric_sources.py`: passed.
+- `.\gradlew.bat --version`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StableLinearAlgebraTest*" --tests "*TimeSeriesCalendarGridTest*" --tests "*LaggedTimeSeriesAnalyzerTest*"`: passed after fixing RHS shape and bounded jitter margin.
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest`: passed.
+- `.\gradlew.bat :app:assembleDebug`: passed.
+
+Remaining
+- GitHub Actions branch verification must be dispatched after push.
+- BVAR posterior sampling, Bayesian LP posterior mixtures, full Johansen trace/max-eigen testing, Bayesian VECM replacement, and final UI changes remain deferred until explicit Phase B-D/E approval.

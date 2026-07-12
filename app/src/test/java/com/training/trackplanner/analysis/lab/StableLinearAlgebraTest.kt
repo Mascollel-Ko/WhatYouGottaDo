@@ -24,9 +24,14 @@ class StableLinearAlgebraTest {
     fun spdSolveMultiRhsAndLogDetMatchPythonFixture() {
         val item = fixture.getJSONObject("spd_solve")
         val a = item.matrix("a")
-        assertArrayClose(item.vector("x"), StableLinearAlgebra.solveSpd(a, item.vector("b")))
-        assertMatrixClose(item.matrix("matrix_x"), StableLinearAlgebra.solveSpd(a, item.matrix("matrix_b")))
-        assertEquals(item.getDouble("log_det"), StableLinearAlgebra.logDetSpd(a), 1e-8)
+        val vectorSolve = StableLinearAlgebra.solveSpd(a, item.vector("b"))
+        val matrixSolve = StableLinearAlgebra.solveSpd(a, item.matrix("matrix_b"))
+        val logDet = StableLinearAlgebra.logDetSpd(a)
+        assertArrayClose(item.vector("x"), vectorSolve.solution)
+        assertMatrixClose(item.matrix("matrix_x"), matrixSolve.solution)
+        assertEquals(item.getDouble("log_det"), logDet.logDeterminant, 1e-8)
+        assertFalse(vectorSolve.regularized)
+        assertFalse(logDet.regularized)
     }
 
     @Test
@@ -43,6 +48,9 @@ class StableLinearAlgebraTest {
         assertArrayClose(item.vector("singular_values"), StableLinearAlgebra.singularValues(a), 1e-8)
         assertEquals(item.getInt("rank"), StableLinearAlgebra.rank(a))
         assertEquals(item.getDouble("condition_number"), StableLinearAlgebra.conditionNumber(a), 1e-7)
+        val deficient = fixture.getJSONObject("rank_deficient_condition_number")
+        assertEquals(deficient.getInt("rank"), StableLinearAlgebra.rank(deficient.matrix("a")))
+        assertTrue(StableLinearAlgebra.conditionNumber(deficient.matrix("a")).isInfinite())
     }
 
     @Test
@@ -62,11 +70,15 @@ class StableLinearAlgebraTest {
         val a = item.matrix("a")
         val b = item.matrix("b")
         val result = StableLinearAlgebra.generalizedSymmetricEigen(a, b)
-        assertArrayClose(item.vector("values_desc"), result.map { it.value }.toDoubleArray(), 1e-7)
-        result.forEach { pair ->
-            assertEquals(1.0, bInner(pair.vector, b), 1e-7)
-            assertTrue(pair.residual < 1e-7)
+        assertEquals(a.size, result.expectedCount)
+        assertEquals(result.expectedCount, result.validCount)
+        assertArrayClose(item.vector("values_desc"), result.eigenvalues, 1e-7)
+        result.eigenvectors.forEachIndexed { index, vector ->
+            assertEquals(1.0, bInner(vector, b), 1e-7)
+            assertTrue(result.residuals[index] < 1e-7)
         }
+        assertTrue(result.bOrthogonalityError < 1e-7)
+        assertTrue(runCatching { StableLinearAlgebra.generalizedSymmetricEigen(a, b, residualTolerance = 1e-30) }.isFailure)
     }
 
     @Test
@@ -78,8 +90,9 @@ class StableLinearAlgebraTest {
             item.matrix("s10"),
             item.matrix("s11")
         )
-        assertArrayClose(item.vector("values_desc"), result.map { it.value }.toDoubleArray(), 1e-7)
-        assertTrue(result.all { it.residual < 1e-7 })
+        assertEquals(result.expectedCount, result.validCount)
+        assertArrayClose(item.vector("values_desc"), result.eigenvalues, 1e-7)
+        assertTrue(result.residuals.all { it < 1e-7 })
     }
 
     @Test
@@ -97,10 +110,16 @@ class StableLinearAlgebraTest {
 
     @Test
     fun boundedJitterIsRecordedAndUnboundedJitterIsRejected() {
-        val factor = StableLinearAlgebra.cholesky(arrayOf(doubleArrayOf(1.0, 0.0), doubleArrayOf(0.0, -1e-9)))
+        val strict = StableLinearAlgebra.strictCholesky(fixture.getJSONObject("strict_spd").matrix("a"))
+        assertTrue(strict.originalMatrixWasPositiveDefinite)
+        assertFalse(strict.regularized)
+        assertFalse(StableLinearAlgebra.isStrictlyPositiveDefinite(fixture.getJSONObject("regularizable_numerical_noise").matrix("a")))
+        val factor = StableLinearAlgebra.regularizedCholesky(fixture.getJSONObject("regularizable_numerical_noise").matrix("a"))
+        assertFalse(factor.originalMatrixWasPositiveDefinite)
+        assertTrue(factor.regularized)
         assertTrue(factor.jitter > 0.0)
         assertTrue(factor.jitterRatio <= StableLinearAlgebra.MAX_PERMITTED_JITTER_RATIO)
-        assertTrue(runCatching { StableLinearAlgebra.cholesky(fixture.getJSONObject("near_singular_spd").matrix("a")) }.isFailure)
+        assertTrue(runCatching { StableLinearAlgebra.regularizedCholesky(fixture.getJSONObject("materially_indefinite").matrix("a")) }.isFailure)
     }
 
     private fun existingFile(path: String): File = listOf(File(path), File("../$path")).first(File::exists)

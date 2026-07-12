@@ -13,11 +13,15 @@ internal class CholeskyShockIdentifier {
         system: List<TrendMetricId>,
         shockMetric: TrendMetricId
     ): Map<Int, Double>? {
-        val impact = cholesky(fit.residualCovariance) ?: return null
+        val impact = strictCholeskyFactorOrNull(fit.residualCovariance) ?: return null
         val shockIndex = system.indexOf(shockMetric).takeIf { it >= 0 } ?: return null
         if (fit.residuals.size != fit.timeIndices.size) return null
         return fit.timeIndices.indices.associate { index ->
-            fit.timeIndices[index] to forwardSolve(impact, fit.residuals[index])[shockIndex]
+            val structural = StableLinearAlgebra.applyLowerTriangular(
+                impact,
+                Array(fit.residuals[index].size) { row -> doubleArrayOf(fit.residuals[index][row]) }
+            )
+            fit.timeIndices[index] to structural[shockIndex][0]
         }
     }
 
@@ -70,14 +74,6 @@ internal class CholeskyShockIdentifier {
         AnalysisMetricCategory.PERFORMANCE,
         AnalysisMetricCategory.SMASH_SPEED -> 3
         else -> 4
-    }
-
-    private fun forwardSolve(lower: Array<DoubleArray>, residual: DoubleArray): DoubleArray {
-        val structural = DoubleArray(residual.size)
-        for (row in structural.indices) {
-            structural[row] = (residual[row] - (0 until row).sumOf { column -> lower[row][column] * structural[column] }) / lower[row][row]
-        }
-        return structural
     }
 
     private companion object {
