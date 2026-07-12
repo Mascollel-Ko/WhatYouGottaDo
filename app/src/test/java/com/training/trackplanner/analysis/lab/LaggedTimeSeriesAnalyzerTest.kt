@@ -11,7 +11,7 @@ import org.junit.Test
 class LaggedTimeSeriesAnalyzerTest {
     @Test
     fun BayesianLocalProjectionKeepsMissingWeeksMissingAndReturnsHorizonZeroThroughTwo() {
-        val result = BayesianTimeSeriesAnalyzer().analyze(
+        val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             stationaryFixture(52)
         )
@@ -23,7 +23,7 @@ class LaggedTimeSeriesAnalyzerTest {
 
     @Test
     fun requestedHorizonIsReducedInsteadOfFillingFutureWeeks() {
-        val result = BayesianTimeSeriesAnalyzer().analyze(
+        val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 8),
             stationaryFixture(31)
         )
@@ -36,7 +36,7 @@ class LaggedTimeSeriesAnalyzerTest {
     fun zeroVarianceShockDoesNotProduceCorrelationFallback() {
         val start = LocalDate.parse("2026-01-05")
         val weeks = (0 until 40).map { start.plusWeeks(it.toLong()) }
-        val result = BayesianTimeSeriesAnalyzer().analyze(
+        val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             mapOf(
                 TrendMetricId.BADMINTON_TRAINING to weeks.map { TrendDataPoint(it, 1.0) },
@@ -60,7 +60,7 @@ class LaggedTimeSeriesAnalyzerTest {
 
     @Test
     fun lagPosteriorIsSharedAcrossEveryResponseHorizon() {
-        val result = BayesianTimeSeriesAnalyzer().analyze(
+        val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(
                 TrendMetricId.BADMINTON_TRAINING,
                 listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
@@ -128,7 +128,7 @@ class LaggedTimeSeriesAnalyzerTest {
 
     @Test
     fun legacyCointegrationDiagnosticDoesNotRouteToBayesianVecm() {
-        val result = BayesianTimeSeriesAnalyzer().analyze(
+        val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             cointegratedFixture(72)
         )

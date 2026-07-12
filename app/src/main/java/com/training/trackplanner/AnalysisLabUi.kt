@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.AnalysisMetricDescriptor
 import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
-import com.training.trackplanner.analysis.lab.BayesianTimeSeriesAnalyzer
+import com.training.trackplanner.analysis.lab.LegacyTimeSeriesAnalyzer
 import com.training.trackplanner.analysis.lab.BayesianTimeSeriesModel
 import com.training.trackplanner.analysis.lab.BayesianTimeSeriesResult
 import com.training.trackplanner.analysis.lab.LaggedTimeSeriesAnalyzer
@@ -241,7 +241,7 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
                     modifier = Modifier.fillMaxWidth(),
                     enabled = selectedY.isNotEmpty(),
                     onClick = {
-                        result = BayesianTimeSeriesAnalyzer().analyze(
+                        result = LegacyTimeSeriesAnalyzer().analyze(
                             TimeSeriesAnalysisRequest(xMetric, selectedY.toList(), controls.toList(), horizon),
                             summary.metricSeries
                         )

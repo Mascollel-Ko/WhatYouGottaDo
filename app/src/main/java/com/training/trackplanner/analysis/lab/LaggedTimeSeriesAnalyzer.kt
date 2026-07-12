@@ -52,7 +52,7 @@ internal data class LaggedTimeSeriesResult(
 )
 
 internal class LaggedTimeSeriesAnalyzer {
-    private val analyzer = BayesianTimeSeriesAnalyzer()
+    private val analyzer = LegacyTimeSeriesAnalyzer()
 
     fun analyze(
         xMetric: TrendMetricId,

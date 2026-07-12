@@ -6,6 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "app" / "src" / "main" / "java" / "com" / "training" / "trackplanner" / "analysis" / "lab"
+STRICT_PIPELINE = TARGET / "pipeline"
+STRICT_INGESTION = STRICT_PIPELINE / "StrictTimeSeriesIngestion.kt"
 WRAPPER = TARGET / "StableLinearAlgebra.kt"
 MODELS = TARGET / "BayesianTimeSeriesModels.kt"
 SELECTOR = TARGET / "EndogenousVariableSelector.kt"
@@ -93,6 +95,26 @@ def main() -> int:
     dynamic_text = DYNAMIC.read_text(encoding="utf-8")
     if "raw.map(::standardize)" in dynamic_text:
         violations.append("BayesianDynamicEstimators.kt: compatibility estimators must not standardize full raw series before allowed-row restriction")
+
+    legacy_symbols = (
+        "LegacyTimeSeriesAnalyzer",
+        "BayesianLocalProjectionEstimator",
+        "BayesianVarEstimator",
+        "BayesianVecmEstimator",
+        "CointegrationAnalyzer",
+        "EndogenousVariableSelector",
+    )
+    for path in STRICT_PIPELINE.rglob("*.kt"):
+        text = path.read_text(encoding="utf-8")
+        if path != STRICT_INGESTION and "TrendDataPoint" in text:
+            violations.append(f"{path.relative_to(ROOT)}: raw TrendDataPoint is allowed only at strict ingestion")
+        for symbol in legacy_symbols:
+            if symbol in text:
+                violations.append(f"{path.relative_to(ROOT)}: strict pipeline references legacy symbol {symbol}")
+        if re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.)", text, re.MULTILINE):
+            violations.append(f"{path.relative_to(ROOT)}: strict pipeline imports the legacy lab package")
+        if re.search(r"data\s+class\s+\w+\s*\([^)]*fingerprint\s*:", text, re.DOTALL):
+            violations.append(f"{path.relative_to(ROOT)}: identity-bearing strict type must not expose data-class copy semantics")
 
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")

@@ -4,7 +4,7 @@ import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 
-internal class BayesianTimeSeriesAnalyzer(
+internal class LegacyTimeSeriesAnalyzer(
     private val alignmentService: TimeSeriesAlignmentService = TimeSeriesAlignmentService(),
     private val localProjectionEstimator: BayesianLocalProjectionEstimator = BayesianLocalProjectionEstimator(),
     private val cointegrationAnalyzer: CointegrationAnalyzer = CointegrationAnalyzer(),
