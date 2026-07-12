@@ -183,10 +183,20 @@ def main() -> int:
             violations.append(f"{path.relative_to(ROOT)}: estimator-local unrestricted scaling/statistics are forbidden")
 
     future_text = strict_sources.get(STRICT_FUTURE, "")
+    representation_text = strict_sources.get(STRICT_REPRESENTATION, "")
     if "IdentifiedShockPosterior" not in future_text or "DRAW_BY_DRAW_WITHOUT_MEAN_SHOCK_COLLAPSE" not in future_text:
         violations.append("FutureEstimatorBoundaries.kt: strict BLP must require draw-specific identified shock posterior propagation")
+    if "BvarPosteriorSourceIdentity" not in future_text:
+        violations.append("FutureEstimatorBoundaries.kt: BVAR posterior identity must bind source metric, view, row, scaling, prior, and posterior fingerprints")
+    for token in ("SHOCK_SOURCE", "eligibleSourceWeeks", "responseScalePlansByMetric", "horizonPolicy != HorizonPolicy.NOT_APPLICABLE"):
+        if token not in future_text:
+            violations.append(f"FutureEstimatorBoundaries.kt: missing BLP posterior-boundary guard {token}")
     if re.search(r"shock\s*\?:|exactDifference|List\s*<\s*Double\s*>\s*\?", future_text):
         violations.append("FutureEstimatorBoundaries.kt: strict BLP exposes a raw or fallback shock path")
+    if re.search(r"\bCanonicalCalendar\b|calendar\.weeks|values\.size\s*==\s*calendar\.weeks\.size", representation_text[representation_text.find("internal class IdentifiedShockPosterior"):]):
+        violations.append("StrictTimeSeriesRepresentation.kt: shock posterior must use prepared eligible source weeks, not full-calendar shock vectors")
+    if "sourceIdentity: BvarPosteriorSourceIdentity" not in representation_text or "eligibleSourceWeeks" not in representation_text:
+        violations.append("StrictTimeSeriesRepresentation.kt: shock posterior must carry BVAR posterior source identity and eligible source weeks")
 
     views_text = strict_sources.get(STRICT_VIEWS, "")
     johansen_block = views_text[views_text.find("internal class JohansenPreparedView"):views_text.find("internal class VecmPreparedView")]

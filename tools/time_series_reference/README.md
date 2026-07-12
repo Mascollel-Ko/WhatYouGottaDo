@@ -32,8 +32,9 @@ strict 1..8 horizon contracts, explicit no-horizon row identity, and declared
 scaling failure modes. The contract fixture also records the final strict stage
 order, segment boundaries and conservative aggregation, estimator
 representations, required/optional inconclusive policies, draw-wise response
-reconstruction, multi-draw shock-posterior shape, sole row/scaling authorities,
-and PHASE E ownership of optional statistical ranking.
+reconstruction, BVAR posterior source identity, row-domain multi-draw shock
+posterior shape, sole row/scaling authorities, and PHASE E ownership of optional
+statistical ranking.
 
 Run the companion source scan from the repository root:
 

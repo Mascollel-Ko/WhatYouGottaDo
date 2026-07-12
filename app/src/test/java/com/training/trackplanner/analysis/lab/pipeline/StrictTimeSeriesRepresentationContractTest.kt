@@ -187,41 +187,66 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun shockPosteriorRequiresMultipleWeightedDrawSpecificSeries() {
-        val calendar = CanonicalCalendar.createValidated(weeks(3))
+        val sourceIdentity = bvarPosteriorSourceIdentity()
+        val shockSize = sourceIdentity.eligibleSourceWeeks.size
         val posterior = IdentifiedShockPosterior.createValidated(
             sourceMetric = TrendMetricId.BADMINTON_TRAINING,
-            orderedEndogenousMetrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
             structuralOrdering = "temporal",
             normalizationPolicy = "one-standard-deviation",
             posteriorDrawIds = listOf("d1", "d2"),
             drawWeights = mapOf("d1" to 0.4, "d2" to 0.6),
-            shockSeriesByDraw = mapOf("d1" to listOf(0.1, 0.2, 0.3), "d2" to listOf(0.2, 0.1, 0.4)),
-            calendar = calendar,
+            shockSeriesByDraw = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }),
             sourceCovarianceDrawFingerprintByDraw = mapOf("d1" to "cov1", "d2" to "cov2"),
-            sourceBvarPosteriorFingerprint = "bvar",
-            sourceContextFingerprint = "context",
-            sourceSystemViewFingerprint = "view",
+            sourceIdentity = sourceIdentity,
             rejectedDrawDiagnostics = listOf(RejectedShockDrawDiagnostic("d3", "non-SPD covariance"))
         )
 
         assertEquals(listOf("d1", "d2"), posterior.posteriorDrawIds)
         assertEquals("cov2", posterior.sourceCovarianceDrawFingerprintByDraw.getValue("d2"))
+        assertEquals(sourceIdentity.eligibleSourceWeeks, posterior.eligibleSourceWeeks)
+        assertEquals(sourceIdentity.sourceRowPlanFingerprint, posterior.sourceRowPlanFingerprint)
         assertTrue(
             runCatching {
                 IdentifiedShockPosterior.createValidated(
                     TrendMetricId.BADMINTON_TRAINING,
-                    listOf(TrendMetricId.BADMINTON_TRAINING),
+                    sourceIdentity.orderedEndogenousMetrics,
                     "temporal",
                     "one-standard-deviation",
                     listOf("mean"),
                     mapOf("mean" to 1.0),
-                    mapOf("mean" to listOf(0.1, 0.2, 0.3)),
-                    calendar,
+                    mapOf("mean" to List(shockSize) { 0.1 }),
                     mapOf("mean" to "cov"),
-                    "bvar",
-                    "context",
-                    "view"
+                    sourceIdentity
                 )
+            }.isFailure
+        )
+    }
+
+    @Test
+    fun futureBlpInputRequiresShockPosteriorToCoverPreparedSourceRows() {
+        val context = context()
+        val view = BlpPreparedView.from(context)
+        val rowPlan = RowPlanner.plan(context, view, 1, setOf(1), 1, HorizonPolicy.PER_HORIZON)
+        val validPosterior = shockPosterior(context)
+
+        val validInput = FutureBlpInput.createValidated(view, rowPlan, validPosterior, HorizonPolicy.PER_HORIZON)
+
+        assertEquals(rowPlan.fingerprint, validInput.rowPlan.fingerprint)
+        assertTrue(rowPlan.rows.all { it.sourceWeek in validPosterior.eligibleSourceWeeks })
+        assertTrue(
+            runCatching {
+                FutureBlpInput.createValidated(view, rowPlan, shockPosterior(context, sourceMetric = TrendMetricId.FATIGUE_COMPOSITE), HorizonPolicy.PER_HORIZON)
+            }.isFailure
+        )
+        assertTrue(
+            runCatching {
+                FutureBlpInput.createValidated(view, rowPlan, shockPosterior(context, dropLastEligibleWeek = true), HorizonPolicy.PER_HORIZON)
+            }.isFailure
+        )
+        assertTrue(
+            runCatching {
+                FutureBlpInput.createValidated(view, rowPlan, validPosterior, HorizonPolicy.NOT_APPLICABLE)
             }.isFailure
         )
     }
@@ -231,6 +256,54 @@ class StrictTimeSeriesRepresentationContractTest {
         y: TrendMetricId,
         optional: List<TrendMetricId> = emptyList()
     ) = StrictPreparationRequest(x, listOf(y), optionalCandidates = optional, horizons = setOf(1, 2))
+
+    private fun context(): PreparedAnalysisContext {
+        val x = TrendMetricId.BADMINTON_TRAINING
+        val y = TrendMetricId.FATIGUE_COMPOSITE
+        val supported = fixtureValues("stationary_ar_03")
+        val weeks = weeks(supported.size)
+        val request = request(x, y)
+        val catalog = RawTimeSeriesInput.fromTrendSeries(
+            mapOf(
+                x to weeks.mapIndexed { index, week -> TrendDataPoint(week, supported[index]) },
+                y to weeks.mapIndexed { index, week -> TrendDataPoint(week, supported[index] * 2.0) }
+            )
+        ).ingest(request)
+        return (PreparedAnalysisContext.createValidated(request, catalog) as StrictPreparationResult.Success).context
+    }
+
+    private fun bvarPosteriorSourceIdentity(
+        context: PreparedAnalysisContext = context(),
+        sourceMetric: TrendMetricId = context.request.xMetric,
+        dropLastEligibleWeek: Boolean = false
+    ): BvarPosteriorSourceIdentity {
+        val view = BvarPreparedView.from(context)
+        val rowPlan = RowPlanner.plan(context, view, 1, setOf(1), 1, HorizonPolicy.DECLARED_REFERENCE_HORIZON)
+        val scaling = ScalingPlanner.plan(context, view, rowPlan, rowPlan.rows.take(12).map { it.sourceWeek })
+        val input = FutureBvarInput.createValidated(view, rowPlan, scaling, "prior")
+        val eligibleWeeks = rowPlan.rows.map { it.sourceWeek }.let { if (dropLastEligibleWeek) it.dropLast(1) else it }
+        return BvarPosteriorSourceIdentity.createValidated(input, sourceMetric, "bvar-posterior", eligibleWeeks)
+    }
+
+    private fun shockPosterior(
+        context: PreparedAnalysisContext,
+        sourceMetric: TrendMetricId = context.request.xMetric,
+        dropLastEligibleWeek: Boolean = false
+    ): IdentifiedShockPosterior {
+        val sourceIdentity = bvarPosteriorSourceIdentity(context, sourceMetric, dropLastEligibleWeek)
+        val shockSize = sourceIdentity.eligibleSourceWeeks.size
+        return IdentifiedShockPosterior.createValidated(
+            sourceMetric = sourceMetric,
+            orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
+            structuralOrdering = "temporal",
+            normalizationPolicy = "one-standard-deviation",
+            posteriorDrawIds = listOf("d1", "d2"),
+            drawWeights = mapOf("d1" to 0.5, "d2" to 0.5),
+            shockSeriesByDraw = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }),
+            sourceCovarianceDrawFingerprintByDraw = mapOf("d1" to "cov1", "d2" to "cov2"),
+            sourceIdentity = sourceIdentity
+        )
+    }
 
     private fun weeks(count: Int): List<LocalDate> =
         (0 until count).map { LocalDate.parse("2026-01-05").plusWeeks(it.toLong()) }

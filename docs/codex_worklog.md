@@ -1537,3 +1537,34 @@ Tests
 - Bundled Python `tools/check_time_series_numeric_sources.py`: passed.
 - `.\gradlew.bat :app:compileDebugKotlin`: passed.
 - `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeriesIntegrationContractTest" --tests "*StrictTimeSeriesRepresentationContractTest" --tests "*PreparedAnalysisContextContractTest" --tests "*StrictTimeSeriesEndToEndTest" --tests "*StrictTimeSeriesArchitectureTest"`: initially exposed outdated test fixtures and then passed after switching to deterministic integration fixtures.
+
+## PHASE A posterior-boundary row-domain stabilization
+
+Cause
+- Continued on `feat/time-series-phase-a` after Commit 1 `83037b0`.
+- `IdentifiedShockPosterior` still accepted shock series sized to the full canonical calendar rather than the prepared BVAR source-row domain.
+- `FutureBlpInput` only checked same-root shock identity and did not verify source metric, response scale identity, BLP horizon policy, or shock-week coverage.
+- The approved dirty `outputs/*` files remain untouched and unstaged.
+
+Changes
+- Commit 2 pending (`fix(analysis): bind shock posterior to prepared row identity`): added the single allowed production identity `BvarPosteriorSourceIdentity` in `FutureEstimatorBoundaries.kt`.
+- Bound future BVAR posterior identity to source metric, BVAR view, BVAR row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and eligible source weeks.
+- Changed `IdentifiedShockPosterior` to require draw-specific shock vectors over `BvarPosteriorSourceIdentity.eligibleSourceWeeks`, not the full calendar.
+- Strengthened `FutureBlpInput.createValidated` to require BLP row/view identity, non-`NOT_APPLICABLE` horizon policy, matching shock source metric, matching response-scale fingerprints, and BLP source-week coverage by the shock posterior domain.
+- Added focused posterior-boundary coverage to `StrictTimeSeriesRepresentationContractTest`.
+- Updated architecture docs, README text, and static source guards for row-domain shock identity.
+
+Reason
+- PHASE C BLP must consume posterior shocks generated from the same strict root and eligible BVAR source rows.
+- Full-calendar shock vectors allow fake zero/fallback shocks to line up visually while bypassing prepared row identity.
+- Binding posterior shocks to the prepared row domain prevents future estimators from mixing BVAR and BLP samples silently.
+
+Result
+- Future shock posterior shape is now tied to prepared BVAR source rows and source identity.
+- Future BLP input rejects wrong shock source metrics, incomplete shock-week coverage, response-scale identity drift, and invalid no-horizon policies.
+- No PHASE B, C, D, or E estimator implementation was started.
+
+Tests
+- `.\gradlew.bat :app:compileDebugKotlin`: passed.
+- `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeriesRepresentationContractTest" --tests "*PreparedAnalysisContextContractTest" --tests "*StrictTimeSeriesIntegrationContractTest" --tests "*StrictTimeSeriesEndToEndTest" --tests "*StrictTimeSeriesArchitectureTest"`: passed.
+- Bundled Python `tools/check_time_series_numeric_sources.py`: passed.

@@ -541,11 +541,8 @@ internal class IdentifiedShockPosterior private constructor(
     posteriorDrawIds: List<String>,
     drawWeights: Map<String, Double>,
     shockSeriesByDraw: Map<String, List<Double>>,
-    val calendar: CanonicalCalendar,
     sourceCovarianceDrawFingerprintByDraw: Map<String, String>,
-    val sourceBvarPosteriorFingerprint: String,
-    val sourceContextFingerprint: String,
-    val sourceSystemViewFingerprint: String,
+    val sourceIdentity: BvarPosteriorSourceIdentity,
     rejectedDrawDiagnostics: List<RejectedShockDrawDiagnostic>,
     val fingerprint: String
 ) {
@@ -555,6 +552,12 @@ internal class IdentifiedShockPosterior private constructor(
     val shockSeriesByDraw: Map<String, List<Double>> = shockSeriesByDraw.mapValues { it.value.toList() }
     val sourceCovarianceDrawFingerprintByDraw: Map<String, String> = sourceCovarianceDrawFingerprintByDraw.toMap()
     val rejectedDrawDiagnostics: List<RejectedShockDrawDiagnostic> = rejectedDrawDiagnostics.toList()
+    val eligibleSourceWeeks: List<LocalDate> = sourceIdentity.eligibleSourceWeeks
+    val sourceBvarPosteriorFingerprint: String = sourceIdentity.sourceBvarPosteriorFingerprint
+    val sourceContextFingerprint: String = sourceIdentity.sourceContextFingerprint
+    val sourceSystemViewFingerprint: String = sourceIdentity.sourceSystemViewFingerprint
+    val sourceRowPlanFingerprint: String = sourceIdentity.sourceRowPlanFingerprint
+    val sourceScalingPlanFingerprint: String = sourceIdentity.sourceScalingPlanFingerprint
 
     companion object {
         fun createValidated(
@@ -565,23 +568,21 @@ internal class IdentifiedShockPosterior private constructor(
             posteriorDrawIds: List<String>,
             drawWeights: Map<String, Double>,
             shockSeriesByDraw: Map<String, List<Double>>,
-            calendar: CanonicalCalendar,
             sourceCovarianceDrawFingerprintByDraw: Map<String, String>,
-            sourceBvarPosteriorFingerprint: String,
-            sourceContextFingerprint: String,
-            sourceSystemViewFingerprint: String,
+            sourceIdentity: BvarPosteriorSourceIdentity,
             rejectedDrawDiagnostics: List<RejectedShockDrawDiagnostic> = emptyList()
         ): IdentifiedShockPosterior {
             require(sourceMetric in orderedEndogenousMetrics)
+            require(sourceMetric == sourceIdentity.sourceMetric)
+            require(orderedEndogenousMetrics == sourceIdentity.orderedEndogenousMetrics)
             require(posteriorDrawIds.size >= 2) { "posterior shock contract requires multiple draw-specific series" }
             require(posteriorDrawIds.distinct().size == posteriorDrawIds.size)
             val ids = posteriorDrawIds.toSet()
             require(drawWeights.keys == ids && shockSeriesByDraw.keys == ids && sourceCovarianceDrawFingerprintByDraw.keys == ids)
             require(drawWeights.values.all { it.isFinite() && it > 0.0 })
             require(abs(drawWeights.values.sum() - 1.0) <= 1e-9)
-            require(shockSeriesByDraw.values.all { values -> values.size == calendar.weeks.size && values.all(Double::isFinite) })
+            require(shockSeriesByDraw.values.all { values -> values.size == sourceIdentity.eligibleSourceWeeks.size && values.all(Double::isFinite) })
             require(sourceCovarianceDrawFingerprintByDraw.values.all(String::isNotBlank))
-            require(sourceBvarPosteriorFingerprint.isNotBlank() && sourceContextFingerprint.isNotBlank() && sourceSystemViewFingerprint.isNotBlank())
             val fingerprint = strictFingerprint(
                 listOf(
                     sourceMetric.name,
@@ -591,11 +592,9 @@ internal class IdentifiedShockPosterior private constructor(
                     posteriorDrawIds.joinToString(","),
                     posteriorDrawIds.joinToString(",") { "$it:${drawWeights.getValue(it)}" },
                     posteriorDrawIds.joinToString(",") { "$it:${shockSeriesByDraw.getValue(it).joinToString("|")}" },
-                    calendar.fingerprint,
+                    sourceIdentity.eligibleSourceWeeks.joinToString(","),
                     posteriorDrawIds.joinToString(",") { "$it:${sourceCovarianceDrawFingerprintByDraw.getValue(it)}" },
-                    sourceBvarPosteriorFingerprint,
-                    sourceContextFingerprint,
-                    sourceSystemViewFingerprint,
+                    sourceIdentity.fingerprint,
                     rejectedDrawDiagnostics.sortedBy { it.drawId }.joinToString(",") { "${it.drawId}:${it.reason}" },
                     SHOCK_POSTERIOR_VERSION
                 )
@@ -608,11 +607,8 @@ internal class IdentifiedShockPosterior private constructor(
                 posteriorDrawIds,
                 drawWeights,
                 shockSeriesByDraw,
-                calendar,
                 sourceCovarianceDrawFingerprintByDraw,
-                sourceBvarPosteriorFingerprint,
-                sourceContextFingerprint,
-                sourceSystemViewFingerprint,
+                sourceIdentity,
                 rejectedDrawDiagnostics,
                 fingerprint
             )

@@ -80,7 +80,8 @@ Until PHASE E, strict preparation uses only explicitly required X, Y, and Z. Opt
 | view | `BvarPreparedView`, `BlpPreparedView`, `JohansenPreparedView`, `VecmPreparedView`, `CandidateEligibilityView` | root identity, purpose, metrics, representation |
 | rows | `PreparedRowSpecification`, `PreparedRowPlan` | roles, lag, horizon set/policy, purpose, view |
 | scaling | `PreparedScalingPlan` | declared training rows, view, row plan, statistics |
-| future shock | `IdentifiedShockPosterior` | draw IDs, weights, week-specific shocks, covariance/BVAR/context/view identities |
+| future BVAR posterior identity | `BvarPosteriorSourceIdentity` | source metric, BVAR view, row, scaling, prior, posterior, and eligible source-week identities |
+| future shock | `IdentifiedShockPosterior` | draw IDs, weights, prepared-row shocks, covariance fingerprints, and BVAR posterior source identity |
 
 Identity-bearing classes use private constructors, defensive copies, validated factories, and internally computed SHA-256 fingerprints. They are not public data classes, so `copy()` cannot retain stale identity.
 
@@ -119,7 +120,8 @@ It does not contain posterior draws, IRFs, rank results, a VECM result, or stati
 | view factories | root context | read-only estimator view | no | no | no | no | selects fixed representation | no | no | no |
 | `RowPlanner.plan` | context, view, roles, lag, horizon policy | row plan | no | no | no | no | no | yes | no | no |
 | `ScalingPlanner.plan` | context, view, row plan, training rows | scaling plan | no | no | no | no | no | no | yes | no |
-| `IdentifiedShockPosterior.createValidated` | future PHASE B draw output | validated posterior shock bundle | no | no | no | no | no | no | no | validates identity only |
+| `BvarPosteriorSourceIdentity.createValidated` | future PHASE B input/posterior identity | validated BVAR posterior source identity | no | no | no | no | no | reads row identity | reads scaling identity | no |
+| `IdentifiedShockPosterior.createValidated` | future PHASE B draw output and source identity | validated posterior shock bundle over prepared source weeks | no | no | no | no | no | validates source-week domain | no | validates identity only |
 
 Strict helpers may read their accepted stage but may not change calendar, lifecycle, transformation, representation, rows, scaling, or shocks unless the table grants authority.
 
@@ -191,7 +193,7 @@ Roles are explicit: `SHOCK_SOURCE`, `ENDOGENOUS_STATE`, `RESPONSE`, `CONTEMPORAN
 
 ## Future Structural-Shock Contract
 
-`IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite week-aligned shock series per draw, one covariance-draw fingerprint per draw, source BVAR/context/system-view identities, ordering and normalization policy, and retained rejected-draw diagnostics. One deterministic mean series cannot satisfy the contract.
+`BvarPosteriorSourceIdentity` binds a future BVAR posterior to the strict BVAR view, source metric, row plan, scaling plan, prior fingerprint, BVAR input fingerprint, posterior fingerprint, and accepted source-week domain. `IdentifiedShockPosterior` requires at least two accepted posterior draw IDs, positive normalized weights, one finite prepared-row shock series per draw, one covariance-draw fingerprint per draw, that source identity, ordering and normalization policy, and retained rejected-draw diagnostics. One deterministic mean series cannot satisfy the contract, and shock vectors are not full-calendar vectors.
 
 PHASE A validates this shape only. It does not generate shocks.
 
@@ -203,7 +205,7 @@ PHASE A validates this shape only. It does not generate shocks.
 
 ### PHASE C
 
-`FutureBlpInput` accepts only `BlpPreparedView`, its row plan, same-root `IdentifiedShockPosterior`, response-scale plans carried by the view, horizon policy, and draw-by-draw propagation policy. Raw X, optional shock fallback, implicit X difference, one mean shock, local response transformation, and local row selection are forbidden.
+`FutureBlpInput` accepts only `BlpPreparedView`, its row plan, same-root `IdentifiedShockPosterior`, response-scale plans carried by the view, horizon policy, and draw-by-draw propagation policy. It validates that the posterior source metric is the BLP `SHOCK_SOURCE`, BLP source weeks are covered by the posterior eligible source-week domain, response scale identities match the BLP view, and `NOT_APPLICABLE` horizons cannot enter a BLP response. Raw X, optional shock fallback, implicit X difference, one mean shock, local response transformation, and local row selection are forbidden.
 
 ### PHASE D
 
@@ -243,7 +245,7 @@ Static and focused tests reject:
 - independent transformation, row, scaling, or horizon-1 logic;
 - sub-32 integration diagnostics, fixed ADF/KPSS thresholds, legacy confirmed-status vocabulary, explicit transformation fallback, scaling clamps, horizon-zero sentinels, and duplicate row/scaling authorities;
 - transformed data in a Johansen view;
-- raw/fallback/single-mean BLP shocks;
+- raw/fallback/single-mean/full-calendar BLP shocks;
 - response-scale decisions in UI;
 - statistically ranked optional variables in PHASE A;
 - public fingerprint injection or stale-copy identity;
@@ -258,7 +260,7 @@ Static and focused tests reject:
 - `PreparedAnalysisContext.kt`: root context and eligibility catalog factory.
 - `PreparedEstimatorViews.kt`: read-only purpose-specific views.
 - `PreparedRowAndScalingPlans.kt`: roles, horizon policies, sole row authority, sole scaling authority.
-- `FutureEstimatorBoundaries.kt`: validated PHASE B/C/D input bundles only; no estimator math.
+- `FutureEstimatorBoundaries.kt`: validated PHASE B/C/D input bundles and BVAR posterior source identity only; no estimator math.
 - `BayesianTimeSeriesAnalyzer.kt`: explicitly named `LegacyTimeSeriesAnalyzer` compatibility implementation.
 - `tools/check_time_series_numeric_sources.py`: numeric and strict architecture guards.
 
