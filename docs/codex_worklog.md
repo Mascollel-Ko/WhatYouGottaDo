@@ -2,7 +2,7 @@
 
 ## Tissue Load Foundation v1 - Commit 1
 
-- Baseline: latest `origin/main` at `25cb01448ea5926841a4b89d9738da135704059a`.
+- Baseline: Phase A final commit `c5aaaa0a01b289d50e5d277ef4d0fcb7a0ea6a1f`, fast-forwarded to `origin/main`; the tissue commits were then reapplied on that base.
 - Cause: the scalar joint/tendon/impact fatigue axis discards tissue class, anatomical structure, and load dimension.
 - Changes: added a 61-structure catalog, tissue-specific dimensions and evaluation states, long-form profile/rubric schemas, a 14,579-row explicit scope manifest for all 239 canonical stable keys, deterministic audit hashes, typed parsers, exact-key repository lookup, offline validators, and focused tests.
 - Result: metadata foundation stage is valid but remains `FOUNDATION_PARTIAL`; all scopes are `NOT_YET_EVALUATED`, all profile files are empty, and no production eligibility or human approval was created.
@@ -17,6 +17,15 @@
 - Result: one preflight identity is recorded as `UNVERIFIED`; verified-source count remains zero, and no claim, blind review, final claim, production row, or human approval exists.
 - Network capability remains `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
 - Tests: metadata/evidence focused tests and `:app:compileDebugKotlin` passed; `verify_tissue_sources.ps1` returned NCBI pass, Crossref 404, and `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
+
+## Tissue Load Foundation v1 - Commit 3
+
+- Cause: the legacy scalar/tag layer, current record fields, and exercise laterality metadata could otherwise be mistaken for production tissue bands, event counts, or performed-side observations.
+- Changes: added one review-only migration decision for all 42 canonical legacy field/token identities; a 12-basis record capability audit; explicit missing-input, side, and calculation states; an empty evidence-gated modifier schema; typed parsers, validators, deterministic generators, and focused tests.
+- Result: legacy tags can seed later review but cannot assign bands; unavailable event counts stay `MISSING_RECORD_INPUT`; performed side stays `UNSIDED` and unresolved; broad tags are not equally split; no modifier factor or interaction was invented.
+- Preserved: existing bodyweight and duration-hold authorities, entities, DAO/schema, backup, six fatigue axes, OFI, readiness, ProgramBuilder, Bayesian, and time-series behavior.
+- Status: `FOUNDATION_PARTIAL`; recovery and shadow exposure plumbing remain for Commit 4.
+- Tests: `:app:testDebugUnitTest --tests "*TissueMetadataFoundationTest*" --tests "*TissueEvidenceValidatorTest*" --tests "*TissueRecordContractsTest*" :app:compileDebugKotlin` passed.
 
 ## v0.4.0.8 Daily Service Extraction
 

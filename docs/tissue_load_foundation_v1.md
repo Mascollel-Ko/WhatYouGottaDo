@@ -4,16 +4,16 @@
 
 The tissue-load system is a non-production shadow foundation. It does not replace the six fatigue axes, OFI, readiness, warnings, or ProgramBuilder behavior. Missing metadata remains missing rather than numeric zero.
 
-Current implementation status after foundation Commit 2: `FOUNDATION_PARTIAL`.
+Current implementation status after foundation Commit 3: `FOUNDATION_PARTIAL`.
 
 ## Repository Audit
 
-- Baseline: `25cb01448ea5926841a4b89d9738da135704059a` on latest `origin/main`.
+- Baseline: Phase A final commit `c5aaaa0a01b289d50e5d277ef4d0fcb7a0ea6a1f`, fast-forwarded to `origin/main` before the tissue commits were reapplied.
 - Canonical exercise metadata: `canonical_exercise_metadata_v0_3_5_0_pass3_1.csv`.
 - Canonical exercise count: 239.
 - Canonical identity: `stableKey`; runtime lookup is stable-key first. The tissue repository accepts exact stable keys only and does not use the legacy display-name fallback.
 - Existing tissue-related metadata columns: `tendonStressTags`, `ligamentJointStabilityStressTags`, `jointImpactStressTags`, and scalar `jointTendonImpactStressLevel`.
-- Legacy tissue-token count: 45 distinct non-`NONE` tokens (15 tendon, 20 ligament/joint stability, 9 impact, plus the scalar level is not a migration token).
+- Legacy tissue-token count: 42 distinct non-`NONE` field/token identities (15 tendon, 19 ligament/joint stability, and 8 impact). The scalar level is not a migration token.
 - Record dose fields currently available: entry date/exercise/RPE and confirmed set reps, weight, seconds, set RPE, and rest metadata.
 - Directly usable dose bases: external-load repetitions, effective-bodyweight repetitions, and duration holds. Session duration/RPE is derivable only when a record is explicitly a duration session.
 - Unavailable event inputs: landing, direction-change, jump, throw, stroke, and sport-event counts; movement velocity; ROM; surface; footwear; anticipated condition; landing technique.
@@ -64,6 +64,14 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - `verify_tissue_sources.ps1` is the network-enabled refresh command. Offline CI validates committed artifacts and never depends on NCBI or Crossref uptime.
 - Production `STUDY_BACKED` rows require verified identifiers, matched bibliography, supported claim text, acceptable publication integrity, a separate blind review, and human or valid batch approval.
 
+## Record And Migration Contracts
+
+- `legacy_tissue_tag_migration_v1.csv` contains one review decision for each of the 42 real legacy field/token identities. Every row is `LEGACY_SEEDED_NOT_EVALUATED` with `automaticBandAllowed=false`; broad cuff, stability, joint, and impact tags remain ambiguous candidate sets and are never equally split or promoted to bands.
+- `dose_input_capability_v1.csv` audits all 12 supported dose-basis tokens. External-load repetitions, effective-bodyweight repetitions, holds, and explicitly duration-recorded activities are derivable from current records. Distance and landing, direction-change, jump, throw, and stroke counts are explicitly unavailable and have no fallback.
+- Current bodyweight and hold calculations continue to name `BodyweightEffectiveLoadCalculator` and `DurationHoldLoadCalculator` as their authorities.
+- Performed side is not recorded. Side-required records remain `UNSIDED` with `SIDE_UNRESOLVED`; no 50:50 split or lead/trail-to-left/right conversion is allowed. A bilateral symmetric assumption requires an explicit balanced-alternation protocol.
+- `exercise_tissue_modifier_rules_v1.csv` is an empty production schema. The contract fixes reference conditions, specificity, exclusive/interaction groups, replacement-before-multiplication order, required inputs, bounds, evidence state, and human approval without inventing a modifier.
+
 ## File Responsibility Map
 
 - `TissueMetadataModels.kt`: tissue classes, dimensions, evaluation states, long-form profile/scope/rubric/audit models.
@@ -75,12 +83,18 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - `TissueEvidenceParser.kt`: typed evidence-ledger parsing.
 - `TissueEvidenceValidator.kt`: source, claim, actor separation, production gate, and batch-audit reference validation.
 - `verify_tissue_sources.ps1`: bounded network preflight and fail-closed verification-artifact refresh.
+- `TissueRecordContracts.kt`: migration, dose, calculation-state, laterality, and modifier enums/models plus fail-closed side resolution.
+- `TissueRecordContractParser.kt`: typed parsing for migration, dose-capability, and modifier artifacts.
+- `TissueRecordContractValidator.kt`: exact legacy coverage, no-band migration, dose fallback, tissue/dimension, and modifier evidence checks.
+- `generate_tissue_record_contract_assets.ps1`: deterministic 42-token migration, 12-basis capability, empty modifier schema, and stage-3 audit generation.
 
 ## Limitations
 
 - No exercise-specific tissue profile is scientifically reviewed or production eligible.
 - No rubric anchor research, independent blind review, full canonical backfill, or human batch approval is complete.
 - Current records cannot resolve performed side or sport event counts.
+- Legacy candidate mappings are review seeds only; none is an exercise-specific tissue profile.
+- Modifier rules remain empty because no reviewed interaction or factor is available.
 - No tissue decay curve is approved; future shadow output must use declared calendar windows.
 - No user-facing tissue feature is activated.
 - Bayesian/time-series code is outside this foundation and unchanged.
