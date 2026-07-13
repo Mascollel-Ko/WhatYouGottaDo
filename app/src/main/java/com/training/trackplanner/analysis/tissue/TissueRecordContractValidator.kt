@@ -84,4 +84,27 @@ object TissueRecordContractValidator {
         }
         return TissueValidationReport(errors)
     }
+
+    fun recoveryProfiles(
+        profiles: List<TissueRecoveryProfile>,
+        catalog: List<TissueCatalogEntry>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        if (profiles.size != profiles.map(TissueRecoveryProfile::recoveryProfileId).distinct().size) {
+            errors += "Duplicate recovery profile ID."
+        }
+        val catalogById = catalog.associateBy(TissueCatalogEntry::tissueId)
+        profiles.forEach { profile ->
+            if (catalogById[profile.tissueId]?.tissueClass != profile.tissueClass ||
+                catalogById[profile.tissueId]?.supportedLoadDimensions?.contains(profile.loadDimension) != true
+            ) errors += "${profile.recoveryProfileId}: tissue recovery identity mismatch."
+            if (profile.calculationMode == TissueRecoveryCalculationMode.WINDOWED_EXPOSURE &&
+                profile.kernelType != TissueRecoveryKernelType.NONE
+            ) errors += "${profile.recoveryProfileId}: windowed exposure cannot declare a decay kernel."
+            if (profile.calculationMode != TissueRecoveryCalculationMode.WINDOWED_EXPOSURE &&
+                (!profile.productionEligibility || profile.humanApprovedBy.isBlank())
+            ) errors += "${profile.recoveryProfileId}: decay requires approved production evidence."
+        }
+        return TissueValidationReport(errors)
+    }
 }

@@ -174,6 +174,15 @@ $modifierHeaders = @(
 )
 Write-CsvRows (Join-Path $OutputDirectory "exercise_tissue_modifier_rules_v1.csv") @() $modifierHeaders
 
+$recoveryHeaders = @(
+    "recoveryProfileId", "tissueClass", "tissueId", "loadDimension", "calculationMode", "kernelType",
+    "parameterSet", "validWindowHours", "evidenceStatus", "evidenceLevel", "evidenceClaimIds", "sourceRefs",
+    "confidenceLevel", "productionEligibility", "preparedBy", "preparedByType", "preparedAt",
+    "blindReviewedBy", "blindReviewedByType", "blindReviewedAt", "humanApprovedBy", "humanApprovedAt",
+    "recoveryNotes"
+)
+Write-CsvRows (Join-Path $OutputDirectory "tissue_recovery_profiles_v1.csv") @() $recoveryHeaders
+
 $actual = foreach ($field in "tendonStressTags", "ligamentJointStabilityStressTags", "jointImpactStressTags") {
     foreach ($token in ((Import-Csv $CanonicalPath).$field -split '\|' | ForEach-Object Trim | Where-Object { $_ -and $_ -ne "NONE" } | Sort-Object -Unique)) {
         "$field|$token"
@@ -205,6 +214,7 @@ $claimHash = Get-TextHash ((@(
 $modifierHash = Get-SemanticCsvHash (Join-Path $OutputDirectory "exercise_tissue_modifier_rules_v1.csv")
 $doseHash = Get-SemanticCsvHash (Join-Path $OutputDirectory "dose_input_capability_v1.csv")
 $migrationHash = Get-SemanticCsvHash (Join-Path $OutputDirectory "legacy_tissue_tag_migration_v1.csv")
+$recoveryHash = Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_recovery_profiles_v1.csv")
 $inputHash = Get-TextHash ((@(
     "canonical=$(Get-SemanticCsvHash $CanonicalPath)",
     "catalog=$(Get-SemanticCsvHash (Join-Path $OutputDirectory 'canonical_tissue_catalog_v1.csv'))",
@@ -216,20 +226,25 @@ $inputHash = Get-TextHash ((@(
     "sourceVerification=$(Get-SemanticCsvHash (Join-Path $OutputDirectory 'tissue_source_verification_v1.csv'))",
     "legacyMigration=$migrationHash",
     "doseCapability=$doseHash",
-    "modifier=$modifierHash"
+    "modifier=$modifierHash",
+    "recovery=$recoveryHash"
 ) | Sort-Object) -join "`n")
-$audit.auditManifestId = "tissue_foundation_v1_stage3_$($inputHash.Substring(0, 12))"
+$audit.auditManifestId = "tissue_foundation_v1_stage4_$($inputHash.Substring(0, 12))"
 $audit.modifierSnapshotHash = $modifierHash
+$audit.recoverySnapshotHash = $recoveryHash
 $audit.doseCapabilitySnapshotHash = $doseHash
 $audit.doseCapabilityStatus = "PASS"
 $audit.lateralityCoverageStatus = "PASS"
 $audit.modifierValidationStatus = "PASS"
-$audit.warningCount = "4"
+$audit.recoveryValidationStatus = "PASS"
+$audit.warningCount = "3"
 $audit.inputSnapshotHash = $inputHash
-$audit.auditNotes = "Stage 3 migration, dose capability, laterality, and modifier contracts pass; recovery and shadow exposure validation are pending."
+$audit.auditDecision = "FOUNDATION_COMPLETE_CANDIDATE"
+$audit.auditNotes = "All deterministic foundation contracts pass in non-production shadow mode; rubric research, backfill, independent review, and human approval remain pending."
 Write-CsvRows $auditPath @($audit) $auditHeaders
 
 Write-Output "LEGACY_MIGRATION_COUNT=$($migrationRows.Count)"
 Write-Output "LEGACY_MIGRATION_HASH=$migrationHash"
 Write-Output "DOSE_CAPABILITY_COUNT=$($doseRows.Count)"
 Write-Output "MODIFIER_RULE_COUNT=0"
+Write-Output "RECOVERY_PROFILE_COUNT=0"

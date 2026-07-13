@@ -4,7 +4,9 @@
 
 The tissue-load system is a non-production shadow foundation. It does not replace the six fatigue axes, OFI, readiness, warnings, or ProgramBuilder behavior. Missing metadata remains missing rather than numeric zero.
 
-Current implementation status after foundation Commit 3: `FOUNDATION_PARTIAL`.
+Current implementation status after foundation Commit 4: `FOUNDATION_COMPLETE` for the deterministic, non-production shadow foundation.
+
+This does not mean `RUBRIC_COMPLETE`, `FULL_BACKFILL_COMPLETE`, or `PRODUCTION_ELIGIBLE`.
 
 ## Repository Audit
 
@@ -72,6 +74,18 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - Performed side is not recorded. Side-required records remain `UNSIDED` with `SIDE_UNRESOLVED`; no 50:50 split or lead/trail-to-left/right conversion is allowed. A bilateral symmetric assumption requires an explicit balanced-alternation protocol.
 - `exercise_tissue_modifier_rules_v1.csv` is an empty production schema. The contract fixes reference conditions, specificity, exclusive/interaction groups, replacement-before-multiplication order, required inputs, bounds, evidence state, and human approval without inventing a modifier.
 
+## Shadow Exposure Pipeline
+
+- `TissueDoseResolver` reads confirmed set inputs only. It delegates effective-bodyweight dose to `BodyweightEffectiveLoadCalculator` and plank/side-plank holds to `DurationHoldLoadCalculator`. Unrecorded distance or event counts return `MISSING_RECORD_INPUT`; duration never implies an event count.
+- `TissueModifierResolver` applies the most-specific rule in each exclusive group, replacement before multiplication, explicit bounds, and deterministic rule ordering. Missing inputs, blocked combinations, and undeclared interactions fail closed. The committed production modifier file remains empty.
+- `TissueExposureCalculator` requires an exact profile stable key, reference condition, dose basis, side policy, and finite profile-specific dimension weight. Each tissue/dimension is calculated independently; there is no legacy-total allocation or sum-preservation rule.
+- Non-production numeric fixtures require an explicit opt-in flag and an `explicitlyNonProductionFixture` weight. Default calls reject them as `EVIDENCE_NOT_APPROVED`.
+- Missing performed side preserves a numeric total as `UNSIDED` when the remaining inputs are calculable, while keeping `SIDE_UNRESOLVED`. It never creates left/right warnings or a 50:50 split.
+- RPE can only enter once. Existing hold/session dose marks RPE as already applied; otherwise the exposure layer accepts only an explicitly supplied approved response multiplier.
+- `TissueWindowedExposureCalculator` provides calendar-day 24-hour, 72-hour, and 7-day exposure windows. Future records are excluded, contributor ordering is deterministic, and `residualExposure` remains null.
+- `tissue_recovery_profiles_v1.csv` is schema-only. No decay kernel or tissue-class default was copied from the legacy fatigue system.
+- `TissueExposureShadowPipeline` is a standalone API and has no production caller. Existing six-axis fatigue, OFI, readiness, wording, ProgramBuilder, and Bayesian/time-series code remain numerically disconnected.
+
 ## File Responsibility Map
 
 - `TissueMetadataModels.kt`: tissue classes, dimensions, evaluation states, long-form profile/scope/rubric/audit models.
@@ -87,6 +101,14 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - `TissueRecordContractParser.kt`: typed parsing for migration, dose-capability, and modifier artifacts.
 - `TissueRecordContractValidator.kt`: exact legacy coverage, no-band migration, dose fallback, tissue/dimension, and modifier evidence checks.
 - `generate_tissue_record_contract_assets.ps1`: deterministic 42-token migration, 12-basis capability, empty modifier schema, and stage-3 audit generation.
+- `TissueExposureModels.kt`: record input, dose, tissue-key, exposure, recovery-window, contribution, gap, and hierarchical snapshot models.
+- `TissueDoseResolver.kt`: confirmed-set dose resolution through existing bodyweight/hold authorities and explicit missing states.
+- `TissueModifierResolver.kt`: deterministic exclusive-group selection, operation order, interaction blocking, and clamping diagnostics.
+- `TissueExposureCalculator.kt`: exact-key, evidence-gated, independent tissue-dimension exposure calculation.
+- `TissueWindowedExposureCalculator.kt`: calendar-bound 24-hour, 72-hour, and 7-day summaries with deterministic contributors.
+- `TissueExposureShadowPipeline.kt`: standalone non-production orchestration; it is intentionally not injected into the existing fatigue path.
+- `TissueExposureShadowPipelineTest.kt`: dose authority, modifier ordering/conflicts, independent exposure, missingness, laterality, windows, and unknown-key coverage.
+- `generate_tissue_record_contract_assets.ps1`: also emits the empty recovery schema and stage-4 deterministic audit snapshot.
 
 ## Limitations
 
@@ -98,3 +120,5 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - No tissue decay curve is approved; future shadow output must use declared calendar windows.
 - No user-facing tissue feature is activated.
 - Bayesian/time-series code is outside this foundation and unchanged.
+- No canonical exercise has a reviewed dimension weight, so committed application assets produce metadata gaps rather than numeric tissue exposure.
+- Shadow fixture weights are test-only and cannot pass the default evidence gate.

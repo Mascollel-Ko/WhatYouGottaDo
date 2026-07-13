@@ -27,6 +27,17 @@
 - Status: `FOUNDATION_PARTIAL`; recovery and shadow exposure plumbing remain for Commit 4.
 - Tests: `:app:testDebugUnitTest --tests "*TissueMetadataFoundationTest*" --tests "*TissueEvidenceValidatorTest*" --tests "*TissueRecordContractsTest*" :app:compileDebugKotlin` passed.
 
+## Tissue Load Foundation v1 - Commit 4
+
+- Cause: the metadata and record contracts needed deterministic calculation plumbing before later evidence batches can be tested, but connecting unreviewed rows to OFI/readiness would be unsafe.
+- Changes: added confirmed-record dose resolution, fail-closed modifier composition, exact-key independent tissue exposure, side-preserving diagnostics, calendar 24-hour/72-hour/7-day windows, hierarchical snapshots, an empty recovery schema, and a standalone shadow pipeline.
+- Scientific boundary: no numeric production profile, modifier, decay kernel, full backfill, or human approval was created. Explicit non-production fixture weights are opt-in and rejected by the default evidence gate.
+- Result: the four-commit deterministic foundation is `FOUNDATION_COMPLETE`; production eligibility remains false and later rubric research, blind review, human approval, and canonical backfill remain separate work.
+- Preserved: existing six fatigue axes, OFI, labels/warnings, readiness, ProgramBuilder, bodyweight coefficients, hold behavior, Bayesian/time-series code, Room schema, backup, and UI.
+- Tests: focused shadow/tissue suite plus `compileDebugKotlin` passed; full `:app:testDebugUnitTest :app:assembleDebug` passed; deterministic asset generation and `git diff --check` passed.
+- Source verification: NCBI PMID/title parsing passed, Crossref remained HTTP 404, capability remained `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`, and the source stayed `UNVERIFIED`.
+- Output hygiene: the six known generated `outputs/*` changes were left unstaged and are not part of this work.
+
 ## v0.4.0.8 Daily Service Extraction
 
 - 작업 목표: `TrainingRepository`에 남아 있던 DailyMetric, DailyCheckIn, daily readiness input 책임 일부를 behavior-preserving service로 분리.

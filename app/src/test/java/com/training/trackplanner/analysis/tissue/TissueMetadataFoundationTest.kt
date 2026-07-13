@@ -124,7 +124,8 @@ class TissueMetadataFoundationTest {
                 "sourceVerification" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_source_verification_v1.csv")),
                 "legacyMigration" to TissueMetadataValidator.semanticCsvHash(tissueAsset("legacy_tissue_tag_migration_v1.csv")),
                 "doseCapability" to TissueMetadataValidator.semanticCsvHash(tissueAsset("dose_input_capability_v1.csv")),
-                "modifier" to TissueMetadataValidator.semanticCsvHash(tissueAsset("exercise_tissue_modifier_rules_v1.csv"))
+                "modifier" to TissueMetadataValidator.semanticCsvHash(tissueAsset("exercise_tissue_modifier_rules_v1.csv")),
+                "recovery" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_recovery_profiles_v1.csv"))
             )
         val inputHash = TissueMetadataValidator.combinedHash(inputParts)
         val audit = TissueMetadataParser.auditManifest(tissueAsset("tissue_metadata_audit_manifest_v1.csv"))
@@ -133,10 +134,11 @@ class TissueMetadataFoundationTest {
         assertEquals(239, audit.canonicalExerciseCount)
         assertEquals(239 * 61, audit.scopeManifestRowCount)
         assertEquals(inputHash, audit.inputSnapshotHash)
-        assertEquals(TissueAuditDecision.FOUNDATION_PARTIAL, audit.auditDecision)
+        assertEquals(TissueAuditDecision.FOUNDATION_COMPLETE_CANDIDATE, audit.auditDecision)
         assertEquals("PASS", values.getValue("doseCapabilityStatus"))
         assertEquals("PASS", values.getValue("lateralityCoverageStatus"))
         assertEquals("PASS", values.getValue("modifierValidationStatus"))
+        assertEquals("PASS", values.getValue("recoveryValidationStatus"))
         listOf(
             "automatedValidationStatus", "stableKeyCoverageStatus", "scopeCoverageStatus",
             "profileIntegrityStatus", "catalogEvidenceStatus", "exerciseLoadEvidenceIntegrityStatus",

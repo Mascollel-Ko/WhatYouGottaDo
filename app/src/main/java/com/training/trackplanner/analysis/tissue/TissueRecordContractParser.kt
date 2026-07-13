@@ -68,6 +68,27 @@ object TissueRecordContractParser {
             )
         }
 
+    fun recoveryProfiles(csv: String): List<TissueRecoveryProfile> =
+        TissueMetadataParser.table(csv).rows.map { row ->
+            TissueRecoveryProfile(
+                recoveryProfileId = row.required("recoveryProfileId"),
+                tissueClass = row.enum("tissueClass"),
+                tissueId = row.required("tissueId"),
+                loadDimension = row.enum("loadDimension"),
+                calculationMode = row.enum("calculationMode"),
+                kernelType = row.enum("kernelType"),
+                parameterSet = row.value("parameterSet"),
+                validWindowHours = row.intOrNull("validWindowHours"),
+                evidenceStatus = row.enum("evidenceStatus"),
+                evidenceClaimIds = row.tokens("evidenceClaimIds"),
+                sourceRefs = row.tokens("sourceRefs"),
+                confidenceLevel = row.value("confidenceLevel"),
+                productionEligibility = row.boolean("productionEligibility"),
+                humanApprovedBy = row.value("humanApprovedBy"),
+                recoveryNotes = row.value("recoveryNotes")
+            )
+        }
+
     private fun Map<String, String>.value(name: String): String = get(name).orEmpty().trim()
     private fun Map<String, String>.required(name: String): String =
         value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }
