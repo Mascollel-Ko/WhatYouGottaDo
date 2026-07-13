@@ -10,6 +10,14 @@
 - Preserved: existing six fatigue axes, OFI, fatigue wording, readiness, backup, ProgramBuilder, Bayesian, and time-series behavior.
 - Tests: `:app:testDebugUnitTest --tests "*TissueMetadataFoundationTest*"` and `:app:compileDebugKotlin` passed.
 
+## Tissue Load Foundation v1 - Commit 2
+
+- Cause: source existence, bibliographic identity, claim support, blind review, and human approval are distinct gates and must not collapse into one citation field.
+- Changes: added evidence registry, draft/blind/final claim ledgers, source-verification artifact, empty human batch-approval schema, typed evidence parsers, fail-closed validators, and bounded NCBI/Crossref tooling.
+- Result: one preflight identity is recorded as `UNVERIFIED`; verified-source count remains zero, and no claim, blind review, final claim, production row, or human approval exists.
+- Network capability remains `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
+- Tests: metadata/evidence focused tests and `:app:compileDebugKotlin` passed; `verify_tissue_sources.ps1` returned NCBI pass, Crossref 404, and `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
+
 ## v0.4.0.8 Daily Service Extraction
 
 - 작업 목표: `TrainingRepository`에 남아 있던 DailyMetric, DailyCheckIn, daily readiness input 책임 일부를 behavior-preserving service로 분리.

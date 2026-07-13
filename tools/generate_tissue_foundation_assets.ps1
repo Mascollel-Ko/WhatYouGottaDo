@@ -181,6 +181,130 @@ $rubricHeaders = @(
 $rubricPath = Join-Path $OutputDirectory "tissue_load_band_rubric_v1.csv"
 Write-CsvRows $rubricPath @() $rubricHeaders
 
+$evidenceHeaders = @(
+    "sourceId", "pmid", "doi", "title", "authors", "publicationYear", "journal", "studyType",
+    "population", "sampleSize", "trainingStatus", "sexComposition", "healthStatus", "exactExercise",
+    "exerciseProtocol", "externalLoadCondition", "repetitionCondition", "romCondition", "velocityCondition",
+    "surfaceCondition", "footwearCondition", "anticipatedCondition", "fatigueCondition", "measurementMethod",
+    "measuredOutcome", "reportedMetric", "reportedValue", "reportedLowerBound", "reportedUpperBound",
+    "reportedUnit", "supportedTissueIds", "supportedLoadDimensions", "majorLimitations",
+    "identifierVerificationStatus", "bibliographicMatchStatus", "publicationIntegrityStatus",
+    "verificationCapabilityStatus", "verifiedAt", "verificationMethod", "sourceStatus", "sourceNotes"
+)
+$evidenceRow = [pscustomobject]@{
+    sourceId = "PREFLIGHT_32658037"
+    pmid = "32658037"
+    doi = "10.2519/jospt.2020.9406"
+    title = "Exercise Progression to Incrementally Load the Achilles Tendon."
+    authors = ""
+    publicationYear = ""
+    journal = ""
+    studyType = ""
+    population = ""
+    sampleSize = ""
+    trainingStatus = ""
+    sexComposition = ""
+    healthStatus = ""
+    exactExercise = ""
+    exerciseProtocol = ""
+    externalLoadCondition = ""
+    repetitionCondition = ""
+    romCondition = ""
+    velocityCondition = ""
+    surfaceCondition = ""
+    footwearCondition = ""
+    anticipatedCondition = ""
+    fatigueCondition = ""
+    measurementMethod = ""
+    measuredOutcome = ""
+    reportedMetric = ""
+    reportedValue = ""
+    reportedLowerBound = ""
+    reportedUpperBound = ""
+    reportedUnit = ""
+    supportedTissueIds = "ACHILLES_TENDON"
+    supportedLoadDimensions = ""
+    majorLimitations = "Crossref DOI lookup returned 404; no claim review performed."
+    identifierVerificationStatus = "UNVERIFIED"
+    bibliographicMatchStatus = "UNVERIFIED"
+    publicationIntegrityStatus = "STATUS_UNKNOWN"
+    verificationCapabilityStatus = "PARTIAL_SOURCE_VERIFICATION_AVAILABLE"
+    verifiedAt = "2026-07-13"
+    verificationMethod = "NCBI_PARSED_CROSSREF_BOUNDED_404"
+    sourceStatus = "UNVERIFIED"
+    sourceNotes = "Preflight record only; not production evidence."
+}
+$evidencePath = Join-Path $OutputDirectory "tissue_load_evidence_registry_v1.csv"
+Write-CsvRows $evidencePath @($evidenceRow) $evidenceHeaders
+
+$draftHeaders = @(
+    "draftClaimId", "sourceId", "stableKey", "tissueId", "loadDimension", "proposedBand", "claimType",
+    "claimParaphrase", "claimDirection", "claimValue", "claimLowerBound", "claimUpperBound", "claimUnit",
+    "comparatorExercise", "population", "exerciseCondition", "loadCondition", "romCondition",
+    "velocityCondition", "surfaceCondition", "anticipatedCondition", "fatigueCondition", "evidenceLocatorType",
+    "evidenceLocator", "evidenceAccessLevel", "preparedBy", "preparedByType", "preparedAt", "draftNotes"
+)
+$draftPath = Join-Path $OutputDirectory "tissue_evidence_claims_draft_v1.csv"
+Write-CsvRows $draftPath @() $draftHeaders
+
+$blindHeaders = @(
+    "blindReviewId", "draftClaimId", "sourceId", "stableKey", "tissueId", "loadDimension",
+    "supportedExercise", "supportedTissue", "supportedDimension", "supportedDirection", "supportedMetric",
+    "supportedValue", "supportedLowerBound", "supportedUpperBound", "supportedUnit", "supportedCondition",
+    "maximumDefensibleBand", "limitations", "identifierVerificationStatus", "bibliographicMatchStatus",
+    "claimVerificationStatus", "publicationIntegrityStatus", "blindReviewedBy", "blindReviewedByType",
+    "blindReviewedAt", "verificationMethod", "reviewNotes"
+)
+$blindPath = Join-Path $OutputDirectory "tissue_evidence_blind_review_v1.csv"
+Write-CsvRows $blindPath @() $blindHeaders
+
+$finalClaimHeaders = @(
+    "claimId", "draftClaimId", "blindReviewId", "sourceId", "stableKey", "tissueId", "loadDimension",
+    "finalClaimType", "finalClaimParaphrase", "finalClaimDirection", "finalClaimValue",
+    "finalClaimLowerBound", "finalClaimUpperBound", "finalClaimUnit", "comparatorExercise",
+    "supportedCondition", "evidenceLocatorType", "evidenceLocator", "evidenceAccessLevel",
+    "draftBlindComparisonStatus", "identifierVerificationStatus", "bibliographicMatchStatus",
+    "claimVerificationStatus", "publicationIntegrityStatus", "preparedBy", "preparedByType",
+    "blindReviewedBy", "blindReviewedByType", "humanApprovedBy", "humanApprovedAt",
+    "productionEligibility", "verificationNotes"
+)
+$finalClaimPath = Join-Path $OutputDirectory "tissue_evidence_claims_v1.csv"
+Write-CsvRows $finalClaimPath @() $finalClaimHeaders
+
+$sourceVerificationHeaders = @(
+    "sourceId", "resolvedPmid", "resolvedDoi", "resolvedTitle", "resolvedFirstAuthor", "resolvedYear",
+    "resolvedJournal", "identifierVerificationStatus", "bibliographicMatchStatus",
+    "publicationIntegrityStatus", "networkCapabilityStatus", "verifiedAt", "verificationMethod",
+    "metadataSnapshotHash", "verificationNotes"
+)
+$sourceVerificationRow = [pscustomobject]@{
+    sourceId = "PREFLIGHT_32658037"
+    resolvedPmid = "32658037"
+    resolvedDoi = ""
+    resolvedTitle = "Exercise Progression to Incrementally Load the Achilles Tendon."
+    resolvedFirstAuthor = ""
+    resolvedYear = ""
+    resolvedJournal = ""
+    identifierVerificationStatus = "UNVERIFIED"
+    bibliographicMatchStatus = "UNVERIFIED"
+    publicationIntegrityStatus = "STATUS_UNKNOWN"
+    networkCapabilityStatus = "PARTIAL_SOURCE_VERIFICATION_AVAILABLE"
+    verifiedAt = "2026-07-13"
+    verificationMethod = "NCBI_PARSED_CROSSREF_BOUNDED_404"
+    metadataSnapshotHash = ""
+    verificationNotes = "NCBI parsed PMID/title; Crossref returned 404 twice. Fail-closed status retained."
+}
+$sourceVerificationPath = Join-Path $OutputDirectory "tissue_source_verification_v1.csv"
+Write-CsvRows $sourceVerificationPath @($sourceVerificationRow) $sourceVerificationHeaders
+
+$batchApprovalHeaders = @(
+    "reviewBatchId", "auditManifestId", "humanApprover", "humanApprovedAt", "samplingPolicy",
+    "sampledRowIds", "highRiskRowsReviewed", "automatedValidationPassed", "errorRate",
+    "approvalDecision", "approvalNotes"
+)
+$batchApprovalPath = Join-Path $OutputDirectory "tissue_review_batch_approval_v1.csv"
+Write-CsvRows $batchApprovalPath @() $batchApprovalHeaders
+
 $canonical = @(Import-Csv -LiteralPath $CanonicalPath)
 $scopeHeaders = @(
     "stableKey", "tissueClass", "tissueId", "scopeStatus", "legacySeedTags", "reviewPriority",
@@ -221,12 +345,22 @@ $scopeHash = Get-SemanticCsvHash $scopePath
 $profileHashParts = $profileFiles | ForEach-Object { "$_=$(Get-SemanticCsvHash (Join-Path $OutputDirectory $_))" }
 $profileHash = Get-TextHash (($profileHashParts | Sort-Object) -join "`n")
 $rubricHash = Get-SemanticCsvHash $rubricPath
+$evidenceHash = Get-SemanticCsvHash $evidencePath
+$claimHash = Get-TextHash ((@(
+    "draft=$(Get-SemanticCsvHash $draftPath)",
+    "blind=$(Get-SemanticCsvHash $blindPath)",
+    "final=$(Get-SemanticCsvHash $finalClaimPath)"
+) | Sort-Object) -join "`n")
+$sourceVerificationHash = Get-SemanticCsvHash $sourceVerificationPath
 $inputHash = Get-TextHash ((@(
     "canonical=$canonicalHash",
     "catalog=$catalogHash",
     "scope=$scopeHash",
     "profiles=$profileHash",
-    "rubric=$rubricHash"
+    "rubric=$rubricHash",
+    "evidence=$evidenceHash",
+    "claims=$claimHash",
+    "sourceVerification=$sourceVerificationHash"
 ) | Sort-Object) -join "`n")
 
 $auditHeaders = @(
@@ -247,7 +381,7 @@ $auditHeaders = @(
     "generatedByType", "generatedAt", "inputSnapshotHash", "auditDecision", "auditNotes"
 )
 $auditRow = [pscustomobject]@{
-    auditManifestId = "tissue_foundation_v1_stage1_$($inputHash.Substring(0, 12))"
+    auditManifestId = "tissue_foundation_v1_stage2_$($inputHash.Substring(0, 12))"
     auditScope = "FOUNDATION_FULL"
     auditBatchId = "FOUNDATION_V1"
     metadataSchemaVersion = "tissue_load_v1"
@@ -269,19 +403,19 @@ $auditRow = [pscustomobject]@{
     rubricSnapshotHash = $rubricHash
     modifierSnapshotHash = ""
     recoverySnapshotHash = ""
-    evidenceRegistrySnapshotHash = ""
-    claimLedgerSnapshotHash = ""
-    sourceVerificationSnapshotHash = ""
+    evidenceRegistrySnapshotHash = $evidenceHash
+    claimLedgerSnapshotHash = $claimHash
+    sourceVerificationSnapshotHash = $sourceVerificationHash
     doseCapabilitySnapshotHash = ""
     automatedValidationStatus = "PASS_WITH_WARNINGS"
     stableKeyCoverageStatus = "PASS"
     scopeCoverageStatus = "PASS"
     profileIntegrityStatus = "PASS"
     catalogEvidenceStatus = "PASS_WITH_WARNINGS"
-    exerciseLoadEvidenceIntegrityStatus = "NOT_RUN"
-    citationVerificationStatus = "NOT_RUN"
-    blindReviewCoverageStatus = "NOT_RUN"
-    humanApprovalCoverageStatus = "NOT_RUN"
+    exerciseLoadEvidenceIntegrityStatus = "PASS"
+    citationVerificationStatus = "PASS_WITH_WARNINGS"
+    blindReviewCoverageStatus = "NOT_APPLICABLE"
+    humanApprovalCoverageStatus = "NOT_APPLICABLE"
     doseCapabilityStatus = "NOT_RUN"
     lateralityCoverageStatus = "NOT_RUN"
     modifierValidationStatus = "NOT_RUN"
@@ -298,13 +432,13 @@ $auditRow = [pscustomobject]@{
     evidenceNotApprovedCount = 0
     anomalyFlagCount = 0
     failedInvariantCount = 0
-    warningCount = 7
+    warningCount = 5
     generatedBy = "Codex"
     generatedByType = "AI_AGENT"
     generatedAt = "2026-07-13T00:00:00Z"
     inputSnapshotHash = $inputHash
     auditDecision = "FOUNDATION_PARTIAL"
-    auditNotes = "Stage 1 metadata foundation only; evidence, dose, modifier, recovery, and shadow validators are pending."
+    auditNotes = "Stage 2 evidence provenance is fail-closed; dose, modifier, recovery, and shadow validators are pending."
 }
 Write-CsvRows (Join-Path $OutputDirectory "tissue_metadata_audit_manifest_v1.csv") @($auditRow) $auditHeaders
 

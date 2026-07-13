@@ -106,13 +106,23 @@ class TissueMetadataFoundationTest {
         val profileHash = TissueMetadataValidator.combinedHash(
             profileFiles.associateWith { TissueMetadataValidator.semanticCsvHash(tissueAsset(it)) }
         )
+        val claimHash = TissueMetadataValidator.combinedHash(
+            mapOf(
+                "draft" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_evidence_claims_draft_v1.csv")),
+                "blind" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_evidence_blind_review_v1.csv")),
+                "final" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_evidence_claims_v1.csv"))
+            )
+        )
         val inputHash = TissueMetadataValidator.combinedHash(
             mapOf(
                 "canonical" to TissueMetadataValidator.semanticCsvHash(canonicalCsv),
                 "catalog" to TissueMetadataValidator.semanticCsvHash(catalogCsv),
                 "scope" to TissueMetadataValidator.semanticCsvHash(scopeCsv),
                 "profiles" to profileHash,
-                "rubric" to TissueMetadataValidator.semanticCsvHash(rubricCsv)
+                "rubric" to TissueMetadataValidator.semanticCsvHash(rubricCsv),
+                "evidence" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_load_evidence_registry_v1.csv")),
+                "claims" to claimHash,
+                "sourceVerification" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_source_verification_v1.csv"))
             )
         )
         val audit = TissueMetadataParser.auditManifest(tissueAsset("tissue_metadata_audit_manifest_v1.csv"))

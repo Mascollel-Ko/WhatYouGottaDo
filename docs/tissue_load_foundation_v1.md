@@ -4,7 +4,7 @@
 
 The tissue-load system is a non-production shadow foundation. It does not replace the six fatigue axes, OFI, readiness, warnings, or ProgramBuilder behavior. Missing metadata remains missing rather than numeric zero.
 
-Current implementation status after foundation Commit 1: `FOUNDATION_PARTIAL`.
+Current implementation status after foundation Commit 2: `FOUNDATION_PARTIAL`.
 
 ## Repository Audit
 
@@ -55,6 +55,15 @@ Capability status: `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
 
 No real source is promoted by this result. Actual source rows remain `UNVERIFIED` until the complete source gate passes.
 
+## Evidence Provenance
+
+- `tissue_load_evidence_registry_v1.csv` keeps the parsed preflight identity as an explicitly `UNVERIFIED`, non-production source.
+- Draft claims, blinded reviews, and final claims are separate ledgers. This session created their schemas but no actual claim or independent review.
+- `tissue_source_verification_v1.csv` records the partial preflight without upgrading identifier, bibliography, claim, or publication-integrity status.
+- `tissue_review_batch_approval_v1.csv` is empty. Automated audit output cannot substitute for a human approval row.
+- `verify_tissue_sources.ps1` is the network-enabled refresh command. Offline CI validates committed artifacts and never depends on NCBI or Crossref uptime.
+- Production `STUDY_BACKED` rows require verified identifiers, matched bibliography, supported claim text, acceptable publication integrity, a separate blind review, and human or valid batch approval.
+
 ## File Responsibility Map
 
 - `TissueMetadataModels.kt`: tissue classes, dimensions, evaluation states, long-form profile/scope/rubric/audit models.
@@ -62,6 +71,10 @@ No real source is promoted by this result. Actual source rows remain `UNVERIFIED
 - `TissueMetadataValidator.kt`: anatomy, scope, profile, approval, and semantic-hash invariants.
 - `TissueLoadProfileRepository.kt`: exact stable-key profile and rubric lookup.
 - `generate_tissue_foundation_assets.ps1`: deterministic catalog, dense scope, empty profile/rubric schema, and audit snapshot generation.
+- `TissueEvidenceModels.kt`: source, draft, blind-review, final-claim, and batch-approval contracts.
+- `TissueEvidenceParser.kt`: typed evidence-ledger parsing.
+- `TissueEvidenceValidator.kt`: source, claim, actor separation, production gate, and batch-audit reference validation.
+- `verify_tissue_sources.ps1`: bounded network preflight and fail-closed verification-artifact refresh.
 
 ## Limitations
 
