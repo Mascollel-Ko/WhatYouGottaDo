@@ -1,5 +1,15 @@
 # Codex Worklog
 
+## Tissue Load Foundation v1 - Commit 1
+
+- Baseline: latest `origin/main` at `25cb01448ea5926841a4b89d9738da135704059a`.
+- Cause: the scalar joint/tendon/impact fatigue axis discards tissue class, anatomical structure, and load dimension.
+- Changes: added a 61-structure catalog, tissue-specific dimensions and evaluation states, long-form profile/rubric schemas, a 14,579-row explicit scope manifest for all 239 canonical stable keys, deterministic audit hashes, typed parsers, exact-key repository lookup, offline validators, and focused tests.
+- Result: metadata foundation stage is valid but remains `FOUNDATION_PARTIAL`; all scopes are `NOT_YET_EVALUATED`, all profile files are empty, and no production eligibility or human approval was created.
+- Network: permission approved; NCBI parsed pass; Crossref 404 after bounded encoded/literal attempts; capability `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
+- Preserved: existing six fatigue axes, OFI, fatigue wording, readiness, backup, ProgramBuilder, Bayesian, and time-series behavior.
+- Tests: `:app:testDebugUnitTest --tests "*TissueMetadataFoundationTest*"` and `:app:compileDebugKotlin` passed.
+
 ## v0.4.0.8 Daily Service Extraction
 
 - 작업 목표: `TrainingRepository`에 남아 있던 DailyMetric, DailyCheckIn, daily readiness input 책임 일부를 behavior-preserving service로 분리.
