@@ -1,6 +1,22 @@
 package com.training.trackplanner.analysis.tissue
 
 object TissueC31Validator {
+    fun guidance(rows: List<TissueC31GuidanceRow>): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        if (rows.map { it.guidanceId }.distinct().size != rows.size) errors += "Duplicate C3.1 guidance ID."
+        rows.forEach { row ->
+            when (row.rubricKind) {
+                TissueRubricKind.CONDITION_ANCHOR -> {
+                    if (row.anchorValue == null || row.metricLowerBound != null || row.metricUpperBound != null) errors += "${row.guidanceId}: condition anchors require one value and blank interval bounds."
+                    if (!row.exactConditionMatchRequired || row.anchorStableKeys.isEmpty() || row.anchorConditionIds.isEmpty()) errors += "${row.guidanceId}: condition anchors require exact exercise and condition matching."
+                }
+                TissueRubricKind.INTERVAL_BAND -> if (row.metricLowerBound == null || row.metricUpperBound == null) errors += "${row.guidanceId}: interval bands require both bounds."
+                TissueRubricKind.ORDERING_RULE -> Unit
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
     fun correctedResearch(
         extractions: List<TissueC31ScientificEvidenceRow>, candidates: List<TissueC31ScientificEvidenceRow>,
         decisions: List<TissueC31ResearchDecisionRow>, corrections: List<TissueC31CorrectionDisposition>,

@@ -89,3 +89,27 @@ data class TissueC31CorrectionDisposition(
     val replacementArtifactId: String,
     val correctionDecision: TissueC31CorrectionDecision
 )
+
+data class TissueC31GuidanceRow(
+    val guidanceId: String,
+    val rubricKind: TissueRubricKind,
+    val tissueId: String,
+    val mechanicalLoadMode: TissueC31MechanicalLoadMode,
+    val temporalMetric: TissueTemporalMetric,
+    val measurementMetric: TissueMeasurementMetric,
+    val normalizationBasis: TissueNormalizationBasis,
+    val loadBand: String,
+    val anchorValue: Double?,
+    val anchorUnit: String,
+    val anchorStableKeys: Set<String>,
+    val anchorConditionIds: Set<String>,
+    val metricLowerBound: Double?,
+    val metricUpperBound: Double?,
+    val exactConditionMatchRequired: Boolean,
+    val forbiddenTransfers: String
+) {
+    fun matches(value: Double, stableKey: String, conditionId: String): Boolean =
+        rubricKind == TissueRubricKind.CONDITION_ANCHOR &&
+            exactConditionMatchRequired && value == anchorValue &&
+            stableKey in anchorStableKeys && conditionId in anchorConditionIds
+}

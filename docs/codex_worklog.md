@@ -1926,3 +1926,36 @@ Validation
 - Generator idempotence: passed with byte-identical request, audit, backlog, approval document, and upper-limb document.
 - Focused C2A-R1/C3 approval tests and the complete `*Tissue*` test set: passed.
 - Compile, full unit rerun, assemble, diff check, push, and CI are recorded in the final completion report after execution.
+
+## Phase C3.1 tissue ontology correction
+
+Baseline
+- Started from `883acc20934df290f9cba60adb397033b043a0c8` on current `main` and preserved the six existing dirty `outputs/*` files.
+- No runtime, UI, database, backup, fatigue, OFI, readiness, ProgramBuilder, time-series, version, or tag path changed.
+
+### Commit 1 - `fix(fatigue): supersede c3 tissue approval request` (`f40be6c`)
+- Preserved the old C3 request and scope hash, appended `TISSUE_APPROVAL_RESOLUTION_C3_1_48F86FEE`, blocked ingestion, and kept all promotion ledgers empty.
+
+### Commit 2 - `refactor(fatigue): separate tissue mechanics from event context` (`aa797c9`)
+- Added 14 physical modes, typed context/phase/position/demand/response registries, ligament tension support, 39 corrected dimensions, and complete 42-dimension migration accounting.
+
+### Commit 3 - `data(fatigue): correct tissue evidence load semantics` (`36b7fb7`)
+- Reclassified ACL strain to tension without inventing direction, corrected weighted heel-rise added/total load, added explicit evidence relations, and accounted for all 188 affected historical identities.
+
+### Commit 4 - `data(fatigue): prepare corrected c3 tissue approval package` (pending)
+- Added two exact-condition anchors, zero interval/ordering rubrics, a deterministic replacement request and audit row, exact future statement, full human-readable review tables, and scope/immutability/no-interpolation tests.
+- Completion remains `C3_1_ONTOLOGY_CORRECTION_PACKAGE_PARTIAL` because 27 research targets remain blocked. Human approvals, final claims, blind reviews, and production profiles remain zero.
+- Replacement request: `TISSUE_APPROVAL_REQUEST_C3_1_A00141AC34448C59`; scope hash: `a00141ac34448c5904db5aff2a514c599b8d47582e0d5bbac6bb752a85bb3b06`.
+
+File and feature map
+- `TissueC31Models/Parser/Validator`: corrected ontology, evidence, guidance parsing, and fail-closed condition-anchor matching.
+- `tissue_*_c3_1_v1.csv` plus typed context registries: non-production corrected scientific snapshots and complete dispositions.
+- `generate_tissue_c3_1_*`: deterministic ontology, research, guidance, request, audit, and approval-document generation.
+- `TissueC31*Test`: supersession, ontology, source correction, external-load, proxy, anchor, hash, and production-boundary regression gates.
+
+Validation
+- C3.1/C3 focused approval, ontology, research, supersession, determinism, and historical-scope tests: passed.
+- Generator idempotence: passed for guidance, request, audit, and approval document with byte-identical second output.
+- Live source identity: 15/15 verified. Live publication integrity: 15/15 no adverse notice, 0 blockers.
+- `:app:compileDebugKotlin`: passed. `:app:testDebugUnitTest --rerun-tasks`: 748 tests, 0 failures/errors/skips. `:app:assembleDebug`: passed.
+- Push and CI: pending final execution.

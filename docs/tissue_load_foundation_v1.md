@@ -128,6 +128,17 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - No canonical exercise has a reviewed dimension weight, so committed application assets produce metadata gaps rather than numeric tissue exposure.
 - Shadow fixture weights are test-only and cannot pass the default evidence gate.
 
+## Phase C3.1 corrected approval boundary
+
+The unapproved C3 request `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D28B` remains immutable and is superseded by
+`TISSUE_APPROVAL_RESOLUTION_C3_1_48F86FEE`. C3.1 limits mechanical mode to physical loading, stores event/phase/position/
+functional/response context separately, permits ligament `TENSION`, and separates added external load from total system mass.
+
+The two Achilles points are `CONDITION_ANCHOR` rows, not intervals: 3.0 BW applies only to its exact single-calf condition and
+7.3 BW only to its exact repeated-hop condition. They do not classify 3.1 BW, intermediate values, neighboring exercises, or
+D-stage profiles. LOW and HIGH remain intentionally missing. The replacement request is pending, non-production, and creates
+no approval, final claim, blind review, profile, runtime behavior, version, or tag.
+
 ## Phase C2A Approval Boundary
 
 Phase C2A adds explicit blind and same-session final-claim paths, exact-scope human approval requests, non-overlapping decimal rubric boundaries, and publication-integrity verification. The deterministic request is `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` with scope hash `9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36`.

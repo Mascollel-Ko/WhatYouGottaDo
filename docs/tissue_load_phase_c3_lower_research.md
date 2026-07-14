@@ -84,6 +84,18 @@ This batch re-extracts source measurements into separate mechanical-load, tempor
 
 The tissue_research_decision_c3_v1.csv file is the authoritative row-level record and also preserves each exact search query, search date, reason, and provenance.
 
+## C3.1 evidence and load-condition correction
+
+C3.1 re-read six affected sources while retaining the verified 15-source registry. The ACL observations are represented as
+`TENSION x PEAK x MEASURED_LIGAMENT_STRAIN`, with landing as event context and pre-contact as movement phase; no valgus,
+rotation, or translation cause is inferred. The weighted heel-rise protocol used a torso vest with additional mass equal to
+20% bodyweight, represented separately as 0.20 BW added load and 1.20 BW total system mass.
+
+All 49 extraction rows, 30 candidates, 42 prior dimensions, 17 prior modes, 48 decisions, and 2 prior point rows have an
+explicit row in `tissue_c3_1_correction_disposition_v1.csv`. The replacement package retains 30 corrected candidates, creates
+2 exact condition anchors, creates no interval or ordering rubric, and leaves 27 material research targets blocked. The full
+old/new interpretation map is rendered in `tissue_load_phase_c3_1_approval_request.md`.
+
 ## Existing 24-candidate migration
 
 | Old candidate | Old dimension | New identity | Disposition | Preserved measurement | Removed interpretation |

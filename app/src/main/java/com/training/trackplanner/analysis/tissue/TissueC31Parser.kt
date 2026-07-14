@@ -72,10 +72,25 @@ object TissueC31Parser {
         )
     }
 
+    fun guidance(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueC31GuidanceRow(
+            guidanceId = row.required("guidanceId"), rubricKind = row.enum("rubricKind"),
+            tissueId = row.required("tissueId"), mechanicalLoadMode = row.enum("mechanicalLoadMode"),
+            temporalMetric = row.enum("temporalMetric"), measurementMetric = row.enum("measurementMetric"),
+            normalizationBasis = row.enum("normalizationBasis"), loadBand = row.required("loadBand"),
+            anchorValue = row.double("anchorValue"), anchorUnit = row.required("anchorUnit"),
+            anchorStableKeys = row.tokens("anchorStableKeys"), anchorConditionIds = row.tokens("anchorConditionIds"),
+            metricLowerBound = row.double("metricLowerBound"), metricUpperBound = row.double("metricUpperBound"),
+            exactConditionMatchRequired = row.boolean("exactConditionMatchRequired"),
+            forbiddenTransfers = row.required("forbiddenTransfers")
+        )
+    }
+
     private fun Map<String, String>.value(name: String) = get(name).orEmpty().trim()
     private fun Map<String, String>.required(name: String) = value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }
     private fun Map<String, String>.boolean(name: String) = value(name).equals("true", ignoreCase = true)
     private fun Map<String, String>.double(name: String) = value(name).takeIf(String::isNotBlank)?.toDouble()
+    private fun Map<String, String>.tokens(name: String) = value(name).split('|').filter(String::isNotBlank).toSet()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T = enumValueOf(required(name).uppercase())
     private inline fun <reified T : Enum<T>> Map<String, String>.enums(name: String): Set<T> =
         value(name).split('|').filter(String::isNotBlank).mapTo(linkedSetOf()) { enumValueOf(it.uppercase()) }

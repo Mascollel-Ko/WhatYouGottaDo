@@ -65,3 +65,17 @@ comparison boundaries are scientific payload, so changing them changes the reque
 Request `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D28B` is pending only. Its scope hash is
 `48f86fee6c39d28b18e8ab9fbacd748e52a606db30c9b4cbfd377be4193162b8`; it does not populate an approval ledger or make
 any row production eligible.
+
+## C3.1 ontology correction
+
+C3.1 replaces the approval scope without rewriting the historical C3 payload. Mechanical modes fall from 17 to 14 by moving
+`IMPACT_STABILIZATION` to event/functional context, `END_RANGE_STRESS` to position context, and
+`ENERGY_STORAGE_RELEASE` to tissue response while retaining an independently supported physical mode. Valid dimensions move
+from 42 to 39; `ACL_TENSION_PEAK` directly supports measured ligament strain, and three context-only loading-rate dimensions
+remain blocked without validated internal mappings.
+
+Evidence relation is explicit (`DIRECT_INTERNAL_MEASUREMENT`, `VALIDATED_INTERNAL_MODEL`, `VALIDATED_PROXY`,
+`UNVALIDATED_PROXY`, `CONTEXT_ONLY`). Unvalidated and context-only rows cannot create rubrics or profiles. Guidance kind is
+also explicit: condition anchors require exact value plus exact exercise/condition, interval bands require real bounds, and
+ordering rules imply no threshold. The corrected package contains two condition anchors, zero interval rubrics, and zero
+ordering rules.

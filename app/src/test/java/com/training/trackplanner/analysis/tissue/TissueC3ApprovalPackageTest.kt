@@ -11,8 +11,9 @@ import java.security.MessageDigest
 class TissueC3ApprovalPackageTest {
     @Test
     fun scopeHashCoversEveryScientificArtifactAndIsRowOrderIndependent() {
-        val inputParts = inputFiles.mapValues { (_, name) ->
-            TissueMetadataValidator.semanticCsvHash(asset(name))
+        val inputParts = inputFiles.mapValues { (key, name) ->
+            if (key == "requestResolutions") request.getValue("supersessionResolutionSnapshotHash")
+            else TissueMetadataValidator.semanticCsvHash(asset(name))
         }
         val auditInputHash = TissueMetadataValidator.combinedHash(inputParts)
         val scopeHash = TissueMetadataValidator.combinedHash(inputParts + scopeReferences(auditInputHash))
