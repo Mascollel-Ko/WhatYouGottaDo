@@ -1,0 +1,5 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"ELASTIC_ENERGY_STORAGE","Measured or modeled elastic energy stored","Cannot be inferred from peak force alone","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ELASTIC_ENERGY_RETURN","Measured or modeled elastic energy returned","Cannot be inferred from task category","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"STRAIN_ENERGY","Energy associated with tissue deformation","Requires force-deformation evidence","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"HYSTERESIS","Energy loss across loading and unloading","Requires a measured loading cycle","Codex","AI_AGENT","2026-07-15T00:00:01Z"

@@ -1,0 +1,6 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"DIRECT_INTERNAL_MEASUREMENT","Direct tissue or instrumented internal measurement","Condition bounded","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"VALIDATED_INTERNAL_MODEL","Internal quantity from a validated model","Validation scope and assumptions required","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"VALIDATED_PROXY","External metric with an explicit validated internal mapping","Mapping ID and limits required","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"UNVALIDATED_PROXY","External metric without an approved mapping","Never rubric or profile eligible","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"CONTEXT_ONLY","Task or condition information only","Cannot establish tissue-load magnitude","Codex","AI_AGENT","2026-07-15T00:00:01Z"

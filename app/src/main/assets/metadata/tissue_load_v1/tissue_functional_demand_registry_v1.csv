@@ -1,0 +1,6 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"STABILIZATION_DEMAND","Functional stabilization requirement","Not an internal tissue-load magnitude","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"IMPACT_ATTENUATION","Functional impact-attenuation requirement","Not a mechanical direction","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"DECELERATION_DEMAND","Functional braking requirement","Does not establish ligament force","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ENERGY_STORAGE_DEMAND","Functional elastic-storage requirement","Requires a measured response metric","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ENERGY_RELEASE_DEMAND","Functional elastic-return requirement","Requires a measured response metric","Codex","AI_AGENT","2026-07-15T00:00:01Z"

@@ -1,0 +1,4 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"CONDITION_ANCHOR","Band label for one exact source condition","No interpolation or neighboring-value classification","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"INTERVAL_BAND","Defensible numerical interval","Bounds and scientific derivation required","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ORDERING_RULE","Condition ordering without numerical thresholds","Scope remains within compatible evidence","Codex","AI_AGENT","2026-07-15T00:00:01Z"

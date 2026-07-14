@@ -1,0 +1,6 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"PARTIAL_ROM","Partial range of motion","Exact angle or protocol remains required","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"FULL_ROM","Full source-defined range","Not transferable across exercise variants","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"END_RANGE","Source-defined terminal position","Position is not a mechanical load mode","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"SPECIFIED_JOINT_ANGLE","Explicitly reported joint angle","Angle remains in the structured condition","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"UNKNOWN_ROM","Range not reported","Missing detail remains missing","Codex","AI_AGENT","2026-07-15T00:00:01Z"

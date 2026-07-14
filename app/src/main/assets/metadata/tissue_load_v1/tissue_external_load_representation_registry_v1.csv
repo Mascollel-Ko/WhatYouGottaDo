@@ -1,0 +1,7 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"ADDITIONAL_EXTERNAL_LOAD","Added mass or resistance excluding body mass","Must not contain total system mass","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"TOTAL_SYSTEM_MASS","Body mass plus added mass","Must not drive an added-load modifier","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"RELATIVE_LOAD_PERCENT_1RM","Load relative to one-repetition maximum","Not a bodyweight fraction","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"BODYWEIGHT_TASK","Task performed with body mass and no reported added load","Internal BW normalization remains separate","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"NO_EXTERNAL_LOAD","Source explicitly reports no added load","Body mass can still load the tissue","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"NOT_REPORTED","External load was not reported","Missing remains missing","Codex","AI_AGENT","2026-07-15T00:00:01Z"

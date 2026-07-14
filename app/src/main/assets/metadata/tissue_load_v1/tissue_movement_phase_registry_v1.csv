@@ -1,0 +1,7 @@
+﻿"id","definition","scientificBoundary","createdBy","createdByType","createdAt"
+"FULL_EVENT","Whole reported event","No subphase is inferred","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"PRE_CONTACT","Before initial ground contact","Timing must be source reported","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"WEIGHT_ACCEPTANCE","Initial load-acceptance phase","Source phase definition controls","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"CONCENTRIC","Shortening phase","Must be source identified","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ECCENTRIC","Lengthening phase","Must be source identified","Codex","AI_AGENT","2026-07-15T00:00:01Z"
+"ISOMETRIC","Static phase","Hold duration remains separate","Codex","AI_AGENT","2026-07-15T00:00:01Z"
