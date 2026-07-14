@@ -152,6 +152,125 @@ object TissueEvidenceParser {
         )
     }
 
+    fun reaudits(csv: String): List<TissueEvidenceReaudit> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueEvidenceReaudit(
+            reauditId = row.required("reauditId"),
+            reviewBatchId = row.required("reviewBatchId"),
+            draftClaimId = row.required("draftClaimId"),
+            sourceId = row.required("sourceId"),
+            stableKey = row.required("stableKey"),
+            tissueId = row.required("tissueId"),
+            loadDimension = row.enum("loadDimension"),
+            reviewMode = row.enum("reviewMode"),
+            independenceStatus = row.enum("independenceStatus"),
+            identifierVerificationStatus = row.enum("identifierVerificationStatus"),
+            bibliographicMatchStatus = row.enum("bibliographicMatchStatus"),
+            publicationIntegrityStatus = row.enum("publicationIntegrityStatus"),
+            evidenceAccessLevel = row.enum("evidenceAccessLevel"),
+            evidenceLocatorType = row.required("evidenceLocatorType"),
+            evidenceLocator = row.required("evidenceLocator"),
+            evidenceLocatorVerified = row.boolean("evidenceLocatorVerified"),
+            exerciseCorrespondence = row.enum("exerciseCorrespondence"),
+            tissueCorrespondence = row.enum("tissueCorrespondence"),
+            dimensionCorrespondence = row.enum("dimensionCorrespondence"),
+            verifiedExercise = row.required("verifiedExercise"),
+            verifiedTissue = row.required("verifiedTissue"),
+            verifiedDimension = row.required("verifiedDimension"),
+            verifiedDirection = row.required("verifiedDirection"),
+            verifiedMetric = row.required("verifiedMetric"),
+            verifiedValue = row.value("verifiedValue").toDoubleOrNull(),
+            verifiedLowerBound = row.value("verifiedLowerBound").toDoubleOrNull(),
+            verifiedUpperBound = row.value("verifiedUpperBound").toDoubleOrNull(),
+            verifiedUnit = row.value("verifiedUnit"),
+            valueType = row.enum("valueType"),
+            normalizationBasis = row.value("normalizationBasis"),
+            crossStudyComparability = row.enum("crossStudyComparability"),
+            verifiedCondition = row.required("verifiedCondition"),
+            maximumDefensibleBand = row.optionalEnum<TissueLoadBand>("maximumDefensibleBand"),
+            bandBasis = row.enum("bandBasis"),
+            claimSupportStatus = row.enum("claimSupportStatus"),
+            recommendedActions = row.tokens("recommendedAction").map { enumValueOf<TissueReauditRecommendedAction>(it) },
+            userAdjudicationIds = row.tokens("userAdjudicationIds"),
+            reviewedBy = row.required("reviewedBy"),
+            reviewedByType = row.enum("reviewedByType"),
+            reviewedAt = row.required("reviewedAt"),
+            limitations = row.required("limitations"),
+            reauditNotes = row.required("reauditNotes")
+        )
+    }
+
+    fun claimCandidates(csv: String): List<TissueEvidenceClaimCandidate> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueEvidenceClaimCandidate(
+            claimCandidateId = row.required("claimCandidateId"),
+            reviewBatchId = row.required("reviewBatchId"),
+            draftClaimId = row.required("draftClaimId"),
+            reauditId = row.required("reauditId"),
+            sourceId = row.required("sourceId"),
+            stableKey = row.required("stableKey"),
+            tissueId = row.required("tissueId"),
+            loadDimension = row.enum("loadDimension"),
+            candidateClaimType = row.required("candidateClaimType"),
+            candidateClaimParaphrase = row.required("candidateClaimParaphrase"),
+            candidateClaimDirection = row.required("candidateClaimDirection"),
+            candidateValue = row.value("candidateValue").toDoubleOrNull(),
+            candidateLowerBound = row.value("candidateLowerBound").toDoubleOrNull(),
+            candidateUpperBound = row.value("candidateUpperBound").toDoubleOrNull(),
+            candidateUnit = row.value("candidateUnit"),
+            normalizationBasis = row.value("normalizationBasis"),
+            supportedCondition = row.required("supportedCondition"),
+            measurementMethod = row.required("measurementMethod"),
+            evidenceLocatorType = row.required("evidenceLocatorType"),
+            evidenceLocator = row.required("evidenceLocator"),
+            evidenceAccessLevel = row.enum("evidenceAccessLevel"),
+            exerciseCorrespondence = row.enum("exerciseCorrespondence"),
+            tissueCorrespondence = row.enum("tissueCorrespondence"),
+            dimensionCorrespondence = row.enum("dimensionCorrespondence"),
+            crossStudyComparability = row.enum("crossStudyComparability"),
+            maximumDefensibleBand = row.optionalEnum<TissueLoadBand>("maximumDefensibleBand"),
+            bandBasis = row.enum("bandBasis"),
+            claimSupportStatus = row.enum("claimSupportStatus"),
+            confidenceLevel = row.enum("confidenceLevel"),
+            userAdjudicationIds = row.tokens("userAdjudicationIds"),
+            reviewMode = row.enum("reviewMode"),
+            independenceStatus = row.enum("independenceStatus"),
+            technicalVerificationStatus = row.enum("technicalVerificationStatus"),
+            productionEligibility = row.boolean("productionEligibility"),
+            preparedBy = row.required("preparedBy"),
+            preparedByType = row.enum("preparedByType"),
+            preparedAt = row.required("preparedAt"),
+            reviewedBy = row.required("reviewedBy"),
+            reviewedByType = row.enum("reviewedByType"),
+            reviewedAt = row.required("reviewedAt"),
+            humanApprovedBy = row.value("humanApprovedBy"),
+            humanApprovedAt = row.value("humanApprovedAt"),
+            candidateNotes = row.required("candidateNotes")
+        )
+    }
+
+    fun userAdjudications(csv: String): List<TissueUserAdjudication> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueUserAdjudication(
+            adjudicationId = row.required("adjudicationId"),
+            reviewBatchId = row.required("reviewBatchId"),
+            adjudicationScope = row.required("adjudicationScope"),
+            stableKeys = row.tokens("stableKeys"),
+            tissueIds = row.tokens("tissueIds"),
+            loadDimensions = row.tokens("loadDimensions").map { enumValueOf<TissueLoadDimension>(it) },
+            rubricIds = row.tokens("rubricIds"),
+            draftClaimIds = row.tokens("draftClaimIds"),
+            decision = row.required("decision"),
+            decisionRationale = row.required("decisionRationale"),
+            requiredDisclosure = row.required("requiredDisclosure"),
+            decisionEffect = row.required("decisionEffect"),
+            decisionActorType = row.enum("decisionActorType"),
+            decisionSource = row.enum("decisionSource"),
+            decisionRecordedBy = row.required("decisionRecordedBy"),
+            decisionRecordedAt = row.required("decisionRecordedAt"),
+            isBatchApproval = row.boolean("isBatchApproval"),
+            productionEligibilityEffect = row.enum("productionEligibilityEffect"),
+            adjudicationNotes = row.required("adjudicationNotes")
+        )
+    }
+
     fun blindReviews(csv: String): List<TissueBlindReview> = TissueMetadataParser.table(csv).rows.map { row ->
         TissueBlindReview(
             blindReviewId = row.required("blindReviewId"),
@@ -215,6 +334,8 @@ object TissueEvidenceParser {
         value(name).split('|').map(String::trim).filter { it.isNotBlank() && it != "NONE" }.distinct()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T =
         enumValueOf(required(name).uppercase(Locale.ROOT))
+    private inline fun <reified T : Enum<T>> Map<String, String>.optionalEnum(name: String): T? =
+        value(name).takeIf(String::isNotBlank)?.uppercase(Locale.ROOT)?.let { enumValueOf<T>(it) }
 
     private fun dimensionReference(value: String): TissueDimensionReference {
         val parts = value.split(':', limit = 2)

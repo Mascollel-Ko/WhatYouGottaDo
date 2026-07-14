@@ -333,6 +333,233 @@ object TissueEvidenceValidator {
         return TissueValidationReport(errors)
     }
 
+    fun phaseCReaudits(
+        sources: List<TissueEvidenceSource>,
+        drafts: List<TissueDraftClaim>,
+        reaudits: List<TissueEvidenceReaudit>,
+        canonicalStableKeys: Set<String>,
+        catalog: List<TissueCatalogEntry>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
+        val draftById = drafts.associateBy(TissueDraftClaim::draftClaimId)
+        val tissueById = catalog.associateBy(TissueCatalogEntry::tissueId)
+        if (reaudits.map(TissueEvidenceReaudit::reauditId).distinct().size != reaudits.size) {
+            errors += "Duplicate reauditId."
+        }
+        val counts = reaudits.groupingBy(TissueEvidenceReaudit::draftClaimId).eachCount()
+        drafts.forEach { draft ->
+            if (counts[draft.draftClaimId] != 1) errors += "${draft.draftClaimId}: expected exactly one re-audit row."
+        }
+        reaudits.forEach { reaudit ->
+            val draft = draftById[reaudit.draftClaimId]
+            val source = sourceById[reaudit.sourceId]
+            if (draft == null) errors += "${reaudit.reauditId}: unknown draftClaimId."
+            if (source == null) errors += "${reaudit.reauditId}: unknown sourceId."
+            if (reaudit.stableKey !in canonicalStableKeys) errors += "${reaudit.reauditId}: unknown stableKey."
+            if (reaudit.loadDimension !in tissueById[reaudit.tissueId]?.supportedLoadDimensions.orEmpty()) {
+                errors += "${reaudit.reauditId}: unsupported tissue dimension."
+            }
+            if (draft != null && listOf(draft.sourceId, draft.stableKey, draft.tissueId, draft.loadDimension.name) !=
+                listOf(reaudit.sourceId, reaudit.stableKey, reaudit.tissueId, reaudit.loadDimension.name)
+            ) {
+                errors += "${reaudit.reauditId}: draft identity changed during re-audit."
+            }
+            if (reaudit.reviewBatchId != TissuePhaseCContract.reviewBatchId ||
+                reaudit.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||
+                reaudit.independenceStatus != TissueReviewIndependenceStatus.NOT_INDEPENDENT
+            ) {
+                errors += "${reaudit.reauditId}: invalid Phase C review identity."
+            }
+            if (reaudit.reviewedBy != "Codex" || reaudit.reviewedByType != TissueActorType.AI_AGENT) {
+                errors += "${reaudit.reauditId}: invalid re-audit reviewer identity."
+            }
+            if (reaudit.reauditId != TissuePhaseCContract.reauditId(reaudit.draftClaimId, reaudit.sourceId)) {
+                errors += "${reaudit.reauditId}: non-deterministic re-audit ID."
+            }
+            if (reaudit.recommendedActions.isEmpty()) errors += "${reaudit.reauditId}: recommended action is missing."
+            val numeric = reaudit.verifiedValue != null || reaudit.verifiedLowerBound != null || reaudit.verifiedUpperBound != null
+            if (numeric && (!reaudit.evidenceLocatorVerified || reaudit.evidenceLocator.isBlank() ||
+                    reaudit.verifiedUnit.isBlank() || reaudit.normalizationBasis.isBlank() || reaudit.verifiedCondition.isBlank())
+            ) {
+                errors += "${reaudit.reauditId}: numeric result lacks a verified locator, unit, normalization, or condition."
+            }
+            reaudit.userAdjudicationIds.filterNot(TissuePhaseCContract.adjudicationIds::contains).forEach {
+                errors += "${reaudit.reauditId}: unknown user adjudication ID $it."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun phaseCClaimCandidates(
+        reaudits: List<TissueEvidenceReaudit>,
+        candidates: List<TissueEvidenceClaimCandidate>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val reauditById = reaudits.associateBy(TissueEvidenceReaudit::reauditId)
+        if (candidates.map(TissueEvidenceClaimCandidate::claimCandidateId).distinct().size != candidates.size) {
+            errors += "Duplicate claimCandidateId."
+        }
+        val blockedStatuses = setOf(
+            TissueClaimSupportStatus.UNSUPPORTED,
+            TissueClaimSupportStatus.CONTRADICTED,
+            TissueClaimSupportStatus.UNABLE_TO_VERIFY
+        )
+        candidates.forEach { candidate ->
+            val reaudit = reauditById[candidate.reauditId]
+            if (reaudit == null) errors += "${candidate.claimCandidateId}: unknown re-audit row."
+            if (candidate.claimSupportStatus in blockedStatuses) {
+                errors += "${candidate.claimCandidateId}: blocked claim became a positive candidate."
+            }
+            if (reaudit != null && !reaudit.evidenceLocatorVerified) {
+                errors += "${candidate.claimCandidateId}: candidate uses an unverified locator."
+            }
+            if (reaudit != null && listOf(
+                    candidate.draftClaimId,
+                    candidate.sourceId,
+                    candidate.stableKey,
+                    candidate.tissueId,
+                    candidate.loadDimension.name,
+                    candidate.candidateValue,
+                    candidate.candidateLowerBound,
+                    candidate.candidateUpperBound,
+                    candidate.candidateUnit
+                ) != listOf(
+                    reaudit.draftClaimId,
+                    reaudit.sourceId,
+                    reaudit.stableKey,
+                    reaudit.tissueId,
+                    reaudit.loadDimension.name,
+                    reaudit.verifiedValue,
+                    reaudit.verifiedLowerBound,
+                    reaudit.verifiedUpperBound,
+                    reaudit.verifiedUnit
+                )
+            ) {
+                errors += "${candidate.claimCandidateId}: candidate differs from its re-audited value or identity."
+            }
+            if (candidate.claimCandidateId != TissuePhaseCContract.claimCandidateId(candidate.draftClaimId, candidate.reauditId)) {
+                errors += "${candidate.claimCandidateId}: non-deterministic claim-candidate ID."
+            }
+            val numeric = candidate.candidateValue != null || candidate.candidateLowerBound != null || candidate.candidateUpperBound != null
+            if (numeric && (candidate.candidateUnit.isBlank() || candidate.normalizationBasis.isBlank() || candidate.measurementMethod.isBlank() ||
+                    candidate.supportedCondition.isBlank() || candidate.evidenceLocator.isBlank())
+            ) {
+                errors += "${candidate.claimCandidateId}: numeric candidate lacks unit, normalization, method, condition, or locator."
+            }
+            if (candidate.productionEligibility) errors += "${candidate.claimCandidateId}: production eligibility must be false."
+            if (candidate.humanApprovedBy.isNotBlank() || candidate.humanApprovedAt.isNotBlank()) {
+                errors += "${candidate.claimCandidateId}: human approval must remain blank."
+            }
+            if (candidate.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||
+                candidate.independenceStatus != TissueReviewIndependenceStatus.NOT_INDEPENDENT
+            ) {
+                errors += "${candidate.claimCandidateId}: invalid Phase C review identity."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun phaseCAdjudications(
+        adjudications: List<TissueUserAdjudication>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val byId = adjudications.associateBy(TissueUserAdjudication::adjudicationId)
+        if (byId.keys != TissuePhaseCContract.adjudicationIds || byId.size != adjudications.size) {
+            errors += "Phase C requires exactly the two explicit user adjudications."
+        }
+        adjudications.forEach { adjudication ->
+            if (adjudication.reviewBatchId != TissuePhaseCContract.reviewBatchId ||
+                adjudication.decisionActorType != TissueActorType.HUMAN_USER ||
+                adjudication.decisionSource != TissueUserAdjudicationDecisionSource.EXPLICIT_USER_INSTRUCTION ||
+                adjudication.decisionRecordedBy != "Codex"
+            ) {
+                errors += "${adjudication.adjudicationId}: invalid adjudication provenance."
+            }
+            if (adjudication.isBatchApproval) errors += "${adjudication.adjudicationId}: adjudication is not batch approval."
+            if (adjudication.productionEligibilityEffect != TissueProductionEligibilityEffect.NONE) {
+                errors += "${adjudication.adjudicationId}: adjudication cannot grant production eligibility."
+            }
+        }
+        byId[TissuePhaseCContract.achillesAdjudicationId]?.let { adjudication ->
+            if (adjudication.stableKeys != listOf("ex_314df428") ||
+                adjudication.tissueIds != listOf("ACHILLES_TENDON") ||
+                adjudication.loadDimensions != listOf(TissueLoadDimension.PEAK_TENSILE_LOAD) ||
+                !adjudication.requiredDisclosure.contains("CLOSE_VARIANT") ||
+                !adjudication.requiredDisclosure.contains("VERY_HIGH")
+            ) {
+                errors += "${adjudication.adjudicationId}: Achilles close-variant disclosure is incomplete."
+            }
+        }
+        byId[TissuePhaseCContract.pfjAdjudicationId]?.let { adjudication ->
+            if (adjudication.tissueIds != listOf("KNEE_PATELLOFEMORAL") ||
+                adjudication.loadDimensions != listOf(TissueLoadDimension.COMPRESSION) ||
+                !adjudication.requiredDisclosure.contains("composite", ignoreCase = true) ||
+                !adjudication.requiredDisclosure.contains("DIMENSION_SUPPORTED_BY_EXPLICIT_PROXY")
+            ) {
+                errors += "${adjudication.adjudicationId}: PFJ composite-proxy disclosure is incomplete."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun phaseCRubrics(
+        rubrics: List<TissueLoadRubric>,
+        reaudits: List<TissueEvidenceReaudit>,
+        candidates: List<TissueEvidenceClaimCandidate>,
+        adjudications: List<TissueUserAdjudication>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val reauditIds = reaudits.map(TissueEvidenceReaudit::reauditId).toSet()
+        val candidateIds = candidates.map(TissueEvidenceClaimCandidate::claimCandidateId).toSet()
+        val adjudicationIds = adjudications.map(TissueUserAdjudication::adjudicationId).toSet()
+        val allowedStatuses = setOf(
+            TissueRubricStatus.REAUDITED_PENDING_HUMAN_APPROVAL,
+            TissueRubricStatus.REAUDITED_WITH_LIMITATIONS,
+            TissueRubricStatus.BLOCKED_AFTER_REAUDIT
+        )
+        rubrics.forEach { rubric ->
+            if (rubric.reauditAction == null) errors += "${rubric.rubricId}: re-audit action is missing."
+            if (rubric.reauditIds.isEmpty() || rubric.reauditIds.any { it !in reauditIds }) {
+                errors += "${rubric.rubricId}: re-audit links are missing or unknown."
+            }
+            if (rubric.rubricStatus != TissueRubricStatus.BLOCKED_AFTER_REAUDIT &&
+                (rubric.claimCandidateIds.isEmpty() || rubric.claimCandidateIds.any { it !in candidateIds })
+            ) {
+                errors += "${rubric.rubricId}: claim-candidate links are missing or unknown."
+            }
+            if (rubric.userAdjudicationIds.any { it !in adjudicationIds }) {
+                errors += "${rubric.rubricId}: unknown user adjudication link."
+            }
+            if (rubric.rubricStatus !in allowedStatuses) errors += "${rubric.rubricId}: invalid Phase C rubric status."
+            if (rubric.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||
+                rubric.independenceStatus != TissueReviewIndependenceStatus.NOT_INDEPENDENT
+            ) {
+                errors += "${rubric.rubricId}: invalid Phase C review identity."
+            }
+            if (rubric.blindReviewedBy.isNotBlank() || rubric.blindReviewedAt.isNotBlank() ||
+                rubric.humanApprovedBy.isNotBlank() || rubric.humanApprovedAt.isNotBlank()
+            ) {
+                errors += "${rubric.rubricId}: blind or human approval must remain blank."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun phaseCNonProduction(
+        blindReviews: List<TissueBlindReview>,
+        finalClaims: List<TissueFinalClaim>,
+        approvals: List<TissueReviewBatchApproval>,
+        profiles: List<TissueLoadProfile>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        if (blindReviews.isNotEmpty()) errors += "Phase C must not create blind-review rows."
+        if (finalClaims.isNotEmpty()) errors += "Phase C must not create formal final claims."
+        if (approvals.isNotEmpty()) errors += "Phase C must not create human batch approvals."
+        if (profiles.isNotEmpty()) errors += "Phase C must not create production profile rows."
+        return TissueValidationReport(errors)
+    }
+
     fun productionProfiles(
         profiles: List<TissueLoadProfile>,
         finalClaims: List<TissueFinalClaim>,

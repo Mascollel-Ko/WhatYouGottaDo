@@ -101,6 +101,119 @@ enum class TissueResearchNonUseReason {
     NO_COMPARABLE_SOURCE
 }
 
+enum class TissueEvidenceReviewMode {
+    SAME_SESSION_EVIDENCE_REAUDIT
+}
+
+enum class TissueReviewIndependenceStatus {
+    NOT_INDEPENDENT
+}
+
+enum class TissueEvidenceAccessLevel {
+    ABSTRACT,
+    FULL_TEXT,
+    TABLE,
+    FIGURE,
+    SUPPLEMENT,
+    METHODS_AND_RESULTS,
+    UNAVAILABLE
+}
+
+enum class TissueExerciseCorrespondence {
+    EXACT_PROTOCOL_MATCH,
+    CLOSE_VARIANT,
+    MOVEMENT_FAMILY_ONLY,
+    CONDITION_MISMATCH,
+    EXERCISE_UNSUPPORTED
+}
+
+enum class TissueCorrespondence {
+    TISSUE_DIRECTLY_SUPPORTED,
+    TISSUE_SUPPORTED_BY_VALIDATED_MODEL,
+    TISSUE_SUPPORTED_BY_KINETIC_PROXY,
+    TISSUE_INFERRED_ONLY,
+    TISSUE_MISMATCH,
+    TISSUE_UNSUPPORTED
+}
+
+enum class TissueDimensionCorrespondence {
+    DIMENSION_DIRECTLY_SUPPORTED,
+    DIMENSION_SUPPORTED_BY_VALIDATED_MODEL,
+    DIMENSION_SUPPORTED_BY_EXPLICIT_PROXY,
+    DIMENSION_PARTIALLY_SUPPORTED,
+    DIMENSION_MISMATCH,
+    DIMENSION_UNSUPPORTED
+}
+
+enum class TissueClaimSupportStatus {
+    SUPPORTED_AS_DIRECT,
+    SUPPORTED_AS_CLOSE_VARIANT,
+    SUPPORTED_AS_EXPLICIT_PROXY,
+    PARTIALLY_SUPPORTED,
+    CONDITION_MISMATCH,
+    TISSUE_MISMATCH,
+    DIMENSION_MISMATCH,
+    UNSUPPORTED,
+    CONTRADICTED,
+    CONFLICTING_EVIDENCE,
+    UNABLE_TO_VERIFY
+}
+
+enum class TissueReauditRecommendedAction {
+    RETAIN_DRAFT,
+    RETAIN_WITH_LIMITATION,
+    CORRECT_VALUE,
+    CORRECT_UNIT,
+    CORRECT_CONDITION,
+    CORRECT_METRIC,
+    CORRECT_TISSUE,
+    CORRECT_DIMENSION,
+    DOWNGRADE_BAND,
+    UPGRADE_BAND,
+    REMOVE_BAND,
+    BLOCK_CLAIM,
+    RESEARCH_REQUIRED
+}
+
+enum class TissueEvidenceValueType {
+    EXACT_REPORTED_VALUE,
+    REPORTED_RANGE,
+    GROUP_MEAN,
+    MODEL_ESTIMATE,
+    RELATIVE_RANK_ONLY,
+    QUALITATIVE_DIRECTION_ONLY,
+    NO_SUPPORTED_VALUE
+}
+
+enum class TissueCrossStudyComparability {
+    CROSS_STUDY_COMPARABLE,
+    COMPARABLE_WITH_LIMITATIONS,
+    NOT_CROSS_STUDY_COMPARABLE
+}
+
+enum class TissueEvidenceBandBasis {
+    DIRECT_VALIDATED_THRESHOLD,
+    WITHIN_STUDY_RELATIVE_ORDER,
+    CROSS_STUDY_COMPARABLE_ANCHORS,
+    CLOSE_VARIANT_TRANSFER,
+    MOVEMENT_FAMILY_TRANSFER,
+    INSUFFICIENT_BASIS
+}
+
+enum class TissueTechnicalVerificationStatus {
+    TECHNICALLY_REAUDITED_PENDING_HUMAN_APPROVAL,
+    TECHNICALLY_REAUDITED_WITH_LIMITATIONS,
+    BLOCKED
+}
+
+enum class TissueUserAdjudicationDecisionSource {
+    EXPLICIT_USER_INSTRUCTION
+}
+
+enum class TissueProductionEligibilityEffect {
+    NONE
+}
+
 data class TissueDimensionReference(
     val tissueId: String,
     val loadDimension: TissueLoadDimension
@@ -247,6 +360,119 @@ data class TissueTargetExerciseReview(
     val preparedByType: TissueActorType,
     val preparedAt: String,
     val reviewNotes: String
+)
+
+data class TissueEvidenceReaudit(
+    val reauditId: String,
+    val reviewBatchId: String,
+    val draftClaimId: String,
+    val sourceId: String,
+    val stableKey: String,
+    val tissueId: String,
+    val loadDimension: TissueLoadDimension,
+    val reviewMode: TissueEvidenceReviewMode,
+    val independenceStatus: TissueReviewIndependenceStatus,
+    val identifierVerificationStatus: TissueIdentifierVerificationStatus,
+    val bibliographicMatchStatus: TissueBibliographicMatchStatus,
+    val publicationIntegrityStatus: TissuePublicationIntegrityStatus,
+    val evidenceAccessLevel: TissueEvidenceAccessLevel,
+    val evidenceLocatorType: String,
+    val evidenceLocator: String,
+    val evidenceLocatorVerified: Boolean,
+    val exerciseCorrespondence: TissueExerciseCorrespondence,
+    val tissueCorrespondence: TissueCorrespondence,
+    val dimensionCorrespondence: TissueDimensionCorrespondence,
+    val verifiedExercise: String,
+    val verifiedTissue: String,
+    val verifiedDimension: String,
+    val verifiedDirection: String,
+    val verifiedMetric: String,
+    val verifiedValue: Double?,
+    val verifiedLowerBound: Double?,
+    val verifiedUpperBound: Double?,
+    val verifiedUnit: String,
+    val valueType: TissueEvidenceValueType,
+    val normalizationBasis: String,
+    val crossStudyComparability: TissueCrossStudyComparability,
+    val verifiedCondition: String,
+    val maximumDefensibleBand: TissueLoadBand?,
+    val bandBasis: TissueEvidenceBandBasis,
+    val claimSupportStatus: TissueClaimSupportStatus,
+    val recommendedActions: List<TissueReauditRecommendedAction>,
+    val userAdjudicationIds: List<String>,
+    val reviewedBy: String,
+    val reviewedByType: TissueActorType,
+    val reviewedAt: String,
+    val limitations: String,
+    val reauditNotes: String
+)
+
+data class TissueEvidenceClaimCandidate(
+    val claimCandidateId: String,
+    val reviewBatchId: String,
+    val draftClaimId: String,
+    val reauditId: String,
+    val sourceId: String,
+    val stableKey: String,
+    val tissueId: String,
+    val loadDimension: TissueLoadDimension,
+    val candidateClaimType: String,
+    val candidateClaimParaphrase: String,
+    val candidateClaimDirection: String,
+    val candidateValue: Double?,
+    val candidateLowerBound: Double?,
+    val candidateUpperBound: Double?,
+    val candidateUnit: String,
+    val normalizationBasis: String,
+    val supportedCondition: String,
+    val measurementMethod: String,
+    val evidenceLocatorType: String,
+    val evidenceLocator: String,
+    val evidenceAccessLevel: TissueEvidenceAccessLevel,
+    val exerciseCorrespondence: TissueExerciseCorrespondence,
+    val tissueCorrespondence: TissueCorrespondence,
+    val dimensionCorrespondence: TissueDimensionCorrespondence,
+    val crossStudyComparability: TissueCrossStudyComparability,
+    val maximumDefensibleBand: TissueLoadBand?,
+    val bandBasis: TissueEvidenceBandBasis,
+    val claimSupportStatus: TissueClaimSupportStatus,
+    val confidenceLevel: TissueEvidenceConfidenceLevel,
+    val userAdjudicationIds: List<String>,
+    val reviewMode: TissueEvidenceReviewMode,
+    val independenceStatus: TissueReviewIndependenceStatus,
+    val technicalVerificationStatus: TissueTechnicalVerificationStatus,
+    val productionEligibility: Boolean,
+    val preparedBy: String,
+    val preparedByType: TissueActorType,
+    val preparedAt: String,
+    val reviewedBy: String,
+    val reviewedByType: TissueActorType,
+    val reviewedAt: String,
+    val humanApprovedBy: String,
+    val humanApprovedAt: String,
+    val candidateNotes: String
+)
+
+data class TissueUserAdjudication(
+    val adjudicationId: String,
+    val reviewBatchId: String,
+    val adjudicationScope: String,
+    val stableKeys: List<String>,
+    val tissueIds: List<String>,
+    val loadDimensions: List<TissueLoadDimension>,
+    val rubricIds: List<String>,
+    val draftClaimIds: List<String>,
+    val decision: String,
+    val decisionRationale: String,
+    val requiredDisclosure: String,
+    val decisionEffect: String,
+    val decisionActorType: TissueActorType,
+    val decisionSource: TissueUserAdjudicationDecisionSource,
+    val decisionRecordedBy: String,
+    val decisionRecordedAt: String,
+    val isBatchApproval: Boolean,
+    val productionEligibilityEffect: TissueProductionEligibilityEffect,
+    val adjudicationNotes: String
 )
 
 data class TissueBlindReview(

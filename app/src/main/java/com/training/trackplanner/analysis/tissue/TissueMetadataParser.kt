@@ -131,6 +131,12 @@ object TissueMetadataParser {
             blindReviewedAt = row.value("blindReviewedAt"),
             humanApprovedBy = row.value("humanApprovedBy"),
             humanApprovedAt = row.value("humanApprovedAt"),
+            reauditAction = row.optionalEnum<TissueRubricReauditAction>("reauditAction"),
+            reauditIds = row.tokens("reauditIds"),
+            claimCandidateIds = row.tokens("claimCandidateIds"),
+            userAdjudicationIds = row.tokens("userAdjudicationIds"),
+            reviewMode = row.optionalEnum<TissueEvidenceReviewMode>("reviewMode"),
+            independenceStatus = row.optionalEnum<TissueReviewIndependenceStatus>("independenceStatus"),
             rubricNotes = row.value("rubricNotes")
         )
     }

@@ -114,6 +114,7 @@ enum class TissueScopeStatus {
 enum class TissueActorType {
     AI_AGENT,
     HUMAN,
+    HUMAN_USER,
     AUTOMATED_VALIDATOR
 }
 
@@ -137,7 +138,21 @@ enum class TissueRubricStatus {
     BLOCKED_INSUFFICIENT_EVIDENCE,
     CONFLICTING_EVIDENCE,
     BLIND_REVIEWED_PENDING_HUMAN_APPROVAL,
+    REAUDITED_PENDING_HUMAN_APPROVAL,
+    REAUDITED_WITH_LIMITATIONS,
+    BLOCKED_AFTER_REAUDIT,
     APPROVED
+}
+
+enum class TissueRubricReauditAction {
+    RETAIN,
+    RETAIN_WITH_LIMITATIONS,
+    CORRECT_ANCHOR,
+    CORRECT_METRIC,
+    CORRECT_THRESHOLD,
+    CORRECT_BAND,
+    REMOVE,
+    BLOCK
 }
 
 enum class TissueRubricAssignmentMethod {
@@ -261,6 +276,12 @@ data class TissueLoadRubric(
     val blindReviewedAt: String,
     val humanApprovedBy: String,
     val humanApprovedAt: String,
+    val reauditAction: TissueRubricReauditAction?,
+    val reauditIds: List<String>,
+    val claimCandidateIds: List<String>,
+    val userAdjudicationIds: List<String>,
+    val reviewMode: TissueEvidenceReviewMode?,
+    val independenceStatus: TissueReviewIndependenceStatus?,
     val rubricNotes: String
 )
 
