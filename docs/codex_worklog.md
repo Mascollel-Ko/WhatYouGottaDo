@@ -1854,4 +1854,6 @@ Validation
 - `:app:compileDebugKotlin`: passed.
 - `:app:testDebugUnitTest --rerun-tasks`: 713 tests, 0 failures/errors/skips.
 - `:app:assembleDebug`: passed.
-- Push and CI: pending.
+- Initial GitHub Actions run `29337225710` exposed two platform-only immutability-test failures: Windows checked out the historical CSV with BOM/CRLF while Linux used LF. The scientific CSV content was unchanged.
+- The old-request test now hashes UTF-8 text after removing an optional BOM and normalizing CRLF to LF; any other payload change still fails.
+- Corrected focused tests: passed. Full rerun, follow-up push, and replacement CI: pending.

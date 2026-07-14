@@ -73,8 +73,8 @@ I understand this revised package is same-session, non-independent, and non-prod
     fun oldRequestIsImmutableAndNoPromotionLedgerWasPopulated() {
         val oldRequest = assetFile("metadata/tissue_load_v1/tissue_review_batch_approval_request_v1.csv")
         assertEquals(
-            "07acc2e6290206c224ee853a527db99ac8ffcb6091eac2e7934094a285684176",
-            oldRequest.readBytes().sha256()
+            "c91fc47185a77cbe810bfcac8127f8be910530268502c6740ed53e69ee4a4ecc",
+            oldRequest.normalizedPayloadSha256()
         )
         assertNotEquals(oldRequestTable.single().getValue("approvalRequestId"), request.getValue("approvalRequestId"))
         assertNotEquals(oldRequestTable.single().getValue("approvalScopeHash"), request.getValue("approvalScopeHash"))
@@ -118,6 +118,9 @@ I understand this revised package is same-session, non-independent, and non-prod
     private fun assetFile(relative: String) = sequenceOf(
         File("src/main/assets/$relative"), File("app/src/main/assets/$relative")
     ).first(File::exists)
+    private fun File.normalizedPayloadSha256() =
+        readText(Charsets.UTF_8).removePrefix("\uFEFF").replace("\r\n", "\n")
+            .toByteArray(Charsets.UTF_8).sha256()
     private fun ByteArray.sha256() = MessageDigest.getInstance("SHA-256").digest(this)
         .joinToString("") { "%02x".format(it) }
 
