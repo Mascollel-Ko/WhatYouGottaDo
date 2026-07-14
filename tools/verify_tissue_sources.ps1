@@ -46,7 +46,8 @@ function Values-Match([string[]]$Values) {
 
 function Journals-Match([string[]]$Values) {
     $normalized = @($Values | ForEach-Object {
-        $journal = ([Net.WebUtility]::HtmlDecode($_) -replace '\s*\([^)]*\)\s*$', '') -replace '^\s*the\s+', ''
+        $journal = ([Net.WebUtility]::HtmlDecode($_) -replace '\s*\([^)]*\)\s*$', '')
+        $journal = ($journal -replace '\s*:\s*official journal.*$', '') -replace '^\s*the\s+', ''
         Normalize-Text $journal
     } | Where-Object { $_ })
     return $normalized.Count -gt 0 -and @($normalized | Select-Object -Unique).Count -eq 1

@@ -22,9 +22,9 @@ three. Tendon force and tendon strain also remain separate measurement families.
 | --- | ---: | --- |
 | `tissue_mechanical_load_mode_registry_v1.csv` | 17 | Closed mechanical vocabulary and tissue-class boundary |
 | `tissue_temporal_metric_registry_v1.csv` | 11 | Closed temporal vocabulary and source/derived boundary |
-| `tissue_measurement_metric_registry_v1.csv` | 17 | Measured or modeled outcome and compatibility |
-| `tissue_normalization_registry_v1.csv` | 13 | Unit and normalization semantics |
-| `tissue_load_dimension_registry_v2.csv` | 41 | Valid lower-limb tissue/load-mode/temporal combinations |
+| `tissue_measurement_metric_registry_v1.csv` | 21 | Measured or modeled outcome and compatibility |
+| `tissue_normalization_registry_v1.csv` | 14 | Unit and normalization semantics |
+| `tissue_load_dimension_registry_v2.csv` | 42 | Valid lower-limb tissue/load-mode/temporal combinations |
 | `tissue_load_dimension_migration_v1.csv` | 33 | Explicit migration for every historical `TissueLoadDimension` |
 
 `TissueMultidimensionalValidator` rejects unregistered vocabulary, invalid cross-products, missing derived formulas,
@@ -43,6 +43,11 @@ badminton event count.
 Ground-reaction force, external joint moment, and EMG are not internal tissue force. A C3 claim may use a proxy only with
 an explicit validated mapping. `SOURCE_DEFINED_COMPOSITE_INDEX` is source-specific, non-rubric, and non-profile. No fixed
 weights combine peak, loading rate, impulse, cyclic exposure, strain, or energy storage into one burden value.
+
+Tendon stress, tendon force, tendon strain, and ligament strain have distinct measurement or normalization identities.
+The ACL landing evidence uses `MEASURED_LIGAMENT_STRAIN_PERCENT`; it is never labeled as tendon strain. Source-defined
+kinematic stability observations are retained only as explicit proxies and cannot become internal tissue load without a
+validated mapping.
 
 ## Legacy Compatibility
 
