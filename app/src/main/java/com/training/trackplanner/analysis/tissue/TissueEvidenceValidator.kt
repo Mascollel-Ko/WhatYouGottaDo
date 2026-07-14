@@ -456,6 +456,23 @@ object TissueEvidenceValidator {
             ) {
                 errors += "${candidate.claimCandidateId}: invalid Phase C review identity."
             }
+            if (candidate.stableKey == "ex_314df428" && candidate.tissueId == "ACHILLES_TENDON" &&
+                candidate.loadDimension == TissueLoadDimension.PEAK_TENSILE_LOAD &&
+                (candidate.exerciseCorrespondence != TissueExerciseCorrespondence.CLOSE_VARIANT ||
+                    candidate.maximumDefensibleBand != TissueLoadBand.VERY_HIGH ||
+                    TissuePhaseCContract.achillesAdjudicationId !in candidate.userAdjudicationIds)
+            ) {
+                errors += "${candidate.claimCandidateId}: Achilles hop transfer lacks close-variant adjudication disclosure."
+            }
+            if (candidate.tissueId == "KNEE_PATELLOFEMORAL" && candidate.loadDimension == TissueLoadDimension.COMPRESSION &&
+                (candidate.dimensionCorrespondence !in setOf(
+                    TissueDimensionCorrespondence.DIMENSION_SUPPORTED_BY_EXPLICIT_PROXY,
+                    TissueDimensionCorrespondence.DIMENSION_PARTIALLY_SUPPORTED
+                ) || !candidate.candidateClaimType.contains("COMPOSITE", ignoreCase = true) ||
+                    candidate.candidateClaimType.contains("PURE", ignoreCase = true))
+            ) {
+                errors += "${candidate.claimCandidateId}: PFJ composite metric is not disclosed as an explicit proxy."
+            }
         }
         return TissueValidationReport(errors)
     }
