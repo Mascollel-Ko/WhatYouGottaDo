@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.tissue
 
+import java.time.Instant
+
 object TissueEvidenceValidator {
     private val productionClaimStatuses = setOf(
         TissueClaimVerificationStatus.ABSTRACT_SUPPORTED,
@@ -24,6 +26,7 @@ object TissueEvidenceValidator {
         approvals: List<TissueReviewBatchApproval> = emptyList(),
         rubrics: List<TissueLoadRubric> = emptyList(),
         auditManifests: List<TissueMetadataAuditManifest> = emptyList(),
+        sourceVerifications: List<TissueSourceVerification> = emptyList(),
         publicationIntegrityVerifications: List<TissuePublicationIntegrityVerification> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
@@ -40,6 +43,10 @@ object TissueEvidenceValidator {
         val approvalById = approvals.associateBy(TissueReviewBatchApproval::batchApprovalId)
         val auditById = auditManifests.associateBy(TissueMetadataAuditManifest::auditManifestId)
         val integrityBySourceId = publicationIntegrityVerifications.associateBy(TissuePublicationIntegrityVerification::sourceId)
+        val sourceVerificationSnapshotHash = sourceVerifications.takeIf { it.isNotEmpty() }
+            ?.let(TissueApprovalScopeHasher::sourceVerificationSnapshotHash)
+        val publicationIntegritySnapshotHash = publicationIntegrityVerifications.takeIf { it.isNotEmpty() }
+            ?.let(TissueApprovalScopeHasher::publicationIntegritySnapshotHash)
 
         drafts.forEach { draft ->
             if (draft.sourceId !in sourceById) errors += "${draft.draftClaimId}: unknown sourceId."
@@ -71,7 +78,9 @@ object TissueEvidenceValidator {
                 tissueById,
                 approval,
                 auditById[claim.approvalAuditManifestId],
-                integrityBySourceId[claim.sourceId]
+                integrityBySourceId[claim.sourceId],
+                sourceVerificationSnapshotHash,
+                publicationIntegritySnapshotHash
             )
             when (claim.reviewPath) {
                 TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW ->
@@ -130,6 +139,149 @@ object TissueEvidenceValidator {
                 errors += "${approval.batchApprovalId}: partial approval requires explicit exclusions and reasons."
             }
             if (audit?.auditDecision == TissueAuditDecision.BLOCKED) errors += "${approval.batchApprovalId}: audit is blocked."
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun approvalRequests(
+        requests: List<TissueReviewBatchApprovalRequest>,
+        candidates: List<TissueEvidenceClaimCandidate>,
+        rubrics: List<TissueLoadRubric>,
+        sources: List<TissueEvidenceSource>,
+        sourceVerifications: List<TissueSourceVerification>,
+        publicationIntegrity: List<TissuePublicationIntegrityVerification>,
+        adjudications: List<TissueUserAdjudication>,
+        auditManifests: List<TissueMetadataAuditManifest>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        if (requests.size != 1) errors += "Exactly one approval request is required."
+        if (requests.map(TissueReviewBatchApprovalRequest::approvalRequestId).distinct().size != requests.size) {
+            errors += "Duplicate approvalRequestId."
+        }
+        val candidateIds = candidates.map(TissueEvidenceClaimCandidate::claimCandidateId).toSet()
+        val rubricIds = rubrics.map(TissueLoadRubric::rubricId).toSet()
+        val sourceIds = sources.map(TissueEvidenceSource::sourceId).toSet()
+        val adjudicationIds = adjudications.map(TissueUserAdjudication::adjudicationId).toSet()
+        val audits = auditManifests.associateBy(TissueMetadataAuditManifest::auditManifestId)
+        val sourceHash = TissueApprovalScopeHasher.sourceVerificationSnapshotHash(sourceVerifications)
+        val integrityHash = TissueApprovalScopeHasher.publicationIntegritySnapshotHash(publicationIntegrity)
+        requests.forEach { request ->
+            val audit = audits[request.auditManifestId]
+            if (request.reviewPath != TissueFinalClaimReviewPath.SAME_SESSION_REAUDIT_WITH_HUMAN_BATCH_APPROVAL) {
+                errors += "${request.approvalRequestId}: unsupported approval-request review path."
+            }
+            if (request.requestStatus != TissueApprovalRequestStatus.PENDING_HUMAN_DECISION) {
+                errors += "${request.approvalRequestId}: request is not pending a human decision."
+            }
+            if (request.preparedByType != TissueActorType.AI_AGENT || request.preparedBy.isBlank()) {
+                errors += "${request.approvalRequestId}: invalid request preparer."
+            }
+            if (request.claimCandidateIds.toSet() != candidateIds || request.rubricIds.toSet() != rubricIds ||
+                request.sourceIds.toSet() != sourceIds || request.userAdjudicationIds.toSet() != adjudicationIds
+            ) {
+                errors += "${request.approvalRequestId}: request scope omits or adds governed IDs."
+            }
+            if (request.candidateCount != candidateIds.size || request.rubricCount != rubricIds.size ||
+                request.sourceCount != sourceIds.size
+            ) {
+                errors += "${request.approvalRequestId}: request counts do not match its governed files."
+            }
+            if (candidates.any { it.technicalVerificationStatus == TissueTechnicalVerificationStatus.BLOCKED || it.productionEligibility } ||
+                rubrics.any { it.rubricStatus == TissueRubricStatus.BLOCKED_AFTER_REAUDIT }
+            ) {
+                errors += "${request.approvalRequestId}: invalid candidate or rubric was included."
+            }
+            if (audit == null || request.auditInputSnapshotHash != audit.inputSnapshotHash ||
+                request.sourceVerificationSnapshotHash != sourceHash ||
+                request.publicationIntegritySnapshotHash != integrityHash
+            ) {
+                errors += "${request.approvalRequestId}: request snapshots are stale or missing."
+            }
+            val expectedHash = if (audit == null) "" else TissueApprovalScopeHasher.hash(
+                request.reviewPath,
+                candidates,
+                rubrics,
+                sources,
+                sourceVerifications,
+                publicationIntegrity,
+                adjudications.map(TissueUserAdjudication::adjudicationId),
+                audit.auditManifestId,
+                audit.inputSnapshotHash
+            )
+            if (request.approvalScopeHash != expectedHash) {
+                errors += "${request.approvalRequestId}: approval-scope hash does not match the scientific payload."
+            }
+            if (request.requiredUserStatement != request.requiredApprovalStatement()) {
+                errors += "${request.approvalRequestId}: required user statement is not exact."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun approvalLedgerIngestion(
+        approval: TissueReviewBatchApproval,
+        request: TissueReviewBatchApprovalRequest,
+        explicitUserStatement: String,
+        currentSourceVerificationSnapshotHash: String,
+        currentPublicationIntegritySnapshotHash: String
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        if (approval.approvalRequestId != request.approvalRequestId || approval.reviewPath != request.reviewPath ||
+            approval.approvalScopeHash != request.approvalScopeHash || approval.auditManifestId != request.auditManifestId ||
+            approval.auditInputSnapshotHash != request.auditInputSnapshotHash
+        ) {
+            errors += "Approval identity does not match the request."
+        }
+        if (request.requestStatus != TissueApprovalRequestStatus.PENDING_HUMAN_DECISION) {
+            errors += "Approval request is no longer current."
+        }
+        if (approval.humanApproverType != TissueActorType.HUMAN_USER || approval.humanApproverLabel.isBlank() ||
+            !approval.automatedValidationPassed
+        ) {
+            errors += "Approval lacks an explicit validated HUMAN_USER decision."
+        }
+        val approvedAt = runCatching { Instant.parse(approval.humanApprovedAt) }.getOrNull()
+        val preparedAt = runCatching { Instant.parse(request.preparedAt) }.getOrNull()
+        if (approvedAt == null || preparedAt == null || !approvedAt.isAfter(preparedAt)) {
+            errors += "Approval timestamp must be later than request preparation."
+        }
+        if (approval.sourceVerificationSnapshotHash != request.sourceVerificationSnapshotHash ||
+            approval.publicationIntegritySnapshotHash != request.publicationIntegritySnapshotHash ||
+            approval.sourceVerificationSnapshotHash != currentSourceVerificationSnapshotHash ||
+            approval.publicationIntegritySnapshotHash != currentPublicationIntegritySnapshotHash
+        ) {
+            errors += "Approval source snapshots are stale."
+        }
+        when (approval.approvalDecision) {
+            TissueBatchApprovalDecision.APPROVED -> {
+                if (approval.approvedClaimCandidateIds.toSet() != request.claimCandidateIds.toSet() ||
+                    approval.approvedRubricIds.toSet() != request.rubricIds.toSet() ||
+                    approval.excludedClaimCandidateIds.isNotEmpty() || approval.excludedRubricIds.isNotEmpty()
+                ) {
+                    errors += "Full approval IDs do not exactly match the request."
+                }
+                if (explicitUserStatement != request.requiredUserStatement) {
+                    errors += "Explicit user statement does not exactly approve the request and hash."
+                }
+            }
+            TissueBatchApprovalDecision.PARTIALLY_APPROVED -> {
+                val candidateScope = (approval.approvedClaimCandidateIds + approval.excludedClaimCandidateIds)
+                val rubricScope = (approval.approvedRubricIds + approval.excludedRubricIds)
+                if (candidateScope.toSet() != request.claimCandidateIds.toSet() ||
+                    rubricScope.toSet() != request.rubricIds.toSet() || approval.exclusionReasons.isBlank() ||
+                    candidateScope.size != candidateScope.distinct().size || rubricScope.size != rubricScope.distinct().size ||
+                    (candidateScope + rubricScope).any { it !in explicitUserStatement }
+                ) {
+                    errors += "Partial approval must explicitly partition every requested ID and state reasons."
+                }
+                if (request.approvalRequestId !in explicitUserStatement || request.approvalScopeHash !in explicitUserStatement ||
+                    request.reviewPath.name !in explicitUserStatement
+                ) {
+                    errors += "Partial approval statement lacks the exact request identity."
+                }
+            }
+            TissueBatchApprovalDecision.REJECTED,
+            TissueBatchApprovalDecision.REVOKED -> Unit
         }
         return TissueValidationReport(errors)
     }
@@ -693,18 +845,29 @@ object TissueEvidenceValidator {
         profiles: List<TissueLoadProfile>,
         finalClaims: List<TissueFinalClaim>,
         sources: List<TissueEvidenceSource>,
-        publicationIntegrityVerifications: List<TissuePublicationIntegrityVerification> = emptyList()
+        publicationIntegrityVerifications: List<TissuePublicationIntegrityVerification> = emptyList(),
+        approvals: List<TissueReviewBatchApproval> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
         val claims = finalClaims.associateBy(TissueFinalClaim::claimId)
         val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
         val integrityById = publicationIntegrityVerifications.associateBy(TissuePublicationIntegrityVerification::sourceId)
+        val approvalById = approvals.associateBy(TissueReviewBatchApproval::batchApprovalId)
         profiles.filter(TissueLoadProfile::productionEligibility).forEach { profile ->
             val linkedClaims = profile.evidenceClaimIds.mapNotNull(claims::get)
             if (profile.evidenceClaimIds.size != linkedClaims.size) errors += "${profile.profileRowId}: unknown evidence claim."
             if (profile.evidenceStatus == TissueEvidenceStatus.STUDY_BACKED) {
                 if (linkedClaims.isEmpty() || linkedClaims.any { !it.productionEligibility }) {
                     errors += "${profile.profileRowId}: STUDY_BACKED profile lacks approved final claims."
+                }
+                if (linkedClaims.any { claim ->
+                        approvalById[claim.batchApprovalId]?.approvalDecision !in setOf(
+                            TissueBatchApprovalDecision.APPROVED,
+                            TissueBatchApprovalDecision.PARTIALLY_APPROVED
+                        )
+                    }
+                ) {
+                    errors += "${profile.profileRowId}: linked final claim approval is missing or inactive."
                 }
                 val sourceReport = sourceRefs(profile.sourceRefs, sources)
                 errors += sourceReport.errors
@@ -729,7 +892,9 @@ object TissueEvidenceValidator {
         tissueById: Map<String, TissueCatalogEntry>,
         approval: TissueReviewBatchApproval?,
         audit: TissueMetadataAuditManifest?,
-        integrity: TissuePublicationIntegrityVerification?
+        integrity: TissuePublicationIntegrityVerification?,
+        currentSourceVerificationSnapshotHash: String?,
+        currentPublicationIntegritySnapshotHash: String?
     ): List<String> = buildList {
         if (draft == null) add("${claim.claimId}: unknown draftClaimId.")
         if (source == null) add("${claim.claimId}: unknown sourceId.")
@@ -800,6 +965,12 @@ object TissueEvidenceValidator {
             }
             if (audit == null || audit.inputSnapshotHash != approval.auditInputSnapshotHash) {
                 add("${claim.claimId}: approval audit snapshot is stale or missing.")
+            }
+            if (currentSourceVerificationSnapshotHash == null || currentPublicationIntegritySnapshotHash == null ||
+                approval.sourceVerificationSnapshotHash != currentSourceVerificationSnapshotHash ||
+                approval.publicationIntegritySnapshotHash != currentPublicationIntegritySnapshotHash
+            ) {
+                add("${claim.claimId}: approval source or publication snapshot is stale or missing.")
             }
         }
     }

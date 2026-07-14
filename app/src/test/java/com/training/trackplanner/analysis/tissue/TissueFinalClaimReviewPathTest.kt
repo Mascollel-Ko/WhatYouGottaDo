@@ -72,6 +72,12 @@ class TissueFinalClaimReviewPathTest {
         )
         assertInvalid(stale, "approval audit snapshot is stale or missing")
 
+        val stalePublication = validate(
+            sameSessionClaim(),
+            approval = sameSessionApproval().copy(publicationIntegritySnapshotHash = "stale")
+        )
+        assertInvalid(stalePublication, "approval source or publication snapshot is stale or missing")
+
         val revoked = validate(
             sameSessionClaim(),
             approval = sameSessionApproval().copy(approvalDecision = TissueBatchApprovalDecision.REVOKED)
@@ -98,6 +104,7 @@ class TissueFinalClaimReviewPathTest {
         approvals = listOf(approval),
         rubrics = rubrics,
         auditManifests = listOf(audit),
+        sourceVerifications = listOf(sourceVerification),
         publicationIntegrityVerifications = listOf(integrity)
     )
 
@@ -142,7 +149,7 @@ class TissueFinalClaimReviewPathTest {
         publicationIntegrityStatus = source.publicationIntegrityStatus,
         approvalAuditManifestId = audit.auditManifestId,
         approvalScopeHash = SCOPE_HASH,
-        sourceVerificationSnapshotHash = SOURCE_HASH,
+        sourceVerificationSnapshotHash = sourceVerificationSnapshotHash,
         preparedBy = candidate.preparedBy,
         preparedByType = candidate.preparedByType,
         preparedAt = candidate.preparedAt,
@@ -198,8 +205,8 @@ class TissueFinalClaimReviewPathTest {
         approvalScopeHash = SCOPE_HASH,
         auditManifestId = audit.auditManifestId,
         auditInputSnapshotHash = audit.inputSnapshotHash,
-        sourceVerificationSnapshotHash = SOURCE_HASH,
-        publicationIntegritySnapshotHash = "publication",
+        sourceVerificationSnapshotHash = sourceVerificationSnapshotHash,
+        publicationIntegritySnapshotHash = publicationIntegritySnapshotHash,
         approvedClaimCandidateIds = approvedCandidates,
         approvedRubricIds = approvedRubrics,
         excludedClaimCandidateIds = emptyList(),
@@ -229,6 +236,16 @@ class TissueFinalClaimReviewPathTest {
         TissueEvidenceParser.publicationIntegrityVerifications(
             tissueAsset("tissue_publication_integrity_verification_v1.csv")
         ).single { it.sourceId == candidate.sourceId }
+    }
+    private val sourceVerification by lazy {
+        TissueEvidenceParser.sourceVerifications(tissueAsset("tissue_source_verification_v1.csv"))
+            .single { it.sourceId == candidate.sourceId }
+    }
+    private val sourceVerificationSnapshotHash by lazy {
+        TissueApprovalScopeHasher.sourceVerificationSnapshotHash(listOf(sourceVerification))
+    }
+    private val publicationIntegritySnapshotHash by lazy {
+        TissueApprovalScopeHasher.publicationIntegritySnapshotHash(listOf(integrity))
     }
     private val draft by lazy {
         TissueEvidenceParser.draftClaims(tissueAsset("tissue_evidence_claims_draft_v1.csv"))
@@ -266,6 +283,5 @@ class TissueFinalClaimReviewPathTest {
         const val NOW = "2026-07-14T00:00:00Z"
         const val REVIEWER = "Independent reviewer"
         const val SCOPE_HASH = "scope"
-        const val SOURCE_HASH = "source"
     }
 }

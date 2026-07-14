@@ -137,6 +137,26 @@ class TissueEvidenceValidatorTest {
         assertTrue(report.errors.any { "source gate failed" in it })
     }
 
+    @Test
+    fun revokedApprovalMakesLinkedProductionProfileIneligible() {
+        val claim = finalClaim().copy(productionEligibility = true)
+        val profile = profile().copy(
+            evidenceStatus = TissueEvidenceStatus.STUDY_BACKED,
+            productionEligibility = true,
+            evidenceClaimIds = listOf(claim.claimId),
+            sourceRefs = listOf(claim.sourceId)
+        )
+        val report = TissueEvidenceValidator.productionProfiles(
+            profiles = listOf(profile),
+            finalClaims = listOf(claim),
+            sources = listOf(source()),
+            approvals = listOf(approval(TissueBatchApprovalDecision.REVOKED))
+        )
+
+        assertFalse(report.isValid)
+        assertTrue(report.errors.any { "linked final claim approval is missing or inactive" in it })
+    }
+
     private fun source() = TissueEvidenceSource(
         sourceId = "PREFLIGHT_32658037",
         pmid = "32658037",
@@ -261,6 +281,29 @@ class TissueEvidenceValidatorTest {
         humanApprovedBy = "",
         humanApprovedAt = "",
         reviewNotes = "fixture"
+    )
+
+    private fun approval(decision: TissueBatchApprovalDecision) = TissueReviewBatchApproval(
+        batchApprovalId = "approval",
+        reviewBatchId = "batch",
+        reviewPath = TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW,
+        approvalRequestId = "request",
+        approvalScopeHash = "scope",
+        auditManifestId = "audit",
+        auditInputSnapshotHash = "audit",
+        sourceVerificationSnapshotHash = "source",
+        publicationIntegritySnapshotHash = "integrity",
+        approvedClaimCandidateIds = emptyList(),
+        approvedRubricIds = emptyList(),
+        excludedClaimCandidateIds = emptyList(),
+        excludedRubricIds = emptyList(),
+        exclusionReasons = "",
+        humanApproverLabel = "ChatGPT user",
+        humanApproverType = TissueActorType.HUMAN_USER,
+        humanApprovedAt = "2026-07-14T00:01:00Z",
+        automatedValidationPassed = true,
+        approvalDecision = decision,
+        approvalNotes = "Fixture"
     )
 
     private fun tissueAsset(name: String): String = asset("metadata/tissue_load_v1/$name")

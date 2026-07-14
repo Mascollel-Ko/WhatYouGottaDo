@@ -390,6 +390,35 @@ object TissueEvidenceParser {
         )
     }
 
+    fun approvalRequests(csv: String): List<TissueReviewBatchApprovalRequest> =
+        TissueMetadataParser.table(csv).rows.map { row ->
+            TissueReviewBatchApprovalRequest(
+                approvalRequestId = row.required("approvalRequestId"),
+                reviewBatchId = row.required("reviewBatchId"),
+                reviewPath = row.enum("reviewPath"),
+                claimCandidateIds = row.tokens("claimCandidateIds"),
+                rubricIds = row.tokens("rubricIds"),
+                sourceIds = row.tokens("sourceIds"),
+                userAdjudicationIds = row.tokens("userAdjudicationIds"),
+                candidateCount = row.required("candidateCount").toInt(),
+                rubricCount = row.required("rubricCount").toInt(),
+                sourceCount = row.required("sourceCount").toInt(),
+                auditManifestId = row.required("auditManifestId"),
+                auditInputSnapshotHash = row.required("auditInputSnapshotHash"),
+                sourceVerificationSnapshotHash = row.required("sourceVerificationSnapshotHash"),
+                publicationIntegritySnapshotHash = row.required("publicationIntegritySnapshotHash"),
+                approvalScopeHash = row.required("approvalScopeHash"),
+                requestStatus = row.enum("requestStatus"),
+                preparedBy = row.required("preparedBy"),
+                preparedByType = row.enum("preparedByType"),
+                preparedAt = row.required("preparedAt"),
+                approvalSummary = row.required("approvalSummary"),
+                knownLimitations = row.required("knownLimitations"),
+                requiredUserStatement = row.required("requiredUserStatement"),
+                requestNotes = row.required("requestNotes")
+            )
+        }
+
     private fun Map<String, String>.value(name: String): String = get(name).orEmpty().trim()
     private fun Map<String, String>.required(name: String): String =
         value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }

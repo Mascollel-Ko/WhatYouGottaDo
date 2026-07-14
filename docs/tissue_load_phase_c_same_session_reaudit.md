@@ -108,3 +108,9 @@ Phase C status is `EVIDENCE_REAUDIT_COMPLETE_PENDING_BATCH_APPROVAL`. A human mu
 - Begin Phase D1 Achilles/PFJ production-profile backfill.
 
 Until then, blind-review rows, formal final claims, human batch approvals, and all four production profile ledgers remain empty. Existing six-axis fatigue, OFI, readiness, ProgramBuilder, Room/backup, and Bayesian/time-series behavior remain disconnected from these candidates.
+
+## Phase C2A Handoff Update
+
+Phase C2A supersedes the earlier unknown publication-integrity handoff without changing any Phase C scientific candidate value. Authoritative PubMed, Crossref, and available publisher metadata produced 10 `NO_ADVERSE_NOTICE_FOUND` rows and publication snapshot `bde38622731a2919141bbed967cffe7121d89cfac30ae87f8834badef006825f`.
+
+The accepted same-session path now has an explicit formal promotion contract, but still requires an exact human batch decision. Pending request `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` covers all 12 candidates and five rubrics at scope hash `9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36`. No approval, final claim, blind review, or production profile has been created.

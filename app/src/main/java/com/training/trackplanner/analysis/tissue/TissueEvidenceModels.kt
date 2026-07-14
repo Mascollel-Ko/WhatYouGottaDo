@@ -122,6 +122,13 @@ enum class TissueBatchApprovalDecision {
     REVOKED
 }
 
+enum class TissueApprovalRequestStatus {
+    PENDING_HUMAN_DECISION,
+    SUPERSEDED,
+    APPROVED_BY_REFERENCED_LEDGER,
+    REJECTED_BY_REFERENCED_LEDGER
+}
+
 enum class TissuePublicationIntegrityCheckStatus {
     NO_ADVERSE_NOTICE_FOUND,
     CORRECTION_FOUND_REVIEW_REQUIRED,
@@ -604,4 +611,30 @@ data class TissueReviewBatchApproval(
     val automatedValidationPassed: Boolean,
     val approvalDecision: TissueBatchApprovalDecision,
     val approvalNotes: String
+)
+
+data class TissueReviewBatchApprovalRequest(
+    val approvalRequestId: String,
+    val reviewBatchId: String,
+    val reviewPath: TissueFinalClaimReviewPath,
+    val claimCandidateIds: List<String>,
+    val rubricIds: List<String>,
+    val sourceIds: List<String>,
+    val userAdjudicationIds: List<String>,
+    val candidateCount: Int,
+    val rubricCount: Int,
+    val sourceCount: Int,
+    val auditManifestId: String,
+    val auditInputSnapshotHash: String,
+    val sourceVerificationSnapshotHash: String,
+    val publicationIntegritySnapshotHash: String,
+    val approvalScopeHash: String,
+    val requestStatus: TissueApprovalRequestStatus,
+    val preparedBy: String,
+    val preparedByType: TissueActorType,
+    val preparedAt: String,
+    val approvalSummary: String,
+    val knownLimitations: String,
+    val requiredUserStatement: String,
+    val requestNotes: String
 )

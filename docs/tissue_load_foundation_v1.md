@@ -127,3 +127,9 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - Bayesian/time-series code is outside this foundation and unchanged.
 - No canonical exercise has a reviewed dimension weight, so committed application assets produce metadata gaps rather than numeric tissue exposure.
 - Shadow fixture weights are test-only and cannot pass the default evidence gate.
+
+## Phase C2A Approval Boundary
+
+Phase C2A adds explicit blind and same-session final-claim paths, exact-scope human approval requests, non-overlapping decimal rubric boundaries, and publication-integrity verification. The deterministic request is `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` with scope hash `9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36`.
+
+The current status is `APPROVAL_PACKAGE_READY`, not human approved or production eligible. The approval, formal final-claim, blind-review, and all four production-profile ledgers remain empty. See `tissue_load_phase_c2a_approval_path.md` for the promotion contract and `tissue_load_phase_c2a_approval_request.md` for the exact package presented for a future human decision.

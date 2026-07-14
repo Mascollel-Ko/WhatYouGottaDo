@@ -1759,3 +1759,35 @@ Validation
 - Focused `TissuePhaseCReauditTest`, `TissuePhaseB1ResearchTest`, and `TissueMetadataFoundationTest`: passed after Phase C adjudication/rubric generation.
 - Combined Phase C input SHA-256: `94c15f4d43e843cd0238b1dd276d83e962bdf846a28a110330c5a970c0a64463`.
 - Full compile, unit test, assemble, diff check, push, and GitHub Actions results are recorded in the completion report after they run.
+
+## Phase C2A approval architecture and request package
+
+Cause
+- The formal validator supported only blind review, PFJ intervals were ambiguous at `0.333`, publication integrity was unknown, and no immutable human approval request bound the complete scientific scope.
+
+Changes
+- Commit `f13bdcd` adds explicit blind and same-session final-claim paths, expanded empty final/approval schemas, strict path validators, and focused regression tests.
+- Commit `64af57a` adds decimal-safe rubric endpoint semantics, the 10-source publication-integrity artifact and live verifier, stricter future production gates, and focused boundary/integrity tests.
+- Commit 3 (`data(fatigue): prepare lower-limb tissue approval package`) adds deterministic scope hashing and request/ingestion contracts, pending request `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196`, audit `tissue_approval_c2a_cbc8f749c37d`, the complete human-readable package, documentation, and final tests.
+- The request scope is 12 candidates, five rubrics, 10 sources, and two interpretation adjudications at SHA-256 `9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36`.
+- Current source and publication snapshots are `03216998a8d5dd728ae538fdeb771431d0af69d710d321ed267e5b1cd82b37e8` and `bde38622731a2919141bbed967cffe7121d89cfac30ae87f8834badef006825f`.
+
+Reason
+- Approval must be a human decision over exact immutable scientific data. A same-session technical re-audit, user interpretation adjudication, automated audit, casual continuation instruction, or AI-prepared package cannot substitute for that decision.
+
+Result
+- Completion status is `APPROVAL_PACKAGE_READY`.
+- The request generator is byte-for-byte reproducible and prints the exact required approval statement.
+- PFJ LOW is `(-infinity, 0.333]`; MODERATE is `(0.333, 0.667]`, using `BigDecimal` comparisons.
+- All 10 sources have checked integrity rows; 10 have no adverse notice found, with zero corrections, retractions, expressions of concern, or unable-to-verify rows.
+- Human approvals, formal final claims, blind reviews, and production profiles remain 0.
+- Existing six-axis fatigue, OFI, readiness, ProgramBuilder, Room/backup, and Bayesian/time-series behavior are unchanged.
+
+Validation
+- Focused approval-request, final-claim path, rubric boundary, publication-integrity, historical Phase C, and validator tests passed.
+- Deterministic approval generator repeated with byte-identical request, audit, and report outputs.
+- `:app:compileDebugKotlin` passed; full `:app:testDebugUnitTest --rerun-tasks` passed 696 tests with 0 failures/errors/skips; `:app:assembleDebug` passed. Final diff check, push, and GitHub Actions are recorded in the completion report.
+
+Next
+- Await an explicit decision containing the exact request ID, scope hash, review path, candidate count, rubric count, and same-session limitation statement.
+- Then ingest only that decision, promote only approved rows, and defer Phase D1 profile backfill until the formal final-claim gate passes.
