@@ -1811,3 +1811,24 @@ Result
 Validation
 - `TissueApprovalSupersessionTest` and `TissueApprovalRequestTest`: passed.
 - Full compile/test/assemble and CI: pending until the three-commit revision is complete.
+
+## Phase C2A-R1 lower-limb evidence and rubric revision
+
+Cause
+- The superseded package merged PFJ peak and duration-sensitive metrics, overextended exact source tasks to generic app exercises, and lacked external-load evidence.
+
+Changes
+- Reworked 12 old candidates into 24 condition-bounded revised rows: six Achilles/patellar rows plus 18 PFJ peak, impulse, and loading-rate rows.
+- Removed generic seated-calf LOW and both PFJ composite rubrics; retained only two narrow Achilles peak-load rubric candidates.
+- Added 13 complete research-decision targets and explicit blocked statuses instead of inventing intervals or external-load multipliers.
+- Generated an exact-stable-key audit of 49 canonical squat, lunge, calf, jump/hop/landing, and footwork exercises.
+- Preserved the PFJ composite only as a non-production source-specific metric role.
+
+Result
+- Bodyweight evidence cannot populate weighted profiles; Bulgarian, RFESS, and split squat remain distinct; non-jumping lunge evidence cannot populate jump lunge.
+- Human approvals, final claims, blind reviews, and production profiles remain zero.
+
+Validation
+- `TissueC2AR1EvidenceRevisionTest` and `TissueApprovalSupersessionTest`: passed.
+- Canonical mapping audit regeneration was deterministic at SHA-256 `91C6EA3A4DBCCE3AF369F73C863906D04DAC374ABF298CF0B60EF8D1EF86D2AC`.
+- Full Gradle validation and CI: pending until the revised approval package is complete.

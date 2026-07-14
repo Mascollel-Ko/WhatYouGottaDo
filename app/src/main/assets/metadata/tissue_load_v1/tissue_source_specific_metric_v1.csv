@@ -1,0 +1,2 @@
+"sourceMetricId","sourceId","metricRole","metricDefinition","genericLoadDimension","productionEligibility","notes"
+"SOURCE_METRIC_PFJ_COMPOSITE_37272685","SRC_PMID_37272685","STUDY_SPECIFIC_COMPOSITE_LOADING_INDEX","Source-defined index using normalized loading peak and impulse with 50 percent weight each","NONE","false","Preserved for interpretation of the source ranking only; it cannot define generic PFJ compression bands or replace peak, impulse, or loading rate."

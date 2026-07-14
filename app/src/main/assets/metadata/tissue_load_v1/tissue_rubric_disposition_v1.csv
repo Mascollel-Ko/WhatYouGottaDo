@@ -1,0 +1,6 @@
+"priorRubricId","oldScope","newDisposition","replacementRubricId","reason"
+"RUBRIC_ACH_PEAK_LOW","ACHILLES_TENDON:PEAK_TENSILE_LOAD:LOW","REMOVED_GENERIC_BAND","","The fixed seated protocol and unresolved bilateral 15 kg condition cannot define all seated calf raises or an external-load response."
+"RUBRIC_ACH_PEAK_MODERATE","ACHILLES_TENDON:PEAK_TENSILE_LOAD:MODERATE","REAUDITED_RETAINED_EXACT_CONDITION","RUBRIC_R1_ACH_PEAK_MODERATE","Retained only for the source-specific bodyweight standing single-leg task."
+"RUBRIC_ACH_PEAK_VERY_HIGH","ACHILLES_TENDON:PEAK_TENSILE_LOAD:VERY_HIGH","REAUDITED_RETAINED_CLOSE_VARIANT","RUBRIC_R1_ACH_PEAK_VERY_HIGH_CLOSE_VARIANT","Retained only for repeated unilateral hopping with explicit app transfer limits."
+"RUBRIC_PFJ_COMP_LOW","KNEE_PATELLOFEMORAL:COMPRESSION:LOW","REMOVED_COMPOSITE_RUBRIC","","A source-specific peak-plus-impulse index cannot define generic PFJ compression or a generic 60-degree squat anchor."
+"RUBRIC_PFJ_COMP_MODERATE","KNEE_PATELLOFEMORAL:COMPRESSION:MODERATE","REMOVED_COMPOSITE_RUBRIC","","Peak, impulse, and loading rate are now separate research dimensions; no replacement interval was invented."
