@@ -32,7 +32,7 @@ This does not mean `RUBRIC_COMPLETE`, `FULL_BACKFILL_COMPLETE`, or `PRODUCTION_E
 - `canonical_tissue_catalog_v1.csv`: 61 distinct structures: 20 joints/functional complexes, 23 tendons, 16 ligaments/capsuloligamentous structures, and 2 fascia structures.
 - `exercise_tissue_scope_manifest_v1.csv`: 14,579 stableKey/tissue rows. Every row is `NOT_YET_EVALUATED`, non-production, and has no fabricated human approval.
 - Four long-form profile files: one row per stableKey/tissue/dimension/reference condition when future evidence review supports a row. They are intentionally empty in the foundation.
-- `tissue_load_band_rubric_v1.csv`: schema only. No global thresholds, automatic quartiles, or invented anchors are present.
+- `tissue_load_band_rubric_v1.csv`: five Phase B1 draft-only rows for Achilles peak tensile load and patellofemoral compression. No global thresholds, automatic quartiles, or invented completion bands are present.
 - `tissue_metadata_audit_manifest_v1.csv`: deterministic hashes, counts, validation status, and decision. It cannot grant human approval or production eligibility.
 
 Catalog anatomy identity and exercise-specific load claims use separate evidence burdens. Catalog rows are currently `UNVERIFIED` and contain no exercise-load claims. Any future load, force, strain, stress, injury, or risk assertion must use the exercise-load evidence and claim pipeline.
@@ -60,7 +60,7 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 ## Evidence Provenance
 
 - `tissue_load_evidence_registry_v1.csv` keeps the immutable preflight source ID with corrected, officially verified bibliographic identity and non-production status.
-- Draft claims, blinded reviews, and final claims are separate ledgers. This session created their schemas but no actual claim or independent review.
+- Draft claims, blinded reviews, and final claims are separate ledgers. Phase B1 added 12 condition-bounded draft claims; blind review and final-claim ledgers remain empty.
 - `tissue_source_verification_v1.csv` records parsed NCBI/Crossref identity verification without upgrading claim or publication-integrity status.
 - `tissue_review_batch_approval_v1.csv` is empty. Automated audit output cannot substitute for a human approval row.
 - `verify_tissue_sources.ps1` is the network-enabled refresh command. Offline CI validates committed artifacts and never depends on NCBI or Crossref uptime.
@@ -97,6 +97,9 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - `TissueEvidenceParser.kt`: typed evidence-ledger parsing.
 - `TissueEvidenceValidator.kt`: source, claim, actor separation, production gate, and batch-audit reference validation.
 - `verify_tissue_sources.ps1`: bounded network preflight and fail-closed verification-artifact refresh.
+- `generate_tissue_phase_b1_draft_assets.ps1`: deterministic lower-limb source, draft-claim, research-decision, target-review, draft-rubric, and evidence-batch audit generation.
+- `export_tissue_blind_review_package.ps1`: explicit-path redacted handoff for a separate Phase C reviewer.
+- `tissue_load_phase_b1_lower_knee_ankle.md`: Phase B1 source correction, decisions, target outcomes, limitations, and handoff record.
 - `TissueRecordContracts.kt`: migration, dose, calculation-state, laterality, and modifier enums/models plus fail-closed side resolution.
 - `TissueRecordContractParser.kt`: typed parsing for migration, dose-capability, and modifier artifacts.
 - `TissueRecordContractValidator.kt`: exact legacy coverage, no-band migration, dose fallback, tissue/dimension, and modifier evidence checks.
@@ -112,8 +115,8 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 
 ## Limitations
 
-- No exercise-specific tissue profile is scientifically reviewed or production eligible.
-- No rubric anchor research, independent blind review, full canonical backfill, or human batch approval is complete.
+- No exercise-specific tissue profile is independently reviewed or production eligible.
+- Phase B1 draft anchor research is complete for two tissue/dimension questions; independent blind review, final claims, full canonical backfill, and human batch approval remain incomplete.
 - Current records cannot resolve performed side or sport event counts.
 - Legacy candidate mappings are review seeds only; none is an exercise-specific tissue profile.
 - Modifier rules remain empty because no reviewed interaction or factor is available.

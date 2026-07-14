@@ -238,6 +238,101 @@ object TissueEvidenceValidator {
         return TissueValidationReport(errors)
     }
 
+    fun phaseB1Rubrics(
+        sources: List<TissueEvidenceSource>,
+        drafts: List<TissueDraftClaim>,
+        decisions: List<TissueRubricResearchDecision>,
+        exerciseReviews: List<TissueTargetExerciseReview>,
+        rubrics: List<TissueLoadRubric>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
+        val draftById = drafts.associateBy(TissueDraftClaim::draftClaimId)
+        val decisionById = decisions.associateBy(TissueRubricResearchDecision::researchDecisionId)
+        val rubricById = rubrics.associateBy(TissueLoadRubric::rubricId)
+        if (rubricById.size != rubrics.size) errors += "Duplicate rubricId."
+        if (rubrics.map { listOf(it.tissueId, it.loadDimension.name, it.loadBand.name) }.distinct().size != rubrics.size) {
+            errors += "Duplicate rubric identity."
+        }
+        rubrics.forEach { rubric ->
+            val decision = decisionById[rubric.researchDecisionId]
+            if (decision == null) errors += "${rubric.rubricId}: unknown researchDecisionId."
+            if (decision != null && (decision.tissueId != rubric.tissueId || decision.loadDimension != rubric.loadDimension)) {
+                errors += "${rubric.rubricId}: rubric tissue/dimension mismatch."
+            }
+            if (decision?.researchDecision != TissueResearchDecision.DRAFT_RUBRIC_CREATED) {
+                errors += "${rubric.rubricId}: rubric is linked to a non-rubric research decision."
+            }
+            if (rubric.loadBand == TissueLoadBand.NONE) errors += "${rubric.rubricId}: NONE cannot represent missing evidence."
+            if (rubric.anchorConditions.isBlank()) errors += "${rubric.rubricId}: anchor conditions are missing."
+            if (rubric.sourceRefs.isEmpty()) errors += "${rubric.rubricId}: draft band lacks an included source."
+            if (rubric.draftClaimIds.isEmpty()) errors += "${rubric.rubricId}: draft band lacks a draft claim."
+            if (rubric.anchorClaimIds.isNotEmpty() || rubric.evidenceClaimIds.isNotEmpty()) {
+                errors += "${rubric.rubricId}: draft IDs must not be placed in final-claim columns."
+            }
+            rubric.sourceRefs.forEach { sourceId ->
+                val source = sourceById[sourceId]
+                if (source == null) errors += "${rubric.rubricId}: unknown sourceId $sourceId."
+                if (source != null && rubric.tissueId !in source.supportedTissueIds) {
+                    errors += "${rubric.rubricId}: rubric/source tissue mismatch."
+                }
+                if (decision != null && sourceId !in decision.includedSourceIds) {
+                    errors += "${rubric.rubricId}: source is not included by the research decision."
+                }
+            }
+            rubric.draftClaimIds.forEach { draftId ->
+                val draft = draftById[draftId]
+                if (draft == null) errors += "${rubric.rubricId}: unknown draftClaimId $draftId."
+                if (draft != null && (draft.tissueId != rubric.tissueId || draft.loadDimension != rubric.loadDimension)) {
+                    errors += "${rubric.rubricId}: draft claim tissue/dimension mismatch."
+                }
+            }
+            if (rubric.metricLowerBound != null && rubric.metricUpperBound != null &&
+                rubric.metricLowerBound > rubric.metricUpperBound
+            ) {
+                errors += "${rubric.rubricId}: invalid metric bounds."
+            }
+            if ((rubric.metricLowerBound != null || rubric.metricUpperBound != null) && rubric.metricUnit.isBlank()) {
+                errors += "${rubric.rubricId}: quantitative threshold lacks a unit."
+            }
+            if (rubric.rubricStatus !in setOf(
+                    TissueRubricStatus.DRAFT_RESEARCHED_PENDING_BLIND_REVIEW,
+                    TissueRubricStatus.BLOCKED_INSUFFICIENT_EVIDENCE,
+                    TissueRubricStatus.CONFLICTING_EVIDENCE
+                )
+            ) {
+                errors += "${rubric.rubricId}: status is not allowed in Phase B1."
+            }
+            if (rubric.preparedByType != TissueActorType.AI_AGENT) errors += "${rubric.rubricId}: preparer must be AI_AGENT."
+            if (rubric.blindReviewedBy.isNotBlank() || rubric.humanApprovedBy.isNotBlank() || rubric.humanApprovedAt.isNotBlank()) {
+                errors += "${rubric.rubricId}: review or human approval is populated in Phase B1."
+            }
+        }
+        decisions.filter { it.researchDecision == TissueResearchDecision.DRAFT_RUBRIC_CREATED }.forEach { decision ->
+            if (rubrics.none { it.researchDecisionId == decision.researchDecisionId }) {
+                errors += "${decision.researchDecisionId}: draft rubric decision lacks a rubric row."
+            }
+        }
+        exerciseReviews.forEach { review ->
+            review.draftRubricIds.filterNot(rubricById::containsKey).forEach {
+                errors += "${review.targetExerciseReviewId}: unknown draftRubricId $it."
+            }
+            if (review.researchUseStatus == TissueResearchUseStatus.USED_AS_DIRECT_ANCHOR) {
+                if (review.sourceIds.isEmpty() || review.draftClaimIds.isEmpty() || review.draftRubricIds.isEmpty()) {
+                    errors += "${review.targetExerciseReviewId}: direct anchor lacks source, draft claim, or draft rubric."
+                }
+                val linkedTargets = review.draftRubricIds.mapNotNull(rubricById::get)
+                    .map { TissueDimensionReference(it.tissueId, it.loadDimension) }.toSet()
+                if (linkedTargets.none(review.supportedTissueDimensions::contains)) {
+                    errors += "${review.targetExerciseReviewId}: direct anchor rubric does not match a supported tissue/dimension."
+                }
+            } else if (review.draftRubricIds.isNotEmpty()) {
+                errors += "${review.targetExerciseReviewId}: non-direct review references a successful draft rubric."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
     fun productionProfiles(
         profiles: List<TissueLoadProfile>,
         finalClaims: List<TissueFinalClaim>,

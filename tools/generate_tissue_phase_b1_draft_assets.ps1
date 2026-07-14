@@ -5,6 +5,31 @@ param(
 $ErrorActionPreference = "Stop"
 $batch = "TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE"
 $preparedAt = "2026-07-14T00:00:00Z"
+$utf8 = [Text.UTF8Encoding]::new($false)
+
+function Get-TextHash([string]$Text) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $hash = $sha.ComputeHash($utf8.GetBytes($Text)) } finally { $sha.Dispose() }
+    return (([BitConverter]::ToString($hash)) -replace '-', '').ToLowerInvariant()
+}
+
+function Join-Ordinal([string[]]$Values, [string]$Separator) {
+    [Array]::Sort($Values, [StringComparer]::Ordinal)
+    return $Values -join $Separator
+}
+
+function Get-SemanticCsvHash([string]$Path) {
+    $rawHeader = (Get-Content -LiteralPath $Path -TotalCount 1).TrimStart([char]0xFEFF)
+    $headers = $rawHeader.Split(',') | ForEach-Object { $_.Trim().Trim('"') }
+    $rows = @(Import-Csv -LiteralPath $Path)
+    $unit = [char]0x1F
+    $record = [char]0x1E
+    [string[]]$values = @($rows | ForEach-Object {
+        $row = $_
+        (($headers | ForEach-Object { [string]$row.$_ }) -join $unit)
+    })
+    return Get-TextHash (($headers -join $unit) + "`n" + (Join-Ordinal $values $record))
+}
 
 function Write-Table([string]$Name, [string[]]$Headers, [hashtable[]]$Rows) {
     $objects = foreach ($row in $Rows) {
@@ -224,6 +249,32 @@ $claims = @(
 )
 Write-Table "tissue_evidence_claims_draft_v1.csv" $claimHeaders $claims
 
+$rubricHeaders = @(
+    "rubricId", "tissueId", "loadDimension", "loadBand", "metricType", "metricLowerBound", "metricUpperBound",
+    "metricUnit", "anchorStableKeys", "anchorConditions", "anchorClaimIds", "researchDecisionId", "draftClaimIds",
+    "assignmentMethod", "evidenceSetId", "evidenceClaimIds", "sourceRefs", "confidenceLevel", "rubricStatus",
+    "preparedBy", "preparedByType", "preparedAt", "blindReviewedBy", "blindReviewedByType", "blindReviewedAt",
+    "humanApprovedBy", "humanApprovedAt", "rubricNotes"
+)
+function Rubric([hashtable]$Data) {
+    $common = @{
+        anchorClaimIds="";evidenceSetId=$batch;evidenceClaimIds="";confidenceLevel="LOW"
+        rubricStatus="DRAFT_RESEARCHED_PENDING_BLIND_REVIEW";preparedBy="Codex";preparedByType="AI_AGENT";preparedAt=$preparedAt
+        blindReviewedBy="";blindReviewedByType="";blindReviewedAt="";humanApprovedBy="";humanApprovedAt=""
+        rubricNotes="Partial condition-bounded draft only; missing bands are intentional pending independent review."
+    }
+    foreach ($key in $Data.Keys) { $common[$key] = $Data[$key] }
+    return $common
+}
+$rubrics = @(
+    (Rubric @{rubricId="RUBRIC_ACH_PEAK_LOW";tissueId="ACHILLES_TENDON";loadDimension="PEAK_TENSILE_LOAD";loadBand="LOW";metricType="WITHIN_STUDY_MODELED_PEAK_FORCE_ORDER";metricUnit="BW";anchorStableKeys="ex_5c8751d2";anchorConditions="Tested seated heel raise; app stableKey ex_5c8751d2; healthy young adults; study-defined bodyweight/resistance condition; seated ankle ROM and study cadence; source-protocol laterality; laboratory force plates; anticipated non-fatigued execution; constrained free-body Achilles model; peak force normalized to bodyweight; no transfer beyond the tested condition.";researchDecisionId="RDEC_ACH_PEAK";draftClaimIds="DCLM_ACH_PEAK_SEATED_CALF";assignmentMethod="WITHIN_STUDY_RELATIVE_ORDER";sourceRefs="PREFLIGHT_32658037|SRC_PMID_28145739"}),
+    (Rubric @{rubricId="RUBRIC_ACH_PEAK_MODERATE";tissueId="ACHILLES_TENDON";loadDimension="PEAK_TENSILE_LOAD";loadBand="MODERATE";metricType="WITHIN_STUDY_MODELED_PEAK_FORCE_ORDER";metricUnit="BW";anchorStableKeys="ex_5ca7133f";anchorConditions="Tested unilateral single-leg heel raise; app stableKey ex_5ca7133f; healthy adults; bodyweight condition; task-defined ankle ROM; controlled/study cadence; unilateral; laboratory surface; anticipated non-fatigued execution; modeled Achilles peak force normalized to bodyweight; app loading and cadence remain transfer limitations.";researchDecisionId="RDEC_ACH_PEAK";draftClaimIds="DCLM_ACH_PEAK_SINGLE_CALF";assignmentMethod="WITHIN_STUDY_RELATIVE_ORDER";sourceRefs="PREFLIGHT_32658037|SRC_PMID_28145739"}),
+    (Rubric @{rubricId="RUBRIC_ACH_PEAK_VERY_HIGH";tissueId="ACHILLES_TENDON";loadDimension="PEAK_TENSILE_LOAD";loadBand="VERY_HIGH";metricType="WITHIN_STUDY_MODELED_PEAK_FORCE_ORDER";metricUnit="BW";anchorStableKeys="ex_314df428";anchorConditions="Tested repeated unilateral forward/lateral hopping; app stableKey ex_314df428 is a close hop-and-stick variant; healthy young adults; bodyweight; task-defined ROM and hopping speed; unilateral; laboratory force plates; anticipated non-fatigued execution; constrained free-body Achilles model; peak force normalized to bodyweight; stick landing, cadence, and direction limit transfer.";researchDecisionId="RDEC_ACH_PEAK";draftClaimIds="DCLM_ACH_PEAK_SINGLE_HOP";assignmentMethod="CLOSE_VARIANT_TRANSFER";sourceRefs="PREFLIGHT_32658037";confidenceLevel="VERY_LOW"}),
+    (Rubric @{rubricId="RUBRIC_PFJ_COMP_LOW";tissueId="KNEE_PATELLOFEMORAL";loadDimension="COMPRESSION";loadBand="LOW";metricType="SOURCE_DEFINED_PFJ_LOADING_INDEX";metricUpperBound="0.333";metricUnit="INDEX";anchorStableKeys="ex_cb3c4dc2";anchorConditions="Tested 60-degree bilateral bodyweight squat; app stableKey ex_cb3c4dc2 is a partial-ROM transfer; healthy adults; bodyweight; 60-degree knee ROM; study-defined speed; bilateral; laboratory force plates; anticipated non-fatigued execution; patellofemoral contact model; source loading index combines normalized peak force and impulse; full-ROM use is not implied.";researchDecisionId="RDEC_PFJ_COMP";draftClaimIds="DCLM_PFJ_COMP_60_SQUAT";assignmentMethod="CLOSE_VARIANT_TRANSFER";sourceRefs="SRC_PMID_37272685";confidenceLevel="VERY_LOW"}),
+    (Rubric @{rubricId="RUBRIC_PFJ_COMP_MODERATE";tissueId="KNEE_PATELLOFEMORAL";loadDimension="COMPRESSION";loadBand="MODERATE";metricType="SOURCE_DEFINED_PFJ_LOADING_INDEX";metricLowerBound="0.333";metricUpperBound="0.667";metricUnit="INDEX";anchorStableKeys="ex_cb3c4dc2|ex_bb728af2|ex_64644b5e|ex_d6726746|ex_314df428";anchorConditions="Tested full bilateral squat, unilateral Bulgarian squat, study-defined lunge, bilateral drop vertical jump, and unilateral maximum forward hop; mapped app stableKeys listed; healthy adults; bodyweight; exercise-defined ROM and velocity; stated bilateral/unilateral conditions; laboratory force plates; anticipated non-fatigued execution; patellofemoral contact model; source loading index combines normalized peak force and impulse; box height, stride, hop-and-stick, and app prescription details limit transfer.";researchDecisionId="RDEC_PFJ_COMP";draftClaimIds="DCLM_PFJ_COMP_FULL_SQUAT|DCLM_PFJ_COMP_BULGARIAN|DCLM_PFJ_COMP_LUNGE|DCLM_PFJ_COMP_DROP_JUMP|DCLM_PFJ_COMP_SINGLE_HOP";assignmentMethod="WITHIN_STUDY_RELATIVE_ORDER";sourceRefs="SRC_PMID_37272685"})
+)
+Write-Table "tissue_load_band_rubric_v1.csv" $rubricHeaders $rubrics
+
 $decisionHeaders = @(
     "researchDecisionId", "reviewBatchId", "tissueId", "loadDimension", "targetStableKeys", "database",
     "searchQuery", "searchDate", "candidateSourceIds", "includedSourceIds", "excludedSourceIds", "exclusionReasons",
@@ -288,12 +339,26 @@ $reviewHeaders = @(
 $canonicalNames = @{}
 $canonicalPath = Join-Path (Split-Path $OutputDirectory -Parent) "canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
 Import-Csv -LiteralPath $canonicalPath -Encoding utf8 | ForEach-Object { $canonicalNames[$_.stableKey] = $_.exerciseName }
+$directRubricsByStableKey = @{
+    "ex_cb3c4dc2"="RUBRIC_PFJ_COMP_MODERATE"
+    "ex_64644b5e"="RUBRIC_PFJ_COMP_MODERATE"
+    "ex_bb728af2"="RUBRIC_PFJ_COMP_MODERATE"
+    "ex_5c8751d2"="RUBRIC_ACH_PEAK_LOW"
+    "ex_5ca7133f"="RUBRIC_ACH_PEAK_MODERATE"
+    "ex_d6726746"="RUBRIC_PFJ_COMP_MODERATE"
+}
 
 function Review([string]$Id,[string]$Key,[string]$Status,[string]$Dimensions,[string]$DecisionIds,
     [string]$SourceIds,[string]$ClaimIds,[bool]$Direct,[string]$Transfer,[string]$Notes,[string]$Reasons) {
-    return @{targetExerciseReviewId=$Id;reviewBatchId=$batch;stableKey=$Key;canonicalDisplayName=$canonicalNames[$Key];researchUseStatus=$Status
-        supportedTissueDimensions=$Dimensions;researchDecisionIds=$DecisionIds;sourceIds=$SourceIds;draftClaimIds=$ClaimIds;draftRubricIds=""
-        directProtocolMatch=$Direct.ToString().ToUpperInvariant();transferDistance=$Transfer;nonUseReasons=$Reasons
+    $rubricId = $directRubricsByStableKey[$Key]
+    $directAnchor = -not [string]::IsNullOrWhiteSpace($rubricId)
+    $effectiveStatus = if($directAnchor){"USED_AS_DIRECT_ANCHOR"}else{$Status}
+    $effectiveDirect = if($directAnchor){"TRUE"}else{$Direct.ToString().ToUpperInvariant()}
+    $effectiveTransfer = if($directAnchor){""}else{$Transfer}
+    $effectiveReasons = if($directAnchor){""}else{$Reasons}
+    return @{targetExerciseReviewId=$Id;reviewBatchId=$batch;stableKey=$Key;canonicalDisplayName=$canonicalNames[$Key];researchUseStatus=$effectiveStatus
+        supportedTissueDimensions=$Dimensions;researchDecisionIds=$DecisionIds;sourceIds=$SourceIds;draftClaimIds=$ClaimIds;draftRubricIds=$rubricId
+        directProtocolMatch=$effectiveDirect;transferDistance=$effectiveTransfer;nonUseReasons=$effectiveReasons
         preparedBy="Codex";preparedByType="AI_AGENT";preparedAt=$preparedAt;reviewNotes=$Notes}
 }
 $reviews = @(
@@ -315,7 +380,94 @@ $reviews = @(
 )
 Write-Table "tissue_rubric_target_exercise_review_v1.csv" $reviewHeaders $reviews
 
+$auditPath = Join-Path $OutputDirectory "tissue_metadata_audit_manifest_v1.csv"
+$auditHeaders = @(
+    "auditManifestId", "auditScope", "auditBatchId", "metadataSchemaVersion", "catalogVersion",
+    "canonicalExerciseSnapshotHash", "canonicalExerciseCount", "tissueCatalogSnapshotHash", "jointTissueCount",
+    "tendonTissueCount", "ligamentTissueCount", "fasciaTissueCount", "scopeManifestSnapshotHash", "scopeManifestRowCount",
+    "profileSnapshotHash", "jointProfileRowCount", "tendonProfileRowCount", "ligamentProfileRowCount", "fasciaProfileRowCount",
+    "rubricSnapshotHash", "modifierSnapshotHash", "recoverySnapshotHash", "evidenceRegistrySnapshotHash",
+    "claimLedgerSnapshotHash", "sourceVerificationSnapshotHash", "doseCapabilitySnapshotHash", "automatedValidationStatus",
+    "stableKeyCoverageStatus", "scopeCoverageStatus", "profileIntegrityStatus", "catalogEvidenceStatus",
+    "exerciseLoadEvidenceIntegrityStatus", "citationVerificationStatus", "blindReviewCoverageStatus",
+    "humanApprovalCoverageStatus", "doseCapabilityStatus", "lateralityCoverageStatus", "modifierValidationStatus",
+    "recoveryValidationStatus", "notYetEvaluatedCount", "evaluatedAbsentCount", "evaluatedRelevantCount",
+    "evaluatedIrrelevantCount", "blockedCount", "conflictingCount", "missingRecordInputCount", "sideUnresolvedCount",
+    "unsupportedModifierCombinationCount", "evidenceNotApprovedCount", "anomalyFlagCount", "failedInvariantCount",
+    "warningCount", "generatedBy", "generatedByType", "generatedAt", "inputSnapshotHash", "auditDecision", "auditNotes",
+    "sourceCount", "verifiedSourceCount", "draftClaimCount", "draftRubricCount", "researchDecisionCount",
+    "targetExerciseReviewCount", "directAnchorExerciseCount", "transferReferenceExerciseCount",
+    "reviewedNotUsedExerciseCount", "blockedExerciseCount", "noComparableSourceExerciseCount",
+    "blockedTissueDimensionTargetCount", "conflictingTargetCount", "missingTargetCount", "blindReviewCount",
+    "finalClaimCount", "humanApprovalCount", "productionEligibleProfileCount"
+)
+$canonicalHash = Get-SemanticCsvHash $canonicalPath
+$catalogPath = Join-Path $OutputDirectory "canonical_tissue_catalog_v1.csv"
+$scopePath = Join-Path $OutputDirectory "exercise_tissue_scope_manifest_v1.csv"
+$profileFiles = @("exercise_joint_load_profiles_v1.csv", "exercise_tendon_load_profiles_v1.csv", "exercise_ligament_load_profiles_v1.csv", "exercise_fascia_load_profiles_v1.csv")
+$profileParts = [string[]]@($profileFiles | ForEach-Object { "$_=$(Get-SemanticCsvHash (Join-Path $OutputDirectory $_))" })
+$profileHash = Get-TextHash (Join-Ordinal $profileParts "`n")
+$claimParts = [string[]]@(
+    "blind=$(Get-SemanticCsvHash (Join-Path $OutputDirectory 'tissue_evidence_blind_review_v1.csv'))"
+    "draft=$(Get-SemanticCsvHash (Join-Path $OutputDirectory 'tissue_evidence_claims_draft_v1.csv'))"
+    "final=$(Get-SemanticCsvHash (Join-Path $OutputDirectory 'tissue_evidence_claims_v1.csv'))"
+)
+$claimHash = Get-TextHash (Join-Ordinal $claimParts "`n")
+$hashParts = @{
+    canonical=$canonicalHash
+    catalog=(Get-SemanticCsvHash $catalogPath)
+    scope=(Get-SemanticCsvHash $scopePath)
+    profiles=$profileHash
+    rubric=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_load_band_rubric_v1.csv"))
+    evidence=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_load_evidence_registry_v1.csv"))
+    claims=$claimHash
+    sourceVerification=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_source_verification_v1.csv"))
+    research=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_rubric_research_log_v1.csv"))
+    targetReviews=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_rubric_target_exercise_review_v1.csv"))
+    legacyMigration=(Get-SemanticCsvHash (Join-Path $OutputDirectory "legacy_tissue_tag_migration_v1.csv"))
+    doseCapability=(Get-SemanticCsvHash (Join-Path $OutputDirectory "dose_input_capability_v1.csv"))
+    modifier=(Get-SemanticCsvHash (Join-Path $OutputDirectory "exercise_tissue_modifier_rules_v1.csv"))
+    recovery=(Get-SemanticCsvHash (Join-Path $OutputDirectory "tissue_recovery_profiles_v1.csv"))
+}
+$inputParts = [string[]]@($hashParts.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" })
+$inputHash = Get-TextHash (Join-Ordinal $inputParts "`n")
+$auditRows = [Collections.Generic.List[hashtable]]::new()
+foreach ($existing in @(Import-Csv -LiteralPath $auditPath | Where-Object auditBatchId -ne $batch)) {
+    $copy = @{}
+    foreach ($property in $existing.PSObject.Properties) { $copy[$property.Name] = $property.Value }
+    $auditRows.Add($copy)
+}
+$auditRows.Add(@{
+    auditManifestId="tissue_rubric_b1_$($inputHash.Substring(0,12))";auditScope="EVIDENCE_BATCH";auditBatchId=$batch
+    metadataSchemaVersion="tissue_load_v1";catalogVersion="tissue_load_v1";canonicalExerciseSnapshotHash=$canonicalHash;canonicalExerciseCount="239"
+    tissueCatalogSnapshotHash=$hashParts.catalog;jointTissueCount="20";tendonTissueCount="23";ligamentTissueCount="16";fasciaTissueCount="2"
+    scopeManifestSnapshotHash=$hashParts.scope;scopeManifestRowCount="14579";profileSnapshotHash=$profileHash
+    jointProfileRowCount="0";tendonProfileRowCount="0";ligamentProfileRowCount="0";fasciaProfileRowCount="0"
+    rubricSnapshotHash=$hashParts.rubric;modifierSnapshotHash=$hashParts.modifier;recoverySnapshotHash=$hashParts.recovery
+    evidenceRegistrySnapshotHash=$hashParts.evidence;claimLedgerSnapshotHash=$claimHash;sourceVerificationSnapshotHash=$hashParts.sourceVerification
+    doseCapabilitySnapshotHash=$hashParts.doseCapability;automatedValidationStatus="PASS_WITH_WARNINGS";stableKeyCoverageStatus="PASS"
+    scopeCoverageStatus="PASS";profileIntegrityStatus="PASS";catalogEvidenceStatus="PASS_WITH_WARNINGS"
+    exerciseLoadEvidenceIntegrityStatus="PASS_WITH_WARNINGS";citationVerificationStatus="PASS";blindReviewCoverageStatus="NOT_APPLICABLE"
+    humanApprovalCoverageStatus="NOT_APPLICABLE";doseCapabilityStatus="PASS";lateralityCoverageStatus="PASS"
+    modifierValidationStatus="PASS";recoveryValidationStatus="PASS";notYetEvaluatedCount="14579";evaluatedAbsentCount="0"
+    evaluatedRelevantCount="0";evaluatedIrrelevantCount="0";blockedCount="$(@($decisions | Where-Object researchDecision -eq 'BLOCKED_INSUFFICIENT_EVIDENCE').Count)"
+    conflictingCount="0";missingRecordInputCount="0";sideUnresolvedCount="0";unsupportedModifierCombinationCount="0"
+    evidenceNotApprovedCount="$($claims.Count + $rubrics.Count)";anomalyFlagCount="0";failedInvariantCount="0"
+    warningCount="$(@($decisions | Where-Object researchDecision -ne 'DRAFT_RUBRIC_CREATED').Count)";generatedBy="Codex";generatedByType="AI_AGENT"
+    generatedAt=$preparedAt;inputSnapshotHash=$inputHash;auditDecision="PRODUCTION_REVIEW_REQUIRED"
+    auditNotes="Phase B1 draft rubric batch is complete pending independent blind review, final claims, and human approval; no production profiles were created."
+    sourceCount="$($sources.Count)";verifiedSourceCount="$($sources.Count)";draftClaimCount="$($claims.Count)";draftRubricCount="$($rubrics.Count)"
+    researchDecisionCount="$($decisions.Count)";targetExerciseReviewCount="$($reviews.Count)"
+    directAnchorExerciseCount="$(@($reviews | Where-Object stableKey -in $directRubricsByStableKey.Keys).Count)"
+    transferReferenceExerciseCount="$(@($reviews | Where-Object { $_.stableKey -notin $directRubricsByStableKey.Keys -and $_.researchUseStatus -eq 'USED_AS_TRANSFER_REFERENCE' }).Count)"
+    reviewedNotUsedExerciseCount="0";blockedExerciseCount="0";noComparableSourceExerciseCount="2"
+    blockedTissueDimensionTargetCount="$(@($decisions | Where-Object researchDecision -eq 'BLOCKED_INSUFFICIENT_EVIDENCE').Count)"
+    conflictingTargetCount="0";missingTargetCount="0";blindReviewCount="0";finalClaimCount="0";humanApprovalCount="0";productionEligibleProfileCount="0"
+})
+Write-Table "tissue_metadata_audit_manifest_v1.csv" $auditHeaders $auditRows.ToArray()
+
 Write-Output "SOURCE_COUNT=$($sources.Count)"
 Write-Output "DRAFT_CLAIM_COUNT=$($claims.Count)"
+Write-Output "DRAFT_RUBRIC_COUNT=$($rubrics.Count)"
 Write-Output "RESEARCH_DECISION_COUNT=$($decisions.Count)"
 Write-Output "TARGET_EXERCISE_REVIEW_COUNT=$($reviews.Count)"

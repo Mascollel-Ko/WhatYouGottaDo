@@ -128,7 +128,8 @@ class TissueMetadataFoundationTest {
                 "recovery" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_recovery_profiles_v1.csv"))
             )
         val inputHash = TissueMetadataValidator.combinedHash(inputParts)
-        val audit = TissueMetadataParser.auditManifest(tissueAsset("tissue_metadata_audit_manifest_v1.csv"))
+        val audits = TissueMetadataParser.auditManifests(tissueAsset("tissue_metadata_audit_manifest_v1.csv"))
+        val audit = audits.single { it.values.getValue("auditScope") == "FOUNDATION_FULL" }
         val values = audit.values
 
         assertEquals(239, audit.canonicalExerciseCount)
@@ -152,6 +153,25 @@ class TissueMetadataFoundationTest {
         val reordered = "id,value\nb,2\na,1\n"
         assertEquals(TissueMetadataValidator.semanticCsvHash(tiny), TissueMetadataValidator.semanticCsvHash(reordered))
         assertNotEquals(TissueMetadataValidator.semanticCsvHash(tiny), TissueMetadataValidator.semanticCsvHash("id,value\na,9\nb,2\n"))
+
+        val batchAudit = audits.single { it.values.getValue("auditScope") == "EVIDENCE_BATCH" }
+        val batchInputHash = TissueMetadataValidator.combinedHash(
+            inputParts + mapOf(
+                "research" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_rubric_research_log_v1.csv")),
+                "targetReviews" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_rubric_target_exercise_review_v1.csv"))
+            )
+        )
+        assertEquals(batchInputHash, batchAudit.inputSnapshotHash)
+        assertEquals(TissueAuditDecision.PRODUCTION_REVIEW_REQUIRED, batchAudit.auditDecision)
+        assertEquals("10", batchAudit.values.getValue("sourceCount"))
+        assertEquals("12", batchAudit.values.getValue("draftClaimCount"))
+        assertEquals("5", batchAudit.values.getValue("draftRubricCount"))
+        assertEquals("31", batchAudit.values.getValue("researchDecisionCount"))
+        assertEquals("15", batchAudit.values.getValue("targetExerciseReviewCount"))
+        assertEquals("0", batchAudit.values.getValue("blindReviewCount"))
+        assertEquals("0", batchAudit.values.getValue("finalClaimCount"))
+        assertEquals("0", batchAudit.values.getValue("humanApprovalCount"))
+        assertEquals("0", batchAudit.values.getValue("productionEligibleProfileCount"))
     }
 
     private fun profile(stableKey: String) = TissueLoadProfile(

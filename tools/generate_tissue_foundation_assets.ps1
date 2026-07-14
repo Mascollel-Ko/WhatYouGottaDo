@@ -174,7 +174,7 @@ $profileFiles | ForEach-Object { Write-CsvRows (Join-Path $OutputDirectory $_) @
 $rubricHeaders = @(
     "rubricId", "tissueId", "loadDimension", "loadBand", "metricType", "metricLowerBound",
     "metricUpperBound", "metricUnit", "anchorStableKeys", "anchorConditions", "anchorClaimIds",
-    "assignmentMethod", "evidenceSetId", "evidenceClaimIds", "sourceRefs", "confidenceLevel",
+    "researchDecisionId", "draftClaimIds", "assignmentMethod", "evidenceSetId", "evidenceClaimIds", "sourceRefs", "confidenceLevel",
     "rubricStatus", "preparedBy", "preparedByType", "preparedAt", "blindReviewedBy",
     "blindReviewedByType", "blindReviewedAt", "humanApprovedBy", "humanApprovedAt", "rubricNotes"
 )

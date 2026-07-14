@@ -102,8 +102,43 @@ object TissueMetadataParser {
         )
     }
 
-    fun auditManifest(csv: String): TissueMetadataAuditManifest =
-        TissueMetadataAuditManifest(table(csv).rows.single())
+    fun rubrics(csv: String): List<TissueLoadRubric> = table(csv).rows.map { row ->
+        TissueLoadRubric(
+            rubricId = row.required("rubricId"),
+            tissueId = row.required("tissueId"),
+            loadDimension = row.enum("loadDimension"),
+            loadBand = row.enum("loadBand"),
+            metricType = row.required("metricType"),
+            metricLowerBound = row.value("metricLowerBound").toDoubleOrNull(),
+            metricUpperBound = row.value("metricUpperBound").toDoubleOrNull(),
+            metricUnit = row.value("metricUnit"),
+            anchorStableKeys = row.tokens("anchorStableKeys"),
+            anchorConditions = row.required("anchorConditions"),
+            anchorClaimIds = row.tokens("anchorClaimIds"),
+            researchDecisionId = row.required("researchDecisionId"),
+            draftClaimIds = row.tokens("draftClaimIds"),
+            assignmentMethod = row.enum("assignmentMethod"),
+            evidenceSetId = row.required("evidenceSetId"),
+            evidenceClaimIds = row.tokens("evidenceClaimIds"),
+            sourceRefs = row.tokens("sourceRefs"),
+            confidenceLevel = row.enum("confidenceLevel"),
+            rubricStatus = row.enum("rubricStatus"),
+            preparedBy = row.required("preparedBy"),
+            preparedByType = row.enum("preparedByType"),
+            preparedAt = row.required("preparedAt"),
+            blindReviewedBy = row.value("blindReviewedBy"),
+            blindReviewedByType = row.optionalEnum<TissueActorType>("blindReviewedByType"),
+            blindReviewedAt = row.value("blindReviewedAt"),
+            humanApprovedBy = row.value("humanApprovedBy"),
+            humanApprovedAt = row.value("humanApprovedAt"),
+            rubricNotes = row.value("rubricNotes")
+        )
+    }
+
+    fun auditManifests(csv: String): List<TissueMetadataAuditManifest> =
+        table(csv).rows.map(::TissueMetadataAuditManifest)
+
+    fun auditManifest(csv: String): TissueMetadataAuditManifest = auditManifests(csv).last()
 
     private fun parseCsv(csv: String): List<List<String>> {
         val rows = mutableListOf<List<String>>()

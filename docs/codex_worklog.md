@@ -1657,7 +1657,7 @@ Cause
 - The tissue foundation had no populated rubric research ledger, and its sole Achilles preflight row paired the correct PMID/title with an unrelated or unresolved DOI.
 
 Changes
-- Commit pending (`fix(fatigue): repair tissue source verification and add research log`): preserved `PREFLIGHT_32658037`, replaced the incorrect DOI with the DOI parsed from official PubMed metadata, and recorded a matched Crossref verification artifact.
+- Commit `41c6209` (`fix(fatigue): repair tissue source verification and add research log`): preserved `PREFLIGHT_32658037`, replaced the incorrect DOI with the DOI parsed from official PubMed metadata, and recorded a matched Crossref verification artifact.
 - Generalized `verify_tissue_sources.ps1` to process every registry row with parsed NCBI/Crossref comparisons, bounded retries, deterministic timestamps/hashes, PMID-only/DOI-only handling, and duplicate bibliographic identity detection.
 - Added typed Phase B1 research-decision and target-exercise review schemas, parsers, contracts, validators, and empty ledgers ready for evidence population.
 - Kept publication integrity at `STATUS_UNKNOWN`; no blind review, final claim, human approval, production profile, scope promotion, runtime integration, version, or tag was added.
@@ -1671,14 +1671,14 @@ Result
 
 Tests
 - Official NCBI/Crossref live verification: passed for PMID `32658037` and DOI `10.1249/MSS.0000000000002459`.
-- Focused Kotlin and offline artifact validation: pending.
+- Focused Kotlin and offline artifact validation: passed.
 ## Phase B1 lower-limb draft evidence batch
 
 Cause
 - The verified registry still had no lower-limb primary-study batch, explicit tissue/dimension decisions, canonical exercise review outcomes, or condition-bounded draft claims.
 
 Changes
-- Commit pending (`data(fatigue): add lower-limb tissue rubric evidence drafts`): added 10 officially identity-verified source rows, 12 condition-bounded draft claims, 31 research decisions, and 15 target-exercise review rows for batch `TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE`.
+- Commit `ae09c39` (`data(fatigue): add lower-limb tissue rubric evidence drafts`): added 10 officially identity-verified source rows, 12 condition-bounded draft claims, 31 research decisions, and 15 target-exercise review rows for batch `TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE`.
 - Added a deterministic Phase B1 draft-asset generator and focused contract tests.
 - Kept only Achilles peak tensile load and patellofemoral compression open as draft-rubric candidates; force, strain, translation, contact, impulse, stability, and energy outcomes were not silently pooled.
 - Recorded `KNEE_ACL × VALGUS` as `OUT_OF_SCOPE_AFTER_AUDIT` because the requested research question is not an allowed dimension in the current canonical ACL catalog.
@@ -1693,3 +1693,42 @@ Result
 Tests
 - Official NCBI/Crossref live verification: 10/10 `PMID_AND_DOI_VERIFIED` and `MATCHED`.
 - Focused `TissuePhaseB1ResearchTest`, `TissueEvidenceValidatorTest`, and `TissueMetadataFoundationTest`: passed.
+
+## Phase B1 lower-limb draft rubrics and blind-review handoff
+
+Cause
+- Commit 2 left the two defensible tissue/dimension questions as researched draft candidates but had not yet created typed rubric rows, a historical evidence-batch audit, or a technically blinded Phase C handoff.
+
+Changes
+- Commit 3 (this commit, `data(fatigue): add lower-limb tissue rubric anchors`) adds five draft-only rubric rows: three within-study Achilles peak-tensile-load anchors and two source-index patellofemoral compression anchors.
+- Expanded the rubric model/parser with typed status, assignment method, confidence, research-decision, draft-claim, preparer, blind-review, and human-approval fields.
+- Added Phase B1 rubric validation for source/claim/decision identity, tissue/dimension consistency, complete anchor conditions, duplicate identities, invalid bounds, final-column contamination, prohibited approval, and target-exercise links.
+- Updated all 15 exercise review outcomes to 6 direct anchors, 7 transfer references, and 2 no-comparable-source outcomes.
+- Preserved the historical foundation audit row and appended `tissue_rubric_b1_73bbb560046d` with `PRODUCTION_REVIEW_REQUIRED`, 29 warnings, 0 failed invariants, and input hash `73bbb560046d5ee8c2da1305a0305929cbf609be8815d93edaf3897c4472f851`.
+- Added `export_tissue_blind_review_package.ps1`, the Phase B1 report, and the updated foundation responsibility map.
+
+Reason
+- A partial source-specific rubric is defensible; a forced complete matrix is not. Missing bands and 29 non-rubric target decisions remain explicit instead of being converted into invented thresholds.
+- Phase C reviewers need source locators and conditions without the proposed bands, values, confidence, assignment method, rationale, or research-use conclusion.
+
+Result
+- Phase B1 status is `RUBRIC_DRAFT_COMPLETE_PENDING_BLIND_REVIEW`.
+- Draft claims: 12; draft rubric rows: 5; decisions: 31; reviewed exercises: 15.
+- Production profile rows, production-eligible profiles, blind reviews, final claims, and human approvals remain 0.
+- The 14,579-row scope manifest and all existing fatigue, OFI, readiness, ProgramBuilder, Room, backup, and Bayesian/time-series behavior remain unchanged.
+- App version and release tags remain unchanged.
+
+Validation
+- Live official NCBI/Crossref verification: 10/10 `PMID_AND_DOI_VERIFIED` and `MATCHED`; two fixed-time runs and the committed artifact are byte-identical at SHA-256 `d78d5e3cfbd26f5e153fda06cd3cf6555fe9af7e60ebce7747ebc0a0afd63c59`.
+- Foundation/record/B1 generators in a temporary directory: 61 tissues, 14,579 scope rows, two historical audit rows, deterministic on repeated B1 generation.
+- Blind package: 12 items, 13 required fields, 0 forbidden fields, deterministic SHA-256 `c9c9463a7882929494919ed3a4ce3aab52d3c7f743f95c0fcd608526957e52e0`; proposed bands, values, and original rationale are absent.
+- Focused `*Tissue*` unit tests: passed, including rejection of `APPROVED`, human approval, and draft IDs in final-claim columns.
+- `:app:compileDebugKotlin`: passed.
+- `:app:testDebugUnitTest`: passed.
+- `:app:assembleDebug`: passed.
+- `git diff --check`: passed for intended files.
+
+Phase C handoff
+- Run `tools/export_tissue_blind_review_package.ps1` with an explicit temporary output path.
+- Perform independent evidence assessment before creating blind-review rows, final claims, or human approval.
+- Full 239-exercise profile backfill remains a later phase after Phase C approval.

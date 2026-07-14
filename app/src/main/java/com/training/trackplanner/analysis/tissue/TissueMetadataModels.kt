@@ -132,6 +132,32 @@ enum class TissueAuditDecision {
     BLOCKED
 }
 
+enum class TissueRubricStatus {
+    DRAFT_RESEARCHED_PENDING_BLIND_REVIEW,
+    BLOCKED_INSUFFICIENT_EVIDENCE,
+    CONFLICTING_EVIDENCE,
+    BLIND_REVIEWED_PENDING_HUMAN_APPROVAL,
+    APPROVED
+}
+
+enum class TissueRubricAssignmentMethod {
+    DIRECT_IN_VIVO_MEASUREMENT,
+    VALIDATED_EXACT_MODEL,
+    EXACT_KINETIC_PROXY,
+    WITHIN_STUDY_RELATIVE_ORDER,
+    INTERPOLATED_BETWEEN_ANCHORS,
+    CLOSE_VARIANT_TRANSFER,
+    MOVEMENT_FAMILY_TRANSFER,
+    ANATOMICAL_INFERENCE
+}
+
+enum class TissueEvidenceConfidenceLevel {
+    HIGH,
+    MODERATE,
+    LOW,
+    VERY_LOW
+}
+
 data class TissueCatalogEntry(
     val tissueClass: TissueClass,
     val tissueId: String,
@@ -219,10 +245,23 @@ data class TissueLoadRubric(
     val anchorStableKeys: List<String>,
     val anchorConditions: String,
     val anchorClaimIds: List<String>,
-    val assignmentMethod: String,
+    val researchDecisionId: String,
+    val draftClaimIds: List<String>,
+    val assignmentMethod: TissueRubricAssignmentMethod,
+    val evidenceSetId: String,
+    val evidenceClaimIds: List<String>,
     val sourceRefs: List<String>,
-    val rubricStatus: String,
-    val humanApprovedBy: String
+    val confidenceLevel: TissueEvidenceConfidenceLevel,
+    val rubricStatus: TissueRubricStatus,
+    val preparedBy: String,
+    val preparedByType: TissueActorType,
+    val preparedAt: String,
+    val blindReviewedBy: String,
+    val blindReviewedByType: TissueActorType?,
+    val blindReviewedAt: String,
+    val humanApprovedBy: String,
+    val humanApprovedAt: String,
+    val rubricNotes: String
 )
 
 data class TissueMetadataAuditManifest(
