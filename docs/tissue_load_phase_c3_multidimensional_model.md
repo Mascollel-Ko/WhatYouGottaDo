@@ -54,3 +54,14 @@ validated mapping.
 Historical CSVs and superseded requests keep their original `loadDimension` values and remain parseable. Exact legacy
 migrations are limited to values that already encode a mechanical mode and temporal metric. Ambiguous values require
 manual review, and generic historical `COMPRESSION` is source-specific rather than silently becoming compression peak.
+
+## Approval scope
+
+The deterministic C3 request hashes all four vocabularies, valid dimensions, migrations, metric extractions, dispositions,
+candidates, rubrics, research decisions, canonical mappings, transfer restrictions, historical and new source snapshots,
+publication-integrity snapshots, the supersession reference, and the upper-limb backlog. Candidate limitations and rubric
+comparison boundaries are scientific payload, so changing them changes the request hash.
+
+Request `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D28B` is pending only. Its scope hash is
+`48f86fee6c39d28b18e8ab9fbacd748e52a606db30c9b4cbfd377be4193162b8`; it does not populate an approval ledger or make
+any row production eligible.

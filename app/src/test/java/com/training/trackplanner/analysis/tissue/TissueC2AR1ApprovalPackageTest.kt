@@ -10,8 +10,9 @@ import java.security.MessageDigest
 class TissueC2AR1ApprovalPackageTest {
     @Test
     fun revisedRequestHashesEveryGovernedArtifactDeterministically() {
-        val inputParts = inputFiles.mapValues { (_, name) ->
-            TissueMetadataValidator.semanticCsvHash(tissueAsset(name))
+        val inputParts = inputFiles.mapValues { (key, name) ->
+            if (key == "requestResolution") historicalResolutionSnapshotHash
+            else TissueMetadataValidator.semanticCsvHash(tissueAsset(name))
         }
         val auditInputHash = TissueMetadataValidator.combinedHash(inputParts)
         val scopeHash = TissueMetadataValidator.combinedHash(inputParts + mapOf(
@@ -156,4 +157,8 @@ I understand this revised package is same-session, non-independent, and non-prod
         "Lateral raise", "Front raise", "Fly", "Pull-up", "Assisted pull-up", "Lat pulldown", "Rows",
         "Biceps curls", "Triceps extensions", "Wrist and grip exercises"
     )
+
+    // The append-only resolution ledger now has later C3 rows; the C2A-R1 scope keeps the exact one-row snapshot it signed.
+    private val historicalResolutionSnapshotHash =
+        "8ff820f9a34fac46829b63c41f739d39f05fd5e43a990c7cdeb61136cd50d962"
 }

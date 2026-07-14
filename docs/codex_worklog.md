@@ -1857,3 +1857,72 @@ Validation
 - Initial GitHub Actions run `29337225710` exposed two platform-only immutability-test failures: Windows checked out the historical CSV with BOM/CRLF while Linux used LF. The scientific CSV content was unchanged.
 - The old-request test now hashes UTF-8 text after removing an optional BOM and normalizing CRLF to LF; any other payload change still fails.
 - Corrected focused tests: passed. Full rerun, follow-up push, and replacement CI: pending.
+
+## Phase C3 multidimensional tissue-load reconstruction
+
+Baseline
+- Started from `b307fbd69319cf5c7dded24baedd6719befba71a` on current `main`.
+- Preserved the six pre-existing dirty `outputs/*` files without staging, rewriting, or using them as destinations.
+- App version and all runtime fatigue, OFI, readiness, ProgramBuilder, Room, backup, time-series, and UI paths remain unchanged.
+
+### Commit 1 - `fix(fatigue): supersede revised tissue approval package`
+
+Cause
+- The unapproved C2A-R1 package combined mechanical mode and temporal exposure too broadly for a defensible approval.
+
+Changes and result
+- Added append-only resolution `TISSUE_APPROVAL_RESOLUTION_C3_MD_R1_74ECC664` while preserving request
+  `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` and its normalized payload hash.
+- Added ingestion rejection and immutable-request tests. Approval, final-claim, blind-review, and profile ledgers stayed empty.
+
+### Commit 2 - `refactor(fatigue): add multidimensional tissue load ontology`
+
+Cause
+- A flat `loadDimension` could not distinguish peak, impulse, loading rate, strain, source-specific metrics, and cumulative dose.
+
+Changes and result
+- Added typed registries for 17 mechanical modes, 11 temporal metrics, 21 measurement metrics, 14 normalizations,
+  42 valid tissue dimensions, and 33 legacy migrations.
+- Added fail-closed parsing and validation without activating the model at runtime.
+
+### Commit 3 - `data(fatigue): re-research multidimensional lower-limb tissue loads`
+
+Cause
+- Existing source measurements and all 24 revised candidates needed exact metric re-extraction and lower-limb gap research.
+
+Changes and result
+- Re-extracted all 10 existing sources, added 5 dual-verified primary sources, created 49 metric rows, 24 dispositions,
+  30 condition-bounded candidates, 2 partial rubrics, 48 research decisions, and 49 transfer-correspondence rows.
+- Added deterministic generation, compatibility checks, dose guards, and anomaly detection. Twenty-seven targets remain blocked.
+
+### Commit 4 - `data(fatigue): prepare multidimensional tissue approval package`
+
+Cause
+- The rebuilt scientific scope needed a new immutable request rather than reuse of either superseded scope.
+
+Changes and result
+- Added deterministic generator `generate_tissue_c3_approval_package.ps1`, pending request
+  `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D28B`, scope hash
+  `48f86fee6c39d28b18e8ab9fbacd748e52a606db30c9b4cbfd377be4193162b8`, and append-only audit
+  `tissue_c3_md_a35cbac6c9d7`.
+- Added a candidate-by-candidate human review table, metric-compatible rubric table, dimensional availability comparison,
+  exact future statement, and upper-limb backlog `TISSUE_C3_MULTIDIMENSIONAL_UPPER_PRESS_PULL_R1`.
+- Completion remains `MULTIDIMENSIONAL_C_APPROVAL_PACKAGE_PARTIAL`. The statement is a template, not an approval.
+
+File and feature map
+- `TissueMultidimensionalModels/Parser/Validator`: ontology ownership and invalid-combination rejection.
+- `tissue_*_registry_v1.csv`, `tissue_load_dimension_registry_v2.csv`: typed vocabularies and valid combinations.
+- `tissue_load_dimension_migration_v1.csv`: explicit legacy disposition.
+- `TissueC3ResearchModels/Parser/Validator`: extraction, candidate, rubric, decision, transfer, dose, and anomaly contracts.
+- `tissue_source_metric_extraction_v1.csv`: source-observed metric rows with exact conditions.
+- `tissue_evidence_claim_candidates_multidimensional_v1.csv`: non-production multidimensional candidates.
+- `tissue_load_rubric_v2.csv`: two narrow, compatible, partial Achilles peak anchors.
+- `tissue_research_decision_c3_v1.csv`: researched, incomparable, and blocked lower-limb targets.
+- `tissue_review_batch_approval_request_c3_v1.csv`: exact pending scope and future decision template.
+- `TissueC3ApprovalPackageTest`: scope determinism, immutability, partial audit, presentation, and empty-ledger gates.
+- `tissue_load_phase_c3_upper_backlog.md`: separate upper-limb batch boundary.
+
+Validation
+- Generator idempotence: passed with byte-identical request, audit, backlog, approval document, and upper-limb document.
+- Focused C2A-R1/C3 approval tests and the complete `*Tissue*` test set: passed.
+- Compile, full unit rerun, assemble, diff check, push, and CI are recorded in the final completion report after execution.

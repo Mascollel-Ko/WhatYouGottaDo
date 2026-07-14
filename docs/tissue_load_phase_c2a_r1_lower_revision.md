@@ -134,6 +134,17 @@ as general ground-reaction impact impulse.
 No seated LOW, PFJ composite, patellar tendon, loading-rate, impulse, or externally loaded rubric survives this revision.
 Missing bands are left missing.
 
+## Phase C3 supersession
+
+The C2A-R1 approval request `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` and scope hash
+`74ecc66495637bdd70720957970aac41537c4726c9060a5e781bfcfc1c96678f` were not approved. They remain immutable
+historical artifacts and are blocked from later ingestion by resolution `TISSUE_APPROVAL_RESOLUTION_C3_MD_R1_74ECC664`.
+
+Phase C3 re-extracts the useful source measurements instead of rejecting them wholesale. It maps each observation to a
+mechanical mode, temporal metric, measurement metric, normalization basis, and exact condition. The 24 revised candidates
+all have explicit C3 dispositions: 7 are retained with narrower conditions and 17 are reclassified exactly. The new
+pending package is documented in `tissue_load_phase_c3_approval_request.md`; it remains non-production and partial.
+
 ## Research Decision Matrix
 
 The 13 required tissue/dimension targets have exactly one row in

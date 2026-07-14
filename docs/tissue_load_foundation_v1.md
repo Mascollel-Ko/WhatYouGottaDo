@@ -146,3 +146,16 @@ The revised request is `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` at scop
 `74ecc66495637bdd70720957970aac41537c4726c9060a5e781bfcfc1c96678f`. Its status is
 `REVISED_APPROVAL_PACKAGE_PARTIAL` because six material research targets remain explicitly blocked. The request is still
 non-production and is not a human decision. See `tissue_load_phase_c2a_r1_revised_approval_request.md`.
+
+## Phase C3 multidimensional boundary
+
+The revised C2A-R1 request above remains byte-for-byte historical and was superseded before approval by
+`TISSUE_APPROVAL_RESOLUTION_C3_MD_R1_74ECC664`. Phase C3 replaces the ambiguous single-dimension approval scope with
+separate mechanical-load mode, temporal metric, measurement metric, normalization, and exact-condition identities.
+
+The pending replacement request is `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D28B` at scope hash
+`48f86fee6c39d28b18e8ab9fbacd748e52a606db30c9b4cbfd377be4193162b8`. Completion is
+`MULTIDIMENSIONAL_C_APPROVAL_PACKAGE_PARTIAL`: 27 material targets remain blocked, only two narrow Achilles peak rubric
+anchors exist, and no universal burden score or fixed cross-dimensional weights are defined. Human approvals, formal
+final claims, blind reviews, and production profiles remain zero. No runtime fatigue, OFI, readiness, ProgramBuilder,
+persistence, backup, time-series, UI, or version path reads the C3 package.
