@@ -11,7 +11,7 @@ class TissueEvidenceValidatorTest {
     @Test
     fun committedPreflightIdentityIsCorrectedWithoutGrantingProductionUse() {
         val sources = TissueEvidenceParser.sources(tissueAsset("tissue_load_evidence_registry_v1.csv"))
-        val source = sources.single()
+        val source = sources.single { it.sourceId == "PREFLIGHT_32658037" }
         val verifications = TissueEvidenceParser.sourceVerifications(tissueAsset("tissue_source_verification_v1.csv"))
         val draft = TissueEvidenceParser.draftClaims(tissueAsset("tissue_evidence_claims_draft_v1.csv"))
         val blind = TissueEvidenceParser.blindReviews(tissueAsset("tissue_evidence_blind_review_v1.csv"))
@@ -23,10 +23,10 @@ class TissueEvidenceValidatorTest {
         assertEquals(TissueNetworkCapabilityStatus.LIVE_SOURCE_VERIFICATION_AVAILABLE, source.verificationCapabilityStatus)
         assertEquals(TissueIdentifierVerificationStatus.PMID_AND_DOI_VERIFIED, source.identifierVerificationStatus)
         assertEquals(TissueBibliographicMatchStatus.MATCHED, source.bibliographicMatchStatus)
-        assertEquals("VERIFIED_NONPRODUCTION", source.sourceStatus)
+        assertEquals("INCLUDED_DRAFT_EVIDENCE", source.sourceStatus)
         assertTrue(TissueEvidenceValidator.sourceRegistry(sources, verifications).errors.toString(),
             TissueEvidenceValidator.sourceRegistry(sources, verifications).isValid)
-        assertTrue(draft.isEmpty())
+        assertEquals(12, draft.size)
         assertTrue(blind.isEmpty())
         assertTrue(final.isEmpty())
 
@@ -38,9 +38,9 @@ class TissueEvidenceValidatorTest {
     }
 
     @Test
-    fun phaseB1ResearchSchemasParseAsTypedEmptyLedgers() {
-        assertTrue(TissueEvidenceParser.researchDecisions(tissueAsset("tissue_rubric_research_log_v1.csv")).isEmpty())
-        assertTrue(TissueEvidenceParser.targetExerciseReviews(tissueAsset("tissue_rubric_target_exercise_review_v1.csv")).isEmpty())
+    fun phaseB1ResearchSchemasParseAsTypedLedgers() {
+        assertEquals(31, TissueEvidenceParser.researchDecisions(tissueAsset("tissue_rubric_research_log_v1.csv")).size)
+        assertEquals(15, TissueEvidenceParser.targetExerciseReviews(tissueAsset("tissue_rubric_target_exercise_review_v1.csv")).size)
         assertEquals(31, TissuePhaseB1Contract.targetTissueDimensions.size)
         assertEquals(15, TissuePhaseB1Contract.targetStableKeys.size)
     }

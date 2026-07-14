@@ -1672,3 +1672,24 @@ Result
 Tests
 - Official NCBI/Crossref live verification: passed for PMID `32658037` and DOI `10.1249/MSS.0000000000002459`.
 - Focused Kotlin and offline artifact validation: pending.
+## Phase B1 lower-limb draft evidence batch
+
+Cause
+- The verified registry still had no lower-limb primary-study batch, explicit tissue/dimension decisions, canonical exercise review outcomes, or condition-bounded draft claims.
+
+Changes
+- Commit pending (`data(fatigue): add lower-limb tissue rubric evidence drafts`): added 10 officially identity-verified source rows, 12 condition-bounded draft claims, 31 research decisions, and 15 target-exercise review rows for batch `TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE`.
+- Added a deterministic Phase B1 draft-asset generator and focused contract tests.
+- Kept only Achilles peak tensile load and patellofemoral compression open as draft-rubric candidates; force, strain, translation, contact, impulse, stability, and energy outcomes were not silently pooled.
+- Recorded `KNEE_ACL × VALGUS` as `OUT_OF_SCOPE_AFTER_AUDIT` because the requested research question is not an allowed dimension in the current canonical ACL catalog.
+
+Reason
+- Condition-specific model results can support draft anchors, but incompatible metrics and protocols must remain blocked or non-comparable instead of being converted into convenient bands.
+
+Result
+- All 31 targets and all 15 canonical exercises now have explicit, machine-validated research outcomes.
+- Blind review, final claims, human approval, production profiles, and scope promotion remain empty.
+
+Tests
+- Official NCBI/Crossref live verification: 10/10 `PMID_AND_DOI_VERIFIED` and `MATCHED`.
+- Focused `TissuePhaseB1ResearchTest`, `TissueEvidenceValidatorTest`, and `TissueMetadataFoundationTest`: passed.

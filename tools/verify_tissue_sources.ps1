@@ -44,6 +44,14 @@ function Values-Match([string[]]$Values) {
     return $normalized.Count -gt 0 -and @($normalized | Select-Object -Unique).Count -eq 1
 }
 
+function Journals-Match([string[]]$Values) {
+    $normalized = @($Values | ForEach-Object {
+        $journal = ([Net.WebUtility]::HtmlDecode($_) -replace '\s*\([^)]*\)\s*$', '') -replace '^\s*the\s+', ''
+        Normalize-Text $journal
+    } | Where-Object { $_ })
+    return $normalized.Count -gt 0 -and @($normalized | Select-Object -Unique).Count -eq 1
+}
+
 $registry = @(Import-Csv -LiteralPath $RegistryPath)
 $duplicateIdentity = $registry | Group-Object {
     if ($_.pmid) { "PMID:$($_.pmid.Trim())" }
@@ -117,7 +125,7 @@ $rows = foreach ($source in ($registry | Sort-Object sourceId)) {
         (Values-Match @($source.title, $ncbiTitle, $crossrefTitle)) -and
         (Values-Match @($registryAuthor, (First-Author $ncbiAuthor), (First-Author $crossrefAuthor))) -and
         (Values-Match @($source.publicationYear, $ncbiYear, $crossrefYear)) -and
-        (Values-Match @($source.journal, $ncbiJournal, $crossrefJournal))
+        (Journals-Match @($source.journal, $ncbiJournal, $crossrefJournal))
     $bibliographicStatus = if ($bibliographyMatched) { 'MATCHED' }
         elseif ($identifierConflict) { 'MISMATCHED' }
         elseif ($ncbiPassed -or $crossrefPassed) { 'PARTIAL_MATCH' }

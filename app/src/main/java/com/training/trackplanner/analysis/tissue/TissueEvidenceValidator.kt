@@ -184,7 +184,9 @@ object TissueEvidenceValidator {
             decision.targetStableKeys.filterNot(canonicalNamesByStableKey::containsKey).forEach {
                 errors += "${decision.researchDecisionId}: unknown target stableKey $it."
             }
-            if (decision.loadDimension !in catalogById[decision.tissueId]?.supportedLoadDimensions.orEmpty()) {
+            if (decision.loadDimension !in catalogById[decision.tissueId]?.supportedLoadDimensions.orEmpty() &&
+                decision.researchDecision != TissueResearchDecision.OUT_OF_SCOPE_AFTER_AUDIT
+            ) {
                 errors += "${decision.researchDecisionId}: unsupported tissue dimension."
             }
             if (decision.researchDecision == TissueResearchDecision.DRAFT_RUBRIC_CREATED) {
