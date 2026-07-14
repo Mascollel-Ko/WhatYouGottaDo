@@ -129,6 +129,10 @@ enum class TissueApprovalRequestStatus {
     REJECTED_BY_REFERENCED_LEDGER
 }
 
+enum class TissueApprovalRequestResolutionStatus {
+    SUPERSEDED_BEFORE_APPROVAL
+}
+
 enum class TissuePublicationIntegrityCheckStatus {
     NO_ADVERSE_NOTICE_FOUND,
     CORRECTION_FOUND_REVIEW_REQUIRED,
@@ -637,4 +641,32 @@ data class TissueReviewBatchApprovalRequest(
     val knownLimitations: String,
     val requiredUserStatement: String,
     val requestNotes: String
+)
+
+data class TissueApprovalRequestResolution(
+    val resolutionId: String,
+    val approvalRequestId: String,
+    val approvalScopeHash: String,
+    val resolutionStatus: TissueApprovalRequestResolutionStatus,
+    val resolutionReason: String,
+    val replacementResearchBatchId: String,
+    val replacementApprovalRequestId: String,
+    val replacementApprovalScopeHash: String,
+    val resolvedBy: String,
+    val resolvedByType: TissueActorType,
+    val resolvedAt: String,
+    val resolutionNotes: String
+)
+
+data class TissueHumanResearchDirective(
+    val directiveId: String,
+    val reviewBatchId: String,
+    val claimCandidateId: String,
+    val directiveActions: List<String>,
+    val researchRequirements: String,
+    val prohibitedGeneralizations: String,
+    val directedBy: String,
+    val directedByType: TissueActorType,
+    val directedAt: String,
+    val directiveNotes: String
 )

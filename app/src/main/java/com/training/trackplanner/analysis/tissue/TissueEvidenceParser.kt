@@ -419,6 +419,40 @@ object TissueEvidenceParser {
             )
         }
 
+    fun approvalRequestResolutions(csv: String): List<TissueApprovalRequestResolution> =
+        TissueMetadataParser.table(csv).rows.map { row ->
+            TissueApprovalRequestResolution(
+                resolutionId = row.required("resolutionId"),
+                approvalRequestId = row.required("approvalRequestId"),
+                approvalScopeHash = row.required("approvalScopeHash"),
+                resolutionStatus = row.enum("resolutionStatus"),
+                resolutionReason = row.required("resolutionReason"),
+                replacementResearchBatchId = row.value("replacementResearchBatchId"),
+                replacementApprovalRequestId = row.value("replacementApprovalRequestId"),
+                replacementApprovalScopeHash = row.value("replacementApprovalScopeHash"),
+                resolvedBy = row.required("resolvedBy"),
+                resolvedByType = row.enum("resolvedByType"),
+                resolvedAt = row.required("resolvedAt"),
+                resolutionNotes = row.required("resolutionNotes")
+            )
+        }
+
+    fun humanResearchDirectives(csv: String): List<TissueHumanResearchDirective> =
+        TissueMetadataParser.table(csv).rows.map { row ->
+            TissueHumanResearchDirective(
+                directiveId = row.required("directiveId"),
+                reviewBatchId = row.required("reviewBatchId"),
+                claimCandidateId = row.required("claimCandidateId"),
+                directiveActions = row.tokens("directiveActions"),
+                researchRequirements = row.required("researchRequirements"),
+                prohibitedGeneralizations = row.required("prohibitedGeneralizations"),
+                directedBy = row.required("directedBy"),
+                directedByType = row.enum("directedByType"),
+                directedAt = row.required("directedAt"),
+                directiveNotes = row.required("directiveNotes")
+            )
+        }
+
     private fun Map<String, String>.value(name: String): String = get(name).orEmpty().trim()
     private fun Map<String, String>.required(name: String): String =
         value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }

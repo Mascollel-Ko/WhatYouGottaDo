@@ -1791,3 +1791,23 @@ Validation
 Next
 - Await an explicit decision containing the exact request ID, scope hash, review path, candidate count, rubric count, and same-session limitation statement.
 - Then ingest only that decision, promote only approved rows, and defer Phase D1 profile backfill until the formal final-claim gate passes.
+
+## Phase C2A-R1 approval supersession
+
+Cause
+- Human review did not approve C2A request `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` and identified condition-transfer, external-load, canonical-variant, and PFJ metric defects.
+
+Changes
+- Preserved the old request byte-for-byte and added append-only resolution `TISSUE_APPROVAL_RESOLUTION_C2A_R1_9D916660`.
+- Added 12 explicit research directives, one per old claim candidate, without adding an approval row.
+- Added explicit PFJ peak/impulse/loading-rate dimensions and a distinct patellar tendon strain dimension.
+- Updated parsing, validation, ingestion rejection, tests, and the C2A-R1 research handoff.
+
+Result
+- The old request cannot be ingested when the resolution ledger is supplied.
+- Human approvals, final claims, blind reviews, and production profiles remain zero.
+- Revised evidence research is pending; no runtime or app-version behavior changed.
+
+Validation
+- `TissueApprovalSupersessionTest` and `TissueApprovalRequestTest`: passed.
+- Full compile/test/assemble and CI: pending until the three-commit revision is complete.

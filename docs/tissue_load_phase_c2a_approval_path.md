@@ -123,6 +123,20 @@ I understand this was a same-session, non-independent technical re-audit.
 4. Perform Phase D1 Achilles/PFJ exercise-profile backfill only after valid approval.
 5. Validate real shadow exposure without changing six-axis fatigue, OFI, readiness, ProgramBuilder, Room/backup, or Bayesian/time-series behavior.
 
+## C2A-R1 Supersession Notice
+
+The request `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` and scope hash
+`9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36` are no longer eligible for approval ingestion.
+Human review superseded the request before approval because the combined package overgeneralized exact study conditions,
+confused bodyweight-normalized internal force with exercise resistance, omitted external-load evidence, merged distinct
+split-squat variants, used a 60-degree squat as a generic app anchor, and collapsed PFJ peak, impulse, loading rate, and a
+study-specific composite into one generic compression interpretation.
+
+The original request file is preserved byte-for-byte as historical evidence. Resolution
+`TISSUE_APPROVAL_RESOLUTION_C2A_R1_9D916660` records `SUPERSEDED_BEFORE_APPROVAL`; no approval row was created.
+The 12 human research directives are in `tissue_human_research_directive_v1.csv`. See
+`tissue_load_phase_c2a_r1_lower_revision.md` for the revised research boundary.
+
 ## Verification
 
 - Live publication-integrity verification: 10 sources, 10 no-adverse-notice results, 0 blockers; output SHA-256 matched the committed artifact.

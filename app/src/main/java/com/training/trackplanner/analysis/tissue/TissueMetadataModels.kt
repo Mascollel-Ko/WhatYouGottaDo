@@ -11,6 +11,9 @@ enum class TissueClass {
 
 enum class TissueLoadDimension {
     COMPRESSION,
+    PEAK_COMPRESSION,
+    COMPRESSION_IMPULSE,
+    COMPRESSION_LOADING_RATE,
     ANTERIOR_POSTERIOR_SHEAR,
     ROTATIONAL_SHEAR,
     IMPACT_IMPULSE,
@@ -18,6 +21,7 @@ enum class TissueLoadDimension {
     END_RANGE_STRESS,
     CYCLIC_MECHANICAL_EXPOSURE,
     PEAK_TENSILE_LOAD,
+    TENDON_STRAIN,
     CYCLIC_TENSILE_LOAD,
     ECCENTRIC_LOAD,
     ENERGY_STORAGE_RELEASE,
@@ -44,6 +48,9 @@ enum class TissueLoadDimension {
         val byClass: Map<TissueClass, Set<TissueLoadDimension>> = mapOf(
             TissueClass.JOINT to setOf(
                 COMPRESSION,
+                PEAK_COMPRESSION,
+                COMPRESSION_IMPULSE,
+                COMPRESSION_LOADING_RATE,
                 ANTERIOR_POSTERIOR_SHEAR,
                 ROTATIONAL_SHEAR,
                 IMPACT_IMPULSE,
@@ -53,6 +60,7 @@ enum class TissueLoadDimension {
             ),
             TissueClass.TENDON to setOf(
                 PEAK_TENSILE_LOAD,
+                TENDON_STRAIN,
                 CYCLIC_TENSILE_LOAD,
                 ECCENTRIC_LOAD,
                 ENERGY_STORAGE_RELEASE,

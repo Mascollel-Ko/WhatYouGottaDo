@@ -223,9 +223,18 @@ object TissueEvidenceValidator {
         request: TissueReviewBatchApprovalRequest,
         explicitUserStatement: String,
         currentSourceVerificationSnapshotHash: String,
-        currentPublicationIntegritySnapshotHash: String
+        currentPublicationIntegritySnapshotHash: String,
+        requestResolutions: List<TissueApprovalRequestResolution> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
+        if (requestResolutions.any {
+                it.approvalRequestId == request.approvalRequestId &&
+                    it.approvalScopeHash == request.approvalScopeHash &&
+                    it.resolutionStatus == TissueApprovalRequestResolutionStatus.SUPERSEDED_BEFORE_APPROVAL
+            }
+        ) {
+            errors += "Approval request was superseded before approval."
+        }
         if (approval.approvalRequestId != request.approvalRequestId || approval.reviewPath != request.reviewPath ||
             approval.approvalScopeHash != request.approvalScopeHash || approval.auditManifestId != request.auditManifestId ||
             approval.auditInputSnapshotHash != request.auditInputSnapshotHash
@@ -282,6 +291,58 @@ object TissueEvidenceValidator {
             }
             TissueBatchApprovalDecision.REJECTED,
             TissueBatchApprovalDecision.REVOKED -> Unit
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun approvalRequestResolutions(
+        resolutions: List<TissueApprovalRequestResolution>,
+        requests: List<TissueReviewBatchApprovalRequest>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val requestsById = requests.associateBy(TissueReviewBatchApprovalRequest::approvalRequestId)
+        if (resolutions.map(TissueApprovalRequestResolution::resolutionId).distinct().size != resolutions.size) {
+            errors += "Duplicate approval-request resolutionId."
+        }
+        resolutions.forEach { resolution ->
+            val request = requestsById[resolution.approvalRequestId]
+            if (request == null || request.approvalScopeHash != resolution.approvalScopeHash) {
+                errors += "${resolution.resolutionId}: resolution does not match an immutable approval request."
+            }
+            if (resolution.resolvedByType != TissueActorType.HUMAN_USER || resolution.resolvedBy.isBlank()) {
+                errors += "${resolution.resolutionId}: supersession requires an explicit HUMAN_USER directive."
+            }
+            if (runCatching { Instant.parse(resolution.resolvedAt) }.isFailure) {
+                errors += "${resolution.resolutionId}: invalid resolution timestamp."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun humanResearchDirectives(
+        directives: List<TissueHumanResearchDirective>,
+        candidates: List<TissueEvidenceClaimCandidate>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val candidateIds = candidates.map(TissueEvidenceClaimCandidate::claimCandidateId).toSet()
+        if (directives.map(TissueHumanResearchDirective::directiveId).distinct().size != directives.size) {
+            errors += "Duplicate human research directiveId."
+        }
+        if (directives.map(TissueHumanResearchDirective::claimCandidateId).toSet() != candidateIds ||
+            directives.size != candidateIds.size
+        ) {
+            errors += "Human research directives must cover every existing claim candidate exactly once."
+        }
+        directives.forEach { directive ->
+            if (directive.directiveActions.isEmpty()) {
+                errors += "${directive.directiveId}: directive actions are missing."
+            }
+            if (directive.directedByType != TissueActorType.HUMAN_USER || directive.directedBy.isBlank()) {
+                errors += "${directive.directiveId}: directive must originate from HUMAN_USER."
+            }
+            if (runCatching { Instant.parse(directive.directedAt) }.isFailure) {
+                errors += "${directive.directiveId}: invalid directive timestamp."
+            }
         }
         return TissueValidationReport(errors)
     }
