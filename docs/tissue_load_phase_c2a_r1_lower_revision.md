@@ -2,7 +2,7 @@
 
 ## Status
 
-`RESEARCH_REVISION_IN_PROGRESS`
+`REVISED_APPROVAL_PACKAGE_PARTIAL`
 
 The previous pending request is preserved but superseded before approval. No human approval, final claim, blind review,
 production profile, runtime calculation, or version change is part of this revision.
@@ -44,11 +44,10 @@ source condition.
 
 ## Next Steps
 
-1. Re-open authoritative scholarly sources for weighted squat, lunge, split-squat/RFESS, calf, jump, hop, and landing protocols.
-2. Publish revised, condition-bounded candidates and metric-specific research decisions without inventing missing bands.
-3. Audit exact canonical stable keys and external-load/ROM capabilities.
-4. Generate a new deterministic request and exact future statement; do not treat the statement as approval.
-5. Queue upper-limb pressing and pulling as `TISSUE_RUBRIC_B2_UPPER_PRESS_PULL` rather than performing a superficial backfill.
+1. Resolve the six blocked lower-limb research targets without inventing external-load models or intervals.
+2. Obtain a later explicit decision for revised request `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` only.
+3. Keep profile backfill blocked until approved candidates become formal final claims.
+4. Research upper-limb pressing and pulling separately as `TISSUE_RUBRIC_B2_UPPER_PRESS_PULL`.
 
 ## Same-Session Scholarly Re-Audit
 

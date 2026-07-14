@@ -1832,3 +1832,26 @@ Validation
 - `TissueC2AR1EvidenceRevisionTest` and `TissueApprovalSupersessionTest`: passed.
 - Canonical mapping audit regeneration was deterministic at SHA-256 `91C6EA3A4DBCCE3AF369F73C863906D04DAC374ABF298CF0B60EF8D1EF86D2AC`.
 - Full Gradle validation and CI: pending until the revised approval package is complete.
+
+## Phase C2A-R1 revised lower-limb approval package
+
+Cause
+- The corrected evidence, dispositions, and explicit blocks needed a new immutable scope; the superseded 12/5 request could not be reused.
+
+Changes
+- Added deterministic generator `generate_tissue_c2a_r1_approval_package.ps1`, revised request `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD`, scope hash `74ecc66495637bdd70720957970aac41537c4726c9060a5e781bfcfc1c96678f`, and append-only audit `tissue_research_c2a_r1_4b74d89f1410`.
+- Added exact future approval wording, an explicit upper-limb B2 backlog, and package tests covering hashes, old-request immutability, empty promotion ledgers, partial status, and backlog scope.
+
+Result
+- Completion is `REVISED_APPROVAL_PACKAGE_PARTIAL`: 24 revised candidates and 2 rubrics are packaged, while 6 material research targets remain explicitly blocked.
+- Human approvals, formal final claims, blind reviews, and production profiles remain zero; no version, runtime, or UI behavior changed.
+
+Validation
+- Generator second run: request byte-identical and audit idempotent.
+- `TissueC2AR1ApprovalPackageTest`, `TissueC2AR1EvidenceRevisionTest`, and `TissueApprovalSupersessionTest`: passed.
+- Live source verification: 10/10 identities verified; only the curated `verificationNotes` wording differed from the temporary live artifact.
+- Live publication-integrity verification: 10/10 no adverse notice, 0 blockers; temporary artifact byte-matched the committed snapshot.
+- `:app:compileDebugKotlin`: passed.
+- `:app:testDebugUnitTest --rerun-tasks`: 713 tests, 0 failures/errors/skips.
+- `:app:assembleDebug`: passed.
+- Push and CI: pending.

@@ -137,6 +137,20 @@ The original request file is preserved byte-for-byte as historical evidence. Res
 The 12 human research directives are in `tissue_human_research_directive_v1.csv`. See
 `tissue_load_phase_c2a_r1_lower_revision.md` for the revised research boundary.
 
+## C2A-R1 Revised Request
+
+The replacement package is a separate immutable request, not a mutation of the old request:
+
+- Request: `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD`
+- Scope hash: `74ecc66495637bdd70720957970aac41537c4726c9060a5e781bfcfc1c96678f`
+- Audit: `tissue_research_c2a_r1_4b74d89f1410`
+- Status: `REVISED_APPROVAL_PACKAGE_PARTIAL`
+- Scope: 24 revised candidates, 2 revised rubrics, 12 candidate dispositions, 5 rubric dispositions, 12 directives,
+  13 research decisions, 49 mappings, and existing source/integrity snapshots.
+
+Six material research targets remain blocked, so no production promotion is permitted. A later decision must reproduce
+the exact statement in `tissue_load_phase_c2a_r1_revised_approval_request.md`; casual continuation text is not approval.
+
 ## Verification
 
 - Live publication-integrity verification: 10 sources, 10 no-adverse-notice results, 0 blockers; output SHA-256 matched the committed artifact.

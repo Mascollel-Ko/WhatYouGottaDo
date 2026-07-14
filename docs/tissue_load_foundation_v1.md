@@ -132,7 +132,7 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 
 Phase C2A adds explicit blind and same-session final-claim paths, exact-scope human approval requests, non-overlapping decimal rubric boundaries, and publication-integrity verification. The deterministic request is `TISSUE_APPROVAL_REQUEST_C2A_9D916660488C6196` with scope hash `9d916660488c6196412cb956807bc2bf5adf8783957c6e646fa3eaca447b9b36`.
 
-The current status is `APPROVAL_PACKAGE_READY`, not human approved or production eligible. The approval, formal final-claim, blind-review, and all four production-profile ledgers remain empty. See `tissue_load_phase_c2a_approval_path.md` for the promotion contract and `tissue_load_phase_c2a_approval_request.md` for the exact package presented for a future human decision.
+That historical package reached `APPROVAL_PACKAGE_READY` but was never approved and is now superseded. The approval, formal final-claim, blind-review, and all four production-profile ledgers remain empty. See `tissue_load_phase_c2a_approval_path.md` for the promotion contract and `tissue_load_phase_c2a_approval_request.md` for the preserved historical package.
 
 ## Phase C2A-R1 revision boundary
 
@@ -141,3 +141,8 @@ The C2A request above is now an immutable superseded artifact and must not be in
 `TENDON_STRAIN` distinct from force. Historical `COMPRESSION` rows remain readable, but the old PFJ composite rubrics
 cannot define generic app load bands. The current lower-limb revision remains non-production; no existing fatigue,
 readiness, program, persistence, backup, or time-series path reads these new artifacts.
+
+The revised request is `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` at scope hash
+`74ecc66495637bdd70720957970aac41537c4726c9060a5e781bfcfc1c96678f`. Its status is
+`REVISED_APPROVAL_PACKAGE_PARTIAL` because six material research targets remain explicitly blocked. The request is still
+non-production and is not a human decision. See `tissue_load_phase_c2a_r1_revised_approval_request.md`.
