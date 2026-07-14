@@ -109,8 +109,11 @@ object TissueMetadataParser {
             loadDimension = row.enum("loadDimension"),
             loadBand = row.enum("loadBand"),
             metricType = row.required("metricType"),
-            metricLowerBound = row.value("metricLowerBound").toDoubleOrNull(),
-            metricUpperBound = row.value("metricUpperBound").toDoubleOrNull(),
+            metricLowerBound = row.value("metricLowerBound").toBigDecimalOrNull(),
+            lowerBoundInclusive = row.optionalBoolean("lowerBoundInclusive"),
+            metricUpperBound = row.value("metricUpperBound").toBigDecimalOrNull(),
+            upperBoundInclusive = row.optionalBoolean("upperBoundInclusive"),
+            boundarySemanticsVersion = row.required("boundarySemanticsVersion"),
             metricUnit = row.value("metricUnit"),
             anchorStableKeys = row.tokens("anchorStableKeys"),
             anchorConditions = row.required("anchorConditions"),
@@ -191,6 +194,14 @@ object TissueMetadataParser {
         "FALSE", "0", "NO", "" -> false
         else -> error("Invalid boolean in $name: ${value(name)}")
     }
+    private fun Map<String, String>.optionalBoolean(name: String): Boolean? =
+        value(name).takeIf(String::isNotBlank)?.let { value ->
+            when (value.uppercase(Locale.ROOT)) {
+                "TRUE", "1", "YES" -> true
+                "FALSE", "0", "NO" -> false
+                else -> error("Invalid boolean in $name: $value")
+            }
+        }
     private fun Map<String, String>.tokens(name: String): List<String> =
         value(name).split('|').map(String::trim).filter { it.isNotBlank() && it != "NONE" }.distinct()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T =

@@ -69,6 +69,28 @@ object TissueEvidenceParser {
         )
     }
 
+    fun publicationIntegrityVerifications(csv: String): List<TissuePublicationIntegrityVerification> =
+        TissueMetadataParser.table(csv).rows.map { row ->
+            TissuePublicationIntegrityVerification(
+                sourceId = row.required("sourceId"),
+                pmid = row.value("pmid"),
+                doi = row.value("doi"),
+                pubmedPublicationTypes = row.tokens("pubmedPublicationTypes"),
+                pubmedCommentsCorrections = row.tokens("pubmedCommentsCorrections"),
+                pubmedLinkedNotices = row.tokens("pubmedLinkedNotices"),
+                crossrefRelationTypes = row.tokens("crossrefRelationTypes"),
+                crossrefUpdateTo = row.tokens("crossrefUpdateTo"),
+                crossrefUpdatedBy = row.tokens("crossrefUpdatedBy"),
+                publisherNoticeStatus = row.required("publisherNoticeStatus"),
+                publisherNoticeReference = row.value("publisherNoticeReference"),
+                integrityCheckStatus = row.enum("integrityCheckStatus"),
+                checkedAt = row.required("checkedAt"),
+                verificationMethod = row.required("verificationMethod"),
+                metadataSnapshotHash = row.required("metadataSnapshotHash"),
+                integrityNotes = row.required("integrityNotes")
+            )
+        }
+
     fun draftClaims(csv: String): List<TissueDraftClaim> = TissueMetadataParser.table(csv).rows.map { row ->
         TissueDraftClaim(
             draftClaimId = row.required("draftClaimId"),

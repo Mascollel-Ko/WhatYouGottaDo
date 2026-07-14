@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.tissue
 
+import java.math.BigDecimal
+
 enum class TissueClass {
     JOINT,
     TENDON,
@@ -254,8 +256,11 @@ data class TissueLoadRubric(
     val loadDimension: TissueLoadDimension,
     val loadBand: TissueLoadBand,
     val metricType: String,
-    val metricLowerBound: Double?,
-    val metricUpperBound: Double?,
+    val metricLowerBound: BigDecimal?,
+    val lowerBoundInclusive: Boolean?,
+    val metricUpperBound: BigDecimal?,
+    val upperBoundInclusive: Boolean?,
+    val boundarySemanticsVersion: String,
     val metricUnit: String,
     val anchorStableKeys: List<String>,
     val anchorConditions: String,

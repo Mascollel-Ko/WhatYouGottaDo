@@ -30,6 +30,7 @@ enum class TissueClaimVerificationStatus {
 
 enum class TissuePublicationIntegrityStatus {
     ACTIVE,
+    NO_ADVERSE_NOTICE_FOUND,
     CORRECTED,
     RETRACTED,
     EXPRESSION_OF_CONCERN,
@@ -119,6 +120,15 @@ enum class TissueBatchApprovalDecision {
     PARTIALLY_APPROVED,
     REJECTED,
     REVOKED
+}
+
+enum class TissuePublicationIntegrityCheckStatus {
+    NO_ADVERSE_NOTICE_FOUND,
+    CORRECTION_FOUND_REVIEW_REQUIRED,
+    CORRECTION_REVIEWED_ACCEPTABLE,
+    RETRACTED,
+    EXPRESSION_OF_CONCERN,
+    UNABLE_TO_VERIFY
 }
 
 enum class TissueEvidenceAccessLevel {
@@ -293,6 +303,25 @@ data class TissueSourceVerification(
     val verificationMethod: String,
     val metadataSnapshotHash: String,
     val verificationNotes: String
+)
+
+data class TissuePublicationIntegrityVerification(
+    val sourceId: String,
+    val pmid: String,
+    val doi: String,
+    val pubmedPublicationTypes: List<String>,
+    val pubmedCommentsCorrections: List<String>,
+    val pubmedLinkedNotices: List<String>,
+    val crossrefRelationTypes: List<String>,
+    val crossrefUpdateTo: List<String>,
+    val crossrefUpdatedBy: List<String>,
+    val publisherNoticeStatus: String,
+    val publisherNoticeReference: String,
+    val integrityCheckStatus: TissuePublicationIntegrityCheckStatus,
+    val checkedAt: String,
+    val verificationMethod: String,
+    val metadataSnapshotHash: String,
+    val integrityNotes: String
 )
 
 data class TissueDraftClaim(

@@ -150,12 +150,12 @@ $rows = foreach ($source in ($registry | Sort-Object sourceId)) {
         resolvedJournal = $resolvedJournal
         identifierVerificationStatus = $identifierStatus
         bibliographicMatchStatus = $bibliographicStatus
-        publicationIntegrityStatus = 'STATUS_UNKNOWN'
+        publicationIntegrityStatus = $source.publicationIntegrityStatus
         networkCapabilityStatus = $capability
         verifiedAt = $VerifiedAt
         verificationMethod = 'NCBI_ESUMMARY_PARSED_AND_CROSSREF_PARSED_BOUNDED_RETRY'
         metadataSnapshotHash = Metadata-Hash @($resolvedPmid, $resolvedDoi, $resolvedTitle, $resolvedFirstAuthor, $resolvedYear, $resolvedJournal)
-        verificationNotes = (($notes + 'Publication-integrity review remains pending; source identity only.') -join ' ')
+        verificationNotes = (($notes + 'Source identity only; publication integrity is maintained by verify_tissue_publication_integrity.ps1.') -join ' ')
     }
 }
 

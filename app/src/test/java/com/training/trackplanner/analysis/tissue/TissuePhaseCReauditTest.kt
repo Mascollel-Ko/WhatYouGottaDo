@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.tissue
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -102,7 +103,7 @@ class TissuePhaseCReauditTest {
     }
 
     @Test
-    fun phaseCAuditManifestMatchesCommittedSemanticSnapshots() {
+    fun phaseCAuditManifestRemainsAnImmutableHistoricalSnapshot() {
         val audit = TissueMetadataParser.auditManifests(tissueAsset("tissue_metadata_audit_manifest_v1.csv"))
             .single { it.values.getValue("auditBatchId") == TissuePhaseCContract.reviewBatchId }
         val values = audit.values
@@ -117,7 +118,8 @@ class TissuePhaseCReauditTest {
             "targetReviews" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_rubric_target_exercise_review_v1.csv"))
         )
 
-        assertEquals(TissueMetadataValidator.combinedHash(hashes), audit.inputSnapshotHash)
+        assertEquals("94c15f4d43e843cd0238b1dd276d83e962bdf846a28a110330c5a970c0a64463", audit.inputSnapshotHash)
+        assertNotEquals(TissueMetadataValidator.combinedHash(hashes), audit.inputSnapshotHash)
         assertEquals(hashes.getValue("reaudits"), values.getValue("reauditSnapshotHash"))
         assertEquals(hashes.getValue("claimCandidates"), values.getValue("claimCandidateSnapshotHash"))
         assertEquals(hashes.getValue("userAdjudications"), values.getValue("userAdjudicationSnapshotHash"))

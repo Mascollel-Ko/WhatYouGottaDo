@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.tissue
 
+import java.math.BigDecimal
 import java.security.MessageDigest
 
 object TissueMetadataValidator {
@@ -119,6 +120,50 @@ object TissueMetadataValidator {
         return TissueValidationReport(errors)
     }
 
+    fun rubricIntervals(rubrics: List<TissueLoadRubric>): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        rubrics.forEach { rubric ->
+            if (rubric.loadBand == TissueLoadBand.NONE) errors += "${rubric.rubricId}: NONE cannot represent missing evidence."
+            if (rubric.boundarySemanticsVersion.isBlank()) errors += "${rubric.rubricId}: boundary semantics version is missing."
+            if ((rubric.metricLowerBound == null) != (rubric.lowerBoundInclusive == null)) {
+                errors += "${rubric.rubricId}: lower-bound inclusivity must be present exactly when its bound is present."
+            }
+            if ((rubric.metricUpperBound == null) != (rubric.upperBoundInclusive == null)) {
+                errors += "${rubric.rubricId}: upper-bound inclusivity must be present exactly when its bound is present."
+            }
+            if (rubric.metricLowerBound != null && rubric.metricUpperBound != null &&
+                rubric.metricLowerBound > rubric.metricUpperBound
+            ) {
+                errors += "${rubric.rubricId}: interval is inverted."
+            }
+        }
+        rubrics.filter { it.metricLowerBound != null || it.metricUpperBound != null }
+            .groupBy { listOf(it.tissueId, it.loadDimension.name, it.metricType, it.metricUnit) }
+            .values.forEach { group ->
+                val sorted = group.sortedWith(compareBy<TissueLoadRubric> { it.metricLowerBound != null }
+                    .thenBy { it.metricLowerBound })
+                sorted.zipWithNext().forEach { (left, right) ->
+                    if (left.sameInterval(right)) {
+                        errors += "${left.rubricId}/${right.rubricId}: duplicate interval."
+                    } else if (left.overlaps(right)) {
+                        errors += "${left.rubricId}/${right.rubricId}: overlapping intervals."
+                    }
+                }
+            }
+        return TissueValidationReport(errors.distinct())
+    }
+
+    fun matchingRubricBands(rubrics: List<TissueLoadRubric>, value: BigDecimal): List<TissueLoadBand> =
+        rubrics.filter { rubric ->
+            val aboveLower = rubric.metricLowerBound?.let { lower ->
+                value > lower || (value == lower && rubric.lowerBoundInclusive == true)
+            } ?: true
+            val belowUpper = rubric.metricUpperBound?.let { upper ->
+                value < upper || (value == upper && rubric.upperBoundInclusive == true)
+            } ?: true
+            aboveLower && belowUpper
+        }.map(TissueLoadRubric::loadBand)
+
     fun semanticCsvHash(csv: String): String {
         val table = TissueMetadataParser.table(csv)
         val header = table.header.joinToString("\u001F")
@@ -130,6 +175,14 @@ object TissueMetadataValidator {
         parts.entries.sortedBy(Map.Entry<String, String>::key).joinToString("\n") { (key, value) -> "$key=$value" }.sha256()
 
     private fun List<TissueCatalogEntry>.find(id: String): TissueCatalogEntry? = firstOrNull { it.tissueId == id }
+    private fun TissueLoadRubric.sameInterval(other: TissueLoadRubric): Boolean =
+        metricLowerBound == other.metricLowerBound && lowerBoundInclusive == other.lowerBoundInclusive &&
+            metricUpperBound == other.metricUpperBound && upperBoundInclusive == other.upperBoundInclusive
+    private fun TissueLoadRubric.overlaps(other: TissueLoadRubric): Boolean {
+        val upper = metricUpperBound ?: return true
+        val lower = other.metricLowerBound ?: return true
+        return upper > lower || (upper == lower && upperBoundInclusive == true && other.lowerBoundInclusive == true)
+    }
     private fun String.containsExerciseLoadClaim(): Boolean =
         listOf("load", "force", "injury", "risk", "strain", "stress", "compression")
             .any { token -> contains(token, ignoreCase = true) }

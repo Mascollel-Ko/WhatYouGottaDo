@@ -23,7 +23,8 @@ object TissueEvidenceValidator {
         candidates: List<TissueEvidenceClaimCandidate> = emptyList(),
         approvals: List<TissueReviewBatchApproval> = emptyList(),
         rubrics: List<TissueLoadRubric> = emptyList(),
-        auditManifests: List<TissueMetadataAuditManifest> = emptyList()
+        auditManifests: List<TissueMetadataAuditManifest> = emptyList(),
+        publicationIntegrityVerifications: List<TissuePublicationIntegrityVerification> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
         val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
@@ -38,6 +39,7 @@ object TissueEvidenceValidator {
         val candidateById = candidates.associateBy(TissueEvidenceClaimCandidate::claimCandidateId)
         val approvalById = approvals.associateBy(TissueReviewBatchApproval::batchApprovalId)
         val auditById = auditManifests.associateBy(TissueMetadataAuditManifest::auditManifestId)
+        val integrityBySourceId = publicationIntegrityVerifications.associateBy(TissuePublicationIntegrityVerification::sourceId)
 
         drafts.forEach { draft ->
             if (draft.sourceId !in sourceById) errors += "${draft.draftClaimId}: unknown sourceId."
@@ -68,7 +70,8 @@ object TissueEvidenceValidator {
                 canonicalStableKeys,
                 tissueById,
                 approval,
-                auditById[claim.approvalAuditManifestId]
+                auditById[claim.approvalAuditManifestId],
+                integrityBySourceId[claim.sourceId]
             )
             when (claim.reviewPath) {
                 TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW ->
@@ -83,8 +86,9 @@ object TissueEvidenceValidator {
                     )
                 null -> errors += "${claim.claimId}: explicit reviewPath is required."
             }
-            errors += validateProductionGate(claim, source, approval)
+            errors += validateProductionGate(claim, source, approval, integrityBySourceId[claim.sourceId])
         }
+        errors += TissueMetadataValidator.rubricIntervals(rubrics).errors
         return TissueValidationReport(errors)
     }
 
@@ -167,6 +171,9 @@ object TissueEvidenceValidator {
                 if (verification.bibliographicMatchStatus != source.bibliographicMatchStatus) {
                     errors += "${verification.sourceId}: bibliographic status differs from registry."
                 }
+                if (verification.publicationIntegrityStatus != source.publicationIntegrityStatus) {
+                    errors += "${verification.sourceId}: publication-integrity status differs from registry."
+                }
                 if (verification.resolvedPmid.isNotBlank() && verification.resolvedPmid != source.pmid) {
                     errors += "${verification.sourceId}: resolved PMID differs from registry."
                 }
@@ -180,6 +187,49 @@ object TissueEvidenceValidator {
         }
         return TissueValidationReport(errors)
     }
+
+    fun publicationIntegrity(
+        sources: List<TissueEvidenceSource>,
+        verifications: List<TissueSourceVerification>,
+        integrityRows: List<TissuePublicationIntegrityVerification>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
+        val verificationById = verifications.associateBy(TissueSourceVerification::sourceId)
+        val integrityById = integrityRows.associateBy(TissuePublicationIntegrityVerification::sourceId)
+        if (integrityById.size != integrityRows.size) errors += "Duplicate publication-integrity row."
+        if (integrityById.keys != sourceById.keys) errors += "Every source must have exactly one publication-integrity row."
+        integrityRows.forEach { row ->
+            val source = sourceById[row.sourceId]
+            val verification = verificationById[row.sourceId]
+            if (source == null) {
+                errors += "${row.sourceId}: publication integrity references unknown source."
+                return@forEach
+            }
+            if (row.pmid != source.pmid || row.doi.normalized() != source.doi.normalized()) {
+                errors += "${row.sourceId}: publication-integrity identifiers differ from registry."
+            }
+            if (row.metadataSnapshotHash.isBlank()) errors += "${row.sourceId}: publication-integrity snapshot hash is missing."
+            if (row.checkedAt.isBlank() || row.pubmedPublicationTypes.isEmpty() ||
+                row.verificationMethod != AUTHORITATIVE_INTEGRITY_METHOD || row.publisherNoticeStatus.isBlank()
+            ) {
+                errors += "${row.sourceId}: authoritative publication-integrity checks are incomplete."
+            }
+            val mapped = row.integrityCheckStatus.toPublicationStatus()
+            if (source.publicationIntegrityStatus != mapped || verification?.publicationIntegrityStatus != mapped) {
+                errors += "${row.sourceId}: publication-integrity result is not mapped consistently."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun productionIntegrityGate(
+        source: TissueEvidenceSource,
+        integrity: TissuePublicationIntegrityVerification?
+    ): TissueValidationReport = TissueValidationReport(
+        errors = if (source.integrityGatePasses(integrity)) emptyList()
+        else listOf("${source.sourceId}: publication integrity is not production-safe.")
+    )
 
     fun phaseB1Research(
         sources: List<TissueEvidenceSource>,
@@ -368,6 +418,7 @@ object TissueEvidenceValidator {
                 errors += "${review.targetExerciseReviewId}: non-direct review references a successful draft rubric."
             }
         }
+        errors += TissueMetadataValidator.rubricIntervals(rubrics).errors
         return TissueValidationReport(errors)
     }
 
@@ -620,6 +671,7 @@ object TissueEvidenceValidator {
                 errors += "${rubric.rubricId}: blind or human approval must remain blank."
             }
         }
+        errors += TissueMetadataValidator.rubricIntervals(rubrics).errors
         return TissueValidationReport(errors)
     }
 
@@ -640,11 +692,13 @@ object TissueEvidenceValidator {
     fun productionProfiles(
         profiles: List<TissueLoadProfile>,
         finalClaims: List<TissueFinalClaim>,
-        sources: List<TissueEvidenceSource>
+        sources: List<TissueEvidenceSource>,
+        publicationIntegrityVerifications: List<TissuePublicationIntegrityVerification> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
         val claims = finalClaims.associateBy(TissueFinalClaim::claimId)
         val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
+        val integrityById = publicationIntegrityVerifications.associateBy(TissuePublicationIntegrityVerification::sourceId)
         profiles.filter(TissueLoadProfile::productionEligibility).forEach { profile ->
             val linkedClaims = profile.evidenceClaimIds.mapNotNull(claims::get)
             if (profile.evidenceClaimIds.size != linkedClaims.size) errors += "${profile.profileRowId}: unknown evidence claim."
@@ -657,10 +711,7 @@ object TissueEvidenceValidator {
                 if (profile.sourceRefs.mapNotNull(sourceById::get).any { source ->
                         source.identifierVerificationStatus !in productionIdentifierStatuses ||
                             source.bibliographicMatchStatus != TissueBibliographicMatchStatus.MATCHED ||
-                            source.publicationIntegrityStatus in setOf(
-                                TissuePublicationIntegrityStatus.RETRACTED,
-                                TissuePublicationIntegrityStatus.EXPRESSION_OF_CONCERN
-                            )
+                            !source.integrityGatePasses(integrityById[source.sourceId])
                     }
                 ) {
                     errors += "${profile.profileRowId}: STUDY_BACKED source gate failed."
@@ -677,7 +728,8 @@ object TissueEvidenceValidator {
         canonicalStableKeys: Set<String>,
         tissueById: Map<String, TissueCatalogEntry>,
         approval: TissueReviewBatchApproval?,
-        audit: TissueMetadataAuditManifest?
+        audit: TissueMetadataAuditManifest?,
+        integrity: TissuePublicationIntegrityVerification?
     ): List<String> = buildList {
         if (draft == null) add("${claim.claimId}: unknown draftClaimId.")
         if (source == null) add("${claim.claimId}: unknown sourceId.")
@@ -710,6 +762,11 @@ object TissueEvidenceValidator {
         }
         if (claim.claimVerificationStatus !in productionClaimStatuses) {
             add("${claim.claimId}: claim verification status is not supported.")
+        }
+        if (source == null || claim.publicationIntegrityStatus != source.publicationIntegrityStatus ||
+            !source.integrityGatePasses(integrity)
+        ) {
+            add("${claim.claimId}: publication integrity is not verified as promotion-safe.")
         }
         if (claim.humanApprovedBy.isBlank() || claim.humanApprovedByType != TissueActorType.HUMAN_USER ||
             claim.humanApprovedAt.isBlank()) {
@@ -812,9 +869,10 @@ object TissueEvidenceValidator {
     private fun validateProductionGate(
         claim: TissueFinalClaim,
         source: TissueEvidenceSource?,
-        approval: TissueReviewBatchApproval?
+        approval: TissueReviewBatchApproval?,
+        integrity: TissuePublicationIntegrityVerification?
     ): List<String> = buildList {
-        if (claim.productionEligibility && !claim.productionGatePasses(source)) {
+        if (claim.productionEligibility && !claim.productionGatePasses(source, integrity)) {
             add("${claim.claimId}: production source/claim gate failed.")
         }
         if (claim.productionEligibility && approval?.approvalDecision !in
@@ -838,21 +896,39 @@ object TissueEvidenceValidator {
             bandBasis == candidate.bandBasis && claimSupportStatus == candidate.claimSupportStatus &&
             confidenceLevel == candidate.confidenceLevel
 
-    private fun TissueFinalClaim.productionGatePasses(source: TissueEvidenceSource?): Boolean =
+    private fun TissueFinalClaim.productionGatePasses(
+        source: TissueEvidenceSource?,
+        integrity: TissuePublicationIntegrityVerification?
+    ): Boolean =
         source != null &&
             identifierVerificationStatus in productionIdentifierStatuses &&
             source.identifierVerificationStatus in productionIdentifierStatuses &&
             bibliographicMatchStatus == TissueBibliographicMatchStatus.MATCHED &&
             source.bibliographicMatchStatus == TissueBibliographicMatchStatus.MATCHED &&
             claimVerificationStatus in productionClaimStatuses &&
-            publicationIntegrityStatus !in setOf(
-                TissuePublicationIntegrityStatus.RETRACTED,
-                TissuePublicationIntegrityStatus.EXPRESSION_OF_CONCERN
-            ) &&
-            source.publicationIntegrityStatus !in setOf(
-                TissuePublicationIntegrityStatus.RETRACTED,
-                TissuePublicationIntegrityStatus.EXPRESSION_OF_CONCERN
-            )
+            publicationIntegrityStatus == source.publicationIntegrityStatus && source.integrityGatePasses(integrity)
+
+    private fun TissueEvidenceSource.integrityGatePasses(
+        integrity: TissuePublicationIntegrityVerification?
+    ): Boolean = when (publicationIntegrityStatus) {
+        TissuePublicationIntegrityStatus.NO_ADVERSE_NOTICE_FOUND ->
+            integrity?.integrityCheckStatus == TissuePublicationIntegrityCheckStatus.NO_ADVERSE_NOTICE_FOUND
+        TissuePublicationIntegrityStatus.CORRECTED ->
+            integrity?.integrityCheckStatus == TissuePublicationIntegrityCheckStatus.CORRECTION_REVIEWED_ACCEPTABLE
+        else -> false
+    }
+
+    private fun TissuePublicationIntegrityCheckStatus.toPublicationStatus(): TissuePublicationIntegrityStatus = when (this) {
+        TissuePublicationIntegrityCheckStatus.NO_ADVERSE_NOTICE_FOUND -> TissuePublicationIntegrityStatus.NO_ADVERSE_NOTICE_FOUND
+        TissuePublicationIntegrityCheckStatus.CORRECTION_REVIEWED_ACCEPTABLE -> TissuePublicationIntegrityStatus.CORRECTED
+        TissuePublicationIntegrityCheckStatus.RETRACTED -> TissuePublicationIntegrityStatus.RETRACTED
+        TissuePublicationIntegrityCheckStatus.EXPRESSION_OF_CONCERN -> TissuePublicationIntegrityStatus.EXPRESSION_OF_CONCERN
+        TissuePublicationIntegrityCheckStatus.CORRECTION_FOUND_REVIEW_REQUIRED,
+        TissuePublicationIntegrityCheckStatus.UNABLE_TO_VERIFY -> TissuePublicationIntegrityStatus.STATUS_UNKNOWN
+    }
 
     private fun String.normalized(): String = lowercase().filter(Char::isLetterOrDigit)
+
+    private const val AUTHORITATIVE_INTEGRITY_METHOD =
+        "PUBMED_EFETCH_XML+CROSSREF_RELATION_API+OFFICIAL_PUBLISHER_NOTICE_CHECK"
 }

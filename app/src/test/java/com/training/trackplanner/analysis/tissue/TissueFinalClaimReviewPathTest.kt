@@ -97,7 +97,8 @@ class TissueFinalClaimReviewPathTest {
         candidates = candidates,
         approvals = listOf(approval),
         rubrics = rubrics,
-        auditManifests = listOf(audit)
+        auditManifests = listOf(audit),
+        publicationIntegrityVerifications = listOf(integrity)
     )
 
     private fun sameSessionClaim() = TissueFinalClaim(
@@ -223,6 +224,11 @@ class TissueFinalClaimReviewPathTest {
     private val source by lazy {
         TissueEvidenceParser.sources(tissueAsset("tissue_load_evidence_registry_v1.csv"))
             .single { it.sourceId == candidate.sourceId }
+    }
+    private val integrity by lazy {
+        TissueEvidenceParser.publicationIntegrityVerifications(
+            tissueAsset("tissue_publication_integrity_verification_v1.csv")
+        ).single { it.sourceId == candidate.sourceId }
     }
     private val draft by lazy {
         TissueEvidenceParser.draftClaims(tissueAsset("tissue_evidence_claims_draft_v1.csv"))

@@ -237,13 +237,14 @@ $rubricSpecs = @{
     }
 }
 
-$rubricHeaders = @("rubricId","tissueId","loadDimension","loadBand","metricType","metricLowerBound","metricUpperBound","metricUnit","anchorStableKeys","anchorConditions","anchorClaimIds","researchDecisionId","draftClaimIds","assignmentMethod","evidenceSetId","evidenceClaimIds","sourceRefs","confidenceLevel","rubricStatus","preparedBy","preparedByType","preparedAt","blindReviewedBy","blindReviewedByType","blindReviewedAt","humanApprovedBy","humanApprovedAt","reauditAction","reauditIds","claimCandidateIds","userAdjudicationIds","reviewMode","independenceStatus","rubricNotes")
+$rubricHeaders = @("rubricId","tissueId","loadDimension","loadBand","metricType","metricLowerBound","lowerBoundInclusive","metricUpperBound","upperBoundInclusive","boundarySemanticsVersion","metricUnit","anchorStableKeys","anchorConditions","anchorClaimIds","researchDecisionId","draftClaimIds","assignmentMethod","evidenceSetId","evidenceClaimIds","sourceRefs","confidenceLevel","rubricStatus","preparedBy","preparedByType","preparedAt","blindReviewedBy","blindReviewedByType","blindReviewedAt","humanApprovedBy","humanApprovedAt","reauditAction","reauditIds","claimCandidateIds","userAdjudicationIds","reviewMode","independenceStatus","rubricNotes")
 $rubrics = foreach ($row in @(Import-Csv -LiteralPath (Join-Path $AssetDirectory "tissue_load_band_rubric_v1.csv"))) {
     $spec = $rubricSpecs[$row.rubricId]
     if ($null -eq $spec) { throw "No Phase C rubric specification for $($row.rubricId)." }
     [pscustomobject][ordered]@{
         rubricId=$row.rubricId; tissueId=$row.tissueId; loadDimension=$row.loadDimension; loadBand=$row.loadBand; metricType=$spec.metric
-        metricLowerBound=$row.metricLowerBound; metricUpperBound=$row.metricUpperBound; metricUnit=$row.metricUnit; anchorStableKeys=$row.anchorStableKeys
+        metricLowerBound=$row.metricLowerBound; lowerBoundInclusive=$row.lowerBoundInclusive; metricUpperBound=$row.metricUpperBound
+        upperBoundInclusive=$row.upperBoundInclusive; boundarySemanticsVersion=$row.boundarySemanticsVersion; metricUnit=$row.metricUnit; anchorStableKeys=$row.anchorStableKeys
         anchorConditions=$spec.conditions; anchorClaimIds=$row.anchorClaimIds; researchDecisionId=$row.researchDecisionId; draftClaimIds=$row.draftClaimIds
         assignmentMethod=$row.assignmentMethod; evidenceSetId=$row.evidenceSetId; evidenceClaimIds=$row.evidenceClaimIds; sourceRefs=$row.sourceRefs
         confidenceLevel=$row.confidenceLevel; rubricStatus="REAUDITED_WITH_LIMITATIONS"; preparedBy=$row.preparedBy; preparedByType=$row.preparedByType; preparedAt=$row.preparedAt
