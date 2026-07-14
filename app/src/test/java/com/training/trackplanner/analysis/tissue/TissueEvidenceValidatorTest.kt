@@ -9,17 +9,23 @@ import java.io.File
 
 class TissueEvidenceValidatorTest {
     @Test
-    fun committedPreflightArtifactRemainsFailClosed() {
+    fun committedPreflightIdentityIsCorrectedWithoutGrantingProductionUse() {
         val sources = TissueEvidenceParser.sources(tissueAsset("tissue_load_evidence_registry_v1.csv"))
         val source = sources.single()
+        val verifications = TissueEvidenceParser.sourceVerifications(tissueAsset("tissue_source_verification_v1.csv"))
         val draft = TissueEvidenceParser.draftClaims(tissueAsset("tissue_evidence_claims_draft_v1.csv"))
         val blind = TissueEvidenceParser.blindReviews(tissueAsset("tissue_evidence_blind_review_v1.csv"))
         val final = TissueEvidenceParser.finalClaims(tissueAsset("tissue_evidence_claims_v1.csv"))
 
-        assertEquals(TissueNetworkCapabilityStatus.PARTIAL_SOURCE_VERIFICATION_AVAILABLE, source.verificationCapabilityStatus)
-        assertEquals(TissueIdentifierVerificationStatus.UNVERIFIED, source.identifierVerificationStatus)
-        assertEquals(TissueBibliographicMatchStatus.UNVERIFIED, source.bibliographicMatchStatus)
-        assertEquals("UNVERIFIED", source.sourceStatus)
+        assertEquals("PREFLIGHT_32658037", source.sourceId)
+        assertEquals("10.1249/MSS.0000000000002459", source.doi)
+        assertFalse(sources.any { it.sourceId == "SRC_PMID_32658037" })
+        assertEquals(TissueNetworkCapabilityStatus.LIVE_SOURCE_VERIFICATION_AVAILABLE, source.verificationCapabilityStatus)
+        assertEquals(TissueIdentifierVerificationStatus.PMID_AND_DOI_VERIFIED, source.identifierVerificationStatus)
+        assertEquals(TissueBibliographicMatchStatus.MATCHED, source.bibliographicMatchStatus)
+        assertEquals("VERIFIED_NONPRODUCTION", source.sourceStatus)
+        assertTrue(TissueEvidenceValidator.sourceRegistry(sources, verifications).errors.toString(),
+            TissueEvidenceValidator.sourceRegistry(sources, verifications).isValid)
         assertTrue(draft.isEmpty())
         assertTrue(blind.isEmpty())
         assertTrue(final.isEmpty())
@@ -29,6 +35,14 @@ class TissueEvidenceValidatorTest {
         assertTrue(
             TissueEvidenceValidator.validate(sources, draft, blind, final, canonical.map { it.stableKey }.toSet(), catalog).isValid
         )
+    }
+
+    @Test
+    fun phaseB1ResearchSchemasParseAsTypedEmptyLedgers() {
+        assertTrue(TissueEvidenceParser.researchDecisions(tissueAsset("tissue_rubric_research_log_v1.csv")).isEmpty())
+        assertTrue(TissueEvidenceParser.targetExerciseReviews(tissueAsset("tissue_rubric_target_exercise_review_v1.csv")).isEmpty())
+        assertEquals(31, TissuePhaseB1Contract.targetTissueDimensions.size)
+        assertEquals(15, TissuePhaseB1Contract.targetStableKeys.size)
     }
 
     @Test

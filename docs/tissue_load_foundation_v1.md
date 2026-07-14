@@ -51,17 +51,17 @@ Catalog anatomy identity and exercise-specific load claims use separate evidence
 
 ## Network Capability
 
-On 2026-07-13, network permission was explicitly requested and approved. The elevated NCBI preflight parsed PMID 32658037 and title `Exercise Progression to Incrementally Load the Achilles Tendon.` Crossref returned HTTP 404 for DOI `10.2519/jospt.2020.9406` on both encoded and literal bounded attempts.
+On 2026-07-14, official NCBI metadata confirmed that PMID `32658037` is `Exercise Progression to Incrementally Load the Achilles Tendon.` and supplies DOI `10.1249/MSS.0000000000002459`. Parsed Crossref metadata matched the DOI, normalized title, first author, print year, and journal. Source identity is therefore `PMID_AND_DOI_VERIFIED` / `MATCHED`; publication integrity, claims, blind review, human approval, and production eligibility remain pending.
 
-Capability status: `PARTIAL_SOURCE_VERIFICATION_AVAILABLE`.
+The previous committed DOI `10.2519/jospt.2020.9406` was a bibliographic-identity mismatch, not a formatting defect. The original verifier failed closed, so the source stayed unverified and no production profile or rubric inherited the bad citation. The immutable provenance ID `PREFLIGHT_32658037` is preserved and no duplicate `SRC_PMID_32658037` row exists.
 
-No real source is promoted by this result. Actual source rows remain `UNVERIFIED` until the complete source gate passes.
+Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity verification. Ordinary Gradle CI remains offline.
 
 ## Evidence Provenance
 
-- `tissue_load_evidence_registry_v1.csv` keeps the parsed preflight identity as an explicitly `UNVERIFIED`, non-production source.
+- `tissue_load_evidence_registry_v1.csv` keeps the immutable preflight source ID with corrected, officially verified bibliographic identity and non-production status.
 - Draft claims, blinded reviews, and final claims are separate ledgers. This session created their schemas but no actual claim or independent review.
-- `tissue_source_verification_v1.csv` records the partial preflight without upgrading identifier, bibliography, claim, or publication-integrity status.
+- `tissue_source_verification_v1.csv` records parsed NCBI/Crossref identity verification without upgrading claim or publication-integrity status.
 - `tissue_review_batch_approval_v1.csv` is empty. Automated audit output cannot substitute for a human approval row.
 - `verify_tissue_sources.ps1` is the network-enabled refresh command. Offline CI validates committed artifacts and never depends on NCBI or Crossref uptime.
 - Production `STUDY_BACKED` rows require verified identifiers, matched bibliography, supported claim text, acceptable publication integrity, a separate blind review, and human or valid batch approval.

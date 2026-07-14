@@ -194,17 +194,17 @@ $evidenceHeaders = @(
 $evidenceRow = [pscustomobject]@{
     sourceId = "PREFLIGHT_32658037"
     pmid = "32658037"
-    doi = "10.2519/jospt.2020.9406"
+    doi = "10.1249/MSS.0000000000002459"
     title = "Exercise Progression to Incrementally Load the Achilles Tendon."
-    authors = ""
-    publicationYear = ""
-    journal = ""
-    studyType = ""
-    population = ""
-    sampleSize = ""
-    trainingStatus = ""
-    sexComposition = ""
-    healthStatus = ""
+    authors = "Baxter JR|Corrigan P|Hullfish TJ|O'Rourke P|Silbernagel KG"
+    publicationYear = "2021"
+    journal = "Medicine and Science in Sports and Exercise"
+    studyType = "Comparative laboratory study"
+    population = "Healthy young adults"
+    sampleSize = "8"
+    trainingStatus = "Not reported"
+    sexComposition = "Mixed"
+    healthStatus = "Healthy"
     exactExercise = ""
     exerciseProtocol = ""
     externalLoadCondition = ""
@@ -223,16 +223,16 @@ $evidenceRow = [pscustomobject]@{
     reportedUpperBound = ""
     reportedUnit = ""
     supportedTissueIds = "ACHILLES_TENDON"
-    supportedLoadDimensions = ""
-    majorLimitations = "Crossref DOI lookup returned 404; no claim review performed."
-    identifierVerificationStatus = "UNVERIFIED"
-    bibliographicMatchStatus = "UNVERIFIED"
+    supportedLoadDimensions = "PEAK_TENSILE_LOAD|CYCLIC_TENSILE_LOAD|LOADING_RATE"
+    majorLimitations = "Identity verified only; model assumptions, small healthy sample, protocol conditions, claims, and publication integrity still require review."
+    identifierVerificationStatus = "PMID_AND_DOI_VERIFIED"
+    bibliographicMatchStatus = "MATCHED"
     publicationIntegrityStatus = "STATUS_UNKNOWN"
-    verificationCapabilityStatus = "PARTIAL_SOURCE_VERIFICATION_AVAILABLE"
-    verifiedAt = "2026-07-13"
-    verificationMethod = "NCBI_PARSED_CROSSREF_BOUNDED_404"
-    sourceStatus = "UNVERIFIED"
-    sourceNotes = "Preflight record only; not production evidence."
+    verificationCapabilityStatus = "LIVE_SOURCE_VERIFICATION_AVAILABLE"
+    verifiedAt = "2026-07-14T00:00:00Z"
+    verificationMethod = "NCBI_ESUMMARY_PARSED_AND_CROSSREF_PARSED_BOUNDED_RETRY"
+    sourceStatus = "VERIFIED_NONPRODUCTION"
+    sourceNotes = "The previous DOI was a bibliographic-identity mismatch. Verification failed closed; immutable sourceId PREFLIGHT_32658037 is preserved."
 }
 $evidencePath = Join-Path $OutputDirectory "tissue_load_evidence_registry_v1.csv"
 Write-CsvRows $evidencePath @($evidenceRow) $evidenceHeaders
@@ -280,22 +280,39 @@ $sourceVerificationHeaders = @(
 $sourceVerificationRow = [pscustomobject]@{
     sourceId = "PREFLIGHT_32658037"
     resolvedPmid = "32658037"
-    resolvedDoi = ""
+    resolvedDoi = "10.1249/mss.0000000000002459"
     resolvedTitle = "Exercise Progression to Incrementally Load the Achilles Tendon."
-    resolvedFirstAuthor = ""
-    resolvedYear = ""
-    resolvedJournal = ""
-    identifierVerificationStatus = "UNVERIFIED"
-    bibliographicMatchStatus = "UNVERIFIED"
+    resolvedFirstAuthor = "Baxter JR"
+    resolvedYear = "2021"
+    resolvedJournal = "Medicine and science in sports and exercise"
+    identifierVerificationStatus = "PMID_AND_DOI_VERIFIED"
+    bibliographicMatchStatus = "MATCHED"
     publicationIntegrityStatus = "STATUS_UNKNOWN"
-    networkCapabilityStatus = "PARTIAL_SOURCE_VERIFICATION_AVAILABLE"
-    verifiedAt = "2026-07-13"
-    verificationMethod = "NCBI_PARSED_CROSSREF_BOUNDED_404"
-    metadataSnapshotHash = ""
-    verificationNotes = "NCBI parsed PMID/title; Crossref returned 404 twice. Fail-closed status retained."
+    networkCapabilityStatus = "LIVE_SOURCE_VERIFICATION_AVAILABLE"
+    verifiedAt = "2026-07-14T00:00:00Z"
+    verificationMethod = "NCBI_ESUMMARY_PARSED_AND_CROSSREF_PARSED_BOUNDED_RETRY"
+    metadataSnapshotHash = "13c95636776ea2f5b11ba91a636d1f515034ad4465dde598ee68ff19d39071b7"
+    verificationNotes = "Publication-integrity review remains pending; source identity only. Previous committed DOI was a bibliographic-identity mismatch; immutable sourceId preserved."
 }
 $sourceVerificationPath = Join-Path $OutputDirectory "tissue_source_verification_v1.csv"
 Write-CsvRows $sourceVerificationPath @($sourceVerificationRow) $sourceVerificationHeaders
+
+$researchLogHeaders = @(
+    "researchDecisionId", "reviewBatchId", "tissueId", "loadDimension", "targetStableKeys",
+    "database", "searchQuery", "searchDate", "candidateSourceIds", "includedSourceIds",
+    "excludedSourceIds", "exclusionReasons", "populationScope", "exerciseConditionScope",
+    "measurementScope", "evidenceSufficiency", "researchDecision", "decisionReason",
+    "preparedBy", "preparedByType", "preparedAt", "researchNotes"
+)
+Write-CsvRows (Join-Path $OutputDirectory "tissue_rubric_research_log_v1.csv") @() $researchLogHeaders
+
+$targetReviewHeaders = @(
+    "targetExerciseReviewId", "reviewBatchId", "stableKey", "canonicalDisplayName", "researchUseStatus",
+    "supportedTissueDimensions", "researchDecisionIds", "sourceIds", "draftClaimIds", "draftRubricIds",
+    "directProtocolMatch", "transferDistance", "nonUseReasons", "preparedBy", "preparedByType",
+    "preparedAt", "reviewNotes"
+)
+Write-CsvRows (Join-Path $OutputDirectory "tissue_rubric_target_exercise_review_v1.csv") @() $targetReviewHeaders
 
 $batchApprovalHeaders = @(
     "reviewBatchId", "auditManifestId", "humanApprover", "humanApprovedAt", "samplingPolicy",

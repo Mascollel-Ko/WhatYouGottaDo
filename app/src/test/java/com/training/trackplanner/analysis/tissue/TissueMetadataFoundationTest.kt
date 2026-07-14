@@ -92,7 +92,7 @@ class TissueMetadataFoundationTest {
     }
 
     @Test
-    fun auditSnapshotMatchesAssetsAndSemanticHashIgnoresRowOrder() {
+    fun foundationAuditRemainsHistoricalAndSemanticHashIgnoresRowOrder() {
         val canonicalCsv = asset("metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
         val catalogCsv = tissueAsset("canonical_tissue_catalog_v1.csv")
         val scopeCsv = tissueAsset("exercise_tissue_scope_manifest_v1.csv")
@@ -133,7 +133,8 @@ class TissueMetadataFoundationTest {
 
         assertEquals(239, audit.canonicalExerciseCount)
         assertEquals(239 * 61, audit.scopeManifestRowCount)
-        assertEquals(inputHash, audit.inputSnapshotHash)
+        assertEquals("ff6000e5998a516f6f5259c48e498a8766af656c0dfab52c631822fa4a8786af", audit.inputSnapshotHash)
+        assertNotEquals(inputHash, audit.inputSnapshotHash)
         assertEquals(TissueAuditDecision.FOUNDATION_COMPLETE_CANDIDATE, audit.auditDecision)
         assertEquals("PASS", values.getValue("doseCapabilityStatus"))
         assertEquals("PASS", values.getValue("lateralityCoverageStatus"))

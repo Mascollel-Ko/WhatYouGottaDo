@@ -1651,3 +1651,24 @@ Tests
 - `.\gradlew.bat :app:compileDebugKotlin`: passed.
 - `.\gradlew.bat :app:testDebugUnitTest --tests "*StrictTimeSeriesRepresentationContractTest" --tests "*PreparedAnalysisContextContractTest" --tests "*StrictTimeSeriesIntegrationContractTest" --tests "*StrictTimeSeriesEndToEndTest" --tests "*StrictTimeSeriesArchitectureTest"`: passed.
 - Bundled Python `tools/check_time_series_numeric_sources.py`: passed.
+## Phase B1 lower-limb tissue rubric research infrastructure
+
+Cause
+- The tissue foundation had no populated rubric research ledger, and its sole Achilles preflight row paired the correct PMID/title with an unrelated or unresolved DOI.
+
+Changes
+- Commit pending (`fix(fatigue): repair tissue source verification and add research log`): preserved `PREFLIGHT_32658037`, replaced the incorrect DOI with the DOI parsed from official PubMed metadata, and recorded a matched Crossref verification artifact.
+- Generalized `verify_tissue_sources.ps1` to process every registry row with parsed NCBI/Crossref comparisons, bounded retries, deterministic timestamps/hashes, PMID-only/DOI-only handling, and duplicate bibliographic identity detection.
+- Added typed Phase B1 research-decision and target-exercise review schemas, parsers, contracts, validators, and empty ledgers ready for evidence population.
+- Kept publication integrity at `STATUS_UNKNOWN`; no blind review, final claim, human approval, production profile, scope promotion, runtime integration, version, or tag was added.
+
+Reason
+- Bibliographic identity must be repaired before draft biomechanical claims are attached, while immutable source IDs and fail-closed production gates preserve provenance.
+
+Result
+- The corrected Achilles source is identity-verified but remains explicitly non-production.
+- The next commits can record exactly 31 tissue/dimension decisions and 15 canonical exercise outcomes without overloading final-claim or production-profile fields.
+
+Tests
+- Official NCBI/Crossref live verification: passed for PMID `32658037` and DOI `10.1249/MSS.0000000000002459`.
+- Focused Kotlin and offline artifact validation: pending.

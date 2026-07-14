@@ -98,6 +98,144 @@ object TissueEvidenceValidator {
         return TissueValidationReport(errors = missing.map { "Unknown sourceRef: $it" })
     }
 
+    fun sourceRegistry(
+        sources: List<TissueEvidenceSource>,
+        verifications: List<TissueSourceVerification>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
+        if (sourceById.size != sources.size) errors += "Duplicate sourceId."
+        val duplicateIdentity = sources.groupBy { source ->
+            listOf(source.pmid.normalized(), source.doi.normalized(), source.title.normalized()).joinToString("|")
+        }.values.firstOrNull { it.size > 1 }
+        if (duplicateIdentity != null) errors += "Duplicate bibliographic source under multiple source IDs."
+        if (TissuePhaseB1Contract.preservedPreflightSourceId !in sourceById) {
+            errors += "PREFLIGHT_32658037 is missing."
+        }
+        if ("SRC_PMID_32658037" in sourceById) {
+            errors += "PREFLIGHT_32658037 was duplicated or renamed as SRC_PMID_32658037."
+        }
+        if (verifications.map(TissueSourceVerification::sourceId).distinct().size != verifications.size) {
+            errors += "Duplicate source verification row."
+        }
+        verifications.forEach { verification ->
+            val source = sourceById[verification.sourceId]
+            if (source == null) {
+                errors += "${verification.sourceId}: verification references unknown source."
+            } else {
+                if (verification.identifierVerificationStatus != source.identifierVerificationStatus) {
+                    errors += "${verification.sourceId}: identifier status differs from registry."
+                }
+                if (verification.bibliographicMatchStatus != source.bibliographicMatchStatus) {
+                    errors += "${verification.sourceId}: bibliographic status differs from registry."
+                }
+                if (verification.resolvedPmid.isNotBlank() && verification.resolvedPmid != source.pmid) {
+                    errors += "${verification.sourceId}: resolved PMID differs from registry."
+                }
+                if (verification.resolvedDoi.isNotBlank() && verification.resolvedDoi.normalized() != source.doi.normalized()) {
+                    errors += "${verification.sourceId}: resolved DOI differs from registry."
+                }
+            }
+            if (verification.metadataSnapshotHash.isBlank()) {
+                errors += "${verification.sourceId}: verification metadata hash is missing."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
+    fun phaseB1Research(
+        sources: List<TissueEvidenceSource>,
+        drafts: List<TissueDraftClaim>,
+        decisions: List<TissueRubricResearchDecision>,
+        exerciseReviews: List<TissueTargetExerciseReview>,
+        canonicalNamesByStableKey: Map<String, String>,
+        catalog: List<TissueCatalogEntry>
+    ): TissueValidationReport {
+        val errors = mutableListOf<String>()
+        val sourceIds = sources.map(TissueEvidenceSource::sourceId).toSet()
+        val draftById = drafts.associateBy(TissueDraftClaim::draftClaimId)
+        val decisionById = decisions.associateBy(TissueRubricResearchDecision::researchDecisionId)
+        val catalogById = catalog.associateBy(TissueCatalogEntry::tissueId)
+        if (decisionById.size != decisions.size) errors += "Duplicate researchDecisionId."
+        if (exerciseReviews.map(TissueTargetExerciseReview::targetExerciseReviewId).distinct().size != exerciseReviews.size) {
+            errors += "Duplicate targetExerciseReviewId."
+        }
+        if (exerciseReviews.map(TissueTargetExerciseReview::stableKey).distinct().size != exerciseReviews.size) {
+            errors += "Duplicate target-exercise review identity."
+        }
+        val actualTargets = decisions.map(TissueRubricResearchDecision::target)
+        if (actualTargets.toSet() != TissuePhaseB1Contract.targetTissueDimensions || actualTargets.distinct().size != actualTargets.size) {
+            errors += "Phase B1 tissue/dimension decisions are incomplete or duplicated."
+        }
+        decisions.forEach { decision ->
+            if (decision.reviewBatchId != TissuePhaseB1Contract.reviewBatchId) {
+                errors += "${decision.researchDecisionId}: wrong review batch."
+            }
+            if (decision.searchQuery.isBlank() || decision.searchDate.isBlank()) {
+                errors += "${decision.researchDecisionId}: search query/date is missing."
+            }
+            val referencedSources = decision.candidateSourceIds + decision.includedSourceIds + decision.excludedSourceIds
+            referencedSources.filterNot(sourceIds::contains).forEach {
+                errors += "${decision.researchDecisionId}: unknown sourceId $it."
+            }
+            if (decision.excludedSourceIds.isNotEmpty() && decision.exclusionReasons.isEmpty()) {
+                errors += "${decision.researchDecisionId}: excluded source lacks an approved reason."
+            }
+            decision.targetStableKeys.filterNot(canonicalNamesByStableKey::containsKey).forEach {
+                errors += "${decision.researchDecisionId}: unknown target stableKey $it."
+            }
+            if (decision.loadDimension !in catalogById[decision.tissueId]?.supportedLoadDimensions.orEmpty()) {
+                errors += "${decision.researchDecisionId}: unsupported tissue dimension."
+            }
+            if (decision.researchDecision == TissueResearchDecision.DRAFT_RUBRIC_CREATED) {
+                if (decision.includedSourceIds.isEmpty()) errors += "${decision.researchDecisionId}: draft rubric decision lacks a source."
+                if (drafts.none { it.tissueId == decision.tissueId && it.loadDimension == decision.loadDimension }) {
+                    errors += "${decision.researchDecisionId}: draft rubric decision lacks a draft claim."
+                }
+            } else if (decision.decisionReason.isBlank()) {
+                errors += "${decision.researchDecisionId}: non-rubric decision lacks a reason."
+            }
+        }
+
+        val reviewedKeys = exerciseReviews.map(TissueTargetExerciseReview::stableKey)
+        if (reviewedKeys.toSet() != TissuePhaseB1Contract.targetStableKeys || reviewedKeys.distinct().size != reviewedKeys.size) {
+            errors += "Phase B1 target-exercise reviews are incomplete or duplicated."
+        }
+        exerciseReviews.forEach { review ->
+            if (canonicalNamesByStableKey[review.stableKey] != review.canonicalDisplayName) {
+                errors += "${review.targetExerciseReviewId}: canonical display name mismatch."
+            }
+            review.researchDecisionIds.filterNot(decisionById::containsKey).forEach {
+                errors += "${review.targetExerciseReviewId}: unknown researchDecisionId $it."
+            }
+            review.sourceIds.filterNot(sourceIds::contains).forEach {
+                errors += "${review.targetExerciseReviewId}: unknown sourceId $it."
+            }
+            review.draftClaimIds.filterNot(draftById::containsKey).forEach {
+                errors += "${review.targetExerciseReviewId}: unknown draftClaimId $it."
+            }
+            val supportedTargets = review.researchDecisionIds.mapNotNull(decisionById::get).map { it.target }.toSet()
+            if (review.supportedTissueDimensions.any { it !in supportedTargets }) {
+                errors += "${review.targetExerciseReviewId}: unsupported tissue/dimension link."
+            }
+            if (review.researchUseStatus != TissueResearchUseStatus.USED_AS_DIRECT_ANCHOR && review.nonUseReasons.isEmpty()) {
+                errors += "${review.targetExerciseReviewId}: non-direct use lacks a reason."
+            }
+            if (review.researchUseStatus == TissueResearchUseStatus.USED_AS_DIRECT_ANCHOR &&
+                (review.sourceIds.isEmpty() || review.draftClaimIds.isEmpty())
+            ) {
+                errors += "${review.targetExerciseReviewId}: direct anchor lacks a source or draft claim."
+            }
+            if (review.researchUseStatus == TissueResearchUseStatus.USED_AS_TRANSFER_REFERENCE && review.transferDistance.isBlank()) {
+                errors += "${review.targetExerciseReviewId}: transfer reference lacks transfer distance."
+            }
+            if (review.preparedByType != TissueActorType.AI_AGENT) {
+                errors += "${review.targetExerciseReviewId}: Phase B1 review preparer must be AI_AGENT."
+            }
+        }
+        return TissueValidationReport(errors)
+    }
+
     fun productionProfiles(
         profiles: List<TissueLoadProfile>,
         finalClaims: List<TissueFinalClaim>,
@@ -146,4 +284,6 @@ object TissueEvidenceValidator {
                 TissuePublicationIntegrityStatus.RETRACTED,
                 TissuePublicationIntegrityStatus.EXPRESSION_OF_CONCERN
             )
+
+    private fun String.normalized(): String = lowercase().filter(Char::isLetterOrDigit)
 }

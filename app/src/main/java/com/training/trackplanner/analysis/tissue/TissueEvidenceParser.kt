@@ -13,7 +13,59 @@ object TissueEvidenceParser {
             bibliographicMatchStatus = row.enum("bibliographicMatchStatus"),
             publicationIntegrityStatus = row.enum("publicationIntegrityStatus"),
             verificationCapabilityStatus = row.enum("verificationCapabilityStatus"),
-            sourceStatus = row.required("sourceStatus")
+            sourceStatus = row.required("sourceStatus"),
+            authors = row.value("authors"),
+            publicationYear = row.value("publicationYear"),
+            journal = row.value("journal"),
+            studyType = row.value("studyType"),
+            population = row.value("population"),
+            sampleSize = row.value("sampleSize"),
+            trainingStatus = row.value("trainingStatus"),
+            sexComposition = row.value("sexComposition"),
+            healthStatus = row.value("healthStatus"),
+            exactExercise = row.value("exactExercise"),
+            exerciseProtocol = row.value("exerciseProtocol"),
+            externalLoadCondition = row.value("externalLoadCondition"),
+            repetitionCondition = row.value("repetitionCondition"),
+            romCondition = row.value("romCondition"),
+            velocityCondition = row.value("velocityCondition"),
+            surfaceCondition = row.value("surfaceCondition"),
+            footwearCondition = row.value("footwearCondition"),
+            anticipatedCondition = row.value("anticipatedCondition"),
+            fatigueCondition = row.value("fatigueCondition"),
+            measurementMethod = row.value("measurementMethod"),
+            measuredOutcome = row.value("measuredOutcome"),
+            reportedMetric = row.value("reportedMetric"),
+            reportedValue = row.value("reportedValue"),
+            reportedLowerBound = row.value("reportedLowerBound"),
+            reportedUpperBound = row.value("reportedUpperBound"),
+            reportedUnit = row.value("reportedUnit"),
+            supportedTissueIds = row.tokens("supportedTissueIds"),
+            supportedLoadDimensions = row.tokens("supportedLoadDimensions").map { enumValueOf<TissueLoadDimension>(it) },
+            majorLimitations = row.value("majorLimitations"),
+            verifiedAt = row.value("verifiedAt"),
+            verificationMethod = row.value("verificationMethod"),
+            sourceNotes = row.value("sourceNotes")
+        )
+    }
+
+    fun sourceVerifications(csv: String): List<TissueSourceVerification> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueSourceVerification(
+            sourceId = row.required("sourceId"),
+            resolvedPmid = row.value("resolvedPmid"),
+            resolvedDoi = row.value("resolvedDoi"),
+            resolvedTitle = row.required("resolvedTitle"),
+            resolvedFirstAuthor = row.value("resolvedFirstAuthor"),
+            resolvedYear = row.value("resolvedYear"),
+            resolvedJournal = row.value("resolvedJournal"),
+            identifierVerificationStatus = row.enum("identifierVerificationStatus"),
+            bibliographicMatchStatus = row.enum("bibliographicMatchStatus"),
+            publicationIntegrityStatus = row.enum("publicationIntegrityStatus"),
+            networkCapabilityStatus = row.enum("networkCapabilityStatus"),
+            verifiedAt = row.required("verifiedAt"),
+            verificationMethod = row.required("verificationMethod"),
+            metadataSnapshotHash = row.required("metadataSnapshotHash"),
+            verificationNotes = row.value("verificationNotes")
         )
     }
 
@@ -29,7 +81,74 @@ object TissueEvidenceParser {
             claimUnit = row.value("claimUnit"),
             evidenceLocator = row.value("evidenceLocator"),
             preparedBy = row.required("preparedBy"),
-            preparedByType = row.enum("preparedByType")
+            preparedByType = row.enum("preparedByType"),
+            claimType = row.value("claimType"),
+            claimParaphrase = row.value("claimParaphrase"),
+            claimDirection = row.value("claimDirection"),
+            claimLowerBound = row.value("claimLowerBound").toDoubleOrNull(),
+            claimUpperBound = row.value("claimUpperBound").toDoubleOrNull(),
+            comparatorExercise = row.value("comparatorExercise"),
+            population = row.value("population"),
+            exerciseCondition = row.value("exerciseCondition"),
+            loadCondition = row.value("loadCondition"),
+            romCondition = row.value("romCondition"),
+            velocityCondition = row.value("velocityCondition"),
+            surfaceCondition = row.value("surfaceCondition"),
+            anticipatedCondition = row.value("anticipatedCondition"),
+            fatigueCondition = row.value("fatigueCondition"),
+            evidenceLocatorType = row.value("evidenceLocatorType"),
+            evidenceAccessLevel = row.value("evidenceAccessLevel"),
+            preparedAt = row.value("preparedAt"),
+            draftNotes = row.value("draftNotes")
+        )
+    }
+
+    fun researchDecisions(csv: String): List<TissueRubricResearchDecision> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueRubricResearchDecision(
+            researchDecisionId = row.required("researchDecisionId"),
+            reviewBatchId = row.required("reviewBatchId"),
+            tissueId = row.required("tissueId"),
+            loadDimension = row.enum("loadDimension"),
+            targetStableKeys = row.tokens("targetStableKeys"),
+            database = row.required("database"),
+            searchQuery = row.required("searchQuery"),
+            searchDate = row.required("searchDate"),
+            candidateSourceIds = row.tokens("candidateSourceIds"),
+            includedSourceIds = row.tokens("includedSourceIds"),
+            excludedSourceIds = row.tokens("excludedSourceIds"),
+            exclusionReasons = row.tokens("exclusionReasons").map { enumValueOf<TissueResearchExclusionReason>(it) },
+            populationScope = row.value("populationScope"),
+            exerciseConditionScope = row.value("exerciseConditionScope"),
+            measurementScope = row.value("measurementScope"),
+            evidenceSufficiency = row.required("evidenceSufficiency"),
+            researchDecision = row.enum("researchDecision"),
+            decisionReason = row.required("decisionReason"),
+            preparedBy = row.required("preparedBy"),
+            preparedByType = row.enum("preparedByType"),
+            preparedAt = row.required("preparedAt"),
+            researchNotes = row.value("researchNotes")
+        )
+    }
+
+    fun targetExerciseReviews(csv: String): List<TissueTargetExerciseReview> = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueTargetExerciseReview(
+            targetExerciseReviewId = row.required("targetExerciseReviewId"),
+            reviewBatchId = row.required("reviewBatchId"),
+            stableKey = row.required("stableKey"),
+            canonicalDisplayName = row.required("canonicalDisplayName"),
+            researchUseStatus = row.enum("researchUseStatus"),
+            supportedTissueDimensions = row.tokens("supportedTissueDimensions").map(::dimensionReference),
+            researchDecisionIds = row.tokens("researchDecisionIds"),
+            sourceIds = row.tokens("sourceIds"),
+            draftClaimIds = row.tokens("draftClaimIds"),
+            draftRubricIds = row.tokens("draftRubricIds"),
+            directProtocolMatch = row.boolean("directProtocolMatch"),
+            transferDistance = row.value("transferDistance"),
+            nonUseReasons = row.tokens("nonUseReasons").map { enumValueOf<TissueResearchNonUseReason>(it) },
+            preparedBy = row.required("preparedBy"),
+            preparedByType = row.enum("preparedByType"),
+            preparedAt = row.required("preparedAt"),
+            reviewNotes = row.value("reviewNotes")
         )
     }
 
@@ -92,6 +211,14 @@ object TissueEvidenceParser {
         "FALSE", "0", "NO", "" -> false
         else -> error("Invalid boolean in $name: ${value(name)}")
     }
+    private fun Map<String, String>.tokens(name: String): List<String> =
+        value(name).split('|').map(String::trim).filter { it.isNotBlank() && it != "NONE" }.distinct()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T =
         enumValueOf(required(name).uppercase(Locale.ROOT))
+
+    private fun dimensionReference(value: String): TissueDimensionReference {
+        val parts = value.split(':', limit = 2)
+        require(parts.size == 2 && parts.all(String::isNotBlank)) { "Invalid tissue/dimension reference: $value" }
+        return TissueDimensionReference(parts[0], enumValueOf(parts[1].uppercase(Locale.ROOT)))
+    }
 }
