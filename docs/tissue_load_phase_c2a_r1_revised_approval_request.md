@@ -1,5 +1,9 @@
 # Phase C2A-R1 Revised Approval Request
 
+> Historical artifact: superseded before approval by
+> `TISSUE_APPROVAL_RESOLUTION_C3_MD_R1_74ECC664`. The request ID, scope hash, and payload below remain immutable and
+> cannot be ingested. Its verified measurements may be re-extracted into the C3 multidimensional model.
+
 ## Status And Scope
 
 - Completion: `REVISED_APPROVAL_PACKAGE_PARTIAL`

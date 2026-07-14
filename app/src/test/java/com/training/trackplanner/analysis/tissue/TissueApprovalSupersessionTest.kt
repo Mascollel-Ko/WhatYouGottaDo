@@ -14,8 +14,12 @@ class TissueApprovalSupersessionTest {
             "c91fc47185a77cbe810bfcac8127f8be910530268502c6740ed53e69ee4a4ecc",
             approvalRequestFile.normalizedPayloadSha256()
         )
-        assertTrue(TissueEvidenceValidator.approvalRequestResolutions(resolutions, requests).isValid)
-        assertEquals(TissueApprovalRequestResolutionStatus.SUPERSEDED_BEFORE_APPROVAL, resolutions.single().resolutionStatus)
+        val originalResolutions = resolutions.filter { it.approvalRequestId == requests.single().approvalRequestId }
+        assertTrue(TissueEvidenceValidator.approvalRequestResolutions(originalResolutions, requests).isValid)
+        assertEquals(
+            TissueApprovalRequestResolutionStatus.SUPERSEDED_BEFORE_APPROVAL,
+            resolutions.single { it.approvalRequestId == requests.single().approvalRequestId }.resolutionStatus
+        )
         assertTrue(TissueEvidenceParser.batchApprovals(tissueAsset("tissue_review_batch_approval_v1.csv")).isEmpty())
     }
 

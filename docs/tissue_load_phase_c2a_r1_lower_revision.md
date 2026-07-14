@@ -4,6 +4,9 @@
 
 `REVISED_APPROVAL_PACKAGE_PARTIAL`
 
+Historical status only. Request `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` was superseded before approval by
+`TISSUE_APPROVAL_RESOLUTION_C3_MD_R1_74ECC664`; its immutable payload remains available for provenance.
+
 The previous pending request is preserved but superseded before approval. No human approval, final claim, blind review,
 production profile, runtime calculation, or version change is part of this revision.
 
@@ -45,7 +48,7 @@ source condition.
 ## Next Steps
 
 1. Resolve the six blocked lower-limb research targets without inventing external-load models or intervals.
-2. Obtain a later explicit decision for revised request `TISSUE_APPROVAL_REQUEST_C2A_R1_74ECC66495637BDD` only.
+2. Re-extract defensible measurements into `TISSUE_C3_MULTIDIMENSIONAL_LOWER_R1`; do not approve the superseded request.
 3. Keep profile backfill blocked until approved candidates become formal final claims.
 4. Research upper-limb pressing and pulling separately as `TISSUE_RUBRIC_B2_UPPER_PRESS_PULL`.
 
