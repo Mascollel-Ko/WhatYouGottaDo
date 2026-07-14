@@ -60,7 +60,7 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 ## Evidence Provenance
 
 - `tissue_load_evidence_registry_v1.csv` keeps the immutable preflight source ID with corrected, officially verified bibliographic identity and non-production status.
-- Draft claims, blinded reviews, and final claims are separate ledgers. Phase B1 added 12 condition-bounded draft claims; blind review and final-claim ledgers remain empty.
+- Draft claims, same-session re-audits, claim candidates, blinded reviews, and final claims are separate ledgers. Phase B1 added 12 condition-bounded drafts; Phase C added 12 technically re-audited non-production candidates. Blind review and final-claim ledgers remain empty.
 - `tissue_source_verification_v1.csv` records parsed NCBI/Crossref identity verification without upgrading claim or publication-integrity status.
 - `tissue_review_batch_approval_v1.csv` is empty. Automated audit output cannot substitute for a human approval row.
 - `verify_tissue_sources.ps1` is the network-enabled refresh command. Offline CI validates committed artifacts and never depends on NCBI or Crossref uptime.
@@ -98,8 +98,10 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - `TissueEvidenceValidator.kt`: source, claim, actor separation, production gate, and batch-audit reference validation.
 - `verify_tissue_sources.ps1`: bounded network preflight and fail-closed verification-artifact refresh.
 - `generate_tissue_phase_b1_draft_assets.ps1`: deterministic lower-limb source, draft-claim, research-decision, target-review, draft-rubric, and evidence-batch audit generation.
+- `generate_tissue_phase_c_reaudit_assets.ps1`: deterministic same-session re-audits, claim candidates, two explicit interpretation adjudications, re-audited rubric candidates, and historical Phase C audit generation.
 - `export_tissue_blind_review_package.ps1`: explicit-path redacted handoff for a separate Phase C reviewer.
 - `tissue_load_phase_b1_lower_knee_ankle.md`: Phase B1 source correction, decisions, target outcomes, limitations, and handoff record.
+- `tissue_load_phase_c_same_session_reaudit.md`: source-by-source and claim-by-claim technical re-audit, adjudication scope, rubric decisions, hashes, and remaining approval record.
 - `TissueRecordContracts.kt`: migration, dose, calculation-state, laterality, and modifier enums/models plus fail-closed side resolution.
 - `TissueRecordContractParser.kt`: typed parsing for migration, dose-capability, and modifier artifacts.
 - `TissueRecordContractValidator.kt`: exact legacy coverage, no-band migration, dose fallback, tissue/dimension, and modifier evidence checks.
@@ -116,7 +118,7 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 ## Limitations
 
 - No exercise-specific tissue profile is independently reviewed or production eligible.
-- Phase B1 draft anchor research is complete for two tissue/dimension questions; independent blind review, final claims, full canonical backfill, and human batch approval remain incomplete.
+- Phase C same-session technical re-audit is complete for the 12 Phase B1 claims and five rubric rows. It was not independent; blind review, final claims, full canonical backfill, and human batch approval remain incomplete.
 - Current records cannot resolve performed side or sport event counts.
 - Legacy candidate mappings are review seeds only; none is an exercise-specific tissue profile.
 - Modifier rules remain empty because no reviewed interaction or factor is available.

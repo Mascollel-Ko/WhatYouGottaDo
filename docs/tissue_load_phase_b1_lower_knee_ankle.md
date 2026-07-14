@@ -109,7 +109,9 @@ Summary: 15 reviewed, 6 direct anchors, 7 transfer references, 0 reviewed-not-us
 
 ## Phase C Handoff
 
-Generate a blind package outside tracked assets and existing `outputs/*`:
+Phase C same-session evidence re-audit has now produced 12 technical claim candidates and re-audited all five rubric rows. This did not satisfy the independent blind-review gate: the reviewer had access to the Phase B1 drafts, and the formal blind-review, final-claim, approval, and production-profile ledgers remain empty. Current details and hashes are in `docs/tissue_load_phase_c_same_session_reaudit.md`.
+
+For a future independent review, generate a blind package outside tracked assets and existing `outputs/*`:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File tools/export_tissue_blind_review_package.ps1 -OutputPath <temporary-path.csv>

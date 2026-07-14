@@ -1732,3 +1732,30 @@ Phase C handoff
 - Run `tools/export_tissue_blind_review_package.ps1` with an explicit temporary output path.
 - Perform independent evidence assessment before creating blind-review rows, final claims, or human approval.
 - Full 239-exercise profile backfill remains a later phase after Phase C approval.
+
+## Phase C same-session lower-limb evidence re-audit
+
+Cause
+- Phase B1 had 12 condition-bounded draft claims and five draft rubric rows, but no second source-locator check, technical claim-candidate ledger, or machine-readable record of the two explicit user interpretation decisions.
+- The same Codex session performed this work, so it could not honestly claim independent blind review.
+
+Changes
+- Commit `2cedc6b` (`feat(fatigue): add same-session tissue evidence reaudit`) added typed re-audit, claim-candidate, and user-adjudication schemas plus parsers, validators, deterministic IDs, contract tests, and the explicit `SAME_SESSION_EVIDENCE_REAUDIT` / `NOT_INDEPENDENT` boundary.
+- Commit `4f62580` (`data(fatigue): reaudit lower-limb tissue evidence claims`) live-revalidated all 10 source identities, reopened every locator used by the 12 draft claims, and generated 12 non-production technical candidates without changing Phase B1 historical inputs.
+- Commit 3 (`data(fatigue): adjudicate lower-limb tissue rubric candidates`) records exactly two user adjudications, re-audits all five current rubric rows, appends historical audit `tissue_reaudit_c_94c15f4d43e8`, and finalizes the Phase C report.
+- The seated Achilles draft representation was corrected from a synthetic 0.6 BW point to the reported 0.5-0.7 BW range across bilateral and unilateral seated conditions with 15 kg on the thigh.
+- The Achilles hop transfer remains `CLOSE_VARIANT` / `CLOSE_VARIANT_TRANSFER`; the PFJ bands explicitly use a 50% peak plus 50% impulse composite loading index as a compression proxy.
+
+Result
+- Completion state is `EVIDENCE_REAUDIT_COMPLETE_PENDING_BATCH_APPROVAL`.
+- Claims: 12 re-audited, 12 candidates, 4 retained, 8 corrected, 0 blocked.
+- Rubrics: 5 re-audited, 2 retained with limitations, 3 corrected, 0 blocked; `HIGH` remains intentionally undefined.
+- User adjudications: 2 interpretation decisions, both `isBatchApproval=false` and `productionEligibilityEffect=NONE`.
+- Blind reviews, formal final claims, human batch approvals, and production profile rows remain 0.
+- Existing six-axis fatigue, OFI, readiness, ProgramBuilder, Room/backup, and Bayesian/time-series behavior remain unchanged.
+
+Validation
+- Live NCBI/Crossref source identity revalidation: 10/10 `PMID_AND_DOI_VERIFIED` and `MATCHED`; committed artifact remained byte-identical at SHA-256 `d78d5e3cfbd26f5e153fda06cd3cf6555fe9af7e60ebce7747ebc0a0afd63c59`.
+- Focused `TissuePhaseCReauditTest`, `TissuePhaseB1ResearchTest`, and `TissueMetadataFoundationTest`: passed after Phase C adjudication/rubric generation.
+- Combined Phase C input SHA-256: `94c15f4d43e843cd0238b1dd276d83e962bdf846a28a110330c5a970c0a64463`.
+- Full compile, unit test, assemble, diff check, push, and GitHub Actions results are recorded in the completion report after they run.

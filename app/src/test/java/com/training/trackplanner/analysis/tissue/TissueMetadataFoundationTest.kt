@@ -154,14 +154,8 @@ class TissueMetadataFoundationTest {
         assertEquals(TissueMetadataValidator.semanticCsvHash(tiny), TissueMetadataValidator.semanticCsvHash(reordered))
         assertNotEquals(TissueMetadataValidator.semanticCsvHash(tiny), TissueMetadataValidator.semanticCsvHash("id,value\na,9\nb,2\n"))
 
-        val batchAudit = audits.single { it.values.getValue("auditScope") == "EVIDENCE_BATCH" }
-        val batchInputHash = TissueMetadataValidator.combinedHash(
-            inputParts + mapOf(
-                "research" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_rubric_research_log_v1.csv")),
-                "targetReviews" to TissueMetadataValidator.semanticCsvHash(tissueAsset("tissue_rubric_target_exercise_review_v1.csv"))
-            )
-        )
-        assertEquals(batchInputHash, batchAudit.inputSnapshotHash)
+        val batchAudit = audits.single { it.values.getValue("auditBatchId") == "TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE" }
+        assertEquals("73bbb560046d5ee8c2da1305a0305929cbf609be8815d93edaf3897c4472f851", batchAudit.inputSnapshotHash)
         assertEquals(TissueAuditDecision.PRODUCTION_REVIEW_REQUIRED, batchAudit.auditDecision)
         assertEquals("10", batchAudit.values.getValue("sourceCount"))
         assertEquals("12", batchAudit.values.getValue("draftClaimCount"))

@@ -5,6 +5,29 @@ param(
 $ErrorActionPreference = "Stop"
 $batch = "TISSUE_REAUDIT_C_LOWER_KNEE_ANKLE"
 $reviewedAt = "2026-07-14T00:00:00Z"
+$utf8 = [Text.UTF8Encoding]::new($false)
+
+function Get-TextHash([string]$Text) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { $hash = $sha.ComputeHash($utf8.GetBytes($Text)) } finally { $sha.Dispose() }
+    return (([BitConverter]::ToString($hash)) -replace '-', '').ToLowerInvariant()
+}
+
+function Get-SemanticCsvHash([string]$Path) {
+    $rawHeader = (Get-Content -LiteralPath $Path -TotalCount 1).TrimStart([char]0xFEFF)
+    $headers = $rawHeader.Split(',') | ForEach-Object { $_.Trim().Trim('"') }
+    [string[]]$rows = @(Import-Csv -LiteralPath $Path | ForEach-Object {
+        $row = $_
+        (($headers | ForEach-Object { [string]$row.$_ }) -join [char]0x1F)
+    })
+    [Array]::Sort($rows, [StringComparer]::Ordinal)
+    return Get-TextHash (($headers -join [char]0x1F) + "`n" + ($rows -join [char]0x1E))
+}
+
+function Get-CombinedHash([hashtable]$Parts) {
+    $text = ($Parts.Keys | Sort-Object | ForEach-Object { "$_=$($Parts[$_])" }) -join "`n"
+    return Get-TextHash $text
+}
 
 function Get-Id([string]$Prefix, [string]$Value) {
     $sha = [Security.Cryptography.SHA256]::Create()
@@ -148,5 +171,171 @@ $candidateHeaders = @("claimCandidateId","reviewBatchId","draftClaimId","reaudit
 
 Write-Table "tissue_evidence_reaudit_v1.csv" $reauditHeaders @($reaudits)
 Write-Table "tissue_evidence_claim_candidates_v1.csv" $candidateHeaders @($candidates)
+
+$adjudicationHeaders = @("adjudicationId","reviewBatchId","adjudicationScope","stableKeys","tissueIds","loadDimensions","rubricIds","draftClaimIds","decision","decisionRationale","requiredDisclosure","decisionEffect","decisionActorType","decisionSource","decisionRecordedBy","decisionRecordedAt","isBatchApproval","productionEligibilityEffect","adjudicationNotes")
+$adjudications = @(
+    [pscustomobject][ordered]@{
+        adjudicationId="USER_ADJUDICATION_ACHILLES_HOP_TRANSFER_V1"; reviewBatchId=$batch; adjudicationScope="CLAIM_AND_RUBRIC_INTERPRETATION"
+        stableKeys="ex_314df428"; tissueIds="ACHILLES_TENDON"; loadDimensions="PEAK_TENSILE_LOAD"; rubricIds="RUBRIC_ACH_PEAK_VERY_HIGH"; draftClaimIds="DCLM_ACH_PEAK_SINGLE_HOP"
+        decision="Single-leg hopping evidence may be transferred to the canonical exercise single-leg hop and stick for Achilles PEAK_TENSILE_LOAD. The hop-and-stick requirement does not constitute a sufficiently material biomechanical difference to prevent a VERY_HIGH classification of peak Achilles tendon loading. The transfer remains a close-variant transfer rather than an exact protocol match."
+        decisionRationale="The explicit user instruction accepts transfer of the source repeated single-leg hopping result to the app hop-and-stick exercise while preserving the protocol difference."
+        requiredDisclosure="exerciseCorrespondence = CLOSE_VARIANT; bandBasis = CLOSE_VARIANT_TRANSFER; maximumDefensibleBand = VERY_HIGH"
+        decisionEffect="PERMITS_CLOSE_VARIANT_TRANSFER_AND_VERY_HIGH_CANDIDATE_BAND_WITH_DISCLOSURE"
+        decisionActorType="HUMAN_USER"; decisionSource="EXPLICIT_USER_INSTRUCTION"; decisionRecordedBy="Codex"; decisionRecordedAt=$reviewedAt
+        isBatchApproval="false"; productionEligibilityEffect="NONE"
+        adjudicationNotes="This interpretation decision does not validate an incorrect numeric value, waive source verification, approve the evidence batch, or create production eligibility."
+    },
+    [pscustomobject][ordered]@{
+        adjudicationId="USER_ADJUDICATION_PFJ_COMPOSITE_COMPRESSION_V1"; reviewBatchId=$batch; adjudicationScope="CLAIM_AND_RUBRIC_INTERPRETATION"
+        stableKeys="ex_cb3c4dc2|ex_bb728af2|ex_64644b5e|ex_d6726746|ex_314df428"; tissueIds="KNEE_PATELLOFEMORAL"; loadDimensions="COMPRESSION"; rubricIds="RUBRIC_PFJ_COMP_LOW|RUBRIC_PFJ_COMP_MODERATE"
+        draftClaimIds="DCLM_PFJ_COMP_60_SQUAT|DCLM_PFJ_COMP_FULL_SQUAT|DCLM_PFJ_COMP_BULGARIAN|DCLM_PFJ_COMP_LUNGE|DCLM_PFJ_COMP_DROP_JUMP|DCLM_PFJ_COMP_SINGLE_HOP"
+        decision="The studied patellofemoral composite loading index is accepted as sufficient evidence for the KNEE_PATELLOFEMORAL COMPRESSION rubric. Its composite nature remains visible and the metric is not represented as pure peak compression force."
+        decisionRationale="The explicit user instruction accepts the source-defined peak-plus-impulse loading index as compression evidence only when its proxy and composite construction remain disclosed."
+        requiredDisclosure="verifiedMetric = source-defined composite patellofemoral loading index; dimensionCorrespondence = DIMENSION_SUPPORTED_BY_EXPLICIT_PROXY; metric must remain composite and must not be described as pure peak compression force"
+        decisionEffect="PERMITS_COMPOSITE_INDEX_AS_EXPLICIT_COMPRESSION_PROXY_WITH_DISCLOSURE"
+        decisionActorType="HUMAN_USER"; decisionSource="EXPLICIT_USER_INSTRUCTION"; decisionRecordedBy="Codex"; decisionRecordedAt=$reviewedAt
+        isBatchApproval="false"; productionEligibilityEffect="NONE"
+        adjudicationNotes="This interpretation decision does not waive value, unit, condition, or source verification and does not create batch approval or production eligibility."
+    }
+)
+Write-Table "tissue_user_adjudication_v1.csv" $adjudicationHeaders $adjudications
+
+$reauditByDraft = @{}
+$reaudits | ForEach-Object { $reauditByDraft[$_.draftClaimId] = $_ }
+$candidateByDraft = @{}
+$candidates | ForEach-Object { $candidateByDraft[$_.draftClaimId] = $_ }
+$rubricSpecs = @{
+    RUBRIC_ACH_PEAK_LOW = @{
+        action="CORRECT_ANCHOR"; drafts=@("DCLM_ACH_PEAK_SEATED_CALF"); adjudications=""
+        metric="MODELED_PEAK_ACHILLES_TENDON_FORCE_BW_WITHIN_STUDY_ORDER"
+        conditions="Tested bilateral and unilateral seated heel raises with 15 kg placed on the thigh; healthy adults; laboratory force plates; modeled Achilles tendon force normalized to bodyweight; 0.5 to 0.7 BW is a range across two reported group means, not one group mean."
+        notes="Same-session re-audit corrected the anchor representation and condition. The LOW band remains a within-study relative-order candidate with modeled-force and small-sample limitations; independent review and human batch approval remain pending."
+    }
+    RUBRIC_ACH_PEAK_MODERATE = @{
+        action="RETAIN_WITH_LIMITATIONS"; drafts=@("DCLM_ACH_PEAK_SINGLE_CALF"); adjudications=""
+        metric="MODELED_PEAK_ACHILLES_TENDON_FORCE_BW_WITHIN_STUDY_ORDER"
+        conditions="Tested standing single-leg heel raise at study cadence; healthy adults; bodyweight; laboratory force plates; modeled Achilles tendon force normalized to bodyweight using a fixed 5 cm moment arm."
+        notes="Same-session re-audit retained the MODERATE within-study anchor with explicit model, cadence, and healthy-cohort limitations; independent review and human batch approval remain pending."
+    }
+    RUBRIC_ACH_PEAK_VERY_HIGH = @{
+        action="RETAIN_WITH_LIMITATIONS"; drafts=@("DCLM_ACH_PEAK_SINGLE_HOP"); adjudications="USER_ADJUDICATION_ACHILLES_HOP_TRANSFER_V1"
+        metric="MODELED_PEAK_ACHILLES_TENDON_FORCE_BW_WITHIN_STUDY_ORDER"
+        conditions="Tested repeated unilateral forward and lateral hopping; app stableKey ex_314df428 is a close hop-and-stick variant; healthy adults; bodyweight; laboratory force plates; modeled Achilles tendon force normalized to bodyweight."
+        notes="The VERY_HIGH candidate is retained only as a CLOSE_VARIANT transfer under the linked user adjudication. The source did not test the exact app hop-and-stick protocol; independent review and human batch approval remain pending."
+    }
+    RUBRIC_PFJ_COMP_LOW = @{
+        action="CORRECT_METRIC"; drafts=@("DCLM_PFJ_COMP_60_SQUAT"); adjudications="USER_ADJUDICATION_PFJ_COMPOSITE_COMPRESSION_V1"
+        metric="COMPOSITE_PATELLOFEMORAL_JOINT_LOADING_INDEX_50_PERCENT_PEAK_50_PERCENT_IMPULSE"
+        conditions="Tested 60-degree bilateral bodyweight squat; healthy adults; laboratory force plates; model-estimated patellofemoral force; source-defined index combines 50% normalized peak and 50% normalized impulse; full-ROM use is not implied."
+        notes="Same-session re-audit corrected the metric disclosure. LOW is a source-defined composite-index tier used as an explicit compression proxy, not a pure peak-force threshold; independent review and human batch approval remain pending."
+    }
+    RUBRIC_PFJ_COMP_MODERATE = @{
+        action="CORRECT_METRIC"; drafts=@("DCLM_PFJ_COMP_FULL_SQUAT","DCLM_PFJ_COMP_BULGARIAN","DCLM_PFJ_COMP_LUNGE","DCLM_PFJ_COMP_DROP_JUMP","DCLM_PFJ_COMP_SINGLE_HOP"); adjudications="USER_ADJUDICATION_PFJ_COMPOSITE_COMPRESSION_V1"
+        metric="COMPOSITE_PATELLOFEMORAL_JOINT_LOADING_INDEX_50_PERCENT_PEAK_50_PERCENT_IMPULSE"
+        conditions="Tested full bilateral squat, Bulgarian squat, study-defined lunge, double-leg drop vertical jump, and single-leg maximal forward hop; healthy adults; laboratory force plates; model-estimated patellofemoral force; source-defined index combines 50% normalized peak and 50% normalized impulse."
+        notes="Same-session re-audit corrected the metric disclosure. MODERATE is a source-defined composite-index tier used as an explicit compression proxy; protocol transfers and model assumptions remain limitations, and independent review and human batch approval remain pending."
+    }
+}
+
+$rubricHeaders = @("rubricId","tissueId","loadDimension","loadBand","metricType","metricLowerBound","metricUpperBound","metricUnit","anchorStableKeys","anchorConditions","anchorClaimIds","researchDecisionId","draftClaimIds","assignmentMethod","evidenceSetId","evidenceClaimIds","sourceRefs","confidenceLevel","rubricStatus","preparedBy","preparedByType","preparedAt","blindReviewedBy","blindReviewedByType","blindReviewedAt","humanApprovedBy","humanApprovedAt","reauditAction","reauditIds","claimCandidateIds","userAdjudicationIds","reviewMode","independenceStatus","rubricNotes")
+$rubrics = foreach ($row in @(Import-Csv -LiteralPath (Join-Path $AssetDirectory "tissue_load_band_rubric_v1.csv"))) {
+    $spec = $rubricSpecs[$row.rubricId]
+    if ($null -eq $spec) { throw "No Phase C rubric specification for $($row.rubricId)." }
+    [pscustomobject][ordered]@{
+        rubricId=$row.rubricId; tissueId=$row.tissueId; loadDimension=$row.loadDimension; loadBand=$row.loadBand; metricType=$spec.metric
+        metricLowerBound=$row.metricLowerBound; metricUpperBound=$row.metricUpperBound; metricUnit=$row.metricUnit; anchorStableKeys=$row.anchorStableKeys
+        anchorConditions=$spec.conditions; anchorClaimIds=$row.anchorClaimIds; researchDecisionId=$row.researchDecisionId; draftClaimIds=$row.draftClaimIds
+        assignmentMethod=$row.assignmentMethod; evidenceSetId=$row.evidenceSetId; evidenceClaimIds=$row.evidenceClaimIds; sourceRefs=$row.sourceRefs
+        confidenceLevel=$row.confidenceLevel; rubricStatus="REAUDITED_WITH_LIMITATIONS"; preparedBy=$row.preparedBy; preparedByType=$row.preparedByType; preparedAt=$row.preparedAt
+        blindReviewedBy=""; blindReviewedByType=""; blindReviewedAt=""; humanApprovedBy=""; humanApprovedAt=""; reauditAction=$spec.action
+        reauditIds=(($spec.drafts | ForEach-Object { $reauditByDraft[$_].reauditId }) -join "|")
+        claimCandidateIds=(($spec.drafts | ForEach-Object { $candidateByDraft[$_].claimCandidateId }) -join "|")
+        userAdjudicationIds=$spec.adjudications; reviewMode="SAME_SESSION_EVIDENCE_REAUDIT"; independenceStatus="NOT_INDEPENDENT"; rubricNotes=$spec.notes
+    }
+}
+Write-Table "tissue_load_band_rubric_v1.csv" $rubricHeaders @($rubrics)
+
+$hashes = @{
+    evidenceRegistry = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_load_evidence_registry_v1.csv")
+    sourceVerification = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_source_verification_v1.csv")
+    draftClaims = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_evidence_claims_draft_v1.csv")
+    reaudits = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_evidence_reaudit_v1.csv")
+    claimCandidates = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_evidence_claim_candidates_v1.csv")
+    userAdjudications = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_user_adjudication_v1.csv")
+    rubrics = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_load_band_rubric_v1.csv")
+    targetReviews = Get-SemanticCsvHash (Join-Path $AssetDirectory "tissue_rubric_target_exercise_review_v1.csv")
+}
+$inputHash = Get-CombinedHash $hashes
+$auditPath = Join-Path $AssetDirectory "tissue_metadata_audit_manifest_v1.csv"
+$existingAudits = @(Import-Csv -LiteralPath $auditPath | Where-Object { $_.auditBatchId -ne $batch })
+$baselineAudit = $existingAudits | Where-Object { $_.auditBatchId -eq "TISSUE_RUBRIC_B1_LOWER_KNEE_ANKLE" } | Select-Object -Last 1
+if ($null -eq $baselineAudit) { throw "Phase B1 audit baseline is missing." }
+$existingAuditHeaders = @($baselineAudit.PSObject.Properties.Name)
+$phaseCHeaders = @("reviewMode","independenceStatus","completionStatus","reauditSnapshotHash","claimCandidateSnapshotHash","userAdjudicationSnapshotHash","targetExerciseReviewSnapshotHash","reauditRowCount","claimCandidateCount","userAdjudicationCount","retainedClaimCount","correctedClaimCount","blockedClaimCount","retainedRubricCount","correctedRubricCount","blockedRubricCount","formalFinalClaimCount","humanBatchApprovalCount","productionProfileCount")
+$auditHeaders = @($existingAuditHeaders + $phaseCHeaders | Select-Object -Unique)
+$auditRows = foreach ($sourceRow in $existingAudits) {
+    $values = [ordered]@{}
+    foreach ($header in $auditHeaders) { $values[$header] = if ($sourceRow.PSObject.Properties.Name -contains $header) { $sourceRow.$header } else { "" } }
+    [pscustomobject]$values
+}
+$phaseCValues = [ordered]@{}
+foreach ($header in $auditHeaders) { $phaseCValues[$header] = if ($baselineAudit.PSObject.Properties.Name -contains $header) { $baselineAudit.$header } else { "" } }
+$phaseCValues.auditManifestId = "tissue_reaudit_c_$($inputHash.Substring(0, 12))"
+$phaseCValues.auditScope = "EVIDENCE_BATCH"
+$phaseCValues.auditBatchId = $batch
+$phaseCValues.rubricSnapshotHash = $hashes.rubrics
+$phaseCValues.evidenceRegistrySnapshotHash = $hashes.evidenceRegistry
+$phaseCValues.sourceVerificationSnapshotHash = $hashes.sourceVerification
+$phaseCValues.automatedValidationStatus = "PASS_WITH_WARNINGS"
+$phaseCValues.catalogEvidenceStatus = "PASS_WITH_WARNINGS"
+$phaseCValues.exerciseLoadEvidenceIntegrityStatus = "PASS_WITH_WARNINGS"
+$phaseCValues.citationVerificationStatus = "PASS_WITH_WARNINGS"
+$phaseCValues.blindReviewCoverageStatus = "NOT_APPLICABLE"
+$phaseCValues.humanApprovalCoverageStatus = "NOT_APPLICABLE"
+$phaseCValues.evidenceNotApprovedCount = "17"
+$phaseCValues.anomalyFlagCount = "1"
+$phaseCValues.failedInvariantCount = "0"
+$phaseCValues.warningCount = "3"
+$phaseCValues.generatedBy = "Codex"
+$phaseCValues.generatedByType = "AI_AGENT"
+$phaseCValues.generatedAt = $reviewedAt
+$phaseCValues.inputSnapshotHash = $inputHash
+$phaseCValues.auditDecision = "PRODUCTION_REVIEW_REQUIRED"
+$phaseCValues.auditNotes = "Same-session technical evidence re-audit completed; independent review was not performed, explicit human batch approval remains pending, and production promotion is blocked."
+$phaseCValues.sourceCount = "10"
+$phaseCValues.verifiedSourceCount = "10"
+$phaseCValues.draftClaimCount = "12"
+$phaseCValues.draftRubricCount = "5"
+$phaseCValues.blindReviewCount = "0"
+$phaseCValues.finalClaimCount = "0"
+$phaseCValues.humanApprovalCount = "0"
+$phaseCValues.productionEligibleProfileCount = "0"
+$phaseCValues.reviewMode = "SAME_SESSION_EVIDENCE_REAUDIT"
+$phaseCValues.independenceStatus = "NOT_INDEPENDENT"
+$phaseCValues.completionStatus = "EVIDENCE_REAUDIT_COMPLETE_PENDING_BATCH_APPROVAL"
+$phaseCValues.reauditSnapshotHash = $hashes.reaudits
+$phaseCValues.claimCandidateSnapshotHash = $hashes.claimCandidates
+$phaseCValues.userAdjudicationSnapshotHash = $hashes.userAdjudications
+$phaseCValues.targetExerciseReviewSnapshotHash = $hashes.targetReviews
+$phaseCValues.reauditRowCount = "12"
+$phaseCValues.claimCandidateCount = "12"
+$phaseCValues.userAdjudicationCount = "2"
+$phaseCValues.retainedClaimCount = "4"
+$phaseCValues.correctedClaimCount = "8"
+$phaseCValues.blockedClaimCount = "0"
+$phaseCValues.retainedRubricCount = "2"
+$phaseCValues.correctedRubricCount = "3"
+$phaseCValues.blockedRubricCount = "0"
+$phaseCValues.formalFinalClaimCount = "0"
+$phaseCValues.humanBatchApprovalCount = "0"
+$phaseCValues.productionProfileCount = "0"
+Write-Table "tissue_metadata_audit_manifest_v1.csv" $auditHeaders @($auditRows + [pscustomobject]$phaseCValues)
+
 Write-Output "REAUDIT_ROWS=$($reaudits.Count)"
 Write-Output "CLAIM_CANDIDATES=$($candidates.Count)"
+Write-Output "USER_ADJUDICATIONS=$($adjudications.Count)"
+Write-Output "RUBRICS=$($rubrics.Count)"
+Write-Output "AUDIT_ID=$($phaseCValues.auditManifestId)"
+Write-Output "INPUT_HASH=$inputHash"
+$hashes.GetEnumerator() | Sort-Object Name | ForEach-Object { Write-Output "$($_.Name.ToUpperInvariant())_SEMANTIC_SHA256=$($_.Value)" }
+Write-Output "AUDIT_MANIFEST_FILE_SHA256=$((Get-FileHash -LiteralPath $auditPath -Algorithm SHA256).Hash.ToLowerInvariant())"

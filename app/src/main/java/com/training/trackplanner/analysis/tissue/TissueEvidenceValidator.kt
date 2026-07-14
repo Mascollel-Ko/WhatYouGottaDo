@@ -535,6 +535,10 @@ object TissueEvidenceValidator {
             TissueRubricStatus.REAUDITED_WITH_LIMITATIONS,
             TissueRubricStatus.BLOCKED_AFTER_REAUDIT
         )
+        reaudits.filter { it.userAdjudicationIds.any { id -> id !in adjudicationIds } }
+            .forEach { errors += "${it.reauditId}: unknown user adjudication link." }
+        candidates.filter { it.userAdjudicationIds.any { id -> id !in adjudicationIds } }
+            .forEach { errors += "${it.claimCandidateId}: unknown user adjudication link." }
         rubrics.forEach { rubric ->
             if (rubric.reauditAction == null) errors += "${rubric.rubricId}: re-audit action is missing."
             if (rubric.reauditIds.isEmpty() || rubric.reauditIds.any { it !in reauditIds }) {
@@ -547,6 +551,24 @@ object TissueEvidenceValidator {
             }
             if (rubric.userAdjudicationIds.any { it !in adjudicationIds }) {
                 errors += "${rubric.rubricId}: unknown user adjudication link."
+            }
+            val linkedCandidates = candidates.filter { it.claimCandidateId in rubric.claimCandidateIds }
+            if (linkedCandidates.any {
+                    it.tissueId != rubric.tissueId || it.loadDimension != rubric.loadDimension ||
+                        it.maximumDefensibleBand != rubric.loadBand
+                }
+            ) {
+                errors += "${rubric.rubricId}: linked candidate does not support the rubric tissue, dimension, and band."
+            }
+            if (rubric.rubricId == "RUBRIC_ACH_PEAK_VERY_HIGH" &&
+                rubric.userAdjudicationIds != listOf(TissuePhaseCContract.achillesAdjudicationId)
+            ) {
+                errors += "${rubric.rubricId}: Achilles transfer adjudication is required."
+            }
+            if (rubric.tissueId == "KNEE_PATELLOFEMORAL" &&
+                rubric.userAdjudicationIds != listOf(TissuePhaseCContract.pfjAdjudicationId)
+            ) {
+                errors += "${rubric.rubricId}: PFJ composite-proxy adjudication is required."
             }
             if (rubric.rubricStatus !in allowedStatuses) errors += "${rubric.rubricId}: invalid Phase C rubric status."
             if (rubric.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||

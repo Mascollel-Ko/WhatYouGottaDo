@@ -46,9 +46,6 @@ class TissuePhaseB1ResearchTest {
             sources, drafts, decisions, reviews, canonicalNames, catalog
         )
         assertTrue(researchReport.errors.toString(), researchReport.isValid)
-        val rubricReport = TissueEvidenceValidator.phaseB1Rubrics(sources, drafts, decisions, reviews, rubrics)
-        assertTrue(rubricReport.errors.toString(), rubricReport.isValid)
-        assertTrue(rubrics.all { it.rubricStatus == TissueRubricStatus.DRAFT_RESEARCHED_PENDING_BLIND_REVIEW })
         assertTrue(rubrics.all { it.anchorClaimIds.isEmpty() && it.evidenceClaimIds.isEmpty() })
         assertTrue(rubrics.all { it.draftClaimIds.isNotEmpty() && it.sourceRefs.isNotEmpty() })
         assertTrue(rubrics.all { it.humanApprovedBy.isBlank() && it.humanApprovedAt.isBlank() })

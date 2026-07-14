@@ -63,4 +63,48 @@ All 12 positive candidates remain `productionEligibility = false`, have blank hu
 
 ### User Adjudications and Rubrics
 
-The two explicit user adjudications and five rubric-row decisions are recorded in the final Phase C commit below.
+The two explicit user instructions were recorded as interpretation adjudications, not approvals:
+
+- `USER_ADJUDICATION_ACHILLES_HOP_TRANSFER_V1` permits the `ex_314df428` Achilles peak-load transfer only as `CLOSE_VARIANT`, with `CLOSE_VARIANT_TRANSFER` and maximum candidate band `VERY_HIGH`. It does not represent the source protocol as an exact app match.
+- `USER_ADJUDICATION_PFJ_COMPOSITE_COMPRESSION_V1` permits the source-defined 50% peak plus 50% impulse PFJ loading index as `DIMENSION_SUPPORTED_BY_EXPLICIT_PROXY`. The metric remains visibly composite and is never described as pure peak compression force.
+
+Both rows use `HUMAN_USER` / `EXPLICIT_USER_INSTRUCTION`, set `isBatchApproval = false`, and set `productionEligibilityEffect = NONE`.
+
+| Rubric | Band | Re-audit action | Metric or anchor | Supporting candidates | Adjudication | Remaining limitation | Status |
+|---|---|---|---|---|---|---|---|
+| `RUBRIC_ACH_PEAK_LOW` | LOW | `CORRECT_ANCHOR` | Modeled peak Achilles force; 0.5-0.7 BW range across two seated conditions with 15 kg thigh load | `CLAIM_C_58F3A7A0619274D3` | none | Range is not one group mean; fixed-moment-arm model and small healthy sample | `REAUDITED_WITH_LIMITATIONS` |
+| `RUBRIC_ACH_PEAK_MODERATE` | MODERATE | `RETAIN_WITH_LIMITATIONS` | Modeled peak Achilles force; standing single-leg heel raise, 3.0 +/- 0.3 BW | `CLAIM_C_44B1199853E615F2` | none | Fixed 5 cm moment arm, study cadence, healthy sample | `REAUDITED_WITH_LIMITATIONS` |
+| `RUBRIC_ACH_PEAK_VERY_HIGH` | VERY_HIGH | `RETAIN_WITH_LIMITATIONS` | Modeled peak Achilles force; repeated directional single-leg hops, 7.3 BW | `CLAIM_C_F4E8375FB29EC165` | Achilles hop transfer | Close variant rather than exact hop-and-stick protocol | `REAUDITED_WITH_LIMITATIONS` |
+| `RUBRIC_PFJ_COMP_LOW` | LOW | `CORRECT_METRIC` | Composite PFJ loading index; LOW is source tier below 0.333 | `CLAIM_C_8A2D37D94C1330F7` | PFJ composite proxy | 60-degree close variant; composite proxy rather than pure peak threshold | `REAUDITED_WITH_LIMITATIONS` |
+| `RUBRIC_PFJ_COMP_MODERATE` | MODERATE | `CORRECT_METRIC` | Composite PFJ loading index; MODERATE is source tier 0.333-0.667 | `CLAIM_C_084C0B3DCC597268`, `CLAIM_C_0777BA7A1FB88DF1`, `CLAIM_C_E09E28E71A401E8D`, `CLAIM_C_E540DF218D72E603`, `CLAIM_C_4D02CF35465C7511` | PFJ composite proxy | Model assumptions and exercise-protocol transfers remain condition-specific | `REAUDITED_WITH_LIMITATIONS` |
+
+Bands represented after re-audit are `LOW`, `MODERATE`, and `VERY_HIGH`. `HIGH` remains intentionally undefined; no equal-quartile or cross-study interpolation was introduced.
+
+### Deterministic Integrity
+
+Semantic CSV SHA-256 values ignore row ordering while preserving headers and field values:
+
+| Artifact | SHA-256 |
+|---|---|
+| Evidence registry | `2e729407da8279c89f2289239285a9722d30305c64e282e8e8562d4e3acda04b` |
+| Source verification | `32f57e1f2a4a7deb4a529258028bf43bacc2714c93a5e26d8057ad750eb35607` |
+| Phase B1 draft claims | `397457e43c4f00bb19d74c9439290dac641fa21229ad6a4a1cf85ac3ffd345c7` |
+| Phase C re-audits | `d76e40997928e92168a90a76e50437c76f1fecab1c9e5da47f88ce3cad46f26d` |
+| Phase C claim candidates | `9288c959d0d0443a064975a2b1cc2ced510040e86a32ccc9e02668d854136658` |
+| User adjudications | `ac3228b6ab5dc609c4f9a74412f62221ba75e18c7858d0201933a5aca1a56a9d` |
+| Re-audited rubrics | `e7cb3e946118a7acd4c8aa75824a03048a5621ffd5e047efdef2fb5a56bf8d12` |
+| Target-exercise review | `af2bd3e3f6d0abb32bb5759f532165d22a5184f96720018965ee37f6da43703f` |
+| Audit manifest file bytes | `e4a9bd9bbe75e9f3e1317c418325b71bc43320a67eae1e82e9a293bbbd3b0757` |
+
+The combined Phase C input hash is `94c15f4d43e843cd0238b1dd276d83e962bdf846a28a110330c5a970c0a64463`; audit row `tissue_reaudit_c_94c15f4d43e8` records 12 re-audits, 12 candidates, 2 adjudications, 4 retained claims, 8 corrected claims, 0 blocked claims, 2 retained rubrics, 3 corrected rubrics, and 0 blocked rubrics.
+
+## Remaining Approval
+
+Phase C status is `EVIDENCE_REAUDIT_COMPLETE_PENDING_BATCH_APPROVAL`. A human must still decide whether to:
+
+- Approve all 12 claim candidates as a batch or review them individually.
+- Approve the three corrected and two retained-with-limitations rubric rows.
+- Promote approved candidates into the formal final-claim ledger.
+- Begin Phase D1 Achilles/PFJ production-profile backfill.
+
+Until then, blind-review rows, formal final claims, human batch approvals, and all four production profile ledgers remain empty. Existing six-axis fatigue, OFI, readiness, ProgramBuilder, Room/backup, and Bayesian/time-series behavior remain disconnected from these candidates.
