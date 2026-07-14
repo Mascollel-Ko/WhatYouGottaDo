@@ -109,6 +109,18 @@ enum class TissueReviewIndependenceStatus {
     NOT_INDEPENDENT
 }
 
+enum class TissueFinalClaimReviewPath {
+    INDEPENDENT_BLIND_REVIEW,
+    SAME_SESSION_REAUDIT_WITH_HUMAN_BATCH_APPROVAL
+}
+
+enum class TissueBatchApprovalDecision {
+    APPROVED,
+    PARTIALLY_APPROVED,
+    REJECTED,
+    REVOKED
+}
+
 enum class TissueEvidenceAccessLevel {
     ABSTRACT,
     FULL_TEXT,
@@ -489,33 +501,78 @@ data class TissueBlindReview(
 
 data class TissueFinalClaim(
     val claimId: String,
+    val reviewBatchId: String,
+    val reviewPath: TissueFinalClaimReviewPath?,
     val draftClaimId: String,
     val blindReviewId: String,
+    val reauditId: String,
+    val claimCandidateId: String,
+    val batchApprovalId: String,
     val sourceId: String,
     val stableKey: String,
     val tissueId: String,
     val loadDimension: TissueLoadDimension,
+    val finalClaimType: String,
+    val finalClaimParaphrase: String,
+    val finalClaimDirection: String,
     val finalClaimValue: Double?,
+    val finalClaimLowerBound: Double?,
+    val finalClaimUpperBound: Double?,
     val finalClaimUnit: String,
+    val normalizationBasis: String,
+    val supportedCondition: String,
+    val measurementMethod: String,
+    val evidenceLocatorType: String,
     val evidenceLocator: String,
+    val evidenceAccessLevel: TissueEvidenceAccessLevel?,
+    val exerciseCorrespondence: TissueExerciseCorrespondence?,
+    val tissueCorrespondence: TissueCorrespondence?,
+    val dimensionCorrespondence: TissueDimensionCorrespondence?,
+    val crossStudyComparability: TissueCrossStudyComparability?,
+    val maximumDefensibleBand: TissueLoadBand?,
+    val bandBasis: TissueEvidenceBandBasis?,
+    val claimSupportStatus: TissueClaimSupportStatus?,
+    val confidenceLevel: TissueEvidenceConfidenceLevel?,
     val comparisonStatus: TissueClaimComparisonStatus,
     val identifierVerificationStatus: TissueIdentifierVerificationStatus,
     val bibliographicMatchStatus: TissueBibliographicMatchStatus,
     val claimVerificationStatus: TissueClaimVerificationStatus,
     val publicationIntegrityStatus: TissuePublicationIntegrityStatus,
+    val approvalAuditManifestId: String,
+    val approvalScopeHash: String,
+    val sourceVerificationSnapshotHash: String,
     val preparedBy: String,
     val preparedByType: TissueActorType,
+    val preparedAt: String,
     val blindReviewedBy: String,
-    val blindReviewedByType: TissueActorType,
+    val blindReviewedByType: TissueActorType?,
+    val blindReviewedAt: String,
     val humanApprovedBy: String,
-    val productionEligibility: Boolean
+    val humanApprovedByType: TissueActorType?,
+    val humanApprovedAt: String,
+    val productionEligibility: Boolean,
+    val finalClaimNotes: String
 )
 
 data class TissueReviewBatchApproval(
+    val batchApprovalId: String,
     val reviewBatchId: String,
+    val reviewPath: TissueFinalClaimReviewPath,
+    val approvalRequestId: String,
+    val approvalScopeHash: String,
     val auditManifestId: String,
-    val humanApprover: String,
+    val auditInputSnapshotHash: String,
+    val sourceVerificationSnapshotHash: String,
+    val publicationIntegritySnapshotHash: String,
+    val approvedClaimCandidateIds: List<String>,
+    val approvedRubricIds: List<String>,
+    val excludedClaimCandidateIds: List<String>,
+    val excludedRubricIds: List<String>,
+    val exclusionReasons: String,
+    val humanApproverLabel: String,
+    val humanApproverType: TissueActorType,
     val humanApprovedAt: String,
     val automatedValidationPassed: Boolean,
-    val approvalDecision: String
+    val approvalDecision: TissueBatchApprovalDecision,
+    val approvalNotes: String
 )

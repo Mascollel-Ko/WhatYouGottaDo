@@ -18,7 +18,12 @@ object TissueEvidenceValidator {
         blindReviews: List<TissueBlindReview>,
         finalClaims: List<TissueFinalClaim>,
         canonicalStableKeys: Set<String>,
-        catalog: List<TissueCatalogEntry>
+        catalog: List<TissueCatalogEntry>,
+        reaudits: List<TissueEvidenceReaudit> = emptyList(),
+        candidates: List<TissueEvidenceClaimCandidate> = emptyList(),
+        approvals: List<TissueReviewBatchApproval> = emptyList(),
+        rubrics: List<TissueLoadRubric> = emptyList(),
+        auditManifests: List<TissueMetadataAuditManifest> = emptyList()
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
         val sourceById = sources.associateBy(TissueEvidenceSource::sourceId)
@@ -29,6 +34,10 @@ object TissueEvidenceValidator {
         if (blindById.size != blindReviews.size) errors += "Duplicate blindReviewId."
         if (finalClaims.map(TissueFinalClaim::claimId).distinct().size != finalClaims.size) errors += "Duplicate claimId."
         val tissueById = catalog.associateBy(TissueCatalogEntry::tissueId)
+        val reauditById = reaudits.associateBy(TissueEvidenceReaudit::reauditId)
+        val candidateById = candidates.associateBy(TissueEvidenceClaimCandidate::claimCandidateId)
+        val approvalById = approvals.associateBy(TissueReviewBatchApproval::batchApprovalId)
+        val auditById = auditManifests.associateBy(TissueMetadataAuditManifest::auditManifestId)
 
         drafts.forEach { draft ->
             if (draft.sourceId !in sourceById) errors += "${draft.draftClaimId}: unknown sourceId."
@@ -50,26 +59,31 @@ object TissueEvidenceValidator {
         }
         finalClaims.forEach { claim ->
             val draft = draftById[claim.draftClaimId]
-            val blind = blindById[claim.blindReviewId]
             val source = sourceById[claim.sourceId]
-            if (draft == null) errors += "${claim.claimId}: unknown draftClaimId."
-            if (blind == null) errors += "${claim.claimId}: missing blind review."
-            if (source == null) errors += "${claim.claimId}: unknown sourceId."
-            if (claim.preparedBy == claim.blindReviewedBy) errors += "${claim.claimId}: blind reviewer matches preparer."
-            if (claim.finalClaimValue != null && (claim.finalClaimUnit.isBlank() || claim.evidenceLocator.isBlank())) {
-                errors += "${claim.claimId}: numeric final claim lacks unit or locator."
+            val approval = approvalById[claim.batchApprovalId]
+            errors += validateCommonFinalClaim(
+                claim,
+                draft,
+                source,
+                canonicalStableKeys,
+                tissueById,
+                approval,
+                auditById[claim.approvalAuditManifestId]
+            )
+            when (claim.reviewPath) {
+                TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW ->
+                    errors += validateIndependentBlindPath(claim, blindById[claim.blindReviewId])
+                TissueFinalClaimReviewPath.SAME_SESSION_REAUDIT_WITH_HUMAN_BATCH_APPROVAL ->
+                    errors += validateSameSessionApprovalPath(
+                        claim = claim,
+                        reaudit = reauditById[claim.reauditId],
+                        candidate = candidateById[claim.claimCandidateId],
+                        approval = approval,
+                        linkedRubrics = rubrics.filter { claim.claimCandidateId in it.claimCandidateIds }
+                    )
+                null -> errors += "${claim.claimId}: explicit reviewPath is required."
             }
-            if (claim.productionEligibility && !claim.productionGatePasses(source)) {
-                errors += "${claim.claimId}: production source/claim gate failed."
-            }
-            if (claim.productionEligibility && claim.humanApprovedBy.isBlank()) {
-                errors += "${claim.claimId}: production claim lacks human approval."
-            }
-            if (claim.humanApprovedBy.isNotBlank() && claim.preparedByType == TissueActorType.AI_AGENT &&
-                claim.humanApprovedBy == claim.preparedBy
-            ) {
-                errors += "${claim.claimId}: AI preparer cannot self-approve as human."
-            }
+            errors += validateProductionGate(claim, source, approval)
         }
         return TissueValidationReport(errors)
     }
@@ -80,14 +94,38 @@ object TissueEvidenceValidator {
     ): TissueValidationReport {
         val errors = mutableListOf<String>()
         val audits = auditManifests.associateBy(TissueMetadataAuditManifest::auditManifestId)
+        if (approvals.map(TissueReviewBatchApproval::batchApprovalId).distinct().size != approvals.size) {
+            errors += "Duplicate batchApprovalId."
+        }
         approvals.forEach { approval ->
             val audit = audits[approval.auditManifestId]
-            if (audit == null) errors += "${approval.reviewBatchId}: audit manifest does not exist."
-            if (approval.humanApprover.isBlank() || approval.humanApprovedAt.isBlank()) {
-                errors += "${approval.reviewBatchId}: human approval is missing."
+            if (audit == null) errors += "${approval.batchApprovalId}: audit manifest does not exist."
+            if (approval.humanApproverLabel.isBlank() || approval.humanApprovedAt.isBlank() ||
+                approval.humanApproverType != TissueActorType.HUMAN_USER
+            ) {
+                errors += "${approval.batchApprovalId}: human approval is missing or not HUMAN_USER."
             }
-            if (!approval.automatedValidationPassed) errors += "${approval.reviewBatchId}: automated validation failed."
-            if (audit?.auditDecision == TissueAuditDecision.BLOCKED) errors += "${approval.reviewBatchId}: audit is blocked."
+            if (!approval.automatedValidationPassed) errors += "${approval.batchApprovalId}: automated validation failed."
+            if (approval.approvalScopeHash.isBlank() || approval.approvalRequestId.isBlank() ||
+                approval.auditInputSnapshotHash.isBlank() || approval.sourceVerificationSnapshotHash.isBlank() ||
+                approval.publicationIntegritySnapshotHash.isBlank()
+            ) {
+                errors += "${approval.batchApprovalId}: approval snapshots are incomplete."
+            }
+            if (audit != null && approval.auditInputSnapshotHash != audit.inputSnapshotHash) {
+                errors += "${approval.batchApprovalId}: approval audit snapshot is stale."
+            }
+            if (approval.approvalDecision == TissueBatchApprovalDecision.APPROVED &&
+                (approval.excludedClaimCandidateIds.isNotEmpty() || approval.excludedRubricIds.isNotEmpty())
+            ) {
+                errors += "${approval.batchApprovalId}: full approval cannot contain exclusions."
+            }
+            if (approval.approvalDecision == TissueBatchApprovalDecision.PARTIALLY_APPROVED &&
+                ((approval.excludedClaimCandidateIds.isEmpty() && approval.excludedRubricIds.isEmpty()) || approval.exclusionReasons.isBlank())
+            ) {
+                errors += "${approval.batchApprovalId}: partial approval requires explicit exclusions and reasons."
+            }
+            if (audit?.auditDecision == TissueAuditDecision.BLOCKED) errors += "${approval.batchApprovalId}: audit is blocked."
         }
         return TissueValidationReport(errors)
     }
@@ -631,6 +669,174 @@ object TissueEvidenceValidator {
         }
         return TissueValidationReport(errors)
     }
+
+    private fun validateCommonFinalClaim(
+        claim: TissueFinalClaim,
+        draft: TissueDraftClaim?,
+        source: TissueEvidenceSource?,
+        canonicalStableKeys: Set<String>,
+        tissueById: Map<String, TissueCatalogEntry>,
+        approval: TissueReviewBatchApproval?,
+        audit: TissueMetadataAuditManifest?
+    ): List<String> = buildList {
+        if (draft == null) add("${claim.claimId}: unknown draftClaimId.")
+        if (source == null) add("${claim.claimId}: unknown sourceId.")
+        if (claim.stableKey !in canonicalStableKeys) add("${claim.claimId}: unknown stableKey.")
+        if (claim.loadDimension !in tissueById[claim.tissueId]?.supportedLoadDimensions.orEmpty()) {
+            add("${claim.claimId}: unsupported tissue dimension.")
+        }
+        if (draft != null && listOf(draft.sourceId, draft.stableKey, draft.tissueId, draft.loadDimension.name) !=
+            listOf(claim.sourceId, claim.stableKey, claim.tissueId, claim.loadDimension.name)
+        ) {
+            add("${claim.claimId}: final claim identity differs from draft.")
+        }
+        val values = listOfNotNull(claim.finalClaimValue, claim.finalClaimLowerBound, claim.finalClaimUpperBound)
+        if (values.any { !it.isFinite() || it < 0.0 }) add("${claim.claimId}: final claim has invalid numeric values.")
+        if (claim.finalClaimLowerBound != null && claim.finalClaimUpperBound != null &&
+            claim.finalClaimLowerBound > claim.finalClaimUpperBound
+        ) {
+            add("${claim.claimId}: final claim range is inverted.")
+        }
+        if (values.isNotEmpty() && (claim.finalClaimUnit.isBlank() || claim.evidenceLocator.isBlank() ||
+                claim.normalizationBasis.isBlank() || claim.supportedCondition.isBlank())) {
+            add("${claim.claimId}: numeric final claim lacks unit, locator, normalization, or condition.")
+        }
+        if (source != null && (source.identifierVerificationStatus !in productionIdentifierStatuses ||
+                source.bibliographicMatchStatus != TissueBibliographicMatchStatus.MATCHED ||
+                claim.identifierVerificationStatus != source.identifierVerificationStatus ||
+                claim.bibliographicMatchStatus != source.bibliographicMatchStatus)
+        ) {
+            add("${claim.claimId}: source identity or bibliography is not verified and matched.")
+        }
+        if (claim.claimVerificationStatus !in productionClaimStatuses) {
+            add("${claim.claimId}: claim verification status is not supported.")
+        }
+        if (claim.humanApprovedBy.isBlank() || claim.humanApprovedByType != TissueActorType.HUMAN_USER ||
+            claim.humanApprovedAt.isBlank()) {
+            add("${claim.claimId}: explicit HUMAN_USER approval is required.")
+        }
+        if (claim.preparedByType == TissueActorType.AI_AGENT && claim.humanApprovedBy == claim.preparedBy) {
+            add("${claim.claimId}: AI preparer cannot self-approve as human.")
+        }
+        if (approval == null) {
+            add("${claim.claimId}: matching batch approval is required.")
+        } else {
+            if (approval.approvalDecision !in setOf(
+                    TissueBatchApprovalDecision.APPROVED,
+                    TissueBatchApprovalDecision.PARTIALLY_APPROVED
+                ) || !approval.automatedValidationPassed
+            ) {
+                add("${claim.claimId}: batch approval is rejected, revoked, or invalid.")
+            }
+            if (claim.reviewPath != approval.reviewPath || claim.reviewBatchId != approval.reviewBatchId ||
+                claim.approvalScopeHash != approval.approvalScopeHash ||
+                claim.approvalAuditManifestId != approval.auditManifestId ||
+                claim.sourceVerificationSnapshotHash != approval.sourceVerificationSnapshotHash
+            ) {
+                add("${claim.claimId}: approval identity or snapshot hash does not match.")
+            }
+            if (claim.humanApprovedBy != approval.humanApproverLabel ||
+                claim.humanApprovedByType != approval.humanApproverType ||
+                claim.humanApprovedAt != approval.humanApprovedAt
+            ) {
+                add("${claim.claimId}: final claim human approval differs from batch approval.")
+            }
+            if (audit == null || audit.inputSnapshotHash != approval.auditInputSnapshotHash) {
+                add("${claim.claimId}: approval audit snapshot is stale or missing.")
+            }
+        }
+    }
+
+    private fun validateIndependentBlindPath(
+        claim: TissueFinalClaim,
+        blind: TissueBlindReview?
+    ): List<String> = buildList {
+        if (claim.blindReviewId.isBlank() || blind == null) add("${claim.claimId}: blind path requires a valid blind review.")
+        if (claim.reauditId.isNotBlank() || claim.claimCandidateId.isNotBlank()) {
+            add("${claim.claimId}: blind path cannot populate same-session candidate fields.")
+        }
+        if (blind != null && listOf(blind.draftClaimId, blind.sourceId, blind.stableKey, blind.tissueId, blind.loadDimension.name) !=
+            listOf(claim.draftClaimId, claim.sourceId, claim.stableKey, claim.tissueId, claim.loadDimension.name)
+        ) {
+            add("${claim.claimId}: blind-review identity differs from final claim.")
+        }
+        if (blind != null && blind.claimVerificationStatus !in productionClaimStatuses) {
+            add("${claim.claimId}: blind-review claim status is unsupported.")
+        }
+        if (claim.blindReviewedBy.isBlank() || claim.blindReviewedByType == null || claim.blindReviewedAt.isBlank()) {
+            add("${claim.claimId}: blind-review identity is incomplete.")
+        }
+        if (claim.blindReviewedBy == claim.preparedBy || blind?.blindReviewedBy == claim.preparedBy) {
+            add("${claim.claimId}: blind reviewer matches preparer.")
+        }
+    }
+
+    private fun validateSameSessionApprovalPath(
+        claim: TissueFinalClaim,
+        reaudit: TissueEvidenceReaudit?,
+        candidate: TissueEvidenceClaimCandidate?,
+        approval: TissueReviewBatchApproval?,
+        linkedRubrics: List<TissueLoadRubric>
+    ): List<String> = buildList {
+        if (claim.blindReviewId.isNotBlank() || claim.blindReviewedBy.isNotBlank() ||
+            claim.blindReviewedByType != null || claim.blindReviewedAt.isNotBlank()) {
+            add("${claim.claimId}: same-session path cannot contain fabricated blind-review fields.")
+        }
+        if (reaudit == null) add("${claim.claimId}: same-session path requires a valid re-audit.")
+        if (candidate == null) add("${claim.claimId}: same-session path requires a valid claim candidate.")
+        if (reaudit != null && (reaudit.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||
+                reaudit.independenceStatus != TissueReviewIndependenceStatus.NOT_INDEPENDENT)) {
+            add("${claim.claimId}: re-audit identity is not the same-session non-independent path.")
+        }
+        if (candidate != null && (candidate.reviewMode != TissueEvidenceReviewMode.SAME_SESSION_EVIDENCE_REAUDIT ||
+                candidate.independenceStatus != TissueReviewIndependenceStatus.NOT_INDEPENDENT)) {
+            add("${claim.claimId}: candidate identity is not the same-session non-independent path.")
+        }
+        if (reaudit != null && candidate != null && (candidate.reauditId != reaudit.reauditId ||
+                candidate.draftClaimId != reaudit.draftClaimId || candidate.sourceId != reaudit.sourceId)) {
+            add("${claim.claimId}: candidate does not belong to the linked re-audit.")
+        }
+        if (candidate != null && !claim.matches(candidate)) {
+            add("${claim.claimId}: final claim scientific payload differs from approved candidate.")
+        }
+        if (approval == null) return@buildList
+        if (claim.claimCandidateId !in approval.approvedClaimCandidateIds) {
+            add("${claim.claimId}: candidate is outside the approved scope.")
+        }
+        val linkedRubricIds = linkedRubrics.map(TissueLoadRubric::rubricId).toSet()
+        if (!approval.approvedRubricIds.containsAll(linkedRubricIds)) {
+            add("${claim.claimId}: linked rubrics are outside the approved scope.")
+        }
+    }
+
+    private fun validateProductionGate(
+        claim: TissueFinalClaim,
+        source: TissueEvidenceSource?,
+        approval: TissueReviewBatchApproval?
+    ): List<String> = buildList {
+        if (claim.productionEligibility && !claim.productionGatePasses(source)) {
+            add("${claim.claimId}: production source/claim gate failed.")
+        }
+        if (claim.productionEligibility && approval?.approvalDecision !in
+            setOf(TissueBatchApprovalDecision.APPROVED, TissueBatchApprovalDecision.PARTIALLY_APPROVED)) {
+            add("${claim.claimId}: production eligibility lacks active approval.")
+        }
+    }
+
+    private fun TissueFinalClaim.matches(candidate: TissueEvidenceClaimCandidate): Boolean =
+        draftClaimId == candidate.draftClaimId && reauditId == candidate.reauditId && sourceId == candidate.sourceId &&
+            stableKey == candidate.stableKey && tissueId == candidate.tissueId && loadDimension == candidate.loadDimension &&
+            finalClaimType == candidate.candidateClaimType && finalClaimParaphrase == candidate.candidateClaimParaphrase &&
+            finalClaimDirection == candidate.candidateClaimDirection && finalClaimValue == candidate.candidateValue &&
+            finalClaimLowerBound == candidate.candidateLowerBound && finalClaimUpperBound == candidate.candidateUpperBound &&
+            finalClaimUnit == candidate.candidateUnit && normalizationBasis == candidate.normalizationBasis &&
+            supportedCondition == candidate.supportedCondition && measurementMethod == candidate.measurementMethod &&
+            evidenceLocatorType == candidate.evidenceLocatorType && evidenceLocator == candidate.evidenceLocator &&
+            evidenceAccessLevel == candidate.evidenceAccessLevel && exerciseCorrespondence == candidate.exerciseCorrespondence &&
+            tissueCorrespondence == candidate.tissueCorrespondence && dimensionCorrespondence == candidate.dimensionCorrespondence &&
+            crossStudyComparability == candidate.crossStudyComparability && maximumDefensibleBand == candidate.maximumDefensibleBand &&
+            bandBasis == candidate.bandBasis && claimSupportStatus == candidate.claimSupportStatus &&
+            confidenceLevel == candidate.confidenceLevel
 
     private fun TissueFinalClaim.productionGatePasses(source: TissueEvidenceSource?): Boolean =
         source != null &&

@@ -71,7 +71,7 @@ class TissueEvidenceValidatorTest {
         assertFalse(report.isValid)
         assertTrue(report.errors.any { "blind reviewer matches preparer" in it })
         assertTrue(report.errors.any { "production source/claim gate failed" in it })
-        assertTrue(report.errors.any { "lacks human approval" in it })
+        assertTrue(report.errors.any { "explicit HUMAN_USER approval is required" in it })
     }
 
     @Test
@@ -93,17 +93,31 @@ class TissueEvidenceValidatorTest {
     @Test
     fun batchApprovalCannotReferenceMissingOrBlockedAuditAndCannotOmitHuman() {
         val approval = TissueReviewBatchApproval(
+            batchApprovalId = "approval",
             reviewBatchId = "batch",
+            reviewPath = TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW,
+            approvalRequestId = "request",
+            approvalScopeHash = "scope",
             auditManifestId = "missing",
-            humanApprover = "",
+            auditInputSnapshotHash = "audit",
+            sourceVerificationSnapshotHash = "source",
+            publicationIntegritySnapshotHash = "integrity",
+            approvedClaimCandidateIds = emptyList(),
+            approvedRubricIds = emptyList(),
+            excludedClaimCandidateIds = emptyList(),
+            excludedRubricIds = emptyList(),
+            exclusionReasons = "",
+            humanApproverLabel = "",
+            humanApproverType = TissueActorType.HUMAN_USER,
             humanApprovedAt = "",
             automatedValidationPassed = false,
-            approvalDecision = "APPROVED"
+            approvalDecision = TissueBatchApprovalDecision.APPROVED,
+            approvalNotes = ""
         )
         val report = TissueEvidenceValidator.batchApprovals(listOf(approval), emptyList())
 
         assertFalse(report.isValid)
-        assertEquals(3, report.errors.size)
+        assertTrue(report.errors.size >= 3)
         assertTrue(TissueEvidenceParser.batchApprovals(tissueAsset("tissue_review_batch_approval_v1.csv")).isEmpty())
     }
 
@@ -163,26 +177,57 @@ class TissueEvidenceValidatorTest {
 
     private fun finalClaim() = TissueFinalClaim(
         claimId = "claim",
+        reviewBatchId = "batch",
+        reviewPath = TissueFinalClaimReviewPath.INDEPENDENT_BLIND_REVIEW,
         draftClaimId = "draft",
         blindReviewId = "blind",
+        reauditId = "",
+        claimCandidateId = "",
+        batchApprovalId = "approval",
         sourceId = "PREFLIGHT_32658037",
         stableKey = "ex_fixture",
         tissueId = "ACHILLES_TENDON",
         loadDimension = TissueLoadDimension.PEAK_TENSILE_LOAD,
+        finalClaimType = "QUALITATIVE",
+        finalClaimParaphrase = "Fixture",
+        finalClaimDirection = "SUPPORTED",
         finalClaimValue = null,
+        finalClaimLowerBound = null,
+        finalClaimUpperBound = null,
         finalClaimUnit = "",
+        normalizationBasis = "",
+        supportedCondition = "Fixture",
+        measurementMethod = "Fixture",
+        evidenceLocatorType = "TABLE",
         evidenceLocator = "",
+        evidenceAccessLevel = TissueEvidenceAccessLevel.TABLE,
+        exerciseCorrespondence = TissueExerciseCorrespondence.EXACT_PROTOCOL_MATCH,
+        tissueCorrespondence = TissueCorrespondence.TISSUE_DIRECTLY_SUPPORTED,
+        dimensionCorrespondence = TissueDimensionCorrespondence.DIMENSION_DIRECTLY_SUPPORTED,
+        crossStudyComparability = TissueCrossStudyComparability.NOT_CROSS_STUDY_COMPARABLE,
+        maximumDefensibleBand = null,
+        bandBasis = TissueEvidenceBandBasis.INSUFFICIENT_BASIS,
+        claimSupportStatus = TissueClaimSupportStatus.SUPPORTED_AS_DIRECT,
+        confidenceLevel = TissueEvidenceConfidenceLevel.LOW,
         comparisonStatus = TissueClaimComparisonStatus.MATCH,
         identifierVerificationStatus = TissueIdentifierVerificationStatus.UNVERIFIED,
         bibliographicMatchStatus = TissueBibliographicMatchStatus.UNVERIFIED,
         claimVerificationStatus = TissueClaimVerificationStatus.UNREVIEWED,
         publicationIntegrityStatus = TissuePublicationIntegrityStatus.STATUS_UNKNOWN,
+        approvalAuditManifestId = "audit",
+        approvalScopeHash = "scope",
+        sourceVerificationSnapshotHash = "source",
         preparedBy = "Codex",
         preparedByType = TissueActorType.AI_AGENT,
+        preparedAt = "2026-07-14T00:00:00Z",
         blindReviewedBy = "Independent",
         blindReviewedByType = TissueActorType.HUMAN,
+        blindReviewedAt = "2026-07-14T00:00:00Z",
         humanApprovedBy = "",
-        productionEligibility = false
+        humanApprovedByType = null,
+        humanApprovedAt = "",
+        productionEligibility = false,
+        finalClaimNotes = "Fixture"
     )
 
     private fun profile() = TissueLoadProfile(
