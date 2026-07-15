@@ -33,9 +33,64 @@ object TissueMtcParser {
         )
     }
 
+    fun axisScales(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcAxisScale(
+            row.required("axisScaleId"), row.required("targetId"), row.enum("axis"),
+            row.required("physicalMetricType"), row.required("normalizationBasis"),
+            row.required("measurementFamily"), row.required("comparisonFamily"),
+            row.required("populationScope"), row.required("conditionFamily"), row.required("version")
+        )
+    }
+
+    fun rubrics(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcRubric(
+            row.required("rubricId"), row.required("axisScaleId"), row.enum("rubricKind"), row.double("score"),
+            row.double("lowerBound"), row.double("upperBound"), row.optionalBoolean("lowerInclusive"),
+            row.optionalBoolean("upperInclusive"), row.double("anchorValue"), row.tokens("sourceConditionIds"),
+            row.tokens("sourceIds"), row.int("independentSourceCount"), row.int("distinctConditionCount"),
+            row.tokens("externalValidationSourceIds"), row.value("boundaryDerivation"),
+            row.required("sensitivityAnalysisStatus"), row.boolean("researchEligible"), row.boolean("operationalOnly"),
+            row.required("status"), row.required("version")
+        )
+    }
+
+    fun axisProvenance(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcAxisProvenance(
+            row.required("provenanceId"), row.required("axisScaleId"), row.required("score").toDouble(),
+            row.double("researchScore"), row.required("operationalScore").toDouble(), row.enum("provenanceTier"),
+            row.required("confidence"), row.tokens("sourceIds"), row.tokens("metricExtractionIds"),
+            row.required("rubricId"), row.required("fallbackRuleId"), row.enum("inheritanceLevel"),
+            row.required("limitations"), row.required("coefficientSetId")
+        )
+    }
+
+    fun fallbackRules(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcFallbackRule(
+            row.required("fallbackRuleId"), row.int("priority"), row.enum("inheritanceLevel"),
+            row.required("matchRequirement"), row.enum("provenanceTier"), row.required("confidence"),
+            row.required("scorePolicy"), row.tokens("forbiddenTransfers"), row.required("allocationPolicy"),
+            row.required("coefficientSetId"), row.required("version")
+        )
+    }
+
+    fun coefficientSets(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcCoefficientSet(
+            row.required("coefficientSetId"), row.required("semanticVersion"), row.required("status"),
+            row.value("effectiveFrom"), row.value("effectiveTo"), row.value("publishedAt"),
+            row.required("sourceSnapshotHash"), row.required("rubricSnapshotHash"),
+            row.required("fallbackPolicyVersion"), row.required("exerciseCatalogSnapshotHash"),
+            row.required("complexRegistrySnapshotHash"), row.required("axisRegistrySnapshotHash"),
+            row.value("supersedesCoefficientSetId"), row.required("changeReason"), row.required("preparedBy"),
+            row.enum("preparedByType")
+        )
+    }
+
     private fun Map<String, String>.value(name: String) = get(name).orEmpty().trim()
     private fun Map<String, String>.required(name: String) = value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }
     private fun Map<String, String>.tokens(name: String) = value(name).split('|').map(String::trim).filter(String::isNotBlank).toSet()
     private fun Map<String, String>.boolean(name: String) = value(name).equals("true", true)
+    private fun Map<String, String>.optionalBoolean(name: String) = value(name).takeIf(String::isNotBlank)?.equals("true", true)
+    private fun Map<String, String>.double(name: String) = value(name).toDoubleOrNull()
+    private fun Map<String, String>.int(name: String) = required(name).toInt()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T = enumValueOf(required(name).uppercase())
 }
