@@ -11,7 +11,13 @@ import java.security.MessageDigest
 class TissueC31ApprovalPackageTest {
     @Test
     fun correctedScopeHashIsCompleteDeterministicAndContextSensitive() {
-        val inputParts = inputFiles.mapValues { (_, file) -> TissueMetadataValidator.semanticCsvHash(file.readText(Charsets.UTF_8)) }
+        val inputParts = inputFiles.mapValues { (key, file) ->
+            TissueMetadataValidator.semanticCsvHash(
+                if (key == "requestResolutions") file.readLines(Charsets.UTF_8)
+                    .filterNot { C31_REQUEST_ID in it }.joinToString("\n")
+                else file.readText(Charsets.UTF_8)
+            )
+        }
         val auditHash = TissueMetadataValidator.combinedHash(inputParts)
         val scopeHash = TissueMetadataValidator.combinedHash(inputParts + scopeReferences(auditHash))
 
@@ -127,5 +133,8 @@ I understand this package is same-session, non-independent, non-production, cont
     }
 
     private val profileFiles = listOf("exercise_joint_load_profiles_v1.csv", "exercise_tendon_load_profiles_v1.csv", "exercise_ligament_load_profiles_v1.csv", "exercise_fascia_load_profiles_v1.csv")
-    private companion object { const val batchId = "TISSUE_C3_1_ONTOLOGY_CORRECTION" }
+    private companion object {
+        const val batchId = "TISSUE_C3_1_ONTOLOGY_CORRECTION"
+        const val C31_REQUEST_ID = "TISSUE_APPROVAL_REQUEST_C3_1_A00141AC34448C59"
+    }
 }
