@@ -1,0 +1,7 @@
+"policyId","axis","profile","minimumScore","maximumScore","persistedDecimalPlaces","unknownIsNull","crossAxisAggregationAllowed","confidenceAltersScore","version"
+"TISSUE_AXIS_SCORE_M_V1","M","MECHANICAL","0.0000","4.0000","4","true","false","false","1.0.0"
+"TISSUE_AXIS_SCORE_T_V1","T","MECHANICAL","0.0000","4.0000","4","true","false","false","1.0.0"
+"TISSUE_AXIS_SCORE_C_V1","C","MECHANICAL","0.0000","4.0000","4","true","false","false","1.0.0"
+"TISSUE_AXIS_SCORE_D_V1","D","DYNAMIC_STABILIZATION","0.0000","4.0000","4","true","false","false","1.0.0"
+"TISSUE_AXIS_SCORE_R_V1","R","DYNAMIC_STABILIZATION","0.0000","4.0000","4","true","false","false","1.0.0"
+"TISSUE_AXIS_SCORE_P_V1","P","DYNAMIC_STABILIZATION","0.0000","4.0000","4","true","false","false","1.0.0"
