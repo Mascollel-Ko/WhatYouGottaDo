@@ -75,7 +75,8 @@ class TissueC4AResearchCatalogTest {
     private val extractions by lazy { table("tissue_source_metric_extraction_c4a_v1.csv") }
     private val candidates by lazy { table("tissue_evidence_claim_candidates_c4a_v1.csv") }
     private val gaps by lazy { table("tissue_mtc_research_gap_matrix_v1.csv") }
-    private val report by lazy { TissueMtcResearchCatalogValidator.validate(seeds, conditions, extractions, candidates, gaps) }
+    private val corrections by lazy { TissueMtcParser.seedSemanticCorrections(asset("tissue_mtc_seed_semantic_correction_c4b1_v1.csv")) }
+    private val report by lazy { TissueMtcResearchCatalogValidator.validate(seeds, conditions, extractions, candidates, gaps, corrections) }
     private fun table(name: String) = TissueMetadataParser.table(asset(name)).rows
     private fun asset(name: String) = sequenceOf(
         File("src/main/assets/metadata/tissue_load_v1/$name"),

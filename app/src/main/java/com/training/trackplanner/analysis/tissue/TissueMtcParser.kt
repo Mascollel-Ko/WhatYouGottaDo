@@ -5,6 +5,15 @@ object TissueMtcParser {
     fun measurementMetrics(csv: String) = TissueMetadataParser.table(csv).rows.map { it.enum<TissueMtcMeasurementMetric>("measurementMetric") }
     fun evidenceRelations(csv: String) = TissueMetadataParser.table(csv).rows.map { it.enum<TissueMtcEvidenceRelation>("evidenceRelation") }
 
+    fun seedSemanticCorrections(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
+        TissueMtcSeedSemanticCorrection(
+            row.required("correctionId"), row.required("seedId"), row.optional("reportedMetrics"),
+            row.optional("exerciseConditions"), row.optionalEnum<TissueMtcEvidenceRelation>("evidenceRelation"),
+            row.enum("evidenceRelationReviewStatus"), row.required("publicationIdentityStatus"),
+            row.required("publicationIntegrityStatus"), row.required("rationale"), row.required("version")
+        )
+    }
+
     fun functionalComplexes(csv: String) = TissueMetadataParser.table(csv).rows.map { row ->
         TissueFunctionalComplex(
             row.required("complexId"), row.tokens("componentIds"), row.required("outputPolicy"),
@@ -86,6 +95,7 @@ object TissueMtcParser {
     }
 
     private fun Map<String, String>.value(name: String) = get(name).orEmpty().trim()
+    private fun Map<String, String>.optional(name: String) = value(name).takeIf(String::isNotBlank)
     private fun Map<String, String>.required(name: String) = value(name).also { require(it.isNotBlank()) { "Missing required field: $name" } }
     private fun Map<String, String>.tokens(name: String) = value(name).split('|').map(String::trim).filter(String::isNotBlank).toSet()
     private fun Map<String, String>.boolean(name: String) = value(name).equals("true", true)
@@ -93,4 +103,6 @@ object TissueMtcParser {
     private fun Map<String, String>.double(name: String) = value(name).toDoubleOrNull()
     private fun Map<String, String>.int(name: String) = required(name).toInt()
     private inline fun <reified T : Enum<T>> Map<String, String>.enum(name: String): T = enumValueOf(required(name).uppercase())
+    private inline fun <reified T : Enum<T>> Map<String, String>.optionalEnum(name: String): T? =
+        optional(name)?.uppercase()?.let { enumValueOf<T>(it) }
 }
