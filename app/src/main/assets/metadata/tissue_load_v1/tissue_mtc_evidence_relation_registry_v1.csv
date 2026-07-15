@@ -1,0 +1,8 @@
+"evidenceRelation","scientificBoundary","researchScoreEligible","version"
+"DIRECT_INTERNAL_MEASUREMENT","Condition-bounded direct tissue or instrumented internal measurement.","true","1.0.0"
+"VALIDATED_INTERNAL_MODEL","Internal quantity from a model within its declared validation scope.","true","1.0.0"
+"VALIDATED_PROXY","External metric with an explicit validated internal mapping record.","true","1.0.0"
+"UNVALIDATED_PROXY","External metric without an approved mapping; no research axis score.","false","1.0.0"
+"CONTEXT_ONLY","Task or condition information; may support C or an operational fallback only.","false","1.0.0"
+"CADAVERIC_MECHANISM","Directional mechanism or ordering only; population and protocol scope required.","false","1.0.0"
+"FINITE_ELEMENT_MECHANISM","Directional mechanism or ordering only; model assumptions and validation scope required.","false","1.0.0"

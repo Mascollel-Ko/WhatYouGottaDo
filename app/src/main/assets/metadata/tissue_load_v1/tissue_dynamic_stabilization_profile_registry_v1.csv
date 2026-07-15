@@ -1,0 +1,4 @@
+"profileId","relatedComplexId","magnitudeDemand","temporalDemand","contextDemand","separateFromMechanicalLoad","version"
+"HAMSTRING_DYNAMIC_STABILIZATION","POSTERIOR_KNEE_HAMSTRING_COMPLEX","Anterior-shear and rotational stabilization demand magnitude","Activation and co-contraction timing","Landing; deceleration; terminal swing; rotational control","true","1.0.0"
+"PERONEAL_DYNAMIC_STABILIZATION","LATERAL_ANKLE_STABILITY_COMPLEX","Eversion-response stabilization demand magnitude","Reaction latency and electromechanical delay","Inversion perturbation; landing or cutting; fatigue state","true","1.0.0"
+"POSTERIOR_TIBIAL_DYNAMIC_STABILIZATION","MEDIAL_ANKLE_ARCH_COMPLEX","Medial-arch and peritalar stabilization demand magnitude","Activation timing and time under stabilizing demand","Pronation or eversion; single-leg support; arch deformation","true","1.0.0"

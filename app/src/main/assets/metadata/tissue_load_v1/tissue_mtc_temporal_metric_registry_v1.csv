@@ -1,0 +1,4 @@
+"temporalMetric","biomechanicalMeaning","scientificBoundary","version"
+"PEAK","Maximum value within one defined event or phase","No session dose implied.","1.0.0"
+"EVENT_AVERAGE","Average value across one explicitly bounded event","Not interchangeable with peak; event boundaries must be preserved.","1.0.0"
+"PHASE_AVERAGE","Average value across one explicitly bounded movement phase","Not interchangeable with event average or peak.","1.0.0"

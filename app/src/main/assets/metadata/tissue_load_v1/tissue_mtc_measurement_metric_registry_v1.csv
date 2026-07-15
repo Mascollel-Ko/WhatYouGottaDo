@@ -1,0 +1,3 @@
+"measurementMetric","measurementFamily","compatibleMechanicalModes","compatibleTemporalMetrics","scientificBoundary","version"
+"MODELED_JOINT_CONTACT_FORCE","INTERNAL_JOINT_FORCE","COMPRESSION|ANTERIOR_POSTERIOR_SHEAR|MEDIAL_LATERAL_SHEAR","PEAK","Requires an internal joint-contact model and cannot represent an intersegmental resultant.","1.0.0"
+"INTERSEGMENTAL_JOINT_FORCE_RESULTANT","INTERSEGMENTAL_JOINT_FORCE","COMPRESSION|ANTERIOR_POSTERIOR_SHEAR|MEDIAL_LATERAL_SHEAR","PEAK","Requires inverse-dynamics segment and sign conventions; not internal compartment contact force.","1.0.0"
