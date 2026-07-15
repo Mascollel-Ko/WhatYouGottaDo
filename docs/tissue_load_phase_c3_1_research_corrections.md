@@ -15,3 +15,7 @@ C3.1 retained the 15-source verified registry and re-read only sources affected 
 ACL strain is represented as `TENSION × PEAK × MEASURED_LIGAMENT_STRAIN`, with `JUMP_LANDING` event context and `PRE_CONTACT` movement phase. No valgus, rotation, or anterior-translation claim was generated from those strain observations.
 
 All 49 metric extractions, 30 candidates, 42 C3 dimensions, 48 research decisions, 17 old modes, and 2 point rows have deterministic correction dispositions. External moments, ground-reaction metrics, and kinematic stability remain unvalidated proxies unless a separate mapping is approved.
+
+## C4A supersession note
+
+The C3.1 request and scientific CSVs remain immutable historical artifacts. C4A append-only resolution `TISSUE_APPROVAL_RESOLUTION_C4A_A00141AC` blocks their approval, and the versioned C4A research snapshots correct the later-discovered cross-condition, average-versus-peak, PCL-force, and tibiofemoral-resultant defects. No C3.1 row was rewritten.

@@ -1959,3 +1959,33 @@ Validation
 - Live source identity: 15/15 verified. Live publication integrity: 15/15 no adverse notice, 0 blockers.
 - `:app:compileDebugKotlin`: passed. `:app:testDebugUnitTest --rerun-tasks`: 748 tests, 0 failures/errors/skips. `:app:assembleDebug`: passed.
 - Push and CI: pending final execution.
+
+## Phase C4A M/T/C metadata foundation and research catalog
+
+Baseline
+- Started from `3bf12db97af0ce414552b1aa475d5d3081fd9e8b` on current `main`.
+- Preserved the six pre-existing dirty `outputs/*` files without restoring, staging, or using them as generated destinations.
+- No app version, release tag, runtime session calculation, historical session, database, backup, or UI behavior changed.
+
+### Commit 1 - `fix(fatigue): supersede invalid c3.1 tissue approval package` (`17f5333`)
+- Preserved request `TISSUE_APPROVAL_REQUEST_C3_1_A00141AC34448C59` and scope hash, appended resolution `TISSUE_APPROVAL_RESOLUTION_C4A_A00141AC`, and prevented future approval ingestion.
+
+### Commit 2 - `refactor(fatigue): add mtc tissue metadata foundation` (`4e9a3ca`)
+- Added nine functional complexes, 46 components, 48 base M/T/C metric rules, and three separate dynamic-stabilization profiles without modifying historical C3/C3.1 enums or registries.
+
+### Commit 3 - `feat(fatigue): add axis rubrics and versioned coefficient sets` (`e0d582a`)
+- Added 48 scales, 96 operational-only fallback rubrics, 48 axis-specific provenance rows, a six-level fallback ladder, and non-production coefficient set `TISSUE_MTC_C4A_0_1_0`.
+
+### Commit 4 - `feat(fatigue): bridge tissue metadata to exercise catalog` (`3a1402a`)
+- Audited 239 canonical exercises and 64 movement families; mapped 87 lower-limb exercises to 378 complex relationships with 1,134 non-null M/T/C traces under superseding draft coefficient set `TISSUE_MTC_C4A_0_1_1`.
+
+### Commit 5 - `data(fatigue): add lower-limb mtc research seed catalog`
+- Added 130 structured research leads; NCBI verified 97 bibliography rows, and 3 linked seeds already have metric extraction. Thirty discovery/KCI leads remain unverified.
+- Added 49 explicit source conditions, 49 versioned corrected extractions, 30 exact-condition parity candidates, and 27 complex-axis research-gap rows.
+- Added immutable non-production research manifest `TISSUE_MTC_C4A_0_1_2`, superseding `0.1.1` with the corrected source hash while leaving existing operational traces on `0.1.1`.
+- Corrected hop-load contamination, average-versus-peak semantics, PCL modeled-force semantics, tibiofemoral resultant semantics, and empty-load rendering without mutating C3.1 history.
+- Added a research planning package only. Human approvals, formal final claims, blind reviews, and production profiles remain zero.
+
+Validation
+- `TissueC4AResearchCatalogTest`: passed after correcting the fixture's Korean-source count from 11 to the actual 12; no production defect was found.
+- Focused C4A and historical tissue tests, full compile/test/assemble, push, and CI are recorded after final execution.

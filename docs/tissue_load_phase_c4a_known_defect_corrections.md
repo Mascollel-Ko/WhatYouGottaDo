@@ -19,4 +19,6 @@ Status: `C4A_METADATA_FOUNDATION_AND_RESEARCH_CATALOG_PARTIAL`
 5. `C3METRIC_8947402_TFJ_SHEAR` reports an intersegmental joint-force resultant, not internal compartment contact force.
 6. Missing load values require explicit `not reported` or `not applicable` rendering rather than malformed numeric labels.
 
-Historical C3.1 rows are retained unchanged. Corrected C4A rows and strict parity validation are added as new versioned artifacts in the research-catalog commit.
+Historical C3.1 rows are retained unchanged. Corrected C4A rows now live in `tissue_source_metric_extraction_c4a_v1.csv` and `tissue_evidence_claim_candidates_c4a_v1.csv`. The 49-row source-condition registry makes protocol identity explicit, and strict validation confirms parity for all 30 candidates.
+
+PMID 35142563 reports the listed task values as average tendon strain, so the six corresponding numeric C4A rows use `EVENT_AVERAGE`. The hop condition is bodyweight-only, while the separate loaded heel-rise condition retains added `0.20 BW`, total `1.20 BW`, and weighted-vest placement. Empty load values render as `not reported` or `not applicable`, never as a unit-only value.
