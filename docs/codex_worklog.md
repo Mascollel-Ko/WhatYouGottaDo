@@ -1989,3 +1989,46 @@ Baseline
 Validation
 - `TissueC4AResearchCatalogTest`: passed after correcting the fixture's Korean-source count from 11 to the actual 12; no production defect was found.
 - Focused C4A and historical tissue tests, full compile/test/assemble, push, and CI are recorded after final execution.
+
+## Phase C4B-1 continuous axis scoring and first M/T/C research batch
+
+Baseline
+- Started from `a714bb936405fd022c050b24511b8684653a34c7` on current `main` and preserved the six pre-existing dirty `outputs/*` files.
+- No app version, tag, runtime fatigue calculation, historical session, database, backup, ProgramBuilder, time-series, or UI path changed.
+- Completion is `C4B1_CONTINUOUS_AXIS_SCORING_AND_FIRST_RESEARCH_BATCH_PARTIAL`.
+
+### Commit 1 - `fix(fatigue): normalize c4a research catalog semantics` (`5d16f4a`)
+- Added an immutable 43-row C4B1 correction overlay instead of rewriting the C4A seed catalog.
+- Rejected contradictory extracted statuses, typed model-validation-pending evidence, corrected three metric-extracted evidence relations, and retained research-ineligible fail-closed behavior.
+
+### Commit 2 - `refactor(fatigue): add continuous axis scoring contracts` (`f349c27`)
+- Added generic M/T/C/D/R/P continuous-score, evidence-key, provenance, confidence, and axis-specific similarity contracts.
+- Added six distinct versioned similarity weight sets with minimum similarity `0.60`, dominant threshold `0.85`, and margin `0.15`.
+
+### Commit 3 - `feat(fatigue): add metric rubrics and aggregation policy` (`dbcb1ec`)
+- Added transparent piecewise scoring, explicit unclamped/clamped status, exact/dominant/aggregate selection, dependency weighting, and heterogeneity gates.
+- Confidence remains separate from magnitude; UNKNOWN stays null; cross-axis and vector-wide averaging remain impossible.
+
+### Commit 4 - `data(fatigue): extract first mtc research batch` (`f8545a5`)
+- Reviewed four full-text primary sources and recorded 25 conditions, 89 raw observations, 69 calibrated scores, 56 decisions, and 33 exclusions.
+- Added nine metric-specific rubrics and 36 anchors for Achilles, patellar-tendon, and PFJ M/T evidence.
+- Preserved scalar C as ordering-only; deferred talocrural, TFJ, and quadriceps-tendon axes; retained PMID 31193251 lunge measurements as raw-only where no defensible four-anchor rubric exists.
+
+### Commit 5 - `feat(fatigue): publish draft c4b1 coefficient set` (this commit)
+- Added draft set `TISSUE_MTC_C4B1_0_2_0` with 14 canonical condition-bounded axes: 10 exact and 4 narrow lunge variants.
+- Added a machine-readable C4A diff and semantic source/rubric/scoring hashes. All 1,134 C4A operational traces remain unchanged and all C4B1 publication rows are runtime-ineligible.
+- Added coefficient publication, semantic-hash, C4A immutability, fallback, exact/variant, and no-false-zero tests.
+- Added `docs/tissue_load_phase_c4b1_continuous_axis_scoring.md` with research boundaries, counts, source links, coefficient identity, file map, and deferred work.
+
+Validation
+- Focused C4A/C4B1 catalog, contract, scoring, research-batch, and coefficient-set tests: passed.
+- `:app:compileDebugKotlin`: passed.
+- Full `:app:testDebugUnitTest --rerun-tasks`: 791 tests, 0 failures/errors/skips.
+- `:app:assembleDebug`: passed; debug APK created.
+- Diff check: passed. Push and CI: pending final execution.
+
+Remaining work
+- Achilles T and scalar C remain unresolved.
+- Talocrural, TFJ, and quadriceps-tendon M/T/C remain deferred.
+- Loaded exercise variants and additional independent cohorts require exact-condition research before any broader transfer.
+- Human approvals, formal final claims, blind reviews, and production profiles remain zero; runtime activation and historical recalculation remain false.
