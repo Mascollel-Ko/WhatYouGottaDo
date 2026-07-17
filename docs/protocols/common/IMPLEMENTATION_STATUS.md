@@ -16,5 +16,7 @@ Runtime protocol 내부의 비활성 generated component는 protocol 전체의 `
 - `GENERATED`: deterministic canonical artifact가 repository에 생성되었습니다.
 - `VALIDATED`: coverage, parity, ordering, checksums와 drift 검사가 통과했습니다.
 - `NOT_YET_RUNTIME_ACTIVE`: artifact 또는 pure evaluator가 존재하지만 공개 UI/classifier/service caller가 아직 사용하지 않습니다.
+- `RUNTIME_ACTIVE`: 공개 service/classifier가 검증된 artifact 또는 evaluator를 실제 결과에 사용합니다.
+- `TESTED`: runtime activation, fallback과 주요 product-facing 경계를 대응 테스트가 검증합니다.
 
-`GENERATED`나 `VALIDATED`를 runtime activation으로 해석하지 않습니다. `CT-PERSONAL-CALIBRATION`의 Phase 1 BasePrior가 이 상태 조합을 사용합니다.
+`GENERATED`나 `VALIDATED`만으로 runtime activation을 주장하지 않습니다. `CT-PERSONAL-CALIBRATION`의 BasePrior는 v0.4.2.12부터 `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`이며, runtime parser·stable-key/hour lookup·fallback·UI 계약이 함께 검증됩니다.

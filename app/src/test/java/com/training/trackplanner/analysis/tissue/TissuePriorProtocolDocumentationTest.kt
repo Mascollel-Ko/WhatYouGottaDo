@@ -8,7 +8,7 @@ import org.junit.Test
 
 class TissuePriorProtocolDocumentationTest {
     @Test
-    fun existingProtocolAuthorityRegistersPhaseOneWithoutCreatingAnotherCanonicalDocument() {
+    fun existingProtocolAuthorityRegistersRuntimeActivationWithoutCreatingAnotherCanonicalDocument() {
         val protocols = registry.getJSONArray("protocols")
         val personal = (0 until protocols.length())
             .map(protocols::getJSONObject)
@@ -16,9 +16,9 @@ class TissuePriorProtocolDocumentationTest {
 
         assertEquals(28, protocols.length())
         assertEquals("connective_tissue/PERSONAL_CALIBRATION.md", personal.getString("canonicalDocument"))
-        assertEquals("1.1.0", personal.getString("currentVersion"))
+        assertEquals("2.0.0", personal.getString("currentVersion"))
         assertEquals(
-            listOf("DESIGNED", "GENERATED", "VALIDATED", "NOT_YET_RUNTIME_ACTIVE"),
+            listOf("DESIGNED", "GENERATED", "VALIDATED", "RUNTIME_ACTIVE", "TESTED"),
             (0 until personal.getJSONArray("phaseOneLifecycle").length())
                 .map(personal.getJSONArray("phaseOneLifecycle")::getString)
         )
@@ -47,8 +47,9 @@ class TissuePriorProtocolDocumentationTest {
             assertTrue(
                 component.getJSONArray("implementationStatus")
                     .toString()
-                    .contains("NOT_YET_RUNTIME_ACTIVE")
+                    .contains("RUNTIME_ACTIVE")
             )
+            assertTrue(component.getJSONArray("implementationStatus").toString().contains("TESTED"))
         }
     }
 
@@ -66,22 +67,24 @@ class TissuePriorProtocolDocumentationTest {
             "PersonalBaseline",
             "w_perUnit",
             "FinalBoundary",
-            "DESIGNED / GENERATED / VALIDATED / NOT_YET_RUNTIME_ACTIVE",
-            "112 consecutive calendar days",
-            "첫 56일",
+            "DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED",
+            "latestConfirmationDate",
+            "A-6 ... A",
+            "w_span = clamp(weightedValidObservationDays / 56, 0, 1)",
+            "w_exposure = clamp((weightedDistinctExposureDays - 3) / 9, 0, 1)",
             "Q30",
             "Q80",
             "Q95",
             "meaningfulFloor",
-            "SIMULATION_FITTED",
-            "POLICY_BOUNDED",
-            "NEUTRAL_NOT_APPLICABLE",
-            "7개 calendar days",
-            "56 valid calendar days",
-            "connective_tissue_prior_baselines.json",
-            "generation_report.md"
+            "same chronological boundary",
+            "cumulative nearest-rank",
+            "relativeBandPosition",
+            "기준 출처: 조직별 초기 기준",
+            "기준 출처: 개인 운동 기록",
+            "기준 출처: 조직별 초기 기준·개인 운동 기록 혼합"
         ).forEach { required -> assertTrue("Missing canonical contract term: $required", text.contains(required)) }
-        assertTrue(text.contains("w_perUnit`은 비교 경계만 혼합하며 `CurrentLoad`를 곱하거나 줄이지 않습니다."))
+        assertTrue(text.contains("`w`는 비교 경계만 이동합니다."))
+        assertTrue(!text.contains("NOT_YET_RUNTIME_ACTIVE"))
     }
 
     @Test

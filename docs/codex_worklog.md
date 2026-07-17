@@ -2624,3 +2624,91 @@ Verification
   backups remain valid. Existing navigation, top-three expansion,
   educational dialogs, OFI, exposure/recovery authorities, contributor ratio,
   ProgramBuilder, and user-owned `outputs/*` remain outside this change.
+
+### Phase 2 implementation commits
+
+#### `1a4b058 feat(tissue): add calendar history segmentation`
+- Added explicit chronological segments using the later of the last confirmed
+  workout date and persisted DailyCheckIn date as the anchor.
+- Excludes exactly A-6 through A, keeps A-7 eligible, and treats check-ins as
+  anchor-only data that neither creates exposure nor breaks a workout gap.
+- Implements global 6/7/13/14/27/28 and unit 13/14/27/28 boundaries,
+  same-boundary minimum retention, distinct-boundary cumulative retention,
+  local-date/DST traversal, and 56 weighted-day traversal.
+
+#### `a44b379 feat(tissue): add per-unit calibration weights`
+- Computes one weight per `loadUnitStableKey` and shares it across dimensions.
+- Uses `w_span = days / 56`,
+  `w_exposure = clamp((distinctExposureDays - 3) / 9, 0, 1)`, and their
+  minimum. Same-day exercises, sets, sessions, and dimensions count once.
+
+#### `c619396 feat(tissue): derive weighted personal baselines`
+- Reconstructs historical residuals with the production calculator at the
+  current local hour and prevents future-event leakage.
+- Uses deterministic cumulative weighted nearest-rank Q30/Q80/Q95 over
+  samples strictly above the unscaled meaningful floor.
+- Empty, non-finite, degenerate, or identity-incompatible personal baselines
+  remain invalid and fall back to prior rather than fabricating quantiles.
+
+#### `b95a168 feat(tissue): activate prior mixing and relative states`
+- Added the production prior registry parser and exact stable-key/local-hour
+  lookup for the validated app-ready asset.
+- Reused `TissuePriorAdjustment`, mixed prior/personal boundaries linearly,
+  replaced the old percentile with internal `relativeBandPosition`, and
+  classified exact floor/Q30/Q80/Q95 boundaries.
+- `CurrentLoad` remains the production residual sum and is never multiplied
+  by profile adjustment or calibration weight. Symptom overrides remain
+  separate and unchanged.
+
+#### `36f2f40 feat(profile): add tissue prior profile inputs`
+- Added nullable `habitualTrainingIntensity` to the existing initial-profile
+  authority and profile dialog using `LIGHT/NORMAL/HARD` stable values and
+  `가벼운 편/보통/강한 편` resources.
+- Added Room 20→21 migration/schema and backup export/import compatibility.
+  Missing and unknown old-backup values resolve to neutral null without an
+  onboarding loop. Existing strength and badminton/racket years and canonical
+  bodyweight resolver are reused rather than duplicated.
+
+#### `0974433 feat(tissue-ui): show relative states and provenance footer`
+- Shows exact relative labels, removes normal `보정 중`, old percentile and
+  `56일 보정 후 표시`, and keeps expansion/dialog/contributor behavior.
+- Adds one low-emphasis final footer for prior-only, personal-only, or mixed
+  source. Untouched catalogue units do not force mixed provenance.
+- Compose coverage verifies exact strings, one final footer, large font, dark
+  theme, expansion and educational dialogs.
+
+#### `63af300 test(tissue): measure relative baseline analysis paths`
+- Added a production-service/in-memory Room measurement that includes asset
+  loading, event ledger, recovery, history, prior/personal mixing and
+  aggregation for all 77 units.
+- Local measured build times: short 10-record history 159 ms; approximately
+  56-valid-day 71-record history 228 ms; 107-record history with multiple
+  excluded gaps 217 ms. Timing is reported rather than used as a flaky CI
+  ceiling; complete 77-unit output is asserted.
+
+### Protocol activation
+- Rewrote the existing `CT-PERSONAL-CALIBRATION` canonical document as
+  protocol 2.0.0, including all 43 CurrentLoad/prior/personal/date/gap/weight/
+  quantile/mixing/profile/provenance/safety concepts.
+- Updated `CT-OVERVIEW` and `CT-RANKING-PRESENTATION` to 2.0.0, the protocol
+  index, machine registry, implementation lifecycle and common safety limits.
+- Registry lifecycle is now
+  `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED` with the first
+  runtime-active commit recorded as
+  `b95a1684ad8bc0ba82cd5eae52ccb3147eae4d61`.
+- Kept the existing 28 registered protocols and did not add a duplicate
+  personal-calibration document.
+- The first documentation-validator run correctly rejected the rewritten
+  documents for not using the library's exact 20-heading schema and for
+  referencing a not-yet-created release note. The documents were restructured
+  without weakening the validator; bundled-Python validation now passes for 6
+  families and 28 protocols. The focused documentation test also passes.
+
+### Preserved boundaries
+- OFI and its five axes, exposure M/S/P/D/I/C, bounded COD context, recovery
+  curves/PCHIP, mappings, unsided identities, contributors, ProgramBuilder,
+  strength/badminton volume and DailyCheckIn meaning remain unchanged.
+- The generator remains offline; no simulation code or manually invented
+  threshold entered the APK.
+- All six pre-existing `outputs/*` modifications remain untouched, unstaged,
+  and outside every commit.

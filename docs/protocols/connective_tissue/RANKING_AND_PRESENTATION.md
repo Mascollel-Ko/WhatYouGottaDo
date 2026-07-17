@@ -3,105 +3,115 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-RANKING-PRESENTATION |
-| Protocol version | 1.0.0 |
+| Protocol version | 2.0.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.8 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.8; relative presentation active from v0.4.2.12 |
+| Last audited commit | 0974433ef5e21f4a5f2dee8a3bbe72418d9c3f9f |
 | Evidence profile | PRODUCT_POLICY, USER_APPROVED_POLICY |
-| Supersedes | — |
-
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+| Supersedes | CT-RANKING-PRESENTATION 1.0.0 |
 
 ## 1. 일반 사용자용 요약
 
-분석 화면은 joint complex와 세부 load unit을 분리하고 현재 상태, contributor, 교육 설명을 제공합니다. 하나의 generic joint score로 합산하지 않습니다.
+분석 화면은 joint complex와 세부 load unit을 분리하고 상대 상태, contributor와 교육 설명을 제공합니다. 개인 이력이 짧아도 조직별 초기 기준을 사용하며 baseline source는 화면 아래에서 한 번만 알립니다.
 
 ## 2. 목적
 
-현재 제품의 입력, 계산·분류, 집계, 표시와 fallback을 재현할 수 있는 하나의 canonical 계약을 제공합니다.
+Mixed baseline의 상태, internal ranking, joint aggregation, symptom override와 user-facing presentation을 오해 없이 재현할 수 있게 정의합니다.
 
 ## 3. 적용 범위
 
-이 문서는 `CT-RANKING-PRESENTATION`가 소유한 현재 runtime 동작과 직접 연결된 source, tests, authority assets에 적용됩니다.
+Connective-tissue summary, top-three joint, expanded child rows, contributor, educational dialog, diagnostics와 final provenance footer에 적용합니다.
 
 ## 4. 비적용 범위
 
-의학적 진단, 부상 확률, 치료 권고, 미구현 센서 정밀도, 미래 설계와 다른 protocol family의 계산은 포함하지 않습니다.
+Baseline 계산 자체, OFI 표시, Home card 추가, injury risk score, tissue capacity score, 진단과 치료 권고는 포함하지 않습니다.
 
 ## 5. 용어
 
-용어는 [`docs/protocols/common/TERMINOLOGY.md`](../common/TERMINOLOGY.md)를 따릅니다. code identifier, enum, stable key와 식은 runtime 표기를 유지합니다.
+`Canonical status`는 LOW/MODERATE/HIGH/VERY_HIGH/UNAVAILABLE이고 `relativeBandPosition`은 내부 tie-break 위치입니다. `Provenance`는 관련 unit의 effectiveW 분포에서 얻은 prior-only/personal-only/mixed source입니다.
 
 ## 6. 입력 데이터
 
-확인된 기록과 effective runtime metadata를 사용합니다. 입력이 protocol별로 제한될 때는 아래 계산 계약과 authority asset이 그 범위를 결정합니다.
+UI는 전체 registry나 calibration percentage를 받지 않습니다. Domain aggregation이 만든 canonical status, educational info, contributor, recovery range, diagnostics와 explicit provenance presentation model만 받습니다.
 
 ## 7. 계산 또는 분류 계약
 
-joint complex는 child의 worst/max 상태를 사용합니다. contributor는 1위 load unit이 2위의 1.5배 이상이면 하나만, 아니면 상위 2개를 표시하며 joint도 상위 2개를 사용합니다.
+정확한 표시 label은 다음과 같습니다.
+
+| Domain state | 표시 |
+|---|---|
+| `LOW` | `낮은 편` |
+| `MODERATE` | `평소 범위` |
+| `HIGH` | `높은 편` |
+| `VERY_HIGH` | `매우 높은 편` |
+| `UNAVAILABLE` | `판단 불가` |
+
+짧은 개인 history는 valid prior로 분류하므로 `보정 중`이 아닙니다. `판단 불가`는 prior/mapping 등 genuine authority failure에만 사용합니다.
 
 ## 8. 집계 방식
 
-입력 단위 결과를 해당 protocol의 날짜, 주간 또는 항목 단위로만 집계하며 서로 다른 의미의 축을 임의로 합산하지 않습니다.
+Severity를 먼저 비교하고 동률은 `relativeBandPosition`, raw residual, latest contribution, stable key 순으로 정렬합니다. Joint complex는 worst child 상태를 사용합니다. Contributor는 한 unit에서 1위가 2위의 1.5배 이상이면 하나, 아니면 상위 2개이며 joint도 상위 2개입니다.
 
 ## 9. 출력과 UI 해석
 
-표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
+기존 personal percentile `normalizedScore`는 보편적 mixed-baseline 점수가 아니므로 표시하지 않습니다. `56일 보정 후 표시`, calibration percentage, injury-risk/capacity percentage와 universal 0~100 score도 없습니다. Summary supporting text는 `관절·건·인대 등 연결조직에 남아 있을 상대적인 운동 부하를 확인합니다.`입니다.
 
 ## 10. 예외 및 fallback
 
-필수 입력이 없으면 현재 코드의 명시된 빈 결과 또는 보수적 기본 경로를 사용하며 값을 추정해 만들지 않습니다.
+Trend가 유효하지 않으면 placeholder를 만들지 않고 생략합니다. Genuine unavailable은 `판단 불가`로 표시합니다. Empty contributor와 top area는 기존 neutral no-data resource를 사용합니다.
 
 ## 11. 개인화 또는 보정
 
-개인 기록을 사용하는 경우 현재 runtime의 history 범위와 우선순위를 그대로 적용합니다.
+Prior-only, personal-only, mixed 여부는 domain이 explicit epsilon으로 판정합니다. Untouched catalogue unit과 synthetic `UNOBSERVED` state는 mixed provenance를 강제하지 않으며 relevant unit이 없으면 prior-only입니다.
 
 ## 12. 연구 근거
 
-Evidence profile은 `PRODUCT_POLICY, USER_APPROVED_POLICY`입니다. 이는 source와 repository 안의 supporting evidence를 구분해 기록한 것으로, implementation status나 임상 검증을 대신하지 않습니다.
+Evidence profile은 `PRODUCT_POLICY, USER_APPROVED_POLICY`입니다. 상태 문구와 화면 계층은 제품 표시 계약이며 임상 분류가 아닙니다.
 
 ## 13. 제품 정책 및 휴리스틱
 
-계수, 임계값, taxonomy, fallback과 표시 문구 중 연구의 직접 효과크기가 아닌 값은 제품 정책 또는 engineering heuristic으로 취급합니다. 이를 논문 효과크기로 표현하지 않습니다.
+Internal `relativeBandPosition`은 floor 이하 0, floor~Q30 0~1, Q30~Q80 1~2, Q80~Q95 2~3, Q95 초과 bounded monotonic excess입니다. Finite/deterministic ranking 전용이며 percentile이나 risk percentage가 아닙니다.
 
 ## 14. 알려진 한계
 
-- 현재 감사 범위에서 별도 미해결 runtime gap을 확인하지 않았습니다.
-- self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
+- Relative labels는 modeled residual을 비교 경계에 놓은 결과입니다.
+- Educational text는 일반 정보이며 개인 증상이나 임상 검사를 대체하지 않습니다.
+- Diagnostics는 개발/모델 한계를 보조하며 baseline source warning이 아닙니다.
 
 ## 15. 현재 구현 상태
 
-- Specification status: `ACTIVE`
-- Runtime implementation status: `IMPLEMENTED`
-- Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
-- 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
+- Relative labels: `IMPLEMENTED / RUNTIME_ACTIVE / TESTED`
+- Severity-first ranking와 worst-child aggregation: `IMPLEMENTED / TESTED`
+- Single final provenance footer: `IMPLEMENTED / TESTED`
+- Old displayed percentile/calibration placeholder: `REMOVED`
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/tissue/TissueAnalysisUiModels.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/tissue/TissueAnalysisUiModels.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ConnectiveTissueAnalysisService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ConnectiveTissueAnalysisService.kt)
+- `TissueEffectiveBaselinePolicy.kt`: classifier와 relativeBandPosition
+- `TissueCurrentStateServices.kt`: ranking, joint aggregation, contributor, override, provenance
+- `TissueAnalysisUiModels.kt`: Compose-safe model
+- `ConnectiveTissueAnalysisUi.kt`: resources, expansion/dialog와 footer
 
 ## 17. 검증 테스트
 
-- [`app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt)
+- `TissueEffectiveBaselineRuntimeTest.kt`: exact boundaries와 internal position
+- `TissueAggregationAndRankingTest.kt`: severity, worst child, contributor와 provenance
+- `ConnectiveTissueAnalysisUiTest.kt`: exact text, footer order/count, large font, dark theme, expansion/dialog
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv)
-- [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv)
+- `tissue_rcv_display_contract_v1.csv`
+- `tissue_rcv_educational_info_v1.csv`
+- `connective_tissue_prior_baselines_v1.json`
 
 ## 19. 관련 문서
 
-- [`docs/v0.4.2.8_release_notes.md`](../../v0.4.2.8_release_notes.md)
-- [`docs/protocols/README.md`](../README.md)
+- [개인 기준과 상대 상태](PERSONAL_CALIBRATION.md)
+- [연결조직 overview](CONNECTIVE_TISSUE_OVERVIEW.md)
+- [공통 안전 한계](../common/LIMITATIONS_AND_SAFETY.md)
 
 ## 20. 변경 이력
 
-- `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
+- `2.0.0` (2026-07-18): prior/personal relative labels, internal band ranking, old percentile removal과 single provenance footer를 활성화했습니다.
+- `1.0.0` (2026-07-17): 첫 governed presentation contract를 등록했습니다.
