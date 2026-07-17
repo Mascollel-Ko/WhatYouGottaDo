@@ -242,6 +242,7 @@ data class InitialUserProfile(
     val badmintonTrainingAge: String = "",
     val strengthTrainingYears: Double? = null,
     val badmintonTrainingYears: Double? = null,
+    val habitualTrainingIntensity: String? = null,
     val hadRecentTrainingBreak: Boolean = false,
     val breakWeeks: Int? = null,
     val breakDueToPain: Boolean = false,

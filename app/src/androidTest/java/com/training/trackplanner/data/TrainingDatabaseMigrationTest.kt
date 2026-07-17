@@ -344,6 +344,46 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate20To21AddsNeutralHabitualIntensityAndPreservesProfile() {
+        helper.createDatabase(TEST_DB, 20).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO initial_user_profiles (
+                    id, bodyWeightKg, birthYearOrAgeRange, gender, sex,
+                    strengthTrainingAge, badmintonTrainingAge, strengthTrainingYears, badmintonTrainingYears,
+                    hadRecentTrainingBreak, breakDueToPain, trainingBreakCategory, trainingBreakReason,
+                    squatLevel, deadliftLevel, benchPressLevel, pullUpLevel,
+                    painAreas, painAreaTags, avoidedMovements, avoidMovementTags,
+                    goals, primaryGoal, secondaryGoalTags, freeNote, createdAt, updatedAt
+                ) VALUES (
+                    1, 72.5, '', '', 'UNSPECIFIED',
+                    '', '', 6.0, 2.0,
+                    0, 0, 'NONE', 'NONE',
+                    '', '', '', '',
+                    '', 'NONE', '', 'NONE',
+                    '', 'MIXED', '', '', 1, 2
+                )
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 21, true, TrainingDatabase.MIGRATION_20_21).use { database ->
+            database.query(
+                """
+                SELECT bodyWeightKg, strengthTrainingYears, badmintonTrainingYears, habitualTrainingIntensity
+                FROM initial_user_profiles WHERE id = 1
+                """.trimIndent()
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getDouble(0) == 72.5)
+                check(cursor.getDouble(1) == 6.0)
+                check(cursor.getDouble(2) == 2.0)
+                check(cursor.isNull(3))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

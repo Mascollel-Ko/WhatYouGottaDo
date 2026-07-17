@@ -8,6 +8,7 @@ import com.training.trackplanner.analysis.tissue.TissueCurrentStateAggregator
 import com.training.trackplanner.analysis.tissue.TissueEffectiveBaseline
 import com.training.trackplanner.analysis.tissue.TissueEffectiveBaselinePolicy
 import com.training.trackplanner.analysis.tissue.TissueHistoricalResidualSampler
+import com.training.trackplanner.analysis.tissue.TissueHabitualTrainingIntensity
 import com.training.trackplanner.analysis.tissue.TissuePerUnitWeightPolicy
 import com.training.trackplanner.analysis.tissue.TissuePersonalBaselinePolicy
 import com.training.trackplanner.analysis.tissue.TissuePriorRegistryLoader
@@ -74,7 +75,9 @@ internal class ConnectiveTissueAnalysisService(
             bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(today.toString(), dailyMetrics, profile),
             strengthTrainingExperienceYears = profile?.strengthTrainingYears,
             racketSportExperienceYears = profile?.badmintonTrainingYears,
-            habitualTrainingIntensity = null
+            habitualTrainingIntensity = profile?.habitualTrainingIntensity?.let {
+                runCatching { TissueHabitualTrainingIntensity.valueOf(it) }.getOrNull()
+            }
         )
         val effectiveBaselines = buildBaselines(
             localHour = now.hour,

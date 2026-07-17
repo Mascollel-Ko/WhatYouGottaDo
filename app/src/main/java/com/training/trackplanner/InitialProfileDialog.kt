@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.InitialUserProfile
@@ -45,6 +46,7 @@ internal fun InitialProfileDialog(
     var badmintonMinutes by rememberSaveable { mutableStateOf(base.badmintonMinutesPerSession?.toString().orEmpty()) }
     var strengthYears by rememberSaveable { mutableStateOf((base.strengthTrainingYears ?: parseTrainingYears(base.strengthTrainingAge))?.let(::formatDecimal).orEmpty()) }
     var badmintonYears by rememberSaveable { mutableStateOf((base.badmintonTrainingYears ?: parseTrainingYears(base.badmintonTrainingAge))?.let(::formatDecimal).orEmpty()) }
+    var habitualTrainingIntensity by rememberSaveable { mutableStateOf(base.habitualTrainingIntensity.orEmpty()) }
     var breakCategory by rememberSaveable { mutableStateOf(base.trainingBreakCategory.ifBlank { breakWeeksToCategory(base.breakWeeks) }) }
     var breakReason by rememberSaveable { mutableStateOf(base.trainingBreakReason.ifBlank { if (base.breakDueToPain) "PAIN_OR_INJURY" else "NONE" }) }
     var squatKg by rememberSaveable { mutableStateOf(base.squatKg?.let(::formatDecimal).orEmpty()) }
@@ -62,6 +64,11 @@ internal fun InitialProfileDialog(
     var avoidTags by rememberSaveable { mutableStateOf(base.avoidMovementTags.toTagSet()) }
     var goal by rememberSaveable { mutableStateOf(base.primaryGoal.ifBlank { "MIXED" }) }
     var freeNote by rememberSaveable { mutableStateOf(base.freeNote) }
+    val habitualTrainingIntensityOptions = listOf(
+        ProfileOption("LIGHT", stringResource(R.string.profile_habitual_training_intensity_light)),
+        ProfileOption("NORMAL", stringResource(R.string.profile_habitual_training_intensity_normal)),
+        ProfileOption("HARD", stringResource(R.string.profile_habitual_training_intensity_hard))
+    )
 
     AlertDialog(
         modifier = Modifier.fillMaxWidth(),
@@ -114,6 +121,14 @@ internal fun InitialProfileDialog(
                         DecimalField("근력 경력 년", strengthYears, Modifier.weight(1f), 0.0, 80.0) { strengthYears = it }
                         DecimalField("배드민턴 경력 년", badmintonYears, Modifier.weight(1f), 0.0, 80.0) { badmintonYears = it }
                     }
+                }
+                item {
+                    SingleChoice(
+                        title = stringResource(R.string.profile_habitual_training_intensity),
+                        options = habitualTrainingIntensityOptions,
+                        selected = habitualTrainingIntensity,
+                        onSelect = { habitualTrainingIntensity = it }
+                    )
                 }
                 item { SingleChoice("최근 운동 공백", breakOptions, breakCategory) { breakCategory = it } }
                 item { SingleChoice("공백 이유", breakReasonOptions, breakReason) { breakReason = it } }
@@ -193,6 +208,9 @@ internal fun InitialProfileDialog(
                             badmintonTrainingAge = "",
                             strengthTrainingYears = strengthYears.toDoubleOrNull(),
                             badmintonTrainingYears = badmintonYears.toDoubleOrNull(),
+                            habitualTrainingIntensity = habitualTrainingIntensity.takeIf {
+                                it in setOf("LIGHT", "NORMAL", "HARD")
+                            },
                             hadRecentTrainingBreak = breakCategory != "NONE",
                             breakWeeks = breakCategoryToWeeks(breakCategory),
                             breakDueToPain = breakReason == "PAIN_OR_INJURY",

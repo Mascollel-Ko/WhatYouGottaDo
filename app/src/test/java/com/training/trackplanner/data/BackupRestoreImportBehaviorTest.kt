@@ -151,6 +151,46 @@ class BackupRestoreImportBehaviorTest {
     }
 
     @Test
+    fun restoreBackupRoundTripsHabitualTrainingIntensity() = runBlocking {
+        val db = newDatabase()
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            initialProfile = InitialUserProfile(bodyWeightKg = 72.5, habitualTrainingIntensity = "HARD")
+        )
+
+        repository(db).importRecordsBackup(writeBackup(csv))
+
+        assertEquals("HARD", db.initialUserProfileDao().profile()?.habitualTrainingIntensity)
+        assertEquals(72.5, db.initialUserProfileDao().profile()?.bodyWeightKg ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun restoreBackupKeepsMissingOrUnknownHabitualIntensityNeutral() = runBlocking {
+        val db = newDatabase()
+        val oldCsv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            initialProfile = InitialUserProfile(bodyWeightKg = 70.0)
+        )
+        repository(db).importRecordsBackup(writeBackup(oldCsv))
+        assertEquals(null, db.initialUserProfileDao().profile()?.habitualTrainingIntensity)
+
+        val newCsv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            initialProfile = InitialUserProfile(bodyWeightKg = 71.0, habitualTrainingIntensity = "HARD")
+        )
+        val invalidCsv = newCsv.lineSequence().joinToString("\n") { line ->
+            if (",habitualTrainingIntensity," in line) line.replace("HARD", "EXTREME") else line
+        }
+        repository(db).importRecordsBackup(writeBackup(invalidCsv))
+
+        assertEquals(null, db.initialUserProfileDao().profile()?.habitualTrainingIntensity)
+        assertEquals(71.0, db.initialUserProfileDao().profile()?.bodyWeightKg ?: 0.0, 0.001)
+    }
+
+    @Test
     fun restoreBackupSkipsDuplicateSmashSpeedRows() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)

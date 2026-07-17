@@ -278,6 +278,7 @@ class RecordCsvBackupRestoreTest {
                 sex = "MALE",
                 strengthSessionsPerWeek = 3.0,
                 strengthTrainingYears = 6.0,
+                habitualTrainingIntensity = "HARD",
                 typicalSleepHours = 7.0,
                 usualSleepHours = 7.0,
                 painAreaTags = "SHOULDER,LOW_BACK",
@@ -296,6 +297,7 @@ class RecordCsvBackupRestoreTest {
         assertTrue(parsed.profileRows.any { it.key == "birthYear" && it.value == "1990" })
         assertTrue(parsed.profileRows.any { it.key == "painAreaTags" && it.value == "SHOULDER,LOW_BACK" })
         assertTrue(parsed.profileRows.any { it.key == "primaryGoal" && it.value == "BADMINTON_PERFORMANCE" })
+        assertTrue(parsed.profileRows.any { it.key == "habitualTrainingIntensity" && it.value == "HARD" })
     }
 
     @Test

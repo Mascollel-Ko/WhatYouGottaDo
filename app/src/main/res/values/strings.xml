@@ -2,6 +2,10 @@
 <resources>
     <string name="app_name">WhatYouGottaTrain</string>
     <string name="product_name">WhatYouGottaDo</string>
+    <string name="profile_habitual_training_intensity">평소 운동 강도</string>
+    <string name="profile_habitual_training_intensity_light">가벼운 편</string>
+    <string name="profile_habitual_training_intensity_normal">보통</string>
+    <string name="profile_habitual_training_intensity_hard">강한 편</string>
     <string name="navigation_back">뒤로 가기</string>
 
     <string name="home_app_explanation_label">이 앱이 분석하는 것 보기</string>

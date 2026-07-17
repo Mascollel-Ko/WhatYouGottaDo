@@ -26,7 +26,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val breakCategoryKeys = setOf(
+        private val habitualTrainingIntensityKeys = setOf("LIGHT", "NORMAL", "HARD")
+        private val breakCategoryKeys = setOf(
     "NONE",
     "LESS_THAN_1_WEEK",
     "ONE_TO_TWO_WEEKS",
@@ -734,6 +735,10 @@ class TrainingRepository(
                 ?: values["strengthTrainingAge"].parseProfileYears(),
             badmintonTrainingYears = values["badmintonTrainingYears"]?.toDoubleOrNull()
                 ?: values["badmintonTrainingAge"].parseProfileYears(),
+            habitualTrainingIntensity = values["habitualTrainingIntensity"]
+                ?.trim()
+                ?.uppercase()
+                ?.takeIf { it in habitualTrainingIntensityKeys },
             hadRecentTrainingBreak = values["hadRecentTrainingBreak"].toCsvBoolean(),
             breakWeeks = values["breakWeeks"]?.toIntOrNull(),
             breakDueToPain = values["breakDueToPain"].toCsvBoolean(),

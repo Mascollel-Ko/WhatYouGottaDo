@@ -817,6 +817,7 @@ object RecordCsvBackupRestore {
             "badmintonTrainingAge" to badmintonTrainingAge,
             "strengthTrainingYears" to strengthTrainingYears.formatOptional(),
             "badmintonTrainingYears" to badmintonTrainingYears.formatOptional(),
+            "habitualTrainingIntensity" to habitualTrainingIntensity.orEmpty(),
             "hadRecentTrainingBreak" to hadRecentTrainingBreak.toCsvBool(),
             "breakWeeks" to breakWeeks?.toString().orEmpty(),
             "breakDueToPain" to breakDueToPain.toCsvBool(),
