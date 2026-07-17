@@ -2517,7 +2517,7 @@ Discovery and design lock
   `DESIGNED / GENERATED / VALIDATED / NOT_YET_RUNTIME_ACTIVE`.
 
 ### Commit 4 - generated artifact file-checksum correction
-- Commit: pending at worklog write.
+- Commit: `577e2db fix(tissue): checksum generated registry file bytes`.
 - Final verification found that the manifest hashed canonical JSON content
   before the writer appended its standard newline. Numerical content and
   deterministic output were unchanged, but the reported artifact SHA did not
@@ -2543,7 +2543,16 @@ Runtime boundaries and remaining work
 Verification
 - `.\gradlew.bat --version`: passed with Android Studio JBR and repository
   `.gradle-user-home`.
-- `generateConnectiveTissuePriorBaselines`: passed.
-- Focused generator/parity/adjustment tests: passed.
-- Protocol validation, double regeneration, full unit tests, compile,
-  assemble, final push, and CI are recorded after final verification.
+- `generateConnectiveTissuePriorBaselines`: passed repeatedly. Two final
+  regenerations produced identical canonical, manifest, report, and app-ready
+  file hashes.
+- `validateConnectiveTissuePriorBaselines`: passed.
+- Focused generator/parity/adjustment/documentation suite: 4 suites, all
+  passed.
+- Bundled Python `scripts/validate_protocol_docs.py`: passed with 6 families
+  and the existing 28 protocols.
+- Full `:app:testDebugUnitTest`: 875 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:compileDebugKotlin`: passed.
+- `:app:assembleDebug`: passed; `app-debug.apk` generated.
+- Final remote ancestry, push, and CI status are reported after remote
+  verification.
