@@ -175,7 +175,7 @@ class FatiguePresentationMapper {
                     pressure = item.pressure
                 )
             }
-            .sortedByDescending { item -> item.score }
+            .sortedWith(compareByDescending<BodyPartPressure> { item -> item.score }.thenBy { item -> item.key })
 
     private fun reasons(
         neuralHeavyScore: Int,

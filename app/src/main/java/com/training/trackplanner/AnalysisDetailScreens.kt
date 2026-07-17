@@ -74,7 +74,8 @@ internal fun FatigueAndConditionAnalysisContent(
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
             fatigueState = fatigueAnalysis.currentState,
-            summary = coachInsight.fatigueCauses
+            summary = coachInsight.fatigueCauses,
+            bodyPartPressures = readiness?.fatiguePresentation?.highBodyParts.orEmpty()
         )
         ConnectiveTissueSummaryCard(
             state = connectiveTissue,

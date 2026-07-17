@@ -44,10 +44,12 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
+import com.training.trackplanner.analysis.readiness.BodyPartPressure
 import com.training.trackplanner.analysis.readiness.TodayFatigueStatusLabeler
 import com.training.trackplanner.analysis.readiness.TodayFatigueAxisState
 import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
+import com.training.trackplanner.analysis.readiness.bodyPartDisplayName
 import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.DetailChartMode
 import com.training.trackplanner.analysis.trends.DetailChartSelector
@@ -86,7 +88,8 @@ internal fun CoachAnalysisContent(
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
             fatigueState = fatigueAnalysis.currentState,
-            summary = coachInsight.fatigueCauses
+            summary = coachInsight.fatigueCauses,
+            bodyPartPressures = readiness?.fatiguePresentation?.highBodyParts.orEmpty()
         )
         BadmintonTransferCoverageCard(coachInsight)
         RecognitionSignalsCard(coachingSignals)
@@ -112,14 +115,15 @@ internal fun CoachAnalysisContent(
 @Composable
 internal fun FatigueAxisCauseCard(
     fatigueState: DailyFatigueState?,
-    summary: CoachFatigueCauseSummary
+    summary: CoachFatigueCauseSummary,
+    bodyPartPressures: List<BodyPartPressure>
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val axes = fatigueState?.let(TodayFatigueStatusLabeler::axisStates).orEmpty()
     val cautionAxes = axes.filter(::isCautionAxis)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("주의할 피로 축과 주요 기여 운동", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(FATIGUE_AXIS_CAUSE_CARD_TITLE, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             if (cautionAxes.isEmpty()) {
                 Text("현재 주의할 피로 축이 없습니다.", style = MaterialTheme.typography.bodyMedium)
             } else {
@@ -134,7 +138,10 @@ internal fun FatigueAxisCauseCard(
             }
             if (expanded) {
                 axes.forEach { axis ->
-                    FatigueAxisDetailBlock(axis, axisContributorLabels(axis, summary))
+                    FatigueAxisDetailBlock(
+                        axis = axis,
+                        details = axisPrimaryDetailValues(axis, summary, bodyPartPressures)
+                    )
                 }
             }
         }
@@ -142,7 +149,7 @@ internal fun FatigueAxisCauseCard(
 }
 
 @Composable
-private fun FatigueAxisDetailBlock(axis: TodayFatigueAxisState, contributors: List<String>) {
+private fun FatigueAxisDetailBlock(axis: TodayFatigueAxisState, details: List<String>) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -156,10 +163,15 @@ private fun FatigueAxisDetailBlock(axis: TodayFatigueAxisState, contributors: Li
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (isCautionAxis(axis)) {
-                Text("주요 기여 운동", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                val isLocalMuscle = axis.label == FatigueTarget.LOCAL_MUSCULAR.label
                 Text(
-                    contributors.takeIf { it.isNotEmpty() }?.joinToString(", ")
-                        ?: "주요 기여 운동을 확인할 수 없습니다.",
+                    if (isLocalMuscle) LOCAL_MUSCLE_DETAIL_LABEL else "주요 기여 운동",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    details.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                        ?: if (isLocalMuscle) LOCAL_MUSCLE_EMPTY_TEXT else "주요 기여 운동을 확인할 수 없습니다.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -167,6 +179,28 @@ private fun FatigueAxisDetailBlock(axis: TodayFatigueAxisState, contributors: Li
         }
     }
 }
+
+internal fun localMuscleLabels(bodyPartPressures: List<BodyPartPressure>): List<String> =
+    bodyPartPressures
+        .groupBy { pressure -> pressure.key }
+        .map { (_, duplicates) -> duplicates.maxWith(compareBy<BodyPartPressure> { it.score }.thenBy { it.pressure ?: 0.0 }) }
+        .sortedWith(compareByDescending<BodyPartPressure> { it.score }.thenBy { it.key })
+        .map { pressure -> bodyPartDisplayName(pressure.key) }
+        .distinct()
+        .take(3)
+
+internal fun axisPrimaryDetailValues(
+    axis: TodayFatigueAxisState,
+    summary: CoachFatigueCauseSummary,
+    bodyPartPressures: List<BodyPartPressure>
+): List<String> =
+    if (!isCautionAxis(axis)) {
+        emptyList()
+    } else if (axis.label == FatigueTarget.LOCAL_MUSCULAR.label) {
+        localMuscleLabels(bodyPartPressures)
+    } else {
+        axisContributorLabels(axis, summary)
+    }
 
 internal fun axisContributorLabels(
     axis: TodayFatigueAxisState,
@@ -194,6 +228,10 @@ private fun isCautionAxis(axis: TodayFatigueAxisState): Boolean =
     axis.level == FatigueLevel.HIGH ||
         axis.level == FatigueLevel.VERY_HIGH ||
         axis.level == FatigueLevel.LIMITED
+
+internal const val FATIGUE_AXIS_CAUSE_CARD_TITLE = "주의할 피로 축과 주요 내용"
+internal const val LOCAL_MUSCLE_DETAIL_LABEL = "피로한 근육"
+internal const val LOCAL_MUSCLE_EMPTY_TEXT = "두드러지게 피로한 근육이 없습니다."
 
 @Composable
 internal fun RecognitionSignalsCard(summary: CoachingSignalsSummary) {

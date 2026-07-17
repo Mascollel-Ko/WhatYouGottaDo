@@ -79,18 +79,18 @@ class FatigueDetailSectionBuilder {
             summary = if (top == null || top.currentResidualLoad <= 0.0) {
                 "부위별 기록이 아직 적습니다."
             } else {
-                "${bodyPartLabel(top.key)} 부담을 먼저 확인하세요."
+                "${bodyPartDisplayName(top.key)} 부담을 먼저 확인하세요."
             },
             metrics = topParts.flatMap { item ->
                 listOf(
-                    MetricDisplayItem(bodyPartLabel(item.key), levelLabel(item.level)),
+                    MetricDisplayItem(bodyPartDisplayName(item.key), levelLabel(item.level)),
                     MetricDisplayItem("기준선 대비", item.pressure.formatRatio())
                 )
             }.take(4),
-            relatedCategories = topParts.map { item -> bodyPartLabel(item.key) },
+            relatedCategories = topParts.map { item -> bodyPartDisplayName(item.key) },
             restrictedTargets = topParts
                 .filter { item -> item.level >= FatigueLevel.HIGH }
-                .map { item -> "${bodyPartLabel(item.key)} 고강도" }
+                .map { item -> "${bodyPartDisplayName(item.key)} 고강도" }
         )
     }
 
@@ -233,25 +233,25 @@ class FatigueDetailSectionBuilder {
             AnalysisConfidence.HIGH -> "높음"
         }
 
-    private fun bodyPartLabel(part: String): String =
-        when (part) {
-            "quads" -> "대퇴사두"
-            "hamstrings" -> "햄스트링"
-            "glutes" -> "둔근"
-            "calves_achilles" -> "종아리/아킬레스"
-            "erectors_low_back" -> "허리/기립근"
-            "chest" -> "가슴"
-            "lats_upper_back" -> "등"
-            "shoulders" -> "어깨"
-            "rotator_cuff" -> "회전근개"
-            "elbow_flexors" -> "팔꿈치 굴곡"
-            "elbow_extensors" -> "팔꿈치 신전"
-            "forearm_grip" -> "전완/그립"
-            "core_abs_obliques" -> "코어"
-            "hips_adductors_abductors" -> "고관절 안정화"
-            else -> part
-        }
-
     private fun yesNo(value: Boolean): String =
         if (value) "있음" else "없음"
 }
+
+internal fun bodyPartDisplayName(part: String): String =
+    when (part) {
+        "quads" -> "대퇴사두"
+        "hamstrings" -> "햄스트링"
+        "glutes" -> "둔근"
+        "calves_achilles" -> "종아리/아킬레스"
+        "erectors_low_back" -> "허리/기립근"
+        "chest" -> "가슴"
+        "lats_upper_back" -> "등"
+        "shoulders" -> "어깨"
+        "rotator_cuff" -> "회전근개"
+        "elbow_flexors" -> "팔꿈치 굴곡"
+        "elbow_extensors" -> "팔꿈치 신전"
+        "forearm_grip" -> "전완/그립"
+        "core_abs_obliques" -> "코어"
+        "hips_adductors_abductors" -> "고관절 안정화"
+        else -> part
+    }
