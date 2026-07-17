@@ -109,6 +109,7 @@ class TissueAggregationAndRankingTest {
 
         assertEquals(15, state.jointComplexes.size)
         assertEquals(77, state.loadUnits.size)
+        assertEquals(TissueBaselineProvenance.PRIOR_ONLY, state.baselineProvenance)
         assertFalse(state.loadUnits.any {
             it.key.loadUnitStableKey.contains("LEFT") || it.key.loadUnitStableKey.contains("RIGHT")
         })
@@ -124,6 +125,7 @@ class TissueAggregationAndRankingTest {
         assertEquals(77, ui.joints.sumOf { it.children.size })
         assertFalse(labels.any { it.contains("왼쪽") || it.contains("오른쪽") })
         assertFalse(labels.any { it.contains("LEFT") || it.contains("RIGHT") })
+        assertFalse(labels.any { it.contains("UNIT_TOTAL") })
     }
 
     @Test
@@ -131,10 +133,8 @@ class TissueAggregationAndRankingTest {
         val state = aggregate(emptyList())
         val summary = TissueAnalysisUiMapper.summary(state)
 
-        assertEquals("연결조직 분석", summary.title)
-        assertEquals("관절·건·인대 등 연결조직에 남아 있을 상대적인 운동 부하를 확인합니다.", summary.supportingText)
-        assertEquals("낮은 편", summary.status)
-        assertEquals("연결조직 분석 보기", summary.actionLabel)
+        assertEquals(TissueCanonicalStatus.LOW, summary.status)
+        assertEquals(state.ofiSummary.topJointComplexes.joinToString { it.nameKo }, summary.topAreas)
     }
 
     @Test
@@ -150,18 +150,16 @@ class TissueAggregationAndRankingTest {
     }
 
     @Test
-    fun everyDisplayedNameResolvesItsEducationalInfoAndAccessibilityLabel() {
+    fun everyDisplayedNameResolvesItsEducationalInfo() {
         val ui = TissueAnalysisUiMapper.map(
             aggregate(emptyList())
         )
 
         ui.joints.forEach { joint ->
             assertEquals(joint.key, joint.info.stableKey)
-            assertEquals("${joint.name} 정보 보기", joint.infoContentDescription)
             assertEquals(joint.info, ui.info(joint.key))
             joint.children.forEach { child ->
                 assertEquals(child.info, ui.info(child.info.stableKey))
-                assertTrue(child.infoContentDescription.endsWith(" 정보 보기"))
             }
         }
     }

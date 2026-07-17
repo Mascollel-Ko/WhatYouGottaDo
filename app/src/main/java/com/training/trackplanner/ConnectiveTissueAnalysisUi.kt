@@ -23,9 +23,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.tissue.TissueAnalysisUiMapper
+import com.training.trackplanner.analysis.tissue.TissueBaselineProvenance
+import com.training.trackplanner.analysis.tissue.TissueBaselineProvenanceUi
+import com.training.trackplanner.analysis.tissue.TissueCanonicalStatus
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.analysis.tissue.TissueEducationalInfo
 
@@ -37,12 +41,26 @@ internal fun ConnectiveTissueSummaryCard(
     val ui = TissueAnalysisUiMapper.summary(state)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(ui.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(ui.supportingText, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ui.status?.let { Text("연결조직 상태: $it", fontWeight = FontWeight.SemiBold) }
-            ui.topAreas?.let { Text("주요 부위: $it", style = MaterialTheme.typography.bodySmall) }
+            Text(
+                stringResource(R.string.tissue_analysis_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                stringResource(R.string.tissue_analysis_supporting_text),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ui.status?.let {
+                Text(
+                    stringResource(R.string.tissue_analysis_status_summary, tissueStatusLabel(it)),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            ui.topAreas?.let {
+                Text(stringResource(R.string.tissue_analysis_top_areas, it), style = MaterialTheme.typography.bodySmall)
+            }
             TextButton(onClick = onClick) {
-                Text(ui.actionLabel)
+                Text(stringResource(R.string.tissue_analysis_action))
             }
         }
     }
@@ -51,7 +69,7 @@ internal fun ConnectiveTissueSummaryCard(
 @Composable
 internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
     if (state == null) {
-        InfoCard("연결조직 상태를 계산하고 있습니다.")
+        InfoCard(stringResource(R.string.tissue_analysis_calculating))
         return
     }
     val ui = TissueAnalysisUiMapper.map(state)
@@ -61,10 +79,20 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("현재 연결조직 상태: ${ui.status}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("주요 부위: ${ui.topAreas}", style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "개인 기록 56일 전에는 보정 중으로 표시합니다. 이 값은 손상률이나 진단이 아닙니다.",
+                    stringResource(R.string.tissue_analysis_current_status, tissueStatusLabel(ui.status)),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    stringResource(
+                        R.string.tissue_analysis_top_areas,
+                        ui.topAreas ?: stringResource(R.string.tissue_analysis_no_area)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    stringResource(R.string.tissue_analysis_not_diagnosis),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -86,20 +114,48 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                         ) {
                             Text(joint.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             TissueInfoButton(
-                                contentDescription = joint.infoContentDescription,
+                                contentDescription = stringResource(
+                                    R.string.tissue_analysis_info_description,
+                                    joint.name
+                                ),
                                 onClick = { selectedInfoKey = joint.info.stableKey }
                             )
                         }
-                        Text(joint.status, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            tissueStatusLabel(joint.status),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
-                    Text("높은 하위 단위 ${joint.highChildCount}개 · 최고 ${joint.highestChild}", style = MaterialTheme.typography.bodySmall)
-                    Text("주요 기여: ${joint.contributors}", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        stringResource(
+                            R.string.tissue_analysis_high_children,
+                            joint.highChildCount,
+                            joint.highestChild ?: stringResource(R.string.tissue_analysis_observing)
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        stringResource(
+                            R.string.tissue_analysis_primary_contributors,
+                            joint.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                     TextButton(
                         onClick = {
                             expandedJoint = if (expandedJoint == joint.key) null else joint.key
                         }
                     ) {
-                        Text(if (expandedJoint == joint.key) "접기" else "하위 조직 보기")
+                        Text(
+                            stringResource(
+                                if (expandedJoint == joint.key) {
+                                    R.string.tissue_analysis_collapse
+                                } else {
+                                    R.string.tissue_analysis_expand_children
+                                }
+                            )
+                        )
                     }
                     if (expandedJoint == joint.key) {
                         joint.children.forEach { child ->
@@ -122,12 +178,27 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                                             fontWeight = FontWeight.SemiBold
                                         )
                                         TissueInfoButton(
-                                            contentDescription = child.infoContentDescription,
+                                            contentDescription = stringResource(
+                                                R.string.tissue_analysis_info_description,
+                                                child.name
+                                            ),
                                             onClick = { selectedInfoKey = child.info.stableKey }
                                         )
                                     }
-                                    Text("${child.status} · 현재 모델 범위 ${child.recoveryRange}")
-                                    Text("기여 운동: ${child.contributors}", style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        stringResource(
+                                            R.string.tissue_analysis_model_range,
+                                            tissueStatusLabel(child.status),
+                                            child.recoveryRange
+                                        )
+                                    )
+                                    Text(
+                                        stringResource(
+                                            R.string.tissue_analysis_contributing_exercises,
+                                            child.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                     if (child.diagnostics.isNotBlank()) {
                                         Text(
                                             child.diagnostics,
@@ -144,12 +215,17 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
         }
         if (ui.joints.size > 3) {
             TextButton(onClick = { showAllJoints = !showAllJoints }) {
-                Text(if (showAllJoints) "접기" else "나머지 부위 보기")
+                Text(
+                    stringResource(
+                        if (showAllJoints) R.string.tissue_analysis_collapse else R.string.tissue_analysis_show_remaining
+                    )
+                )
             }
         }
         if (ui.diagnostics.isNotEmpty()) {
             InfoCard(ui.diagnostics.take(3).joinToString("\n"))
         }
+        TissueBaselineProvenanceFooter(ui.provenance)
     }
     selectedInfoKey?.let(ui::info)?.let { info ->
         TissueEducationalInfoDialog(
@@ -182,13 +258,21 @@ private fun TissueEducationalInfoDialog(
         title = { Text(info.displayNameKo) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                TissueInfoField("표시명", info.displayNameKo)
-                TissueInfoField("위치", info.anatomicalLocationKo)
-                TissueInfoField("주요 기능", info.primaryFunctionsKo.joinToString(" · "))
-                TissueInfoField("주로 사용되는 동작", info.commonLoadContextsKo.joinToString(" · "))
-                info.shortDescriptionKo?.let { TissueInfoField("설명", it) }
+                TissueInfoField(stringResource(R.string.tissue_info_label_display_name), info.displayNameKo)
+                TissueInfoField(stringResource(R.string.tissue_info_label_location), info.anatomicalLocationKo)
+                TissueInfoField(
+                    stringResource(R.string.tissue_info_label_functions),
+                    info.primaryFunctionsKo.joinToString(" · ")
+                )
+                TissueInfoField(
+                    stringResource(R.string.tissue_info_label_contexts),
+                    info.commonLoadContextsKo.joinToString(" · ")
+                )
+                info.shortDescriptionKo?.let {
+                    TissueInfoField(stringResource(R.string.tissue_info_label_description), it)
+                }
                 Text(
-                    "이 설명은 운동 부하를 이해하기 위한 일반 정보이며 의학적 진단이 아닙니다.",
+                    stringResource(R.string.tissue_info_disclaimer),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -196,11 +280,53 @@ private fun TissueEducationalInfoDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("닫기")
+                Text(stringResource(R.string.close))
             }
         }
     )
 }
+
+@Composable
+private fun TissueBaselineProvenanceFooter(provenance: TissueBaselineProvenanceUi) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = stringResource(
+                when (provenance.source) {
+                    TissueBaselineProvenance.PRIOR_ONLY -> R.string.tissue_baseline_source_prior
+                    TissueBaselineProvenance.PERSONAL_ONLY -> R.string.tissue_baseline_source_personal
+                    TissueBaselineProvenance.MIXED -> R.string.tissue_baseline_source_mixed
+                }
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (provenance.source == TissueBaselineProvenance.MIXED) {
+            Text(
+                text = stringResource(R.string.tissue_baseline_source_mixed_explanation),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun tissueStatusLabel(status: TissueCanonicalStatus): String =
+    stringResource(
+        when (status) {
+            TissueCanonicalStatus.LOW -> R.string.tissue_status_low
+            TissueCanonicalStatus.MODERATE -> R.string.tissue_status_moderate
+            TissueCanonicalStatus.HIGH -> R.string.tissue_status_high
+            TissueCanonicalStatus.VERY_HIGH -> R.string.tissue_status_very_high
+            TissueCanonicalStatus.CALIBRATING,
+            TissueCanonicalStatus.UNAVAILABLE -> R.string.tissue_status_unavailable
+        }
+    )
 
 @Composable
 private fun TissueInfoField(label: String, value: String) {
