@@ -73,12 +73,12 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - `dose_input_capability_v1.csv` audits all 12 supported dose-basis tokens. External-load repetitions, effective-bodyweight repetitions, holds, and explicitly duration-recorded activities are derivable from current records. Distance and landing, direction-change, jump, throw, and stroke counts are explicitly unavailable and have no fallback.
 - Current bodyweight and hold calculations continue to name `BodyweightEffectiveLoadCalculator` and `DurationHoldLoadCalculator` as their authorities.
 - Performed side is not recorded. Tissue state remains unsided regardless; no 50:50 split or lead/trail-to-left/right conversion is allowed. Execution laterality is retained only as optional dose/context metadata and never blocks an otherwise calculable exposure.
-- `exercise_tissue_modifier_rules_v1.csv` is an empty production schema. The contract fixes reference conditions, specificity, exclusive/interaction groups, replacement-before-multiplication order, required inputs, bounds, evidence state, and human approval without inventing a modifier.
+- `exercise_tissue_modifier_rules_v1.csv` remains an empty broad modifier schema. The separately approved COD/deceleration product policy uses dedicated RCV stable-key assets and does not activate this generic rule system.
 
 ## Shadow Exposure Pipeline
 
 - `TissueDoseResolver` reads confirmed set inputs only. It delegates effective-bodyweight dose to `BodyweightEffectiveLoadCalculator` and plank/side-plank holds to `DurationHoldLoadCalculator`. Unrecorded distance or event counts return `MISSING_RECORD_INPUT`; duration never implies an event count.
-- `TissueModifierResolver` applies the most-specific rule in each exclusive group, replacement before multiplication, explicit bounds, and deterministic rule ordering. Missing inputs, blocked combinations, and undeclared interactions fail closed. The committed production modifier file remains empty.
+- `TissueModifierResolver` applies the most-specific rule in each exclusive group, replacement before multiplication, explicit bounds, and deterministic rule ordering. Missing inputs, blocked combinations, and undeclared interactions fail closed. The broad production modifier file remains empty; the narrow COD/deceleration policy is owned by `TissueContextModifierResolver`.
 - `TissueExposureCalculator` requires an exact profile stable key, reference condition, dose basis, and finite profile-specific dimension weight. Side policy is interpreted only as execution context. Each unsided tissue/dimension is calculated independently; there is no legacy-total allocation or sum-preservation rule.
 - Non-production numeric fixtures require an explicit opt-in flag and an `explicitlyNonProductionFixture` weight. Default calls reject them as `EVIDENCE_NOT_APPROVED`.
 - Missing performed side preserves the unsided numeric total when the remaining inputs are calculable. It never creates a blocker, left/right warning, separate state, or 50:50 split.
@@ -208,6 +208,33 @@ approve or reinterpret the historical C2/C3/C4 research ledgers above.
 - Personal normalized status is `CALIBRATING` for the first 56 observation
   days. Symptom override applies immediately and is never described as injury
   probability.
+
+### Approved COD/deceleration context modifier
+
+- Runtime calculation contract `RCV-EXPOSURE-1.1` is:
+  `E0 = (M / 10) x D_normalized x I_selected x C_resolved`.
+- `C_resolved` is limited to additional exposure from repeated
+  change-of-direction and rapid-deceleration contexts. It is resolved once by
+  `exerciseStableKey x loadUnitStableKey` after the final event key is known.
+- The explicit whitelist contains 22 exercises: 9 use `1.09`, 6 use `1.06`,
+  and 7 use `1.04`. The hard guardrail is `1.10`, but no approved rule uses
+  `1.10`; `1.08` is also absent.
+- All non-whitelisted exercises default to `1.00`. Upper-body, spinal, and
+  pelvic load units remain `1.00`; only the 35 reviewed unsided hip, knee,
+  ankle, and foot load units are eligible.
+- `cod_context_exercise_tiers_v1.csv`,
+  `cod_context_load_unit_eligibility_v1.csv`, and
+  `cod_context_modifier_rules_v1.csv` are deterministic product-policy
+  authorities. Their exact `1.04`, `1.06`, and `1.09` factors are not direct
+  literature effect sizes and do not predict injury or tissue damage.
+- `mappingRoleWeight` remains reserved and exactly `1.0`. Mapping role,
+  authority GROUP/component rows, S rapidity, and P curve profile do not add
+  another numeric multiplier.
+- Tissue events, summaries, rankings, and personal 56-day distributions are
+  derived on read from original workout records. No tissue event cache or
+  database row is persisted, so no Room migration is required; reopening the
+  analysis deterministically rebuilds all derived values under the current
+  calculation contract.
 
 ### Analysis and OFI
 
