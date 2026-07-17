@@ -123,6 +123,7 @@ data class TissueEducationalInfo(
 data class TissueRcvCatalog(
     val authorityRows: List<TissueRcvAuthorityRow>,
     val exerciseStableKeys: Set<String>,
+    val exerciseNamesByStableKey: Map<String, String>,
     val protocols: Map<String, TissueRcvExerciseProtocol>,
     val protocolClasses: Map<String, TissueRcvProtocolClass>,
     val diProfiles: Map<String, TissueRcvDiProfile>,
@@ -130,7 +131,10 @@ data class TissueRcvCatalog(
     val routing: Map<String, TissueRecoveryRouting>,
     val jointComplexes: Map<String, TissueRcvJointComplex>,
     val loadUnits: Map<String, TissueRcvLoadUnit>,
-    val educationalInfo: Map<String, TissueEducationalInfo>
+    val educationalInfo: Map<String, TissueEducationalInfo>,
+    val codContextExerciseTiers: List<TissueCodContextExerciseTier>,
+    val codContextLoadUnitEligibility: List<TissueCodContextLoadUnitEligibility>,
+    val codContextModifierRules: List<TissueCodContextModifierRule>
 ) {
     val unresolvedExerciseCount: Int
         get() = protocols.values.count { it.mappingStatus == "UNRESOLVED_GENERIC" }

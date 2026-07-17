@@ -14,6 +14,9 @@ object TissueRcvAssetFiles {
     const val JOINT_COMPLEXES = "tissue_rcv_joint_complexes_v1.csv"
     const val LOAD_UNITS = "tissue_rcv_load_units_v1.csv"
     const val EDUCATIONAL_INFO = "tissue_rcv_educational_info_v1.csv"
+    const val COD_CONTEXT_EXERCISE_TIERS = "cod_context_exercise_tiers_v1.csv"
+    const val COD_CONTEXT_LOAD_UNIT_ELIGIBILITY = "cod_context_load_unit_eligibility_v1.csv"
+    const val COD_CONTEXT_MODIFIER_RULES = "cod_context_modifier_rules_v1.csv"
 
     val required = listOf(
         AUTHORITY,
@@ -25,7 +28,10 @@ object TissueRcvAssetFiles {
         ROUTING,
         JOINT_COMPLEXES,
         LOAD_UNITS,
-        EDUCATIONAL_INFO
+        EDUCATIONAL_INFO,
+        COD_CONTEXT_EXERCISE_TIERS,
+        COD_CONTEXT_LOAD_UNIT_ELIGIBILITY,
+        COD_CONTEXT_MODIFIER_RULES
     )
 }
 
@@ -77,8 +83,11 @@ class TissueRcvAssetRepository private constructor(
                     sourceRefs = row.value("근거URL").lines().map(String::trim).filter(String::isNotBlank)
                 )
             }
-            val exerciseStableKeys = table(TissueRcvAssetFiles.EXERCISE_INDEX).rows
-                .mapTo(linkedSetOf()) { it.required("exerciseStableKey") }
+            val exerciseIndexRows = table(TissueRcvAssetFiles.EXERCISE_INDEX).rows
+            val exerciseNamesByStableKey = exerciseIndexRows.associate { row ->
+                row.required("exerciseStableKey") to row.required("운동명")
+            }
+            val exerciseStableKeys = exerciseNamesByStableKey.keys
             val protocols = table(TissueRcvAssetFiles.EXERCISE_PROTOCOLS).rows.map { row ->
                 TissueRcvExerciseProtocol(
                     exerciseStableKey = row.required("exerciseStableKey"),
@@ -185,10 +194,51 @@ class TissueRcvAssetRepository private constructor(
                 "Educational metadata contains a duplicate stable key."
             }
             val educationalInfo = educationalRows.associateBy(TissueEducationalInfo::stableKey)
+            val codContextExerciseTiers = table(TissueRcvAssetFiles.COD_CONTEXT_EXERCISE_TIERS).rows
+                .map { row ->
+                    TissueCodContextExerciseTier(
+                        exerciseStableKey = row.required("exerciseStableKey"),
+                        displayNameKo = row.required("displayNameKo"),
+                        factor = row.double("factor"),
+                        policyVersion = row.required("policyVersion"),
+                        rationale = row.required("rationale"),
+                        evidenceStatus = row.required("evidenceStatus"),
+                        reviewStatus = row.required("reviewStatus")
+                    )
+                }
+            val codContextLoadUnitEligibility =
+                table(TissueRcvAssetFiles.COD_CONTEXT_LOAD_UNIT_ELIGIBILITY).rows.map { row ->
+                    TissueCodContextLoadUnitEligibility(
+                        loadUnitStableKey = row.required("loadUnitStableKey"),
+                        jointComplexStableKey = row.required("jointComplexStableKey"),
+                        displayNameKo = row.required("displayNameKo"),
+                        bodyRegion = row.required("bodyRegion"),
+                        eligible = row.boolean("codContextEligible"),
+                        eligibilityReason = row.value("eligibilityReason"),
+                        exclusionReason = row.value("exclusionReason"),
+                        policyVersion = row.required("policyVersion"),
+                        reviewStatus = row.required("reviewStatus")
+                    )
+                }
+            val codContextModifierRules = table(TissueRcvAssetFiles.COD_CONTEXT_MODIFIER_RULES).rows
+                .map { row ->
+                    TissueCodContextModifierRule(
+                        modifierRuleId = row.required("modifierRuleId"),
+                        exerciseStableKey = row.required("exerciseStableKey"),
+                        loadUnitStableKey = row.required("loadUnitStableKey"),
+                        contextType = row.required("contextType"),
+                        factor = row.double("factor"),
+                        policyVersion = row.required("policyVersion"),
+                        rationale = row.required("rationale"),
+                        evidenceStatus = row.required("evidenceStatus"),
+                        reviewStatus = row.required("reviewStatus")
+                    )
+                }
 
             val catalog = TissueRcvCatalog(
                 authorityRows = authorityRows,
                 exerciseStableKeys = exerciseStableKeys,
+                exerciseNamesByStableKey = exerciseNamesByStableKey,
                 protocols = protocols,
                 protocolClasses = protocolClasses,
                 diProfiles = diProfiles,
@@ -196,7 +246,10 @@ class TissueRcvAssetRepository private constructor(
                 routing = routing,
                 jointComplexes = jointComplexes,
                 loadUnits = loadUnits,
-                educationalInfo = educationalInfo
+                educationalInfo = educationalInfo,
+                codContextExerciseTiers = codContextExerciseTiers,
+                codContextLoadUnitEligibility = codContextLoadUnitEligibility,
+                codContextModifierRules = codContextModifierRules
             )
             TissueRcvAssetValidator.requireValid(catalog)
             return TissueRcvAssetRepository(catalog)
@@ -273,6 +326,7 @@ object TissueRcvAssetValidator {
             require(curve.knots.zipWithNext().all { (left, right) -> left.elapsedHours < right.elapsedHours })
             require(curve.knots.all { it.value in 0.0..1.25 })
         }
+        TissueCodContextValidator.requireValid(catalog)
     }
 }
 
@@ -287,3 +341,8 @@ private fun Map<String, String>.optionalDouble(name: String): Double? =
     value(name).takeIf(String::isNotBlank)?.toDouble()?.also { require(it.isFinite()) }
 private fun Map<String, String>.int(name: String): Int =
     required(name).toDouble().toInt()
+private fun Map<String, String>.boolean(name: String): Boolean = when (required(name).lowercase()) {
+    "true" -> true
+    "false" -> false
+    else -> error("Invalid Boolean RCV field: $name")
+}
