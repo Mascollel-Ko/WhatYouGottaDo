@@ -2566,3 +2566,61 @@ Verification
 - `:app:assembleDebug`: passed; `app-debug.apk` generated.
 - Final remote ancestry, push, and CI status are reported after remote
   verification.
+
+## v0.4.2.12 connective-tissue relative baseline Phase 2
+
+### Baseline and design lock
+- Started from `main` at Phase 1 handoff commit
+  `d83ae6441642fb5f8f7f41dc332d9c7ad9a225ad`; `HEAD` equals
+  `origin/main`, and only the pre-existing user-owned `outputs/*` files are
+  dirty.
+- Re-ran `generateConnectiveTissuePriorBaselines` and
+  `validateConnectiveTissuePriorBaselines`. Both passed and produced no
+  tracked source or artifact diff. The handoff remains 77 load units, 13
+  profiles, 24 local-hour buckets, 936 quantile values, registry file SHA-256
+  `52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf`,
+  recovery fingerprint
+  `8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a`,
+  and deterministic output checksum
+  `5303516c1b972ce3bdf08eaffcd7c5fe6448bfa64c50abae9790d8d81af0c58e`.
+- Current `CurrentLoad` rows are dimension-level
+  `TissueRcvLoadKey(loadUnitStableKey, loadProfileP)` residual sums. The Phase
+  1 asset instead maps each load-unit stable key to one aggregate prior
+  profile, whose simulation sums production residuals. Phase 2 therefore
+  uses one aggregate current/personal baseline identity per
+  `loadUnitStableKey`; dimensions share that unit's calibration weight.
+- Current `normalizedScore`/joint `displayScore` is a personal-history
+  percentile. It is shown as a numeric score and is not compatible with the
+  new mixed prior/personal boundaries, so Phase 2 replaces it with internal
+  `relativeBandPosition` ranking semantics and removes the numeric UI score.
+- Current `observationDays` runs from the first confirmed workout date to
+  wall-clock today. History is gated globally at 56 days and reconstructs 56
+  prior end-of-day samples. It has no check-in anchor, no recent-seven
+  calendar exclusion, no global/unit gap segmentation, and no local-hour
+  parity with the Phase 1 bucket.
+- Runtime analysis uses an injected `ZoneId` defaulting to
+  `ZoneId.systemDefault()`. Confirmed sets are the workout authority;
+  planned/unconfirmed-only entries are already excluded. `DailyCheckIn` is a
+  Room row keyed by ISO local date and will be read only as an anchor; it will
+  not become an exposure or break a workout gap.
+- The canonical body-weight resolver is
+  `BodyweightEffectiveLoadCalculator.bodyWeightFor(date, dailyMetrics,
+  initialProfile)`. Connective-tissue analysis currently reads only initial
+  profile weight; Phase 2 will reuse the canonical resolver without applying
+  profile multipliers to `CurrentLoad`.
+- Separate numeric `strengthTrainingYears` and `badmintonTrainingYears`
+  already exist in `InitialUserProfile` and its editor/backup path. A stable
+  habitual intensity field does not exist and must be added with a nullable
+  neutral default, explicit Room migration, backup compatibility, and the
+  existing profile editor. Recent/session RPE will not be used as a substitute.
+- No production prior loader exists. The app-ready JSON schema is `1.0.0`,
+  protocol `RCV-ALL-0.6|RCV-EXPOSURE-1.1`, generator
+  `CT-PRIOR-GENERATOR-1.0.0`; it contains stable-key assignments, 13 profile
+  coefficient records, and ordered floor/Q30/Q80/Q95 values for every local
+  hour. Runtime lookup will be stable-key only, with no display-name fallback
+  and no generator/simulation code in the APK.
+- Room is currently version 20. Profile backups are generic key/value rows;
+  adding the one missing enum requires export/import mapping while older
+  backups remain valid. Existing navigation, top-three expansion,
+  educational dialogs, OFI, exposure/recovery authorities, contributor ratio,
+  ProgramBuilder, and user-owned `outputs/*` remain outside this change.
