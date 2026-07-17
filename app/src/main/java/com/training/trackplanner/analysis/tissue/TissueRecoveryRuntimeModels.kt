@@ -63,7 +63,11 @@ data class TissueExposureEvent(
     val curveVersion: String,
     val evidenceGrade: String,
     val sourceRefs: List<String>,
-    val diagnostics: List<String>
+    val diagnostics: List<String>,
+    val contextModifierRuleId: String? = null,
+    val contextModifierStatus: TissueContextModifierStatus =
+        TissueContextModifierStatus.DEFAULT_EXERCISE_NOT_WHITELISTED,
+    val contextPolicyVersion: String = TISSUE_COD_CONTEXT_POLICY_VERSION
 )
 
 data class TissueEventLedgerResult(

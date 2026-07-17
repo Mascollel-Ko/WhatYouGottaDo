@@ -79,6 +79,8 @@ class TissueRcvEventLedgerBuilder(
     private val catalog: TissueRcvCatalog,
     private val zoneId: java.time.ZoneId
 ) {
+    private val contextModifierResolver = TissueContextModifierResolver(catalog)
+
     fun build(records: List<TissueWorkoutRecord>): TissueEventLedgerResult {
         val ordered = records.sortedWith(
             compareBy<TissueWorkoutRecord>({ it.date }, { it.entry.id }, { it.exercise.stableKey })
@@ -123,7 +125,16 @@ class TissueRcvEventLedgerBuilder(
                 val routing = requireNotNull(catalog.routing[loadUnit.recoveryClass])
                 val curves = curves(protocol, routing, group.first().bodyRegion)
                 val magnitude = group.maxOf(TissueRcvAuthorityRow::magnitudeM)
-                val initialExposure = (magnitude / 10.0) * normalizedDose * effortValue
+                val contextResolution = contextModifierResolver.resolve(
+                    record.exercise.stableKey,
+                    pair.first
+                )
+                val initialExposure = tissueRcvInitialExposure(
+                    magnitude = magnitude,
+                    normalizedDose = normalizedDose,
+                    effortValue = effortValue,
+                    resolvedContextModifier = contextResolution.factor
+                )
                 events += TissueExposureEvent(
                     eventId = "${record.entry.id}|${pair.first}|${pair.second}",
                     recordId = record.entry.id,
@@ -139,11 +150,13 @@ class TissueRcvEventLedgerBuilder(
                     selectedEffort = effort,
                     magnitudeM = magnitude,
                     rapidityS = group.maxOf(TissueRcvAuthorityRow::rapidityS),
-                    contextModifier = 1.0,
+                    contextModifier = contextResolution.factor,
                     mappingRoleWeight = 1.0,
                     curveIds = curves,
                     performedTime = TissuePerformedTimeResolver.resolve(record.entry, zoneId),
-                    scoreVersion = group.map(TissueRcvAuthorityRow::scoreVersion).distinct().sorted().joinToString("|"),
+                    scoreVersion = (
+                        group.map(TissueRcvAuthorityRow::scoreVersion) + TISSUE_RCV_CALCULATION_VERSION
+                        ).distinct().sorted().joinToString("|"),
                     protocolVersion = "RCV-ALL-0.6",
                     curveVersion = "RCV-ALL-0.6",
                     evidenceGrade = group.map(TissueRcvAuthorityRow::mappingConfidence).filter(String::isNotBlank)
@@ -151,8 +164,12 @@ class TissueRcvEventLedgerBuilder(
                     sourceRefs = group.flatMap(TissueRcvAuthorityRow::sourceRefs).distinct().sorted(),
                     diagnostics = listOf(
                         "GROUP/component conflicts use max M/S/C without summing duplicate authority rows.",
-                        "Execution laterality is diagnostic only; the event key is unsided."
-                    )
+                        "Execution laterality is diagnostic only; the event key is unsided.",
+                        contextResolution.diagnosticReason
+                    ),
+                    contextModifierRuleId = contextResolution.modifierRuleId,
+                    contextModifierStatus = contextResolution.status,
+                    contextPolicyVersion = contextResolution.policyVersion
                 )
             }
         }
@@ -209,4 +226,14 @@ class TissueRcvEventLedgerBuilder(
             put(TissueRecoveryChannel.BIOLOGICAL_REMODELING_ACTIVITY, it)
         }
     }
+}
+
+internal fun tissueRcvInitialExposure(
+    magnitude: Double,
+    normalizedDose: Double,
+    effortValue: Double,
+    resolvedContextModifier: Double
+): Double {
+    val baseExposure = (magnitude / 10.0) * normalizedDose * effortValue
+    return baseExposure * resolvedContextModifier
 }
