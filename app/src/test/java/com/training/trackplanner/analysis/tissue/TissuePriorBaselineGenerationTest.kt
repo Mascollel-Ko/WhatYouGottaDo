@@ -102,7 +102,7 @@ class TissuePriorBaselineGenerationTest {
     }
 
     @Test
-    fun generatedStatusRemainsNotRuntimeActiveAndProductionAuthorityIsDirectlyReused() {
+    fun generatedArtifactKeepsPhaseOneStatusWhileRuntimeUsesItsProductionAuthority() {
         assertEquals(
             listOf("DESIGNED", "GENERATED", "VALIDATED", "NOT_YET_RUNTIME_ACTIVE"),
             registry.getJSONArray("lifecycleStatus").strings()
@@ -116,14 +116,20 @@ class TissuePriorBaselineGenerationTest {
         assertTrue(source.contains("TissueResidualCalculator"))
         assertFalse(source.contains("fun interpolate"))
 
-        val unexpectedCallers = File(repoRoot, "app/src/main/java").walkTopDown()
+        val runtimeCallers = File(repoRoot, "app/src/main/java").walkTopDown()
             .filter { it.isFile && it.extension == "kt" && it.name != "TissuePriorAdjustment.kt" }
             .filter { file ->
                 val text = file.readText(Charsets.UTF_8)
                 text.contains("connective_tissue_prior_baselines_v1") ||
                     text.contains("TissuePriorAdjustment.adjust")
-            }.toList()
-        assertTrue("Current runtime must not consume the prior registry: $unexpectedCallers", unexpectedCallers.isEmpty())
+            }
+            .map { it.name }
+            .sorted()
+            .toList()
+        assertEquals(
+            listOf("TissueEffectiveBaselinePolicy.kt", "TissuePriorRegistry.kt"),
+            runtimeCallers
+        )
     }
 
     companion object {
