@@ -2246,3 +2246,58 @@ Behavior boundaries
 - Connective-tissue v0.4.2.8 calculation and UI contracts are unchanged.
 - LOCAL_MUSCLE contribution data remains available to existing consumers even
   though its primary UI now shows muscles.
+
+## v0.4.2.10 - Limited COD/deceleration context modifier C
+
+Baseline and safety
+- Started from `d5cebbaa6db2e1692c43f9ec7859f3571681ef0c`; local `main`,
+  `origin/main`, and `v0.4.2.9` matched.
+- Confirmed `origin/main` was an ancestor of HEAD and no unfinished source
+  changes existed.
+- Preserved all six user-owned `outputs/*` modifications without editing,
+  staging, or committing them.
+
+### Commit 1 - `6902ba5 feat(tissue): add bounded COD context authority`
+- Added exact 22-exercise tiers: 9 at `1.09`, 6 at `1.06`, and 7 at `1.04`.
+- Added a complete 77-row unsided load-unit eligibility authority with 35
+  reviewed hip/knee/ankle/foot units eligible and 42 explicit neutral rows.
+- Added 770 deterministic exercise/load-unit rules, a pure stable-key resolver,
+  and strict count/factor/foreign-key/duplicate/provenance validation.
+- The broad modifier schema remains empty and no display-name runtime matching
+  was introduced.
+
+### Commit 2 - `495546c fix(tissue): apply bounded COD context once per event`
+- Changed event exposure from `(M / 10) x D x I` to
+  `(M / 10) x D x I x C_resolved`.
+- Resolves C once after the final exercise/load-unit event key is known.
+- Exposes rule ID, resolution status, policy version, and neutral reason on
+  each derived event.
+- `mappingRoleWeight` remains `1.0`; S and P remain non-multiplicative.
+- Exact fixture checks passed: `0.5232` at `1.09`, `0.5088` at `1.06`,
+  `0.4992` at `1.04`, and `0.48` at `1.00`.
+- Duplicate component-row coverage proved that C is multiplied only once.
+
+### Commit 3 - `85e1252 docs(tissue): define bounded COD runtime contract`
+- Updated the foundation contract with the 22-exercise whitelist, `1.09`
+  approved maximum, `1.10` unused guardrail, tissue-specific scope, neutral
+  mapping role, and product-policy evidence language.
+- Documented that events and personal 56-day distributions are generated on
+  read, so no Room migration or stale persisted tissue cache exists.
+
+### Release - `chore(release): bump version to v0.4.2.10`
+- Target: `versionName v0.4.2.10`, `versionCode 402010`.
+- Added `docs/v0.4.2.10_release_notes.md`.
+- Full `:app:testDebugUnitTest`: 841 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Push, annotated tag, and CI results are recorded in the final completion
+  report after release verification.
+
+Behavior boundaries
+- No authority M/S/P value, dose normalization, effort selection, curve,
+  recovery routing, calibration algorithm, OFI, readiness, ProgramBuilder,
+  bodyweight volume, daily-condition, LOCAL_MUSCLE, UI, or backup behavior was
+  changed.
+- Upper-body, spinal, and pelvic load units always resolve C to `1.00`.
+- Exact factors are bounded product policy, not literature effect sizes or
+  injury predictions.
