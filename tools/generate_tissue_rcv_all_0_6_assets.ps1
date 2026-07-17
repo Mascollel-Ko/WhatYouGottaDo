@@ -168,6 +168,20 @@ function Write-CsvSheet([string]$Path, [object[]]$Rows) {
     $objects.Count
 }
 
+function Get-OrderedValues([string[]]$Values, [int]$Limit = 4) {
+    $seen = @{}
+    $result = [System.Collections.Generic.List[string]]::new()
+    foreach ($value in $Values) {
+        $trimmed = $value.Trim()
+        if (-not [string]::IsNullOrWhiteSpace($trimmed) -and -not $seen.ContainsKey($trimmed)) {
+            $seen[$trimmed] = $true
+            $result.Add($trimmed)
+            if ($result.Count -eq $Limit) { break }
+        }
+    }
+    $result.ToArray()
+}
+
 $authorityHash = Get-Sha256 $AuthorityWorkbookPath
 $recoveryHash = Get-Sha256 $RecoveryWorkbookPath
 if ($authorityHash -ne $expectedAuthorityHash) {
@@ -215,6 +229,115 @@ foreach ($spec in $specs) {
         stateIdentity = "loadUnitStableKey|loadDimension|UNSIDED"
     })
 }
+
+$loadModeLabels = @{
+    BENDING = "굽힘 부하에 대응"
+    CARPAL_STABILITY = "손목뼈 정렬을 안정화"
+    COMPRESSION = "압박 부하를 전달"
+    CONTACT_PRESSURE = "관절 접촉 압력을 분산"
+    DISTRACTION = "당겨지는 부하에 대응"
+    DORSIFLEXION = "발목 굽힘 범위를 지지"
+    END_RANGE = "관절 끝 범위를 안정화"
+    EVERSION = "발목 바깥번짐을 제어"
+    EXTENSION = "신전 부하에 대응"
+    EXTERNAL_ROTATION = "바깥회전 부하를 제어"
+    FORCE_TRANSFER = "힘을 인접 부위로 전달"
+    GRIP = "그립 부하를 지지"
+    INTERNAL_ROTATION = "안쪽회전 부하를 제어"
+    INVERSION_EVERSION = "발목 안팎번짐을 제어"
+    MIDFOOT_BENDING = "중족부 굽힘을 지지"
+    PINCH = "집기 동작을 지지"
+    PRONATION = "회내 동작을 제어"
+    RAPID_STRAIN = "빠른 신장 부하에 대응"
+    REPETITIVE_GLIDING = "반복 활주를 지지"
+    ROTATION = "회전 부하를 제어"
+    ROTATORY_STABILITY = "회전 안정성을 유지"
+    SHEAR = "전단 부하에 대응"
+    STABILIZATION = "관절과 분절을 안정화"
+    STRETCH = "신장 부하에 대응"
+    STRETCH_SHORTENING = "신장-단축 주기를 지지"
+    SUPINATION = "회외 동작을 제어"
+    TENSION = "인장 부하를 전달"
+    TORSION = "비틀림 부하를 제어"
+    ULNAR_DEVIATION = "손목 척측 편위를 제어"
+    VALGUS = "외반 부하를 제어"
+    VARUS = "내반 부하를 제어"
+}
+
+$jointRows = @(Import-Csv -LiteralPath (Join-Path $OutputDirectory "tissue_rcv_joint_complexes_v1.csv"))
+$loadUnitRows = @(Import-Csv -LiteralPath (Join-Path $OutputDirectory "tissue_rcv_load_units_v1.csv"))
+$educationalRows = [System.Collections.Generic.List[object]]::new()
+foreach ($joint in $jointRows) {
+    $children = @($loadUnitRows | Where-Object primaryJointComplexStableKey -eq $joint.jointComplexStableKey)
+    $functions = Get-OrderedValues @($children.primaryLoadModes -split "\|" | ForEach-Object {
+        $loadModeLabels[$_]
+    })
+    $contexts = Get-OrderedValues @($children.exampleExercises -split "\|")
+    $educationalRows.Add([pscustomobject][ordered]@{
+        stableKey = $joint.jointComplexStableKey
+        scope = "JOINT_COMPLEX"
+        displayNameKo = $joint.canonicalNameKo
+        anatomicalLocationKo = $joint.description
+        primaryFunctionsKo = $functions -join "|"
+        commonLoadContextsKo = $contexts -join "|"
+        shortDescriptionKo = $joint.description
+        metadataVersion = "RCV-ALL-0.6-EDU-1"
+    })
+}
+foreach ($unit in $loadUnitRows) {
+    $functions = Get-OrderedValues @($unit.primaryLoadModes -split "\|" | ForEach-Object {
+        $loadModeLabels[$_]
+    })
+    $contexts = Get-OrderedValues @($unit.exampleExercises -split "\|")
+    $educationalRows.Add([pscustomobject][ordered]@{
+        stableKey = $unit.loadUnitStableKey
+        scope = "LOAD_UNIT"
+        displayNameKo = $unit.canonicalNameKo
+        anatomicalLocationKo = "$($unit.primaryJointComplexNameKo) 안의 $($unit.canonicalNameKo)"
+        primaryFunctionsKo = $functions -join "|"
+        commonLoadContextsKo = $contexts -join "|"
+        shortDescriptionKo = "$($unit.canonicalNameKo): $($functions -join ', ') 관련 부하를 보는 연결조직 분석 단위."
+        metadataVersion = "RCV-ALL-0.6-EDU-1"
+    })
+}
+if ($jointRows.Count -ne 15 -or $loadUnitRows.Count -ne 77 -or $educationalRows.Count -ne 92) {
+    throw "Educational metadata count gate failed: joints=$($jointRows.Count) loadUnits=$($loadUnitRows.Count) total=$($educationalRows.Count)"
+}
+if ($educationalRows.stableKey.Count -ne @($educationalRows.stableKey | Sort-Object -Unique).Count) {
+    throw "Educational metadata contains a duplicate stable key."
+}
+if ($educationalRows | Where-Object {
+    [string]::IsNullOrWhiteSpace($_.anatomicalLocationKo) -or
+    [string]::IsNullOrWhiteSpace($_.primaryFunctionsKo) -or
+    [string]::IsNullOrWhiteSpace($_.commonLoadContextsKo)
+}) {
+    throw "Educational metadata contains an incomplete row."
+}
+
+$educationalFile = "tissue_rcv_educational_info_v1.csv"
+$educationalPath = Join-Path $OutputDirectory $educationalFile
+$educationalHeaders = @(
+    "stableKey",
+    "scope",
+    "displayNameKo",
+    "anatomicalLocationKo",
+    "primaryFunctionsKo",
+    "commonLoadContextsKo",
+    "shortDescriptionKo",
+    "metadataVersion"
+)
+$educationalCsv = $educationalRows | Select-Object $educationalHeaders | ConvertTo-Csv -NoTypeInformation
+Write-Utf8 $educationalPath (($educationalCsv -join "`n") + "`n")
+$manifestRows.Add([pscustomobject][ordered]@{
+    assetName = $educationalFile
+    sourceSheet = "DERIVED_FROM_CTM_AUTHORITY"
+    sourceVersion = "RCV-ALL-0.6-EDU-1"
+    sourceWorkbookSha256 = $authorityHash
+    rowCount = $educationalRows.Count
+    assetSha256 = Get-Sha256 $educationalPath
+    baselineCommit = "d3be2a9af81bc42b8733fd953cc2cdc770be186b"
+    stateIdentity = "loadUnitStableKey|loadDimension|UNSIDED"
+})
 
 $manifestHeaders = @(
     "assetName",

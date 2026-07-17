@@ -4,6 +4,7 @@ import java.io.File
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -67,11 +68,53 @@ class TissueRcvAssetImportTest {
     fun generatedAssetHashesMatchTheCommittedDeterministicManifest() {
         val manifest = TissueMetadataParser.table(asset("tissue_rcv_asset_manifest_v1.csv"))
 
-        assertEquals(15, manifest.rows.size)
+        assertEquals(16, manifest.rows.size)
         manifest.rows.forEach { row ->
             val file = assetFile(row.getValue("assetName"))
             assertEquals(row.getValue("assetName"), row.getValue("assetSha256"), sha256(file))
             assertEquals("d3be2a9af81bc42b8733fd953cc2cdc770be186b", row.getValue("baselineCommit"))
+        }
+    }
+
+    @Test
+    fun educationalMetadataCoversEveryProductionKeyExactlyOnceAndUnsided() {
+        val catalog = repository().catalog
+        val jointInfo = catalog.educationalInfo.values.filter {
+            it.scope == TissueEducationalInfoScope.JOINT_COMPLEX
+        }
+        val loadUnitInfo = catalog.educationalInfo.values.filter {
+            it.scope == TissueEducationalInfoScope.LOAD_UNIT
+        }
+
+        assertEquals(15, jointInfo.size)
+        assertEquals(77, loadUnitInfo.size)
+        assertEquals(catalog.jointComplexes.keys + catalog.loadUnits.keys, catalog.educationalInfo.keys)
+        assertTrue(catalog.educationalInfo.values.all {
+            it.anatomicalLocationKo.isNotBlank() &&
+                it.primaryFunctionsKo.isNotEmpty() &&
+                it.commonLoadContextsKo.isNotEmpty()
+        })
+        assertFalse(catalog.educationalInfo.keys.any {
+            it.contains("LEFT", ignoreCase = true) || it.contains("RIGHT", ignoreCase = true)
+        })
+    }
+
+    @Test
+    fun educationalMetadataRejectsDuplicateAndUnknownKeys() {
+        val assets = TissueRcvAssetFiles.required.associateWith(::asset)
+        val educational = assets.getValue(TissueRcvAssetFiles.EDUCATIONAL_INFO)
+        val firstRow = educational.lineSequence().drop(1).first()
+        val firstKey = TissueMetadataParser.table(educational).rows.first().getValue("stableKey")
+
+        assertThrows(IllegalArgumentException::class.java) {
+            TissueRcvAssetRepository.fromCsv(
+                assets + (TissueRcvAssetFiles.EDUCATIONAL_INFO to educational.trimEnd() + "\n" + firstRow + "\n")
+            )
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            TissueRcvAssetRepository.fromCsv(
+                assets + (TissueRcvAssetFiles.EDUCATIONAL_INFO to educational.replaceFirst(firstKey, "unknown_key"))
+            )
         }
     }
 

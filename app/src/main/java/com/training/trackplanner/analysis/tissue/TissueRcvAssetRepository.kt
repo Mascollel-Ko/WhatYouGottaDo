@@ -13,6 +13,7 @@ object TissueRcvAssetFiles {
     const val ROUTING = "tissue_rcv_recovery_routing_v1.csv"
     const val JOINT_COMPLEXES = "tissue_rcv_joint_complexes_v1.csv"
     const val LOAD_UNITS = "tissue_rcv_load_units_v1.csv"
+    const val EDUCATIONAL_INFO = "tissue_rcv_educational_info_v1.csv"
 
     val required = listOf(
         AUTHORITY,
@@ -23,7 +24,8 @@ object TissueRcvAssetFiles {
         CURVE_KNOTS,
         ROUTING,
         JOINT_COMPLEXES,
-        LOAD_UNITS
+        LOAD_UNITS,
+        EDUCATIONAL_INFO
     )
 }
 
@@ -164,6 +166,25 @@ class TissueRcvAssetRepository private constructor(
                     memberTissueCount = row.int("memberTissueCount")
                 )
             }.associateBy(TissueRcvLoadUnit::stableKey)
+            val educationalTable = table(TissueRcvAssetFiles.EDUCATIONAL_INFO)
+            require(educationalTable.header.none { it.contains("side", ignoreCase = true) }) {
+                "Educational metadata must not contain a side field."
+            }
+            val educationalRows = educationalTable.rows.map { row ->
+                TissueEducationalInfo(
+                    stableKey = row.required("stableKey"),
+                    displayNameKo = row.required("displayNameKo"),
+                    anatomicalLocationKo = row.required("anatomicalLocationKo"),
+                    primaryFunctionsKo = row.tokens("primaryFunctionsKo"),
+                    commonLoadContextsKo = row.tokens("commonLoadContextsKo"),
+                    shortDescriptionKo = row.value("shortDescriptionKo").takeIf(String::isNotBlank),
+                    scope = enumValueOf(row.required("scope"))
+                )
+            }
+            require(educationalRows.map(TissueEducationalInfo::stableKey).distinct().size == educationalRows.size) {
+                "Educational metadata contains a duplicate stable key."
+            }
+            val educationalInfo = educationalRows.associateBy(TissueEducationalInfo::stableKey)
 
             val catalog = TissueRcvCatalog(
                 authorityRows = authorityRows,
@@ -174,7 +195,8 @@ class TissueRcvAssetRepository private constructor(
                 curves = curves,
                 routing = routing,
                 jointComplexes = jointComplexes,
-                loadUnits = loadUnits
+                loadUnits = loadUnits,
+                educationalInfo = educationalInfo
             )
             TissueRcvAssetValidator.requireValid(catalog)
             return TissueRcvAssetRepository(catalog)
@@ -197,6 +219,23 @@ object TissueRcvAssetValidator {
         }
         require(catalog.routing.size == 7) { "Expected seven recovery routing classes." }
         require(catalog.loadUnits.size == 77) { "Expected 77 load units." }
+        require(catalog.educationalInfo.values.count {
+            it.scope == TissueEducationalInfoScope.JOINT_COMPLEX
+        } == 15) { "Expected educational metadata for 15 joint complexes." }
+        require(catalog.educationalInfo.values.count {
+            it.scope == TissueEducationalInfoScope.LOAD_UNIT
+        } == 77) { "Expected educational metadata for 77 load units." }
+        require(catalog.educationalInfo.keys == catalog.jointComplexes.keys + catalog.loadUnits.keys) {
+            "Educational metadata must cover production keys exactly."
+        }
+        require(catalog.educationalInfo.values.all {
+            it.anatomicalLocationKo.isNotBlank() &&
+                it.primaryFunctionsKo.isNotEmpty() &&
+                it.commonLoadContextsKo.isNotEmpty()
+        }) { "Educational metadata contains an incomplete entry." }
+        require(catalog.educationalInfo.keys.none {
+            it.contains("LEFT", ignoreCase = true) || it.contains("RIGHT", ignoreCase = true)
+        }) { "Educational metadata must remain unsided." }
         require(catalog.unresolvedExerciseCount == 1) { "Expected one unresolved generic exercise." }
         require(catalog.protocols.keys == catalog.exerciseStableKeys) {
             "Protocol mappings must cover the canonical exercise stable keys exactly."
