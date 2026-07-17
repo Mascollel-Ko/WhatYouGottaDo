@@ -18,12 +18,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,7 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -165,7 +162,7 @@ internal fun RecordScreen(
             )
         }
         item {
-            DailyMetricCard(
+            RecordDailyConditionCard(
                 date = selectedDate,
                 viewModel = viewModel,
                 onAddExercise = { showExercisePicker = true }
@@ -208,22 +205,15 @@ internal fun RecordScreen(
 
 
 @Composable
-private fun DailyMetricCard(
+private fun RecordDailyConditionCard(
     date: String,
     viewModel: TrainingViewModel,
     onAddExercise: () -> Unit
 ) {
-    val metric by remember(date) {
-        viewModel.metricForDate(date)
+    val checkIn by remember(date) {
+        viewModel.checkInForDate(date)
     }.collectAsState(initial = null)
-    var expanded by rememberSaveable(date) { mutableStateOf(false) }
-    var sleepText by rememberSaveable(date) { mutableStateOf("") }
-    var bodyWeightText by rememberSaveable(date) { mutableStateOf("") }
-
-    LaunchedEffect(metric) {
-        sleepText = metric?.sleepHours?.let(::formatDecimal).orEmpty()
-        bodyWeightText = metric?.bodyWeightKg?.let(::formatDecimal).orEmpty()
-    }
+    var showEditor by rememberSaveable(date) { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -236,9 +226,12 @@ private fun DailyMetricCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { expanded = !expanded }
+                    onClick = { showEditor = true }
                 ) {
-                    Text(conditionSummary(metric?.sleepHours, metric?.bodyWeightKg))
+                    Text(
+                        checkIn?.compactSummary()?.let { summary -> "컨디션 · $summary" }
+                            ?: "컨디션 입력"
+                    )
                 }
                 Button(
                     modifier = Modifier.weight(1f),
@@ -247,54 +240,21 @@ private fun DailyMetricCard(
                     Text("운동 추가")
                 }
             }
-            if (expanded) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        modifier = Modifier.weight(1f),
-                        value = sleepText,
-                        onValueChange = { if (isDecimalInput(it)) sleepText = it },
-                        label = { Text("수면") },
-                        suffix = { Text("h") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        modifier = Modifier.weight(1f),
-                        value = bodyWeightText,
-                        onValueChange = { if (isDecimalInput(it)) bodyWeightText = it },
-                        label = { Text("체중") },
-                        suffix = { Text("kg") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true
-                    )
-                }
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        viewModel.saveDailyMetric(
-                            date = date,
-                            sleepHours = sleepText.toDoubleOrNull(),
-                            bodyWeightKg = bodyWeightText.toDoubleOrNull()
-                        )
-                        expanded = false
-                    }
-                ) {
-                    Text("저장")
-                }
-            }
         }
     }
-}
 
-private fun conditionSummary(sleepHours: Double?, bodyWeightKg: Double?): String =
-    if (sleepHours == null && bodyWeightKg == null) {
-        "컨디션"
-    } else {
-        buildList {
-            sleepHours?.let { add("수면 ${formatDecimal(it)}h") }
-            bodyWeightKg?.let { add("${formatDecimal(it)}kg") }
-        }.joinToString(" · ", prefix = "컨디션 · ")
+    if (showEditor) {
+        DailyConditionEditorDialog(
+            targetDate = LocalDate.parse(date),
+            checkIn = checkIn,
+            onDismiss = { showEditor = false },
+            onSave = { saved ->
+                viewModel.saveDailyCheckIn(saved)
+                showEditor = false
+            }
+        )
     }
+}
 
 
 private fun List<WorkoutEntryWithSets>.sortedForRecordDisplay(): List<WorkoutEntryWithSets> =

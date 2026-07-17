@@ -26,7 +26,6 @@ import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.AnalysisStats
 import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
-import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.Exercise
@@ -180,8 +179,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         repository.programItems(programId)
 
-    fun metricForDate(date: String): Flow<DailyMetric?> =
-        repository.metricForDate(date)
+    fun checkInForDate(date: String): Flow<DailyCheckIn?> =
+        repository.observeCheckInForDate(date)
 
     fun saveDailyCheckIn(checkIn: DailyCheckIn) {
         viewModelScope.launch {
@@ -378,13 +377,6 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     ) {
         viewModelScope.launch {
             onResult(repository.programApplyConflictSummary(programId, startDate))
-        }
-    }
-
-    fun saveDailyMetric(date: String, sleepHours: Double?, bodyWeightKg: Double?) {
-        viewModelScope.launch {
-            repository.saveDailyMetric(date, sleepHours, bodyWeightKg)
-            refreshAnalysisSummaries()
         }
     }
 

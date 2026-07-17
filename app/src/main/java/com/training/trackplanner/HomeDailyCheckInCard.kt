@@ -19,12 +19,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -36,7 +37,7 @@ internal fun HomeDailyCheckInCard(
     checkIn: DailyCheckIn?,
     onSave: (DailyCheckIn) -> Unit
 ) {
-    var showEditor by remember { mutableStateOf(false) }
+    var showEditor by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -60,7 +61,8 @@ internal fun HomeDailyCheckInCard(
     }
 
     if (showEditor) {
-        DailyCheckInDialog(
+        DailyConditionEditorDialog(
+            targetDate = LocalDate.now(),
             checkIn = checkIn,
             onDismiss = { showEditor = false },
             onSave = { saved ->
@@ -72,31 +74,39 @@ internal fun HomeDailyCheckInCard(
 }
 
 @Composable
-private fun DailyCheckInDialog(
+internal fun DailyConditionEditorDialog(
+    targetDate: LocalDate,
     checkIn: DailyCheckIn?,
     onDismiss: () -> Unit,
     onSave: (DailyCheckIn) -> Unit
 ) {
-    var sleepHours by remember { mutableStateOf("") }
-    var overallFatigue by remember { mutableStateOf<Int?>(null) }
-    var lowerBodyFatigue by remember { mutableStateOf<Int?>(null) }
-    var jointTendonDiscomfort by remember { mutableStateOf<Int?>(null) }
-    var focusMotivation by remember { mutableStateOf<Int?>(null) }
-
-    LaunchedEffect(checkIn?.updatedAt) {
-        sleepHours = checkIn?.sleepHours?.let(::formatHours).orEmpty()
-        overallFatigue = checkIn?.overallFatigue
-        lowerBodyFatigue = checkIn?.lowerBodyFatigue
-        jointTendonDiscomfort = checkIn?.jointTendonDiscomfort
-        focusMotivation = checkIn?.focusMotivation
+    var sleepHours by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.sleepHours?.let(::formatConditionNumber).orEmpty())
+    }
+    var bodyWeightKg by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.bodyWeightKg?.let(::formatConditionNumber).orEmpty())
+    }
+    var overallFatigue by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.overallFatigue)
+    }
+    var lowerBodyFatigue by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.lowerBodyFatigue)
+    }
+    var jointTendonDiscomfort by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.jointTendonDiscomfort)
+    }
+    var focusMotivation by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.focusMotivation)
     }
 
-    val parsedSleep = sleepHours.trim().takeIf { it.isNotEmpty() }?.toDoubleOrNull()
+    val parsedSleep = parseDailyConditionNumber(sleepHours)
+    val parsedBodyWeight = parseDailyConditionNumber(bodyWeightKg)
     val sleepValid = sleepHours.isBlank() || (parsedSleep != null && parsedSleep in 0.0..24.0)
+    val bodyWeightValid = isValidDailyBodyWeightInput(bodyWeightKg)
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("오늘 컨디션") },
+        title = { Text(dailyConditionEditorTitle(targetDate)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -108,12 +118,30 @@ private fun DailyCheckInDialog(
                 )
                 OutlinedTextField(
                     value = sleepHours,
-                    onValueChange = { value -> sleepHours = value.filter { it.isDigit() || it == '.' }.take(4) },
+                    onValueChange = { sleepHours = it },
                     modifier = Modifier.width(150.dp),
                     label = { Text("수면시간") },
                     suffix = { Text("시간") },
                     singleLine = true,
                     isError = !sleepValid,
+                    supportingText = {
+                        if (!sleepValid) Text("0~24 사이의 숫자를 입력하세요.")
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+                OutlinedTextField(
+                    value = bodyWeightKg,
+                    onValueChange = { bodyWeightKg = it },
+                    modifier = Modifier
+                        .width(150.dp)
+                        .semantics { contentDescription = "몸무게(kg)" },
+                    label = { Text("몸무게") },
+                    suffix = { Text("kg") },
+                    singleLine = true,
+                    isError = !bodyWeightValid,
+                    supportingText = {
+                        if (!bodyWeightValid) Text("0보다 큰 숫자를 입력하세요.")
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
                 CheckInScoreRow("전신 피로", overallFatigue) { overallFatigue = it }
@@ -131,18 +159,18 @@ private fun DailyCheckInDialog(
             TextButton(
                 onClick = {
                     onSave(
-                        DailyCheckIn(
-                            date = LocalDate.now().toString(),
+                        (checkIn ?: DailyCheckIn(date = targetDate.toString())).copy(
+                            date = targetDate.toString(),
                             sleepHours = parsedSleep,
+                            bodyWeightKg = parsedBodyWeight,
                             overallFatigue = overallFatigue,
                             lowerBodyFatigue = lowerBodyFatigue,
                             jointTendonDiscomfort = jointTendonDiscomfort,
-                            focusMotivation = focusMotivation,
-                            createdAt = checkIn?.createdAt ?: System.currentTimeMillis()
+                            focusMotivation = focusMotivation
                         )
                     )
                 },
-                enabled = sleepValid
+                enabled = sleepValid && bodyWeightValid
             ) { Text("저장") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
@@ -165,13 +193,32 @@ private fun CheckInScoreRow(label: String, selected: Int?, onSelect: (Int?) -> U
     }
 }
 
-private fun DailyCheckIn.compactSummary(): String = buildList {
-    sleepHours?.let { add("수면 ${formatHours(it)}시간") }
+internal fun DailyCheckIn.compactSummary(): String = buildList {
+    sleepHours?.let { add("수면 ${formatConditionNumber(it)}시간") }
+    bodyWeightKg?.let { add("몸무게 ${formatConditionNumber(it)}kg") }
     overallFatigue?.let { add("전신 $it") }
     lowerBodyFatigue?.let { add("하체 $it") }
     jointTendonDiscomfort?.let { add("불편감 $it") }
     focusMotivation?.let { add("집중/의욕 $it") }
 }.joinToString(" · ").ifBlank { "입력값 없음" }
 
-private fun formatHours(hours: Double): String =
-    if (hours % 1.0 == 0.0) hours.toInt().toString() else "%.1f".format(hours)
+internal fun dailyConditionEditorTitle(
+    targetDate: LocalDate,
+    today: LocalDate = LocalDate.now()
+): String =
+    if (targetDate == today) {
+        "오늘 컨디션 입력"
+    } else {
+        "${targetDate.monthValue}월 ${targetDate.dayOfMonth}일 컨디션 입력"
+    }
+
+internal fun parseDailyConditionNumber(value: String): Double? =
+    value.trim().replace(',', '.').takeIf(String::isNotEmpty)?.toDoubleOrNull()
+
+internal fun isValidDailyBodyWeightInput(value: String): Boolean {
+    val parsed = parseDailyConditionNumber(value)
+    return value.isBlank() || (parsed != null && parsed.isFinite() && parsed > 0.0)
+}
+
+private fun formatConditionNumber(value: Double): String =
+    if (value % 1.0 == 0.0) value.toInt().toString() else "%.2f".format(value).trimEnd('0').trimEnd('.')

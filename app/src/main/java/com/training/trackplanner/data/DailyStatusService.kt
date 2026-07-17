@@ -16,9 +16,6 @@ internal class DailyStatusService(
     fun observeRecentCheckIns(startDate: String, endDate: String): Flow<List<DailyCheckIn>> =
         dailyCheckInDao.observeBetween(startDate, endDate)
 
-    fun metricForDate(date: String): Flow<DailyMetric?> =
-        dailyMetricDao.observeMetric(date)
-
     suspend fun checkInForDate(date: String): DailyCheckIn? = withContext(Dispatchers.IO) {
         dailyCheckInDao.getForDate(date)
     }

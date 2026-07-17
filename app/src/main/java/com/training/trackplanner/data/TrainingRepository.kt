@@ -362,9 +362,6 @@ class TrainingRepository(
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         programPlanService.programItems(programId)
 
-    fun metricForDate(date: String): Flow<DailyMetric?> =
-        dailyStatusService.metricForDate(date)
-
     suspend fun saveInitialUserProfile(profile: InitialUserProfile) = withContext(Dispatchers.IO) {
         val existing = initialUserProfileDao.profile()
         initialUserProfileDao.upsert(
@@ -595,12 +592,6 @@ class TrainingRepository(
     ) = withContext(Dispatchers.IO) {
         calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
     }
-
-    suspend fun saveDailyMetric(
-        date: String,
-        sleepHours: Double?,
-        bodyWeightKg: Double?
-    ) = dailyStatusService.saveDailyMetric(date, sleepHours, bodyWeightKg)
 
     private suspend fun hasDuplicateRestoreEntry(
         first: RestoreSetRow,
