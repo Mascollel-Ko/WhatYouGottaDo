@@ -288,6 +288,62 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate19To20MergesDailyConditionByTimestampAndPreservesBodyWeight() {
+        helper.createDatabase(TEST_DB, 19).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO daily_check_ins (
+                    date, sleepHours, overallFatigue, lowerBodyFatigue,
+                    jointTendonDiscomfort, focusMotivation, note, createdAt, updatedAt
+                ) VALUES
+                    ('2026-07-15', 5.0, 4, NULL, NULL, NULL, 'older check-in', 100, 100),
+                    ('2026-07-16', 8.0, 2, NULL, NULL, NULL, 'newer check-in', 100, 300)
+                """.trimIndent()
+            )
+            database.execSQL(
+                """
+                INSERT INTO daily_metrics (date, sleepHours, bodyWeightKg, updatedAt) VALUES
+                    ('2026-07-15', 7.5, 80.5, 200),
+                    ('2026-07-16', 6.0, 79.5, 200),
+                    ('2026-07-17', 7.0, 79.0, 400)
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 20, true, TrainingDatabase.MIGRATION_19_20).use { database ->
+            database.query(
+                "SELECT date, sleepHours, bodyWeightKg, overallFatigue FROM daily_check_ins ORDER BY date"
+            ).use { cursor ->
+                check(cursor.moveToNext())
+                check(cursor.getString(0) == "2026-07-15")
+                check(cursor.getDouble(1) == 7.5)
+                check(cursor.getDouble(2) == 80.5)
+                check(cursor.getInt(3) == 4)
+
+                check(cursor.moveToNext())
+                check(cursor.getString(0) == "2026-07-16")
+                check(cursor.getDouble(1) == 8.0)
+                check(cursor.getDouble(2) == 79.5)
+                check(cursor.getInt(3) == 2)
+
+                check(cursor.moveToNext())
+                check(cursor.getString(0) == "2026-07-17")
+                check(cursor.getDouble(1) == 7.0)
+                check(cursor.getDouble(2) == 79.0)
+                check(cursor.isNull(3))
+                check(!cursor.moveToNext())
+            }
+            database.query(
+                "SELECT sleepHours, bodyWeightKg FROM daily_metrics WHERE date = '2026-07-16'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getDouble(0) == 8.0)
+                check(cursor.getDouble(1) == 79.5)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

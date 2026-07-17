@@ -8,7 +8,6 @@ internal class DailyReadinessInputService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val dailyMetricDao: DailyMetricDao,
-    private val dailyCheckInDao: DailyCheckInDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
@@ -24,9 +23,9 @@ internal class DailyReadinessInputService(
             exercises = exercises,
             entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
             dailyMetrics = dailyMetrics,
-            dailyCheckIns = dailyStatusService.canonicalizeCheckIns(
-                dailyCheckInDao.between(today.minusDays(13).toString(), todayString),
-                dailyMetrics
+            dailyCheckIns = dailyStatusService.recentCheckIns(
+                today.minusDays(13).toString(),
+                todayString
             ),
             initialProfile = initialUserProfileDao.profile(),
             runtimeMetadataCatalog = RuntimeExerciseMetadataResolver(
@@ -36,4 +35,3 @@ internal class DailyReadinessInputService(
         )
     }
 }
-

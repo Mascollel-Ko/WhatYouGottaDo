@@ -1,64 +1,60 @@
 package com.training.trackplanner.data
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 
 internal class DailyStatusService(
+    private val db: TrainingDatabase,
     private val dailyMetricDao: DailyMetricDao,
     private val dailyCheckInDao: DailyCheckInDao
 ) {
     fun observeCheckInForDate(date: String): Flow<DailyCheckIn?> =
-        combine(
-            dailyCheckInDao.observeForDate(date),
-            dailyMetricDao.observeMetric(date)
-        ) { checkIn, metric ->
-            checkIn.withCanonicalSleep(date, metric)
-        }
+        dailyCheckInDao.observeForDate(date)
 
     fun observeRecentCheckIns(startDate: String, endDate: String): Flow<List<DailyCheckIn>> =
-        combine(
-            dailyCheckInDao.observeBetween(startDate, endDate),
-            dailyMetricDao.observeBetween(startDate, endDate)
-        ) { checkIns, metrics ->
-            checkIns.withCanonicalSleep(metrics)
-        }
+        dailyCheckInDao.observeBetween(startDate, endDate)
 
     fun metricForDate(date: String): Flow<DailyMetric?> =
         dailyMetricDao.observeMetric(date)
 
     suspend fun checkInForDate(date: String): DailyCheckIn? = withContext(Dispatchers.IO) {
-        dailyCheckInDao.getForDate(date).withCanonicalSleep(date, dailyMetricDao.metric(date))
+        dailyCheckInDao.getForDate(date)
     }
 
     suspend fun recentCheckIns(startDate: String, endDate: String): List<DailyCheckIn> =
-        withContext(Dispatchers.IO) {
-            dailyCheckInDao.between(startDate, endDate).withCanonicalSleep(
-                dailyMetricDao.metricsUntil(endDate).filter { metric -> metric.date >= startDate }
-            )
-        }
+        withContext(Dispatchers.IO) { dailyCheckInDao.between(startDate, endDate) }
 
     suspend fun upsertDailyCheckIn(checkIn: DailyCheckIn) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            upsertInTransaction(checkIn)
+        }
+    }
+
+    internal suspend fun upsertInTransaction(
+        checkIn: DailyCheckIn,
+        preserveUpdatedAt: Boolean = false
+    ) {
+        val validated = checkIn.validated()
         val existing = dailyCheckInDao.getForDate(checkIn.date)
         val existingMetric = dailyMetricDao.metric(checkIn.date)
-        if (checkIn.sleepHours != null || existingMetric != null) {
+        val updatedAt = if (preserveUpdatedAt) validated.updatedAt else System.currentTimeMillis()
+        val canonical = validated.copy(
+            createdAt = existing?.createdAt ?: validated.createdAt,
+            updatedAt = updatedAt
+        )
+        dailyCheckInDao.upsert(canonical)
+        if (canonical.sleepHours != null || canonical.bodyWeightKg != null || existingMetric != null) {
             dailyMetricDao.upsert(
                 DailyMetric(
-                    date = checkIn.date,
-                    sleepHours = checkIn.sleepHours ?: existingMetric?.sleepHours,
-                    bodyWeightKg = existingMetric?.bodyWeightKg,
-                    updatedAt = System.currentTimeMillis()
+                    date = canonical.date,
+                    sleepHours = canonical.sleepHours,
+                    bodyWeightKg = canonical.bodyWeightKg,
+                    updatedAt = updatedAt
                 )
             )
         }
-        val canonicalSleep = dailyMetricDao.metric(checkIn.date)?.sleepHours ?: checkIn.sleepHours
-        dailyCheckInDao.upsert(
-            checkIn.copy(sleepHours = canonicalSleep).validated().copy(
-                createdAt = existing?.createdAt ?: checkIn.createdAt,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
     }
 
     suspend fun deleteDailyCheckIn(date: String) = withContext(Dispatchers.IO) {
@@ -70,36 +66,22 @@ internal class DailyStatusService(
         sleepHours: Double?,
         bodyWeightKg: Double?
     ) = withContext(Dispatchers.IO) {
-        dailyMetricDao.upsert(
-            DailyMetric(
-                date = date,
-                sleepHours = sleepHours,
-                bodyWeightKg = bodyWeightKg,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
-    }
-
-    internal fun canonicalizeCheckIns(checkIns: List<DailyCheckIn>, metrics: List<DailyMetric>): List<DailyCheckIn> =
-        checkIns.withCanonicalSleep(metrics)
-
-    private fun DailyCheckIn?.withCanonicalSleep(date: String, metric: DailyMetric?): DailyCheckIn? {
-        val canonicalSleep = metric?.sleepHours ?: this?.sleepHours
-        return when {
-            this != null -> copy(sleepHours = canonicalSleep)
-            canonicalSleep != null -> DailyCheckIn(date = date, sleepHours = canonicalSleep)
-            else -> null
+        db.withTransaction {
+            saveDailyMetricInTransaction(date, sleepHours, bodyWeightKg)
         }
     }
 
-    private fun List<DailyCheckIn>.withCanonicalSleep(metrics: List<DailyMetric>): List<DailyCheckIn> {
-        val metricsByDate = metrics.associateBy { metric -> metric.date }
-        val checkInsByDate = associateBy { checkIn -> checkIn.date }
-        return (checkInsByDate.keys + metricsByDate.filterValues { metric -> metric.sleepHours != null }.keys)
-            .sorted()
-            .mapNotNull { date ->
-                checkInsByDate[date].withCanonicalSleep(date, metricsByDate[date])
-            }
+    internal suspend fun saveDailyMetricInTransaction(
+        date: String,
+        sleepHours: Double?,
+        bodyWeightKg: Double?
+    ) {
+        val existing = dailyCheckInDao.getForDate(date)
+        upsertInTransaction(
+            (existing ?: DailyCheckIn(date = date)).copy(
+                sleepHours = sleepHours,
+                bodyWeightKg = bodyWeightKg
+            )
+        )
     }
 }
-

@@ -12,7 +12,6 @@ internal class CoachingSignalsSummaryService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val dailyMetricDao: DailyMetricDao,
-    private val dailyCheckInDao: DailyCheckInDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
     private val dailyStatusService: DailyStatusService
@@ -23,10 +22,7 @@ internal class CoachingSignalsSummaryService(
         val startDate = today.minusDays(56).format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
-        val checkIns = dailyStatusService.canonicalizeCheckIns(
-            dailyCheckInDao.between(startDate, todayString),
-            dailyMetrics.filter { metric -> metric.date >= startDate }
-        )
+        val checkIns = dailyStatusService.recentCheckIns(startDate, todayString)
         CoachingSignalsBuilder().build(
             today = today,
             dailyMetrics = dailyMetrics,
@@ -46,4 +42,3 @@ internal class CoachingSignalsSummaryService(
             runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         ).catalog(exercises)
 }
-

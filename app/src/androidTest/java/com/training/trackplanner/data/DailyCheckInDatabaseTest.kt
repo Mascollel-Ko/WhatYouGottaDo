@@ -40,11 +40,12 @@ class DailyCheckInDatabaseTest {
             .also { database = it }
         val dao = db.dailyCheckInDao()
 
-        dao.upsert(DailyCheckIn(date = "2026-06-23", overallFatigue = 3))
-        dao.upsert(DailyCheckIn(date = "2026-06-23", overallFatigue = 5, lowerBodyFatigue = null))
+        dao.upsert(DailyCheckIn(date = "2026-06-23", bodyWeightKg = 80.0, overallFatigue = 3))
+        dao.upsert(DailyCheckIn(date = "2026-06-23", bodyWeightKg = 80.5, overallFatigue = 5, lowerBodyFatigue = null))
 
         val stored = dao.getForDate("2026-06-23")
         assertEquals(5, stored?.overallFatigue)
+        assertEquals(80.5, stored?.bodyWeightKg ?: 0.0, 0.001)
         assertNull(stored?.lowerBodyFatigue)
     }
 

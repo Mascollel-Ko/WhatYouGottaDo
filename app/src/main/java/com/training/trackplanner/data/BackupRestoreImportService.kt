@@ -8,6 +8,7 @@ internal class BackupRestoreImportService(
     private val workoutDao: WorkoutDao,
     private val dailyMetricDao: DailyMetricDao,
     private val dailyCheckInDao: DailyCheckInDao,
+    private val dailyStatusService: DailyStatusService,
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val seedExercisesByStableKey: () -> Map<String, Exercise>,
@@ -45,34 +46,24 @@ internal class BackupRestoreImportService(
             val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
             data.dailyRows.forEach { row ->
                 if (row.sleepHours != null || row.bodyWeightKg != null) {
-                    val metric = DailyMetric(
+                    dailyStatusService.saveDailyMetricInTransaction(
                         date = row.date,
                         sleepHours = row.sleepHours,
                         bodyWeightKg = row.bodyWeightKg
                     )
-                    dailyMetricDao.upsert(metric)
-                    importedDailyMetrics[row.date] = metric
+                    importedDailyMetrics[row.date] = dailyMetricDao.metric(row.date)!!
                     dailyCount += 1
                 }
             }
             data.checkInRows.forEach { row ->
                 val now = System.currentTimeMillis()
                 val canonicalMetric = importedDailyMetrics[row.date]
-                val canonicalSleep = canonicalMetric?.sleepHours ?: row.sleepHours
-                if (canonicalMetric?.sleepHours == null && row.sleepHours != null) {
-                    val promotedMetric = DailyMetric(
-                        date = row.date,
-                        sleepHours = row.sleepHours,
-                        bodyWeightKg = canonicalMetric?.bodyWeightKg
-                    )
-                    dailyMetricDao.upsert(promotedMetric)
-                    importedDailyMetrics[row.date] = promotedMetric
-                    if (canonicalMetric == null) dailyCount += 1
-                }
-                dailyCheckInDao.upsert(
+                val existingCheckIn = dailyCheckInDao.getForDate(row.date)
+                dailyStatusService.upsertInTransaction(
                     DailyCheckIn(
                         date = row.date,
-                        sleepHours = canonicalSleep,
+                        sleepHours = canonicalMetric?.sleepHours ?: row.sleepHours ?: existingCheckIn?.sleepHours,
+                        bodyWeightKg = canonicalMetric?.bodyWeightKg ?: existingCheckIn?.bodyWeightKg,
                         overallFatigue = row.overallFatigue,
                         lowerBodyFatigue = row.lowerBodyFatigue,
                         jointTendonDiscomfort = row.jointTendonDiscomfort,
@@ -80,8 +71,13 @@ internal class BackupRestoreImportService(
                         note = row.note,
                         createdAt = row.createdAt ?: now,
                         updatedAt = row.updatedAt ?: now
-                    ).validated()
+                    ),
+                    preserveUpdatedAt = true
                 )
+                if (canonicalMetric == null && row.sleepHours != null) dailyCount += 1
+                dailyMetricDao.metric(row.date)?.let { metric ->
+                    importedDailyMetrics[row.date] = metric
+                }
                 checkInCount += 1
             }
             data.smashSpeedRows.forEach { row ->
@@ -115,13 +111,12 @@ internal class BackupRestoreImportService(
                 .distinctBy { row -> row.date }
                 .forEach { row ->
                     val existingMetric = importedDailyMetrics[row.date] ?: dailyMetricDao.metric(row.date)
-                    val metric = DailyMetric(
+                    dailyStatusService.saveDailyMetricInTransaction(
                         date = row.date,
                         sleepHours = row.sleepHours ?: existingMetric?.sleepHours,
                         bodyWeightKg = row.bodyWeightKg ?: existingMetric?.bodyWeightKg
                     )
-                    dailyMetricDao.upsert(metric)
-                    importedDailyMetrics[row.date] = metric
+                    importedDailyMetrics[row.date] = dailyMetricDao.metric(row.date)!!
                     dailyCount += 1
                 }
             data.setRows

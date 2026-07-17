@@ -123,6 +123,7 @@ data class DailyMetric(
 data class DailyCheckIn(
     @PrimaryKey val date: String,
     val sleepHours: Double? = null,
+    val bodyWeightKg: Double? = null,
     val overallFatigue: Int? = null,
     val lowerBodyFatigue: Int? = null,
     val jointTendonDiscomfort: Int? = null,
@@ -137,6 +138,9 @@ data class DailyCheckIn(
         }
         require(sleepHours == null || sleepHours in 0.0..24.0) {
             "sleepHours must be between 0 and 24."
+        }
+        require(bodyWeightKg == null || (bodyWeightKg.isFinite() && bodyWeightKg > 0.0)) {
+            "bodyWeightKg must be finite and greater than zero."
         }
         listOf(overallFatigue, lowerBodyFatigue, jointTendonDiscomfort, focusMotivation)
             .filterNotNull()

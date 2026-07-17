@@ -5,7 +5,7 @@ import androidx.room.withTransaction
 internal class DailyTimeseriesImportService(
     private val db: TrainingDatabase,
     private val workoutDao: WorkoutDao,
-    private val dailyMetricDao: DailyMetricDao,
+    private val dailyStatusService: DailyStatusService,
     private val confirmedCategoryCounts: (DailyTimeseriesRow) -> Map<String, Int>,
     private val findOrCreateConfirmedExercise: suspend (String) -> Exercise,
     private val findOrCreatePlannedExercise: suspend () -> Exercise
@@ -20,12 +20,10 @@ internal class DailyTimeseriesImportService(
         db.withTransaction {
             data.rows.forEach { row ->
                 if (row.sleepHours != null || row.bodyWeightKg != null) {
-                    dailyMetricDao.upsert(
-                        DailyMetric(
-                            date = row.date,
-                            sleepHours = row.sleepHours,
-                            bodyWeightKg = row.bodyWeightKg
-                        )
+                    dailyStatusService.saveDailyMetricInTransaction(
+                        date = row.date,
+                        sleepHours = row.sleepHours,
+                        bodyWeightKg = row.bodyWeightKg
                     )
                     dailyCount += 1
                 }

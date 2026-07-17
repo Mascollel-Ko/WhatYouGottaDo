@@ -360,20 +360,20 @@ object RecordCsvBackupRestore {
                 )
             }
         val metricsByDate = metrics.associateBy { metric -> metric.date }
-        val fallbackCheckInSleepByDate = checkIns
-            .filter { checkIn -> metricsByDate[checkIn.date]?.sleepHours == null && checkIn.sleepHours != null }
-            .associate { checkIn -> checkIn.date to checkIn.sleepHours }
+        val checkInsByDate = checkIns.associateBy { checkIn -> checkIn.date }
         val dates = (
             entriesWithSets.map { item -> item.entry.date } +
                 metrics.map { metric -> metric.date } +
-                fallbackCheckInSleepByDate.keys
+                checkIns
+                    .filter { checkIn -> checkIn.sleepHours != null || checkIn.bodyWeightKg != null }
+                    .map { checkIn -> checkIn.date }
             )
             .distinct()
             .sorted()
         dates.forEach { date ->
             val metric = metricsByDate[date]
-            val fallbackSleep = fallbackCheckInSleepByDate[date]
-            if (metric != null || fallbackSleep != null) {
+            val checkIn = checkInsByDate[date]
+            if (metric != null || checkIn?.sleepHours != null || checkIn?.bodyWeightKg != null) {
                 builder.appendCsvRow(
                     listOf(
                         "1",
@@ -393,8 +393,8 @@ object RecordCsvBackupRestore {
                         "",
                         "",
                         "",
-                        (metric?.sleepHours ?: fallbackSleep).formatOptional(),
-                        metric?.bodyWeightKg.formatOptional()
+                        (metric?.sleepHours ?: checkIn?.sleepHours).formatOptional(),
+                        (metric?.bodyWeightKg ?: checkIn?.bodyWeightKg).formatOptional()
                     )
                 )
             }

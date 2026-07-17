@@ -289,6 +289,7 @@ class RecordCsvBackupRestoreTest {
                 DailyCheckIn(
                     date = "2026-06-23",
                     sleepHours = 6.5,
+                    bodyWeightKg = 80.5,
                     overallFatigue = 4,
                     lowerBodyFatigue = null,
                     jointTendonDiscomfort = 2,
@@ -300,6 +301,7 @@ class RecordCsvBackupRestoreTest {
 
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
         assertEquals(6.5, parsed.dailyRows.single().sleepHours ?: 0.0, 0.001)
+        assertEquals(80.5, parsed.dailyRows.single().bodyWeightKg ?: 0.0, 0.001)
         val checkIn = parsed.checkInRows.single()
         assertEquals(null, checkIn.sleepHours)
         assertEquals(4, checkIn.overallFatigue)

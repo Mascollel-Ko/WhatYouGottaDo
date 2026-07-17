@@ -114,6 +114,11 @@ class TrainingRepository(
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val dailyStatusService = DailyStatusService(
+        db = db,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao
+    )
     private val exerciseMetadataEditorService = ExerciseMetadataEditorService(
         db = db,
         exerciseDao = exerciseDao,
@@ -129,6 +134,7 @@ class TrainingRepository(
         workoutDao = workoutDao,
         dailyMetricDao = dailyMetricDao,
         dailyCheckInDao = dailyCheckInDao,
+        dailyStatusService = dailyStatusService,
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         seedExercisesByStableKey = ::seedExercisesByStableKey,
@@ -147,7 +153,7 @@ class TrainingRepository(
     private val dailyTimeseriesImportService = DailyTimeseriesImportService(
         db = db,
         workoutDao = workoutDao,
-        dailyMetricDao = dailyMetricDao,
+        dailyStatusService = dailyStatusService,
         confirmedCategoryCounts = { row -> row.confirmedCategoryCounts() },
         findOrCreateConfirmedExercise = { category ->
             findOrCreateImportedExercise(
@@ -209,15 +215,10 @@ class TrainingRepository(
     private val programGenerationService = ProgramGenerationService(
         exerciseDao = exerciseDao
     )
-    private val dailyStatusService = DailyStatusService(
-        dailyMetricDao = dailyMetricDao,
-        dailyCheckInDao = dailyCheckInDao
-    )
     private val dailyReadinessInputService = DailyReadinessInputService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         dailyMetricDao = dailyMetricDao,
-        dailyCheckInDao = dailyCheckInDao,
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
@@ -238,7 +239,6 @@ class TrainingRepository(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         dailyMetricDao = dailyMetricDao,
-        dailyCheckInDao = dailyCheckInDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         dailyStatusService = dailyStatusService

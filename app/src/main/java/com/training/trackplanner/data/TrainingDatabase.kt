@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -389,6 +389,101 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `daily_check_ins` ADD COLUMN `bodyWeightKg` REAL")
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO `daily_check_ins` (
+                        `date`, `sleepHours`, `bodyWeightKg`, `overallFatigue`, `lowerBodyFatigue`,
+                        `jointTendonDiscomfort`, `focusMotivation`, `note`, `createdAt`, `updatedAt`
+                    )
+                    SELECT
+                        `date`, `sleepHours`, `bodyWeightKg`, NULL, NULL, NULL, NULL, NULL,
+                        `updatedAt`, `updatedAt`
+                    FROM `daily_metrics`
+                    WHERE `sleepHours` IS NOT NULL OR `bodyWeightKg` IS NOT NULL
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    UPDATE `daily_check_ins`
+                    SET
+                        `sleepHours` = CASE
+                            WHEN EXISTS (
+                                SELECT 1 FROM `daily_metrics`
+                                WHERE `daily_metrics`.`date` = `daily_check_ins`.`date`
+                            ) AND (
+                                `daily_check_ins`.`sleepHours` IS NULL OR
+                                (
+                                    SELECT `updatedAt` FROM `daily_metrics`
+                                    WHERE `daily_metrics`.`date` = `daily_check_ins`.`date`
+                                ) > `daily_check_ins`.`updatedAt`
+                            )
+                            THEN COALESCE(
+                                (
+                                    SELECT `sleepHours` FROM `daily_metrics`
+                                    WHERE `daily_metrics`.`date` = `daily_check_ins`.`date`
+                                ),
+                                `daily_check_ins`.`sleepHours`
+                            )
+                            ELSE `daily_check_ins`.`sleepHours`
+                        END,
+                        `bodyWeightKg` = COALESCE(
+                            `daily_check_ins`.`bodyWeightKg`,
+                            (
+                                SELECT `bodyWeightKg` FROM `daily_metrics`
+                                WHERE `daily_metrics`.`date` = `daily_check_ins`.`date`
+                            )
+                        ),
+                        `updatedAt` = MAX(
+                            `daily_check_ins`.`updatedAt`,
+                            COALESCE(
+                                (
+                                    SELECT `updatedAt` FROM `daily_metrics`
+                                    WHERE `daily_metrics`.`date` = `daily_check_ins`.`date`
+                                ),
+                                `daily_check_ins`.`updatedAt`
+                            )
+                        )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    UPDATE `daily_metrics`
+                    SET
+                        `sleepHours` = (
+                            SELECT `sleepHours` FROM `daily_check_ins`
+                            WHERE `daily_check_ins`.`date` = `daily_metrics`.`date`
+                        ),
+                        `bodyWeightKg` = (
+                            SELECT `bodyWeightKg` FROM `daily_check_ins`
+                            WHERE `daily_check_ins`.`date` = `daily_metrics`.`date`
+                        ),
+                        `updatedAt` = MAX(
+                            `daily_metrics`.`updatedAt`,
+                            (
+                                SELECT `updatedAt` FROM `daily_check_ins`
+                                WHERE `daily_check_ins`.`date` = `daily_metrics`.`date`
+                            )
+                        )
+                    WHERE EXISTS (
+                        SELECT 1 FROM `daily_check_ins`
+                        WHERE `daily_check_ins`.`date` = `daily_metrics`.`date`
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO `daily_metrics` (`date`, `sleepHours`, `bodyWeightKg`, `updatedAt`)
+                    SELECT `date`, `sleepHours`, `bodyWeightKg`, `updatedAt`
+                    FROM `daily_check_ins`
+                    WHERE `sleepHours` IS NOT NULL OR `bodyWeightKg` IS NOT NULL
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -414,7 +509,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_15_16,
                         MIGRATION_16_17,
                         MIGRATION_17_18,
-                        MIGRATION_18_19
+                        MIGRATION_18_19,
+                        MIGRATION_19_20
                     )
                     .build()
                     .also { instance = it }
