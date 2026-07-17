@@ -171,3 +171,67 @@ The pending replacement request is `TISSUE_APPROVAL_REQUEST_C3_MD_48F86FEE6C39D2
 anchors exist, and no universal burden score or fixed cross-dimensional weights are defined. Human approvals, formal
 final claims, blind reviews, and production profiles remain zero. No runtime fatigue, OFI, readiness, ProgramBuilder,
 persistence, backup, time-series, UI, or version path reads the C3 package.
+
+## RCV-ALL-0.6 Runtime Continuation
+
+This section supersedes the earlier shadow-only runtime limitations for the
+separately supplied RCV-ALL-0.6 authority package. It does not retroactively
+approve or reinterpret the historical C2/C3/C4 research ledgers above.
+
+### Authoritative inputs
+
+- `REL-MSCP-D-INTEGRATED-0.3_UNSIDED`: SHA-256
+  `efa3f0c47c4f5bf0ae634ed7e8656162ac6552b7a86659da28096cc257c50144`.
+- `RCV-ALL-0.6`: SHA-256
+  `beb599e6a53fec92f999d1174bbb35ed31092aff56ad90ee0149e61dd4c615c9`.
+- Generated production counts: 239 exercise mappings, 3,507 load rows,
+  50 protocol classes, 13 DI profiles, 21 curves, 114 knots, 7 routing rows,
+  15 joint complexes, and 77 unsided load units.
+- `tools/generate_tissue_rcv_all_0_6_assets.ps1` regenerates the 16
+  `tissue_rcv_*_v1.csv` assets directly from the two workbooks. The committed
+  manifest records source hashes, row counts, asset hashes, and the unsided
+  identity contract.
+
+### Runtime contracts
+
+- A confirmed workout record produces deterministic derived events. New
+  confirmations persist an exact `performedAt`; legacy records retain a null
+  timestamp and are evaluated over a conservative date interval.
+- Every derived event owns an independent recovery clock. Later workouts do
+  not reset earlier recovery.
+- PCHIP evaluates the authority knots exactly, preserves monotone curves,
+  retains delayed peaks, and does not overshoot the supplied range.
+- Raw debt is summed only within an unsided load-unit/dimension key.
+  Duplicate event IDs cannot inflate GROUP and component totals.
+- Joint-complex status is the worst/max child summary, never the sum of all
+  child debt.
+- Personal normalized status is `CALIBRATING` for the first 56 observation
+  days. Symptom override applies immediately and is never described as injury
+  probability.
+
+### Analysis and OFI
+
+- Analysis now includes a fourth `Connective Tissue` destination after
+  fatigue, badminton, and strength.
+- The screen keeps all 15 joints visible and allows drill-down across all
+  77 unsided load units with current range, recent history, contributors,
+  evidence, timestamp precision, calibration, and symptom diagnostics.
+- The fatigue card receives only the worst connective-tissue status, top three
+  joint complexes, and a deep link.
+- Legacy OFI arithmetic and its five axes are unchanged. Readiness and
+  ProgramBuilder do not consume connective-tissue state.
+
+### Runtime file responsibility map
+
+- `TissueRcvAssetModels.kt` / `TissueRcvAssetRepository.kt`: typed authority
+  contracts, CSV parsing, and deterministic validation.
+- `TissueRcvEventLedger.kt`: workout-to-derived-event conversion and timestamp
+  precision.
+- `TissuePchipInterpolator.kt` / `TissueRecoveryEngine.kt`: curve evaluation
+  and residual bounds.
+- `TissueCurrentStateServices.kt`: calibration, contributors, ranking, and
+  unsided load-unit/joint aggregation.
+- `ConnectiveTissueAnalysisService.kt`: read-only runtime assembly from Room
+  records and the RCV catalog.
+- `ConnectiveTissueAnalysisUi.kt` / `TissueAnalysisUiModels.kt`: Analysis
+  presentation and drill-down.

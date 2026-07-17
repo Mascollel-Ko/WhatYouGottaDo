@@ -2061,3 +2061,68 @@ Validation
 - `:app:testDebugUnitTest`: 791 tests, 0 failures, 0 errors, 0 skipped.
 - `:app:assembleDebug`: passed; debug APK generated.
 - PowerShell parser validation for the three modified tissue generators: passed.
+
+## v0.4.2.7 - RCV-ALL-0.6 Phases 2 through 5
+
+Baseline and scope
+- Continued from verified Phase 1 commit
+  `b23c6ed3dd36dc7d6e4fd0de3075a2c517c130de`; `origin/main` remained its
+  ancestor throughout implementation.
+- Reused the existing RCV-ALL-0.6 handoff rather than creating a new audit.
+- Preserved all six pre-existing dirty `outputs/*` files untouched and
+  uncommitted.
+- Used only the two authoritative unsided workbooks:
+  `efa3f0c47c4f5bf0ae634ed7e8656162ac6552b7a86659da28096cc257c50144`
+  and
+  `beb599e6a53fec92f999d1174bbb35ed31092aff56ad90ee0149e61dd4c615c9`.
+
+Phase 2 - `6356224 feat(tissue): import reviewed rcv all assets`
+- Added deterministic OpenXML generation of 16 production CSV assets.
+- Imported and validated 239 exercise mappings, 3,507 authority rows,
+  50 protocol classes, 13 DI profiles, 21 curves/114 knots, 7 routing rows,
+  15 joints, and 77 unsided load units.
+- Preserved exactly one unresolved generic mapping.
+
+Phase 3 - `1f409b6 feat(tissue): add immutable recovery event engine`
+- Added nullable `WorkoutEntry.performedAt`, Room schema 19, and migration
+  18 to 19. First confirmation sets exact time; legacy rows remain null.
+- Added deterministic derived events, independent clocks, conservative
+  date-only ranges, and bounded shape-preserving PCHIP.
+- Calendar copies clear `performedAt` and never invent an observation time.
+
+Phase 4 - `98a7126 feat(tissue): aggregate and rank connective tissue state`
+- Added unsided load-unit/dimension residual sums, deterministic ranking,
+  exact 1.5 contributor selection, joint max/worst summaries, duplicate event
+  collapse, 56-day calibration, and symptom override.
+- Confirmed all 15 joints and 77 load units remain visible and unsided.
+
+Phase 5 - `3fb7a09 feat(tissue): add connective tissue analysis surface`
+- Added read-only Room assembly, ViewModel state, the fourth Analysis
+  destination, all-joint drill-down, contributors, recovery range/history,
+  evidence/timestamp/calibration/symptom diagnostics.
+- Added a separate worst-status/top-three summary and deep link to the OFI
+  card. No connective-tissue value enters legacy OFI arithmetic.
+
+Behavior boundaries
+- Legacy OFI calculations, five axes, canonical messages, projected fatigue,
+  readiness, ProgramBuilder, record mutation, and analysis engines are
+  unchanged.
+- Tissue identity, recovery clocks, state, ranking, and UI are unsided.
+- Values describe modeled recovery/load state, not injury probability or
+  diagnosis.
+
+Validation
+- Focused tissue asset/import, DI, event ledger, PCHIP, aggregation, ranking,
+  UI mapping, and unsided tests: passed.
+- Legacy OFI wording regression tests: passed.
+- `:app:compileDebugKotlin`: passed.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:testDebugUnitTest`: passed.
+- `:app:assembleDebug`: passed; debug APK generated.
+- Release target: `v0.4.2.7` / `402007`.
+- Release commit, main push, and tag push: pending.
+
+Remaining risks
+- Legacy records remain date-only and use conservative residual ranges.
+- The current symptom input is global rather than per tissue.
+- Personal normalized status remains calibrating until 56 observation days.
