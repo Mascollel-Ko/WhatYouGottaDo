@@ -72,6 +72,7 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
 
     testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
     testImplementation("androidx.room:room-testing:2.6.1")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("org.json:json:20240303")
