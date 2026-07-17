@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.1",
+  "referenceBodyWeightKg": 75.0,
+  "bodyWeightGridKg": [50.0, 65.0, 75.0, 90.0, 105.0],
+  "normalMultiplierClamp": [0.85, 1.15],
+  "hardMultiplierClamp": [0.80, 1.20],
+  "experienceDomainMaxMultiplier": 1.04,
+  "experienceCombinedClamp": [0.94, 1.06],
+  "profiles": [
+    {
+      "id": "PRIOR_TENDON_LOWER",
+      "recoveryClass": "TENDON_LOAD",
+      "jointRegions": ["ANKLE", "FOOT", "HIP", "KNEE"],
+      "strengthExperienceRelevance": 0.75,
+      "racketExperienceRelevance": 0.85
+    },
+    {
+      "id": "PRIOR_TENDON_UPPER",
+      "recoveryClass": "TENDON_LOAD",
+      "jointRegions": ["ELBOW", "HAND", "SHOULDER", "WRIST"],
+      "strengthExperienceRelevance": 0.65,
+      "racketExperienceRelevance": 0.55
+    },
+    {
+      "id": "PRIOR_LIGAMENT_LOWER",
+      "recoveryClass": "LIGAMENT_STRAIN",
+      "jointRegions": ["ANKLE", "FOOT", "HIP", "KNEE", "PELVIS"],
+      "strengthExperienceRelevance": 0.55,
+      "racketExperienceRelevance": 0.90
+    },
+    {
+      "id": "PRIOR_LIGAMENT_UPPER_AXIAL",
+      "recoveryClass": "LIGAMENT_STRAIN",
+      "jointRegions": ["ELBOW", "FOREARM", "SHOULDER", "SHOULDER_GIRDLE", "SPINE", "WRIST"],
+      "strengthExperienceRelevance": 0.45,
+      "racketExperienceRelevance": 0.50
+    },
+    {
+      "id": "PRIOR_JOINT_LOWER",
+      "recoveryClass": "JOINT_CONTACT",
+      "jointRegions": ["ANKLE", "FOOT", "HIP", "KNEE", "PELVIS"],
+      "strengthExperienceRelevance": 0.60,
+      "racketExperienceRelevance": 0.85
+    },
+    {
+      "id": "PRIOR_JOINT_UPPER",
+      "recoveryClass": "JOINT_CONTACT",
+      "jointRegions": ["ELBOW", "FOREARM", "SHOULDER", "SHOULDER_GIRDLE", "WRIST"],
+      "strengthExperienceRelevance": 0.55,
+      "racketExperienceRelevance": 0.50
+    },
+    {
+      "id": "PRIOR_JOINT_SPINE",
+      "recoveryClass": "JOINT_CONTACT",
+      "jointRegions": ["SPINE"],
+      "strengthExperienceRelevance": 0.55,
+      "racketExperienceRelevance": 0.35
+    },
+    {
+      "id": "PRIOR_FIBROCARTILAGE_LOWER",
+      "recoveryClass": "FIBROCARTILAGE_COMPRESSION",
+      "jointRegions": ["FOOT", "KNEE", "PELVIS"],
+      "strengthExperienceRelevance": 0.55,
+      "racketExperienceRelevance": 0.80
+    },
+    {
+      "id": "PRIOR_FIBROCARTILAGE_UPPER",
+      "recoveryClass": "FIBROCARTILAGE_COMPRESSION",
+      "jointRegions": ["SHOULDER", "WRIST"],
+      "strengthExperienceRelevance": 0.50,
+      "racketExperienceRelevance": 0.45
+    },
+    {
+      "id": "PRIOR_SPINAL",
+      "recoveryClass": "SPINAL_COMPRESSION_SHEAR",
+      "jointRegions": ["SPINE"],
+      "strengthExperienceRelevance": 0.65,
+      "racketExperienceRelevance": 0.35
+    },
+    {
+      "id": "PRIOR_FASCIA_LOWER",
+      "recoveryClass": "FASCIA_LOAD",
+      "jointRegions": ["FOOT", "HIP"],
+      "strengthExperienceRelevance": 0.45,
+      "racketExperienceRelevance": 0.65
+    },
+    {
+      "id": "PRIOR_FASCIA_SPINE",
+      "recoveryClass": "FASCIA_LOAD",
+      "jointRegions": ["SPINE"],
+      "strengthExperienceRelevance": 0.50,
+      "racketExperienceRelevance": 0.30
+    },
+    {
+      "id": "PRIOR_FUNCTIONAL_UPPER",
+      "recoveryClass": "FUNCTIONAL_ARTICULATION_LOAD",
+      "jointRegions": ["HAND", "SHOULDER_GIRDLE"],
+      "strengthExperienceRelevance": 0.45,
+      "racketExperienceRelevance": 0.55
+    }
+  ]
+}

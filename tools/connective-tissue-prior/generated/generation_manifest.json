@@ -1,0 +1,12 @@
+{
+  "appReadyPath": "app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json",
+  "appReadySha256": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+  "canonicalRegistryPath": "tools/connective-tissue-prior/generated/connective_tissue_prior_baselines.json",
+  "canonicalRegistrySha256": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+  "deterministicInputChecksum": "034fb720d24a2e1749baa4a40d0a78d8d12a866e4a654d8fbbca4a944e80d3d2",
+  "deterministicOutputChecksum": "ef6c1d274369e55849a2cee095262cba4b83cfccecf1bdf7968f458f6d77c4eb",
+  "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+  "mappingDataFingerprint": "3b04e38df8ea80e376a683b1cba15481cb801f52b7668d5f506b98811b057742",
+  "recoveryEngineFingerprint": "8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a",
+  "schemaVersion": "1.0.0"
+}

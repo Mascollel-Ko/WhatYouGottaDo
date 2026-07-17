@@ -17,3 +17,13 @@ gradle.projectsEvaluated {
         }
     }
 }
+
+tasks.register("generateConnectiveTissuePriorBaselines") {
+    group = "verification"
+    dependsOn(":app:generateConnectiveTissuePriorBaselines")
+}
+
+tasks.register("validateConnectiveTissuePriorBaselines") {
+    group = "verification"
+    dependsOn(":app:validateConnectiveTissuePriorBaselines")
+}

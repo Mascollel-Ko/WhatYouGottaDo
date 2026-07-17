@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "scenarioCatalogVersion": "CT-PRIOR-SCENARIOS-1.0.0",
+  "weightPolicy": "PRODUCT_POLICY_NOT_POPULATION_PREVALENCE",
+  "simulationDays": 112,
+  "burnInDays": 56,
+  "eventLocalHour": 18,
+  "templates": [
+    {
+      "id": "EVEN_2_MODERATE",
+      "weight": 0.10,
+      "days": [
+        { "dayOfWeek": 1, "intensity": "MODERATE" },
+        { "dayOfWeek": 4, "intensity": "HARD" }
+      ]
+    },
+    {
+      "id": "WEEKEND_2_MIXED",
+      "weight": 0.08,
+      "days": [
+        { "dayOfWeek": 5, "intensity": "MODERATE" },
+        { "dayOfWeek": 6, "intensity": "HARD" }
+      ]
+    },
+    {
+      "id": "EVEN_3_MIXED",
+      "weight": 0.18,
+      "days": [
+        { "dayOfWeek": 0, "intensity": "LIGHT" },
+        { "dayOfWeek": 2, "intensity": "HARD" },
+        { "dayOfWeek": 5, "intensity": "MODERATE" }
+      ]
+    },
+    {
+      "id": "CONSECUTIVE_3_RECOVERY",
+      "weight": 0.14,
+      "days": [
+        { "dayOfWeek": 0, "intensity": "MODERATE" },
+        { "dayOfWeek": 1, "intensity": "HARD" },
+        { "dayOfWeek": 5, "intensity": "LIGHT" }
+      ]
+    },
+    {
+      "id": "WEEKEND_3_CONCENTRATED",
+      "weight": 0.10,
+      "days": [
+        { "dayOfWeek": 4, "intensity": "LIGHT" },
+        { "dayOfWeek": 5, "intensity": "HARD" },
+        { "dayOfWeek": 6, "intensity": "MODERATE" }
+      ]
+    },
+    {
+      "id": "EVEN_4_ALTERNATING",
+      "weight": 0.16,
+      "days": [
+        { "dayOfWeek": 0, "intensity": "LIGHT" },
+        { "dayOfWeek": 2, "intensity": "HARD" },
+        { "dayOfWeek": 4, "intensity": "MODERATE" },
+        { "dayOfWeek": 6, "intensity": "HARD" }
+      ]
+    },
+    {
+      "id": "CONSECUTIVE_4_RECOVERY",
+      "weight": 0.14,
+      "days": [
+        { "dayOfWeek": 0, "intensity": "MODERATE" },
+        { "dayOfWeek": 1, "intensity": "HARD" },
+        { "dayOfWeek": 3, "intensity": "LIGHT" },
+        { "dayOfWeek": 5, "intensity": "MODERATE" }
+      ]
+    },
+    {
+      "id": "OCCASIONAL_VERY_HARD_4",
+      "weight": 0.10,
+      "days": [
+        { "dayOfWeek": 0, "intensity": "LIGHT" },
+        { "dayOfWeek": 2, "intensity": "MODERATE" },
+        { "dayOfWeek": 4, "intensity": "VERY_HARD" },
+        { "dayOfWeek": 6, "intensity": "LIGHT" }
+      ]
+    }
+  ]
+}

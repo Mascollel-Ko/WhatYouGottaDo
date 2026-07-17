@@ -21,6 +21,7 @@ android {
 
     sourceSets {
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
+        getByName("test").java.srcDir(rootProject.file("tools/connective-tissue-prior/src/main/kotlin"))
     }
 
     testOptions {
@@ -85,3 +86,27 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+fun registerConnectiveTissuePriorTask(name: String, command: String) {
+    tasks.register<JavaExec>(name) {
+        group = "verification"
+        description = "$command the deterministic connective-tissue prior-baseline registry."
+        dependsOn("compileDebugUnitTestKotlin", "bundleDebugClassesToRuntimeJar")
+        mainClass.set("com.training.trackplanner.analysis.tissue.ConnectiveTissuePriorTool")
+        args(command, rootProject.projectDir.absolutePath)
+        workingDir(rootProject.projectDir)
+        doFirst {
+            val unitTest = tasks.named<Test>("testDebugUnitTest").get()
+            classpath = unitTest.classpath + unitTest.testClassesDirs
+        }
+    }
+}
+
+registerConnectiveTissuePriorTask(
+    name = "generateConnectiveTissuePriorBaselines",
+    command = "generate"
+)
+registerConnectiveTissuePriorTask(
+    name = "validateConnectiveTissuePriorBaselines",
+    command = "validate"
+)

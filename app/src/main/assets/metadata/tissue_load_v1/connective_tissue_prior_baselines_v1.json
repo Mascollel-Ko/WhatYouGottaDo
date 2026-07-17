@@ -1,0 +1,3234 @@
+{
+  "adjustmentPolicy": {
+    "bodyWeightGridKg": [
+      50,
+      65,
+      75,
+      90,
+      105
+    ],
+    "experienceCombinedClamp": [
+      0.94,
+      1.06
+    ],
+    "experienceDomainMaxMultiplier": 1.04,
+    "experienceScorePolicy": [
+      {
+        "maximumExclusiveYears": 0.5,
+        "score": -1
+      },
+      {
+        "maximumExclusiveYears": 2,
+        "minimumYears": 0.5,
+        "score": -0.5
+      },
+      {
+        "maximumExclusiveYears": 5,
+        "minimumYears": 2,
+        "score": 0
+      },
+      {
+        "maximumExclusiveYears": 10,
+        "minimumYears": 5,
+        "score": 0.5
+      },
+      {
+        "minimumYears": 10,
+        "score": 1
+      }
+    ],
+    "hardMultiplierClamp": [
+      0.8,
+      1.2
+    ],
+    "normalMultiplierClamp": [
+      0.85,
+      1.15
+    ],
+    "referenceBodyWeightKg": 75
+  },
+  "coefficientSources": [
+    "SIMULATION_FITTED",
+    "POLICY_BOUNDED",
+    "NEUTRAL_NOT_APPLICABLE"
+  ],
+  "deterministicInputChecksum": "034fb720d24a2e1749baa4a40d0a78d8d12a866e4a654d8fbbca4a944e80d3d2",
+  "deterministicOutputChecksum": "ef6c1d274369e55849a2cee095262cba4b83cfccecf1bdf7968f458f6d77c4eb",
+  "evaluationTimeBuckets": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+  "lifecycleStatus": [
+    "DESIGNED",
+    "GENERATED",
+    "VALIDATED",
+    "NOT_YET_RUNTIME_ACTIVE"
+  ],
+  "loadUnitAssignments": [
+    {
+      "loadUnitStableKey": "lu_0a858e59a0",
+      "priorProfileId": "PRIOR_FUNCTIONAL_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_0e8a3f133f",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_0fff8b2ee4",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_148c6ed411",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_192bb30a2e",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_1b115c8b4f",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_211533cb7a",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_26cb1f9f2c",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_27b4a0df1d",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_2d44aafe1e",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_3298f78330",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_348ac6b7a6",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_36ba10a736",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_3d242daa59",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_3e640e59e9",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_3f748b96b1",
+      "priorProfileId": "PRIOR_JOINT_SPINE"
+    },
+    {
+      "loadUnitStableKey": "lu_45688de60a",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_4a4649760b",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_50d1389a95",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_52a0b0ba44",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_547a239ed2",
+      "priorProfileId": "PRIOR_SPINAL"
+    },
+    {
+      "loadUnitStableKey": "lu_5d174b60fa",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_6079674d30",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_63101fe8b2",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_63aa4c5406",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_641c50bab9",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_6573d7bf8a",
+      "priorProfileId": "PRIOR_FUNCTIONAL_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_6de10a05a1",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_6e950505da",
+      "priorProfileId": "PRIOR_SPINAL"
+    },
+    {
+      "loadUnitStableKey": "lu_709fa6f6bd",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_7d200f36f3",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_82e419cfd9",
+      "priorProfileId": "PRIOR_FASCIA_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_889f90c55d",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_8af4d2c3e7",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_8df6cfe570",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_90281b5483",
+      "priorProfileId": "PRIOR_FASCIA_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_90b102bfdb",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_9244162017",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_92bcd7c98b",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_9462525798",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_9508964ced",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_97b28d1cec",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_97bee42c4e",
+      "priorProfileId": "PRIOR_JOINT_SPINE"
+    },
+    {
+      "loadUnitStableKey": "lu_9a06d0adb2",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_9b1d33a6fa",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_9cf6b4fc69",
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_9db157ba90",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_a18a644473",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_a45742ef7a",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_a706efdddb",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_a7dd63adb6",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_a9651bd8d7",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_acc0225b21",
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_b929d8ffe5",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_bdb58738eb",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_bf3f500760",
+      "priorProfileId": "PRIOR_JOINT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_c11995f705",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_c2a3d691c4",
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_c738cc0a37",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_c865eaa9a6",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_c8bfbfac3b",
+      "priorProfileId": "PRIOR_TENDON_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_cb820016df",
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_cd23e2d8c0",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_d5838e52ca",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_d7b54824bb",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_d967354bce",
+      "priorProfileId": "PRIOR_SPINAL"
+    },
+    {
+      "loadUnitStableKey": "lu_dec56c15d8",
+      "priorProfileId": "PRIOR_JOINT_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_df728dc186",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_e11d5f58a5",
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL"
+    },
+    {
+      "loadUnitStableKey": "lu_e7d26ea928",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_f037b5f8ea",
+      "priorProfileId": "PRIOR_FASCIA_SPINE"
+    },
+    {
+      "loadUnitStableKey": "lu_f4005dd228",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_f86f763ed7",
+      "priorProfileId": "PRIOR_TENDON_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_f959f8aafb",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_fb7a2d91e6",
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_UPPER"
+    },
+    {
+      "loadUnitStableKey": "lu_ff22c06225",
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER"
+    },
+    {
+      "loadUnitStableKey": "lu_ff559f42cd",
+      "priorProfileId": "PRIOR_JOINT_SPINE"
+    }
+  ],
+  "loadUnitCount": 77,
+  "mappingDataFingerprint": "3b04e38df8ea80e376a683b1cba15481cb801f52b7668d5f506b98811b057742",
+  "priorProfileCount": 13,
+  "profiles": [
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000917368,
+          "q30": 0.086242456,
+          "q80": 0.248745,
+          "q95": 0.364896881
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000704349,
+          "q30": 0.073392028,
+          "q80": 0.237114353,
+          "q95": 0.351248769
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000512515,
+          "q30": 0.069922575,
+          "q80": 0.222348193,
+          "q95": 0.338578965
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000344013,
+          "q30": 0.06655572,
+          "q80": 0.21122058,
+          "q95": 0.326814172
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000200994,
+          "q30": 0.063250968,
+          "q80": 0.203153228,
+          "q95": 0.315881092
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000085607,
+          "q30": 0.060015097,
+          "q80": 0.195960855,
+          "q95": 0.305706427
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.00187069,
+          "q30": 0.063841375,
+          "q80": 0.193859912,
+          "q95": 0.295970319
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.00158035,
+          "q30": 0.060840631,
+          "q80": 0.187863846,
+          "q95": 0.286822009
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.001313059,
+          "q30": 0.057912853,
+          "q80": 0.182225013,
+          "q95": 0.27822659
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.001069235,
+          "q30": 0.055065461,
+          "q80": 0.176896829,
+          "q95": 0.27112597
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000849298,
+          "q30": 0.052305873,
+          "q80": 0.17183271,
+          "q95": 0.263643918
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000653666,
+          "q30": 0.049641508,
+          "q80": 0.166986072,
+          "q95": 0.256480497
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000482759,
+          "q30": 0.046096981,
+          "q80": 0.16292653,
+          "q95": 0.249562409
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000336995,
+          "q30": 0.040945141,
+          "q80": 0.158973359,
+          "q95": 0.242816355
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000216794,
+          "q30": 0.03754395,
+          "q80": 0.155047478,
+          "q95": 0.236169039
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000122575,
+          "q30": 0.035076608,
+          "q80": 0.151098045,
+          "q95": 0.229547163
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000054757,
+          "q30": 0.031130619,
+          "q80": 0.147074216,
+          "q95": 0.22287743
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000013759,
+          "q30": 0.0290238,
+          "q80": 0.142925149,
+          "q95": 0.216086541
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00252,
+          "q30": 0.1161888,
+          "q80": 0.41307,
+          "q95": 0.57334
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.002225007,
+          "q30": 0.111997304,
+          "q80": 0.365574902,
+          "q95": 0.498339111
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.001938304,
+          "q30": 0.107723947,
+          "q80": 0.332275118,
+          "q95": 0.459584027
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.001662039,
+          "q30": 0.103467947,
+          "q80": 0.294857991,
+          "q95": 0.430651857
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.001398363,
+          "q30": 0.099237322,
+          "q80": 0.276538977,
+          "q95": 0.404394528
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.001149423,
+          "q30": 0.095040088,
+          "q80": 0.260884559,
+          "q95": 0.382060162
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.65,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.45,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "FOOT",
+        "HIP"
+      ],
+      "mappedLoadUnitCount": 2,
+      "priorProfileId": "PRIOR_FASCIA_LOWER",
+      "recoveryClass": "FASCIA_LOAD",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.021937754
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000562083,
+          "q30": 0.063452767,
+          "q80": 0.195154132,
+          "q95": 0.292121478
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000452826,
+          "q30": 0.060615443,
+          "q80": 0.187712536,
+          "q95": 0.280152614
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000349506,
+          "q30": 0.057367433,
+          "q80": 0.177544016,
+          "q95": 0.268349768
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000252344,
+          "q30": 0.054347926,
+          "q80": 0.170316807,
+          "q95": 0.25735743
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000157924,
+          "q30": 0.049697189,
+          "q80": 0.164042011,
+          "q95": 0.246997204
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000067262,
+          "q30": 0.047154719,
+          "q80": 0.158163539,
+          "q95": 0.236961537
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000911293,
+          "q30": 0.047146904,
+          "q80": 0.154179577,
+          "q95": 0.22865209
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000769856,
+          "q30": 0.044643646,
+          "q80": 0.148902226,
+          "q95": 0.220310412
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000639647,
+          "q30": 0.042219482,
+          "q80": 0.143928604,
+          "q95": 0.212483555
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.00052087,
+          "q30": 0.039881104,
+          "q80": 0.138782258,
+          "q95": 0.205112383
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000413729,
+          "q30": 0.036528285,
+          "q80": 0.134271744,
+          "q95": 0.198137758
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000318429,
+          "q30": 0.03340091,
+          "q80": 0.129678359,
+          "q95": 0.192254475
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000235172,
+          "q30": 0.03132001,
+          "q80": 0.12520729,
+          "q95": 0.187612368
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000164165,
+          "q30": 0.0281464,
+          "q80": 0.121397838,
+          "q95": 0.183060232
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.00010561,
+          "q30": 0.025204532,
+          "q80": 0.117745349,
+          "q95": 0.178539521
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000059712,
+          "q30": 0.022758933,
+          "q80": 0.113975411,
+          "q95": 0.173991688
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000026675,
+          "q30": 0.020801164,
+          "q80": 0.110271167,
+          "q95": 0.168295706
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000006703,
+          "q30": 0.019167529,
+          "q80": 0.106607676,
+          "q95": 0.162366121
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00133,
+          "q30": 0.08092,
+          "q80": 0.3413,
+          "q95": 0.4576
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.001189736,
+          "q30": 0.077989475,
+          "q80": 0.298073646,
+          "q95": 0.415090522
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.00105409,
+          "q30": 0.075057756,
+          "q80": 0.271235556,
+          "q95": 0.381442246
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.000923281,
+          "q30": 0.072131536,
+          "q80": 0.242710615,
+          "q95": 0.349526237
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.000797531,
+          "q30": 0.069217503,
+          "q80": 0.221820513,
+          "q95": 0.322836725
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000677058,
+          "q30": 0.06632235,
+          "q80": 0.207874158,
+          "q95": 0.305497223
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.3,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.5,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.020408163,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "SPINE"
+      ],
+      "mappedLoadUnitCount": 1,
+      "priorProfileId": "PRIOR_FASCIA_SPINE",
+      "recoveryClass": "FASCIA_LOAD",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.014590319
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "NEUTRAL_NOT_APPLICABLE"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.004174854,
+          "q30": 0.07655291,
+          "q80": 0.2363955,
+          "q95": 0.35096325
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.003770525,
+          "q30": 0.072413402,
+          "q80": 0.225202574,
+          "q95": 0.334231324
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.003381312,
+          "q30": 0.067235367,
+          "q80": 0.214161225,
+          "q95": 0.318515501
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.003008182,
+          "q30": 0.063704076,
+          "q80": 0.204362931,
+          "q95": 0.303762111
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.002652104,
+          "q30": 0.060261814,
+          "q80": 0.194030715,
+          "q95": 0.289917488
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.002314048,
+          "q30": 0.055921992,
+          "q80": 0.184301667,
+          "q95": 0.276927963
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.001994982,
+          "q30": 0.052730948,
+          "q80": 0.175484969,
+          "q95": 0.264739868
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.001695874,
+          "q30": 0.048950939,
+          "q80": 0.167332491,
+          "q95": 0.253299536
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.001417693,
+          "q30": 0.04595233,
+          "q80": 0.160562778,
+          "q95": 0.242553299
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.001161409,
+          "q30": 0.042416318,
+          "q80": 0.154458093,
+          "q95": 0.232447488
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000927989,
+          "q30": 0.039045869,
+          "q80": 0.148689505,
+          "q95": 0.222928437
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000718403,
+          "q30": 0.035980991,
+          "q80": 0.143216344,
+          "q95": 0.213942476
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000533618,
+          "q30": 0.03319946,
+          "q80": 0.137997942,
+          "q95": 0.205435939
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000374604,
+          "q30": 0.030650094,
+          "q80": 0.13299363,
+          "q95": 0.197355157
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.00024233,
+          "q30": 0.027813432,
+          "q80": 0.128162738,
+          "q95": 0.189646462
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000137764,
+          "q30": 0.025537653,
+          "q80": 0.123464598,
+          "q95": 0.182256187
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000061874,
+          "q30": 0.023874814,
+          "q80": 0.118810528,
+          "q95": 0.175130664
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.00001563,
+          "q30": 0.02234949,
+          "q80": 0.113647635,
+          "q95": 0.168216224
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.006864,
+          "q30": 0.100672,
+          "q80": 0.405,
+          "q95": 0.5329312
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.006389322,
+          "q30": 0.096517992,
+          "q80": 0.350756757,
+          "q95": 0.494173699
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.005923948,
+          "q30": 0.092410095,
+          "q80": 0.316421018,
+          "q95": 0.446581629
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.005468845,
+          "q30": 0.088353974,
+          "q80": 0.289616894,
+          "q95": 0.413910745
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.005024983,
+          "q30": 0.084355292,
+          "q80": 0.268944961,
+          "q95": 0.384140085
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.00459333,
+          "q30": 0.080419716,
+          "q80": 0.250199082,
+          "q95": 0.358595665
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.8,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.55,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.04,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "FOOT",
+        "KNEE",
+        "PELVIS"
+      ],
+      "mappedLoadUnitCount": 3,
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_LOWER",
+      "recoveryClass": "FIBROCARTILAGE_COMPRESSION",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.044041182
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.001852415,
+          "q30": 0.01778449,
+          "q80": 0.13737048,
+          "q95": 0.19087355
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.001459783,
+          "q30": 0.015637442,
+          "q80": 0.121186348,
+          "q95": 0.182848419
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.001097727,
+          "q30": 0.014103704,
+          "q80": 0.107789078,
+          "q95": 0.176488321
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000768484,
+          "q30": 0.012617188,
+          "q80": 0.099088214,
+          "q95": 0.17059208
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.00047429,
+          "q30": 0.010914803,
+          "q80": 0.090826608,
+          "q95": 0.164063756
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000217383,
+          "q30": 0.009250798,
+          "q80": 0.083170873,
+          "q95": 0.157250087
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.001342776,
+          "q30": 0.008498436,
+          "q80": 0.076410685,
+          "q95": 0.150869026
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.001141454,
+          "q30": 0.007224265,
+          "q80": 0.070742443,
+          "q95": 0.1448853
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000954217,
+          "q30": 0.006039242,
+          "q80": 0.065033356,
+          "q95": 0.139263634
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000781718,
+          "q30": 0.004947494,
+          "q80": 0.059817885,
+          "q95": 0.133968754
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000624608,
+          "q30": 0.003953147,
+          "q80": 0.055064688,
+          "q95": 0.128965387
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.00048354,
+          "q30": 0.003060328,
+          "q80": 0.050702794,
+          "q95": 0.124218258
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000359166,
+          "q30": 0.002273163,
+          "q80": 0.046582836,
+          "q95": 0.119692093
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000252138,
+          "q30": 0.001595779,
+          "q80": 0.042862705,
+          "q95": 0.115351617
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000163107,
+          "q30": 0.001032303,
+          "q80": 0.039513274,
+          "q95": 0.111161558
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000092726,
+          "q30": 0.00058686,
+          "q80": 0.036505416,
+          "q95": 0.107086641
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000041646,
+          "q30": 0.000263578,
+          "q80": 0.033810003,
+          "q95": 0.103091592
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.00001052,
+          "q30": 0.000066582,
+          "q80": 0.031397907,
+          "q95": 0.099141136
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00462,
+          "q30": 0.02744,
+          "q80": 0.329,
+          "q95": 0.3995
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.004195898,
+          "q30": 0.025542396,
+          "q80": 0.269621307,
+          "q95": 0.32875508
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.003683949,
+          "q30": 0.02380787,
+          "q80": 0.22542,
+          "q95": 0.280197158
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.003191388,
+          "q30": 0.022126563,
+          "q80": 0.195795317,
+          "q95": 0.254495497
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.002720455,
+          "q30": 0.020462963,
+          "q80": 0.16867257,
+          "q95": 0.222006453
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.002273384,
+          "q30": 0.018822975,
+          "q80": 0.154284745,
+          "q95": 0.207496651
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.45,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.5,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "SHOULDER",
+        "WRIST"
+      ],
+      "mappedLoadUnitCount": 2,
+      "priorProfileId": "PRIOR_FIBROCARTILAGE_UPPER",
+      "recoveryClass": "FIBROCARTILAGE_COMPRESSION",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.048605905
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000371905,
+          "q30": 0.04774,
+          "q80": 0.20553,
+          "q95": 0.321562673
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000299614,
+          "q30": 0.045689427,
+          "q80": 0.196701885,
+          "q95": 0.308059735
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000231252,
+          "q30": 0.040740749,
+          "q80": 0.187746026,
+          "q95": 0.296635942
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000166964,
+          "q30": 0.03655617,
+          "q80": 0.180347761,
+          "q95": 0.287441486
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000106896,
+          "q30": 0.031113542,
+          "q80": 0.173562217,
+          "q95": 0.27579063
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000051193,
+          "q30": 0.028194669,
+          "q80": 0.16733457,
+          "q95": 0.265223542
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000176379,
+          "q30": 0.03536,
+          "q80": 0.168841905,
+          "q95": 0.260159138
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000149004,
+          "q30": 0.031465785,
+          "q80": 0.163310648,
+          "q95": 0.250574362
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000123803,
+          "q30": 0.028291778,
+          "q80": 0.157603163,
+          "q95": 0.24160716
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000100814,
+          "q30": 0.025420384,
+          "q80": 0.151808086,
+          "q95": 0.233189796
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000080077,
+          "q30": 0.022396689,
+          "q80": 0.146380216,
+          "q95": 0.226340672
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000061631,
+          "q30": 0.019909478,
+          "q80": 0.140134513,
+          "q95": 0.220613251
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000045517,
+          "q30": 0.017723789,
+          "q80": 0.136431209,
+          "q95": 0.215082585
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000031774,
+          "q30": 0.015581043,
+          "q80": 0.132477799,
+          "q95": 0.210557428
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000020441,
+          "q30": 0.013981255,
+          "q80": 0.129206232,
+          "q95": 0.204395059
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000011557,
+          "q30": 0.012472842,
+          "q80": 0.125915038,
+          "q95": 0.199129968
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000005163,
+          "q30": 0.01162517,
+          "q80": 0.122561847,
+          "q95": 0.193845171
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000001297,
+          "q30": 0.011005532,
+          "q80": 0.118573885,
+          "q95": 0.187187885
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00066,
+          "q30": 0.0833,
+          "q80": 0.35,
+          "q95": 0.472
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.000609629,
+          "q30": 0.080065714,
+          "q80": 0.316918966,
+          "q95": 0.439146749
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.000560958,
+          "q30": 0.073881481,
+          "q80": 0.281453263,
+          "q95": 0.410970551
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.000514025,
+          "q30": 0.066048931,
+          "q80": 0.258758712,
+          "q95": 0.366916881
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.00046887,
+          "q30": 0.059293122,
+          "q80": 0.236557723,
+          "q95": 0.345292824
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000425532,
+          "q30": 0.054138867,
+          "q80": 0.22458461,
+          "q95": 0.338127467
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.55,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.45,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.017605225,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "HAND",
+        "SHOULDER_GIRDLE"
+      ],
+      "mappedLoadUnitCount": 2,
+      "priorProfileId": "PRIOR_FUNCTIONAL_UPPER",
+      "recoveryClass": "FUNCTIONAL_ARTICULATION_LOAD",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.046497846
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000384583,
+          "q30": 0.087157872,
+          "q80": 0.273377566,
+          "q95": 0.428224539
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000309828,
+          "q30": 0.080867297,
+          "q80": 0.261087133,
+          "q95": 0.409303806
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000239136,
+          "q30": 0.075061997,
+          "q80": 0.249703206,
+          "q95": 0.39152561
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000172656,
+          "q30": 0.068491456,
+          "q80": 0.239162654,
+          "q95": 0.374822477
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.00011054,
+          "q30": 0.064134828,
+          "q80": 0.229402345,
+          "q95": 0.359126931
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000052938,
+          "q30": 0.05957748,
+          "q80": 0.220359148,
+          "q95": 0.344344837
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000761638,
+          "q30": 0.061231298,
+          "q80": 0.21464657,
+          "q95": 0.329826999
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000643428,
+          "q30": 0.055826393,
+          "q80": 0.205266025,
+          "q95": 0.315978191
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000534602,
+          "q30": 0.051709996,
+          "q80": 0.198031794,
+          "q95": 0.302759577
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000435331,
+          "q30": 0.048246818,
+          "q80": 0.191197301,
+          "q95": 0.292118192
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000345785,
+          "q30": 0.044526258,
+          "q80": 0.18447267,
+          "q95": 0.284719798
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000266135,
+          "q30": 0.041337968,
+          "q80": 0.178003105,
+          "q95": 0.277797597
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000196552,
+          "q30": 0.038839732,
+          "q80": 0.171832871,
+          "q95": 0.271089997
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000137205,
+          "q30": 0.036419312,
+          "q80": 0.166031285,
+          "q95": 0.2645124
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000088266,
+          "q30": 0.035116507,
+          "q80": 0.160454815,
+          "q95": 0.255778706
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000049906,
+          "q30": 0.032794139,
+          "q80": 0.155139583,
+          "q95": 0.246029132
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000022294,
+          "q30": 0.030211327,
+          "q80": 0.149574351,
+          "q95": 0.236508932
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000005602,
+          "q30": 0.0282796,
+          "q80": 0.144244258,
+          "q95": 0.227152942
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00091,
+          "q30": 0.1192,
+          "q80": 0.40902,
+          "q95": 0.6216
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.00081403,
+          "q30": 0.114690404,
+          "q80": 0.382895464,
+          "q95": 0.580103484
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.000721219,
+          "q30": 0.110379053,
+          "q80": 0.359140948,
+          "q95": 0.540458119
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.000631719,
+          "q30": 0.105560009,
+          "q80": 0.334220775,
+          "q95": 0.508071775
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.000545679,
+          "q30": 0.098337836,
+          "q80": 0.310233463,
+          "q95": 0.481189367
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.00046325,
+          "q30": 0.091693445,
+          "q80": 0.290117375,
+          "q95": 0.451484479
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.85,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.6,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.006587781,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ANKLE",
+        "FOOT",
+        "HIP",
+        "KNEE",
+        "PELVIS"
+      ],
+      "mappedLoadUnitCount": 7,
+      "priorProfileId": "PRIOR_JOINT_LOWER",
+      "recoveryClass": "JOINT_CONTACT",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.046306527
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.00044375,
+          "q30": 0.057187473,
+          "q80": 0.178645779,
+          "q95": 0.273353276
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000357494,
+          "q30": 0.054668907,
+          "q80": 0.170896491,
+          "q95": 0.26181483
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000275926,
+          "q30": 0.052051548,
+          "q80": 0.163725753,
+          "q95": 0.251138051
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000199219,
+          "q30": 0.048586183,
+          "q80": 0.157124327,
+          "q95": 0.24126091
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000127546,
+          "q30": 0.046203478,
+          "q80": 0.151046347,
+          "q95": 0.232121377
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000061082,
+          "q30": 0.043539595,
+          "q80": 0.145445943,
+          "q95": 0.223759134
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000895184,
+          "q30": 0.043801973,
+          "q80": 0.141531181,
+          "q95": 0.220855072
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000760969,
+          "q30": 0.041454814,
+          "q80": 0.136910407,
+          "q95": 0.221570292
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000636144,
+          "q30": 0.039203805,
+          "q80": 0.132362593,
+          "q95": 0.213358985
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000521145,
+          "q30": 0.036864886,
+          "q80": 0.128156591,
+          "q95": 0.2094104
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000416405,
+          "q30": 0.034788842,
+          "q80": 0.123002171,
+          "q95": 0.205618519
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.00032236,
+          "q30": 0.032357132,
+          "q80": 0.119303988,
+          "q95": 0.200025033
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000239444,
+          "q30": 0.030147192,
+          "q80": 0.115762302,
+          "q95": 0.193865325
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000168092,
+          "q30": 0.028200617,
+          "q80": 0.112348737,
+          "q95": 0.187900135
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000108397,
+          "q30": 0.026214854,
+          "q80": 0.110594815,
+          "q95": 0.182063977
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000061288,
+          "q30": 0.024537176,
+          "q80": 0.107929446,
+          "q95": 0.176291368
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000027379,
+          "q30": 0.022582865,
+          "q80": 0.104376542,
+          "q95": 0.170516824
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.00000688,
+          "q30": 0.021181096,
+          "q80": 0.100755524,
+          "q95": 0.164674863
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00105,
+          "q30": 0.07514,
+          "q80": 0.30112,
+          "q95": 0.4259
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.000939265,
+          "q30": 0.072091111,
+          "q80": 0.276264718,
+          "q95": 0.388366968
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.000832176,
+          "q30": 0.069381119,
+          "q80": 0.248308148,
+          "q95": 0.36034963
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.000728906,
+          "q30": 0.065009304,
+          "q80": 0.222425514,
+          "q95": 0.333718295
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.00062963,
+          "q30": 0.062383002,
+          "q80": 0.206013431,
+          "q95": 0.308403972
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.00053452,
+          "q30": 0.059773715,
+          "q80": 0.189305141,
+          "q95": 0.288318776
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.35,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.55,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.007309422,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "SPINE"
+      ],
+      "mappedLoadUnitCount": 3,
+      "priorProfileId": "PRIOR_JOINT_SPINE",
+      "recoveryClass": "JOINT_CONTACT",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.021526625
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000769167,
+          "q30": 0.05236,
+          "q80": 0.188720565,
+          "q95": 0.294931741
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000619657,
+          "q30": 0.048225073,
+          "q80": 0.180218756,
+          "q95": 0.281365249
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000478272,
+          "q30": 0.044383738,
+          "q80": 0.172100524,
+          "q95": 0.268573976
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000345312,
+          "q30": 0.040823088,
+          "q80": 0.165451843,
+          "q95": 0.256520347
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.00022108,
+          "q30": 0.038722915,
+          "q80": 0.159098699,
+          "q95": 0.245166784
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000103951,
+          "q30": 0.036060054,
+          "q80": 0.153120152,
+          "q95": 0.235587288
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000639417,
+          "q30": 0.04023771,
+          "q80": 0.150177083,
+          "q95": 0.227569524
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000543549,
+          "q30": 0.036979004,
+          "q80": 0.144474945,
+          "q95": 0.220114352
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000454389,
+          "q30": 0.033994709,
+          "q80": 0.139141593,
+          "q95": 0.213155344
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000372246,
+          "q30": 0.03126844,
+          "q80": 0.134167005,
+          "q95": 0.206626071
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000297432,
+          "q30": 0.028436356,
+          "q80": 0.129674515,
+          "q95": 0.200233104
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000230257,
+          "q30": 0.026243572,
+          "q80": 0.12578447,
+          "q95": 0.19325888
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000171031,
+          "q30": 0.024536554,
+          "q80": 0.122508193,
+          "q95": 0.186601854
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000120065,
+          "q30": 0.022579973,
+          "q80": 0.118482465,
+          "q95": 0.180210762
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.00007767,
+          "q30": 0.020987624,
+          "q80": 0.114967873,
+          "q95": 0.177010995
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000044155,
+          "q30": 0.019461576,
+          "q80": 0.111500939,
+          "q95": 0.172754881
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000019831,
+          "q30": 0.018079239,
+          "q80": 0.108157218,
+          "q95": 0.167373757
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.00000501,
+          "q30": 0.016824189,
+          "q80": 0.104723379,
+          "q95": 0.161890939
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00154,
+          "q30": 0.08316,
+          "q80": 0.3196,
+          "q95": 0.45961
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.001433502,
+          "q30": 0.07974662,
+          "q80": 0.284417686,
+          "q95": 0.415526015
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.001329091,
+          "q30": 0.076369196,
+          "q80": 0.258369885,
+          "q95": 0.386493175
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.001226985,
+          "q30": 0.072131536,
+          "q80": 0.23481534,
+          "q95": 0.358692959
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.001091358,
+          "q30": 0.063480165,
+          "q80": 0.215906413,
+          "q95": 0.333004047
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000926501,
+          "q30": 0.058394571,
+          "q80": 0.200195484,
+          "q95": 0.311730763
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.5,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.55,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.011712567,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ELBOW",
+        "FOREARM",
+        "SHOULDER",
+        "SHOULDER_GIRDLE",
+        "WRIST"
+      ],
+      "mappedLoadUnitCount": 6,
+      "priorProfileId": "PRIOR_JOINT_UPPER",
+      "recoveryClass": "JOINT_CONTACT",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.020793179
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.001649531,
+          "q30": 0.049,
+          "q80": 0.178131525,
+          "q95": 0.379407188
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.001299902,
+          "q30": 0.041863392,
+          "q80": 0.169377951,
+          "q95": 0.361534097
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.0009775,
+          "q30": 0.036063256,
+          "q80": 0.161137152,
+          "q95": 0.344761883
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000684316,
+          "q30": 0.030848221,
+          "q80": 0.153384843,
+          "q95": 0.329030098
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000422344,
+          "q30": 0.025282308,
+          "q80": 0.142831976,
+          "q95": 0.314278293
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000193574,
+          "q30": 0.02102206,
+          "q80": 0.134885543,
+          "q95": 0.300446022
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.0013125,
+          "q30": 0.01785,
+          "q80": 0.12763266,
+          "q95": 0.301738052
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.001121246,
+          "q30": 0.015280629,
+          "q80": 0.122268223,
+          "q95": 0.2897706
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.00094184,
+          "q30": 0.012861405,
+          "q80": 0.114014023,
+          "q95": 0.278527268
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000775195,
+          "q30": 0.010606294,
+          "q80": 0.108183709,
+          "q95": 0.267937508
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000622222,
+          "q30": 0.008529264,
+          "q80": 0.104143343,
+          "q95": 0.257930774
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000483832,
+          "q30": 0.006644283,
+          "q80": 0.101178201,
+          "q95": 0.248436515
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000360938,
+          "q30": 0.004965317,
+          "q80": 0.098569959,
+          "q95": 0.239384185
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000254449,
+          "q30": 0.003506333,
+          "q80": 0.09499545,
+          "q95": 0.230703235
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000165278,
+          "q30": 0.002281299,
+          "q80": 0.091544813,
+          "q95": 0.222323117
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000094336,
+          "q30": 0.001304181,
+          "q80": 0.088188999,
+          "q95": 0.214173282
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000042535,
+          "q30": 0.000588948,
+          "q80": 0.084898958,
+          "q95": 0.206183183
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000010786,
+          "q30": 0.000149565,
+          "q80": 0.081645641,
+          "q95": 0.198282272
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.0042,
+          "q30": 0.1391104,
+          "q80": 0.34,
+          "q95": 0.595
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.003736348,
+          "q30": 0.10926843,
+          "q80": 0.278636002,
+          "q95": 0.555252364
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.003280469,
+          "q30": 0.091016498,
+          "q80": 0.238376543,
+          "q95": 0.515760157
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.002841855,
+          "q30": 0.079118093,
+          "q80": 0.22055746,
+          "q95": 0.478141098
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.0024225,
+          "q30": 0.066119351,
+          "q80": 0.205216049,
+          "q95": 0.444012907
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.002024395,
+          "q30": 0.057643503,
+          "q80": 0.188787325,
+          "q95": 0.414993301
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.9,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.55,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.005893085,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ANKLE",
+        "FOOT",
+        "HIP",
+        "KNEE",
+        "PELVIS"
+      ],
+      "mappedLoadUnitCount": 11,
+      "priorProfileId": "PRIOR_LIGAMENT_LOWER",
+      "recoveryClass": "LIGAMENT_STRAIN",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.064705882
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.004176563,
+          "q30": 0.0442,
+          "q80": 0.11191,
+          "q95": 0.15181
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.003794379,
+          "q30": 0.038295549,
+          "q80": 0.099800522,
+          "q95": 0.134624599
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.003422222,
+          "q30": 0.032180189,
+          "q80": 0.086484257,
+          "q95": 0.126444718
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.003061523,
+          "q30": 0.026827441,
+          "q80": 0.074546639,
+          "q95": 0.118325905
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.002713715,
+          "q30": 0.021582458,
+          "q80": 0.066605255,
+          "q95": 0.111949387
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.00238023,
+          "q30": 0.017518384,
+          "q80": 0.057659188,
+          "q95": 0.107300059
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.0020625,
+          "q30": 0.0147,
+          "q80": 0.050926427,
+          "q95": 0.102945924
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.001761957,
+          "q30": 0.012584047,
+          "q80": 0.045467357,
+          "q95": 0.09886291
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.001480035,
+          "q30": 0.010591745,
+          "q80": 0.039316262,
+          "q95": 0.09502695
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.001218164,
+          "q30": 0.008817188,
+          "q80": 0.032964258,
+          "q95": 0.091413973
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000977778,
+          "q30": 0.007095775,
+          "q80": 0.027133889,
+          "q95": 0.087999911
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000760308,
+          "q30": 0.005527597,
+          "q80": 0.021455896,
+          "q95": 0.084760693
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000567188,
+          "q30": 0.00413081,
+          "q80": 0.016264219,
+          "q95": 0.081672251
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000399848,
+          "q30": 0.002917033,
+          "q80": 0.011642307,
+          "q95": 0.078710515
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000259722,
+          "q30": 0.001897887,
+          "q80": 0.007673611,
+          "q95": 0.075851416
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000148242,
+          "q30": 0.001084991,
+          "q80": 0.004441582,
+          "q95": 0.073070885
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.00006684,
+          "q30": 0.000489965,
+          "q80": 0.00202967,
+          "q95": 0.070344851
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000016949,
+          "q30": 0.000124428,
+          "q80": 0.000521326,
+          "q95": 0.067649246
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.0066,
+          "q30": 0.175,
+          "q80": 0.289,
+          "q95": 0.36047
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.006187739,
+          "q30": 0.136348165,
+          "q80": 0.229874701,
+          "q95": 0.292567802
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.00577691,
+          "q30": 0.09792,
+          "q80": 0.1904,
+          "q95": 0.249889341
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.005368945,
+          "q30": 0.079118093,
+          "q80": 0.167241833,
+          "q95": 0.219097491
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.004965278,
+          "q30": 0.063503214,
+          "q80": 0.14507849,
+          "q95": 0.190291246
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.004567339,
+          "q30": 0.051429474,
+          "q80": 0.128189484,
+          "q95": 0.171795497
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.5,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.45,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ELBOW",
+        "FOREARM",
+        "SHOULDER",
+        "SHOULDER_GIRDLE",
+        "SPINE",
+        "WRIST"
+      ],
+      "mappedLoadUnitCount": 8,
+      "priorProfileId": "PRIOR_LIGAMENT_UPPER_AXIAL",
+      "recoveryClass": "LIGAMENT_STRAIN",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.033333333
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.00062125,
+          "q30": 0.062338799,
+          "q80": 0.186225,
+          "q95": 0.261952892
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000500492,
+          "q30": 0.05878623,
+          "q80": 0.17805125,
+          "q95": 0.250536777
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000386296,
+          "q30": 0.055756279,
+          "q80": 0.168037333,
+          "q95": 0.236410955
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000278906,
+          "q30": 0.052792895,
+          "q80": 0.159074233,
+          "q95": 0.227084651
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000178565,
+          "q30": 0.049604204,
+          "q80": 0.153170094,
+          "q95": 0.219101561
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000085515,
+          "q30": 0.046797709,
+          "q80": 0.146544517,
+          "q95": 0.211665911
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.00076431,
+          "q30": 0.045446699,
+          "q80": 0.141531181,
+          "q95": 0.204729305
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000645686,
+          "q30": 0.042017549,
+          "q80": 0.136821896,
+          "q95": 0.19824335
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000536478,
+          "q30": 0.038704632,
+          "q80": 0.132634186,
+          "q95": 0.191276824
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000436859,
+          "q30": 0.036362183,
+          "q80": 0.128350621,
+          "q95": 0.184706311
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000346999,
+          "q30": 0.033207531,
+          "q80": 0.124087621,
+          "q95": 0.180703351
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000267069,
+          "q30": 0.031313353,
+          "q80": 0.12031439,
+          "q95": 0.175838148
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000197241,
+          "q30": 0.028350333,
+          "q80": 0.116700248,
+          "q95": 0.170879531
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000137687,
+          "q30": 0.026000425,
+          "q80": 0.113199191,
+          "q95": 0.166081198
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000088576,
+          "q30": 0.023343703,
+          "q80": 0.110151108,
+          "q95": 0.161394755
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000050081,
+          "q30": 0.021270954,
+          "q80": 0.106727103,
+          "q95": 0.156771808
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000022372,
+          "q30": 0.019579233,
+          "q80": 0.10327803,
+          "q95": 0.151674725
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000005622,
+          "q30": 0.018535633,
+          "q80": 0.100448534,
+          "q95": 0.147277678
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00147,
+          "q30": 0.07854,
+          "q80": 0.30155,
+          "q95": 0.39955
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.001314971,
+          "q30": 0.076021568,
+          "q80": 0.276432741,
+          "q95": 0.372876124
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.001165046,
+          "q30": 0.07349087,
+          "q80": 0.256721343,
+          "q95": 0.342387056
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.001020469,
+          "q30": 0.070953572,
+          "q80": 0.235410661,
+          "q95": 0.319495813
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.000881481,
+          "q30": 0.068204087,
+          "q80": 0.215765722,
+          "q95": 0.298341217
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000748328,
+          "q30": 0.065017274,
+          "q80": 0.19733622,
+          "q95": 0.27808875
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.35,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.65,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.014839781,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "SPINE"
+      ],
+      "mappedLoadUnitCount": 3,
+      "priorProfileId": "PRIOR_SPINAL",
+      "recoveryClass": "SPINAL_COMPRESSION_SHEAR",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.045144322
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000739583,
+          "q30": 0.09128,
+          "q80": 0.307105862,
+          "q95": 0.4492488
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000595824,
+          "q30": 0.085989212,
+          "q80": 0.29143855,
+          "q95": 0.430699241
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000459877,
+          "q30": 0.081388736,
+          "q80": 0.281113649,
+          "q95": 0.413552974
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000332031,
+          "q30": 0.075546483,
+          "q80": 0.271435409,
+          "q95": 0.397705812
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000212577,
+          "q30": 0.07106535,
+          "q80": 0.262355085,
+          "q95": 0.383071101
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000101804,
+          "q30": 0.065809279,
+          "q80": 0.250791649,
+          "q95": 0.369492063
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.001028879,
+          "q30": 0.0672,
+          "q80": 0.244670971,
+          "q95": 0.357510772
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000869193,
+          "q30": 0.063429397,
+          "q80": 0.235476945,
+          "q95": 0.345224509
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000722182,
+          "q30": 0.059904411,
+          "q80": 0.226829988,
+          "q95": 0.334310091
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.000588079,
+          "q30": 0.056671143,
+          "q80": 0.218672831,
+          "q95": 0.324069664
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000467114,
+          "q30": 0.053202069,
+          "q80": 0.211670106,
+          "q95": 0.314399043
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000359516,
+          "q30": 0.048994356,
+          "q80": 0.206471187,
+          "q95": 0.305194043
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000265517,
+          "q30": 0.045348633,
+          "q80": 0.200608711,
+          "q95": 0.296512917
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000185347,
+          "q30": 0.042218497,
+          "q80": 0.19492316,
+          "q95": 0.290450723
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000119237,
+          "q30": 0.03932228,
+          "q80": 0.189624039,
+          "q95": 0.284385908
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000067416,
+          "q30": 0.037035685,
+          "q80": 0.184369145,
+          "q95": 0.278318951
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000030117,
+          "q30": 0.034816577,
+          "q80": 0.178940296,
+          "q95": 0.269758986
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000007568,
+          "q30": 0.032507396,
+          "q80": 0.171239974,
+          "q95": 0.26014293
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00175,
+          "q30": 0.1309,
+          "q80": 0.46485,
+          "q95": 0.623
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.001565442,
+          "q30": 0.126159444,
+          "q80": 0.435588234,
+          "q95": 0.571260251
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.00138696,
+          "q30": 0.121416959,
+          "q80": 0.401040829,
+          "q95": 0.537756601
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.001214844,
+          "q30": 0.116683367,
+          "q80": 0.373331671,
+          "q95": 0.501310075
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.001049383,
+          "q30": 0.108586486,
+          "q80": 0.346973384,
+          "q95": 0.478800801
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000890866,
+          "q30": 0.100970373,
+          "q80": 0.325838976,
+          "q95": 0.460911903
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.85,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.75,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.008482186,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ANKLE",
+        "FOOT",
+        "HIP",
+        "KNEE"
+      ],
+      "mappedLoadUnitCount": 15,
+      "priorProfileId": "PRIOR_TENDON_LOWER",
+      "recoveryClass": "TENDON_LOAD",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.040460523
+    },
+    {
+      "bodyMass": {
+        "beta": 0,
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "form": "beta * ln(bodyWeightKg / 75)",
+        "source": "SIMULATION_FITTED"
+      },
+      "evaluationBuckets": [
+        {
+          "localHour": 0,
+          "meaningfulFloor": 0.000576078,
+          "q30": 0.05225522,
+          "q80": 0.20832,
+          "q95": 0.294427464
+        },
+        {
+          "localHour": 1,
+          "meaningfulFloor": 0.000505599,
+          "q30": 0.049791257,
+          "q80": 0.199372046,
+          "q95": 0.282041592
+        },
+        {
+          "localHour": 2,
+          "meaningfulFloor": 0.000390238,
+          "q30": 0.047492594,
+          "q80": 0.190281102,
+          "q95": 0.278592185
+        },
+        {
+          "localHour": 3,
+          "meaningfulFloor": 0.000281752,
+          "q30": 0.045231422,
+          "q80": 0.181480752,
+          "q95": 0.271178087
+        },
+        {
+          "localHour": 4,
+          "meaningfulFloor": 0.000180387,
+          "q30": 0.040452445,
+          "q80": 0.17334247,
+          "q95": 0.260256573
+        },
+        {
+          "localHour": 5,
+          "meaningfulFloor": 0.000086388,
+          "q30": 0.037709761,
+          "q80": 0.166949277,
+          "q95": 0.250181544
+        },
+        {
+          "localHour": 6,
+          "meaningfulFloor": 0.000264569,
+          "q30": 0.038826862,
+          "q80": 0.163750635,
+          "q95": 0.249235694
+        },
+        {
+          "localHour": 7,
+          "meaningfulFloor": 0.000223507,
+          "q30": 0.036671566,
+          "q80": 0.157463347,
+          "q95": 0.238418625
+        },
+        {
+          "localHour": 8,
+          "meaningfulFloor": 0.000185704,
+          "q30": 0.034680289,
+          "q80": 0.152751853,
+          "q95": 0.228129786
+        },
+        {
+          "localHour": 9,
+          "meaningfulFloor": 0.00015122,
+          "q30": 0.032331222,
+          "q80": 0.148873633,
+          "q95": 0.218338249
+        },
+        {
+          "localHour": 10,
+          "meaningfulFloor": 0.000120115,
+          "q30": 0.029716346,
+          "q80": 0.145191126,
+          "q95": 0.209857801
+        },
+        {
+          "localHour": 11,
+          "meaningfulFloor": 0.000092447,
+          "q30": 0.02777065,
+          "q80": 0.14071681,
+          "q95": 0.20327416
+        },
+        {
+          "localHour": 12,
+          "meaningfulFloor": 0.000068276,
+          "q30": 0.024980525,
+          "q80": 0.135710017,
+          "q95": 0.198128523
+        },
+        {
+          "localHour": 13,
+          "meaningfulFloor": 0.000047661,
+          "q30": 0.022570184,
+          "q80": 0.130909284,
+          "q95": 0.193961769
+        },
+        {
+          "localHour": 14,
+          "meaningfulFloor": 0.000030661,
+          "q30": 0.020436055,
+          "q80": 0.126280426,
+          "q95": 0.189798858
+        },
+        {
+          "localHour": 15,
+          "meaningfulFloor": 0.000017336,
+          "q30": 0.018632809,
+          "q80": 0.121789255,
+          "q95": 0.183485364
+        },
+        {
+          "localHour": 16,
+          "meaningfulFloor": 0.000007744,
+          "q30": 0.017131829,
+          "q80": 0.117741709,
+          "q95": 0.176507231
+        },
+        {
+          "localHour": 17,
+          "meaningfulFloor": 0.000001946,
+          "q30": 0.016218679,
+          "q80": 0.113810473,
+          "q95": 0.169634153
+        },
+        {
+          "localHour": 18,
+          "meaningfulFloor": 0.00099,
+          "q30": 0.08509,
+          "q80": 0.329,
+          "q95": 0.4623
+        },
+        {
+          "localHour": 19,
+          "meaningfulFloor": 0.000914444,
+          "q30": 0.079178587,
+          "q80": 0.307792398,
+          "q95": 0.426626529
+        },
+        {
+          "localHour": 20,
+          "meaningfulFloor": 0.000841437,
+          "q30": 0.068008299,
+          "q80": 0.280302301,
+          "q95": 0.39127467
+        },
+        {
+          "localHour": 21,
+          "meaningfulFloor": 0.000771037,
+          "q30": 0.063678691,
+          "q80": 0.255251935,
+          "q95": 0.357762255
+        },
+        {
+          "localHour": 22,
+          "meaningfulFloor": 0.000703305,
+          "q30": 0.060564555,
+          "q80": 0.236535041,
+          "q95": 0.329714607
+        },
+        {
+          "localHour": 23,
+          "meaningfulFloor": 0.000638298,
+          "q30": 0.054618406,
+          "q80": 0.220998682,
+          "q95": 0.322232105
+        }
+      ],
+      "experience": {
+        "combinedClamp": [
+          0.94,
+          1.06
+        ],
+        "racketExperienceLogCoefficient": 0.039220713,
+        "racketExperienceRelevance": 0.55,
+        "racketExperienceSource": "POLICY_BOUNDED",
+        "strengthExperienceLogCoefficient": 0.039220713,
+        "strengthExperienceRelevance": 0.65,
+        "strengthExperienceSource": "POLICY_BOUNDED"
+      },
+      "habitualIntensity": {
+        "fitDiagnostics": {
+          "maximumAbsoluteRelativeError": 0.021288516,
+          "medianAbsoluteRelativeError": 0,
+          "monotonic": true,
+          "p95AbsoluteRelativeError": 0
+        },
+        "hardLogOffset": 0.039220713,
+        "lightLogOffset": -0.040821995,
+        "normalLogOffset": 0,
+        "source": "SIMULATION_FITTED"
+      },
+      "jointRegions": [
+        "ELBOW",
+        "HAND",
+        "SHOULDER",
+        "WRIST"
+      ],
+      "mappedLoadUnitCount": 14,
+      "priorProfileId": "PRIOR_TENDON_UPPER",
+      "recoveryClass": "TENDON_LOAD",
+      "scenarioWeightSensitivityMaximumRelativeChange": 0.031240725
+    }
+  ],
+  "protocolVersion": "RCV-ALL-0.6|RCV-EXPOSURE-1.1",
+  "recoveryEngineFingerprint": "8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a",
+  "scenarioCatalogVersion": "CT-PRIOR-SCENARIOS-1.0.0",
+  "scenarioTemplateCount": 8,
+  "schemaVersion": "1.0.0",
+  "simulation": {
+    "burnInDays": 56,
+    "evaluationTimeSemantics": "LOCAL_WALL_CLOCK_HOUR_0_TO_23",
+    "eventLocalHour": 18,
+    "referenceZoneId": "Asia/Seoul",
+    "simulationDays": 112,
+    "zeroResidualQuantilePolicy": "BOUNDARIES_USE_POSITIVE_RESIDUAL_DISTRIBUTION; ZERO_IS_BELOW_Q30"
+  },
+  "simulationValidation": {
+    "fullyRecoveredBelowQ30Profiles": 13,
+    "moderateSingleExposureNotAboveQ95Profiles": 13,
+    "repeatedHardExposureExceedsQ95Profiles": 13,
+    "slowerRecoveryRetainsMoreAt24Hours": true
+  }
+}
