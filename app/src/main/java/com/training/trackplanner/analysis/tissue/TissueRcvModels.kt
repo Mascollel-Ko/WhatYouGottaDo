@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.tissue
 data class TissueRcvAuthorityRow(
     val exerciseStableKey: String,
     val exerciseName: String,
+    val bodyRegion: String,
     val loadUnitStableKey: String,
     val loadUnitCode: String,
     val loadUnitName: String,

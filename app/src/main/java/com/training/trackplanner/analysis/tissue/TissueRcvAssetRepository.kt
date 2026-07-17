@@ -51,6 +51,7 @@ class TissueRcvAssetRepository private constructor(
                 TissueRcvAuthorityRow(
                     exerciseStableKey = row.required("exerciseStableKey"),
                     exerciseName = row.required("운동명"),
+                    bodyRegion = row.required("bodyRegion"),
                     loadUnitStableKey = row.required("loadUnitStableKey"),
                     loadUnitCode = row.required("loadUnitCode"),
                     loadUnitName = row.required("분석단위명"),

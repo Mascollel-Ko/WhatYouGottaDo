@@ -264,6 +264,30 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate18To19KeepsLegacyPerformedTimeUnknown() {
+        helper.createDatabase(TEST_DB, 18).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO workout_entries (
+                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    createdAt, completedAt, displayOrder, firstConfirmedAt
+                ) VALUES (
+                    1, '2026-07-13', 1, 'Legacy', 'Strength', 60, '', NULL, NULL,
+                    1000, 2000, 1, 2000
+                )
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 19, true, TrainingDatabase.MIGRATION_18_19).use { database ->
+            database.query("SELECT performedAt FROM workout_entries WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.isNull(0))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

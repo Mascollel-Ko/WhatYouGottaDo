@@ -93,7 +93,8 @@ data class WorkoutEntry(
     val createdAt: Long = System.currentTimeMillis(),
     val completedAt: Long? = null,
     val displayOrder: Int = 0,
-    val firstConfirmedAt: Long? = null
+    val firstConfirmedAt: Long? = null,
+    val performedAt: Long? = null
 )
 
 @Entity(tableName = "workout_sets")

@@ -163,7 +163,8 @@ internal class CalendarRecordService(
                         System.currentTimeMillis()
                     } else {
                         null
-                    }
+                    },
+                    performedAt = null
                 )
             )
             entryWithSets.sets.sortedBy { it.setIndex }.forEach { sourceSet ->

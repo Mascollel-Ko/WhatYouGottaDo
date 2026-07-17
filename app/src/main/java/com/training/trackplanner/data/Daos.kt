@@ -272,6 +272,7 @@ interface WorkoutDao {
         """
         UPDATE workout_entries
         SET firstConfirmedAt = COALESCE(firstConfirmedAt, :confirmedAt),
+            performedAt = COALESCE(performedAt, :confirmedAt),
             completedAt = :confirmedAt
         WHERE id = :entryId
         """
