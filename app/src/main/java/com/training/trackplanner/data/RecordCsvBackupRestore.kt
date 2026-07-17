@@ -616,7 +616,7 @@ object RecordCsvBackupRestore {
             when (rowType) {
                 "daily" -> dailyRows += RestoreDailyRow(
                     date = date,
-                    sleepHours = row.safeDouble(index, "sleep_hours"),
+                    sleepHours = row.safeSleepHours(index),
                     bodyWeightKg = row.safeDouble(index, "body_weight_kg")
                 )
                 "set" -> setRows += RestoreSetRow(
@@ -638,13 +638,13 @@ object RecordCsvBackupRestore {
                     reps = row.safeInt(index, "reps") ?: 0,
                     weightKg = row.safeDouble(index, "weight_kg") ?: 0.0,
                     seconds = row.safeInt(index, "seconds") ?: 0,
-                    sleepHours = row.safeDouble(index, "sleep_hours"),
+                    sleepHours = row.safeSleepHours(index),
                     bodyWeightKg = row.safeDouble(index, "body_weight_kg")
                 )
                 "check_in" -> {
                     val candidate = RestoreCheckInRow(
                         date = date,
-                        sleepHours = row.safeDouble(index, "sleep_hours"),
+                        sleepHours = row.safeSleepHours(index),
                         overallFatigue = row.safeInt(index, "overall_fatigue"),
                         lowerBodyFatigue = row.safeInt(index, "lower_body_fatigue"),
                         jointTendonDiscomfort = row.safeInt(index, "joint_tendon_discomfort"),
@@ -701,7 +701,7 @@ object RecordCsvBackupRestore {
             }
             DailyTimeseriesRow(
                 date = date,
-                sleepHours = row.safeDouble(index, "sleep_hours"),
+                sleepHours = row.safeSleepHours(index),
                 bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
                 totalEntries = row.safeInt(index, "total_entries") ?: 0,
                 confirmedEntries = row.safeInt(index, "confirmed_entries") ?: 0,
@@ -761,6 +761,9 @@ object RecordCsvBackupRestore {
 
     private fun List<String>.safeDouble(index: Map<String, Int>, key: String): Double? =
         value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toDoubleOrNull()
+
+    private fun List<String>.safeSleepHours(index: Map<String, Int>): Double? =
+        safeDouble(index, "sleep_hours")?.takeIf { value -> value in 0.0..24.0 }
 
     private fun List<String>.safeInt(index: Map<String, Int>, key: String): Int? =
         value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toIntOrNull()

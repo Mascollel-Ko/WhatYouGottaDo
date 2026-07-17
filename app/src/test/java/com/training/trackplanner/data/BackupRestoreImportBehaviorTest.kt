@@ -127,6 +127,30 @@ class BackupRestoreImportBehaviorTest {
     }
 
     @Test
+    fun restoreBackupTreatsOutOfRangeSleepAsMissingWithoutDroppingOtherRecords() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val csv = """
+            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,overall_fatigue
+            2,check_in,2026-07-18,,,,,,,,,,,,25,4
+            2,set,2026-07-18,e1,1,스쿼트,근력운동,1,120,1,1,5,100,0,25,
+        """.trimIndent()
+
+        val result = repository.importRecordsBackup(writeBackup(csv))
+        val checkIn = db.dailyCheckInDao().getForDate("2026-07-18")!!
+        val entries = db.workoutDao().entriesWithSets("2026-07-18")
+
+        assertEquals("restore", result.format)
+        assertEquals(1, result.dailyCheckInCount)
+        assertEquals(1, result.entryCount)
+        assertEquals(1, result.setCount)
+        assertEquals(null, checkIn.sleepHours)
+        assertEquals(4, checkIn.overallFatigue)
+        assertEquals(null, db.dailyMetricDao().metric("2026-07-18"))
+        assertEquals("스쿼트", entries.single().entry.exerciseName)
+    }
+
+    @Test
     fun restoreBackupSkipsDuplicateSmashSpeedRows() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)

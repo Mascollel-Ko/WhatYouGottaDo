@@ -25,6 +25,24 @@ class RecordCsvBackupRestoreTest {
     }
 
     @Test
+    fun outOfRangeSleepHoursAreParsedAsMissingAcrossRestoreRows() {
+        val csv = """
+            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,body_weight_kg,overall_fatigue
+            2,daily,2026-07-18,,,,,,,,,,,,25,72,
+            2,check_in,2026-07-18,,,,,,,,,,,,-1,,4
+            2,set,2026-07-18,e1,1,스쿼트,근력운동,1,120,1,1,5,100,0,99,,
+        """.trimIndent()
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+
+        assertEquals(null, parsed.dailyRows.single().sleepHours)
+        assertEquals(72.0, parsed.dailyRows.single().bodyWeightKg ?: 0.0, 0.001)
+        assertEquals(null, parsed.checkInRows.single().sleepHours)
+        assertEquals(4, parsed.checkInRows.single().overallFatigue)
+        assertEquals(null, parsed.setRows.single().sleepHours)
+    }
+
+    @Test
     fun restoreCsvKeepsSetConfirmedSeparateFromPlannedSets() {
         val csv = """
             schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,rpe,max_reps,notes,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,body_weight_kg
