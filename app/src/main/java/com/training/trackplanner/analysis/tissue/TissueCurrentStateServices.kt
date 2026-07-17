@@ -159,6 +159,7 @@ class TissueCurrentStateAggregator(
             states += TissueDimensionState(
                 key = key,
                 loadUnitName = unit.nameKo,
+                educationalInfo = catalog.educationalInfo.getValue(unit.stableKey),
                 jointComplexStableKey = unit.jointComplexStableKey,
                 tissueClass = unit.tissueClass,
                 rawResidual = TissueResidualRange(0.0, 0.0),
@@ -202,6 +203,7 @@ class TissueCurrentStateAggregator(
         return TissueDimensionState(
             key = key,
             loadUnitName = catalog.loadUnits.getValue(key.loadUnitStableKey).nameKo,
+            educationalInfo = catalog.educationalInfo.getValue(key.loadUnitStableKey),
             jointComplexStableKey = rows.first().event.jointComplexStableKey,
             tissueClass = rows.first().event.tissueClass,
             rawResidual = TissueResidualRange(
@@ -234,6 +236,7 @@ class TissueCurrentStateAggregator(
             TissueJointComplexSummary(
                 jointComplexStableKey = joint.stableKey,
                 nameKo = joint.nameKo,
+                educationalInfo = catalog.educationalInfo.getValue(joint.stableKey),
                 status = highest?.status ?: TissueCanonicalStatus.UNAVAILABLE,
                 displayScore = children.mapNotNull(TissueDimensionState::normalizedScore).maxOrNull(),
                 highOrVeryHighChildCount = children.count {

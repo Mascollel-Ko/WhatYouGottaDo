@@ -5,6 +5,8 @@ import java.util.Locale
 data class TissueAnalysisChildUi(
     val key: String,
     val name: String,
+    val info: TissueEducationalInfo,
+    val infoContentDescription: String,
     val status: String,
     val score: String,
     val recoveryRange: String,
@@ -16,6 +18,8 @@ data class TissueAnalysisChildUi(
 data class TissueAnalysisJointUi(
     val key: String,
     val name: String,
+    val info: TissueEducationalInfo,
+    val infoContentDescription: String,
     val status: String,
     val score: String,
     val highChildCount: Int,
@@ -29,7 +33,15 @@ data class TissueAnalysisUiState(
     val topAreas: String,
     val joints: List<TissueAnalysisJointUi>,
     val diagnostics: List<String>
-)
+) {
+    fun visibleJoints(showAll: Boolean): List<TissueAnalysisJointUi> =
+        if (showAll) joints else joints.take(3)
+
+    fun info(stableKey: String): TissueEducationalInfo? =
+        joints.asSequence().flatMap { joint ->
+            sequenceOf(joint.info) + joint.children.asSequence().map(TissueAnalysisChildUi::info)
+        }.firstOrNull { it.stableKey == stableKey }
+}
 
 data class TissueSummaryNavigationUi(
     val title: String,
@@ -65,6 +77,8 @@ object TissueAnalysisUiMapper {
                 TissueAnalysisJointUi(
                     key = joint.jointComplexStableKey,
                     name = joint.nameKo,
+                    info = joint.educationalInfo,
+                    infoContentDescription = "${joint.nameKo} 정보 보기",
                     status = statusLabel(joint.status),
                     score = score(joint.displayScore),
                     highChildCount = joint.highOrVeryHighChildCount,
@@ -78,6 +92,8 @@ object TissueAnalysisUiMapper {
                             } else {
                                 "${child.loadUnitName} · ${child.key.loadDimension}"
                             },
+                            info = child.educationalInfo,
+                            infoContentDescription = "${child.loadUnitName} 정보 보기",
                             status = statusLabel(child.status),
                             score = score(child.normalizedScore),
                             recoveryRange = range(child.rawResidual),

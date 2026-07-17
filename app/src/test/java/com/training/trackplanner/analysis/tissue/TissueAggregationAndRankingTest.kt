@@ -141,6 +141,35 @@ class TissueAggregationAndRankingTest {
         assertEquals("연결조직 분석 보기", summary.actionLabel)
     }
 
+    @Test
+    fun analysisUiUsesTheRankedTopThreeThenExpandsWithoutDuplicates() {
+        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val ui = TissueAnalysisUiMapper.map(state)
+
+        assertEquals(state.jointComplexes.take(3).map { it.jointComplexStableKey }, ui.visibleJoints(false).map { it.key })
+        assertEquals(3, ui.visibleJoints(false).size)
+        assertEquals(15, ui.visibleJoints(true).size)
+        assertEquals(15, ui.visibleJoints(true).map { it.key }.distinct().size)
+        assertEquals(2, ui.copy(joints = ui.joints.take(2)).visibleJoints(false).size)
+    }
+
+    @Test
+    fun everyDisplayedNameResolvesItsEducationalInfoAndAccessibilityLabel() {
+        val ui = TissueAnalysisUiMapper.map(
+            TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        )
+
+        ui.joints.forEach { joint ->
+            assertEquals(joint.key, joint.info.stableKey)
+            assertEquals("${joint.name} 정보 보기", joint.infoContentDescription)
+            assertEquals(joint.info, ui.info(joint.key))
+            joint.children.forEach { child ->
+                assertEquals(child.info, ui.info(child.info.stableKey))
+                assertTrue(child.infoContentDescription.endsWith(" 정보 보기"))
+            }
+        }
+    }
+
     private fun residual(
         id: String,
         key: TissueRcvLoadKey,

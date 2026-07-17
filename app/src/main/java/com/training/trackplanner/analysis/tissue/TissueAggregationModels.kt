@@ -33,6 +33,7 @@ data class TissueExerciseContribution(
 data class TissueDimensionState(
     val key: TissueRcvLoadKey,
     val loadUnitName: String,
+    val educationalInfo: TissueEducationalInfo,
     val jointComplexStableKey: String,
     val tissueClass: String,
     val rawResidual: TissueResidualRange,
@@ -51,6 +52,7 @@ data class TissueDimensionState(
 data class TissueJointComplexSummary(
     val jointComplexStableKey: String,
     val nameKo: String,
+    val educationalInfo: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
     val displayScore: Double?,
     val highOrVeryHighChildCount: Int,
