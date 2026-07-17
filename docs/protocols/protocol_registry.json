@@ -1,0 +1,1075 @@
+{
+  "registryVersion": "1.0.0",
+  "lastUpdated": "2026-07-17",
+  "families": [
+    {
+      "familyId": "OFI",
+      "titleKo": "종합 피로도 지수",
+      "descriptionKo": "다섯 피로 축의 종합 지수와 표시 계약",
+      "indexDocument": "ofi/OFI_CORE.md"
+    },
+    {
+      "familyId": "OFI_AXES",
+      "titleKo": "OFI 다섯 피로 축",
+      "descriptionKo": "신경계, 전신 근육, 국소 근육, 관절·건·충격, 동작·집중",
+      "indexDocument": "ofi/axes/HIGH_FORCE_NEURAL.md"
+    },
+    {
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 부하와 회복",
+      "descriptionKo": "조직별 상대 노출, 잔여 노출, 개인 보정과 표시",
+      "indexDocument": "connective_tissue/CONNECTIVE_TISSUE_OVERVIEW.md"
+    },
+    {
+      "familyId": "BADMINTON",
+      "titleKo": "배드민턴 분류와 부하",
+      "descriptionKo": "훈련 방법, 전이 분류, 부하와 catalogue",
+      "indexDocument": "badminton/BADMINTON_TRAINING_TAXONOMY.md"
+    },
+    {
+      "familyId": "STRENGTH",
+      "titleKo": "근력훈련 분류와 부하",
+      "descriptionKo": "taxonomy, volume, 체중 운동과 시간 유지 운동",
+      "indexDocument": "strength/STRENGTH_TRAINING_TAXONOMY.md"
+    },
+    {
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "자동 프로그램 생성",
+      "descriptionKo": "현재 공개 결정론적 자동 골자 생성 계약",
+      "indexDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md"
+    }
+  ],
+  "protocols": [
+    {
+      "protocolId": "OFI-CORE",
+      "familyId": "OFI",
+      "titleKo": "종합 피로도 지수(OFI)",
+      "titleEn": "Overall Fatigue Index",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/OFI_CORE.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.6_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-CLASSIFICATION",
+      "familyId": "OFI",
+      "titleKo": "OFI 분류와 표시",
+      "titleEn": "OFI Classification and Presentation",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "USER_APPROVED_POLICY",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.5_release_notes.md",
+        "docs/v0.4.2.6_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-AXIS-HIGH-FORCE-NEURAL",
+      "familyId": "OFI_AXES",
+      "titleKo": "신경계 피로 축",
+      "titleEn": "High-force Neural Axis",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/axes/HIGH_FORCE_NEURAL.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-AXIS-WHOLE-BODY",
+      "familyId": "OFI_AXES",
+      "titleKo": "전신 근육 피로 축",
+      "titleEn": "Whole-body Fatigue Axis",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/axes/WHOLE_BODY.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-AXIS-LOCAL-MUSCLE",
+      "familyId": "OFI_AXES",
+      "titleKo": "국소 근육 피로 축",
+      "titleEn": "Local Muscle Fatigue Axis",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/axes/LOCAL_MUSCLE.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-AXIS-HIGH-SPEED",
+      "familyId": "OFI_AXES",
+      "titleKo": "관절·건·충격 피로 축",
+      "titleEn": "Joint Tendon and Impact Axis",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/axes/HIGH_SPEED.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "OFI-AXIS-REACTIVE",
+      "familyId": "OFI_AXES",
+      "titleKo": "동작·집중 피로 축",
+      "titleEn": "Movement and Focus Axis",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "ofi/axes/REACTIVE.md",
+      "implementedFromAppVersion": "v0.4.2.6",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/OverallFatigueIndexCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-OVERVIEW",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 부하·회복 개요",
+      "titleEn": "Connective-tissue Load and Recovery Overview",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "PRODUCT_POLICY",
+        "LOW_CONFIDENCE_PROXY"
+      ],
+      "canonicalDocument": "connective_tissue/CONNECTIVE_TISSUE_OVERVIEW.md",
+      "implementedFromAppVersion": "v0.4.2.7",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_asset_manifest_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_index_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_load_unit_authority_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/tissue_load_foundation_v1.md",
+        "docs/v0.4.2.7_release_notes.md",
+        "docs/v0.4.2.8_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-MSCP-DI-EXPOSURE",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "MSCP-DI 노출 모델",
+      "titleEn": "MSCP-DI Exposure Model",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "MECHANISTIC_SUPPORT",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "connective_tissue/MSCP_DI_EXPOSURE_MODEL.md",
+      "implementedFromAppVersion": "v0.4.2.7",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueDoseResolver.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueModifierResolver.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_asset_manifest_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_index_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_load_unit_authority_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_di_profiles_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_score_contract_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/tissue_load_phase_c3_multidimensional_model.md",
+        "docs/tissue_load_phase_c4b1_continuous_axis_scoring.md"
+      ],
+      "knownGaps": [
+        "M, S, C, P, D, I의 근거 강도는 load unit과 exercise별로 다르며 일부는 class-level proxy입니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-LOAD-UNIT-CATALOGUE",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 load unit catalogue",
+      "titleEn": "Connective-tissue Load-unit Catalogue",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "RESEARCH_TRANSFER"
+      ],
+      "canonicalDocument": "connective_tissue/LOAD_UNIT_CATALOGUE.md",
+      "implementedFromAppVersion": "v0.4.2.7",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvModels.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_joint_complexes_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissues_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissue_relationships_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.8_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-RECOVERY-CURVES",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 회복 곡선",
+      "titleEn": "Connective-tissue Recovery Curves",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "LOW_CONFIDENCE_PROXY",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "connective_tissue/RECOVERY_CURVES.md",
+      "implementedFromAppVersion": "v0.4.2.7",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissuePchipInterpolator.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_recovery_curve_knots_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_recovery_routing_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_recovery_evidence_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/tissue_load_foundation_v1.md"
+      ],
+      "knownGaps": [
+        "일부 recovery class는 직접 조직별 human evidence가 아닌 class proxy를 사용합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-PERSONAL-CALIBRATION",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 개인 보정",
+      "titleEn": "Connective-tissue Personal Calibration",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "connective_tissue/PERSONAL_CALIBRATION.md",
+      "implementedFromAppVersion": "v0.4.2.7",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.7_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-COD-CONTEXT",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "방향전환 context modifier",
+      "titleEn": "Change-of-direction Context Modifier",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "USER_APPROVED_POLICY",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "connective_tissue/COD_CONTEXT_MODIFIER.md",
+      "implementedFromAppVersion": "v0.4.2.10",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueContextModifier.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueCodContextAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvContextModifierTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/cod_context_modifier_rules_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/cod_context_load_unit_eligibility_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/cod_context_exercise_tiers_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.10_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "CT-RANKING-PRESENTATION",
+      "familyId": "CONNECTIVE_TISSUE",
+      "titleKo": "연결조직 순위와 표시",
+      "titleEn": "Connective-tissue Ranking and Presentation",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "USER_APPROVED_POLICY"
+      ],
+      "canonicalDocument": "connective_tissue/RANKING_AND_PRESENTATION.md",
+      "implementedFromAppVersion": "v0.4.2.8",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueAnalysisUiModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/ConnectiveTissueAnalysisService.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.8_release_notes.md"
+      ],
+      "knownGaps": [],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "BADMINTON-TAXONOMY",
+      "familyId": "BADMINTON",
+      "titleKo": "배드민턴 훈련 taxonomy",
+      "titleEn": "Badminton Training Taxonomy",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "RESEARCH_TRANSFER"
+      ],
+      "canonicalDocument": "badminton/BADMINTON_TRAINING_TAXONOMY.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/analysis_method_reviews/3.3_badminton_transfer_review_template.md"
+      ],
+      "knownGaps": [
+        "모든 훈련 record가 strokes, contacts 또는 sensor-level dose를 제공하지는 않습니다.",
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "BADMINTON-VOLUME",
+      "familyId": "BADMINTON",
+      "titleKo": "배드민턴 훈련량 계산",
+      "titleEn": "Badminton Training Volume",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "badminton/BADMINTON_VOLUME_CALCULATION.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/analysis_algorithm_design.md"
+      ],
+      "knownGaps": [
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "BADMINTON-TRANSFER",
+      "familyId": "BADMINTON",
+      "titleKo": "배드민턴 전이 분류",
+      "titleEn": "Badminton Transfer Categories",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "badminton/BADMINTON_TRANSFER_CATEGORIES.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/metadata_evidence_sources_v0.3.5.0.md"
+      ],
+      "knownGaps": [
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "BADMINTON-CATALOGUE",
+      "familyId": "BADMINTON",
+      "titleKo": "배드민턴 운동 catalogue",
+      "titleEn": "Badminton Exercise Catalogue",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "badminton/BADMINTON_EXERCISE_CATALOGUE.md",
+      "implementedFromAppVersion": "v0.3.5.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt",
+        "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json",
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/metadata_evidence_sources_v0.3.5.0.md"
+      ],
+      "knownGaps": [
+        "exercise별 evidence confidence가 다르며 custom exercise는 사용자 입력 품질에 의존합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-TAXONOMY",
+      "familyId": "STRENGTH",
+      "titleKo": "근력훈련 taxonomy",
+      "titleEn": "Strength Training Taxonomy",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "RESEARCH_TRANSFER"
+      ],
+      "canonicalDocument": "strength/STRENGTH_TRAINING_TAXONOMY.md",
+      "implementedFromAppVersion": "v0.3.5.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ExerciseTaxonomy.kt",
+        "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataTaxonomy.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/ExerciseAnalysisMapper.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ExerciseSeedMetadataPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/exercise_metadata_reclassification_plan_v0.3.5.0.md"
+      ],
+      "knownGaps": [
+        "legacy family/name compatibility 입력이 남아 있지만 stable-key metadata가 우선입니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-VOLUME",
+      "familyId": "STRENGTH",
+      "titleKo": "근력훈련 volume 계산",
+      "titleEn": "Strength Volume Calculation",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/analysis_algorithm_design.md"
+      ],
+      "knownGaps": [
+        "이 volume 계약이 처음 도입된 정확한 app version은 추가 Git history 감사가 필요합니다.",
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-BODYWEIGHT-LOAD",
+      "familyId": "STRENGTH",
+      "titleKo": "체중 운동 유효 부하",
+      "titleEn": "Bodyweight Effective Load",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "strength/BODYWEIGHT_EFFECTIVE_LOAD.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/tissue_load_foundation_v1.md"
+      ],
+      "knownGaps": [
+        "계수는 exercise-specific product heuristic이며 정확한 최초 app version은 추가 감사가 필요합니다.",
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-DURATION-HOLD",
+      "familyId": "STRENGTH",
+      "titleKo": "시간 유지 운동 부하",
+      "titleEn": "Duration Hold Load",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "strength/DURATION_HOLD_LOAD.md",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/tissue_load_foundation_v1.md"
+      ],
+      "knownGaps": [
+        "plank와 side-plank family만 명시 지원하며 정확한 최초 app version은 추가 감사가 필요합니다.",
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-CATALOGUE",
+      "familyId": "STRENGTH",
+      "titleKo": "근력 운동 catalogue",
+      "titleEn": "Strength Exercise Catalogue",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "RESEARCH_TRANSFER",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "strength/STRENGTH_EXERCISE_CATALOGUE.md",
+      "implementedFromAppVersion": "v0.3.5.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt",
+        "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json",
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/metadata_evidence_sources_v0.3.5.0.md",
+        "docs/runtime_metadata_user_exercises_v0.3.5.1.md"
+      ],
+      "knownGaps": [
+        "row와 custom override별 evidence/source confidence가 다릅니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "PROGRAM-BUILDER-OVERVIEW",
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "자동 프로그램 생성 개요",
+      "titleEn": "Automatic Program Builder Overview",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
+      "implementedFromAppVersion": "v0.4.2.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.0_release_notes.md",
+        "docs/v0.3.5.3_program_builder_architecture.md"
+      ],
+      "knownGaps": [
+        "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
+        "현재 공개 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않습니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "PROGRAM-BUILDER-SLOTS",
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "프로그램 slot과 role 모델",
+      "titleEn": "Program Slot and Role Model",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "program_builder/SLOT_AND_ROLE_MODEL.md",
+      "implementedFromAppVersion": "v0.4.2.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.2.0_release_notes.md"
+      ],
+      "knownGaps": [
+        "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "PROGRAM-BUILDER-SCORING",
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "운동 선택과 우선순위",
+      "titleEn": "Exercise Selection and Scoring",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "PARTIALLY_IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "program_builder/EXERCISE_SELECTION_AND_SCORING.md",
+      "implementedFromAppVersion": "v0.4.2.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md",
+        "docs/v0.4.2.0_release_notes.md"
+      ],
+      "knownGaps": [
+        "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
+        "고급 scoring/reranking class는 source와 직접 test가 있으나 공개 ProgramSkeletonGenerator에서 호출되지 않습니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "PROGRAM-BUILDER-CONSTRAINTS",
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "대체와 제약 규칙",
+      "titleEn": "Replacement and Constraint Rules",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "PARTIALLY_IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md",
+      "implementedFromAppVersion": "v0.4.2.0",
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSessionConstraintPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramBuilderSelectedMainSlotRepairTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/exercises_seed.json"
+      ],
+      "supportingDocuments": [
+        "docs/v0.4.1.10.9_program_builder_selected_main_slot_repair_worklog.md",
+        "docs/v0.4.2.0_release_notes.md"
+      ],
+      "knownGaps": [
+        "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
+        "public runtime은 fatigue history와 advanced repair loop를 사용하지 않습니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "PROGRAM-BUILDER-EVALUATION",
+      "familyId": "PROGRAM_BUILDER",
+      "titleKo": "프로그램 평가 계약",
+      "titleEn": "Program Evaluation",
+      "currentVersion": "1.0.0",
+      "status": "DRAFT",
+      "implementationStatus": "SPECIFICATION_ONLY",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "program_builder/PROGRAM_EVALUATION.md",
+      "implementedFromAppVersion": null,
+      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramEvaluationPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramEvaluationPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramOptimizationPolicyTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.4.1.10.4_program_builder_quality_worklog.md",
+        "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md"
+      ],
+      "knownGaps": [
+        "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
+        "공개 output의 evaluation은 null이며 optimization summary는 평가 결과가 아닌 고정 문구입니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    }
+  ]
+}
