@@ -2126,3 +2126,63 @@ Remaining risks
 - Legacy records remain date-only and use conservative residual ranges.
 - The current symptom input is global rather than per tissue.
 - Personal normalized status remains calibrating until 56 observation days.
+
+## v0.4.2.8 - Connective-tissue UI separation and educational metadata
+
+Baseline and scope
+- Started from verified `origin/main` commit
+  `9b2bb2bc257b44108f24a1208e6eb04b58a4684c` (`v0.4.2.7`).
+- Preserved all six pre-existing user-owned `outputs/*` modifications without
+  editing, staging, or committing them.
+- Kept the RCV-ALL-0.6 numeric engine, OFI calculation, readiness,
+  ProgramBuilder, record, backup, and import/export behavior out of scope.
+
+### Commit 1 - `d6bf57e feat(tissue): add educational metadata catalog`
+- Added deterministic educational metadata for exactly 15 joint complexes and
+  77 unsided load units.
+- Added typed parser/model support and fail-closed coverage validation for
+  missing, blank, duplicate, unknown, or side-specific entries.
+- Educational asset SHA-256:
+  `8089265e3e436179f4bace5dbf7edd0e1ac4ace339e975fa7d3e41b5786d460e`.
+- Deterministic regeneration and focused asset-import tests passed.
+
+### Commit 2 - `2a71d71 fix(tissue): separate connective tissue from ofi card`
+- Removed connective-tissue rows from the existing OFI state card.
+- Added a separate connective-tissue summary/navigation card after the OFI
+  cards, including the existing calibration state when data is insufficient.
+- Preserved the five-axis OFI calculation, classifier, canonical Korean copy,
+  axis distribution, and OFI contribution card.
+- Focused OFI, Home summary, and tissue aggregation tests passed.
+
+### Commit 3 - `55cf3cc feat(tissue): add ranked top three and info dialogs`
+- Reused the immutable ranked result to show three complexes initially and all
+  ranked complexes after expansion.
+- Added saveable expansion and child-row state without duplicate sorting or
+  recalculation in Compose.
+- Added accessible information actions for every joint complex and child load
+  unit. Dialog content comes from the generated metadata asset rather than
+  composable hardcoding.
+- Focused top-three, expansion, lookup, accessibility-description, and tissue
+  aggregation tests passed.
+
+### Release - `chore(release): bump version to v0.4.2.8`
+- Updated `versionName` to `v0.4.2.8` and `versionCode` to `402008`.
+- Added `docs/v0.4.2.8_release_notes.md`.
+- Full `:app:testDebugUnitTest`: 816 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Main push, annotated tag, and GitHub Actions verification follow this release
+  commit and are reported in the final task completion report.
+
+Behavior boundaries
+- Connective tissue is a separate analysis domain and is not an OFI axis.
+- OFI still uses exactly five axes and unchanged calculations, thresholds,
+  canonical labels, messages, and counts.
+- RCV event derivation, PCHIP recovery, calibration, unsided aggregation, and
+  ranking are unchanged.
+
+Remaining limitations
+- Educational descriptions are general, non-diagnostic information and do not
+  define injury risk, safe limits, healing time, or treatment.
+- Legacy date-only recovery ranges and the global symptom input retain their
+  existing v0.4.2.7 limitations.
