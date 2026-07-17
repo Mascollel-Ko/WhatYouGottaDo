@@ -622,7 +622,7 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
 
     private fun fingerprint(paths: List<Path>): String = sha256(
         paths.sortedBy { root.relativize(it).toString() }.joinToString("\n") { path ->
-            "${root.relativize(path).toString().replace('\\', '/')}:${sha256(Files.readAllBytes(path))}"
+            "${root.relativize(path).toString().replace('\\', '/')}:${sha256(normalizePriorFingerprintText(Files.readAllBytes(path)))}"
         }
     )
 
@@ -889,6 +889,8 @@ private fun sha256(value: String): String = sha256(value.toByteArray(Charsets.UT
 private fun sha256(value: ByteArray): String =
     MessageDigest.getInstance("SHA-256").digest(value).joinToString("") { "%02x".format(it) }
 private fun fileBytes(content: String): ByteArray = (content.trimEnd() + "\n").toByteArray(Charsets.UTF_8)
+internal fun normalizePriorFingerprintText(bytes: ByteArray): ByteArray =
+    String(bytes, Charsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n').toByteArray(Charsets.UTF_8)
 
 private fun format(value: Double): String =
     BigDecimal.valueOf(value).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()

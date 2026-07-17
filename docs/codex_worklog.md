@@ -2478,11 +2478,11 @@ Discovery and design lock
   and sided duplication fail generation.
 - Generated 312 profile/hour buckets and 936 ordered quantiles. Canonical and
   app-ready registry SHA-256 is
-  `2b7b1bdc7453f42e896d19d049f64f55046215cf2c6ff08c305923adc7fe2ce2`.
+  `52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf`.
 - Recovery-engine fingerprint is
   `8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a`;
   deterministic output checksum is
-  `ef6c1d274369e55849a2cee095262cba4b83cfccecf1bdf7968f458f6d77c4eb`.
+  `5303516c1b972ce3bdf08eaffcd7c5fe6448bfa64c50abae9790d8d81af0c58e`.
 - Added coverage, quantile, simulation, deterministic drift, non-consumption,
   and production parity tests.
 
@@ -2524,9 +2524,19 @@ Discovery and design lock
   equal the committed file bytes.
 - The generator now hashes the exact bytes it writes. Manifest, report,
   canonical documentation and machine registry use actual file SHA-256
-  `2b7b1bdc7453f42e896d19d049f64f55046215cf2c6ff08c305923adc7fe2ce2`.
+  `52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf`.
 - Added a regression test comparing manifest checksums with both committed
   canonical and app-ready file bytes.
+
+### Commit 6 - cross-platform fingerprint normalization
+- Commit: pending at worklog write.
+- The first GitHub Actions run exposed a Windows/Linux drift false positive:
+  production text inputs were fingerprinted as raw CRLF/LF bytes.
+- Fingerprint inputs are now normalized to UTF-8 LF before hashing. Numerical
+  baseline values are unchanged; source/mapping fingerprints and dependent
+  checksums are now cross-platform deterministic.
+- Added direct CRLF/LF parity coverage. The failed CI run was not accepted as
+  completion and is superseded only after the follow-up run passes.
 
 Runtime boundaries and remaining work
 - Current `보정 중` UI and current classification are unchanged.
@@ -2551,7 +2561,7 @@ Verification
   passed.
 - Bundled Python `scripts/validate_protocol_docs.py`: passed with 6 families
   and the existing 28 protocols.
-- Full `:app:testDebugUnitTest`: 875 tests, 0 failures, 0 errors, 0 skipped.
+- Full `:app:testDebugUnitTest`: 876 tests, 0 failures, 0 errors, 0 skipped.
 - `:app:compileDebugKotlin`: passed.
 - `:app:assembleDebug`: passed; `app-debug.apk` generated.
 - Final remote ancestry, push, and CI status are reported after remote

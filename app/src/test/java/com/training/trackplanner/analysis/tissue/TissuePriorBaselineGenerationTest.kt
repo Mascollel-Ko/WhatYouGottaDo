@@ -91,6 +91,17 @@ class TissuePriorBaselineGenerationTest {
     }
 
     @Test
+    fun productionInputFingerprintsAreLineEndingIndependent() {
+        val lf = "authority\nrow\n".toByteArray(Charsets.UTF_8)
+        val crlf = "authority\r\nrow\r\n".toByteArray(Charsets.UTF_8)
+
+        assertEquals(
+            normalizePriorFingerprintText(lf).toList(),
+            normalizePriorFingerprintText(crlf).toList()
+        )
+    }
+
+    @Test
     fun generatedStatusRemainsNotRuntimeActiveAndProductionAuthorityIsDirectlyReused() {
         assertEquals(
             listOf("DESIGNED", "GENERATED", "VALIDATED", "NOT_YET_RUNTIME_ACTIVE"),
