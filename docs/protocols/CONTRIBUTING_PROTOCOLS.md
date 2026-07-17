@@ -31,4 +31,3 @@
 ## 리뷰 원칙
 
 Evidence strength와 implementation status는 독립적으로 심사합니다. 문서가 설명을 명확히 해도 수치 동작이 바뀌면 editorial patch가 아니라 behavioral protocol change입니다.
-

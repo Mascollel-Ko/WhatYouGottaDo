@@ -7,4 +7,3 @@
 - 통증, 기능 저하, 악화되는 증상은 수치보다 우선하며 필요하면 전문가 평가를 받아야 합니다.
 - 개인 calibration은 충분한 비교 history가 필요합니다. Connective tissue normalized status는 현재 56 observation day 전 `CALIBRATING`입니다.
 - self-entered reps, weight, duration, RPE, symptoms, body weight와 누락된 exact timestamp의 품질 한계가 결과에 전달됩니다.
-

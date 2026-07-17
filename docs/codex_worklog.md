@@ -2301,3 +2301,78 @@ Behavior boundaries
 - Upper-body, spinal, and pelvic load units always resolve C to `1.00`.
 - Exact factors are bounded product policy, not literature effect sizes or
   injury predictions.
+
+## Canonical Protocol Library - documentation governance
+
+Baseline and safety
+- Started from local and remote `main` SHA
+  `06b65f6cdb243780e97a7464f659219b50010c7c` (`v0.4.2.10`).
+- `origin/main` was an ancestor of HEAD and local main had no unfinished
+  source changes.
+- Application identity remains `versionName v0.4.2.10`,
+  `versionCode 402010`; this documentation-only task does not create an app
+  version bump or release tag.
+- Preserved all six user-owned `outputs/*` modifications untouched, unstaged,
+  and uncommitted.
+
+Canonical library
+- Added 6 protocol families and 28 registered canonical protocols.
+- Added 28 canonical family documents, each with the required metadata table
+  and 20 governed sections.
+- Added one JSON registry, human indexes, a protocol template, evidence and
+  implementation vocabularies, contribution guidance, change policy, and
+  limitations/safety guidance.
+- Added a 249-row legacy inventory covering 99 existing Markdown documents,
+  149 existing metadata/seed assets, and one root ProgramBuilder specification.
+- Historical handoffs, release notes, worklogs, research, evidence tables,
+  authority assets, audits, and superseded designs remain in place and are not
+  treated as current canonical authority.
+
+Runtime audit results
+- OFI documents record the active five-axis formula, classifier thresholds,
+  exact Korean presentation messages, axis warning priority, decay behavior,
+  and current LOCAL_MUSCLE detail.
+- Connective-tissue documents record the active MSCP-DI exposure formula,
+  exact current authority counts, independent event recovery, PCHIP curves,
+  personal calibration, ranking, symptom overrides, and bounded COD modifier C.
+- Badminton and strength documents record the current deterministic dose,
+  transfer, bodyweight, duration-hold, taxonomy, and catalogue behavior.
+- ProgramBuilder documents explicitly record that the public runtime is
+  `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`.
+  `PROGRAM-BUILDER-SCORING` and `PROGRAM-BUILDER-CONSTRAINTS` are
+  `PARTIALLY_IMPLEMENTED`; `PROGRAM-BUILDER-EVALUATION` is
+  `SPECIFICATION_ONLY` because the public result has `evaluation = null`.
+- Six implemented protocols use `UNKNOWN_PENDING_AUDIT` for their exact first
+  app version rather than fabricating a Git-history date.
+
+Validation and governance
+- Added `scripts/validate_protocol_docs.py` using only the Python standard
+  library. It checks registry JSON, IDs, statuses, semantic versions,
+  documents, headings, metadata, anchors, assets, links, gaps, placeholders,
+  unregistered canonical files, and contradictory implementation claims.
+- Added protocol issue and pull-request templates.
+- Added protocol validation and `git diff --check` before Android setup in the
+  existing Android Debug Build workflow; Gradle behavior is unchanged.
+
+Commits
+- `64aa404 docs(protocols): establish canonical registry and governance`
+- `0376021 docs(protocols): document OFI fatigue contracts`
+- `3bc96ee docs(protocols): document connective tissue contracts`
+- `ed451d5 docs(protocols): document training and builder contracts`
+- `chore(docs): validate and index protocol library` (pending at log write)
+
+Verification
+- Bundled Python `scripts/validate_protocol_docs.py`: passed,
+  6 families and 28 protocols.
+- Documentation-scope `git diff --check`: passed.
+- Workflow structure inspected; no extra dependency or Gradle coupling added.
+- Android build intentionally not run because no Kotlin, resource, authority
+  data, database, UI, calculation, metadata value, or runtime file changed.
+
+Known unresolved documentation gaps
+- Exact first app versions for BADMINTON taxonomy/volume/transfer and
+  STRENGTH volume/bodyweight/duration-hold require Git-history audit.
+- Advanced ProgramBuilder scoring, constraints, evaluation, and optimization
+  classes remain disconnected from the public generator path.
+- Some connective-tissue recovery classes and metadata rows use class-level or
+  low-confidence proxies; the per-asset provenance remains authoritative.

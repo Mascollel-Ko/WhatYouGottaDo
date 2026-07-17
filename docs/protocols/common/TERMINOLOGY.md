@@ -18,4 +18,3 @@
 - **heuristic**: 불완전한 입력에서 일관된 동작을 만들기 위한 engineering 판단입니다.
 - **canonical state**: 동일 입력에 대해 제품이 표시하도록 정한 표준 상태입니다.
 - **calibration**: 개인 history와 비교할 수 있을 때 상대 위치를 계산하는 과정입니다.
-

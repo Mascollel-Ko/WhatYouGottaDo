@@ -21,6 +21,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate canonical protocol documentation
+        run: python scripts/validate_protocol_docs.py
+
+      - name: Check whitespace errors
+        run: git diff --check
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:

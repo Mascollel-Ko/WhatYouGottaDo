@@ -10,4 +10,3 @@
 - 그 밖의 설계·연구·감사·handoff 문서는 supporting 또는 historical 자료입니다.
 
 현재 동작을 확인할 때는 [Protocol Library](protocols/README.md)를 먼저 읽고, registry가 가리키는 source/test/authority anchor로 런타임을 교차 확인합니다.
-

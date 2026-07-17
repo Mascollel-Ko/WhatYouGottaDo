@@ -12,4 +12,3 @@
 | `MIXED` | 위 유형이 결합되며 문서에서 항목별로 구분 |
 
 Direct human evidence, mechanistic evidence, ex vivo evidence, class-level transfer, proxy evidence, expert/product judgment, user-approved policy, engineering heuristic을 서로 바꾸어 부르지 않습니다. Evidence strength와 implementation status는 독립적입니다. 강한 근거가 아직 미구현일 수 있고, 구현된 제품 정책이 직접 연구 효과크기는 아닐 수 있습니다.
-

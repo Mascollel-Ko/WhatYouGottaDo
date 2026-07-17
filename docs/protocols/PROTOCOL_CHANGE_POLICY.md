@@ -23,4 +23,3 @@ historical interpretation, 저장 형식, event identity 또는 호환성을 바
 - `MAJOR`: 기존 기록의 해석, identity, storage 또는 호환성을 깨는 변경.
 
 앱 버전과 protocol version은 독립적입니다. Protocol version 상승은 과학적 타당성이나 임상적 검증을 보증하지 않습니다.
-

@@ -7,4 +7,3 @@
 - `UNKNOWN_PENDING_AUDIT`: 사실을 확인할 source/test/asset 감사가 아직 끝나지 않았습니다.
 
 문서와 runtime이 다르면 canonical 문서에 specification status, runtime status, gap, last audited commit을 함께 기록합니다. `IMPLEMENTED`인데 required term이 neutral/absent이면 상태를 낮추거나 gap을 등록해야 합니다.
-

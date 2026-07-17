@@ -92,4 +92,3 @@ Canonical이 아닌 supporting/historical 문서의 역할을 함께 표시합�
 ## 20. 변경 이력
 
 - `1.0.0`: 첫 governed contract.
-

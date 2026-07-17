@@ -1,0 +1,75 @@
+name: Protocol change
+description: Canonical protocol의 오류, 근거, 분류 또는 계산 계약 변경을 제안합니다.
+title: "[Protocol] "
+labels:
+  - protocol
+body:
+  - type: markdown
+    attributes:
+      value: |
+        문서 수정이 runtime 동작을 자동으로 바꾸지는 않습니다. 수치·분류·fallback 변경은 source, tests, protocol version과 release note를 함께 검토해야 합니다.
+  - type: input
+    id: protocol_ids
+    attributes:
+      label: Affected protocol IDs
+      description: protocol_registry.json의 stable ID를 쉼표로 구분해 적어 주세요.
+      placeholder: OFI-CORE, CT-MSCP-DI-EXPOSURE
+    validations:
+      required: true
+  - type: textarea
+    id: current_problem
+    attributes:
+      label: Current problem
+      description: 현재 문서 또는 runtime에서 무엇이 잘못되었거나 불명확한지 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Proposed change
+      description: 원하는 계약, 분류, 수치 또는 설명을 구체적으로 적어 주세요.
+    validations:
+      required: true
+  - type: dropdown
+    id: evidence_type
+    attributes:
+      label: Evidence type
+      options:
+        - DIRECT_RESEARCH_SUPPORT
+        - RESEARCH_TRANSFER
+        - MECHANISTIC_SUPPORT
+        - PRODUCT_POLICY
+        - ENGINEERING_HEURISTIC
+        - USER_APPROVED_POLICY
+        - LOW_CONFIDENCE_PROXY
+        - MIXED
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References or rationale
+      description: repository evidence path, paper citation, counterexample 또는 product-policy 근거를 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: numerical_example
+    attributes:
+      label: Numerical example
+      description: 현재 입력/출력과 제안 입력/출력을 재현 가능한 값으로 비교해 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: user_visible_effect
+    attributes:
+      label: Expected user-visible effect
+      description: UI, 해석, 과거 기록 또는 호환성에 미치는 영향을 적어 주세요.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety acknowledgement
+      options:
+        - label: 이 제안이 진단, 부상 확률 또는 치료 권고를 주장하지 않음을 확인했습니다.
+          required: true
