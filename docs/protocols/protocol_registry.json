@@ -320,7 +320,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "MSCP-DI 노출 모델",
       "titleEn": "MSCP-DI Exposure Model",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -331,7 +331,7 @@
       ],
       "canonicalDocument": "connective_tissue/MSCP_DI_EXPOSURE_MODEL.md",
       "implementedFromAppVersion": "v0.4.2.7",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "22e51779bbd173e554c3ba1dbeec0fcf13a6ba20",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
@@ -442,7 +442,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 개인 보정",
       "titleEn": "Connective-tissue Personal Calibration",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -451,22 +451,223 @@
       ],
       "canonicalDocument": "connective_tissue/PERSONAL_CALIBRATION.md",
       "implementedFromAppVersion": "v0.4.2.7",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "22e51779bbd173e554c3ba1dbeec0fcf13a6ba20",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueCurrentStateServices.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/tissue/TissuePriorAdjustment.kt",
+        "tools/connective-tissue-prior/src/main/kotlin/com/training/trackplanner/analysis/tissue/ConnectiveTissuePriorGenerator.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissuePriorBaselineGenerationTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissuePriorProductionParityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissuePriorAdjustmentTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv"
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_display_contract_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json",
+        "tools/connective-tissue-prior/scenario_catalog.json",
+        "tools/connective-tissue-prior/prior_profile_registry.json",
+        "tools/connective-tissue-prior/generated/connective_tissue_prior_baselines.json",
+        "tools/connective-tissue-prior/generated/generation_manifest.json",
+        "tools/connective-tissue-prior/generated/generation_report.md"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.7_release_notes.md"
       ],
-      "knownGaps": [],
+      "knownGaps": [
+        "BasePrior artifacts and the pure adjustment evaluator are generated and validated but are not consumed by current UI or classification runtime.",
+        "PersonalBaseline, w_perUnit, FinalBoundary mixing, and relative-state classification remain future runtime work.",
+        "Scenario weights and experience coefficients are bounded product policy rather than measured population prevalence or biological capacity estimates."
+      ],
       "supersedes": [],
-      "publicSummaryAvailable": true
+      "publicSummaryAvailable": true,
+      "phaseOneLifecycle": [
+        "DESIGNED",
+        "GENERATED",
+        "VALIDATED",
+        "NOT_YET_RUNTIME_ACTIVE"
+      ],
+      "phaseOneComponents": [
+        {
+          "protocolId": "CT-BASE-PRIOR-GENERATION",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "tools/connective-tissue-prior/src/main/kotlin/com/training/trackplanner/analysis/tissue/ConnectiveTissuePriorGenerator.kt",
+          "input": [
+            "production RCV assets and calculators",
+            "tools/connective-tissue-prior/scenario_catalog.json",
+            "tools/connective-tissue-prior/prior_profile_registry.json"
+          ],
+          "output": "priorProfileId x localHour x meaningfulFloor/Q30/Q80/Q95",
+          "evidenceStatus": "PRODUCTION_AUTHORITY_REUSE",
+          "productPolicyStatus": "SCENARIO_WEIGHTS_AND_PROFILE_SHARING",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "DESIGNED",
+            "GENERATED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Representative product prior, not a population norm.",
+          "downstreamDependency": "Future AdjustedPriorBaseline and FinalBoundary runtime integration"
+        },
+        {
+          "protocolId": "CT-USER-PROFILE-PRIOR-ADJUSTMENT",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "app/src/main/java/com/training/trackplanner/analysis/tissue/TissuePriorAdjustment.kt",
+          "input": [
+            "BasePrior boundaries",
+            "prior profile coefficients",
+            "optional user profile inputs"
+          ],
+          "output": "AdjustedPrior boundaries, multiplier contributions, clamps, and provenance",
+          "evidenceStatus": "SIMULATION_FITTED_AND_POLICY_BOUNDED",
+          "productPolicyStatus": "BOUNDED_PURE_EVALUATOR",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "DESIGNED",
+            "GENERATED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Does not estimate capacity and must never scale CurrentLoad or recovery.",
+          "downstreamDependency": "Future registry lookup and FinalBoundary runtime integration"
+        },
+        {
+          "protocolId": "CT-BODY-MASS-COEFFICIENT-FIT",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "tools/connective-tissue-prior/src/main/kotlin/com/training/trackplanner/analysis/tissue/ConnectiveTissuePriorGenerator.kt",
+          "input": "50/65/75/90/105 kg production-ledger simulations with 75 kg reference",
+          "output": "Profile bodyMassBeta and fit diagnostics",
+          "evidenceStatus": "SIMULATION_FITTED",
+          "productPolicyStatus": "ZERO_WHEN_NUMERICALLY_NEGLIGIBLE",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "GENERATED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Current production normalization yielded neutral beta for all profiles; this is not a biological irrelevance claim.",
+          "downstreamDependency": "CT-USER-PROFILE-PRIOR-ADJUSTMENT"
+        },
+        {
+          "protocolId": "CT-HABITUAL-INTENSITY-COEFFICIENT-FIT",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "tools/connective-tissue-prior/src/main/kotlin/com/training/trackplanner/analysis/tissue/ConnectiveTissuePriorGenerator.kt",
+          "input": "LIGHT/NORMAL/HARD canonical scenario ensembles",
+          "output": "Profile light/normal/hard intensity multipliers and diagnostics",
+          "evidenceStatus": "SIMULATION_FITTED",
+          "productPolicyStatus": "PROFILE_INPUT_ONLY_NOT_RECENT_HISTORY",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "GENERATED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Habitual intensity is not current-session RPE or recent average RPE.",
+          "downstreamDependency": "CT-USER-PROFILE-PRIOR-ADJUSTMENT"
+        },
+        {
+          "protocolId": "CT-BOUNDED-EXPERIENCE-POLICY",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "app/src/main/java/com/training/trackplanner/analysis/tissue/TissuePriorAdjustment.kt",
+          "input": "Strength and racket-sport experience years plus profile relevance",
+          "output": "Bounded log contributions with POLICY_BOUNDED provenance",
+          "evidenceStatus": "PRODUCT_POLICY_NOT_SIMULATION_IDENTIFIED",
+          "productPolicyStatus": "DOMAIN_EFFECT_APPROXIMATELY_PLUS_OR_MINUS_4_PERCENT",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "DESIGNED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Does not measure adaptation, injury risk, or recovery speed.",
+          "downstreamDependency": "CT-USER-PROFILE-PRIOR-ADJUSTMENT"
+        },
+        {
+          "protocolId": "CT-GENERATED-PRIOR-REGISTRY",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": "tools/connective-tissue-prior/generated/connective_tissue_prior_baselines.json",
+          "input": "Deterministic generator output",
+          "output": "Canonical registry and byte-identical app-ready JSON",
+          "evidenceStatus": "GENERATED_FROM_PRODUCTION_AUTHORITY",
+          "productPolicyStatus": "NO_MANUAL_THRESHOLD_EDITS",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": "fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad",
+          "implementationStatus": [
+            "GENERATED",
+            "VALIDATED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "The app-ready asset is intentionally not consumed by current runtime.",
+          "downstreamDependency": "Future runtime registry lookup"
+        },
+        {
+          "protocolId": "CT-FUTURE-PER-UNIT-PERSONAL-BASELINE",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": null,
+          "input": "Future per-unit valid history excluding the most recent seven calendar days",
+          "output": "Future PersonalBoundary Q30/Q80/Q95",
+          "evidenceStatus": "DESIGNED_PRODUCT_POLICY",
+          "productPolicyStatus": "UP_TO_56_VALID_CALENDAR_DAYS_WITH_PER_UNIT_SUFFICIENCY",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": null,
+          "implementationStatus": [
+            "DESIGNED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "No production runtime implementation exists in Phase 1.",
+          "downstreamDependency": "CT-FUTURE-PER-UNIT-CALIBRATION-WEIGHT"
+        },
+        {
+          "protocolId": "CT-FUTURE-PER-UNIT-CALIBRATION-WEIGHT",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": null,
+          "input": "Future per-unit exposure sufficiency and inactivity handling",
+          "output": "Future w_perUnit",
+          "evidenceStatus": "DESIGNED_PRODUCT_POLICY",
+          "productPolicyStatus": "BOUNDARY_MIXING_ONLY",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": null,
+          "implementationStatus": [
+            "DESIGNED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Must never scale CurrentLoad.",
+          "downstreamDependency": "CT-FUTURE-RELATIVE-STATE-CLASSIFICATION"
+        },
+        {
+          "protocolId": "CT-FUTURE-RELATIVE-STATE-CLASSIFICATION",
+          "canonicalDocument": "docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md",
+          "authorityImplementationPath": null,
+          "input": "Future CurrentLoad and FinalBoundary",
+          "output": "Future low/normal/high/very-high relative state",
+          "evidenceStatus": "DESIGNED_PRODUCT_POLICY",
+          "productPolicyStatus": "NO_TEMPORARY_RUNTIME_THRESHOLDS",
+          "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
+          "registrySchemaVersion": "1.0.0",
+          "generatedArtifactChecksum": null,
+          "implementationStatus": [
+            "DESIGNED",
+            "NOT_YET_RUNTIME_ACTIVE"
+          ],
+          "knownLimitations": "Current UI remains on the existing calibration behavior.",
+          "downstreamDependency": "Future user-facing connective-tissue relative-state UI"
+        }
+      ]
     },
     {
       "protocolId": "CT-COD-CONTEXT",

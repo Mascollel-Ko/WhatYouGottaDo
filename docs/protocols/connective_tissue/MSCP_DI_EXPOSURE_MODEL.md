@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-MSCP-DI-EXPOSURE |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.7 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 22e51779bbd173e554c3ba1dbeec0fcf13a6ba20 |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLICY |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.0.1`은 현재 runtime 계산을 바꾸지 않고, offline prior generator가 같은 production authority를 재사용한다는 경계를 문서화합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -41,6 +41,8 @@
 
 활성 runtime 식은 `E0 = (M / 10) * D_normalized * I_selected * C_resolved`입니다. `D_normalized = ln(1 + raw/reference) / ln(2)`를 0~2.5로 제한합니다. `S`는 rapidity provenance, `P`는 회복 curve routing이며 `mappingRoleWeight`는 예약값 1.0입니다.
 
+Phase 1 prior generator는 이 식, production event ledger, PCHIP recovery curve와 residual accumulation을 직접 호출합니다. 별도 근사식이나 Python recovery implementation은 없습니다. Synthetic records도 유효한 exercise mapping과 production dose/intensity resolver를 통과합니다.
+
 ## 8. 집계 방식
 
 GROUP/component 중복은 합하지 않고 max로 해결합니다. exact event identity는 record/loadUnit/profile이며 event ledger는 계산 뒤 임의로 재작성하지 않습니다.
@@ -68,6 +70,7 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLI
 ## 14. 알려진 한계
 
 - M, S, C, P, D, I의 근거 강도는 load unit과 exercise별로 다르며 일부는 class-level proxy입니다.
+- Offline prior의 scenario ensemble은 product policy이며 population prevalence가 아닙니다. Prior generation은 runtime CurrentLoad 식이나 recovery parameter를 변경하지 않습니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
@@ -105,8 +108,10 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLI
 
 - [`docs/tissue_load_phase_c3_multidimensional_model.md`](../../tissue_load_phase_c3_multidimensional_model.md)
 - [`docs/tissue_load_phase_c4b1_continuous_axis_scoring.md`](../../tissue_load_phase_c4b1_continuous_axis_scoring.md)
+- [`docs/protocols/connective_tissue/PERSONAL_CALIBRATION.md`](PERSONAL_CALIBRATION.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-17): offline prior generation이 production M/D/I/C, event ledger와 recovery authority를 직접 재사용하며 runtime 계산은 바꾸지 않는다는 경계를 추가했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

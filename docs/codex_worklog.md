@@ -2432,3 +2432,106 @@ Behavior boundaries
   exercise catalogue behavior are unchanged.
 - The Home screen gained one compact row only; detailed explanation remains on
   separate scrollable screens.
+
+## Connective-tissue relative-load baseline Phase 1
+
+Baseline and safety
+- Started from completed local `main` SHA
+  `8130e5e27bdf0674f9f2483b8a660363968925de`; it matched `origin/main`, and
+  `origin/main` was confirmed as an ancestor.
+- Application identity remains `versionName v0.4.2.11`,
+  `versionCode 402011`. This is not a runtime feature release and creates no
+  release tag.
+- Preserved all six user-owned `outputs/*` modifications untouched, unstaged,
+  and uncommitted.
+
+Discovery and design lock
+- Production calculation authority is
+  `TissueRcvEventLedgerBuilder`/`tissueRcvInitialExposure` for M/D/I/C
+  exposure and `TissueResidualCalculator` with
+  `TissueRecoveryCurveRepository` for PCHIP recovery and residual load.
+- The production asset identity is
+  `RCV-ALL-0.6 | RCV-EXPOSURE-1.1`.
+- Current authority contains 77 unsided load-unit stable keys, 239 exercises,
+  3,507 exercise/load-unit rows, 21 recovery curves, 114 knots, and 7
+  recovery routes.
+- Runtime current-state evaluation uses exact event timestamps when available
+  and the device local timezone. The generator preserves timestamp-compatible
+  output as 24 local-hour buckets and uses `Asia/Seoul` only as its fixed
+  deterministic simulation reference.
+- Double-counting boundaries were locked before implementation: current
+  session RPE/bodyweight remain production `CurrentLoad` inputs; habitual
+  profile intensity affects only AdjustedPrior; future history affects only
+  PersonalBaseline and `w_perUnit`; experience never changes exposure or
+  recovery.
+
+### Commit 1 - `df081c3 feat(tissue): generate deterministic prior baselines`
+- Added a Kotlin/JVM offline generator under
+  `tools/connective-tissue-prior/` and Gradle generate/validate commands.
+- The generator directly reuses production event-ledger and recovery classes;
+  no second exposure, recovery, interpolation, or residual implementation was
+  added.
+- Added 8 explicit weighted scenarios covering 2/3/4-day patterns, 112-day
+  simulation, 56-day burn-in, and local hours 0..23.
+- Added 13 explicit prior profiles and complete exact-one assignment for all
+  77 stable keys. Missing mappings, duplicate authority, display-name fallback,
+  and sided duplication fail generation.
+- Generated 312 profile/hour buckets and 936 ordered quantiles. Canonical and
+  app-ready registry SHA-256 is
+  `fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad`.
+- Recovery-engine fingerprint is
+  `8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a`;
+  deterministic output checksum is
+  `ef6c1d274369e55849a2cee095262cba4b83cfccecf1bdf7968f458f6d77c4eb`.
+- Added coverage, quantile, simulation, deterministic drift, non-consumption,
+  and production parity tests.
+
+### Commit 2 - `22e5177 feat(tissue): add bounded prior profile adjustment`
+- Added the pure `TissuePriorAdjustment` evaluator with no repository, Android,
+  UI, CurrentLoad, event-ledger, or recovery side effects.
+- Uses one multiplier for Q30/Q80/Q95 and leaves `meaningfulFloor` unchanged.
+- Missing input is neutral with provenance; invalid non-finite, negative
+  bodyweight, and negative experience are rejected.
+- Body-mass fitting over 50/65/75/90/105 kg found the current production
+  normalization numerically neutral for all 13 profiles, so beta remains zero
+  rather than forcing a false effect. Median/p95/max fit error is zero.
+- Habitual intensity is simulation-fitted at LIGHT 0.96, NORMAL 1.00, HARD
+  1.04; profile maximum fit error is at most 4%.
+- Strength and racket experience use the exact five-band score and
+  profile-specific 0..1 relevance with `POLICY_BOUNDED` domain effects of
+  about +/-4%. Combined experience is limited to 0.94..1.06.
+- Normal multiplier range is 0.85..1.15 and absolute hard boundary is
+  0.80..1.20. Exhaustive supported profile/input-grid tests are finite,
+  ordered, bounded, and deterministic.
+
+### Commit 3 - protocol governance and Phase 1 boundary documentation
+- Commit: pending at worklog write.
+- Expanded the existing `CT-PERSONAL-CALIBRATION` canonical document instead
+  of creating a 29th canonical protocol document.
+- Registered all nine Phase 1 and future downstream components with authority,
+  inputs, outputs, provenance, policy status, schema/generator versions,
+  checksum, limitations, dependency, and lifecycle.
+- Updated `CT-MSCP-DI-EXPOSURE`, the protocol index, implementation status,
+  safety limitations, machine registry, and documentation tests.
+- Phase 1 lifecycle is explicitly
+  `DESIGNED / GENERATED / VALIDATED / NOT_YET_RUNTIME_ACTIVE`.
+
+Runtime boundaries and remaining work
+- Current `보정 중` UI and current classification are unchanged.
+- The app-ready JSON is intentionally not read by any production caller.
+- `PersonalBaseline`, seven-calendar-day exclusion, up-to-56-valid-day
+  history, inactivity policy, `w_perUnit`, FinalBoundary mixing, and
+  low/normal/high/very-high relative classification remain future work.
+- OFI and its five axes were not changed.
+- Scenario weights are product policy, not population prevalence. Experience
+  is a bounded policy prior, not a measured biological capacity effect.
+- Reference-zone simulation does not model DST transitions as separate
+  scenarios.
+
+Verification
+- `.\gradlew.bat --version`: passed with Android Studio JBR and repository
+  `.gradle-user-home`.
+- `generateConnectiveTissuePriorBaselines`: passed.
+- Focused generator/parity/adjustment tests: passed.
+- Protocol validation, double regeneration, full unit tests, compile,
+  assemble, final push, and CI are recorded after final verification.
