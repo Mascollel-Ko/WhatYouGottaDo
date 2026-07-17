@@ -2032,3 +2032,32 @@ Remaining work
 - Talocrural, TFJ, and quadriceps-tendon M/T/C remain deferred.
 - Loaded exercise variants and additional independent cohorts require exact-condition research before any broader transfer.
 - Human approvals, formal final claims, blind reviews, and production profiles remain zero; runtime activation and historical recalculation remain false.
+
+## RCV-ALL-0.6 Phase 1 unsided tissue-state identity
+
+Baseline and package audit
+- Started from latest `origin/main` at `586e43140ec13863410bfbb5d6f7c6de6a51cba6`; it contains package baseline `d3be2a9af81bc42b8733fd953cc2cdc770be186b`.
+- Preserved the six pre-existing dirty `outputs/*` files without restoring, staging, or using them as generated destinations.
+- Verified the manifest-listed Markdown files and the attached authority workbook by byte count and SHA-256.
+- Authority workbook `전체239개_연결조직_MSCP_D_권위본_REL-MSCP-D-INTEGRATED-0.3_UNSIDED.xlsx`: SHA-256 `efa3f0c47c4f5bf0ae634ed7e8656162ac6552b7a86659da28096cc257c50144`; 239 exercises, 3,507 authoritative score rows, 77 load units, and one unresolved generic exercise.
+- Required workbook `전체239개_MSCP-DI_회복프로토콜_RCV-ALL-0.6_UNSIDED.xlsx` is absent. The available RCV-ALL-0.5 workbook is explicitly superseded and was not used.
+
+Implemented Phase 1
+- Removed execution side from `TissueLoadKey`; tissue-state equality, aggregation, ordering, and snapshots now use only tissue class, tissue/load-unit ID, and load dimension.
+- Removed `SIDE_UNRESOLVED` as a calculation blocker and removed side-resolution fields/gaps from derived exposure and snapshot models.
+- Retained `performedSide` and side-allocation resolution only as optional execution dose/context diagnostics. Missing, left, and right execution context all accumulate into the same unsided state without a 50:50 split.
+- Marked `lateralityCoverageStatus` as `NOT_APPLICABLE` in the committed audit manifest and deterministic generators while preserving the existing audit schema.
+- Updated foundation documentation and regression tests for the corrected unsided invariant.
+
+Scope held back
+- No reviewed exercise-load rows were imported, rescored, or activated.
+- No DI profile, recovery curve, routing, exact timestamp, immutable event ledger, aggregation/ranking service, Analysis UI, OFI summary, readiness, ProgramBuilder, database, backup, app version, or release tag changed.
+- Phase 2 and later remain blocked until the exact manifest-listed RCV-ALL-0.6 recovery workbook is supplied.
+
+Validation
+- Pre-change `:app:testDebugUnitTest --tests "*Tissue*"`: passed.
+- Focused `TissueExposureShadowPipelineTest`, `TissueRecordContractsTest`, and `TissueMetadataFoundationTest`: passed after the unsided refactor.
+- Post-change `:app:testDebugUnitTest --tests "*Tissue*"`: passed.
+- `:app:testDebugUnitTest`: 791 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:assembleDebug`: passed; debug APK generated.
+- PowerShell parser validation for the three modified tissue generators: passed.

@@ -127,7 +127,7 @@ class TissueExposureShadowPipelineTest {
     }
 
     @Test
-    fun unapprovedMetadataIsNotZeroAndUnresolvedSideKeepsUnsidedTotal() {
+    fun unapprovedMetadataIsNotZeroAndExecutionSideDoesNotSplitUnsidedState() {
         val unilateral = profile(
             "unilateral", TissueClass.TENDON, "PATELLAR_TENDON", TissueLoadDimension.PEAK_TENSILE_LOAD,
             sidePolicy = TissueSideAllocationPolicy.UNILATERAL_SIDE_REQUIRED
@@ -135,22 +135,43 @@ class TissueExposureShadowPipelineTest {
         val blocked = TissueExposureCalculator.calculate(
             record(), listOf(unilateral), mapOf("unilateral" to fixtureWeight("unilateral", 0.5))
         ).single()
-        val shadow = TissueExposureCalculator.calculate(
-            record(), listOf(unilateral), mapOf("unilateral" to fixtureWeight("unilateral", 0.5)),
+        val left = TissueExposureCalculator.calculate(
+            record().copy(performedSide = TissueSide.LEFT),
+            listOf(unilateral),
+            mapOf("unilateral" to fixtureWeight("unilateral", 0.5)),
             allowNonProductionFixtures = true
         ).single()
+        val right = TissueExposureCalculator.calculate(
+            record().copy(performedSide = TissueSide.RIGHT),
+            listOf(unilateral),
+            mapOf("unilateral" to fixtureWeight("unilateral", 0.5)),
+            allowNonProductionFixtures = true
+        ).single()
+        val unspecified = TissueExposureCalculator.calculate(
+            record(),
+            listOf(unilateral),
+            mapOf("unilateral" to fixtureWeight("unilateral", 0.5)),
+            allowNonProductionFixtures = true
+        ).single()
+        val snapshot = TissueWindowedExposureCalculator.snapshot(
+            listOf(left, right, unspecified),
+            LocalDate.of(2026, 7, 13)
+        )
 
         assertEquals(TissueCalculationStatus.EVIDENCE_NOT_APPROVED, blocked.calculationStatus)
         assertNull(blocked.adjustedExposure)
-        assertEquals(TissueCalculationStatus.SIDE_UNRESOLVED, shadow.calculationStatus)
-        assertEquals(TissueSide.UNSIDED, shadow.tissueLoadKey.side)
-        assertEquals(100.0, shadow.adjustedExposure!!, 1e-9)
+        assertEquals(TissueCalculationStatus.CALCULABLE, left.calculationStatus)
+        assertEquals(TissueCalculationStatus.CALCULABLE, right.calculationStatus)
+        assertEquals(TissueCalculationStatus.CALCULABLE, unspecified.calculationStatus)
+        assertEquals(left.tissueLoadKey, right.tissueLoadKey)
+        assertEquals(left.tissueLoadKey, unspecified.tissueLoadKey)
+        assertEquals(300.0, snapshot.tendonLoads.single().rolling24HourExposure, 1e-9)
     }
 
     @Test
     fun windowedExposureUsesCalendarBoundariesAndExcludesFutureRecords() {
         val target = LocalDate.of(2026, 7, 13)
-        val key = TissueLoadKey(TissueClass.TENDON, "PATELLAR_TENDON", TissueLoadDimension.CYCLIC_TENSILE_LOAD, TissueSide.BILATERAL)
+        val key = TissueLoadKey(TissueClass.TENDON, "PATELLAR_TENDON", TissueLoadDimension.CYCLIC_TENSILE_LOAD)
         val exposures = listOf(
             exposure(1, target, key, 10.0),
             exposure(2, target.minusDays(2), key, 20.0),
@@ -294,7 +315,6 @@ class TissueExposureShadowPipelineTest {
         adjustedExposure = value,
         calculationStatus = TissueCalculationStatus.CALCULABLE,
         doseResolutionStatus = TissueDoseResolutionStatus.DERIVED_FROM_CURRENT_RECORD,
-        sideResolutionStatus = TissueSideResolutionStatus.DERIVED_FROM_PROTOCOL,
         appliedModifierIds = emptyList(),
         evidenceStatus = TissueEvidenceStatus.ANATOMICAL_INFERENCE,
         confidenceLevel = "LOW",

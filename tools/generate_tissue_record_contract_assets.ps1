@@ -234,13 +234,13 @@ $audit.modifierSnapshotHash = $modifierHash
 $audit.recoverySnapshotHash = $recoveryHash
 $audit.doseCapabilitySnapshotHash = $doseHash
 $audit.doseCapabilityStatus = "PASS"
-$audit.lateralityCoverageStatus = "PASS"
+$audit.lateralityCoverageStatus = "NOT_APPLICABLE"
 $audit.modifierValidationStatus = "PASS"
 $audit.recoveryValidationStatus = "PASS"
 $audit.warningCount = "3"
 $audit.inputSnapshotHash = $inputHash
 $audit.auditDecision = "FOUNDATION_COMPLETE_CANDIDATE"
-$audit.auditNotes = "All deterministic foundation contracts pass in non-production shadow mode; rubric research, backfill, independent review, and human approval remain pending."
+$audit.auditNotes = "All deterministic foundation contracts pass in non-production shadow mode; tissue-state identity is UNSIDED and laterality coverage is not applicable; rubric research, backfill, independent review, and human approval remain pending."
 Write-CsvRows $auditPath @($audit) $auditHeaders
 
 Write-Output "LEGACY_MIGRATION_COUNT=$($migrationRows.Count)"

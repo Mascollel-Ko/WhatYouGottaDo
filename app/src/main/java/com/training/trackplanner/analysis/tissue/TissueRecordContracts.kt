@@ -75,7 +75,6 @@ data class TissueDoseCapability(
 enum class TissueCalculationStatus {
     INCOMPLETE_TISSUE_METADATA,
     MISSING_RECORD_INPUT,
-    SIDE_UNRESOLVED,
     UNSUPPORTED_MODIFIER_COMBINATION,
     EVIDENCE_NOT_APPROVED,
     CALCULABLE
@@ -115,7 +114,6 @@ enum class TissueSideResolutionStatus {
 data class TissueSideResolution(
     val side: TissueSide,
     val status: TissueSideResolutionStatus,
-    val calculationStatus: TissueCalculationStatus,
     val diagnostics: List<String> = emptyList()
 )
 
@@ -215,12 +213,11 @@ object TissueSideResolver {
     }
 
     private fun resolved(side: TissueSide, status: TissueSideResolutionStatus) =
-        TissueSideResolution(side, status, TissueCalculationStatus.CALCULABLE)
+        TissueSideResolution(side, status)
 
     private fun unresolved(message: String) = TissueSideResolution(
         side = TissueSide.UNSIDED,
         status = TissueSideResolutionStatus.UNRESOLVED,
-        calculationStatus = TissueCalculationStatus.SIDE_UNRESOLVED,
         diagnostics = listOf(message)
     )
 }

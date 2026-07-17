@@ -138,7 +138,9 @@ class TissueMetadataFoundationTest {
         assertNotEquals(inputHash, audit.inputSnapshotHash)
         assertEquals(TissueAuditDecision.FOUNDATION_COMPLETE_CANDIDATE, audit.auditDecision)
         assertEquals("PASS", values.getValue("doseCapabilityStatus"))
-        assertEquals("PASS", values.getValue("lateralityCoverageStatus"))
+        assertEquals("NOT_APPLICABLE", values.getValue("lateralityCoverageStatus"))
+        assertTrue(audits.all { it.values.getValue("lateralityCoverageStatus") == "NOT_APPLICABLE" })
+        assertTrue(audits.all { it.values.getValue("sideUnresolvedCount") == "0" })
         assertEquals("PASS", values.getValue("modifierValidationStatus"))
         assertEquals("PASS", values.getValue("recoveryValidationStatus"))
         listOf(

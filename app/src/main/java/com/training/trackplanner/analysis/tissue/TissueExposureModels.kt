@@ -9,8 +9,7 @@ import java.time.LocalDate
 data class TissueLoadKey(
     val tissueClass: TissueClass,
     val tissueId: String,
-    val loadDimension: TissueLoadDimension,
-    val side: TissueSide
+    val loadDimension: TissueLoadDimension
 )
 
 data class TissueWorkoutRecord(
@@ -67,7 +66,6 @@ data class RecordTissueExposure(
     val adjustedExposure: Double?,
     val calculationStatus: TissueCalculationStatus,
     val doseResolutionStatus: TissueDoseResolutionStatus,
-    val sideResolutionStatus: TissueSideResolutionStatus,
     val appliedModifierIds: List<String>,
     val evidenceStatus: TissueEvidenceStatus,
     val confidenceLevel: String,
@@ -136,7 +134,6 @@ data class TissueResidualState(
 
 data class TissueMetadataGap(val recordId: Long, val stableKey: String, val reason: String)
 data class TissueInputGap(val recordId: Long, val stableKey: String, val reason: String)
-data class TissueSideGap(val recordId: Long, val tissueLoadKey: TissueLoadKey, val reason: String)
 data class TissueModifierGap(val recordId: Long, val tissueLoadKey: TissueLoadKey, val reason: String)
 data class TissueEvidenceConflict(val recordId: Long, val tissueLoadKey: TissueLoadKey, val reason: String)
 
@@ -148,7 +145,6 @@ data class DailyTissueLoadSnapshot(
     val fasciaLoads: List<TissueResidualState>,
     val incompleteMetadata: List<TissueMetadataGap>,
     val missingRecordInputs: List<TissueInputGap>,
-    val unresolvedSides: List<TissueSideGap>,
     val unsupportedModifierCombinations: List<TissueModifierGap>,
     val conflictingEvidence: List<TissueEvidenceConflict>
 )

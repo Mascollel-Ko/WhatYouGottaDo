@@ -46,7 +46,8 @@ Catalog anatomy identity and exercise-specific load claims use separate evidence
 - The scapulothoracic complex is marked as a functional articulation, not a true synovial joint.
 - No sum-preservation relationship exists with `jointTendonImpactFatigue`.
 - Legacy tags can only seed future review candidates; they cannot assign bands.
-- `NOT_YET_EVALUATED`, blocked, conflicting, missing-input, and unresolved-side states cannot become zero.
+- `NOT_YET_EVALUATED`, blocked, conflicting, and missing-input states cannot become zero.
+- Tissue-state identity is unsided. Execution laterality may inform dose or context, but it never creates separate state keys, status rows, recovery clocks, rankings, or UI labels.
 - AI preparation cannot fill or imply human approval.
 
 ## Network Capability
@@ -71,16 +72,16 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - `legacy_tissue_tag_migration_v1.csv` contains one review decision for each of the 42 real legacy field/token identities. Every row is `LEGACY_SEEDED_NOT_EVALUATED` with `automaticBandAllowed=false`; broad cuff, stability, joint, and impact tags remain ambiguous candidate sets and are never equally split or promoted to bands.
 - `dose_input_capability_v1.csv` audits all 12 supported dose-basis tokens. External-load repetitions, effective-bodyweight repetitions, holds, and explicitly duration-recorded activities are derivable from current records. Distance and landing, direction-change, jump, throw, and stroke counts are explicitly unavailable and have no fallback.
 - Current bodyweight and hold calculations continue to name `BodyweightEffectiveLoadCalculator` and `DurationHoldLoadCalculator` as their authorities.
-- Performed side is not recorded. Side-required records remain `UNSIDED` with `SIDE_UNRESOLVED`; no 50:50 split or lead/trail-to-left/right conversion is allowed. A bilateral symmetric assumption requires an explicit balanced-alternation protocol.
+- Performed side is not recorded. Tissue state remains unsided regardless; no 50:50 split or lead/trail-to-left/right conversion is allowed. Execution laterality is retained only as optional dose/context metadata and never blocks an otherwise calculable exposure.
 - `exercise_tissue_modifier_rules_v1.csv` is an empty production schema. The contract fixes reference conditions, specificity, exclusive/interaction groups, replacement-before-multiplication order, required inputs, bounds, evidence state, and human approval without inventing a modifier.
 
 ## Shadow Exposure Pipeline
 
 - `TissueDoseResolver` reads confirmed set inputs only. It delegates effective-bodyweight dose to `BodyweightEffectiveLoadCalculator` and plank/side-plank holds to `DurationHoldLoadCalculator`. Unrecorded distance or event counts return `MISSING_RECORD_INPUT`; duration never implies an event count.
 - `TissueModifierResolver` applies the most-specific rule in each exclusive group, replacement before multiplication, explicit bounds, and deterministic rule ordering. Missing inputs, blocked combinations, and undeclared interactions fail closed. The committed production modifier file remains empty.
-- `TissueExposureCalculator` requires an exact profile stable key, reference condition, dose basis, side policy, and finite profile-specific dimension weight. Each tissue/dimension is calculated independently; there is no legacy-total allocation or sum-preservation rule.
+- `TissueExposureCalculator` requires an exact profile stable key, reference condition, dose basis, and finite profile-specific dimension weight. Side policy is interpreted only as execution context. Each unsided tissue/dimension is calculated independently; there is no legacy-total allocation or sum-preservation rule.
 - Non-production numeric fixtures require an explicit opt-in flag and an `explicitlyNonProductionFixture` weight. Default calls reject them as `EVIDENCE_NOT_APPROVED`.
-- Missing performed side preserves a numeric total as `UNSIDED` when the remaining inputs are calculable, while keeping `SIDE_UNRESOLVED`. It never creates left/right warnings or a 50:50 split.
+- Missing performed side preserves the unsided numeric total when the remaining inputs are calculable. It never creates a blocker, left/right warning, separate state, or 50:50 split.
 - RPE can only enter once. Existing hold/session dose marks RPE as already applied; otherwise the exposure layer accepts only an explicitly supplied approved response multiplier.
 - `TissueWindowedExposureCalculator` provides calendar-day 24-hour, 72-hour, and 7-day exposure windows. Future records are excluded, contributor ordering is deterministic, and `residualExposure` remains null.
 - `tissue_recovery_profiles_v1.csv` is schema-only. No decay kernel or tissue-class default was copied from the legacy fatigue system.
@@ -102,7 +103,7 @@ Capability status: `LIVE_SOURCE_VERIFICATION_AVAILABLE` for source-identity veri
 - `export_tissue_blind_review_package.ps1`: explicit-path redacted handoff for a separate Phase C reviewer.
 - `tissue_load_phase_b1_lower_knee_ankle.md`: Phase B1 source correction, decisions, target outcomes, limitations, and handoff record.
 - `tissue_load_phase_c_same_session_reaudit.md`: source-by-source and claim-by-claim technical re-audit, adjudication scope, rubric decisions, hashes, and remaining approval record.
-- `TissueRecordContracts.kt`: migration, dose, calculation-state, laterality, and modifier enums/models plus fail-closed side resolution.
+- `TissueRecordContracts.kt`: migration, dose, calculation-state, execution-laterality context, and modifier enums/models. Side resolution is diagnostic context only.
 - `TissueRecordContractParser.kt`: typed parsing for migration, dose-capability, and modifier artifacts.
 - `TissueRecordContractValidator.kt`: exact legacy coverage, no-band migration, dose fallback, tissue/dimension, and modifier evidence checks.
 - `generate_tissue_record_contract_assets.ps1`: deterministic 42-token migration, 12-basis capability, empty modifier schema, and stage-3 audit generation.

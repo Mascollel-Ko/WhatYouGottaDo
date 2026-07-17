@@ -76,7 +76,6 @@ class TissueRecordContractsTest {
 
         assertEquals(TissueSide.UNSIDED, unilateral.side)
         assertEquals(TissueSideResolutionStatus.UNRESOLVED, unilateral.status)
-        assertEquals(TissueCalculationStatus.SIDE_UNRESOLVED, unilateral.calculationStatus)
         assertEquals(TissueSide.UNSIDED, leadTrail.side)
         assertEquals(TissueSide.BILATERAL, balanced.side)
         assertEquals(TissueSideResolutionStatus.SYMMETRIC_ASSUMPTION, balanced.status)

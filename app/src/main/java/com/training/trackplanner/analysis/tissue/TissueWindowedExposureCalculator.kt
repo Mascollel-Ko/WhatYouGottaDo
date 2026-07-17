@@ -12,7 +12,6 @@ object TissueWindowedExposureCalculator {
             compareBy<TissueResidualState>({ it.tissueLoadKey.tissueClass.name })
                 .thenBy { it.tissueLoadKey.tissueId }
                 .thenBy { it.tissueLoadKey.loadDimension.name }
-                .thenBy { it.tissueLoadKey.side.name }
         )
         return DailyTissueLoadSnapshot(
             targetDate = targetDate,
@@ -26,9 +25,6 @@ object TissueWindowedExposureCalculator {
             missingRecordInputs = considered.filter {
                 it.calculationStatus == TissueCalculationStatus.MISSING_RECORD_INPUT
             }.map { TissueInputGap(it.recordId, it.stableKey, it.diagnostics.joinToString(" ")) },
-            unresolvedSides = considered.filter {
-                it.calculationStatus == TissueCalculationStatus.SIDE_UNRESOLVED
-            }.map { TissueSideGap(it.recordId, it.tissueLoadKey, it.diagnostics.joinToString(" ")) },
             unsupportedModifierCombinations = considered.filter {
                 it.calculationStatus == TissueCalculationStatus.UNSUPPORTED_MODIFIER_COMBINATION
             }.map { TissueModifierGap(it.recordId, it.tissueLoadKey, it.diagnostics.joinToString(" ")) },

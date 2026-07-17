@@ -448,7 +448,7 @@ $auditRows.Add(@{
     doseCapabilitySnapshotHash=$hashParts.doseCapability;automatedValidationStatus="PASS_WITH_WARNINGS";stableKeyCoverageStatus="PASS"
     scopeCoverageStatus="PASS";profileIntegrityStatus="PASS";catalogEvidenceStatus="PASS_WITH_WARNINGS"
     exerciseLoadEvidenceIntegrityStatus="PASS_WITH_WARNINGS";citationVerificationStatus="PASS";blindReviewCoverageStatus="NOT_APPLICABLE"
-    humanApprovalCoverageStatus="NOT_APPLICABLE";doseCapabilityStatus="PASS";lateralityCoverageStatus="PASS"
+    humanApprovalCoverageStatus="NOT_APPLICABLE";doseCapabilityStatus="PASS";lateralityCoverageStatus="NOT_APPLICABLE"
     modifierValidationStatus="PASS";recoveryValidationStatus="PASS";notYetEvaluatedCount="14579";evaluatedAbsentCount="0"
     evaluatedRelevantCount="0";evaluatedIrrelevantCount="0";blockedCount="$(@($decisions | Where-Object researchDecision -eq 'BLOCKED_INSUFFICIENT_EVIDENCE').Count)"
     conflictingCount="0";missingRecordInputCount="0";sideUnresolvedCount="0";unsupportedModifierCombinationCount="0"
