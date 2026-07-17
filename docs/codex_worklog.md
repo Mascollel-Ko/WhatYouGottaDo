@@ -2376,3 +2376,59 @@ Known unresolved documentation gaps
   classes remain disconnected from the public generator path.
 - Some connective-tissue recovery classes and metadata rows use class-level or
   low-confidence proxies; the per-asset provenance remains authoritative.
+
+## v0.4.2.11 - In-app first-user explanation flow
+
+Baseline and safety
+- Started from local and remote `main` SHA
+  `497e5a00f2bc7116fcb4664894ecd0d8182e6311`, containing annotated release
+  `v0.4.2.10`.
+- Confirmed `origin/main` was an ancestor of HEAD and no unfinished source
+  work preceded this task.
+- Preserved all six user-owned `outputs/*` modifications untouched, unstaged,
+  and uncommitted.
+
+### Commit 1 - `22cdb60 feat(info): add in-app product explanation screens`
+- Added the `app_explanation`, `analysis_guide`, and
+  `calculation_principles` screen content using the existing Compose
+  architecture.
+- Added all approved Korean titles and paragraphs as Android string resources.
+- Added one named public protocol URL and a system-browser launcher that
+  handles unavailable browser activities without crashing.
+- No analytical or persistence behavior changed.
+
+### Commit 2 - `fa0b72a feat(home): add clean explanation entry and navigation`
+- Added exactly one compact transparent row directly below
+  `프로그램으로 시작하기`.
+- Kept the row outside the initial-profile card with no subtitle, explanatory
+  paragraph, banner, badge, modal, or duplicated Home entry.
+- Added parent-aware explanation navigation and system-back behavior without
+  adding a second navigation framework.
+
+### Commit 3 - `abd9404 test(info): cover explanation flow and responsive layout`
+- Added exact resource-copy, route, public-URL, source-boundary, and
+  missing-browser tests.
+- Added Robolectric Compose checks for the Home row, all three screens,
+  navigation callbacks, 360dp one-line titles, 320dp reachability, font scale
+  1.3, and light/dark themes.
+- Reused the existing Robolectric stack instead of introducing a screenshot
+  framework solely for these screens.
+- Focused AppExplanation suite: 12 tests passed.
+
+### Release - `chore(release): bump version to v0.4.2.11`
+- Target: `versionName v0.4.2.11`, `versionCode 402011`.
+- Added `docs/v0.4.2.11_release_notes.md` and linked the in-app explanation
+  entry from the public protocol library README.
+- Full `:app:testDebugUnitTest`: 853 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed; debug APK generated.
+- Final commit, push, tag, and CI status are recorded after remote
+  verification.
+
+Behavior boundaries
+- OFI, five fatigue axes, connective-tissue exposure/recovery, C modifiers,
+  calibration, exercise metadata, badminton and strength volume,
+  ProgramBuilder, daily-condition persistence, backup, database schema, and
+  exercise catalogue behavior are unchanged.
+- The Home screen gained one compact row only; detailed explanation remains on
+  separate scrollable screens.
