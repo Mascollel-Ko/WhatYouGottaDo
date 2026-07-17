@@ -15,11 +15,11 @@ class TissueAggregationAndRankingTest {
         val key = TissueRcvLoadKey(catalog.loadUnits.keys.first(), "SMOOTH_CYCLE")
         val rows = listOf(residual("a", key, 2.0, 10L), residual("b", key, 3.5, 20L))
 
-        val state = TissueCurrentStateAggregator(catalog).aggregate(rows, observationDays = 10)
-        val loadUnit = state.loadUnits.single { it.key == key }
+        val state = aggregate(rows)
+        val loadUnit = state.loadUnits.single { it.key.loadUnitStableKey == key.loadUnitStableKey }
 
         assertEquals(5.5, loadUnit.rawResidual.upper, 1e-9)
-        assertEquals(TissueCanonicalStatus.CALIBRATING, loadUnit.status)
+        assertEquals(TissueCanonicalStatus.LOW, loadUnit.status)
     }
 
     @Test
@@ -27,12 +27,9 @@ class TissueAggregationAndRankingTest {
         val key = TissueRcvLoadKey(catalog.loadUnits.keys.first(), "SMOOTH_CYCLE")
         val duplicate = residual("same", key, 4.0, 10L)
 
-        val state = TissueCurrentStateAggregator(catalog).aggregate(
-            listOf(duplicate, duplicate.copy(currentResidualRange = TissueResidualRange(0.0, 9.0))),
-            observationDays = 10
-        )
+        val state = aggregate(listOf(duplicate, duplicate.copy(currentResidualRange = TissueResidualRange(0.0, 9.0))))
 
-        assertEquals(9.0, state.loadUnits.single { it.key == key }.rawResidual.upper, 1e-9)
+        assertEquals(9.0, state.loadUnits.single { it.key.loadUnitStableKey == key.loadUnitStableKey }.rawResidual.upper, 1e-9)
         assertTrue(state.diagnostics.single().contains("Duplicate"))
     }
 
@@ -48,14 +45,12 @@ class TissueAggregationAndRankingTest {
                 joint = unit.jointComplexStableKey
             )
         }
-        val aggregator = TissueCurrentStateAggregator(catalog)
-        val first = aggregator.aggregate(rows, 10)
-        val reversed = aggregator.aggregate(rows.reversed(), 10)
+        val first = aggregate(rows)
+        val reversed = aggregate(rows.reversed())
 
         assertEquals(first.loadUnits.map { it.key }, reversed.loadUnits.map { it.key })
         assertEquals(first.jointComplexes.map { it.jointComplexStableKey }, reversed.jointComplexes.map { it.jointComplexStableKey })
-        val observed = first.loadUnits.filter { it.key.loadDimension != "UNOBSERVED" }
-        assertEquals(units.map { it.stableKey }, observed.map { it.key.loadUnitStableKey })
+        assertEquals(units.map { it.stableKey }, first.loadUnits.take(2).map { it.key.loadUnitStableKey })
     }
 
     @Test
@@ -87,7 +82,7 @@ class TissueAggregationAndRankingTest {
                 joint = joint.stableKey
             )
         }
-        val summary = TissueCurrentStateAggregator(catalog).aggregate(rows, 10).jointComplexes
+        val summary = aggregate(rows).jointComplexes
             .single { it.jointComplexStableKey == joint.stableKey }
 
         assertEquals(7.0, summary.highestChild!!.rawResidual.upper, 1e-9)
@@ -95,21 +90,22 @@ class TissueAggregationAndRankingTest {
     }
 
     @Test
-    fun calibrationNeverFallsBackToLowAndSymptomOverrideAppliesImmediately() {
-        val calibrating = TissueCalibrationPolicy.classify(10.0, listOf(1.0, 2.0), 55, TissueSymptomOverride.NONE)
-        val overridden = TissueCalibrationPolicy.classify(1.0, emptyList(), 1, TissueSymptomOverride.BLOCK)
-        val eligible = TissueCalibrationPolicy.classify(10.0, listOf(1.0, 2.0, 20.0), 56, TissueSymptomOverride.NONE)
+    fun validPriorClassifiesShortHistoryAndSymptomOverrideAppliesImmediately() {
+        val unit = catalog.loadUnits.keys.first()
+        val prior = baseline(unit)
+        val shortHistory = TissueRelativeStateClassifier.classify(1.0, prior, TissueSymptomOverride.NONE)
+        val overridden = TissueRelativeStateClassifier.classify(1.0, prior, TissueSymptomOverride.BLOCK)
+        val unavailable = TissueRelativeStateClassifier.classify(1.0, null, TissueSymptomOverride.NONE)
 
-        assertEquals(TissueCanonicalStatus.CALIBRATING, calibrating.status)
-        assertNull(calibrating.normalizedScore)
+        assertEquals(TissueCanonicalStatus.LOW, shortHistory.status)
         assertEquals(TissueCanonicalStatus.VERY_HIGH, overridden.status)
-        assertTrue(eligible.normalizedScore!! in 0.0..100.0)
-        assertTrue(eligible.diagnostics.single().contains("not injury probability"))
+        assertEquals(TissueCanonicalStatus.UNAVAILABLE, unavailable.status)
+        assertNull(unavailable.relativeBandPosition)
     }
 
     @Test
     fun allJointAndLoadUnitSummariesRemainVisibleAndUnsided() {
-        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val state = aggregate(emptyList())
 
         assertEquals(15, state.jointComplexes.size)
         assertEquals(77, state.loadUnits.size)
@@ -120,7 +116,7 @@ class TissueAggregationAndRankingTest {
 
     @Test
     fun analysisUiShowsEveryUnsidedJointAndLoadUnit() {
-        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val state = aggregate(emptyList())
         val ui = TissueAnalysisUiMapper.map(state)
         val labels = ui.joints.flatMap { joint -> listOf(joint.name) + joint.children.map { it.name } }
 
@@ -132,18 +128,18 @@ class TissueAggregationAndRankingTest {
 
     @Test
     fun fatigueSummaryUsesASeparateConnectiveTissueNavigationContract() {
-        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val state = aggregate(emptyList())
         val summary = TissueAnalysisUiMapper.summary(state)
 
         assertEquals("연결조직 분석", summary.title)
-        assertEquals("개인 기록을 바탕으로 연결조직 기준을 보정하고 있습니다.", summary.supportingText)
-        assertEquals("보정 중", summary.status)
+        assertEquals("관절·건·인대 등 연결조직에 남아 있을 상대적인 운동 부하를 확인합니다.", summary.supportingText)
+        assertEquals("낮은 편", summary.status)
         assertEquals("연결조직 분석 보기", summary.actionLabel)
     }
 
     @Test
     fun analysisUiUsesTheRankedTopThreeThenExpandsWithoutDuplicates() {
-        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val state = aggregate(emptyList())
         val ui = TissueAnalysisUiMapper.map(state)
 
         assertEquals(state.jointComplexes.take(3).map { it.jointComplexStableKey }, ui.visibleJoints(false).map { it.key })
@@ -156,7 +152,7 @@ class TissueAggregationAndRankingTest {
     @Test
     fun everyDisplayedNameResolvesItsEducationalInfoAndAccessibilityLabel() {
         val ui = TissueAnalysisUiMapper.map(
-            TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+            aggregate(emptyList())
         )
 
         ui.joints.forEach { joint ->
@@ -210,6 +206,37 @@ class TissueAggregationAndRankingTest {
             biologicalActivityRange = null,
             diagnostics = emptyList()
         )
+    }
+
+    private fun aggregate(rows: List<TissueEventResidual>): TissueCurrentState =
+        TissueCurrentStateAggregator(catalog).aggregate(
+            residuals = rows,
+            effectiveBaselinesByUnit = catalog.loadUnits.keys.associateWith(::baseline)
+        )
+
+    private fun baseline(stableKey: String): TissueEffectiveBaseline {
+        val boundaries = TissuePriorBoundaries(0.01, 10.0, 20.0, 30.0)
+        val adjusted = TissueAdjustedPriorBaseline(
+            stableKey,
+            "test",
+            TissueAdjustedPriorResult(
+                boundaries = boundaries,
+                multiplier = 1.0,
+                bodyMassContribution = 1.0,
+                habitualIntensityContribution = 1.0,
+                strengthExperienceContribution = 1.0,
+                racketExperienceContribution = 1.0,
+                combinedExperienceContribution = 1.0,
+                combinedExperienceClampApplied = false,
+                normalClampApplied = false,
+                hardClampApplied = false,
+                missingInputs = emptySet(),
+                coefficientSources = emptyMap()
+            )
+        )
+        val history = TissueCalibrationHistory(null, null, emptyList())
+        val weight = TissuePerUnitWeightPolicy.calculate(stableKey, history)
+        return TissueEffectiveBaselinePolicy.mix(adjusted, null, weight)
     }
 
     private fun repository(): TissueRcvAssetRepository =

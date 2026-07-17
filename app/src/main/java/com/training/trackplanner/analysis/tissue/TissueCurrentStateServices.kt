@@ -1,62 +1,5 @@
 package com.training.trackplanner.analysis.tissue
 
-object TissueCalibrationPolicy {
-    const val ELIGIBILITY_DAYS = 56L
-
-    fun classify(
-        currentResidual: Double,
-        comparableHistory: List<Double>,
-        observationDays: Long,
-        symptomOverride: TissueSymptomOverride
-    ): TissueCalibrationResult {
-        val modeled = when {
-            observationDays < ELIGIBILITY_DAYS -> TissueCalibrationResult(
-                TissueCanonicalStatus.CALIBRATING,
-                null,
-                observationDays,
-                symptomOverride,
-                listOf("Personal status requires 56 observation days.")
-            )
-            comparableHistory.isEmpty() -> TissueCalibrationResult(
-                TissueCanonicalStatus.UNAVAILABLE,
-                null,
-                observationDays,
-                symptomOverride,
-                listOf("No comparable personal history is available.")
-            )
-            else -> {
-                val percentile = comparableHistory.count { it <= currentResidual } * 100.0 / comparableHistory.size
-                val status = when {
-                    percentile > 90.0 -> TissueCanonicalStatus.VERY_HIGH
-                    percentile > 75.0 -> TissueCanonicalStatus.HIGH
-                    percentile > 50.0 -> TissueCanonicalStatus.MODERATE
-                    else -> TissueCanonicalStatus.LOW
-                }
-                TissueCalibrationResult(
-                    status,
-                    percentile,
-                    observationDays,
-                    symptomOverride,
-                    listOf("Score is position within the user's comparable load history, not injury probability.")
-                )
-            }
-        }
-        val overrideStatus = when (symptomOverride) {
-            TissueSymptomOverride.NONE -> null
-            TissueSymptomOverride.CAUTION -> TissueCanonicalStatus.HIGH
-            TissueSymptomOverride.BLOCK -> TissueCanonicalStatus.VERY_HIGH
-        }
-        return if (overrideStatus != null && overrideStatus.severity > modeled.status.severity) {
-            modeled.copy(
-                status = overrideStatus,
-                diagnostics = modeled.diagnostics + "Symptom/function override takes immediate precedence."
-            )
-        } else {
-            modeled
-        }
-    }
-}
-
 object TissueContributorService {
     fun forLoadUnit(residuals: List<TissueEventResidual>): List<TissueExerciseContribution> {
         val ranked = residuals.groupBy { it.event.exerciseStableKey }.map { (stableKey, rows) ->
@@ -81,7 +24,7 @@ object TissueContributorService {
 
     fun forJoint(residuals: List<TissueEventResidual>): List<TissueExerciseContribution> =
         residuals.groupBy { it.event.exerciseStableKey }.map { (stableKey, exerciseRows) ->
-            val childContributions = exerciseRows.groupBy { it.event.key }.values.map { child ->
+            val childContributions = exerciseRows.groupBy { it.event.key.loadUnitStableKey }.values.map { child ->
                 child.sumOf { it.currentResidualRange.upper }
             }.sortedDescending()
             TissueExerciseContribution(
@@ -105,17 +48,17 @@ object TissueRankingService {
     fun loadUnits(states: List<TissueDimensionState>): List<TissueDimensionState> =
         states.sortedWith(
             compareByDescending<TissueDimensionState> { it.status.severity }
-                .thenByDescending { it.normalizedScore ?: Double.NEGATIVE_INFINITY }
+                .thenByDescending { it.relativeBandPosition ?: Double.NEGATIVE_INFINITY }
+                .thenByDescending(TissueDimensionState::relevantForProvenance)
                 .thenByDescending { it.rawResidual.upper }
                 .thenByDescending(TissueDimensionState::latestPositiveContributionTime)
                 .thenBy { it.key.loadUnitStableKey }
-                .thenBy { it.key.loadDimension }
         )
 
     fun joints(states: List<TissueJointComplexSummary>): List<TissueJointComplexSummary> =
         states.sortedWith(
             compareByDescending<TissueJointComplexSummary> { it.status.severity }
-                .thenByDescending { it.displayScore ?: Double.NEGATIVE_INFINITY }
+                .thenByDescending { it.relativeBandPosition ?: Double.NEGATIVE_INFINITY }
                 .thenByDescending(TissueJointComplexSummary::highOrVeryHighChildCount)
                 .thenByDescending { it.highestChild?.rawResidual?.upper ?: 0.0 }
                 .thenByDescending(TissueJointComplexSummary::latestPositiveContributionTime)
@@ -128,51 +71,23 @@ class TissueCurrentStateAggregator(
 ) {
     fun aggregate(
         residuals: List<TissueEventResidual>,
-        observationDays: Long,
-        historyByKey: Map<TissueRcvLoadKey, List<Double>> = emptyMap(),
-        symptomOverrides: Map<TissueRcvLoadKey, TissueSymptomOverride> = emptyMap()
+        effectiveBaselinesByUnit: Map<String, TissueEffectiveBaseline> = emptyMap(),
+        historyByUnit: Map<String, List<Double>> = emptyMap(),
+        symptomOverrides: Map<String, TissueSymptomOverride> = emptyMap(),
+        diagnostics: List<String> = emptyList()
     ): TissueCurrentState {
         val deduplicated = residuals.groupBy { it.event.eventId }.values.map { duplicates ->
             duplicates.maxBy { it.currentResidualRange.upper }
         }
-        val byKey = deduplicated.groupBy { it.event.key }
-        val states = mutableListOf<TissueDimensionState>()
-        byKey.forEach { (key, rows) ->
-            val calibration = TissueCalibrationPolicy.classify(
-                currentResidual = rows.sumOf { it.currentResidualRange.upper },
-                comparableHistory = historyByKey[key].orEmpty(),
-                observationDays = observationDays,
-                symptomOverride = symptomOverrides[key] ?: TissueSymptomOverride.NONE
-            )
-            states += state(key, rows, historyByKey[key].orEmpty(), calibration)
-        }
-        catalog.loadUnits.values.filter { unit ->
-            states.none { it.key.loadUnitStableKey == unit.stableKey }
-        }.forEach { unit ->
-            val key = TissueRcvLoadKey(unit.stableKey, "UNOBSERVED")
-            val calibration = TissueCalibrationPolicy.classify(
-                currentResidual = 0.0,
-                comparableHistory = historyByKey[key].orEmpty(),
-                observationDays = observationDays,
-                symptomOverride = symptomOverrides[key] ?: TissueSymptomOverride.NONE
-            )
-            states += TissueDimensionState(
-                key = key,
-                loadUnitName = unit.nameKo,
-                educationalInfo = catalog.educationalInfo.getValue(unit.stableKey),
-                jointComplexStableKey = unit.jointComplexStableKey,
-                tissueClass = unit.tissueClass,
-                rawResidual = TissueResidualRange(0.0, 0.0),
-                recentResidualHistory = historyByKey[key].orEmpty(),
-                channelResiduals = emptyMap(),
-                status = calibration.status,
-                normalizedScore = calibration.normalizedScore,
-                latestPositiveContributionTime = Long.MIN_VALUE,
-                contributors = emptyList(),
-                timestampPrecisions = emptySet(),
-                evidenceGrades = emptySet(),
-                symptomOverride = calibration.symptomOverride,
-                diagnostics = calibration.diagnostics
+        val byUnit = deduplicated.groupBy { it.event.key.loadUnitStableKey }
+        val states = catalog.loadUnits.values.map { unit ->
+            val rows = byUnit[unit.stableKey].orEmpty()
+            state(
+                unit = unit,
+                rows = rows,
+                recentResidualHistory = historyByUnit[unit.stableKey].orEmpty(),
+                baseline = effectiveBaselinesByUnit[unit.stableKey],
+                symptomOverride = symptomOverrides[unit.stableKey] ?: TissueSymptomOverride.NONE
             )
         }
         val rankedLoadUnits = TissueRankingService.loadUnits(states)
@@ -182,45 +97,62 @@ class TissueCurrentStateAggregator(
             loadUnits = rankedLoadUnits,
             jointComplexes = joints,
             ofiSummary = TissueOfiSummary(worst, joints.take(3)),
-            diagnostics = if (residuals.size == deduplicated.size) emptyList() else {
-                listOf("Duplicate derived event IDs were collapsed without increasing debt.")
-            }
+            baselineProvenance = provenance(rankedLoadUnits),
+            diagnostics = buildList {
+                addAll(diagnostics)
+                if (residuals.size != deduplicated.size) {
+                    add("Duplicate derived event IDs were collapsed without increasing debt.")
+                }
+            }.distinct()
         )
     }
 
     private fun state(
-        key: TissueRcvLoadKey,
+        unit: TissueRcvLoadUnit,
         rows: List<TissueEventResidual>,
         recentResidualHistory: List<Double>,
-        calibration: TissueCalibrationResult
+        baseline: TissueEffectiveBaseline?,
+        symptomOverride: TissueSymptomOverride
     ): TissueDimensionState {
+        val rawResidual = TissueResidualRange(
+            rows.sumOf { it.currentResidualRange.lower },
+            rows.sumOf { it.currentResidualRange.upper }
+        )
+        val classification = TissueRelativeStateClassifier.classify(rawResidual.upper, baseline, symptomOverride)
         val channels = rows.flatMap { it.channelResiduals.keys }.associateWith { channel ->
             TissueResidualRange(
                 rows.sumOf { it.channelResiduals[channel]?.lower ?: 0.0 },
                 rows.sumOf { it.channelResiduals[channel]?.upper ?: 0.0 }
             )
         }
+        val relevant = rawResidual.upper > (baseline?.boundaries?.meaningfulFloor ?: 0.0) ||
+            (baseline?.calibrationWeight?.weightedDistinctExposureDays ?: 0.0) > 0.0 ||
+            baseline?.personalBaseline?.isValid == true
         return TissueDimensionState(
-            key = key,
-            loadUnitName = catalog.loadUnits.getValue(key.loadUnitStableKey).nameKo,
-            educationalInfo = catalog.educationalInfo.getValue(key.loadUnitStableKey),
-            jointComplexStableKey = rows.first().event.jointComplexStableKey,
-            tissueClass = rows.first().event.tissueClass,
-            rawResidual = TissueResidualRange(
-                rows.sumOf { it.currentResidualRange.lower },
-                rows.sumOf { it.currentResidualRange.upper }
-            ),
+            key = TissueRcvLoadKey(unit.stableKey, "UNIT_TOTAL"),
+            loadUnitName = unit.nameKo,
+            educationalInfo = catalog.educationalInfo.getValue(unit.stableKey),
+            jointComplexStableKey = unit.jointComplexStableKey,
+            tissueClass = unit.tissueClass,
+            rawResidual = rawResidual,
             recentResidualHistory = recentResidualHistory,
             channelResiduals = channels,
-            status = calibration.status,
-            normalizedScore = calibration.normalizedScore,
+            status = classification.status,
+            relativeBandPosition = classification.relativeBandPosition,
+            effectiveWeight = baseline?.effectiveWeight ?: 0.0,
+            baselineProvenance = baseline?.provenance ?: TissueBaselineProvenance.PRIOR_ONLY,
+            relevantForProvenance = relevant,
             latestPositiveContributionTime = rows.filter { it.currentResidualRange.upper > 0.0 }
                 .maxOfOrNull { it.event.performedTime.latestEpochMillis ?: Long.MIN_VALUE } ?: Long.MIN_VALUE,
             contributors = TissueContributorService.forLoadUnit(rows),
             timestampPrecisions = rows.mapTo(linkedSetOf()) { it.event.performedTime.precision },
             evidenceGrades = rows.mapTo(linkedSetOf()) { it.event.evidenceGrade },
-            symptomOverride = calibration.symptomOverride,
-            diagnostics = (rows.flatMap(TissueEventResidual::diagnostics) + calibration.diagnostics).distinct()
+            symptomOverride = classification.symptomOverride,
+            diagnostics = buildList {
+                addAll(rows.flatMap(TissueEventResidual::diagnostics))
+                addAll(baseline?.diagnostics.orEmpty().map(TissueBaselineDiagnostic::message))
+                addAll(classification.diagnostics)
+            }.distinct()
         )
     }
 
@@ -238,7 +170,7 @@ class TissueCurrentStateAggregator(
                 nameKo = joint.nameKo,
                 educationalInfo = catalog.educationalInfo.getValue(joint.stableKey),
                 status = highest?.status ?: TissueCanonicalStatus.UNAVAILABLE,
-                displayScore = children.mapNotNull(TissueDimensionState::normalizedScore).maxOrNull(),
+                relativeBandPosition = children.mapNotNull(TissueDimensionState::relativeBandPosition).maxOrNull(),
                 highOrVeryHighChildCount = children.count {
                     it.status == TissueCanonicalStatus.HIGH || it.status == TissueCanonicalStatus.VERY_HIGH
                 },
@@ -250,5 +182,17 @@ class TissueCurrentStateAggregator(
                 ) ?: Long.MIN_VALUE
             )
         })
+    }
+
+    private fun provenance(states: List<TissueDimensionState>): TissueBaselineProvenance {
+        val relevant = states.filter(TissueDimensionState::relevantForProvenance)
+        if (relevant.isEmpty()) return TissueBaselineProvenance.PRIOR_ONLY
+        return when {
+            relevant.all { it.effectiveWeight <= TissueEffectiveBaselinePolicy.WEIGHT_EPSILON } ->
+                TissueBaselineProvenance.PRIOR_ONLY
+            relevant.all { it.effectiveWeight >= 1.0 - TissueEffectiveBaselinePolicy.WEIGHT_EPSILON } ->
+                TissueBaselineProvenance.PERSONAL_ONLY
+            else -> TissueBaselineProvenance.MIXED
+        }
     }
 }

@@ -92,10 +92,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                         }
                         Text(joint.status, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                     }
-                    Text(
-                        "점수 ${joint.score} · 높은 하위 단위 ${joint.highChildCount}개 · 최고 ${joint.highestChild}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    Text("높은 하위 단위 ${joint.highChildCount}개 · 최고 ${joint.highestChild}", style = MaterialTheme.typography.bodySmall)
                     Text("주요 기여: ${joint.contributors}", style = MaterialTheme.typography.bodySmall)
                     TextButton(
                         onClick = {
@@ -129,8 +126,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                                             onClick = { selectedInfoKey = child.info.stableKey }
                                         )
                                     }
-                                    Text("${child.status} · 점수 ${child.score} · 현재 모델 범위 ${child.recoveryRange}")
-                                    Text(child.recoveryTrend, style = MaterialTheme.typography.bodySmall)
+                                    Text("${child.status} · 현재 모델 범위 ${child.recoveryRange}")
                                     Text("기여 운동: ${child.contributors}", style = MaterialTheme.typography.bodySmall)
                                     if (child.diagnostics.isNotBlank()) {
                                         Text(

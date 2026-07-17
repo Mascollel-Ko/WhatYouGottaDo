@@ -15,14 +15,6 @@ enum class TissueSymptomOverride {
     BLOCK
 }
 
-data class TissueCalibrationResult(
-    val status: TissueCanonicalStatus,
-    val normalizedScore: Double?,
-    val observationDays: Long,
-    val symptomOverride: TissueSymptomOverride,
-    val diagnostics: List<String>
-)
-
 data class TissueExerciseContribution(
     val exerciseStableKey: String,
     val exerciseName: String,
@@ -40,7 +32,10 @@ data class TissueDimensionState(
     val recentResidualHistory: List<Double>,
     val channelResiduals: Map<TissueRecoveryChannel, TissueResidualRange>,
     val status: TissueCanonicalStatus,
-    val normalizedScore: Double?,
+    val relativeBandPosition: Double?,
+    val effectiveWeight: Double,
+    val baselineProvenance: TissueBaselineProvenance,
+    val relevantForProvenance: Boolean,
     val latestPositiveContributionTime: Long,
     val contributors: List<TissueExerciseContribution>,
     val timestampPrecisions: Set<TissueTimestampPrecision>,
@@ -54,7 +49,7 @@ data class TissueJointComplexSummary(
     val nameKo: String,
     val educationalInfo: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
-    val displayScore: Double?,
+    val relativeBandPosition: Double?,
     val highOrVeryHighChildCount: Int,
     val highestChild: TissueDimensionState?,
     val childStates: List<TissueDimensionState>,
@@ -71,5 +66,6 @@ data class TissueCurrentState(
     val loadUnits: List<TissueDimensionState>,
     val jointComplexes: List<TissueJointComplexSummary>,
     val ofiSummary: TissueOfiSummary,
+    val baselineProvenance: TissueBaselineProvenance,
     val diagnostics: List<String>
 )

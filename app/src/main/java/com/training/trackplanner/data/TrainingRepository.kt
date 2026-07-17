@@ -247,6 +247,7 @@ class TrainingRepository(
         context = context,
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
         dailyCheckInDao = dailyCheckInDao
     )
