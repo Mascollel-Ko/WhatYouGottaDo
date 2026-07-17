@@ -130,6 +130,17 @@ class TissueAggregationAndRankingTest {
         assertFalse(labels.any { it.contains("LEFT") || it.contains("RIGHT") })
     }
 
+    @Test
+    fun fatigueSummaryUsesASeparateConnectiveTissueNavigationContract() {
+        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val summary = TissueAnalysisUiMapper.summary(state)
+
+        assertEquals("연결조직 분석", summary.title)
+        assertEquals("개인 기록을 바탕으로 연결조직 기준을 보정하고 있습니다.", summary.supportingText)
+        assertEquals("보정 중", summary.status)
+        assertEquals("연결조직 분석 보기", summary.actionLabel)
+    }
+
     private fun residual(
         id: String,
         key: TissueRcvLoadKey,

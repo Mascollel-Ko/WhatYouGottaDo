@@ -31,7 +31,32 @@ data class TissueAnalysisUiState(
     val diagnostics: List<String>
 )
 
+data class TissueSummaryNavigationUi(
+    val title: String,
+    val supportingText: String,
+    val status: String?,
+    val topAreas: String?,
+    val actionLabel: String
+)
+
 object TissueAnalysisUiMapper {
+    fun summary(state: TissueCurrentState?): TissueSummaryNavigationUi {
+        val calibrating = state == null || state.ofiSummary.status == TissueCanonicalStatus.CALIBRATING
+        return TissueSummaryNavigationUi(
+            title = "연결조직 분석",
+            supportingText = if (calibrating) {
+                "개인 기록을 바탕으로 연결조직 기준을 보정하고 있습니다."
+            } else {
+                "관절·건·인대 등 연결조직의 상태와 주요 기여 운동을 별도 분석에서 확인합니다."
+            },
+            status = state?.let { statusLabel(it.ofiSummary.status) },
+            topAreas = state?.ofiSummary?.topJointComplexes
+                ?.joinToString { it.nameKo }
+                ?.ifBlank { null },
+            actionLabel = "연결조직 분석 보기"
+        )
+    }
+
     fun map(state: TissueCurrentState): TissueAnalysisUiState =
         TissueAnalysisUiState(
             status = statusLabel(state.ofiSummary.status),

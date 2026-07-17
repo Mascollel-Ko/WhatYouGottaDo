@@ -69,16 +69,16 @@ internal fun FatigueAndConditionAnalysisContent(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         fatigueAnalysis.currentState?.let { state ->
-            CurrentFatigueStatusCard(
-                state = state,
-                connectiveTissue = connectiveTissue?.ofiSummary,
-                onConnectiveTissueClick = onConnectiveTissueClick
-            )
+            CurrentFatigueStatusCard(state = state)
         }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
             fatigueState = fatigueAnalysis.currentState,
             summary = coachInsight.fatigueCauses
+        )
+        ConnectiveTissueSummaryCard(
+            state = connectiveTissue,
+            onClick = onConnectiveTissueClick
         )
         RecognitionSignalsCard(coachingSignals)
         FatigueAnalysisSection(

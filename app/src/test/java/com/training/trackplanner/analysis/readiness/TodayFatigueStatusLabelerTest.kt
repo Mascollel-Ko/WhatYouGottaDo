@@ -26,6 +26,9 @@ class TodayFatigueStatusLabelerTest {
         assertEquals(4, status.normalCount)
         assertEquals(0, status.lowCount)
         assertFalse(status.axisMessage.contains("회복 지속"))
+        assertFalse(status.ofiLabel.contains("연결조직"))
+        assertFalse(status.judgementMessage.contains("연결조직"))
+        assertFalse(status.axisMessage.contains("연결조직"))
     }
 
     @Test

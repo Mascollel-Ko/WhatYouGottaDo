@@ -11,6 +11,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +22,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.tissue.TissueAnalysisUiMapper
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
+
+@Composable
+internal fun ConnectiveTissueSummaryCard(
+    state: TissueCurrentState?,
+    onClick: () -> Unit
+) {
+    val ui = TissueAnalysisUiMapper.summary(state)
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(ui.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(ui.supportingText, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ui.status?.let { Text("연결조직 상태: $it", fontWeight = FontWeight.SemiBold) }
+            ui.topAreas?.let { Text("주요 부위: $it", style = MaterialTheme.typography.bodySmall) }
+            TextButton(onClick = onClick) {
+                Text(ui.actionLabel)
+            }
+        }
+    }
+}
 
 @Composable
 internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
