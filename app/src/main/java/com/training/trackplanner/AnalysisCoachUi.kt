@@ -56,6 +56,8 @@ import com.training.trackplanner.analysis.trends.PerformanceDetailSection
 import com.training.trackplanner.analysis.trends.PerformanceDetailSectionType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.tissue.TissueAnalysisUiMapper
+import com.training.trackplanner.analysis.tissue.TissueOfiSummary
 import com.training.trackplanner.data.AnalysisStats
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -302,7 +304,9 @@ internal fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
 @Composable
 internal fun CurrentFatigueStatusCard(
     state: DailyFatigueState,
-    projectedOfi: Int? = null
+    projectedOfi: Int? = null,
+    connectiveTissue: TissueOfiSummary? = null,
+    onConnectiveTissueClick: (() -> Unit)? = null
 ) {
     val status = TodayFatigueStatusLabeler.currentSummary(state)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -333,6 +337,23 @@ internal fun CurrentFatigueStatusCard(
                     "끝나면 예상 피로도: $score · ${TodayFatigueStatusLabeler.ofiDisplayLabel(score)}",
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+            connectiveTissue?.let { summary ->
+                Text(
+                    "연결조직: ${TissueAnalysisUiMapper.statusLabel(summary.status)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "주요 부위: ${summary.topJointComplexes.joinToString { it.nameKo }.ifBlank { "없음" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                onConnectiveTissueClick?.let { onClick ->
+                    TextButton(onClick = onClick) {
+                        Text("연결조직 분석 보기")
+                    }
+                }
             }
         }
     }

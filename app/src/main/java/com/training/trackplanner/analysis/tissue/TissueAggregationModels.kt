@@ -32,9 +32,11 @@ data class TissueExerciseContribution(
 
 data class TissueDimensionState(
     val key: TissueRcvLoadKey,
+    val loadUnitName: String,
     val jointComplexStableKey: String,
     val tissueClass: String,
     val rawResidual: TissueResidualRange,
+    val recentResidualHistory: List<Double>,
     val channelResiduals: Map<TissueRecoveryChannel, TissueResidualRange>,
     val status: TissueCanonicalStatus,
     val normalizedScore: Double?,

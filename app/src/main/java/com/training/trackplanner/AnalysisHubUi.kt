@@ -22,6 +22,7 @@ internal fun AnalysisHubContent(
     onFatigueClick: () -> Unit,
     onBadmintonClick: () -> Unit,
     onStrengthClick: () -> Unit,
+    onConnectiveTissueClick: () -> Unit,
     onRelationshipLabClick: () -> Unit,
     onLaggedLabClick: () -> Unit
 ) {
@@ -40,6 +41,11 @@ internal fun AnalysisHubContent(
             title = "근력운동 추이 분석",
             body = "벤치·스쿼트·데드리프트 e1RM, 근육군과 반복수 비중",
             onClick = onStrengthClick
+        )
+        AnalysisHubCard(
+            title = "연결조직 분석",
+            body = "관절 복합체별 회복 상태, 하위 조직, 주요 기여 운동",
+            onClick = onConnectiveTissueClick
         )
         TrainingDistributionSummary(stats)
         Text("실험실", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

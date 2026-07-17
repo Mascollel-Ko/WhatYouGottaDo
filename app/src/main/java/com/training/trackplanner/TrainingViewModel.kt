@@ -22,6 +22,7 @@ import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
+import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.AnalysisStats
 import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
@@ -119,6 +120,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _performanceTrendSummary = MutableStateFlow<PerformanceTrendSummary?>(null)
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
+
+    private val _connectiveTissueState = MutableStateFlow<TissueCurrentState?>(null)
+    val connectiveTissueState: StateFlow<TissueCurrentState?> = _connectiveTissueState.asStateFlow()
 
     private val _badmintonTransferSummary = MutableStateFlow<BadmintonTransferSummary?>(null)
     val badmintonTransferSummary: StateFlow<BadmintonTransferSummary?> =
@@ -649,6 +653,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             repository.performanceTrendSummary()
         }.onSuccess { summary ->
             _performanceTrendSummary.value = summary
+        }
+        runCatching {
+            repository.connectiveTissueState()
+        }.onSuccess { state ->
+            _connectiveTissueState.value = state
         }
     }
 

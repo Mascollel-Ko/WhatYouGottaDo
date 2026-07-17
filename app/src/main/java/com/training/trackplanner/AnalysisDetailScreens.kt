@@ -47,6 +47,7 @@ import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import java.time.DayOfWeek
 import java.time.temporal.TemporalAdjusters
 
@@ -58,6 +59,8 @@ internal fun FatigueAndConditionAnalysisContent(
     coachInsight: CoachAnalysisInsightSummary,
     coachingSignals: CoachingSignalsSummary,
     performanceTrend: PerformanceTrendSummary?,
+    connectiveTissue: TissueCurrentState?,
+    onConnectiveTissueClick: () -> Unit,
     onPeriodChange: (FatigueAnalysisPeriod) -> Unit,
     onFatigueTargetToggle: (FatigueTarget) -> Unit,
     onContributionTargetChange: (FatigueTarget) -> Unit,
@@ -65,7 +68,13 @@ internal fun FatigueAndConditionAnalysisContent(
     onContributionSourcesApply: (Set<String>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        fatigueAnalysis.currentState?.let { state -> CurrentFatigueStatusCard(state) }
+        fatigueAnalysis.currentState?.let { state ->
+            CurrentFatigueStatusCard(
+                state = state,
+                connectiveTissue = connectiveTissue?.ofiSummary,
+                onConnectiveTissueClick = onConnectiveTissueClick
+            )
+        }
             ?: InfoCard("오늘 상태를 계산하고 있습니다.")
         FatigueAxisCauseCard(
             fatigueState = fatigueAnalysis.currentState,

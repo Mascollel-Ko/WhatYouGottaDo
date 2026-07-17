@@ -18,6 +18,7 @@ import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
+import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -242,6 +243,13 @@ class TrainingRepository(
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         dailyStatusService = dailyStatusService
     )
+    private val connectiveTissueAnalysisService = ConnectiveTissueAnalysisService(
+        context = context,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        initialUserProfileDao = initialUserProfileDao,
+        dailyCheckInDao = dailyCheckInDao
+    )
 
     val exercises: Flow<List<Exercise>> = readQueryService.exercises
     val programs: Flow<List<TrainingProgram>> = programPlanService.programs
@@ -293,6 +301,10 @@ class TrainingRepository(
 
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
         performanceTrendSummaryService.build()
+    }
+
+    suspend fun connectiveTissueState(): TissueCurrentState = withContext(Dispatchers.IO) {
+        connectiveTissueAnalysisService.build()
     }
 
     suspend fun badmintonTransferSummary(

@@ -144,7 +144,7 @@ class TissueCurrentStateAggregator(
                 observationDays = observationDays,
                 symptomOverride = symptomOverrides[key] ?: TissueSymptomOverride.NONE
             )
-            states += state(key, rows, calibration)
+            states += state(key, rows, historyByKey[key].orEmpty(), calibration)
         }
         catalog.loadUnits.values.filter { unit ->
             states.none { it.key.loadUnitStableKey == unit.stableKey }
@@ -158,9 +158,11 @@ class TissueCurrentStateAggregator(
             )
             states += TissueDimensionState(
                 key = key,
+                loadUnitName = unit.nameKo,
                 jointComplexStableKey = unit.jointComplexStableKey,
                 tissueClass = unit.tissueClass,
                 rawResidual = TissueResidualRange(0.0, 0.0),
+                recentResidualHistory = historyByKey[key].orEmpty(),
                 channelResiduals = emptyMap(),
                 status = calibration.status,
                 normalizedScore = calibration.normalizedScore,
@@ -188,6 +190,7 @@ class TissueCurrentStateAggregator(
     private fun state(
         key: TissueRcvLoadKey,
         rows: List<TissueEventResidual>,
+        recentResidualHistory: List<Double>,
         calibration: TissueCalibrationResult
     ): TissueDimensionState {
         val channels = rows.flatMap { it.channelResiduals.keys }.associateWith { channel ->
@@ -198,12 +201,14 @@ class TissueCurrentStateAggregator(
         }
         return TissueDimensionState(
             key = key,
+            loadUnitName = catalog.loadUnits.getValue(key.loadUnitStableKey).nameKo,
             jointComplexStableKey = rows.first().event.jointComplexStableKey,
             tissueClass = rows.first().event.tissueClass,
             rawResidual = TissueResidualRange(
                 rows.sumOf { it.currentResidualRange.lower },
                 rows.sumOf { it.currentResidualRange.upper }
             ),
+            recentResidualHistory = recentResidualHistory,
             channelResiduals = channels,
             status = calibration.status,
             normalizedScore = calibration.normalizedScore,

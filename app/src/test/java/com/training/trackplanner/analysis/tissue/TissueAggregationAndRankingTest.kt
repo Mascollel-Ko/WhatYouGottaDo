@@ -118,6 +118,18 @@ class TissueAggregationAndRankingTest {
         })
     }
 
+    @Test
+    fun analysisUiShowsEveryUnsidedJointAndLoadUnit() {
+        val state = TissueCurrentStateAggregator(catalog).aggregate(emptyList(), observationDays = 0)
+        val ui = TissueAnalysisUiMapper.map(state)
+        val labels = ui.joints.flatMap { joint -> listOf(joint.name) + joint.children.map { it.name } }
+
+        assertEquals(15, ui.joints.size)
+        assertEquals(77, ui.joints.sumOf { it.children.size })
+        assertFalse(labels.any { it.contains("왼쪽") || it.contains("오른쪽") })
+        assertFalse(labels.any { it.contains("LEFT") || it.contains("RIGHT") })
+    }
+
     private fun residual(
         id: String,
         key: TissueRcvLoadKey,
