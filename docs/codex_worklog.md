@@ -2186,3 +2186,63 @@ Remaining limitations
   define injury risk, safe limits, healing time, or treatment.
 - Legacy date-only recovery ranges and the global symptom input retain their
   existing v0.4.2.7 limitations.
+
+## v0.4.2.9 - Unified daily condition and LOCAL_MUSCLE presentation
+
+Baseline and safety
+- Started from `1090eb6a0d4beb144e7a3cefd369138c06b25fe9`, where local
+  `main`, `origin/main`, and `v0.4.2.8` matched.
+- Confirmed `origin/main` was an ancestor and there were no unfinished source
+  changes from the preceding release.
+- Left all six user-owned `outputs/*` modifications untouched and unstaged.
+
+### Commit 1 - `c0da539 feat(condition): unify canonical daily condition data`
+- Cause: Home wrote `DailyCheckIn`, while Record wrote `DailyMetric`, so the
+  same local date could diverge.
+- Made `DailyCheckIn` the canonical full daily-condition record and added
+  nullable `bodyWeightKg: Double?`.
+- Added Room schema 20 and migration 19 to 20. Later reliable `updatedAt`
+  wins sleep conflicts; ties preserve the existing check-in and missing values
+  are filled from the metric row. Historical weight is never fabricated.
+- Kept `DailyMetric` as an atomic compatibility projection for established
+  analysis and body-weight effective-load consumers.
+- Routed restore and daily-timeseries writes through `DailyStatusService`.
+- Backup round trips preserve decimal weight and older backups remain valid.
+- Focused persistence/import/backup tests, Kotlin compile, and Android-test
+  compile passed.
+
+### Commit 2 - `a0810fe feat(condition): share daily condition editor across home and record`
+- Reused one `DailyConditionEditorDialog` for both entry points.
+- Home edits today; Record edits its selected `LocalDate`.
+- Added `몸무게` with `kg`, comma/point decimal parsing, inline validation,
+  accessible semantics, clearing, and `rememberSaveable` form state.
+- Removed the Record-only `saveDailyMetric` ViewModel/repository API.
+- Both screens observe the same canonical flow, so same-date changes propagate
+  without restart and historical edits do not touch today.
+- Shared-editor contract and focused storage tests passed.
+
+### Commit 3 - `e2293cd fix(fatigue): show fatigued muscles for local axis`
+- Reused readiness `highBodyParts` as the existing current muscle-fatigue
+  authority; no UI-side fatigue algorithm was added.
+- LOCAL_MUSCLE now shows `피로한 근육` and up to three canonical Korean muscle
+  names ordered by score and stable key.
+- Exact empty text: `두드러지게 피로한 근육이 없습니다.`
+- Card title: `주의할 피로 축과 주요 내용`.
+- Other OFI axes still show existing contributing exercises.
+- OFI score/status, five-axis classifier, thresholds, canonical Korean
+  messages, readiness, and recovery remain unchanged.
+
+### Release - `chore(release): bump version to v0.4.2.9`
+- Target: `versionName v0.4.2.9`, `versionCode 402009`.
+- Full unit suite: 829 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Final release SHA is the commit referenced by `origin/main` and annotated
+  tag `v0.4.2.9`; push/tag/CI status is reported in the completion report.
+
+Behavior boundaries
+- No new use of daily body weight was added to OFI, readiness, exercise volume,
+  ProgramBuilder, calories, connective tissue, or recovery.
+- Connective-tissue v0.4.2.8 calculation and UI contracts are unchanged.
+- LOCAL_MUSCLE contribution data remains available to existing consumers even
+  though its primary UI now shows muscles.
