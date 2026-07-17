@@ -16,7 +16,7 @@
 - Mapping-data fingerprint: `3b04e38df8ea80e376a683b1cba15481cb801f52b7668d5f506b98811b057742`
 - Deterministic input checksum: `034fb720d24a2e1749baa4a40d0a78d8d12a866e4a654d8fbbca4a944e80d3d2`
 - Deterministic output checksum: `ef6c1d274369e55849a2cee095262cba4b83cfccecf1bdf7968f458f6d77c4eb`
-- Canonical registry SHA-256: `fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad`
+- Canonical registry SHA-256: `2b7b1bdc7453f42e896d19d049f64f55046215cf2c6ff08c305923adc7fe2ce2`
 
 Scenario weights are product policy, not measured population prevalence.
 Boundaries use the positive residual distribution; a fully recovered zero state remains below Q30.

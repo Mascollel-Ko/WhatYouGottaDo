@@ -127,7 +127,7 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
         val registryWithoutChecksum = registryMap(profileResults, simulationValidation)
         val outputChecksum = sha256(canonicalJson(registryWithoutChecksum))
         val registry = canonicalJson(registryWithoutChecksum + ("deterministicOutputChecksum" to outputChecksum))
-        val canonicalSha = sha256(registry)
+        val canonicalSha = sha256(fileBytes(registry))
         val manifest = canonicalJson(
             mapOf(
                 "appReadyPath" to APP_READY_PATH,
@@ -629,7 +629,7 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
     private fun write(relative: String, content: String) {
         val path = root.resolve(relative)
         Files.createDirectories(path.parent)
-        Files.write(path, (content.trimEnd() + "\n").toByteArray(Charsets.UTF_8))
+        Files.write(path, fileBytes(content))
     }
 
     private fun compare(relative: String, expected: String) {
@@ -888,6 +888,7 @@ private fun String.escapeJson(): String = buildString {
 private fun sha256(value: String): String = sha256(value.toByteArray(Charsets.UTF_8))
 private fun sha256(value: ByteArray): String =
     MessageDigest.getInstance("SHA-256").digest(value).joinToString("") { "%02x".format(it) }
+private fun fileBytes(content: String): ByteArray = (content.trimEnd() + "\n").toByteArray(Charsets.UTF_8)
 
 private fun format(value: Double): String =
     BigDecimal.valueOf(value).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()

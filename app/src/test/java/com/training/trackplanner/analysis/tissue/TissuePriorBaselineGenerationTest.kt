@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.tissue
 
 import java.io.File
+import java.security.MessageDigest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -77,6 +78,19 @@ class TissuePriorBaselineGenerationTest {
     }
 
     @Test
+    fun manifestChecksumsMatchTheActualCommittedRegistryBytes() {
+        val manifest = JSONObject(
+            File(repoRoot, ConnectiveTissuePriorGenerator.MANIFEST_PATH).readText(Charsets.UTF_8)
+        )
+        val canonical = File(repoRoot, ConnectiveTissuePriorGenerator.CANONICAL_PATH)
+        val appReady = File(repoRoot, ConnectiveTissuePriorGenerator.APP_READY_PATH)
+
+        assertEquals(manifest.getString("canonicalRegistrySha256"), sha256(canonical.readBytes()))
+        assertEquals(manifest.getString("appReadySha256"), sha256(appReady.readBytes()))
+        assertEquals(canonical.readBytes().toList(), appReady.readBytes().toList())
+    }
+
+    @Test
     fun generatedStatusRemainsNotRuntimeActiveAndProductionAuthorityIsDirectlyReused() {
         assertEquals(
             listOf("DESIGNED", "GENERATED", "VALIDATED", "NOT_YET_RUNTIME_ACTIVE"),
@@ -116,6 +130,9 @@ class TissuePriorBaselineGenerationTest {
                         .readText(Charsets.UTF_8)
                 }
             )
+
+        private fun sha256(bytes: ByteArray): String =
+            MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
     }
 }
 

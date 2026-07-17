@@ -2478,7 +2478,7 @@ Discovery and design lock
   and sided duplication fail generation.
 - Generated 312 profile/hour buckets and 936 ordered quantiles. Canonical and
   app-ready registry SHA-256 is
-  `fed7972d975a9242b8b129133e28f537dcb2096285c95a76d4e260ffc42abbad`.
+  `2b7b1bdc7453f42e896d19d049f64f55046215cf2c6ff08c305923adc7fe2ce2`.
 - Recovery-engine fingerprint is
   `8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a`;
   deterministic output checksum is
@@ -2505,7 +2505,7 @@ Discovery and design lock
   ordered, bounded, and deterministic.
 
 ### Commit 3 - protocol governance and Phase 1 boundary documentation
-- Commit: pending at worklog write.
+- Commit: `ec5afb9 docs(tissue): govern prior baseline phase one`.
 - Expanded the existing `CT-PERSONAL-CALIBRATION` canonical document instead
   of creating a 29th canonical protocol document.
 - Registered all nine Phase 1 and future downstream components with authority,
@@ -2515,6 +2515,18 @@ Discovery and design lock
   safety limitations, machine registry, and documentation tests.
 - Phase 1 lifecycle is explicitly
   `DESIGNED / GENERATED / VALIDATED / NOT_YET_RUNTIME_ACTIVE`.
+
+### Commit 4 - generated artifact file-checksum correction
+- Commit: pending at worklog write.
+- Final verification found that the manifest hashed canonical JSON content
+  before the writer appended its standard newline. Numerical content and
+  deterministic output were unchanged, but the reported artifact SHA did not
+  equal the committed file bytes.
+- The generator now hashes the exact bytes it writes. Manifest, report,
+  canonical documentation and machine registry use actual file SHA-256
+  `2b7b1bdc7453f42e896d19d049f64f55046215cf2c6ff08c305923adc7fe2ce2`.
+- Added a regression test comparing manifest checksums with both committed
+  canonical and app-ready file bytes.
 
 Runtime boundaries and remaining work
 - Current `보정 중` UI and current classification are unchanged.
