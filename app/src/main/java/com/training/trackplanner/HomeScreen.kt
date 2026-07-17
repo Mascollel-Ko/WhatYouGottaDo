@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -35,6 +38,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.data.InitialUserProfile
@@ -44,7 +48,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 internal fun HomeScreen(
     viewModel: TrainingViewModel,
-    onNavigate: (AppTab) -> Unit
+    onNavigate: (AppTab) -> Unit,
+    onOpenAppExplanation: () -> Unit
 ) {
     val today = remember { LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) }
     val summary by viewModel.homeTodaySummary.collectAsState()
@@ -78,7 +83,8 @@ internal fun HomeScreen(
         item {
             CompactHomeActionGroup(
                 onRecord = { onNavigate(AppTab.Record) },
-                onProgram = { onNavigate(AppTab.Plan) }
+                onProgram = { onNavigate(AppTab.Plan) },
+                onOpenAppExplanation = onOpenAppExplanation
             )
         }
         item {
@@ -129,9 +135,10 @@ internal fun HomeScreen(
 }
 
 @Composable
-private fun CompactHomeActionGroup(
+internal fun CompactHomeActionGroup(
     onRecord: () -> Unit,
-    onProgram: () -> Unit
+    onProgram: () -> Unit,
+    onOpenAppExplanation: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         CompactHomeActionButton(
@@ -143,6 +150,18 @@ private fun CompactHomeActionGroup(
             title = "프로그램으로 시작하기",
             body = "프로그램을 선택해 날짜별 계획을 만듭니다.",
             onClick = onProgram
+        )
+        CompactInfoNavigationRow(
+            label = stringResource(R.string.home_app_explanation_label),
+            description = stringResource(R.string.home_app_explanation_description),
+            onClick = onOpenAppExplanation,
+            leading = {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         )
     }
 }
