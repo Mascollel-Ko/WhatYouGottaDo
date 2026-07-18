@@ -745,7 +745,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 순위와 표시",
       "titleEn": "Connective-tissue Ranking and Presentation",
-      "currentVersion": "2.1.0",
+      "currentVersion": "2.1.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -754,7 +754,7 @@
       ],
       "canonicalDocument": "connective_tissue/RANKING_AND_PRESENTATION.md",
       "implementedFromAppVersion": "v0.4.2.8",
-      "lastAuditedCommit": "f2479c8cbf89649469495966d3e8cc09ff49ad8d",
+      "lastAuditedCommit": "9b9124d1d9cd5b6fcdd42a7578d2295f991bbe1b",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
@@ -781,7 +781,8 @@
         "docs/v0.4.2.8_release_notes.md",
         "docs/v0.4.2.12_release_notes.md",
         "docs/reviews/connective_tissue_educational_copy_review_v2.md",
-        "docs/v0.4.2.13_release_notes.md"
+        "docs/v0.4.2.13_release_notes.md",
+        "docs/v0.4.2.14_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],

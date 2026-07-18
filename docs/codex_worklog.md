@@ -2830,3 +2830,41 @@ Verification
 - Release identity is `v0.4.2.13 / 402013`. The release commit is the commit
   containing this final verification record; push, CI and annotated-tag
   results are recorded in the final task report.
+
+## v0.4.2.14 connective-tissue diagnostics and imported badminton hotfix
+
+### Baseline and cause
+- Started from latest `origin/main` at
+  `934c6cc85b3e9f8e3d807780687d4a329261ece7`, tagged `v0.4.2.13`, with app
+  identity `v0.4.2.13 / 402013`.
+- `TissueAnalysisUiMapper` copied domain diagnostics into user-facing state,
+  and Compose rendered both child diagnostics and a gray diagnostic card.
+- Restore rows with the explicit legacy key `imported_배드민턴` bypassed the
+  existing reviewed `ex_ae9ecdbc` badminton authority.
+
+### Hotfix
+- Commit `9b9124d1d9cd5b6fcdd42a7578d2295f991bbe1b` removes diagnostics from the
+  connective-tissue presentation model and rendering while retaining them in
+  domain state for logs and tests. The baseline-source footer remains.
+- `BackupRestoreImportService` now canonicalizes only
+  `imported_배드민턴 -> ex_ae9ecdbc` for restored exercise, set and runtime
+  metadata rows. It does not perform display-name matching and creates no new
+  tissue mapping.
+- The integrated Room regression proves the restored entry uses the canonical
+  exercise, reaches the complete existing badminton authority-key set, keeps
+  the 45-minute duration and RPE 8 effort, and leaves event repetitions at
+  zero.
+
+### Verification and release
+- Focused `BackupRestoreImportBehaviorTest` and
+  `ConnectiveTissueAnalysisUiTest` covered 18 tests with 0 failures.
+- Full `:app:testDebugUnitTest` covered 924 tests across 156 suites with 0
+  failures, errors or skipped tests. `:app:compileDebugKotlin` and
+  `:app:assembleDebug` passed.
+- `validateConnectiveTissuePriorBaselines` passed. Protocol documentation
+  validation passed for 6 families and the unchanged 28 protocols.
+- Push, GitHub Actions and final tag are completed before the release is
+  reported.
+- Release identity is `v0.4.2.14 / 402014`.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.
