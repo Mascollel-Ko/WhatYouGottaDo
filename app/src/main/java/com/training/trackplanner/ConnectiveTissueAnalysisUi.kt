@@ -12,10 +12,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -160,48 +160,47 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                         )
                     }
                     if (expandedJoint == joint.key) {
-                        joint.children.forEach { child ->
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
+                        joint.children.forEachIndexed { index, child ->
+                            if (index > 0) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
+                            }
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            child.name,
-                                            modifier = Modifier.weight(1f),
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                        TissueInfoButton(
-                                            contentDescription = stringResource(
-                                                R.string.tissue_analysis_info_description,
-                                                child.name
-                                            ),
-                                            onClick = { selectedInfoKey = child.info.stableKey }
-                                        )
-                                    }
                                     Text(
-                                        stringResource(
-                                            R.string.tissue_analysis_model_range,
-                                            tissueStatusLabel(child.status),
-                                            child.recoveryRange
-                                        )
+                                        child.name,
+                                        modifier = Modifier.weight(1f),
+                                        fontWeight = FontWeight.SemiBold
                                     )
-                                    Text(
-                                        stringResource(
-                                            R.string.tissue_analysis_contributing_exercises,
-                                            child.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                                    TissueInfoButton(
+                                        contentDescription = stringResource(
+                                            R.string.tissue_analysis_info_description,
+                                            child.name
                                         ),
-                                        style = MaterialTheme.typography.bodySmall
+                                        onClick = { selectedInfoKey = child.info.stableKey }
                                     )
                                 }
+                                Text(
+                                    stringResource(
+                                        R.string.tissue_analysis_model_range,
+                                        tissueStatusLabel(child.status),
+                                        child.recoveryRange
+                                    )
+                                )
+                                Text(
+                                    stringResource(
+                                        R.string.tissue_analysis_contributing_exercises,
+                                        child.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }

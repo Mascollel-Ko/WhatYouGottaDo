@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -137,7 +138,10 @@ internal fun FatigueAxisCauseCard(
                 )
             }
             if (expanded) {
-                axes.forEach { axis ->
+                axes.forEachIndexed { index, axis ->
+                    if (index > 0) {
+                        HorizontalDivider()
+                    }
                     FatigueAxisDetailBlock(
                         axis = axis,
                         details = axisPrimaryDetailValues(axis, summary, bodyPartPressures)
@@ -150,32 +154,31 @@ internal fun FatigueAxisCauseCard(
 
 @Composable
 private fun FatigueAxisDetailBlock(axis: TodayFatigueAxisState, details: List<String>) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(
+            "현재 상태: ${axis.displayLabel}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (isCautionAxis(axis)) {
+            val isLocalMuscle = axis.label == FatigueTarget.LOCAL_MUSCULAR.label
             Text(
-                "현재 상태: ${axis.displayLabel}",
+                if (isLocalMuscle) LOCAL_MUSCLE_DETAIL_LABEL else "주요 기여 운동",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                details.takeIf { it.isNotEmpty() }?.joinToString(", ")
+                    ?: if (isLocalMuscle) LOCAL_MUSCLE_EMPTY_TEXT else "주요 기여 운동을 확인할 수 없습니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (isCautionAxis(axis)) {
-                val isLocalMuscle = axis.label == FatigueTarget.LOCAL_MUSCULAR.label
-                Text(
-                    if (isLocalMuscle) LOCAL_MUSCLE_DETAIL_LABEL else "주요 기여 운동",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    details.takeIf { it.isNotEmpty() }?.joinToString(", ")
-                        ?: if (isLocalMuscle) LOCAL_MUSCLE_EMPTY_TEXT else "주요 기여 운동을 확인할 수 없습니다.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -243,36 +246,21 @@ internal fun RecognitionSignalsCard(summary: CoachingSignalsSummary) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("인식 신호", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("수행 감소 및 불편감 신호", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    if (performanceRows.isEmpty()) {
-                        Text("뚜렷한 수행 감소 또는 불편감 신호는 확인되지 않았습니다.", style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        performanceRows.take(3).forEach { (label, severity, detail) ->
-                            RecognitionSignalDetail(label, severity, detail)
-                        }
-                    }
+            Text("수행 감소 및 불편감 신호", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            if (performanceRows.isEmpty()) {
+                Text("뚜렷한 수행 감소 또는 불편감 신호는 확인되지 않았습니다.", style = MaterialTheme.typography.bodySmall)
+            } else {
+                performanceRows.take(3).forEach { (label, severity, detail) ->
+                    RecognitionSignalDetail(label, severity, detail)
                 }
             }
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("수면 보정 코칭 신호", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    RecognitionSignalDetail(
-                        label = "수면",
-                        severity = summary.sleep.severity,
-                        detail = "${summary.sleep.headline} ${summary.sleep.detail}".trim()
-                    )
-                }
-            }
+            HorizontalDivider()
+            Text("수면 보정 코칭 신호", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            RecognitionSignalDetail(
+                label = "수면",
+                severity = summary.sleep.severity,
+                detail = "${summary.sleep.headline} ${summary.sleep.detail}".trim()
+            )
         }
     }
 }
@@ -322,18 +310,14 @@ private fun BadmintonTransferCoverageCard(insight: CoachAnalysisInsightSummary) 
 
 @Composable
 internal fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Text(axis.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(axis.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -468,35 +452,35 @@ private fun PerformanceDetailSectionView(section: PerformanceDetailSection, summ
         PerformanceDetailSectionType.FATIGUE -> chartBuilder.fatigueDetail(mode, selectedMetrics.toList(), summary.fatigueWeeks)
         PerformanceDetailSectionType.RELATIONSHIP -> return
     }
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(section.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            AnalysisChipRow(
-                labels = section.availableModes.map { it.analysisLabel() },
-                selected = section.availableModes.indexOf(mode).coerceAtLeast(0),
-                onSelect = { index ->
-                    mode = section.availableModes[index]
-                    selectedMetrics.clear()
-                    section.availableMetrics.firstOrNull()?.let(selectedMetrics::add)
+        HorizontalDivider()
+        Text(section.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        AnalysisChipRow(
+            labels = section.availableModes.map { it.analysisLabel() },
+            selected = section.availableModes.indexOf(mode).coerceAtLeast(0),
+            onSelect = { index ->
+                mode = section.availableModes[index]
+                selectedMetrics.clear()
+                section.availableMetrics.firstOrNull()?.let(selectedMetrics::add)
+            }
+        )
+        if (mode == DetailChartMode.TREND) {
+            AnalysisMetricChipRow(
+                metrics = section.availableMetrics,
+                selectedMetrics = selectedMetrics.toList(),
+                onToggle = { metric ->
+                    if (metric in selectedMetrics) selectedMetrics.remove(metric) else selectedMetrics.add(metric)
+                    if (selectedMetrics.isEmpty()) selectedMetrics.add(metric)
                 }
             )
-            if (mode == DetailChartMode.TREND) {
-                AnalysisMetricChipRow(
-                    metrics = section.availableMetrics,
-                    selectedMetrics = selectedMetrics.toList(),
-                    onToggle = { metric ->
-                        if (metric in selectedMetrics) selectedMetrics.remove(metric) else selectedMetrics.add(metric)
-                        if (selectedMetrics.isEmpty()) selectedMetrics.add(metric)
-                    }
-                )
-            }
-            AnalysisChartSpecView(chartSpec)
-            Text(section.shortInterpretation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        AnalysisChartSpecView(chartSpec)
+        Text(section.shortInterpretation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

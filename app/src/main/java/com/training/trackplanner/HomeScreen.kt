@@ -277,17 +277,17 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SummaryPill(
+                SummaryMetric(
                     modifier = Modifier.weight(1f),
                     label = "오늘 계획",
                     value = summary.plannedExerciseCount.toString()
                 )
-                SummaryPill(
+                SummaryMetric(
                     modifier = Modifier.weight(1f),
                     label = "완료 세트",
                     value = summary.confirmedSetCount.toString()
                 )
-                SummaryPill(
+                SummaryMetric(
                     modifier = Modifier.weight(1f),
                     label = "미확인 세트",
                     value = summary.unconfirmedSetCount.toString()

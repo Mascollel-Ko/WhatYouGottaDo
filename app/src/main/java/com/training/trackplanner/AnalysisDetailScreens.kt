@@ -200,7 +200,11 @@ private fun BadmintonTrainingLoadCharts(
                 )
                 if (mode == BadmintonLoadMode.METHOD) {
                     if (methodTotals.isEmpty()) {
-                        InfoCard("전이 목적 메타데이터가 있는 기록이 부족합니다.")
+                        Text(
+                            "전이 목적 메타데이터가 있는 기록이 부족합니다.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     } else {
                         AnalysisChipRow(
                             labels = methodKeys.map(BadmintonTrainingMethodLabels::label),
