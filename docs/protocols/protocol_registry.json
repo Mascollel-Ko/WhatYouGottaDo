@@ -314,7 +314,8 @@
       "supportingDocuments": [
         "docs/tissue_load_foundation_v1.md",
         "docs/v0.4.2.7_release_notes.md",
-        "docs/v0.4.2.8_release_notes.md"
+        "docs/v0.4.2.8_release_notes.md",
+        "docs/v0.4.2.12_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -490,7 +491,8 @@
         "tools/connective-tissue-prior/generated/generation_report.md"
       ],
       "supportingDocuments": [
-        "docs/v0.4.2.7_release_notes.md"
+        "docs/v0.4.2.7_release_notes.md",
+        "docs/v0.4.2.12_release_notes.md"
       ],
       "knownGaps": [
         "Scenario weights, gap retention, calibration weights, shared profiles, experience coefficients, and multiplier caps are bounded product policy rather than measured population prevalence or biological capacity estimates.",
@@ -767,7 +769,8 @@
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
       ],
       "supportingDocuments": [
-        "docs/v0.4.2.8_release_notes.md"
+        "docs/v0.4.2.8_release_notes.md",
+        "docs/v0.4.2.12_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],

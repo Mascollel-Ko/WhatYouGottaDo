@@ -2712,3 +2712,31 @@ Verification
   threshold entered the APK.
 - All six pre-existing `outputs/*` modifications remain untouched, unstaged,
   and outside every commit.
+
+### Release verification and lifecycle-test correction
+- Focused Phase 2 verification covered 11 suites and 74 tests across calendar
+  segmentation, per-unit weights, personal baselines, prior mixing,
+  classification/ranking, profile UI, backup restore, Compose UI,
+  documentation and production-service performance; all passed.
+- The first full unit run completed 916 tests with one failure in the obsolete
+  Phase 1 assertion that required the generated prior to have no runtime
+  consumers. Commit `bbc4658` kept the generated artifact lifecycle and
+  checksums immutable while constraining runtime consumption to exactly
+  `TissuePriorRegistry.kt` and `TissueEffectiveBaselinePolicy.kt`.
+- The corrected full run passed 916 tests with 0 failures, 0 errors and 0
+  skipped. `compileDebugKotlin`, `compileDebugAndroidTestKotlin` and
+  `assembleDebug` passed.
+- The explicit Room 20→21 migration test ran on a headless Android 17 emulator
+  and passed. Existing bodyweight, strength years and badminton years remain
+  intact; habitual intensity starts as neutral null.
+- Repeated prior generation and validation passed with no generated tracked
+  drift. Bundled-Python protocol validation passed for 6 families and all 28
+  protocols. Publication integrity checked 10 sources, found all 10 required
+  no-adverse notices and reported 0 blockers.
+- Latest local production-service measurements were 78 ms for 10 records,
+  159 ms for approximately 56 valid days/71 records and 168 ms for a
+  107-record history with multiple excluded gaps. These are observations, not
+  machine-independent performance thresholds.
+- Release identity is `v0.4.2.12 / 402012`. The release commit, main push, CI
+  result and annotated tag are intentionally completed only after this local
+  verification; their remote results are recorded in the final task report.
