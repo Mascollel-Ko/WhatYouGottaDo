@@ -127,6 +127,20 @@ class TissueExposureShadowPipelineTest {
     }
 
     @Test
+    fun canonicalOfiAxisCorrectionDoesNotChangeConnectiveTissueExposureNumbers() {
+        val exposure = TissueExposureCalculator.calculate(
+            record().copy(approvedRpeMultiplier = 1.2),
+            listOf(profile("joint", TissueClass.JOINT, "KNEE_PATELLOFEMORAL", TissueLoadDimension.COMPRESSION)),
+            mapOf("joint" to fixtureWeight("joint", 0.5)),
+            allowNonProductionFixtures = true
+        ).single()
+
+        assertEquals(100.0, exposure.rawExposure!!, 1e-9)
+        assertEquals(120.0, exposure.adjustedExposure!!, 1e-9)
+        assertEquals(TissueCalculationStatus.CALCULABLE, exposure.calculationStatus)
+    }
+
+    @Test
     fun unapprovedMetadataIsNotZeroAndExecutionSideDoesNotSplitUnsidedState() {
         val unilateral = profile(
             "unilateral", TissueClass.TENDON, "PATELLAR_TENDON", TissueLoadDimension.PEAK_TENSILE_LOAD,

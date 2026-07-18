@@ -13,11 +13,11 @@ class FatiguePresentationMapperTest {
         val result = mapper.map(snapshot())
 
         assertEquals(0, result.overallScore)
-        assertEquals(0, result.neuralScore)
-        assertEquals(0, result.localMuscleScore)
-        assertEquals(0, result.jointTendonScore)
-        assertEquals(0, result.systemicScore)
-        assertEquals(0, result.focusScore)
+        assertEquals(0, result.highForceNeuralScore)
+        assertEquals(0, result.localMuscularScore)
+        assertEquals(0, result.highSpeedScore)
+        assertEquals(0, result.systemicMuscularScore)
+        assertEquals(0, result.reactiveScore)
         assertTrue(result.highCategories.isEmpty())
         assertTrue(result.highBodyParts.isEmpty())
         assertFalse(result.gate.heavyLowerRestricted)
@@ -35,31 +35,33 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.NEURAL_HEAVY to highPressure("NEURAL_HEAVY")))
         )
 
-        assertTrue(result.neuralScore >= 70)
+        assertTrue(result.highForceNeuralScore >= 70)
         assertTrue(result.gate.heavyLowerRestricted)
         assertEquals(7, result.gate.rpeCap)
         assertTrue(result.reasons.contains("High neural fatigue pressure"))
     }
 
     @Test
-    fun highNeuralSpeedContributesToNeuralFocusAndCodRestriction() {
+    fun highNeuralSpeedContributesToHighSpeedWithoutReactiveCoupling() {
         val result = mapper.map(
             snapshot(categories = mapOf(FatigueCategoryKey.NEURAL_SPEED to highPressure("NEURAL_SPEED")))
         )
 
-        assertTrue(result.neuralScore >= 70)
-        assertTrue(result.focusScore >= 70)
+        assertTrue(result.highSpeedScore >= 70)
+        assertEquals(0, result.highForceNeuralScore)
+        assertEquals(0, result.reactiveScore)
         assertTrue(result.gate.codReactiveRestricted)
         assertTrue(result.reasons.contains("High neural speed pressure"))
     }
 
     @Test
-    fun highDecelerationProducesJointTendonScoreAndHighImpactCodRestriction() {
+    fun highDecelerationProducesReactiveScoreAndHighImpactCodRestriction() {
         val result = mapper.map(
             snapshot(categories = mapOf(FatigueCategoryKey.DECELERATION to highPressure("DECELERATION")))
         )
 
-        assertTrue(result.jointTendonScore >= 70)
+        assertTrue(result.reactiveScore >= 70)
+        assertEquals(0, result.highSpeedScore)
         assertTrue(result.gate.highImpactRestricted)
         assertTrue(result.gate.codReactiveRestricted)
         assertTrue(result.reasons.contains("High deceleration / change-of-direction load"))
@@ -71,7 +73,7 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.ELASTIC_SSC to highPressure("ELASTIC_SSC")))
         )
 
-        assertTrue(result.jointTendonScore >= 70)
+        assertTrue(result.highSpeedScore >= 70)
         assertTrue(result.gate.highImpactRestricted)
         assertTrue(result.gate.codReactiveRestricted)
         assertTrue(result.reasons.contains("High elastic SSC / landing load"))
@@ -83,7 +85,7 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.LOCAL_MUSCLE to highPressure("LOCAL_MUSCLE")))
         )
 
-        assertTrue(result.localMuscleScore >= 70)
+        assertTrue(result.localMuscularScore >= 70)
     }
 
     @Test
@@ -92,18 +94,20 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.SYSTEMIC to highPressure("SYSTEMIC")))
         )
 
-        assertTrue(result.systemicScore >= 70)
+        assertTrue(result.systemicMuscularScore >= 70)
         assertTrue(result.reasons.contains("High systemic fatigue pressure"))
     }
 
     @Test
-    fun highBadmintonCourtContributesToSystemicFocusAndCodWithoutNewTaxonomy() {
+    fun highBadmintonCourtContributesToSystemicHighSpeedAndReactiveAxes() {
         val result = mapper.map(
             snapshot(categories = mapOf(FatigueCategoryKey.BADMINTON_COURT to highPressure("BADMINTON_COURT")))
         )
 
-        assertTrue(result.systemicScore in 1..69)
-        assertTrue(result.focusScore >= 70)
+        assertTrue(result.systemicMuscularScore in 1..69)
+        assertTrue(result.highSpeedScore in 1..69)
+        assertTrue(result.reactiveScore >= 70)
+        assertTrue(result.highSpeedScore != result.reactiveScore)
         assertTrue(result.gate.codReactiveRestricted)
         assertTrue(result.highCategories.any { item -> item.category == FatigueCategoryKey.BADMINTON_COURT })
         assertTrue(result.reasons.contains("High badminton court pressure"))
@@ -159,11 +163,11 @@ class FatiguePresentationMapperTest {
 
         listOf(
             result.overallScore,
-            result.neuralScore,
-            result.localMuscleScore,
-            result.jointTendonScore,
-            result.systemicScore,
-            result.focusScore
+            result.highForceNeuralScore,
+            result.localMuscularScore,
+            result.highSpeedScore,
+            result.systemicMuscularScore,
+            result.reactiveScore
         ).forEach { score ->
             assertTrue(score in 0..100)
         }
@@ -177,7 +181,7 @@ class FatiguePresentationMapperTest {
             snapshot(categories = mapOf(FatigueCategoryKey.SYSTEMIC to elevatedFloorPressure("SYSTEMIC")))
         )
 
-        assertEquals(72, result.systemicScore)
+        assertEquals(72, result.systemicMuscularScore)
         assertFalse(result.gate.heavyLowerRestricted)
         assertFalse(result.gate.highImpactRestricted)
         assertFalse(result.gate.codReactiveRestricted)

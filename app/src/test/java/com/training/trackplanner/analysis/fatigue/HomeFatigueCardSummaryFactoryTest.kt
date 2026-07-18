@@ -1,4 +1,4 @@
-﻿package com.training.trackplanner.analysis.fatigue
+package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.FatigueAvailability
@@ -119,7 +119,7 @@ class HomeFatigueCardSummaryFactoryTest {
     fun completedPlanShowsCurrentWithoutRemainingProjection() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(42),
-            current = state(70, systemicScore = 84),
+            current = state(70, systemicMuscularScore = 84),
             projected = null,
             confirmedSetCount = 6,
             unconfirmedSetCount = 0,
@@ -184,7 +184,7 @@ class HomeFatigueCardSummaryFactoryTest {
     fun remainingPlanKeepsSingleAxisCurrentLabelWhenProjectionAccumulates() {
         val summary = HomeFatigueCardSummaryFactory.create(
             preWorkout = state(42),
-            current = state(54, focusScore = 84),
+            current = state(54, reactiveScore = 84),
             projected = state(72),
             confirmedSetCount = 3,
             unconfirmedSetCount = 3,
@@ -192,16 +192,16 @@ class HomeFatigueCardSummaryFactoryTest {
                 current = ReadinessStatus.FATIGUED,
                 projected = ReadinessStatus.FATIGUED,
                 phase = TodayStatusPhase.REMAINING_PLAN,
-                currentSections = listOf(section(FatigueDetailType.BADMINTON_COURT, "동작·집중", FatigueLevel.HIGH)),
+                currentSections = listOf(section(FatigueDetailType.BADMINTON_COURT, "반응", FatigueLevel.HIGH)),
                 projectedSections = listOf(
-                    section(FatigueDetailType.BADMINTON_COURT, "동작·집중", FatigueLevel.HIGH),
+                    section(FatigueDetailType.BADMINTON_COURT, "반응", FatigueLevel.HIGH),
                     section(FatigueDetailType.LOCAL_BODY_PART, "국소 근육", FatigueLevel.HIGH)
                 )
             )
         )
 
         assertEquals("피로도 보통", summary.primary.label)
-        assertEquals("동작·집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", summary.axisMessage)
+        assertEquals("반응 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", summary.axisMessage)
         assertEquals("끝나면 예상 피로도", summary.projectionPrefix)
         assertEquals("예상 피로도 보통", summary.projection?.label)
         assertNull(summary.actionLabel)
@@ -375,24 +375,24 @@ class HomeFatigueCardSummaryFactoryTest {
 
     private fun state(
         ofi: Int,
-        systemicScore: Int = ofi,
+        systemicMuscularScore: Int = ofi,
         localScore: Int = ofi,
         jointScore: Int = ofi,
-        focusScore: Int = ofi,
+        reactiveScore: Int = ofi,
         recoveryScore: Int = ofi
     ): DailyFatigueState = DailyFatigueState(
         date = LocalDate.of(2026, 6, 20),
-        neuromuscularFatigue = 0.0,
+        highForceNeuralFatigue = 0.0,
         systemicMuscularFatigue = 0.0,
         localMuscularFatigue = 0.0,
-        jointTendonImpactFatigue = 0.0,
-        movementFocusFatigue = 0.0,
+        highSpeedFatigue = 0.0,
+        reactiveFatigue = 0.0,
         recoveryPressure = 0.0,
-        neuromuscularScore = ofi,
-        systemicMuscularScore = systemicScore,
+        highForceNeuralScore = ofi,
+        systemicMuscularScore = systemicMuscularScore,
         localMuscularScore = localScore,
-        jointTendonImpactScore = jointScore,
-        movementFocusScore = focusScore,
+        highSpeedScore = jointScore,
+        reactiveScore = reactiveScore,
         recoveryPressureScore = recoveryScore,
         overallFatigueIndex = ofi,
         readinessLabel = FatigueLabelResolver.label(ofi),
@@ -464,11 +464,11 @@ class HomeFatigueCardSummaryFactoryTest {
     private fun presentation(score: Int): FatiguePresentationSnapshot =
         FatiguePresentationSnapshot(
             overallScore = score,
-            neuralScore = 0,
-            localMuscleScore = 0,
-            jointTendonScore = 0,
-            systemicScore = 0,
-            focusScore = 0,
+            highForceNeuralScore = 0,
+            localMuscularScore = 0,
+            highSpeedScore = 0,
+            systemicMuscularScore = 0,
+            reactiveScore = 0,
             highCategories = emptyList(),
             highBodyParts = emptyList(),
             gate = TrainingGateSnapshot(

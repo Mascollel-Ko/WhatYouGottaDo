@@ -26,13 +26,12 @@ class CoachFatigueCauseAnalyzer {
                 val axes = grouped.fold(FatigueAxisValues()) { total, contribution ->
                     val daysSince = ChronoUnit.DAYS.between(contribution.date, today).toInt()
                     val generalDecay = FatigueDecayModel.factor(contribution.recoveryDurationClass, daysSince)
-                    val jointDecay = FatigueDecayModel.factor(contribution.jointRecoveryDurationClass, daysSince)
                     total + FatigueAxisValues(
-                        neuromuscular = contribution.axes.neuromuscular * generalDecay,
+                        highForceNeural = contribution.axes.highForceNeural * generalDecay,
                         systemicMuscular = contribution.axes.systemicMuscular * generalDecay,
                         localMuscular = contribution.axes.localMuscular * generalDecay,
-                        jointTendonImpact = contribution.axes.jointTendonImpact * jointDecay,
-                        movementFocus = contribution.axes.movementFocus * generalDecay,
+                        highSpeed = contribution.axes.highSpeed * generalDecay,
+                        reactive = contribution.axes.reactive * generalDecay,
                         recoveryPressure = contribution.axes.recoveryPressure * generalDecay
                     )
                 }
@@ -81,10 +80,10 @@ class CoachFatigueCauseAnalyzer {
     }
 
     private fun axisValues(axes: FatigueAxisValues): List<Pair<String, Double>> = listOf(
-        "신경계" to axes.neuromuscular,
+        "고중량·힘 신경계" to axes.highForceNeural,
         "전신 근육" to axes.systemicMuscular,
         "국소 근육" to axes.localMuscular,
-        "관절·건·충격" to axes.jointTendonImpact,
-        "동작·집중" to axes.movementFocus
+        "고속" to axes.highSpeed,
+        "반응" to axes.reactive
     )
 }

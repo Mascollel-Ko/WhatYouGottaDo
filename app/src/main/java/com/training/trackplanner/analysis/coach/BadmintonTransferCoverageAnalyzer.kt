@@ -95,11 +95,12 @@ class BadmintonTransferCoverageAnalyzer(
     private fun relatedFatigueScore(axis: BadmintonTransferAxis, state: DailyFatigueState?): Int {
         if (state == null) return 0
         return when (axis) {
-            BadmintonTransferAxis.DECELERATION_LANDING -> maxOf(state.jointTendonImpactScore, state.localMuscularScore)
-            BadmintonTransferAxis.UNILATERAL_STABILITY -> maxOf(state.movementFocusScore, state.jointTendonImpactScore)
-            BadmintonTransferAxis.LATERAL_MOVEMENT -> maxOf(state.movementFocusScore, state.jointTendonImpactScore)
-            BadmintonTransferAxis.ROTATION_CONTROL -> maxOf(state.movementFocusScore, state.localMuscularScore)
-            BadmintonTransferAxis.RACKET_SUPPORT -> maxOf(state.localMuscularScore, state.jointTendonImpactScore)
+            BadmintonTransferAxis.DECELERATION_LANDING ->
+                maxOf(state.highSpeedScore, state.reactiveScore, state.localMuscularScore)
+            BadmintonTransferAxis.UNILATERAL_STABILITY -> maxOf(state.reactiveScore, state.localMuscularScore)
+            BadmintonTransferAxis.LATERAL_MOVEMENT -> state.reactiveScore
+            BadmintonTransferAxis.ROTATION_CONTROL -> maxOf(state.reactiveScore, state.localMuscularScore)
+            BadmintonTransferAxis.RACKET_SUPPORT -> state.localMuscularScore
             BadmintonTransferAxis.AEROBIC_FOOTWORK -> maxOf(state.systemicMuscularScore, state.recoveryPressureScore)
             BadmintonTransferAxis.LOW_FATIGUE_CONTROL -> state.recoveryPressureScore
         }

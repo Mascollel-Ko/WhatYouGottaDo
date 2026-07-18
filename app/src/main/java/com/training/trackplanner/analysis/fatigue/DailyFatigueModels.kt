@@ -17,39 +17,39 @@ enum class FatigueConfidence {
 }
 
 data class FatigueAxisValues(
-    val neuromuscular: Double = 0.0,
+    val highForceNeural: Double = 0.0,
     val systemicMuscular: Double = 0.0,
     val localMuscular: Double = 0.0,
-    val jointTendonImpact: Double = 0.0,
-    val movementFocus: Double = 0.0,
+    val highSpeed: Double = 0.0,
+    val reactive: Double = 0.0,
     val recoveryPressure: Double = 0.0
 ) {
     fun map(transform: (Double) -> Double): FatigueAxisValues =
         FatigueAxisValues(
-            neuromuscular = transform(neuromuscular),
+            highForceNeural = transform(highForceNeural),
             systemicMuscular = transform(systemicMuscular),
             localMuscular = transform(localMuscular),
-            jointTendonImpact = transform(jointTendonImpact),
-            movementFocus = transform(movementFocus),
+            highSpeed = transform(highSpeed),
+            reactive = transform(reactive),
             recoveryPressure = transform(recoveryPressure)
         )
 
     fun values(): List<Double> = listOf(
-        neuromuscular,
+        highForceNeural,
         systemicMuscular,
         localMuscular,
-        jointTendonImpact,
-        movementFocus,
+        highSpeed,
+        reactive,
         recoveryPressure
     )
 
     operator fun plus(other: FatigueAxisValues): FatigueAxisValues =
         FatigueAxisValues(
-            neuromuscular + other.neuromuscular,
+            highForceNeural + other.highForceNeural,
             systemicMuscular + other.systemicMuscular,
             localMuscular + other.localMuscular,
-            jointTendonImpact + other.jointTendonImpact,
-            movementFocus + other.movementFocus,
+            highSpeed + other.highSpeed,
+            reactive + other.reactive,
             recoveryPressure + other.recoveryPressure
         )
 }
@@ -61,7 +61,6 @@ data class RecordFatigueContribution(
     val trainingLoad: Double,
     val axes: FatigueAxisValues,
     val recoveryDurationClass: String,
-    val jointRecoveryDurationClass: String,
     val strengthProgressionGroup: String,
     val redundancyGroup: String,
     val movementFamily: String,
@@ -73,27 +72,27 @@ data class GroupFatigueState(
     val date: LocalDate,
     val groupType: String,
     val groupKey: String,
-    val neuromuscularFatigue: Double = 0.0,
+    val highForceNeuralFatigue: Double = 0.0,
     val systemicMuscularFatigue: Double = 0.0,
     val localFatigue: Double,
-    val jointTendonImpactFatigue: Double,
-    val movementFocusFatigue: Double,
+    val highSpeedFatigue: Double,
+    val reactiveFatigue: Double,
     val recoveryPressure: Double
 )
 
 data class DailyFatigueState(
     val date: LocalDate,
-    val neuromuscularFatigue: Double,
+    val highForceNeuralFatigue: Double,
     val systemicMuscularFatigue: Double,
     val localMuscularFatigue: Double,
-    val jointTendonImpactFatigue: Double,
-    val movementFocusFatigue: Double,
+    val highSpeedFatigue: Double,
+    val reactiveFatigue: Double,
     val recoveryPressure: Double,
-    val neuromuscularScore: Int,
+    val highForceNeuralScore: Int,
     val systemicMuscularScore: Int,
     val localMuscularScore: Int,
-    val jointTendonImpactScore: Int,
-    val movementFocusScore: Int,
+    val highSpeedScore: Int,
+    val reactiveScore: Int,
     val recoveryPressureScore: Int,
     val overallFatigueIndex: Int,
     val readinessLabel: FatigueReadinessLabel,

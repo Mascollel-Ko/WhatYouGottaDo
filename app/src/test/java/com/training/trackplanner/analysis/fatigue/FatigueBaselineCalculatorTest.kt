@@ -14,7 +14,7 @@ class FatigueBaselineCalculatorTest {
 
         val baseline = FatigueBaselineCalculator.effectiveBaseline(recent, previous, seed, 28)
 
-        assertEquals(59.0, baseline.axes.neuromuscular, 0.0001)
+        assertEquals(59.0, baseline.axes.highForceNeural, 0.0001)
         assertEquals(0.0, baseline.seedWeight, 0.0001)
     }
 
@@ -27,9 +27,9 @@ class FatigueBaselineCalculatorTest {
         val observed = List(28) { FatigueAxisValues().map { 70.0 } }
         val mature = FatigueBaselineCalculator.effectiveBaseline(observed.takeLast(14), observed.take(14), seed, 28)
 
-        assertTrue(empty.axes.neuromuscular > 0.0)
+        assertTrue(empty.axes.highForceNeural > 0.0)
         assertEquals(1.0, empty.seedWeight, 0.0001)
         assertEquals(0.0, mature.seedWeight, 0.0001)
-        assertEquals(70.0, mature.axes.neuromuscular, 0.0001)
+        assertEquals(70.0, mature.axes.highForceNeural, 0.0001)
     }
 }

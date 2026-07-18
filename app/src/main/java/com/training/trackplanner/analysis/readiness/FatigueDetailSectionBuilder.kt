@@ -25,7 +25,7 @@ class FatigueDetailSectionBuilder {
             ),
             categorySection(
                 type = FatigueDetailType.NEURAL_SPEED,
-                title = "고속/반응 신경계 피로",
+                title = "고속 피로",
                 category = FatigueCategoryKey.NEURAL_SPEED,
                 pressure = pressure
             ),

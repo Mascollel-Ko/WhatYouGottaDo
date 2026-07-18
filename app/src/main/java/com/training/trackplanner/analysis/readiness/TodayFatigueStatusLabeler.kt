@@ -63,30 +63,30 @@ object TodayFatigueStatusLabeler {
     fun axisStates(summary: TodayReadinessSummary): List<TodayFatigueAxisState> {
         summary.fatiguePresentation?.let { presentation ->
             return listOf(
-                TodayFatigueAxisState("신경계", levelFromScore(presentation.neuralScore)),
-                TodayFatigueAxisState("전신 근육", levelFromScore(presentation.systemicScore)),
-                TodayFatigueAxisState("국소 근육", levelFromScore(presentation.localMuscleScore)),
-                TodayFatigueAxisState("관절·건·충격", levelFromScore(presentation.jointTendonScore)),
-                TodayFatigueAxisState("동작·집중", levelFromScore(presentation.focusScore))
+                TodayFatigueAxisState("고중량·힘 신경계", levelFromScore(presentation.highForceNeuralScore)),
+                TodayFatigueAxisState("전신 근육", levelFromScore(presentation.systemicMuscularScore)),
+                TodayFatigueAxisState("국소 근육", levelFromScore(presentation.localMuscularScore)),
+                TodayFatigueAxisState("고속", levelFromScore(presentation.highSpeedScore)),
+                TodayFatigueAxisState("반응", levelFromScore(presentation.reactiveScore))
             )
         }
 
         if (summary.detailSections.isEmpty()) return emptyList()
         return listOf(
-            TodayFatigueAxisState("신경계", maxLevel(summary, FatigueDetailType.NEURAL_HEAVY, FatigueDetailType.NEURAL_SPEED)),
+            TodayFatigueAxisState("고중량·힘 신경계", maxLevel(summary, FatigueDetailType.NEURAL_HEAVY)),
             TodayFatigueAxisState("전신 근육", maxLevel(summary, FatigueDetailType.SYSTEMIC)),
             TodayFatigueAxisState("국소 근육", maxLevel(summary, FatigueDetailType.LOCAL_BODY_PART)),
-            TodayFatigueAxisState("관절·건·충격", jointLevel(summary)),
-            TodayFatigueAxisState("동작·집중", maxLevel(summary, FatigueDetailType.BADMINTON_COURT))
+            TodayFatigueAxisState("고속", maxLevel(summary, FatigueDetailType.NEURAL_SPEED)),
+            TodayFatigueAxisState("반응", maxLevel(summary, FatigueDetailType.BADMINTON_COURT))
         )
     }
 
     fun axisStates(state: DailyFatigueState): List<TodayFatigueAxisState> = listOf(
-        TodayFatigueAxisState("신경계", levelFromScore(state.neuromuscularScore)),
+        TodayFatigueAxisState("고중량·힘 신경계", levelFromScore(state.highForceNeuralScore)),
         TodayFatigueAxisState("전신 근육", levelFromScore(state.systemicMuscularScore)),
         TodayFatigueAxisState("국소 근육", levelFromScore(state.localMuscularScore)),
-        TodayFatigueAxisState("관절·건·충격", levelFromScore(state.jointTendonImpactScore)),
-        TodayFatigueAxisState("동작·집중", levelFromScore(state.movementFocusScore))
+        TodayFatigueAxisState("고속", levelFromScore(state.highSpeedScore)),
+        TodayFatigueAxisState("반응", levelFromScore(state.reactiveScore))
     )
 
     fun axisWarningSentence(axis: TodayFatigueAxisState): String =
@@ -128,18 +128,6 @@ object TodayFatigueStatusLabeler {
     private fun maxLevel(summary: TodayReadinessSummary, vararg types: FatigueDetailType): FatigueLevel =
         summary.detailSections
             .filter { section -> section.type in types }
-            .maxOfOrNull { section -> section.level }
-            ?: FatigueLevel.LOW
-
-    private fun jointLevel(summary: TodayReadinessSummary): FatigueLevel =
-        summary.detailSections
-            .filter { section ->
-                section.type == FatigueDetailType.PAIN ||
-                    section.title.contains("관절") ||
-                    section.title.contains("건") ||
-                    section.title.contains("충격") ||
-                    section.relatedCategories.any { it.contains("관절") || it.contains("건") || it.contains("충격") }
-            }
             .maxOfOrNull { section -> section.level }
             ?: FatigueLevel.LOW
 

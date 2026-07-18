@@ -14,12 +14,12 @@ class TodayFatigueStatusLabelerTest {
     @Test
     fun canonicalOfiAndAxesDriveCurrentStatusWithoutRecoveryAxis() {
         val status = TodayFatigueStatusLabeler.currentSummary(
-            state(ofi = 42, joint = 100, recovery = 100)
+            state(ofi = 42, speed = 100, recovery = 100)
         )
 
         assertEquals("피로도 보통", status.ofiLabel)
-        assertEquals("판단: 관절·건·충격 피로도를 조절하면 좋습니다.", status.judgementMessage)
-        assertEquals("관절·건·충격 피로도가 높습니다. 주의하세요.", status.axisMessage)
+        assertEquals("판단: 고속 피로도를 조절하면 좋습니다.", status.judgementMessage)
+        assertEquals("고속 피로도가 높습니다. 주의하세요.", status.axisMessage)
         assertEquals("축별 상태: 매우 높음(1), 높음(0), 보통(4), 낮음(0)", status.levelCountMessage)
         assertEquals(1, status.veryHighCount)
         assertEquals(0, status.highCount)
@@ -34,35 +34,35 @@ class TodayFatigueStatusLabelerTest {
     @Test
     fun veryHighAxisMessageListsOnlyVeryHighCanonicalAxes() {
         val status = TodayFatigueStatusLabeler.axisSummary(
-            state(ofi = 42, neural = 100, joint = 100, focus = 84)
+            state(ofi = 42, highForce = 100, speed = 100, reactive = 84)
         )
 
-        assertEquals("신경계, 관절·건·충격 피로도가 높습니다. 주의하세요.", status.axisMessage)
+        assertEquals("고중량·힘 신경계, 고속 피로도가 높습니다. 주의하세요.", status.axisMessage)
         assertEquals(2, status.veryHighCount)
         assertEquals(1, status.highCount)
-        assertFalse(status.axisMessage.contains("동작·집중"))
+        assertFalse(status.axisMessage.contains("반응"))
     }
 
     @Test
     fun highAxisMessageListsHighAxesWhenNoVeryHighAxisExists() {
         val status = TodayFatigueStatusLabeler.axisSummary(
-            state(ofi = 42, neural = 84, focus = 84)
+            state(ofi = 42, highForce = 84, reactive = 84)
         )
 
-        assertEquals("신경계, 동작·집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", status.axisMessage)
+        assertEquals("고중량·힘 신경계, 반응 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", status.axisMessage)
         assertEquals(0, status.veryHighCount)
         assertEquals(2, status.highCount)
     }
 
     @Test
     fun singleAxisWarningSentenceNamesAxisOnceWithoutGenericStressReference() {
-        val veryHighAxis = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, joint = 100))
-            .single { axis -> axis.label == "관절·건·충격" }
-        val highAxis = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, focus = 84))
-            .single { axis -> axis.label == "동작·집중" }
+        val veryHighAxis = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, speed = 100))
+            .single { axis -> axis.label == "고속" }
+        val highAxis = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, reactive = 84))
+            .single { axis -> axis.label == "반응" }
 
-        assertEquals("관절·건·충격 피로도가 높습니다. 주의하세요.", TodayFatigueStatusLabeler.axisWarningSentence(veryHighAxis))
-        assertEquals("동작·집중 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", TodayFatigueStatusLabeler.axisWarningSentence(highAxis))
+        assertEquals("고속 피로도가 높습니다. 주의하세요.", TodayFatigueStatusLabeler.axisWarningSentence(veryHighAxis))
+        assertEquals("반응 피로도가 높습니다. 스트레스를 줄이면 좋습니다.", TodayFatigueStatusLabeler.axisWarningSentence(highAxis))
         assertFalse(TodayFatigueStatusLabeler.axisWarningSentence(veryHighAxis).contains("해당 스트레스"))
         assertFalse(TodayFatigueStatusLabeler.axisWarningSentence(highAxis).contains("해당 스트레스"))
     }
@@ -80,10 +80,10 @@ class TodayFatigueStatusLabelerTest {
     @Test
     fun multipleAxisJudgementUsesOnlyCanonicalAxisNames() {
         val status = TodayFatigueStatusLabeler.currentSummary(
-            state(ofi = 42, local = 84, joint = 84)
+            state(ofi = 42, local = 84, speed = 84)
         )
 
-        assertEquals("판단: 국소 근육과 관절·건·충격 피로도를 조절하면 좋습니다.", status.judgementMessage)
+        assertEquals("판단: 국소 근육과 고속 피로도를 조절하면 좋습니다.", status.judgementMessage)
         listOf("하체", "점프", "오버헤드", "배드민턴", "고중량").forEach { banned ->
             assertFalse(status.judgementMessage.contains(banned))
         }
@@ -93,44 +93,44 @@ class TodayFatigueStatusLabelerTest {
     fun readinessFallbackAxisStatesDoNotExposeRecoveryAsDisplayedAxis() {
         val summary = readinessSummary(
             section(FatigueDetailType.RECOVERY, "회복", FatigueLevel.VERY_HIGH),
-            presentation = presentation(joint = 100)
+            presentation = presentation(speed = 100)
         )
         val axes = TodayFatigueStatusLabeler.axisStates(summary)
 
         assertEquals(5, axes.size)
-        assertTrue(axes.any { it.label == "관절·건·충격" })
+        assertTrue(axes.any { it.label == "고속" })
         assertFalse(axes.any { it.label == "회복 지속" })
     }
 
     @Test
     fun presentationScoreEightyIsElevatedNotHighAfterThresholdRelaxation() {
-        val maxLevel = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, focus = 80)).maxOf { it.level }
+        val maxLevel = TodayFatigueStatusLabeler.axisStates(state(ofi = 42, reactive = 80)).maxOf { it.level }
 
         assertEquals(FatigueLevel.ELEVATED, maxLevel)
     }
 
     private fun state(
         ofi: Int,
-        neural: Int = 40,
+        highForce: Int = 40,
         systemic: Int = 40,
         local: Int = 40,
-        joint: Int = 40,
-        focus: Int = 40,
+        speed: Int = 40,
+        reactive: Int = 40,
         recovery: Int = 40
     ): DailyFatigueState =
         DailyFatigueState(
             date = LocalDate.of(2026, 6, 20),
-            neuromuscularFatigue = 0.0,
+            highForceNeuralFatigue = 0.0,
             systemicMuscularFatigue = 0.0,
             localMuscularFatigue = 0.0,
-            jointTendonImpactFatigue = 0.0,
-            movementFocusFatigue = 0.0,
+            highSpeedFatigue = 0.0,
+            reactiveFatigue = 0.0,
             recoveryPressure = 0.0,
-            neuromuscularScore = neural,
+            highForceNeuralScore = highForce,
             systemicMuscularScore = systemic,
             localMuscularScore = local,
-            jointTendonImpactScore = joint,
-            movementFocusScore = focus,
+            highSpeedScore = speed,
+            reactiveScore = reactive,
             recoveryPressureScore = recovery,
             overallFatigueIndex = ofi,
             readinessLabel = FatigueLabelResolver.label(ofi),
@@ -172,19 +172,19 @@ class TodayFatigueStatusLabelerTest {
         )
 
     private fun presentation(
-        neural: Int = 40,
+        highForce: Int = 40,
         systemic: Int = 40,
         local: Int = 40,
-        joint: Int = 40,
-        focus: Int = 40
+        speed: Int = 40,
+        reactive: Int = 40
     ): FatiguePresentationSnapshot =
         FatiguePresentationSnapshot(
-            overallScore = listOf(neural, systemic, local, joint, focus).maxOrNull() ?: 0,
-            neuralScore = neural,
-            localMuscleScore = local,
-            jointTendonScore = joint,
-            systemicScore = systemic,
-            focusScore = focus,
+            overallScore = listOf(highForce, systemic, local, speed, reactive).maxOrNull() ?: 0,
+            highForceNeuralScore = highForce,
+            localMuscularScore = local,
+            highSpeedScore = speed,
+            systemicMuscularScore = systemic,
+            reactiveScore = reactive,
             highCategories = emptyList(),
             highBodyParts = emptyList(),
             gate = TrainingGateSnapshot(

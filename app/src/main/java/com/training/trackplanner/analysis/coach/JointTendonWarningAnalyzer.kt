@@ -1,7 +1,5 @@
 package com.training.trackplanner.analysis.coach
 
-import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
-import com.training.trackplanner.analysis.fatigue.FatigueThresholds
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
@@ -14,7 +12,6 @@ class JointTendonWarningAnalyzer {
     fun analyze(
         today: LocalDate,
         checkIns: List<DailyCheckIn>,
-        history: List<DailyFatigueResult>,
         entriesWithSets: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
@@ -25,16 +22,12 @@ class JointTendonWarningAnalyzer {
             runCatching { LocalDate.parse(checkIn.date) }.getOrNull()?.let { it in start..today } == true
         }
         val maxDiscomfort = recentCheckIns.mapNotNull { it.jointTendonDiscomfort }.maxOrNull()
-        val latestJointScore = history.lastOrNull { it.state.date <= today }?.state?.jointTendonImpactScore
         val stressLabels = recentJointStressLabels(start, today, entriesWithSets, exercises, runtimeMetadataCatalog)
         val hasMetadataStress = stressLabels.isNotEmpty()
-        val shouldWarn = (maxDiscomfort ?: 0) >= 4 ||
-            (latestJointScore ?: 0) >= FatigueThresholds.AXIS_HIGH_COUNT_START
-        if (!shouldWarn) return null
+        if ((maxDiscomfort ?: 0) < 4) return null
 
         val severity = when {
-            (maxDiscomfort ?: 0) >= 5 ||
-                (latestJointScore ?: 0) >= FatigueThresholds.DAILY_AXIS_CAUTION_START -> CoachingSignalSeverity.CAUTION
+            (maxDiscomfort ?: 0) >= 5 -> CoachingSignalSeverity.CAUTION
             else -> CoachingSignalSeverity.WATCH
         }
         val sleepContext = if (sleepSignal.severity.priority() >= CoachingSignalSeverity.WATCH.priority()) {
@@ -42,18 +35,12 @@ class JointTendonWarningAnalyzer {
         } else {
             null
         }
-        val headline = if ((maxDiscomfort ?: 0) >= 4) {
-            "관절/건 불편감 입력을 확인합니다"
-        } else {
-            "관절·건·충격 부하가 높습니다"
-        }
+        val headline = "관절/건 불편감 입력을 확인합니다"
         val detail = when {
-            (maxDiscomfort ?: 0) >= 4 && hasMetadataStress ->
-                "최근 불편감 입력과 관절·건·충격성 부하가 함께 보입니다. 점프, 감속, 고중량 하체는 강도를 낮춰 확인합니다."
-            (maxDiscomfort ?: 0) >= 4 ->
-                "최근 불편감 입력이 높습니다. 운동 기록만으로 단정하지 않고 오늘 부하를 보수적으로 조절합니다."
+            hasMetadataStress ->
+                "최근 불편감 입력과 관련 운동 기록이 함께 보입니다. 점프, 감속, 고중량 하체는 강도를 낮춰 확인합니다."
             else ->
-                "최근 관절·건·충격 축 점수가 높습니다. 착지, 감속, 고중량 반복을 한 번 더 확인합니다."
+                "최근 불편감 입력이 높습니다. 운동 기록만으로 단정하지 않고 오늘 부하를 보수적으로 조절합니다."
         }
 
         return JointTendonWarningSignal(

@@ -30,7 +30,6 @@ class CoachingSignalsBuilder(
             jointTendon = jointTendonAnalyzer.analyze(
                 today = today,
                 checkIns = checkIns,
-                history = history,
                 entriesWithSets = entriesWithSets,
                 exercises = exercises,
                 runtimeMetadataCatalog = runtimeMetadataCatalog,

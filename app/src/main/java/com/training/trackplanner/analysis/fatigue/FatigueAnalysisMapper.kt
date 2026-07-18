@@ -46,11 +46,11 @@ object FatigueAnalysisMapper {
         val hasCalculatedFatigue = window.any { result ->
             result.state.confirmedTrainingLoad > 0.0 ||
                 result.state.overallFatigueIndex > 0 ||
-                result.state.neuromuscularScore > 0 ||
+                result.state.highForceNeuralScore > 0 ||
                 result.state.systemicMuscularScore > 0 ||
                 result.state.localMuscularScore > 0 ||
-                result.state.jointTendonImpactScore > 0 ||
-                result.state.movementFocusScore > 0
+                result.state.highSpeedScore > 0 ||
+                result.state.reactiveScore > 0
         }
         if (!hasCalculatedFatigue) {
             return emptyState(period, effectiveTargets, effectiveContributionTarget, grouping)
@@ -175,11 +175,11 @@ object FatigueAnalysisMapper {
     }
 
     private fun axisItems(state: DailyFatigueState): List<FatigueLoadItem> = listOf(
-        FatigueLoadItem(FatigueTarget.NEUROMUSCULAR.name, FatigueTarget.NEUROMUSCULAR.label, state.neuromuscularScore),
+        FatigueLoadItem(FatigueTarget.HIGH_FORCE_NEURAL.name, FatigueTarget.HIGH_FORCE_NEURAL.label, state.highForceNeuralScore),
         FatigueLoadItem(FatigueTarget.SYSTEMIC_MUSCULAR.name, FatigueTarget.SYSTEMIC_MUSCULAR.label, state.systemicMuscularScore),
         FatigueLoadItem(FatigueTarget.LOCAL_MUSCULAR.name, FatigueTarget.LOCAL_MUSCULAR.label, state.localMuscularScore),
-        FatigueLoadItem(FatigueTarget.JOINT_TENDON_IMPACT.name, FatigueTarget.JOINT_TENDON_IMPACT.label, state.jointTendonImpactScore),
-        FatigueLoadItem(FatigueTarget.MOVEMENT_FOCUS.name, FatigueTarget.MOVEMENT_FOCUS.label, state.movementFocusScore)
+        FatigueLoadItem(FatigueTarget.HIGH_SPEED.name, FatigueTarget.HIGH_SPEED.label, state.highSpeedScore),
+        FatigueLoadItem(FatigueTarget.REACTIVE.name, FatigueTarget.REACTIVE.label, state.reactiveScore)
     )
 
     private fun projectedOverlay(
@@ -219,28 +219,28 @@ object FatigueAnalysisMapper {
 
     private fun DailyFatigueState.valueFor(target: FatigueTarget): Double = when (target) {
         FatigueTarget.OVERALL -> overallFatigueIndex.toDouble()
-        FatigueTarget.NEUROMUSCULAR -> neuromuscularScore.toDouble()
+        FatigueTarget.HIGH_FORCE_NEURAL -> highForceNeuralScore.toDouble()
         FatigueTarget.SYSTEMIC_MUSCULAR -> systemicMuscularScore.toDouble()
         FatigueTarget.LOCAL_MUSCULAR -> localMuscularScore.toDouble()
-        FatigueTarget.JOINT_TENDON_IMPACT -> jointTendonImpactScore.toDouble()
-        FatigueTarget.MOVEMENT_FOCUS -> movementFocusScore.toDouble()
+        FatigueTarget.HIGH_SPEED -> highSpeedScore.toDouble()
+        FatigueTarget.REACTIVE -> reactiveScore.toDouble()
         FatigueTarget.RECOVERY_PRESSURE -> recoveryPressureScore.toDouble()
     }
 
     private fun GroupFatigueState.valueFor(target: FatigueTarget): Double = when (target) {
         FatigueTarget.OVERALL -> listOf(
-            neuromuscularFatigue,
+            highForceNeuralFatigue,
             systemicMuscularFatigue,
             localFatigue,
-            jointTendonImpactFatigue,
-            movementFocusFatigue,
+            highSpeedFatigue,
+            reactiveFatigue,
             recoveryPressure
         ).average()
-        FatigueTarget.NEUROMUSCULAR -> neuromuscularFatigue
+        FatigueTarget.HIGH_FORCE_NEURAL -> highForceNeuralFatigue
         FatigueTarget.SYSTEMIC_MUSCULAR -> systemicMuscularFatigue
         FatigueTarget.LOCAL_MUSCULAR -> localFatigue
-        FatigueTarget.JOINT_TENDON_IMPACT -> jointTendonImpactFatigue
-        FatigueTarget.MOVEMENT_FOCUS -> movementFocusFatigue
+        FatigueTarget.HIGH_SPEED -> highSpeedFatigue
+        FatigueTarget.REACTIVE -> reactiveFatigue
         FatigueTarget.RECOVERY_PRESSURE -> recoveryPressure
     }
 

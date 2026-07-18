@@ -15,21 +15,21 @@ enum class FatigueAnalysisPeriod(val weeks: Int, val label: String) {
 
 enum class FatigueTarget(val label: String) {
     OVERALL("현재 피로도"),
-    NEUROMUSCULAR("신경계"),
+    HIGH_FORCE_NEURAL("고중량·힘 신경계"),
     SYSTEMIC_MUSCULAR("전신 근육"),
     LOCAL_MUSCULAR("국소 근육"),
-    JOINT_TENDON_IMPACT("관절·건·충격"),
-    MOVEMENT_FOCUS("동작·집중"),
+    HIGH_SPEED("고속"),
+    REACTIVE("반응"),
     RECOVERY_PRESSURE("회복 지속");
 
     companion object {
         val displayed: List<FatigueTarget> = listOf(
             OVERALL,
-            NEUROMUSCULAR,
+            HIGH_FORCE_NEURAL,
             SYSTEMIC_MUSCULAR,
             LOCAL_MUSCULAR,
-            JOINT_TENDON_IMPACT,
-            MOVEMENT_FOCUS
+            HIGH_SPEED,
+            REACTIVE
         )
     }
 }

@@ -26,18 +26,18 @@ class FatigueAnalysisMapperTest {
             history = history,
             fatiguePresentation = presentation(
                 overall = 88,
-                neural = 91,
+                highForce = 91,
                 local = 15,
-                joint = 76,
+                highSpeed = 76,
                 systemic = 44,
-                focus = 22
+                reactive = 22
             )
         )
 
         assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
-        assertEquals(history.last().state.movementFocusScore, state.simple.highLoadItems.first().score)
-        assertEquals(FatigueTarget.MOVEMENT_FOCUS.label, state.simple.highLoadItems.first().label)
-        assertEquals(history.last().state.neuromuscularScore, state.simple.availableLoadItems.first().score)
+        assertEquals(history.last().state.reactiveScore, state.simple.highLoadItems.first().score)
+        assertEquals(FatigueTarget.REACTIVE.label, state.simple.highLoadItems.first().label)
+        assertEquals(history.last().state.highForceNeuralScore, state.simple.availableLoadItems.first().score)
     }
 
     @Test
@@ -50,7 +50,7 @@ class FatigueAnalysisMapperTest {
 
         assertEquals(history.last().state.overallFatigueIndex.toDouble(), state.simple.ofiSeries.last().value, 0.0001)
         val labels = (state.simple.highLoadItems + state.simple.availableLoadItems).map { it.label }
-        assertEquals(history.last().state.movementFocusScore, state.simple.highLoadItems.first().score)
+        assertEquals(history.last().state.reactiveScore, state.simple.highLoadItems.first().score)
         assertTrue("회복 지속" !in labels)
     }
 
@@ -61,11 +61,11 @@ class FatigueAnalysisMapperTest {
             history = history,
             fatiguePresentation = presentation(
                 overall = 140,
-                neural = 140,
+                highForce = 140,
                 local = -5,
-                joint = 76,
+                highSpeed = 76,
                 systemic = 44,
-                focus = 22
+                reactive = 22
             )
         )
 
@@ -80,11 +80,11 @@ class FatigueAnalysisMapperTest {
             history = history(14),
             fatiguePresentation = presentation(
                 overall = 99,
-                neural = 91,
+                highForce = 91,
                 local = 15,
-                joint = 76,
+                highSpeed = 76,
                 systemic = 44,
-                focus = 22
+                reactive = 22
             ),
             projectedOverallFatigueScore = 99.0,
             hasRemainingUnconfirmedWork = true
@@ -165,11 +165,11 @@ class FatigueAnalysisMapperTest {
             history = history(14),
             fatiguePresentation = presentation(
                 overall = 88,
-                neural = 91,
+                highForce = 91,
                 local = 15,
-                joint = 76,
+                highSpeed = 76,
                 systemic = 44,
-                focus = 22
+                reactive = 22
             )
         )
         val labels = (state.simple.highLoadItems + state.simple.availableLoadItems).map { item -> item.label }
@@ -185,7 +185,7 @@ class FatigueAnalysisMapperTest {
             history = history(14),
             selectedTargets = setOf(
                 FatigueTarget.OVERALL,
-                FatigueTarget.JOINT_TENDON_IMPACT
+                FatigueTarget.HIGH_SPEED
             )
         )
 
@@ -193,6 +193,21 @@ class FatigueAnalysisMapperTest {
         assertEquals(2, state.detail.selectedFatigueTargets.size)
         assertTrue(state.detail.fatigueTrendSeries.any { it.key == FatigueTarget.OVERALL.name })
         assertTrue(state.detail.fatigueTrendSeries.none { it.key == FatigueTarget.RECOVERY_PRESSURE.name })
+    }
+
+    @Test
+    fun `OFI exposes exactly the five canonical axes in display order`() {
+        val axes = FatigueTarget.displayed.drop(1)
+
+        assertEquals(
+            listOf("HIGH_FORCE_NEURAL", "SYSTEMIC_MUSCULAR", "LOCAL_MUSCULAR", "HIGH_SPEED", "REACTIVE"),
+            axes.map { target -> target.name }
+        )
+        assertEquals(
+            listOf("고중량·힘 신경계", "전신 근육", "국소 근육", "고속", "반응"),
+            axes.map { target -> target.label }
+        )
+        assertTrue(axes.none { target -> target.label.contains("관절") || target.label.contains("집중") })
     }
 
     @Test
@@ -234,17 +249,17 @@ class FatigueAnalysisMapperTest {
         val result = DailyFatigueResult(
             state = DailyFatigueState(
                 date = date,
-                neuromuscularFatigue = 0.0,
+                highForceNeuralFatigue = 0.0,
                 systemicMuscularFatigue = 0.0,
                 localMuscularFatigue = 0.0,
-                jointTendonImpactFatigue = 0.0,
-                movementFocusFatigue = 0.0,
+                highSpeedFatigue = 0.0,
+                reactiveFatigue = 0.0,
                 recoveryPressure = 0.0,
-                neuromuscularScore = 0,
+                highForceNeuralScore = 0,
                 systemicMuscularScore = 0,
                 localMuscularScore = 0,
-                jointTendonImpactScore = 0,
-                movementFocusScore = 0,
+                highSpeedScore = 0,
+                reactiveScore = 0,
                 recoveryPressureScore = 0,
                 overallFatigueIndex = 0,
                 readinessLabel = FatigueReadinessLabel.LOW,
@@ -305,17 +320,17 @@ class FatigueAnalysisMapperTest {
             DailyFatigueResult(
                 state = DailyFatigueState(
                     date = date,
-                    neuromuscularFatigue = score.toDouble(),
+                    highForceNeuralFatigue = score.toDouble(),
                     systemicMuscularFatigue = (score + 2).toDouble(),
                     localMuscularFatigue = (score + 4).toDouble(),
-                    jointTendonImpactFatigue = (score + 6).toDouble(),
-                    movementFocusFatigue = (score + 8).toDouble(),
+                    highSpeedFatigue = (score + 6).toDouble(),
+                    reactiveFatigue = (score + 8).toDouble(),
                     recoveryPressure = (score + 10).toDouble(),
-                    neuromuscularScore = score,
+                    highForceNeuralScore = score,
                     systemicMuscularScore = score + 2,
                     localMuscularScore = score + 4,
-                    jointTendonImpactScore = score + 6,
-                    movementFocusScore = score + 8,
+                    highSpeedScore = score + 6,
+                    reactiveScore = score + 8,
                     recoveryPressureScore = score + 10,
                     overallFatigueIndex = score + 5,
                     readinessLabel = FatigueReadinessLabel.NORMAL,
@@ -328,11 +343,11 @@ class FatigueAnalysisMapperTest {
                         date = date,
                         groupType = "redundancyGroup",
                         groupKey = "HORIZONTAL_PUSH_COMPOUND",
-                        neuromuscularFatigue = score * 0.4,
+                        highForceNeuralFatigue = score * 0.4,
                         systemicMuscularFatigue = score * 0.5,
                         localFatigue = score * 0.8,
-                        jointTendonImpactFatigue = score * 0.3,
-                        movementFocusFatigue = score * 0.2,
+                        highSpeedFatigue = score * 0.3,
+                        reactiveFatigue = score * 0.2,
                         recoveryPressure = score * 0.6
                     )
                 ),
@@ -343,19 +358,19 @@ class FatigueAnalysisMapperTest {
 
     private fun presentation(
         overall: Int,
-        neural: Int,
+        highForce: Int,
         local: Int,
-        joint: Int,
+        highSpeed: Int,
         systemic: Int,
-        focus: Int
+        reactive: Int
     ): FatiguePresentationSnapshot =
         FatiguePresentationSnapshot(
             overallScore = overall,
-            neuralScore = neural,
-            localMuscleScore = local,
-            jointTendonScore = joint,
-            systemicScore = systemic,
-            focusScore = focus,
+            highForceNeuralScore = highForce,
+            localMuscularScore = local,
+            highSpeedScore = highSpeed,
+            systemicMuscularScore = systemic,
+            reactiveScore = reactive,
             highCategories = emptyList(),
             highBodyParts = emptyList(),
             gate = TrainingGateSnapshot(

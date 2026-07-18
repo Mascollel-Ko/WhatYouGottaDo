@@ -2,11 +2,11 @@ package com.training.trackplanner.analysis.readiness
 
 data class FatiguePresentationSnapshot(
     val overallScore: Int,
-    val neuralScore: Int,
-    val localMuscleScore: Int,
-    val jointTendonScore: Int,
-    val systemicScore: Int,
-    val focusScore: Int,
+    val highForceNeuralScore: Int,
+    val systemicMuscularScore: Int,
+    val localMuscularScore: Int,
+    val highSpeedScore: Int,
+    val reactiveScore: Int,
     val highCategories: List<FatigueCategoryPressure>,
     val highBodyParts: List<BodyPartPressure>,
     val gate: TrainingGateSnapshot,

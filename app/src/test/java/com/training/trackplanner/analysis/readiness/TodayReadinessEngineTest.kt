@@ -81,8 +81,8 @@ class TodayReadinessEngineTest {
         assertNotNull(presentation)
         presentation!!
         assertTrue(presentation.overallScore in 0..100)
-        assertTrue(presentation.neuralScore in 0..100)
-        assertTrue(presentation.neuralScore > 0)
+        assertTrue(presentation.highForceNeuralScore in 0..100)
+        assertTrue(presentation.highForceNeuralScore > 0)
         assertTrue(presentation.gate.heavyLowerRestricted)
     }
 

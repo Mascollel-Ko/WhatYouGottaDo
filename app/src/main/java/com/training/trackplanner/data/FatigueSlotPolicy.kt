@@ -245,8 +245,9 @@ internal data class ProgramFatigueGate(
                 in FatigueThresholds.PROGRAM_ORANGE_START until FatigueThresholds.PROGRAM_RED_START -> ProgramFatigueBand.ORANGE
                 else -> ProgramFatigueBand.RED
             }
-            val jointRestricted = (state?.jointTendonImpactScore ?: 0) >= FatigueThresholds.PROGRAM_JOINT_RESTRICTED_START
-            val neuralRestricted = (state?.neuromuscularScore ?: 0) >= FatigueThresholds.PROGRAM_AXIS_RESTRICTED_START
+            val speedReactiveRestricted = maxOf(state?.highSpeedScore ?: 0, state?.reactiveScore ?: 0) >=
+                FatigueThresholds.PROGRAM_SPEED_REACTIVE_RESTRICTED_START
+            val neuralRestricted = (state?.highForceNeuralScore ?: 0) >= FatigueThresholds.PROGRAM_AXIS_RESTRICTED_START
             val localRestricted = (state?.localMuscularScore ?: 0) >= FatigueThresholds.PROGRAM_AXIS_RESTRICTED_START
             return ProgramFatigueGate(
                 band = band,
@@ -258,7 +259,7 @@ internal data class ProgramFatigueGate(
                 },
                 rpeCap = if (neuralRestricted || band >= ProgramFatigueBand.ORANGE) 7 else 9,
                 allowsHeavyLower = band < ProgramFatigueBand.ORANGE && !localRestricted,
-                allowsHighImpact = band < ProgramFatigueBand.ORANGE && !jointRestricted,
+                allowsHighImpact = band < ProgramFatigueBand.ORANGE && !speedReactiveRestricted,
                 allowsHighIntensityCod = band < ProgramFatigueBand.ORANGE,
                 lowerBodyRestricted = localRestricted
             )

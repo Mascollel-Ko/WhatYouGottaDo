@@ -1,9 +1,5 @@
 package com.training.trackplanner.analysis.coach
 
-import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
-import com.training.trackplanner.analysis.fatigue.DailyFatigueState
-import com.training.trackplanner.analysis.fatigue.FatigueConfidence
-import com.training.trackplanner.analysis.fatigue.FatigueReadinessLabel
 import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.MetadataTokenField
@@ -29,7 +25,6 @@ class JointTendonWarningAnalyzerTest {
         val signal = JointTendonWarningAnalyzer().analyze(
             today = today,
             checkIns = listOf(DailyCheckIn(today.toString(), jointTendonDiscomfort = 4)),
-            history = listOf(result(jointScore = 60)),
             entriesWithSets = listOf(record(today)),
             exercises = listOf(exercise),
             runtimeMetadataCatalog = catalog(jointTags = "PLYOMETRIC_LANDING"),
@@ -46,7 +41,6 @@ class JointTendonWarningAnalyzerTest {
         val signal = JointTendonWarningAnalyzer().analyze(
             today = today,
             checkIns = listOf(DailyCheckIn(today.toString(), jointTendonDiscomfort = 5)),
-            history = emptyList(),
             entriesWithSets = emptyList(),
             exercises = emptyList(),
             runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
@@ -82,28 +76,4 @@ class JointTendonWarningAnalyzerTest {
             sets = listOf(WorkoutSet(entryId = date.toEpochDay(), setIndex = 1, reps = 5, confirmed = true))
         )
 
-    private fun result(jointScore: Int): DailyFatigueResult =
-        DailyFatigueResult(
-            state = DailyFatigueState(
-                date = today,
-                neuromuscularFatigue = 0.0,
-                systemicMuscularFatigue = 0.0,
-                localMuscularFatigue = 0.0,
-                jointTendonImpactFatigue = 0.0,
-                movementFocusFatigue = 0.0,
-                recoveryPressure = 0.0,
-                neuromuscularScore = 50,
-                systemicMuscularScore = 50,
-                localMuscularScore = 50,
-                jointTendonImpactScore = jointScore,
-                movementFocusScore = 50,
-                recoveryPressureScore = 50,
-                overallFatigueIndex = 50,
-                readinessLabel = FatigueReadinessLabel.NORMAL,
-                cautionReasons = emptyList(),
-                confidence = FatigueConfidence.MEDIUM
-            ),
-            groupStates = emptyList(),
-            recordContributions = emptyList()
-        )
 }

@@ -81,7 +81,7 @@ object FatigueThresholds {
     const val PROGRAM_YELLOW_START = 52
     const val PROGRAM_ORANGE_START = 69
     const val PROGRAM_RED_START = 87
-    const val PROGRAM_JOINT_RESTRICTED_START = 75
+    const val PROGRAM_SPEED_REACTIVE_RESTRICTED_START = 75
     const val PROGRAM_AXIS_RESTRICTED_START = 81
 
     const val PRESENTATION_ELEVATED_SCORE = 72
@@ -208,22 +208,22 @@ object FatigueBaselineCalculator {
     ): FatigueAxisValues {
         val secondWeight = 1.0 - firstWeight
         return FatigueAxisValues(
-            first.neuromuscular * firstWeight + second.neuromuscular * secondWeight,
+            first.highForceNeural * firstWeight + second.highForceNeural * secondWeight,
             first.systemicMuscular * firstWeight + second.systemicMuscular * secondWeight,
             first.localMuscular * firstWeight + second.localMuscular * secondWeight,
-            first.jointTendonImpact * firstWeight + second.jointTendonImpact * secondWeight,
-            first.movementFocus * firstWeight + second.movementFocus * secondWeight,
+            first.highSpeed * firstWeight + second.highSpeed * secondWeight,
+            first.reactive * firstWeight + second.reactive * secondWeight,
             first.recoveryPressure * firstWeight + second.recoveryPressure * secondWeight
         )
     }
 
     private fun List<FatigueAxisValues>.medianAxes(): FatigueAxisValues =
         FatigueAxisValues(
-            median(map { it.neuromuscular }),
+            median(map { it.highForceNeural }),
             median(map { it.systemicMuscular }),
             median(map { it.localMuscular }),
-            median(map { it.jointTendonImpact }),
-            median(map { it.movementFocus }),
+            median(map { it.highSpeed }),
+            median(map { it.reactive }),
             median(map { it.recoveryPressure })
         )
 

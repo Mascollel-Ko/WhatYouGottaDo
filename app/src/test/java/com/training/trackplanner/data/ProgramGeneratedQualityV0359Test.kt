@@ -344,11 +344,11 @@ class ProgramGeneratedQualityV0359Test {
 
     private fun fatigueState(score: Int): DailyFatigueState = DailyFatigueState(
         date = LocalDate.of(2026, 6, 21),
-        neuromuscularFatigue = score.toDouble(), systemicMuscularFatigue = score.toDouble(),
-        localMuscularFatigue = score.toDouble(), jointTendonImpactFatigue = score.toDouble(),
-        movementFocusFatigue = score.toDouble(), recoveryPressure = score.toDouble(),
-        neuromuscularScore = score, systemicMuscularScore = score, localMuscularScore = score,
-        jointTendonImpactScore = score, movementFocusScore = score, recoveryPressureScore = score,
+        highForceNeuralFatigue = score.toDouble(), systemicMuscularFatigue = score.toDouble(),
+        localMuscularFatigue = score.toDouble(), highSpeedFatigue = score.toDouble(),
+        reactiveFatigue = score.toDouble(), recoveryPressure = score.toDouble(),
+        highForceNeuralScore = score, systemicMuscularScore = score, localMuscularScore = score,
+        highSpeedScore = score, reactiveScore = score, recoveryPressureScore = score,
         overallFatigueIndex = score,
         readinessLabel = if (score >= 85) FatigueReadinessLabel.HIGH_FATIGUE else FatigueReadinessLabel.ELEVATED,
         cautionReasons = emptyList(), confidence = FatigueConfidence.HIGH

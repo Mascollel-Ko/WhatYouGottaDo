@@ -77,7 +77,7 @@ class FatigueAxisCauseCardTest {
 
     @Test
     fun otherAxisStillUsesContributingExercises() {
-        val neuralAxis = TodayFatigueAxisState(FatigueTarget.NEUROMUSCULAR.label, FatigueLevel.HIGH)
+        val neuralAxis = TodayFatigueAxisState(FatigueTarget.HIGH_FORCE_NEURAL.label, FatigueLevel.HIGH)
         val summary = summaryForAxis(neuralAxis, "데드리프트" to 50.0)
 
         assertEquals(

@@ -77,10 +77,10 @@ class CoachFatigueCauseAnalyzerTest {
 
         assertFalse(summary.causes.any { cause -> "회복 지속" in cause.affectedAxes })
         assertTrue(summary.causes.first().affectedAxes.all { axis ->
-            axis in setOf("신경계", "전신 근육", "국소 근육", "관절·건·충격", "동작·집중")
+            axis in setOf("고중량·힘 신경계", "전신 근육", "국소 근육", "고속", "반응")
         })
         assertTrue(summary.axisExerciseCauses.first().axisContributionScores.keys.all { axis ->
-            axis in setOf("신경계", "전신 근육", "국소 근육", "관절·건·충격", "동작·집중")
+            axis in setOf("고중량·힘 신경계", "전신 근육", "국소 근육", "고속", "반응")
         })
     }
 
@@ -103,15 +103,14 @@ class CoachFatigueCauseAnalyzerTest {
         exerciseName = name,
         trainingLoad = value,
         axes = FatigueAxisValues(
-            neuromuscular = value,
+            highForceNeural = value,
             systemicMuscular = value * 0.5,
             localMuscular = value * 0.8,
-            jointTendonImpact = value * 0.3,
-            movementFocus = value * 0.2,
+            highSpeed = value * 0.3,
+            reactive = value * 0.2,
             recoveryPressure = value * 0.6
         ),
         recoveryDurationClass = duration,
-        jointRecoveryDurationClass = duration,
         strengthProgressionGroup = "TEST",
         redundancyGroup = "TEST",
         movementFamily = "TEST",
@@ -121,17 +120,17 @@ class CoachFatigueCauseAnalyzerTest {
 
     private fun state(date: LocalDate) = DailyFatigueState(
         date = date,
-        neuromuscularFatigue = 0.0,
+        highForceNeuralFatigue = 0.0,
         systemicMuscularFatigue = 0.0,
         localMuscularFatigue = 0.0,
-        jointTendonImpactFatigue = 0.0,
-        movementFocusFatigue = 0.0,
+        highSpeedFatigue = 0.0,
+        reactiveFatigue = 0.0,
         recoveryPressure = 0.0,
-        neuromuscularScore = 50,
+        highForceNeuralScore = 50,
         systemicMuscularScore = 50,
         localMuscularScore = 50,
-        jointTendonImpactScore = 50,
-        movementFocusScore = 50,
+        highSpeedScore = 50,
+        reactiveScore = 50,
         recoveryPressureScore = 50,
         overallFatigueIndex = 50,
         readinessLabel = FatigueReadinessLabel.NORMAL,

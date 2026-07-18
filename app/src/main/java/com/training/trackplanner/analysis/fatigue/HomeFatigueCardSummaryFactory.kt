@@ -62,11 +62,11 @@ object HomeFatigueCardSummaryFactory {
 
     private fun DailyFatigueState.toProjectedReading(): HomeFatigueReading {
         val maxAxis = maxOf(
-            neuromuscularScore,
+            highForceNeuralScore,
             systemicMuscularScore,
             localMuscularScore,
-            jointTendonImpactScore,
-            movementFocusScore
+            highSpeedScore,
+            reactiveScore
         )
         val label = when {
             overallFatigueIndex >= FatigueThresholds.OFI_HIGH_START -> "회복 우선 확인"

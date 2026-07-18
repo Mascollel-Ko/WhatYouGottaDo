@@ -33,22 +33,28 @@ class FatiguePresentationMapper {
         val upperPushBodyScore = bodyPartScores.maxScore("chest", "shoulders", "rotator_cuff", "elbow_extensors")
         val gripBodyScore = bodyPartScores.maxScore("forearm_grip", "elbow_flexors", "elbow_extensors")
 
-        val neuralScore = combineAxisScores(neuralHeavyScore, neuralSpeedScore)
-        val localMuscleScore = maxOf(localCategoryScore, (lowerBodyScore * SUPPORTING_BODY_PART_WEIGHT).roundToInt())
+        val highForceNeuralScore = neuralHeavyScore
+        val localMuscularScore = maxOf(localCategoryScore, (lowerBodyScore * SUPPORTING_BODY_PART_WEIGHT).roundToInt())
             .clampScore()
-        val jointTendonScore = maxOf(
-            combineAxisScores(decelerationScore, elasticSscScore, overheadScore, gripCategoryScore),
-            (maxOf(landingBodyPartScore, shoulderScore, gripBodyScore) * SUPPORTING_BODY_PART_WEIGHT).roundToInt()
-        ).clampScore()
-        val systemicScore = maxOf(
+        val systemicMuscularScore = maxOf(
             systemicCategoryScore,
             (badmintonCourtScore * BADMINTON_SYSTEMIC_SUPPORT_WEIGHT).roundToInt()
         ).clampScore()
-        val focusScore = combineAxisScores(neuralSpeedScore, badmintonCourtScore)
+        val highSpeedScore = maxOf(
+            combineAxisScores(neuralSpeedScore, elasticSscScore),
+            (badmintonCourtScore * BADMINTON_HIGH_SPEED_SUPPORT_WEIGHT).roundToInt()
+        ).clampScore()
+        val reactiveScore = combineAxisScores(decelerationScore, badmintonCourtScore)
 
         // Beta heuristic: overall blends average pressure, worst axis, and a small high-axis boost.
         // These weights are transparent tuning defaults, not research-derived constants.
-        val axisScores = listOf(neuralScore, localMuscleScore, jointTendonScore, systemicScore, focusScore)
+        val axisScores = listOf(
+            highForceNeuralScore,
+            systemicMuscularScore,
+            localMuscularScore,
+            highSpeedScore,
+            reactiveScore
+        )
         val meanScore = axisScores.average()
         val maxScore = axisScores.maxOrNull() ?: 0
         val highAxisBoost = axisScores.count { score -> score >= RESTRICTED_SCORE } * 4 +
@@ -56,7 +62,7 @@ class FatiguePresentationMapper {
         val overallScore = (meanScore * 0.45 + maxScore * 0.45 + highAxisBoost).roundToInt().clampScore()
 
         val heavyLowerRestricted = neuralHeavyScore >= RESTRICTED_SCORE ||
-            neuralScore >= RESTRICTED_SCORE ||
+            highForceNeuralScore >= RESTRICTED_SCORE ||
             lowerBodyScore >= RESTRICTED_SCORE
         val highImpactRestricted = decelerationScore >= RESTRICTED_SCORE ||
             elasticSscScore >= RESTRICTED_SCORE ||
@@ -97,17 +103,17 @@ class FatiguePresentationMapper {
             overheadRestricted = overheadRestricted,
             gripForearmRestricted = gripForearmRestricted,
             volumeFactor = volumeFactor(overallScore),
-            rpeCap = rpeCap(overallScore, neuralScore, neuralHeavyScore),
+            rpeCap = rpeCap(overallScore, highForceNeuralScore, neuralHeavyScore),
             reasons = reasons
         )
 
         return FatiguePresentationSnapshot(
             overallScore = overallScore,
-            neuralScore = neuralScore,
-            localMuscleScore = localMuscleScore,
-            jointTendonScore = jointTendonScore,
-            systemicScore = systemicScore,
-            focusScore = focusScore,
+            highForceNeuralScore = highForceNeuralScore,
+            systemicMuscularScore = systemicMuscularScore,
+            localMuscularScore = localMuscularScore,
+            highSpeedScore = highSpeedScore,
+            reactiveScore = reactiveScore,
             highCategories = highCategories(pressure, categoryScores),
             highBodyParts = highBodyParts(pressure, bodyPartScores),
             gate = gate,
@@ -338,9 +344,9 @@ class FatiguePresentationMapper {
             else -> 1.0
         }
 
-    private fun rpeCap(overallScore: Int, neuralScore: Int, neuralHeavyScore: Int): Int? =
+    private fun rpeCap(overallScore: Int, highForceNeuralScore: Int, neuralHeavyScore: Int): Int? =
         when {
-            neuralScore >= RESTRICTED_SCORE ||
+            highForceNeuralScore >= RESTRICTED_SCORE ||
                 neuralHeavyScore >= RESTRICTED_SCORE ||
                 overallScore >= FatigueThresholds.PRESENTATION_VOLUME_ORANGE_START -> 7
             overallScore >= FatigueThresholds.PRESENTATION_VOLUME_YELLOW_START -> 8
@@ -385,5 +391,6 @@ class FatiguePresentationMapper {
         const val SUPPORTING_AXIS_WEIGHT = 0.20
         const val SUPPORTING_BODY_PART_WEIGHT = 0.60
         const val BADMINTON_SYSTEMIC_SUPPORT_WEIGHT = 0.60
+        const val BADMINTON_HIGH_SPEED_SUPPORT_WEIGHT = 0.65
     }
 }

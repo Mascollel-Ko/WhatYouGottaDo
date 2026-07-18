@@ -267,11 +267,11 @@ class AnalysisSummaryServiceTest {
 
 private fun com.training.trackplanner.analysis.fatigue.DailyFatigueResult.axisValues(): List<Double> =
     listOf(
-        state.neuromuscularFatigue,
+        state.highForceNeuralFatigue,
         state.systemicMuscularFatigue,
         state.localMuscularFatigue,
-        state.jointTendonImpactFatigue,
-        state.movementFocusFatigue,
+        state.highSpeedFatigue,
+        state.reactiveFatigue,
         state.recoveryPressure,
         state.confirmedTrainingLoad
     )

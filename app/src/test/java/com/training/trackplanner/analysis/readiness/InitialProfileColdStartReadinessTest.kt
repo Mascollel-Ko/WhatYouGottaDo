@@ -367,11 +367,11 @@ class InitialProfileColdStartReadinessTest {
     private fun fatiguePresentation(): FatiguePresentationSnapshot =
         FatiguePresentationSnapshot(
             overallScore = 42,
-            neuralScore = 40,
-            localMuscleScore = 41,
-            jointTendonScore = 39,
-            systemicScore = 42,
-            focusScore = 38,
+            highForceNeuralScore = 40,
+            localMuscularScore = 41,
+            highSpeedScore = 39,
+            systemicMuscularScore = 42,
+            reactiveScore = 38,
             highCategories = emptyList(),
             highBodyParts = emptyList(),
             gate = TrainingGateSnapshot(

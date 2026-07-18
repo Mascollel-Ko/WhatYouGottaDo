@@ -140,7 +140,7 @@ internal fun FatigueCategoryKey.koreanLabel(): String =
     when (this) {
         FatigueCategoryKey.SYSTEMIC -> "전신"
         FatigueCategoryKey.NEURAL_HEAVY -> "고중량 신경계"
-        FatigueCategoryKey.NEURAL_SPEED -> "고속/반응"
+        FatigueCategoryKey.NEURAL_SPEED -> "고속"
         FatigueCategoryKey.LOCAL_MUSCLE -> "부위별"
         FatigueCategoryKey.DECELERATION -> "감속"
         FatigueCategoryKey.ELASTIC_SSC -> "탄성/점프"
