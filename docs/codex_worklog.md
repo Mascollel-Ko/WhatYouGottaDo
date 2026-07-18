@@ -2917,3 +2917,62 @@ Verification
 - Release identity is `v0.4.2.15 / 402015`.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+## v0.4.2.16 analysis chart temporal context and e1RM domain correction
+
+### Baseline and cause
+- Started from latest `origin/main` at
+  `5eac6594b97504a9cacc87f478d7921e8fbad599`, tagged `v0.4.2.15`, with app
+  identity `v0.4.2.15 / 402015`.
+- Daily and weekly analysis charts lacked enough date context. Weekly
+  badminton volume and transfer views could format the same bucket
+  independently.
+- The card titled `이번 주 누적 부담` actually used the selected rolling
+  fatigue-analysis window, so its title implied a different period.
+- `AnalysisTrendChart` used the first e1RM series length for horizontal
+  positions. One bench observation could therefore truncate longer squat and
+  deadlift histories.
+
+### Commits and implementation
+- `e65722fba9c54fd8dba529ebf3d3c09ac3535e98` adds
+  `AnalysisChartTemporalPolicy`, the single Monday-Sunday authority. Thursday's
+  month owns a week, owned weeks are numbered chronologically, year boundaries
+  stay unambiguous, and label thinning never removes data points.
+- `c8ce0f9aeb40982e818c932e413a77024a453b5b` makes the e1RM X domain the
+  complete union between the earliest and latest displayed exercise
+  observations. Missing weeks remain absent, a one-point series remains one
+  point, and the Y range uses every finite visible value.
+- `9dced078349cea2c49658401d16bbf58f2d830bf` adds visible date/week axes,
+  exact period subtitles and temporal accessibility descriptions. Badminton
+  weekly volume and transfer stimulus share one `weekStart` formatter.
+- The rolling fatigue card is now `누적 부담 흐름`; it displays the exact
+  selected start/end dates and preserves every OFI date and value.
+- `60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e` adds focused daily, weekly,
+  badminton, fatigue, strength and accessibility regression tests.
+- `095a68f` updates the existing analysis and protocol documents in place. No
+  canonical protocol was added; the library remains 6 families and 28
+  protocols.
+
+### Preserved boundaries
+- Badminton volume/transfer values, taxonomy and colors are unchanged.
+- OFI formulas, recovery, five-axis state and classification are unchanged.
+- e1RM formula and weekly maximum selection are unchanged.
+- Strength effective volume, muscle mappings, rep-range definitions and ratio
+  calculations are unchanged.
+- Connective-tissue analysis, ProgramBuilder, workout records and stable keys
+  are unchanged.
+
+### Verification and release
+- Focused chart/date/e1RM/fatigue coverage: 65 tests, all passed.
+- Full `:app:testDebugUnitTest`: 946 tests across 159 suites with zero
+  failures, errors or skipped tests.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` and
+  `:app:assembleDebug` passed.
+- `:app:validateConnectiveTissuePriorBaselines` passed.
+- Protocol documentation validation passed for 6 families and the unchanged
+  28 protocols. `git diff --check` passed.
+- Release identity is `v0.4.2.16 / 402016`.
+- Main push, GitHub Actions and annotated tag are completed before release is
+  reported.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.
