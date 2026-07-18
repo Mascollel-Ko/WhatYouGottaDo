@@ -19,9 +19,37 @@ class BadmintonTrainingMethodSeriesTest {
             )
         )
 
-        assertEquals(listOf("2026-06-01", "2026-06-08"), groups.map { it.label })
+        assertEquals(listOf(monday, nextMonday), groups.map { it.weekStart })
+        assertEquals(
+            listOf(
+                AnalysisChartTemporalPolicy.weekLabel(monday).compactLabel,
+                AnalysisChartTemporalPolicy.weekLabel(nextMonday).compactLabel
+            ),
+            groups.map { it.label }
+        )
         assertEquals(15.0, groups.first().segments.single().value, 0.001)
         assertEquals(BadmintonTrainingMethodLabels.label("REACTION"), groups.last().segments.single().label)
+    }
+
+    @Test
+    fun weeklyVolumeAndTransferUseTheSameLabelForTheSameWeek() {
+        val weekStart = LocalDate.parse("2026-06-29")
+        val group = BadmintonTrainingMethodSeries.weeklyStackedGroups(
+            listOf(
+                BadmintonDailyLoadPoint(
+                    weekStart.plusDays(2),
+                    0.0,
+                    10.0,
+                    0.0,
+                    mapOf("FOOTWORK" to 10.0)
+                )
+            )
+        ).single()
+        val volumeLabel = AnalysisChartTemporalPolicy.weekLabel(weekStart)
+
+        assertEquals(weekStart, group.weekStart)
+        assertEquals(volumeLabel.compactLabel, group.label)
+        assertEquals("7월 1주 · 6월 29일~7월 5일", volumeLabel.detailedLabel)
     }
 
     @Test

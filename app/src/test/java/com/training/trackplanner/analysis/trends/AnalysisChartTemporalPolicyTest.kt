@@ -52,6 +52,28 @@ class AnalysisChartTemporalPolicyTest {
     }
 
     @Test
+    fun axisLabelsIncludeYearWhenDisplayedWeeksCrossYears() {
+        val domain = listOf(LocalDate.of(2026, 12, 28), LocalDate.of(2027, 1, 4))
+
+        assertEquals(
+            "2026년 12월\n5주",
+            AnalysisChartTemporalPolicy.compactAxisLabel(
+                domain.first(),
+                ChartTimeGranularity.WEEKLY,
+                domain
+            )
+        )
+        assertEquals(
+            "2027년 1월\n1주",
+            AnalysisChartTemporalPolicy.compactAxisLabel(
+                domain.last(),
+                ChartTimeGranularity.WEEKLY,
+                domain
+            )
+        )
+    }
+
+    @Test
     fun weeklyDomainUsesCalendarWeeksAcrossDst() {
         val domain = AnalysisChartTemporalPolicy.weeklyDomain(
             listOf(LocalDate.of(2026, 3, 2), LocalDate.of(2026, 3, 16))
