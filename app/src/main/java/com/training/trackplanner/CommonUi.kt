@@ -14,11 +14,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -54,7 +55,7 @@ internal fun CtaCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
@@ -121,18 +122,34 @@ internal fun ScreenHeader(title: String, body: String) {
 
 @Composable
 internal fun InfoCard(text: String) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Text(
-            modifier = Modifier.padding(14.dp),
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+    Text(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 2.dp, vertical = 8.dp),
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
+internal fun QuietChoiceChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label) },
+        shape = MaterialTheme.shapes.small,
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            selectedLabelColor = MaterialTheme.colorScheme.onSurface
         )
-    }
+    )
 }
 
 @Composable
@@ -143,7 +160,7 @@ internal fun DateSwitcher(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -261,7 +278,7 @@ internal fun ExerciseListItem(
     }
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (selected) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -317,7 +334,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -338,7 +355,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                         .fillMaxWidth()
                         .height(96.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
@@ -451,7 +468,7 @@ private fun Exercise.infoTags(metadata: RuntimeExerciseMetadata? = null): List<P
 internal fun MetricCard(label: String, value: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -472,10 +489,10 @@ internal fun MetricCard(label: String, value: String) {
 }
 
 internal fun screenPadding() = PaddingValues(
-    start = 18.dp,
-    top = 18.dp,
-    end = 18.dp,
-    bottom = 28.dp
+    start = 20.dp,
+    top = 20.dp,
+    end = 20.dp,
+    bottom = 32.dp
 )
 
 internal fun formatWeight(value: Double): String {

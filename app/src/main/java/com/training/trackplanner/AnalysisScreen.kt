@@ -39,7 +39,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = screenPadding(),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             ScreenHeader(

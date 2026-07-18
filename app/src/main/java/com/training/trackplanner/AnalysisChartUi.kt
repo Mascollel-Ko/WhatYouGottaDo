@@ -387,18 +387,7 @@ internal fun AnalysisMetricChipRow(
 
 @Composable
 internal fun AnalysisSelectableChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-    ) {
-        Text(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-        )
-    }
+    QuietChoiceChip(label = label, selected = selected, onClick = onClick)
 }
 
 @Composable

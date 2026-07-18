@@ -78,7 +78,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
     var expandedJoint by rememberSaveable { mutableStateOf<String?>(null) }
     var showAllJoints by rememberSaveable { mutableStateOf(false) }
     var selectedInfoKey by rememberSaveable { mutableStateOf<String?>(null) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(

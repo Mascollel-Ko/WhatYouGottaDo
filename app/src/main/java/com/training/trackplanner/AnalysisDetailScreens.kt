@@ -67,7 +67,7 @@ internal fun FatigueAndConditionAnalysisContent(
     onContributionGroupingChange: (ContributionGrouping) -> Unit,
     onContributionSourcesApply: (Set<String>) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         fatigueAnalysis.currentState?.let { state ->
             CurrentFatigueStatusCard(state = state)
         }

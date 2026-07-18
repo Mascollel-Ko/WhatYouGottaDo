@@ -3,52 +3,74 @@ package com.training.trackplanner.ui.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF2563EB),
+    primary = Color(0xFF315F8C),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDCE8FF),
-    onPrimaryContainer = Color(0xFF061B4A),
-    secondary = Color(0xFF0F766E),
+    primaryContainer = Color(0xFFDCE7F2),
+    onPrimaryContainer = Color(0xFF17324D),
+    secondary = Color(0xFF356B61),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFCFEFEB),
-    onSecondaryContainer = Color(0xFF042F2E),
-    tertiary = Color(0xFFB45309),
+    secondaryContainer = Color(0xFFD9E9E5),
+    onSecondaryContainer = Color(0xFF173B35),
+    tertiary = Color(0xFF8A5A17),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFE1B8),
-    onTertiaryContainer = Color(0xFF3A2100),
-    background = Color(0xFFF8FAFC),
-    onBackground = Color(0xFF0F172A),
+    tertiaryContainer = Color(0xFFF3E5CC),
+    onTertiaryContainer = Color(0xFF402D10),
+    background = Color(0xFFF5F6F7),
+    onBackground = Color(0xFF1A1C1E),
     surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF111827),
-    surfaceVariant = Color(0xFFE5E7EB),
-    onSurfaceVariant = Color(0xFF374151),
-    outline = Color(0xFF94A3B8)
+    onSurface = Color(0xFF1A1C1E),
+    surfaceVariant = Color(0xFFECEFF1),
+    onSurfaceVariant = Color(0xFF45484D),
+    outline = Color(0xFF7A7E84)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF93C5FD),
-    onPrimary = Color(0xFF0B2B63),
-    primaryContainer = Color(0xFF1E3A8A),
-    onPrimaryContainer = Color(0xFFDCE8FF),
-    secondary = Color(0xFF5EEAD4),
-    onSecondary = Color(0xFF083B37),
-    secondaryContainer = Color(0xFF115E59),
-    onSecondaryContainer = Color(0xFFCFEFEB),
-    tertiary = Color(0xFFFBBF24),
-    onTertiary = Color(0xFF3A2100),
-    background = Color(0xFF0B1120),
-    onBackground = Color(0xFFE5E7EB),
-    surface = Color(0xFF111827),
-    onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF1F2937),
-    onSurfaceVariant = Color(0xFFCBD5E1),
-    outline = Color(0xFF64748B)
+    primary = Color(0xFFA9C9E8),
+    onPrimary = Color(0xFF17324D),
+    primaryContainer = Color(0xFF294B6A),
+    onPrimaryContainer = Color(0xFFDCE7F2),
+    secondary = Color(0xFF9ACCC1),
+    onSecondary = Color(0xFF173B35),
+    secondaryContainer = Color(0xFF294C45),
+    onSecondaryContainer = Color(0xFFD9E9E5),
+    tertiary = Color(0xFFE2BE82),
+    onTertiary = Color(0xFF402D10),
+    background = Color(0xFF101214),
+    onBackground = Color(0xFFE4E5E7),
+    surface = Color(0xFF181A1D),
+    onSurface = Color(0xFFF0F1F2),
+    surfaceVariant = Color(0xFF25282C),
+    onSurfaceVariant = Color(0xFFC5C8CC),
+    outline = Color(0xFF858A90)
+)
+
+private val BaseTypography = Typography()
+
+private val AppTypography = BaseTypography.copy(
+    headlineMedium = BaseTypography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+    titleLarge = BaseTypography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+    titleMedium = BaseTypography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+    bodySmall = BaseTypography.bodySmall.copy(lineHeight = 18.sp)
+)
+
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(6.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(12.dp),
+    extraLarge = RoundedCornerShape(16.dp)
 )
 
 @Composable
@@ -60,7 +82,8 @@ fun TrainingTrackPlannerTheme(
 
     MaterialTheme(
         colorScheme = colors,
-        typography = Typography(),
+        typography = AppTypography,
+        shapes = AppShapes,
         content = content
     )
 }

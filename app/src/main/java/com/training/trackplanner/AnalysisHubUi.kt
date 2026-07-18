@@ -32,7 +32,7 @@ internal fun AnalysisHubContent(
     onRelationshipLabClick: () -> Unit,
     onLaggedLabClick: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         AnalysisHubSection {
             AnalysisHubRow(
                 title = "오늘 컨디션 및 피로도 분석",
