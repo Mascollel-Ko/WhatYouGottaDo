@@ -3045,6 +3045,10 @@ Verification
 - Tissue publication integrity passed for `10` sources with `0` blockers.
 - Protocol validation passed for `7` families, `29` protocols and no missing
   canonical document.
+- The first main CI run detected that the new presentation authority lacked
+  the repository's canonical 20-section headings. The policy content was
+  retained, reorganized to the common schema and then passed the exact
+  `scripts/validate_protocol_docs.py` CI validator and its focused unit test.
 - Final debug APK size is `46,198,647` bytes, four bytes smaller than the
   baseline; no image asset was added.
 - Release identity is `0.5.0.0 / 500000`; main push, CI and annotated
