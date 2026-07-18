@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-07-18",
+  "lastUpdated": "2026-07-19",
   "families": [
     {
       "familyId": "OFI",
@@ -37,6 +37,12 @@
       "titleKo": "자동 프로그램 생성",
       "descriptionKo": "현재 공개 결정론적 자동 골자 생성 계약",
       "indexDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md"
+    },
+    {
+      "familyId": "UI_PRESENTATION",
+      "titleKo": "제품 UI 표시",
+      "descriptionKo": "조용한 표면 계층, 내비게이션, OFI 요약과 강조 정책",
+      "indexDocument": "presentation/QUIET_UI_PRESENTATION.md"
     }
   ],
   "protocols": [
@@ -80,7 +86,7 @@
       "familyId": "OFI",
       "titleKo": "OFI 분류와 표시",
       "titleEn": "OFI Classification and Presentation",
-      "currentVersion": "1.1.1",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -89,12 +95,13 @@
       ],
       "canonicalDocument": "ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md",
       "implementedFromAppVersion": "v0.4.2.15",
-      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
+      "lastAuditedCommit": "7c29fa80b31fad642273e0a3ec5924109dafac21",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
@@ -102,14 +109,16 @@
         "app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt",
-        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt"
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/CurrentFatigueStatusCardUiTest.kt"
       ],
       "authorityAssets": [],
       "supportingDocuments": [
         "docs/v0.4.2.5_release_notes.md",
         "docs/v0.4.2.6_release_notes.md",
         "docs/v0.4.2.15_release_notes.md",
-        "docs/v0.4.2.16_release_notes.md"
+        "docs/v0.4.2.16_release_notes.md",
+        "docs/v0.5.0.0_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -1347,6 +1356,47 @@
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
         "공개 output의 evaluation은 null이며 optimization summary는 평가 결과가 아닌 고정 문구입니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "UI-QUIET-PRESENTATION",
+      "familyId": "UI_PRESENTATION",
+      "titleKo": "조용한 UI 표시 원칙",
+      "titleEn": "Quiet UI Presentation",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "USER_APPROVED_POLICY",
+        "PRODUCT_POLICY"
+      ],
+      "canonicalDocument": "presentation/QUIET_UI_PRESENTATION.md",
+      "implementedFromAppVersion": "v0.5.0.0",
+      "lastAuditedCommit": "7c29fa80b31fad642273e0a3ec5924109dafac21",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/MainActivity.kt",
+        "app/src/main/java/com/training/trackplanner/CommonUi.kt",
+        "app/src/main/java/com/training/trackplanner/HomeScreen.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisHubUi.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt",
+        "app/src/main/java/com/training/trackplanner/ConnectiveTissueAnalysisUi.kt",
+        "app/src/main/java/com/training/trackplanner/ui/theme/Theme.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/BottomNavigationUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisHubUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/CurrentFatigueStatusCardUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/ConnectiveTissueAnalysisUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/AppExplanationUiTest.kt"
+      ],
+      "authorityAssets": [],
+      "supportingDocuments": [
+        "docs/v0.5.0.0_release_notes.md"
+      ],
+      "knownGaps": [
+        "Deep chart and editor surfaces retain their existing specialized layouts and can be refined incrementally under this same presentation authority."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

@@ -2976,3 +2976,66 @@ Verification
   reported.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+## v0.5.0.0 quiet UI refinement
+
+### Baseline and intent
+- Started from latest `origin/main` at
+  `7105d96d2209d30e0c1bb8c6a97a5c8e3b318243`, tagged `v0.4.2.16`, with app
+  identity `v0.4.2.16 / 402016`.
+- The release is a product presentation milestone: quieter navigation,
+  shallower surface hierarchy, a calmer OFI default summary and shared visual
+  primitives. It does not change calculations or add product features.
+- Baseline debug APK size was `46,198,651` bytes.
+
+### Implementation commits
+- `483d6b79600c27f7c3893429b6cd0aaf16374978` replaces `H/R/P/E/A` with
+  outlined Material home, edit-note, event-note, fitness-center and analytics
+  icons. Korean labels, one selected indicator and neutral unselected states
+  remain visible.
+- `034a1e51739aa76343ff7056675a73d97a0438ca` groups Analysis entries into
+  row-based sections and removes nested filled surfaces from Home metrics,
+  fatigue/recognition detail, connective-tissue child rows and expanded
+  performance detail.
+- `e08a46846c0f80982c4dbe2b58bd7e1d8c7ec912` places the canonical five OFI
+  axes directly below the overall state. Ordinary states are neutral; only
+  high and very-high states use strong warning emphasis. Contributor details
+  remain behind the existing detail action.
+- `7c29fa80b31fad642273e0a3ec5924109dafac21` centralizes the neutral
+  light/dark palette, typography weights and shape scale, aligns major-screen
+  spacing, converts helper cards to unframed text and unifies analysis/fatigue
+  selectors on Material `FilterChip`.
+
+### Files and responsibility
+- `MainActivity.kt`: bottom navigation mapping, selected/unselected treatment.
+- `CommonUi.kt`: helper text, compact metrics, shared choice chip and screen
+  insets.
+- `HomeScreen.kt`: primary/secondary action hierarchy and compact summary.
+- `AnalysisScreen.kt`, `AnalysisHubUi.kt`, `AnalysisDetailScreens.kt`,
+  `AnalysisCoachUi.kt`, `AnalysisChartUi.kt`: quieter analysis hierarchy,
+  grouped entry rows and canonical OFI summary.
+- `ConnectiveTissueAnalysisUi.kt`: row/divider child presentation; calculations,
+  educational dialogs and baseline-source footer remain unchanged.
+- `ui/theme/Theme.kt`: neutral palette, typography and shapes.
+- New UI tests: `BottomNavigationUiTest`, `AnalysisHubUiTest` and
+  `CurrentFatigueStatusCardUiTest`.
+
+### Governance and preserved boundaries
+- Added one canonical `UI-QUIET-PRESENTATION` product policy and registered it
+  in the existing protocol library.
+- Updated `OFI-CLASSIFICATION` in place to `1.2.0`; no duplicate OFI authority
+  was created.
+- No images, illustrations, anatomy diagrams, banners, photos or animation
+  assets were added.
+- OFI, connective-tissue, strength, badminton, ProgramBuilder, record,
+  backup/restore and stable-key behavior are unchanged.
+
+### Verification status
+- Focused navigation, Home entry, Analysis hub, OFI label/summary,
+  connective-tissue and dark/large-font Compose coverage passed.
+- `:app:compileDebugKotlin` passed after each implementation stage.
+- Final full unit tests, Android-test compilation, assemble, protocol
+  validation, APK size, release commit, main push, CI and tag are recorded
+  after the release gate completes.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.
