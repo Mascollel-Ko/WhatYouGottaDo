@@ -2811,3 +2811,22 @@ Verification
   verification.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+### Final local verification and release identity
+- Focused educational/parser/UI and numerical connective-tissue regression
+  covered 75 tests across 11 suites; all passed.
+- Full `:app:testDebugUnitTest` covered 923 tests in 156 suites with 0
+  failures, 0 errors and 0 skipped.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` and
+  `:app:assembleDebug` passed with Android Studio JBR and the repository-local
+  `.gradle-user-home`.
+- `validateConnectiveTissuePriorBaselines` passed. Asset manifest/hash checks
+  passed. Bundled-Python protocol validation passed for 6 families and the
+  unchanged 28 protocols. Publication integrity checked 10 sources, found all
+  10 required no-adverse notices and reported 0 blockers.
+- Final debug APK size is 46,182,271 bytes, +9,772 bytes (+0.021%) from the
+  46,172,499-byte v0.4.2.12 baseline. No image, SVG, audio, video, font,
+  external library or other binary asset was added.
+- Release identity is `v0.4.2.13 / 402013`. The release commit is the commit
+  containing this final verification record; push, CI and annotated-tag
+  results are recorded in the final task report.

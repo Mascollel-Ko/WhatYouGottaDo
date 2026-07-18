@@ -318,7 +318,8 @@
         "docs/v0.4.2.7_release_notes.md",
         "docs/v0.4.2.8_release_notes.md",
         "docs/v0.4.2.12_release_notes.md",
-        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md",
+        "docs/v0.4.2.13_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -405,7 +406,8 @@
       ],
       "supportingDocuments": [
         "docs/v0.4.2.8_release_notes.md",
-        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md",
+        "docs/v0.4.2.13_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -778,7 +780,8 @@
       "supportingDocuments": [
         "docs/v0.4.2.8_release_notes.md",
         "docs/v0.4.2.12_release_notes.md",
-        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md",
+        "docs/v0.4.2.13_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
