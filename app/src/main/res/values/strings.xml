@@ -34,11 +34,9 @@
     <string name="tissue_baseline_source_personal">기준 출처: 개인 운동 기록</string>
     <string name="tissue_baseline_source_mixed">기준 출처: 조직별 초기 기준·개인 운동 기록 혼합</string>
     <string name="tissue_baseline_source_mixed_explanation">조직마다 개인 기록의 반영 정도가 다를 수 있습니다.</string>
-    <string name="tissue_info_label_display_name">표시명</string>
     <string name="tissue_info_label_location">위치</string>
     <string name="tissue_info_label_functions">주요 기능</string>
     <string name="tissue_info_label_contexts">주로 사용되는 동작</string>
-    <string name="tissue_info_label_description">설명</string>
     <string name="tissue_info_disclaimer">이 설명은 운동 부하를 이해하기 위한 일반 정보이며 의학적 진단이 아닙니다.</string>
     <string name="close">닫기</string>
     <string name="navigation_back">뒤로 가기</string>

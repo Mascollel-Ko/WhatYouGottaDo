@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
@@ -257,20 +259,19 @@ private fun TissueEducationalInfoDialog(
         onDismissRequest = onDismiss,
         title = { Text(info.displayNameKo) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                TissueInfoField(stringResource(R.string.tissue_info_label_display_name), info.displayNameKo)
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 TissueInfoField(stringResource(R.string.tissue_info_label_location), info.anatomicalLocationKo)
                 TissueInfoField(
                     stringResource(R.string.tissue_info_label_functions),
-                    info.primaryFunctionsKo.joinToString(" · ")
+                    info.primaryFunctionsKo.joinToString(" ")
                 )
                 TissueInfoField(
                     stringResource(R.string.tissue_info_label_contexts),
-                    info.commonLoadContextsKo.joinToString(" · ")
+                    info.commonLoadContextsKo.joinToString(" ")
                 )
-                info.shortDescriptionKo?.let {
-                    TissueInfoField(stringResource(R.string.tissue_info_label_description), it)
-                }
                 Text(
                     stringResource(R.string.tissue_info_disclaimer),
                     style = MaterialTheme.typography.bodySmall,
