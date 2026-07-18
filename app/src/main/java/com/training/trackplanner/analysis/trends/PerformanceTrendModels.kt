@@ -12,6 +12,11 @@ enum class ChartType {
     SCATTER
 }
 
+enum class ChartTimeGranularity {
+    DAILY,
+    WEEKLY
+}
+
 enum class DetailChartMode {
     TREND,
     COMPOSITION,
@@ -149,7 +154,8 @@ data class StackedBarSegment(
 
 data class StackedBarGroup(
     val label: String,
-    val segments: List<StackedBarSegment>
+    val segments: List<StackedBarSegment>,
+    val weekStart: LocalDate? = null
 )
 
 data class ScatterPoint(
@@ -169,7 +175,10 @@ data class ChartSpec(
     val forecastRange: ForecastRange? = null,
     val emphasizeValue: Boolean = false,
     val yMin: Double? = null,
-    val yMax: Double? = null
+    val yMax: Double? = null,
+    val timeGranularity: ChartTimeGranularity? = null,
+    val xDomain: List<LocalDate> = emptyList(),
+    val valueUnit: String? = null
 ) {
     val visibleLineCount: Int
         get() = lineSeries.size
