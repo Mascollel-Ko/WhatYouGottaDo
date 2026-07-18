@@ -14,6 +14,7 @@ object TissueRcvAssetFiles {
     const val JOINT_COMPLEXES = "tissue_rcv_joint_complexes_v1.csv"
     const val LOAD_UNITS = "tissue_rcv_load_units_v1.csv"
     const val EDUCATIONAL_INFO = "tissue_rcv_educational_info_v1.csv"
+    const val EDUCATIONAL_INFO_VERSION = "RCV-ALL-0.6-EDU-2"
     const val COD_CONTEXT_EXERCISE_TIERS = "cod_context_exercise_tiers_v1.csv"
     const val COD_CONTEXT_LOAD_UNIT_ELIGIBILITY = "cod_context_load_unit_eligibility_v1.csv"
     const val COD_CONTEXT_MODIFIER_RULES = "cod_context_modifier_rules_v1.csv"
@@ -187,7 +188,8 @@ class TissueRcvAssetRepository private constructor(
                     primaryFunctionsKo = row.tokens("primaryFunctionsKo"),
                     commonLoadContextsKo = row.tokens("commonLoadContextsKo"),
                     shortDescriptionKo = row.value("shortDescriptionKo").takeIf(String::isNotBlank),
-                    scope = enumValueOf(row.required("scope"))
+                    scope = enumValueOf(row.required("scope")),
+                    metadataVersion = row.required("metadataVersion")
                 )
             }
             require(educationalRows.map(TissueEducationalInfo::stableKey).distinct().size == educationalRows.size) {
@@ -286,6 +288,30 @@ object TissueRcvAssetValidator {
                 it.primaryFunctionsKo.isNotEmpty() &&
                 it.commonLoadContextsKo.isNotEmpty()
         }) { "Educational metadata contains an incomplete entry." }
+        require(catalog.educationalInfo.values.all {
+            it.metadataVersion == TissueRcvAssetFiles.EDUCATIONAL_INFO_VERSION
+        }) { "Educational metadata version must be ${TissueRcvAssetFiles.EDUCATIONAL_INFO_VERSION}." }
+        require(catalog.educationalInfo.values.all { info ->
+            educationalProse(info).all(::endsNaturally)
+        }) { "Educational metadata contains an unfinished sentence." }
+        require(catalog.educationalInfo.values.all { info ->
+            educationalProse(info).all { it.length <= 1_000 }
+        }) { "Educational metadata exceeds the 1,000-character hard limit for one field." }
+        require(catalog.educationalInfo.values.none { info ->
+            educationalProse(info).any { text -> obsoleteEducationalPhrases.any(text::contains) }
+        }) { "Educational metadata contains obsolete user-facing boilerplate." }
+        require(catalog.educationalInfo.values
+            .groupBy { info -> educationalProse(info).joinToString("|") }
+            .none { (_, entries) -> entries.size > 1 }
+        ) { "Educational metadata contains an exact duplicate complete entry." }
+        require(catalog.educationalInfo.values.all { info ->
+            when (info.scope) {
+                TissueEducationalInfoScope.JOINT_COMPLEX ->
+                    catalog.jointComplexes[info.stableKey]?.nameKo == info.displayNameKo
+                TissueEducationalInfoScope.LOAD_UNIT ->
+                    catalog.loadUnits[info.stableKey]?.nameKo == info.displayNameKo
+            }
+        }) { "Educational display names must match the canonical catalogue." }
         require(catalog.educationalInfo.keys.none {
             it.contains("LEFT", ignoreCase = true) || it.contains("RIGHT", ignoreCase = true)
         }) { "Educational metadata must remain unsided." }
@@ -328,6 +354,29 @@ object TissueRcvAssetValidator {
         }
         TissueCodContextValidator.requireValid(catalog)
     }
+
+    private val obsoleteEducationalPhrases = listOf(
+        "복합체 안의",
+        "관련 부하를 보는 연결조직 분석 단위",
+        "상위 단위",
+        "부하 단위",
+        "관절 접촉 압력을 분산",
+        "전단 부하에 대응",
+        "인장 부하를 전달",
+        "비틀림 부하를 제어",
+        "빠른 신장 부하에 대응",
+        "분석 단위"
+    )
+
+    private fun educationalProse(info: TissueEducationalInfo): List<String> = buildList {
+        add(info.anatomicalLocationKo)
+        addAll(info.primaryFunctionsKo)
+        addAll(info.commonLoadContextsKo)
+        info.shortDescriptionKo?.let(::add)
+    }
+
+    private fun endsNaturally(text: String): Boolean =
+        text.trimEnd().lastOrNull() in setOf('.', '!', '?')
 }
 
 private fun Map<String, String>.value(name: String): String = get(name).orEmpty().trim()

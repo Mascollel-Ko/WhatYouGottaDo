@@ -135,6 +135,50 @@ class ConnectiveTissueAnalysisUiTest {
         compose.onNodeWithText("접기").assertExists()
     }
 
+    @Test
+    fun educationalDialogShowsExactlyThreeFieldsWithoutDuplicateCopy() {
+        val state = completeState()
+        val first = state.jointComplexes.first()
+        content(state)
+
+        compose.onNodeWithContentDescription("${first.nameKo} 정보 보기").performClick()
+        compose.onAllNodesWithText("위치").assertCountEquals(1)
+        compose.onAllNodesWithText("주요 기능").assertCountEquals(1)
+        compose.onAllNodesWithText("주로 사용되는 동작").assertCountEquals(1)
+        compose.onAllNodesWithText("표시명").assertCountEquals(0)
+        compose.onAllNodesWithText("설명").assertCountEquals(0)
+        compose.onNodeWithText(first.educationalInfo.anatomicalLocationKo).assertIsDisplayed()
+        compose.onNodeWithText(first.educationalInfo.primaryFunctionsKo.joinToString(" ")).assertExists()
+        compose.onNodeWithText(first.educationalInfo.commonLoadContextsKo.joinToString(" ")).assertExists()
+        compose.onNodeWithText("닫기").performClick()
+    }
+
+    @Test
+    fun parentAndChildInfoButtonsRemainAccessibleAndLongDialogScrolls() {
+        val state = completeState()
+        val first = state.jointComplexes.first()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                TrainingTrackPlannerTheme(darkTheme = true) {
+                    Box(Modifier.width(320.dp)) {
+                        ConnectiveTissueAnalysisContent(state)
+                    }
+                }
+            }
+        }
+
+        val scrollNodesBeforeDialog = compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().size
+        compose.onNodeWithContentDescription("${first.nameKo} 정보 보기").performClick()
+        assertTrue(compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().size > scrollNodesBeforeDialog)
+        compose.onNodeWithText("닫기").performClick()
+
+        compose.onAllNodesWithText("하위 조직 보기")[0].performClick()
+        val child = first.childStates.first()
+        compose.onNodeWithContentDescription("${child.loadUnitName} 정보 보기").performClick()
+        assertTrue(compose.onAllNodesWithText(child.loadUnitName).fetchSemanticsNodes().isNotEmpty())
+        compose.onNodeWithText(child.educationalInfo.anatomicalLocationKo).assertExists()
+    }
+
     private fun content(state: TissueCurrentState) {
         compose.setContent {
             TrainingTrackPlannerTheme {

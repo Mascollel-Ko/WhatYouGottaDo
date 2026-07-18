@@ -117,7 +117,8 @@ data class TissueEducationalInfo(
     val primaryFunctionsKo: List<String>,
     val commonLoadContextsKo: List<String>,
     val shortDescriptionKo: String?,
-    val scope: TissueEducationalInfoScope
+    val scope: TissueEducationalInfoScope,
+    val metadataVersion: String
 )
 
 data class TissueRcvCatalog(
