@@ -327,36 +327,69 @@ internal fun CurrentFatigueStatusCard(
     projectedOfi: Int? = null
 ) {
     val status = TodayFatigueStatusLabeler.currentSummary(state)
+    val axes = TodayFatigueStatusLabeler.axisStates(state)
+    val hasCautionAxis = axes.any(::isCautionAxis)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("현재 피로도 상태와 판단", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        "현재 상태: ${status.ofi} · ${status.ofiLabel}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        status.judgementMessage,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        status.axisMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(status.levelCountMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("현재 피로도", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                "현재 상태: ${status.ofi} · ${status.ofiLabel}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            HorizontalDivider(modifier = Modifier.padding(top = 2.dp))
+            axes.forEachIndexed { index, axis ->
+                FatigueAxisSummaryRow(axis)
+                if (index < axes.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
+            Text(
+                status.axisMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (hasCautionAxis) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                fontWeight = if (hasCautionAxis) FontWeight.SemiBold else FontWeight.Normal
+            )
+            Text(
+                status.levelCountMessage,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             projectedOfi?.let { score ->
                 Text(
                     "끝나면 예상 피로도: $score · ${TodayFatigueStatusLabeler.ofiDisplayLabel(score)}",
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun FatigueAxisSummaryRow(axis: TodayFatigueAxisState) {
+    val caution = isCautionAxis(axis)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            axis.label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            axis.displayLabel,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (caution) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = if (caution) FontWeight.SemiBold else FontWeight.Normal
+        )
     }
 }
 
