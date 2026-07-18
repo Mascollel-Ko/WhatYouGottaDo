@@ -4,17 +4,23 @@ import android.content.Context
 import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
+import com.training.trackplanner.analysis.tissue.TissueRcvEventLedgerBuilder
+import com.training.trackplanner.analysis.tissue.TissueWorkoutRecord
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.LocalDate
+import java.time.ZoneId
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -82,6 +88,64 @@ class BackupRestoreImportBehaviorTest {
         assertEquals("Custom restore lift", restoredExercise.name)
         assertTrue(restoredExercise.isCustom)
         assertEquals("CUSTOM_RESTORE_SLOT", restoredMetadata.programSlot)
+    }
+
+    @Test
+    fun restoreNormalizesImportedBadmintonAndUsesExistingDurationRpeTissueMappings() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val canonicalKey = "ex_ae9ecdbc"
+        val badminton = SeedData.exactExerciseMetadataByStableKey(context).getValue(canonicalKey).copy(id = 24)
+        val entry = WorkoutEntry(
+            id = 41,
+            date = LocalDate.now().toString(),
+            exerciseId = badminton.id,
+            exerciseName = badminton.name,
+            category = badminton.category,
+            rpe = 8.0
+        )
+        val set = WorkoutSet(
+            id = 42,
+            entryId = entry.id,
+            setIndex = 1,
+            reps = 0,
+            weightKg = 0.0,
+            seconds = 45 * 60,
+            confirmed = true,
+            rpe = 8.0
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set))),
+            metrics = emptyList(),
+            exercises = listOf(badminton)
+        ).replace(canonicalKey, "imported_배드민턴")
+
+        val result = repository.importRecordsBackup(writeBackup(csv))
+        val restoredExercise = db.exerciseDao().findByStableKey(canonicalKey)!!
+        val restoredEntry = db.workoutDao().allEntriesWithSets().single()
+        val catalog = TissueRcvAssetRepository.fromAssets(context).catalog
+        val ledger = TissueRcvEventLedgerBuilder(catalog, ZoneId.systemDefault()).build(
+            listOf(TissueWorkoutRecord.from(restoredEntry, restoredExercise, bodyWeightKg = null))
+        )
+        val expectedMappingKeys = catalog.authorityRows
+            .filter { row -> row.exerciseStableKey == canonicalKey }
+            .map { row -> row.loadUnitStableKey to row.loadProfileP }
+            .toSet()
+        val actualMappingKeys = ledger.events
+            .map { event -> event.key.loadUnitStableKey to event.key.loadDimension }
+            .toSet()
+
+        assertEquals(1, result.entryCount)
+        assertEquals(canonicalKey, restoredExercise.stableKey)
+        assertNull(db.exerciseDao().findByStableKey("imported_배드민턴"))
+        assertEquals(restoredExercise.id, restoredEntry.entry.exerciseId)
+        assertTrue(restoredEntry.sets.all { restoredSet -> restoredSet.reps == 0 })
+        assertTrue(ledger.events.isNotEmpty())
+        assertEquals(expectedMappingKeys, actualMappingKeys)
+        assertTrue(ledger.events.all { event -> event.exerciseStableKey == canonicalKey })
+        assertTrue(ledger.events.all { event -> event.rawDose == 45.0 * 60.0 })
+        assertTrue(ledger.events.all { event -> event.selectedEffort.value == 0.8 })
+        assertFalse(ledger.diagnostics.any { diagnostic -> "missing reviewed mapping" in diagnostic })
     }
 
     @Test

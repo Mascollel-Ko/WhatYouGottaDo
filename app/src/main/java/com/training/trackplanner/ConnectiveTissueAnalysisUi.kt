@@ -201,13 +201,6 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                                         ),
                                         style = MaterialTheme.typography.bodySmall
                                     )
-                                    if (child.diagnostics.isNotBlank()) {
-                                        Text(
-                                            child.diagnostics,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
                                 }
                             }
                         }
@@ -223,9 +216,6 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                     )
                 )
             }
-        }
-        if (ui.diagnostics.isNotEmpty()) {
-            InfoCard(ui.diagnostics.take(3).joinToString("\n"))
         }
         TissueBaselineProvenanceFooter(ui.provenance)
     }

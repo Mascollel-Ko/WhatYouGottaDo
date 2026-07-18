@@ -28,17 +28,21 @@ internal class BackupRestoreImportService(
         var skipped = 0
         db.withTransaction {
             val seedByStableKey = seedExercisesByStableKey()
-            val restoredRuntimeOverrideKeys = ExerciseMetadataOverrideBackupMapper.overrideKeys(data.runtimeMetadataRows)
+            val runtimeMetadataRows = data.runtimeMetadataRows.map { metadata ->
+                metadata.copy(stableKey = canonicalImportedStableKey(metadata.stableKey))
+            }
+            val restoredRuntimeOverrideKeys = ExerciseMetadataOverrideBackupMapper.overrideKeys(runtimeMetadataRows)
             profileFromRows(data.profileRows)?.let { profile ->
                 initialUserProfileDao.upsert(profile)
                 profileCount = 1
             }
             data.exerciseRows.forEach { row ->
-                if (upsertRestoredExercise(row, seedByStableKey, restoredRuntimeOverrideKeys)) {
+                val normalized = row.copy(stableKey = canonicalImportedStableKey(row.stableKey))
+                if (upsertRestoredExercise(normalized, seedByStableKey, restoredRuntimeOverrideKeys)) {
                     exerciseCount += 1
                 }
             }
-            data.runtimeMetadataRows.forEach { metadata ->
+            runtimeMetadataRows.forEach { metadata ->
                 runtimeExerciseMetadataDao.upsert(
                     metadata.copy(safeForSeedMutation = false).toEntity()
                 )
@@ -136,7 +140,7 @@ internal class BackupRestoreImportService(
                     val exercise = findOrCreateImportedExercise(
                         first.exerciseName,
                         first.category,
-                        first.stableKey,
+                        canonicalImportedStableKey(first.stableKey),
                         seedByStableKey
                     )
                     val confirmedCount = importedSets.count { row -> row.setConfirmed }
@@ -184,4 +188,7 @@ internal class BackupRestoreImportService(
             warningCount = data.warningCount
         )
     }
+
+    private fun canonicalImportedStableKey(stableKey: String): String =
+        if (stableKey.trim() == "imported_배드민턴") "ex_ae9ecdbc" else stableKey
 }

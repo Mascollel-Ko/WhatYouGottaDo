@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.tissue.TissueAdjustedPriorBaseline
 import com.training.trackplanner.analysis.tissue.TissueAdjustedPriorResult
+import com.training.trackplanner.analysis.tissue.TissueAnalysisUiMapper
 import com.training.trackplanner.analysis.tissue.TissueBaselineProvenance
 import com.training.trackplanner.analysis.tissue.TissueCalibrationHistory
 import com.training.trackplanner.analysis.tissue.TissueCanonicalStatus
@@ -37,6 +38,7 @@ import com.training.trackplanner.analysis.tissue.TissueRcvAssetFiles
 import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -63,21 +65,26 @@ class ConnectiveTissueAnalysisUiTest {
     }
 
     @Test
-    fun priorFooterAppearsOnceAfterDiagnosticsWithoutOldCalibrationCopy() {
-        content(
-            state(TissueBaselineProvenance.PRIOR_ONLY).copy(
-                diagnostics = listOf("FINAL_DIAGNOSTIC")
+    fun diagnosticsAreNotUserFacingAndPriorFooterRemainsVisible() {
+        val source = state(TissueBaselineProvenance.PRIOR_ONLY).copy(
+            diagnostics = listOf(
+                "1:imported_배드민턴: missing reviewed mapping.",
+                "No explicit event count is recorded; no count was invented.",
+                "lu_internal_stable_key"
             )
         )
 
+        assertFalse(TissueAnalysisUiMapper.map(source).toString().contains("missing reviewed mapping"))
+        content(source)
+
         compose.onAllNodesWithText("기준 출처: 조직별 초기 기준").assertCountEquals(1)
+        compose.onAllNodes(hasText("missing reviewed mapping", substring = true)).assertCountEquals(0)
+        compose.onAllNodes(hasText("No explicit event count", substring = true)).assertCountEquals(0)
+        compose.onAllNodes(hasText("lu_internal_stable_key", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("보정 중", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("56일", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("점수", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("%", substring = true)).assertCountEquals(0)
-        val diagnostic = compose.onNodeWithText("FINAL_DIAGNOSTIC").getUnclippedBoundsInRoot()
-        val footer = compose.onNodeWithText("기준 출처: 조직별 초기 기준").getUnclippedBoundsInRoot()
-        assertTrue(footer.top >= diagnostic.bottom)
     }
 
     @Test

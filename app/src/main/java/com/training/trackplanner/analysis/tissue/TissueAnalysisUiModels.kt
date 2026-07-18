@@ -6,8 +6,7 @@ data class TissueAnalysisChildUi(
     val info: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
     val recoveryRange: String,
-    val contributors: String?,
-    val diagnostics: String
+    val contributors: String?
 )
 
 data class TissueAnalysisJointUi(
@@ -29,7 +28,6 @@ data class TissueAnalysisUiState(
     val status: TissueCanonicalStatus,
     val topAreas: String?,
     val joints: List<TissueAnalysisJointUi>,
-    val diagnostics: List<String>,
     val provenance: TissueBaselineProvenanceUi
 ) {
     fun visibleJoints(showAll: Boolean): List<TissueAnalysisJointUi> =
@@ -83,24 +81,11 @@ object TissueAnalysisUiMapper {
                             status = child.status,
                             recoveryRange = range(child.rawResidual),
                             contributors = child.contributors.joinToString { it.exerciseName }
-                                .takeIf { it.isNotBlank() },
-                            diagnostics = buildList {
-                                if (child.timestampPrecisions.isNotEmpty()) {
-                                    add("시간: ${child.timestampPrecisions.joinToString()}")
-                                }
-                                if (child.evidenceGrades.isNotEmpty()) {
-                                    add("근거: ${child.evidenceGrades.joinToString()}")
-                                }
-                                if (child.symptomOverride != TissueSymptomOverride.NONE) {
-                                    add("증상 override: ${child.symptomOverride}")
-                                }
-                                addAll(child.diagnostics)
-                            }.distinct().joinToString(" · ")
+                                .takeIf { it.isNotBlank() }
                         )
                     }
                 )
             },
-            diagnostics = state.diagnostics,
             provenance = TissueBaselineProvenanceUi(state.baselineProvenance)
         )
 
