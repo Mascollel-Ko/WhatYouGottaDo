@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -49,6 +49,8 @@ FOOTWORK, REACTION, JUMP_LANDING, LUNGE_REACH, ACCELERATION, DECELERATION, ROTAT
 
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
 
+v0.4.2.16부터 주별 전이 자극 차트는 주별 배드민턴 훈련량 차트와 동일한 `AnalysisChartTemporalPolicy`를 사용합니다. Monday-Sunday 주의 목요일이 속한 월이 그 주를 소유하며, 같은 `weekStart`는 두 차트에서 항상 같은 compact label과 정확한 날짜 범위를 가집니다. 이 표시 변경은 전이 자극값, taxonomy와 category color를 변경하지 않습니다.
+
 ## 10. 예외 및 fallback
 
 reps가 있으면 `reps * intensity * RPE`, 아니면 seconds가 있으면 `seconds/30 * RPE`, 둘 다 없으면 confirmed set count를 dose로 사용합니다.
@@ -83,10 +85,16 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 - [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
+- [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt)
 
@@ -101,4 +109,5 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-19): v0.4.2.16에서 주별 훈련량과 전이 자극이 동일한 월-주차 표시 권한을 사용하도록 문서화했습니다. 전이 계산과 색상은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

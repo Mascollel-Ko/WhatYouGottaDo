@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CLASSIFICATION |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.1.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.15 |
-| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
+| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -51,6 +51,8 @@ OFI 상태는 0~39 `LOW`, 40~74 `NORMAL`, 75~86 `ELEVATED`, 87~97 `CAUTION`, 98~
 
 제목은 `현재 상태: <score> · <canonical label>`입니다. 매우 높음은 `<축> 피로도가 높습니다. 주의하세요.`, 높음은 `<축> 피로도가 높습니다. 스트레스를 줄이면 좋습니다.`, 없으면 `모든 피로도가 양호합니다. 힘차게 운동!`을 사용합니다.
 
+분석 화면의 OFI 시계열은 v0.4.2.16부터 `누적 부담 흐름`으로 표시하고 실제 선택된 rolling 분석 기간의 시작·종료 날짜와 일별 날짜 축을 노출합니다. 이는 Monday-Sunday calendar week로 계산을 변경하지 않으며, 기존 OFI 값, 회복, 축 값과 상태 분류를 그대로 사용합니다.
+
 ## 10. 예외 및 fallback
 
 필수 입력이 없으면 현재 코드의 명시된 빈 결과 또는 보수적 기본 경로를 사용하며 값을 추정해 만들지 않습니다.
@@ -83,12 +85,17 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 
 - [`app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt)
+- [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
 
 ## 18. 권위 자산
 
@@ -103,5 +110,6 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 
 ## 20. 변경 이력
 
+- `1.1.1` (2026-07-19): v0.4.2.16에서 rolling OFI chart의 실제 날짜 범위와 일별 시간축 표시 계약을 추가했습니다. OFI 계산과 분류는 변경하지 않았습니다.
 - `1.1.0` (2026-07-18): OFI 카드와 Home/Analysis 요약을 canonical 다섯 축으로 통일했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

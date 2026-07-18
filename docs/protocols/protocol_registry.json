@@ -80,7 +80,7 @@
       "familyId": "OFI",
       "titleKo": "OFI 분류와 표시",
       "titleEn": "OFI Classification and Presentation",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.1.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -89,21 +89,27 @@
       ],
       "canonicalDocument": "ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md",
       "implementedFromAppVersion": "v0.4.2.15",
-      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
+      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt"
       ],
       "authorityAssets": [],
       "supportingDocuments": [
         "docs/v0.4.2.5_release_notes.md",
         "docs/v0.4.2.6_release_notes.md",
-        "docs/v0.4.2.15_release_notes.md"
+        "docs/v0.4.2.15_release_notes.md",
+        "docs/v0.4.2.16_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -841,7 +847,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 훈련량 계산",
       "titleEn": "Badminton Training Volume",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -851,15 +857,20 @@
       ],
       "canonicalDocument": "badminton/BADMINTON_VOLUME_CALCULATION.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
       ],
@@ -867,7 +878,8 @@
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
       ],
       "supportingDocuments": [
-        "docs/analysis_algorithm_design.md"
+        "docs/analysis_algorithm_design.md",
+        "docs/v0.4.2.16_release_notes.md"
       ],
       "knownGaps": [
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
@@ -880,7 +892,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 전이 분류",
       "titleEn": "Badminton Transfer Categories",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -890,14 +902,20 @@
       ],
       "canonicalDocument": "badminton/BADMINTON_TRANSFER_CATEGORIES.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
       ],
@@ -905,7 +923,8 @@
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
       ],
       "supportingDocuments": [
-        "docs/metadata_evidence_sources_v0.3.5.0.md"
+        "docs/metadata_evidence_sources_v0.3.5.0.md",
+        "docs/v0.4.2.16_release_notes.md"
       ],
       "knownGaps": [
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
@@ -994,7 +1013,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1004,22 +1023,30 @@
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
       ],
       "supportingDocuments": [
-        "docs/analysis_algorithm_design.md"
+        "docs/analysis_algorithm_design.md",
+        "docs/v0.4.2.16_release_notes.md"
       ],
       "knownGaps": [
         "이 volume 계약이 처음 도입된 정확한 app version은 추가 Git history 감사가 필요합니다.",

@@ -420,3 +420,22 @@ Current release facts:
 - Room DB version: `12`
 - Exercise seed version: `6`
 - Canonical handoff: `outputs/v0.3.4.5_reproduction_handoff.md`
+
+## v0.4.2.16 Analysis Chart Temporal Presentation
+
+All weekly analysis charts use `AnalysisChartTemporalPolicy` as the single presentation authority:
+
+- A week is Monday through Sunday.
+- The month containing Thursday owns the week, equivalent to owning at least four of its seven dates.
+- Owned weeks are numbered chronologically within that month.
+- Compact labels use `7월 1주`; detail and accessibility labels also retain the exact Monday-Sunday range.
+- Cross-year chart domains include the year where omission would be ambiguous.
+- Eight or fewer weekly buckets show every label. Longer domains retain first, last, month transitions and spaced intermediate labels.
+- Daily domains retain first, last, month boundaries and spaced intermediate labels; seven or fewer fatigue dates can show all dates and weekdays.
+- Label thinning never removes source points.
+
+Chart identity remains `LocalDate`, never a display string or list index. Badminton weekly volume and transfer stimulus pass the same `weekStart` to the same formatter. The rolling OFI chart is titled `누적 부담 흐름` and shows its actual selected start and end dates instead of implying a calendar week.
+
+The main-exercise e1RM chart uses the complete weekly union from the earliest through latest valid observation among all displayed exercises. Existing weekly maximum e1RM values are unchanged. Missing exercise-weeks remain absent, are not converted to zero or forward-filled, and produce line gaps. The Y domain uses all finite visible e1RM observations.
+
+First app version: `v0.4.2.16`.

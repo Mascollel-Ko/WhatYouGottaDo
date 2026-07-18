@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -49,6 +49,8 @@
 
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
 
+v0.4.2.16부터 e1RM, 근육군 운동량 비율과 반복수 구간 비율 추이는 공통 Monday-Sunday 월-주차 라벨과 정확한 날짜 범위를 노출합니다. 메인 운동 e1RM 차트의 X domain은 표시된 모든 운동 관측 주의 최솟값부터 최댓값까지의 완전한 주간 domain입니다. 각 운동의 기존 주간 maximum e1RM만 표시하며, 관측이 없는 주는 null로 남겨 0 또는 forward-fill을 만들지 않고 gap을 연결하지 않습니다. Y domain은 모든 표시 운동의 유한한 관측값으로 계산합니다.
+
 ## 10. 예외 및 fallback
 
 필수 입력이 없으면 현재 코드의 명시된 빈 결과 또는 보수적 기본 경로를 사용하며 값을 추정해 만들지 않습니다.
@@ -83,12 +85,19 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt)
+- [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt)
+- [`app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt)
+- [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
 
 ## 18. 권위 자산
 
@@ -101,4 +110,5 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-19): v0.4.2.16의 공통 주차 표시와 e1RM 다중 시리즈 union-domain/null-gap 계약을 추가했습니다. e1RM 및 volume 계산식은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
