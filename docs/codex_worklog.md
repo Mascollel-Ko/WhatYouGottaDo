@@ -3005,6 +3005,9 @@ Verification
   light/dark palette, typography weights and shape scale, aligns major-screen
   spacing, converts helper cards to unframed text and unifies analysis/fatigue
   selectors on Material `FilterChip`.
+- `b5e44116c4a456620b9bdeefd1962391c7aaef11` adds the canonical quiet UI
+  presentation policy, updates the existing OFI presentation protocol in
+  place and records this release without creating duplicate authorities.
 
 ### Files and responsibility
 - `MainActivity.kt`: bottom navigation mapping, selected/unselected treatment.
@@ -3034,8 +3037,17 @@ Verification
 - Focused navigation, Home entry, Analysis hub, OFI label/summary,
   connective-tissue and dark/large-font Compose coverage passed.
 - `:app:compileDebugKotlin` passed after each implementation stage.
-- Final full unit tests, Android-test compilation, assemble, protocol
-  validation, APK size, release commit, main push, CI and tag are recorded
-  after the release gate completes.
+- Full `:app:testDebugUnitTest` passed `953` tests across `162` suites with no
+  failures, errors or skipped tests.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:assembleDebug` and `:app:validateConnectiveTissuePriorBaselines`
+  passed.
+- Tissue publication integrity passed for `10` sources with `0` blockers.
+- Protocol validation passed for `7` families, `29` protocols and no missing
+  canonical document.
+- Final debug APK size is `46,198,647` bytes, four bytes smaller than the
+  baseline; no image asset was added.
+- Release identity is `0.5.0.0 / 500000`; main push, CI and annotated
+  `v0.5.0.0` tag are confirmed in the final release report.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
