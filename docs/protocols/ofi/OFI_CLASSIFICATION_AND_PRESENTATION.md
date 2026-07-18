@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CLASSIFICATION |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.6 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.15 |
+| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 canonical 다섯 축의 분류와 표시 순서를 바로잡은 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -44,6 +44,8 @@ OFI 상태는 0~39 `LOW`, 40~74 `NORMAL`, 75~86 `ELEVATED`, 87~97 `CAUTION`, 98~
 ## 8. 집계 방식
 
 매우 높음 축이 하나 이상이면 그 축만 화면 순서대로 나열합니다. 없으면 높음 축만 나열하며 둘 다 없으면 양호 문구를 표시합니다. 개수 문장은 매우 높음, 높음, 보통, 낮음 순서를 유지합니다.
+
+화면 순서는 `고중량·힘 신경계`, `전신 근육`, `국소 근육`, `고속`, `반응`입니다. 연결조직과 회복 지속은 이 다섯 카드에 포함하지 않습니다.
 
 ## 9. 출력과 UI 해석
 
@@ -96,8 +98,10 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 
 - [`docs/v0.4.2.5_release_notes.md`](../../v0.4.2.5_release_notes.md)
 - [`docs/v0.4.2.6_release_notes.md`](../../v0.4.2.6_release_notes.md)
+- [`docs/v0.4.2.15_release_notes.md`](../../v0.4.2.15_release_notes.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-18): OFI 카드와 Home/Analysis 요약을 canonical 다섯 축으로 통일했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

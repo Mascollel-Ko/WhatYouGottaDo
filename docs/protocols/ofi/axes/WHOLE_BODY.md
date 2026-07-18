@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-AXIS-WHOLE-BODY |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.6 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.15 |
+| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 canonical OFI 축 집합과 배드민턴 session 기여 경계를 명시한 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -99,4 +99,5 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-18): canonical 다섯 축 복원과 sport-session systemic 기여를 재감사했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

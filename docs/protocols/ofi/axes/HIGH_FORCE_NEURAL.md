@@ -1,21 +1,21 @@
-# 신경계 피로 축
+# 고중량·힘 신경계 피로 축
 
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-AXIS-HIGH-FORCE-NEURAL |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.6 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.15 |
+| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 고속 신호를 분리하고 고중량·힘 부담만 남긴 canonical 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
-고중량, 높은 RPE, 속도·테스트 성격과 main/heavy 역할이 만드는 신경계 부담을 모델링합니다.
+고중량, 높은 RPE, 테스트 성격과 main/heavy 역할이 만드는 힘 기반 신경계 부담을 모델링합니다. 속도 부담은 `HIGH_SPEED` 축이 별도로 계산합니다.
 
 ## 2. 목적
 
@@ -39,11 +39,11 @@
 
 ## 7. 계산 또는 분류 계약
 
-기여량은 `recordLoad * levelMultiplier * rpeModifier * heavyModifier * testModifier * speedModifier * recoveryModifier * 50`입니다. level은 LOW 0.25, HIGH 0.85, VERY_HIGH 1.0, 그 외 0.55이고 RPE 8 이상 1.10, 9 이상 1.20입니다.
+기여량은 `recordLoad * levelMultiplier * rpeModifier * heavyModifier * testModifier * recoveryModifier * 50`입니다. level은 activity kind, progress metric, program slot과 heavy/max-strength metadata token에서 정하며 LOW 0.25, HIGH 0.85, VERY_HIGH 1.0, 그 외 0.55입니다. RPE 8 이상은 1.10, 9 이상은 1.20입니다.
 
 ## 8. 집계 방식
 
-확인된 set/entry의 일별 raw contribution을 합친 뒤 decay를 적용하고 개인 baseline과 비교합니다. UI 축 이름은 `신경계`입니다.
+확인된 set/entry의 일별 raw contribution을 합친 뒤 decay를 적용하고 개인 baseline과 비교합니다. UI 축 이름은 `고중량·힘 신경계`입니다.
 
 ## 9. 출력과 UI 해석
 
@@ -99,4 +99,5 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-18): 속도 신호를 분리하고 표시명을 canonical 명칭으로 수정했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

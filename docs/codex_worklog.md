@@ -2868,3 +2868,52 @@ Verification
 - Release identity is `v0.4.2.14 / 402014`.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+## v0.4.2.15 canonical OFI five-axis correction
+
+### Baseline and cause
+- Started from latest `origin/main` at
+  `dbad9fe02d1a6e709c59c65149ba5ce7c9be7bf5`, app identity
+  `v0.4.2.14 / 402014`.
+- OFI had regressed to legacy `관절·건·충격` and `동작·집중` axes even though
+  connective-tissue load/recovery is a separate 77-unit protocol.
+
+### Calculation and presentation correction
+- Commit `aa08b49ff183c60c45c9e8bf95a9542df1b592ce` restores exactly
+  `고중량·힘 신경계`, `전신 근육`, `국소 근육`, `고속`, `반응` in the OFI state,
+  aggregation, classifier, warnings, Home/Analysis summaries and UI targets.
+- `HIGH_SPEED` derives from speed, sprint, plyometric/SSC, acceleration,
+  first-step, court-movement and footwork metadata plus duration/RPE workload.
+- `REACTIVE` independently derives from reaction, decision, visual tracking,
+  direction change, random/beep, reactive agility, footwork, agility, shuttle
+  and court-movement metadata.
+- Canonical badminton metadata `ex_ae9ecdbc` now has regression coverage for
+  non-zero systemic, high-speed and reactive contributions and independent
+  variation of the two new axes.
+- `JOINT_TENDON_CAUTION` is removed from OFI. Joint/tendon coaching remains
+  discomfort-driven and separate from OFI.
+
+### Preserved boundaries
+- Connective-tissue mappings, exposure/recovery math, 77 load units, priors,
+  `PersonalBaseline`, `w_perUnit`, classifications and educational copy are
+  unchanged. The fixed tissue fixture remains raw `100.0`, adjusted `120.0`.
+- Strength/badminton volume protocols, ProgramBuilder and exercise stable keys
+  are unchanged.
+- Existing OFI protocol documents were updated in place to `1.1.0`; no
+  duplicate protocol document was added.
+
+### Verification and release
+- Focused OFI/Home/Analysis/readiness/tissue tests passed.
+- Full `:app:testDebugUnitTest` produced 928 tests across 156 suites with zero
+  failures, errors or skipped tests.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` and
+  `:app:assembleDebug` passed. The debug APK is 46,182,267 bytes.
+- `:app:validateConnectiveTissuePriorBaselines` passed. Protocol documentation
+  validation passed for 6 families and 28 protocols. Publication integrity
+  checked 10 sources, found all 10 required no-adverse notices and reported 0
+  blockers.
+- Push, GitHub Actions and the final annotated tag are completed before the
+  release is reported.
+- Release identity is `v0.4.2.15 / 402015`.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.

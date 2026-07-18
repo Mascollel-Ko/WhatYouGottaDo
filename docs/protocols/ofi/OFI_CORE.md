@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CORE |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.6 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.15 |
+| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 OFI의 canonical 다섯 축을 고중량·힘 신경계, 전신 근육, 국소 근육, 고속, 반응으로 바로잡은 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -43,7 +43,7 @@ OFI는 확인된 운동 기록에서 계산한 다섯 피로 축을 0~100 하나
 
 ## 8. 집계 방식
 
-신경계, 전신 근육, 국소 근육, 관절·건·충격, 동작·집중 다섯 축만 mean, max, high-axis penalty로 합칩니다. `recoveryPressure`는 compatibility/internal 값이며 표시와 OFI 계산에서 제외됩니다.
+고중량·힘 신경계, 전신 근육, 국소 근육, 고속, 반응 다섯 축만 mean, max, high-axis penalty로 합칩니다. `recoveryPressure`는 compatibility/internal 값이며 표시와 OFI 계산에서 제외됩니다. 연결조직 상태, prior, `PersonalBaseline`, `w_perUnit`도 OFI 입력이 아닙니다.
 
 ## 9. 출력과 UI 해석
 
@@ -69,6 +69,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 - 현재 감사 범위에서 별도 미해결 runtime gap을 확인하지 않았습니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
+- 저장 호환성을 위해 남아 있는 legacy runtime metadata 필드는 OFI 축 이름이나 직접 계산 입력으로 해석하지 않습니다.
 
 ## 15. 현재 구현 상태
 
@@ -96,8 +97,10 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 - [`docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md`](../../v0.4.2.6_canonical_ofi_fatigue_pipeline.md)
 - [`docs/v0.4.2.6_release_notes.md`](../../v0.4.2.6_release_notes.md)
+- [`docs/v0.4.2.15_release_notes.md`](../../v0.4.2.15_release_notes.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-18): canonical 다섯 축을 복원하고 연결조직 계산과의 경계를 명시했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

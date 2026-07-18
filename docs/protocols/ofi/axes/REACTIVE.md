@@ -1,21 +1,21 @@
-# 동작·집중 피로 축
+# 반응 피로 축
 
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-AXIS-REACTIVE |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.6 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.15 |
+| Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 legacy 동작·집중 축을 제거하고 실제 반응·방향전환 workload 축을 구현한 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
-stable protocol ID의 `REACTIVE`는 현재 UI의 동작·집중 축을 가리킵니다. 풋워크, 민첩성, 반응, 균형과 기술 집중 부담을 모델링합니다.
+`REACTIVE`는 자극 반응, 판단, 시각 추적과 방향전환 성격의 workload 부담을 모델링합니다. 일반적인 집중 상태를 고속 축으로 이름만 바꾼 값이 아닙니다.
 
 ## 2. 목적
 
@@ -35,15 +35,15 @@ stable protocol ID의 `REACTIVE`는 현재 UI의 동작·집중 축을 가리킵
 
 ## 6. 입력 데이터
 
-확인된 기록과 effective runtime metadata를 사용합니다. 입력이 protocol별로 제한될 때는 아래 계산 계약과 authority asset이 그 범위를 결정합니다.
+확인된 기록의 duration/RPE workload와 effective runtime metadata를 사용합니다. cognitive stress tags의 `REACTION`, `DECISION`, `VISUAL_TRACKING`과 movement, sport context, badminton transfer/skill/physical-quality의 `CHANGE_OF_DIRECTION`, `DIRECTION_CHANGE`, `RANDOM`, `BEEP`, `REACTIVE_AGILITY`, `FOOTWORK`, `AGILITY`, `SHUTTLE`, `COURT_MOVEMENT` 신호를 읽습니다.
 
 ## 7. 계산 또는 분류 계약
 
-footwork/agility/reaction 1.25, unilateral/balance/anti-rotation 1.15, random/beep/reaction/shuttle 1.20, sport/match/lesson/technical 1.15를 적용하며 machine/isolation은 0.70입니다.
+기여량은 `recordLoad * levelMultiplier * reactionModifier * directionChangeModifier * recoveryModifier * 50`입니다. reaction/decision/visual tracking은 최대 1.25, random/beep/reaction은 1.20, change-of-direction/reactive-agility는 1.20, footwork/agility/shuttle/court movement는 1.15를 적용합니다.
 
 ## 8. 집계 방식
 
-확인된 set/entry의 일별 raw contribution을 합친 뒤 decay를 적용하고 개인 baseline과 비교합니다. UI 축 이름은 `동작·집중`입니다.
+확인된 set/entry의 일별 raw contribution을 합친 뒤 decay를 적용하고 개인 baseline과 비교합니다. UI 축 이름은 `반응`입니다.
 
 ## 9. 출력과 UI 해석
 
@@ -51,7 +51,7 @@ footwork/agility/reaction 1.25, unilateral/balance/anti-rotation 1.15, random/be
 
 ## 10. 예외 및 fallback
 
-metadata 수준이 없거나 표준 level과 다르면 0.55를 사용합니다. 확인되지 않은 세트는 계산에 포함하지 않습니다.
+반응 metadata 신호가 없으면 sport session은 MODERATE, 그 밖의 기록은 LOW fallback을 사용합니다. 확인되지 않은 세트는 계산에 포함하지 않습니다.
 
 ## 11. 개인화 또는 보정
 
@@ -69,6 +69,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 - 현재 감사 범위에서 별도 미해결 runtime gap을 확인하지 않았습니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
+- `movementFocusDemandLevel`은 저장 호환용 legacy metadata이며 이 축의 직접 입력이 아닙니다.
 
 ## 15. 현재 구현 상태
 
@@ -99,4 +100,5 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-18): 동작·집중 해석을 제거하고 독립적인 반응·방향전환 workload 계산과 표시를 구현했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

@@ -11,7 +11,7 @@
     {
       "familyId": "OFI_AXES",
       "titleKo": "OFI 다섯 피로 축",
-      "descriptionKo": "신경계, 전신 근육, 국소 근육, 관절·건·충격, 동작·집중",
+      "descriptionKo": "고중량·힘 신경계, 전신 근육, 국소 근육, 고속, 반응",
       "indexDocument": "ofi/axes/HIGH_FORCE_NEURAL.md"
     },
     {
@@ -45,7 +45,7 @@
       "familyId": "OFI",
       "titleKo": "종합 피로도 지수(OFI)",
       "titleEn": "Overall Fatigue Index",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -54,8 +54,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/OFI_CORE.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -68,7 +68,8 @@
       "authorityAssets": [],
       "supportingDocuments": [
         "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
-        "docs/v0.4.2.6_release_notes.md"
+        "docs/v0.4.2.6_release_notes.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -79,7 +80,7 @@
       "familyId": "OFI",
       "titleKo": "OFI 분류와 표시",
       "titleEn": "OFI Classification and Presentation",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -87,8 +88,8 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt"
@@ -101,7 +102,8 @@
       "authorityAssets": [],
       "supportingDocuments": [
         "docs/v0.4.2.5_release_notes.md",
-        "docs/v0.4.2.6_release_notes.md"
+        "docs/v0.4.2.6_release_notes.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -110,9 +112,9 @@
     {
       "protocolId": "OFI-AXIS-HIGH-FORCE-NEURAL",
       "familyId": "OFI_AXES",
-      "titleKo": "신경계 피로 축",
+      "titleKo": "고중량·힘 신경계 피로 축",
       "titleEn": "High-force Neural Axis",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -121,8 +123,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/axes/HIGH_FORCE_NEURAL.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -134,7 +136,8 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -145,7 +148,7 @@
       "familyId": "OFI_AXES",
       "titleKo": "전신 근육 피로 축",
       "titleEn": "Whole-body Fatigue Axis",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -154,8 +157,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/axes/WHOLE_BODY.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -167,7 +170,8 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -178,7 +182,7 @@
       "familyId": "OFI_AXES",
       "titleKo": "국소 근육 피로 축",
       "titleEn": "Local Muscle Fatigue Axis",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -187,8 +191,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/axes/LOCAL_MUSCLE.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -200,7 +204,8 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -209,9 +214,9 @@
     {
       "protocolId": "OFI-AXIS-HIGH-SPEED",
       "familyId": "OFI_AXES",
-      "titleKo": "관절·건·충격 피로 축",
-      "titleEn": "Joint Tendon and Impact Axis",
-      "currentVersion": "1.0.0",
+      "titleKo": "고속 피로 축",
+      "titleEn": "High-speed Axis",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -220,8 +225,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/axes/HIGH_SPEED.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -233,7 +238,8 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -242,9 +248,9 @@
     {
       "protocolId": "OFI-AXIS-REACTIVE",
       "familyId": "OFI_AXES",
-      "titleKo": "동작·집중 피로 축",
-      "titleEn": "Movement and Focus Axis",
-      "currentVersion": "1.0.0",
+      "titleKo": "반응 피로 축",
+      "titleEn": "Reactive Axis",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -253,8 +259,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "ofi/axes/REACTIVE.md",
-      "implementedFromAppVersion": "v0.4.2.6",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.15",
+      "lastAuditedCommit": "aa08b49ff183c60c45c9e8bf95a9542df1b592ce",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt",
@@ -266,7 +272,8 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md"
+        "docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md",
+        "docs/v0.4.2.15_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],
