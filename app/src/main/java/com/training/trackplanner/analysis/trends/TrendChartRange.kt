@@ -3,6 +3,15 @@ package com.training.trackplanner.analysis.trends
 import kotlin.math.max
 
 object TrendChartRange {
+    fun values(values: List<Double>, minPadding: Double = 2.5): Pair<Double, Double>? {
+        val finite = values.filter(Double::isFinite)
+        if (finite.isEmpty()) return null
+        val minValue = finite.min()
+        val maxValue = finite.max()
+        val padding = max((maxValue - minValue) * 0.08, minPadding)
+        return (minValue - padding).coerceAtLeast(0.0) to maxValue + padding
+    }
+
     fun percent(values: List<Double>, minPadding: Double = 5.0): Pair<Double, Double>? {
         if (values.isEmpty()) return null
         val minValue = values.minOrNull() ?: return null

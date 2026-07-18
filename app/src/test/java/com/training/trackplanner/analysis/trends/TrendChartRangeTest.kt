@@ -7,6 +7,14 @@ import org.junit.Test
 
 class TrendChartRangeTest {
     @Test
+    fun valuesUsesEveryFiniteVisibleValueAndIgnoresInvalidValues() {
+        val range = TrendChartRange.values(listOf(80.0, Double.NaN, 140.0, Double.POSITIVE_INFINITY))!!
+
+        assertTrue(range.first < 80.0)
+        assertTrue(range.second > 140.0)
+    }
+
+    @Test
     fun percentReturnsNullForEmptyValues() {
         assertNull(TrendChartRange.percent(emptyList()))
     }

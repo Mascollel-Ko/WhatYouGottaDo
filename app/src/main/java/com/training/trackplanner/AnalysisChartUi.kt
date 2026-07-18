@@ -24,8 +24,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
+import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSpec
+import com.training.trackplanner.analysis.trends.ChartTimeGranularity
 import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.DetailChartMode
 import com.training.trackplanner.analysis.trends.TrendMetricId
@@ -63,23 +65,32 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     val colors = analysisChartPalette()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
     val forecastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-    val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value } }
+    val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
         .plus(spec.forecastRange?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
+        .filter(Double::isFinite)
     if (allValues.isEmpty()) {
         InfoCard("기록 부족")
         return
     }
     val min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0)
     val max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
+    val observedDates = spec.lineSeries.flatMap { series -> series.points.map { point -> point.weekStart } }
+        .plus(spec.forecastRange?.points?.map { point -> point.weekStart }.orEmpty())
+    val domain = when {
+        spec.xDomain.isNotEmpty() -> spec.xDomain
+        spec.timeGranularity == ChartTimeGranularity.WEEKLY ->
+            AnalysisChartTemporalPolicy.weeklyDomain(observedDates)
+        else -> AnalysisChartTemporalPolicy.dailyDomain(observedDates)
+    }
+    val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
     Canvas(modifier = modifier.fillMaxWidth()) {
         repeat(3) { index ->
             val y = size.height * (index + 1) / 4f
             drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
         }
-        val historyCount = spec.lineSeries.firstOrNull()?.points?.size ?: 0
-        val forecastCount = spec.forecastRange?.points?.size ?: 0
-        val totalCount = (historyCount + forecastCount).coerceAtLeast(2)
+        val totalCount = domain.size.coerceAtLeast(2)
         fun xAt(index: Int): Float = size.width * index / (totalCount - 1)
+        fun xAt(date: java.time.LocalDate): Float = xAt(domainIndex[date] ?: 0)
         fun yAt(value: Double): Float {
             val ratio = ((value - min) / (max - min)).coerceIn(0.0, 1.0)
             return (size.height - (size.height * ratio)).toFloat()
@@ -87,30 +98,41 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         spec.forecastRange?.points?.takeIf { it.isNotEmpty() }?.let { forecast ->
             val path = Path()
             forecast.forEachIndexed { index, point ->
-                val x = xAt(historyCount + index)
+                val x = xAt(point.weekStart)
                 val y = yAt(point.upper)
                 if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             forecast.asReversed().forEachIndexed { index, point ->
-                path.lineTo(xAt(historyCount + forecast.lastIndex - index), yAt(point.lower))
+                path.lineTo(xAt(point.weekStart), yAt(point.lower))
             }
             path.close()
             drawPath(path, forecastColor)
         }
         spec.lineSeries.forEachIndexed { seriesIndex, series ->
             val path = Path()
+            var previousDomainIndex: Int? = null
             var hasPoint = false
-            series.points.forEachIndexed { index, point ->
-                val value = point.value ?: return@forEachIndexed
+            series.points.sortedBy { point -> point.weekStart }.forEach { point ->
+                val value = point.value?.takeIf(Double::isFinite)
+                val index = domainIndex[point.weekStart]
+                if (value == null || index == null) {
+                    previousDomainIndex = null
+                    return@forEach
+                }
                 val x = xAt(index)
                 val y = yAt(value)
-                if (hasPoint) path.lineTo(x, y) else {
+                if (previousDomainIndex != null && index == previousDomainIndex!! + 1) {
+                    path.lineTo(x, y)
+                } else {
                     path.moveTo(x, y)
-                    hasPoint = true
                 }
+                hasPoint = true
+                previousDomainIndex = index
                 drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
             }
-            drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+            if (hasPoint) {
+                drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+            }
         }
     }
 }

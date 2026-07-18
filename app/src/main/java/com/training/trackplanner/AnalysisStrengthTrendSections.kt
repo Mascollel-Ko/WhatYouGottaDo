@@ -35,7 +35,9 @@ import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuild
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
+import com.training.trackplanner.analysis.trends.ChartTimeGranularity
 import com.training.trackplanner.analysis.trends.ChartType
+import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.RepRangeWeekShare
 import com.training.trackplanner.analysis.trends.TrendChartRange
@@ -45,20 +47,42 @@ import com.training.trackplanner.analysis.trends.label
 
 @Composable
 internal fun MainLiftE1rmCard(summary: PerformanceTrendSummary) {
-    val spec = metricLineSpec(
-        title = "주요 운동 e1RM",
-        summary = summary,
-        metrics = listOf(
-            TrendMetricId.BENCH_PRESS_E1RM,
-            TrendMetricId.SQUAT_E1RM,
-            TrendMetricId.DEADLIFT_E1RM
-        )
-    )
+    val spec = mainLiftE1rmSpec(summary.metricSeries)
     AnalysisSectionChart(
         title = "주요 운동 e1RM",
         spec = spec,
         note = "확인된 실제 수행 세트만 사용하며, 기록 없는 주는 0으로 채우지 않습니다.",
         footer = { ChartSeriesLegend(spec.lineSeries) }
+    )
+}
+
+internal fun mainLiftE1rmSpec(
+    metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
+): ChartSpec {
+    val metrics = listOf(
+        TrendMetricId.BENCH_PRESS_E1RM,
+        TrendMetricId.SQUAT_E1RM,
+        TrendMetricId.DEADLIFT_E1RM
+    )
+    val series = metrics.mapNotNull { metric ->
+        val points = metricSeries[metric].orEmpty()
+        if (points.none { it.value?.isFinite() == true }) null else ChartSeries(metric.label(), points)
+    }
+    val domain = AnalysisChartTemporalPolicy.weeklyDomain(
+        series.flatMap { item -> item.points.map(TrendDataPoint::weekStart) }
+    )
+    val yRange = TrendChartRange.values(
+        series.flatMap { item -> item.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
+    )
+    return ChartSpec(
+        type = ChartType.LINE,
+        title = "주요 운동 e1RM",
+        lineSeries = series,
+        yMin = yRange?.first,
+        yMax = yRange?.second,
+        timeGranularity = ChartTimeGranularity.WEEKLY,
+        xDomain = domain,
+        valueUnit = "kg"
     )
 }
 
@@ -317,19 +341,6 @@ private fun ChartSeriesLegend(
         }
     }
 }
-
-private fun metricLineSpec(
-    title: String,
-    summary: PerformanceTrendSummary,
-    metrics: List<TrendMetricId>
-): ChartSpec = ChartSpec(
-    type = ChartType.LINE,
-    title = title,
-    lineSeries = metrics.mapNotNull { metric ->
-        val points = summary.metricSeries[metric].orEmpty()
-        if (points.none { it.value != null }) null else ChartSeries(metric.label(), points)
-    }
-)
 
 private fun latestMuscleShare(summary: PerformanceTrendSummary): List<BarItem> {
     val raw = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().mapNotNull { bucket ->
