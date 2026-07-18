@@ -3,17 +3,17 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-OVERVIEW |
-| Protocol version | 2.0.0 |
+| Protocol version | 2.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.7; relative baseline active from v0.4.2.12 |
-| Last audited commit | b95a1684ad8bc0ba82cd5eae52ccb3147eae4d61 |
+| Implemented from app version | v0.4.2.7; relative baseline active from v0.4.2.12; EDU-2 copy active from v0.4.2.13 |
+| Last audited commit | f2479c8cbf89649469495966d3e8cc09ff49ad8d |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY, LOW_CONFIDENCE_PROXY |
-| Supersedes | CT-OVERVIEW 1.0.0 |
+| Supersedes | CT-OVERVIEW 2.0.0 |
 
 ## 1. 일반 사용자용 요약
 
-연결조직 모델은 확인된 운동 기록으로 77개 unsided load unit의 현재 잔여 부하를 계산합니다. 그 값을 조직별 초기 기준과 유효한 개인 운동 기록의 비교 경계에 놓아 `낮은 편`, `평소 범위`, `높은 편`, `매우 높은 편`으로 보여 줍니다. 임상 손상이나 부상 확률을 예측하지 않습니다.
+연결조직 모델은 확인된 운동 기록으로 77개 unsided load unit의 현재 잔여 부하를 계산합니다. 그 값을 조직별 초기 기준과 유효한 개인 운동 기록의 비교 경계에 놓아 `낮은 편`, `평소 범위`, `높은 편`, `매우 높은 편`으로 보여 줍니다. 각 정보 버튼은 사용자가 몸에서 위치를 찾고 기능과 부담이 커지는 동작을 이해할 수 있는 일반 설명을 제공합니다. 임상 손상이나 부상 확률을 예측하지 않습니다.
 
 ## 2. 목적
 
@@ -23,7 +23,7 @@
 
 ## 3. 적용 범위
 
-239 exercise protocol, 3,507 authority row, 50 protocol class, 13 DI profile, 21 recovery curve/114 knot, 7 routing row, 15 joint complex와 77 load unit을 사용하는 현재 connective-tissue runtime에 적용합니다.
+239 exercise protocol, 3,507 authority row, 50 protocol class, 13 DI profile, 21 recovery curve/114 knot, 7 routing row, 15 joint complex, 77 load unit과 이 92개 항목의 교육 설명을 사용하는 현재 connective-tissue runtime에 적용합니다.
 
 ## 4. 비적용 범위
 
@@ -55,6 +55,8 @@ Event는 `TissueRcvLoadKey(loadUnitStableKey, loadDimension)`을 보존하지만
 
 정확한 상태 label은 `낮은 편`, `평소 범위`, `높은 편`, `매우 높은 편`, genuine authority failure의 `판단 불가`입니다. Old percentile과 calibration percentage를 표시하지 않고 baseline source를 scroll 마지막에 한 번만 보여 줍니다.
 
+교육 설명 authority는 `RCV-ALL-0.6-EDU-2`입니다. 77개 하위 load unit을 먼저 개별 작성하고 실제 child mapping을 종합해 15개 parent joint complex를 작성합니다. 위치는 사용자가 짚을 수 있는 표면 landmark에서 시작하고, 기능은 인대·건·관절·연골·디스크·관절낭·근막의 실제 수동/능동 역할에 맞는 동사를 사용합니다. 손상 기전이 별도 근거로 확인되지 않으면 손상 확률을 말하지 않고 부하가 커질 수 있는 조건만 설명합니다.
+
 ## 10. 예외 및 fallback
 
 PersonalBaseline이 empty, degenerate, non-finite 또는 identity-incompatible이면 adjusted prior로 fallback하고 diagnostic을 남깁니다. 한 unit prior가 없으면 그 unit만 unavailable이며 다른 profile을 빌리지 않습니다. Registry 전체가 무효면 old global percentile이나 임시 threshold로 fallback하지 않습니다.
@@ -81,6 +83,7 @@ Representative scenario weights, shared prior profile, gap retention, weight ram
 
 - Base prior: `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`
 - Per-unit PersonalBaseline, weight, classifier와 provenance UI: `IMPLEMENTED / RUNTIME_ACTIVE / TESTED`
+- EDU-2 educational copy: `92/92 COMPLETE / VALIDATED / REVIEWED / RUNTIME_ACTIVE`
 - APK runtime simulation: `ABSENT`
 
 ## 16. 구현 위치
@@ -89,17 +92,19 @@ Representative scenario weights, shared prior profile, gap retention, weight ram
 - `TissueCalibrationHistoryPolicy.kt`, `TissuePerUnitWeightPolicy.kt`, `TissuePersonalBaselinePolicy.kt`: personal history
 - `TissuePriorRegistry.kt`, `TissueEffectiveBaselinePolicy.kt`: prior lookup, mixing, classification
 - `ConnectiveTissueAnalysisService.kt`, `TissueCurrentStateServices.kt`: orchestration와 aggregation
-- `ConnectiveTissueAnalysisUi.kt`: presentation
+- `TissueRcvAssetRepository.kt`, `TissueRcvModels.kt`: 교육 authority parsing, version/coverage/prose validation
+- `ConnectiveTissueAnalysisUi.kt`: 상태 표시와 한 대화상자·세 제목 교육 presentation
 
 ## 17. 검증 테스트
 
-`TissueRcvAssetImportTest`, `TissueRecoveryEngineTest`, `TissueCalibrationHistoryPolicyTest`, `TissuePerUnitWeightPolicyTest`, `TissuePersonalBaselinePolicyTest`, `TissueEffectiveBaselineRuntimeTest`, `TissueAggregationAndRankingTest`, `ConnectiveTissueAnalysisUiTest`가 authority와 product-facing 경계를 검증합니다.
+`TissueRcvAssetImportTest`, `TissueEducationalCopyContractTest`, `TissueRecoveryEngineTest`, `TissueCalibrationHistoryPolicyTest`, `TissuePerUnitWeightPolicyTest`, `TissuePersonalBaselinePolicyTest`, `TissueEffectiveBaselineRuntimeTest`, `TissueAggregationAndRankingTest`, `ConnectiveTissueAnalysisUiTest`가 authority와 product-facing 경계를 검증합니다.
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_asset_manifest_v1.csv`
 - `app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_load_unit_authority_v1.csv`
 - `app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv`
+- `app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv`
 - `app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json`
 
 Prior registry는 77 units, 13 profiles, 24 hours, 936 quantile values와 file SHA-256 `52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf`를 유지합니다.
@@ -111,8 +116,10 @@ Prior registry는 77 units, 13 profiles, 24 hours, 936 quantile values와 file S
 - [노출 모델](MSCP_DI_EXPOSURE_MODEL.md)
 - [회복 곡선](RECOVERY_CURVES.md)
 - [공통 안전 한계](../common/LIMITATIONS_AND_SAFETY.md)
+- [92개 교육 문구 검토 자료](../../reviews/connective_tissue_educational_copy_review_v2.md)
 
 ## 20. 변경 이력
 
+- `2.1.0` (2026-07-18): EDU-2의 92개 사용자용 위치·기능·동작 설명, child-first hierarchy와 수치 무변경 계약을 활성화했습니다.
 - `2.0.0` (2026-07-18): generated prior, per-unit personal baseline, relative-state classifier와 provenance UI를 runtime flow에 활성화했습니다.
 - `1.0.0` (2026-07-17): 첫 governed overview를 등록했습니다.

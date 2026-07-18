@@ -2740,3 +2740,74 @@ Verification
 - Release identity is `v0.4.2.12 / 402012`. The release commit, main push, CI
   result and annotated tag are intentionally completed only after this local
   verification; their remote results are recorded in the final task report.
+
+## v0.4.2.13 connective-tissue educational copy rewrite
+
+### Baseline and scope
+- Started from latest `origin/main` commit
+  `7e2431539aa257ed0b89bf79c836ea80ec9f9942`, tagged `v0.4.2.12`, with app
+  identity `v0.4.2.12 / 402012`.
+- Derived the real inventory from runtime assets: 15 `JOINT_COMPLEX`, 77
+  `LOAD_UNIT`, 92 total unique educational entries, with complete parent-child
+  mapping and no missing or extra key.
+- Kept this change presentation-only. OFI, M/S/P/D/I/C, event exposure,
+  recovery/PCHIP, prior registry, PersonalBaseline, `w_perUnit`, canonical
+  state, contributor ranking, ProgramBuilder, stable keys and hierarchy were
+  not edited.
+
+### Child-first copy and parent synthesis
+- Commit `879614f` rewrote every one of the 77 child load-unit entries
+  individually. Locations begin with practical body landmarks; functions use
+  tissue-appropriate verbs; movement contexts describe representative
+  exercises and a structure-specific condition that can increase load.
+- Commit `07edd83` then synthesized all 15 parent joint-complex entries from
+  their actual completed child sets. Parent text describes the whole region
+  and is neither a child list nor copied child prose.
+- All 92 entries now use `RCV-ALL-0.6-EDU-2`. The educational CSV checksum is
+  `c7b458ec4f84ef9cd6603d5ee786011358ebe4f535be7d9d91bccf56738f6d1b`.
+  `shortDescriptionKo` remains schema-compatible and internal but is blank in
+  the final authority.
+- Explicit injury-mechanism wording is used in 0 entries. Every entry uses
+  conservative relative-load wording and does not infer injury probability.
+
+### Dialog and executable contract
+- Commit `648b00c` kept one existing information dialog and exactly the three
+  headings `위치`, `주요 기능`, `주로 사용되는 동작`, followed by the
+  existing disclaimer. Duplicate display-name/description rows and middle-dot
+  sentence joins were removed; long copy is vertically scrollable.
+- Commit `f2479c8` preserved `metadataVersion` in the model/parser and extended
+  the existing runtime validator for EDU-2 consistency, complete coverage,
+  canonical names, natural sentence endings, a documented 1,000-character
+  hard field limit, obsolete boilerplate and exact complete-entry duplicates.
+- Added `TissueEducationalCopyContractTest` for 92-row coverage, hierarchy,
+  report synchronization, validator rejection paths and exact numerical
+  authority fingerprints. `ConnectiveTissueAnalysisUiTest` now covers the
+  three-field dialog, parent/child buttons and large-font scrolling.
+- Added the supporting review
+  `docs/reviews/connective_tissue_educational_copy_review_v2.md`: all 77
+  children appear before their mapped parent in 15 groups, and all 92 entries
+  record provenance, injury-wording decision and semantic review result. It is
+  supporting material, not a 29th canonical protocol.
+
+### Verification so far
+- `TissueRcvAssetImportTest`: passed after child and parent rewrites.
+- `TissueEducationalCopyContractTest`, `TissueRcvAssetImportTest` and
+  `ConnectiveTissueAnalysisUiTest`: 19 focused tests passed together.
+- The expanded copy/UI focused run passed 16 tests after adding negative
+  validator cases. One intermediate test compile used UI-model property names
+  against the domain fixture, and one child-title assertion saw both the row
+  and dialog title; both test-fixture issues were corrected without changing
+  production behavior.
+- Numerical authority SHA-256 values remain exactly:
+  prior `52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf`,
+  exercise-load authority
+  `7efd022c6b7b1ec3b927bfd81b61c6ac5195425da8b7f2e607b057f2ee529ac5`,
+  recovery knots
+  `0282bcf10426dfea744aa20aa3500cac960ad43950e4c057ab05dfa0b9311837`,
+  and load units
+  `36ace1900713e91301d67c5375db80a951c51dcd34d9476ee75eae0e5a2f371`.
+- Baseline debug APK size was 46,172,499 bytes. Final APK size, full Gradle
+  verification, push, CI and annotated tag are recorded after release
+  verification.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.

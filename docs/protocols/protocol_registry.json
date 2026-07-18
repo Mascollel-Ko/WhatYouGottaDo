@@ -277,7 +277,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 부하·회복 개요",
       "titleEn": "Connective-tissue Load and Recovery Overview",
-      "currentVersion": "2.0.0",
+      "currentVersion": "2.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -288,7 +288,7 @@
       ],
       "canonicalDocument": "connective_tissue/CONNECTIVE_TISSUE_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.7",
-      "lastAuditedCommit": "b95a1684ad8bc0ba82cd5eae52ccb3147eae4d61",
+      "lastAuditedCommit": "f2479c8cbf89649469495966d3e8cc09ff49ad8d",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
@@ -300,6 +300,7 @@
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEducationalCopyContractTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueCalibrationHistoryPolicyTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEffectiveBaselineRuntimeTest.kt",
@@ -309,13 +310,15 @@
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_asset_manifest_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_index_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_load_unit_authority_v1.csv",
-        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv"
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
       ],
       "supportingDocuments": [
         "docs/tissue_load_foundation_v1.md",
         "docs/v0.4.2.7_release_notes.md",
         "docs/v0.4.2.8_release_notes.md",
-        "docs/v0.4.2.12_release_notes.md"
+        "docs/v0.4.2.12_release_notes.md",
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -374,7 +377,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 load unit catalogue",
       "titleEn": "Connective-tissue Load-unit Catalogue",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -384,22 +387,25 @@
       ],
       "canonicalDocument": "connective_tissue/LOAD_UNIT_CATALOGUE.md",
       "implementedFromAppVersion": "v0.4.2.7",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "f2479c8cbf89649469495966d3e8cc09ff49ad8d",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvModels.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEducationalCopyContractTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_joint_complexes_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissues_v1.csv",
-        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissue_relationships_v1.csv"
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissue_relationships_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
       ],
       "supportingDocuments": [
-        "docs/v0.4.2.8_release_notes.md"
+        "docs/v0.4.2.8_release_notes.md",
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
       ],
       "knownGaps": [],
       "supersedes": [],
@@ -737,7 +743,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 순위와 표시",
       "titleEn": "Connective-tissue Ranking and Presentation",
-      "currentVersion": "2.0.0",
+      "currentVersion": "2.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -746,7 +752,7 @@
       ],
       "canonicalDocument": "connective_tissue/RANKING_AND_PRESENTATION.md",
       "implementedFromAppVersion": "v0.4.2.8",
-      "lastAuditedCommit": "0974433ef5e21f4a5f2dee8a3bbe72418d9c3f9f",
+      "lastAuditedCommit": "f2479c8cbf89649469495966d3e8cc09ff49ad8d",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvEventLedger.kt",
@@ -759,6 +765,7 @@
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEducationalCopyContractTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRecoveryEngineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEffectiveBaselineRuntimeTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/tissue/TissueAggregationAndRankingTest.kt",
@@ -770,7 +777,8 @@
       ],
       "supportingDocuments": [
         "docs/v0.4.2.8_release_notes.md",
-        "docs/v0.4.2.12_release_notes.md"
+        "docs/v0.4.2.12_release_notes.md",
+        "docs/reviews/connective_tissue_educational_copy_review_v2.md"
       ],
       "knownGaps": [],
       "supersedes": [],
