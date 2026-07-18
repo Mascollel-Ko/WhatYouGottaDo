@@ -55,6 +55,17 @@ object AnalysisChartTemporalPolicy {
     fun dailyDomain(dates: Iterable<LocalDate>): List<LocalDate> =
         dates.distinct().sorted()
 
+    fun domain(spec: ChartSpec): List<LocalDate> {
+        val dates = spec.xDomain +
+            spec.lineSeries.flatMap { series -> series.points.map(TrendDataPoint::weekStart) } +
+            spec.forecastRange?.points?.map(ForecastPoint::weekStart).orEmpty() +
+            spec.stackedBars.mapNotNull(StackedBarGroup::weekStart)
+        return when (spec.timeGranularity) {
+            ChartTimeGranularity.WEEKLY -> weeklyDomain(dates)
+            ChartTimeGranularity.DAILY, null -> dailyDomain(dates)
+        }
+    }
+
     fun axisLabelDates(
         domain: List<LocalDate>,
         granularity: ChartTimeGranularity,

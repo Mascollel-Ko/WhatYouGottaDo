@@ -41,15 +41,15 @@ import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodSeries
+import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
+import com.training.trackplanner.analysis.trends.ChartTimeGranularity
 import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
-import java.time.DayOfWeek
-import java.time.temporal.TemporalAdjusters
 
 @Composable
 internal fun FatigueAndConditionAnalysisContent(
@@ -91,15 +91,10 @@ internal fun FatigueAndConditionAnalysisContent(
             onContributionSourcesApply = onContributionSourcesApply
         )
         if (fatigueAnalysis.simple.ofiSeries.isNotEmpty()) {
+            val fatigueSpec = accumulatedFatigueChartSpec(fatigueAnalysis.simple.ofiSeries)
             AnalysisSectionChart(
-                title = "이번 주 누적 부담",
-                spec = ChartSpec(
-                    type = ChartType.LINE,
-                    title = "이번 주 누적 부담",
-                    lineSeries = listOf(ChartSeries("현재 피로도", fatigueAnalysis.simple.ofiSeries.map { point ->
-                        TrendDataPoint(point.date, point.value)
-                    }))
-                ),
+                title = "누적 부담 흐름",
+                spec = fatigueSpec,
                 note = "canonical OFI 기준으로 집계한 피로 흐름입니다."
             )
         } else {
@@ -242,7 +237,9 @@ private fun BadmintonTrainingLoadCharts(
                             TrendDataPoint(point.date, point.valueFor(mode, selectedMethod))
                         }
                     )
-                )
+                ),
+                timeGranularity = ChartTimeGranularity.DAILY,
+                xDomain = AnalysisChartTemporalPolicy.dailyDomain(summary.badmintonDailyLoads.map { it.date })
             ),
             note = "확인된 기록만 사용한 일별 관련 훈련량입니다."
         )
@@ -251,7 +248,9 @@ private fun BadmintonTrainingLoadCharts(
             spec = ChartSpec(
                 type = ChartType.LINE,
                 title = "배드민턴 관련 훈련량(주별)",
-                lineSeries = listOf(ChartSeries(badmintonSeriesLabel(mode, selectedMethod), weeklyBadmintonPoints(summary, mode, selectedMethod)))
+                lineSeries = listOf(ChartSeries(badmintonSeriesLabel(mode, selectedMethod), weeklyBadmintonPoints(summary, mode, selectedMethod))),
+                timeGranularity = ChartTimeGranularity.WEEKLY,
+                xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonDailyLoads.map { it.date })
             ),
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
@@ -306,7 +305,9 @@ private fun BadmintonTrainingLoadCharts(
                 spec = ChartSpec(
                     type = ChartType.STACKED_BAR,
                     title = "주별 배드민턴 전이 자극량",
-                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet)
+                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet),
+                    timeGranularity = ChartTimeGranularity.WEEKLY,
+                    xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonDailyLoads.map { it.date })
                 ),
                 note = "각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다."
             )
@@ -534,8 +535,20 @@ private fun weeklyBadmintonPoints(
     method: String
 ): List<TrendDataPoint> =
     summary.badmintonDailyLoads
-        .groupBy { point -> point.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+        .groupBy { point -> AnalysisChartTemporalPolicy.weekStart(point.date) }
         .toSortedMap()
         .map { (week, points) ->
             TrendDataPoint(week, points.sumOf { point -> point.valueFor(mode, method) }.takeIf { it > 0.0 })
         }
+
+internal fun accumulatedFatigueChartSpec(
+    points: List<com.training.trackplanner.analysis.fatigue.FatigueTimePoint>
+): ChartSpec = ChartSpec(
+    type = ChartType.LINE,
+    title = "누적 부담 흐름",
+    lineSeries = listOf(
+        ChartSeries("현재 피로도", points.map { point -> TrendDataPoint(point.date, point.value) })
+    ),
+    timeGranularity = ChartTimeGranularity.DAILY,
+    xDomain = AnalysisChartTemporalPolicy.dailyDomain(points.map { it.date })
+)

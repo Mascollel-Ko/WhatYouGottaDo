@@ -1,8 +1,5 @@
 package com.training.trackplanner.analysis.trends
 
-import java.time.DayOfWeek
-import java.time.temporal.TemporalAdjusters
-
 object BadmintonTrainingMethodSeries {
     val objectiveKeys: List<String> = listOf(
         "ACCELERATION",
@@ -81,7 +78,7 @@ object BadmintonTrainingMethodSeries {
     fun weeklyStackedGroups(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
         val allowed = selectedKeys?.map { it.uppercase() }?.toSet()
         return points
-            .groupBy { point -> point.date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+            .groupBy { point -> AnalysisChartTemporalPolicy.weekStart(point.date) }
             .toSortedMap()
             .mapNotNull { (week, rows) ->
                 val byKey = linkedMapOf<String, Double>()
@@ -105,7 +102,15 @@ object BadmintonTrainingMethodSeries {
                     val value = byKey[key]?.takeIf { it > 0.0 } ?: return@mapNotNull null
                     StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key), key)
                 }
-                if (segments.isEmpty()) null else StackedBarGroup(week.toString(), segments)
+                if (segments.isEmpty()) {
+                    null
+                } else {
+                    StackedBarGroup(
+                        label = AnalysisChartTemporalPolicy.weekLabel(week).compactLabel,
+                        segments = segments,
+                        weekStart = week
+                    )
+                }
             }
     }
 

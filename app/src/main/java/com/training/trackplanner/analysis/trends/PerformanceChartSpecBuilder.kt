@@ -14,7 +14,8 @@ class PerformanceChartSpecBuilder {
             title = series.title,
             lineSeries = listOf(ChartSeries(series.title, series.dataPoints)),
             forecastRange = series.forecastRange,
-            emphasizeValue = false
+            emphasizeValue = false,
+            timeGranularity = ChartTimeGranularity.WEEKLY
         )
 
     fun strengthDetail(
@@ -33,7 +34,8 @@ class PerformanceChartSpecBuilder {
                 title = "근력운동 해설",
                 lineSeries = sanitized.map { metric ->
                     ChartSeries(metric.label(), strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.valueFor(metric)) })
-                }
+                },
+                timeGranularity = ChartTimeGranularity.WEEKLY
             )
             DetailChartMode.COMPOSITION -> compositionSpec(
                 title = "강도/수행량/RPE 대비 운동량 구성",
@@ -73,7 +75,8 @@ class PerformanceChartSpecBuilder {
                 title = "배드민턴 훈련 해설",
                 lineSeries = sanitized.map { metric ->
                     ChartSeries(metric.label(), badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.valueFor(metric)) })
-                }
+                },
+                timeGranularity = ChartTimeGranularity.WEEKLY
             )
             DetailChartMode.COMPOSITION -> compositionSpec(
                 title = "배드민턴 훈련 구성",
@@ -112,7 +115,8 @@ class PerformanceChartSpecBuilder {
                 title = "피로도 해설",
                 lineSeries = sanitized.map { metric ->
                     ChartSeries(metric.label(), fatigueWeeks.map { week -> TrendDataPoint(week.weekStart, week.valueFor(metric)) })
-                }
+                },
+                timeGranularity = ChartTimeGranularity.WEEKLY
             )
             DetailChartMode.COMPOSITION -> compositionSpec(
                 title = "현재 피로도 구성",

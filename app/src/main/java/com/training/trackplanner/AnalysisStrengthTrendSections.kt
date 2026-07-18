@@ -126,6 +126,9 @@ internal fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
                 )
             }
             val spec = muscleShareTrendSpec(summary, selected.toList())
+            analysisChartPeriodLabel(spec)?.let { period ->
+                Text(period, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             AnalysisChartSpecView(spec)
             ChartSeriesLegend(
                 series = spec.lineSeries,
@@ -270,15 +273,20 @@ internal fun RepRangeShareTrendCard(weeks: List<RepRangeWeekShare>) {
                 )
             }
             val yRange = TrendChartRange.percent(lineSeries.flatMap { series -> series.points.mapNotNull { it.value } })
-            AnalysisChartSpecView(
-                ChartSpec(
-                    type = ChartType.LINE,
-                    title = "반복수 구간 비중 추이",
-                    lineSeries = lineSeries,
-                    yMin = yRange?.first,
-                    yMax = yRange?.second
-                )
+            val spec = ChartSpec(
+                type = ChartType.LINE,
+                title = "반복수 구간 비중 추이",
+                lineSeries = lineSeries,
+                yMin = yRange?.first,
+                yMax = yRange?.second,
+                timeGranularity = ChartTimeGranularity.WEEKLY,
+                xDomain = AnalysisChartTemporalPolicy.weeklyDomain(weeks.map(RepRangeWeekShare::weekStart)),
+                valueUnit = "%"
             )
+            analysisChartPeriodLabel(spec)?.let { period ->
+                Text(period, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            AnalysisChartSpecView(spec)
         }
     }
 }
@@ -293,6 +301,9 @@ internal fun AnalysisSectionChart(
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            analysisChartPeriodLabel(spec)?.let { period ->
+                Text(period, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             AnalysisChartSpecView(spec)
             footer?.invoke()
             note?.let {
@@ -380,7 +391,10 @@ private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetri
         title = "근육군별 운동량 비율 추이",
         lineSeries = series,
         yMin = yRange?.first,
-        yMax = yRange?.second
+        yMax = yRange?.second,
+        timeGranularity = ChartTimeGranularity.WEEKLY,
+        xDomain = AnalysisChartTemporalPolicy.weeklyDomain(weekStarts),
+        valueUnit = "%"
     )
 }
 

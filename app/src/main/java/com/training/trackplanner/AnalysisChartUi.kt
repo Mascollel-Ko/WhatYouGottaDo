@@ -21,7 +21,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Constraints
 import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
@@ -33,6 +38,7 @@ import com.training.trackplanner.analysis.trends.DetailChartMode
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
 import java.util.Locale
+import java.time.LocalDate
 import kotlin.math.abs
 
 @Composable
@@ -74,65 +80,66 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     }
     val min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0)
     val max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
-    val observedDates = spec.lineSeries.flatMap { series -> series.points.map { point -> point.weekStart } }
-        .plus(spec.forecastRange?.points?.map { point -> point.weekStart }.orEmpty())
-    val domain = when {
-        spec.xDomain.isNotEmpty() -> spec.xDomain
-        spec.timeGranularity == ChartTimeGranularity.WEEKLY ->
-            AnalysisChartTemporalPolicy.weeklyDomain(observedDates)
-        else -> AnalysisChartTemporalPolicy.dailyDomain(observedDates)
-    }
+    val domain = AnalysisChartTemporalPolicy.domain(spec)
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
-    Canvas(modifier = modifier.fillMaxWidth()) {
-        repeat(3) { index ->
-            val y = size.height * (index + 1) / 4f
-            drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-        }
-        val totalCount = domain.size.coerceAtLeast(2)
-        fun xAt(index: Int): Float = size.width * index / (totalCount - 1)
-        fun xAt(date: java.time.LocalDate): Float = xAt(domainIndex[date] ?: 0)
-        fun yAt(value: Double): Float {
-            val ratio = ((value - min) / (max - min)).coerceIn(0.0, 1.0)
-            return (size.height - (size.height * ratio)).toFloat()
-        }
-        spec.forecastRange?.points?.takeIf { it.isNotEmpty() }?.let { forecast ->
-            val path = Path()
-            forecast.forEachIndexed { index, point ->
-                val x = xAt(point.weekStart)
-                val y = yAt(point.upper)
-                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    val accessibility = analysisChartContentDescription(spec)
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = accessibility
+        },
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Canvas(modifier = modifier.fillMaxWidth()) {
+            repeat(3) { index ->
+                val y = size.height * (index + 1) / 4f
+                drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
             }
-            forecast.asReversed().forEachIndexed { index, point ->
-                path.lineTo(xAt(point.weekStart), yAt(point.lower))
+            val totalCount = domain.size.coerceAtLeast(2)
+            fun xAt(index: Int): Float =
+                if (domain.size <= 1) size.width / 2f else size.width * index / (totalCount - 1)
+            fun xAt(date: LocalDate): Float = xAt(domainIndex[date] ?: 0)
+            fun yAt(value: Double): Float {
+                val ratio = ((value - min) / (max - min)).coerceIn(0.0, 1.0)
+                return (size.height - (size.height * ratio)).toFloat()
             }
-            path.close()
-            drawPath(path, forecastColor)
-        }
-        spec.lineSeries.forEachIndexed { seriesIndex, series ->
-            val path = Path()
-            var previousDomainIndex: Int? = null
-            var hasPoint = false
-            series.points.sortedBy { point -> point.weekStart }.forEach { point ->
-                val value = point.value?.takeIf(Double::isFinite)
-                val index = domainIndex[point.weekStart]
-                if (value == null || index == null) {
-                    previousDomainIndex = null
-                    return@forEach
+            spec.forecastRange?.points?.takeIf { it.isNotEmpty() }?.let { forecast ->
+                val path = Path()
+                forecast.forEachIndexed { index, point ->
+                    val x = xAt(point.weekStart)
+                    val y = yAt(point.upper)
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
-                val x = xAt(index)
-                val y = yAt(value)
-                if (previousDomainIndex != null && index == previousDomainIndex!! + 1) {
-                    path.lineTo(x, y)
-                } else {
-                    path.moveTo(x, y)
+                forecast.asReversed().forEach { point ->
+                    path.lineTo(xAt(point.weekStart), yAt(point.lower))
                 }
-                hasPoint = true
-                previousDomainIndex = index
-                drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
+                path.close()
+                drawPath(path, forecastColor)
             }
-            if (hasPoint) {
-                drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+            spec.lineSeries.forEachIndexed { seriesIndex, series ->
+                val path = Path()
+                var previousDomainIndex: Int? = null
+                var hasPoint = false
+                series.points.sortedBy { point -> point.weekStart }.forEach { point ->
+                    val value = point.value?.takeIf(Double::isFinite)
+                    val index = domainIndex[point.weekStart]
+                    if (value == null || index == null) {
+                        previousDomainIndex = null
+                        return@forEach
+                    }
+                    val x = xAt(index)
+                    val y = yAt(value)
+                    if (previousDomainIndex?.plus(1) == index) path.lineTo(x, y) else path.moveTo(x, y)
+                    hasPoint = true
+                    previousDomainIndex = index
+                    drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
+                }
+                if (hasPoint) {
+                    drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+                }
             }
+        }
+        spec.timeGranularity?.let { granularity ->
+            AnalysisTimeAxisLabels(domain, granularity)
         }
     }
 }
@@ -155,11 +162,20 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         .groupBy { segment -> segment.label }
         .mapValues { (_, segments) -> segments.firstNotNullOfOrNull { it.colorKey } }
     val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val domain = AnalysisChartTemporalPolicy.domain(spec)
+    val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = analysisChartContentDescription(spec)
+        },
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Canvas(modifier = modifier.fillMaxWidth()) {
-            val slot = size.width / groups.size.coerceAtLeast(1)
+            val slotCount = if (domain.isNotEmpty()) domain.size else groups.size
+            val slot = size.width / slotCount.coerceAtLeast(1)
             val barWidth = slot * 0.62f
             groups.forEachIndexed { groupIndex, group ->
+                val index = group.weekStart?.let(domainIndex::get) ?: groupIndex
                 var bottom = size.height
                 group.segments.forEach { segment ->
                     val height = (size.height * (segment.value / maxTotal)).toFloat()
@@ -168,12 +184,15 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                         ?: colors[colorIndex % colors.size]
                     drawRect(
                         color = color,
-                        topLeft = Offset(groupIndex * slot + (slot - barWidth) / 2f, bottom - height),
+                        topLeft = Offset(index * slot + (slot - barWidth) / 2f, bottom - height),
                         size = Size(barWidth, height)
                     )
                     bottom -= height
                 }
             }
+        }
+        spec.timeGranularity?.let { granularity ->
+            AnalysisTimeAxisLabels(domain, granularity)
         }
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -189,6 +208,96 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
             }
         }
     }
+}
+
+@Composable
+private fun AnalysisTimeAxisLabels(
+    domain: List<LocalDate>,
+    granularity: ChartTimeGranularity
+) {
+    if (domain.isEmpty()) return
+    val visible = AnalysisChartTemporalPolicy.axisLabelDates(domain, granularity)
+    val dates = domain.filter { it in visible }
+    Layout(
+        content = {
+            dates.forEach { date ->
+                Text(
+                    text = AnalysisChartTemporalPolicy.compactAxisLabel(
+                        date = date,
+                        granularity = granularity,
+                        domain = domain,
+                        includeWeekday = granularity == ChartTimeGranularity.DAILY && domain.size <= 7
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
+            }
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) { measurables, constraints ->
+        val maxLabelWidth = 72.dp.roundToPx()
+        val placeables = measurables.map { measurable ->
+            measurable.measure(
+                Constraints(
+                    minWidth = 0,
+                    maxWidth = maxLabelWidth,
+                    minHeight = 0,
+                    maxHeight = constraints.maxHeight
+                )
+            )
+        }
+        val height = placeables.maxOfOrNull { it.height } ?: 0
+        layout(constraints.maxWidth, height) {
+            placeables.forEachIndexed { index, placeable ->
+                val domainIndex = domain.indexOf(dates[index])
+                val center = if (domain.size <= 1) {
+                    constraints.maxWidth / 2
+                } else {
+                    constraints.maxWidth * domainIndex / domain.lastIndex
+                }
+                val maxX = (constraints.maxWidth - placeable.width).coerceAtLeast(0)
+                val x = (center - placeable.width / 2).coerceIn(0, maxX)
+                placeable.placeRelative(x, 0)
+            }
+        }
+    }
+}
+
+internal fun analysisChartPeriodLabel(spec: ChartSpec): String? =
+    spec.timeGranularity?.let { granularity ->
+        AnalysisChartTemporalPolicy.periodLabel(AnalysisChartTemporalPolicy.domain(spec), granularity)
+    }
+
+internal fun analysisChartContentDescription(spec: ChartSpec): String {
+    val granularity = spec.timeGranularity ?: return spec.title
+    val domain = AnalysisChartTemporalPolicy.domain(spec)
+    val lineDescriptions = spec.lineSeries.flatMap { series ->
+        series.points.mapNotNull { point ->
+            val value = point.value?.takeIf(Double::isFinite) ?: return@mapNotNull null
+            val date = AnalysisChartTemporalPolicy.detailLabel(point.weekStart, granularity, domain)
+            "$date, ${series.label} ${formatChartAccessibilityValue(value, spec.valueUnit)}"
+        }
+    }
+    val stackedDescriptions = spec.stackedBars.flatMap { group ->
+        val weekStart = group.weekStart ?: return@flatMap emptyList()
+        val date = AnalysisChartTemporalPolicy.detailLabel(weekStart, granularity, domain)
+        group.segments.map { segment ->
+            "$date, ${segment.label} ${formatChartAccessibilityValue(segment.value, spec.valueUnit)}"
+        }
+    }
+    return (listOf(spec.title) + lineDescriptions + stackedDescriptions).joinToString(". ")
+}
+
+private fun formatChartAccessibilityValue(value: Double, unit: String?): String {
+    val rendered = if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
+    val spokenUnit = when (unit) {
+        "kg" -> "킬로그램"
+        "%" -> "퍼센트"
+        null, "" -> ""
+        else -> unit
+    }
+    return "$rendered$spokenUnit"
 }
 
 @Composable
