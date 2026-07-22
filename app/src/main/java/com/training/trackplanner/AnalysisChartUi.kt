@@ -73,6 +73,7 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     val forecastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
         .plus(spec.forecastRange?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
+        .plus(spec.intervalBand?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
         .filter(Double::isFinite)
     if (allValues.isEmpty()) {
         InfoCard("기록 부족")
@@ -115,6 +116,19 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                 path.close()
                 drawPath(path, forecastColor)
             }
+            spec.intervalBand?.points?.takeIf { it.isNotEmpty() }?.let { interval ->
+                val path = Path()
+                interval.forEachIndexed { index, point ->
+                    val x = xAt(point.date)
+                    val y = yAt(point.upper)
+                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                }
+                interval.asReversed().forEach { point ->
+                    path.lineTo(xAt(point.date), yAt(point.lower))
+                }
+                path.close()
+                drawPath(path, forecastColor)
+            }
             spec.lineSeries.forEachIndexed { seriesIndex, series ->
                 val path = Path()
                 var previousDomainIndex: Int? = null
@@ -133,7 +147,7 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                     previousDomainIndex = index
                     drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
                 }
-                if (hasPoint) {
+                if (hasPoint && series.connectPoints) {
                     drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
                 }
             }
@@ -286,7 +300,11 @@ internal fun analysisChartContentDescription(spec: ChartSpec): String {
             "$date, ${segment.label} ${formatChartAccessibilityValue(segment.value, spec.valueUnit)}"
         }
     }
-    return (listOf(spec.title) + lineDescriptions + stackedDescriptions).joinToString(". ")
+    val intervalDescriptions = spec.intervalBand?.points.orEmpty().map { point ->
+        val date = AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain)
+        "$date, ${spec.intervalBand?.label}, ${formatChartAccessibilityValue(point.lower, spec.valueUnit)}에서 ${formatChartAccessibilityValue(point.upper, spec.valueUnit)}"
+    }
+    return (listOf(spec.title) + lineDescriptions + intervalDescriptions + stackedDescriptions).joinToString(". ")
 }
 
 private fun formatChartAccessibilityValue(value: Double, unit: String?): String {

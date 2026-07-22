@@ -99,6 +99,7 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        ProxyPerformanceLabCard(summary.proxyPerformanceSummary)
         LabLaggedIntroCard()
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -59,6 +59,7 @@ object AnalysisChartTemporalPolicy {
         val dates = spec.xDomain +
             spec.lineSeries.flatMap { series -> series.points.map(TrendDataPoint::weekStart) } +
             spec.forecastRange?.points?.map(ForecastPoint::weekStart).orEmpty() +
+            spec.intervalBand?.points?.map(IntervalPoint::date).orEmpty() +
             spec.stackedBars.mapNotNull(StackedBarGroup::weekStart)
         return when (spec.timeGranularity) {
             ChartTimeGranularity.WEEKLY -> weeklyDomain(dates)

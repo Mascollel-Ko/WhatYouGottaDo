@@ -314,7 +314,7 @@ internal fun AnalysisSectionChart(
 }
 
 @Composable
-private fun ChartSeriesLegend(
+internal fun ChartSeriesLegend(
     series: List<ChartSeries>,
     latestValueFormatter: ((Double) -> String)? = { "${formatDecimal(it)}kg" }
 ) {
