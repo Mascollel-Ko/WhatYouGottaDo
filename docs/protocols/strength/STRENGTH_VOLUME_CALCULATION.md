@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.0.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
+| Last audited commit | afcf891556b9178ca4e4453031b7184cca0d17af |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -50,6 +50,8 @@
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
 
 v0.4.2.16부터 e1RM, 근육군 운동량 비율과 반복수 구간 비율 추이는 공통 Monday-Sunday 월-주차 라벨과 정확한 날짜 범위를 노출합니다. 메인 운동 e1RM 차트의 X domain은 표시된 모든 운동 관측 주의 최솟값부터 최댓값까지의 완전한 주간 domain입니다. 각 운동의 기존 주간 maximum e1RM만 표시하며, 관측이 없는 주는 null로 남겨 0 또는 forward-fill을 만들지 않고 gap을 연결하지 않습니다. Y domain은 모든 표시 운동의 유한한 관측값으로 계산합니다.
+
+v0.5.0.1의 주요 리프트 proxy 수행 추정은 이 canonical actual e1RM series를 수정하지 않습니다. 추정 posterior, 80% 구간, 세션 전 예상과 proxy-only week는 별도 `proxyPerformanceSummary`와 별도 UI layer에만 존재하며 실제 e1RM metric으로 취급하지 않습니다.
 
 ## 10. 예외 및 fallback
 
@@ -106,9 +108,11 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 ## 19. 관련 문서
 
 - [`docs/analysis_algorithm_design.md`](../../analysis_algorithm_design.md)
+- [`PROXY_PERFORMANCE_ESTIMATION.md`](PROXY_PERFORMANCE_ESTIMATION.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.0.2` (2026-07-23): canonical actual e1RM과 실험적 proxy posterior의 데이터·UI 경계를 명시했습니다. 기존 actual e1RM 및 volume 계산식은 변경하지 않았습니다.
 - `1.0.1` (2026-07-19): v0.4.2.16의 공통 주차 표시와 e1RM 다중 시리즈 union-domain/null-gap 계약을 추가했습니다. e1RM 및 volume 계산식은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

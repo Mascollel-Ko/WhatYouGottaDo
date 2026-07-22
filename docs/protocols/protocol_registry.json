@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-07-19",
+  "lastUpdated": "2026-07-23",
   "families": [
     {
       "familyId": "OFI",
@@ -29,7 +29,7 @@
     {
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 분류와 부하",
-      "descriptionKo": "taxonomy, volume, 체중 운동과 시간 유지 운동",
+      "descriptionKo": "taxonomy, volume, 체중·시간 유지 운동과 주요 리프트 proxy 수행 추정",
       "indexDocument": "strength/STRENGTH_TRAINING_TAXONOMY.md"
     },
     {
@@ -1022,7 +1022,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.0.1",
+      "currentVersion": "1.0.2",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1032,7 +1032,7 @@
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e",
+      "lastAuditedCommit": "afcf891556b9178ca4e4453031b7184cca0d17af",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
@@ -1060,6 +1060,57 @@
       "knownGaps": [
         "이 volume 계약이 처음 도입된 정확한 app version은 추가 Git history 감사가 필요합니다.",
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "STRENGTH-PROXY-PERFORMANCE",
+      "familyId": "STRENGTH",
+      "titleKo": "주요 리프트 프록시 수행 추정",
+      "titleEn": "Major Lift Proxy Performance Estimation",
+      "currentVersion": "1.0.0",
+      "status": "EXPERIMENTAL",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "MIXED",
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC",
+        "LOW_CONFIDENCE_PROXY"
+      ],
+      "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
+      "implementedFromAppVersion": "v0.5.0.1",
+      "lastAuditedCommit": "afcf891556b9178ca4e4453031b7184cca0d17af",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceModels.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceObservationBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceLoadingBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceKalmanFilter.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceEstimator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceBacktester.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceSummaryBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceObservationAndLoadingTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceEstimatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceScaleTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisProxyPerformanceUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/analysis_algorithm_design.md",
+        "docs/bayesian_time_series_lab_architecture.md"
+      ],
+      "knownGaps": [
+        "Exercise cross-loading coefficients and selection thresholds are product heuristics rather than user-calibrated research parameters.",
+        "The posterior is a deterministic product estimate and does not preserve draws for strict BVAR or BLP propagation."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

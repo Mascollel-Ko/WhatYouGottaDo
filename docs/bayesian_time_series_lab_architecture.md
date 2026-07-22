@@ -215,6 +215,14 @@ PHASE A validates this shape only. It does not generate shocks.
 
 PHASE E may consume `CandidateEligibilityView` and final PHASE B/C estimators to compare candidates on common rows with posterior-aware scores. Until then, automatic ranking is disabled.
 
+## Proxy Performance Posterior Boundary
+
+The v0.5.0.1 major-lift proxy performance model is a separate deterministic derived-state subsystem. It combines confirmed strength sessions with fixed metadata-constrained loadings to provide bench-press, squat and deadlift expectations and historical uncertainty bands. It does not change canonical e1RM observations.
+
+Its posterior means, medians, intervals, innovations and proxy-only weeks are not lifecycle-validated observed cells and must not enter `StrictTimeSeriesIngestion`, `PreparedAnalysisContext`, any strict estimator view, `metricSeries`, or `LegacyTimeSeriesAnalyzer`. A UI chart interval band is historical posterior uncertainty, not `forecastRange` and not an identified structural shock posterior.
+
+A future BVAR/BLP bridge would require a separately approved contract that preserves posterior draws, source lineage, calendar/lifecycle semantics, target-specific model-selection identity and uncertainty through every downstream transformation. A deterministic mean series or interval midpoint is insufficient. v0.5.0.1 implements no such bridge.
+
 ## Fingerprint Rules
 
 - semantic content changes identity;
