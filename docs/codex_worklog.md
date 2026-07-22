@@ -3055,3 +3055,83 @@ Verification
   `v0.5.0.0` tag are confirmed in the final release report.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+## v0.5.0.1 metadata-constrained proxy performance model
+
+### Baseline and goal
+- Started from latest `origin/main` at
+  `21226820509e6a45c70a02a5596b8ef4bd9e5d5d`, app identity
+  `0.5.0.0 / 500000`.
+- Goal: infer a separate bench-press, squat and deadlift performance state from
+  confirmed related-exercise history without changing canonical actual e1RM.
+- The model is experimental and is not a replacement for direct performance
+  testing or a clinical/causal model.
+
+### Implementation
+- `18a281b0236c374fdc2eb0fb5f235cb042660bbf` added the fixed eight-factor
+  observation, metadata loading, Joseph-form Kalman, rolling backtest,
+  target-specific M1/M2/M3 selection and summary pipeline.
+- `5e3d57095398a0da7f3d37200ef3bcdeece4302d` added separate actual,
+  posterior interval, pre-session expectation, proxy evidence and experimental
+  Lab presentation.
+- `afcf891556b9178ca4e4453031b7184cca0d17af` added focused leakage,
+  ordering, bodyweight, loading, fallback, numerical stability, determinism,
+  UI separation and bounded-scale tests.
+- `0cb786ac768ea997ec73b63a59be91d44daba7c8` added the canonical
+  `STRENGTH-PROXY-PERFORMANCE` protocol and the strict time-series boundary.
+- `1049c793e7c35cf21e73a9528bdef92ec3e43008` replaced a global registry
+  count assertion with the intended connective-tissue canonical-document
+  uniqueness assertion.
+
+### Data and model boundaries
+- Existing confirmed-set Epley e1RM remains unchanged and is never overwritten
+  or forward-filled by posterior output.
+- Posterior results are carried only by
+  `PerformanceTrendSummary.proxyPerformanceSummary`; no metric-series entry is
+  added.
+- `LegacyTimeSeriesAnalyzer`, strict time-series ingestion, BVAR/BLP inputs,
+  connective-tissue state, OFI, badminton, readiness and ProgramBuilder do not
+  consume the proxy posterior.
+- Runtime metadata resolver semantics and the canonical metadata CSV are
+  reused unchanged. Custom exercises without resolved metadata provide no
+  cross-loading.
+
+### Files
+- New runtime package:
+  `app/src/main/java/com/training/trackplanner/analysis/proxyperformance/` with
+  models, observation/loading builders, Kalman filter, estimator, backtester
+  and summary builder.
+- New UI: `AnalysisProxyPerformanceUi.kt`; existing analysis chart, strength
+  detail and Lab files only route or render the separate summary.
+- New tests: `ProxyPerformanceObservationAndLoadingTest`,
+  `ProxyPerformanceEstimatorTest`, `ProxyPerformanceScaleTest` and
+  `AnalysisProxyPerformanceUiTest`.
+- New canonical document:
+  `docs/protocols/strength/PROXY_PERFORMANCE_ESTIMATION.md`.
+- Updated protocol registry, strength-volume boundary, Bayesian lab
+  architecture, release notes and app version.
+
+### Verification
+- Focused proxy, e1RM, chart/UI and runtime metadata tests passed.
+- Full `:app:testDebugUnitTest` passed 979 tests across 166 suites with zero
+  failures, errors or skipped tests. The first full run exposed one unrelated
+  hard-coded registry size assertion; the protocol-specific invariant was
+  corrected and the full suite then passed.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:validateConnectiveTissuePriorBaselines` and `:app:assembleDebug`
+  passed.
+- Protocol validation passed for 7 families and 30 protocols; the time-series
+  numeric source guard and release-owned `git diff --check` passed.
+- Debug APK size: 46,313,394 bytes.
+
+### Release state and follow-up
+- Release identity: `0.5.0.1 / 500001`.
+- The release commit is the commit containing this worklog entry. Main push,
+  annotated `v0.5.0.1` tag push and GitHub Actions are confirmed in the final
+  report.
+- Remaining risk: fixed loading and selection coefficients need real-world
+  calibration before stronger accuracy claims. A future strict BVAR/BLP bridge
+  requires posterior draws and lineage-preserving propagation; deterministic
+  means must not be reused as observed cells or shocks.
+- The six pre-existing user-owned `outputs/*` modifications remain untouched
+  and unstaged.
