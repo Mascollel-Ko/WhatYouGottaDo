@@ -3135,3 +3135,74 @@ Verification
   means must not be reused as observed cells or shocks.
 - The six pre-existing user-owned `outputs/*` modifications remain untouched
   and unstaged.
+
+## v0.5.0.2 persistent event-driven strength posterior: preliminary audit
+
+### Baseline
+- Latest `origin/main` and local `main` both resolve to
+  `03a331569fcee82ab9796a115060f7e6a2f07820`, tagged `v0.5.0.1`.
+- Actual app identity is `0.5.0.1 / 500001`; the preceding proxy-performance
+  release is present. The Room baseline is version `21`, with explicit
+  migrations through `MIGRATION_20_21` and exported schemas through `21.json`.
+- The only pre-existing worktree changes are the six user-owned `outputs/*`
+  files. They remain excluded from this release.
+
+### Current-code audit
+- `analysis/proxyperformance` currently builds observations from confirmed
+  sets whenever `PerformanceTrendSummaryService.build()` is read. Its
+  observation builder uses Epley for both canonical and effort-adjusted input,
+  while M0/M1/M2/M3 are selected by rolling target-only/shared-factor
+  backtesting. The result is not persisted.
+- Legacy `StrengthAndMuscleMetricSeriesBuilder` also retains Epley weekly best
+  e1RM. It remains a compatibility series and will not enter the new posterior
+  likelihood.
+- `RecordMutationService.updateSet()` is the primary confirmation mutation.
+  `deleteSet()`, workout-entry deletion and unconfirmed-only range deletion can
+  also create the required date transition. No event ledger currently exists.
+- Workout entries expose `date`, `completedAt`, `firstConfirmedAt` and
+  `performedAt`; sets expose confirmation, load, repetitions, duration and RPE.
+  One ISO date is therefore the current session key boundary.
+- Backups use a row-type CSV, currently exporting profile, exercise, runtime
+  metadata, daily/check-in/smash and workout set rows. Posterior state is not
+  included and the transfer result has no posterior counts.
+- The canonical metadata asset contains 239 reviewed stable keys. Direct
+  anchors are `barbell_bench_press`, `barbell_back_squat`,
+  `barbell_deadlift` and `ex_e41f4c2b` (weighted pull-up). Reviewed nearby keys
+  include `ex_27b3deb5` close-grip bench, `ex_3a7d3eda` dumbbell bench,
+  `ex_32219f7a` overhead press, `ex_1dbee10e` machine chest press,
+  `ex_ab468462` leg press, `pull_up`, `ex_6466fe77` chin-up,
+  `ex_e41e8dcf` weighted chin-up and `ex_dc9e5953` lat pulldown.
+- The protocol registry contains 30 protocols and already has one canonical
+  `STRENGTH-PROXY-PERFORMANCE` authority, so that document will be revised in
+  place rather than duplicated.
+
+### Evidence audit
+- The primary paper is Nuzzo et al., Sports Medicine, PMID `37792272`, DOI
+  `10.1007/s40279-023-01937-7`. Its public OSF project `s94gf` provides the
+  analysis code, source data and reviewed general/bench/leg-press tables.
+- The public artifacts were recovered without inventing coefficients. SHA-256
+  values are `37342ab2417fcf7b1e9f12182cab2fc7d0298e0876683090f7960d296cc74c99`
+  for `Analysis.R`, `229dadd1f13bfe7b9f5dd5fd36bcfb6c710f8ac67b08f2be9ed423eb61b72fe5`
+  for `Data.csv`, `da67c15cbca59d77cb037ae8c9a89ec223613233839924eb72047c31cafd9f9d`
+  for the general table and
+  `5c8f8a6cb719f064346e8f9cc910d196daa9c340b86626895e822daf930445aa`
+  for the reviewed exercise table.
+
+### Implementation plan
+1. Generate checksum-validated monotonic general, bench and leg-press curve
+   assets from the reviewed tables, with an exact identity anchor at one
+   repetition and deterministic PCHIP/inversion.
+2. Add stable string target/factor registries, explicit curve assignments,
+   load semantics, conservative set/session likelihood and bounded personal
+   curve calibration. Epley remains only in the labelled legacy series.
+3. Add Room `21 -> 22` event, immutable history, current-state, curve-posterior
+   and compact-evidence entities/DAOs, then integrate idempotent completion
+   detection and one-time chronological bootstrap outside SQL migration.
+4. Extend row-type backup/restore with deterministic vector encoding, exact
+   immutable-history conflict checks and old-backup bootstrap scheduling.
+5. Read persisted posterior state/history in analysis, use the registry-driven
+   four-target UI, and retain strict separation from LegacyTimeSeriesAnalyzer,
+   OFI, connective tissue, readiness and ProgramBuilder.
+6. Add curve, assignment, likelihood, transition, immutability, weighted
+   pull-up, registry, migration, backup, numerical and bounded performance
+   tests before release `0.5.0.2 / 500002`.
