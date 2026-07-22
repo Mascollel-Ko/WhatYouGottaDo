@@ -5,11 +5,12 @@ import androidx.room.withTransaction
 internal class RecordMutationService(
     private val db: TrainingDatabase,
     private val exerciseDao: ExerciseDao,
-    private val workoutDao: WorkoutDao
+    private val workoutDao: WorkoutDao,
+    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null
 ) {
     suspend fun addWorkoutEntry(date: String, exerciseId: Long): Long {
         val exercise = exerciseDao.findById(exerciseId) ?: return 0L
-        return db.withTransaction {
+        return mutateDate(date) {
             val beforeInsert = normalizeDisplayOrder(date)
             val latestConfirmedEntryId = beforeInsert
                 .filter { record -> record.sets.any(WorkoutSet::confirmed) }
@@ -37,35 +38,41 @@ internal class RecordMutationService(
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) {
-        workoutDao.updateEntry(entry)
-        refreshEntryCompletion(entry.id)
+        val previousDate = workoutDao.findEntryById(entry.id)?.date ?: entry.date
+        mutateDates(setOf(previousDate, entry.date)) {
+            workoutDao.updateEntry(entry)
+            refreshEntryCompletion(entry.id)
+        }
     }
 
     suspend fun deleteWorkoutEntry(entry: WorkoutEntry) {
-        db.withTransaction {
+        mutateDate(entry.date) {
             workoutDao.deleteSetsForEntry(entry.id)
             workoutDao.deleteEntryById(entry.id)
         }
     }
 
     suspend fun addSet(entry: WorkoutEntry) {
-        val currentSets = workoutDao.setsForEntry(entry.id)
-        val nextIndex = currentSets.size + 1
-        val nextSet = currentSets.lastOrNull()
-            ?.copy(
-                id = 0,
-                setIndex = nextIndex,
-                confirmed = false,
-                rpe = null,
-                restSecondsOverride = null
-            )
-            ?: defaultSet(entry.id, nextIndex, exerciseDao.findById(entry.exerciseId))
-        workoutDao.insertSet(nextSet)
-        refreshEntryCompletion(entry.id)
+        mutateDate(entry.date) {
+            val currentSets = workoutDao.setsForEntry(entry.id)
+            val nextIndex = currentSets.size + 1
+            val nextSet = currentSets.lastOrNull()
+                ?.copy(
+                    id = 0,
+                    setIndex = nextIndex,
+                    confirmed = false,
+                    rpe = null,
+                    restSecondsOverride = null
+                )
+                ?: defaultSet(entry.id, nextIndex, exerciseDao.findById(entry.exerciseId))
+            workoutDao.insertSet(nextSet)
+            refreshEntryCompletion(entry.id)
+        }
     }
 
     suspend fun updateSet(set: WorkoutSet) {
-        db.withTransaction {
+        val entry = workoutDao.findEntryById(set.entryId) ?: return
+        mutateDate(entry.date) {
             val existing = workoutDao.findSetById(set.id)
             val newlyConfirmed = set.confirmed && existing?.confirmed != true
             val firstConfirmationForEntry = newlyConfirmed && workoutDao.confirmedCountForEntry(set.entryId) == 0
@@ -94,13 +101,24 @@ internal class RecordMutationService(
 
     suspend fun deleteSet(set: WorkoutSet): Boolean {
         if (workoutDao.setCount(set.entryId) <= 1) return false
-        workoutDao.deleteSet(set)
-        workoutDao.setsForEntry(set.entryId).forEachIndexed { index, remainingSet ->
-            workoutDao.updateSetIndex(remainingSet.id, index + 1)
+        val entry = workoutDao.findEntryById(set.entryId) ?: return false
+        return mutateDate(entry.date) {
+            workoutDao.deleteSet(set)
+            workoutDao.setsForEntry(set.entryId).forEachIndexed { index, remainingSet ->
+                workoutDao.updateSetIndex(remainingSet.id, index + 1)
+            }
+            refreshEntryCompletion(set.entryId)
+            true
         }
-        refreshEntryCompletion(set.entryId)
-        return true
     }
+
+    private suspend fun <T> mutateDate(date: String, mutation: suspend () -> T): T =
+        strengthPosteriorCoordinator?.mutateDate(date, mutation = mutation)
+            ?: db.withTransaction { mutation() }
+
+    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T =
+        strengthPosteriorCoordinator?.mutateDates(dates, mutation = mutation)
+            ?: db.withTransaction { mutation() }
 
     private fun defaultSet(entryId: Long, setIndex: Int, exercise: Exercise?): WorkoutSet {
         val seconds = when (exercise?.category) {

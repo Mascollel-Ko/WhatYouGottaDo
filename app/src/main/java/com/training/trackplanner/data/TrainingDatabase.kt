@@ -20,9 +20,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrainingProgramItem::class,
         AppMeta::class,
         InitialUserProfile::class,
-        RuntimeExerciseMetadataEntity::class
+        RuntimeExerciseMetadataEntity::class,
+        StrengthPosteriorEventEntity::class,
+        StrengthPosteriorHistoryEntity::class,
+        StrengthPosteriorModelStateEntity::class,
+        StrengthCurvePosteriorEntity::class,
+        StrengthPosteriorEvidenceEntity::class
     ],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -36,6 +41,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun appMetaDao(): AppMetaDao
     abstract fun initialUserProfileDao(): InitialUserProfileDao
     abstract fun runtimeExerciseMetadataDao(): RuntimeExerciseMetadataDao
+    abstract fun strengthPosteriorDao(): StrengthPosteriorDao
 
     companion object {
         @Volatile
@@ -490,6 +496,161 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_posterior_events` (
+                        `eventUuid` TEXT NOT NULL,
+                        `sessionKey` TEXT NOT NULL,
+                        `sessionDate` TEXT NOT NULL,
+                        `completionFingerprint` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `creationReason` TEXT NOT NULL,
+                        `confirmedSetCount` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `processedAt` INTEGER,
+                        `modelVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `factorSchemaVersion` TEXT NOT NULL,
+                        `evidenceFingerprint` TEXT,
+                        `errorCode` TEXT,
+                        `errorMessage` TEXT,
+                        PRIMARY KEY(`eventUuid`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_events_sessionKey` ON `strength_posterior_events` (`sessionKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_events_sessionDate` ON `strength_posterior_events` (`sessionDate`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_events_status` ON `strength_posterior_events` (`status`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_strength_posterior_events_completionFingerprint` ON `strength_posterior_events` (`completionFingerprint`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_posterior_history` (
+                        `eventUuid` TEXT NOT NULL,
+                        `targetKey` TEXT NOT NULL,
+                        `sessionDate` TEXT NOT NULL,
+                        `priorMedian` REAL,
+                        `priorLow50` REAL,
+                        `priorHigh50` REAL,
+                        `priorLow80` REAL,
+                        `priorHigh80` REAL,
+                        `priorLow95` REAL,
+                        `priorHigh95` REAL,
+                        `posteriorMedian` REAL,
+                        `posteriorLow50` REAL,
+                        `posteriorHigh50` REAL,
+                        `posteriorLow80` REAL,
+                        `posteriorHigh80` REAL,
+                        `posteriorLow95` REAL,
+                        `posteriorHigh95` REAL,
+                        `directObservedLoad` REAL,
+                        `directObservationType` TEXT NOT NULL,
+                        `sessionObservationMedian` REAL,
+                        `sessionObservationLow80` REAL,
+                        `sessionObservationHigh80` REAL,
+                        `posteriorMeanChange` REAL,
+                        `posteriorVarianceBefore` REAL,
+                        `posteriorVarianceAfter` REAL,
+                        `intervalWidthChange80` REAL,
+                        `predictivePercentile` REAL,
+                        `standardizedSurprise` REAL,
+                        `modelVersion` TEXT NOT NULL,
+                        `factorSchemaVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `targetConfigVersion` TEXT NOT NULL,
+                        `evidenceFingerprint` TEXT NOT NULL,
+                        `sourceEvidenceStatus` TEXT NOT NULL,
+                        `sourceSetCountAtProcessing` INTEGER NOT NULL,
+                        `bodyWeightKgAtProcessing` REAL,
+                        `rawAddedWeightKgAtProcessing` REAL,
+                        `bodyWeightSource` TEXT,
+                        `curveProfileId` TEXT,
+                        `curveMatchLevel` TEXT,
+                        `curveCalibrationStatus` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`eventUuid`, `targetKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_history_targetKey` ON `strength_posterior_history` (`targetKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_history_eventUuid` ON `strength_posterior_history` (`eventUuid`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_posterior_model_state` (
+                        `modelInstanceKey` TEXT NOT NULL,
+                        `orderedFactorSchema` TEXT NOT NULL,
+                        `stateMeanEncoded` TEXT NOT NULL,
+                        `packedCovarianceEncoded` TEXT NOT NULL,
+                        `stateDimension` INTEGER NOT NULL,
+                        `lastProcessedEventUuid` TEXT,
+                        `lastProcessedDate` TEXT,
+                        `modelVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `factorSchemaVersion` TEXT NOT NULL,
+                        `stateFingerprint` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`modelInstanceKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_curve_posteriors` (
+                        `curveSubjectKey` TEXT NOT NULL,
+                        `canonicalProfileId` TEXT NOT NULL,
+                        `thetaGridEncoded` TEXT NOT NULL,
+                        `posteriorWeightsEncoded` TEXT NOT NULL,
+                        `totalObservationCount` INTEGER NOT NULL,
+                        `strongObservationCount` INTEGER NOT NULL,
+                        `distinctRepRangeCount` INTEGER NOT NULL,
+                        `minObservedReps` INTEGER,
+                        `maxObservedReps` INTEGER,
+                        `calibrationStatus` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `posteriorFingerprint` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`curveSubjectKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_posterior_evidence` (
+                        `evidenceFingerprint` TEXT NOT NULL,
+                        `eventUuid` TEXT NOT NULL,
+                        `sessionKey` TEXT NOT NULL,
+                        `sessionDate` TEXT NOT NULL,
+                        `exerciseStableKey` TEXT NOT NULL,
+                        `exerciseNameAtProcessing` TEXT NOT NULL,
+                        `directTargetKey` TEXT,
+                        `observationType` TEXT NOT NULL,
+                        `capacityMedianKg` REAL NOT NULL,
+                        `capacityLow80Kg` REAL NOT NULL,
+                        `capacityHigh80Kg` REAL NOT NULL,
+                        `lowerBoundOnly` INTEGER NOT NULL,
+                        `logVariance` REAL NOT NULL,
+                        `directObservedLoadKg` REAL,
+                        `bodyWeightKg` REAL,
+                        `rawAddedWeightKg` REAL,
+                        `bodyWeightSource` TEXT NOT NULL,
+                        `curveProfileId` TEXT NOT NULL,
+                        `curveMatchLevel` TEXT NOT NULL,
+                        `curveVarianceMultiplier` REAL NOT NULL,
+                        `curveSubjectKey` TEXT NOT NULL,
+                        `sourceSetIdsEncoded` TEXT NOT NULL,
+                        `strongObservationCount` INTEGER NOT NULL,
+                        `diagnosticsEncoded` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`evidenceFingerprint`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_evidence_eventUuid` ON `strength_posterior_evidence` (`eventUuid`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_posterior_evidence_exerciseStableKey` ON `strength_posterior_evidence` (`exerciseStableKey`)")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -517,7 +678,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_17_18,
                         MIGRATION_18_19,
                         MIGRATION_19_20,
-                        MIGRATION_20_21
+                        MIGRATION_20_21,
+                        MIGRATION_21_22
                     )
                     .build()
                     .also { instance = it }

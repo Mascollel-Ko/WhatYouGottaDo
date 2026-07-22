@@ -144,6 +144,19 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntriesWithSets(): List<WorkoutEntryWithSets>
 
+    @Query(
+        """
+        SELECT workout_entries.date
+        FROM workout_entries
+        INNER JOIN workout_sets ON workout_sets.entryId = workout_entries.id
+        GROUP BY workout_entries.date
+        HAVING SUM(CASE WHEN workout_sets.confirmed = 1 THEN 1 ELSE 0 END) > 0
+           AND SUM(CASE WHEN workout_sets.confirmed = 0 THEN 1 ELSE 0 END) = 0
+        ORDER BY workout_entries.date
+        """
+    )
+    suspend fun completedWorkoutDates(): List<String>
+
     @Query("SELECT COUNT(*) FROM workout_entries WHERE date = :date")
     fun observeEntryCount(date: String): Flow<Int>
 
@@ -516,6 +529,9 @@ interface AppMetaDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(meta: AppMeta)
+
+    @Query("DELETE FROM app_meta WHERE `key` = :key")
+    suspend fun delete(key: String)
 }
 
 @Dao

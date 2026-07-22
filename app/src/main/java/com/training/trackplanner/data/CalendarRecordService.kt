@@ -6,7 +6,8 @@ import java.time.format.DateTimeFormatter
 
 internal class CalendarRecordService(
     private val db: TrainingDatabase,
-    private val workoutDao: WorkoutDao
+    private val workoutDao: WorkoutDao,
+    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null
 ) {
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
         if (dates.isEmpty()) {
@@ -22,7 +23,7 @@ internal class CalendarRecordService(
         }
 
     suspend fun deleteDate(date: String) {
-        db.withTransaction {
+        mutateDates(listOf(date)) {
             workoutDao.deleteSetsOnDates(listOf(date))
             workoutDao.deleteEntriesOnDates(listOf(date))
         }
@@ -33,9 +34,9 @@ internal class CalendarRecordService(
         endDate: String,
         includeConfirmed: Boolean
     ) {
-        db.withTransaction {
-            val dates = dateRange(startDate, endDate)
-            if (dates.isEmpty()) return@withTransaction
+        val dates = dateRange(startDate, endDate)
+        mutateDates(dates) {
+            if (dates.isEmpty()) return@mutateDates
             if (includeConfirmed) {
                 workoutDao.deleteSetsOnDates(dates)
                 workoutDao.deleteEntriesOnDates(dates)
@@ -69,9 +70,9 @@ internal class CalendarRecordService(
         keepConfirmed: Boolean,
         conflictMode: CalendarConflictMode
     ) {
-        db.withTransaction {
+        mutateDates(listOf(targetDate)) {
             val sourceEntries = workoutDao.entriesWithSets(sourceDate)
-            if (sourceEntries.isEmpty()) return@withTransaction
+            if (sourceEntries.isEmpty()) return@mutateDates
             if (conflictMode == CalendarConflictMode.Overwrite) {
                 workoutDao.deleteSetsOnDates(listOf(targetDate))
                 workoutDao.deleteEntriesOnDates(listOf(targetDate))
@@ -91,9 +92,9 @@ internal class CalendarRecordService(
         conflictMode: CalendarConflictMode
     ) {
         if (sourceDate == targetDate) return
-        db.withTransaction {
+        mutateDates(listOf(sourceDate, targetDate)) {
             val sourceEntries = workoutDao.entriesWithSets(sourceDate)
-            if (sourceEntries.isEmpty()) return@withTransaction
+            if (sourceEntries.isEmpty()) return@mutateDates
             if (conflictMode == CalendarConflictMode.Overwrite) {
                 workoutDao.deleteSetsOnDates(listOf(targetDate))
                 workoutDao.deleteEntriesOnDates(listOf(targetDate))
@@ -116,14 +117,14 @@ internal class CalendarRecordService(
         conflictMode: CalendarConflictMode,
         keepConfirmed: Boolean = false
     ) {
-        db.withTransaction {
-            val sourceDates = dateRange(sourceStart, sourceEnd)
+        val sourceDates = dateRange(sourceStart, sourceEnd)
+        val targetStartDate = LocalDate.parse(targetStart, DateTimeFormatter.ISO_LOCAL_DATE)
+        val targetDates = sourceDates.mapIndexed { index, _ ->
+            targetStartDate.plusDays(index.toLong()).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        }
+        mutateDates(targetDates) {
             val sourceEntriesByDate = sourceDates.map { sourceDate ->
                 sourceDate to workoutDao.entriesWithSets(sourceDate)
-            }
-            val targetStartDate = LocalDate.parse(targetStart, DateTimeFormatter.ISO_LOCAL_DATE)
-            val targetDates = sourceDates.mapIndexed { index, _ ->
-                targetStartDate.plusDays(index.toLong()).format(DateTimeFormatter.ISO_LOCAL_DATE)
             }
             if (conflictMode == CalendarConflictMode.Overwrite && targetDates.isNotEmpty()) {
                 workoutDao.deleteSetsOnDates(targetDates)
@@ -191,4 +192,8 @@ internal class CalendarRecordService(
     }
 
     private fun nextCreatedAt(): Long = System.currentTimeMillis()
+
+    private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T =
+        strengthPosteriorCoordinator?.mutateDates(dates, mutation = mutation)
+            ?: db.withTransaction { mutation() }
 }

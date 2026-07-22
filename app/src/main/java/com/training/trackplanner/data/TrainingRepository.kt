@@ -17,6 +17,8 @@ import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import kotlinx.coroutines.Dispatchers
@@ -114,7 +116,28 @@ class TrainingRepository(
     private val appMetaDao = db.appMetaDao()
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
+    private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
+    private val repetitionCurveRegistry = RepetitionCurveRegistry.fromContext(context)
+    private val strengthPosteriorEventProcessor = StrengthPosteriorEventProcessor(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        initialUserProfileDao = initialUserProfileDao,
+        posteriorDao = strengthPosteriorDao,
+        registry = strengthPerformanceRegistry,
+        curves = repetitionCurveRegistry
+    )
+    private val strengthPosteriorCoordinator = StrengthPosteriorUpdateCoordinator(
+        db = db,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        appMetaDao = appMetaDao,
+        posteriorDao = strengthPosteriorDao,
+        processor = strengthPosteriorEventProcessor
+    )
     private val dailyStatusService = DailyStatusService(
         db = db,
         dailyMetricDao = dailyMetricDao,
@@ -199,12 +222,14 @@ class TrainingRepository(
     )
     private val calendarRecordService = CalendarRecordService(
         db = db,
-        workoutDao = workoutDao
+        workoutDao = workoutDao,
+        strengthPosteriorCoordinator = strengthPosteriorCoordinator
     )
     private val recordMutationService = RecordMutationService(
         db = db,
         exerciseDao = exerciseDao,
-        workoutDao = workoutDao
+        workoutDao = workoutDao,
+        strengthPosteriorCoordinator = strengthPosteriorCoordinator
     )
     private val programPlanService = ProgramPlanService(
         db = db,
@@ -401,6 +426,8 @@ class TrainingRepository(
                 )
             )
         }
+
+        strengthPosteriorCoordinator.bootstrapIfNeeded()
 
         logDebugSummary()
     }

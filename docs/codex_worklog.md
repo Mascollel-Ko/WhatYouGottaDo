@@ -3206,3 +3206,39 @@ Verification
 6. Add curve, assignment, likelihood, transition, immutability, weighted
    pull-up, registry, migration, backup, numerical and bounded performance
    tests before release `0.5.0.2 / 500002`.
+
+### Persistent event ledger and immutable filtered history
+- Added Room schema `21 -> 22` with an idempotent completion-event ledger,
+  immutable per-target prior/posterior snapshots, current model state,
+  personal curve posterior state and frozen compact evidence. The SQL
+  migration only creates storage; it does not run the historical bootstrap.
+- Added the generic log-capacity posterior state, deterministic little-endian
+  vector encoding with dimensions and SHA-256 checksums, packed symmetric
+  covariance storage, bounded process noise and Joseph-form covariance update.
+- Integrated completion detection with repository mutation transactions. The
+  only eligible transition is `unconfirmed > 0` to `unconfirmed == 0` while at
+  least one confirmed set remains. Partial deletion may therefore complete a
+  date; deleting every set cannot.
+- PENDING event insertion occurs in the same transaction as the record
+  mutation. Model calculation then runs on `Dispatchers.Default`, and frozen
+  evidence, immutable history, current state, curve posteriors and PROCESSED
+  status are committed atomically. Failed processing retains a retryable event
+  without partial posterior rows.
+- Completion fingerprints use stable exercise/content values rather than
+  local Room entry or set IDs. An already processed date cannot create a
+  second event, and later source edits or deletion do not rewrite its numeric
+  history.
+- Added resumable, chronological, one-time forward bootstrap outside Room SQL
+  migration. The marker is written only after every eligible historical date
+  is processed; existing processed events make interruption retry idempotent.
+
+### Persistence verification
+- `:app:compileDebugKotlin` passed and generated exported Room schema
+  `22.json`.
+- `StrengthPosteriorModelTest` passed deterministic vector/covariance encoding,
+  direct one-repetition uncertainty reduction, conservative lower-bound and
+  deterministic output checks.
+- `StrengthPosteriorEventIntegrationTest` passed exact completion transition,
+  partial-deletion inclusion, all-deleted exclusion, atomic failure, retry,
+  one-time bootstrap, local-ID-independent fingerprint and post-processing
+  history immutability checks.
