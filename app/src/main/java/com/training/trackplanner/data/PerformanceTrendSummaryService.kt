@@ -4,6 +4,7 @@ import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
+import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummaryBuilder
 import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import java.time.format.DateTimeFormatter
@@ -12,6 +13,7 @@ internal class PerformanceTrendSummaryService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val dailyMetricDao: DailyMetricDao,
+    private val initialUserProfileDao: InitialUserProfileDao,
     private val dailyCheckInDao: DailyCheckInDao,
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
@@ -43,7 +45,18 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             dailyMetrics = dailyMetrics
         )
-        return base.copy(metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries)
+        val proxyPerformanceSummary = ProxyPerformanceSummaryBuilder.build(
+            today = today,
+            exercises = exercises,
+            entriesWithSets = entries,
+            dailyMetrics = dailyMetrics,
+            initialProfile = initialUserProfileDao.profile(),
+            runtimeMetadataCatalog = runtimeMetadataCatalog
+        )
+        return base.copy(
+            metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries,
+            proxyPerformanceSummary = proxyPerformanceSummary
+        )
     }
 
     private suspend fun resolvedRuntimeMetadataCatalog(

@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
+import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummary
 import java.time.LocalDate
 
 enum class ChartType {
@@ -128,9 +129,21 @@ data class ForecastRange(
     val confidence: AnalysisConfidence
 )
 
+data class IntervalPoint(
+    val date: LocalDate,
+    val lower: Double,
+    val upper: Double
+)
+
+data class IntervalBand(
+    val label: String,
+    val points: List<IntervalPoint>
+)
+
 data class ChartSeries(
     val label: String,
-    val points: List<TrendDataPoint>
+    val points: List<TrendDataPoint>,
+    val connectPoints: Boolean = true
 )
 
 data class BarItem(
@@ -173,6 +186,7 @@ data class ChartSpec(
     val slices: List<PieSlice> = emptyList(),
     val scatterPoints: List<ScatterPoint> = emptyList(),
     val forecastRange: ForecastRange? = null,
+    val intervalBand: IntervalBand? = null,
     val emphasizeValue: Boolean = false,
     val yMin: Double? = null,
     val yMax: Double? = null,
@@ -276,7 +290,8 @@ data class PerformanceTrendSummary(
     val repRangeWeeks: List<RepRangeWeekShare> = emptyList(),
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
     val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
-    val exerciseDisplayNamesById: Map<Long, String> = emptyMap()
+    val exerciseDisplayNamesById: Map<Long, String> = emptyMap(),
+    val proxyPerformanceSummary: ProxyPerformanceSummary? = null
 )
 
 data class PerformanceDetailSection(

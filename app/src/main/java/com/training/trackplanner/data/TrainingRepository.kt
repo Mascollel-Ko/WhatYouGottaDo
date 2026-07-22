@@ -180,6 +180,7 @@ class TrainingRepository(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         dailyMetricDao = dailyMetricDao,
+        initialUserProfileDao = initialUserProfileDao,
         dailyCheckInDao = dailyCheckInDao,
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
