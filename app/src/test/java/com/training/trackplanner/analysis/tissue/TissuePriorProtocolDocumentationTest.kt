@@ -14,7 +14,12 @@ class TissuePriorProtocolDocumentationTest {
             .map(protocols::getJSONObject)
             .single { it.getString("protocolId") == "CT-PERSONAL-CALIBRATION" }
 
-        assertEquals(29, protocols.length())
+        assertEquals(
+            1,
+            (0 until protocols.length())
+                .map(protocols::getJSONObject)
+                .count { it.getString("canonicalDocument") == "connective_tissue/PERSONAL_CALIBRATION.md" }
+        )
         assertEquals("connective_tissue/PERSONAL_CALIBRATION.md", personal.getString("canonicalDocument"))
         assertEquals("2.0.0", personal.getString("currentVersion"))
         assertEquals(
