@@ -161,6 +161,9 @@ class TrainingRepository(
         dailyStatusService = dailyStatusService,
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        appMetaDao = appMetaDao,
+        strengthPosteriorDao = strengthPosteriorDao,
+        strengthPosteriorCoordinator = strengthPosteriorCoordinator,
         seedExercisesByStableKey = ::seedExercisesByStableKey,
         profileFromRows = { rows -> rows.toInitialUserProfile() },
         upsertRestoredExercise = ::upsertRestoredExercise,
@@ -364,7 +367,9 @@ class TrainingRepository(
             smashSpeedDao = smashSpeedDao,
             exerciseDao = exerciseDao,
             initialUserProfileDao = initialUserProfileDao,
-            runtimeExerciseMetadataDao = runtimeExerciseMetadataDao
+            runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+            appMetaDao = appMetaDao,
+            strengthPosteriorDao = strengthPosteriorDao
         ).export(uri)
     }
 

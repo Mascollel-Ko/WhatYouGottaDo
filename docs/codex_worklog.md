@@ -3242,3 +3242,31 @@ Verification
   partial-deletion inclusion, all-deleted exclusion, atomic failure, retry,
   one-time bootstrap, local-ID-independent fingerprint and post-processing
   history immutability checks.
+
+### Posterior backup and restore
+- Extended the existing row-type CSV rather than adding a parallel backup
+  format. Schema version `5` adds a posterior manifest plus event, immutable
+  history, model-state, personal-curve and frozen-evidence row types.
+- Each posterior row exposes its stable event UUID, target key, completion
+  fingerprint and model/curve/factor versions where applicable. The complete
+  entity is also encoded in a deterministic versioned payload that preserves
+  nulls and exact finite numeric text; current state vectors retain their own
+  dimension/order/checksum encoding.
+- New-format restore inserts events before dependent history/evidence and
+  restores historical numbers exactly. Exact duplicates are skipped. A reused
+  event UUID with different content, a reused completion fingerprint with a
+  different UUID, or any mismatch in immutable history/evidence/current state
+  or curve state fails closed and rolls back the import transaction.
+- A posterior manifest restores bootstrap provenance and prevents replay.
+  Older backups without the manifest remain accepted and immediately run the
+  one-time chronological bootstrap with `LEGACY_BACKUP_BOOTSTRAP` provenance.
+- Backup transfer results now report posterior event, history, state, curve and
+  evidence counts. Unknown future string target keys survive CSV round-trip.
+
+### Backup verification
+- `StrengthPosteriorBackupRestoreTest` passed exact row-type round-trip,
+  unknown-target preservation, duplicate idempotence, UUID/fingerprint
+  conflict rollback and old-backup bootstrap checks.
+- Existing `RecordCsvBackupRestoreTest` and
+  `BackupRestoreImportBehaviorTest` passed unchanged alongside the new format.
+- `:app:compileDebugKotlin` passed after the backup integration.

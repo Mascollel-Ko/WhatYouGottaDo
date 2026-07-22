@@ -233,6 +233,9 @@ abstract class StrengthPosteriorDao {
     @Query("SELECT * FROM strength_posterior_evidence WHERE eventUuid = :eventUuid ORDER BY exerciseStableKey, evidenceFingerprint")
     abstract suspend fun evidenceForEvent(eventUuid: String): List<StrengthPosteriorEvidenceEntity>
 
+    @Query("SELECT * FROM strength_posterior_evidence WHERE evidenceFingerprint = :fingerprint LIMIT 1")
+    abstract suspend fun evidenceByFingerprint(fingerprint: String): StrengthPosteriorEvidenceEntity?
+
     @Query("SELECT * FROM strength_posterior_evidence ORDER BY sessionDate, exerciseStableKey, evidenceFingerprint")
     abstract suspend fun allEvidence(): List<StrengthPosteriorEvidenceEntity>
 

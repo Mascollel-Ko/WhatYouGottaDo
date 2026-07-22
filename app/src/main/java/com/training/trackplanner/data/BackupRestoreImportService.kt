@@ -11,6 +11,9 @@ internal class BackupRestoreImportService(
     private val dailyStatusService: DailyStatusService,
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
+    private val appMetaDao: AppMetaDao,
+    private val strengthPosteriorDao: StrengthPosteriorDao,
+    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator,
     private val seedExercisesByStableKey: () -> Map<String, Exercise>,
     private val profileFromRows: (List<RestoreProfileRow>) -> InitialUserProfile?,
     private val upsertRestoredExercise: suspend (RestoreExerciseRow, Map<String, Exercise>, Set<String>) -> Boolean,
@@ -25,6 +28,7 @@ internal class BackupRestoreImportService(
         var profileCount = 0
         var entryCount = 0
         var setCount = 0
+        var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
         db.withTransaction {
             val seedByStableKey = seedExercisesByStableKey()
@@ -174,6 +178,26 @@ internal class BackupRestoreImportService(
                     }
                     entryCount += 1
                 }
+            if (data.posteriorFormatPresent) {
+                posteriorCounts = restorePosteriorRows(data)
+                skipped += posteriorCounts.skipped
+                appMetaDao.upsert(
+                    AppMeta(
+                        key = StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY,
+                        value = data.posteriorBootstrapMarker
+                            ?: "completed|RESTORED_POSTERIOR_BACKUP|${System.currentTimeMillis()}"
+                    )
+                )
+            } else {
+                appMetaDao.delete(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
+            }
+        }
+        if (!data.posteriorFormatPresent) {
+            check(
+                strengthPosteriorCoordinator.bootstrapIfNeeded(
+                    StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP
+                )
+            ) { "Legacy backup posterior bootstrap did not complete." }
         }
         return RecordCsvTransferResult(
             format = "restore",
@@ -184,10 +208,116 @@ internal class BackupRestoreImportService(
             profileCount = profileCount,
             entryCount = entryCount,
             setCount = setCount,
+            posteriorEventCount = posteriorCounts.events,
+            posteriorHistoryCount = posteriorCounts.history,
+            posteriorStateCount = posteriorCounts.states,
+            posteriorCurveCount = posteriorCounts.curves,
+            posteriorEvidenceCount = posteriorCounts.evidence,
             skippedDuplicateCount = skipped,
             warningCount = data.warningCount
         )
     }
+
+    private suspend fun restorePosteriorRows(data: RecordCsvImportData.Restore): PosteriorRestoreCounts {
+        var counts = PosteriorRestoreCounts()
+        data.posteriorEvents.forEach { incoming ->
+            val byUuid = strengthPosteriorDao.eventByUuid(incoming.eventUuid)
+            if (byUuid != null) {
+                require(byUuid.completionFingerprint == incoming.completionFingerprint) {
+                    "Strength posterior event UUID conflict: ${incoming.eventUuid}"
+                }
+                require(byUuid == incoming) {
+                    "Strength posterior event is not an exact duplicate: ${incoming.eventUuid}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+                return@forEach
+            }
+            strengthPosteriorDao.eventByCompletionFingerprint(incoming.completionFingerprint)?.let { existing ->
+                require(existing.eventUuid == incoming.eventUuid) {
+                    "Strength posterior completion fingerprint conflict: ${incoming.completionFingerprint}"
+                }
+            }
+            strengthPosteriorDao.eventBySessionKey(incoming.sessionKey)?.let { existing ->
+                require(existing == incoming) { "Strength posterior session conflict: ${incoming.sessionKey}" }
+            }
+            strengthPosteriorDao.insertEventStrict(incoming)
+            counts = counts.copy(events = counts.events + 1)
+        }
+
+        data.posteriorHistory.groupBy(StrengthPosteriorHistoryEntity::eventUuid).forEach { (eventUuid, rows) ->
+            require(strengthPosteriorDao.eventByUuid(eventUuid) != null) {
+                "Strength posterior history has no event: $eventUuid"
+            }
+            val unique = rows.distinct()
+            require(unique.distinctBy(StrengthPosteriorHistoryEntity::targetKey).size == unique.size) {
+                "Conflicting immutable target history in backup: $eventUuid"
+            }
+            val incoming = unique.sortedBy(StrengthPosteriorHistoryEntity::targetKey)
+            val existing = strengthPosteriorDao.historyForEvent(eventUuid)
+            if (existing.isEmpty()) {
+                strengthPosteriorDao.insertHistoryStrict(incoming)
+                counts = counts.copy(
+                    history = counts.history + incoming.size,
+                    skipped = counts.skipped + rows.size - unique.size
+                )
+            } else {
+                require(existing == incoming) { "Immutable strength posterior history conflict: $eventUuid" }
+                counts = counts.copy(skipped = counts.skipped + rows.size)
+            }
+        }
+
+        data.posteriorEvidence.forEach { incoming ->
+            require(strengthPosteriorDao.eventByUuid(incoming.eventUuid) != null) {
+                "Strength posterior evidence has no event: ${incoming.eventUuid}"
+            }
+            val existing = strengthPosteriorDao.evidenceByFingerprint(incoming.evidenceFingerprint)
+            if (existing == null) {
+                strengthPosteriorDao.insertEvidenceStrict(listOf(incoming))
+                counts = counts.copy(evidence = counts.evidence + 1)
+            } else {
+                require(existing == incoming) {
+                    "Immutable strength posterior evidence conflict: ${incoming.evidenceFingerprint}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+            }
+        }
+
+        data.posteriorModelStates.forEach { incoming ->
+            val existing = strengthPosteriorDao.modelState(incoming.modelInstanceKey)
+            if (existing == null) {
+                strengthPosteriorDao.upsertModelState(incoming)
+                counts = counts.copy(states = counts.states + 1)
+            } else {
+                require(existing == incoming) {
+                    "Strength posterior model-state conflict: ${incoming.modelInstanceKey}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+            }
+        }
+
+        data.curvePosteriors.forEach { incoming ->
+            val existing = strengthPosteriorDao.curvePosterior(incoming.curveSubjectKey)
+            if (existing == null) {
+                strengthPosteriorDao.upsertCurvePosterior(incoming)
+                counts = counts.copy(curves = counts.curves + 1)
+            } else {
+                require(existing == incoming) {
+                    "Strength curve-posterior conflict: ${incoming.curveSubjectKey}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+            }
+        }
+        return counts
+    }
+
+    private data class PosteriorRestoreCounts(
+        val events: Int = 0,
+        val history: Int = 0,
+        val states: Int = 0,
+        val curves: Int = 0,
+        val evidence: Int = 0,
+        val skipped: Int = 0
+    )
 
     private fun canonicalImportedStableKey(stableKey: String): String =
         if (stableKey.trim() == "imported_배드민턴") "ex_ae9ecdbc" else stableKey
