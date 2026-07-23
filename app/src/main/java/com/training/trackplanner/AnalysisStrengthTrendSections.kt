@@ -49,9 +49,9 @@ import com.training.trackplanner.analysis.trends.label
 internal fun MainLiftE1rmCard(summary: PerformanceTrendSummary) {
     val spec = mainLiftE1rmSpec(summary.metricSeries)
     AnalysisSectionChart(
-        title = "주요 운동 e1RM",
+        title = "기존 공식 환산값",
         spec = spec,
-        note = "확인된 실제 수행 세트만 사용하며, 기록 없는 주는 0으로 채우지 않습니다.",
+        note = "Epley 공식으로 환산한 과거 비교 지표입니다. 새 수행능력 posterior에는 사용하지 않습니다.",
         footer = { ChartSeriesLegend(spec.lineSeries) }
     )
 }
@@ -76,7 +76,7 @@ internal fun mainLiftE1rmSpec(
     )
     return ChartSpec(
         type = ChartType.LINE,
-        title = "주요 운동 e1RM",
+        title = "기존 공식 환산값",
         lineSeries = series,
         yMin = yRange?.first,
         yMax = yRange?.second,

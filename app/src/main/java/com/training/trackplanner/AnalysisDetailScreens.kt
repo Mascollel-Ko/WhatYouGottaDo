@@ -144,7 +144,7 @@ internal fun StrengthTrendAnalysisContent(performanceTrend: PerformanceTrendSumm
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         MainLiftE1rmCard(performanceTrend)
-        ProxyPerformanceStrengthCards(performanceTrend.proxyPerformanceSummary)
+        PersistentStrengthPerformanceCards(performanceTrend.persistentStrengthPerformanceSummary)
         MuscleLoadShareCard(performanceTrend)
         MuscleLoadShareTrendCard(performanceTrend)
         RepRangeShareCard(performanceTrend.repRangeWeeks)

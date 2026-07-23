@@ -237,6 +237,7 @@ class StrengthPosteriorUpdateCoordinator(
 
     companion object {
         const val BOOTSTRAP_MARKER_KEY = "strength_posterior_bootstrap_v2"
+        const val RESTORE_PROVENANCE_KEY = "strength_posterior_restore_provenance_v1"
         const val REASON_LIVE_COMPLETION = "LIVE_SESSION_COMPLETION"
         const val REASON_INITIAL_BOOTSTRAP = "INITIAL_INSTALLATION_BOOTSTRAP"
         const val REASON_LEGACY_BACKUP_BOOTSTRAP = "LEGACY_BACKUP_BOOTSTRAP"

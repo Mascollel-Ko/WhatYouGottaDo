@@ -114,6 +114,34 @@ class StrengthPosteriorEventIntegrationTest {
     }
 
     @Test
+    fun `analysis reads frozen posterior history after source workout is deleted`() = runBlocking {
+        val db = newDatabase()
+        val fixture = insertSession(db, "2026-07-20", listOf(true))
+        assertTrue(coordinator(db).bootstrapIfNeeded())
+        mutationService(db).deleteWorkoutEntry(checkNotNull(db.workoutDao().findEntryById(fixture.entryId)))
+        assertTrue(db.workoutDao().entriesWithSets("2026-07-20").isEmpty())
+
+        val summary = PerformanceTrendSummaryService(
+            exerciseDao = db.exerciseDao(),
+            workoutDao = db.workoutDao(),
+            dailyMetricDao = db.dailyMetricDao(),
+            initialUserProfileDao = db.initialUserProfileDao(),
+            dailyCheckInDao = db.dailyCheckInDao(),
+            smashSpeedDao = db.smashSpeedDao(),
+            runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao(),
+            canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context),
+            strengthPosteriorDao = db.strengthPosteriorDao(),
+            strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context),
+            appMetaDao = db.appMetaDao()
+        ).build()
+
+        val persistent = checkNotNull(summary.persistentStrengthPerformanceSummary)
+        val bench = persistent.targets.single { target -> target.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value }
+        assertTrue(bench.history.isNotEmpty())
+        assertEquals(null, summary.proxyPerformanceSummary)
+    }
+
+    @Test
     fun `completion fingerprint is independent of local Room ids`() = runBlocking {
         val first = WorkoutEntryWithSets(
             WorkoutEntry(1, "2026-07-24", 10, "Bench", "Strength", createdAt = 100L),

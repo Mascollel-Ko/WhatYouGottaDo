@@ -4,7 +4,9 @@ import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
-import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummaryBuilder
+import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummaryBuilder
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
 import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import java.time.format.DateTimeFormatter
@@ -17,7 +19,10 @@ internal class PerformanceTrendSummaryService(
     private val dailyCheckInDao: DailyCheckInDao,
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
-    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val strengthPosteriorDao: StrengthPosteriorDao,
+    private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
+    private val appMetaDao: AppMetaDao
 ) {
     suspend fun build(): PerformanceTrendSummary {
         val today = SystemAnalysisDateProvider().today()
@@ -45,17 +50,24 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             dailyMetrics = dailyMetrics
         )
-        val proxyPerformanceSummary = ProxyPerformanceSummaryBuilder.build(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = entries,
-            dailyMetrics = dailyMetrics,
-            initialProfile = initialUserProfileDao.profile(),
-            runtimeMetadataCatalog = runtimeMetadataCatalog
+        val initialProfile = initialUserProfileDao.profile()
+        val currentBodyWeightKg = dailyMetrics.asReversed().firstNotNullOfOrNull(DailyMetric::bodyWeightKg)
+            ?: initialProfile?.bodyWeightKg
+        val persistentStrengthSummary = PersistentStrengthPerformanceSummaryBuilder.build(
+            registry = strengthPerformanceRegistry,
+            modelState = strengthPosteriorDao.modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY),
+            history = strengthPosteriorDao.allHistory(),
+            events = strengthPosteriorDao.allEvents(),
+            evidence = strengthPosteriorDao.allEvidence(),
+            curvePosteriors = strengthPosteriorDao.allCurvePosteriors(),
+            currentBodyWeightKg = currentBodyWeightKg,
+            bootstrapProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
+            backupRestorationProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY)
         )
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries,
-            proxyPerformanceSummary = proxyPerformanceSummary
+            proxyPerformanceSummary = null,
+            persistentStrengthPerformanceSummary = persistentStrengthSummary
         )
     }
 

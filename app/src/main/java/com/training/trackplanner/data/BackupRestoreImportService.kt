@@ -188,8 +188,15 @@ internal class BackupRestoreImportService(
                             ?: "completed|RESTORED_POSTERIOR_BACKUP|${System.currentTimeMillis()}"
                     )
                 )
+                appMetaDao.upsert(
+                    AppMeta(
+                        key = StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY,
+                        value = "PERSISTED_POSTERIOR_BACKUP|${System.currentTimeMillis()}|events=${posteriorCounts.events}"
+                    )
+                )
             } else {
                 appMetaDao.delete(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
+                appMetaDao.delete(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY)
             }
         }
         if (!data.posteriorFormatPresent) {
@@ -198,6 +205,12 @@ internal class BackupRestoreImportService(
                     StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP
                 )
             ) { "Legacy backup posterior bootstrap did not complete." }
+            appMetaDao.upsert(
+                AppMeta(
+                    key = StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY,
+                    value = "LEGACY_BACKUP_FORWARD_BOOTSTRAP|${System.currentTimeMillis()}"
+                )
+            )
         }
         return RecordCsvTransferResult(
             format = "restore",

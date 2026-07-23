@@ -210,7 +210,10 @@ class TrainingRepository(
         dailyCheckInDao = dailyCheckInDao,
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
-        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        strengthPosteriorDao = strengthPosteriorDao,
+        strengthPerformanceRegistry = strengthPerformanceRegistry,
+        appMetaDao = appMetaDao
     )
     private val analysisSummaryService = AnalysisSummaryService(
         exerciseDao = exerciseDao,

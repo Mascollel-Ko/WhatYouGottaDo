@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummary
+import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import java.time.LocalDate
 
 enum class ChartType {
@@ -291,7 +292,8 @@ data class PerformanceTrendSummary(
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
     val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
     val exerciseDisplayNamesById: Map<Long, String> = emptyMap(),
-    val proxyPerformanceSummary: ProxyPerformanceSummary? = null
+    val proxyPerformanceSummary: ProxyPerformanceSummary? = null,
+    val persistentStrengthPerformanceSummary: PersistentStrengthPerformanceSummary? = null
 )
 
 data class PerformanceDetailSection(
