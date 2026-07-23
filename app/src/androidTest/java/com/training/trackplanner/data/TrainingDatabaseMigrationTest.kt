@@ -384,6 +384,85 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate21To22AddsPosteriorLedgerWithoutChangingWorkoutOrBootstrapping() {
+        helper.createDatabase(TEST_DB, 21).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO workout_entries (
+                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    createdAt, completedAt, displayOrder, firstConfirmedAt, performedAt
+                ) VALUES (
+                    7, '2026-07-20', 9, 'Migration fixture', 'Strength', 90, 'keep me', 9.0, 5,
+                    1000, 2000, 3, 2000, 1500
+                )
+                """.trimIndent()
+            )
+            database.execSQL(
+                """
+                INSERT INTO workout_sets (
+                    id, entryId, setIndex, reps, weightKg, seconds, confirmed, manualWeight, rpe, restSecondsOverride
+                ) VALUES (11, 7, 1, 5, 80.0, 0, 1, 1, 9.0, NULL)
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB, 22, true, TrainingDatabase.MIGRATION_21_22).use { database ->
+            val expectedTables = setOf(
+                "strength_posterior_events",
+                "strength_posterior_history",
+                "strength_posterior_model_state",
+                "strength_curve_posteriors",
+                "strength_posterior_evidence"
+            )
+            val actualTables = buildSet {
+                database.query("SELECT name FROM sqlite_master WHERE type = 'table'").use { cursor ->
+                    while (cursor.moveToNext()) add(cursor.getString(0))
+                }
+            }
+            check(actualTables.containsAll(expectedTables))
+
+            val expectedIndexes = setOf(
+                "index_strength_posterior_events_sessionKey",
+                "index_strength_posterior_events_sessionDate",
+                "index_strength_posterior_events_status",
+                "index_strength_posterior_events_completionFingerprint",
+                "index_strength_posterior_history_targetKey",
+                "index_strength_posterior_history_eventUuid",
+                "index_strength_posterior_evidence_eventUuid",
+                "index_strength_posterior_evidence_exerciseStableKey"
+            )
+            val actualIndexes = buildSet {
+                database.query("SELECT name FROM sqlite_master WHERE type = 'index'").use { cursor ->
+                    while (cursor.moveToNext()) add(cursor.getString(0))
+                }
+            }
+            check(actualIndexes.containsAll(expectedIndexes))
+
+            database.query(
+                "SELECT exerciseName, notes, completedAt, performedAt FROM workout_entries WHERE id = 7"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getString(0) == "Migration fixture")
+                check(cursor.getString(1) == "keep me")
+                check(cursor.getLong(2) == 2000L)
+                check(cursor.getLong(3) == 1500L)
+            }
+            database.query("SELECT reps, weightKg, confirmed FROM workout_sets WHERE id = 11").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 5)
+                check(cursor.getDouble(1) == 80.0)
+                check(cursor.getInt(2) == 1)
+            }
+            database.query(
+                "SELECT COUNT(*) FROM app_meta WHERE `key` = '${StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY}'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 0)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
 

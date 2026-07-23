@@ -142,6 +142,21 @@ class StrengthPosteriorEventIntegrationTest {
     }
 
     @Test
+    fun `later sessions and curve calibration never rewrite earlier history`() = runBlocking {
+        val db = newDatabase()
+        insertSession(db, "2026-07-01", listOf(true))
+        assertTrue(coordinator(db).bootstrapIfNeeded())
+        val firstEvent = db.strengthPosteriorDao().allEvents().single()
+        val frozenHistory = db.strengthPosteriorDao().historyForEvent(firstEvent.eventUuid)
+
+        val later = insertSession(db, "2026-07-02", listOf(false))
+        mutationService(db).updateSet(later.sets.single().copy(confirmed = true))
+
+        assertEquals(2, db.strengthPosteriorDao().allEvents().size)
+        assertEquals(frozenHistory, db.strengthPosteriorDao().historyForEvent(firstEvent.eventUuid))
+    }
+
+    @Test
     fun `completion fingerprint is independent of local Room ids`() = runBlocking {
         val first = WorkoutEntryWithSets(
             WorkoutEntry(1, "2026-07-24", 10, "Bench", "Strength", createdAt = 100L),

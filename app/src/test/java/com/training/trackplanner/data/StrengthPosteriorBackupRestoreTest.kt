@@ -68,6 +68,10 @@ class StrengthPosteriorBackupRestoreTest {
         assertEquals(fixture.curve, db.strengthPosteriorDao().allCurvePosteriors().single())
         assertEquals(fixture.evidence, db.strengthPosteriorDao().allEvidence().single())
         assertEquals(fixture.marker, db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY))
+        assertTrue(
+            checkNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY))
+                .startsWith("PERSISTED_POSTERIOR_BACKUP|")
+        )
 
         val duplicate = repository.importRecordsBackup(uri)
         assertEquals(0, duplicate.posteriorEventCount)
@@ -136,6 +140,10 @@ class StrengthPosteriorBackupRestoreTest {
         val marker = db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
         assertNotNull(marker)
         assertTrue(checkNotNull(marker).contains(StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP))
+        assertTrue(
+            checkNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY))
+                .startsWith("LEGACY_BACKUP_FORWARD_BOOTSTRAP|")
+        )
     }
 
     private fun newDatabase(): TrainingDatabase =

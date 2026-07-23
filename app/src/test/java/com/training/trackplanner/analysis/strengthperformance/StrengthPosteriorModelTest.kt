@@ -16,6 +16,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.apache.commons.math3.linear.Array2DRowRealMatrix
+import org.apache.commons.math3.linear.EigenDecomposition
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -93,6 +95,57 @@ class StrengthPosteriorModelTest {
             StrengthPosteriorModel.toEntity(second.state, 2_000L).stateFingerprint
         )
         assertFalse(first.evidence.isEmpty())
+    }
+
+    @Test
+    fun `Joseph update keeps covariance symmetric positive semidefinite and intervals ordered`() {
+        var state = StrengthPosteriorModel.initialState(registry, null)
+        repeat(12) { index ->
+            state = StrengthPosteriorModel.compute(
+                eventUuid = "event-$index",
+                date = LocalDate.parse("2026-07-01").plusDays(index.toLong()),
+                currentState = state,
+                observations = listOf(observation(reps = 1 + index % 5, weight = 85.0 + index, rpe = 10.0)),
+                registry = registry,
+                curves = curves,
+                curvePosteriorBySubject = emptyMap(),
+                now = 2_000L + index
+            ).state
+        }
+
+        state.covariance.indices.forEach { row ->
+            state.covariance.indices.forEach { column ->
+                assertEquals(state.covariance[row][column], state.covariance[column][row], 1e-12)
+            }
+        }
+        val eigenvalues = EigenDecomposition(Array2DRowRealMatrix(state.covariance)).realEigenvalues
+        assertTrue(eigenvalues.all { value -> value >= -1e-9 })
+        registry.targets().forEach { target ->
+            val distribution = StrengthPosteriorModel.distribution(state, target)
+            assertTrue(distribution.low95 <= distribution.low80)
+            assertTrue(distribution.low80 <= distribution.low50)
+            assertTrue(distribution.low50 <= distribution.median)
+            assertTrue(distribution.median <= distribution.high50)
+            assertTrue(distribution.high50 <= distribution.high80)
+            assertTrue(distribution.high80 <= distribution.high95)
+        }
+    }
+
+    @Test
+    fun `non-finite state fails closed and canonical curve weights normalize`() {
+        assertTrue(
+            runCatching {
+                StrengthPosteriorState(
+                    orderedFactorSchema = listOf(StrengthFactorKey("bad")),
+                    mean = doubleArrayOf(Double.NaN),
+                    covariance = arrayOf(doubleArrayOf(1.0))
+                )
+            }.isFailure
+        )
+        val profile = checkNotNull(curves.resolve("barbell_bench_press").profile)
+        val posterior = PersonalCurveCalibrator.initial("exercise:bench", profile, now = 1L)
+        assertEquals(1.0, posterior.posteriorWeights.sum(), 1e-12)
+        assertTrue(posterior.posteriorWeights.all { weight -> weight.isFinite() && weight >= 0.0 })
     }
 
     private fun compute(
