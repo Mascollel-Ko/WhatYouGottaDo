@@ -1022,7 +1022,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.0.2",
+      "currentVersion": "1.0.3",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1032,7 +1032,7 @@
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "afcf891556b9178ca4e4453031b7184cca0d17af",
+      "lastAuditedCommit": "43f11ec",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
@@ -1067,52 +1067,63 @@
     {
       "protocolId": "STRENGTH-PROXY-PERFORMANCE",
       "familyId": "STRENGTH",
-      "titleKo": "주요 리프트 프록시 수행 추정",
-      "titleEn": "Major Lift Proxy Performance Estimation",
-      "currentVersion": "1.0.0",
+      "titleKo": "지속형 근력 수행능력 사후분포",
+      "titleEn": "Persistent Strength Performance Posterior",
+      "currentVersion": "2.0.0",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
-        "MIXED",
+        "DIRECT_RESEARCH_SUPPORT",
         "PRODUCT_POLICY",
         "ENGINEERING_HEURISTIC",
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
       "implementedFromAppVersion": "v0.5.0.1",
-      "lastAuditedCommit": "afcf891556b9178ca4e4453031b7184cca0d17af",
+      "lastAuditedCommit": "43f11ec",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceModels.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceObservationBuilder.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceLoadingBuilder.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceKalmanFilter.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceEstimator.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceBacktester.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceSummaryBuilder.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendModels.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthSessionLikelihood.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersonalCurveCalibration.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModel.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummary.kt",
+        "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorPersistence.kt",
+        "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt",
+        "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorBackupCodec.kt",
         "app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt",
-        "app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt"
+        "app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceObservationAndLoadingTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceEstimatorTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/proxyperformance/ProxyPerformanceScaleTest.kt",
-        "app/src/test/java/com/training/trackplanner/AnalysisProxyPerformanceUiTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt",
-        "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurveRegistryTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceLikelihoodTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModelTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/StrengthPosteriorEventIntegrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/StrengthPosteriorBackupRestoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummaryTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUiTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+        "app/src/main/assets/strength_performance/repetition_curve_source_v1.csv",
+        "app/src/main/assets/strength_performance/repetition_curve_profiles_v1.csv",
+        "app/src/main/assets/strength_performance/repetition_curve_manifest_v1.csv",
+        "app/src/main/assets/strength_performance/repetition_curve_assignments_v1.csv",
+        "app/src/main/assets/strength_performance/strength_target_registry_v1.csv",
+        "app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
         "docs/bayesian_time_series_lab_architecture.md"
       ],
       "knownGaps": [
-        "Exercise cross-loading coefficients and selection thresholds are product heuristics rather than user-calibrated research parameters.",
-        "The posterior is a deterministic product estimate and does not preserve draws for strict BVAR or BLP propagation."
+        "General-resistance curves for squat, deadlift and pull-up remain provisional rather than exercise-specific validated curves.",
+        "Sparse proxy loadings and process variance are versioned product policies rather than user-calibrated research parameters.",
+        "Filtered history does not preserve posterior draws for strict BVAR or BLP propagation."
       ],
-      "supersedes": [],
+      "supersedes": [
+        "STRENGTH-PROXY-PERFORMANCE@1.0.0"
+      ],
       "publicSummaryAvailable": true
     },
     {
@@ -1120,7 +1131,7 @@
       "familyId": "STRENGTH",
       "titleKo": "체중 운동 유효 부하",
       "titleEn": "Bodyweight Effective Load",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1129,7 +1140,7 @@
       ],
       "canonicalDocument": "strength/BODYWEIGHT_EFFECTIVE_LOAD.md",
       "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "43f11ec",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt"
       ],

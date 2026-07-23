@@ -29,10 +29,10 @@ class AnalysisPersistentStrengthPerformanceUiTest {
         content { PersistentStrengthPerformanceCards(summary()) }
 
         compose.onNodeWithTag("persistent-strength-capability-card").assertIsDisplayed()
-        listOf("벤치프레스", "스쿼트", "데드리프트", "중량 턱걸이").forEach { label ->
+        listOf("벤치프레스", "스쿼트", "데드리프트", "중량 풀업").forEach { label ->
             compose.onNodeWithText(label).assertExists()
         }
-        compose.onNodeWithText("중량 턱걸이").performClick()
+        compose.onNodeWithText("중량 풀업").performClick()
         compose.onNodeWithText("추정 총부하 100.0 kg").assertIsDisplayed()
         compose.onNodeWithText("현재 체중 기준 추가중량 +10.0 kg").assertIsDisplayed()
         compose.onNodeWithText("직접 1RM과 비선형 반복 곡선 기반 세션 관측을 결합한 추정값입니다.").assertIsDisplayed()
@@ -78,7 +78,7 @@ class AnalysisPersistentStrengthPerformanceUiTest {
             target("strength.conventional_deadlift", "데드리프트", 150.0),
             target(
                 key = "strength.weighted_pull_up",
-                name = "중량 턱걸이",
+                name = "중량 풀업",
                 median = 100.0,
                 semantics = StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD,
                 bodyWeight = 90.0,

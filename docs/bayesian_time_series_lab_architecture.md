@@ -217,11 +217,11 @@ PHASE E may consume `CandidateEligibilityView` and final PHASE B/C estimators to
 
 ## Proxy Performance Posterior Boundary
 
-The v0.5.0.1 major-lift proxy performance model is a separate deterministic derived-state subsystem. It combines confirmed strength sessions with fixed metadata-constrained loadings to provide bench-press, squat and deadlift expectations and historical uncertainty bands. It does not change canonical e1RM observations.
+The v0.5.0.2 persistent strength-performance posterior is a separate event-driven derived-state subsystem. It combines completed confirmed sessions with versioned nonlinear repetition curves and sparse registry loadings for bench press, squat, deadlift and weighted pull-up. It persists filtered prior/observation/posterior history and does not change the canonical legacy Epley observations.
 
-Its posterior means, medians, intervals, innovations and proxy-only weeks are not lifecycle-validated observed cells and must not enter `StrictTimeSeriesIngestion`, `PreparedAnalysisContext`, any strict estimator view, `metricSeries`, or `LegacyTimeSeriesAnalyzer`. A UI chart interval band is historical posterior uncertainty, not `forecastRange` and not an identified structural shock posterior.
+Its posterior means, medians, intervals, innovations, curve state and proxy-only events are not lifecycle-validated observed cells and must not enter `StrictTimeSeriesIngestion`, `PreparedAnalysisContext`, any strict estimator view, `metricSeries`, or `LegacyTimeSeriesAnalyzer`. A UI chart interval band is immutable filtered historical uncertainty, not `forecastRange` and not an identified structural shock posterior. Screen reads query stored state and do not replay inference.
 
-A future BVAR/BLP bridge would require a separately approved contract that preserves posterior draws, source lineage, calendar/lifecycle semantics, target-specific model-selection identity and uncertainty through every downstream transformation. A deterministic mean series or interval midpoint is insufficient. v0.5.0.1 implements no such bridge.
+A future BVAR/BLP bridge would require a separately approved contract that preserves posterior draws, source lineage, event/model/curve version boundaries, calendar/lifecycle semantics and uncertainty through every downstream transformation. A filtered median series or interval midpoint is insufficient. v0.5.0.2 implements no such bridge.
 
 ## Fingerprint Rules
 

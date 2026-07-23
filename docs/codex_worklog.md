@@ -3270,3 +3270,55 @@ Verification
 - Existing `RecordCsvBackupRestoreTest` and
   `BackupRestoreImportBehaviorTest` passed unchanged alongside the new format.
 - `:app:compileDebugKotlin` passed after the backup integration.
+
+### Persistent analysis UI and authoritative read boundary
+- `7a0b0e2` added `PersistentStrengthPerformanceSummary` and the registry-driven
+  Strength/Lab UI. `PerformanceTrendSummaryService` now reads only persisted
+  event, history, state, curve and evidence rows for the new posterior; it no
+  longer invokes `ProxyPerformanceSummaryBuilder` on screen reads.
+- Four targets are exposed from the registry. Weighted pull-up shows estimated
+  total load, current-bodyweight added-load equivalent and immutable historical
+  bodyweight/added/total/source snapshots.
+- The old Epley chart remains available under `기존 공식 환산값` and is
+  explicitly excluded from the new posterior likelihood.
+- Restore provenance is stored separately from bootstrap provenance so the Lab
+  can distinguish persisted-posterior restore from legacy forward bootstrap.
+- Focused persisted-summary, Compose and source-deletion tests passed. A source
+  workout can be deleted after processing without changing or hiding the
+  frozen posterior history.
+
+### Migration, numerical and immutability hardening
+- `43f11ec` added the real Room `21 -> 22` instrumentation migration fixture.
+  It checks five tables, eight explicit indexes, unchanged workout entry/set
+  values and absence of a bootstrap marker immediately after SQL migration.
+- Android-test Kotlin compilation passed. No device or emulator was attached,
+  so runtime instrumentation execution is intentionally not claimed.
+- Joseph-update covariance symmetry and positive-semidefinite tolerance,
+  ordered 50/80/95 intervals, non-finite fail-closed behavior, normalized
+  personal-curve weights, later-event immutability and restore provenance are
+  covered by focused unit tests.
+
+### Canonical documentation
+- Revised the existing single `STRENGTH-PROXY-PERFORMANCE` authority in place
+  to protocol `2.0.0`; no duplicate protocol was created and registry count
+  remains `30`.
+- Recorded Nuzzo/OSF source provenance, generated asset hashes, curve scope,
+  generic target/factor/load semantics, completion/deletion behavior,
+  immutable filtered history, Room/backup/bootstrap/version boundaries,
+  numerical safeguards and Bayesian Lab isolation.
+- Updated the strength-volume Epley boundary, bodyweight/weighted-pull-up
+  boundary, Bayesian time-series architecture, human index and machine
+  registry.
+
+### Commit map and release state
+- `a7a2787` `feat(strength): add nonlinear repetition curve registry`
+- `d29b291` `feat(strength): generalize posterior targets and weighted pull-up`
+- `01026f3` `feat(data): persist immutable strength posterior events`
+- `47cc0ab` `feat(data): back up posterior history and curve state`
+- `7a0b0e2` `feat(analysis-ui): show persistent strength posterior history`
+- `43f11ec` `test(strength): validate curves events migration and backup`
+- Protocol/release and final version commits: pending until their respective
+  validation gates complete.
+- Intended final identity is `0.5.0.2 / 500002`, Room `22`, tag `v0.5.0.2`.
+- Main push, tag push and GitHub Actions remain pending at this point.
+- The six user-owned `outputs/*` modifications remain untouched and unstaged.

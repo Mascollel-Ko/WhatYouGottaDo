@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-BODYWEIGHT-LOAD |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 43f11ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -41,6 +41,8 @@
 
 pull-up/chin-up/dip은 `(bodyweight + added) * reps`, assisted pull-up은 `max(bodyweight - assist, 0) * reps`, inverted row는 `(0.60 * bodyweight + added) * reps`입니다. push-up 계수는 기본 0.65, decline 0.80, pike 0.70, incline 0.55이고 added weight에는 0.70을 적용합니다.
 
+지속형 중량 풀업 수행능력 model은 volume 계수를 재사용하지 않고 `bodyweight + added weight`의 총부하를 target state로 사용합니다. assisted pull-up은 `bodyweight - assistance`로 resolve하지만 direct anchor가 아닙니다. 이 total-load contract는 volume 계산식과 모순되지 않으나 서로 다른 output을 소유합니다.
+
 ## 8. 집계 방식
 
 입력 단위 결과를 해당 protocol의 날짜, 주간 또는 항목 단위로만 집계하며 서로 다른 의미의 축을 임의로 합산하지 않습니다.
@@ -55,7 +57,7 @@ reps가 0 이하이거나 body weight/profile이 없으면 null을 반환하고 
 
 ## 11. 개인화 또는 보정
 
-해당 날짜 이전 최신 daily body weight를 사용하고 없으면 initial profile body weight를 사용합니다.
+volume은 해당 날짜 이전 최신 daily body weight를 사용하고 없으면 initial profile body weight를 사용합니다. 지속형 중량 풀업 posterior는 exact-date check-in/metric, 최근 이전 체중, initial profile 순으로 해석하며 오래된 체중에는 추가 uncertainty를 적용합니다. 체중이 없으면 zero를 대입하지 않고 direct observation을 제외합니다.
 
 ## 12. 연구 근거
 
@@ -97,4 +99,5 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-23): 중량 풀업 posterior의 총부하, 체중 출처 우선순위, 당시 bodyweight snapshot과 assisted pull-up 비-direct 경계를 명시했습니다. 기존 volume 계수는 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
