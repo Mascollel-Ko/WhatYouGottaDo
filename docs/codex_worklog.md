@@ -3358,3 +3358,70 @@ Verification
   skips, and `:app:assembleDebug` passed independently.
 - Main push, `v0.5.0.2` tag and GitHub Actions remain pending. The six
   user-owned `outputs/*` files remain untouched and unstaged.
+
+## v0.5.0.3 probabilistic strength-performance correction
+
+### Baseline and protected data
+- Started from latest `origin/main` at
+  `3390197c74412f165b3555f984346c0fa11cab18`; `HEAD == origin/main` and the
+  annotated `v0.5.0.2` tag peels to the same commit.
+- Confirmed app `0.5.0.2 / 500002`, Room `22`, model
+  `strength-performance-model-2.1.0`, factor schema `2.0.0`, target registry
+  `1.0.0`, curve assets `1.0.0`, and protocol `2.1.0`.
+- The six existing modified `outputs/*` audit artifacts are user-owned and
+  remain untouched and unstaged.
+- The design-referenced
+  `whatyougottatrain_backup_2026-07-26 (1).csv` is not present in Downloads.
+  Acceptance fixtures will therefore use only the anonymized numeric records
+  stated in the canonical design document; no personal notes or full backup
+  data will be committed.
+
+### Canonical design interpretation
+- Read the attached v0.5.0.3 DOCX and the concrete implementation prompt in
+  full. The DOCX is authoritative for mathematical semantics; the prompt is
+  authoritative for repository workflow, migration, tests, release, and
+  reporting.
+- Where they conflict, the DOCX wins mathematically. In particular, same-day
+  sets use the documented common session random effect with deterministic
+  Gauss-Hermite integration rather than the prompt's older fractional-power
+  approximation.
+- The corrected analytical implementation uses a major model boundary because
+  it adds local exercise state and changes likelihood/proxy semantics. The
+  ordered global factor keys and their meanings remain unchanged, so the
+  factor-schema version does not need an artificial bump.
+
+### Mandatory current-code audit
+1. Known RPE below 10 is currently classified as
+   `CONSERVATIVE_LOWER_BOUND`, not a two-sided probabilistic observation.
+2. RPE currently changes a lower-bound variance term but does not move the
+   capacity center through a RIR mixture.
+3. `StrengthPosteriorModel.compute()` currently skips a lower-bound update when
+   the predicted log median already exceeds the observed lower bound.
+4. `predict()` keeps the mean fixed and adds process variance, so the skipped
+   lower-bound branch can leave an over-high prior center unchanged.
+5. `observationVector()` currently assigns coefficient `1.0` to the target-
+   specific factor for every loading, including non-direct proxies.
+6. Reviewed proxy CSV rows and metadata-generated rows currently include
+   `strength.factor.target.*` loadings.
+7. Non-direct exercises can therefore update target-specific factors directly.
+8. Canonical runtime repetition curves are currently generated only for reps
+   `1..12`, although the reviewed source table supports interpolation through
+   at least rep 20 for all three profiles.
+9. No persistent per-exercise local posterior state or immutable local history
+   exists.
+10. Target history is persisted through the immutable completion-event model
+    introduced in Room 22.
+11. Backup schema 5 contains target event/history/state/curve/evidence rows but
+    no model revision, local exercise state/history, or proxy-transfer history.
+
+### Existing-test gate and implementation plan
+- Existing focused strength, posterior, and repetition-curve tests pass before
+  edits.
+- Implement in this order: versioned RPE/RIR policy and set likelihood;
+  deterministic session/grid integration; local exercise posterior; shared-
+  only proxy transfer; source-supported curve extension; Room 23 revision and
+  one-time rebuild; backup/restore; active-revision summary/UI; protocol and
+  release documentation.
+- Preserve raw workout/profile/bodyweight values, dumbbell total-load
+  semantics, direct-anchor authority, old v0.5.0.2 analytical rows, connective
+  tissue, OFI, readiness, ProgramBuilder, and legacy time-series calculations.
