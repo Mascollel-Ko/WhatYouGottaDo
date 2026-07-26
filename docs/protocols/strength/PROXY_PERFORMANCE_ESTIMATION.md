@@ -119,7 +119,11 @@ reviewed `LOCAL_INNOVATION_SHARED_ONLY` row가 최소 local history를 충족하
 
 과거 history는 event·target 복합키의 filtered snapshot입니다. 미래 smoothing을 하지 않으며 이후 세션, curve 보정, 앱 model version, 원본 수정·삭제는 숫자를 바꾸지 않습니다. 원본 삭제는 `sourceEvidenceStatus`만 변경할 수 있습니다.
 
-v3 correction은 `strength-revision-3.0.0`을 `BUILDING`으로 만든 뒤 기존 완료 세션을 날짜순으로 재생합니다. 모든 event가 성공한 transaction에서만 새 revision을 `ACTIVE`로 승격하고 이전 revision을 `SUPERSEDED`로 보존합니다. 앱 중단 후에는 이미 저장된 event/history를 재사용해 이어서 실행하며 숫자 행을 중복 생성하지 않습니다. 분석 화면은 ACTIVE revision만 읽습니다.
+원시 사용자 기록과 근력 분석 파생 상태는 별도 수명주기를 가집니다. 운동, 세트, confirmed 상태, 중량, 반복수, RPE, 수행일, 체중, check-in과 profile은 재구축 입력인 원시 데이터이며 correction이 수정하거나 삭제하지 않습니다. event/history/model state/curve posterior/evidence/revision/local state/local history/proxy history는 현재 모델로 다시 만들 수 있는 파생 데이터입니다.
+
+저장된 revision fingerprint가 현재 canonical 모델·registry·RIR·curve·derived-state 경계와 호환되지 않거나 백업 복원으로 원시 입력이 바뀐 경우에만 v0.5.0.4 correction을 한 번 실행합니다. 이때 모든 근력 파생 행과 오래된 strength bootstrap/rebuild/restore marker를 삭제하고, `strength-revision-3.0.0` 하나만 `BUILDING`으로 만든 뒤 완료 세션을 날짜순으로 재생합니다. 모든 event가 `PROCESSED`인 transaction에서만 revision을 `ACTIVE`로 승격하고 `strength_derived_reset_rebuild_0_5_0_4_complete` marker를 기록합니다.
+
+호환 가능한 current ACTIVE revision은 completion marker가 없더라도 행을 재생하지 않고 marker만 복구합니다. correction 실패 시 legacy revision을 복원하지 않으며 current revision은 `FAILED` 상태와 진단 코드를 남기고 다음 startup에서 파생 행을 비운 뒤 재시도합니다. 성공 후 일반 앱 실행이나 분석 화면 진입은 전체 재생을 하지 않습니다. 이후 완료 운동은 current revision에 event/history 한 건씩 순차 추가되고, 같은 모델 revision 안의 기존 snapshot은 이후 운동 때문에 다시 계산되지 않습니다.
 
 ## 9. 출력과 UI 해석
 
@@ -139,6 +143,8 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - first proper local observation은 baseline만 설정하고 shared proxy update를 만들지 않습니다.
 - source record가 처리 후 삭제돼도 숫자는 유지하고 source availability만 표시합니다.
 - model revision, factor schema, target/proxy registry, curve, RIR policy 또는 grid가 호환되지 않으면 해당 revision을 ACTIVE로 사용하지 않습니다.
+- 호환되지 않는 revision이나 실패한 rebuild가 있으면 legacy 수치로 fallback하지 않고 재계산 중 또는 재계산 실패 상태를 표시합니다.
+- 백업은 원시 운동/profile/체중/exercise 데이터를 복원한 뒤 strength derived row를 권위본으로 채택하지 않고 current canonical revision을 원시 기록에서 재구축합니다.
 
 ## 11. 개인화 또는 보정
 
@@ -167,7 +173,7 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - proxy는 target registry의 sparse shared-factor loading만 사용하고 dense exercise-pair matrix나 절대중량 변환표를 만들지 않습니다.
 - reviewed row가 없는 e1RM-eligible 운동의 metadata proxy는 squat/knee-dominant, hinge/deadlift, horizontal press와 vertical pull family에만 보수적으로 허용하며 `strength-proxy-metadata-2.0.0`으로 식별합니다.
 
-현재 model/version boundary는 `strength-performance-model-3.0.0`, `strength-revision-3.0.0`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.1.0`, `strength-proxy-registry-2.0.0`, `strength-proxy-metadata-2.0.0`, `strength-rpe-rir-policy-1.0.0`, `strength-scalar-grid-1.0.0`, `repetition-curve-assets-2.0.0`, `repetition-curve-assignments-1.0.0`입니다. v2 state와 event/history는 당시 version 문자열과 checksum을 보존한 legacy/SUPERSEDED audit history이며 v3 ACTIVE summary에 섞지 않습니다.
+현재 model/version boundary는 `strength-performance-model-3.0.0`, `strength-revision-3.0.0`, `strength-derived-state-0.5.0.4`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.1.0`, `strength-proxy-registry-2.0.0`, `strength-proxy-metadata-2.0.0`, `strength-rpe-rir-policy-1.0.0`, `strength-scalar-grid-1.0.0`, `repetition-curve-assets-2.0.0`, `repetition-curve-assignments-1.0.0`입니다. 호환되지 않는 이전 derived state는 current summary에 섞지 않고 v0.5.0.4 correction에서 삭제합니다.
 
 ## 14. 알려진 한계
 
@@ -176,7 +182,7 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - RPE/RIR 분포, sparse proxy loading, transfer coefficient와 process variance는 실제 사용자 성과로 추가 보정이 필요한 product policy입니다.
 - Room history는 filtered posterior snapshot이며 full posterior draw archive가 아닙니다.
 - scalar grid와 Gauss-Hermite 적분은 결정론적 수치 근사이며 full posterior draw archive가 아닙니다.
-- current state는 model/likelihood/proxy 의미가 바뀔 때 새 revision과 명시적 correction rebuild가 필요합니다.
+- current state는 model/likelihood/proxy/derived-state 호환성 의미가 바뀔 때만 명시적 correction rebuild가 필요합니다. 일반 startup이나 분석 화면 진입은 rebuild 조건이 아닙니다.
 - historical bootstrap은 설치 시점에 보이는 완료 기록을 chronological forward-filtering한 것으로 당시 실제 앱 처리 시각을 복원하지 않습니다.
 - instrumentation migration test는 연결된 기기 또는 emulator에서 별도로 실행해야 합니다.
 
@@ -185,11 +191,12 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - Room version `23`, migrations `MIGRATION_21_22`, `MIGRATION_22_23`
 - revision tables: `strength_model_revisions`, `strength_exercise_performance_state`, `strength_exercise_performance_history`, `strength_proxy_transfer_history`
 - retained tables: `strength_posterior_events`, `strength_posterior_history`, `strength_posterior_model_state`, `strength_curve_posteriors`, `strength_posterior_evidence`
-- one-time marker: `strength_posterior_bootstrap_v2`
-- correction marker: `strength_model_correction_rebuild_0_5_0_3`
-- completion/rebuild reasons: `LIVE_SESSION_COMPLETION`, `INITIAL_INSTALLATION_BOOTSTRAP`, `LEGACY_BACKUP_BOOTSTRAP`, `MODEL_CORRECTION_REBUILD_0_5_0_3`
-- backup row schema version `6`; schema 5/v1 payloads remain readable and schedule one correction rebuild when corrected revision rows are absent
-- only a compatible ACTIVE revision is authoritative; v0.5.0.1 unpersisted proxy and v2 persisted states remain regression/audit material.
+- obsolete parser/provenance markers remain readable: `strength_posterior_bootstrap_v2`, `strength_model_correction_rebuild_0_5_0_3`
+- current correction marker: `strength_derived_reset_rebuild_0_5_0_4_complete`
+- explicit raw-input rebuild request: `strength_derived_reset_rebuild_required`
+- completion/rebuild reasons: `LIVE_SESSION_COMPLETION`, `STRENGTH_DERIVED_RESET_REBUILD_0_5_0_4`
+- backup row schema version `6`; older payloads remain parseable, but restored derived strength rows are discarded in favor of deterministic rebuild from restored raw records
+- only the compatible current `strength-revision-3.0.0` ACTIVE revision is authoritative; no arbitrary or legacy ACTIVE fallback is allowed.
 
 ## 16. 구현 위치
 
@@ -241,10 +248,12 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - [`docs/bayesian_time_series_lab_architecture.md`](../../bayesian_time_series_lab_architecture.md)
 - [`docs/protocols/README.md`](../README.md)
 - [`docs/v0.5.0.3_release_notes.md`](../../v0.5.0.3_release_notes.md)
+- [`docs/v0.5.0.4_release_notes.md`](../../v0.5.0.4_release_notes.md)
 
 ## 20. 변경 이력
 
 - `3.0.0` (2026-07-26): known RPE의 discrete RIR mixture, missing-RPE lower censoring, 실패 upper censoring, 15-node same-session 공통효과 적분, 1,025-point scalar grid, exercise-local posterior, shared-only proxy innovation, 1~20회 곡선, Room 23 revision/correction rebuild와 backup schema 6을 등록했습니다.
+- `3.0.0` lifecycle correction (2026-07-26): 수학 모델 버전은 유지하면서 `strength-derived-state-0.5.0.4` 호환성 경계를 추가했습니다. 호환되지 않는 파생 상태만 원시 완료 기록에서 한 번 재구축하고, legacy ACTIVE fallback을 제거했으며, 성공 이후에는 새 완료 event만 append합니다.
 - `2.1.0` (2026-07-26): 관련 세션 distinct-event 집계, reviewed metadata 기반 e1RM proxy 확장, confirmed 0회·RPE 10 실패 상한, 8주 prior 연쇄 이동 검증, model 2.0.0 compatibility와 platform-independent text checksum을 추가했습니다.
 - `2.0.0` (2026-07-23): Nuzzo 기반 비선형 curve registry, generic four-target/factor model, 중량 풀업 total-load semantics, completion event ledger, immutable filtered history, personal curve state, Room 21→22, exact backup/restore, one-time bootstrap와 persisted UI authority를 등록했습니다.
 - `1.0.0` (2026-07-23): v0.5.0.1의 화면 조회 기반 Epley proxy posterior와 세 target 실험 계약을 처음 등록했습니다. 이 엔진은 2.0.0에서 authoritative runtime read path를 넘겼습니다.

@@ -3565,3 +3565,86 @@ Verification
 - Main push, annotated `v0.5.0.3` tag, and GitHub Actions are pending until the
   final release commit is verified. The six user-owned `outputs/*` files remain
   untouched and unstaged.
+
+## v0.5.0.4 persistent strength derived-state correction
+
+### Baseline
+- Started from `origin/main` commit
+  `0f8840a2f2eca9b40907d5f3f12f60b028b81145`, tagged `v0.5.0.3`.
+- Confirmed app identity `0.5.0.3 / 500003`, Room version `23`, revision
+  `strength-revision-3.0.0`, model `strength-performance-model-3.0.0`, RIR
+  policy `strength-rpe-rir-policy-1.0.0`, and curve assets
+  `repetition-curve-assets-2.0.0`.
+- Work continues on `codex/strength-derived-reset-v05004`.
+- Six existing user-owned `outputs/*` modifications are preserved and will
+  remain untouched and unstaged.
+
+### Scope
+- Replace the legacy-active correction fallback with a one-time reset of only
+  persistent strength derived tables followed by a chronological replay from
+  raw completed workouts.
+- Keep the v0.5.0.3 Bayesian model, RPE/RIR likelihood, repetition curves,
+  exercise-local posterior, and shared-only proxy calculation unchanged.
+- Make summary reads require the compatible current revision and expose
+  rebuilding or rebuild-failed state instead of stale legacy values.
+
+### Implemented lifecycle
+- Added derived-state compatibility boundary
+  `strength-derived-state-0.5.0.4`. A compatible current ACTIVE revision is
+  reused without replay; if its completion marker is missing, only the marker
+  is restored.
+- An incompatible revision or explicit raw-input change clears only the nine
+  persistent strength derived tables, inserts only current revision
+  `strength-revision-3.0.0` as `BUILDING`, and replays completed workout dates
+  chronologically.
+- The current revision becomes `ACTIVE` and marker
+  `strength_derived_reset_rebuild_0_5_0_4_complete` is written only after every
+  generated event is `PROCESSED`.
+- A failed rebuild leaves current revision `FAILED`, exposes a typed
+  `REBUILD_FAILED` status, never restores legacy authority, and retries from a
+  clean derived state on the next startup.
+- Normal record mutation no longer depends on successful rebuild. After a
+  compatible current revision is active, each newly completed session appends
+  one event while previous same-revision history remains unchanged.
+- Backup restore always restores raw rows first, marks the derived state for
+  rebuild, discards restored strength-derived authority, and regenerates the
+  current revision from the restored raw history.
+
+### Strict summary and UI
+- Active lookup now requires the exact current revision key and validates its
+  model/registry/RIR/curve/derived-state fingerprint plus ACTIVE status.
+- Rebuilding and rebuild-failed summaries contain no target values or history.
+  The analysis and Lab cards display the required Korean status message and,
+  on failure, a concise diagnostic code without rendering stale charts.
+- `legacy()` now creates only a `SUPERSEDED` compatibility fixture. Production
+  code has no path that creates or selects a legacy ACTIVE revision.
+
+### Focused regression coverage
+- A two-date incline-dumbbell fixture proves raw entries/sets remain byte/value
+  equivalent while representative legacy derived rows are removed and rebuilt
+  as 2 current events, 2 target-history rows, 1 local state with 2
+  observations, and 1 applied shared-only proxy-transfer row.
+- A compatible ACTIVE fixture with a missing completion marker proves only the
+  marker is restored; event and history rows remain byte/value equivalent.
+- A later completed workout appends one event and preserves prior history.
+- A forced rebuild failure exposes no legacy target summary, preserves raw
+  workout rows, leaves the completion marker absent, and succeeds on a later
+  retry.
+- Focused `StrengthPosteriorEventIntegrationTest` and
+  `PersistentStrengthPerformanceSummaryTest`: 17 tests passed after correcting
+  two fixture-only assumptions; no production model defect was found.
+
+### Release
+- App identity updated to `0.5.0.4 / 500004`; Room remains `23` with no schema
+  change.
+- Canonical protocol document updated in place; protocol registry count is
+  unchanged. Added `docs/v0.5.0.4_release_notes.md`.
+- `:app:testDebugUnitTest --tests "*StrengthPosteriorEventIntegrationTest*"
+  --tests "*PersistentStrengthPerformanceSummaryTest*"` passed: 17 tests.
+- `:app:compileDebugKotlin`, `:app:assembleDebug`, and `git diff --check`
+  passed. No full unit suite, connected instrumentation, or CI inspection was
+  performed, as required by this scoped correction.
+- Debug APK:
+  `app/build/outputs/apk/debug/app-debug.apk`, 46,647,956 bytes, SHA-256
+  `0be668d51f2e62b39ffd1969bc87d5bcd5e5ce60f75e80db1eb13d62c432d0ae`.
+- Commits, main push, and annotated tag are pending.
