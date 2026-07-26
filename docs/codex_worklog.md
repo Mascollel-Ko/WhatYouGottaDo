@@ -3462,3 +3462,26 @@ Verification
 - Target registry `1.1.0` declares the same `1..20` boundary. The generator
   hashes canonical LF text so reproduction is independent of Windows checkout
   line endings.
+
+### Room 23 model revision and correction rebuild
+- Added immutable model-revision metadata plus revision-scoped exercise-local
+  state/history and proxy-transfer history. Existing Room 22 posterior rows
+  remain numerically unchanged and are assigned the legacy revision key by the
+  `22 -> 23` migration; the migration does not run analytical code.
+- The corrected model uses revision key `strength-revision-3.0.0` and model
+  version `strength-performance-model-3.0.0`. The ordered global factor schema
+  remains `2.0.0` because its dimensions, ordering, and interpretation did not
+  change.
+- Startup creates a `BUILDING` corrected revision, replays completed dates in
+  chronological order using revision-scoped deterministic event identifiers,
+  and atomically promotes it to `ACTIVE` only after every event is processed.
+  The prior active revision is retained as `SUPERSEDED`.
+- Active analysis reads are revision-scoped. Global posterior history,
+  evidence, curve state, exercise-local state, and proxy-transfer history from
+  another revision cannot leak into the corrected summary.
+- Re-running the correction or resuming after processing completed but before
+  activation reuses existing events and history rather than duplicating them.
+- Focused event/revision tests and `compileDebugAndroidTestKotlin` pass. The
+  Room `22 -> 23` migration source preserves a representative legacy event
+  byte-for-byte while creating empty correction tables; runtime migration
+  execution still requires an attached emulator or device.

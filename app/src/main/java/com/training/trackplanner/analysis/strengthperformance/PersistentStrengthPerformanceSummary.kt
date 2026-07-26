@@ -5,6 +5,7 @@ import com.training.trackplanner.data.StrengthPosteriorEventEntity
 import com.training.trackplanner.data.StrengthPosteriorEvidenceEntity
 import com.training.trackplanner.data.StrengthPosteriorHistoryEntity
 import com.training.trackplanner.data.StrengthPosteriorModelStateEntity
+import com.training.trackplanner.data.StrengthModelRevisionEntity
 import java.time.LocalDate
 
 data class PersistentStrengthPerformanceSummary(
@@ -19,7 +20,14 @@ data class PersistentStrengthPerformanceSummary(
     val factorSchemaVersion: String?,
     val bootstrapProvenance: String?,
     val backupRestorationProvenance: String?,
-    val numericalDiagnostics: List<String>
+    val numericalDiagnostics: List<String>,
+    val activeRevisionKey: String? = null,
+    val activeRevisionStatus: String? = null,
+    val activeRevisionReason: String? = null,
+    val rirPolicyVersion: String? = null,
+    val localExerciseStateCount: Int = 0,
+    val proxyTransferCount: Int = 0,
+    val supersededRevisionCount: Int = 0
 )
 
 data class PersistentStrengthTargetSummary(
@@ -91,7 +99,11 @@ object PersistentStrengthPerformanceSummaryBuilder {
         curvePosteriors: List<StrengthCurvePosteriorEntity>,
         currentBodyWeightKg: Double?,
         bootstrapProvenance: String?,
-        backupRestorationProvenance: String?
+        backupRestorationProvenance: String?,
+        activeRevision: StrengthModelRevisionEntity? = null,
+        localExerciseStateCount: Int = 0,
+        proxyTransferCount: Int = 0,
+        supersededRevisionCount: Int = 0
     ): PersistentStrengthPerformanceSummary {
         val diagnostics = mutableListOf<String>()
         val decodedState = modelState?.let { entity ->
@@ -174,7 +186,14 @@ object PersistentStrengthPerformanceSummaryBuilder {
             factorSchemaVersion = modelState?.factorSchemaVersion ?: history.lastOrNull()?.factorSchemaVersion,
             bootstrapProvenance = bootstrapProvenance,
             backupRestorationProvenance = backupRestorationProvenance,
-            numericalDiagnostics = diagnostics.distinct()
+            numericalDiagnostics = diagnostics.distinct(),
+            activeRevisionKey = activeRevision?.revisionKey,
+            activeRevisionStatus = activeRevision?.status,
+            activeRevisionReason = activeRevision?.creationReason,
+            rirPolicyVersion = activeRevision?.rirPolicyVersion,
+            localExerciseStateCount = localExerciseStateCount,
+            proxyTransferCount = proxyTransferCount,
+            supersededRevisionCount = supersededRevisionCount
         )
     }
 

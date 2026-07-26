@@ -118,7 +118,7 @@ object VersionedDoubleArrayCodec {
 }
 
 object StrengthPosteriorModel {
-    const val MODEL_VERSION = "strength-performance-model-2.1.0"
+    const val MODEL_VERSION = "strength-performance-model-3.0.0"
     const val MODEL_INSTANCE_KEY = "strength-performance-current"
 
     fun initialState(
@@ -310,14 +310,18 @@ object StrengthPosteriorModel {
         )
     }
 
-    fun toEntity(state: StrengthPosteriorState, now: Long): StrengthPosteriorModelStateEntity {
+    fun toEntity(
+        state: StrengthPosteriorState,
+        now: Long,
+        modelInstanceKey: String = MODEL_INSTANCE_KEY
+    ): StrengthPosteriorModelStateEntity {
         val packed = VersionedDoubleArrayCodec.packLowerTriangle(state.covariance)
         val meanEncoded = VersionedDoubleArrayCodec.encode(state.mean)
         val covarianceEncoded = VersionedDoubleArrayCodec.encode(packed)
         val schema = state.orderedFactorSchema.joinToString("|") { key -> key.value }
         val stateFingerprint = stateFingerprint(state, schema, meanEncoded, covarianceEncoded, MODEL_VERSION)
         return StrengthPosteriorModelStateEntity(
-            modelInstanceKey = MODEL_INSTANCE_KEY,
+            modelInstanceKey = modelInstanceKey,
             orderedFactorSchema = schema,
             stateMeanEncoded = meanEncoded,
             packedCovarianceEncoded = covarianceEncoded,
@@ -459,7 +463,11 @@ object StrengthPosteriorModel {
     private const val Z_50 = 0.6744897501960817
     private const val Z_80 = 1.2815515655446004
     private const val Z_95 = 1.959963984540054
-    private val SUPPORTED_MODEL_VERSIONS = setOf("strength-performance-model-2.0.0", MODEL_VERSION)
+    private val SUPPORTED_MODEL_VERSIONS = setOf(
+        "strength-performance-model-2.0.0",
+        "strength-performance-model-2.1.0",
+        MODEL_VERSION
+    )
 }
 
 fun PersonalCurvePosterior.toEntity(): StrengthCurvePosteriorEntity = StrengthCurvePosteriorEntity(

@@ -53,16 +53,46 @@ internal class PerformanceTrendSummaryService(
         val initialProfile = initialUserProfileDao.profile()
         val currentBodyWeightKg = dailyMetrics.asReversed().firstNotNullOfOrNull(DailyMetric::bodyWeightKg)
             ?: initialProfile?.bodyWeightKg
+        val activeRevision = strengthPosteriorDao.activeRevision()
+        val revisionKey = activeRevision?.revisionKey
+        val revisionEvents = revisionKey?.let { strengthPosteriorDao.eventsForRevision(it) }
+            ?: strengthPosteriorDao.allEvents()
+        val revisionHistory = revisionKey?.let { strengthPosteriorDao.historyForRevision(it) }
+            ?: strengthPosteriorDao.allHistory()
+        val revisionEvidence = revisionKey?.let { strengthPosteriorDao.evidenceForRevision(it) }
+            ?: strengthPosteriorDao.allEvidence()
+        val revisionCurves = if (revisionKey == null) {
+            strengthPosteriorDao.allCurvePosteriors()
+        } else {
+            strengthPosteriorDao.allCurvePosteriors()
+                .filter { it.curveSubjectKey.startsWith("$revisionKey|") }
+                .map { entity ->
+                    entity.copy(
+                        curveSubjectKey = StrengthModelRevisionPolicy.originalCurveSubjectKey(
+                            revisionKey,
+                            entity.curveSubjectKey
+                        )
+                    )
+                }
+        }
         val persistentStrengthSummary = PersistentStrengthPerformanceSummaryBuilder.build(
             registry = strengthPerformanceRegistry,
-            modelState = strengthPosteriorDao.modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY),
-            history = strengthPosteriorDao.allHistory(),
-            events = strengthPosteriorDao.allEvents(),
-            evidence = strengthPosteriorDao.allEvidence(),
-            curvePosteriors = strengthPosteriorDao.allCurvePosteriors(),
+            modelState = strengthPosteriorDao.modelState(
+                revisionKey?.let(StrengthModelRevisionPolicy::modelInstanceKey)
+                    ?: StrengthPosteriorModel.MODEL_INSTANCE_KEY
+            ),
+            history = revisionHistory,
+            events = revisionEvents,
+            evidence = revisionEvidence,
+            curvePosteriors = revisionCurves,
             currentBodyWeightKg = currentBodyWeightKg,
             bootstrapProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
-            backupRestorationProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY)
+            backupRestorationProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY),
+            activeRevision = activeRevision,
+            localExerciseStateCount = revisionKey?.let { strengthPosteriorDao.localStates(it).size } ?: 0,
+            proxyTransferCount = revisionKey?.let { strengthPosteriorDao.proxyHistory(it).count { row -> row.applied } } ?: 0,
+            supersededRevisionCount = strengthPosteriorDao.allRevisions()
+                .count { it.status == StrengthModelRevisionPolicy.STATUS_SUPERSEDED }
         )
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries,

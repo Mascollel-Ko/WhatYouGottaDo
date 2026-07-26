@@ -43,7 +43,11 @@ class StrengthPosteriorEventIntegrationTest {
         val originalHistory = db.strengthPosteriorDao().historyForEvent(event.eventUuid)
         assertEquals(StrengthPosteriorEventProcessor.STATUS_PROCESSED, event.status)
         assertTrue(originalHistory.isNotEmpty())
-        assertNotNull(db.strengthPosteriorDao().modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY))
+        assertNotNull(
+            db.strengthPosteriorDao().modelState(
+                StrengthModelRevisionPolicy.modelInstanceKey(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+            )
+        )
 
         val confirmed = checkNotNull(db.workoutDao().findSetById(fixture.sets[1].id))
         service.updateSet(confirmed.copy(weightKg = 125.0))
@@ -90,7 +94,12 @@ class StrengthPosteriorEventIntegrationTest {
         assertEquals(StrengthPosteriorEventProcessor.STATUS_FAILED, db.strengthPosteriorDao().eventByUuid(event.eventUuid)?.status)
         assertTrue(db.strengthPosteriorDao().historyForEvent(event.eventUuid).isEmpty())
         assertTrue(db.strengthPosteriorDao().evidenceForEvent(event.eventUuid).isEmpty())
-        assertEquals(null, db.strengthPosteriorDao().modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY))
+        assertEquals(
+            null,
+            db.strengthPosteriorDao().modelState(
+                StrengthModelRevisionPolicy.modelInstanceKey(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+            )
+        )
 
         coordinator.retryPending()
         assertTrue(db.strengthPosteriorDao().historyForEvent(event.eventUuid).isEmpty())
@@ -112,6 +121,60 @@ class StrengthPosteriorEventIntegrationTest {
         assertEquals(2, events.size)
         assertTrue(events.all { event -> event.status == StrengthPosteriorEventProcessor.STATUS_PROCESSED })
         assertNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY))
+        assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, db.strengthPosteriorDao().activeRevision()?.status)
+        assertNotNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
+    }
+
+    @Test
+    fun `correction rebuild persists local state and shared-only proxy history once`() = runBlocking {
+        val db = newDatabase()
+        val incline = Exercise(
+            name = "Incline dumbbell press",
+            category = "Strength",
+            stableKey = "ex_a61f1e96"
+        )
+        insertSession(db, "2026-07-01", listOf(true), incline, weightKg = 52.0)
+        insertSession(db, "2026-07-15", listOf(true), incline, weightKg = 60.0)
+        val coordinator = coordinator(db)
+
+        assertTrue(coordinator.ensureCorrectedRevision())
+        assertTrue(coordinator.ensureCorrectedRevision())
+
+        val dao = db.strengthPosteriorDao()
+        val revision = checkNotNull(dao.activeRevision())
+        assertEquals(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY, revision.revisionKey)
+        assertEquals(2, dao.eventsForRevision(revision.revisionKey).size)
+        assertEquals(2, dao.localStates(revision.revisionKey).single().observationCount)
+        val transfer = dao.proxyHistory(revision.revisionKey).single()
+        assertEquals(0.0, transfer.targetSpecificContribution, 0.0)
+        assertTrue(transfer.applied)
+        assertEquals(1, dao.proxyHistory(revision.revisionKey).size)
+    }
+
+    @Test
+    fun `building correction revision resumes without duplicate history`() = runBlocking {
+        val db = newDatabase()
+        insertSession(db, "2026-07-01", listOf(true))
+        val coordinator = coordinator(db)
+        assertTrue(coordinator.ensureCorrectedRevision())
+
+        val dao = db.strengthPosteriorDao()
+        val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+        val eventCount = dao.eventsForRevision(revisionKey).size
+        val historyCount = dao.historyForRevision(revisionKey).size
+        dao.updateRevisionStatus(
+            revisionKey,
+            StrengthModelRevisionPolicy.STATUS_BUILDING,
+            null,
+            null,
+            null
+        )
+        db.appMetaDao().delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+
+        assertTrue(coordinator.ensureCorrectedRevision())
+        assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, dao.revision(revisionKey)?.status)
+        assertEquals(eventCount, dao.eventsForRevision(revisionKey).size)
+        assertEquals(historyCount, dao.historyForRevision(revisionKey).size)
     }
 
     @Test
@@ -239,9 +302,11 @@ class StrengthPosteriorEventIntegrationTest {
         db: TrainingDatabase,
         date: String,
         confirmed: List<Boolean>,
-        exercise: Exercise = benchExercise()
+        exercise: Exercise = benchExercise(),
+        weightKg: Double = 80.0
     ): SessionFixture {
-        val exerciseId = db.exerciseDao().insertExercise(exercise)
+        val exerciseId = db.exerciseDao().findByStableKey(exercise.stableKey)?.id
+            ?: db.exerciseDao().insertExercise(exercise)
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
@@ -257,7 +322,7 @@ class StrengthPosteriorEventIntegrationTest {
                 entryId = entryId,
                 setIndex = index + 1,
                 reps = 5,
-                weightKg = 80.0 + index,
+                weightKg = weightKg + index,
                 confirmed = isConfirmed,
                 rpe = 10.0
             )
@@ -294,7 +359,8 @@ class StrengthPosteriorEventIntegrationTest {
         createdAt = 1_000L,
         modelVersion = StrengthPosteriorModel.MODEL_VERSION,
         curveVersion = RepetitionCurveRegistry.CURVE_VERSION,
-        factorSchemaVersion = StrengthPerformanceRegistry.FACTOR_SCHEMA_VERSION
+        factorSchemaVersion = StrengthPerformanceRegistry.FACTOR_SCHEMA_VERSION,
+        revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
     )
 
     private data class SessionFixture(val entryId: Long, val sets: List<WorkoutSet>)

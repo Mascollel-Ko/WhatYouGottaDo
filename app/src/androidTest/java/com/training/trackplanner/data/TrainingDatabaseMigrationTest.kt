@@ -463,8 +463,70 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate22To23PreservesPosteriorRowsAndAddsRevisionTablesWithoutRunningRebuild() {
+        helper.createDatabase(TEST_DB_22_23, 22).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO strength_posterior_events (
+                    eventUuid, sessionKey, sessionDate, completionFingerprint, status, creationReason,
+                    confirmedSetCount, createdAt, processedAt, modelVersion, curveVersion,
+                    factorSchemaVersion, evidenceFingerprint, errorCode, errorMessage
+                ) VALUES (
+                    'legacy-event', 'date:2026-07-20', '2026-07-20', 'legacy-fingerprint',
+                    'PROCESSED', 'INITIAL_INSTALLATION_BOOTSTRAP', 1, 1000, 1100,
+                    'strength-performance-model-2.1.0', 'repetition-curve-assets-1.0.0',
+                    'strength-factor-schema-2.0.0', 'legacy-evidence', NULL, NULL
+                )
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_22_23,
+            23,
+            true,
+            TrainingDatabase.MIGRATION_22_23
+        ).use { database ->
+            database.query(
+                "SELECT eventUuid, completionFingerprint, modelVersion, revisionKey FROM strength_posterior_events"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getString(0) == "legacy-event")
+                check(cursor.getString(1) == "legacy-fingerprint")
+                check(cursor.getString(2) == "strength-performance-model-2.1.0")
+                check(cursor.getString(3) == StrengthModelRevisionPolicy.LEGACY_REVISION_KEY)
+            }
+            val expectedTables = setOf(
+                "strength_model_revisions",
+                "strength_exercise_performance_state",
+                "strength_exercise_performance_history",
+                "strength_proxy_transfer_history"
+            )
+            val tables = buildSet {
+                database.query("SELECT name FROM sqlite_master WHERE type = 'table'").use { cursor ->
+                    while (cursor.moveToNext()) add(cursor.getString(0))
+                }
+            }
+            check(tables.containsAll(expectedTables))
+            expectedTables.forEach { table ->
+                database.query("SELECT COUNT(*) FROM $table").use { cursor ->
+                    check(cursor.moveToFirst())
+                    check(cursor.getInt(0) == 0)
+                }
+            }
+            database.query(
+                "SELECT COUNT(*) FROM app_meta WHERE `key` = '${StrengthModelRevisionPolicy.REBUILD_MARKER_KEY}'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 0)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
+        const val TEST_DB_22_23 = "training-migration-22-23-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

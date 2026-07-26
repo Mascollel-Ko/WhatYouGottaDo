@@ -25,9 +25,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthPosteriorHistoryEntity::class,
         StrengthPosteriorModelStateEntity::class,
         StrengthCurvePosteriorEntity::class,
-        StrengthPosteriorEvidenceEntity::class
+        StrengthPosteriorEvidenceEntity::class,
+        StrengthModelRevisionEntity::class,
+        StrengthExercisePerformanceStateEntity::class,
+        StrengthExercisePerformanceHistoryEntity::class,
+        StrengthProxyTransferHistoryEntity::class
     ],
-    version = 22,
+    version = 23,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -651,6 +655,126 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `strength_posterior_events` ADD COLUMN `revisionKey` TEXT NOT NULL DEFAULT '${StrengthModelRevisionPolicy.LEGACY_REVISION_KEY}'"
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_model_revisions` (
+                        `revisionKey` TEXT NOT NULL,
+                        `modelVersion` TEXT NOT NULL,
+                        `factorSchemaVersion` TEXT NOT NULL,
+                        `targetRegistryVersion` TEXT NOT NULL,
+                        `proxyRegistryVersion` TEXT NOT NULL,
+                        `rirPolicyVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `status` TEXT NOT NULL,
+                        `creationReason` TEXT NOT NULL,
+                        `sourceRevisionKey` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `rebuildStartedAt` INTEGER,
+                        `rebuildCompletedAt` INTEGER,
+                        `revisionFingerprint` TEXT NOT NULL,
+                        `errorCode` TEXT,
+                        `errorMessage` TEXT,
+                        PRIMARY KEY(`revisionKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_exercise_performance_state` (
+                        `revisionKey` TEXT NOT NULL,
+                        `exerciseStableKey` TEXT NOT NULL,
+                        `priorSource` TEXT NOT NULL,
+                        `stateLogMean` REAL NOT NULL,
+                        `stateLogVariance` REAL NOT NULL,
+                        `lastProcessedEventUuid` TEXT NOT NULL,
+                        `lastProcessedSessionKey` TEXT NOT NULL,
+                        `lastProcessedDate` TEXT NOT NULL,
+                        `baselineEstablished` INTEGER NOT NULL,
+                        `observationCount` INTEGER NOT NULL,
+                        `twoSidedObservationCount` INTEGER NOT NULL,
+                        `modelVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `rirPolicyVersion` TEXT NOT NULL,
+                        `stateFingerprint` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`revisionKey`, `exerciseStableKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_exercise_performance_state_revisionKey` ON `strength_exercise_performance_state` (`revisionKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_exercise_performance_state_exerciseStableKey` ON `strength_exercise_performance_state` (`exerciseStableKey`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_exercise_performance_history` (
+                        `revisionKey` TEXT NOT NULL,
+                        `eventUuid` TEXT NOT NULL,
+                        `sessionKey` TEXT NOT NULL,
+                        `sessionDate` TEXT NOT NULL,
+                        `exerciseStableKey` TEXT NOT NULL,
+                        `priorLogMean` REAL NOT NULL,
+                        `priorLogVariance` REAL NOT NULL,
+                        `sessionLikelihoodLogMean` REAL,
+                        `sessionLikelihoodLogVariance` REAL,
+                        `sessionLikelihoodProper` INTEGER NOT NULL,
+                        `innovationResidualLog` REAL,
+                        `innovationVariance` REAL,
+                        `posteriorLogMean` REAL NOT NULL,
+                        `posteriorLogVariance` REAL NOT NULL,
+                        `posteriorMeanIncrementLog` REAL NOT NULL,
+                        `transitionDays` INTEGER NOT NULL,
+                        `baselineEstablishedBefore` INTEGER NOT NULL,
+                        `baselineEstablishedAfter` INTEGER NOT NULL,
+                        `proxyTransferEligible` INTEGER NOT NULL,
+                        `proxyTransferApplied` INTEGER NOT NULL,
+                        `modelVersion` TEXT NOT NULL,
+                        `curveVersion` TEXT NOT NULL,
+                        `rirPolicyVersion` TEXT NOT NULL,
+                        `evidenceFingerprint` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`revisionKey`, `eventUuid`, `exerciseStableKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_exercise_performance_history_revisionKey` ON `strength_exercise_performance_history` (`revisionKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_exercise_performance_history_eventUuid` ON `strength_exercise_performance_history` (`eventUuid`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_exercise_performance_history_exerciseStableKey` ON `strength_exercise_performance_history` (`exerciseStableKey`)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `strength_proxy_transfer_history` (
+                        `revisionKey` TEXT NOT NULL,
+                        `eventUuid` TEXT NOT NULL,
+                        `sessionDate` TEXT NOT NULL,
+                        `exerciseStableKey` TEXT NOT NULL,
+                        `targetKey` TEXT NOT NULL,
+                        `innovationResidualLog` REAL NOT NULL,
+                        `innovationVariance` REAL NOT NULL,
+                        `transferCoefficient` REAL NOT NULL,
+                        `transferLogVariance` REAL NOT NULL,
+                        `orderedSharedFactorKeys` TEXT NOT NULL,
+                        `sharedLoadingVectorEncoded` TEXT NOT NULL,
+                        `targetSpecificContribution` REAL NOT NULL,
+                        `applied` INTEGER NOT NULL,
+                        `exclusionReason` TEXT,
+                        `proxyRegistryVersion` TEXT NOT NULL,
+                        `modelVersion` TEXT NOT NULL,
+                        `transferFingerprint` TEXT NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`revisionKey`, `eventUuid`, `exerciseStableKey`, `targetKey`)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_proxy_transfer_history_revisionKey` ON `strength_proxy_transfer_history` (`revisionKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_proxy_transfer_history_eventUuid` ON `strength_proxy_transfer_history` (`eventUuid`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_proxy_transfer_history_exerciseStableKey` ON `strength_proxy_transfer_history` (`exerciseStableKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_strength_proxy_transfer_history_targetKey` ON `strength_proxy_transfer_history` (`targetKey`)")
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -679,7 +803,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_18_19,
                         MIGRATION_19_20,
                         MIGRATION_20_21,
-                        MIGRATION_21_22
+                        MIGRATION_21_22,
+                        MIGRATION_22_23
                     )
                     .build()
                     .also { instance = it }
