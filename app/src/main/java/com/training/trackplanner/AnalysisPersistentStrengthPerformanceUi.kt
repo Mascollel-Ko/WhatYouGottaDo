@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthHistoryPoint
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
@@ -69,7 +70,7 @@ internal data class PersistentStrengthGrowthPoint(
 private val SQUAT_COLOR = 0xFF1565C0.toInt()
 private val BENCH_PRESS_COLOR = 0xFFD32F2F.toInt()
 private val DEADLIFT_COLOR = 0xFF2E7D32.toInt()
-private val WEIGHTED_PULL_UP_COLOR = 0xFFC2185B.toInt()
+private val WEIGHTED_PULL_UP_COLOR = 0xFF6D4C41.toInt()
 
 internal fun strengthPerformanceTargetColor(targetKey: String): Color? = when (targetKey) {
     StrengthPerformanceRegistry.BACK_SQUAT.value -> Color(SQUAT_COLOR)
@@ -287,18 +288,41 @@ private fun PersistentStrengthCompactCurrentRow(
         color = color.copy(alpha = if (focused) 0.18f else 0.07f)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Surface(modifier = Modifier.size(10.dp), shape = RoundedCornerShape(8.dp), color = color) {}
-            Text(target.comparisonDisplayName(), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+            Text(
+                text = target.comparisonDisplayName(),
+                modifier = Modifier.weight(1f),
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             when (displayMode) {
                 StrengthPerformanceDisplayMode.LEVEL -> {
-                    Text(kgOrDash(target.currentMedianKg))
-                    Text("80% ${rangeOrDash(target.currentLow80Kg, target.currentHigh80Kg)}")
+                    Text(
+                        text = kgOrDash(target.currentMedianKg),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                    Text(
+                        text = "80% ${rangeOrDash(target.currentLow80Kg, target.currentHigh80Kg)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
                 StrengthPerformanceDisplayMode.GROWTH_RATE -> {
-                    Text(percentOrDash(persistentStrengthGrowthHistory(target).lastOrNull()?.medianGrowthPercent))
+                    Text(
+                        text = percentOrDash(
+                            persistentStrengthGrowthHistory(target).lastOrNull()?.medianGrowthPercent
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }

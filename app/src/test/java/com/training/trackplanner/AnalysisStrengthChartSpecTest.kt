@@ -80,7 +80,7 @@ class AnalysisStrengthChartSpecTest {
         assertEquals(Color(0xFF1565C0.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.BACK_SQUAT.value))
         assertEquals(Color(0xFFD32F2F.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.BENCH_PRESS.value))
         assertEquals(Color(0xFF2E7D32.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT.value))
-        assertEquals(Color(0xFFC2185B.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.WEIGHTED_PULL_UP.value))
+        assertEquals(Color(0xFF6D4C41.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.WEIGHTED_PULL_UP.value))
         assertEquals(withProxyOnlyObservation.map { it.targetKey }, spec.intervalBands.map { it.seriesKey })
     }
 
