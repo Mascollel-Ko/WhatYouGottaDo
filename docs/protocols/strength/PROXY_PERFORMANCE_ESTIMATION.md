@@ -127,11 +127,13 @@ reviewed `LOCAL_INNOVATION_SHARED_ONLY` row가 최소 local history를 충족하
 
 ## 9. 출력과 UI 해석
 
-target selector는 registry의 enabled target을 읽습니다. primary card는 posterior median, 80% interval, 최신 직접 1RM, 관련 세션과 직접 1RM/RPE 확률 관측/강한 nRM/적용된 proxy innovation/실패 count, curve calibration, 최근 처리 세션, active revision, RIR policy와 model/curve version을 보여 줍니다.
+target selector는 registry의 enabled target을 고정 순서로 읽고 1~4개를 동시에 선택합니다. 최소 한 target은 항상 남으며 새 target을 선택하면 상세 focus가 그 target으로 이동합니다. `LEVEL`은 저장된 posterior 중앙값과 80% 범위를 절대 kg로 표시하고, 중량 풀업은 추가중량이 아니라 canonical 총부하를 사용합니다. target key별 색상은 스쿼트 `#1565C0`, 벤치프레스 `#D32F2F`, 컨벤셔널 데드리프트 `#2E7D32`, 중량 풀업 `#C2185B`로 고정합니다.
 
-이력 상세는 저장된 target 행의 세션 전 추정·80% 범위, 실제 또는 세트 기반 관측, 세션 후 추정·80% 범위, 중앙값/구간폭 변화, 예측분포 내 위치, 강한 관측 종류, curve profile/match를 보여 줍니다. 관련 운동 상세는 local prior, session likelihood, local innovation, local posterior와 shared-only proxy 적용/제외 이유를 구분합니다. 프록시 운동의 절대 중량은 target 운동의 kg로 표시하거나 직접 환산하지 않습니다. 중량 풀업은 당시 체중·추가중량·총부하·체중 출처를 저장값으로 표시하고, 현재 카드는 current bodyweight를 사용한 추가중량 equivalent를 별도 표시합니다.
+`GROWTH_RATE`는 같은 target의 바로 이전 persisted posterior point를 분모로 `((currentMedian / previousMedian) - 1) * 100`을 표시합니다. 첫 point는 이전 추정이 없어 값과 graph point를 만들지 않습니다. 현재 80% 범위는 이전 중앙값을 분모로 변환하며 정확한 성장률 사후분포라고 부르지 않습니다. 여러 target의 날짜 합집합을 x축으로 사용하되 없는 날짜의 값을 만들거나 저장 이력을 보간하지 않습니다.
 
-기존 Epley 그래프는 `기존 공식 환산값`으로 표시하며 역사 비교용이고 새 posterior model에 사용되지 않는다고 설명합니다. Lab은 active/superseded revision, rebuild provenance, event ledger, local state, applied proxy, target-specific proxy violation, fingerprint, model/curve/RIR boundary, numerical diagnostics, backup restore와 bootstrap provenance를 보여 주며 Bayesian 시계열 Lab과 명시적으로 분리합니다.
+chart marker는 selected target의 자체 load scale에서 생성된 직접 RPE/RIR session observation만 사용합니다. proxy 운동의 local kg는 target kg 또는 성장률 marker로 표시하지 않고 focused target의 상세 행에만 남깁니다. 상세는 세션 전 추정, session observation, 세션 후 추정, 중앙값·구간폭 변화, curve/evidence와 local proxy 진단을 한 target에 대해서만 보여 줍니다.
+
+legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존 세 performance metric key는 호환성을 위해 유지하지만 값과 사용자 문구는 해당 주 마지막 persisted posterior 중앙값입니다. `StrengthAndMuscleMetricSeriesBuilder`는 더 이상 Epley performance series를 만들지 않습니다. Lab 진단은 active/superseded revision, rebuild provenance, event ledger, local state, applied proxy, target-specific proxy violation, fingerprint, model/curve/RIR boundary, numerical diagnostics, backup restore와 bootstrap provenance를 보여 주며 Bayesian 시계열 Lab과 명시적으로 분리합니다.
 
 ## 10. 예외 및 fallback
 

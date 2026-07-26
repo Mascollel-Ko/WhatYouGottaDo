@@ -3648,3 +3648,45 @@ Verification
   `app/build/outputs/apk/debug/app-debug.apk`, 46,647,956 bytes, SHA-256
   `0be668d51f2e62b39ffd1969bc87d5bcd5e5ce60f75e80db1eb13d62c432d0ae`.
 - Commits, main push, and annotated tag are pending.
+
+## v0.5.0.5 strength posterior comparison UI
+
+### Baseline and scope
+- Started from `origin/main` commit
+  `bfbc694ce36165962db4258b03a09fba19434315` on
+  `feature/strength-comparison-ui`.
+- App identity was `0.5.0.4 / 500004`; Room was and remains `23`.
+- Preserved all six user-owned `outputs/*` modifications unstaged.
+- Scope is read-only strength presentation. Posterior, RPE/RIR, proxy,
+  repetition-curve, persistence, rebuild and raw workout behavior are unchanged.
+
+### Implementation
+- Commit `68f1b7eedb07f890901dc4fe4ac5118c18217b3c`
+  (`feat(strength-ui): add posterior comparison modes`) removes
+  `MainLiftE1rmCard`, `mainLiftE1rmSpec` and the main-screen legacy Epley card.
+- Added saveable `LEVEL`/`GROWTH_RATE`, ordered multi-target selection and a
+  focused target for detailed rows.
+- Added fixed target-key colors, multiple 80% interval bands, direct
+  target-scale hollow observation markers, union date domains and a zero
+  growth reference line.
+- Growth uses adjacent persisted medians for the same target. The first point
+  is null; proxy local kg is never plotted on a target axis.
+- Removed Epley series generation from `StrengthAndMuscleMetricSeriesBuilder`.
+  Lab compatibility metric IDs now receive the last persisted posterior median
+  in each week and display posterior labels.
+- Unrelated Epley calculations used by strength index, fatigue intensity,
+  program weight suggestion, exercise analysis and the legacy proxy experiment
+  were audited and intentionally left unchanged.
+
+### Validation
+- Focused comparison UI/chart tests: 8 passed.
+- Focused Lab registry/builder and legacy proxy decoupling tests: passed.
+- `:app:compileDebugKotlin`: passed.
+- Final `:app:compileDebugKotlin` and `:app:assembleDebug` passed.
+- Debug APK:
+  `app/build/outputs/apk/debug/app-debug.apk`, 46,680,724 bytes, SHA-256
+  `b2ba4dbd94b2f21b0b31c5f5c22f87e49182966dc491eef0fa8ae1257231aa63`.
+- Protocol validation passed for 7 families and 30 protocols.
+- Documentation commit and feature-branch push are pending.
+- Full unit tests and the standard Android Debug Build workflow are explicitly
+  out of scope and were not run or inspected.
