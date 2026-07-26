@@ -161,7 +161,7 @@ object ScalarGridPosteriorEngine {
         }
     }
 
-    private fun stabilizeCovariance(source: Array<DoubleArray>): Array<DoubleArray> {
+    internal fun stabilizeCovariance(source: Array<DoubleArray>): Array<DoubleArray> {
         val symmetric = Array(source.size) { row ->
             DoubleArray(source.size) { column -> (source[row][column] + source[column][row]) / 2.0 }
         }

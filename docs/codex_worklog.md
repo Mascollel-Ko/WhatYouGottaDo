@@ -3425,3 +3425,23 @@ Verification
 - Preserve raw workout/profile/bodyweight values, dumbbell total-load
   semantics, direct-anchor authority, old v0.5.0.2 analytical rows, connective
   tissue, OFI, readiness, ProgramBuilder, and legacy time-series calculations.
+
+### Shared-only proxy transfer
+- Replaced reviewed proxy rows with explicit
+  `LOCAL_INNOVATION_SHARED_ONLY` contracts. Non-direct rows contain shared
+  factor loadings only; `CALIBRATED_ABSOLUTE_PROXY` remains fail-closed.
+- Non-direct exercise sessions now update an exercise-local posterior first.
+  The first proper session establishes only the local baseline. From the
+  second proper observation onward, the local likelihood innovation is
+  transferred through reviewed shared factors with the configured transfer
+  coefficient and residual variance.
+- Same-event proxy signals use one simultaneous Gaussian batch update, sorted
+  by deterministic evidence fingerprint. This removes input-order dependence
+  and leaves every `strength.factor.target.*` coordinate unchanged.
+- Direct anchors remain on the scalar-grid absolute likelihood path and are
+  processed after the shared proxy batch. Stored dumbbell loads retain
+  `IMPLEMENT_TOTAL_LOAD`; no per-hand multiplication was introduced.
+- Focused registry, local-posterior, proxy-transfer, and posterior-model tests
+  pass. Coverage includes first-session no-transfer, second-session positive
+  innovation, target-specific zero loading, common-scale invariance, and batch
+  order invariance.

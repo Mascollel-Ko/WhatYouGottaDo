@@ -62,6 +62,9 @@ data class StrengthPosteriorComputation(
     val history: List<StrengthPosteriorHistoryEntity>,
     val evidence: List<StrengthPosteriorEvidenceEntity>,
     val curvePosteriors: List<PersonalCurvePosterior>,
+    val localStates: Map<String, StrengthExerciseLocalState>,
+    val localHistory: List<StrengthExerciseLocalHistory>,
+    val proxyTransfers: List<StrengthProxyTransferRecord>,
     val evidenceFingerprint: String,
     val diagnostics: List<String>
 )
@@ -144,11 +147,16 @@ object StrengthPosteriorModel {
         registry: StrengthPerformanceRegistry,
         curves: RepetitionCurveRegistry,
         curvePosteriorBySubject: Map<String, PersonalCurvePosterior>,
+        currentLocalStates: Map<String, StrengthExerciseLocalState> = emptyMap(),
         now: Long
     ): StrengthPosteriorComputation {
         var state = predict(currentState, date)
         val priorState = state.copyDeep()
         val diagnostics = mutableListOf<String>()
+        val localStates = currentLocalStates.toMutableMap()
+        val localHistory = mutableListOf<StrengthExerciseLocalHistory>()
+        val proxyTransfers = mutableListOf<StrengthProxyTransferRecord>()
+        val proxyLoadingByFingerprint = mutableMapOf<String, StrengthProxyLoadingSpec>()
         val affected = observations.flatMap(StrengthExerciseSessionObservation::targetLoadings)
             .map(StrengthProxyLoadingSpec::targetKey).distinct().sortedBy(StrengthPerformanceTargetKey::value)
         val representative = affected.associateWith { targetKey ->
@@ -165,52 +173,41 @@ object StrengthPosteriorModel {
                     }
                 )
         }
-        observations.sortedWith(
+        val orderedObservations = observations.sortedWith(
             compareBy<StrengthExerciseSessionObservation>(StrengthExerciseSessionObservation::exerciseStableKey)
                 .thenBy(StrengthExerciseSessionObservation::evidenceFingerprint)
-        ).forEach { observation ->
+        )
+        orderedObservations.filter { observation -> observation.directTargetKey == null }.forEach { observation ->
             diagnostics += observation.diagnostics
+            val local = StrengthExercisePosteriorEngine.update(
+                eventUuid = eventUuid,
+                observation = observation,
+                currentState = localStates[observation.exerciseStableKey]
+            )
+            diagnostics += local.diagnostics
+            local.state?.let { localStates[observation.exerciseStableKey] = it }
+            local.history?.let(localHistory::add)
+            val localState = local.state ?: return@forEach
+            val history = local.history ?: return@forEach
             observation.targetLoadings.sortedBy { loading -> loading.targetKey.value }.forEach { loading ->
-                val target = registry.target(loading.targetKey) ?: return@forEach
-                if (loading.isDirectAnchor && observation.directTargetKey == target.targetKey) {
-                    val projection = ScalarGridPosteriorEngine.project(
-                        priorMean = state.mean,
-                        priorCovariance = state.covariance,
-                        projection = targetVector(state, target),
-                        likelihood = observation.sessionLikelihood.asScalarLikelihood()
-                    )
-                    state = state.copyDeep(
-                        mean = projection.mean,
-                        covariance = projection.covariance
-                    )
-                    diagnostics += "DIRECT_GRID:${target.targetKey.value}:${projection.diagnostics.fingerprint}"
-                    return@forEach
-                }
-                val vector = observationVector(state, target, loading)
-                val observationLog = ln(
-                    if (observation.upperBoundOnly) {
-                        observation.failureUpperBoundKg ?: observation.capacityMedianKg
-                    } else {
-                        observation.capacityMedianKg
-                    }
-                )
-                val variance = observation.logVariance /
-                    (loading.loadingWeight * loading.loadingWeight).coerceAtLeast(MIN_LOADING_SQUARED) +
-                    if (loading.isDirectAnchor) 0.0 else PROXY_VARIANCE_FLOOR
-                state = if (observation.upperBoundOnly) {
-                    updateUpperBound(state, observationLog, vector, variance)
-                } else if (observation.lowerBoundOnly) {
-                    val predicted = dot(vector, state.mean)
-                    if (predicted >= observationLog) state else update(state, observationLog, vector, variance + LOWER_BOUND_VARIANCE)
-                } else {
-                    update(state, observationLog, vector, variance)
-                }
-                if (!observation.upperBoundOnly) {
-                    observation.failureUpperBoundKg?.takeIf { it.isFinite() && it > 0.0 }?.let { upperBound ->
-                        state = updateUpperBound(state, ln(upperBound), vector, variance)
-                    }
+                StrengthProxyTransfer.record(eventUuid, observation, localState, history, loading)?.let { transfer ->
+                    proxyTransfers += transfer
+                    proxyLoadingByFingerprint[transfer.evidenceFingerprint] = loading
                 }
             }
+        }
+        state = StrengthProxyTransfer.update(state, proxyTransfers, proxyLoadingByFingerprint)
+        orderedObservations.filter { observation -> observation.directTargetKey != null }.forEach { observation ->
+            diagnostics += observation.diagnostics
+            val target = registry.target(checkNotNull(observation.directTargetKey)) ?: return@forEach
+            val projection = ScalarGridPosteriorEngine.project(
+                priorMean = state.mean,
+                priorCovariance = state.covariance,
+                projection = targetVector(state, target),
+                likelihood = observation.sessionLikelihood.asScalarLikelihood()
+            )
+            state = state.copyDeep(mean = projection.mean, covariance = projection.covariance)
+            diagnostics += "DIRECT_GRID:${target.targetKey.value}:${projection.diagnostics.fingerprint}"
         }
 
         val updatedCurves = mutableListOf<PersonalCurvePosterior>()
@@ -287,6 +284,9 @@ object StrengthPosteriorModel {
             history = histories,
             evidence = evidenceEntities,
             curvePosteriors = updatedCurves.distinctBy(PersonalCurvePosterior::curveSubjectKey),
+            localStates = localStates,
+            localHistory = localHistory,
+            proxyTransfers = proxyTransfers,
             evidenceFingerprint = allEvidenceFingerprint,
             diagnostics = diagnostics.distinct()
         )
@@ -388,46 +388,6 @@ object StrengthPosteriorModel {
         return state.copyDeep(covariance = covariance)
     }
 
-    private fun update(
-        state: StrengthPosteriorState,
-        observation: Double,
-        h: DoubleArray,
-        observationVariance: Double
-    ): StrengthPosteriorState {
-        if (!observation.isFinite() || !observationVariance.isFinite() || observationVariance <= 0.0) return state
-        val ph = multiply(state.covariance, h)
-        val innovationVariance = dot(h, ph) + observationVariance
-        if (!innovationVariance.isFinite() || innovationVariance <= MIN_VARIANCE) return state
-        val innovation = observation - dot(h, state.mean)
-        val gain = DoubleArray(h.size) { index -> ph[index] / innovationVariance }
-        val mean = DoubleArray(h.size) { index -> state.mean[index] + gain[index] * innovation }
-        val identityMinusKh = Array(h.size) { row ->
-            DoubleArray(h.size) { column -> (if (row == column) 1.0 else 0.0) - gain[row] * h[column] }
-        }
-        val joseph = add(
-            multiply(multiply(identityMinusKh, state.covariance), transpose(identityMinusKh)),
-            outer(gain, gain).map { row -> row.map { value -> value * observationVariance }.toDoubleArray() }.toTypedArray()
-        )
-        val symmetric = Array(h.size) { row ->
-            DoubleArray(h.size) { column -> (joseph[row][column] + joseph[column][row]) / 2.0 }
-        }
-        for (index in symmetric.indices) symmetric[index][index] = symmetric[index][index].coerceAtLeast(MIN_VARIANCE)
-        if (!mean.all(Double::isFinite) || !symmetric.all { row -> row.all(Double::isFinite) }) return state
-        return state.copyDeep(mean = mean, covariance = symmetric)
-    }
-
-    private fun updateUpperBound(
-        state: StrengthPosteriorState,
-        upperBound: Double,
-        h: DoubleArray,
-        observationVariance: Double
-    ): StrengthPosteriorState {
-        val predicted = dot(h, state.mean)
-        return if (predicted <= upperBound) state else {
-            update(state, upperBound, h, observationVariance + UPPER_BOUND_VARIANCE)
-        }
-    }
-
     private fun targetVector(state: StrengthPosteriorState, target: StrengthPerformanceTargetSpec): DoubleArray =
         DoubleArray(state.mean.size) { index ->
             val factor = state.orderedFactorSchema[index]
@@ -437,19 +397,6 @@ object StrengthPosteriorModel {
                 else -> 0.0
             }
         }
-
-    private fun observationVector(
-        state: StrengthPosteriorState,
-        target: StrengthPerformanceTargetSpec,
-        loading: StrengthProxyLoadingSpec
-    ): DoubleArray = DoubleArray(state.mean.size) { index ->
-        val factor = state.orderedFactorSchema[index]
-        when {
-            factor == target.targetSpecificFactorKey -> 1.0
-            factor in loading.factorLoadings -> loading.factorLoadings.getValue(factor) * SHARED_LOADING_SCALE
-            else -> 0.0
-        }
-    }
 
     private fun initialCapacity(key: StrengthPerformanceTargetKey, profile: InitialUserProfile?): Double = when (key) {
         StrengthPerformanceRegistry.BENCH_PRESS -> profile?.benchPressKg
@@ -502,27 +449,12 @@ object StrengthPosteriorModel {
     private fun quadratic(vector: DoubleArray, matrix: Array<DoubleArray>): Double = dot(vector, multiply(matrix, vector))
     private fun multiply(matrix: Array<DoubleArray>, vector: DoubleArray): DoubleArray =
         DoubleArray(matrix.size) { row -> matrix[row].indices.sumOf { column -> matrix[row][column] * vector[column] } }
-    private fun multiply(left: Array<DoubleArray>, right: Array<DoubleArray>): Array<DoubleArray> =
-        Array(left.size) { row -> DoubleArray(right[0].size) { column ->
-            right.indices.sumOf { inner -> left[row][inner] * right[inner][column] }
-        } }
-    private fun transpose(matrix: Array<DoubleArray>): Array<DoubleArray> =
-        Array(matrix[0].size) { row -> DoubleArray(matrix.size) { column -> matrix[column][row] } }
-    private fun add(left: Array<DoubleArray>, right: Array<DoubleArray>): Array<DoubleArray> =
-        Array(left.size) { row -> DoubleArray(left[row].size) { column -> left[row][column] + right[row][column] } }
-    private fun outer(left: DoubleArray, right: DoubleArray): Array<DoubleArray> =
-        Array(left.size) { row -> DoubleArray(right.size) { column -> left[row] * right[column] } }
-
     private const val TARGET_INITIAL_VARIANCE = 0.16
     private const val SHARED_INITIAL_VARIANCE = 0.09
     private const val TARGET_DAILY_PROCESS_VARIANCE = 0.00008
     private const val SHARED_DAILY_PROCESS_VARIANCE = 0.00004
     private const val MAX_PROCESS_DAYS = 3650L
     private const val SHARED_LOADING_SCALE = 0.10
-    private const val MIN_LOADING_SQUARED = 0.04
-    private const val PROXY_VARIANCE_FLOOR = 0.08
-    private const val LOWER_BOUND_VARIANCE = 0.16
-    private const val UPPER_BOUND_VARIANCE = 0.20
     private const val MIN_VARIANCE = 1e-8
     private const val Z_50 = 0.6744897501960817
     private const val Z_80 = 1.2815515655446004

@@ -45,8 +45,8 @@ class StrengthPerformanceLikelihoodTest {
                 strength.synthetic,Synthetic,synthetic_anchor,,EXTERNAL_LOAD,curve.policy.general,strength.factor.synthetic:1.0,strength.factor.target.synthetic,1,12,RPE10_ONLY,true,test
             """.trimIndent(),
             proxyCsv = """
-                exerciseStableKey,targetKey,relationship,loadingWeight,factorLoadings,loadSemantics,configVersion
-                synthetic_anchor,strength.synthetic,DIRECT_ANCHOR,1.0,strength.factor.target.synthetic:1.0,EXTERNAL_LOAD,test
+                exerciseStableKey,targetKey,proxyMode,transferCoefficient,transferLogVariance,sharedFactorLoadings,loadSemantics,minimumLocalHistoryCount,configVersion,rationale,sourceClass,reviewedStatus
+                synthetic_anchor,strength.synthetic,DIRECT_ABSOLUTE,1.0,0.04,strength.factor.synthetic:1.0,EXTERNAL_LOAD,0,test,Direct synthetic anchor,PRODUCT_POLICY,REVIEWED
             """.trimIndent()
         )
         assertEquals("strength.synthetic", synthetic.targets().single().targetKey.value)
@@ -191,8 +191,9 @@ class StrengthPerformanceLikelihoodTest {
 
         val loading = registry.proxyLoadings(squat).single()
         assertEquals(StrengthPerformanceRegistry.BACK_SQUAT, loading.targetKey)
-        assertEquals("METADATA_PROXY", loading.relationship)
+        assertEquals(StrengthProxyMode.LOCAL_INNOVATION_SHARED_ONLY, loading.proxyMode)
         assertTrue(loading.loadingWeight in 0.0..1.0)
+        assertTrue(loading.factorLoadings.keys.none { it.value.startsWith("strength.factor.target.") })
     }
 
     private fun session(

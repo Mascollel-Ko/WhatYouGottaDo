@@ -22,6 +22,13 @@ enum class DirectObservationPolicy {
     RPE10_ONLY
 }
 
+enum class StrengthProxyMode {
+    DIRECT_ABSOLUTE,
+    LOCAL_INNOVATION_SHARED_ONLY,
+    DISABLED,
+    CALIBRATED_ABSOLUTE_PROXY
+}
+
 data class StrengthPerformanceTargetSpec(
     val targetKey: StrengthPerformanceTargetKey,
     val displayNameKo: String,
@@ -40,13 +47,20 @@ data class StrengthPerformanceTargetSpec(
 data class StrengthProxyLoadingSpec(
     val exerciseStableKey: String,
     val targetKey: StrengthPerformanceTargetKey,
-    val relationship: String,
-    val loadingWeight: Double,
+    val proxyMode: StrengthProxyMode,
+    val transferCoefficient: Double,
+    val transferLogVariance: Double,
     val factorLoadings: Map<StrengthFactorKey, Double>,
     val loadSemantics: StrengthLoadSemantics,
-    val configVersion: String
+    val minimumLocalHistoryCount: Int,
+    val configVersion: String,
+    val rationale: String,
+    val sourceClass: String,
+    val reviewedStatus: String
 ) {
-    val isDirectAnchor: Boolean get() = relationship == "DIRECT_ANCHOR"
+    val isDirectAnchor: Boolean get() = proxyMode == StrengthProxyMode.DIRECT_ABSOLUTE
+    val loadingWeight: Double get() = transferCoefficient
+    val relationship: String get() = proxyMode.name
 }
 
 class StrengthPerformanceRegistry private constructor(
@@ -101,11 +115,16 @@ class StrengthPerformanceRegistry private constructor(
         ) = StrengthProxyLoadingSpec(
             exerciseStableKey = exercise.stableKey,
             targetKey = targetKey,
-            relationship = "METADATA_PROXY",
-            loadingWeight = weight,
+            proxyMode = StrengthProxyMode.LOCAL_INNOVATION_SHARED_ONLY,
+            transferCoefficient = weight,
+            transferLogVariance = METADATA_PROXY_TRANSFER_VARIANCE,
             factorLoadings = factors.associate { (key, value) -> StrengthFactorKey(key) to value },
             loadSemantics = semantics,
-            configVersion = METADATA_PROXY_CONFIG_VERSION
+            minimumLocalHistoryCount = 2,
+            configVersion = METADATA_PROXY_CONFIG_VERSION,
+            rationale = "Reviewed metadata-family local innovation fallback",
+            sourceClass = "PRODUCT_POLICY",
+            reviewedStatus = "REVIEWED"
         )
         return when {
             text.containsAny("SQUAT", "KNEE_DOMINANT", "LEG_PRESS", "LUNGE", "SPLIT_SQUAT", "STEP_UP") -> {
@@ -116,8 +135,7 @@ class StrengthPerformanceRegistry private constructor(
                     if (machine) StrengthLoadSemantics.MACHINE_STACK_LOAD else StrengthLoadSemantics.EXTERNAL_LOAD,
                     "strength.factor.knee_extension" to if (isLunge) 0.80 else 0.92,
                     "strength.factor.hip_extension_posterior_chain" to if (isLunge) 0.48 else 0.62,
-                    "strength.factor.trunk_bracing" to if (isLunge) 0.30 else 0.55,
-                    "strength.factor.target.back_squat" to if (isLunge) 0.08 else 0.32
+                    "strength.factor.trunk_bracing" to if (isLunge) 0.30 else 0.55
                 ))
             }
             text.containsAny("DEADLIFT", "HINGE", "ROMANIAN", "_RDL", "HIP_THRUST", "GLUTE_BRIDGE") -> listOf(row(
@@ -126,8 +144,7 @@ class StrengthPerformanceRegistry private constructor(
                 StrengthLoadSemantics.EXTERNAL_LOAD,
                 "strength.factor.knee_extension" to 0.18,
                 "strength.factor.hip_extension_posterior_chain" to 0.88,
-                "strength.factor.trunk_bracing" to 0.62,
-                "strength.factor.target.conventional_deadlift" to 0.28
+                "strength.factor.trunk_bracing" to 0.62
             ))
             text.containsAny("BENCH", "HORIZONTAL_PUSH", "CHEST_PRESS", "DUMBBELL_PRESS", "DIP") -> listOf(row(
                 BENCH_PRESS,
@@ -135,8 +152,7 @@ class StrengthPerformanceRegistry private constructor(
                 if (machine) StrengthLoadSemantics.MACHINE_STACK_LOAD else StrengthLoadSemantics.EXTERNAL_LOAD,
                 "strength.factor.press_shared" to 0.78,
                 "strength.factor.horizontal_press" to 0.72,
-                "strength.factor.elbow_extension" to 0.42,
-                "strength.factor.target.bench_press" to 0.18
+                "strength.factor.elbow_extension" to 0.42
             ))
             text.containsAny("VERTICAL_PULL", "PULL_UP", "CHIN_UP", "LAT_PULLDOWN") -> listOf(row(
                 WEIGHTED_PULL_UP,
@@ -145,8 +161,7 @@ class StrengthPerformanceRegistry private constructor(
                 "strength.factor.vertical_pull_shared" to 0.82,
                 "strength.factor.shoulder_adduction_extension" to 0.70,
                 "strength.factor.elbow_flexion" to 0.55,
-                "strength.factor.scapular_depression_control" to 0.48,
-                "strength.factor.target.weighted_pull_up" to 0.20
+                "strength.factor.scapular_depression_control" to 0.48
             ))
             else -> emptyList()
         }
@@ -155,9 +170,10 @@ class StrengthPerformanceRegistry private constructor(
     private fun String.containsAny(vararg values: String): Boolean = values.any(::contains)
 
     companion object {
-        const val TARGET_CONFIG_VERSION = "strength-target-registry-1.0.0"
+        const val TARGET_CONFIG_VERSION = "strength-target-registry-1.1.0"
         const val FACTOR_SCHEMA_VERSION = "strength-factor-schema-2.0.0"
-        const val METADATA_PROXY_CONFIG_VERSION = "strength-proxy-metadata-1.1.0"
+        const val PROXY_CONFIG_VERSION = "strength-proxy-registry-2.0.0"
+        const val METADATA_PROXY_CONFIG_VERSION = "strength-proxy-metadata-2.0.0"
 
         val BENCH_PRESS = StrengthPerformanceTargetKey("strength.bench_press")
         val BACK_SQUAT = StrengthPerformanceTargetKey("strength.back_squat")
@@ -194,15 +210,30 @@ class StrengthPerformanceRegistry private constructor(
                 StrengthProxyLoadingSpec(
                     exerciseStableKey = row.required("exerciseStableKey"),
                     targetKey = StrengthPerformanceTargetKey(row.required("targetKey")),
-                    relationship = row.required("relationship"),
-                    loadingWeight = row.required("loadingWeight").toDouble(),
-                    factorLoadings = row.factorMap("factorLoadings"),
+                    proxyMode = enumValueOf(row.required("proxyMode")),
+                    transferCoefficient = row.required("transferCoefficient").toDouble(),
+                    transferLogVariance = row.required("transferLogVariance").toDouble(),
+                    factorLoadings = row.factorMap("sharedFactorLoadings"),
                     loadSemantics = enumValueOf(row.required("loadSemantics")),
-                    configVersion = row.required("configVersion")
+                    minimumLocalHistoryCount = row.required("minimumLocalHistoryCount").toInt(),
+                    configVersion = row.required("configVersion"),
+                    rationale = row.required("rationale"),
+                    sourceClass = row.required("sourceClass"),
+                    reviewedStatus = row.required("reviewedStatus")
                 ).also { loading ->
                     require(loading.targetKey in targets)
-                    require(loading.loadingWeight in 0.0..1.0)
+                    require(loading.transferCoefficient in 0.0..1.0)
+                    require(loading.transferLogVariance.isFinite() && loading.transferLogVariance > 0.0)
+                    require(loading.minimumLocalHistoryCount >= if (loading.isDirectAnchor) 0 else 2)
                     require(loading.factorLoadings.values.all { value -> value in 0.0..1.0 })
+                    require(
+                        loading.isDirectAnchor ||
+                            loading.factorLoadings.keys.none { key -> key.value.startsWith("strength.factor.target.") }
+                    ) { "Non-direct proxy contains a target-specific factor." }
+                    require(loading.proxyMode != StrengthProxyMode.CALIBRATED_ABSOLUTE_PROXY) {
+                        "Calibrated absolute proxies are not enabled in this release."
+                    }
+                    require(loading.reviewedStatus == "REVIEWED")
                 }
             }.groupBy(StrengthProxyLoadingSpec::exerciseStableKey)
             return StrengthPerformanceRegistry(targets, proxyRows)
@@ -234,5 +265,6 @@ class StrengthPerformanceRegistry private constructor(
 
         private const val TARGET_FILE = "strength_target_registry_v1.csv"
         private const val PROXY_FILE = "strength_proxy_loadings_v1.csv"
+        private const val METADATA_PROXY_TRANSFER_VARIANCE = 0.12
     }
 }

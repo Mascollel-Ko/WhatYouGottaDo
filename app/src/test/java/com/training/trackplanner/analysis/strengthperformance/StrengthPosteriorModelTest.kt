@@ -101,6 +101,7 @@ class StrengthPosteriorModelTest {
     fun `eight relevant squat sessions move the posterior from its initial prior`() {
         val target = checkNotNull(registry.target(StrengthPerformanceRegistry.BACK_SQUAT))
         var state = StrengthPosteriorModel.initialState(registry, null)
+        var localStates = emptyMap<String, StrengthExerciseLocalState>()
         val before = StrengthPosteriorModel.distribution(state, target)
         val weeklyPriorMedians = mutableListOf<Double>()
         var previousPosteriorMedian: Double? = null
@@ -110,14 +111,24 @@ class StrengthPosteriorModelTest {
                 id = index.toLong() + 1,
                 name = "Front squat",
                 category = "Strength",
-                stableKey = "front-squat-$index",
+                stableKey = "front-squat",
                 movementPattern = "KNEE_DOMINANT_LOWER",
                 strengthProgressionGroup = "FRONT_SQUAT",
                 estimated1RmEligible = true
             )
             val record = WorkoutEntryWithSets(
                 entry = WorkoutEntry(id = index.toLong() + 1, date = date.toString(), exerciseId = exercise.id, exerciseName = exercise.name, category = exercise.category),
-                sets = listOf(WorkoutSet(id = index.toLong() + 1, entryId = exercise.id, setIndex = 1, reps = 5, weightKg = 100.0, confirmed = true, rpe = 10.0))
+                sets = listOf(
+                    WorkoutSet(
+                        id = index.toLong() + 1,
+                        entryId = exercise.id,
+                        setIndex = 1,
+                        reps = 5,
+                        weightKg = 100.0 + index * 2.0,
+                        confirmed = true,
+                        rpe = 10.0
+                    )
+                )
             )
             val observation = checkNotNull(
                 StrengthSessionObservationBuilder.build(
@@ -137,6 +148,7 @@ class StrengthPosteriorModelTest {
                 registry = registry,
                 curves = curves,
                 curvePosteriorBySubject = emptyMap(),
+                currentLocalStates = localStates,
                 now = 3_000L + index
             )
             val point = result.history.single { row -> row.targetKey == target.targetKey.value }
@@ -146,6 +158,7 @@ class StrengthPosteriorModelTest {
             }
             previousPosteriorMedian = point.posteriorMedian
             state = result.state
+            localStates = result.localStates
         }
 
         assertTrue(weeklyPriorMedians.last() > weeklyPriorMedians.first())
