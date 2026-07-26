@@ -23,6 +23,7 @@ import com.training.trackplanner.analysis.strengthperformance.PersistentStrength
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthTargetSummary
 import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
+import com.training.trackplanner.data.StrengthAnalysisLifecycleStatus
 import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -37,7 +38,20 @@ import kotlin.math.roundToInt
 
 @Composable
 internal fun PersistentStrengthPerformanceCards(summary: PersistentStrengthPerformanceSummary?) {
-    if (summary == null || summary.targets.isEmpty()) return
+    if (summary == null) return
+    when (summary.lifecycleStatus) {
+        StrengthAnalysisLifecycleStatus.REBUILDING -> {
+            InfoCard("현재 근력 분석 모델로 과거 운동 기록을 재계산하고 있습니다.")
+            return
+        }
+        StrengthAnalysisLifecycleStatus.REBUILD_FAILED -> {
+            val diagnostic = summary.lifecycleDiagnosticCode?.let { "\n진단 코드: $it" }.orEmpty()
+            InfoCard("현재 근력 분석을 재계산하지 못했습니다.$diagnostic")
+            return
+        }
+        StrengthAnalysisLifecycleStatus.CURRENT -> Unit
+    }
+    if (summary.targets.isEmpty()) return
     var selectedKey by rememberSaveable { mutableStateOf(summary.targets.first().targetKey) }
     val selected = summary.targets.firstOrNull { target -> target.targetKey == selectedKey } ?: summary.targets.first()
     PersistentStrengthCapabilityCard(summary, selected) { target -> selectedKey = target.targetKey }
@@ -185,7 +199,20 @@ private fun PersistentStrengthHistoryRow(
 
 @Composable
 internal fun PersistentStrengthPerformanceLabCard(summary: PersistentStrengthPerformanceSummary?) {
-    if (summary == null || summary.targets.isEmpty()) return
+    if (summary == null) return
+    when (summary.lifecycleStatus) {
+        StrengthAnalysisLifecycleStatus.REBUILDING -> {
+            InfoCard("현재 근력 분석 모델로 과거 운동 기록을 재계산하고 있습니다.")
+            return
+        }
+        StrengthAnalysisLifecycleStatus.REBUILD_FAILED -> {
+            val diagnostic = summary.lifecycleDiagnosticCode?.let { "\n진단 코드: $it" }.orEmpty()
+            InfoCard("현재 근력 분석을 재계산하지 못했습니다.$diagnostic")
+            return
+        }
+        StrengthAnalysisLifecycleStatus.CURRENT -> Unit
+    }
+    if (summary.targets.isEmpty()) return
     var selectedKey by rememberSaveable { mutableStateOf(summary.targets.first().targetKey) }
     val selected = summary.targets.firstOrNull { target -> target.targetKey == selectedKey } ?: summary.targets.first()
     Card(

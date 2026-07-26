@@ -116,11 +116,24 @@ data class StrengthProxyTransferHistoryEntity(
     val createdAt: Long
 )
 
+enum class StrengthAnalysisLifecycleStatus {
+    CURRENT,
+    REBUILDING,
+    REBUILD_FAILED
+}
+
+data class StrengthAnalysisLifecycleResult(
+    val status: StrengthAnalysisLifecycleStatus,
+    val diagnosticCode: String? = null
+)
+
 object StrengthModelRevisionPolicy {
     const val CURRENT_REVISION_KEY = "strength-revision-3.0.0"
     const val LEGACY_REVISION_KEY = "strength-revision-2.1.0"
-    const val CORRECTION_REASON = "MODEL_CORRECTION_REBUILD_0_5_0_3"
-    const val REBUILD_MARKER_KEY = "strength_model_correction_rebuild_0_5_0_3"
+    const val DERIVED_STATE_VERSION = "strength-derived-state-0.5.0.4"
+    const val CORRECTION_REASON = "STRENGTH_DERIVED_RESET_REBUILD_0_5_0_4"
+    const val REBUILD_MARKER_KEY = "strength_derived_reset_rebuild_0_5_0_4_complete"
+    const val OBSOLETE_REBUILD_MARKER_KEY = "strength_model_correction_rebuild_0_5_0_3"
     const val STATUS_BUILDING = "BUILDING"
     const val STATUS_ACTIVE = "ACTIVE"
     const val STATUS_SUPERSEDED = "SUPERSEDED"
@@ -148,7 +161,8 @@ object StrengthModelRevisionPolicy {
                 StrengthPerformanceRegistry.TARGET_CONFIG_VERSION,
                 StrengthPerformanceRegistry.PROXY_CONFIG_VERSION,
                 RpeRirPolicy.POLICY_VERSION,
-                RepetitionCurveRegistry.CURVE_VERSION
+                RepetitionCurveRegistry.CURVE_VERSION,
+                DERIVED_STATE_VERSION
             ),
             errorCode = null,
             errorMessage = null
@@ -162,7 +176,7 @@ object StrengthModelRevisionPolicy {
         proxyRegistryVersion = "strength-proxy-registry-1.1.0",
         rirPolicyVersion = "legacy-hard-rpe-gate",
         curveVersion = "repetition-curve-assets-1.0.0",
-        status = STATUS_ACTIVE,
+        status = STATUS_SUPERSEDED,
         creationReason = "ROOM_22_LEGACY_IMPORT",
         sourceRevisionKey = null,
         createdAt = now,

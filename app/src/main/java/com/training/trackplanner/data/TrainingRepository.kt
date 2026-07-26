@@ -438,9 +438,10 @@ class TrainingRepository(
             )
         }
 
-        strengthPosteriorCoordinator.bootstrapIfNeeded()
+        val strengthAnalysisLifecycle = strengthPosteriorCoordinator.ensureCurrentRevision()
 
         logDebugSummary()
+        strengthAnalysisLifecycle
     }
 
     private suspend fun upsertSeedExercises() {

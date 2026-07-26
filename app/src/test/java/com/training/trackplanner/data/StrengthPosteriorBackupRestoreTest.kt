@@ -215,7 +215,10 @@ class StrengthPosteriorBackupRestoreTest {
         assertEquals(StrengthPosteriorEventProcessor.STATUS_PROCESSED, event.status)
         assertTrue(db.strengthPosteriorDao().historyForEvent(event.eventUuid).isNotEmpty())
         assertEquals(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY, event.revisionKey)
-        assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, db.strengthPosteriorDao().activeRevision()?.status)
+        assertEquals(
+            StrengthModelRevisionPolicy.STATUS_ACTIVE,
+            db.strengthPosteriorDao().activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
+        )
         val marker = db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
         assertNotNull(marker)
         assertTrue(checkNotNull(marker).contains(StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP))

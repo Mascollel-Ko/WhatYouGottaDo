@@ -154,8 +154,8 @@ data class StrengthPosteriorEvidenceEntity(
 
 @Dao
 abstract class StrengthPosteriorDao {
-    @Query("SELECT * FROM strength_model_revisions WHERE status = 'ACTIVE' ORDER BY rebuildCompletedAt DESC LIMIT 1")
-    abstract suspend fun activeRevision(): StrengthModelRevisionEntity?
+    @Query("SELECT * FROM strength_model_revisions WHERE revisionKey = :revisionKey AND status = 'ACTIVE' LIMIT 1")
+    abstract suspend fun activeRevision(revisionKey: String): StrengthModelRevisionEntity?
 
     @Query("SELECT * FROM strength_model_revisions WHERE revisionKey = :revisionKey LIMIT 1")
     abstract suspend fun revision(revisionKey: String): StrengthModelRevisionEntity?
@@ -180,6 +180,46 @@ abstract class StrengthPosteriorDao {
 
     @Query("UPDATE strength_model_revisions SET status = 'SUPERSEDED' WHERE status = 'ACTIVE' AND revisionKey != :activeRevisionKey")
     abstract suspend fun supersedeOtherRevisions(activeRevisionKey: String)
+
+    @Query("DELETE FROM strength_proxy_transfer_history")
+    protected abstract suspend fun deleteAllProxyHistory()
+
+    @Query("DELETE FROM strength_exercise_performance_history")
+    protected abstract suspend fun deleteAllLocalHistory()
+
+    @Query("DELETE FROM strength_exercise_performance_state")
+    protected abstract suspend fun deleteAllLocalStates()
+
+    @Query("DELETE FROM strength_posterior_evidence")
+    protected abstract suspend fun deleteAllEvidence()
+
+    @Query("DELETE FROM strength_posterior_history")
+    protected abstract suspend fun deleteAllHistory()
+
+    @Query("DELETE FROM strength_posterior_model_state")
+    protected abstract suspend fun deleteAllModelStates()
+
+    @Query("DELETE FROM strength_curve_posteriors")
+    protected abstract suspend fun deleteAllCurvePosteriors()
+
+    @Query("DELETE FROM strength_posterior_events")
+    protected abstract suspend fun deleteAllEvents()
+
+    @Query("DELETE FROM strength_model_revisions")
+    protected abstract suspend fun deleteAllRevisions()
+
+    @Transaction
+    open suspend fun clearAllStrengthDerivedData() {
+        deleteAllProxyHistory()
+        deleteAllLocalHistory()
+        deleteAllLocalStates()
+        deleteAllEvidence()
+        deleteAllHistory()
+        deleteAllModelStates()
+        deleteAllCurvePosteriors()
+        deleteAllEvents()
+        deleteAllRevisions()
+    }
 
     @Query("SELECT * FROM strength_posterior_events WHERE eventUuid = :eventUuid LIMIT 1")
     abstract suspend fun eventByUuid(eventUuid: String): StrengthPosteriorEventEntity?

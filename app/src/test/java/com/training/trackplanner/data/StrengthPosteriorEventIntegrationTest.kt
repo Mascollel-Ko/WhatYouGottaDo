@@ -12,6 +12,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,6 +33,7 @@ class StrengthPosteriorEventIntegrationTest {
     @Test
     fun `completion transition processes exactly one immutable event`() = runBlocking {
         val db = newDatabase()
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
         val service = mutationService(db)
         val fixture = insertSession(db, "2026-07-20", listOf(false, false))
 
@@ -60,6 +62,7 @@ class StrengthPosteriorEventIntegrationTest {
     @Test
     fun `deleting the final planned set processes partial completion but deleting all does not`() = runBlocking {
         val partialDb = newDatabase()
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(partialDb).ensureCurrentRevision().status)
         val partialService = mutationService(partialDb)
         val partial = insertSession(partialDb, "2026-07-21", listOf(true, false))
 
@@ -71,6 +74,7 @@ class StrengthPosteriorEventIntegrationTest {
         partialDb.close()
 
         val deletedDb = newDatabase()
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(deletedDb).ensureCurrentRevision().status)
         val deletedService = mutationService(deletedDb)
         val deleted = insertSession(deletedDb, "2026-07-22", listOf(true, false))
         deletedService.deleteWorkoutEntry(checkNotNull(deletedDb.workoutDao().findEntryById(deleted.entryId)))
@@ -106,27 +110,34 @@ class StrengthPosteriorEventIntegrationTest {
     }
 
     @Test
-    fun `bootstrap runs once in date order and restart retry stays idempotent`() = runBlocking {
+    fun `derived reset rebuilds current revision in date order and stays idempotent`() = runBlocking {
         val db = newDatabase()
         insertSession(db, "2026-07-02", listOf(true))
         insertSession(db, "2026-07-01", listOf(true))
         val coordinator = coordinator(db)
 
-        assertTrue(coordinator.bootstrapIfNeeded())
-        assertFalse(coordinator.bootstrapIfNeeded())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
+        val originalEvents = db.strengthPosteriorDao().allEvents()
+        val originalHistory = db.strengthPosteriorDao().allHistory()
+        db.appMetaDao().delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
         coordinator.retryPending()
 
         val events = db.strengthPosteriorDao().allEvents()
         assertEquals(listOf("2026-07-01", "2026-07-02"), events.map(StrengthPosteriorEventEntity::sessionDate))
+        assertEquals(originalEvents, events)
+        assertEquals(originalHistory, db.strengthPosteriorDao().allHistory())
         assertEquals(2, events.size)
         assertTrue(events.all { event -> event.status == StrengthPosteriorEventProcessor.STATUS_PROCESSED })
-        assertNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY))
-        assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, db.strengthPosteriorDao().activeRevision()?.status)
+        assertEquals(
+            StrengthModelRevisionPolicy.STATUS_ACTIVE,
+            db.strengthPosteriorDao().activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
+        )
         assertNotNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
     }
 
     @Test
-    fun `correction rebuild persists local state and shared-only proxy history once`() = runBlocking {
+    fun `incompatible legacy derived rows are reset and rebuilt from unchanged raw history`() = runBlocking {
         val db = newDatabase()
         val incline = Exercise(
             name = "Incline dumbbell press",
@@ -136,19 +147,40 @@ class StrengthPosteriorEventIntegrationTest {
         insertSession(db, "2026-07-01", listOf(true), incline, weightKg = 52.0)
         insertSession(db, "2026-07-15", listOf(true), incline, weightKg = 60.0)
         val coordinator = coordinator(db)
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
+        replaceCurrentDerivedWithLegacySnapshot(db)
+        val rawBefore = db.workoutDao().completedWorkoutDates()
+            .associateWith { date -> db.workoutDao().entriesWithSets(date) }
 
-        assertTrue(coordinator.ensureCorrectedRevision())
-        assertTrue(coordinator.ensureCorrectedRevision())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
 
         val dao = db.strengthPosteriorDao()
-        val revision = checkNotNull(dao.activeRevision())
+        val revision = checkNotNull(dao.activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY))
+        val events = dao.eventsForRevision(revision.revisionKey)
+        val history = dao.historyForRevision(revision.revisionKey)
+        assertEquals(rawBefore, db.workoutDao().completedWorkoutDates().associateWith { date ->
+            db.workoutDao().entriesWithSets(date)
+        })
+        assertNull(dao.revision(StrengthModelRevisionPolicy.LEGACY_REVISION_KEY))
+        assertEquals(listOf(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY), dao.allRevisions().map { it.revisionKey })
         assertEquals(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY, revision.revisionKey)
-        assertEquals(2, dao.eventsForRevision(revision.revisionKey).size)
+        assertEquals(StrengthPosteriorModel.MODEL_VERSION, revision.modelVersion)
+        assertEquals(RpeRirPolicy.POLICY_VERSION, revision.rirPolicyVersion)
+        assertEquals(RepetitionCurveRegistry.CURVE_VERSION, revision.curveVersion)
+        assertEquals(2, events.size)
+        assertEquals(events.size, history.size)
         assertEquals(2, dao.localStates(revision.revisionKey).single().observationCount)
         val transfer = dao.proxyHistory(revision.revisionKey).single()
         assertEquals(0.0, transfer.targetSpecificContribution, 0.0)
         assertTrue(transfer.applied)
         assertEquals(1, dao.proxyHistory(revision.revisionKey).size)
+        assertTrue(dao.allModelStates().all { state ->
+            state.modelInstanceKey.contains(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+        })
+        assertTrue(dao.allCurvePosteriors().all { curve ->
+            curve.curveSubjectKey.startsWith("${StrengthModelRevisionPolicy.CURRENT_REVISION_KEY}|")
+        })
+        assertNotNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
     }
 
     @Test
@@ -156,7 +188,7 @@ class StrengthPosteriorEventIntegrationTest {
         val db = newDatabase()
         insertSession(db, "2026-07-01", listOf(true))
         val coordinator = coordinator(db)
-        assertTrue(coordinator.ensureCorrectedRevision())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
 
         val dao = db.strengthPosteriorDao()
         val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
@@ -171,7 +203,7 @@ class StrengthPosteriorEventIntegrationTest {
         )
         db.appMetaDao().delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
 
-        assertTrue(coordinator.ensureCorrectedRevision())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator.ensureCurrentRevision().status)
         assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, dao.revision(revisionKey)?.status)
         assertEquals(eventCount, dao.eventsForRevision(revisionKey).size)
         assertEquals(historyCount, dao.historyForRevision(revisionKey).size)
@@ -181,7 +213,7 @@ class StrengthPosteriorEventIntegrationTest {
     fun `analysis reads frozen posterior history after source workout is deleted`() = runBlocking {
         val db = newDatabase()
         val fixture = insertSession(db, "2026-07-20", listOf(true))
-        assertTrue(coordinator(db).bootstrapIfNeeded())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
         mutationService(db).deleteWorkoutEntry(checkNotNull(db.workoutDao().findEntryById(fixture.entryId)))
         assertTrue(db.workoutDao().entriesWithSets("2026-07-20").isEmpty())
 
@@ -209,7 +241,7 @@ class StrengthPosteriorEventIntegrationTest {
     fun `later sessions and curve calibration never rewrite earlier history`() = runBlocking {
         val db = newDatabase()
         insertSession(db, "2026-07-01", listOf(true))
-        assertTrue(coordinator(db).bootstrapIfNeeded())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
         val firstEvent = db.strengthPosteriorDao().allEvents().single()
         val frozenHistory = db.strengthPosteriorDao().historyForEvent(firstEvent.eventUuid)
 
@@ -218,6 +250,36 @@ class StrengthPosteriorEventIntegrationTest {
 
         assertEquals(2, db.strengthPosteriorDao().allEvents().size)
         assertEquals(frozenHistory, db.strengthPosteriorDao().historyForEvent(firstEvent.eventUuid))
+    }
+
+    @Test
+    fun `failed rebuild exposes no legacy summary and retries from unchanged raw history`() = runBlocking {
+        val db = newDatabase()
+        insertSession(db, "2026-07-01", listOf(true))
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
+        replaceCurrentDerivedWithLegacySnapshot(db)
+        val rawBefore = db.workoutDao().entriesWithSets("2026-07-01")
+
+        val failed = coordinator(db, failProcessing = true).ensureCurrentRevision()
+        assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, failed.status)
+        assertEquals(
+            StrengthModelRevisionPolicy.STATUS_FAILED,
+            db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
+        )
+        assertNull(db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.LEGACY_REVISION_KEY))
+        assertNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
+        assertEquals(rawBefore, db.workoutDao().entriesWithSets("2026-07-01"))
+
+        val summary = persistentSummary(db)
+        assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, summary.lifecycleStatus)
+        assertTrue(summary.targets.isEmpty())
+        assertNull(summary.activeRevisionKey)
+
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
+        assertEquals(1, db.strengthPosteriorDao().eventsForRevision(
+            StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+        ).size)
+        assertEquals(rawBefore, db.workoutDao().entriesWithSets("2026-07-01"))
     }
 
     @Test
@@ -232,7 +294,7 @@ class StrengthPosteriorEventIntegrationTest {
             )
         }
 
-        assertTrue(coordinator(db).bootstrapIfNeeded())
+        assertEquals(StrengthAnalysisLifecycleStatus.CURRENT, coordinator(db).ensureCurrentRevision().status)
         val history = db.strengthPosteriorDao().historyForTarget(StrengthPerformanceRegistry.BACK_SQUAT.value)
 
         assertEquals(7, history.map { row -> row.eventUuid }.distinct().size)
@@ -274,7 +336,10 @@ class StrengthPosteriorEventIntegrationTest {
     private fun mutationService(db: TrainingDatabase): RecordMutationService =
         RecordMutationService(db, db.exerciseDao(), db.workoutDao(), coordinator(db))
 
-    private fun coordinator(db: TrainingDatabase): StrengthPosteriorUpdateCoordinator {
+    private fun coordinator(
+        db: TrainingDatabase,
+        failProcessing: Boolean = false
+    ): StrengthPosteriorUpdateCoordinator {
         val processor = StrengthPosteriorEventProcessor(
             exerciseDao = db.exerciseDao(),
             workoutDao = db.workoutDao(),
@@ -294,7 +359,122 @@ class StrengthPosteriorEventIntegrationTest {
             appMetaDao = db.appMetaDao(),
             posteriorDao = db.strengthPosteriorDao(),
             processor = processor,
-            now = { 1_000L }
+            now = { 1_000L },
+            processEvent = if (failProcessing) {
+                { false }
+            } else {
+                { eventUuid -> processor.process(eventUuid) }
+            }
+        )
+    }
+
+    private suspend fun persistentSummary(db: TrainingDatabase) = PerformanceTrendSummaryService(
+        exerciseDao = db.exerciseDao(),
+        workoutDao = db.workoutDao(),
+        dailyMetricDao = db.dailyMetricDao(),
+        initialUserProfileDao = db.initialUserProfileDao(),
+        dailyCheckInDao = db.dailyCheckInDao(),
+        smashSpeedDao = db.smashSpeedDao(),
+        runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao(),
+        canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context),
+        strengthPosteriorDao = db.strengthPosteriorDao(),
+        strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context),
+        appMetaDao = db.appMetaDao()
+    ).build().persistentStrengthPerformanceSummary!!
+
+    private suspend fun replaceCurrentDerivedWithLegacySnapshot(db: TrainingDatabase) {
+        val dao = db.strengthPosteriorDao()
+        val currentKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+        val legacyKey = StrengthModelRevisionPolicy.LEGACY_REVISION_KEY
+        val sourceEvents = dao.eventsForRevision(currentKey)
+        val eventIds = sourceEvents.associate { event -> event.eventUuid to "legacy-${event.eventUuid}" }
+        val evidenceIds = dao.evidenceForRevision(currentKey).associate { row ->
+            row.evidenceFingerprint to "legacy-${row.evidenceFingerprint}"
+        }
+        val history = dao.historyForRevision(currentKey)
+        val evidence = dao.evidenceForRevision(currentKey)
+        val modelStates = dao.allModelStates()
+        val curves = dao.allCurvePosteriors()
+        val localStates = dao.localStates(currentKey)
+        val localHistory = dao.localHistory(currentKey)
+        val proxyHistory = dao.proxyHistory(currentKey)
+
+        dao.clearAllStrengthDerivedData()
+        dao.insertRevisionStrict(
+            StrengthModelRevisionPolicy.legacy(500L).copy(
+                status = StrengthModelRevisionPolicy.STATUS_ACTIVE
+            )
+        )
+        sourceEvents.forEach { event ->
+            dao.insertEventStrict(
+                event.copy(
+                    eventUuid = checkNotNull(eventIds[event.eventUuid]),
+                    completionFingerprint = "legacy-${event.completionFingerprint}",
+                    evidenceFingerprint = event.evidenceFingerprint?.let { "legacy-$it" },
+                    revisionKey = legacyKey
+                )
+            )
+        }
+        dao.insertHistoryStrict(history.map { row ->
+            row.copy(
+                eventUuid = checkNotNull(eventIds[row.eventUuid]),
+                evidenceFingerprint = checkNotNull(evidenceIds[row.evidenceFingerprint])
+            )
+        })
+        dao.insertEvidenceStrict(evidence.map { row ->
+            row.copy(
+                evidenceFingerprint = checkNotNull(evidenceIds[row.evidenceFingerprint]),
+                eventUuid = checkNotNull(eventIds[row.eventUuid])
+            )
+        })
+        modelStates.forEach { state ->
+            dao.upsertModelState(
+                state.copy(
+                    modelInstanceKey = StrengthModelRevisionPolicy.modelInstanceKey(legacyKey),
+                    lastProcessedEventUuid = state.lastProcessedEventUuid?.let { checkNotNull(eventIds[it]) },
+                    stateFingerprint = "legacy-${state.stateFingerprint}"
+                )
+            )
+        }
+        dao.upsertCurvePosteriors(curves.map { curve ->
+            curve.copy(
+                curveSubjectKey = StrengthModelRevisionPolicy.curveSubjectKey(
+                    legacyKey,
+                    StrengthModelRevisionPolicy.originalCurveSubjectKey(currentKey, curve.curveSubjectKey)
+                ),
+                posteriorFingerprint = "legacy-${curve.posteriorFingerprint}"
+            )
+        })
+        dao.upsertLocalStates(localStates.map { state ->
+            state.copy(
+                revisionKey = legacyKey,
+                lastProcessedEventUuid = checkNotNull(eventIds[state.lastProcessedEventUuid]),
+                stateFingerprint = "legacy-${state.stateFingerprint}"
+            )
+        })
+        dao.insertLocalHistoryStrict(localHistory.map { row ->
+            row.copy(
+                revisionKey = legacyKey,
+                eventUuid = checkNotNull(eventIds[row.eventUuid]),
+                evidenceFingerprint = checkNotNull(evidenceIds[row.evidenceFingerprint])
+            )
+        })
+        dao.insertProxyHistoryStrict(proxyHistory.map { row ->
+            row.copy(
+                revisionKey = legacyKey,
+                eventUuid = checkNotNull(eventIds[row.eventUuid]),
+                transferFingerprint = "legacy-${row.transferFingerprint}"
+            )
+        })
+        db.appMetaDao().delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+        db.appMetaDao().upsert(
+            AppMeta(StrengthModelRevisionPolicy.OBSOLETE_REBUILD_MARKER_KEY, "legacy-complete")
+        )
+        db.appMetaDao().upsert(
+            AppMeta(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY, "legacy-bootstrap")
+        )
+        db.appMetaDao().upsert(
+            AppMeta(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY, "legacy-restore")
         )
     }
 

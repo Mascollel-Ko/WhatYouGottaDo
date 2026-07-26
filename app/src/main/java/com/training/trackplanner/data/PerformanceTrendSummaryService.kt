@@ -52,7 +52,28 @@ internal class PerformanceTrendSummaryService(
         val initialProfile = initialUserProfileDao.profile()
         val currentBodyWeightKg = dailyMetrics.asReversed().firstNotNullOfOrNull(DailyMetric::bodyWeightKg)
             ?: initialProfile?.bodyWeightKg
-        val activeRevision = strengthPosteriorDao.activeRevision()
+        val currentRevision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+        val rebuildMarker = appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+        val activeRevision = currentRevision?.takeIf { revision ->
+            revision.status == StrengthModelRevisionPolicy.STATUS_ACTIVE &&
+                rebuildMarker != null &&
+                StrengthModelRevisionPolicy.isCompatible(revision)
+        }
+        val lifecycle = when {
+            activeRevision != null ->
+                StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.CURRENT)
+            currentRevision?.status == StrengthModelRevisionPolicy.STATUS_FAILED ->
+                StrengthAnalysisLifecycleResult(
+                    StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
+                    currentRevision.errorCode ?: "REBUILD_FAILED"
+                )
+            currentRevision != null && !StrengthModelRevisionPolicy.isCompatible(currentRevision) ->
+                StrengthAnalysisLifecycleResult(
+                    StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
+                    "INCOMPATIBLE_CURRENT_REVISION"
+                )
+            else -> StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.REBUILDING)
+        }
         val revisionKey = activeRevision?.revisionKey
         val revisionEvents = revisionKey?.let { strengthPosteriorDao.eventsForRevision(it) }
             ?: emptyList()
@@ -87,6 +108,7 @@ internal class PerformanceTrendSummaryService(
             bootstrapProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
             backupRestorationProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY),
             activeRevision = activeRevision,
+            lifecycle = lifecycle,
             localExerciseStateCount = revisionLocalStates.size,
             proxyTransferCount = revisionProxyHistory.count { row -> row.applied },
             supersededRevisionCount = strengthPosteriorDao.allRevisions()

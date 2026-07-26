@@ -7,6 +7,8 @@ import com.training.trackplanner.data.StrengthPosteriorEventEntity
 import com.training.trackplanner.data.StrengthPosteriorEvidenceEntity
 import com.training.trackplanner.data.StrengthPosteriorHistoryEntity
 import com.training.trackplanner.data.StrengthPosteriorModelStateEntity
+import com.training.trackplanner.data.StrengthAnalysisLifecycleResult
+import com.training.trackplanner.data.StrengthAnalysisLifecycleStatus
 import com.training.trackplanner.data.StrengthModelRevisionEntity
 import java.time.LocalDate
 import kotlin.math.exp
@@ -34,7 +36,9 @@ data class PersistentStrengthPerformanceSummary(
     val supersededRevisionCount: Int = 0,
     val targetSpecificProxyViolationCount: Int = 0,
     val gridDiagnosticCount: Int = 0,
-    val unsupportedRepetitionEvidenceCount: Int = 0
+    val unsupportedRepetitionEvidenceCount: Int = 0,
+    val lifecycleStatus: StrengthAnalysisLifecycleStatus = StrengthAnalysisLifecycleStatus.CURRENT,
+    val lifecycleDiagnosticCode: String? = null
 )
 
 data class PersistentStrengthTargetSummary(
@@ -122,12 +126,18 @@ object PersistentStrengthPerformanceSummaryBuilder {
         bootstrapProvenance: String?,
         backupRestorationProvenance: String?,
         activeRevision: StrengthModelRevisionEntity? = null,
+        lifecycle: StrengthAnalysisLifecycleResult = StrengthAnalysisLifecycleResult(
+            StrengthAnalysisLifecycleStatus.CURRENT
+        ),
         localExerciseStateCount: Int = 0,
         proxyTransferCount: Int = 0,
         supersededRevisionCount: Int = 0,
         localHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
         proxyTransfers: List<StrengthProxyTransferHistoryEntity> = emptyList()
     ): PersistentStrengthPerformanceSummary {
+        if (lifecycle.status != StrengthAnalysisLifecycleStatus.CURRENT) {
+            return unavailableSummary(lifecycle, activeRevision, supersededRevisionCount)
+        }
         val diagnostics = mutableListOf<String>()
         val decodedState = modelState?.let { entity ->
             runCatching { StrengthPosteriorModel.fromEntity(entity) }
@@ -265,9 +275,37 @@ object PersistentStrengthPerformanceSummaryBuilder {
             },
             unsupportedRepetitionEvidenceCount = evidence.count { row ->
                 row.observationType == StrengthObservationType.UNSUPPORTED_REPETITION_RANGE.name
-            }
+            },
+            lifecycleStatus = lifecycle.status,
+            lifecycleDiagnosticCode = lifecycle.diagnosticCode
         )
     }
+
+    private fun unavailableSummary(
+        lifecycle: StrengthAnalysisLifecycleResult,
+        revision: StrengthModelRevisionEntity?,
+        supersededRevisionCount: Int
+    ) = PersistentStrengthPerformanceSummary(
+        targets = emptyList(),
+        eventCount = 0,
+        pendingEventCount = 0,
+        failedEventCount = 0,
+        latestEventFingerprint = null,
+        modelStateFingerprint = null,
+        modelVersionBoundaries = emptyList(),
+        curveVersionBoundaries = emptyList(),
+        factorSchemaVersion = null,
+        bootstrapProvenance = null,
+        backupRestorationProvenance = null,
+        numericalDiagnostics = emptyList(),
+        activeRevisionKey = null,
+        activeRevisionStatus = revision?.status,
+        activeRevisionReason = revision?.creationReason,
+        rirPolicyVersion = null,
+        supersededRevisionCount = supersededRevisionCount,
+        lifecycleStatus = lifecycle.status,
+        lifecycleDiagnosticCode = lifecycle.diagnosticCode
+    )
 
     private fun StrengthExercisePerformanceHistoryEntity.proxyExclusionReason(): String? = when {
         proxyTransferApplied -> null

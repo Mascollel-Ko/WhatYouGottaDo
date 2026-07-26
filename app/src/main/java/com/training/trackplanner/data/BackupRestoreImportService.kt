@@ -181,42 +181,38 @@ internal class BackupRestoreImportService(
                     }
                     entryCount += 1
                 }
-            if (data.posteriorFormatPresent) {
-                posteriorCounts = restorePosteriorRows(data)
-                skipped += posteriorCounts.skipped
-                appMetaDao.upsert(
-                    AppMeta(
-                        key = StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY,
-                        value = data.posteriorBootstrapMarker
-                            ?: "completed|RESTORED_POSTERIOR_BACKUP|${System.currentTimeMillis()}"
-                    )
-                )
-                appMetaDao.upsert(
-                    AppMeta(
-                        key = StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY,
-                        value = "PERSISTED_POSTERIOR_BACKUP|${System.currentTimeMillis()}|events=${posteriorCounts.events}"
-                    )
-                )
-            } else {
-                appMetaDao.delete(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
-                appMetaDao.delete(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY)
-            }
+            strengthPosteriorCoordinator.scheduleDerivedResetRebuild()
         }
-        if (data.posteriorFormatPresent) {
-            check(strengthPosteriorCoordinator.ensureCorrectedRevision()) {
-                "Restored strength posterior correction revision did not become active."
-            }
-        }
-        if (!data.posteriorFormatPresent) {
-            check(
-                strengthPosteriorCoordinator.bootstrapIfNeeded(
-                    StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP
-                )
-            ) { "Legacy backup posterior bootstrap did not complete." }
+        skipped += data.posteriorEvents.size +
+            data.posteriorHistory.size +
+            data.posteriorModelStates.size +
+            data.curvePosteriors.size +
+            data.posteriorEvidence.size +
+            data.posteriorRevisions.size +
+            data.posteriorLocalStates.size +
+            data.posteriorLocalHistory.size +
+            data.posteriorProxyHistory.size
+        val strengthLifecycle = strengthPosteriorCoordinator.ensureCurrentRevision()
+        if (strengthLifecycle.status == StrengthAnalysisLifecycleStatus.CURRENT) {
+            val revisionKey = StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
+            posteriorCounts = PosteriorRestoreCounts(
+                events = strengthPosteriorDao.eventsForRevision(revisionKey).size,
+                history = strengthPosteriorDao.historyForRevision(revisionKey).size,
+                states = strengthPosteriorDao.modelState(
+                    StrengthModelRevisionPolicy.modelInstanceKey(revisionKey)
+                )?.let { 1 } ?: 0,
+                curves = strengthPosteriorDao.allCurvePosteriors()
+                    .count { row -> row.curveSubjectKey.startsWith("$revisionKey|") },
+                evidence = strengthPosteriorDao.evidenceForRevision(revisionKey).size,
+                revisions = strengthPosteriorDao.allRevisions().size,
+                localStates = strengthPosteriorDao.localStates(revisionKey).size,
+                localHistory = strengthPosteriorDao.localHistory(revisionKey).size,
+                proxyHistory = strengthPosteriorDao.proxyHistory(revisionKey).size
+            )
             appMetaDao.upsert(
                 AppMeta(
                     key = StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY,
-                    value = "LEGACY_BACKUP_FORWARD_BOOTSTRAP|${System.currentTimeMillis()}"
+                    value = "RAW_BACKUP_CURRENT_REBUILD|${System.currentTimeMillis()}|events=${posteriorCounts.events}"
                 )
             )
         }
@@ -239,7 +235,8 @@ internal class BackupRestoreImportService(
             posteriorLocalHistoryCount = posteriorCounts.localHistory,
             posteriorProxyTransferCount = posteriorCounts.proxyHistory,
             skippedDuplicateCount = skipped,
-            warningCount = data.warningCount
+            warningCount = data.warningCount +
+                if (strengthLifecycle.status == StrengthAnalysisLifecycleStatus.REBUILD_FAILED) 1 else 0
         )
     }
 

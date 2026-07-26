@@ -181,7 +181,8 @@ class StrengthPosteriorUpdateCoordinator(
     private val appMetaDao: AppMetaDao,
     private val posteriorDao: StrengthPosteriorDao,
     private val processor: StrengthPosteriorEventProcessor,
-    private val now: () -> Long = System::currentTimeMillis
+    private val now: () -> Long = System::currentTimeMillis,
+    private val processEvent: suspend (String) -> Boolean = { eventUuid -> processor.process(eventUuid) }
 ) {
     suspend fun state(date: String): StrengthSessionCompletionState = StrengthSessionCompletionState(
         unconfirmedSetCount = workoutDao.countUnconfirmedSetsOnDate(date),
@@ -193,12 +194,14 @@ class StrengthPosteriorUpdateCoordinator(
         reason: String = REASON_LIVE_COMPLETION,
         mutation: suspend () -> T
     ): T {
-        check(ensureCorrectedRevision()) { "Corrected strength model revision is unavailable." }
+        val trackStrengthEvent = currentRevisionAvailable()
         var pendingEventUuid: String? = null
         val result = db.withTransaction {
             val before = state(date)
             val value = mutation()
-            pendingEventUuid = enqueueIfEligibleWithinTransaction(date, before, reason)
+            if (trackStrengthEvent) {
+                pendingEventUuid = enqueueIfEligibleWithinTransaction(date, before, reason)
+            }
             value
         }
         pendingEventUuid?.let { eventUuid -> processOffUi(eventUuid) }
@@ -210,14 +213,16 @@ class StrengthPosteriorUpdateCoordinator(
         reason: String = REASON_LIVE_COMPLETION,
         mutation: suspend () -> T
     ): T {
-        check(ensureCorrectedRevision()) { "Corrected strength model revision is unavailable." }
+        val trackStrengthEvents = currentRevisionAvailable()
         val uniqueDates = dates.distinct().sorted()
         val pending = mutableListOf<String>()
         val result = db.withTransaction {
             val before = uniqueDates.associateWith { date -> state(date) }
             val value = mutation()
-            uniqueDates.mapNotNullTo(pending) { date ->
-                enqueueIfEligibleWithinTransaction(date, checkNotNull(before[date]), reason)
+            if (trackStrengthEvents) {
+                uniqueDates.mapNotNullTo(pending) { date ->
+                    enqueueIfEligibleWithinTransaction(date, checkNotNull(before[date]), reason)
+                }
             }
             value
         }
@@ -230,79 +235,82 @@ class StrengthPosteriorUpdateCoordinator(
             .forEach { event -> processOffUi(event.eventUuid) }
     }
 
-    suspend fun bootstrapIfNeeded(reason: String = REASON_INITIAL_BOOTSTRAP): Boolean {
-        if (!ensureCorrectedRevision()) return false
-        if (appMetaDao.value(BOOTSTRAP_MARKER_KEY) != null) return false
-        retryPending()
-        workoutDao.completedWorkoutDates().forEach { date ->
-            val eventUuid = db.withTransaction {
-                posteriorDao.eventBySessionKey(sessionKey(date))?.eventUuid
-                    ?: enqueueCompletedDateWithinTransaction(date, reason)
+    suspend fun ensureCurrentRevision(): StrengthAnalysisLifecycleResult {
+        val active = posteriorDao.activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+        if (
+            appMetaDao.value(REBUILD_REQUIRED_KEY) == null &&
+            active != null &&
+            StrengthModelRevisionPolicy.isCompatible(active) &&
+            posteriorDao.eventsForRevision(active.revisionKey).all { event ->
+                event.status == StrengthPosteriorEventProcessor.STATUS_PROCESSED
             }
-            if (eventUuid != null && !processOffUi(eventUuid)) return false
-        }
-        appMetaDao.upsert(
-            AppMeta(
-                key = BOOTSTRAP_MARKER_KEY,
-                value = "completed|$reason|${now()}|${StrengthPosteriorModel.MODEL_VERSION}"
-            )
-        )
-        return true
-    }
-
-    suspend fun ensureCorrectedRevision(): Boolean {
-        val current = posteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
-        if (current?.status == StrengthModelRevisionPolicy.STATUS_ACTIVE) {
-            if (!StrengthModelRevisionPolicy.isCompatible(current)) return false
+        ) {
             if (appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY) == null) {
                 appMetaDao.upsert(
                     AppMeta(
                         StrengthModelRevisionPolicy.REBUILD_MARKER_KEY,
-                        "completed|${current.revisionFingerprint}|${current.rebuildCompletedAt ?: 0L}"
+                        "completed|${active.revisionKey}|${active.revisionFingerprint}|" +
+                            "${active.rebuildCompletedAt ?: active.createdAt}"
                     )
                 )
             }
-            return true
+            return StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.CURRENT)
         }
-        if (current?.status == StrengthModelRevisionPolicy.STATUS_FAILED) return false
-        val startedAt = now()
-        db.withTransaction {
-            if (posteriorDao.allRevisions().isEmpty() &&
-                (
-                    posteriorDao.modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY) != null ||
-                        posteriorDao.eventsForRevision(StrengthModelRevisionPolicy.LEGACY_REVISION_KEY).isNotEmpty()
-                    )
-            ) {
-                posteriorDao.insertRevisionIfAbsent(StrengthModelRevisionPolicy.legacy(startedAt))
-            }
-            if (posteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY) == null) {
-                posteriorDao.insertRevisionStrict(
-                    StrengthModelRevisionPolicy.current(
-                        now = startedAt,
-                        sourceRevisionKey = posteriorDao.activeRevision()?.revisionKey
-                    )
-                )
-            }
-        }
+        return rebuildCurrentRevision()
+    }
+
+    suspend fun scheduleDerivedResetRebuild() {
+        appMetaDao.upsert(AppMeta(REBUILD_REQUIRED_KEY, StrengthModelRevisionPolicy.CORRECTION_REASON))
+        appMetaDao.delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+        appMetaDao.delete(StrengthModelRevisionPolicy.OBSOLETE_REBUILD_MARKER_KEY)
+        appMetaDao.delete(BOOTSTRAP_MARKER_KEY)
+        appMetaDao.delete(RESTORE_PROVENANCE_KEY)
+    }
+
+    private suspend fun processOffUi(eventUuid: String): Boolean =
+        withContext(Dispatchers.Default) { processEvent(eventUuid) }
+
+    private suspend fun currentRevisionAvailable(): Boolean {
+        if (appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY) == null) return false
+        val current = posteriorDao.activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+        return current != null && StrengthModelRevisionPolicy.isCompatible(current)
+    }
+
+    private suspend fun rebuildCurrentRevision(): StrengthAnalysisLifecycleResult {
         return runCatching {
+            val startedAt = now()
+            val sourceRevisionKey = posteriorDao.allRevisions()
+                .firstOrNull { revision -> revision.status == StrengthModelRevisionPolicy.STATUS_ACTIVE }
+                ?.revisionKey
+            db.withTransaction {
+                posteriorDao.clearAllStrengthDerivedData()
+                appMetaDao.delete(REBUILD_REQUIRED_KEY)
+                appMetaDao.delete(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
+                appMetaDao.delete(StrengthModelRevisionPolicy.OBSOLETE_REBUILD_MARKER_KEY)
+                appMetaDao.delete(BOOTSTRAP_MARKER_KEY)
+                appMetaDao.delete(RESTORE_PROVENANCE_KEY)
+                posteriorDao.insertRevisionStrict(
+                    StrengthModelRevisionPolicy.current(startedAt, sourceRevisionKey)
+                )
+            }
             workoutDao.completedWorkoutDates().forEach { date ->
                 val eventUuid = db.withTransaction {
-                    posteriorDao.eventBySessionKeyAndRevision(
-                        sessionKey(date),
-                        StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
-                    )?.eventUuid ?: enqueueCompletedDateWithinTransaction(
+                    enqueueCompletedDateWithinTransaction(
                         date,
                         StrengthModelRevisionPolicy.CORRECTION_REASON,
                         StrengthModelRevisionPolicy.CURRENT_REVISION_KEY
                     )
                 }
-                if (eventUuid != null && !processOffUi(eventUuid)) error("Correction rebuild event failed: $date")
+                if (eventUuid != null && !processOffUi(eventUuid)) {
+                    error("Current strength rebuild event failed: $date")
+                }
             }
             val completedAt = now()
             db.withTransaction {
                 val events = posteriorDao.eventsForRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
-                require(events.all { it.status == StrengthPosteriorEventProcessor.STATUS_PROCESSED })
-                posteriorDao.supersedeOtherRevisions(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+                require(events.all { event ->
+                    event.status == StrengthPosteriorEventProcessor.STATUS_PROCESSED
+                })
                 posteriorDao.updateRevisionStatus(
                     StrengthModelRevisionPolicy.CURRENT_REVISION_KEY,
                     StrengthModelRevisionPolicy.STATUS_ACTIVE,
@@ -310,32 +318,35 @@ class StrengthPosteriorUpdateCoordinator(
                     null,
                     null
                 )
+                val current = checkNotNull(
+                    posteriorDao.activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+                )
+                require(StrengthModelRevisionPolicy.isCompatible(current))
                 appMetaDao.upsert(
                     AppMeta(
                         StrengthModelRevisionPolicy.REBUILD_MARKER_KEY,
-                        "completed|${StrengthModelRevisionPolicy.CURRENT_REVISION_KEY}|$completedAt"
+                        "completed|${current.revisionKey}|${current.revisionFingerprint}|$completedAt"
                     )
                 )
             }
-            true
+            StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.CURRENT)
         }.getOrElse { error ->
-            posteriorDao.updateRevisionStatus(
-                StrengthModelRevisionPolicy.CURRENT_REVISION_KEY,
-                StrengthModelRevisionPolicy.STATUS_FAILED,
-                null,
-                error::class.simpleName ?: "REBUILD_FAILED",
-                error.message?.take(500)
+            val code = error::class.simpleName ?: "REBUILD_FAILED"
+            if (posteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY) != null) {
+                posteriorDao.updateRevisionStatus(
+                    StrengthModelRevisionPolicy.CURRENT_REVISION_KEY,
+                    StrengthModelRevisionPolicy.STATUS_FAILED,
+                    null,
+                    code,
+                    error.message?.take(500)
+                )
+            }
+            StrengthAnalysisLifecycleResult(
+                StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
+                code
             )
-            false
         }
     }
-
-    suspend fun scheduleLegacyBackupBootstrap() {
-        appMetaDao.delete(BOOTSTRAP_MARKER_KEY)
-    }
-
-    private suspend fun processOffUi(eventUuid: String): Boolean =
-        withContext(Dispatchers.Default) { processor.process(eventUuid) }
 
     private suspend fun enqueueIfEligibleWithinTransaction(
         date: String,
@@ -386,8 +397,8 @@ class StrengthPosteriorUpdateCoordinator(
     companion object {
         const val BOOTSTRAP_MARKER_KEY = "strength_posterior_bootstrap_v2"
         const val RESTORE_PROVENANCE_KEY = "strength_posterior_restore_provenance_v1"
+        const val REBUILD_REQUIRED_KEY = "strength_derived_reset_rebuild_required"
         const val REASON_LIVE_COMPLETION = "LIVE_SESSION_COMPLETION"
-        const val REASON_INITIAL_BOOTSTRAP = "INITIAL_INSTALLATION_BOOTSTRAP"
         const val REASON_LEGACY_BACKUP_BOOTSTRAP = "LEGACY_BACKUP_BOOTSTRAP"
         fun sessionKey(date: String): String = "date:$date"
     }

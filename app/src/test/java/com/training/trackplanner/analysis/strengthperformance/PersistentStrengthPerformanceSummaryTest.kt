@@ -5,6 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity
 import com.training.trackplanner.data.StrengthProxyTransferHistoryEntity
+import com.training.trackplanner.data.StrengthAnalysisLifecycleResult
+import com.training.trackplanner.data.StrengthAnalysisLifecycleStatus
+import com.training.trackplanner.data.StrengthModelRevisionPolicy
 import com.training.trackplanner.data.StrengthPosteriorEventEntity
 import com.training.trackplanner.data.StrengthPosteriorEvidenceEntity
 import com.training.trackplanner.data.StrengthPosteriorHistoryEntity
@@ -205,6 +208,37 @@ class PersistentStrengthPerformanceSummaryTest {
         assertEquals(1, bench.localExerciseDetails.size)
         assertEquals("Incline dumbbell press", bench.localExerciseDetails.single().exerciseName)
         assertEquals(0, summary.targetSpecificProxyViolationCount)
+    }
+
+    @Test
+    fun `failed current lifecycle suppresses legacy posterior values`() {
+        val summary = PersistentStrengthPerformanceSummaryBuilder.build(
+            registry = registry,
+            modelState = StrengthPosteriorModel.toEntity(
+                StrengthPosteriorModel.initialState(registry, initialProfile = null),
+                now = 10L
+            ),
+            history = listOf(history()),
+            events = listOf(event()),
+            evidence = listOf(evidence()),
+            curvePosteriors = emptyList(),
+            currentBodyWeightKg = 82.0,
+            bootstrapProvenance = "legacy-bootstrap",
+            backupRestorationProvenance = "legacy-restore",
+            activeRevision = StrengthModelRevisionPolicy.legacy(1L).copy(
+                status = StrengthModelRevisionPolicy.STATUS_ACTIVE
+            ),
+            lifecycle = StrengthAnalysisLifecycleResult(
+                StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
+                "REBUILD_EVENT_FAILED"
+            )
+        )
+
+        assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, summary.lifecycleStatus)
+        assertEquals("REBUILD_EVENT_FAILED", summary.lifecycleDiagnosticCode)
+        assertTrue(summary.targets.isEmpty())
+        assertEquals(0, summary.eventCount)
+        assertEquals(null, summary.activeRevisionKey)
     }
 
     private fun event() = StrengthPosteriorEventEntity(
