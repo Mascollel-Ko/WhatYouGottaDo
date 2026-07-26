@@ -3690,3 +3690,18 @@ Verification
 - Documentation commit and feature-branch push are pending.
 - Full unit tests and the standard Android Debug Build workflow are explicitly
   out of scope and were not run or inspected.
+
+## v0.5.0.5 restore strength rebuild retry
+
+- 복원 후 근력 posterior 재구축 실패가 실제 event 오류 대신
+  `IllegalStateException`으로만 표시되던 경로를 수정했다.
+- revision 실패 요약에 실패한 운동일, event 오류 코드와 메시지를
+  전달한다.
+- 근력 분석 화면에 `처음부터 재시도`와 접을 수 있는 `자세히`를
+  추가했다.
+- 재시도는 원시 운동 기록을 보존하고 strength derived state만
+  초기화한 뒤 완료 세션을 날짜순으로 다시 처리한다.
+- Room schema, posterior 계산식, registry, RPE/RIR, proxy와 raw workout
+  records는 변경하지 않았다.
+- Focused lifecycle, summary, Compose UI tests와
+  `:app:compileDebugKotlin`이 통과했다.

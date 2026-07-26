@@ -137,13 +137,21 @@ internal fun BadmintonTransferAnalysisContent(
 }
 
 @Composable
-internal fun StrengthTrendAnalysisContent(performanceTrend: PerformanceTrendSummary?) {
+internal fun StrengthTrendAnalysisContent(
+    performanceTrend: PerformanceTrendSummary?,
+    rebuildRunning: Boolean = false,
+    onRetryRebuild: () -> Unit = {}
+) {
     if (performanceTrend == null) {
         InfoCard("근력운동 추이를 계산하고 있습니다.")
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        PersistentStrengthPerformanceCards(performanceTrend.persistentStrengthPerformanceSummary)
+        PersistentStrengthPerformanceCards(
+            summary = performanceTrend.persistentStrengthPerformanceSummary,
+            rebuildRunning = rebuildRunning,
+            onRetryRebuild = onRetryRebuild
+        )
         MuscleLoadShareCard(performanceTrend)
         MuscleLoadShareTrendCard(performanceTrend)
         RepRangeShareCard(performanceTrend.repRangeWeeks)

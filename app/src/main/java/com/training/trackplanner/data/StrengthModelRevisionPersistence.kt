@@ -124,7 +124,8 @@ enum class StrengthAnalysisLifecycleStatus {
 
 data class StrengthAnalysisLifecycleResult(
     val status: StrengthAnalysisLifecycleStatus,
-    val diagnosticCode: String? = null
+    val diagnosticCode: String? = null,
+    val diagnosticMessage: String? = null
 )
 
 object StrengthModelRevisionPolicy {

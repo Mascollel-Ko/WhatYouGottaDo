@@ -340,6 +340,12 @@ class TrainingRepository(
         performanceTrendSummaryService.build()
     }
 
+    suspend fun rebuildStrengthAnalysisFromRawHistory(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
+        strengthPosteriorCoordinator.scheduleDerivedResetRebuild()
+        strengthPosteriorCoordinator.ensureCurrentRevision()
+        performanceTrendSummaryService.build()
+    }
+
     suspend fun connectiveTissueState(): TissueCurrentState = withContext(Dispatchers.IO) {
         connectiveTissueAnalysisService.build()
     }

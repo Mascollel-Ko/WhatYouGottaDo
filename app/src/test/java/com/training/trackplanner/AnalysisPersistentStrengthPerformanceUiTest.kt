@@ -16,6 +16,7 @@ import com.training.trackplanner.analysis.strengthperformance.PersistentStrength
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthTargetSummary
 import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
+import com.training.trackplanner.data.StrengthAnalysisLifecycleStatus
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -125,6 +126,44 @@ class AnalysisPersistentStrengthPerformanceUiTest {
 
         compose.onNodeWithTag("persistent-strength-target-strength.bench_press").assertIsSelected()
         compose.onNodeWithTag("persistent-strength-target-strength.back_squat").assertIsSelected()
+    }
+
+    @Test
+    fun `failed rebuild exposes details and manual raw-history retry`() {
+        var retryCount = 0
+        val failed = summary().copy(
+            targets = emptyList(),
+            lifecycleStatus = StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
+            lifecycleDiagnosticCode = "SCALAR_GRID_FAILURE",
+            lifecycleDiagnosticMessage =
+                "실패한 운동일: 2026-07-01\n오류 유형: SCALAR_GRID_FAILURE\nposterior 계산 범위를 벗어났습니다."
+        )
+        content {
+            PersistentStrengthPerformanceCards(
+                summary = failed,
+                onRetryRebuild = { retryCount += 1 }
+            )
+        }
+
+        compose.onNodeWithText("원시 운동 기록은 삭제되지 않았습니다.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("자세히").performClick()
+        compose.onNodeWithText("진단 코드: SCALAR_GRID_FAILURE", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("실패한 운동일: 2026-07-01", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("처음부터 재시도").performClick()
+        assertEquals(1, retryCount)
+    }
+
+    @Test
+    fun `manual rebuild running state explains raw-history recalculation`() {
+        content {
+            PersistentStrengthPerformanceCards(
+                summary = summary(),
+                rebuildRunning = true
+            )
+        }
+
+        compose.onNodeWithText("보존된 운동 기록으로 근력 분석을 처음부터 다시 계산하고 있습니다.", substring = true)
+            .assertIsDisplayed()
     }
 
     private fun content(content: @androidx.compose.runtime.Composable () -> Unit) {

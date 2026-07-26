@@ -230,12 +230,14 @@ class PersistentStrengthPerformanceSummaryTest {
             ),
             lifecycle = StrengthAnalysisLifecycleResult(
                 StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
-                "REBUILD_EVENT_FAILED"
+                "REBUILD_EVENT_FAILED",
+                "실패한 운동일: 2026-07-01"
             )
         )
 
         assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, summary.lifecycleStatus)
         assertEquals("REBUILD_EVENT_FAILED", summary.lifecycleDiagnosticCode)
+        assertEquals("실패한 운동일: 2026-07-01", summary.lifecycleDiagnosticMessage)
         assertTrue(summary.targets.isEmpty())
         assertEquals(0, summary.eventCount)
         assertEquals(null, summary.activeRevisionKey)

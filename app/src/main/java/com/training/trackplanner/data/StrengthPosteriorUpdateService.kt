@@ -277,6 +277,8 @@ class StrengthPosteriorUpdateCoordinator(
     }
 
     private suspend fun rebuildCurrentRevision(): StrengthAnalysisLifecycleResult {
+        var failedEventCode: String? = null
+        var failedEventMessage: String? = null
         return runCatching {
             val startedAt = now()
             val sourceRevisionKey = posteriorDao.allRevisions()
@@ -302,7 +304,17 @@ class StrengthPosteriorUpdateCoordinator(
                     )
                 }
                 if (eventUuid != null && !processOffUi(eventUuid)) {
-                    error("Current strength rebuild event failed: $date")
+                    val failedEvent = posteriorDao.eventByUuid(eventUuid)
+                    failedEventCode = failedEvent?.errorCode ?: "REBUILD_EVENT_FAILED"
+                    failedEventMessage = buildString {
+                        appendLine("실패한 운동일: $date")
+                        appendLine("오류 유형: $failedEventCode")
+                        append(
+                            failedEvent?.errorMessage
+                                ?: "해당 날짜의 posterior event 처리에 실패했지만 추가 메시지가 없습니다."
+                        )
+                    }
+                    error(failedEventMessage)
                 }
             }
             val completedAt = now()
@@ -331,19 +343,21 @@ class StrengthPosteriorUpdateCoordinator(
             }
             StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.CURRENT)
         }.getOrElse { error ->
-            val code = error::class.simpleName ?: "REBUILD_FAILED"
+            val code = failedEventCode ?: error::class.simpleName ?: "REBUILD_FAILED"
+            val message = failedEventMessage ?: error.message?.take(500)
             if (posteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY) != null) {
                 posteriorDao.updateRevisionStatus(
                     StrengthModelRevisionPolicy.CURRENT_REVISION_KEY,
                     StrengthModelRevisionPolicy.STATUS_FAILED,
                     null,
                     code,
-                    error.message?.take(500)
+                    message
                 )
             }
             StrengthAnalysisLifecycleResult(
                 StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
-                code
+                code,
+                message
             )
         }
     }

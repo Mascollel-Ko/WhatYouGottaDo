@@ -120,6 +120,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
 
+    private val _strengthAnalysisRebuildRunning = MutableStateFlow(false)
+    val strengthAnalysisRebuildRunning: StateFlow<Boolean> = _strengthAnalysisRebuildRunning.asStateFlow()
+
     private val _connectiveTissueState = MutableStateFlow<TissueCurrentState?>(null)
     val connectiveTissueState: StateFlow<TissueCurrentState?> = _connectiveTissueState.asStateFlow()
 
@@ -521,6 +524,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun refreshPerformanceTrend() {
         viewModelScope.launch {
             refreshAnalysisSummaries()
+        }
+    }
+
+    fun retryStrengthAnalysisFromRawHistory() {
+        if (_strengthAnalysisRebuildRunning.value) return
+        _strengthAnalysisRebuildRunning.value = true
+        viewModelScope.launch {
+            try {
+                _performanceTrendSummary.value = repository.rebuildStrengthAnalysisFromRawHistory()
+            } finally {
+                _strengthAnalysisRebuildRunning.value = false
+            }
         }
     }
 

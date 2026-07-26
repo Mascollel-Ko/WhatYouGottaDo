@@ -32,6 +32,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val coachInsight by viewModel.coachAnalysisInsight.collectAsState()
     val coachingSignals by viewModel.coachingSignalsSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
+    val strengthAnalysisRebuildRunning by viewModel.strengthAnalysisRebuildRunning.collectAsState()
     val connectiveTissue by viewModel.connectiveTissueState.collectAsState()
     var destination by rememberSaveable { mutableStateOf<AnalysisDestination?>(null) }
     BackHandler(enabled = destination != null) { destination = null }
@@ -83,7 +84,11 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                         badmintonTransfer = badmintonTransfer,
                         performanceTrend = performanceTrend
                     )
-                    AnalysisDestination.STRENGTH -> StrengthTrendAnalysisContent(performanceTrend)
+                    AnalysisDestination.STRENGTH -> StrengthTrendAnalysisContent(
+                        performanceTrend = performanceTrend,
+                        rebuildRunning = strengthAnalysisRebuildRunning,
+                        onRetryRebuild = viewModel::retryStrengthAnalysisFromRawHistory
+                    )
                     AnalysisDestination.CONNECTIVE_TISSUE -> ConnectiveTissueAnalysisContent(connectiveTissue)
                     AnalysisDestination.RELATIONSHIP_LAB -> performanceTrend?.let { AnalysisLabContent(it) }
                         ?: InfoCard("관계 탐색 지표를 계산하고 있습니다.")

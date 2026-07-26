@@ -134,16 +134,23 @@ internal fun persistentStrengthGrowthHistory(
 }
 
 @Composable
-internal fun PersistentStrengthPerformanceCards(summary: PersistentStrengthPerformanceSummary?) {
+internal fun PersistentStrengthPerformanceCards(
+    summary: PersistentStrengthPerformanceSummary?,
+    rebuildRunning: Boolean = false,
+    onRetryRebuild: () -> Unit = {}
+) {
     if (summary == null) return
+    if (rebuildRunning) {
+        InfoCard("보존된 운동 기록으로 근력 분석을 처음부터 다시 계산하고 있습니다.\n시간이 걸려도 화면을 닫지 않아도 됩니다.")
+        return
+    }
     when (summary.lifecycleStatus) {
         StrengthAnalysisLifecycleStatus.REBUILDING -> {
             InfoCard("현재 근력 분석 모델로 과거 운동 기록을 재계산하고 있습니다.")
             return
         }
         StrengthAnalysisLifecycleStatus.REBUILD_FAILED -> {
-            val diagnostic = summary.lifecycleDiagnosticCode?.let { "\n진단 코드: $it" }.orEmpty()
-            InfoCard("현재 근력 분석을 재계산하지 못했습니다.$diagnostic")
+            StrengthRebuildFailureContent(summary, onRetryRebuild)
             return
         }
         StrengthAnalysisLifecycleStatus.CURRENT -> Unit
@@ -176,6 +183,39 @@ internal fun PersistentStrengthPerformanceCards(summary: PersistentStrengthPerfo
         onFocused = { targetKey -> focusedTargetKey = targetKey }
     )
     PersistentStrengthHistoryCard(selectedTargets, focusedTarget, displayMode)
+}
+
+@Composable
+private fun StrengthRebuildFailureContent(
+    summary: PersistentStrengthPerformanceSummary,
+    onRetryRebuild: () -> Unit
+) {
+    var detailsVisible by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        InfoCard("현재 근력 분석을 재계산하지 못했습니다. 원시 운동 기록은 삭제되지 않았습니다.")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onRetryRebuild) {
+                Text("처음부터 재시도")
+            }
+            TextButton(onClick = { detailsVisible = !detailsVisible }) {
+                Text(if (detailsVisible) "자세히 닫기" else "자세히")
+            }
+        }
+        if (detailsVisible) {
+            Text(
+                text = buildString {
+                    appendLine("진단 코드: ${summary.lifecycleDiagnosticCode ?: "REBUILD_FAILED"}")
+                    append(summary.lifecycleDiagnosticMessage ?: "상세 실패 메시지가 저장되지 않았습니다.")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "재시도하면 근력 분석 파생 결과만 지우고 보존된 운동 기록을 날짜순으로 다시 계산합니다.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
 }
 
 @Composable

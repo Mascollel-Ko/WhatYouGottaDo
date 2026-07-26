@@ -63,18 +63,34 @@ internal class PerformanceTrendSummaryService(
                 rebuildMarker != null &&
                 StrengthModelRevisionPolicy.isCompatible(revision)
         }
+        val failedEvent = currentRevision?.revisionKey
+            ?.let { revisionKey -> strengthPosteriorDao.eventsForRevision(revisionKey) }
+            ?.firstOrNull { event -> event.status == StrengthPosteriorEventProcessor.STATUS_FAILED }
         val lifecycle = when {
             activeRevision != null ->
                 StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.CURRENT)
             currentRevision?.status == StrengthModelRevisionPolicy.STATUS_FAILED ->
                 StrengthAnalysisLifecycleResult(
                     StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
-                    currentRevision.errorCode ?: "REBUILD_FAILED"
+                    failedEvent?.errorCode ?: currentRevision.errorCode ?: "REBUILD_FAILED",
+                    buildString {
+                        failedEvent?.sessionDate?.let { appendLine("실패한 운동일: $it") }
+                        appendLine(
+                            "오류 유형: " +
+                                (failedEvent?.errorCode ?: currentRevision.errorCode ?: "REBUILD_FAILED")
+                        )
+                        append(
+                            failedEvent?.errorMessage
+                                ?: currentRevision.errorMessage
+                                ?: "계산기가 추가 오류 메시지를 남기지 않았습니다."
+                        )
+                    }
                 )
             currentRevision != null && !StrengthModelRevisionPolicy.isCompatible(currentRevision) ->
                 StrengthAnalysisLifecycleResult(
                     StrengthAnalysisLifecycleStatus.REBUILD_FAILED,
-                    "INCOMPATIBLE_CURRENT_REVISION"
+                    "INCOMPATIBLE_CURRENT_REVISION",
+                    "현재 저장된 근력 분석 모델이 앱의 canonical 모델과 호환되지 않습니다."
                 )
             else -> StrengthAnalysisLifecycleResult(StrengthAnalysisLifecycleStatus.REBUILDING)
         }

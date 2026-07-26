@@ -262,6 +262,9 @@ class StrengthPosteriorEventIntegrationTest {
 
         val failed = coordinator(db, failProcessing = true).ensureCurrentRevision()
         assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, failed.status)
+        assertEquals("TEST_POSTERIOR_FAILURE", failed.diagnosticCode)
+        assertTrue(failed.diagnosticMessage.orEmpty().contains("실패한 운동일: 2026-07-01"))
+        assertTrue(failed.diagnosticMessage.orEmpty().contains("테스트 계산 실패"))
         assertEquals(
             StrengthModelRevisionPolicy.STATUS_FAILED,
             db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
@@ -272,6 +275,8 @@ class StrengthPosteriorEventIntegrationTest {
 
         val summary = persistentSummary(db)
         assertEquals(StrengthAnalysisLifecycleStatus.REBUILD_FAILED, summary.lifecycleStatus)
+        assertEquals("TEST_POSTERIOR_FAILURE", summary.lifecycleDiagnosticCode)
+        assertTrue(summary.lifecycleDiagnosticMessage.orEmpty().contains("테스트 계산 실패"))
         assertTrue(summary.targets.isEmpty())
         assertNull(summary.activeRevisionKey)
 
@@ -361,7 +366,17 @@ class StrengthPosteriorEventIntegrationTest {
             processor = processor,
             now = { 1_000L },
             processEvent = if (failProcessing) {
-                { false }
+                { eventUuid ->
+                    db.strengthPosteriorDao().updateEventStatus(
+                        eventUuid = eventUuid,
+                        status = StrengthPosteriorEventProcessor.STATUS_FAILED,
+                        processedAt = null,
+                        evidenceFingerprint = null,
+                        errorCode = "TEST_POSTERIOR_FAILURE",
+                        errorMessage = "테스트 계산 실패"
+                    )
+                    false
+                }
             } else {
                 { eventUuid -> processor.process(eventUuid) }
             }

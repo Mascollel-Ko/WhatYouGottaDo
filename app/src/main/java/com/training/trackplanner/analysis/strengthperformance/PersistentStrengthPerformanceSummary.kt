@@ -38,7 +38,8 @@ data class PersistentStrengthPerformanceSummary(
     val gridDiagnosticCount: Int = 0,
     val unsupportedRepetitionEvidenceCount: Int = 0,
     val lifecycleStatus: StrengthAnalysisLifecycleStatus = StrengthAnalysisLifecycleStatus.CURRENT,
-    val lifecycleDiagnosticCode: String? = null
+    val lifecycleDiagnosticCode: String? = null,
+    val lifecycleDiagnosticMessage: String? = null
 )
 
 data class PersistentStrengthTargetSummary(
@@ -277,7 +278,8 @@ object PersistentStrengthPerformanceSummaryBuilder {
                 row.observationType == StrengthObservationType.UNSUPPORTED_REPETITION_RANGE.name
             },
             lifecycleStatus = lifecycle.status,
-            lifecycleDiagnosticCode = lifecycle.diagnosticCode
+            lifecycleDiagnosticCode = lifecycle.diagnosticCode,
+            lifecycleDiagnosticMessage = lifecycle.diagnosticMessage
         )
     }
 
@@ -304,7 +306,8 @@ object PersistentStrengthPerformanceSummaryBuilder {
         rirPolicyVersion = null,
         supersededRevisionCount = supersededRevisionCount,
         lifecycleStatus = lifecycle.status,
-        lifecycleDiagnosticCode = lifecycle.diagnosticCode
+        lifecycleDiagnosticCode = lifecycle.diagnosticCode,
+        lifecycleDiagnosticMessage = lifecycle.diagnosticMessage
     )
 
     private fun StrengthExercisePerformanceHistoryEntity.proxyExclusionReason(): String? = when {
