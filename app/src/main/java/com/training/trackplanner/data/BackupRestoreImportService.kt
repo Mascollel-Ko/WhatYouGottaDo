@@ -1,6 +1,9 @@
 package com.training.trackplanner.data
 
 import androidx.room.withTransaction
+import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
+import com.training.trackplanner.analysis.strengthperformance.VersionedDoubleArrayCodec
+import com.training.trackplanner.analysis.strengthperformance.toPosterior
 
 internal class BackupRestoreImportService(
     private val db: TrainingDatabase,
@@ -199,6 +202,11 @@ internal class BackupRestoreImportService(
                 appMetaDao.delete(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY)
             }
         }
+        if (data.posteriorFormatPresent) {
+            check(strengthPosteriorCoordinator.ensureCorrectedRevision()) {
+                "Restored strength posterior correction revision did not become active."
+            }
+        }
         if (!data.posteriorFormatPresent) {
             check(
                 strengthPosteriorCoordinator.bootstrapIfNeeded(
@@ -226,6 +234,10 @@ internal class BackupRestoreImportService(
             posteriorStateCount = posteriorCounts.states,
             posteriorCurveCount = posteriorCounts.curves,
             posteriorEvidenceCount = posteriorCounts.evidence,
+            posteriorRevisionCount = posteriorCounts.revisions,
+            posteriorLocalStateCount = posteriorCounts.localStates,
+            posteriorLocalHistoryCount = posteriorCounts.localHistory,
+            posteriorProxyTransferCount = posteriorCounts.proxyHistory,
             skippedDuplicateCount = skipped,
             warningCount = data.warningCount
         )
@@ -233,6 +245,18 @@ internal class BackupRestoreImportService(
 
     private suspend fun restorePosteriorRows(data: RecordCsvImportData.Restore): PosteriorRestoreCounts {
         var counts = PosteriorRestoreCounts()
+        data.posteriorRevisions.forEach { incoming ->
+            val existing = strengthPosteriorDao.revision(incoming.revisionKey)
+            if (existing == null) {
+                strengthPosteriorDao.insertRevisionStrict(incoming)
+                counts = counts.copy(revisions = counts.revisions + 1)
+            } else {
+                require(existing == incoming) {
+                    "Strength model revision conflict: ${incoming.revisionKey}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+            }
+        }
         data.posteriorEvents.forEach { incoming ->
             val byUuid = strengthPosteriorDao.eventByUuid(incoming.eventUuid)
             if (byUuid != null) {
@@ -250,7 +274,7 @@ internal class BackupRestoreImportService(
                     "Strength posterior completion fingerprint conflict: ${incoming.completionFingerprint}"
                 }
             }
-            strengthPosteriorDao.eventBySessionKey(incoming.sessionKey)?.let { existing ->
+            strengthPosteriorDao.eventBySessionKeyAndRevision(incoming.sessionKey, incoming.revisionKey)?.let { existing ->
                 require(existing == incoming) { "Strength posterior session conflict: ${incoming.sessionKey}" }
             }
             strengthPosteriorDao.insertEventStrict(incoming)
@@ -295,7 +319,80 @@ internal class BackupRestoreImportService(
             }
         }
 
+        data.posteriorLocalHistory
+            .groupBy { history -> history.revisionKey to history.eventUuid }
+            .forEach { (key, rows) ->
+                val (revisionKey, eventUuid) = key
+                require(strengthPosteriorDao.eventByUuid(eventUuid)?.revisionKey == revisionKey) {
+                    "Strength exercise-local history has no matching revision event: $revisionKey/$eventUuid"
+                }
+                val incoming = rows.distinct().sortedBy(StrengthExercisePerformanceHistoryEntity::exerciseStableKey)
+                require(incoming.size == rows.size) {
+                    "Duplicate strength exercise-local history in backup: $revisionKey/$eventUuid"
+                }
+                val existing = strengthPosteriorDao.localHistory(revisionKey)
+                    .filter { history -> history.eventUuid == eventUuid }
+                if (existing.isEmpty()) {
+                    strengthPosteriorDao.insertLocalHistoryStrict(incoming)
+                    counts = counts.copy(localHistory = counts.localHistory + incoming.size)
+                } else {
+                    require(existing == incoming) {
+                        "Immutable strength exercise-local history conflict: $revisionKey/$eventUuid"
+                    }
+                    counts = counts.copy(skipped = counts.skipped + rows.size)
+                }
+            }
+
+        data.posteriorProxyHistory
+            .groupBy { history -> history.revisionKey to history.eventUuid }
+            .forEach { (key, rows) ->
+                val (revisionKey, eventUuid) = key
+                require(strengthPosteriorDao.eventByUuid(eventUuid)?.revisionKey == revisionKey) {
+                    "Strength proxy history has no matching revision event: $revisionKey/$eventUuid"
+                }
+                rows.forEach { history ->
+                    val loading = VersionedDoubleArrayCodec.decode(history.sharedLoadingVectorEncoded)
+                    val keys = history.orderedSharedFactorKeys.split('|').filter(String::isNotBlank)
+                    require(loading.size == keys.size && history.transferFingerprint.isNotBlank())
+                    if (revisionKey == StrengthModelRevisionPolicy.CURRENT_REVISION_KEY) {
+                        require(history.targetSpecificContribution == 0.0)
+                    }
+                }
+                val incoming = rows.distinct().sortedWith(
+                    compareBy(StrengthProxyTransferHistoryEntity::exerciseStableKey, StrengthProxyTransferHistoryEntity::targetKey)
+                )
+                require(incoming.size == rows.size) {
+                    "Duplicate strength proxy history in backup: $revisionKey/$eventUuid"
+                }
+                val existing = strengthPosteriorDao.proxyHistory(revisionKey)
+                    .filter { history -> history.eventUuid == eventUuid }
+                if (existing.isEmpty()) {
+                    strengthPosteriorDao.insertProxyHistoryStrict(incoming)
+                    counts = counts.copy(proxyHistory = counts.proxyHistory + incoming.size)
+                } else {
+                    require(existing == incoming) {
+                        "Immutable strength proxy history conflict: $revisionKey/$eventUuid"
+                    }
+                    counts = counts.copy(skipped = counts.skipped + rows.size)
+                }
+            }
+
+        data.curvePosteriors.forEach { incoming ->
+            incoming.toPosterior()
+            val existing = strengthPosteriorDao.curvePosterior(incoming.curveSubjectKey)
+            if (existing == null) {
+                strengthPosteriorDao.upsertCurvePosterior(incoming)
+                counts = counts.copy(curves = counts.curves + 1)
+            } else {
+                require(existing == incoming) {
+                    "Strength curve-posterior conflict: ${incoming.curveSubjectKey}"
+                }
+                counts = counts.copy(skipped = counts.skipped + 1)
+            }
+        }
+
         data.posteriorModelStates.forEach { incoming ->
+            StrengthPosteriorModel.fromEntity(incoming)
             val existing = strengthPosteriorDao.modelState(incoming.modelInstanceKey)
             if (existing == null) {
                 strengthPosteriorDao.upsertModelState(incoming)
@@ -308,18 +405,31 @@ internal class BackupRestoreImportService(
             }
         }
 
-        data.curvePosteriors.forEach { incoming ->
-            val existing = strengthPosteriorDao.curvePosterior(incoming.curveSubjectKey)
+        data.posteriorLocalStates.forEach { incoming ->
+            incoming.toLocalState()
+            val existing = strengthPosteriorDao.localStates(incoming.revisionKey)
+                .firstOrNull { state -> state.exerciseStableKey == incoming.exerciseStableKey }
             if (existing == null) {
-                strengthPosteriorDao.upsertCurvePosterior(incoming)
-                counts = counts.copy(curves = counts.curves + 1)
+                strengthPosteriorDao.upsertLocalStates(listOf(incoming))
+                counts = counts.copy(localStates = counts.localStates + 1)
             } else {
                 require(existing == incoming) {
-                    "Strength curve-posterior conflict: ${incoming.curveSubjectKey}"
+                    "Strength exercise-local state conflict: ${incoming.revisionKey}/${incoming.exerciseStableKey}"
                 }
                 counts = counts.copy(skipped = counts.skipped + 1)
             }
         }
+
+        val activeRevisions = strengthPosteriorDao.allRevisions()
+            .filter { revision -> revision.status == StrengthModelRevisionPolicy.STATUS_ACTIVE }
+        require(activeRevisions.size <= 1) { "Backup restores more than one active strength model revision." }
+        activeRevisions.singleOrNull()
+            ?.takeIf { revision -> revision.revisionKey == StrengthModelRevisionPolicy.CURRENT_REVISION_KEY }
+            ?.let { revision ->
+                require(StrengthModelRevisionPolicy.isCompatible(revision)) {
+                    "Active corrected strength model revision is incompatible."
+                }
+            }
         return counts
     }
 
@@ -329,6 +439,10 @@ internal class BackupRestoreImportService(
         val states: Int = 0,
         val curves: Int = 0,
         val evidence: Int = 0,
+        val revisions: Int = 0,
+        val localStates: Int = 0,
+        val localHistory: Int = 0,
+        val proxyHistory: Int = 0,
         val skipped: Int = 0
     )
 

@@ -17,6 +17,10 @@ data class RecordCsvTransferResult(
     val posteriorStateCount: Int = 0,
     val posteriorCurveCount: Int = 0,
     val posteriorEvidenceCount: Int = 0,
+    val posteriorRevisionCount: Int = 0,
+    val posteriorLocalStateCount: Int = 0,
+    val posteriorLocalHistoryCount: Int = 0,
+    val posteriorProxyTransferCount: Int = 0,
     val skippedDuplicateCount: Int = 0,
     val warningCount: Int = 0
 ) {
@@ -41,7 +45,11 @@ sealed class RecordCsvImportData {
         val posteriorHistory: List<StrengthPosteriorHistoryEntity> = emptyList(),
         val posteriorModelStates: List<StrengthPosteriorModelStateEntity> = emptyList(),
         val curvePosteriors: List<StrengthCurvePosteriorEntity> = emptyList(),
-        val posteriorEvidence: List<StrengthPosteriorEvidenceEntity> = emptyList()
+        val posteriorEvidence: List<StrengthPosteriorEvidenceEntity> = emptyList(),
+        val posteriorRevisions: List<StrengthModelRevisionEntity> = emptyList(),
+        val posteriorLocalStates: List<StrengthExercisePerformanceStateEntity> = emptyList(),
+        val posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
+        val posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList()
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -154,7 +162,7 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    private const val CURRENT_RESTORE_SCHEMA_VERSION = 5
+    private const val CURRENT_RESTORE_SCHEMA_VERSION = 6
 
     private val restoreHeader = listOf(
         "schema_version",
@@ -271,7 +279,11 @@ object RecordCsvBackupRestore {
         posteriorHistory: List<StrengthPosteriorHistoryEntity> = emptyList(),
         posteriorModelStates: List<StrengthPosteriorModelStateEntity> = emptyList(),
         curvePosteriors: List<StrengthCurvePosteriorEntity> = emptyList(),
-        posteriorEvidence: List<StrengthPosteriorEvidenceEntity> = emptyList()
+        posteriorEvidence: List<StrengthPosteriorEvidenceEntity> = emptyList(),
+        posteriorRevisions: List<StrengthModelRevisionEntity> = emptyList(),
+        posteriorLocalStates: List<StrengthExercisePerformanceStateEntity> = emptyList(),
+        posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
+        posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList()
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.id }
@@ -536,6 +548,15 @@ object RecordCsvBackupRestore {
             rowType = "strength_posterior_manifest",
             payload = StrengthPosteriorBackupCodec.encodeManifest(posteriorBootstrapMarker)
         )
+        posteriorRevisions.sortedBy(StrengthModelRevisionEntity::createdAt).forEach { revision ->
+            appendStrengthRow(
+                rowType = "strength_model_revision",
+                payload = StrengthPosteriorBackupCodec.encode(revision),
+                modelVersion = revision.modelVersion,
+                curveVersion = revision.curveVersion,
+                factorSchemaVersion = revision.factorSchemaVersion
+            )
+        }
         val eventsByUuid = posteriorEvents.associateBy(StrengthPosteriorEventEntity::eventUuid)
         posteriorEvents.sortedWith(
             compareBy(StrengthPosteriorEventEntity::sessionDate, StrengthPosteriorEventEntity::createdAt, StrengthPosteriorEventEntity::eventUuid)
@@ -594,6 +615,50 @@ object RecordCsvBackupRestore {
                 completionFingerprint = eventsByUuid[evidence.eventUuid]?.completionFingerprint.orEmpty()
             )
         }
+        posteriorLocalStates.sortedWith(
+            compareBy(StrengthExercisePerformanceStateEntity::revisionKey, StrengthExercisePerformanceStateEntity::exerciseStableKey)
+        ).forEach { state ->
+            appendStrengthRow(
+                rowType = "strength_exercise_performance_state",
+                payload = StrengthPosteriorBackupCodec.encode(state),
+                eventUuid = state.lastProcessedEventUuid,
+                modelVersion = state.modelVersion,
+                curveVersion = state.curveVersion
+            )
+        }
+        posteriorLocalHistory.sortedWith(
+            compareBy(
+                StrengthExercisePerformanceHistoryEntity::revisionKey,
+                StrengthExercisePerformanceHistoryEntity::sessionDate,
+                StrengthExercisePerformanceHistoryEntity::eventUuid,
+                StrengthExercisePerformanceHistoryEntity::exerciseStableKey
+            )
+        ).forEach { history ->
+            appendStrengthRow(
+                rowType = "strength_exercise_performance_history",
+                payload = StrengthPosteriorBackupCodec.encode(history),
+                eventUuid = history.eventUuid,
+                modelVersion = history.modelVersion,
+                curveVersion = history.curveVersion
+            )
+        }
+        posteriorProxyHistory.sortedWith(
+            compareBy(
+                StrengthProxyTransferHistoryEntity::revisionKey,
+                StrengthProxyTransferHistoryEntity::sessionDate,
+                StrengthProxyTransferHistoryEntity::eventUuid,
+                StrengthProxyTransferHistoryEntity::exerciseStableKey,
+                StrengthProxyTransferHistoryEntity::targetKey
+            )
+        ).forEach { history ->
+            appendStrengthRow(
+                rowType = "strength_proxy_transfer_history",
+                payload = StrengthPosteriorBackupCodec.encode(history),
+                eventUuid = history.eventUuid,
+                targetKey = history.targetKey,
+                modelVersion = history.modelVersion
+            )
+        }
         return builder.toString()
     }
 
@@ -634,6 +699,10 @@ object RecordCsvBackupRestore {
         val posteriorModelStates = mutableListOf<StrengthPosteriorModelStateEntity>()
         val curvePosteriors = mutableListOf<StrengthCurvePosteriorEntity>()
         val posteriorEvidence = mutableListOf<StrengthPosteriorEvidenceEntity>()
+        val posteriorRevisions = mutableListOf<StrengthModelRevisionEntity>()
+        val posteriorLocalStates = mutableListOf<StrengthExercisePerformanceStateEntity>()
+        val posteriorLocalHistory = mutableListOf<StrengthExercisePerformanceHistoryEntity>()
+        val posteriorProxyHistory = mutableListOf<StrengthProxyTransferHistoryEntity>()
         rows.forEachIndexed { rowIndex, row ->
             backupSchemaVersion = maxOf(backupSchemaVersion, row.safeInt(index, "schema_version") ?: 1)
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
@@ -642,6 +711,11 @@ object RecordCsvBackupRestore {
                 "strength_posterior_manifest" -> {
                     posteriorFormatPresent = true
                     posteriorBootstrapMarker = StrengthPosteriorBackupCodec.decodeManifest(posteriorPayload)
+                    return@forEachIndexed
+                }
+                "strength_model_revision" -> {
+                    posteriorFormatPresent = true
+                    posteriorRevisions += StrengthPosteriorBackupCodec.decodeRevision(posteriorPayload)
                     return@forEachIndexed
                 }
                 "strength_posterior_event" -> {
@@ -690,6 +764,26 @@ object RecordCsvBackupRestore {
                         requireVisibleValue(row, index, "strength_target_key", target)
                     }
                     posteriorEvidence += entity
+                    return@forEachIndexed
+                }
+                "strength_exercise_performance_state" -> {
+                    posteriorFormatPresent = true
+                    posteriorLocalStates += StrengthPosteriorBackupCodec.decodeLocalState(posteriorPayload)
+                    return@forEachIndexed
+                }
+                "strength_exercise_performance_history" -> {
+                    posteriorFormatPresent = true
+                    val entity = StrengthPosteriorBackupCodec.decodeLocalHistory(posteriorPayload)
+                    requireVisibleValue(row, index, "strength_event_uuid", entity.eventUuid)
+                    posteriorLocalHistory += entity
+                    return@forEachIndexed
+                }
+                "strength_proxy_transfer_history" -> {
+                    posteriorFormatPresent = true
+                    val entity = StrengthPosteriorBackupCodec.decodeProxyHistory(posteriorPayload)
+                    requireVisibleValue(row, index, "strength_event_uuid", entity.eventUuid)
+                    requireVisibleValue(row, index, "strength_target_key", entity.targetKey)
+                    posteriorProxyHistory += entity
                     return@forEachIndexed
                 }
             }
@@ -874,7 +968,11 @@ object RecordCsvBackupRestore {
             posteriorHistory = posteriorHistory,
             posteriorModelStates = posteriorModelStates,
             curvePosteriors = curvePosteriors,
-            posteriorEvidence = posteriorEvidence
+            posteriorEvidence = posteriorEvidence,
+            posteriorRevisions = posteriorRevisions,
+            posteriorLocalStates = posteriorLocalStates,
+            posteriorLocalHistory = posteriorLocalHistory,
+            posteriorProxyHistory = posteriorProxyHistory
         )
     }
 

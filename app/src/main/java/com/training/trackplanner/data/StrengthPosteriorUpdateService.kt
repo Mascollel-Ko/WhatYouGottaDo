@@ -253,6 +253,7 @@ class StrengthPosteriorUpdateCoordinator(
     suspend fun ensureCorrectedRevision(): Boolean {
         val current = posteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
         if (current?.status == StrengthModelRevisionPolicy.STATUS_ACTIVE) {
+            if (!StrengthModelRevisionPolicy.isCompatible(current)) return false
             if (appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY) == null) {
                 appMetaDao.upsert(
                     AppMeta(
@@ -267,7 +268,10 @@ class StrengthPosteriorUpdateCoordinator(
         val startedAt = now()
         db.withTransaction {
             if (posteriorDao.allRevisions().isEmpty() &&
-                posteriorDao.modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY) != null
+                (
+                    posteriorDao.modelState(StrengthPosteriorModel.MODEL_INSTANCE_KEY) != null ||
+                        posteriorDao.eventsForRevision(StrengthModelRevisionPolicy.LEGACY_REVISION_KEY).isNotEmpty()
+                    )
             ) {
                 posteriorDao.insertRevisionIfAbsent(StrengthModelRevisionPolicy.legacy(startedAt))
             }

@@ -28,6 +28,16 @@ internal class BackupExportService(
         val posteriorStates = strengthPosteriorDao.allModelStates()
         val curvePosteriors = strengthPosteriorDao.allCurvePosteriors()
         val posteriorEvidence = strengthPosteriorDao.allEvidence()
+        val posteriorRevisions = strengthPosteriorDao.allRevisions()
+        val posteriorLocalStates = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.localStates(revision.revisionKey)
+        }
+        val posteriorLocalHistory = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.localHistory(revision.revisionKey)
+        }
+        val posteriorProxyHistory = posteriorRevisions.flatMap { revision ->
+            strengthPosteriorDao.proxyHistory(revision.revisionKey)
+        }
         val csv = RecordCsvBackupRestore.buildRestoreCsv(
             entriesWithSets = entries,
             metrics = metrics,
@@ -45,7 +55,11 @@ internal class BackupExportService(
             posteriorHistory = posteriorHistory,
             posteriorModelStates = posteriorStates,
             curvePosteriors = curvePosteriors,
-            posteriorEvidence = posteriorEvidence
+            posteriorEvidence = posteriorEvidence,
+            posteriorRevisions = posteriorRevisions,
+            posteriorLocalStates = posteriorLocalStates,
+            posteriorLocalHistory = posteriorLocalHistory,
+            posteriorProxyHistory = posteriorProxyHistory
         )
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
@@ -63,7 +77,11 @@ internal class BackupExportService(
             posteriorHistoryCount = posteriorHistory.size,
             posteriorStateCount = posteriorStates.size,
             posteriorCurveCount = curvePosteriors.size,
-            posteriorEvidenceCount = posteriorEvidence.size
+            posteriorEvidenceCount = posteriorEvidence.size,
+            posteriorRevisionCount = posteriorRevisions.size,
+            posteriorLocalStateCount = posteriorLocalStates.size,
+            posteriorLocalHistoryCount = posteriorLocalHistory.size,
+            posteriorProxyTransferCount = posteriorProxyHistory.size
         )
     }
 }

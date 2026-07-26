@@ -3485,3 +3485,27 @@ Verification
   Room `22 -> 23` migration source preserves a representative legacy event
   byte-for-byte while creating empty correction tables; runtime migration
   execution still requires an attached emulator or device.
+
+### Backup schema 6
+- Incremented the restore CSV schema from 5 to 6 without removing any existing
+  posterior row type. Added `strength_model_revision`,
+  `strength_exercise_performance_state`,
+  `strength_exercise_performance_history`, and
+  `strength_proxy_transfer_history`.
+- The existing field codec now writes version 2 payloads while accepting
+  version 1 payloads. A schema 5 event without `revisionKey` is assigned only
+  to the legacy revision during decoding; parsing does not fabricate corrected
+  rows.
+- Restore preserves exact ACTIVE and SUPERSEDED revision metadata, immutable
+  local history, proxy vectors/checksums, curve state, global state, and local
+  current state. Exact duplicates are skipped and conflicting immutable rows
+  fail closed.
+- A complete compatible corrected revision is restored without recomputation.
+  A backup without corrected revision rows schedules exactly one
+  `MODEL_CORRECTION_REBUILD_0_5_0_3` through the normal background
+  coordinator.
+- Focused `StrengthPosteriorBackupRestoreTest` and
+  `RecordCsvBackupRestoreTest` pass with tasks rerun. Coverage includes exact
+  repository export/import, ACTIVE and SUPERSEDED metadata, schema 5 v1 event
+  compatibility, old-backup correction scheduling, deterministic vector
+  validation, duplicate idempotency, and conflict rejection.

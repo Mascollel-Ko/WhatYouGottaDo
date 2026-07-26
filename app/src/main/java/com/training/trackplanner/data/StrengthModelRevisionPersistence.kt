@@ -177,6 +177,10 @@ object StrengthModelRevisionPolicy {
     fun curveSubjectKey(revisionKey: String, subjectKey: String): String = "$revisionKey|$subjectKey"
     fun originalCurveSubjectKey(revisionKey: String, storedKey: String): String =
         storedKey.removePrefix("$revisionKey|")
+
+    fun isCompatible(revision: StrengthModelRevisionEntity): Boolean =
+        revision.revisionKey == CURRENT_REVISION_KEY &&
+            revision.revisionFingerprint == current(now = 0L, sourceRevisionKey = null).revisionFingerprint
 }
 
 fun StrengthExerciseLocalState.toEntity(revisionKey: String, now: Long): StrengthExercisePerformanceStateEntity {
