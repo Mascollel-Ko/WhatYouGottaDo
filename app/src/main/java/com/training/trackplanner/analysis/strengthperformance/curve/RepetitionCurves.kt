@@ -177,8 +177,8 @@ class RepetitionCurveRegistry private constructor(
             sourceBytes: ByteArray,
             assignmentBytes: ByteArray
         ): RepetitionCurveRegistry {
-            val profileChecksum = sha256(profileBytes)
-            val sourceChecksum = sha256(sourceBytes)
+            val profileChecksum = sha256(canonicalTextBytes(profileBytes))
+            val sourceChecksum = sha256(canonicalTextBytes(sourceBytes))
             val manifestRows = csvRows(manifestBytes.decodeToString())
             require(manifestRows.isNotEmpty()) { "Repetition-curve manifest is empty." }
             val provenance = manifestRows.associate { row ->
@@ -254,6 +254,11 @@ class RepetitionCurveRegistry private constructor(
         private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
             .digest(bytes)
             .joinToString("") { byte -> "%02x".format(byte) }
+
+        private fun canonicalTextBytes(bytes: ByteArray): ByteArray = bytes.decodeToString()
+            .replace("\r\n", "\n")
+            .replace('\r', '\n')
+            .encodeToByteArray()
 
         private const val ASSET_DIRECTORY = "strength_performance"
         private const val PROFILE_FILE = "repetition_curve_profiles_v1.csv"

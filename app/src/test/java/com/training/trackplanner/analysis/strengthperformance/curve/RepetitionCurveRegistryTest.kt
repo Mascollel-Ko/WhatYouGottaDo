@@ -37,6 +37,27 @@ class RepetitionCurveRegistryTest {
     }
 
     @Test
+    fun `asset checksums are stable across Windows line endings`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        fun bytes(name: String): ByteArray = context.assets
+            .open("strength_performance/$name")
+            .use { input -> input.readBytes() }
+        fun windows(bytes: ByteArray): ByteArray = bytes.decodeToString()
+            .replace("\r\n", "\n")
+            .replace("\n", "\r\n")
+            .encodeToByteArray()
+
+        val windowsRegistry = RepetitionCurveRegistry.fromAssets(
+            profileBytes = windows(bytes("repetition_curve_profiles_v1.csv")),
+            manifestBytes = windows(bytes("repetition_curve_manifest_v1.csv")),
+            sourceBytes = windows(bytes("repetition_curve_source_v1.csv")),
+            assignmentBytes = windows(bytes("repetition_curve_assignments_v1.csv"))
+        )
+
+        assertEquals(registry.profiles(), windowsRegistry.profiles())
+    }
+
+    @Test
     fun `bench and leg press profiles remain distinct`() {
         val bench = checkNotNull(registry.profile(RepetitionCurveProfileId("reps_curve.bench_press.v1")))
         val legPress = checkNotNull(registry.profile(RepetitionCurveProfileId("reps_curve.leg_press.v1")))
