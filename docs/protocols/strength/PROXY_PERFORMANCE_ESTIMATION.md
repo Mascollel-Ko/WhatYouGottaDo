@@ -3,25 +3,27 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-PROXY-PERFORMANCE |
-| Protocol version | 2.1.0 |
+| Protocol version | 3.0.0 |
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.2 |
-| Last audited commit | be0e848 |
+| Implemented from app version | v0.5.0.3 |
+| Last audited commit | aedf260 |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
-| Supersedes | 2.0.0 |
+| Supersedes | 2.1.0 |
 
-이 문서는 완료 세션 이벤트로만 갱신되는 벤치프레스, 스쿼트, 데드리프트, 중량 풀업 수행능력 사후분포의 단일 canonical 계약입니다. v0.5.0.1의 화면 진입 시 재계산 프록시 posterior는 권위 경로에서 제외되며, 기존 Epley 계열은 과거 비교값으로만 남습니다.
+이 문서는 완료 세션 이벤트로만 갱신되는 벤치프레스, 스쿼트, 데드리프트, 중량 풀업 수행능력 사후분포의 단일 canonical 계약입니다. v3은 보고 RPE를 단일 RIR로 치환하지 않고 확률분포로 적분하며, 같은 세션의 공통 컨디션 효과와 exercise-local 수행 변화를 분리합니다. 프록시는 다른 운동의 절대 kg를 옮기지 않고 검토된 shared factor에 local innovation만 전달합니다. v0.5.0.1의 화면 진입 시 재계산 엔진과 기존 Epley 계열은 권위 경로가 아닙니다.
 
 ## 1. 일반 사용자용 요약
 
-운동 세션이 실제로 완료될 때 확인된 세트와 관련 운동의 제한된 신호를 반영해 현재 수행능력의 중앙값과 80% 범위를 갱신합니다. 과거 그래프는 당시 저장된 값을 그대로 보여 주며, 이후 기록 수정·삭제나 체중 변경으로 다시 쓰지 않습니다. 결과는 수행능력 추정이지 직접 측정값이나 경기력 보장이 아닙니다.
+운동 세션이 실제로 완료될 때 확인된 세트와 관련 운동의 제한된 변화 신호를 반영해 현재 수행능력의 중앙값과 80% 범위를 갱신합니다. RPE는 가능한 RIR들의 확률 혼합으로 처리하고, RPE가 없으면 하한 정보로만 사용합니다. 과거 그래프는 당시 저장된 값을 그대로 보여 주며, 이후 기록 수정·삭제나 체중 변경으로 다시 쓰지 않습니다. 결과는 수행능력 추정이지 직접 측정값이나 경기력 보장이 아닙니다.
 
 ## 2. 목적
 
 - 직접 1RM 사이의 간격을 비선형 반복 곡선과 sparse proxy factor로 보수적으로 연결합니다.
 - 화면 조회가 아니라 완료 이벤트를 유일한 update 원인으로 만듭니다.
 - 세션 전 prior, 세션 관측, 세션 후 posterior와 버전·곡선·체중 출처를 불변 이력으로 보존합니다.
+- exercise-local posterior에서 운동 자체 변화를 먼저 추정하고, 검토된 shared innovation만 target posterior에 전달합니다.
+- 수정된 likelihood를 별도 revision에서 결정론적으로 재생해 과거 수치와 현재 권위 상태를 함께 보존합니다.
 - 신규 target을 enum·Room column 추가 없이 string registry row로 확장할 수 있게 합니다.
 
 ## 3. 적용 범위
@@ -54,61 +56,93 @@
 - `prior`: 해당 event의 evidence를 넣기 직전 분포입니다.
 - `immutable history`: 처리 시점의 prior, observation, posterior와 출처를 저장한 행입니다.
 - `curve assignment`: 운동별 curve profile, match level과 variance multiplier의 명시적 registry row입니다.
-- `proxy loading`: exercise stable key 또는 reviewed runtime metadata에서 target factor로 향하는 제한된 loading이며 repetition curve assignment와 독립입니다.
-- `실패 상한`: confirmed 0회·RPE 10 시도에서 당시 resolved load를 수행능력의 보수적 upper bound로 쓰는 음의 신호입니다.
+- `RIR mixture`: 보고 RPE에 대해 가능한 RIR 값과 확률을 보존한 이산분포입니다.
+- `exercise-local posterior`: 동일 stable key 세션만으로 갱신되는 운동 자체의 log-capacity 분포입니다.
+- `local innovation`: 현재 세션 likelihood 중심과 직전 local prior 중심의 log 차이입니다.
+- `proxy loading`: local innovation을 target의 검토된 shared factor에만 전달하는 제한된 loading이며 repetition curve assignment와 독립입니다.
+- `실패 상한`: confirmed 0회·RPE 10 시도에서 당시 resolved load를 수행능력의 보수적 upper-censored 신호로 쓰는 음의 근거입니다.
 
 ## 6. 입력 데이터
 
-확인된 세트만 사용하며 canonical curve 범위는 1~12회입니다. direct target과 curve는 stable-key registry로 결정합니다. reviewed stable-key proxy row가 있으면 항상 우선하며, row가 없는 운동은 `estimated1RmEligible=true`, `needsReview=false`인 경우에만 movement pattern, progression group, family, equipment 같은 persisted metadata로 낮은 loading의 proxy를 만들 수 있습니다. display name은 이 fallback에 사용하지 않습니다.
+확인된 세트만 사용하며 canonical curve 범위는 1~20회입니다. direct target과 curve는 stable-key registry로 결정합니다. reviewed stable-key proxy row가 있으면 항상 우선하며, row가 없는 운동은 `estimated1RmEligible=true`, `needsReview=false`인 경우에만 movement pattern, progression group, family, equipment 같은 persisted metadata로 낮은 loading의 proxy를 만들 수 있습니다. display name은 이 fallback에 사용하지 않습니다.
 
 중량 풀업의 primary state는 추가중량이 아니라 `당시 체중 + 당시 추가중량`인 총부하입니다. 체중 우선순위는 exact-date check-in/metric, 가장 최근 이전 값, initial profile입니다. 값이 오래될수록 load variance가 증가하며 체중이 없으면 direct weighted-pull-up observation을 만들지 않습니다. assisted pull-up은 `bodyweight - assistance` semantics이고 direct anchor가 아닙니다.
 
 ## 7. 계산 또는 분류 계약
 
-Epley 식은 새 likelihood에 들어가지 않습니다. 곡선 `q(r)`은 `q(1) = 1`인 relative load이며 reviewed knot 사이를 deterministic monotone PCHIP으로 보간합니다. 유효 범위 밖 반복수는 fail closed입니다.
+Epley 식은 새 likelihood에 들어가지 않습니다. 곡선 `q(r)`은 `q(1) = 1`인 relative load이며 reviewed knot 사이를 deterministic monotone PCHIP으로 보간합니다. 유효 범위 밖 반복수는 `UNSUPPORTED_REPETITION_RANGE`로 fail closed입니다.
 
-- 1회 RPE 10: observation center는 resolved load와 정확히 같고 `DIRECT_1RM`입니다.
-- 다회 RPE 10: `load / q(reps)`의 `STRONG_NRM` 관측이며 개인 curve calibration에 들어갈 수 있습니다.
-- 0회 RPE 10: 성공한 1RM으로 해석하지 않고 당시 resolved load의 `FAILURE_UPPER_BOUND`로 처리합니다. 예측 capacity가 그 상한보다 높을 때만 큰 uncertainty로 하향 보정합니다.
-- RPE < 10: RIR을 정밀 점추정하지 않고 더 큰 uncertainty 또는 conservative lower-bound로 처리합니다.
-- RPE 누락: RIR 0으로 가장하지 않고 `MISSING_RPE_LOWER_BOUND`로 처리합니다.
-- 같은 exercise·date의 여러 set: 상관된 독립 관측 여러 개가 아니라 한 session observation으로 집계합니다. 모순되는 set은 진단과 추가 분산을 만듭니다.
+성공 세트의 resolved load를 `w`, 반복수를 `r`, 가능한 RIR을 `k`라 하면 해당 mixture component의 log-capacity 중심은 다음과 같습니다.
+
+`z_k = log(w / q(r + k))`
+
+보고 RPE `e`의 이산 정책 `P(K=k | e)`를 사용해 두 방향 likelihood를 구성합니다.
+
+`L_set(c) = sum_k P(K=k | e) Normal(c; z_k, sigma_k^2)`
+
+- 1회 RPE 10: RIR 0의 점질량이며 `DIRECT_1RM`입니다.
+- 다회 RPE 10: `w / q(r)` 중심의 `STRONG_NRM`이며 개인 curve calibration에 들어갈 수 있습니다.
+- RPE 6.0~9.5: checked-in `strength-rpe-rir-policy-1.0.0`의 확률질량을 한 번만 반영한 `RPE_MIXTURE_OBSERVATION`입니다. 반 단위가 아닌 값은 인접 정책행을 선형 혼합합니다.
+- RPE 누락: RIR 0으로 가장하지 않고 `w / q(r)`를 최소 수행 가능치로 보는 `MISSING_RPE_LOWER_CENSORED`입니다. 별도 양방향 중심을 만들지 않습니다.
+- 0회 RPE 10: 성공 관측으로 해석하지 않고 resolved load를 상한으로 보는 `FAILURE_UPPER_CENSORED`입니다.
+- 반복수, RPE, 중량 또는 곡선이 지원되지 않으면 값을 보간·대체하지 않고 명시적 제외 근거를 저장합니다.
+
+같은 exercise·date의 세트는 독립 컨디션으로 곱하지 않습니다. 공통 세션 효과 `d ~ Normal(0, tau_session^2)`를 두고 다음을 15-node Gauss-Hermite로 결정론적 적분합니다.
+
+`L_session(c) = integral Normal(d; 0, tau_session^2) product_i L_i(c + d) dd`
+
+이 likelihood와 Gaussian prior는 고정 1,025-point adaptive scalar grid에서 결합합니다. grid 경계 질량이 크면 제한 횟수만 확장하고, fingerprint와 진단을 evidence에 저장합니다. 두 방향 likelihood가 있는 운동은 exercise-local posterior를 먼저 갱신합니다. 첫 proper observation은 local baseline만 만들고 proxy 전이를 하지 않습니다. 이후 proper observation의 local innovation은 다음과 같습니다.
+
+`delta_local = E[log C_session] - E[log C_local_prior]`
+
+reviewed `LOCAL_INNOVATION_SHARED_ONLY` row가 최소 local history를 충족하면 target별 계수 `alpha`와 shared loading vector `h_shared`로만 전이합니다.
+
+`y_proxy = alpha * delta_local`
+
+`H_proxy = alpha * h_shared`
+
+`Var(y_proxy) = Var(delta_local) + sigma_transfer^2`
+
+`H_proxy`의 모든 `strength.factor.target.*` 좌표는 반드시 0입니다. 여러 proxy innovation은 evidence fingerprint 순으로 정렬해 한 Gaussian batch update로 처리합니다. 다른 운동의 절대 kg, target-specific factor, tissue state, OFI, readiness는 이 경로에 들어오지 않습니다.
 
 상태는 target-specific log capacity factor와 다음 shared factor의 sparse schema로 구성됩니다.
 
 `strength.factor.press_shared`, `strength.factor.horizontal_press`, `strength.factor.elbow_extension`, `strength.factor.knee_extension`, `strength.factor.hip_extension_posterior_chain`, `strength.factor.trunk_bracing`, `strength.factor.vertical_pull_shared`, `strength.factor.shoulder_adduction_extension`, `strength.factor.elbow_flexion`, `strength.factor.scapular_depression_control`.
 
-각 target은 `strength.factor.target.<target>` factor를 가집니다. covariance update는 Joseph form, 강제 symmetry와 양의 diagonal floor를 사용합니다. non-finite state·observation·variance는 fail closed입니다. 저장 벡터는 차원, little-endian order와 SHA-256 checksum을 포함하고 covariance는 lower triangle로 pack합니다.
+각 target은 `strength.factor.target.<target>` factor를 가집니다. 직접 anchor만 absolute target likelihood를 통해 해당 좌표를 갱신할 수 있습니다. covariance update는 Joseph form, 강제 symmetry와 양의 diagonal floor를 사용합니다. non-finite state·observation·variance는 fail closed입니다. 저장 벡터는 차원, little-endian order와 SHA-256 checksum을 포함하고 covariance는 lower triangle로 pack합니다.
 
 ## 8. 집계 방식
 
 완료 상태는 날짜 session key에서 `unconfirmed > 0`이던 상태가 `unconfirmed == 0`이 되고 confirmed set이 하나 이상 남는 전이입니다. 마지막 planned set 삭제도 confirmed set이 남으면 완료할 수 있지만 모든 set 삭제는 event가 아닙니다. PENDING event는 record mutation transaction 안에서 completion fingerprint와 함께 삽입됩니다.
 
-처리는 날짜·event UUID 순으로 결정론적이며 `Dispatchers.Default`에서 실행됩니다. evidence, history, current state, curve posterior와 PROCESSED 상태는 한 transaction으로 commit됩니다. 실패하면 partial posterior row 없이 FAILED/PENDING event를 재시도합니다. 같은 session/completion fingerprint는 두 번째 event를 만들지 않습니다. UI의 `관련 세션` 수는 target history의 distinct event UUID 수이며 direct anchor뿐 아니라 허용된 variation/proxy와 실패 신호도 포함합니다.
+처리는 날짜·event UUID 순으로 결정론적이며 `Dispatchers.Default`에서 실행됩니다. evidence, target history, exercise-local history/state, proxy-transfer history, current state, curve posterior와 PROCESSED 상태는 revision 안에서 transaction으로 commit됩니다. 실패하면 partial posterior row 없이 FAILED/PENDING event를 재시도합니다. 같은 revision/session/completion fingerprint는 두 번째 event를 만들지 않습니다. UI의 `관련 세션` 수는 active revision target history의 distinct event UUID 수이며 direct anchor뿐 아니라 적용된 variation/proxy와 실패 신호도 포함합니다.
 
 과거 history는 event·target 복합키의 filtered snapshot입니다. 미래 smoothing을 하지 않으며 이후 세션, curve 보정, 앱 model version, 원본 수정·삭제는 숫자를 바꾸지 않습니다. 원본 삭제는 `sourceEvidenceStatus`만 변경할 수 있습니다.
 
+v3 correction은 `strength-revision-3.0.0`을 `BUILDING`으로 만든 뒤 기존 완료 세션을 날짜순으로 재생합니다. 모든 event가 성공한 transaction에서만 새 revision을 `ACTIVE`로 승격하고 이전 revision을 `SUPERSEDED`로 보존합니다. 앱 중단 후에는 이미 저장된 event/history를 재사용해 이어서 실행하며 숫자 행을 중복 생성하지 않습니다. 분석 화면은 ACTIVE revision만 읽습니다.
+
 ## 9. 출력과 UI 해석
 
-target selector는 registry의 enabled target을 읽습니다. primary card는 posterior median, 80% interval, 최신 직접 1RM, 관련 세션과 직접/nRM/proxy/실패 count, curve calibration, 최근 처리 세션, model/curve version을 보여 줍니다.
+target selector는 registry의 enabled target을 읽습니다. primary card는 posterior median, 80% interval, 최신 직접 1RM, 관련 세션과 직접 1RM/RPE 확률 관측/강한 nRM/적용된 proxy innovation/실패 count, curve calibration, 최근 처리 세션, active revision, RIR policy와 model/curve version을 보여 줍니다.
 
-이력 상세는 저장된 행의 세션 전 추정·80% 범위, 실제 또는 세트 기반 관측, 세션 후 추정·80% 범위, 중앙값/구간폭 변화, 예측분포 내 위치, 강한 관측 종류, curve profile/match를 보여 줍니다. 중량 풀업은 당시 체중·추가중량·총부하·체중 출처를 저장값으로 표시하고, 현재 카드는 current bodyweight를 사용한 추가중량 equivalent를 별도 표시합니다.
+이력 상세는 저장된 target 행의 세션 전 추정·80% 범위, 실제 또는 세트 기반 관측, 세션 후 추정·80% 범위, 중앙값/구간폭 변화, 예측분포 내 위치, 강한 관측 종류, curve profile/match를 보여 줍니다. 관련 운동 상세는 local prior, session likelihood, local innovation, local posterior와 shared-only proxy 적용/제외 이유를 구분합니다. 프록시 운동의 절대 중량은 target 운동의 kg로 표시하거나 직접 환산하지 않습니다. 중량 풀업은 당시 체중·추가중량·총부하·체중 출처를 저장값으로 표시하고, 현재 카드는 current bodyweight를 사용한 추가중량 equivalent를 별도 표시합니다.
 
-기존 Epley 그래프는 `기존 공식 환산값`으로 표시하며 역사 비교용이고 새 posterior model에 사용되지 않는다고 설명합니다. Lab은 event ledger, fingerprint, model/curve boundary, numerical diagnostics, backup restore와 bootstrap provenance를 보여 주며 Bayesian 시계열 Lab과 명시적으로 분리합니다.
+기존 Epley 그래프는 `기존 공식 환산값`으로 표시하며 역사 비교용이고 새 posterior model에 사용되지 않는다고 설명합니다. Lab은 active/superseded revision, rebuild provenance, event ledger, local state, applied proxy, target-specific proxy violation, fingerprint, model/curve/RIR boundary, numerical diagnostics, backup restore와 bootstrap provenance를 보여 주며 Bayesian 시계열 Lab과 명시적으로 분리합니다.
 
 ## 10. 예외 및 fallback
 
 - direct target이나 curve assignment가 없으면 강한 이름 기반 추정을 만들지 않습니다.
 - exact exercise curve가 없으면 명시적 borrowed assignment 또는 `GENERAL_FALLBACK`을 사용하고 variance multiplier를 높입니다.
 - 체중이 필요한 semantics에서 체중을 구하지 못하면 zero를 대입하지 않고 해당 direct observation을 제외합니다.
-- observation이 prior lower bound보다 약하면 상태를 억지로 낮추지 않을 수 있습니다.
-- 실패 상한이 현재 예측보다 높으면 이미 충족하는 제한이므로 상태를 억지로 낮추지 않습니다.
+- RPE mixture의 지원되는 확률질량이 0.80 미만이면 양방향 관측을 만들지 않습니다.
+- lower/upper-censored evidence는 scalar likelihood로 결합하며 임의의 point estimate로 바꾸지 않습니다.
+- first proper local observation은 baseline만 설정하고 shared proxy update를 만들지 않습니다.
 - source record가 처리 후 삭제돼도 숫자는 유지하고 source availability만 표시합니다.
-- model/factor version이 현재 decoder와 호환되지 않으면 state를 재해석하지 않고 저장 history를 표시하며 진단을 남깁니다.
+- model revision, factor schema, target/proxy registry, curve, RIR policy 또는 grid가 호환되지 않으면 해당 revision을 ACTIVE로 사용하지 않습니다.
 
 ## 11. 개인화 또는 보정
 
-개인 curve는 canonical profile을 중심으로 고정된 bounded theta grid에서만 보정합니다. 다회 RPE 10 strong evidence만 weight update에 사용하고 unrelated exercise를 합치지 않습니다. strong observation 2개 전에는 `CANONICAL_ONLY`, 이후 충분도에 따라 `CALIBRATING`, 서로 다른 rep range 3개와 strong observation 6개 이상이면 `PERSONALIZED`가 될 수 있습니다. posterior weights는 항상 finite, non-negative, sum 1이어야 합니다.
+개인 curve는 canonical profile을 중심으로 고정된 bounded theta grid에서만 보정합니다. 다회 RPE 10 strong evidence만 weight update에 사용하고 unrelated exercise를 합치지 않습니다. strong observation 2개 전에는 `CANONICAL_ONLY`, 이후 충분도에 따라 `CALIBRATING`, 서로 다른 rep range 3개와 strong observation 6개 이상이면 `PERSONALIZED`가 될 수 있습니다. RPE mixture와 censored evidence는 curve 개인화 weight를 직접 갱신하지 않습니다. posterior weights는 항상 finite, non-negative, sum 1이어야 합니다.
 
 개인 curve가 바뀌어도 이미 저장된 history의 curve profile, match, calibration, interval과 당시 load snapshot은 다시 계산하지 않습니다.
 
@@ -121,7 +155,7 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - reviewed general table: `da67c15cbca59d77cb037ae8c9a89ec223613233839924eb72047c31cafd9f9d`
 - reviewed exercise table: `5c8f8a6cb719f064346e8f9cc910d196daa9c340b86626895e822daf930445aa`
 
-생성된 profile asset checksum은 `29cfcc0013e6a997db199b09a94ba10cff9176a3d916641251c6986e01362b1c`, reviewed source table checksum은 `63dc6bf18f3e48ff201e511a4c42ec9e7f64aaca956acc5232b90942d6e11bc2`입니다. checksum은 UTF-8 text의 CRLF/CR line ending을 LF로 정규화한 canonical bytes에 적용해 Git checkout platform과 무관하게 같은 data를 검증합니다. 제품의 proxy loading, process noise와 evidence threshold는 논문 효과크기가 아니라 versioned product policy입니다.
+생성된 1~20회 profile asset checksum은 `5984112271b8abdc1870b59c786431f23547c6f4a97ab70b33134a1689706c0d`, reviewed source table checksum은 `63dc6bf18f3e48ff201e511a4c42ec9e7f64aaca956acc5232b90942d6e11bc2`입니다. checksum은 UTF-8 text의 CRLF/CR line ending을 LF로 정규화한 canonical bytes에 적용해 Git checkout platform과 무관하게 같은 data를 검증합니다. RPE/RIR PMF, proxy loading, process noise, transfer coefficient와 evidence threshold는 논문 효과크기가 아니라 versioned product policy입니다.
 
 ## 13. 제품 정책 및 휴리스틱
 
@@ -130,39 +164,46 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - machine chest press는 stack 간 교환 가능성을 가정하지 않고 general curve와 더 큰 uncertainty를 사용합니다.
 - leg press stable key `ex_ab468462`만 exact leg-press curve를 사용합니다. squat은 leg-press curve를 사용하지 않습니다.
 - back squat, deadlift, weighted pull-up 초기 정책은 general-resistance curve이며 exercise-specific 검증으로 과장하지 않습니다.
-- proxy는 target registry의 sparse factor loading만 사용하고 dense exercise-pair matrix를 만들지 않습니다.
-- reviewed row가 없는 e1RM-eligible 운동의 metadata proxy는 squat/knee-dominant, hinge/deadlift, horizontal press와 vertical pull family에만 보수적으로 허용하며 `strength-proxy-metadata-1.1.0`으로 식별합니다.
+- proxy는 target registry의 sparse shared-factor loading만 사용하고 dense exercise-pair matrix나 절대중량 변환표를 만들지 않습니다.
+- reviewed row가 없는 e1RM-eligible 운동의 metadata proxy는 squat/knee-dominant, hinge/deadlift, horizontal press와 vertical pull family에만 보수적으로 허용하며 `strength-proxy-metadata-2.0.0`으로 식별합니다.
 
-현재 model/version boundary는 `strength-performance-model-2.1.0`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.0.0`, `strength-proxy-metadata-1.1.0`, `repetition-curve-assets-1.0.0`, `repetition-curve-assignments-1.0.0`입니다. 저장 state `strength-performance-model-2.0.0`은 당시 version 문자열로 checksum을 검증한 뒤 호환 read합니다.
+현재 model/version boundary는 `strength-performance-model-3.0.0`, `strength-revision-3.0.0`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.1.0`, `strength-proxy-registry-2.0.0`, `strength-proxy-metadata-2.0.0`, `strength-rpe-rir-policy-1.0.0`, `strength-scalar-grid-1.0.0`, `repetition-curve-assets-2.0.0`, `repetition-curve-assignments-1.0.0`입니다. v2 state와 event/history는 당시 version 문자열과 checksum을 보존한 legacy/SUPERSEDED audit history이며 v3 ACTIVE summary에 섞지 않습니다.
 
 ## 14. 알려진 한계
 
 - general curve는 squat, deadlift, pull-up의 exercise-specific 검증 곡선이 아닙니다.
 - RPE와 체중은 사용자 입력 품질에 의존합니다.
-- sparse proxy loading과 process variance는 실제 사용자 성과로 추가 보정이 필요한 product policy입니다.
+- RPE/RIR 분포, sparse proxy loading, transfer coefficient와 process variance는 실제 사용자 성과로 추가 보정이 필요한 product policy입니다.
 - Room history는 filtered posterior snapshot이며 full posterior draw archive가 아닙니다.
-- current state는 model/factor version이 바뀔 때 명시적 compatibility 또는 새 model instance가 필요합니다.
+- scalar grid와 Gauss-Hermite 적분은 결정론적 수치 근사이며 full posterior draw archive가 아닙니다.
+- current state는 model/likelihood/proxy 의미가 바뀔 때 새 revision과 명시적 correction rebuild가 필요합니다.
 - historical bootstrap은 설치 시점에 보이는 완료 기록을 chronological forward-filtering한 것으로 당시 실제 앱 처리 시각을 복원하지 않습니다.
-- immutable event history는 model update로 replay하지 않으므로 이미 처리된 event에 새 metadata proxy 정책을 소급 적용하지 않습니다.
 - instrumentation migration test는 연결된 기기 또는 emulator에서 별도로 실행해야 합니다.
 
 ## 15. 현재 구현 상태
 
-- Room version `22`, migration `MIGRATION_21_22`
-- tables: `strength_posterior_events`, `strength_posterior_history`, `strength_posterior_model_state`, `strength_curve_posteriors`, `strength_posterior_evidence`
+- Room version `23`, migrations `MIGRATION_21_22`, `MIGRATION_22_23`
+- revision tables: `strength_model_revisions`, `strength_exercise_performance_state`, `strength_exercise_performance_history`, `strength_proxy_transfer_history`
+- retained tables: `strength_posterior_events`, `strength_posterior_history`, `strength_posterior_model_state`, `strength_curve_posteriors`, `strength_posterior_evidence`
 - one-time marker: `strength_posterior_bootstrap_v2`
-- completion reasons: `LIVE_SESSION_COMPLETION`, `INITIAL_INSTALLATION_BOOTSTRAP`, `LEGACY_BACKUP_BOOTSTRAP`
-- backup row schema version `5`
-- new persistent posterior is authoritative; v0.5.0.1 unpersisted proxy engine remains code-level regression/compatibility material but is not built by `PerformanceTrendSummaryService`.
+- correction marker: `strength_model_correction_rebuild_0_5_0_3`
+- completion/rebuild reasons: `LIVE_SESSION_COMPLETION`, `INITIAL_INSTALLATION_BOOTSTRAP`, `LEGACY_BACKUP_BOOTSTRAP`, `MODEL_CORRECTION_REBUILD_0_5_0_3`
+- backup row schema version `6`; schema 5/v1 payloads remain readable and schedule one correction rebuild when corrected revision rows are absent
+- only a compatible ACTIVE revision is authoritative; v0.5.0.1 unpersisted proxy and v2 persisted states remain regression/audit material.
 
 ## 16. 구현 위치
 
 - [`StrengthPerformanceRegistry.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt)
 - [`RepetitionCurves.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt)
 - [`StrengthSessionLikelihood.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthSessionLikelihood.kt)
+- [`RpeRirPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/RpeRirPolicy.kt)
+- [`ScalarGridPosterior.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/ScalarGridPosterior.kt)
+- [`StrengthExercisePosterior.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthExercisePosterior.kt)
+- [`StrengthProxyTransfer.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthProxyTransfer.kt)
 - [`PersonalCurveCalibration.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersonalCurveCalibration.kt)
 - [`StrengthPosteriorModel.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModel.kt)
 - [`StrengthPosteriorPersistence.kt`](../../../app/src/main/java/com/training/trackplanner/data/StrengthPosteriorPersistence.kt)
+- [`StrengthModelRevisionPersistence.kt`](../../../app/src/main/java/com/training/trackplanner/data/StrengthModelRevisionPersistence.kt)
 - [`StrengthPosteriorUpdateService.kt`](../../../app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt)
 - [`StrengthPosteriorBackupCodec.kt`](../../../app/src/main/java/com/training/trackplanner/data/StrengthPosteriorBackupCodec.kt)
 - [`PersistentStrengthPerformanceSummary.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummary.kt)
@@ -172,6 +213,9 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 
 - [`RepetitionCurveRegistryTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurveRegistryTest.kt)
 - [`StrengthPerformanceLikelihoodTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceLikelihoodTest.kt)
+- [`ScalarGridPosteriorEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/ScalarGridPosteriorEngineTest.kt)
+- [`StrengthExerciseLocalPosteriorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthExerciseLocalPosteriorTest.kt)
+- [`StrengthProxyTransferTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthProxyTransferTest.kt)
 - [`StrengthPosteriorModelTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModelTest.kt)
 - [`StrengthPosteriorEventIntegrationTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/StrengthPosteriorEventIntegrationTest.kt)
 - [`StrengthPosteriorBackupRestoreTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/StrengthPosteriorBackupRestoreTest.kt)
@@ -187,6 +231,7 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - [`repetition_curve_assignments_v1.csv`](../../../app/src/main/assets/strength_performance/repetition_curve_assignments_v1.csv)
 - [`strength_target_registry_v1.csv`](../../../app/src/main/assets/strength_performance/strength_target_registry_v1.csv)
 - [`strength_proxy_loadings_v1.csv`](../../../app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv)
+- [`rpe_rir_distribution_v1.csv`](../../../app/src/main/assets/strength_performance/rpe_rir_distribution_v1.csv)
 - [`generate_strength_repetition_curves.py`](../../../tools/generate_strength_repetition_curves.py)
 
 ## 19. 관련 문서
@@ -195,10 +240,11 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - [`BODYWEIGHT_EFFECTIVE_LOAD.md`](BODYWEIGHT_EFFECTIVE_LOAD.md)
 - [`docs/bayesian_time_series_lab_architecture.md`](../../bayesian_time_series_lab_architecture.md)
 - [`docs/protocols/README.md`](../README.md)
-- [`docs/v0.5.0.2_release_notes.md`](../../v0.5.0.2_release_notes.md)
+- [`docs/v0.5.0.3_release_notes.md`](../../v0.5.0.3_release_notes.md)
 
 ## 20. 변경 이력
 
+- `3.0.0` (2026-07-26): known RPE의 discrete RIR mixture, missing-RPE lower censoring, 실패 upper censoring, 15-node same-session 공통효과 적분, 1,025-point scalar grid, exercise-local posterior, shared-only proxy innovation, 1~20회 곡선, Room 23 revision/correction rebuild와 backup schema 6을 등록했습니다.
 - `2.1.0` (2026-07-26): 관련 세션 distinct-event 집계, reviewed metadata 기반 e1RM proxy 확장, confirmed 0회·RPE 10 실패 상한, 8주 prior 연쇄 이동 검증, model 2.0.0 compatibility와 platform-independent text checksum을 추가했습니다.
 - `2.0.0` (2026-07-23): Nuzzo 기반 비선형 curve registry, generic four-target/factor model, 중량 풀업 total-load semantics, completion event ledger, immutable filtered history, personal curve state, Room 21→22, exact backup/restore, one-time bootstrap와 persisted UI authority를 등록했습니다.
 - `1.0.0` (2026-07-23): v0.5.0.1의 화면 조회 기반 Epley proxy posterior와 세 target 실험 계약을 처음 등록했습니다. 이 엔진은 2.0.0에서 authoritative runtime read path를 넘겼습니다.

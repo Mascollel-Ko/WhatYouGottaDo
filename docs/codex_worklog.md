@@ -3528,3 +3528,17 @@ Verification
 - Focused `PersistentStrengthPerformanceSummaryTest`,
   `AnalysisPersistentStrengthPerformanceUiTest`, and
   `compileDebugKotlin` pass.
+
+### Canonical protocol governance
+- Updated the existing `STRENGTH-PROXY-PERFORMANCE` canonical document to
+  protocol `3.0.0`; no duplicate strength-performance protocol was created.
+- Documented the discrete RPE/RIR probability policy, lower/upper censoring,
+  15-node same-session Gauss-Hermite integration, 1,025-point scalar grid,
+  exercise-local posterior, and shared-only proxy innovation equations.
+- Registered model/revision `3.0.0`, unchanged factor schema `2.0.0`, target
+  registry `1.1.0`, proxy registry/metadata `2.0.0`, RIR policy `1.0.0`,
+  scalar grid `1.0.0`, curve assets `2.0.0`, Room `23`, correction rebuild,
+  and backup schema `6`.
+- Kept the protocol status `EXPERIMENTAL`: RPE/RIR masses, sparse proxy
+  loadings, transfer coefficients, and process noise remain reviewed product
+  policies rather than user-calibrated research parameters.

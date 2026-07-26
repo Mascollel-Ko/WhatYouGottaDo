@@ -1069,7 +1069,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "2.1.0",
+      "currentVersion": "3.0.0",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1079,16 +1079,21 @@
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
-      "implementedFromAppVersion": "v0.5.0.2",
-      "lastAuditedCommit": "be0e848",
+      "implementedFromAppVersion": "v0.5.0.3",
+      "lastAuditedCommit": "aedf260",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/RpeRirPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/ScalarGridPosterior.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthSessionLikelihood.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthExercisePosterior.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthProxyTransfer.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersonalCurveCalibration.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModel.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummary.kt",
         "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorPersistence.kt",
+        "app/src/main/java/com/training/trackplanner/data/StrengthModelRevisionPersistence.kt",
         "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt",
         "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorBackupCodec.kt",
         "app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt",
@@ -1097,6 +1102,9 @@
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurveRegistryTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceLikelihoodTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/ScalarGridPosteriorEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthExerciseLocalPosteriorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthProxyTransferTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/StrengthPosteriorModelTest.kt",
         "app/src/test/java/com/training/trackplanner/data/StrengthPosteriorEventIntegrationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/StrengthPosteriorBackupRestoreTest.kt",
@@ -1110,7 +1118,8 @@
         "app/src/main/assets/strength_performance/repetition_curve_manifest_v1.csv",
         "app/src/main/assets/strength_performance/repetition_curve_assignments_v1.csv",
         "app/src/main/assets/strength_performance/strength_target_registry_v1.csv",
-        "app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv"
+        "app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv",
+        "app/src/main/assets/strength_performance/rpe_rir_distribution_v1.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
@@ -1118,10 +1127,11 @@
       ],
       "knownGaps": [
         "General-resistance curves for squat, deadlift and pull-up remain provisional rather than exercise-specific validated curves.",
-        "Sparse proxy loadings and process variance are versioned product policies rather than user-calibrated research parameters.",
+        "RPE/RIR probability mass, sparse proxy loadings, transfer coefficients and process variance are versioned product policies rather than user-calibrated research parameters.",
         "Filtered history does not preserve posterior draws for strict BVAR or BLP propagation."
       ],
       "supersedes": [
+        "STRENGTH-PROXY-PERFORMANCE@2.1.0",
         "STRENGTH-PROXY-PERFORMANCE@1.0.0"
       ],
       "publicSummaryAvailable": true
