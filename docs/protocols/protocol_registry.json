@@ -1080,7 +1080,7 @@
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
       "implementedFromAppVersion": "v0.5.0.2",
-      "lastAuditedCommit": "0a949d7",
+      "lastAuditedCommit": "be0e848",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",

@@ -3338,7 +3338,7 @@ Verification
   posterior into the next event prior and move the eighth-week prior median.
 - Focused likelihood, model, event integration, summary and Compose tests pass.
   The final focused run covered 37 tests with no failures.
-- Final release validation passed: 1,019 unit tests, debug Kotlin compilation,
+- Initial release validation passed: 1,019 unit tests, debug Kotlin compilation,
   Android-test Kotlin compilation and debug APK assembly. The APK is
   46,531,891 bytes.
 - Repetition-curve generation reproduced 3 profiles with SHA-256
@@ -3350,6 +3350,11 @@ Verification
   and 0 blockers.
 - Runtime Room migration instrumentation remains unexecuted because no device
   or emulator is attached; its Android-test source compiled successfully.
-- `0.5.0.2 / 500002` release commit, main push, `v0.5.0.2` tag and GitHub
-  Actions remain pending. The six user-owned `outputs/*` files remain
-  untouched and unstaged.
+- Main fast-forward revalidation exposed a Windows-only runtime asset checksum
+  mismatch: Git had checked canonical CSV text out as CRLF while the manifest
+  records canonical LF hashes. `be0e848` now normalizes text line endings
+  before hashing and adds an explicit CRLF asset regression.
+- After that fix, the full suite passed with 1,020 tests, 0 failures/errors/
+  skips, and `:app:assembleDebug` passed independently.
+- Main push, `v0.5.0.2` tag and GitHub Actions remain pending. The six
+  user-owned `outputs/*` files remain untouched and unstaged.

@@ -7,7 +7,7 @@
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.2 |
-| Last audited commit | 0a949d7 |
+| Last audited commit | be0e848 |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
 | Supersedes | 2.0.0 |
 
@@ -121,7 +121,7 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 - reviewed general table: `da67c15cbca59d77cb037ae8c9a89ec223613233839924eb72047c31cafd9f9d`
 - reviewed exercise table: `5c8f8a6cb719f064346e8f9cc910d196daa9c340b86626895e822daf930445aa`
 
-생성된 profile asset checksum은 `29cfcc0013e6a997db199b09a94ba10cff9176a3d916641251c6986e01362b1c`, reviewed source table checksum은 `63dc6bf18f3e48ff201e511a4c42ec9e7f64aaca956acc5232b90942d6e11bc2`입니다. 제품의 proxy loading, process noise와 evidence threshold는 논문 효과크기가 아니라 versioned product policy입니다.
+생성된 profile asset checksum은 `29cfcc0013e6a997db199b09a94ba10cff9176a3d916641251c6986e01362b1c`, reviewed source table checksum은 `63dc6bf18f3e48ff201e511a4c42ec9e7f64aaca956acc5232b90942d6e11bc2`입니다. checksum은 UTF-8 text의 CRLF/CR line ending을 LF로 정규화한 canonical bytes에 적용해 Git checkout platform과 무관하게 같은 data를 검증합니다. 제품의 proxy loading, process noise와 evidence threshold는 논문 효과크기가 아니라 versioned product policy입니다.
 
 ## 13. 제품 정책 및 휴리스틱
 
@@ -199,6 +199,6 @@ target selector는 registry의 enabled target을 읽습니다. primary card는 p
 
 ## 20. 변경 이력
 
-- `2.1.0` (2026-07-26): 관련 세션 distinct-event 집계, reviewed metadata 기반 e1RM proxy 확장, confirmed 0회·RPE 10 실패 상한, 8주 prior 연쇄 이동 검증과 model 2.0.0 compatibility를 추가했습니다.
+- `2.1.0` (2026-07-26): 관련 세션 distinct-event 집계, reviewed metadata 기반 e1RM proxy 확장, confirmed 0회·RPE 10 실패 상한, 8주 prior 연쇄 이동 검증, model 2.0.0 compatibility와 platform-independent text checksum을 추가했습니다.
 - `2.0.0` (2026-07-23): Nuzzo 기반 비선형 curve registry, generic four-target/factor model, 중량 풀업 total-load semantics, completion event ledger, immutable filtered history, personal curve state, Room 21→22, exact backup/restore, one-time bootstrap와 persisted UI authority를 등록했습니다.
 - `1.0.0` (2026-07-23): v0.5.0.1의 화면 조회 기반 Epley proxy posterior와 세 target 실험 계약을 처음 등록했습니다. 이 엔진은 2.0.0에서 authoritative runtime read path를 넘겼습니다.
