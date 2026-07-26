@@ -3542,3 +3542,26 @@ Verification
 - Kept the protocol status `EXPERIMENTAL`: RPE/RIR masses, sparse proxy
   loadings, transfer coefficients, and process noise remain reviewed product
   policies rather than user-calibrated research parameters.
+
+### v0.5.0.3 final verification and release
+- App identity changed from `0.5.0.2 / 500002` to
+  `0.5.0.3 / 500003`; Room remains at the newly migrated version `23`.
+- Focused RPE/RIR, session likelihood, scalar grid, exercise-local posterior,
+  shared proxy, global posterior, revision integration, backup, summary, and
+  Compose UI tests passed with tasks rerun.
+- Full `:app:testDebugUnitTest` passed: 1,043 tests, 0 failures, 0 errors,
+  0 skipped. `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  and `:app:assembleDebug` passed.
+- Curve generation reproduced 3 profiles with SHA-256
+  `5984112271b8abdc1870b59c786431f23547c6f4a97ab70b33134a1689706c0d`.
+  Protocol validation passed for 7 families and 30 protocols.
+- Debug APK was generated at 46,647,944 bytes with SHA-256
+  `8d1e173d71151d68785e0b97fb44abda7e5a21a98920312b7252c088cb814413`.
+- No Android device or emulator was attached, so the Room `22 -> 23`
+  instrumentation migration could not run; its Android-test source compiled.
+- Implementation commits before the release commit:
+  `47f0dae`, `ae2d5e4`, `69501c9`, `0115a29`, `c68faab`, `47ac7d3`,
+  `3184084`, `d3f2a79`, `aedf260`, `46ebd5e`.
+- Main push, annotated `v0.5.0.3` tag, and GitHub Actions are pending until the
+  final release commit is verified. The six user-owned `outputs/*` files remain
+  untouched and unstaged.
