@@ -10,7 +10,6 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
-import com.training.trackplanner.data.WorkoutSet
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -23,9 +22,6 @@ object StrengthAndMuscleMetricSeriesBuilder {
         dailyMetrics: List<DailyMetric> = emptyList()
     ): Map<TrendMetricId, List<TrendDataPoint>> {
         val exercisesById = exercises.associateBy { it.id }
-        val benchE1rmByDate = mutableMapOf<LocalDate, Double>()
-        val squatE1rmByDate = mutableMapOf<LocalDate, Double>()
-        val deadliftE1rmByDate = mutableMapOf<LocalDate, Double>()
         val dailyLoads = MuscleBucket.values().associateWith { mutableMapOf<LocalDate, Double>() }
         val datesWithConfirmedSets = mutableSetOf<LocalDate>()
 
@@ -38,18 +34,6 @@ object StrengthAndMuscleMetricSeriesBuilder {
             datesWithConfirmedSets += date
 
             confirmedSets.forEach { set ->
-                e1rmFor(set)?.let { e1rm ->
-                    if (MuscleLoadInputBuilder.isMainBenchPress(exercise, record.entry)) {
-                        benchE1rmByDate.merge(date, e1rm, ::maxOf)
-                    }
-                    if (MuscleLoadInputBuilder.isMainSquat(exercise, record.entry)) {
-                        squatE1rmByDate.merge(date, e1rm, ::maxOf)
-                    }
-                    if (MuscleLoadInputBuilder.isMainDeadlift(exercise, record.entry)) {
-                        deadliftE1rmByDate.merge(date, e1rm, ::maxOf)
-                    }
-                }
-
                 if ((set.reps > 0 && set.weightKg >= 0.0) || set.seconds > 0) {
                     val bodyWeight = BodyweightEffectiveLoadCalculator.bodyWeightFor(
                         date = record.entry.date,
@@ -75,11 +59,7 @@ object StrengthAndMuscleMetricSeriesBuilder {
             }
         }
 
-        val result = mutableMapOf(
-            TrendMetricId.BENCH_PRESS_E1RM to weeklyBestSeries(benchE1rmByDate),
-            TrendMetricId.SQUAT_E1RM to weeklyBestSeries(squatE1rmByDate),
-            TrendMetricId.DEADLIFT_E1RM to weeklyBestSeries(deadliftE1rmByDate)
-        )
+        val result = mutableMapOf<TrendMetricId, List<TrendDataPoint>>()
         if (datesWithConfirmedSets.isEmpty()) return result
 
         val start = datesWithConfirmedSets.minOrNull() ?: return result
@@ -124,19 +104,6 @@ object StrengthAndMuscleMetricSeriesBuilder {
             null -> null
         }
     }
-
-    private fun e1rmFor(set: WorkoutSet): Double? =
-        if (set.confirmed && set.weightKg > 0.0 && set.reps in 1..12) {
-            set.weightKg * (1.0 + set.reps / 30.0)
-        } else {
-            null
-        }
-
-    private fun weeklyBestSeries(values: Map<LocalDate, Double>): List<TrendDataPoint> =
-        values.entries
-            .groupBy { (date, _) -> date.weekStart() }
-            .toSortedMap()
-            .map { (week, rows) -> TrendDataPoint(week, rows.maxOf { (_, value) -> value }) }
 
     private fun rollingMap(
         dates: List<LocalDate>,

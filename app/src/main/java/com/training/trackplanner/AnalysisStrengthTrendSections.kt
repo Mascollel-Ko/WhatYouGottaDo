@@ -46,47 +46,6 @@ import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
 
 @Composable
-internal fun MainLiftE1rmCard(summary: PerformanceTrendSummary) {
-    val spec = mainLiftE1rmSpec(summary.metricSeries)
-    AnalysisSectionChart(
-        title = "기존 공식 환산값",
-        spec = spec,
-        note = "Epley 공식으로 환산한 과거 비교 지표입니다. 새 수행능력 posterior에는 사용하지 않습니다.",
-        footer = { ChartSeriesLegend(spec.lineSeries) }
-    )
-}
-
-internal fun mainLiftE1rmSpec(
-    metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
-): ChartSpec {
-    val metrics = listOf(
-        TrendMetricId.BENCH_PRESS_E1RM,
-        TrendMetricId.SQUAT_E1RM,
-        TrendMetricId.DEADLIFT_E1RM
-    )
-    val series = metrics.mapNotNull { metric ->
-        val points = metricSeries[metric].orEmpty()
-        if (points.none { it.value?.isFinite() == true }) null else ChartSeries(metric.label(), points)
-    }
-    val domain = AnalysisChartTemporalPolicy.weeklyDomain(
-        series.flatMap { item -> item.points.map(TrendDataPoint::weekStart) }
-    )
-    val yRange = TrendChartRange.values(
-        series.flatMap { item -> item.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
-    )
-    return ChartSpec(
-        type = ChartType.LINE,
-        title = "기존 공식 환산값",
-        lineSeries = series,
-        yMin = yRange?.first,
-        yMax = yRange?.second,
-        timeGranularity = ChartTimeGranularity.WEEKLY,
-        xDomain = domain,
-        valueUnit = "kg"
-    )
-}
-
-@Composable
 internal fun MuscleLoadShareCard(summary: PerformanceTrendSummary) {
     AnalysisSectionChart(
         title = "근육군별 운동량 비율",
@@ -326,9 +285,11 @@ internal fun ChartSeriesLegend(
     ) {
         series.forEachIndexed { index, item ->
             val latest = item.points.lastOrNull { point -> point.value != null }?.value
+            val color = item.colorKey?.let(::strengthPerformanceTargetColor)
+                ?: colors[index % colors.size]
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = colors[index % colors.size].copy(alpha = 0.18f)
+                color = color.copy(alpha = 0.18f)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
@@ -339,7 +300,7 @@ internal fun ChartSeriesLegend(
                             .padding(top = 4.dp)
                             .size(8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = colors[index % colors.size]
+                        color = color
                     ) {}
                     val label = if (latestValueFormatter != null && latest != null) {
                         "${item.label} · ${latestValueFormatter(latest)}"

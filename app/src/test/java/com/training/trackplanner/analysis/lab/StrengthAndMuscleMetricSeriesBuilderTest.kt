@@ -11,95 +11,6 @@ import org.junit.Test
 
 class StrengthAndMuscleMetricSeriesBuilderTest {
     @Test
-    fun benchPressE1rmUsesConfirmedMainBenchSetsOnly() {
-        val bench = exercise(1, "벤치프레스", "barbell_bench_press")
-        val dumbbellBench = exercise(2, "덤벨 벤치프레스", "dumbbell_bench_press")
-        val series = build(
-            exercises = listOf(bench, dumbbellBench),
-            records = listOf(
-                record(
-                    "2026-06-10",
-                    bench,
-                    set(1, 100.0, 5),
-                    set(2, 200.0, 5, confirmed = false)
-                ),
-                record("2026-06-10", dumbbellBench, set(3, 50.0, 8))
-            )
-        )
-
-        assertEquals(116.666, series.value(TrendMetricId.BENCH_PRESS_E1RM, "2026-06-08"), 0.01)
-        assertEquals(1, series.getValue(TrendMetricId.BENCH_PRESS_E1RM).size)
-    }
-
-    @Test
-    fun squatE1rmUsesEpleyAndDailyMax() {
-        val exercise = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
-        val series = build(
-            exercises = listOf(exercise),
-            records = listOf(
-                record("2026-06-10", exercise, set(1, 100.0, 5), set(2, 110.0, 2))
-            )
-        )
-
-        assertEquals(117.333, series.value(TrendMetricId.SQUAT_E1RM, "2026-06-08"), 0.01)
-    }
-
-    @Test
-    fun squatE1rmExcludesLungeAndLegPress() {
-        val lunge = exercise(1, "워킹 런지", "walking_lunge")
-        val legPress = exercise(2, "레그 프레스", "leg_press")
-        val series = build(
-            exercises = listOf(lunge, legPress),
-            records = listOf(
-                record("2026-06-10", lunge, set(1, 60.0, 8)),
-                record("2026-06-11", legPress, set(2, 160.0, 10))
-            )
-        )
-
-        assertTrue(series.getValue(TrendMetricId.SQUAT_E1RM).isEmpty())
-    }
-
-    @Test
-    fun deadliftE1rmUsesEpleyAndExcludesRdl() {
-        val deadlift = exercise(1, "데드리프트", "conventional_deadlift")
-        val rdl = exercise(2, "루마니안 데드리프트", "romanian_deadlift")
-        val series = build(
-            exercises = listOf(deadlift, rdl),
-            records = listOf(
-                record("2026-06-10", deadlift, set(1, 160.0, 3)),
-                record("2026-06-11", rdl, set(2, 120.0, 8))
-            )
-        )
-
-        assertEquals(176.0, series.value(TrendMetricId.DEADLIFT_E1RM, "2026-06-08"), 0.01)
-        assertEquals(1, series.getValue(TrendMetricId.DEADLIFT_E1RM).size)
-    }
-
-    @Test
-    fun stableExerciseMetadataResolvesImportedLookingDisplayName() {
-        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
-        val series = build(
-            exercises = listOf(squat),
-            records = listOf(
-                WorkoutEntryWithSets(
-                    entry = WorkoutEntry(date = "2026-06-10", exerciseId = squat.id, exerciseName = "운동113", category = "근력"),
-                    sets = listOf(set(1, 100.0, 5))
-                )
-            )
-        )
-
-        assertEquals(116.666, series.value(TrendMetricId.SQUAT_E1RM, "2026-06-08"), 0.01)
-    }
-
-    @Test
-    fun missingStrengthPerformanceDateIsNotFilledWithZero() {
-        val rdl = exercise(1, "루마니안 데드리프트", "romanian_deadlift")
-        val series = build(listOf(record("2026-06-10", rdl, set(1, 120.0, 8))), listOf(rdl))
-
-        assertTrue(series.getValue(TrendMetricId.DEADLIFT_E1RM).isEmpty())
-    }
-
-    @Test
     fun squatMuscleLoadUsesFallbackContributionsAndRpe() {
         val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5, rpe = 8.0))), listOf(squat))
@@ -171,8 +82,8 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
     @Test
     fun labRegistryIncludesStrengthPerformanceAndMuscleLoadCandidates() {
-        assertEquals("주간 스쿼트 e1RM 최고", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.displayName)
-        assertEquals("주간 벤치프레스 e1RM 최고", AnalysisMetricRegistry.descriptor(TrendMetricId.BENCH_PRESS_E1RM)?.displayName)
+        assertEquals("스쿼트 posterior 중앙값", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.displayName)
+        assertEquals("벤치프레스 posterior 중앙값", AnalysisMetricRegistry.descriptor(TrendMetricId.BENCH_PRESS_E1RM)?.displayName)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.BENCH_PRESS_E1RM)?.unit)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.SQUAT_E1RM)?.unit)
         assertEquals("kg", AnalysisMetricRegistry.descriptor(TrendMetricId.DEADLIFT_E1RM)?.unit)
@@ -183,13 +94,12 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
     }
 
     @Test
-    fun labSelectorExposesWeeklyGeneratedMetricsWithoutKeyMismatch() {
+    fun labSelectorExposesWeeklyMuscleMetricsWithoutKeyMismatch() {
         val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
         val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5))), listOf(squat))
 
         val available = AnalysisMetricRegistry.scatterMetrics(series).map { descriptor -> descriptor.id }
 
-        assertTrue(TrendMetricId.SQUAT_E1RM in available)
         assertTrue(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY in available)
         assertTrue(series.keys.all { id -> AnalysisMetricRegistry.descriptor(id) != null })
     }

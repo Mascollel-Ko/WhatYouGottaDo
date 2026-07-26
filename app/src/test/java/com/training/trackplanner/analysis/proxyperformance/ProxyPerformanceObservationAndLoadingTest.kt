@@ -1,7 +1,5 @@
 package com.training.trackplanner.analysis.proxyperformance
 
-import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
@@ -15,7 +13,7 @@ import org.junit.Test
 
 class ProxyPerformanceObservationAndLoadingTest {
     @Test
-    fun actualBenchE1rmMatchesExistingWeeklySeriesExactly() {
+    fun legacyProxyObservationKeepsItsOwnCanonicalE1rmCalculation() {
         val bench = exercise(1, "벤치프레스", "barbell_bench_press")
         val record = record(
             id = 11,
@@ -26,13 +24,8 @@ class ProxyPerformanceObservationAndLoadingTest {
                 set(102, 11, 1, 105.0, 3, rpe = 9.0)
             )
         )
-        val existing = StrengthAndMuscleMetricSeriesBuilder.build(listOf(record), listOf(bench))
-            .getValue(TrendMetricId.BENCH_PRESS_E1RM)
-            .single()
-            .value
         val observation = observations(listOf(record), listOf(bench)).single()
 
-        assertEquals(requireNotNull(existing), observation.canonicalE1rmKg, 0.0)
         assertEquals(116.66666666666667, observation.canonicalE1rmKg, 0.000001)
     }
 

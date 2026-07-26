@@ -60,6 +60,7 @@ object AnalysisChartTemporalPolicy {
             spec.lineSeries.flatMap { series -> series.points.map(TrendDataPoint::weekStart) } +
             spec.forecastRange?.points?.map(ForecastPoint::weekStart).orEmpty() +
             spec.intervalBand?.points?.map(IntervalPoint::date).orEmpty() +
+            spec.intervalBands.flatMap { band -> band.points.map(IntervalPoint::date) } +
             spec.stackedBars.mapNotNull(StackedBarGroup::weekStart)
         return when (spec.timeGranularity) {
             ChartTimeGranularity.WEEKLY -> weeklyDomain(dates)

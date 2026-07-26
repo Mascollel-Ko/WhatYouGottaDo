@@ -71,9 +71,12 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     val colors = analysisChartPalette()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
     val forecastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    val referenceColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    val intervalBands = spec.intervalBands + listOfNotNull(spec.intervalBand)
     val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
         .plus(spec.forecastRange?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
-        .plus(spec.intervalBand?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
+        .plus(intervalBands.flatMap { band -> band.points.flatMap { point -> listOf(point.lower, point.upper) } })
+        .plus(spec.horizontalReferenceValues)
         .filter(Double::isFinite)
     if (allValues.isEmpty()) {
         InfoCard("기록 부족")
@@ -116,7 +119,9 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                 path.close()
                 drawPath(path, forecastColor)
             }
-            spec.intervalBand?.points?.takeIf { it.isNotEmpty() }?.let { interval ->
+            intervalBands.forEachIndexed { bandIndex, band ->
+                val interval = band.points
+                if (interval.isEmpty()) return@forEachIndexed
                 val path = Path()
                 interval.forEachIndexed { index, point ->
                     val x = xAt(point.date)
@@ -127,12 +132,25 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                     path.lineTo(xAt(point.date), yAt(point.lower))
                 }
                 path.close()
-                drawPath(path, forecastColor)
+                val color = band.colorKey?.let(::strengthPerformanceTargetColor)
+                    ?: colors[bandIndex % colors.size]
+                drawPath(path, color.copy(alpha = band.alpha.coerceIn(0f, 1f)))
+            }
+            spec.horizontalReferenceValues.filter { value -> value in min..max }.forEach { value ->
+                val y = yAt(value)
+                drawLine(
+                    color = referenceColor,
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 2f
+                )
             }
             spec.lineSeries.forEachIndexed { seriesIndex, series ->
                 val path = Path()
                 var previousDomainIndex: Int? = null
                 var hasPoint = false
+                val seriesColor = series.colorKey?.let(::strengthPerformanceTargetColor)
+                    ?: colors[seriesIndex % colors.size]
                 series.points.sortedBy { point -> point.weekStart }.forEach { point ->
                     val value = point.value?.takeIf(Double::isFinite)
                     val index = domainIndex[point.weekStart]
@@ -142,13 +160,25 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                     }
                     val x = xAt(index)
                     val y = yAt(value)
-                    if (previousDomainIndex?.plus(1) == index) path.lineTo(x, y) else path.moveTo(x, y)
+                    if (
+                        previousDomainIndex != null &&
+                        (series.connectAcrossDomainGaps || previousDomainIndex?.plus(1) == index)
+                    ) {
+                        path.lineTo(x, y)
+                    } else {
+                        path.moveTo(x, y)
+                    }
                     hasPoint = true
                     previousDomainIndex = index
-                    drawCircle(colors[seriesIndex % colors.size], radius = 4f, center = Offset(x, y))
+                    drawCircle(
+                        color = seriesColor,
+                        radius = 4f,
+                        center = Offset(x, y),
+                        style = if (series.hollowPoints) Stroke(width = 2f) else androidx.compose.ui.graphics.drawscope.Fill
+                    )
                 }
                 if (hasPoint && series.connectPoints) {
-                    drawPath(path, colors[seriesIndex % colors.size], style = Stroke(width = 4f))
+                    drawPath(path, seriesColor, style = Stroke(width = 4f))
                 }
             }
         }
@@ -300,9 +330,11 @@ internal fun analysisChartContentDescription(spec: ChartSpec): String {
             "$date, ${segment.label} ${formatChartAccessibilityValue(segment.value, spec.valueUnit)}"
         }
     }
-    val intervalDescriptions = spec.intervalBand?.points.orEmpty().map { point ->
-        val date = AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain)
-        "$date, ${spec.intervalBand?.label}, ${formatChartAccessibilityValue(point.lower, spec.valueUnit)}에서 ${formatChartAccessibilityValue(point.upper, spec.valueUnit)}"
+    val intervalDescriptions = (spec.intervalBands + listOfNotNull(spec.intervalBand)).flatMap { band ->
+        band.points.map { point ->
+            val date = AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain)
+            "$date, ${band.label}, ${formatChartAccessibilityValue(point.lower, spec.valueUnit)}에서 ${formatChartAccessibilityValue(point.upper, spec.valueUnit)}"
+        }
     }
     return (listOf(spec.title) + lineDescriptions + intervalDescriptions + stackedDescriptions).joinToString(". ")
 }

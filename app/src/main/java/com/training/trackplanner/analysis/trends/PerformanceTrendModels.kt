@@ -138,13 +138,20 @@ data class IntervalPoint(
 
 data class IntervalBand(
     val label: String,
-    val points: List<IntervalPoint>
+    val points: List<IntervalPoint>,
+    val seriesKey: String? = null,
+    val colorKey: String? = null,
+    val alpha: Float = 0.12f
 )
 
 data class ChartSeries(
     val label: String,
     val points: List<TrendDataPoint>,
-    val connectPoints: Boolean = true
+    val connectPoints: Boolean = true,
+    val seriesKey: String? = null,
+    val colorKey: String? = null,
+    val hollowPoints: Boolean = false,
+    val connectAcrossDomainGaps: Boolean = false
 )
 
 data class BarItem(
@@ -188,6 +195,8 @@ data class ChartSpec(
     val scatterPoints: List<ScatterPoint> = emptyList(),
     val forecastRange: ForecastRange? = null,
     val intervalBand: IntervalBand? = null,
+    val intervalBands: List<IntervalBand> = emptyList(),
+    val horizontalReferenceValues: List<Double> = emptyList(),
     val emphasizeValue: Boolean = false,
     val yMin: Double? = null,
     val yMax: Double? = null,

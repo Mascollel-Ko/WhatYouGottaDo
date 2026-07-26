@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,7 +16,6 @@ import com.training.trackplanner.analysis.strengthperformance.PersistentStrength
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthTargetSummary
 import com.training.trackplanner.analysis.strengthperformance.StrengthLoadSemantics
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -39,7 +39,8 @@ class AnalysisPersistentStrengthPerformanceUiTest {
         listOf("벤치프레스", "스쿼트", "데드리프트", "중량 풀업").forEach { label ->
             compose.onNodeWithText(label).assertExists()
         }
-        compose.onNodeWithText("중량 풀업").performClick()
+        compose.onNodeWithTag("persistent-strength-target-strength.weighted_pull_up").performClick()
+        compose.onNodeWithTag("persistent-strength-target-strength.bench_press").performClick()
         compose.onNodeWithText("추정 총부하 100.0 kg").assertIsDisplayed()
         compose.onNodeWithText("현재 체중 기준 추가중량 +10.0 kg").assertIsDisplayed()
         compose.onNodeWithText("활성 revision strength-revision-3.0.0 · RIR 정책 strength-rpe-rir-policy-1.0.0")
@@ -93,17 +94,37 @@ class AnalysisPersistentStrengthPerformanceUiTest {
     }
 
     @Test
-    fun `legacy Epley chart is clearly demoted to comparison value`() {
+    fun `selection keeps one target and moves focus when focused target is removed`() {
+        val keys = summary().targets.map(PersistentStrengthTargetSummary::targetKey)
+        val initial = initialStrengthPerformanceSelectionState(keys)
+
+        assertEquals(StrengthPerformanceDisplayMode.LEVEL, initial.displayMode)
+        assertEquals(listOf(keys.first()), initial.selectedTargetKeys)
+        assertEquals(initial, toggleStrengthPerformanceTarget(initial, keys.first(), keys))
+
+        val multiple = toggleStrengthPerformanceTarget(initial, keys[1], keys)
+        assertEquals(listOf(keys[0], keys[1]), multiple.selectedTargetKeys)
+        assertEquals(keys[1], multiple.focusedTargetKey)
+
+        val removedFocused = toggleStrengthPerformanceTarget(multiple, keys[1], keys)
+        assertEquals(listOf(keys[0]), removedFocused.selectedTargetKeys)
+        assertEquals(keys[0], removedFocused.focusedTargetKey)
         assertEquals(
-            "기존 공식 환산값",
-            mainLiftE1rmSpec(
-                mapOf(
-                    TrendMetricId.BENCH_PRESS_E1RM to emptyList(),
-                    TrendMetricId.SQUAT_E1RM to emptyList(),
-                    TrendMetricId.DEADLIFT_E1RM to emptyList()
-                )
-            ).title
+            removedFocused.selectedTargetKeys,
+            removedFocused.copy(displayMode = StrengthPerformanceDisplayMode.GROWTH_RATE).selectedTargetKeys
         )
+    }
+
+    @Test
+    fun `display mode switch preserves selected exercise chips`() {
+        content { PersistentStrengthPerformanceCards(summary()) }
+
+        compose.onNodeWithTag("persistent-strength-target-strength.bench_press").assertIsSelected()
+        compose.onNodeWithTag("persistent-strength-target-strength.back_squat").performClick()
+        compose.onNodeWithText("성장률").performClick()
+
+        compose.onNodeWithTag("persistent-strength-target-strength.bench_press").assertIsSelected()
+        compose.onNodeWithTag("persistent-strength-target-strength.back_squat").assertIsSelected()
     }
 
     private fun content(content: @androidx.compose.runtime.Composable () -> Unit) {

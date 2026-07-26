@@ -4,10 +4,14 @@ import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
+import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummaryBuilder
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
+import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
 import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
+import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.format.DateTimeFormatter
 
 internal class PerformanceTrendSummaryService(
@@ -116,8 +120,10 @@ internal class PerformanceTrendSummaryService(
             localHistory = revisionLocalHistory,
             proxyTransfers = revisionProxyHistory
         )
+        val persistentStrengthMetricSeries = persistentStrengthPosteriorMetricSeries(persistentStrengthSummary)
         return base.copy(
-            metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries,
+            metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries +
+                strengthAndMuscleSeries + persistentStrengthMetricSeries,
             proxyPerformanceSummary = null,
             persistentStrengthPerformanceSummary = persistentStrengthSummary
         )
@@ -135,3 +141,24 @@ internal class PerformanceTrendSummaryService(
         const val MIN_DATE = "0001-01-01"
     }
 }
+
+internal fun persistentStrengthPosteriorMetricSeries(
+    summary: PersistentStrengthPerformanceSummary
+): Map<TrendMetricId, List<TrendDataPoint>> = summary.targets.mapNotNull { target ->
+    val metricId = when (target.targetKey) {
+        StrengthPerformanceRegistry.BENCH_PRESS.value -> TrendMetricId.BENCH_PRESS_E1RM
+        StrengthPerformanceRegistry.BACK_SQUAT.value -> TrendMetricId.SQUAT_E1RM
+        StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT.value -> TrendMetricId.DEADLIFT_E1RM
+        else -> null
+    } ?: return@mapNotNull null
+    val weeklyPosteriorMedian = target.history
+        .mapNotNull { point ->
+            point.posteriorMedianKg
+                ?.takeIf(Double::isFinite)
+                ?.let { value -> AnalysisChartTemporalPolicy.weekStart(point.sessionDate) to value }
+        }
+        .groupBy({ (week, _) -> week }, { (_, value) -> value })
+        .toSortedMap()
+        .map { (week, values) -> TrendDataPoint(week, values.last()) }
+    metricId to weeklyPosteriorMedian
+}.toMap()
