@@ -14,6 +14,7 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
+import org.apache.commons.math3.analysis.integration.gauss.GaussIntegratorFactory
 import org.apache.commons.math3.distribution.NormalDistribution
 
 enum class StrengthObservationType {
@@ -124,6 +125,72 @@ data class StrengthSetLikelihoodBuildResult(
     }
 }
 
+class StrengthExerciseSessionLikelihood(
+    val setEvidence: List<StrengthSetEvidence>,
+    val dayEffectLogStandardDeviation: Double = DEFAULT_DAY_EFFECT_LOG_SD
+) {
+    init {
+        require(setEvidence.isNotEmpty())
+        require(dayEffectLogStandardDeviation.isFinite() && dayEffectLogStandardDeviation > 0.0)
+    }
+
+    val hasProperLikelihood: Boolean
+        get() = setEvidence.any(StrengthSetEvidence::isTwoSided)
+
+    fun asScalarLikelihood(properOnly: Boolean = false): ScalarGridLikelihood {
+        val evidence = if (properOnly) setEvidence.filter(StrengthSetEvidence::isTwoSided) else setEvidence
+        require(evidence.isNotEmpty())
+        return ScalarGridLikelihood(
+            support = evidence.flatMap { item ->
+                when (val likelihood = item.likelihood) {
+                    is StrengthSetLikelihood.GaussianMixture -> likelihood.components.map { component ->
+                        ScalarLikelihoodSupport(
+                            component.logCenter,
+                            sqrt(component.logVariance + dayEffectLogStandardDeviation.pow(2))
+                        )
+                    }
+                    is StrengthSetLikelihood.LowerCensored -> listOf(
+                        ScalarLikelihoodSupport(
+                            likelihood.logThreshold,
+                            likelihood.logStandardDeviation + dayEffectLogStandardDeviation
+                        )
+                    )
+                    is StrengthSetLikelihood.UpperCensored -> listOf(
+                        ScalarLikelihoodSupport(
+                            likelihood.logThreshold,
+                            likelihood.logStandardDeviation + dayEffectLogStandardDeviation
+                        )
+                    )
+                }
+            },
+            evaluator = { logCapacity -> integratedLogLikelihood(logCapacity, evidence) }
+        )
+    }
+
+    private fun integratedLogLikelihood(
+        logCapacity: Double,
+        evidence: List<StrengthSetEvidence>
+    ): Double {
+        val terms = GH_POINTS.indices.map { index ->
+            val sessionEffect = SQRT_TWO * dayEffectLogStandardDeviation * GH_POINTS[index]
+            ln(GH_WEIGHTS[index]) - LOG_SQRT_PI +
+                evidence.sumOf { item -> item.likelihood.logValueAt(logCapacity + sessionEffect) }
+        }
+        return logSumExp(terms)
+    }
+
+    companion object {
+        const val LIKELIHOOD_VERSION = "strength-session-likelihood-2.0.0"
+        private const val DEFAULT_DAY_EFFECT_LOG_SD = 0.055
+        private const val GH_NODE_COUNT = 15
+        private val GH_INTEGRATOR = GaussIntegratorFactory().hermite(GH_NODE_COUNT)
+        private val GH_POINTS = DoubleArray(GH_NODE_COUNT) { GH_INTEGRATOR.getPoint(it) }
+        private val GH_WEIGHTS = DoubleArray(GH_NODE_COUNT) { GH_INTEGRATOR.getWeight(it) }
+        private val SQRT_TWO = sqrt(2.0)
+        private val LOG_SQRT_PI = 0.5 * ln(Math.PI)
+    }
+}
+
 data class StrengthExerciseSessionObservation(
     val sessionKey: String,
     val date: LocalDate,
@@ -151,7 +218,8 @@ data class StrengthExerciseSessionObservation(
     val strongObservationCount: Int,
     val diagnostics: List<String>,
     val evidenceFingerprint: String,
-    val setEvidence: List<StrengthSetEvidence>
+    val setEvidence: List<StrengthSetEvidence>,
+    val sessionLikelihood: StrengthExerciseSessionLikelihood
 )
 
 object StrengthSetLikelihoodBuilder {
@@ -252,7 +320,8 @@ object StrengthSetLikelihoodBuilder {
                 repetitionsAtFailure = repetitionsAtFailure,
                 direct = set.reps == 1 && rpe == 10.0,
                 curveVarianceMultiplier = curve.varianceMultiplier,
-                loadVariance = resolvedLoad.loadVarianceContribution
+                loadVariance = resolvedLoad.loadVarianceContribution,
+                setIndex = set.setIndex
             )
             StrengthLikelihoodComponent(
                 rir = probability.rir,
@@ -359,10 +428,12 @@ object StrengthSetLikelihoodBuilder {
         repetitionsAtFailure: Int,
         direct: Boolean,
         curveVarianceMultiplier: Double,
-        loadVariance: Double
+        loadVariance: Double,
+        setIndex: Int
     ): Double {
         val curveSd = CURVE_BASE_LOG_SD + (repetitionsAtFailure - 1).coerceAtLeast(0) * CURVE_REP_LOG_SD
-        val conditionalExecutionSd = if (direct) DIRECT_LOG_SD else CONDITIONAL_EXECUTION_LOG_SD
+        val conditionalExecutionSd = (if (direct) DIRECT_LOG_SD else CONDITIONAL_EXECUTION_LOG_SD) *
+            (1.0 + setIndex.coerceAtLeast(0) * SET_ORDER_SD_GROWTH)
         return (
             curveSd.pow(2) * curveVarianceMultiplier +
                 conditionalExecutionSd.pow(2) +
@@ -377,6 +448,7 @@ object StrengthSetLikelihoodBuilder {
     private const val CONDITIONAL_EXECUTION_LOG_SD = 0.055
     private const val CURVE_BASE_LOG_SD = 0.035
     private const val CURVE_REP_LOG_SD = 0.0025
+    private const val SET_ORDER_SD_GROWTH = 0.04
     private const val MISSING_RPE_LOG_SD = 0.38
     private const val FAILURE_LOG_SD = 0.24
     const val DIRECT_VARIANCE_FLOOR = 0.0004
@@ -415,10 +487,14 @@ object StrengthSessionObservationBuilder {
         val strong = successful.filter(StrengthSetEvidence::isStrong)
         val selected = if (strong.isNotEmpty()) strong else successful.ifEmpty { failures }
         val weightedMedian = weightedMedian(selected)
-        val centerLog = ln(weightedMedian.capacityCenterKg)
+        val sessionLikelihood = StrengthExerciseSessionLikelihood(setEvidence)
+        val likelihoodMoments = sessionLikelihood.takeIf(StrengthExerciseSessionLikelihood::hasProperLikelihood)?.let {
+            ScalarGridPosteriorEngine.likelihoodMoments(it.asScalarLikelihood(properOnly = true))
+        }
+        val centerLog = likelihoodMoments?.mean ?: ln(weightedMedian.capacityCenterKg)
         val residuals = selected.map { evidence -> abs(ln(evidence.capacityCenterKg) - centerLog) }
         val robustSpread = median(residuals)
-        val baseVariance = selected.sumOf { evidence -> 1.0 / evidence.logVariance }
+        val baseVariance = likelihoodMoments?.variance ?: selected.sumOf { evidence -> 1.0 / evidence.logVariance }
             .takeIf { precision -> precision > 0.0 }?.let { precision -> 1.0 / precision }
             ?: weightedMedian.logVariance
         val effectiveEvidenceCount = selected.size.coerceAtMost(3)
@@ -453,7 +529,7 @@ object StrengthSessionObservationBuilder {
             directTargetKey = directTarget,
             targetLoadings = targetLoadings,
             observationType = type,
-            capacityMedianKg = weightedMedian.capacityCenterKg,
+            capacityMedianKg = exp(centerLog),
             capacityLow80Kg = exp(centerLog - Z_80 * sd),
             capacityHigh80Kg = exp(centerLog + Z_80 * sd),
             lowerBoundOnly = successful.isNotEmpty() && successful.none(StrengthSetEvidence::isTwoSided),
@@ -473,10 +549,14 @@ object StrengthSessionObservationBuilder {
             diagnostics = buildList {
                 if (contradictory) add("CONTRADICTORY_SAME_SESSION_EVIDENCE")
                 if (failures.isNotEmpty()) add("RPE10_ZERO_REP_FAILURE")
+                likelihoodMoments?.diagnostics?.let { grid ->
+                    add("SESSION_GRID:${grid.gridPointCount}:${grid.expansionCount}:${grid.fingerprint}")
+                }
                 addAll(setResults.mapNotNull(StrengthSetLikelihoodBuildResult::diagnostic))
             },
             evidenceFingerprint = fingerprint,
-            setEvidence = setEvidence
+            setEvidence = setEvidence,
+            sessionLikelihood = sessionLikelihood
         )
     }
 

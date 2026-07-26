@@ -172,6 +172,20 @@ object StrengthPosteriorModel {
             diagnostics += observation.diagnostics
             observation.targetLoadings.sortedBy { loading -> loading.targetKey.value }.forEach { loading ->
                 val target = registry.target(loading.targetKey) ?: return@forEach
+                if (loading.isDirectAnchor && observation.directTargetKey == target.targetKey) {
+                    val projection = ScalarGridPosteriorEngine.project(
+                        priorMean = state.mean,
+                        priorCovariance = state.covariance,
+                        projection = targetVector(state, target),
+                        likelihood = observation.sessionLikelihood.asScalarLikelihood()
+                    )
+                    state = state.copyDeep(
+                        mean = projection.mean,
+                        covariance = projection.covariance
+                    )
+                    diagnostics += "DIRECT_GRID:${target.targetKey.value}:${projection.diagnostics.fingerprint}"
+                    return@forEach
+                }
                 val vector = observationVector(state, target, loading)
                 val observationLog = ln(
                     if (observation.upperBoundOnly) {
