@@ -3322,3 +3322,34 @@ Verification
 - Intended final identity is `0.5.0.2 / 500002`, Room `22`, tag `v0.5.0.2`.
 - Main push, tag push and GitHub Actions remain pending at this point.
 - The six user-owned `outputs/*` modifications remain untouched and unstaged.
+
+### Relevant-session and failure-evidence correction
+- User verification found more than seven squat-family sessions but only three
+  visible direct observations. The primary card now separates all distinct
+  target events (`관련 세션`) from direct, strong nRM, proxy and failure counts.
+- `0a949d7` preserves reviewed stable-key rows and admits only reviewed
+  `estimated1RmEligible && !needsReview` movement metadata as conservative
+  squat, hinge, horizontal-press or vertical-pull proxy evidence. No display
+  name matching was added.
+- Confirmed `0 reps / RPE 10` is retained as `FAILURE_UPPER_BOUND`; it is not a
+  direct 1RM and only lowers a posterior that exceeds the failed load.
+- Model `2.1.0` retains checksum-verified read compatibility for saved `2.0.0`
+  state. Eight weekly relevant RPE 10 squat sessions are tested to carry each
+  posterior into the next event prior and move the eighth-week prior median.
+- Focused likelihood, model, event integration, summary and Compose tests pass.
+  The final focused run covered 37 tests with no failures.
+- Final release validation passed: 1,019 unit tests, debug Kotlin compilation,
+  Android-test Kotlin compilation and debug APK assembly. The APK is
+  46,531,891 bytes.
+- Repetition-curve generation reproduced 3 profiles with SHA-256
+  `29cfcc0013e6a997db199b09a94ba10cff9176a3d916641251c6986e01362b1c`.
+  Protocol validation passed with 7 families and 30 protocols; the
+  time-series numeric source scan and connective-tissue prior validator also
+  passed.
+- Publication integrity checked 10 sources, found 10 with no adverse notice
+  and 0 blockers.
+- Runtime Room migration instrumentation remains unexecuted because no device
+  or emulator is attached; its Android-test source compiled successfully.
+- `0.5.0.2 / 500002` release commit, main push, `v0.5.0.2` tag and GitHub
+  Actions remain pending. The six user-owned `outputs/*` files remain
+  untouched and unstaged.

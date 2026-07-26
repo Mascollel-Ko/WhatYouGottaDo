@@ -1069,7 +1069,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "2.0.0",
+      "currentVersion": "2.1.0",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1079,8 +1079,8 @@
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
-      "implementedFromAppVersion": "v0.5.0.1",
-      "lastAuditedCommit": "43f11ec",
+      "implementedFromAppVersion": "v0.5.0.2",
+      "lastAuditedCommit": "0a949d7",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
