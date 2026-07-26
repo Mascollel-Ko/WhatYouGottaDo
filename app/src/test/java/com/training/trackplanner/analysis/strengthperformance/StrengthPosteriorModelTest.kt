@@ -25,6 +25,7 @@ class StrengthPosteriorModelTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val registry = StrengthPerformanceRegistry.fromContext(context)
     private val curves = RepetitionCurveRegistry.fromContext(context)
+    private val rirPolicy = RpeRirPolicy.fromContext(context)
 
     @Test
     fun `versioned vector codec round trips and rejects checksum changes`() {
@@ -67,16 +68,16 @@ class StrengthPosteriorModelTest {
     }
 
     @Test
-    fun `submaximal evidence below the prior remains a conservative lower bound`() {
+    fun `known RPE evidence below the prior can move the posterior downward`() {
         val initial = StrengthPosteriorModel.initialState(registry, null)
+        val target = checkNotNull(registry.target(StrengthPerformanceRegistry.BENCH_PRESS))
+        val before = StrengthPosteriorModel.distribution(initial, target)
         val result = compute(initial, observation(reps = 1, weight = 20.0, rpe = 8.0))
+        val after = StrengthPosteriorModel.distribution(result.state, target)
 
-        assertArrayEquals(initial.mean, result.state.mean, 0.0)
-        initial.covariance.indices.forEach { row ->
-            assertArrayEquals(initial.covariance[row], result.state.covariance[row], 0.0)
-        }
+        assertTrue(after.median < before.median)
         assertEquals(
-            StrengthObservationType.CONSERVATIVE_LOWER_BOUND.name,
+            StrengthObservationType.RPE_MIXTURE_OBSERVATION.name,
             result.history.single { it.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value }.directObservationType
         )
     }
@@ -91,7 +92,7 @@ class StrengthPosteriorModelTest {
 
         assertTrue(after.median < before.median)
         assertEquals(
-            StrengthObservationType.FAILURE_UPPER_BOUND.name,
+            StrengthObservationType.FAILURE_UPPER_CENSORED.name,
             result.history.single { row -> row.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value }.directObservationType
         )
     }
@@ -124,7 +125,8 @@ class StrengthPosteriorModelTest {
                     exercise = exercise,
                     registry = registry,
                     curveRegistry = curves,
-                    loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+                    loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null),
+                    rirPolicy = rirPolicy
                 )
             )
             val result = StrengthPosteriorModel.compute(
@@ -291,7 +293,8 @@ class StrengthPosteriorModelTest {
                 exercise = exercise,
                 registry = registry,
                 curveRegistry = curves,
-                loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+                loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null),
+                rirPolicy = rirPolicy
             )
         )
     }

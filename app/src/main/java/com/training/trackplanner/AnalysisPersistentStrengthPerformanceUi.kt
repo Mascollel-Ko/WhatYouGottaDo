@@ -233,8 +233,10 @@ private fun PersistentStrengthTargetSummary.isWeightedPullUp(): Boolean =
 private fun observationLabel(value: String): String = when (value) {
     "DIRECT_1RM" -> "직접 1RM"
     "STRONG_NRM" -> "강한 nRM 관측"
-    "CONSERVATIVE_LOWER_BOUND" -> "보수적 하한 관측"
-    "MISSING_RPE_LOWER_BOUND" -> "RPE 미입력 하한 관측"
+    "RPE_MIXTURE_OBSERVATION" -> "RPE 확률 관측"
+    "MISSING_RPE_LOWER_CENSORED", "MISSING_RPE_LOWER_BOUND" -> "RPE 미입력 하한 관측"
+    "FAILURE_UPPER_CENSORED", "FAILURE_UPPER_BOUND" -> "실패 상한 관측"
+    "CONSERVATIVE_LOWER_BOUND" -> "이전 버전 보수적 하한 관측"
     "NONE" -> "프록시 관측"
     else -> value
 }

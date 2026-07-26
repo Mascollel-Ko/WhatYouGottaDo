@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -220,6 +221,7 @@ class StrengthPosteriorEventIntegrationTest {
             posteriorDao = db.strengthPosteriorDao(),
             registry = StrengthPerformanceRegistry.fromContext(context),
             curves = RepetitionCurveRegistry.fromContext(context),
+            rirPolicy = RpeRirPolicy.fromContext(context),
             now = { 2_000L }
         )
         return StrengthPosteriorUpdateCoordinator(

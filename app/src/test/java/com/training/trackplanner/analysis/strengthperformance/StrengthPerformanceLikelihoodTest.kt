@@ -27,6 +27,7 @@ class StrengthPerformanceLikelihoodTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val registry = StrengthPerformanceRegistry.fromContext(context)
     private val curves = RepetitionCurveRegistry.fromContext(context)
+    private val rirPolicy = RpeRirPolicy.fromContext(context)
 
     @Test
     fun `target registry is string keyed and weighted pull-up is first class`() {
@@ -94,18 +95,19 @@ class StrengthPerformanceLikelihoodTest {
                 StrengthSetLikelihoodBuilder.build(
                     source, null,
                     loadResolver.resolve(LocalDate.parse("2026-07-10"), source, StrengthLoadSemantics.EXTERNAL_LOAD),
-                    curve
+                    curve,
+                    rirPolicy
                 )
             )
         }
         val direct = evidence(1, 10.0)
         assertEquals(StrengthObservationType.DIRECT_1RM, direct.observationType)
-        assertEquals(100.0, direct.capacityCenterKg, 0.0)
+        assertEquals(100.0, direct.capacityCenterKg, 1e-12)
         assertTrue(direct.logVariance >= StrengthSetLikelihoodBuilder.DIRECT_VARIANCE_FLOOR)
 
         assertEquals(StrengthObservationType.STRONG_NRM, evidence(5, 10.0).observationType)
-        assertEquals(StrengthObservationType.CONSERVATIVE_LOWER_BOUND, evidence(1, 9.0).observationType)
-        assertEquals(StrengthObservationType.MISSING_RPE_LOWER_BOUND, evidence(1, null).observationType)
+        assertEquals(StrengthObservationType.RPE_MIXTURE_OBSERVATION, evidence(1, 9.0).observationType)
+        assertEquals(StrengthObservationType.MISSING_RPE_LOWER_CENSORED, evidence(1, null).observationType)
         assertTrue(evidence(5, 7.0).logVariance > evidence(5, 9.0).logVariance)
         assertTrue(evidence(5, null).logVariance > evidence(5, 9.0).logVariance)
     }
@@ -120,11 +122,12 @@ class StrengthPerformanceLikelihoodTest {
                 null,
                 StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
                     .resolve(LocalDate.parse("2026-07-10"), source, StrengthLoadSemantics.EXTERNAL_LOAD),
-                curve
+                curve,
+                rirPolicy
             )
         )
 
-        assertEquals(StrengthObservationType.FAILURE_UPPER_BOUND, evidence.observationType)
+        assertEquals(StrengthObservationType.FAILURE_UPPER_CENSORED, evidence.observationType)
         assertEquals(100.0, evidence.capacityCenterKg, 0.0)
         assertFalse(evidence.isStrong)
     }
@@ -161,7 +164,8 @@ class StrengthPerformanceLikelihoodTest {
                 StrengthSetLikelihoodBuilder.build(
                     source, null,
                     resolver.resolve(LocalDate.parse("2026-07-10"), source, StrengthLoadSemantics.EXTERNAL_LOAD),
-                    curve
+                    curve,
+                    rirPolicy
                 )
             )
         }
@@ -204,7 +208,8 @@ class StrengthPerformanceLikelihoodTest {
             exercise = exercise,
             registry = registry,
             curveRegistry = curves,
-            loadResolver = loadResolver
+            loadResolver = loadResolver,
+            rirPolicy = rirPolicy
         )
     )
 

@@ -1,0 +1,25 @@
+policyVersion,rpe,rir,probability,sourceClass,sourceCitation,rationale,reviewedStatus
+strength-rpe-rir-policy-1.0.0,6.0,3,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,6.0,4,0.70,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,6.0,5,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,6.5,3,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,6.5,4,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,6.5,5,0.10,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.0,2,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.0,3,0.70,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.0,4,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.5,2,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.5,3,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,7.5,4,0.10,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.0,1,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.0,2,0.70,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.0,3,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.5,1,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.5,2,0.45,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,8.5,3,0.10,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,9.0,0,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,9.0,1,0.70,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,9.0,2,0.15,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Conservative discrete RIR uncertainty for reported RPE,REVIEWED
+strength-rpe-rir-policy-1.0.0,9.5,0,0.50,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,9.5,1,0.50,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,Half-step interpolation anchor with explicit uncertainty,REVIEWED
+strength-rpe-rir-policy-1.0.0,10.0,0,1.00,PRODUCT_POLICY,Zourdos2016_Steele2017_Hackett2020_Halperin2021,RPE10 point mass at zero repetitions in reserve,REVIEWED

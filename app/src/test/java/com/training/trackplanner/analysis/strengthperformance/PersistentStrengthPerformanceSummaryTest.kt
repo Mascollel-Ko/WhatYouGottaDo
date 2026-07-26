@@ -88,7 +88,7 @@ class PersistentStrengthPerformanceSummaryTest {
                 sessionDate = "2026-07-${index.toString().padStart(2, '0')}",
                 evidenceFingerprint = "evidence-$index",
                 observationType = if (index == 7) {
-                    StrengthObservationType.FAILURE_UPPER_BOUND.name
+                    StrengthObservationType.FAILURE_UPPER_CENSORED.name
                 } else {
                     StrengthObservationType.STRONG_NRM.name
                 }

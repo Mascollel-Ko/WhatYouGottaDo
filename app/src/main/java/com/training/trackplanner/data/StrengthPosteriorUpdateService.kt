@@ -2,6 +2,7 @@ package com.training.trackplanner.data
 
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.strengthperformance.PersonalCurvePosterior
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceLoadResolver
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
@@ -37,6 +38,7 @@ class StrengthPosteriorEventProcessor(
     private val posteriorDao: StrengthPosteriorDao,
     private val registry: StrengthPerformanceRegistry,
     private val curves: RepetitionCurveRegistry,
+    private val rirPolicy: RpeRirPolicy,
     private val now: () -> Long = System::currentTimeMillis
 ) {
     suspend fun process(eventUuid: String): Boolean {
@@ -70,6 +72,7 @@ class StrengthPosteriorEventProcessor(
                     registry = registry,
                     curveRegistry = curves,
                     loadResolver = loadResolver,
+                    rirPolicy = rirPolicy,
                     personalTheta = theta
                 )
             }

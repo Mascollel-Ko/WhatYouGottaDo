@@ -140,7 +140,8 @@ object PersistentStrengthPerformanceSummaryBuilder {
                     evidenceByFingerprint[row.evidenceFingerprint]?.directTargetKey != target.targetKey.value
                 },
                 failureObservationCount = evidenceForRows.count { row ->
-                    row.observationType == StrengthObservationType.FAILURE_UPPER_BOUND.name
+                    row.observationType == StrengthObservationType.FAILURE_UPPER_CENSORED.name ||
+                        row.observationType == "FAILURE_UPPER_BOUND"
                 },
                 curveProfileId = latestEvidence?.curveProfileId ?: latest?.curveProfileId,
                 curveMatchLevel = latestEvidence?.curveMatchLevel ?: latest?.curveMatchLevel,

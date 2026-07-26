@@ -17,6 +17,7 @@ import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
+import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
@@ -120,6 +121,7 @@ class TrainingRepository(
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
     private val repetitionCurveRegistry = RepetitionCurveRegistry.fromContext(context)
+    private val rpeRirPolicy = RpeRirPolicy.fromContext(context)
     private val strengthPosteriorEventProcessor = StrengthPosteriorEventProcessor(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -128,7 +130,8 @@ class TrainingRepository(
         initialUserProfileDao = initialUserProfileDao,
         posteriorDao = strengthPosteriorDao,
         registry = strengthPerformanceRegistry,
-        curves = repetitionCurveRegistry
+        curves = repetitionCurveRegistry,
+        rirPolicy = rpeRirPolicy
     )
     private val strengthPosteriorCoordinator = StrengthPosteriorUpdateCoordinator(
         db = db,
