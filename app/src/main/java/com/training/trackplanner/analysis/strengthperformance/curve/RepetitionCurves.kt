@@ -159,7 +159,7 @@ class RepetitionCurveRegistry private constructor(
 
     companion object {
         val GENERAL_PROFILE_ID = RepetitionCurveProfileId("reps_curve.general_resistance.v1")
-        const val CURVE_VERSION = "repetition-curve-assets-1.0.0"
+        const val CURVE_VERSION = "repetition-curve-assets-2.0.0"
 
         fun fromContext(context: Context): RepetitionCurveRegistry {
             fun bytes(name: String): ByteArray = context.assets.open("$ASSET_DIRECTORY/$name").use { it.readBytes() }

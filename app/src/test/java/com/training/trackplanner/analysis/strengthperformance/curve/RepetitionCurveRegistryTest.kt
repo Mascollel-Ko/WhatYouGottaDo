@@ -20,18 +20,18 @@ class RepetitionCurveRegistryTest {
     @Test
     fun `canonical assets are finite monotone and invert deterministically`() {
         registry.profiles().forEach { profile ->
-            val values = (1..12).map { reps -> checkNotNull(profile.evaluate(reps.toDouble()).relativeLoad) }
+            val values = (1..20).map { reps -> checkNotNull(profile.evaluate(reps.toDouble()).relativeLoad) }
             assertEquals(1.0, values.first(), 0.0)
             assertTrue(values.all { value -> value.isFinite() && value in 0.0..1.0 })
             assertTrue(values.zipWithNext().all { (left, right) -> right <= left })
-            for (reps in 1..12) {
+            for (reps in 1..20) {
                 val load = checkNotNull(profile.evaluate(reps.toDouble()).relativeLoad)
                 val inverted = checkNotNull(profile.invert(load).repetitions)
                 assertEquals(reps.toDouble(), inverted, 1e-8)
             }
             assertEquals(
                 RepetitionCurveEvaluationStatus.UNSUPPORTED_REPETITIONS,
-                profile.evaluate(13.0).status
+                profile.evaluate(21.0).status
             )
         }
     }
@@ -60,8 +60,13 @@ class RepetitionCurveRegistryTest {
     @Test
     fun `bench and leg press profiles remain distinct`() {
         val bench = checkNotNull(registry.profile(RepetitionCurveProfileId("reps_curve.bench_press.v1")))
+        val general = checkNotNull(registry.profile(RepetitionCurveRegistry.GENERAL_PROFILE_ID))
         val legPress = checkNotNull(registry.profile(RepetitionCurveProfileId("reps_curve.leg_press.v1")))
         assertNotEquals(bench.evaluate(8.0).relativeLoad, legPress.evaluate(8.0).relativeLoad)
+        assertEquals(0.682637196729, bench.evaluate(15.0).relativeLoad!!, 1e-12)
+        assertEquals(0.696186722743, general.evaluate(15.0).relativeLoad!!, 1e-12)
+        assertEquals(0.764581003307, legPress.evaluate(15.0).relativeLoad!!, 1e-12)
+        assertTrue(registry.profiles().all { it.provenance.supportedRepRange == 1..20 })
     }
 
     @Test
@@ -92,7 +97,7 @@ class RepetitionCurveRegistryTest {
     @Test
     fun `shape preserving interpolation does not overshoot neighboring knots`() {
         registry.profiles().forEach { profile ->
-            for (reps in 1 until 12) {
+            for (reps in 1 until 20) {
                 val left = checkNotNull(profile.evaluate(reps.toDouble()).relativeLoad)
                 val right = checkNotNull(profile.evaluate(reps + 1.0).relativeLoad)
                 for (step in 1..9) {

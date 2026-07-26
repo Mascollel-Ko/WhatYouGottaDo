@@ -3445,3 +3445,20 @@ Verification
   pass. Coverage includes first-session no-transfer, second-session positive
   innovation, target-specific zero loading, common-scale invariance, and batch
   order invariance.
+
+### Reviewed repetition-curve range
+- Audited the checked-in Nuzzo source table before changing the runtime range.
+  The maximum source-domain mean repetition values are `127.74` for bench,
+  `87.85` for general resistance, and `100.26` for leg press, so repetitions
+  `13..20` are interpolation inside every reviewed profile rather than
+  extrapolation.
+- Generator `strength-repetition-curve-generator-2.0.0` now emits monotone
+  knots for `1..20`, and the runtime asset/manifest version is
+  `repetition-curve-assets-2.0.0`. Repetitions above 20 remain unsupported.
+- Generated `q(15)` is `0.682637196729` for bench, `0.696186722743` for general
+  resistance, and `0.764581003307` for leg press. The canonical generated
+  profile checksum is
+  `5984112271b8abdc1870b59c786431f23547c6f4a97ab70b33134a1689706c0d`.
+- Target registry `1.1.0` declares the same `1..20` boundary. The generator
+  hashes canonical LF text so reproduction is independent of Windows checkout
+  line endings.

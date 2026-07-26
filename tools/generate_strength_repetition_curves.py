@@ -13,13 +13,14 @@ ASSET_DIR = ROOT / "app/src/main/assets/strength_performance"
 SOURCE = ASSET_DIR / "repetition_curve_source_v1.csv"
 OUTPUT = ASSET_DIR / "repetition_curve_profiles_v1.csv"
 MANIFEST = ASSET_DIR / "repetition_curve_manifest_v1.csv"
-GENERATOR_VERSION = "strength-repetition-curve-generator-1.0.0"
-ASSET_VERSION = "repetition-curve-assets-1.0.0"
-SUPPORTED_REPS = range(1, 13)
+GENERATOR_VERSION = "strength-repetition-curve-generator-2.0.0"
+ASSET_VERSION = "repetition-curve-assets-2.0.0"
+SUPPORTED_REPS = range(1, 21)
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    canonical = path.read_text(encoding="utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def pchip_slopes(xs: list[float], ys: list[float]) -> list[float]:
@@ -109,8 +110,8 @@ def generate() -> None:
                 "sourceArtifactHash": first["sourceArtifactHash"],
                 "sourceTableChecksum": sha256(SOURCE),
                 "generatorVersion": GENERATOR_VERSION,
-                "reviewedAt": "2026-07-23",
-                "supportedRepRange": "1..12",
+                "reviewedAt": "2026-07-26",
+                "supportedRepRange": "1..20",
                 "sourceExerciseScope": first["sourceExerciseScope"],
                 "sourceModelDescription": "Published mean repetitions-to-failure table inverted with monotone PCHIP plus exact q(1)=1 identity anchor",
                 "runtimeAssetChecksum": "PENDING",

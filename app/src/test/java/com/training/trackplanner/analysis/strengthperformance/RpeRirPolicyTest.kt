@@ -88,7 +88,7 @@ class RpeRirPolicyTest {
             id = 2,
             entryId = 1,
             setIndex = 0,
-            reps = 12,
+            reps = 20,
             weightKg = 50.0,
             confirmed = true,
             rpe = 6.0
