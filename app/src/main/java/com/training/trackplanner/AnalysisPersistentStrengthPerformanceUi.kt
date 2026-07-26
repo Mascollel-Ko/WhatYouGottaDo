@@ -70,7 +70,7 @@ private fun PersistentStrengthCapabilityCard(
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                "직접 1RM ${selected.directObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · 프록시 ${selected.proxyObservationCount}",
+                "관련 세션 ${selected.relevantSessionCount} · 직접 1RM ${selected.directObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · 프록시 ${selected.proxyObservationCount} · 실패 ${selected.failureObservationCount}",
                 style = MaterialTheme.typography.labelSmall
             )
             Text(

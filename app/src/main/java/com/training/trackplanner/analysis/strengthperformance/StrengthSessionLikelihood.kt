@@ -17,7 +17,8 @@ enum class StrengthObservationType {
     DIRECT_1RM,
     STRONG_NRM,
     CONSERVATIVE_LOWER_BOUND,
-    MISSING_RPE_LOWER_BOUND
+    MISSING_RPE_LOWER_BOUND,
+    FAILURE_UPPER_BOUND
 }
 
 data class StrengthSetEvidence(
@@ -37,6 +38,8 @@ data class StrengthSetEvidence(
         StrengthObservationType.DIRECT_1RM,
         StrengthObservationType.STRONG_NRM
     )
+
+    val isFailure: Boolean get() = observationType == StrengthObservationType.FAILURE_UPPER_BOUND
 }
 
 data class StrengthExerciseSessionObservation(
@@ -51,6 +54,8 @@ data class StrengthExerciseSessionObservation(
     val capacityLow80Kg: Double,
     val capacityHigh80Kg: Double,
     val lowerBoundOnly: Boolean,
+    val upperBoundOnly: Boolean,
+    val failureUpperBoundKg: Double?,
     val logVariance: Double,
     val directObservedLoadKg: Double?,
     val bodyWeightKg: Double?,
@@ -74,13 +79,34 @@ object StrengthSetLikelihoodBuilder {
         resolvedLoad: ResolvedStrengthLoad,
         curve: ResolvedRepetitionCurve
     ): StrengthSetEvidence? {
-        if (!set.confirmed || !resolvedLoad.isResolved) return null
+        if (!set.confirmed || !resolvedLoad.isResolved || set.reps < 0) return null
+        val totalLoad = checkNotNull(resolvedLoad.totalLoadKg)
+        val rpe = set.rpe.validRpe() ?: entryRpe.validRpe()
+        if (set.reps == 0) {
+            if (rpe != 10.0) return null
+            val variance = (FAILURE_LOG_SD.pow(2) + resolvedLoad.loadVarianceContribution)
+                .coerceAtLeast(GENERAL_VARIANCE_FLOOR)
+            return StrengthSetEvidence(
+                setId = set.id,
+                setIndex = set.setIndex,
+                repetitions = 0,
+                rpe = rpe,
+                resolvedLoad = resolvedLoad,
+                curveRelativeLoad = 1.0,
+                capacityCenterKg = totalLoad,
+                lowerBoundKg = totalLoad,
+                logVariance = variance,
+                observationType = StrengthObservationType.FAILURE_UPPER_BOUND,
+                evidenceFingerprint = fingerprint(
+                    set.id.toString(), set.setIndex.toString(), "failure", set.weightKg.toBits().toString(),
+                    rpe.toBits().toString(), totalLoad.toBits().toString(), curve.profile.id.value
+                )
+            )
+        }
         val evaluation = curve.evaluate(set.reps.toDouble())
         val relativeLoad = evaluation.relativeLoad ?: return null
-        val totalLoad = checkNotNull(resolvedLoad.totalLoadKg)
         val capacity = totalLoad / relativeLoad
         if (!capacity.isFinite() || capacity <= 0.0) return null
-        val rpe = set.rpe.validRpe() ?: entryRpe.validRpe()
         val type = when {
             rpe == 10.0 && set.reps == 1 -> StrengthObservationType.DIRECT_1RM
             rpe == 10.0 -> StrengthObservationType.STRONG_NRM
@@ -93,6 +119,7 @@ object StrengthSetLikelihoodBuilder {
             StrengthObservationType.CONSERVATIVE_LOWER_BOUND ->
                 LOWER_BOUND_BASE_SD + (10.0 - checkNotNull(rpe)) * LOWER_BOUND_RPE_SD
             StrengthObservationType.MISSING_RPE_LOWER_BOUND -> MISSING_RPE_LOG_SD
+            StrengthObservationType.FAILURE_UPPER_BOUND -> FAILURE_LOG_SD
         }
         val variance = (
             modelSd.pow(2) * curve.varianceMultiplier + resolvedLoad.loadVarianceContribution
@@ -125,6 +152,7 @@ object StrengthSetLikelihoodBuilder {
     private const val LOWER_BOUND_BASE_SD = 0.20
     private const val LOWER_BOUND_RPE_SD = 0.035
     private const val MISSING_RPE_LOG_SD = 0.38
+    private const val FAILURE_LOG_SD = 0.24
     const val DIRECT_VARIANCE_FLOOR = 0.0004
     private const val GENERAL_VARIANCE_FLOOR = 0.0016
 }
@@ -139,7 +167,7 @@ object StrengthSessionObservationBuilder {
         personalTheta: Double = 0.0
     ): StrengthExerciseSessionObservation? {
         val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return null
-        val targetLoadings = registry.proxyLoadings(exercise.stableKey)
+        val targetLoadings = registry.proxyLoadings(exercise)
         if (targetLoadings.isEmpty()) return null
         val semantics = targetLoadings.map(StrengthProxyLoadingSpec::loadSemantics).distinct().singleOrNull()
             ?: return null
@@ -153,8 +181,10 @@ object StrengthSessionObservationBuilder {
             )
         }
         if (setEvidence.isEmpty()) return null
-        val strong = setEvidence.filter(StrengthSetEvidence::isStrong)
-        val selected = if (strong.isNotEmpty()) strong else setEvidence
+        val failures = setEvidence.filter(StrengthSetEvidence::isFailure)
+        val successful = setEvidence.filterNot(StrengthSetEvidence::isFailure)
+        val strong = successful.filter(StrengthSetEvidence::isStrong)
+        val selected = if (strong.isNotEmpty()) strong else successful.ifEmpty { failures }
         val weightedMedian = weightedMedian(selected)
         val centerLog = ln(weightedMedian.capacityCenterKg)
         val residuals = selected.map { evidence -> abs(ln(evidence.capacityCenterKg) - centerLog) }
@@ -175,6 +205,7 @@ object StrengthSessionObservationBuilder {
         val type = when {
             directOneRep != null && directTarget != null -> StrengthObservationType.DIRECT_1RM
             strong.isNotEmpty() -> StrengthObservationType.STRONG_NRM
+            failures.isNotEmpty() && successful.isEmpty() -> StrengthObservationType.FAILURE_UPPER_BOUND
             selected.any { evidence -> evidence.observationType == StrengthObservationType.CONSERVATIVE_LOWER_BOUND } ->
                 StrengthObservationType.CONSERVATIVE_LOWER_BOUND
             else -> StrengthObservationType.MISSING_RPE_LOWER_BOUND
@@ -196,7 +227,9 @@ object StrengthSessionObservationBuilder {
             capacityMedianKg = weightedMedian.capacityCenterKg,
             capacityLow80Kg = exp(centerLog - Z_80 * sd),
             capacityHigh80Kg = exp(centerLog + Z_80 * sd),
-            lowerBoundOnly = strong.isEmpty(),
+            lowerBoundOnly = strong.isEmpty() && successful.isNotEmpty(),
+            upperBoundOnly = successful.isEmpty() && failures.isNotEmpty(),
+            failureUpperBoundKg = failures.minOfOrNull(StrengthSetEvidence::capacityCenterKg),
             logVariance = variance,
             directObservedLoadKg = directOneRep?.resolvedLoad?.totalLoadKg,
             bodyWeightKg = bodyweightEvidence?.resolvedLoad?.resolvedBodyWeightKg,
@@ -208,7 +241,10 @@ object StrengthSessionObservationBuilder {
             curveSubjectKey = curve.curveSubjectKey,
             sourceSetIds = setEvidence.map(StrengthSetEvidence::setId),
             strongObservationCount = strong.size,
-            diagnostics = if (contradictory) listOf("CONTRADICTORY_SAME_SESSION_EVIDENCE") else emptyList(),
+            diagnostics = buildList {
+                if (contradictory) add("CONTRADICTORY_SAME_SESSION_EVIDENCE")
+                if (failures.isNotEmpty()) add("RPE10_ZERO_REP_FAILURE")
+            },
             evidenceFingerprint = fingerprint,
             setEvidence = setEvidence
         )

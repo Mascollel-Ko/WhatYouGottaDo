@@ -115,7 +115,7 @@ object VersionedDoubleArrayCodec {
 }
 
 object StrengthPosteriorModel {
-    const val MODEL_VERSION = "strength-performance-model-2.0.0"
+    const val MODEL_VERSION = "strength-performance-model-2.1.0"
     const val MODEL_INSTANCE_KEY = "strength-performance-current"
 
     fun initialState(
@@ -173,15 +173,28 @@ object StrengthPosteriorModel {
             observation.targetLoadings.sortedBy { loading -> loading.targetKey.value }.forEach { loading ->
                 val target = registry.target(loading.targetKey) ?: return@forEach
                 val vector = observationVector(state, target, loading)
-                val observationLog = ln(observation.capacityMedianKg)
+                val observationLog = ln(
+                    if (observation.upperBoundOnly) {
+                        observation.failureUpperBoundKg ?: observation.capacityMedianKg
+                    } else {
+                        observation.capacityMedianKg
+                    }
+                )
                 val variance = observation.logVariance /
                     (loading.loadingWeight * loading.loadingWeight).coerceAtLeast(MIN_LOADING_SQUARED) +
                     if (loading.isDirectAnchor) 0.0 else PROXY_VARIANCE_FLOOR
-                state = if (observation.lowerBoundOnly) {
+                state = if (observation.upperBoundOnly) {
+                    updateUpperBound(state, observationLog, vector, variance)
+                } else if (observation.lowerBoundOnly) {
                     val predicted = dot(vector, state.mean)
                     if (predicted >= observationLog) state else update(state, observationLog, vector, variance + LOWER_BOUND_VARIANCE)
                 } else {
                     update(state, observationLog, vector, variance)
+                }
+                if (!observation.upperBoundOnly) {
+                    observation.failureUpperBoundKg?.takeIf { it.isFinite() && it > 0.0 }?.let { upperBound ->
+                        state = updateUpperBound(state, ln(upperBound), vector, variance)
+                    }
                 }
             }
         }
@@ -287,18 +300,11 @@ object StrengthPosteriorModel {
         val packed = VersionedDoubleArrayCodec.packLowerTriangle(state.covariance)
         val meanEncoded = VersionedDoubleArrayCodec.encode(state.mean)
         val covarianceEncoded = VersionedDoubleArrayCodec.encode(packed)
-        val stateFingerprint = fingerprint(
-            state.orderedFactorSchema.joinToString("|") { key -> key.value },
-            meanEncoded,
-            covarianceEncoded,
-            state.lastProcessedEventUuid.orEmpty(),
-            state.lastProcessedDate?.toString().orEmpty(),
-            MODEL_VERSION,
-            StrengthPerformanceRegistry.FACTOR_SCHEMA_VERSION
-        )
+        val schema = state.orderedFactorSchema.joinToString("|") { key -> key.value }
+        val stateFingerprint = stateFingerprint(state, schema, meanEncoded, covarianceEncoded, MODEL_VERSION)
         return StrengthPosteriorModelStateEntity(
             modelInstanceKey = MODEL_INSTANCE_KEY,
-            orderedFactorSchema = state.orderedFactorSchema.joinToString("|") { key -> key.value },
+            orderedFactorSchema = schema,
             stateMeanEncoded = meanEncoded,
             packedCovarianceEncoded = covarianceEncoded,
             stateDimension = state.mean.size,
@@ -313,7 +319,7 @@ object StrengthPosteriorModel {
     }
 
     fun fromEntity(entity: StrengthPosteriorModelStateEntity): StrengthPosteriorState {
-        require(entity.modelVersion == MODEL_VERSION)
+        require(entity.modelVersion in SUPPORTED_MODEL_VERSIONS)
         require(entity.factorSchemaVersion == StrengthPerformanceRegistry.FACTOR_SCHEMA_VERSION)
         val schema = entity.orderedFactorSchema.split('|').filter(String::isNotEmpty).map(::StrengthFactorKey)
         require(schema.size == entity.stateDimension)
@@ -329,9 +335,33 @@ object StrengthPosteriorModel {
             lastProcessedEventUuid = entity.lastProcessedEventUuid,
             lastProcessedDate = entity.lastProcessedDate?.let(LocalDate::parse)
         )
-        require(toEntity(reconstructed, entity.updatedAt).stateFingerprint == entity.stateFingerprint)
+        require(
+            stateFingerprint(
+                reconstructed,
+                entity.orderedFactorSchema,
+                entity.stateMeanEncoded,
+                entity.packedCovarianceEncoded,
+                entity.modelVersion
+            ) == entity.stateFingerprint
+        )
         return reconstructed
     }
+
+    private fun stateFingerprint(
+        state: StrengthPosteriorState,
+        schema: String,
+        meanEncoded: String,
+        covarianceEncoded: String,
+        modelVersion: String
+    ): String = fingerprint(
+        schema,
+        meanEncoded,
+        covarianceEncoded,
+        state.lastProcessedEventUuid.orEmpty(),
+        state.lastProcessedDate?.toString().orEmpty(),
+        modelVersion,
+        StrengthPerformanceRegistry.FACTOR_SCHEMA_VERSION
+    )
 
     private fun predict(state: StrengthPosteriorState, date: LocalDate): StrengthPosteriorState {
         val days = state.lastProcessedDate?.let { previous -> ChronoUnit.DAYS.between(previous, date).coerceAtLeast(0) } ?: 0
@@ -370,6 +400,18 @@ object StrengthPosteriorModel {
         for (index in symmetric.indices) symmetric[index][index] = symmetric[index][index].coerceAtLeast(MIN_VARIANCE)
         if (!mean.all(Double::isFinite) || !symmetric.all { row -> row.all(Double::isFinite) }) return state
         return state.copyDeep(mean = mean, covariance = symmetric)
+    }
+
+    private fun updateUpperBound(
+        state: StrengthPosteriorState,
+        upperBound: Double,
+        h: DoubleArray,
+        observationVariance: Double
+    ): StrengthPosteriorState {
+        val predicted = dot(h, state.mean)
+        return if (predicted <= upperBound) state else {
+            update(state, upperBound, h, observationVariance + UPPER_BOUND_VARIANCE)
+        }
     }
 
     private fun targetVector(state: StrengthPosteriorState, target: StrengthPerformanceTargetSpec): DoubleArray =
@@ -466,10 +508,12 @@ object StrengthPosteriorModel {
     private const val MIN_LOADING_SQUARED = 0.04
     private const val PROXY_VARIANCE_FLOOR = 0.08
     private const val LOWER_BOUND_VARIANCE = 0.16
+    private const val UPPER_BOUND_VARIANCE = 0.20
     private const val MIN_VARIANCE = 1e-8
     private const val Z_50 = 0.6744897501960817
     private const val Z_80 = 1.2815515655446004
     private const val Z_95 = 1.959963984540054
+    private val SUPPORTED_MODEL_VERSIONS = setOf("strength-performance-model-2.0.0", MODEL_VERSION)
 }
 
 fun PersonalCurvePosterior.toEntity(): StrengthCurvePosteriorEntity = StrengthCurvePosteriorEntity(

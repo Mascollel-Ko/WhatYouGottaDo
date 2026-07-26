@@ -111,6 +111,25 @@ class StrengthPerformanceLikelihoodTest {
     }
 
     @Test
+    fun `zero repetitions at RPE 10 is retained as a failed upper-bound signal`() {
+        val curve = curves.resolve("barbell_bench_press")
+        val source = set(id = 9, reps = 0, weight = 100.0, rpe = 10.0)
+        val evidence = checkNotNull(
+            StrengthSetLikelihoodBuilder.build(
+                source,
+                null,
+                StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+                    .resolve(LocalDate.parse("2026-07-10"), source, StrengthLoadSemantics.EXTERNAL_LOAD),
+                curve
+            )
+        )
+
+        assertEquals(StrengthObservationType.FAILURE_UPPER_BOUND, evidence.observationType)
+        assertEquals(100.0, evidence.capacityCenterKg, 0.0)
+        assertFalse(evidence.isStrong)
+    }
+
+    @Test
     fun `session aggregation is one observation and contradictory evidence widens it`() {
         val resolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
         val exercise = Exercise(id = 1, name = "Bench", category = "strength", stableKey = "barbell_bench_press")
@@ -152,6 +171,24 @@ class StrengthPerformanceLikelihoodTest {
         assertEquals(2, updated.distinctRepRangeCount)
         assertNotEquals(initial.posteriorFingerprint, updated.posteriorFingerprint)
         assertTrue(updated.meanTheta in -0.35..0.35)
+    }
+
+    @Test
+    fun `eligible squat metadata receives a conservative relevant-movement proxy`() {
+        val squat = Exercise(
+            id = 9,
+            name = "Front squat",
+            category = "Strength",
+            stableKey = "front-squat-test",
+            movementPattern = "KNEE_DOMINANT_LOWER",
+            strengthProgressionGroup = "FRONT_SQUAT",
+            estimated1RmEligible = true
+        )
+
+        val loading = registry.proxyLoadings(squat).single()
+        assertEquals(StrengthPerformanceRegistry.BACK_SQUAT, loading.targetKey)
+        assertEquals("METADATA_PROXY", loading.relationship)
+        assertTrue(loading.loadingWeight in 0.0..1.0)
     }
 
     private fun session(

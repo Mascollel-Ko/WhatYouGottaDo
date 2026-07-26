@@ -82,6 +82,75 @@ class StrengthPosteriorModelTest {
     }
 
     @Test
+    fun `zero repetition RPE 10 failure lowers an overconfident prior without becoming a one rep max`() {
+        val initial = StrengthPosteriorModel.initialState(registry, null)
+        val target = checkNotNull(registry.target(StrengthPerformanceRegistry.BENCH_PRESS))
+        val before = StrengthPosteriorModel.distribution(initial, target)
+        val result = compute(initial, observation(reps = 0, weight = 40.0, rpe = 10.0))
+        val after = StrengthPosteriorModel.distribution(result.state, target)
+
+        assertTrue(after.median < before.median)
+        assertEquals(
+            StrengthObservationType.FAILURE_UPPER_BOUND.name,
+            result.history.single { row -> row.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value }.directObservationType
+        )
+    }
+
+    @Test
+    fun `eight relevant squat sessions move the posterior from its initial prior`() {
+        val target = checkNotNull(registry.target(StrengthPerformanceRegistry.BACK_SQUAT))
+        var state = StrengthPosteriorModel.initialState(registry, null)
+        val before = StrengthPosteriorModel.distribution(state, target)
+        val weeklyPriorMedians = mutableListOf<Double>()
+        var previousPosteriorMedian: Double? = null
+        repeat(8) { index ->
+            val date = LocalDate.parse("2026-07-01").plusWeeks(index.toLong())
+            val exercise = Exercise(
+                id = index.toLong() + 1,
+                name = "Front squat",
+                category = "Strength",
+                stableKey = "front-squat-$index",
+                movementPattern = "KNEE_DOMINANT_LOWER",
+                strengthProgressionGroup = "FRONT_SQUAT",
+                estimated1RmEligible = true
+            )
+            val record = WorkoutEntryWithSets(
+                entry = WorkoutEntry(id = index.toLong() + 1, date = date.toString(), exerciseId = exercise.id, exerciseName = exercise.name, category = exercise.category),
+                sets = listOf(WorkoutSet(id = index.toLong() + 1, entryId = exercise.id, setIndex = 1, reps = 5, weightKg = 100.0, confirmed = true, rpe = 10.0))
+            )
+            val observation = checkNotNull(
+                StrengthSessionObservationBuilder.build(
+                    record = record,
+                    exercise = exercise,
+                    registry = registry,
+                    curveRegistry = curves,
+                    loadResolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
+                )
+            )
+            val result = StrengthPosteriorModel.compute(
+                eventUuid = "squat-$index",
+                date = date,
+                currentState = state,
+                observations = listOf(observation),
+                registry = registry,
+                curves = curves,
+                curvePosteriorBySubject = emptyMap(),
+                now = 3_000L + index
+            )
+            val point = result.history.single { row -> row.targetKey == target.targetKey.value }
+            weeklyPriorMedians += checkNotNull(point.priorMedian)
+            previousPosteriorMedian?.let { previous ->
+                assertEquals(previous, checkNotNull(point.priorMedian), 1e-9)
+            }
+            previousPosteriorMedian = point.posteriorMedian
+            state = result.state
+        }
+
+        assertTrue(weeklyPriorMedians.last() > weeklyPriorMedians.first())
+        assertTrue(StrengthPosteriorModel.distribution(state, target).median > before.median)
+    }
+
+    @Test
     fun `identical inputs produce identical state history and evidence fingerprints`() {
         val initial = StrengthPosteriorModel.initialState(registry, null)
         val observation = observation(reps = 5, weight = 80.0, rpe = 10.0)
@@ -95,6 +164,33 @@ class StrengthPosteriorModelTest {
             StrengthPosteriorModel.toEntity(second.state, 2_000L).stateFingerprint
         )
         assertFalse(first.evidence.isEmpty())
+    }
+
+    @Test
+    fun `version 2 model state remains readable after failure evidence support is added`() {
+        val current = StrengthPosteriorModel.toEntity(
+            StrengthPosteriorModel.initialState(registry, null),
+            2_000L
+        )
+        val oldVersion = "strength-performance-model-2.0.0"
+        val legacy = current.copy(
+            modelVersion = oldVersion,
+            stateFingerprint = fingerprint(
+                current.orderedFactorSchema,
+                current.stateMeanEncoded,
+                current.packedCovarianceEncoded,
+                current.lastProcessedEventUuid.orEmpty(),
+                current.lastProcessedDate.orEmpty(),
+                oldVersion,
+                current.factorSchemaVersion
+            )
+        )
+
+        assertArrayEquals(
+            StrengthPosteriorModel.initialState(registry, null).mean,
+            StrengthPosteriorModel.fromEntity(legacy).mean,
+            0.0
+        )
     }
 
     @Test

@@ -157,6 +157,25 @@ class StrengthPosteriorEventIntegrationTest {
     }
 
     @Test
+    fun `seven relevant squat sessions persist seven target history points`() = runBlocking {
+        val db = newDatabase()
+        repeat(7) { index ->
+            insertSession(
+                db = db,
+                date = "2026-07-${(index + 1).toString().padStart(2, '0')}",
+                confirmed = listOf(true),
+                exercise = frontSquatExercise(index.toLong() + 1)
+            )
+        }
+
+        assertTrue(coordinator(db).bootstrapIfNeeded())
+        val history = db.strengthPosteriorDao().historyForTarget(StrengthPerformanceRegistry.BACK_SQUAT.value)
+
+        assertEquals(7, history.map { row -> row.eventUuid }.distinct().size)
+        assertEquals(7, history.size)
+    }
+
+    @Test
     fun `completion fingerprint is independent of local Room ids`() = runBlocking {
         val first = WorkoutEntryWithSets(
             WorkoutEntry(1, "2026-07-24", 10, "Bench", "Strength", createdAt = 100L),
@@ -217,15 +236,16 @@ class StrengthPosteriorEventIntegrationTest {
     private suspend fun insertSession(
         db: TrainingDatabase,
         date: String,
-        confirmed: List<Boolean>
+        confirmed: List<Boolean>,
+        exercise: Exercise = benchExercise()
     ): SessionFixture {
-        val exerciseId = db.exerciseDao().insertExercise(benchExercise())
+        val exerciseId = db.exerciseDao().insertExercise(exercise)
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
                 exerciseId = exerciseId,
-                exerciseName = "Bench press",
-                category = "Strength",
+            exerciseName = exercise.name,
+            category = exercise.category,
                 createdAt = 100L,
                 rpe = 10.0
             )
@@ -249,6 +269,16 @@ class StrengthPosteriorEventIntegrationTest {
         name = "Bench press",
         category = "Strength",
         stableKey = "barbell_bench_press"
+    )
+
+    private fun frontSquatExercise(id: Long): Exercise = Exercise(
+        id = id,
+        name = "Front squat",
+        category = "Strength",
+        stableKey = "front-squat-$id",
+        movementPattern = "KNEE_DOMINANT_LOWER",
+        strengthProgressionGroup = "FRONT_SQUAT",
+        estimated1RmEligible = true
     )
 
     private fun pendingEvent(date: String, fingerprint: String, confirmedCount: Int) = StrengthPosteriorEventEntity(

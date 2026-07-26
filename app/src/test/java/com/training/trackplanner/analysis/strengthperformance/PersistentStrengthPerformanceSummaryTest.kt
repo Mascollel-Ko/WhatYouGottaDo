@@ -73,6 +73,54 @@ class PersistentStrengthPerformanceSummaryTest {
         assertEquals("EXACT_DATE", point.bodyWeightSource)
     }
 
+    @Test
+    fun `relevant session count includes every distinct target event and failures stay separate`() {
+        val history = (1..7).map { index ->
+            history().copy(
+                eventUuid = "event-$index",
+                sessionDate = "2026-07-${index.toString().padStart(2, '0')}",
+                evidenceFingerprint = "evidence-$index"
+            )
+        }
+        val evidence = (1..7).map { index ->
+            evidence().copy(
+                eventUuid = "event-$index",
+                sessionDate = "2026-07-${index.toString().padStart(2, '0')}",
+                evidenceFingerprint = "evidence-$index",
+                observationType = if (index == 7) {
+                    StrengthObservationType.FAILURE_UPPER_BOUND.name
+                } else {
+                    StrengthObservationType.STRONG_NRM.name
+                }
+            )
+        }
+        val summary = PersistentStrengthPerformanceSummaryBuilder.build(
+            registry = registry,
+            modelState = null,
+            history = history,
+            events = (1..7).map { index ->
+                event().copy(
+                    eventUuid = "event-$index",
+                    sessionDate = "2026-07-${index.toString().padStart(2, '0')}",
+                    completionFingerprint = "completion-$index",
+                    evidenceFingerprint = "evidence-$index"
+                )
+            },
+            evidence = evidence,
+            curvePosteriors = emptyList(),
+            currentBodyWeightKg = 90.0,
+            bootstrapProvenance = null,
+            backupRestorationProvenance = null
+        )
+        val target = summary.targets.single { item ->
+            item.targetKey == StrengthPerformanceRegistry.WEIGHTED_PULL_UP.value
+        }
+
+        assertEquals(7, target.relevantSessionCount)
+        assertEquals(6, target.strongNrmObservationCount)
+        assertEquals(1, target.failureObservationCount)
+    }
+
     private fun event() = StrengthPosteriorEventEntity(
         eventUuid = "event-1",
         sessionKey = "date:2026-07-01",

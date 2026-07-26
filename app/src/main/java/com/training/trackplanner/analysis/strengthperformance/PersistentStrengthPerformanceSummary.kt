@@ -33,9 +33,11 @@ data class PersistentStrengthTargetSummary(
     val currentAddedWeightKg: Double?,
     val latestDirectObservationKg: Double?,
     val latestDirectObservationDate: LocalDate?,
+    val relevantSessionCount: Int,
     val directObservationCount: Int,
     val strongNrmObservationCount: Int,
     val proxyObservationCount: Int,
+    val failureObservationCount: Int,
     val curveProfileId: String?,
     val curveMatchLevel: String?,
     val curveVarianceMultiplier: Double?,
@@ -113,6 +115,7 @@ object PersistentStrengthPerformanceSummaryBuilder {
             val latestDirect = rows.lastOrNull { row ->
                 row.directObservationType == StrengthObservationType.DIRECT_1RM.name && row.directObservedLoad != null
             }
+            val evidenceForRows = rows.mapNotNull { row -> evidenceByFingerprint[row.evidenceFingerprint] }
             val median = distribution?.median ?: latest?.posteriorMedian
             val isWeightedPullUp = target.targetKey == StrengthPerformanceRegistry.WEIGHTED_PULL_UP
             PersistentStrengthTargetSummary(
@@ -128,9 +131,17 @@ object PersistentStrengthPerformanceSummaryBuilder {
                 } else null,
                 latestDirectObservationKg = latestDirect?.directObservedLoad,
                 latestDirectObservationDate = latestDirect?.sessionDate?.let(LocalDate::parse),
+                relevantSessionCount = rows.map(StrengthPosteriorHistoryEntity::eventUuid).distinct().size,
                 directObservationCount = rows.count { row -> row.directObservationType == StrengthObservationType.DIRECT_1RM.name },
-                strongNrmObservationCount = rows.count { row -> row.directObservationType == StrengthObservationType.STRONG_NRM.name },
-                proxyObservationCount = rows.count { row -> row.directObservationType == "NONE" },
+                strongNrmObservationCount = evidenceForRows.count { row ->
+                    row.observationType == StrengthObservationType.STRONG_NRM.name
+                },
+                proxyObservationCount = rows.count { row ->
+                    evidenceByFingerprint[row.evidenceFingerprint]?.directTargetKey != target.targetKey.value
+                },
+                failureObservationCount = evidenceForRows.count { row ->
+                    row.observationType == StrengthObservationType.FAILURE_UPPER_BOUND.name
+                },
                 curveProfileId = latestEvidence?.curveProfileId ?: latest?.curveProfileId,
                 curveMatchLevel = latestEvidence?.curveMatchLevel ?: latest?.curveMatchLevel,
                 curveVarianceMultiplier = latestEvidence?.curveVarianceMultiplier,
