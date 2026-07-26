@@ -3509,3 +3509,22 @@ Verification
   repository export/import, ACTIVE and SUPERSEDED metadata, schema 5 v1 event
   compatibility, old-backup correction scheduling, deterministic vector
   validation, duplicate idempotency, and conflict rejection.
+
+### Active-revision analysis UI
+- Strength analysis summaries now read only the ACTIVE compatible revision.
+  Legacy and SUPERSEDED posterior rows remain stored for audit but do not leak
+  into the current capability cards.
+- The capability card distinguishes direct 1RM, known-RPE probabilistic
+  observations, strong nRM, shared proxy innovations, and failures. It also
+  identifies the active revision, RIR policy, model version, and curve version.
+- Expanded session detail reports the exercise-local prior, session likelihood,
+  local innovation, local posterior, and whether reviewed shared-factor proxy
+  transfer was applied. The UI explicitly states that proxy absolute kilograms
+  are never converted into target-exercise kilograms.
+- The laboratory card exposes revision provenance, local-state and applied-
+  proxy counts, target-specific proxy violations, numerical grid diagnostics,
+  and unsupported-repetition evidence without changing the user-facing
+  performance estimate.
+- Focused `PersistentStrengthPerformanceSummaryTest`,
+  `AnalysisPersistentStrengthPerformanceUiTest`, and
+  `compileDebugKotlin` pass.

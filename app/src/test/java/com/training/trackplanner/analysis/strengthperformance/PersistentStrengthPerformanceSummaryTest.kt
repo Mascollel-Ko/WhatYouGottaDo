@@ -3,6 +3,8 @@ package com.training.trackplanner.analysis.strengthperformance
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
+import com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity
+import com.training.trackplanner.data.StrengthProxyTransferHistoryEntity
 import com.training.trackplanner.data.StrengthPosteriorEventEntity
 import com.training.trackplanner.data.StrengthPosteriorEvidenceEntity
 import com.training.trackplanner.data.StrengthPosteriorHistoryEntity
@@ -119,6 +121,90 @@ class PersistentStrengthPerformanceSummaryTest {
         assertEquals(7, target.relevantSessionCount)
         assertEquals(6, target.strongNrmObservationCount)
         assertEquals(1, target.failureObservationCount)
+    }
+
+    @Test
+    fun `summary distinguishes known RPE local innovation from direct absolute evidence`() {
+        val proxyEvidence = evidence().copy(
+            exerciseStableKey = "ex_a61f1e96",
+            exerciseNameAtProcessing = "Incline dumbbell press",
+            directTargetKey = null,
+            observationType = StrengthObservationType.RPE_MIXTURE_OBSERVATION.name
+        )
+        val targetHistory = history().copy(
+            targetKey = StrengthPerformanceRegistry.BENCH_PRESS.value,
+            directObservedLoad = null,
+            directObservationType = "NONE"
+        )
+        val localHistory = StrengthExercisePerformanceHistoryEntity(
+            revisionKey = "strength-revision-3.0.0",
+            eventUuid = proxyEvidence.eventUuid,
+            sessionKey = proxyEvidence.sessionKey,
+            sessionDate = proxyEvidence.sessionDate,
+            exerciseStableKey = proxyEvidence.exerciseStableKey,
+            priorLogMean = kotlin.math.ln(52.0),
+            priorLogVariance = 0.08,
+            sessionLikelihoodLogMean = kotlin.math.ln(60.0),
+            sessionLikelihoodLogVariance = 0.04,
+            sessionLikelihoodProper = true,
+            innovationResidualLog = kotlin.math.ln(60.0 / 52.0),
+            innovationVariance = 0.12,
+            posteriorLogMean = kotlin.math.ln(56.0),
+            posteriorLogVariance = 0.05,
+            posteriorMeanIncrementLog = kotlin.math.ln(56.0 / 52.0),
+            transitionDays = 7,
+            baselineEstablishedBefore = true,
+            baselineEstablishedAfter = true,
+            proxyTransferEligible = true,
+            proxyTransferApplied = true,
+            modelVersion = StrengthPosteriorModel.MODEL_VERSION,
+            curveVersion = RepetitionCurveRegistry.CURVE_VERSION,
+            rirPolicyVersion = "strength-rpe-rir-policy-1.0.0",
+            evidenceFingerprint = proxyEvidence.evidenceFingerprint,
+            createdAt = 2L
+        )
+        val proxy = StrengthProxyTransferHistoryEntity(
+            revisionKey = localHistory.revisionKey,
+            eventUuid = localHistory.eventUuid,
+            sessionDate = localHistory.sessionDate,
+            exerciseStableKey = localHistory.exerciseStableKey,
+            targetKey = targetHistory.targetKey,
+            innovationResidualLog = checkNotNull(localHistory.innovationResidualLog),
+            innovationVariance = checkNotNull(localHistory.innovationVariance),
+            transferCoefficient = 0.45,
+            transferLogVariance = 0.3,
+            orderedSharedFactorKeys = "strength.factor.horizontal_press",
+            sharedLoadingVectorEncoded = VersionedDoubleArrayCodec.encode(doubleArrayOf(0.45)),
+            targetSpecificContribution = 0.0,
+            applied = true,
+            exclusionReason = null,
+            proxyRegistryVersion = StrengthPerformanceRegistry.PROXY_CONFIG_VERSION,
+            modelVersion = StrengthPosteriorModel.MODEL_VERSION,
+            transferFingerprint = "proxy-1",
+            createdAt = 2L
+        )
+        val summary = PersistentStrengthPerformanceSummaryBuilder.build(
+            registry = registry,
+            modelState = null,
+            history = listOf(targetHistory),
+            events = listOf(event()),
+            evidence = listOf(proxyEvidence),
+            curvePosteriors = emptyList(),
+            currentBodyWeightKg = null,
+            bootstrapProvenance = null,
+            backupRestorationProvenance = null,
+            localHistory = listOf(localHistory),
+            proxyTransfers = listOf(proxy)
+        )
+        val bench = summary.targets.single { target ->
+            target.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value
+        }
+
+        assertEquals(1, bench.knownRpeObservationCount)
+        assertEquals(1, bench.proxyObservationCount)
+        assertEquals(1, bench.localExerciseDetails.size)
+        assertEquals("Incline dumbbell press", bench.localExerciseDetails.single().exerciseName)
+        assertEquals(0, summary.targetSpecificProxyViolationCount)
     }
 
     private fun event() = StrengthPosteriorEventEntity(

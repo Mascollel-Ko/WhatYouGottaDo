@@ -1,12 +1,16 @@
 package com.training.trackplanner.analysis.strengthperformance
 
 import com.training.trackplanner.data.StrengthCurvePosteriorEntity
+import com.training.trackplanner.data.StrengthExercisePerformanceHistoryEntity
+import com.training.trackplanner.data.StrengthProxyTransferHistoryEntity
 import com.training.trackplanner.data.StrengthPosteriorEventEntity
 import com.training.trackplanner.data.StrengthPosteriorEvidenceEntity
 import com.training.trackplanner.data.StrengthPosteriorHistoryEntity
 import com.training.trackplanner.data.StrengthPosteriorModelStateEntity
 import com.training.trackplanner.data.StrengthModelRevisionEntity
 import java.time.LocalDate
+import kotlin.math.exp
+import kotlin.math.expm1
 
 data class PersistentStrengthPerformanceSummary(
     val targets: List<PersistentStrengthTargetSummary>,
@@ -27,7 +31,10 @@ data class PersistentStrengthPerformanceSummary(
     val rirPolicyVersion: String? = null,
     val localExerciseStateCount: Int = 0,
     val proxyTransferCount: Int = 0,
-    val supersededRevisionCount: Int = 0
+    val supersededRevisionCount: Int = 0,
+    val targetSpecificProxyViolationCount: Int = 0,
+    val gridDiagnosticCount: Int = 0,
+    val unsupportedRepetitionEvidenceCount: Int = 0
 )
 
 data class PersistentStrengthTargetSummary(
@@ -53,7 +60,21 @@ data class PersistentStrengthTargetSummary(
     val lastProcessedSessionDate: LocalDate?,
     val modelVersion: String?,
     val curveVersion: String?,
-    val history: List<PersistentStrengthHistoryPoint>
+    val history: List<PersistentStrengthHistoryPoint>,
+    val knownRpeObservationCount: Int = 0,
+    val localExerciseDetails: List<PersistentStrengthExerciseLocalSummary> = emptyList()
+)
+
+data class PersistentStrengthExerciseLocalSummary(
+    val exerciseStableKey: String,
+    val exerciseName: String,
+    val sessionDate: LocalDate,
+    val priorMedianKg: Double,
+    val sessionLikelihoodMedianKg: Double?,
+    val innovationPercent: Double?,
+    val posteriorMedianKg: Double,
+    val proxyTransferApplied: Boolean,
+    val proxyTransferExclusionReason: String?
 )
 
 data class PersistentStrengthHistoryPoint(
@@ -103,7 +124,9 @@ object PersistentStrengthPerformanceSummaryBuilder {
         activeRevision: StrengthModelRevisionEntity? = null,
         localExerciseStateCount: Int = 0,
         proxyTransferCount: Int = 0,
-        supersededRevisionCount: Int = 0
+        supersededRevisionCount: Int = 0,
+        localHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
+        proxyTransfers: List<StrengthProxyTransferHistoryEntity> = emptyList()
     ): PersistentStrengthPerformanceSummary {
         val diagnostics = mutableListOf<String>()
         val decodedState = modelState?.let { entity ->
@@ -128,6 +151,41 @@ object PersistentStrengthPerformanceSummaryBuilder {
                 row.directObservationType == StrengthObservationType.DIRECT_1RM.name && row.directObservedLoad != null
             }
             val evidenceForRows = rows.mapNotNull { row -> evidenceByFingerprint[row.evidenceFingerprint] }
+            val relatedLocalDetails = localHistory
+                .filter { local ->
+                    registry.proxyLoadings(local.exerciseStableKey)
+                        .any { loading -> loading.targetKey == target.targetKey }
+                }
+                .groupBy(StrengthExercisePerformanceHistoryEntity::exerciseStableKey)
+                .mapNotNull { (stableKey, histories) ->
+                    val local = histories.maxWithOrNull(
+                        compareBy(
+                            StrengthExercisePerformanceHistoryEntity::sessionDate,
+                            StrengthExercisePerformanceHistoryEntity::createdAt
+                        )
+                    ) ?: return@mapNotNull null
+                    val transfer = proxyTransfers.firstOrNull { row ->
+                        row.eventUuid == local.eventUuid &&
+                            row.exerciseStableKey == stableKey &&
+                            row.targetKey == target.targetKey.value
+                    }
+                    PersistentStrengthExerciseLocalSummary(
+                        exerciseStableKey = stableKey,
+                        exerciseName = evidence.asReversed()
+                            .firstOrNull { row -> row.exerciseStableKey == stableKey }
+                            ?.exerciseNameAtProcessing
+                            ?: stableKey,
+                        sessionDate = LocalDate.parse(local.sessionDate),
+                        priorMedianKg = exp(local.priorLogMean),
+                        sessionLikelihoodMedianKg = local.sessionLikelihoodLogMean?.let(::exp),
+                        innovationPercent = local.innovationResidualLog?.let { residual -> expm1(residual) * 100.0 },
+                        posteriorMedianKg = exp(local.posteriorLogMean),
+                        proxyTransferApplied = transfer?.applied == true,
+                        proxyTransferExclusionReason = transfer?.exclusionReason
+                            ?: local.proxyExclusionReason()
+                    )
+                }
+                .sortedBy(PersistentStrengthExerciseLocalSummary::exerciseName)
             val median = distribution?.median ?: latest?.posteriorMedian
             val isWeightedPullUp = target.targetKey == StrengthPerformanceRegistry.WEIGHTED_PULL_UP
             PersistentStrengthTargetSummary(
@@ -148,8 +206,8 @@ object PersistentStrengthPerformanceSummaryBuilder {
                 strongNrmObservationCount = evidenceForRows.count { row ->
                     row.observationType == StrengthObservationType.STRONG_NRM.name
                 },
-                proxyObservationCount = rows.count { row ->
-                    evidenceByFingerprint[row.evidenceFingerprint]?.directTargetKey != target.targetKey.value
+                proxyObservationCount = proxyTransfers.count { row ->
+                    row.targetKey == target.targetKey.value && row.applied
                 },
                 failureObservationCount = evidenceForRows.count { row ->
                     row.observationType == StrengthObservationType.FAILURE_UPPER_CENSORED.name ||
@@ -162,7 +220,11 @@ object PersistentStrengthPerformanceSummaryBuilder {
                 lastProcessedSessionDate = latest?.sessionDate?.let(LocalDate::parse),
                 modelVersion = latest?.modelVersion ?: modelState?.modelVersion,
                 curveVersion = latest?.curveVersion ?: modelState?.curveVersion,
-                history = rows.map { row -> row.toSummaryPoint(evidenceByFingerprint[row.evidenceFingerprint]) }
+                history = rows.map { row -> row.toSummaryPoint(evidenceByFingerprint[row.evidenceFingerprint]) },
+                knownRpeObservationCount = evidenceForRows.count { row ->
+                    row.observationType == StrengthObservationType.RPE_MIXTURE_OBSERVATION.name
+                },
+                localExerciseDetails = relatedLocalDetails
             )
         }
         val finiteHistory = history.flatMap { row ->
@@ -193,8 +255,26 @@ object PersistentStrengthPerformanceSummaryBuilder {
             rirPolicyVersion = activeRevision?.rirPolicyVersion,
             localExerciseStateCount = localExerciseStateCount,
             proxyTransferCount = proxyTransferCount,
-            supersededRevisionCount = supersededRevisionCount
+            supersededRevisionCount = supersededRevisionCount,
+            targetSpecificProxyViolationCount = proxyTransfers.count { row ->
+                row.targetSpecificContribution != 0.0
+            },
+            gridDiagnosticCount = evidence.count { row ->
+                row.diagnosticsEncoded.contains("GRID", ignoreCase = true) ||
+                    row.diagnosticsEncoded.contains("QUADRATURE", ignoreCase = true)
+            },
+            unsupportedRepetitionEvidenceCount = evidence.count { row ->
+                row.observationType == StrengthObservationType.UNSUPPORTED_REPETITION_RANGE.name
+            }
         )
+    }
+
+    private fun StrengthExercisePerformanceHistoryEntity.proxyExclusionReason(): String? = when {
+        proxyTransferApplied -> null
+        !sessionLikelihoodProper -> "양방향 RPE 근거가 없어 공유 근력 신호에서 제외"
+        !baselineEstablishedBefore -> "첫 관측은 운동 자체 기준선만 설정"
+        !proxyTransferEligible -> "공유 근력 신호 전이 조건 미충족"
+        else -> "검토된 최소 local 관측 수 미충족"
     }
 
     private fun StrengthPosteriorHistoryEntity.toSummaryPoint(

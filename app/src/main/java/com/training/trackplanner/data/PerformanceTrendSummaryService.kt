@@ -6,7 +6,6 @@ import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummaryBuilder
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
-import com.training.trackplanner.analysis.strengthperformance.StrengthPosteriorModel
 import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import java.time.format.DateTimeFormatter
@@ -56,14 +55,12 @@ internal class PerformanceTrendSummaryService(
         val activeRevision = strengthPosteriorDao.activeRevision()
         val revisionKey = activeRevision?.revisionKey
         val revisionEvents = revisionKey?.let { strengthPosteriorDao.eventsForRevision(it) }
-            ?: strengthPosteriorDao.allEvents()
+            ?: emptyList()
         val revisionHistory = revisionKey?.let { strengthPosteriorDao.historyForRevision(it) }
-            ?: strengthPosteriorDao.allHistory()
+            ?: emptyList()
         val revisionEvidence = revisionKey?.let { strengthPosteriorDao.evidenceForRevision(it) }
-            ?: strengthPosteriorDao.allEvidence()
-        val revisionCurves = if (revisionKey == null) {
-            strengthPosteriorDao.allCurvePosteriors()
-        } else {
+            ?: emptyList()
+        val revisionCurves = if (revisionKey != null) {
             strengthPosteriorDao.allCurvePosteriors()
                 .filter { it.curveSubjectKey.startsWith("$revisionKey|") }
                 .map { entity ->
@@ -74,13 +71,14 @@ internal class PerformanceTrendSummaryService(
                         )
                     )
                 }
-        }
+        } else emptyList()
+        val revisionLocalStates = if (revisionKey != null) strengthPosteriorDao.localStates(revisionKey) else emptyList()
+        val revisionLocalHistory = if (revisionKey != null) strengthPosteriorDao.localHistory(revisionKey) else emptyList()
+        val revisionProxyHistory = if (revisionKey != null) strengthPosteriorDao.proxyHistory(revisionKey) else emptyList()
         val persistentStrengthSummary = PersistentStrengthPerformanceSummaryBuilder.build(
             registry = strengthPerformanceRegistry,
-            modelState = strengthPosteriorDao.modelState(
-                revisionKey?.let(StrengthModelRevisionPolicy::modelInstanceKey)
-                    ?: StrengthPosteriorModel.MODEL_INSTANCE_KEY
-            ),
+            modelState = revisionKey?.let(StrengthModelRevisionPolicy::modelInstanceKey)
+                ?.let { key -> strengthPosteriorDao.modelState(key) },
             history = revisionHistory,
             events = revisionEvents,
             evidence = revisionEvidence,
@@ -89,10 +87,12 @@ internal class PerformanceTrendSummaryService(
             bootstrapProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY),
             backupRestorationProvenance = appMetaDao.value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY),
             activeRevision = activeRevision,
-            localExerciseStateCount = revisionKey?.let { strengthPosteriorDao.localStates(it).size } ?: 0,
-            proxyTransferCount = revisionKey?.let { strengthPosteriorDao.proxyHistory(it).count { row -> row.applied } } ?: 0,
+            localExerciseStateCount = revisionLocalStates.size,
+            proxyTransferCount = revisionProxyHistory.count { row -> row.applied },
             supersededRevisionCount = strengthPosteriorDao.allRevisions()
-                .count { it.status == StrengthModelRevisionPolicy.STATUS_SUPERSEDED }
+                .count { it.status == StrengthModelRevisionPolicy.STATUS_SUPERSEDED },
+            localHistory = revisionLocalHistory,
+            proxyTransfers = revisionProxyHistory
         )
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries + strengthAndMuscleSeries,

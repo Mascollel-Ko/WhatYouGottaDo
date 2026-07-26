@@ -40,13 +40,13 @@ internal fun PersistentStrengthPerformanceCards(summary: PersistentStrengthPerfo
     if (summary == null || summary.targets.isEmpty()) return
     var selectedKey by rememberSaveable { mutableStateOf(summary.targets.first().targetKey) }
     val selected = summary.targets.firstOrNull { target -> target.targetKey == selectedKey } ?: summary.targets.first()
-    PersistentStrengthCapabilityCard(summary.targets, selected) { target -> selectedKey = target.targetKey }
+    PersistentStrengthCapabilityCard(summary, selected) { target -> selectedKey = target.targetKey }
     PersistentStrengthHistoryCard(selected)
 }
 
 @Composable
 private fun PersistentStrengthCapabilityCard(
-    targets: List<PersistentStrengthTargetSummary>,
+    summary: PersistentStrengthPerformanceSummary,
     selected: PersistentStrengthTargetSummary,
     onSelected: (PersistentStrengthTargetSummary) -> Unit
 ) {
@@ -56,7 +56,7 @@ private fun PersistentStrengthCapabilityCard(
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("현재 수행능력 추정", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            PersistentTargetSelector(targets, selected, onSelected)
+            PersistentTargetSelector(summary.targets, selected, onSelected)
             val medianLabel = if (selected.isWeightedPullUp()) "추정 총부하" else "사후분포 중앙값"
             Text("$medianLabel ${kgOrDash(selected.currentMedianKg)}", fontWeight = FontWeight.SemiBold)
             Text("80% 범위 ${rangeOrDash(selected.currentLow80Kg, selected.currentHigh80Kg)}")
@@ -70,11 +70,18 @@ private fun PersistentStrengthCapabilityCard(
                 style = MaterialTheme.typography.bodySmall
             )
             Text(
-                "관련 세션 ${selected.relevantSessionCount} · 직접 1RM ${selected.directObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · 프록시 ${selected.proxyObservationCount} · 실패 ${selected.failureObservationCount}",
+                "관련 세션 ${selected.relevantSessionCount} · 직접 1RM ${selected.directObservationCount} · " +
+                    "RPE 확률 관측 ${selected.knownRpeObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · " +
+                    "프록시 혁신 ${selected.proxyObservationCount} · 실패 ${selected.failureObservationCount}",
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
                 "곡선 보정 ${selected.curveCalibrationStatus ?: "CANONICAL_ONLY"} · 최근 처리 ${selected.lastProcessedSessionDate ?: "-"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "활성 revision ${summary.activeRevisionKey ?: "-"} · RIR 정책 ${summary.rirPolicyVersion ?: "-"}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -84,7 +91,7 @@ private fun PersistentStrengthCapabilityCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "직접 1RM과 비선형 반복 곡선 기반 세션 관측을 결합한 추정값입니다.",
+                "프록시 운동의 절대 중량을 대상 운동 중량으로 직접 환산하지 않습니다. 운동 자체 변화 중 공유 근력 신호만 반영합니다.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -113,6 +120,32 @@ private fun PersistentStrengthHistoryCard(summary: PersistentStrengthTargetSumma
                 if (expanded) {
                     summary.history.asReversed().take(12).forEach { point ->
                         PersistentStrengthHistoryRow(summary, point)
+                    }
+                    if (summary.localExerciseDetails.isNotEmpty()) {
+                        Text("관련 운동 자체 추정", fontWeight = FontWeight.SemiBold)
+                        summary.localExerciseDetails.forEach { local ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("persistent-strength-local-detail"),
+                                verticalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Text("${local.exerciseName} · ${local.sessionDate}", fontWeight = FontWeight.SemiBold)
+                                Text("세션 전 local prior ${kgOrDash(local.priorMedianKg)}")
+                                Text("세션 likelihood ${kgOrDash(local.sessionLikelihoodMedianKg)}")
+                                Text("세션 innovation ${percentOrDash(local.innovationPercent)}")
+                                Text("세션 후 local posterior ${kgOrDash(local.posteriorMedianKg)}")
+                                Text(
+                                    if (local.proxyTransferApplied) {
+                                        "프록시 전이 적용 · 공유 근력 신호만 반영"
+                                    } else {
+                                        "프록시 전이 제외 · ${local.proxyTransferExclusionReason ?: "조건 미충족"}"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -176,6 +209,14 @@ internal fun PersistentStrengthPerformanceLabCard(summary: PersistentStrengthPer
             Text("모델 경계 ${summary.modelVersionBoundaries.ifEmpty { listOf("-") }.joinToString()}")
             Text("곡선 경계 ${summary.curveVersionBoundaries.ifEmpty { listOf("-") }.joinToString()}")
             Text("상태 지문 ${summary.modelStateFingerprint?.take(16) ?: "-"} · 스키마 ${summary.factorSchemaVersion ?: "-"}")
+            Text("활성 revision ${summary.activeRevisionKey ?: "-"} · 상태 ${summary.activeRevisionStatus ?: "-"}")
+            Text("이전 revision ${summary.supersededRevisionCount} · 재빌드 출처 ${summary.activeRevisionReason ?: "-"}")
+            Text("local 운동 상태 ${summary.localExerciseStateCount} · 적용 proxy 전이 ${summary.proxyTransferCount}")
+            Text("target-specific proxy 위반 ${summary.targetSpecificProxyViolationCount}")
+            Text("RIR 정책 ${summary.rirPolicyVersion ?: "-"}")
+            Text(
+                "grid 진단 ${summary.gridDiagnosticCount} · 지원 범위 밖 반복 ${summary.unsupportedRepetitionEvidenceCount}"
+            )
             Text("부트스트랩 ${summary.bootstrapProvenance ?: "없음"}")
             Text("백업 복원 ${summary.backupRestorationProvenance ?: "없음"}")
             Text(
@@ -254,4 +295,8 @@ private fun rangeOrDash(low: Double?, high: Double?): String =
 
 private fun decimalOrDash(value: Double?): String = value?.takeIf(Double::isFinite)?.let { number ->
     String.format(Locale.US, "%.2f", number)
+} ?: "-"
+
+private fun percentOrDash(value: Double?): String = value?.takeIf(Double::isFinite)?.let { percent ->
+    String.format(Locale.US, "%+.1f%%", percent)
 } ?: "-"
