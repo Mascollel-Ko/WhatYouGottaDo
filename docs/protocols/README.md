@@ -21,6 +21,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `BADMINTON` | 배드민턴 분류와 부하 | 훈련 방법, 전이 분류, 부하와 catalogue | [열기](badminton/BADMINTON_TRAINING_TAXONOMY.md) |
 | `STRENGTH` | 근력훈련 분류와 부하 | taxonomy, volume, 체중·시간 유지 운동과 주요 리프트 proxy 수행 추정 | [열기](strength/STRENGTH_TRAINING_TAXONOMY.md) |
 | `PROGRAM_BUILDER` | 자동 프로그램 생성 | 현재 공개 결정론적 자동 골자 생성 계약 | [열기](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
+| `DATA_PORTABILITY` | 백업과 복원 | legacy 호환성과 authoritative program snapshot | [열기](data_portability/BACKUP_AND_RESTORE.md) |
 | `UI_PRESENTATION` | 제품 UI 표시 | 조용한 표면 계층, 내비게이션, OFI 요약과 강조 정책 | [열기](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Protocol status
@@ -56,6 +57,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SCORING` | 운동 선택과 우선순위 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/EXERCISE_SELECTION_AND_SCORING.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-CONSTRAINTS` | 대체와 제약 규칙 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.0` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/PROGRAM_EVALUATION.md) |
+| `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5` | `48b137d351cb75736f7fbb23ebff4dc027353466` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0` | `7c29fa80b31fad642273e0a3ec5924109dafac21` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
@@ -63,6 +65,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 - v0.4.2.16부터 분석 주간 차트는 Monday-Sunday, Thursday month ownership, 월별 chronological ordinal을 한 shared authority로 사용하며 e1RM은 모든 표시 운동의 union domain을 보존합니다.
 - v0.5.0.0부터 주요 화면은 한 섹션당 하나의 의미 있는 surface, 중립 배경, restrained state emphasis와 canonical 다섯 행 OFI 요약을 사용합니다. 이 릴리스에는 bitmap이나 장식 illustration을 추가하지 않습니다.
 - v0.5.0.1부터 벤치프레스, 스쿼트, 데드리프트의 관련 운동 수행은 실제 e1RM과 분리된 실험적 proxy posterior로만 표시합니다. posterior는 `metricSeries`, legacy 시계열 분석 또는 strict BVAR/BLP 준비 입력에 들어가지 않습니다.
+- v0.5.0.5부터 새 기록 백업은 현재 program graph와 built-in 삭제 tombstone을 authoritative snapshot으로 포함합니다. Marker 없는 legacy 파일은 현재 program state를 변경하지 않습니다.
 - `CT-PERSONAL-CALIBRATION`의 generated BasePrior, profile adjustment, per-unit PersonalBaseline와 relative-state UI는 v0.4.2.12부터 `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`입니다. 짧은 history도 prior로 분류하며 `w_perUnit`은 비교 경계에만 적용됩니다.
 - 연결조직 교육 설명은 v0.4.2.13부터 `RCV-ALL-0.6-EDU-2`의 77개 하위 조직과 15개 상위 관절군을 완전 커버하며, 한 대화상자에서 `위치`, `주요 기능`, `주로 사용되는 동작`만 보여 줍니다.
 - 앱에서는 홈의 `이 앱이 분석하는 것 보기`에서 제품 설명을 거쳐 이 공개 프로토콜 인덱스를 열 수 있습니다.
