@@ -214,7 +214,8 @@ class PerformanceTrendEngine(
                     confirmedSetCount = total
                 )
             }
-        }
+        }.dropWhile { week -> week.confirmedSetCount == 0 }
+            .dropLastWhile { week -> week.confirmedSetCount == 0 }
 
     private fun nextDelta(points: List<TrendDataPoint>): List<TrendDataPoint> =
         points.mapIndexed { index, point ->

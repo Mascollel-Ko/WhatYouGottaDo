@@ -420,6 +420,32 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun repRangeTrendStartsAtFirstRecordedWeekAndEndsAtLastRecordedWeek() {
+        val strength = strengthExercise()
+        val firstRecord = today.minusWeeks(3)
+        val lastRecord = today.minusWeeks(1)
+        val summary = PerformanceTrendEngine().analyze(
+            today = today,
+            exercises = listOf(strength),
+            entriesWithSets = listOf(
+                record(strength, firstRecord, listOf(set(reps = 5, weightKg = 100.0, confirmed = true))),
+                record(strength, lastRecord, listOf(set(reps = 10, weightKg = 70.0, confirmed = true)))
+            ),
+            dailyMetrics = emptyList()
+        )
+
+        assertEquals(
+            listOf(
+                WeeklyAnalysisAggregator().weekStart(firstRecord),
+                WeeklyAnalysisAggregator().weekStart(firstRecord).plusWeeks(1),
+                WeeklyAnalysisAggregator().weekStart(lastRecord)
+            ),
+            summary.repRangeWeeks.map(RepRangeWeekShare::weekStart)
+        )
+        assertEquals(listOf(1, 0, 1), summary.repRangeWeeks.map(RepRangeWeekShare::confirmedSetCount))
+    }
+
+    @Test
     fun fatigueCompositeUsesPressurePercentileZScoreAndRecoveryPenalty() {
         val pressure = FatiguePressureSnapshot(
             categoryPressures = mapOf(
