@@ -58,49 +58,33 @@ class StrengthPosteriorBackupRestoreTest {
     }
 
     @Test
-    fun `new backup restores exact posterior and exact duplicate import is idempotent`() = runBlocking {
+    fun `new backup discards derived posterior rows and repeated import keeps canonical state`() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
         val fixture = fixture()
         val uri = writeBackup(fixture.csv())
 
         val first = repository.importRecordsBackup(uri)
-        assertEquals(1, first.posteriorEventCount)
-        assertEquals(1, first.posteriorHistoryCount)
-        assertEquals(1, first.posteriorStateCount)
-        assertEquals(1, first.posteriorCurveCount)
-        assertEquals(1, first.posteriorEvidenceCount)
-        assertEquals(2, first.posteriorRevisionCount)
-        assertEquals(1, first.posteriorLocalStateCount)
-        assertEquals(1, first.posteriorLocalHistoryCount)
-        assertEquals(1, first.posteriorProxyTransferCount)
-        assertEquals(
-            listOf(fixture.supersededRevision, fixture.revision),
-            db.strengthPosteriorDao().allRevisions()
-        )
-        assertEquals(fixture.event, db.strengthPosteriorDao().allEvents().single())
-        assertEquals(fixture.history, db.strengthPosteriorDao().allHistory().single())
-        assertEquals(fixture.state, db.strengthPosteriorDao().allModelStates().single())
-        assertEquals(fixture.curve, db.strengthPosteriorDao().allCurvePosteriors().single())
-        assertEquals(fixture.evidence, db.strengthPosteriorDao().allEvidence().single())
-        assertEquals(fixture.localState, db.strengthPosteriorDao().localStates(fixture.revision.revisionKey).single())
-        assertEquals(fixture.localHistory, db.strengthPosteriorDao().localHistory(fixture.revision.revisionKey).single())
-        assertEquals(fixture.proxyHistory, db.strengthPosteriorDao().proxyHistory(fixture.revision.revisionKey).single())
-        assertEquals(fixture.marker, db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY))
-        assertTrue(
-            checkNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY))
-                .startsWith("PERSISTED_POSTERIOR_BACKUP|")
-        )
+        assertEquals(0, first.posteriorEventCount)
+        assertEquals(0, first.posteriorHistoryCount)
+        assertEquals(0, first.posteriorStateCount)
+        assertEquals(0, first.posteriorCurveCount)
+        assertEquals(0, first.posteriorEvidenceCount)
+        assertEquals(1, first.posteriorRevisionCount)
+        assertEquals(0, first.posteriorLocalStateCount)
+        assertEquals(0, first.posteriorLocalHistoryCount)
+        assertEquals(0, first.posteriorProxyTransferCount)
+        assertEquals(10, first.skippedDuplicateCount)
+        assertCanonicalEmptyDerivedState(db)
 
         val duplicate = repository.importRecordsBackup(uri)
         assertEquals(0, duplicate.posteriorEventCount)
         assertEquals(10, duplicate.skippedDuplicateCount)
-        assertEquals(1, db.strengthPosteriorDao().allEvents().size)
-        assertEquals(1, db.strengthPosteriorDao().allHistory().size)
+        assertCanonicalEmptyDerivedState(db)
     }
 
     @Test
-    fun `repository export and import preserve the complete posterior ledger`() = runBlocking {
+    fun `repository export preserves posterior rows but import rebuilds canonical authority`() = runBlocking {
         val fixture = fixture()
         val source = newDatabase()
         source.strengthPosteriorDao().insertRevisionStrict(fixture.supersededRevision)
@@ -120,21 +104,23 @@ class StrengthPosteriorBackupRestoreTest {
         TrainingRepository(source, context).exportRecordsBackup(backup)
         source.close()
 
+        val exported = RecordCsvBackupRestore.parse(
+            context.contentResolver.openInputStream(backup)!!.bufferedReader().use { it.readText() }
+        ) as RecordCsvImportData.Restore
+        assertEquals(listOf(fixture.supersededRevision, fixture.revision), exported.posteriorRevisions)
+        assertEquals(listOf(fixture.event), exported.posteriorEvents)
+        assertEquals(listOf(fixture.history), exported.posteriorHistory)
+        assertEquals(listOf(fixture.state), exported.posteriorModelStates)
+        assertEquals(listOf(fixture.curve), exported.curvePosteriors)
+        assertEquals(listOf(fixture.evidence), exported.posteriorEvidence)
+        assertEquals(listOf(fixture.localState), exported.posteriorLocalStates)
+        assertEquals(listOf(fixture.localHistory), exported.posteriorLocalHistory)
+        assertEquals(listOf(fixture.proxyHistory), exported.posteriorProxyHistory)
+
         val target = newDatabase()
         TrainingRepository(target, context).importRecordsBackup(backup)
 
-        assertEquals(
-            listOf(fixture.supersededRevision, fixture.revision),
-            target.strengthPosteriorDao().allRevisions()
-        )
-        assertEquals(listOf(fixture.event), target.strengthPosteriorDao().allEvents())
-        assertEquals(listOf(fixture.history), target.strengthPosteriorDao().allHistory())
-        assertEquals(listOf(fixture.state), target.strengthPosteriorDao().allModelStates())
-        assertEquals(listOf(fixture.curve), target.strengthPosteriorDao().allCurvePosteriors())
-        assertEquals(listOf(fixture.evidence), target.strengthPosteriorDao().allEvidence())
-        assertEquals(listOf(fixture.localState), target.strengthPosteriorDao().localStates(fixture.revision.revisionKey))
-        assertEquals(listOf(fixture.localHistory), target.strengthPosteriorDao().localHistory(fixture.revision.revisionKey))
-        assertEquals(listOf(fixture.proxyHistory), target.strengthPosteriorDao().proxyHistory(fixture.revision.revisionKey))
+        assertCanonicalEmptyDerivedState(target)
     }
 
     @Test
@@ -150,7 +136,7 @@ class StrengthPosteriorBackupRestoreTest {
     }
 
     @Test
-    fun `schema five posterior backup schedules one corrected revision without fabricating parsed rows`() = runBlocking {
+    fun `schema five posterior backup parses legacy rows but rebuilds current authority`() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
         val legacyEvent = fixture().event.copy(
@@ -169,22 +155,16 @@ class StrengthPosteriorBackupRestoreTest {
             line.replaceFirst("6,", "5,").replace(encoded, legacyPayload)
         }
 
+        val parsed = RecordCsvBackupRestore.parse(oldCsv) as RecordCsvImportData.Restore
+        assertEquals(listOf(legacyEvent), parsed.posteriorEvents)
+
         repository.importRecordsBackup(writeBackup(oldCsv))
 
-        assertEquals(legacyEvent, db.strengthPosteriorDao().allEvents().single())
-        assertEquals(
-            StrengthModelRevisionPolicy.STATUS_SUPERSEDED,
-            db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.LEGACY_REVISION_KEY)?.status
-        )
-        assertEquals(
-            StrengthModelRevisionPolicy.STATUS_ACTIVE,
-            db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
-        )
-        assertNotNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
+        assertCanonicalEmptyDerivedState(db)
     }
 
     @Test
-    fun `event UUID and completion fingerprint conflicts fail closed`() = runBlocking {
+    fun `derived posterior conflicts cannot override canonical rebuilt state`() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
         val fixture = fixture()
@@ -193,14 +173,14 @@ class StrengthPosteriorBackupRestoreTest {
         val uuidConflict = fixture.copy(
             event = fixture.event.copy(completionFingerprint = "different-fingerprint")
         )
-        assertTrue(runCatching { repository.importRecordsBackup(writeBackup(uuidConflict.csv())) }.isFailure)
-        assertEquals(fixture.event, db.strengthPosteriorDao().allEvents().single())
+        assertEquals(10, repository.importRecordsBackup(writeBackup(uuidConflict.csv())).skippedDuplicateCount)
+        assertCanonicalEmptyDerivedState(db)
 
         val fingerprintConflict = fixture.copy(
             event = fixture.event.copy(eventUuid = "different-event")
         )
-        assertTrue(runCatching { repository.importRecordsBackup(writeBackup(fingerprintConflict.csv())) }.isFailure)
-        assertEquals(fixture.event, db.strengthPosteriorDao().allEvents().single())
+        assertEquals(10, repository.importRecordsBackup(writeBackup(fingerprintConflict.csv())).skippedDuplicateCount)
+        assertCanonicalEmptyDerivedState(db)
     }
 
     @Test
@@ -219,12 +199,32 @@ class StrengthPosteriorBackupRestoreTest {
             StrengthModelRevisionPolicy.STATUS_ACTIVE,
             db.strengthPosteriorDao().activeRevision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)?.status
         )
-        val marker = db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.BOOTSTRAP_MARKER_KEY)
+        val marker = db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY)
         assertNotNull(marker)
-        assertTrue(checkNotNull(marker).contains(StrengthPosteriorUpdateCoordinator.REASON_LEGACY_BACKUP_BOOTSTRAP))
+        assertTrue(checkNotNull(marker).startsWith("completed|${StrengthModelRevisionPolicy.CURRENT_REVISION_KEY}|"))
         assertTrue(
             checkNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY))
-                .startsWith("LEGACY_BACKUP_FORWARD_BOOTSTRAP|")
+                .startsWith("RAW_BACKUP_CURRENT_REBUILD|")
+        )
+    }
+
+    private suspend fun assertCanonicalEmptyDerivedState(db: TrainingDatabase) {
+        val revisions = db.strengthPosteriorDao().allRevisions()
+        assertEquals(1, revisions.size)
+        assertEquals(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY, revisions.single().revisionKey)
+        assertEquals(StrengthModelRevisionPolicy.STATUS_ACTIVE, revisions.single().status)
+        assertTrue(db.strengthPosteriorDao().allEvents().isEmpty())
+        assertTrue(db.strengthPosteriorDao().allHistory().isEmpty())
+        assertTrue(db.strengthPosteriorDao().allModelStates().isEmpty())
+        assertTrue(db.strengthPosteriorDao().allCurvePosteriors().isEmpty())
+        assertTrue(db.strengthPosteriorDao().allEvidence().isEmpty())
+        assertTrue(db.strengthPosteriorDao().localStates(revisions.single().revisionKey).isEmpty())
+        assertTrue(db.strengthPosteriorDao().localHistory(revisions.single().revisionKey).isEmpty())
+        assertTrue(db.strengthPosteriorDao().proxyHistory(revisions.single().revisionKey).isEmpty())
+        assertNotNull(db.appMetaDao().value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY))
+        assertTrue(
+            checkNotNull(db.appMetaDao().value(StrengthPosteriorUpdateCoordinator.RESTORE_PROVENANCE_KEY))
+                .startsWith("RAW_BACKUP_CURRENT_REBUILD|")
         )
     }
 
