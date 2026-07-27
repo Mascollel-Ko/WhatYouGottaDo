@@ -19,7 +19,8 @@ internal class ProgramPlanService(
     private val workoutDao: WorkoutDao,
     private val programDao: ProgramDao,
     private val runtimeMetadataCatalogResolver: suspend (List<Exercise>) -> RuntimeExerciseMetadataCatalog,
-    private val prescriptionNoteFormatter: (String) -> String
+    private val prescriptionNoteFormatter: (String) -> String,
+    private val builtInProgramKeys: () -> Set<String>
 ) {
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
 
@@ -40,11 +41,13 @@ internal class ProgramPlanService(
     ): Long = db.withTransaction {
         val now = System.currentTimeMillis()
         val request = skeleton.request
+        val existing = existingProgramId?.let { programDao.findProgram(it) }
         val program = TrainingProgram(
-            id = existingProgramId ?: 0,
+            id = existing?.id ?: 0,
+            stableKey = existing?.stableKey ?: ProgramStableKeyPolicy.newUserKey(),
             name = skeleton.suggestedName.ifBlank { request.name.ifBlank { "새 프로그램" } },
             durationDays = skeleton.durationDays,
-            createdAt = existingProgramId?.let { programDao.findProgram(it)?.createdAt } ?: now,
+            createdAt = existing?.createdAt ?: now,
             goal = request.goal.name,
             weeklyTrainingDays = request.weeklyTrainingDays,
             sessionMinutes = request.sessionMinutes,
@@ -55,13 +58,14 @@ internal class ProgramPlanService(
             periodizationType = skeleton.periodizationType.name,
             updatedAt = now
         )
-        val programId = if (existingProgramId != null && programDao.findProgram(existingProgramId) != null) {
+        val programId = if (existing != null) {
             programDao.updateProgram(program)
-            programDao.deleteProgramItems(existingProgramId)
-            existingProgramId
+            programDao.deleteProgramItems(existing.id)
+            existing.id
         } else {
             programDao.insertProgram(program)
         }
+        programDao.deleteProgramTombstone(program.stableKey)
         programDao.insertProgramItems(
             skeleton.items.map { item -> item.toTrainingProgramItem(programId) }
         )
@@ -70,8 +74,14 @@ internal class ProgramPlanService(
 
     suspend fun deleteProgram(programId: Long) {
         db.withTransaction {
+            val program = programDao.findProgram(programId) ?: return@withTransaction
             programDao.deleteProgramItems(programId)
             programDao.deleteProgram(programId)
+            if (program.stableKey in builtInProgramKeys()) {
+                programDao.upsertProgramTombstone(
+                    TrainingProgramTombstone(program.stableKey)
+                )
+            }
         }
     }
 

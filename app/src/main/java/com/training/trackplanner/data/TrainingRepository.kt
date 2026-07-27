@@ -158,7 +158,9 @@ class TrainingRepository(
     private val backupRestoreImportService = BackupRestoreImportService(
         db = db,
         initialUserProfileDao = initialUserProfileDao,
+        exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        programDao = programDao,
         dailyMetricDao = dailyMetricDao,
         dailyCheckInDao = dailyCheckInDao,
         dailyStatusService = dailyStatusService,
@@ -246,7 +248,8 @@ class TrainingRepository(
         workoutDao = workoutDao,
         programDao = programDao,
         runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog,
-        prescriptionNoteFormatter = ::noteFromPrescription
+        prescriptionNoteFormatter = ::noteFromPrescription,
+        builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )
     private val programGenerationService = ProgramGenerationService(
         exerciseDao = exerciseDao
@@ -381,7 +384,8 @@ class TrainingRepository(
             initialUserProfileDao = initialUserProfileDao,
             runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
             appMetaDao = appMetaDao,
-            strengthPosteriorDao = strengthPosteriorDao
+            strengthPosteriorDao = strengthPosteriorDao,
+            programDao = programDao
         ).export(uri)
     }
 
@@ -433,6 +437,7 @@ class TrainingRepository(
         }
         repairCustomExerciseStableKeys()
         refreshExerciseAnalysisMetadata()
+        repairLegacyProgramStableKeys()
 
         if (programSeedVersion < PROGRAM_SEED_VERSION) {
             seedMissingPrograms()
@@ -1012,13 +1017,17 @@ class TrainingRepository(
             else -> Plane.SAGITTAL.name
         }
 
-    private suspend fun seedMissingPrograms() {
-        SeedData.programs(context).forEach { seed ->
+    internal suspend fun seedMissingPrograms(
+        seeds: List<ProgramSeed> = SeedData.programs(context)
+    ) {
+        seeds.forEach { seed ->
             val programName = seed.displayName()
-            if (programDao.findProgramByName(programName) != null) return@forEach
+            if (programDao.findProgramByStableKey(seed.key) != null) return@forEach
+            if (programDao.findProgramTombstone(seed.key) != null) return@forEach
 
             val programId = programDao.insertProgram(
                 TrainingProgram(
+                    stableKey = seed.key,
                     name = programName,
                     durationDays = seed.durationDays
                 )
@@ -1042,6 +1051,60 @@ class TrainingRepository(
                 )
             }
             programDao.insertProgramItems(items)
+        }
+    }
+
+    internal suspend fun repairLegacyProgramStableKeys() {
+        if (appMetaDao.intValue(META_PROGRAM_STABLE_KEY_REPAIR_VERSION) >= PROGRAM_STABLE_KEY_REPAIR_VERSION) {
+            return
+        }
+        db.withTransaction {
+            val legacyPrograms = programDao.allPrograms()
+                .filter { program -> program.stableKey.startsWith(ProgramStableKeyPolicy.LEGACY_PREFIX) }
+            SeedData.programs(context).forEach { seed ->
+                if (programDao.findProgramByStableKey(seed.key) != null) return@forEach
+                val matches = legacyPrograms.filter { program ->
+                    program.name == seed.displayName() &&
+                        program.durationDays == seed.durationDays &&
+                        programDao.itemsForProgram(program.id).matchesSeedItems(seed.items)
+                }
+                if (matches.size == 1) {
+                    programDao.updateProgram(matches.single().copy(stableKey = seed.key))
+                }
+            }
+            appMetaDao.upsert(
+                AppMeta(
+                    key = META_PROGRAM_STABLE_KEY_REPAIR_VERSION,
+                    value = PROGRAM_STABLE_KEY_REPAIR_VERSION.toString()
+                )
+            )
+        }
+    }
+
+    private fun List<TrainingProgramItem>.matchesSeedItems(seeds: List<ProgramItemSeed>): Boolean {
+        val ordered = sortedWith(
+            compareBy(TrainingProgramItem::weekNumber)
+                .thenBy(TrainingProgramItem::dayOfWeek)
+                .thenBy(TrainingProgramItem::orderIndex)
+                .thenBy(TrainingProgramItem::id)
+        )
+        val expected = seeds.sortedWith(
+            compareBy(ProgramItemSeed::weekNumber)
+                .thenBy(ProgramItemSeed::dayOfWeek)
+                .thenBy(ProgramItemSeed::orderIndex)
+        )
+        return ordered.size == expected.size && ordered.zip(expected).all { (item, seed) ->
+            item.weekNumber == seed.weekNumber &&
+                item.dayOfWeek == seed.dayOfWeek &&
+                item.orderIndex == seed.orderIndex &&
+                item.exerciseName == seed.exerciseName &&
+                item.category == seed.category &&
+                item.restSeconds == seed.restSeconds &&
+                item.prescription == seed.prescription &&
+                item.setCount == seed.setCount.coerceAtLeast(1) &&
+                item.reps == seed.reps &&
+                kotlin.math.abs(item.weightKg - seed.weightKg) < 0.001 &&
+                item.seconds == seed.seconds
         }
     }
 
@@ -1172,8 +1235,10 @@ class TrainingRepository(
     private companion object {
         const val EXERCISE_SEED_VERSION = 7
         const val PROGRAM_SEED_VERSION = 1
+        const val PROGRAM_STABLE_KEY_REPAIR_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"
+        const val META_PROGRAM_STABLE_KEY_REPAIR_VERSION = "program_stable_key_repair_version"
         const val TIMESERIES_IMPORT_NOTE = "CSV daily_timeseries import"
     }
 }

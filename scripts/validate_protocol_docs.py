@@ -80,6 +80,7 @@ CANONICAL_FAMILY_DIRS = {
     "badminton",
     "strength",
     "program_builder",
+    "data_portability",
 }
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 SEMVER = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")

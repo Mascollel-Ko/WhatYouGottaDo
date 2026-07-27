@@ -178,9 +178,13 @@ data class SmashSpeedRecord(
     }
 }
 
-@Entity(tableName = "training_programs")
+@Entity(
+    tableName = "training_programs",
+    indices = [Index(value = ["stableKey"], unique = true)]
+)
 data class TrainingProgram(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val stableKey: String = ProgramStableKeyPolicy.newUserKey(),
     val name: String,
     val durationDays: Int,
     val createdAt: Long = System.currentTimeMillis(),
@@ -193,6 +197,13 @@ data class TrainingProgram(
     val sportStrengthRatio: String = "AUTO",
     val periodizationType: String = "",
     val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "training_program_tombstones")
+data class TrainingProgramTombstone(
+    @PrimaryKey val programStableKey: String,
+    val deletedAt: Long = System.currentTimeMillis(),
+    val seedVersion: Int? = null
 )
 
 @Entity(tableName = "training_program_items")
@@ -215,6 +226,13 @@ data class TrainingProgramItem(
     val dayIntensity: String? = null,
     val weightSource: String? = null
 )
+
+object ProgramStableKeyPolicy {
+    const val USER_PREFIX = "user_program_"
+    const val LEGACY_PREFIX = "legacy_program_"
+
+    fun newUserKey(): String = "$USER_PREFIX${java.util.UUID.randomUUID()}"
+}
 
 @Entity(tableName = "app_meta")
 data class AppMeta(

@@ -3705,3 +3705,73 @@ Verification
   records는 변경하지 않았다.
 - Focused lifecycle, summary, Compose UI tests와
   `:app:compileDebugKotlin`이 통과했다.
+
+## v0.5.0.5 complete training-program backup and restore
+
+### Baseline and cause
+- Started from clean `origin/main`
+  `bfbc694ce36165962db4258b03a09fba19434315`.
+- Previous identity was `0.5.0.4 / 500004`, Room `23`, restore CSV schema
+  `6`.
+- Existing backups preserved workout and analysis inputs but omitted current
+  training-program definitions and deleted built-in-program state.
+- Work used a separate clean worktree. User-owned `outputs/*` changes in the
+  original workspace were not read, changed, staged, or copied.
+
+### Program identity and persistence
+- Added unique nonblank `TrainingProgram.stableKey` and Room schema `24`.
+- Built-in programs use seed `program_key`; user and generated programs use
+  persistent UUID keys. Replacement and rename preserve identity.
+- Added `training_program_tombstones`. Production built-in deletion writes a
+  tombstone in the same transaction; user-program deletion does not.
+- Seeding now uses stable key, preserves modified built-ins, skips tombstones,
+  and still inserts genuinely new seed keys.
+- `23 -> 24` migration preserves programs/items and assigns deterministic
+  `legacy_program_<id>` keys. A transactionally marked one-time repair promotes
+  only a unique exact seed-graph match to its canonical key.
+
+### CSV snapshot and restore
+- Restore CSV schema is `7`; program backup schema is `1`.
+- Added `program_snapshot`, `program`, `program_item` and
+  `program_tombstone` rows to the existing CSV.
+- New exports are complete deterministic snapshots and use exercise/program
+  stable keys instead of local Room IDs.
+- Marker-free legacy files restore existing data without touching program,
+  item or tombstone tables. An explicit empty marker is authoritative and
+  clears the current program graph.
+- Parser validation rejects conflicting/future markers, duplicate or blank
+  keys, orphan/invalid items, ambiguous order and contradictory tombstones.
+- Import resolves every exercise stable key before destructive changes, then
+  replaces the graph inside the same Room transaction. Failure rolls back all
+  import mutations. Repeated import is idempotent.
+- Workout entries, confirmed/planned sets and historical analysis inputs remain
+  independent of program definitions.
+
+### Tests and documentation
+- Implementation commit:
+  `48b137d351cb75736f7fbb23ebff4dc027353466`.
+- Added `ProgramBackupRestoreTest` for the July 26 v6 legacy structure,
+  semantic round-trip across different local IDs, idempotence, built-in
+  tombstones, future seeds, modified built-ins, empty snapshots, rollback,
+  one-time migration repair and UUID identity.
+- Added Room `23 -> 24` instrumentation migration coverage and generated
+  schema `24.json`.
+- Added canonical `DATA-BACKUP-RESTORE` protocol, registry/index entries and
+  `docs/v0.5.0.5_release_notes.md`.
+- Focused program/legacy backup tests passed: 31 tests, including the restore
+  schema compatibility assertion affected by schema `7`.
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin` passed.
+- `scripts/validate_protocol_docs.py` passed for 8 families and 31 protocols.
+- `:app:assembleDebug` passed. APK size is `46,680,752` bytes and SHA-256 is
+  `851458235dd55c93260fcff1a930c6b8d2c65286bc7227f5de3ac0925b4edb66`.
+- Full `:app:testDebugUnitTest` ran 1,053 tests. One new restore-schema
+  expectation was corrected and passed on focused rerun. Twelve pre-existing
+  Windows CRLF tissue authority/hash failures and five pre-existing
+  strength-derived restore expectation failures remain; no production tissue
+  or strength behavior and no unrelated expectation was changed.
+- `:app:lintDebug` remains blocked by the pre-existing API 27
+  `android:windowLightNavigationBar` item in `values/themes.xml` with minSdk
+  26. This release does not alter theme or minSdk behavior.
+- No device/emulator was attached. Room `23 -> 24` instrumentation source
+  compiled but could not execute.
+- Release commit, main push, tag and CI are pending.

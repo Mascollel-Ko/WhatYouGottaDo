@@ -13,7 +13,8 @@ internal class BackupExportService(
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val appMetaDao: AppMetaDao,
-    private val strengthPosteriorDao: StrengthPosteriorDao
+    private val strengthPosteriorDao: StrengthPosteriorDao,
+    private val programDao: ProgramDao
 ) {
     suspend fun export(uri: Uri): RecordCsvTransferResult {
         val entries = workoutDao.allEntriesWithSets()
@@ -29,6 +30,39 @@ internal class BackupExportService(
         val curvePosteriors = strengthPosteriorDao.allCurvePosteriors()
         val posteriorEvidence = strengthPosteriorDao.allEvidence()
         val posteriorRevisions = strengthPosteriorDao.allRevisions()
+        val programs = programDao.allPrograms()
+        val programsById = programs.associateBy(TrainingProgram::id)
+        val exercisesById = exercises.associateBy(Exercise::id)
+        val programItems = programDao.allProgramItems().map { item ->
+            val program = requireNotNull(programsById[item.programId]) {
+                "Program backup cannot export orphan item ${item.id}."
+            }
+            val exercise = requireNotNull(exercisesById[item.exerciseId]) {
+                "Program backup cannot resolve exercise ${item.exerciseId} for item ${item.id}."
+            }
+            require(exercise.stableKey.isNotBlank()) {
+                "Program backup cannot export item ${item.id} with a blank exercise stable key."
+            }
+            ProgramBackupItem(
+                programStableKey = program.stableKey,
+                weekNumber = item.weekNumber,
+                dayOfWeek = item.dayOfWeek,
+                orderIndex = item.orderIndex,
+                exerciseStableKey = exercise.stableKey,
+                exerciseName = item.exerciseName,
+                category = item.category,
+                restSeconds = item.restSeconds,
+                prescription = item.prescription,
+                setCount = item.setCount,
+                reps = item.reps,
+                weightKg = item.weightKg,
+                seconds = item.seconds,
+                trainingSlot = item.trainingSlot,
+                dayIntensity = item.dayIntensity,
+                weightSource = item.weightSource
+            )
+        }
+        val programTombstones = programDao.allProgramTombstones()
         val posteriorLocalStates = posteriorRevisions.flatMap { revision ->
             strengthPosteriorDao.localStates(revision.revisionKey)
         }
@@ -59,7 +93,11 @@ internal class BackupExportService(
             posteriorRevisions = posteriorRevisions,
             posteriorLocalStates = posteriorLocalStates,
             posteriorLocalHistory = posteriorLocalHistory,
-            posteriorProxyHistory = posteriorProxyHistory
+            posteriorProxyHistory = posteriorProxyHistory,
+            programs = programs,
+            programItems = programItems,
+            programTombstones = programTombstones,
+            includeProgramSnapshot = true
         )
         context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
             writer.write(csv)
@@ -81,7 +119,10 @@ internal class BackupExportService(
             posteriorRevisionCount = posteriorRevisions.size,
             posteriorLocalStateCount = posteriorLocalStates.size,
             posteriorLocalHistoryCount = posteriorLocalHistory.size,
-            posteriorProxyTransferCount = posteriorProxyHistory.size
+            posteriorProxyTransferCount = posteriorProxyHistory.size,
+            programCount = programs.size,
+            programItemCount = programItems.size,
+            programTombstoneCount = programTombstones.size
         )
     }
 }

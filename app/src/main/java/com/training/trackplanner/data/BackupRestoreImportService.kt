@@ -8,7 +8,9 @@ import com.training.trackplanner.analysis.strengthperformance.toPosterior
 internal class BackupRestoreImportService(
     private val db: TrainingDatabase,
     private val initialUserProfileDao: InitialUserProfileDao,
+    private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
+    private val programDao: ProgramDao,
     private val dailyMetricDao: DailyMetricDao,
     private val dailyCheckInDao: DailyCheckInDao,
     private val dailyStatusService: DailyStatusService,
@@ -31,6 +33,9 @@ internal class BackupRestoreImportService(
         var profileCount = 0
         var entryCount = 0
         var setCount = 0
+        var programCount = 0
+        var programItemCount = 0
+        var programTombstoneCount = 0
         var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
         db.withTransaction {
@@ -53,6 +58,12 @@ internal class BackupRestoreImportService(
                 runtimeExerciseMetadataDao.upsert(
                     metadata.copy(safeForSeedMutation = false).toEntity()
                 )
+            }
+            data.programSnapshot?.let { snapshot ->
+                val counts = restoreProgramSnapshot(snapshot)
+                programCount = counts.programs
+                programItemCount = counts.items
+                programTombstoneCount = counts.tombstones
             }
             val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
             data.dailyRows.forEach { row ->
@@ -234,9 +245,71 @@ internal class BackupRestoreImportService(
             posteriorLocalStateCount = posteriorCounts.localStates,
             posteriorLocalHistoryCount = posteriorCounts.localHistory,
             posteriorProxyTransferCount = posteriorCounts.proxyHistory,
+            programCount = programCount,
+            programItemCount = programItemCount,
+            programTombstoneCount = programTombstoneCount,
             skippedDuplicateCount = skipped,
             warningCount = data.warningCount +
                 if (strengthLifecycle.status == StrengthAnalysisLifecycleStatus.REBUILD_FAILED) 1 else 0
+        )
+    }
+
+    private suspend fun restoreProgramSnapshot(
+        snapshot: RestoreProgramSnapshot
+    ): ProgramRestoreCounts {
+        val exercisesByStableKey = exerciseDao.allExercises()
+            .filter { exercise -> exercise.stableKey.isNotBlank() }
+            .associateBy(Exercise::stableKey)
+        val resolvedItems = snapshot.items.map { item ->
+            item to requireNotNull(exercisesByStableKey[item.exerciseStableKey]) {
+                "Program item exercise stable key cannot be resolved: ${item.exerciseStableKey}"
+            }
+        }
+
+        programDao.deleteAllProgramItems()
+        programDao.deleteAllPrograms()
+        programDao.deleteAllProgramTombstones()
+        snapshot.tombstones
+            .sortedBy(TrainingProgramTombstone::programStableKey)
+            .forEach { tombstone -> programDao.upsertProgramTombstone(tombstone) }
+
+        val localProgramIds = snapshot.programs
+            .sortedBy(TrainingProgram::stableKey)
+            .associate { program ->
+                program.stableKey to programDao.insertProgram(program.copy(id = 0))
+            }
+        resolvedItems.sortedWith(
+            compareBy<Pair<ProgramBackupItem, Exercise>> { (item, _) -> item.programStableKey }
+                .thenBy { (item, _) -> item.weekNumber }
+                .thenBy { (item, _) -> item.dayOfWeek }
+                .thenBy { (item, _) -> item.orderIndex }
+                .thenBy { (item, _) -> item.exerciseStableKey }
+        ).forEach { (item, exercise) ->
+            programDao.insertProgramItem(
+                TrainingProgramItem(
+                    programId = checkNotNull(localProgramIds[item.programStableKey]),
+                    weekNumber = item.weekNumber,
+                    dayOfWeek = item.dayOfWeek,
+                    orderIndex = item.orderIndex,
+                    exerciseId = exercise.id,
+                    exerciseName = item.exerciseName.ifBlank { exercise.name },
+                    category = item.category.ifBlank { exercise.category },
+                    restSeconds = item.restSeconds,
+                    prescription = item.prescription,
+                    setCount = item.setCount,
+                    reps = item.reps,
+                    weightKg = item.weightKg,
+                    seconds = item.seconds,
+                    trainingSlot = item.trainingSlot,
+                    dayIntensity = item.dayIntensity,
+                    weightSource = item.weightSource
+                )
+            )
+        }
+        return ProgramRestoreCounts(
+            programs = snapshot.programs.size,
+            items = snapshot.items.size,
+            tombstones = snapshot.tombstones.size
         )
     }
 
@@ -446,3 +519,9 @@ internal class BackupRestoreImportService(
     private fun canonicalImportedStableKey(stableKey: String): String =
         if (stableKey.trim() == "imported_배드민턴") "ex_ae9ecdbc" else stableKey
 }
+
+private data class ProgramRestoreCounts(
+    val programs: Int,
+    val items: Int,
+    val tombstones: Int
+)

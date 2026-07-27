@@ -21,11 +21,16 @@ data class RecordCsvTransferResult(
     val posteriorLocalStateCount: Int = 0,
     val posteriorLocalHistoryCount: Int = 0,
     val posteriorProxyTransferCount: Int = 0,
+    val programCount: Int = 0,
+    val programItemCount: Int = 0,
+    val programTombstoneCount: Int = 0,
     val skippedDuplicateCount: Int = 0,
     val warningCount: Int = 0
 ) {
     fun summaryText(action: String): String =
-        "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, entry $entryCount, set $setCount, skip $skippedDuplicateCount"
+        "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, " +
+            "entry $entryCount, set $setCount, program $programCount, program item $programItemCount, " +
+            "program tombstone $programTombstoneCount, skip $skippedDuplicateCount"
 }
 
 sealed class RecordCsvImportData {
@@ -49,7 +54,8 @@ sealed class RecordCsvImportData {
         val posteriorRevisions: List<StrengthModelRevisionEntity> = emptyList(),
         val posteriorLocalStates: List<StrengthExercisePerformanceStateEntity> = emptyList(),
         val posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
-        val posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList()
+        val posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList(),
+        val programSnapshot: RestoreProgramSnapshot? = null
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -143,6 +149,32 @@ data class RestoreSetRow(
     val bodyWeightKg: Double?
 )
 
+data class ProgramBackupItem(
+    val programStableKey: String,
+    val weekNumber: Int,
+    val dayOfWeek: Int,
+    val orderIndex: Int,
+    val exerciseStableKey: String,
+    val exerciseName: String,
+    val category: String,
+    val restSeconds: Int,
+    val prescription: String,
+    val setCount: Int,
+    val reps: Int,
+    val weightKg: Double,
+    val seconds: Int,
+    val trainingSlot: String?,
+    val dayIntensity: String?,
+    val weightSource: String?
+)
+
+data class RestoreProgramSnapshot(
+    val schemaVersion: Int,
+    val programs: List<TrainingProgram>,
+    val items: List<ProgramBackupItem>,
+    val tombstones: List<TrainingProgramTombstone>
+)
+
 data class DailyTimeseriesRow(
     val date: String,
     val sleepHours: Double?,
@@ -162,7 +194,8 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    private const val CURRENT_RESTORE_SCHEMA_VERSION = 6
+    private const val CURRENT_RESTORE_SCHEMA_VERSION = 7
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 1
 
     private val restoreHeader = listOf(
         "schema_version",
@@ -263,7 +296,32 @@ object RecordCsvBackupRestore {
         "strength_model_version",
         "strength_curve_version",
         "strength_factor_schema_version",
-        "strength_posterior_payload"
+        "strength_posterior_payload",
+        "program_backup_schema_version",
+        "program_stable_key",
+        "program_name",
+        "program_duration_days",
+        "program_created_at",
+        "program_updated_at",
+        "program_goal",
+        "program_weekly_training_days",
+        "program_session_minutes",
+        "program_available_equipment",
+        "program_excluded_exercise_text",
+        "program_badminton_transfer_ratio",
+        "program_sport_strength_ratio",
+        "program_periodization_type",
+        "program_week_number",
+        "program_day_of_week",
+        "program_order_index",
+        "program_exercise_stable_key",
+        "program_prescription",
+        "program_set_count",
+        "program_training_slot",
+        "program_day_intensity",
+        "program_weight_source",
+        "program_tombstone_deleted_at",
+        "program_tombstone_seed_version"
     )
 
     fun buildRestoreCsv(
@@ -283,11 +341,29 @@ object RecordCsvBackupRestore {
         posteriorRevisions: List<StrengthModelRevisionEntity> = emptyList(),
         posteriorLocalStates: List<StrengthExercisePerformanceStateEntity> = emptyList(),
         posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
-        posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList()
+        posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList(),
+        programs: List<TrainingProgram> = emptyList(),
+        programItems: List<ProgramBackupItem> = emptyList(),
+        programTombstones: List<TrainingProgramTombstone> = emptyList(),
+        includeProgramSnapshot: Boolean = false
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.id }
         fun MetadataTokenField.exportRaw(): String = raw.ifBlank { values.joinToString("|") }
+        fun appendMappedRow(
+            rowType: String,
+            values: Map<String, String> = emptyMap()
+        ) {
+            builder.appendCsvRow(
+                restoreHeader.map { column ->
+                    when (column) {
+                        "schema_version" -> CURRENT_RESTORE_SCHEMA_VERSION.toString()
+                        "row_type" -> rowType
+                        else -> values[column].orEmpty()
+                    }
+                }
+            )
+        }
         fun appendStrengthRow(
             rowType: String,
             payload: String,
@@ -316,6 +392,73 @@ object RecordCsvBackupRestore {
             )
         }
         builder.appendLine(restoreHeader.joinToString(","))
+        if (includeProgramSnapshot) {
+            appendMappedRow(
+                rowType = "program_snapshot",
+                values = mapOf(
+                    "program_backup_schema_version" to CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION.toString()
+                )
+            )
+            programs.sortedBy(TrainingProgram::stableKey).forEach { program ->
+                appendMappedRow(
+                    rowType = "program",
+                    values = mapOf(
+                        "program_stable_key" to program.stableKey,
+                        "program_name" to program.name,
+                        "program_duration_days" to program.durationDays.toString(),
+                        "program_created_at" to program.createdAt.toString(),
+                        "program_updated_at" to program.updatedAt.toString(),
+                        "program_goal" to program.goal,
+                        "program_weekly_training_days" to program.weeklyTrainingDays.toString(),
+                        "program_session_minutes" to program.sessionMinutes.toString(),
+                        "program_available_equipment" to program.availableEquipment,
+                        "program_excluded_exercise_text" to program.excludedExerciseText,
+                        "program_badminton_transfer_ratio" to program.badmintonTransferRatio.toString(),
+                        "program_sport_strength_ratio" to program.sportStrengthRatio,
+                        "program_periodization_type" to program.periodizationType
+                    )
+                )
+            }
+            programItems.sortedWith(
+                compareBy(ProgramBackupItem::programStableKey)
+                    .thenBy(ProgramBackupItem::weekNumber)
+                    .thenBy(ProgramBackupItem::dayOfWeek)
+                    .thenBy(ProgramBackupItem::orderIndex)
+                    .thenBy(ProgramBackupItem::exerciseStableKey)
+            ).forEach { item ->
+                appendMappedRow(
+                    rowType = "program_item",
+                    values = mapOf(
+                        "program_stable_key" to item.programStableKey,
+                        "program_week_number" to item.weekNumber.toString(),
+                        "program_day_of_week" to item.dayOfWeek.toString(),
+                        "program_order_index" to item.orderIndex.toString(),
+                        "program_exercise_stable_key" to item.exerciseStableKey,
+                        "exercise_name" to item.exerciseName,
+                        "category" to item.category,
+                        "rest_seconds" to item.restSeconds.toString(),
+                        "program_prescription" to item.prescription,
+                        "program_set_count" to item.setCount.toString(),
+                        "reps" to item.reps.toString(),
+                        "weight_kg" to item.weightKg.formatNumber(),
+                        "seconds" to item.seconds.toString(),
+                        "program_training_slot" to item.trainingSlot.orEmpty(),
+                        "program_day_intensity" to item.dayIntensity.orEmpty(),
+                        "program_weight_source" to item.weightSource.orEmpty()
+                    )
+                )
+            }
+            programTombstones.sortedBy(TrainingProgramTombstone::programStableKey).forEach { tombstone ->
+                appendMappedRow(
+                    rowType = "program_tombstone",
+                    values = mapOf(
+                        "program_stable_key" to tombstone.programStableKey,
+                        "program_tombstone_deleted_at" to tombstone.deletedAt.toString(),
+                        "program_tombstone_seed_version" to tombstone.seedVersion?.toString().orEmpty()
+                    )
+                )
+            }
+        }
         initialProfile?.toCsvPairs()?.forEach { (key, value) ->
             builder.appendCsvRow(
                 restoreHeader.map { column ->
@@ -663,10 +806,7 @@ object RecordCsvBackupRestore {
     }
 
     fun parse(text: String): RecordCsvImportData {
-        val rows = text.lineSequence()
-            .filter { line -> line.isNotBlank() }
-            .map(::parseCsvLine)
-            .toList()
+        val rows = parseCsvRows(text)
         if (rows.isEmpty()) {
             return RecordCsvImportData.Restore(emptyList(), emptyList(), emptyList(), emptyList(), warningCount = 1)
         }
@@ -703,11 +843,72 @@ object RecordCsvBackupRestore {
         val posteriorLocalStates = mutableListOf<StrengthExercisePerformanceStateEntity>()
         val posteriorLocalHistory = mutableListOf<StrengthExercisePerformanceHistoryEntity>()
         val posteriorProxyHistory = mutableListOf<StrengthProxyTransferHistoryEntity>()
+        val programSnapshotVersions = mutableListOf<Int>()
+        val programs = mutableListOf<TrainingProgram>()
+        val programItems = mutableListOf<ProgramBackupItem>()
+        val programTombstones = mutableListOf<TrainingProgramTombstone>()
         rows.forEachIndexed { rowIndex, row ->
             backupSchemaVersion = maxOf(backupSchemaVersion, row.safeInt(index, "schema_version") ?: 1)
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             val posteriorPayload = row.value(index, "strength_posterior_payload")
             when (rowType) {
+                "program_snapshot" -> {
+                    programSnapshotVersions += requireNotNull(
+                        row.safeInt(index, "program_backup_schema_version")
+                    ) { "program_snapshot is missing program_backup_schema_version." }
+                    return@forEachIndexed
+                }
+                "program" -> {
+                    programs += TrainingProgram(
+                        stableKey = row.value(index, "program_stable_key").trim(),
+                        name = row.value(index, "program_name"),
+                        durationDays = row.requiredInt(index, "program_duration_days", rowType),
+                        createdAt = row.requiredLong(index, "program_created_at", rowType),
+                        goal = row.value(index, "program_goal"),
+                        weeklyTrainingDays = row.requiredInt(index, "program_weekly_training_days", rowType),
+                        sessionMinutes = row.requiredInt(index, "program_session_minutes", rowType),
+                        availableEquipment = row.value(index, "program_available_equipment"),
+                        excludedExerciseText = row.value(index, "program_excluded_exercise_text"),
+                        badmintonTransferRatio = row.requiredDouble(
+                            index,
+                            "program_badminton_transfer_ratio",
+                            rowType
+                        ),
+                        sportStrengthRatio = row.value(index, "program_sport_strength_ratio"),
+                        periodizationType = row.value(index, "program_periodization_type"),
+                        updatedAt = row.requiredLong(index, "program_updated_at", rowType)
+                    )
+                    return@forEachIndexed
+                }
+                "program_item" -> {
+                    programItems += ProgramBackupItem(
+                        programStableKey = row.value(index, "program_stable_key").trim(),
+                        weekNumber = row.requiredInt(index, "program_week_number", rowType),
+                        dayOfWeek = row.requiredInt(index, "program_day_of_week", rowType),
+                        orderIndex = row.requiredInt(index, "program_order_index", rowType),
+                        exerciseStableKey = row.value(index, "program_exercise_stable_key").trim(),
+                        exerciseName = row.value(index, "exercise_name"),
+                        category = row.value(index, "category"),
+                        restSeconds = row.requiredInt(index, "rest_seconds", rowType),
+                        prescription = row.value(index, "program_prescription"),
+                        setCount = row.requiredInt(index, "program_set_count", rowType),
+                        reps = row.requiredInt(index, "reps", rowType),
+                        weightKg = row.requiredDouble(index, "weight_kg", rowType),
+                        seconds = row.requiredInt(index, "seconds", rowType),
+                        trainingSlot = row.value(index, "program_training_slot").ifBlank { null },
+                        dayIntensity = row.value(index, "program_day_intensity").ifBlank { null },
+                        weightSource = row.value(index, "program_weight_source").ifBlank { null }
+                    )
+                    return@forEachIndexed
+                }
+                "program_tombstone" -> {
+                    programTombstones += TrainingProgramTombstone(
+                        programStableKey = row.value(index, "program_stable_key").trim(),
+                        deletedAt = row.requiredLong(index, "program_tombstone_deleted_at", rowType),
+                        seedVersion = row.safeInt(index, "program_tombstone_seed_version")
+                    )
+                    return@forEachIndexed
+                }
                 "strength_posterior_manifest" -> {
                     posteriorFormatPresent = true
                     posteriorBootstrapMarker = StrengthPosteriorBackupCodec.decodeManifest(posteriorPayload)
@@ -952,6 +1153,26 @@ object RecordCsvBackupRestore {
                 else -> warnings += 1
             }
         }
+        val programRowsWithoutMarker = programs.size + programItems.size + programTombstones.size
+        val programSnapshot = if (programSnapshotVersions.isEmpty()) {
+            if (programRowsWithoutMarker > 0) warnings += programRowsWithoutMarker
+            null
+        } else {
+            require(programSnapshotVersions.distinct().size == 1) {
+                "Conflicting program_snapshot schema versions."
+            }
+            val schemaVersion = programSnapshotVersions.first()
+            require(schemaVersion in 1..CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION) {
+                "Unsupported program backup schema version: $schemaVersion."
+            }
+            validateProgramSnapshot(programs, programItems, programTombstones)
+            RestoreProgramSnapshot(
+                schemaVersion = schemaVersion,
+                programs = programs,
+                items = programItems,
+                tombstones = programTombstones
+            )
+        }
         return RecordCsvImportData.Restore(
             exerciseRows = exerciseRows,
             profileRows = profileRows,
@@ -972,8 +1193,68 @@ object RecordCsvBackupRestore {
             posteriorRevisions = posteriorRevisions,
             posteriorLocalStates = posteriorLocalStates,
             posteriorLocalHistory = posteriorLocalHistory,
-            posteriorProxyHistory = posteriorProxyHistory
+            posteriorProxyHistory = posteriorProxyHistory,
+            programSnapshot = programSnapshot
         )
+    }
+
+    private fun validateProgramSnapshot(
+        programs: List<TrainingProgram>,
+        items: List<ProgramBackupItem>,
+        tombstones: List<TrainingProgramTombstone>
+    ) {
+        require(programs.all { program -> program.stableKey.isNotBlank() }) {
+            "Program stable keys must be nonblank."
+        }
+        require(programs.map(TrainingProgram::stableKey).distinct().size == programs.size) {
+            "Duplicate program stable key."
+        }
+        require(programs.all { program ->
+            program.durationDays > 0 &&
+                program.weeklyTrainingDays in 0..7 &&
+                program.sessionMinutes in 0..1_440 &&
+                program.badmintonTransferRatio.isFinite() &&
+                program.badmintonTransferRatio in 0.0..1.0
+        }) { "Invalid program settings in authoritative snapshot." }
+
+        val programKeys = programs.mapTo(mutableSetOf(), TrainingProgram::stableKey)
+        require(items.all { item -> item.programStableKey in programKeys }) {
+            "Orphan program item."
+        }
+        require(items.all { item -> item.exerciseStableKey.isNotBlank() }) {
+            "Program item exercise stable keys must be nonblank."
+        }
+        require(items.all { item ->
+            item.weekNumber > 0 &&
+                item.dayOfWeek in 1..7 &&
+                item.orderIndex > 0 &&
+                item.restSeconds in 0..3_600 &&
+                item.setCount > 0 &&
+                item.reps >= 0 &&
+                item.weightKg.isFinite() &&
+                item.weightKg >= 0.0 &&
+                item.seconds >= 0
+        }) { "Invalid program item values in authoritative snapshot." }
+        require(
+            items.map { item ->
+                listOf(
+                    item.programStableKey,
+                    item.weekNumber.toString(),
+                    item.dayOfWeek.toString(),
+                    item.orderIndex.toString()
+                ).joinToString("|")
+            }.distinct().size == items.size
+        ) { "Duplicate program item position." }
+
+        require(tombstones.all { tombstone -> tombstone.programStableKey.isNotBlank() }) {
+            "Program tombstone stable keys must be nonblank."
+        }
+        require(
+            tombstones.map(TrainingProgramTombstone::programStableKey).distinct().size == tombstones.size
+        ) { "Duplicate program tombstone stable key." }
+        require(programKeys.intersect(tombstones.mapTo(mutableSetOf(), TrainingProgramTombstone::programStableKey)).isEmpty()) {
+            "Program and tombstone rows contradict each other."
+        }
     }
 
     private fun parseDailyTimeseries(
@@ -1008,15 +1289,16 @@ object RecordCsvBackupRestore {
         return RecordCsvImportData.DailyTimeseries(parsed, warnings)
     }
 
-    private fun parseCsvLine(line: String): List<String> {
+    private fun parseCsvRows(text: String): List<List<String>> {
+        val rows = mutableListOf<List<String>>()
         val values = mutableListOf<String>()
         val current = StringBuilder()
         var inQuotes = false
         var index = 0
-        while (index < line.length) {
-            val char = line[index]
+        while (index < text.length) {
+            val char = text[index]
             when {
-                char == '"' && inQuotes && index + 1 < line.length && line[index + 1] == '"' -> {
+                char == '"' && inQuotes && index + 1 < text.length && text[index + 1] == '"' -> {
                     current.append('"')
                     index += 1
                 }
@@ -1025,12 +1307,25 @@ object RecordCsvBackupRestore {
                     values += current.toString()
                     current.clear()
                 }
+                (char == '\n' || char == '\r') && !inQuotes -> {
+                    if (char == '\r' && index + 1 < text.length && text[index + 1] == '\n') {
+                        index += 1
+                    }
+                    values += current.toString()
+                    current.clear()
+                    if (values.any(String::isNotBlank)) rows += values.toList()
+                    values.clear()
+                }
                 else -> current.append(char)
             }
             index += 1
         }
-        values += current.toString()
-        return values
+        require(!inQuotes) { "CSV contains an unterminated quoted field." }
+        if (current.isNotEmpty() || values.isNotEmpty()) {
+            values += current.toString()
+            if (values.any(String::isNotBlank)) rows += values.toList()
+        }
+        return rows
     }
 
     private fun StringBuilder.appendCsvRow(values: List<String>) {
@@ -1058,6 +1353,24 @@ object RecordCsvBackupRestore {
 
     private fun List<String>.safeLong(index: Map<String, Int>, key: String): Long? =
         value(index, key).trim().takeIf { value -> value.isNotEmpty() }?.toLongOrNull()
+
+    private fun List<String>.requiredInt(
+        index: Map<String, Int>,
+        key: String,
+        rowType: String
+    ): Int = requireNotNull(safeInt(index, key)) { "$rowType has invalid $key." }
+
+    private fun List<String>.requiredLong(
+        index: Map<String, Int>,
+        key: String,
+        rowType: String
+    ): Long = requireNotNull(safeLong(index, key)) { "$rowType has invalid $key." }
+
+    private fun List<String>.requiredDouble(
+        index: Map<String, Int>,
+        key: String,
+        rowType: String
+    ): Double = requireNotNull(safeDouble(index, key)) { "$rowType has invalid $key." }
 
     private fun List<String>.safeBool(index: Map<String, Int>, key: String): Boolean? =
         when (value(index, key).trim().lowercase(Locale.US)) {
