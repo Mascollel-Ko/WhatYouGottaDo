@@ -524,9 +524,73 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate23To24PreservesProgramsAndBackfillsUniqueStableKeys() {
+        helper.createDatabase(TEST_DB_23_24, 23).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO training_programs (
+                    id, name, durationDays, createdAt, goal, weeklyTrainingDays,
+                    sessionMinutes, availableEquipment, excludedExerciseText,
+                    badmintonTransferRatio, sportStrengthRatio, periodizationType, updatedAt
+                ) VALUES
+                    (1, 'Untouched seed', 28, 100, '', 4, 45, '바벨', '', 0.4, 'AUTO', '', 110),
+                    (2, 'Renamed program', 28, 200, '', 3, 30, '', '', 0.4, 'AUTO', '', 210),
+                    (3, 'User program', 14, 300, '', 2, 60, '', '', 0.4, 'AUTO', '', 310)
+                """.trimIndent()
+            )
+            database.execSQL(
+                """
+                INSERT INTO training_program_items (
+                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseId,
+                    exerciseName, category, restSeconds, prescription, setCount,
+                    reps, weightKg, seconds, trainingSlot, dayIntensity, weightSource
+                ) VALUES
+                    (10, 1, 1, 1, 1, 0, 'Seed item', 'Strength', 90, '3x5', 3, 5, 80.0, 0, NULL, NULL, NULL),
+                    (20, 2, 1, 2, 1, 0, 'Modified item', 'Strength', 60, '', 2, 8, 20.0, 0, NULL, NULL, NULL),
+                    (30, 3, 1, 3, 1, 0, 'User item', 'Strength', 60, '', 1, 10, 10.0, 0, NULL, NULL, NULL)
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_23_24,
+            24,
+            true,
+            TrainingDatabase.MIGRATION_23_24
+        ).use { database ->
+            database.query("SELECT id, stableKey FROM training_programs ORDER BY id").use { cursor ->
+                var expectedId = 1
+                while (cursor.moveToNext()) {
+                    check(cursor.getLong(0) == expectedId.toLong())
+                    check(cursor.getString(1) == "${ProgramStableKeyPolicy.LEGACY_PREFIX}$expectedId")
+                    expectedId += 1
+                }
+                check(expectedId == 4)
+            }
+            database.query("SELECT COUNT(*) FROM training_program_items").use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 3)
+            }
+            database.query(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'training_program_tombstones'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 1)
+            }
+            database.query(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_training_programs_stableKey'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 1)
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
         const val TEST_DB_22_23 = "training-migration-22-23-test"
+        const val TEST_DB_23_24 = "training-migration-23-24-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

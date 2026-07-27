@@ -18,6 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SmashSpeedRecord::class,
         TrainingProgram::class,
         TrainingProgramItem::class,
+        TrainingProgramTombstone::class,
         AppMeta::class,
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class,
@@ -31,7 +32,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -775,6 +776,31 @@ abstract class TrainingDatabase : RoomDatabase() {
             }
         }
 
+        internal val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `training_programs` ADD COLUMN `stableKey` TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    """
+                    UPDATE `training_programs`
+                    SET `stableKey` = '${ProgramStableKeyPolicy.LEGACY_PREFIX}' || `id`
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_training_programs_stableKey` ON `training_programs` (`stableKey`)"
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `training_program_tombstones` (
+                        `programStableKey` TEXT NOT NULL,
+                        `deletedAt` INTEGER NOT NULL,
+                        `seedVersion` INTEGER,
+                        PRIMARY KEY(`programStableKey`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         fun get(context: Context): TrainingDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -804,7 +830,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_19_20,
                         MIGRATION_20_21,
                         MIGRATION_21_22,
-                        MIGRATION_22_23
+                        MIGRATION_22_23,
+                        MIGRATION_23_24
                     )
                     .build()
                     .also { instance = it }

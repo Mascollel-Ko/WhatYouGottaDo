@@ -403,11 +403,17 @@ interface ProgramDao {
     @Query("SELECT * FROM training_programs ORDER BY createdAt DESC")
     fun observePrograms(): Flow<List<TrainingProgram>>
 
+    @Query("SELECT * FROM training_programs ORDER BY stableKey")
+    suspend fun allPrograms(): List<TrainingProgram>
+
     @Query("SELECT COUNT(*) FROM training_programs")
     suspend fun countPrograms(): Int
 
     @Query("SELECT * FROM training_programs WHERE id = :programId LIMIT 1")
     suspend fun findProgram(programId: Long): TrainingProgram?
+
+    @Query("SELECT * FROM training_programs WHERE stableKey = :stableKey LIMIT 1")
+    suspend fun findProgramByStableKey(stableKey: String): TrainingProgram?
 
     @Query("SELECT * FROM training_programs WHERE name = :name LIMIT 1")
     suspend fun findProgramByName(name: String): TrainingProgram?
@@ -417,6 +423,14 @@ interface ProgramDao {
 
     @Query("SELECT COUNT(*) FROM training_program_items WHERE exerciseId = :exerciseId")
     suspend fun countProgramItemsForExercise(exerciseId: Long): Int
+
+    @Query(
+        """
+        SELECT * FROM training_program_items
+        ORDER BY programId, weekNumber, dayOfWeek, orderIndex, id
+        """
+    )
+    suspend fun allProgramItems(): List<TrainingProgramItem>
 
     @Query(
         """
@@ -461,6 +475,12 @@ interface ProgramDao {
     @Query("DELETE FROM training_programs WHERE id = :programId")
     suspend fun deleteProgram(programId: Long)
 
+    @Query("DELETE FROM training_program_items")
+    suspend fun deleteAllProgramItems()
+
+    @Query("DELETE FROM training_programs")
+    suspend fun deleteAllPrograms()
+
     @Insert
     suspend fun insertProgramItem(item: TrainingProgramItem): Long
 
@@ -475,6 +495,21 @@ interface ProgramDao {
 
     @Query("UPDATE training_program_items SET orderIndex = :orderIndex WHERE id = :itemId")
     suspend fun updateProgramItemOrder(itemId: Long, orderIndex: Int)
+
+    @Query("SELECT * FROM training_program_tombstones ORDER BY programStableKey")
+    suspend fun allProgramTombstones(): List<TrainingProgramTombstone>
+
+    @Query("SELECT * FROM training_program_tombstones WHERE programStableKey = :stableKey LIMIT 1")
+    suspend fun findProgramTombstone(stableKey: String): TrainingProgramTombstone?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProgramTombstone(tombstone: TrainingProgramTombstone)
+
+    @Query("DELETE FROM training_program_tombstones WHERE programStableKey = :stableKey")
+    suspend fun deleteProgramTombstone(stableKey: String)
+
+    @Query("DELETE FROM training_program_tombstones")
+    suspend fun deleteAllProgramTombstones()
 }
 
 @Dao
