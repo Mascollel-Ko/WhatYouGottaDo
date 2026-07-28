@@ -101,6 +101,10 @@ class TissuePriorBaselineGenerationTest {
             normalizePriorFingerprintText(lf).toList(),
             normalizePriorFingerprintText(crlf).toList()
         )
+        assertEquals(
+            deterministicPriorInputChecksum(lf, lf, "recovery", "mapping"),
+            deterministicPriorInputChecksum(crlf, crlf, "recovery", "mapping")
+        )
     }
 
     @Test

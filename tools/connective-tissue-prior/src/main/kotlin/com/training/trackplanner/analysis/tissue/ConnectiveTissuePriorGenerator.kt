@@ -68,10 +68,11 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
     private val assignment = assignProfiles()
     private val recoveryFingerprint = fingerprint(recoveryFingerprintFiles())
     private val mappingFingerprint = fingerprint(mappingFingerprintFiles())
-    private val inputChecksum = sha256(
-        scenarioFile.readUtf8().trimEnd() + "\n" +
-            profileFile.readUtf8().trimEnd() + "\n" +
-            recoveryFingerprint + "\n" + mappingFingerprint
+    private val inputChecksum = deterministicPriorInputChecksum(
+        scenarioBytes = Files.readAllBytes(scenarioFile),
+        profileBytes = Files.readAllBytes(profileFile),
+        recoveryFingerprint = recoveryFingerprint,
+        mappingFingerprint = mappingFingerprint
     )
 
     fun generate(): TissuePriorGeneratedArtifacts {
@@ -894,6 +895,16 @@ private fun sha256(value: ByteArray): String =
 private fun fileBytes(content: String): ByteArray = (content.trimEnd() + "\n").toByteArray(Charsets.UTF_8)
 internal fun normalizePriorFingerprintText(bytes: ByteArray): ByteArray =
     String(bytes, Charsets.UTF_8).replace("\r\n", "\n").replace('\r', '\n').toByteArray(Charsets.UTF_8)
+internal fun deterministicPriorInputChecksum(
+    scenarioBytes: ByteArray,
+    profileBytes: ByteArray,
+    recoveryFingerprint: String,
+    mappingFingerprint: String
+): String = sha256(
+    String(normalizePriorFingerprintText(scenarioBytes), Charsets.UTF_8).trimEnd() + "\n" +
+        String(normalizePriorFingerprintText(profileBytes), Charsets.UTF_8).trimEnd() + "\n" +
+        recoveryFingerprint + "\n" + mappingFingerprint
+)
 
 private fun format(value: Double): String =
     BigDecimal.valueOf(value).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
