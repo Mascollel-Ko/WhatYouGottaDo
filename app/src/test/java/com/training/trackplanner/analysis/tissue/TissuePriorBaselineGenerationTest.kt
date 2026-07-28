@@ -78,16 +78,18 @@ class TissuePriorBaselineGenerationTest {
     }
 
     @Test
-    fun manifestChecksumsMatchTheActualCommittedRegistryBytes() {
+    fun manifestChecksumsMatchTheNormalizedCommittedRegistryContent() {
         val manifest = JSONObject(
             File(repoRoot, ConnectiveTissuePriorGenerator.MANIFEST_PATH).readText(Charsets.UTF_8)
         )
         val canonical = File(repoRoot, ConnectiveTissuePriorGenerator.CANONICAL_PATH)
         val appReady = File(repoRoot, ConnectiveTissuePriorGenerator.APP_READY_PATH)
 
-        assertEquals(manifest.getString("canonicalRegistrySha256"), sha256(canonical.readBytes()))
-        assertEquals(manifest.getString("appReadySha256"), sha256(appReady.readBytes()))
-        assertEquals(canonical.readBytes().toList(), appReady.readBytes().toList())
+        val canonicalBytes = normalizePriorFingerprintText(canonical.readBytes())
+        val appReadyBytes = normalizePriorFingerprintText(appReady.readBytes())
+        assertEquals(manifest.getString("canonicalRegistrySha256"), sha256(canonicalBytes))
+        assertEquals(manifest.getString("appReadySha256"), sha256(appReadyBytes))
+        assertEquals(canonicalBytes.toList(), appReadyBytes.toList())
     }
 
     @Test

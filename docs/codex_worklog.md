@@ -3844,9 +3844,11 @@ Verification
 - The canonicalizer was rerun from the supplied workbook and produced
   byte-identical outputs: 224 exercises, 753 program items, 224 runtime rows,
   224 tissue identities and 33 legacy mappings.
+- Generated prior drift/hash validation now normalizes checkout line endings;
+  the same committed LF content validates after a Windows CRLF checkout.
 - Debug APK:
-  `app/build/outputs/apk/debug/app-debug.apk`, 46,675,527 bytes,
-  SHA-256 `e43cc3035cab6410cc55fd2b193ab093866204309e4d30dd34fa7600857f13e5`.
+  `app/build/outputs/apk/debug/app-debug.apk`, 47,138,007 bytes,
+  SHA-256 `42153a5ea367ef631d495255c5d427e2c208de88d434e5f90a96390ad6398dde`.
 - `:app:lintDebug` remains blocked by the pre-existing minSdk 26/API 27
   `android:windowLightNavigationBar` issue in unchanged `values/themes.xml`.
 - No device/emulator was attached, so the compiled Room `24 -> 25`

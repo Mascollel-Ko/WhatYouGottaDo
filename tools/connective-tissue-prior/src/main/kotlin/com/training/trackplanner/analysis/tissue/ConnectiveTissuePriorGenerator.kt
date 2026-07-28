@@ -649,7 +649,11 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
 }
 
 internal fun requireNoGeneratedDrift(actual: String, expected: String, label: String) {
-    require(actual == expected) { "Generated artifact drift detected: $label" }
+    require(
+        normalizePriorFingerprintText(actual.toByteArray(Charsets.UTF_8)).contentEquals(
+            normalizePriorFingerprintText(expected.toByteArray(Charsets.UTF_8))
+        )
+    ) { "Generated artifact drift detected: $label" }
 }
 
 internal object ConnectiveTissuePriorTool {
