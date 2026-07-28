@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8 |
-| Last audited commit | v0.5.0.8 release change |
+| Last audited commit | 65844c8670b12dc78c424bc5cf76bb97892adbd3 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 

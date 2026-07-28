@@ -1448,7 +1448,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "운동 identity와 정본화",
       "titleEn": "Exercise Identity and Canonicalization",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1456,8 +1456,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.6",
-      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
+      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8",
+      "lastAuditedCommit": "65844c8670b12dc78c424bc5cf76bb97892adbd3",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/Entities.kt",
         "app/src/main/java/com/training/trackplanner/data/Daos.kt",
@@ -1469,6 +1469,7 @@
         "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ExerciseStableKeyPreservationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
       ],
       "authorityAssets": [
@@ -1480,10 +1481,11 @@
       "supportingDocuments": [
         "outputs/exercise_canonicalization_preflight.md",
         "outputs/exercise_identity_reference_audit.md",
-        "docs/v0.5.0.6_release_notes.md"
+        "docs/v0.5.0.6_release_notes.md",
+        "docs/v0.5.0.8_release_notes.md"
       ],
       "knownGaps": [
-        "Equipment-unspecified legacy split rows require explicit repair instead of an automatic guess."
+        "Unreviewed equipment-unspecified legacy split rows require explicit repair instead of an automatic guess."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

@@ -3926,3 +3926,28 @@ Verification
   generation, protocol-wide validation and APK build were intentionally not
   run.
 - Commit, main push and `v0.5.0.8` tag push: pending.
+
+## v0.5.0.9 debug-build pipeline recovery
+
+### Cause
+- GitHub Actions runs `30374538072` and `30374566171` for v0.5.0.8 failed
+  before Gradle because `DATA-EXERCISE-IDENTITY` declared protocol version
+  `1.0.1` while the canonical registry still declared `1.0.0`.
+- The document's audit marker also did not match the registry. Unit tests,
+  APK assembly and artifact upload were consequently skipped.
+
+### Changes
+- Aligned the exercise identity registry, canonical document and protocol
+  index to version `1.0.1` and audited commit
+  `65844c8670b12dc78c424bc5cf76bb97892adbd3`.
+- Registered the focused backup/restore behavior test and v0.5.0.8 release
+  note as protocol anchors.
+- Bumped the corrective release to `0.5.0.9 / 500009`; the v0.5.0.8 tag was
+  not moved or rewritten.
+
+### Validation
+- Protocol validation passed: 8 families and 32 protocols.
+- Full `:app:testDebugUnitTest` passed: 1,064 tests, zero failures.
+- `:app:assembleDebug` passed and produced a 46,676,079-byte APK with SHA-256
+  `281d1fa8155726a2a5cb1542e85bea4ab9ae2ef3d517c8d6b610f6f3ded6d38c`.
+- Main/tag push and GitHub artifact verification: pending.
