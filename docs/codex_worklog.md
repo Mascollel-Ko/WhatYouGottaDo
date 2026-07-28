@@ -3860,3 +3860,35 @@ Verification
   - `2456cb3` canonical protocol documentation
 - Main push, annotated `v0.5.0.6` tag and GitHub Actions are pending final
   execution.
+
+## v0.5.0.7 platform-independent tissue prior generation
+
+### Baseline and release correction
+- Continued from v0.5.0.6 main commit
+  `c825a4b941032b62c81b0860780fb5e6f0968efa`.
+- Main and tag GitHub Actions runs `30366515766` and `30366540557` failed
+  `TissuePriorBaselineGenerationTest` because Windows CRLF and Linux LF
+  scenario/profile inputs produced different deterministic input checksums.
+- The published `v0.5.0.6` tag was not moved or rewritten. The correction is
+  released as `0.5.0.7 / 500007`.
+
+### Root fix
+- Commit `9722c87` normalizes scenario and prior-profile bytes in the same
+  checksum path used by the generator.
+- Added a direct LF/CRLF regression assertion for
+  `deterministicPriorInputChecksum`.
+- Regenerated the canonical/app-ready prior registry, manifest, report, and
+  current protocol checksum references.
+- Tissue formulas, mappings, recovery, prior values, Room schema, restore
+  format, exercise catalog, workouts, programs, strength, OFI, and UI behavior
+  are unchanged.
+
+### Validation
+- Focused prior generation/runtime/protocol tests: passed.
+- `:app:validateConnectiveTissuePriorBaselines`: passed.
+- Protocol documentation validation: 8 families and 32 protocols passed.
+- Full `:app:testDebugUnitTest`: 1,060 tests passed with zero failures.
+- `:app:compileDebugAndroidTestKotlin` and `:app:assembleDebug`: passed.
+- Debug APK is 46,675,975 bytes with SHA-256
+  `ff806be32e531d19b78d7e1cf58e0f8cbf76601d18bd43c3b474d79495d1d6e1`.
+- Main push, annotated `v0.5.0.7` tag push, and GitHub Actions: pending.
