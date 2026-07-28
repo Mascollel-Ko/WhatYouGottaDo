@@ -18,15 +18,15 @@ med_ball_side_throw,메디신볼 사이드 스로우,medicine_ball_rotational_th
 medicine_ball_side_slam,메디신볼 사이드 슬램,med_ball_rotational_slam,메디신볼 회전 아래로 슬램,DIRECT
 ex_d79824d2,하프 닐링 케틀벨 원암 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,DIRECT
 ex_e0759156,하프 닐링 케틀벨 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,DIRECT
-ex_8380d7fe,원암 하프 닐링 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
-ex_8e1b313e,하프 닐링 원암 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
-ex_66e8c8c2,하프 닐링 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_8380d7fe,원암 하프 닐링 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,DIRECT
+ex_8e1b313e,하프 닐링 원암 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,DIRECT
+ex_66e8c8c2,하프 닐링 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,DIRECT
 ex_9523db82,덤벨 루마니안 데드리프트,dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,DIRECT
-ex_d2bb7946,루마니안 데드리프트,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_d2bb7946,루마니안 데드리프트,barbell_romanian_deadlift,루마니안 바벨 데드리프트,DIRECT
 ex_eb636bac,케이블 원암 트라이셉스 익스텐션,ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,CANONICAL_RENAME
 ex_462c760e,체스트 서포티드 원암 로우,ex_462c760e,체스트 서포티드 원암 머신 로우,CANONICAL_RENAME
 imported_래터럴_바운드,래터럴 바운드,lateral_bound_continuous,래터럴 바운드,DIRECT
-ex_e3487166,원암 로우,,,MANUAL_RESOLUTION_REQUIRED
+ex_e3487166,원암 로우,,,DROP_DELETED_EXERCISE_WITH_WARNING
 imported_csv_복원_계획,CSV 복원 계획,,,DROP_PLACEHOLDER_WITH_WARNING
 imported_csv_복원_근력운동,CSV 복원 근력운동,,,DROP_PLACEHOLDER_WITH_WARNING
 imported_csv_복원_기능성운동,CSV 복원 기능성운동,,,DROP_PLACEHOLDER_WITH_WARNING

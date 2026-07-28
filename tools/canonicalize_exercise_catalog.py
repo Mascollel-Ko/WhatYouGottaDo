@@ -423,16 +423,44 @@ def write_legacy_import_map(path: Path, rows: list[dict[str, str]]) -> None:
         "canonical_name",
         "import_rule",
     ]
-    output = [
-        {
-            "old_stable_key": row["oldStableKey"],
-            "old_name": row["oldName"],
-            "canonical_stable_key": row["canonicalStableKey"],
-            "canonical_name": row["canonicalName"],
-            "import_rule": row["importRule"],
-        }
-        for row in rows
-    ]
+    overrides = {
+        "ex_d2bb7946": (
+            "barbell_romanian_deadlift",
+            "루마니안 바벨 데드리프트",
+            "DIRECT",
+        ),
+        "ex_8380d7fe": (
+            "half_kneeling_single_arm_dumbbell_press",
+            "하프 닐링 원암 덤벨 프레스",
+            "DIRECT",
+        ),
+        "ex_8e1b313e": (
+            "half_kneeling_single_arm_dumbbell_press",
+            "하프 닐링 원암 덤벨 프레스",
+            "DIRECT",
+        ),
+        "ex_66e8c8c2": (
+            "half_kneeling_single_arm_dumbbell_press",
+            "하프 닐링 원암 덤벨 프레스",
+            "DIRECT",
+        ),
+        "ex_e3487166": ("", "", "DROP_DELETED_EXERCISE_WITH_WARNING"),
+    }
+    output = []
+    for row in rows:
+        canonical_key, canonical_name, import_rule = overrides.get(
+            row["oldStableKey"],
+            (row["canonicalStableKey"], row["canonicalName"], row["importRule"]),
+        )
+        output.append(
+            {
+                "old_stable_key": row["oldStableKey"],
+                "old_name": row["oldName"],
+                "canonical_stable_key": canonical_key,
+                "canonical_name": canonical_name,
+                "import_rule": import_rule,
+            }
+        )
     output.append(
         {
             "old_stable_key": "imported_배드민턴",

@@ -148,6 +148,156 @@ class BackupRestoreImportBehaviorTest {
     }
 
     @Test
+    fun restoreMapsReviewedGenericKeysAcrossExerciseWorkoutAndProgramRows() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val mappings = listOf(
+            Triple("ex_d2bb7946", "루마니안 데드리프트", "barbell_romanian_deadlift"),
+            Triple(
+                "ex_8380d7fe",
+                "원암 하프 닐링 프레스",
+                "half_kneeling_single_arm_dumbbell_press"
+            ),
+            Triple(
+                "ex_8e1b313e",
+                "하프 닐링 원암 프레스",
+                "half_kneeling_single_arm_dumbbell_press"
+            ),
+            Triple(
+                "ex_66e8c8c2",
+                "하프 닐링 프레스",
+                "half_kneeling_single_arm_dumbbell_press"
+            )
+        )
+        val exercises = mappings.map { (sourceKey, sourceName, _) ->
+            Exercise(name = sourceName, category = "근력운동", stableKey = sourceKey)
+        }
+        val entries = mappings.mapIndexed { index, (sourceKey, sourceName, _) ->
+            val entry = WorkoutEntry(
+                id = (index + 1).toLong(),
+                date = "2026-07-${10 + index}",
+                exerciseStableKey = sourceKey,
+                exerciseName = sourceName,
+                category = "근력운동"
+            )
+            WorkoutEntryWithSets(
+                entry,
+                listOf(
+                    WorkoutSet(
+                        id = (index + 101).toLong(),
+                        entryId = entry.id,
+                        setIndex = 1,
+                        reps = 6,
+                        weightKg = 40.0,
+                        confirmed = true
+                    )
+                )
+            )
+        }
+        val program = TrainingProgram(
+            stableKey = "user_program_legacy_direct_mapping",
+            name = "Legacy direct mapping",
+            durationDays = 7
+        )
+        val programItems = mappings.mapIndexed { index, (sourceKey, sourceName, _) ->
+            ProgramBackupItem(
+                programStableKey = program.stableKey,
+                weekNumber = 1,
+                dayOfWeek = index + 1,
+                orderIndex = 1,
+                exerciseStableKey = sourceKey,
+                exerciseName = sourceName,
+                category = "근력운동",
+                restSeconds = 90,
+                prescription = "",
+                setCount = 1,
+                reps = 6,
+                weightKg = 40.0,
+                seconds = 0,
+                trainingSlot = null,
+                dayIntensity = null,
+                weightSource = null
+            )
+        }
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = entries,
+            metrics = emptyList(),
+            exercises = exercises,
+            programs = listOf(program),
+            programItems = programItems,
+            includeProgramSnapshot = true
+        )
+
+        val result = repository.importRecordsBackup(writeBackup(csv))
+        val expectedKeys = mappings.map { mapping -> mapping.third }.sorted()
+        val restoredEntryKeys = db.workoutDao().allEntriesWithSets()
+            .map { row -> row.entry.exerciseStableKey }
+            .sorted()
+        val restoredProgramKeys = db.programDao().allProgramItems()
+            .map(TrainingProgramItem::exerciseStableKey)
+            .sorted()
+        val restoredProgramNames = db.programDao().allProgramItems()
+            .map(TrainingProgramItem::exerciseName)
+            .toSet()
+        val report = repository.latestDataTransferReport()!!
+
+        assertEquals(2, result.exerciseCount)
+        assertEquals(4, result.entryCount)
+        assertEquals(4, result.setCount)
+        assertEquals(1, result.programCount)
+        assertEquals(4, result.programItemCount)
+        assertEquals(expectedKeys, restoredEntryKeys)
+        assertEquals(expectedKeys, restoredProgramKeys)
+        assertEquals(
+            setOf("루마니안 바벨 데드리프트", "하프 닐링 원암 덤벨 프레스"),
+            restoredProgramNames
+        )
+        assertEquals(
+            "루마니안 바벨 데드리프트",
+            db.exerciseDao().findByStableKey("barbell_romanian_deadlift")?.name
+        )
+        assertEquals(
+            "하프 닐링 원암 덤벨 프레스",
+            db.exerciseDao().findByStableKey("half_kneeling_single_arm_dumbbell_press")?.name
+        )
+        assertTrue(mappings.all { (sourceKey, _, _) -> db.exerciseDao().findByStableKey(sourceKey) == null })
+        assertFalse(
+            (report.warnings + report.errors).any { diagnostic ->
+                diagnostic.code == DataTransferDiagnosticCodes.AMBIGUOUS_LEGACY_EXERCISE_SPLIT
+            }
+        )
+    }
+
+    @Test
+    fun restoreSkipsDeletedGenericOneArmRowExerciseDefinitionWithWarning() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val deletedKey = "ex_e3487166"
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            exercises = listOf(
+                Exercise(name = "원암 로우", category = "근력운동", stableKey = deletedKey)
+            )
+        )
+
+        val result = repository.importRecordsBackup(writeBackup(csv))
+        val report = repository.latestDataTransferReport()!!
+
+        assertEquals(0, result.exerciseCount)
+        assertEquals(1, result.warningCount)
+        assertNull(db.exerciseDao().findByStableKey(deletedKey))
+        assertFalse(SeedData.exercises(context).any { exercise -> exercise.stableKey == deletedKey })
+        assertTrue(
+            report.warnings.any { diagnostic ->
+                diagnostic.code == DataTransferDiagnosticCodes.LEGACY_DELETED_EXERCISE &&
+                    diagnostic.sourceExerciseStableKey == deletedKey
+            }
+        )
+        assertTrue(report.errors.isEmpty())
+    }
+
+    @Test
     fun restoreBackupUsesDailyMetricSleepAsCanonicalCheckInSleep() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)

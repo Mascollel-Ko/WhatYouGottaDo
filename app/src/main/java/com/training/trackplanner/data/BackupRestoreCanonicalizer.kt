@@ -93,7 +93,10 @@ internal class BackupRestoreCanonicalizer(
                 equipment = row.equipment,
                 entityType = "Exercise"
             )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(stableKey = resolution.canonicalStableKey)
+                is LegacyExerciseResolution.Resolved -> row.copy(
+                    stableKey = resolution.canonicalStableKey,
+                    name = resolution.canonicalName.ifBlank { row.name }
+                )
                 is LegacyExerciseResolution.Dropped -> {
                     warnings += resolution.diagnostic
                     null
@@ -113,7 +116,10 @@ internal class BackupRestoreCanonicalizer(
                 equipment = sourceExercise?.equipment.orEmpty(),
                 entityType = "RuntimeExerciseMetadata"
             )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(stableKey = resolution.canonicalStableKey)
+                is LegacyExerciseResolution.Resolved -> row.copy(
+                    stableKey = resolution.canonicalStableKey,
+                    exerciseName = resolution.canonicalName.ifBlank { row.exerciseName }
+                )
                 is LegacyExerciseResolution.Dropped -> {
                     warnings += resolution.diagnostic
                     null
@@ -134,7 +140,10 @@ internal class BackupRestoreCanonicalizer(
                 equipment = sourceExercise?.equipment.orEmpty(),
                 entityType = "WorkoutEntry"
             )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(stableKey = resolution.canonicalStableKey)
+                is LegacyExerciseResolution.Resolved -> row.copy(
+                    stableKey = resolution.canonicalStableKey,
+                    exerciseName = resolution.canonicalName.ifBlank { row.exerciseName }
+                )
                 is LegacyExerciseResolution.Dropped -> {
                     warnings += resolution.diagnostic.copy(
                         workoutDate = row.date,
@@ -163,7 +172,8 @@ internal class BackupRestoreCanonicalizer(
                 entityType = "TrainingProgramItem"
             )) {
                 is LegacyExerciseResolution.Resolved -> item.copy(
-                    exerciseStableKey = resolution.canonicalStableKey
+                    exerciseStableKey = resolution.canonicalStableKey,
+                    exerciseName = resolution.canonicalName.ifBlank { item.exerciseName }
                 )
                 is LegacyExerciseResolution.Dropped -> {
                     warnings += resolution.diagnostic.copy(

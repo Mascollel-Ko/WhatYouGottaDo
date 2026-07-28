@@ -3892,3 +3892,37 @@ Verification
 - Debug APK is 46,675,975 bytes with SHA-256
   `ff806be32e531d19b78d7e1cf58e0f8cbf76601d18bd43c3b474d79495d1d6e1`.
 - Main push, annotated `v0.5.0.7` tag push, and GitHub Actions: pending.
+
+## v0.5.0.8 legacy restore direct-mapping hotfix
+
+### Baseline and cause
+- Started from clean latest `origin/main`
+  `102086c631fac584614be94d5e35c841cd3c6e57` (`v0.5.0.7`).
+- Legacy import still marked four reviewed generic keys as equipment-ambiguous,
+  aborting restore when the old backup had no equipment text.
+- The deleted generic `ex_e3487166 / 원암 로우` Exercise definition also
+  blocked restore instead of remaining absent from the canonical catalog.
+
+### Changes
+- Mapped `ex_d2bb7946` directly to `barbell_romanian_deadlift`.
+- Mapped `ex_8380d7fe`, `ex_8e1b313e`, and `ex_66e8c8c2` directly to
+  `half_kneeling_single_arm_dumbbell_press`.
+- Removed `REQUIRE_EQUIPMENT_DISAMBIGUATION` from those four keys in both
+  `exercise_legacy_import_map.csv` and its canonical generator.
+- Added `DROP_DELETED_EXERCISE_WITH_WARNING` for `ex_e3487166`; only its
+  legacy Exercise definition is skipped, with `LEGACY_DELETED_EXERCISE`.
+- Added regression coverage for Exercise, WorkoutEntry and
+  TrainingProgramItem canonicalization and deleted-definition warning behavior.
+- Bumped the app to `0.5.0.8 / 500008`.
+
+### Validation
+- Initial targeted Gradle invocation stopped before test execution because the
+  new worktree lacked `local.properties`.
+- After copying the existing local Android SDK setting, the same targeted
+  invocation passed:
+  - `LegacyExerciseImportMapperTest`: 5 tests, zero failures.
+  - `BackupRestoreImportBehaviorTest`: 12 tests, zero failures.
+- Full `testDebugUnitTest`, tissue tests, program-generation tests, prior
+  generation, protocol-wide validation and APK build were intentionally not
+  run.
+- Commit, main push and `v0.5.0.8` tag push: pending.

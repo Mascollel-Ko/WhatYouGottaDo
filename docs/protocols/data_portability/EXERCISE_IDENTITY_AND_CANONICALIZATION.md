@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6 |
-| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8 |
+| Last audited commit | v0.5.0.8 release change |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -50,9 +50,10 @@ workout entry, set, program, program item과 diagnostic report의 local row ID�
 normalized-name fallback은 사용하지 않습니다. 사용자 운동은 이름과 무관한 UUID 기반
 stableKey를 한 번 발급하고 rename 시 보존합니다.
 
-Workbook의 merge, rename, split, delete 결정을 순서대로 적용합니다. 장비가 불명확한
-generic RDL과 half-kneeling press는 추측하지 않고 structured migration/import issue로
-남깁니다.
+Workbook의 merge, rename, split, delete 결정을 순서대로 적용합니다. Import-only
+legacy 정책은 검토 완료된 generic RDL을 barbell RDL로, generic half-kneeling
+one-arm press 세 key를 dumbbell press로 직접 해석합니다. 이 결정은 장비 추론이나
+사용자 선택을 요구하지 않습니다.
 
 ## 8. 집계 방식
 
@@ -69,9 +70,10 @@ analysis identity는 stableKey를 사용합니다. migration/import issue는 사
 ## 10. 예외 및 fallback
 
 legacy backup importer만 `exercise_legacy_import_map.csv`를 사용할 수 있습니다.
-canonical key, 명시적 old key, 승인된 exact old-name alias 순으로 해석하며 ambiguous
-split은 실패, CSV placeholder는 warning과 함께 drop합니다. 정상 runtime에는 이
-fallback이 없습니다.
+canonical key, 명시적 old key, 승인된 exact old-name alias 순으로 해석합니다.
+검토되지 않은 ambiguous split은 실패하고 CSV placeholder는 warning과 함께
+drop합니다. 삭제된 generic `원암 로우`의 legacy Exercise 정의 행은 warning과 함께
+건너뛰며 활성 운동을 다시 만들지 않습니다. 정상 runtime에는 이 fallback이 없습니다.
 
 ## 11. 개인화 또는 보정
 
@@ -95,9 +97,9 @@ CSV restore placeholder는 활성 catalog에 존재할 수 없습니다.
 
 ## 14. 알려진 한계
 
-장비 정보가 없는 과거 generic split 행은 자동으로 barbell/dumbbell 또는
-dumbbell/kettlebell target을 결정할 수 없습니다. 사용자 production DB의 실제 issue
-수는 migration 실행 시 결정됩니다.
+명시적 direct mapping이 없는 과거 ambiguous split과 삭제된 운동을 참조하는
+WorkoutEntry/TrainingProgramItem은 기록 손실을 피하기 위해 자동 추측하거나
+조용히 버리지 않습니다. 사용자 production DB의 실제 issue 수는 import 시 결정됩니다.
 
 ## 15. 현재 구현 상태
 
@@ -122,6 +124,7 @@ dumbbell/kettlebell target을 결정할 수 없습니다. 사용자 production D
 - `ExerciseCatalogCanonicalizationTest`
 - `ExerciseStableKeyPreservationTest`
 - `LegacyExerciseImportMapperTest`
+- `BackupRestoreImportBehaviorTest`
 - `TrainingDatabaseMigrationTest`
 - `ProgramBackupRestoreTest`
 
@@ -143,3 +146,6 @@ dumbbell/kettlebell target을 결정할 수 없습니다. 사용자 production D
 
 - `1.0.0` (2026-07-28): stableKey-only identity, Room 24→25 migration,
   workbook canonicalization과 import-only legacy mapping 계약을 추가했습니다.
+- `1.0.1` (2026-07-29): generic RDL과 generic half-kneeling press의 검토된
+  direct import mapping, 삭제된 generic 원암 로우 Exercise 정의의 warning-drop
+  계약을 추가했습니다.
