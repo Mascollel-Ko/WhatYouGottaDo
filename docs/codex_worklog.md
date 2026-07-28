@@ -3892,3 +3892,49 @@ Verification
 - Debug APK is 46,675,975 bytes with SHA-256
   `ff806be32e531d19b78d7e1cf58e0f8cbf76601d18bd43c3b474d79495d1d6e1`.
 - Main push, annotated `v0.5.0.7` tag push, and GitHub Actions: pending.
+
+## v0.5.0.7 exercise canonicalization independent re-audit
+
+### Scope and baseline
+- Audited `origin/main` SHA
+  `102086c631fac584614be94d5e35c841cd3c6e57` on
+  `codex/reaudit-v0507-exercise-canonicalization`.
+- Read all six sheets of
+  `C:\Users\pki08\Downloads\운동_정본화_통합계획_및_최종메타데이터.xlsx`
+  without modifying the workbook.
+- Workbook SHA-256:
+  `4A54D80963E71D0630ED1CBB71DC9F555232A6BD9A7FEA177126174698544092`.
+
+### Findings
+- Audited all 26 integration decisions: `PASS` 2,
+  `PASS_WITH_JUSTIFIED_REPOSITORY_ENUM_MAPPING` 24, failures 0, blocked 0.
+- Current authorities contain 224 active built-in exercises, 224 runtime
+  metadata rows, 753 valid program-item stableKey references and 33 explicit
+  import-only legacy mappings.
+- All 32 workbook legacy mappings are present. The additional
+  `imported_배드민턴 -> ex_ae9ecdbc` row is the existing reviewed
+  restore-boundary compatibility fix and reuses the canonical badminton
+  exercise and tissue mapping.
+- The 26 canonical targets have 354 tissue authority rows and no duplicate
+  `(exerciseStableKey, loadUnitStableKey)` pair.
+- Runtime identity remains stableKey-only. No name/fuzzy/contains fallback
+  enters exercise selection, persistence, analysis, program generation or
+  current-format restore.
+- No runtime, generated authority, Room schema, backup format, version or tag
+  change was required.
+
+### Artifacts
+- Added `outputs/v0.5.0.7_exercise_canonicalization_reaudit.csv`.
+- Added `outputs/v0.5.0.7_exercise_canonicalization_reaudit.md`.
+- Refreshed `outputs/exercise_identity_reference_audit.md`.
+
+### Validation policy
+- No test, Gradle, generator, migration or APK command was rerun during this
+  read-only audit, as requested.
+- Previously completed v0.5.0.7 results are reported as prior evidence only:
+  full `testDebugUnitTest` 1,060 tests/zero failures,
+  `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, `assembleDebug`,
+  connective-tissue prior validation, protocol validation (8 families,
+  32 protocols), tissue publication integrity, canonicalization parity and
+  generated-prior drift/hash validation all passed.
+- Audit commit and branch push: pending.
