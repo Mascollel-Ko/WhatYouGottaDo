@@ -1,18 +1,19 @@
 exerciseStableKey,curveProfileId,matchLevel,varianceMultiplier,assignmentVersion,rationale,sourceScope,reviewedStatus
-barbell_bench_press,reps_curve.bench_press.v1,EXACT_EXERCISE,1.0,repetition-curve-assignments-1.0.0,Published exercise-specific bench profile,barbell bench press,REVIEWED
-ex_27b3deb5,reps_curve.bench_press.v1,BORROWED_WITH_UNCERTAINTY,1.15,repetition-curve-assignments-1.0.0,Close-grip barbell variation borrows the bench prior,close-grip bench press,REVIEWED
-ex_3a7d3eda,reps_curve.bench_press.v1,BORROWED_WITH_UNCERTAINTY,1.25,repetition-curve-assignments-1.0.0,Dumbbell bench uses a provisional bench-shaped prior,dumbbell bench press,REVIEWED
-ex_389e0556,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.35,repetition-curve-assignments-1.0.0,Unilateral dumbbell bench lacks exercise-specific curve evidence,one-arm dumbbell bench press,REVIEWED
-ex_32219f7a,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.20,repetition-curve-assignments-1.0.0,Overhead press is not assigned the bench-specific curve,barbell overhead press,REVIEWED
-ex_79f3bdbe,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.25,repetition-curve-assignments-1.0.0,Dumbbell overhead press uses the general resistance prior,dumbbell overhead press,REVIEWED
-ex_1dbee10e,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.30,repetition-curve-assignments-1.0.0,Machine stacks are not assumed equivalent to free-weight bench,machine chest press,REVIEWED
 barbell_back_squat,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.20,repetition-curve-assignments-1.0.0,General prior with source-scope uncertainty,barbell back squat,REVIEWED
-ex_c5043892,reps_curve.general_resistance.v1,BORROWED_WITH_UNCERTAINTY,1.30,repetition-curve-assignments-1.0.0,Front squat uses a provisional general resistance prior,barbell front squat,REVIEWED
+barbell_bench_press,reps_curve.bench_press.v1,EXACT_EXERCISE,1.0,repetition-curve-assignments-1.0.0,Published exercise-specific bench profile,barbell bench press,REVIEWED
 barbell_deadlift,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.25,repetition-curve-assignments-1.0.0,General prior with source-scope uncertainty,conventional deadlift,REVIEWED
-ex_d2bb7946,reps_curve.general_resistance.v1,BORROWED_WITH_UNCERTAINTY,1.30,repetition-curve-assignments-1.0.0,Romanian deadlift uses a provisional general resistance prior,romanian deadlift,REVIEWED
-ex_ab468462,reps_curve.leg_press.v1,EXACT_EXERCISE,1.0,repetition-curve-assignments-1.0.0,Published exercise-specific leg-press profile,leg press,REVIEWED
+barbell_romanian_deadlift,reps_curve.general_resistance.v1,BORROWED_WITH_UNCERTAINTY,1.30,repetition-curve-assignments-1.0.0,Romanian deadlift uses a provisional general resistance prior,romanian deadlift,REVIEWED
+dumbbell_romanian_deadlift,reps_curve.general_resistance.v1,BORROWED_WITH_UNCERTAINTY,1.30,repetition-curve-assignments-1.0.0,Romanian deadlift uses a provisional general resistance prior,romanian deadlift,REVIEWED
+ex_1dbee10e,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.30,repetition-curve-assignments-1.0.0,Machine stacks are not assumed equivalent to free-weight bench,machine chest press,REVIEWED
+ex_27b3deb5,reps_curve.bench_press.v1,BORROWED_WITH_UNCERTAINTY,1.15,repetition-curve-assignments-1.0.0,Close-grip barbell variation borrows the bench prior,close-grip bench press,REVIEWED
+ex_32219f7a,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.20,repetition-curve-assignments-1.0.0,Overhead press is not assigned the bench-specific curve,barbell overhead press,REVIEWED
+ex_389e0556,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.35,repetition-curve-assignments-1.0.0,Unilateral dumbbell bench lacks exercise-specific curve evidence,one-arm dumbbell bench press,REVIEWED
+ex_3a7d3eda,reps_curve.bench_press.v1,BORROWED_WITH_UNCERTAINTY,1.25,repetition-curve-assignments-1.0.0,Dumbbell bench uses a provisional bench-shaped prior,dumbbell bench press,REVIEWED
+ex_6466fe77,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.40,repetition-curve-assignments-1.0.0,Chin-up uses a provisional general resistance prior,bodyweight chin-up,REVIEWED
+ex_79f3bdbe,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.25,repetition-curve-assignments-1.0.0,Dumbbell overhead press uses the general resistance prior,dumbbell overhead press,REVIEWED
 ex_a091b9fe,reps_curve.leg_press.v1,VALIDATED_VARIATION_FAMILY,1.20,repetition-curve-assignments-1.0.0,Single-leg machine variation borrows reviewed family shape,single-leg leg press,REVIEWED
+ex_ab468462,reps_curve.leg_press.v1,EXACT_EXERCISE,1.0,repetition-curve-assignments-1.0.0,Published exercise-specific leg-press profile,leg press,REVIEWED
+ex_c5043892,reps_curve.general_resistance.v1,BORROWED_WITH_UNCERTAINTY,1.30,repetition-curve-assignments-1.0.0,Front squat uses a provisional general resistance prior,barbell front squat,REVIEWED
+ex_e41e8dcf,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.35,repetition-curve-assignments-1.0.0,Weighted chin-up uses a provisional general resistance prior,weighted chin-up,REVIEWED
 ex_e41f4c2b,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.30,repetition-curve-assignments-1.0.0,General prior with source-scope uncertainty,weighted pull-up,REVIEWED
 pull_up,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.35,repetition-curve-assignments-1.0.0,Bodyweight pull-up uses a provisional general resistance prior,bodyweight pull-up,REVIEWED
-ex_e41e8dcf,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.35,repetition-curve-assignments-1.0.0,Weighted chin-up uses a provisional general resistance prior,weighted chin-up,REVIEWED
-ex_6466fe77,reps_curve.general_resistance.v1,GENERAL_FALLBACK,1.40,repetition-curve-assignments-1.0.0,Chin-up uses a provisional general resistance prior,bodyweight chin-up,REVIEWED

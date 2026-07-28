@@ -342,7 +342,6 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
             val rpe = level.rpe * habitualBand.effortMultiplier
             val records = catalog.exerciseStableKeys.sorted().mapIndexed { index, stableKey ->
                 val exercise = Exercise(
-                    id = index + 1L,
                     name = catalog.exerciseNamesByStableKey.getValue(stableKey),
                     category = "OFFLINE_PRIOR_FIXTURE",
                     stableKey = stableKey
@@ -351,7 +350,7 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
                     entry = WorkoutEntry(
                         id = index + 1L,
                         date = START_DATE.toString(),
-                        exerciseId = exercise.id,
+                        exerciseStableKey = exercise.stableKey,
                         exerciseName = exercise.name,
                         category = exercise.category,
                         rpe = rpe,

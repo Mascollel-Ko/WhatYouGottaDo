@@ -1,0 +1,34 @@
+old_stable_key,old_name,canonical_stable_key,canonical_name,import_rule
+ex_201f6426,B-스탠스 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
+ex_885b629,킥스탠스 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
+imported_싱글_레그_rdl,싱글 레그 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
+single_leg_rdl,원레그 RDL,single_leg_rdl,원레그 루마니안 데드리프트,CANONICAL
+imported_6코너_섀도우_풋워크,6코너 섀도우 풋워크,ex_33841b88,6코너 풋워크,DIRECT
+imported_싱글_레그_홉_앤_스틱,싱글 레그 홉 앤 스틱,ex_314df428,원레그 홉 투 스틱,DIRECT
+ex_bb728af2,리어풋 엘리베이티드 스플릿 스쿼트,ex_e2efd0fe,불가리안 스플릿 스쿼트,DIRECT
+ex_f892893e,카프 레이즈,ex_bd072cd,스탠딩 카프 레이즈,DIRECT
+ex_8354acd,바이퍼 트위스트(아래로),vipr_chop,바이퍼 회전 아래로,DIRECT
+vipr_shovel_scoop,바이퍼 셔블 / 스쿱,vipr_rotational_lift,바이퍼 회전 위로,DIRECT
+ex_26ac0c19,메디신볼 슬램,med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,DIRECT
+ex_c821775c,하이니 스킵,ex_a12de111,A스킵,DIRECT
+landmine_rainbow,랜드마인 레인보우,landmine_rotation,랜드마인 좌우 회전,DIRECT
+ex_5715d6ca,싱글 레그 글루트 브릿지,single_leg_hip_bridge,원레그 힙 브릿지,DIRECT
+ex_d634055c,싱글 레그 힙 쓰러스트,single_leg_hip_bridge,원레그 힙 브릿지,DIRECT
+med_ball_side_throw,메디신볼 사이드 스로우,medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,DIRECT
+medicine_ball_side_slam,메디신볼 사이드 슬램,med_ball_rotational_slam,메디신볼 회전 아래로 슬램,DIRECT
+ex_d79824d2,하프 닐링 케틀벨 원암 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,DIRECT
+ex_e0759156,하프 닐링 케틀벨 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,DIRECT
+ex_8380d7fe,원암 하프 닐링 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_8e1b313e,하프 닐링 원암 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_66e8c8c2,하프 닐링 프레스,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_9523db82,덤벨 루마니안 데드리프트,dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,DIRECT
+ex_d2bb7946,루마니안 데드리프트,,,REQUIRE_EQUIPMENT_DISAMBIGUATION
+ex_eb636bac,케이블 원암 트라이셉스 익스텐션,ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,CANONICAL_RENAME
+ex_462c760e,체스트 서포티드 원암 로우,ex_462c760e,체스트 서포티드 원암 머신 로우,CANONICAL_RENAME
+imported_래터럴_바운드,래터럴 바운드,lateral_bound_continuous,래터럴 바운드,DIRECT
+ex_e3487166,원암 로우,,,MANUAL_RESOLUTION_REQUIRED
+imported_csv_복원_계획,CSV 복원 계획,,,DROP_PLACEHOLDER_WITH_WARNING
+imported_csv_복원_근력운동,CSV 복원 근력운동,,,DROP_PLACEHOLDER_WITH_WARNING
+imported_csv_복원_기능성운동,CSV 복원 기능성운동,,,DROP_PLACEHOLDER_WITH_WARNING
+imported_csv_복원_스포츠,CSV 복원 스포츠,,,DROP_PLACEHOLDER_WITH_WARNING
+imported_배드민턴,배드민턴,ex_ae9ecdbc,배드민턴 경기 기록,DIRECT
