@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 internal class RepositoryReadQueryService(
     private val exerciseDao: ExerciseDao,
@@ -25,4 +26,17 @@ internal class RepositoryReadQueryService(
 
     fun dailySummaries(startDate: String, endDate: String): Flow<List<DailyRecordSummary>> =
         workoutDao.observeDailySummariesBetween(startDate, endDate)
+
+    fun confirmedExerciseDates(
+        startDate: String,
+        endDate: String,
+        query: String
+    ): Flow<List<String>> {
+        val normalized = query.trim()
+        return if (normalized.isEmpty()) {
+            flowOf(emptyList())
+        } else {
+            workoutDao.observeConfirmedExerciseDatesBetween(startDate, endDate, normalized)
+        }
+    }
 }

@@ -9,7 +9,9 @@ import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 internal class AnalysisSummaryService(
     private val exerciseDao: ExerciseDao,
@@ -31,6 +33,34 @@ internal class AnalysisSummaryService(
             initialProfile = initialUserProfileDao.profile(),
             dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         )
+    }
+
+    suspend fun calendarOfiByDate(
+        startDate: String,
+        endDate: String
+    ): Map<String, Int> {
+        val start = LocalDate.parse(startDate)
+        val requestedEnd = LocalDate.parse(endDate)
+        if (requestedEnd < start) return emptyMap()
+
+        val today = SystemAnalysisDateProvider().today()
+        if (start > today) return emptyMap()
+
+        val effectiveEnd = minOf(requestedEnd, today)
+        val effectiveEndString = effectiveEnd.format(DateTimeFormatter.ISO_LOCAL_DATE)
+        val exercises = exerciseDao.allExercises()
+        val days = ChronoUnit.DAYS.between(start, effectiveEnd).toInt() + 1
+        return DailyFatigueCalculator(resolvedRuntimeMetadataCatalog(exercises)).calculateSeries(
+            endDate = effectiveEnd,
+            days = days,
+            exercises = exercises,
+            entriesWithSets = workoutDao.entriesWithSetsUntil(effectiveEndString),
+            initialProfile = initialUserProfileDao.profile(),
+            dailyMetrics = dailyMetricDao.metricsUntil(effectiveEndString)
+        ).associate { result ->
+            result.state.date.format(DateTimeFormatter.ISO_LOCAL_DATE) to
+                result.state.overallFatigueIndex
+        }
     }
 
     suspend fun badmintonTransferSummary(

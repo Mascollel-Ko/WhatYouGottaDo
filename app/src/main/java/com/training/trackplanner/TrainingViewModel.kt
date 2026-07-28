@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -142,6 +143,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         _coachingSignalsSummary.asStateFlow()
 
     private var fatigueAnalysisHistory: List<DailyFatigueResult> = emptyList()
+    private val analysisRefreshRevision = MutableStateFlow(0L)
     private var contributionSourcesUserSelected = false
     private val _fatigueAnalysisState = MutableStateFlow(FatigueAnalysisUiState())
     val fatigueAnalysisState: StateFlow<FatigueAnalysisUiState> = _fatigueAnalysisState.asStateFlow()
@@ -182,6 +184,18 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun dailySummaries(startDate: String, endDate: String): Flow<List<DailyRecordSummary>> =
         repository.dailySummaries(startDate, endDate)
+
+    fun calendarOfiByDate(startDate: String, endDate: String): Flow<Map<String, Int>> =
+        analysisRefreshRevision.map {
+            repository.calendarOfiByDate(startDate, endDate)
+        }
+
+    fun confirmedExerciseDates(
+        startDate: String,
+        endDate: String,
+        query: String
+    ): Flow<List<String>> =
+        repository.confirmedExerciseDates(startDate, endDate, query)
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         repository.programItems(programId)
@@ -614,6 +628,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
 
     private suspend fun refreshAnalysisSummaries() {
+        analysisRefreshRevision.value += 1
         runCatching {
             repository.fatigueAnalysisHistory()
         }.onSuccess { history ->

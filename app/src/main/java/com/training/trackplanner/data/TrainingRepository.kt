@@ -326,6 +326,11 @@ class TrainingRepository(
             analysisSummaryService.fatigueAnalysisHistory(days)
         }
 
+    suspend fun calendarOfiByDate(startDate: String, endDate: String): Map<String, Int> =
+        withContext(Dispatchers.IO) {
+            analysisSummaryService.calendarOfiByDate(startDate, endDate)
+        }
+
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
         performanceTrendSummaryService.build()
     }
@@ -420,6 +425,13 @@ class TrainingRepository(
 
     fun dailySummaries(startDate: String, endDate: String): Flow<List<DailyRecordSummary>> =
         readQueryService.dailySummaries(startDate, endDate)
+
+    fun confirmedExerciseDates(
+        startDate: String,
+        endDate: String,
+        query: String
+    ): Flow<List<String>> =
+        readQueryService.confirmedExerciseDates(startDate, endDate, query)
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         programPlanService.programItems(programId)

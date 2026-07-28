@@ -435,6 +435,27 @@ interface WorkoutDao {
         startDate: String,
         endDate: String
     ): Flow<List<DailyRecordSummary>>
+
+    @Query(
+        """
+        SELECT DISTINCT workout_entries.date
+        FROM workout_entries
+        INNER JOIN workout_sets ON workout_sets.entryId = workout_entries.id
+        LEFT JOIN exercises ON exercises.stableKey = workout_entries.exerciseStableKey
+        WHERE workout_entries.date BETWEEN :startDate AND :endDate
+          AND workout_sets.confirmed = 1
+          AND (
+              instr(lower(COALESCE(exercises.name, '')), lower(:query)) > 0
+              OR instr(lower(workout_entries.exerciseName), lower(:query)) > 0
+          )
+        ORDER BY workout_entries.date
+        """
+    )
+    fun observeConfirmedExerciseDatesBetween(
+        startDate: String,
+        endDate: String,
+        query: String
+    ): Flow<List<String>>
 }
 
 @Dao

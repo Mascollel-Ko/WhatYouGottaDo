@@ -14,12 +14,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +64,15 @@ internal fun RecordCalendarScreen(
         viewModel.dailySummaries(startDate, endDate)
     }.collectAsState(initial = emptyList())
     val summaryByDate = remember(summaries) { summaries.associateBy { it.date } }
+    val ofiByDate by remember(startDate, endDate) {
+        viewModel.calendarOfiByDate(startDate, endDate)
+    }.collectAsState(initial = emptyMap())
+    var exerciseSearchQuery by rememberSaveable { mutableStateOf("") }
+    val normalizedExerciseSearch = remember(exerciseSearchQuery) { exerciseSearchQuery.trim() }
+    val matchingDates by remember(startDate, endDate, normalizedExerciseSearch) {
+        viewModel.confirmedExerciseDates(startDate, endDate, normalizedExerciseSearch)
+    }.collectAsState(initial = emptyList())
+    val matchingDateSet = remember(matchingDates) { matchingDates.toSet() }
     val selected = remember(selectedDate) { LocalDate.parse(selectedDate) }
     var actionMenuDate by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingAction by remember { mutableStateOf<CalendarPendingAction?>(null) }
@@ -220,6 +234,27 @@ internal fun RecordCalendarScreen(
             }
         }
         item {
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(),
+                value = exerciseSearchQuery,
+                onValueChange = { exerciseSearchQuery = it },
+                label = { Text("운동명 검색") },
+                singleLine = true,
+                trailingIcon = if (exerciseSearchQuery.isNotEmpty()) {
+                    {
+                        IconButton(onClick = { exerciseSearchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "검색어 지우기"
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+            )
+        }
+        item {
             pendingAction?.let { action ->
                 ActionModeCard(
                     text = "${action.sourceDate} ${action.label()} 대상 날짜 선택",
@@ -248,6 +283,8 @@ internal fun RecordCalendarScreen(
                 month = month,
                 selectedDate = selected,
                 summaries = summaryByDate,
+                ofiByDate = ofiByDate,
+                exerciseSearchMatches = matchingDateSet,
                 onDateSelected = { date ->
                     handleCalendarDateClick(
                         date = date,
@@ -275,6 +312,8 @@ private fun CalendarGrid(
     month: YearMonth,
     selectedDate: LocalDate,
     summaries: Map<String, DailyRecordSummary>,
+    ofiByDate: Map<String, Int>,
+    exerciseSearchMatches: Set<String>,
     onDateSelected: (String) -> Unit,
     onDateLongClick: (String) -> Unit
 ) {
@@ -309,6 +348,8 @@ private fun CalendarGrid(
                             selected = date == selectedDate,
                             today = date == LocalDate.now(),
                             summary = summaries[date.toString()],
+                            ofi = ofiByDate[date.toString()],
+                            exerciseSearchMatch = date.toString() in exerciseSearchMatches,
                             onClick = { onDateSelected(date.toString()) },
                             onLongClick = { onDateLongClick(date.toString()) }
                         )
@@ -327,22 +368,40 @@ private fun CalendarDayCell(
     selected: Boolean,
     today: Boolean,
     summary: DailyRecordSummary?,
+    ofi: Int?,
+    exerciseSearchMatch: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
     val hasRecord = summary != null && summary.confirmedSets > 0
     val hasPlanOnly = summary != null && summary.confirmedSets == 0 && summary.plannedSets > 0
-    val container = when {
+    val baseContainer = when {
         selected -> MaterialTheme.colorScheme.primaryContainer
         hasRecord -> MaterialTheme.colorScheme.secondaryContainer
         hasPlanOnly -> MaterialTheme.colorScheme.tertiaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
-    val content = when {
+    val baseContent = when {
         selected -> MaterialTheme.colorScheme.onPrimaryContainer
         hasRecord -> MaterialTheme.colorScheme.onSecondaryContainer
         hasPlanOnly -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val container = calendarOfiContainerColor(
+        baseColor = baseContainer,
+        errorContainerColor = MaterialTheme.colorScheme.errorContainer,
+        ofi = ofi
+    )
+    val content = calendarReadableContentColor(
+        backgroundColor = container,
+        baseContentColor = baseContent,
+        onErrorContainerColor = MaterialTheme.colorScheme.onErrorContainer
+    )
+    val borderStyle = calendarDayBorderStyle(exerciseSearchMatch, today)
+    val border = when (borderStyle) {
+        CalendarDayBorderStyle.SEARCH_MATCH -> BorderStroke(borderStyle.width!!, content)
+        CalendarDayBorderStyle.TODAY -> BorderStroke(borderStyle.width!!, MaterialTheme.colorScheme.primary)
+        CalendarDayBorderStyle.NONE -> null
     }
 
     Card(
@@ -353,7 +412,7 @@ private fun CalendarDayCell(
                 onLongClick = onLongClick
             ),
         shape = RoundedCornerShape(8.dp),
-        border = if (today) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+        border = border,
         colors = CardDefaults.cardColors(containerColor = container)
     ) {
         Column(
