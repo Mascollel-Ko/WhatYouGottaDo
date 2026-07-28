@@ -30,7 +30,6 @@ class DailyFatigueCalculatorTest {
     fun calculatesCanonicalFiveAxesAndAllowsLocalHighSystemicLow() {
         val date = LocalDate.of(2026, 6, 19)
         val exercise = Exercise(
-            id = 1,
             name = "테스트 컬",
             category = "근력운동",
             stableKey = "test_curl"
@@ -66,7 +65,13 @@ class DailyFatigueCalculatorTest {
                 "recoveryDurationClass" to "SHORT"
             )
         )
-        val entry = WorkoutEntry(id = 1, date = date.toString(), exerciseId = 1, exerciseName = exercise.name, category = exercise.category)
+        val entry = WorkoutEntry(
+            id = 1,
+            date = date.toString(),
+            exerciseStableKey = exercise.stableKey,
+            exerciseName = exercise.name,
+            category = exercise.category
+        )
         val record = WorkoutEntryWithSets(
             entry,
             listOf(
@@ -137,7 +142,7 @@ class DailyFatigueCalculatorTest {
     @Test
     fun canonicalOfiWarningsDoNotContainLegacyJointOrMovementAxes() {
         val date = LocalDate.of(2026, 6, 19)
-        val exercise = Exercise(id = 1, name = "배드민턴", category = "스포츠", stableKey = "ex_ae9ecdbc")
+        val exercise = Exercise(name = "배드민턴", category = "스포츠", stableKey = "ex_ae9ecdbc")
         val metadata = badmintonMetadata(
             secondaryStressTags = "COURT_MOVEMENT_LOAD|DECELERATION_LOAD",
             cognitiveStressTags = "REACTION_LOAD|DECISION_MAKING_LOAD",
@@ -164,7 +169,7 @@ class DailyFatigueCalculatorTest {
         physicalQualities: String
     ): RecordFatigueContribution {
         val date = LocalDate.of(2026, 6, 19)
-        val exercise = Exercise(id = 1, name = "배드민턴", category = "스포츠", stableKey = "ex_ae9ecdbc")
+        val exercise = Exercise(name = "배드민턴", category = "스포츠", stableKey = "ex_ae9ecdbc")
         val metadata = badmintonMetadata(
             secondaryStressTags,
             cognitiveStressTags,
@@ -209,7 +214,7 @@ class DailyFatigueCalculatorTest {
             WorkoutEntry(
                 id = 1,
                 date = date.toString(),
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category,
                 rpe = 8.0

@@ -31,8 +31,8 @@ class AnalysisSummaryServiceTest {
         val db = newDatabase()
         val service = service(db)
         val today = LocalDate.now()
-        val exerciseId = insertFatigueExercise(db, "analysis.fatigue", "Fatigue lift")
-        insertEntryWithSet(db, today.toString(), exerciseId, "Fatigue lift", confirmed = true)
+        val exerciseStableKey = insertFatigueExercise(db, "analysis.fatigue", "Fatigue lift")
+        insertEntryWithSet(db, today.toString(), exerciseStableKey, "Fatigue lift", confirmed = true)
 
         val history = service.fatigueAnalysisHistory(days = 7)
 
@@ -62,9 +62,9 @@ class AnalysisSummaryServiceTest {
         val db = newDatabase()
         val service = service(db)
         val today = LocalDate.now()
-        val exerciseId = insertBadmintonExercise(db, "analysis.badminton", "Footwork drill")
-        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseId, "Footwork drill", confirmed = true)
-        insertEntryWithSet(db, today.minusDays(35).toString(), exerciseId, "Footwork drill", confirmed = true)
+        val exerciseStableKey = insertBadmintonExercise(db, "analysis.badminton", "Footwork drill")
+        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseStableKey, "Footwork drill", confirmed = true)
+        insertEntryWithSet(db, today.minusDays(35).toString(), exerciseStableKey, "Footwork drill", confirmed = true)
 
         val summary = service.badmintonTransferSummary()
 
@@ -83,8 +83,8 @@ class AnalysisSummaryServiceTest {
         val db = newDatabase()
         val service = service(db)
         val today = LocalDate.now()
-        val exerciseId = insertBadmintonExercise(db, "analysis.coverage", "Coverage drill")
-        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseId, "Coverage drill", confirmed = true)
+        val exerciseStableKey = insertBadmintonExercise(db, "analysis.coverage", "Coverage drill")
+        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseStableKey, "Coverage drill", confirmed = true)
 
         val summary = service.badmintonTransferCoverageSummary(latestFatigueState = null)
 
@@ -100,7 +100,7 @@ class AnalysisSummaryServiceTest {
         val service = service(db)
         val today = LocalDate.now()
         val stableKey = "analysis.override"
-        val exerciseId = db.exerciseDao().insertExercise(
+        db.exerciseDao().insertExercise(
             Exercise(
                 name = "Override source",
                 category = "Strength",
@@ -130,7 +130,7 @@ class AnalysisSummaryServiceTest {
                 )
                 .toEntity()
         )
-        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseId, "Override source", confirmed = true)
+        insertEntryWithSet(db, today.minusDays(1).toString(), stableKey, "Override source", confirmed = true)
 
         val summary = service.badmintonTransferSummary()
         val coverage = service.badmintonTransferCoverageSummary(latestFatigueState = null)
@@ -145,10 +145,10 @@ class AnalysisSummaryServiceTest {
         val db = newDatabase()
         val service = service(db)
         val today = LocalDate.now()
-        val exerciseId = insertBadmintonExercise(db, "analysis.window", "Window drill")
-        insertEntryWithSet(db, today.minusDays(2).toString(), exerciseId, "Window drill", confirmed = true)
-        insertEntryWithSet(db, today.plusDays(1).toString(), exerciseId, "Window drill", confirmed = true)
-        insertEntryWithSet(db, today.minusDays(40).toString(), exerciseId, "Window drill", confirmed = true)
+        val exerciseStableKey = insertBadmintonExercise(db, "analysis.window", "Window drill")
+        insertEntryWithSet(db, today.minusDays(2).toString(), exerciseStableKey, "Window drill", confirmed = true)
+        insertEntryWithSet(db, today.plusDays(1).toString(), exerciseStableKey, "Window drill", confirmed = true)
+        insertEntryWithSet(db, today.minusDays(40).toString(), exerciseStableKey, "Window drill", confirmed = true)
 
         val fatigueHistory = service.fatigueAnalysisHistory(days = 3)
         val transferSummary = service.badmintonTransferSummary()
@@ -182,7 +182,7 @@ class AnalysisSummaryServiceTest {
         db: TrainingDatabase,
         stableKey: String,
         name: String
-    ): Long =
+    ): String {
         db.exerciseDao().insertExercise(
             Exercise(
                 name = name,
@@ -205,12 +205,15 @@ class AnalysisSummaryServiceTest {
                 volumeLoadEligible = true
             )
         )
+        val exerciseStableKey = stableKey
+        return stableKey
+    }
 
     private suspend fun insertBadmintonExercise(
         db: TrainingDatabase,
         stableKey: String,
         name: String
-    ): Long =
+    ): String {
         db.exerciseDao().insertExercise(
             Exercise(
                 name = name,
@@ -231,18 +234,20 @@ class AnalysisSummaryServiceTest {
                 recoveryDecayProfile = "SHORT"
             )
         )
+        return stableKey
+    }
 
     private suspend fun insertEntryWithSet(
         db: TrainingDatabase,
         date: String,
-        exerciseId: Long,
+        exerciseStableKey: String,
         exerciseName: String,
         confirmed: Boolean
     ) {
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
                 exerciseName = exerciseName,
                 category = "Test",
                 rpe = 8.0,

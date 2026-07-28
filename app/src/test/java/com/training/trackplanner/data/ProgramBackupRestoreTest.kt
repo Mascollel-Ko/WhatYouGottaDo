@@ -80,8 +80,18 @@ class ProgramBackupRestoreTest {
     @Test
     fun `authoritative program snapshot round trips stable identities and is idempotent`() = runBlocking {
         val source = newDatabase()
-        val squat = insertExercise(source, 10, "ex_squat_backup", "스쿼트")
-        val row = insertExercise(source, 20, "ex_row_backup", "케이블 로우")
+        val squat = insertExercise(
+            source,
+            10,
+            "user_ex_00000000-0000-4000-8000-000000000010",
+            "스쿼트"
+        )
+        val row = insertExercise(
+            source,
+            20,
+            "user_ex_00000000-0000-4000-8000-000000000020",
+            "케이블 로우"
+        )
         val modifiedBuiltInId = source.programDao().insertProgram(
             TrainingProgram(
                 stableKey = "3",
@@ -115,7 +125,7 @@ class ProgramBackupRestoreTest {
                     weekNumber = 1,
                     dayOfWeek = 1,
                     orderIndex = 1,
-                    exerciseId = squat.id,
+                    exerciseStableKey = squat.stableKey,
                     exerciseName = squat.name,
                     category = squat.category,
                     restSeconds = 150,
@@ -133,7 +143,7 @@ class ProgramBackupRestoreTest {
                     weekNumber = 2,
                     dayOfWeek = 4,
                     orderIndex = 1,
-                    exerciseId = row.id,
+                    exerciseStableKey = row.stableKey,
                     exerciseName = row.name,
                     category = row.category,
                     restSeconds = 75,
@@ -176,7 +186,7 @@ class ProgramBackupRestoreTest {
         assertNull(target.programDao().findProgramByStableKey("user_program_replace_me"))
         assertEquals("수정된, \"배드민턴\" 프로그램", target.programDao().findProgramByStableKey("3")?.name)
         val restoredItems = target.programDao().allProgramItems()
-        assertEquals(101L, restoredItems.single { it.exerciseName == squat.name }.exerciseId)
+        assertEquals(squat.stableKey, restoredItems.single { it.exerciseName == squat.name }.exerciseStableKey)
         assertTrue(restoredItems.single { it.exerciseName == squat.name }.prescription.contains("\n"))
 
         repository(target).seedMissingPrograms(listOf(SeedData.programs(context).first()))
@@ -200,6 +210,7 @@ class ProgramBackupRestoreTest {
 
         val target = newDatabase()
         val targetRepository = repository(target)
+        insertSeedExercises(target, seed)
         targetRepository.seedMissingPrograms(listOf(seed))
         assertNotNull(target.programDao().findProgramByStableKey(seed.key))
 
@@ -219,7 +230,7 @@ class ProgramBackupRestoreTest {
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = "2026-07-20",
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category
             )
@@ -295,6 +306,7 @@ class ProgramBackupRestoreTest {
     fun `legacy key repair maps only an exact seed graph and is stable on second startup`() = runBlocking {
         val db = newDatabase()
         val seed = SeedData.programs(context).first()
+        insertSeedExercises(db, seed)
         val exactId = db.programDao().insertProgram(
             TrainingProgram(
                 stableKey = "${ProgramStableKeyPolicy.LEGACY_PREFIX}1",
@@ -309,7 +321,7 @@ class ProgramBackupRestoreTest {
                     weekNumber = item.weekNumber,
                     dayOfWeek = item.dayOfWeek,
                     orderIndex = item.orderIndex,
-                    exerciseId = 0,
+                    exerciseStableKey = item.exerciseStableKey,
                     exerciseName = item.exerciseName,
                     category = item.category,
                     restSeconds = item.restSeconds,
@@ -429,7 +441,6 @@ class ProgramBackupRestoreTest {
         name: String
     ): Exercise {
         val exercise = Exercise(
-            id = id,
             stableKey = stableKey,
             name = name,
             category = "Strength",
@@ -437,6 +448,13 @@ class ProgramBackupRestoreTest {
         )
         db.exerciseDao().insertExercise(exercise)
         return exercise
+    }
+
+    private suspend fun insertSeedExercises(db: TrainingDatabase, seed: ProgramSeed) {
+        val byStableKey = SeedData.exercises(context).associateBy(Exercise::stableKey)
+        seed.items.map(ProgramItemSeed::exerciseStableKey).distinct().forEach { stableKey ->
+            db.exerciseDao().insertExercise(checkNotNull(byStableKey[stableKey]))
+        }
     }
 
     private suspend fun exportBackup(repository: TrainingRepository): String {
@@ -468,7 +486,7 @@ class ProgramBackupRestoreTest {
 
     private suspend fun semanticProgramState(db: TrainingDatabase): List<String> {
         val programs = db.programDao().allPrograms().associateBy(TrainingProgram::id)
-        val exercises = db.exerciseDao().allExercises().associateBy(Exercise::id)
+        val exercises = db.exerciseDao().allExercises().associateBy(Exercise::stableKey)
         return buildList {
             programs.values.sortedBy(TrainingProgram::stableKey).forEach { program ->
                 add(
@@ -498,7 +516,7 @@ class ProgramBackupRestoreTest {
                         item.weekNumber,
                         item.dayOfWeek,
                         item.orderIndex,
-                        exercises.getValue(item.exerciseId).stableKey,
+                        exercises.getValue(item.exerciseStableKey).stableKey,
                         item.exerciseName,
                         item.category,
                         item.restSeconds,

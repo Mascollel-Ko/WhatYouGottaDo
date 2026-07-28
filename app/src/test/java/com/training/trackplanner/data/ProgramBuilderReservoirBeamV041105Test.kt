@@ -447,7 +447,7 @@ class ProgramBuilderReservoirBeamV041105Test {
             weekNumber = week,
             dayOfWeek = day,
             orderIndex = order,
-            exerciseId = 10_000L + week * 100 + day * 10 + order,
+            exerciseStableKey = "captain_${week}_${day}_$order",
             exerciseName = "Captain chair leg raise",
             category = "strength",
             restSeconds = 60,
@@ -476,7 +476,7 @@ class ProgramBuilderReservoirBeamV041105Test {
             weekNumber = week,
             dayOfWeek = day,
             orderIndex = order,
-            exerciseId = 20_000L + week * 100 + day * 10 + order,
+            exerciseStableKey = "transfer_${week}_${day}_$order",
             exerciseName = name,
             category = "functional",
             restSeconds = 60,
@@ -508,7 +508,6 @@ class ProgramBuilderReservoirBeamV041105Test {
     ): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
-                id = id,
                 name = name,
                 category = "strength",
                 stableKey = stableKey,

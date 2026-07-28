@@ -55,7 +55,7 @@ class TissueRecoveryEngineTest {
             WorkoutEntry(
                 id = 1,
                 date = "2026-07-13",
-                exerciseId = 1,
+                exerciseStableKey = "test_exercise_1",
                 exerciseName = "Exact",
                 category = "Strength",
                 performedAt = 1234L
@@ -66,7 +66,7 @@ class TissueRecoveryEngineTest {
             WorkoutEntry(
                 id = 2,
                 date = "2026-07-13",
-                exerciseId = 1,
+                exerciseStableKey = "test_exercise_1",
                 exerciseName = "Legacy",
                 category = "Strength"
             ),
@@ -147,13 +147,13 @@ class TissueRecoveryEngineTest {
 
     @Test
     fun ledgerUsesSetRpeBeforeEntryRpeAndPreservesUnsidedUniqueEvents() {
-        val stableKey = "ex_201f6426"
-        val exercise = Exercise(id = 10, name = "B-스탠스 RDL", category = "근력운동", stableKey = stableKey)
+        val stableKey = "single_leg_rdl"
+        val exercise = Exercise(name = "원레그 루마니안 데드리프트", category = "근력운동", stableKey = stableKey)
         val record = TissueWorkoutRecord(
             entry = WorkoutEntry(
                 id = 42,
                 date = "2026-07-13",
-                exerciseId = 10,
+                exerciseStableKey = stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category,
                 rpe = 6.0,
@@ -182,7 +182,6 @@ class TissueRecoveryEngineTest {
             else -> "fixture"
         }
         val exercise = Exercise(
-            id = 1,
             name = stableKey,
             category = "fixture",
             stableKey = stableKey,
@@ -192,7 +191,7 @@ class TissueRecoveryEngineTest {
             entry = WorkoutEntry(
                 id = 1,
                 date = "2026-07-13",
-                exerciseId = 1,
+                exerciseStableKey = "test_exercise_1",
                 exerciseName = stableKey,
                 category = "fixture",
                 rpe = 7.0

@@ -138,11 +138,11 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         StrengthAndMuscleMetricSeriesBuilder.build(records, exercises)
 
     private fun exercise(id: Long, name: String, stableKey: String): Exercise =
-        Exercise(id = id, name = name, category = "근력", stableKey = stableKey)
+        Exercise(name = name, category = "근력", stableKey = stableKey)
 
     private fun record(date: String, exercise: Exercise, vararg sets: WorkoutSet): WorkoutEntryWithSets =
         WorkoutEntryWithSets(
-            entry = WorkoutEntry(date = date, exerciseId = exercise.id, exerciseName = exercise.name, category = exercise.category),
+            entry = WorkoutEntry(date = date, exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = exercise.category),
             sets = sets.toList()
         )
 

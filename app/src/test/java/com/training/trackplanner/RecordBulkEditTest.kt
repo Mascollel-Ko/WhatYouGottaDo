@@ -11,7 +11,7 @@ class RecordBulkEditTest {
     private val entry = WorkoutEntry(
         id = 1,
         date = "2026-06-14",
-        exerciseId = 1,
+        exerciseStableKey = "test_exercise_1",
         exerciseName = "스쿼트",
         category = "근력",
         restSeconds = 90

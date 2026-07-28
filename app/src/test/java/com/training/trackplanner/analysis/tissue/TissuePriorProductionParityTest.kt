@@ -91,7 +91,6 @@ class TissuePriorProductionParityTest {
 
     private fun record(index: Int, stableKey: String, bodyWeightKg: Double = 75.0): TissueWorkoutRecord {
         val exercise = Exercise(
-            id = index + 1L,
             name = catalog.exerciseNamesByStableKey.getValue(stableKey),
             category = "OFFLINE_PRIOR_PARITY",
             stableKey = stableKey
@@ -101,7 +100,7 @@ class TissuePriorProductionParityTest {
             entry = WorkoutEntry(
                 id = index + 1L,
                 date = "2026-01-05",
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category,
                 rpe = 7.0,

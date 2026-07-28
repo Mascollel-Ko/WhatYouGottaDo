@@ -309,17 +309,25 @@ class StrengthPosteriorEventIntegrationTest {
     @Test
     fun `completion fingerprint is independent of local Room ids`() = runBlocking {
         val first = WorkoutEntryWithSets(
-            WorkoutEntry(1, "2026-07-24", 10, "Bench", "Strength", createdAt = 100L),
+            WorkoutEntry(1, "2026-07-24", "barbell_bench_press", "Bench", "Strength", createdAt = 100L),
             listOf(WorkoutSet(20, 1, 1, 5, 80.0, confirmed = true, rpe = 10.0))
         )
         val second = WorkoutEntryWithSets(
-            WorkoutEntry(99, "2026-07-24", 50, "Bench", "Strength", createdAt = 100L),
+            WorkoutEntry(99, "2026-07-24", "barbell_bench_press", "Bench", "Strength", createdAt = 100L),
             listOf(WorkoutSet(77, 99, 1, 5, 80.0, confirmed = true, rpe = 10.0))
         )
 
         assertEquals(
-            StrengthCompletionFingerprint.build("2026-07-24", listOf(first), mapOf(10L to benchExercise(10))),
-            StrengthCompletionFingerprint.build("2026-07-24", listOf(second), mapOf(50L to benchExercise(50)))
+            StrengthCompletionFingerprint.build(
+                "2026-07-24",
+                listOf(first),
+                mapOf("barbell_bench_press" to benchExercise())
+            ),
+            StrengthCompletionFingerprint.build(
+                "2026-07-24",
+                listOf(second),
+                mapOf("barbell_bench_press" to benchExercise())
+            )
         )
     }
 
@@ -500,12 +508,14 @@ class StrengthPosteriorEventIntegrationTest {
         exercise: Exercise = benchExercise(),
         weightKg: Double = 80.0
     ): SessionFixture {
-        val exerciseId = db.exerciseDao().findByStableKey(exercise.stableKey)?.id
-            ?: db.exerciseDao().insertExercise(exercise)
+        if (db.exerciseDao().findByStableKey(exercise.stableKey) == null) {
+            db.exerciseDao().insertExercise(exercise)
+        }
+        val exerciseStableKey = exercise.stableKey
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
             exerciseName = exercise.name,
             category = exercise.category,
                 createdAt = 100L,
@@ -527,14 +537,12 @@ class StrengthPosteriorEventIntegrationTest {
     }
 
     private fun benchExercise(id: Long = 0): Exercise = Exercise(
-        id = id,
         name = "Bench press",
         category = "Strength",
         stableKey = "barbell_bench_press"
     )
 
     private fun frontSquatExercise(id: Long): Exercise = Exercise(
-        id = id,
         name = "Front squat",
         category = "Strength",
         stableKey = "front-squat-$id",

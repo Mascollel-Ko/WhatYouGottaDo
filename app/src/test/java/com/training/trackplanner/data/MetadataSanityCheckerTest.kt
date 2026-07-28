@@ -117,11 +117,11 @@ class MetadataSanityCheckerTest {
     fun readinessReporterMarksSeedCatalogReady() {
         val report = MetadataReadinessReporter.generate(SeedData.exercisesFromParsedRows(seedRows()))
 
-        assertEquals(239, report.summary.totalExerciseCount)
-        assertEquals(239, report.summary.fatigueReadyCounts[ReadinessStatus.YES])
-        assertEquals(239, report.summary.progressReadyCounts[ReadinessStatus.YES])
-        assertEquals(239, report.summary.badmintonReadyCounts[ReadinessStatus.YES])
-        assertEquals(239, report.summary.balanceReadyCounts[ReadinessStatus.YES])
+        assertEquals(224, report.summary.totalExerciseCount)
+        assertEquals(224, report.summary.fatigueReadyCounts[ReadinessStatus.YES])
+        assertEquals(224, report.summary.progressReadyCounts[ReadinessStatus.YES])
+        assertEquals(224, report.summary.badmintonReadyCounts[ReadinessStatus.YES])
+        assertEquals(224, report.summary.balanceReadyCounts[ReadinessStatus.YES])
         assertEquals(emptyList<String>(), report.summary.needsReviewExerciseNames)
         assertTrue(report.mappingLayerExists)
     }
@@ -161,7 +161,6 @@ class MetadataSanityCheckerTest {
     @Test
     fun exerciseAnalysisMapperUsesRuntimeMetadataOverridesForAnalysisTokens() {
         val exercise = Exercise(
-            id = 44,
             name = "사용자 수정 운동",
             category = "근력",
             stableKey = "barbell_deadlift",
@@ -205,7 +204,7 @@ class MetadataSanityCheckerTest {
         val entry = WorkoutEntry(
             id = 10,
             date = "2026-06-15",
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )

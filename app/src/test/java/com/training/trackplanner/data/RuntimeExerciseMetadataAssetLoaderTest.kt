@@ -17,14 +17,14 @@ class RuntimeExerciseMetadataAssetLoaderTest {
 
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
 
-        assertEquals(239, rows.size)
-        assertEquals(239, rows.map { it.stableKey.lowercase() }.distinct().size)
+        assertEquals(224, rows.size)
+        assertEquals(224, rows.map { it.stableKey.lowercase() }.distinct().size)
         assertFalse(rows.any { it.stableKey.isBlank() })
         assertEquals(18, rows.count { it.badmintonTransferLevel == "DIRECT" })
-        assertEquals(100, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
-        assertEquals(92, rows.count { it.badmintonTransferLevel == "GENERAL" })
+        assertEquals(88, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
+        assertEquals(89, rows.count { it.badmintonTransferLevel == "GENERAL" })
         assertEquals(29, rows.count { it.badmintonTransferLevel == "NONE" })
-        assertEquals(51, rows.count { it.stressMagnitudeHint == "HIGH" })
+        assertEquals(47, rows.count { it.stressMagnitudeHint == "HIGH" })
         assertTrue(rows.all { it.neuromuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.systemicMuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.localMuscularStressLevel.isNotBlank() })
@@ -38,7 +38,7 @@ class RuntimeExerciseMetadataAssetLoaderTest {
             "스플릿 스텝 리액션",
             "랜덤 방향전환 드릴",
             "랜덤 풋워크",
-            "6코너 섀도우 풋워크",
+            "6코너 풋워크",
             "앞뒤 랜덤 콕줍기",
             "좌우 랜덤 콕줍기",
             "6방향 랜덤 콕줍기"

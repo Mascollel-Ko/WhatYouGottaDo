@@ -135,7 +135,7 @@ class StrengthPerformanceLikelihoodTest {
     @Test
     fun `session aggregation is one observation and contradictory evidence widens it`() {
         val resolver = StrengthPerformanceLoadResolver(emptyList(), emptyList(), null)
-        val exercise = Exercise(id = 1, name = "Bench", category = "strength", stableKey = "barbell_bench_press")
+        val exercise = Exercise(name = "Bench", category = "strength", stableKey = "barbell_bench_press")
         val consistent = session(
             exercise,
             listOf(set(1, 5, 100.0, 10.0), set(2, 5, 101.0, 10.0)),
@@ -180,7 +180,6 @@ class StrengthPerformanceLikelihoodTest {
     @Test
     fun `eligible squat metadata receives a conservative relevant-movement proxy`() {
         val squat = Exercise(
-            id = 9,
             name = "Front squat",
             category = "Strength",
             stableKey = "front-squat-test",
@@ -203,7 +202,7 @@ class StrengthPerformanceLikelihoodTest {
     ): StrengthExerciseSessionObservation = checkNotNull(
         StrengthSessionObservationBuilder.build(
             record = WorkoutEntryWithSets(
-                entry = WorkoutEntry(id = 10, date = "2026-07-10", exerciseId = exercise.id, exerciseName = exercise.name, category = "strength"),
+                entry = WorkoutEntry(id = 10, date = "2026-07-10", exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = "strength"),
                 sets = sets
             ),
             exercise = exercise,

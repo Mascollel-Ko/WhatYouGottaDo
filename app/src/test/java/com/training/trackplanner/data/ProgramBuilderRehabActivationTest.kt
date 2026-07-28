@@ -105,7 +105,6 @@ class ProgramBuilderRehabActivationTest {
         fun classified(name: String, equipment: String, restSeconds: Int): Boolean {
             val row = checkNotNull(metadata[name])
             val exercise = Exercise(
-                id = name.hashCode().toLong(),
                 name = "classifier input does not use display name",
                 category = "TRAINING",
                 stableKey = row.stableKey,
@@ -269,7 +268,6 @@ private class RehabProgramFixture {
         stableKey: String = "rehab_fixture_$id"
     ): Pair<Exercise, RuntimeExerciseMetadata> {
         val exercise = Exercise(
-            id = id,
             name = name,
             category = "TRAINING",
             stableKey = stableKey,

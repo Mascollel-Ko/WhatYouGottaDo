@@ -25,11 +25,11 @@ class CalendarCopyRepositoryTest {
     fun singleDateCopyWithStateStillPreservesMixedSetState() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             confirmedStates = listOf(true, false)
         )
 
@@ -47,17 +47,17 @@ class CalendarCopyRepositoryTest {
     fun rangeCopyDefaultsToPlanState() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             confirmedStates = listOf(true, false)
         )
         insertEntryWithSets(
             db = db,
             date = "2026-06-02",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             confirmedStates = listOf(true)
         )
 
@@ -77,17 +77,17 @@ class CalendarCopyRepositoryTest {
     fun rangeCopyWithStatePreservesMixedSetStateAcrossTargetDates() = runBlocking {
         val db = newDatabase()
         val repository = TrainingRepository(db, context)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             confirmedStates = listOf(true, false, true)
         )
         insertEntryWithSets(
             db = db,
             date = "2026-06-02",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             confirmedStates = listOf(false, true)
         )
 
@@ -109,7 +109,7 @@ class CalendarCopyRepositoryTest {
             .build()
             .also { database = it }
 
-    private suspend fun insertExercise(db: TrainingDatabase): Long =
+    private suspend fun insertExercise(db: TrainingDatabase): String {
         db.exerciseDao().insertExercise(
             Exercise(
                 name = "테스트 스쿼트",
@@ -117,17 +117,19 @@ class CalendarCopyRepositoryTest {
                 stableKey = "test.squat"
             )
         )
+        return "test.squat"
+    }
 
     private suspend fun insertEntryWithSets(
         db: TrainingDatabase,
         date: String,
-        exerciseId: Long,
+        exerciseStableKey: String,
         confirmedStates: List<Boolean>
     ) {
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
                 exerciseName = "테스트 스쿼트",
                 category = "근력",
                 completedAt = if (confirmedStates.any { it }) 1_000L else null,

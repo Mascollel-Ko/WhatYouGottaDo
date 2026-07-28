@@ -82,7 +82,7 @@ class ExerciseSeedMetadataPolicyTest {
         val rawRows = seedRowsByStableKey()
         val seeds = exactSeedMap()
 
-        assertEquals(239, rawRows.size)
+        assertEquals(224, rawRows.size)
         assertEquals(rawRows.size, seeds.size)
 
         val parsed = RecordCsvBackupRestore.parse(

@@ -43,7 +43,7 @@ class BackupRestoreImportBehaviorTest {
         val csv = RecordCsvBackupRestore.buildRestoreCsv(
             entriesWithSets = emptyList(),
             metrics = emptyList(),
-            exercises = listOf(seed.copy(id = 1)),
+            exercises = listOf(seed),
             runtimeMetadata = listOf(override)
         )
 
@@ -64,7 +64,6 @@ class BackupRestoreImportBehaviorTest {
         val db = newDatabase()
         val repository = repository(db)
         val exercise = Exercise(
-            id = 7,
             name = "Custom restore lift",
             category = "Strength",
             stableKey = "user_ex_restore_lift",
@@ -95,11 +94,11 @@ class BackupRestoreImportBehaviorTest {
         val db = newDatabase()
         val repository = repository(db)
         val canonicalKey = "ex_ae9ecdbc"
-        val badminton = SeedData.exactExerciseMetadataByStableKey(context).getValue(canonicalKey).copy(id = 24)
+        val badminton = SeedData.exactExerciseMetadataByStableKey(context).getValue(canonicalKey)
         val entry = WorkoutEntry(
             id = 41,
             date = LocalDate.now().toString(),
-            exerciseId = badminton.id,
+            exerciseStableKey = badminton.stableKey,
             exerciseName = badminton.name,
             category = badminton.category,
             rpe = 8.0
@@ -138,7 +137,7 @@ class BackupRestoreImportBehaviorTest {
         assertEquals(1, result.entryCount)
         assertEquals(canonicalKey, restoredExercise.stableKey)
         assertNull(db.exerciseDao().findByStableKey("imported_배드민턴"))
-        assertEquals(restoredExercise.id, restoredEntry.entry.exerciseId)
+        assertEquals(restoredExercise.stableKey, restoredEntry.entry.exerciseStableKey)
         assertTrue(restoredEntry.sets.all { restoredSet -> restoredSet.reps == 0 })
         assertTrue(ledger.events.isNotEmpty())
         assertEquals(expectedMappingKeys, actualMappingKeys)
@@ -195,9 +194,9 @@ class BackupRestoreImportBehaviorTest {
         val db = newDatabase()
         val repository = repository(db)
         val csv = """
-            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,overall_fatigue
-            2,check_in,2026-07-18,,,,,,,,,,,,25,4
-            2,set,2026-07-18,e1,1,스쿼트,근력운동,1,120,1,1,5,100,0,25,
+            schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds,sleep_hours,overall_fatigue,stable_key
+            2,check_in,2026-07-18,,,,,,,,,,,,25,4,
+            2,set,2026-07-18,e1,1,스쿼트,근력운동,1,120,1,1,5,100,0,25,,barbell_back_squat
         """.trimIndent()
 
         val result = repository.importRecordsBackup(writeBackup(csv))
@@ -283,11 +282,11 @@ class BackupRestoreImportBehaviorTest {
     fun restoreBackupGroupsSetsPreservesStateAndSkipsDuplicateEntries() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val exercise = Exercise(id = 3, name = "Restore squat", category = "Strength", stableKey = "restore_squat")
+        val exercise = Exercise(name = "스쿼트", category = "Strength", stableKey = "barbell_back_squat")
         val entry = WorkoutEntry(
             id = 11,
             date = "2026-07-04",
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category,
             restSeconds = 120,

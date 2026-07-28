@@ -153,7 +153,6 @@ class ProgramEvaluationPolicyTest {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(),
                 name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(),
                 defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,

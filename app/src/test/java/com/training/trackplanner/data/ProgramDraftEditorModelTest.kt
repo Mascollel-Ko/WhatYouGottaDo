@@ -59,7 +59,7 @@ class ProgramDraftEditorModelTest {
 
     private fun item(
         localId: String,
-        exerciseId: Long = 1,
+        exerciseStableKey: String = "exercise_1",
         weekNumber: Int,
         dayOfWeek: Int,
         setCount: Int = 3,
@@ -72,8 +72,8 @@ class ProgramDraftEditorModelTest {
             weekNumber = weekNumber,
             dayOfWeek = dayOfWeek,
             orderIndex = 1,
-            exerciseId = exerciseId,
-            exerciseName = "Exercise $exerciseId",
+            exerciseStableKey = exerciseStableKey,
+            exerciseName = "Exercise $exerciseStableKey",
             category = "Strength",
             restSeconds = restSeconds,
             prescription = "",

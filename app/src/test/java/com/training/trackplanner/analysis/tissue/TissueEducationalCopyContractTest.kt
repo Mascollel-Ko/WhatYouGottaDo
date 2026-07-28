@@ -111,9 +111,9 @@ class TissueEducationalCopyContractTest {
     fun educationalRewriteLeavesNumericalAuthoritiesByteIdentical() {
         val expected = mapOf(
             "connective_tissue_prior_baselines_v1.json" to
-                "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+                "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
             "tissue_rcv_exercise_load_unit_authority_v1.csv" to
-                "7efd022c6b7b1ec3b927bfd81b61c6ac5195425da8b7f2e607b057f2ee529ac5",
+                "2bed8454ed0af3b05d9f0f1655b41d73ece3901da54ee227fdd746e4000df325",
             "tissue_rcv_recovery_curve_knots_v1.csv" to
                 "0282bcf10426dfea744aa20aa3500cac960ad43950e4c057ab05dfa0b9311837",
             "tissue_rcv_load_units_v1.csv" to
@@ -171,6 +171,12 @@ class TissueEducationalCopyContractTest {
     ).first(File::isFile)
 
     private fun sha256(file: File): String = MessageDigest.getInstance("SHA-256")
-        .digest(file.readBytes())
+        .digest(
+            file.readText(Charsets.UTF_8)
+                .removePrefix("\uFEFF")
+                .replace("\r\n", "\n")
+                .replace('\r', '\n')
+                .toByteArray(Charsets.UTF_8)
+        )
         .joinToString("") { "%02x".format(it) }
 }

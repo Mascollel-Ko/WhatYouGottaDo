@@ -48,19 +48,19 @@ class ExerciseMetadataEditorBehaviorTest {
     fun exerciseEditorDataForExistingExerciseReturnsEffectiveMetadataAndExcludesSelfCopySource() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val exerciseId = insertExercise(db, name = "Seed lift", stableKey = "seed.lift")
+        val exerciseStableKey = insertExercise(db, name = "Seed lift", stableKey = "seed.lift")
         insertExercise(db, name = "Other lift", stableKey = "other.lift")
         val override = RuntimeExerciseMetadataDefaults.forIdentity("seed.lift", "Seed lift")
             .copy(programSlot = "ROOM_SLOT")
         db.runtimeExerciseMetadataDao().upsert(override.toEntity())
 
-        val data = repository.exerciseEditorData(exerciseId)
+        val data = repository.exerciseEditorData(exerciseStableKey)
 
-        assertEquals(exerciseId, data.exercise.id)
+        assertEquals(exerciseStableKey, data.exercise.stableKey)
         assertEquals("Seed lift", data.exercise.name)
         assertEquals("seed.lift", data.exercise.stableKey)
         assertEquals("ROOM_SLOT", data.metadata.programSlot)
-        assertFalse(data.copySources.any { it.exercise.id == exerciseId })
+        assertFalse(data.copySources.any { it.exercise.stableKey == exerciseStableKey })
     }
 
     @Test
@@ -78,8 +78,8 @@ class ExerciseMetadataEditorBehaviorTest {
             analysisEligibility = MetadataTokenField.parse("FATIGUE")
         )
 
-        val savedId = repository.saveExerciseEditor(draft.copy(exercise = exercise, metadata = metadata))
-        val saved = db.exerciseDao().findById(savedId)!!
+        val savedKey = repository.saveExerciseEditor(draft.copy(exercise = exercise, metadata = metadata))
+        val saved = db.exerciseDao().findByStableKey(savedKey)!!
         val savedMetadata = db.runtimeExerciseMetadataDao().findByStableKey(saved.stableKey)!!.toRuntimeMetadata()
 
         assertTrue(saved.stableKey.isNotBlank())
@@ -96,15 +96,15 @@ class ExerciseMetadataEditorBehaviorTest {
     fun saveExerciseEditorUpdatesExistingExerciseWhilePreservingStableKey() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val exerciseId = insertExercise(
+        val exerciseStableKey = insertExercise(
             db = db,
             name = "Existing custom",
             stableKey = "user_ex_existing",
             isCustom = true
         )
-        val data = repository.exerciseEditorData(exerciseId)
+        val data = repository.exerciseEditorData(exerciseStableKey)
 
-        val savedId = repository.saveExerciseEditor(
+        val savedKey = repository.saveExerciseEditor(
             data.copy(
                 exercise = data.exercise.copy(
                     name = "Existing custom edited",
@@ -115,9 +115,9 @@ class ExerciseMetadataEditorBehaviorTest {
             )
         )
 
-        val saved = db.exerciseDao().findById(savedId)!!
+        val saved = db.exerciseDao().findByStableKey(savedKey)!!
         val savedMetadata = db.runtimeExerciseMetadataDao().findByStableKey("user_ex_existing")!!.toRuntimeMetadata()
-        assertEquals(exerciseId, savedId)
+        assertEquals(exerciseStableKey, savedKey)
         assertEquals("user_ex_existing", saved.stableKey)
         assertEquals("Existing custom edited", saved.name)
         assertEquals(120, saved.defaultRestSeconds)
@@ -153,9 +153,8 @@ class ExerciseMetadataEditorBehaviorTest {
         val db = newDatabase()
         val repository = repository(db)
         val seed = SeedData.exactExerciseMetadataByStableKey(context).values.first()
-        val exerciseId = db.exerciseDao().insertExercise(
+        db.exerciseDao().insertExercise(
             seed.copy(
-                id = 0,
                 name = "Broken seed",
                 category = "Broken",
                 imageAssetName = "",
@@ -170,15 +169,15 @@ class ExerciseMetadataEditorBehaviorTest {
                 .toEntity()
         )
 
-        val result = repository.resetExerciseMetadataOverride(exerciseId)
-        val restored = db.exerciseDao().findById(exerciseId)!!
+        val result = repository.resetExerciseMetadataOverride(seed.stableKey)
+        val restored = db.exerciseDao().findByStableKey(seed.stableKey)!!
 
         assertTrue(result)
         assertNull(db.runtimeExerciseMetadataDao().findByStableKey(seed.stableKey))
         assertEquals(seed.name, restored.name)
         assertEquals(seed.category, restored.category)
         assertEquals(seed.stableKey, restored.stableKey)
-        assertEquals(exerciseId, restored.id)
+        assertEquals(seed.stableKey, restored.stableKey)
         assertFalse(restored.isActive)
         assertEquals(42L, restored.archivedAt)
         assertFalse(restored.isCustom)
@@ -190,7 +189,7 @@ class ExerciseMetadataEditorBehaviorTest {
         val db = newDatabase()
         val repository = repository(db)
 
-        assertFalse(repository.resetExerciseMetadataOverride(999L))
+        assertFalse(repository.resetExerciseMetadataOverride("missing.exercise"))
         assertEquals(0, db.exerciseDao().countExercises())
         assertTrue(db.runtimeExerciseMetadataDao().all().isEmpty())
     }
@@ -199,43 +198,46 @@ class ExerciseMetadataEditorBehaviorTest {
     fun resolveRuntimeMetadataAndByExerciseIdReflectOverridePriorityForAllExercises() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val overriddenId = insertExercise(db, name = "Override lift", stableKey = "override.lift")
-        val defaultId = insertExercise(db, name = "Default lift", stableKey = "default.lift")
+        val overriddenKey = insertExercise(db, name = "Override lift", stableKey = "override.lift")
+        val defaultKey = insertExercise(db, name = "Default lift", stableKey = "default.lift")
         db.runtimeExerciseMetadataDao().upsert(
             RuntimeExerciseMetadataDefaults.forIdentity("override.lift", "Override lift")
                 .copy(programSlot = "OVERRIDE_SLOT")
                 .toEntity()
         )
 
-        val overridden = db.exerciseDao().findById(overriddenId)!!
+        val overridden = db.exerciseDao().findByStableKey(overriddenKey)!!
         val resolved = repository.resolveRuntimeMetadata(overridden)
-        val byId = repository.resolvedRuntimeMetadataByExerciseId()
+        val byKey = repository.resolvedRuntimeMetadataByExerciseStableKey()
 
         assertEquals("OVERRIDE_SLOT", resolved.programSlot)
-        assertEquals(setOf(overriddenId, defaultId), byId.keys)
-        assertEquals("OVERRIDE_SLOT", byId.getValue(overriddenId).programSlot)
-        assertEquals(RuntimeExerciseMetadataDefaults.forExercise(db.exerciseDao().findById(defaultId)!!), byId.getValue(defaultId))
+        assertEquals(setOf(overriddenKey, defaultKey), byKey.keys)
+        assertEquals("OVERRIDE_SLOT", byKey.getValue(overriddenKey).programSlot)
+        assertEquals(
+            RuntimeExerciseMetadataDefaults.forExercise(db.exerciseDao().findByStableKey(defaultKey)!!),
+            byKey.getValue(defaultKey)
+        )
     }
 
     @Test
     fun setExerciseActivePreservesMetadataOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val exerciseId = insertExercise(db, name = "Archive me", stableKey = "archive.me", isCustom = true)
+        val exerciseStableKey = insertExercise(db, name = "Archive me", stableKey = "archive.me", isCustom = true)
         db.runtimeExerciseMetadataDao().upsert(
             RuntimeExerciseMetadataDefaults.forIdentity("archive.me", "Archive me")
                 .copy(programSlot = "ARCHIVE_SLOT")
                 .toEntity()
         )
 
-        repository.setExerciseActive(exerciseId, false)
-        val archived = db.exerciseDao().findById(exerciseId)!!
+        repository.setExerciseActive(exerciseStableKey, false)
+        val archived = db.exerciseDao().findByStableKey(exerciseStableKey)!!
         assertFalse(archived.isActive)
         assertNotNull(archived.archivedAt)
         assertEquals("ARCHIVE_SLOT", db.runtimeExerciseMetadataDao().findByStableKey("archive.me")!!.programSlot)
 
-        repository.setExerciseActive(exerciseId, true)
-        val active = db.exerciseDao().findById(exerciseId)!!
+        repository.setExerciseActive(exerciseStableKey, true)
+        val active = db.exerciseDao().findByStableKey(exerciseStableKey)!!
         assertTrue(active.isActive)
         assertNull(active.archivedAt)
         assertEquals("ARCHIVE_SLOT", db.runtimeExerciseMetadataDao().findByStableKey("archive.me")!!.programSlot)
@@ -245,10 +247,10 @@ class ExerciseMetadataEditorBehaviorTest {
     fun deleteExerciseIfUnusedDeletesOnlyUnusedCustomExerciseAndItsOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val unusedCustomId = insertExercise(db, "Unused custom", "user_ex_unused", isCustom = true)
-        val workoutReferencedId = insertExercise(db, "Workout custom", "user_ex_workout", isCustom = true)
-        val programReferencedId = insertExercise(db, "Program custom", "user_ex_program", isCustom = true)
-        val seedId = insertExercise(db, "Seed", "seed.exercise", isCustom = false)
+        val unusedCustomKey = insertExercise(db, "Unused custom", "user_ex_unused", isCustom = true)
+        val workoutReferencedKey = insertExercise(db, "Workout custom", "user_ex_workout", isCustom = true)
+        val programReferencedKey = insertExercise(db, "Program custom", "user_ex_program", isCustom = true)
+        val seedKey = insertExercise(db, "Seed", "seed.exercise", isCustom = false)
         listOf(
             "user_ex_unused" to "Unused custom",
             "user_ex_workout" to "Workout custom",
@@ -257,23 +259,23 @@ class ExerciseMetadataEditorBehaviorTest {
         ).forEach { (stableKey, name) ->
             db.runtimeExerciseMetadataDao().upsert(RuntimeExerciseMetadataDefaults.forIdentity(stableKey, name).toEntity())
         }
-        insertWorkoutReference(db, workoutReferencedId)
-        insertProgramReference(db, programReferencedId)
+        insertWorkoutReference(db, workoutReferencedKey)
+        insertProgramReference(db, programReferencedKey)
 
-        assertEquals(ExerciseDeleteResult(deleted = true, referenced = false), repository.deleteExerciseIfUnused(unusedCustomId))
-        assertNull(db.exerciseDao().findById(unusedCustomId))
+        assertEquals(ExerciseDeleteResult(deleted = true, referenced = false), repository.deleteExerciseIfUnused(unusedCustomKey))
+        assertNull(db.exerciseDao().findByStableKey(unusedCustomKey))
         assertNull(db.runtimeExerciseMetadataDao().findByStableKey("user_ex_unused"))
 
-        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(workoutReferencedId))
-        assertNotNull(db.exerciseDao().findById(workoutReferencedId))
+        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(workoutReferencedKey))
+        assertNotNull(db.exerciseDao().findByStableKey(workoutReferencedKey))
         assertNotNull(db.runtimeExerciseMetadataDao().findByStableKey("user_ex_workout"))
 
-        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(programReferencedId))
-        assertNotNull(db.exerciseDao().findById(programReferencedId))
+        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(programReferencedKey))
+        assertNotNull(db.exerciseDao().findByStableKey(programReferencedKey))
         assertNotNull(db.runtimeExerciseMetadataDao().findByStableKey("user_ex_program"))
 
-        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(seedId))
-        assertNotNull(db.exerciseDao().findById(seedId))
+        assertEquals(ExerciseDeleteResult(deleted = false, referenced = true), repository.deleteExerciseIfUnused(seedKey))
+        assertNotNull(db.exerciseDao().findByStableKey(seedKey))
         assertNotNull(db.runtimeExerciseMetadataDao().findByStableKey("seed.exercise"))
     }
 
@@ -291,7 +293,7 @@ class ExerciseMetadataEditorBehaviorTest {
         name: String,
         stableKey: String,
         isCustom: Boolean = false
-    ): Long =
+    ): String {
         db.exerciseDao().insertExercise(
             Exercise(
                 name = name,
@@ -300,12 +302,14 @@ class ExerciseMetadataEditorBehaviorTest {
                 isCustom = isCustom
             )
         )
+        return stableKey
+    }
 
-    private suspend fun insertWorkoutReference(db: TrainingDatabase, exerciseId: Long) {
+    private suspend fun insertWorkoutReference(db: TrainingDatabase, exerciseStableKey: String) {
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = "2026-07-03",
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
                 exerciseName = "Referenced",
                 category = "Strength"
             )
@@ -313,7 +317,7 @@ class ExerciseMetadataEditorBehaviorTest {
         db.workoutDao().insertSet(WorkoutSet(entryId = entryId, setIndex = 1))
     }
 
-    private suspend fun insertProgramReference(db: TrainingDatabase, exerciseId: Long) {
+    private suspend fun insertProgramReference(db: TrainingDatabase, exerciseStableKey: String) {
         val programId = db.programDao().insertProgram(
             TrainingProgram(name = "Program", durationDays = 7)
         )
@@ -323,7 +327,7 @@ class ExerciseMetadataEditorBehaviorTest {
                 weekNumber = 1,
                 dayOfWeek = 1,
                 orderIndex = 1,
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
                 exerciseName = "Referenced",
                 category = "Strength"
             )

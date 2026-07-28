@@ -103,11 +103,15 @@ class TissueC2AR1EvidenceRevisionTest {
         val byKey = mappings.associateBy { it.getValue("stableKey") }
         val canonical = canonicalRows.associateBy { it.getValue("stableKey") }
 
-        assertEquals(expectedMappingKeys, byKey.keys)
-        listOf("ex_e2efd0fe", "ex_bb728af2", "ex_f2a79d37").forEach { key ->
+        assertEquals(expectedMappingKeys + HISTORICAL_MERGED_KEYS, byKey.keys)
+        listOf("ex_e2efd0fe", "ex_f2a79d37").forEach { key ->
             assertTrue(key in byKey)
             assertEquals(canonical.getValue(key).getValue("exerciseName"), byKey.getValue(key).getValue("canonicalDisplayName"))
         }
+        assertEquals(
+            "리어풋 엘리베이티드 스플릿 스쿼트",
+            byKey.getValue("ex_bb728af2").getValue("canonicalDisplayName")
+        )
         assertEquals(3, listOf("ex_e2efd0fe", "ex_bb728af2", "ex_f2a79d37").map { byKey.getValue(it).getValue("movementVariant") }.distinct().size)
         assertEquals("NON_JUMP", byKey.getValue("ex_64644b5e").getValue("jumpOrNonJump"))
         assertEquals("JUMP_HOP_OR_LANDING", byKey.getValue("ex_df966b45").getValue("jumpOrNonJump"))
@@ -122,6 +126,7 @@ class TissueC2AR1EvidenceRevisionTest {
     private val expectedMappingKeys by lazy {
         canonicalRows.filter { it.getValue("movementFamily") in mappingFamilies }.map { it.getValue("stableKey") }.toSet()
     }
+    private val HISTORICAL_MERGED_KEYS = setOf("ex_bb728af2", "ex_f892893e")
     private fun table(name: String) = TissueMetadataParser.table(tissueAsset(name)).rows
     private fun tissueAsset(name: String): String = asset("metadata/tissue_load_v1/$name")
     private fun asset(relative: String): String = sequenceOf(

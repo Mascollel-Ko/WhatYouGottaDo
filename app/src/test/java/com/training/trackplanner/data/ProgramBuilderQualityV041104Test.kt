@@ -8,7 +8,7 @@ import java.io.File
 
 class ProgramBuilderQualityV041104Test {
     private val exercises = loadSeedExercises()
-    private val exerciseById = exercises.associateBy(Exercise::id)
+    private val exerciseById = exercises.associateBy(Exercise::stableKey)
     private val catalog = RuntimeExerciseMetadataCatalog.of(
         ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
     )
@@ -174,7 +174,7 @@ class ProgramBuilderQualityV041104Test {
     }
 
     private fun isLoadedStrengthItem(item: ProgramSkeletonItem): Boolean {
-        val exercise = exerciseById[item.exerciseId] ?: return false
+        val exercise = exerciseById[item.exerciseStableKey] ?: return false
         val equipment = splitExerciseTokens(exercise.equipment)
         val loaded = equipment.any { it in LOADED_EQUIPMENT }
         val strengthSlot = item.requestedTemplateSlot in STRENGTH_SLOTS ||
@@ -210,7 +210,6 @@ class ProgramBuilderQualityV041104Test {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(),
                 name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(),
                 defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,

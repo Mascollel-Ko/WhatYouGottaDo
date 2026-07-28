@@ -7,7 +7,6 @@ import androidx.test.core.app.ApplicationProvider
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,33 +27,29 @@ class DailyTimeseriesImportBehaviorTest {
     }
 
     @Test
-    fun dailyTimeseriesImport_importsMetricsAndGeneratedEntries() = runBlocking {
+    fun dailyTimeseriesImport_importsMetricsWithoutInventingPlaceholderExercises() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
 
         val result = repository.importRecordsBackup(writeBackup(dailyTimeseriesCsv()))
         val metric = db.dailyMetricDao().metric("2026-07-10")
         val entries = db.workoutDao().entriesWithSets("2026-07-10")
-        val confirmedEntry = entries.single { item -> item.sets.all { set -> set.confirmed } }
-        val plannedEntry = entries.single { item -> item.sets.any { set -> !set.confirmed } }
 
         assertEquals("daily_timeseries", result.format)
         assertEquals(1, result.dailyMetricCount)
-        assertEquals(2, result.entryCount)
-        assertEquals(4, result.setCount)
+        assertEquals(0, result.entryCount)
+        assertEquals(0, result.setCount)
         assertEquals(0, result.skippedDuplicateCount)
+        assertEquals(1, result.warningCount)
         assertNotNull(metric)
         assertEquals(7.25, metric?.sleepHours ?: 0.0, 0.001)
         assertEquals(72.5, metric?.bodyWeightKg ?: 0.0, 0.001)
-        assertEquals(3, confirmedEntry.sets.size)
-        assertTrue(confirmedEntry.sets.all { set -> set.confirmed })
-        assertEquals(1, plannedEntry.sets.size)
-        assertFalse(plannedEntry.sets.single().confirmed)
-        assertTrue(entries.all { item -> item.entry.notes == "CSV daily_timeseries import" })
+        assertTrue(entries.isEmpty())
+        assertTrue(db.exerciseDao().allExercises().none { it.name.startsWith("CSV 복원 ") })
     }
 
     @Test
-    fun dailyTimeseriesImport_skipsGeneratedEntriesWhenDateAlreadyImported() = runBlocking {
+    fun dailyTimeseriesImport_repeatStillDoesNotCreatePlaceholderExercises() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
         repository.importRecordsBackup(writeBackup(dailyTimeseriesCsv()))
@@ -65,8 +60,9 @@ class DailyTimeseriesImportBehaviorTest {
         assertEquals(1, duplicate.dailyMetricCount)
         assertEquals(0, duplicate.entryCount)
         assertEquals(0, duplicate.setCount)
-        assertEquals(1, duplicate.skippedDuplicateCount)
-        assertEquals(2, entries.size)
+        assertEquals(0, duplicate.skippedDuplicateCount)
+        assertEquals(1, duplicate.warningCount)
+        assertTrue(entries.isEmpty())
     }
 
     @Test

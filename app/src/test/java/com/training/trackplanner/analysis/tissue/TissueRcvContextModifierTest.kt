@@ -99,7 +99,7 @@ class TissueRcvContextModifierTest {
         entry = WorkoutEntry(
             id = 1,
             date = "2026-07-17",
-            exerciseId = 1,
+            exerciseStableKey = "test_exercise_1",
             exerciseName = name,
             category = "스포츠",
             rpe = 8.0,
@@ -117,7 +117,6 @@ class TissueRcvContextModifierTest {
             )
         ),
         exercise = Exercise(
-            id = 1,
             name = name,
             category = "스포츠",
             stableKey = stableKey

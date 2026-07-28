@@ -15,7 +15,8 @@ class ProgramSelectedExerciseScorePolicyTest {
             "barbell_deadlift" to "Deadlift",
             "pull_up" to "Pull-up",
             "ex_32219f7a" to "Overhead press",
-            "ex_8e1b313e" to "Half-kneeling one-arm press"
+            "half_kneeling_single_arm_dumbbell_press" to "Half-kneeling one-arm dumbbell press",
+            "half_kneeling_single_arm_kettlebell_press" to "Half-kneeling one-arm kettlebell press"
         )
 
         boostTargets.forEachIndexed { index, (stableKey, name) ->
@@ -42,6 +43,7 @@ class ProgramSelectedExerciseScorePolicyTest {
             "box_squat" to "Box squat",
             "front_squat" to "Front squat",
             "trap_bar_deadlift" to "Trap-bar deadlift",
+            "ex_8e1b313e" to "Half-kneeling one-arm press",
             "dead_bug" to "Dead bug",
             "pallof_press" to "Pallof press",
             "side_plank" to "Side plank"
@@ -82,7 +84,6 @@ class ProgramSelectedExerciseScorePolicyTest {
 
     private fun candidate(id: Int, stableKey: String, name: String): ProgramCandidate {
         val exercise = Exercise(
-            id = id.toLong(),
             name = name,
             category = "strength",
             stableKey = stableKey,

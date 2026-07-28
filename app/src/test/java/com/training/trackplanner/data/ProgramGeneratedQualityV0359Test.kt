@@ -40,8 +40,8 @@ class ProgramGeneratedQualityV0359Test {
         )
 
         assertEquals(14, results.size)
-        assertEquals(239, exercises.size)
-        assertEquals(239, catalog.size)
+        assertEquals(224, exercises.size)
+        assertEquals(224, catalog.size)
         assertTrue(results.values.all { it.items.isNotEmpty() })
         assertFalse(results.values.any { result -> result.items.any(ProgramSkeletonItem::directSportSession) })
         assertTrue(audits.values.all { it.hardIssueCodes.isEmpty() })
@@ -361,7 +361,7 @@ class ProgramGeneratedQualityV0359Test {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(), name = row["exercise_name"].orEmpty(),
+                name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(), defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
                 stableKey = row["stable_key"].orEmpty(), equipment = row["equipment_tags"].orEmpty(), isActive = true
             )

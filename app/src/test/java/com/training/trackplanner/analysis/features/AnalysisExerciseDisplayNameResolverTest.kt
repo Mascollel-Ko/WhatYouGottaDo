@@ -52,7 +52,6 @@ class AnalysisExerciseDisplayNameResolverTest {
 
     private fun exercise(name: String, stableKey: String, isCustom: Boolean = false): Exercise =
         Exercise(
-            id = 113,
             name = name,
             category = "strength",
             stableKey = stableKey,
@@ -63,7 +62,7 @@ class AnalysisExerciseDisplayNameResolverTest {
         WorkoutEntry(
             id = 1,
             date = "2026-06-15",
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exerciseName,
             category = exercise.category
         )

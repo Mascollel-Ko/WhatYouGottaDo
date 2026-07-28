@@ -148,7 +148,7 @@ class InitialProfileColdStartReadinessTest {
         val exercise = courtExercise()
         val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
             entriesWithSets = listOf(record(exercise, confirmedSets = listOf(set(seconds = 600, confirmed = true)))),
-            exerciseMap = mapOf(exercise.id to exercise)
+            exerciseMap = mapOf(exercise.stableKey to exercise)
         )
         val strengthPressure = pressureFor(
             dailyLoads = dailyLoads,
@@ -167,7 +167,7 @@ class InitialProfileColdStartReadinessTest {
         val exercise = upperPushExercise()
         val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
             entriesWithSets = listOf(record(exercise, confirmedSets = listOf(set(reps = 8, weightKg = 60.0, confirmed = true)))),
-            exerciseMap = mapOf(exercise.id to exercise)
+            exerciseMap = mapOf(exercise.stableKey to exercise)
         )
         val plain = pressureFor(dailyLoads, highAdaptationProfile())
         val restricted = pressureFor(
@@ -255,7 +255,6 @@ class InitialProfileColdStartReadinessTest {
 
     private fun lowerStrengthExercise(): Exercise =
         Exercise(
-            id = 1,
             name = "Lower strength fixture",
             category = "strength",
             stableKey = "lower_strength_fixture",
@@ -285,7 +284,6 @@ class InitialProfileColdStartReadinessTest {
 
     private fun upperPushExercise(): Exercise =
         lowerStrengthExercise().copy(
-            id = 2,
             name = "Upper push fixture",
             stableKey = "upper_push_fixture",
             movementPattern = "PUSH_HORIZONTAL",
@@ -300,7 +298,6 @@ class InitialProfileColdStartReadinessTest {
 
     private fun courtExercise(): Exercise =
         Exercise(
-            id = 3,
             name = "Court fixture",
             category = "sports",
             stableKey = "court_fixture",
@@ -333,9 +330,9 @@ class InitialProfileColdStartReadinessTest {
         confirmedSets: List<WorkoutSet>
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
-            id = exercise.id * 100,
+            id = exercise.stableKey.hashCode().toLong() * 100,
             date = today.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )

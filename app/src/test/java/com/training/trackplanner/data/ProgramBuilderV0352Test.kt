@@ -49,7 +49,7 @@ class ProgramBuilderV0352Test {
         val transferNamesByWeek = result.items
             .filter { it.selectionReason.contains("역할:TRANSFER") }
             .groupBy { it.weekNumber }
-            .mapValues { (_, rows) -> rows.map { it.exerciseId }.toSet() }
+            .mapValues { (_, rows) -> rows.map { it.exerciseStableKey }.toSet() }
         assertTrue(transferNamesByWeek.values.distinct().size > 1)
     }
 
@@ -95,8 +95,8 @@ class ProgramBuilderV0352Test {
         )
 
         assertFalse(result.items.any { it.dayIntensity == ProgramDayIntensity.HARD.name })
-        assertFalse(result.items.any { it.exerciseId in fixture.highImpactIds })
-        assertTrue(result.items.filter { it.exerciseId in fixture.heavyLowerIds }.all { it.setCount <= 2 })
+        assertFalse(result.items.any { it.exerciseStableKey in fixture.highImpactIds })
+        assertTrue(result.items.filter { it.exerciseStableKey in fixture.heavyLowerIds }.all { it.setCount <= 2 })
         assertTrue(result.items.all { item ->
             item.prescription.substringAfterLast("RPE ").toIntOrNull()?.let { it <= 7 } ?: true
         })
@@ -105,7 +105,7 @@ class ProgramBuilderV0352Test {
     @Test
     fun randomBeepCueCanBeSelectedForTransferWithoutBecomingAnalysisCategory() {
         val result = fixture.generate(days = 3, weeks = 4, minutes = 45, ratio = 0.90)
-        val cueItems = result.items.filter { it.exerciseId == fixture.cueExerciseId }
+        val cueItems = result.items.filter { it.exerciseStableKey == fixture.cueExerciseId }
 
         assertTrue(cueItems.isNotEmpty())
         assertTrue(cueItems.all { it.selectionReason.contains("앱 cue 가능") })
@@ -117,7 +117,7 @@ class ProgramBuilderV0352Test {
         val result = fixture.generate(days = 4, weeks = 8, minutes = 60, ratio = 0.60)
         val accessoryWeeks = result.items
             .filter { it.selectionReason.contains("역할:ACCESSORY") }
-            .groupBy { it.exerciseId }
+            .groupBy { it.exerciseStableKey }
             .mapValues { (_, rows) -> rows.map { it.weekNumber }.distinct().size }
 
         assertTrue(accessoryWeeks.isNotEmpty())
@@ -138,7 +138,7 @@ class ProgramBuilderV0352Test {
     fun directSportSessionsAreExcludedEvenWhenMarkedProgramSelectable() {
         val result = fixture.generate(days = 7, weeks = 4, minutes = 120, ratio = 0.90)
 
-        assertFalse(result.items.any { it.exerciseId == fixture.directSportExerciseId })
+        assertFalse(result.items.any { it.exerciseStableKey == fixture.directSportExerciseId })
         assertFalse(result.validationDetails.any { it.code == "DIRECT_SPORT_SESSION_EXCLUDED" })
     }
 
@@ -263,10 +263,10 @@ class ProgramBuilderV0352Test {
 }
 
 private class ProgramFixture {
-    val cueExerciseId = 8L
-    val directSportExerciseId = 21L
-    val heavyLowerIds = setOf(1L, 2L)
-    val highImpactIds = setOf(9L, 10L)
+    val cueExerciseId = "fixture_8"
+    val directSportExerciseId = "fixture_21"
+    val heavyLowerIds = setOf("fixture_1", "fixture_2")
+    val highImpactIds = setOf("fixture_9", "fixture_10")
 
     private val rows = listOf(
         row(1, "Back Squat", "SQUAT_VARIANTS", "MAIN_LOWER_STRENGTH", "SQUAT_HEAVY_AXIAL", "ESTIMATED_1RM", "GENERAL", "VERY_HIGH"),
@@ -345,7 +345,6 @@ private class ProgramFixture {
     ): Pair<Exercise, RuntimeExerciseMetadata> {
         val stableKey = "fixture_$id"
         val exercise = Exercise(
-            id = id,
             name = name,
             category = "TRAINING",
             stableKey = stableKey,

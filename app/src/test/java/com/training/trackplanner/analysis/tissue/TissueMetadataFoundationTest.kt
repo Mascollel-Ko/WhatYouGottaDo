@@ -15,7 +15,7 @@ class TissueMetadataFoundationTest {
         val catalog = TissueMetadataParser.catalog(tissueAsset("canonical_tissue_catalog_v1.csv"))
         val scope = TissueMetadataParser.scope(tissueAsset("exercise_tissue_scope_manifest_v1.csv"))
 
-        assertEquals(239, canonical.size)
+        assertEquals(224, canonical.size)
         assertEquals(20, catalog.count { it.tissueClass == TissueClass.JOINT })
         assertEquals(23, catalog.count { it.tissueClass == TissueClass.TENDON })
         assertEquals(16, catalog.count { it.tissueClass == TissueClass.LIGAMENT })

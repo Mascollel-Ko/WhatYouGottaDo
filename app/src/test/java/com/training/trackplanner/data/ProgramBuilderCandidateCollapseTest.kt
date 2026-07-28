@@ -92,7 +92,9 @@ class ProgramBuilderCandidateCollapseTest {
             repeatAllowed = { true },
             fatigueAllowed = { true },
             sessionAllowed = { true },
-            score = { candidate -> 100.0 - candidate.exercise.id },
+            score = { candidate ->
+                100.0 - candidate.exercise.stableKey.substringAfterLast('_').toDouble()
+            },
             selectionPoolSize = 8,
             selectedCount = 0
         )
@@ -206,7 +208,6 @@ class ProgramBuilderCandidateCollapseTest {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(),
                 name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(),
                 defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
@@ -249,7 +250,6 @@ class ProgramBuilderCandidateCollapseTest {
 
     private fun candidate(id: Int, slotCapabilities: SlotCapabilityProfile): ProgramCandidate = ProgramCandidate(
         exercise = Exercise(
-            id = id.toLong(),
             name = "Candidate $id",
             category = "strength",
             stableKey = "candidate_$id"

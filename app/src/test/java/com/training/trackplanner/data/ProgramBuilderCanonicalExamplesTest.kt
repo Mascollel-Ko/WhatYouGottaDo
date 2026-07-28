@@ -15,7 +15,7 @@ class ProgramBuilderCanonicalExamplesTest {
 
         val diagnostics = ProgramSlotCoverageDiagnostics().analyze(exercises, catalog)
 
-        assertEquals(239, exercises.size)
+        assertEquals(224, exercises.size)
         assertEquals(ProgramSlotId.entries.size, diagnostics.size)
         assertTrue(diagnostics.all { it.legacyFallbackMatchCount == 0 })
         assertTrue(diagnostics.all { it.nameFallbackMatchCount == 0 })
@@ -49,8 +49,8 @@ class ProgramBuilderCanonicalExamplesTest {
         val exercises = loadSeedExercises()
         val metadata = ExerciseMetadataAdapter.fromCsv(canonicalFile().readText(Charsets.UTF_8))
         val catalog = RuntimeExerciseMetadataCatalog.of(metadata)
-        assertEquals(239, exercises.size)
-        assertEquals(239, catalog.size)
+        assertEquals(224, exercises.size)
+        assertEquals(224, catalog.size)
 
         (representativeExamples() + Example("7 days / 8 weeks / 80:20 fallback", 7, 8, 45, 0.80))
             .forEach { example ->
@@ -101,7 +101,7 @@ class ProgramBuilderCanonicalExamplesTest {
         val newProfiles = exercises.filter { it.stableKey in V0357_CANDIDATE_KEYS }.map { exercise ->
             exercise to SlotCapabilityResolver.DEFAULT.resolve(exercise, catalog.resolve(exercise))
         }
-        assertEquals(20, newProfiles.size)
+        assertEquals(V0357_CANDIDATE_KEYS.size, newProfiles.size)
         assertTrue(newProfiles.all { (_, profile) -> profile.source == SlotCapabilitySource.RUNTIME_METADATA })
         assertTrue(newProfiles.none { (_, profile) -> profile.source == SlotCapabilitySource.NAME_FALLBACK })
         val overheadDiagnostic = after.first { it.slot == ProgramSlotId.OVERHEAD_SMASH_SUPPORT }
@@ -564,7 +564,6 @@ class ProgramBuilderCanonicalExamplesTest {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(),
                 name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(),
                 defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
@@ -622,7 +621,7 @@ class ProgramBuilderCanonicalExamplesTest {
 
     private companion object {
         val V0357_CANDIDATE_KEYS = setOf(
-            "med_ball_side_throw",
+            "medicine_ball_rotational_throw",
             "med_ball_rotational_scoop_toss",
             "med_ball_rotational_slam",
             "med_ball_overhead_slam",
@@ -632,14 +631,12 @@ class ProgramBuilderCanonicalExamplesTest {
             "band_woodchop",
             "band_lift",
             "landmine_rotation",
-            "landmine_rainbow",
             "landmine_anti_rotation",
             "plate_rotational_press_out",
             "dumbbell_woodchop",
             "kettlebell_halo",
             "vipr_rotational_lift",
             "vipr_chop",
-            "vipr_shovel_scoop",
             "vipr_step_and_rotate",
             "vipr_rotational_press_out"
         )

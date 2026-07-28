@@ -31,11 +31,11 @@ class CalendarRecordServiceTest {
     fun copyDateKeepConfirmedTruePreservesMixedSetState() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             exerciseName = "Source lift",
             confirmedStates = listOf(true, false),
             completedAt = 1_000L,
@@ -63,11 +63,11 @@ class CalendarRecordServiceTest {
     fun copyDateKeepConfirmedFalseCopiesAsPlan() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             exerciseName = "Source lift",
             confirmedStates = listOf(true, true),
             completedAt = 1_000L,
@@ -92,9 +92,9 @@ class CalendarRecordServiceTest {
     fun copyDateOverwriteClearsDestinationBeforeCopy() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Source lift", listOf(true))
-        insertEntryWithSets(db, "2026-06-08", exerciseId, "Old target", listOf(false))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Source lift", listOf(true))
+        insertEntryWithSets(db, "2026-06-08", exerciseStableKey, "Old target", listOf(false))
 
         service.copyDate(
             sourceDate = "2026-06-01",
@@ -113,11 +113,11 @@ class CalendarRecordServiceTest {
     fun copyDateAppendKeepsDestinationAndAddsCopiedRecords() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
+        val exerciseStableKey = insertExercise(db)
         val existingTargetId = insertEntryWithSets(
             db = db,
             date = "2026-06-08",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             exerciseName = "Existing target",
             confirmedStates = listOf(true),
             createdAt = 10L,
@@ -126,7 +126,7 @@ class CalendarRecordServiceTest {
         insertEntryWithSets(
             db = db,
             date = "2026-06-01",
-            exerciseId = exerciseId,
+            exerciseStableKey = exerciseStableKey,
             exerciseName = "Source lift",
             confirmedStates = listOf(false),
             createdAt = 20L,
@@ -155,10 +155,10 @@ class CalendarRecordServiceTest {
     fun deleteDateRangeWithoutConfirmedKeepsConfirmedSetsAndReindexes() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Mixed", listOf(false, true))
-        insertEntryWithSets(db, "2026-06-02", exerciseId, "Plan only", listOf(false))
-        insertEntryWithSets(db, "2026-06-04", exerciseId, "Outside", listOf(false))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Mixed", listOf(false, true))
+        insertEntryWithSets(db, "2026-06-02", exerciseStableKey, "Plan only", listOf(false))
+        insertEntryWithSets(db, "2026-06-04", exerciseStableKey, "Outside", listOf(false))
 
         service.deleteDateRange(
             startDate = "2026-06-01",
@@ -177,10 +177,10 @@ class CalendarRecordServiceTest {
     fun deleteDateRangeWithConfirmedDeletesAllRecordsInRange() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Confirmed", listOf(true))
-        insertEntryWithSets(db, "2026-06-02", exerciseId, "Plan", listOf(false))
-        insertEntryWithSets(db, "2026-06-04", exerciseId, "Outside", listOf(true))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Confirmed", listOf(true))
+        insertEntryWithSets(db, "2026-06-02", exerciseStableKey, "Plan", listOf(false))
+        insertEntryWithSets(db, "2026-06-04", exerciseStableKey, "Outside", listOf(true))
 
         service.deleteDateRange(
             startDate = "2026-06-01",
@@ -197,9 +197,9 @@ class CalendarRecordServiceTest {
     fun copyDateRangeAsPlanCopiesOffsetsAsUnconfirmed() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Day one", listOf(true))
-        insertEntryWithSets(db, "2026-06-02", exerciseId, "Day two", listOf(false, true))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Day one", listOf(true))
+        insertEntryWithSets(db, "2026-06-02", exerciseStableKey, "Day two", listOf(false, true))
 
         service.copyDateRangeAsPlan(
             sourceStart = "2026-06-01",
@@ -218,9 +218,9 @@ class CalendarRecordServiceTest {
     fun moveDateCopiesToTargetAndDeletesSource() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Move me", listOf(true, false))
-        insertEntryWithSets(db, "2026-06-08", exerciseId, "Old target", listOf(false))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Move me", listOf(true, false))
+        insertEntryWithSets(db, "2026-06-08", exerciseStableKey, "Old target", listOf(false))
 
         service.moveDate(
             sourceDate = "2026-06-01",
@@ -240,9 +240,9 @@ class CalendarRecordServiceTest {
     fun calendarConflictSummaryCountsExistingDatesEntriesAndSets() = runBlocking {
         val db = newDatabase()
         val service = service(db)
-        val exerciseId = insertExercise(db)
-        insertEntryWithSets(db, "2026-06-01", exerciseId, "Plan", listOf(false, false))
-        insertEntryWithSets(db, "2026-06-02", exerciseId, "Confirmed", listOf(true))
+        val exerciseStableKey = insertExercise(db)
+        insertEntryWithSets(db, "2026-06-01", exerciseStableKey, "Plan", listOf(false, false))
+        insertEntryWithSets(db, "2026-06-02", exerciseStableKey, "Confirmed", listOf(true))
 
         val empty = service.calendarConflictSummary(listOf("2026-06-03"))
         assertEquals(1, empty.affectedDateCount)
@@ -269,7 +269,7 @@ class CalendarRecordServiceTest {
     private fun service(db: TrainingDatabase): CalendarRecordService =
         CalendarRecordService(db, db.workoutDao())
 
-    private suspend fun insertExercise(db: TrainingDatabase): Long =
+    private suspend fun insertExercise(db: TrainingDatabase): String {
         db.exerciseDao().insertExercise(
             Exercise(
                 name = "Test exercise",
@@ -277,11 +277,13 @@ class CalendarRecordServiceTest {
                 stableKey = "test.exercise"
             )
         )
+        return "test.exercise"
+    }
 
     private suspend fun insertEntryWithSets(
         db: TrainingDatabase,
         date: String,
-        exerciseId: Long,
+        exerciseStableKey: String,
         exerciseName: String,
         confirmedStates: List<Boolean>,
         createdAt: Long = 100L,
@@ -292,7 +294,7 @@ class CalendarRecordServiceTest {
         val entryId = db.workoutDao().insertEntry(
             WorkoutEntry(
                 date = date,
-                exerciseId = exerciseId,
+                exerciseStableKey = exerciseStableKey,
                 exerciseName = exerciseName,
                 category = "Strength",
                 createdAt = createdAt,

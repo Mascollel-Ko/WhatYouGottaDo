@@ -123,7 +123,7 @@ class ProgramItemRestoreMetadataParserTest {
             weekNumber = 1,
             dayOfWeek = 1,
             orderIndex = 1,
-            exerciseId = 1,
+            exerciseStableKey = "test_exercise_1",
             exerciseName = "Test",
             category = "Strength",
             prescription = prescription,

@@ -24,7 +24,6 @@ class StrengthProxyTransferTest {
     private val curves = RepetitionCurveRegistry.fromContext(context)
     private val rirPolicy = RpeRirPolicy.fromContext(context)
     private val exercise = Exercise(
-        id = 1,
         name = "Incline dumbbell press",
         category = "Strength",
         stableKey = "ex_a61f1e96"
@@ -143,14 +142,14 @@ class StrengthProxyTransferTest {
                     entry = WorkoutEntry(
                         id = date.hashCode().toLong(),
                         date = date,
-                        exerciseId = exercise.id,
+                        exerciseStableKey = exercise.stableKey,
                         exerciseName = exercise.name,
                         category = exercise.category
                     ),
                     sets = listOf(
                         WorkoutSet(
                             id = date.hashCode().toLong(),
-                            entryId = exercise.id,
+                            entryId = date.hashCode().toLong(),
                             setIndex = 0,
                             reps = 8,
                             weightKg = weight,

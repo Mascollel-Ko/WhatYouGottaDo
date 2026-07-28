@@ -29,8 +29,8 @@ class ExerciseSubcategoryMapperTest {
         val row = exercise(1, "Cable row", "근력운동")
         val press = exercise(2, "Dumbbell press", "근력운동")
         val metadata = mapOf(
-            1L to RuntimeExerciseMetadataDefaults.forExercise(row).copy(movementFamily = "ROW_VARIANTS"),
-            2L to RuntimeExerciseMetadataDefaults.forExercise(press).copy(movementFamily = "BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS")
+            row.stableKey to RuntimeExerciseMetadataDefaults.forExercise(row).copy(movementFamily = "ROW_VARIANTS"),
+            press.stableKey to RuntimeExerciseMetadataDefaults.forExercise(press).copy(movementFamily = "BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS")
         )
 
         val allCounts = ExerciseSubcategoryMapper.countsFor(listOf(row, press), "근력운동", "", metadata)
@@ -53,7 +53,6 @@ class ExerciseSubcategoryMapperTest {
     }
 
     private fun exercise(id: Long, name: String, category: String) = Exercise(
-        id = id,
         name = name,
         category = category,
         stableKey = "test_$id"

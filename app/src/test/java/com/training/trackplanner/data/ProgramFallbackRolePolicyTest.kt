@@ -99,7 +99,6 @@ class ProgramFallbackRolePolicyTest {
         source: SlotCapabilitySource = SlotCapabilitySource.RUNTIME_METADATA
     ): ProgramCandidate {
         val exercise = Exercise(
-            id = nextId++,
             name = movementSubtype.ifBlank { "test exercise" },
             category = "test",
             stableKey = "fallback-role-$nextId"

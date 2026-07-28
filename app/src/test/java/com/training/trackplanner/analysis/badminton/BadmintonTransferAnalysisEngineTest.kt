@@ -252,7 +252,6 @@ class BadmintonTransferAnalysisEngineTest {
 
     private fun lateralExercise(id: Long = 1, name: String = "Lateral fixture"): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "training",
             stableKey = "lateral_fixture_$id",
@@ -301,7 +300,6 @@ class BadmintonTransferAnalysisEngineTest {
         analysisEligibility: String = "BADMINTON_TRANSFER"
     ): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "strength",
             stableKey = stableKey,
@@ -347,9 +345,9 @@ class BadmintonTransferAnalysisEngineTest {
         entryName: String = exercise.name
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
-            id = exercise.id * 100 + date.dayOfYear,
+            id = exercise.stableKey.hashCode().toLong() * 100 + date.dayOfYear,
             date = date.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = entryName,
             category = exercise.category
         )

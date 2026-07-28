@@ -31,7 +31,7 @@ class ProxyPerformanceScaleTest {
                 entry = WorkoutEntry(
                     id = id,
                     date = start.plusDays((index % 1_095).toLong()).toString(),
-                    exerciseId = exercise.id,
+                    exerciseStableKey = exercise.stableKey,
                     exerciseName = exercise.name,
                     category = "근력",
                     performedAt = id,
@@ -72,7 +72,6 @@ class ProxyPerformanceScaleTest {
     }
 
     private fun exercise(id: Long, stableKey: String): Exercise = Exercise(
-        id = id,
         name = stableKey,
         category = "근력",
         stableKey = stableKey,

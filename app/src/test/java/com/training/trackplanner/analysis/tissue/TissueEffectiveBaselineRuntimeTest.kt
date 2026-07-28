@@ -15,7 +15,7 @@ class TissueEffectiveBaselineRuntimeTest {
         assertEquals(13, registry.profiles.size)
         assertTrue(registry.profiles.values.all { it.boundariesByLocalHour.keys == (0..23).toSet() })
         assertEquals(
-            "5303516c1b972ce3bdf08eaffcd7c5fe6448bfa64c50abae9790d8d81af0c58e",
+            "51c3f2b64d661b5ff31ac2acd06b676b7af8b9287559d495aedd031787fecc10",
             registry.deterministicOutputChecksum
         )
         assertEquals(

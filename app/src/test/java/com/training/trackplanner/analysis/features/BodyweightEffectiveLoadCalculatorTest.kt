@@ -67,7 +67,6 @@ class BodyweightEffectiveLoadCalculatorTest {
 
     private fun exercise(name: String, stableKey: String): Exercise =
         Exercise(
-            id = 1,
             name = name,
             category = "strength",
             stableKey = stableKey

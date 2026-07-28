@@ -317,7 +317,6 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }.filter { it["row_type"] == "exercise" }.mapIndexed { index, row ->
             Exercise(
-                id = (index + 1).toLong(),
                 name = row["exercise_name"].orEmpty(),
                 category = row["category"].orEmpty(),
                 defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
@@ -377,7 +376,6 @@ class ProgramBuilderSelectedMainSlotRepairTest {
         slot: ProgramSlotId
     ): ProgramCandidate = ProgramCandidate(
         exercise = Exercise(
-            id = id,
             name = name,
             category = "strength",
             stableKey = stableKey,
@@ -385,7 +383,7 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         ),
         metadata = RuntimeExerciseMetadataDefaults.forExercise(
-            Exercise(id = id, name = name, category = "strength", stableKey = stableKey)
+            Exercise(name = name, category = "strength", stableKey = stableKey)
         ).copy(
             stableKey = stableKey,
             exerciseName = name,
@@ -415,7 +413,7 @@ class ProgramBuilderSelectedMainSlotRepairTest {
                     weekNumber = 1,
                     dayOfWeek = 1,
                     orderIndex = 1,
-                    exerciseId = 100,
+                    exerciseStableKey = "test_exercise_100",
                     exerciseName = "Captain chair leg raise",
                     category = "strength",
                     restSeconds = 60,
@@ -454,7 +452,8 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             "barbell_deadlift",
             "pull_up",
             "ex_32219f7a",
-            "ex_8e1b313e"
+            "half_kneeling_single_arm_dumbbell_press",
+            "half_kneeling_single_arm_kettlebell_press"
         )
         val CAPTAIN_CHAIR_KEYS = setOf("ex_a345e30b", "captain_chair_leg_raise")
     }

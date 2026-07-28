@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -47,16 +48,16 @@ class RuntimeExerciseMetadataResolverTest {
     }
 
     @Test
-    fun catalogResolveUsesUniqueCanonicalNameWhenBuiltInExerciseLosesStableKey() {
+    fun catalogDoesNotResolveCanonicalMetadataByDisplayName() {
         val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트")
         val catalog = RuntimeExerciseMetadataCatalog.of(listOf(canonical))
         val corruptedDbExercise = exercise("lost_barbell_back_squat", "스쿼트")
 
-        assertSame(canonical, catalog.resolve(corruptedDbExercise))
+        assertNull(catalog.resolve(corruptedDbExercise))
     }
 
     @Test
-    fun resolverCatalogKeepsLostStableKeyExerciseLinkedToCanonicalMetadata() {
+    fun resolverKeepsLostStableKeySeparateFromCanonicalMetadata() {
         val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "스쿼트")
             .copy(progressMetricType = "ESTIMATED_1RM")
         val resolver = RuntimeExerciseMetadataResolver(
@@ -66,8 +67,9 @@ class RuntimeExerciseMetadataResolverTest {
         val corruptedDbExercise = exercise("lost_barbell_back_squat", "스쿼트")
         val catalog = resolver.catalog(listOf(corruptedDbExercise))
 
-        assertEquals("ESTIMATED_1RM", resolver.resolve(corruptedDbExercise).progressMetricType)
-        assertEquals("ESTIMATED_1RM", catalog.resolve(corruptedDbExercise)?.progressMetricType)
+        assertEquals("NOT_APPLICABLE", resolver.resolve(corruptedDbExercise).progressMetricType)
+        assertEquals("NOT_APPLICABLE", catalog.resolve(corruptedDbExercise)?.progressMetricType)
+        assertEquals("lost_barbell_back_squat", catalog.resolve(corruptedDbExercise)?.stableKey)
     }
 
     @Test
@@ -81,7 +83,7 @@ class RuntimeExerciseMetadataResolverTest {
     }
 
     @Test
-    fun stalePersistedDefaultMetadataDoesNotOverrideCanonicalAnalysisFields() {
+    fun stalePersistedDefaultMetadataDoesNotBorrowCanonicalAnalysisFieldsByName() {
         val canonical = RuntimeExerciseMetadataDefaults.forIdentity("barbell_back_squat", "Back Squat").copy(
             progressMetricType = "ESTIMATED_1RM",
             strengthProgressionGroup = "SQUAT",
@@ -98,12 +100,12 @@ class RuntimeExerciseMetadataResolverTest {
         val catalogResolved = resolver.catalog(listOf(corruptedDbExercise)).resolve(corruptedDbExercise)
 
         assertEquals("lost_barbell_back_squat", resolved.stableKey)
-        assertEquals("ESTIMATED_1RM", resolved.progressMetricType)
-        assertEquals("SQUAT", resolved.strengthProgressionGroup)
-        assertTrue("STRENGTH_PROGRESS" in resolved.analysisEligibility)
-        assertEquals(ProgressMetricRuntimeBehavior.ESTIMATED_1RM, resolved.progressBehavior)
-        assertEquals("ESTIMATED_1RM", catalogResolved?.progressMetricType)
-        assertTrue("STRENGTH_PROGRESS" in catalogResolved!!.analysisEligibility)
+        assertEquals("NOT_APPLICABLE", resolved.progressMetricType)
+        assertEquals("NOT_APPLICABLE", resolved.strengthProgressionGroup)
+        assertFalse("STRENGTH_PROGRESS" in resolved.analysisEligibility)
+        assertEquals(ProgressMetricRuntimeBehavior.NOT_APPLICABLE, resolved.progressBehavior)
+        assertEquals("NOT_APPLICABLE", catalogResolved?.progressMetricType)
+        assertFalse("STRENGTH_PROGRESS" in catalogResolved!!.analysisEligibility)
     }
 
     @Test

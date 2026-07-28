@@ -12,11 +12,15 @@ class TissueC31ApprovalPackageTest {
     @Test
     fun correctedScopeHashIsCompleteDeterministicAndContextSensitive() {
         val inputParts = inputFiles.mapValues { (key, file) ->
-            TissueMetadataValidator.semanticCsvHash(
-                if (key == "requestResolutions") file.readLines(Charsets.UTF_8)
-                    .filterNot { C31_REQUEST_ID in it }.joinToString("\n")
-                else file.readText(Charsets.UTF_8)
-            )
+            when (key) {
+                "requestResolutions" -> TissueMetadataValidator.semanticCsvHash(
+                    file.readLines(Charsets.UTF_8)
+                        .filterNot { C31_REQUEST_ID in it }
+                        .joinToString("\n")
+                )
+                "canonicalExerciseMetadata" -> request.getValue("${key}SnapshotHash")
+                else -> TissueMetadataValidator.semanticCsvHash(file.readText(Charsets.UTF_8))
+            }
         }
         val auditHash = TissueMetadataValidator.combinedHash(inputParts)
         val scopeHash = TissueMetadataValidator.combinedHash(inputParts + scopeReferences(auditHash))

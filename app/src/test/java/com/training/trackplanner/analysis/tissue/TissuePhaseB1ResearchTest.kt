@@ -11,6 +11,13 @@ class TissuePhaseB1ResearchTest {
     fun committedDraftEvidenceBatchIsCompleteNonProductionAndReferentiallyValid() {
         val canonical = ExerciseMetadataAdapter.fromCsv(asset("metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"))
         val canonicalNames = canonical.associate { it.stableKey to it.exerciseName }
+        // The immutable B1 research package predates the RFESS/Bulgarian identity merge.
+        val researchNames = canonicalNames + mapOf(
+            "ex_bb728af2" to "리어풋 엘리베이티드 스플릿 스쿼트",
+            "ex_d60745b4" to "싱글 레그 레그 익스텐션",
+            "ex_5ca7133f" to "싱글 레그 카프 레이즈",
+            "ex_314df428" to "싱글 레그 홉 앤 스틱"
+        )
         val catalog = TissueMetadataParser.catalog(tissueAsset("canonical_tissue_catalog_v1.csv"))
         val sources = TissueEvidenceParser.sources(tissueAsset("tissue_load_evidence_registry_v1.csv"))
         val verifications = TissueEvidenceParser.sourceVerifications(tissueAsset("tissue_source_verification_v1.csv"))
@@ -39,11 +46,11 @@ class TissuePhaseB1ResearchTest {
         val sourceReport = TissueEvidenceValidator.sourceRegistry(sources, verifications)
         assertTrue(sourceReport.errors.toString(), sourceReport.isValid)
         val evidenceReport = TissueEvidenceValidator.validate(
-            sources, drafts, blind, final, canonicalNames.keys, catalog
+            sources, drafts, blind, final, researchNames.keys, catalog
         )
         assertTrue(evidenceReport.errors.toString(), evidenceReport.isValid)
         val researchReport = TissueEvidenceValidator.phaseB1Research(
-            sources, drafts, decisions, reviews, canonicalNames, catalog
+            sources, drafts, decisions, reviews, researchNames, catalog
         )
         assertTrue(researchReport.errors.toString(), researchReport.isValid)
         assertTrue(rubrics.all { it.anchorClaimIds.isEmpty() && it.evidenceClaimIds.isEmpty() })

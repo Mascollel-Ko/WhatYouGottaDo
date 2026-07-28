@@ -107,7 +107,7 @@ class ExerciseMetadataAdapterTest {
     }
 
     @Test
-    fun catalogResolvesStableKeyBeforeRestrictedLegacyNameFallback() {
+    fun catalogResolvesOnlyByStableKey() {
         val stableMatch = ExerciseMetadataAdapter.fromFields(baseFields())
         val nameMatch = ExerciseMetadataAdapter.fromFields(
             baseFields() + mapOf(
@@ -118,9 +118,9 @@ class ExerciseMetadataAdapterTest {
         )
         val catalog = RuntimeExerciseMetadataCatalog.of(listOf(stableMatch, nameMatch))
 
-        assertSame(stableMatch, catalog.resolve("court_test", "Fallback Name", allowNameFallback = false))
-        assertEquals(null, catalog.resolve("missing", "Fallback Name", allowNameFallback = false))
-        assertSame(nameMatch, catalog.resolve("imported_old", "Fallback Name", allowNameFallback = true))
+        assertSame(stableMatch, catalog.resolveByStableKey("court_test"))
+        assertEquals(null, catalog.resolveByStableKey("missing"))
+        assertEquals(null, catalog.resolveByStableKey("imported_old"))
     }
 
     @Test

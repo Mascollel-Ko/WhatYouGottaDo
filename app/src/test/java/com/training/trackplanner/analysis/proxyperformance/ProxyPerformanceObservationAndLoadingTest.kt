@@ -165,7 +165,7 @@ class ProxyPerformanceObservationAndLoadingTest {
     private fun loading(exercise: Exercise): ProxyPerformanceLoading =
         ProxyPerformanceLoadingBuilder.build(
             exercise,
-            WorkoutEntry(id = exercise.id, date = "2026-01-01", exerciseId = exercise.id, exerciseName = exercise.name, category = "근력"),
+            WorkoutEntry(id = exercise.stableKey.hashCode().toLong(), date = "2026-01-01", exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = "근력"),
             runtimeMetadata = null
         )
 
@@ -181,7 +181,6 @@ class ProxyPerformanceObservationAndLoadingTest {
     ).observations
 
     private fun exercise(id: Long, name: String, stableKey: String): Exercise = Exercise(
-        id = id,
         name = name,
         category = "근력",
         stableKey = stableKey,
@@ -197,7 +196,7 @@ class ProxyPerformanceObservationAndLoadingTest {
         entry = WorkoutEntry(
             id = id,
             date = date,
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category,
             displayOrder = id.toInt()

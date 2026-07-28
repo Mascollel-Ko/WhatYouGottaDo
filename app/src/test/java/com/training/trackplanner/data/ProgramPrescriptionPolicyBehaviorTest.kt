@@ -137,7 +137,6 @@ class ProgramPrescriptionPolicyBehaviorTest {
 
     private fun candidate(defaultRestSeconds: Int = 90): ProgramCandidate {
         val exercise = Exercise(
-            id = 1,
             name = "Test lift",
             category = "Strength",
             defaultRestSeconds = defaultRestSeconds,
@@ -152,7 +151,6 @@ class ProgramPrescriptionPolicyBehaviorTest {
 
     private fun highImpactCandidate(): ProgramCandidate {
         val exercise = Exercise(
-            id = 2,
             name = "Test jump",
             category = "Power",
             stableKey = "test_jump"
@@ -172,7 +170,6 @@ class ProgramPrescriptionPolicyBehaviorTest {
         defaultRestSeconds: Int = 60
     ): ProgramCandidate {
         val exercise = Exercise(
-            id = 3,
             name = "Timed test",
             category = "Timed",
             defaultRestSeconds = defaultRestSeconds,

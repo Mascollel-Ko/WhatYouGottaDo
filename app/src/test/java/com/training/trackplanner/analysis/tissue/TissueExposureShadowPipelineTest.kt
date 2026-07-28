@@ -226,9 +226,9 @@ class TissueExposureShadowPipelineTest {
         setRpe: Double? = null,
         bodyWeightKg: Double? = null
     ): TissueWorkoutRecord {
-        val exercise = Exercise(id = 10, name = stableKey, category = "fixture", stableKey = stableKey)
+        val exercise = Exercise(name = stableKey, category = "fixture", stableKey = stableKey)
         return TissueWorkoutRecord(
-            entry = WorkoutEntry(id = 1, date = "2026-07-13", exerciseId = 10, exerciseName = stableKey, category = "fixture"),
+            entry = WorkoutEntry(id = 1, date = "2026-07-13", exerciseStableKey = "test_exercise_10", exerciseName = stableKey, category = "fixture"),
             sets = listOf(WorkoutSet(id = 1, entryId = 1, setIndex = 0, reps = reps, weightKg = weightKg,
                 seconds = seconds, confirmed = true, rpe = setRpe)),
             exercise = exercise,

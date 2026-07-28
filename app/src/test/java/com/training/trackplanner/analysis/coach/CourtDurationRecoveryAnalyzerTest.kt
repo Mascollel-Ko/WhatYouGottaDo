@@ -20,7 +20,7 @@ import org.junit.Test
 
 class CourtDurationRecoveryAnalyzerTest {
     private val today = LocalDate.of(2026, 6, 23)
-    private val badminton = Exercise(id = 1, name = "배드민턴 세션", category = "스포츠", stableKey = "badminton_session")
+    private val badminton = Exercise(name = "배드민턴 세션", category = "스포츠", stableKey = "badminton_session")
     private val sleep = SleepRecoverySignal(null, null, null, CoachingSignalSeverity.INFO, "", "")
 
     @Test
@@ -97,7 +97,7 @@ class CourtDurationRecoveryAnalyzerTest {
             entry = WorkoutEntry(
                 id = date.toEpochDay(),
                 date = date.toString(),
-                exerciseId = badminton.id,
+                exerciseStableKey = badminton.stableKey,
                 exerciseName = badminton.name,
                 category = badminton.category
             ),

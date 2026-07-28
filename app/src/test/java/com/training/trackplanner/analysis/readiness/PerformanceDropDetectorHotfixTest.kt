@@ -20,7 +20,7 @@ class PerformanceDropDetectorHotfixTest {
                 record(date = today.minusDays(7), reps = 6, weight = 100.0, rpe = 7.0),
                 record(date = today, reps = 6, weight = 94.0, rpe = 7.0)
             ),
-            exerciseMap = mapOf(exercise.id to exercise),
+            exerciseMap = mapOf(exercise.stableKey to exercise),
             today = today
         )
 
@@ -37,7 +37,7 @@ class PerformanceDropDetectorHotfixTest {
                 record(date = today.minusDays(9), reps = 8, weight = 95.0, rpe = 7.0),
                 record(date = today.minusDays(8), reps = 8, weight = 95.0, rpe = 7.0)
             ),
-            exerciseMap = mapOf(exercise.id to exercise),
+            exerciseMap = mapOf(exercise.stableKey to exercise),
             today = today
         )
 
@@ -52,7 +52,7 @@ class PerformanceDropDetectorHotfixTest {
         val entry = WorkoutEntry(
             id = date.toEpochDay(),
             date = date.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category,
             rpe = rpe
@@ -75,7 +75,6 @@ class PerformanceDropDetectorHotfixTest {
 
     private fun strengthExercise(): Exercise =
         Exercise(
-            id = 3001,
             name = "Strength fixture",
             category = "strength",
             stableKey = "strength_fixture",

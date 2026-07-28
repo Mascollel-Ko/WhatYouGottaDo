@@ -99,7 +99,6 @@ class ProgramBeamSelectionPolicyTest {
     private fun candidate(id: Int, stableKey: String): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
-                id = id.toLong(),
                 name = stableKey,
                 category = "strength",
                 stableKey = stableKey,
@@ -129,7 +128,7 @@ class ProgramBeamSelectionPolicyTest {
             weekNumber = weekNumber,
             dayOfWeek = 1,
             orderIndex = 1,
-            exerciseId = stableKey.hashCode().toLong(),
+            exerciseStableKey = stableKey,
             exerciseName = stableKey,
             category = "strength",
             restSeconds = 60,

@@ -17,7 +17,7 @@ import org.junit.Test
 
 class JointTendonWarningAnalyzerTest {
     private val today = LocalDate.of(2026, 6, 23)
-    private val exercise = Exercise(id = 1, name = "점프 테스트", category = "근력운동", stableKey = "jump_test")
+    private val exercise = Exercise(name = "점프 테스트", category = "근력운동", stableKey = "jump_test")
     private val sleep = SleepRecoverySignal(null, null, null, CoachingSignalSeverity.INFO, "", "")
 
     @Test
@@ -69,7 +69,7 @@ class JointTendonWarningAnalyzerTest {
             entry = WorkoutEntry(
                 id = date.toEpochDay(),
                 date = date.toString(),
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category
             ),

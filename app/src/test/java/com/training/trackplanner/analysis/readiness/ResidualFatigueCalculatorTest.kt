@@ -298,7 +298,7 @@ class ResidualFatigueCalculatorTest {
     ): DailyAnalysisLoad {
         val contribution = DailyLoadContribution(
             date = date,
-            exerciseId = 1L,
+            exerciseStableKey = "test_exercise_1",
             entryId = 1L,
             exerciseName = "Fixture",
             recoveryDecayProfile = profile,

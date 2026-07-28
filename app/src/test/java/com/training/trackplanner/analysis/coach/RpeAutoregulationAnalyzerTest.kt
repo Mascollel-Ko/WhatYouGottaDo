@@ -12,7 +12,7 @@ import org.junit.Test
 
 class RpeAutoregulationAnalyzerTest {
     private val today = LocalDate.of(2026, 6, 23)
-    private val exercise = Exercise(id = 1, name = "테스트 스쿼트", category = "근력운동", stableKey = "test_squat")
+    private val exercise = Exercise(name = "테스트 스쿼트", category = "근력운동", stableKey = "test_squat")
     private val neutralSleep = SleepRecoverySignal(
         recentAverageHours = 7.0,
         baselineAverageHours = 7.0,
@@ -57,7 +57,7 @@ class RpeAutoregulationAnalyzerTest {
             entry = WorkoutEntry(
                 id = date.toEpochDay(),
                 date = date.toString(),
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category
             ),

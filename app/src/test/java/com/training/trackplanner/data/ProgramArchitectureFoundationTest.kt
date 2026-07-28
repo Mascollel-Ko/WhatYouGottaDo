@@ -43,7 +43,6 @@ class ProgramArchitectureFoundationTest {
     @Test
     fun capabilityResolverUsesMetadataBeforeExplicitNameFallback() {
         val exercise = Exercise(
-            id = 1,
             name = "Squat-like display name",
             category = "strength",
             stableKey = "test_squat"
@@ -67,7 +66,6 @@ class ProgramArchitectureFoundationTest {
     @Test
     fun capabilityResolverKeepsLegacyFallbackWhenRuntimeMetadataHasNoSlotMatch() {
         val exercise = Exercise(
-            id = 2,
             name = "Split squat",
             category = "strength",
             stableKey = "test_split_squat",
@@ -403,7 +401,6 @@ class ProgramArchitectureFoundationTest {
     }
 
     private fun exercise(id: Long, name: String): Exercise = Exercise(
-        id = id,
         name = name,
         category = "strength",
         stableKey = "architecture_$id"

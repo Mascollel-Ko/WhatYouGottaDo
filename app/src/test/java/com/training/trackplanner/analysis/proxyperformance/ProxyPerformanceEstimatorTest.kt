@@ -385,7 +385,6 @@ class ProxyPerformanceEstimatorTest {
         date = LocalDate.parse(date),
         performedAt = id * 1_000,
         displayOrder = id.toInt(),
-        exerciseId = id,
         exerciseStableKey = stableKey,
         exerciseName = stableKey,
         directTarget = directTarget,

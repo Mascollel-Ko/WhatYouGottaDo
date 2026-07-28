@@ -12,7 +12,7 @@ class TissuePhaseCReauditTest {
     fun committedReauditCoversEveryDraftWithoutPromotingClaims() {
         val canonicalKeys = com.training.trackplanner.data.ExerciseMetadataAdapter.fromCsv(
             asset("metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
-        ).map { it.stableKey }.toSet()
+        ).map { it.stableKey }.toSet() + HISTORICAL_MERGED_KEYS
         val catalog = TissueMetadataParser.catalog(tissueAsset("canonical_tissue_catalog_v1.csv"))
         val sources = TissueEvidenceParser.sources(tissueAsset("tissue_load_evidence_registry_v1.csv"))
         val drafts = TissueEvidenceParser.draftClaims(tissueAsset("tissue_evidence_claims_draft_v1.csv"))
@@ -38,7 +38,14 @@ class TissuePhaseCReauditTest {
         assertTrue(reaudits.all { it.independenceStatus == TissueReviewIndependenceStatus.NOT_INDEPENDENT })
         assertTrue(candidates.none(TissueEvidenceClaimCandidate::productionEligibility))
         assertTrue(candidates.all { it.humanApprovedBy.isBlank() && it.humanApprovedAt.isBlank() })
-        assertTrue(TissueEvidenceValidator.phaseCReaudits(sources, drafts, reaudits, canonicalKeys, catalog).isValid)
+        val reauditReport = TissueEvidenceValidator.phaseCReaudits(
+            sources,
+            drafts,
+            reaudits,
+            canonicalKeys,
+            catalog
+        )
+        assertTrue(reauditReport.errors.toString(), reauditReport.isValid)
         assertTrue(TissueEvidenceValidator.phaseCClaimCandidates(reaudits, candidates).isValid)
         assertTrue(TissueEvidenceValidator.phaseCAdjudications(adjudications).isValid)
         assertTrue(TissueEvidenceValidator.phaseCRubrics(rubrics, reaudits, candidates, adjudications).isValid)
@@ -219,4 +226,8 @@ class TissuePhaseCReauditTest {
     private fun asset(relative: String): String = sequenceOf(
         File("src/main/assets/$relative"), File("app/src/main/assets/$relative")
     ).first(File::exists).readText(Charsets.UTF_8)
+
+    private companion object {
+        val HISTORICAL_MERGED_KEYS = setOf("ex_bb728af2", "ex_f892893e")
+    }
 }

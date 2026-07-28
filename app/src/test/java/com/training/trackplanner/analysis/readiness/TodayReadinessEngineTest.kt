@@ -28,7 +28,7 @@ class TodayReadinessEngineTest {
 
         val dailyLoads = DailyAnalysisLoadAggregator().aggregate(
             entriesWithSets = listOf(entry),
-            exerciseMap = mapOf(exercise.id to exercise)
+            exerciseMap = mapOf(exercise.stableKey to exercise)
         )
 
         val systemic = dailyLoads.single().categoryLoads.getValue(FatigueCategoryKey.SYSTEMIC)
@@ -94,10 +94,10 @@ class TodayReadinessEngineTest {
             exercise = exercise,
             confirmedSets = listOf(set(reps = 5, weightKg = 100.0, confirmed = true))
         )
-        val original = DailyAnalysisLoadAggregator().aggregate(listOf(entry), mapOf(exercise.id to exercise))
+        val original = DailyAnalysisLoadAggregator().aggregate(listOf(entry), mapOf(exercise.stableKey to exercise))
         val withRenamed = DailyAnalysisLoadAggregator().aggregate(
             listOf(entry.copy(entry = entry.entry.copy(exerciseName = renamed.name))),
-            mapOf(renamed.id to renamed)
+            mapOf(renamed.stableKey to renamed)
         )
 
         assertEquals(
@@ -116,7 +116,10 @@ class TodayReadinessEngineTest {
             record(court, confirmedSets = listOf(set(seconds = 120, confirmed = true)))
         )
 
-        val daily = DailyAnalysisLoadAggregator().aggregate(records, mapOf(heavy.id to heavy, court.id to court)).single()
+        val daily = DailyAnalysisLoadAggregator().aggregate(
+            records,
+            mapOf(heavy.stableKey to heavy, court.stableKey to court)
+        ).single()
 
         assertTrue(daily.categoryLoads.getValue(FatigueCategoryKey.NEURAL_HEAVY) > 0.0)
         assertTrue(daily.categoryLoads.getValue(FatigueCategoryKey.NEURAL_SPEED) > 0.0)
@@ -130,7 +133,7 @@ class TodayReadinessEngineTest {
         val exercise = heavyExercise(primaryMuscles = "QUADS", secondaryMuscles = "HAMSTRING")
         val daily = DailyAnalysisLoadAggregator().aggregate(
             listOf(record(exercise, confirmedSets = listOf(set(reps = 10, weightKg = 50.0, confirmed = true)))),
-            mapOf(exercise.id to exercise)
+            mapOf(exercise.stableKey to exercise)
         ).single()
 
         assertTrue(daily.bodyPartLoads.getValue("quads") > daily.bodyPartLoads.getValue("hamstrings"))
@@ -402,7 +405,6 @@ class TodayReadinessEngineTest {
         secondaryMuscles: String = "HAMSTRING|ERECTOR"
     ): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "근력운동",
             stableKey = "heavy_fixture_$id",
@@ -450,7 +452,6 @@ class TodayReadinessEngineTest {
 
     private fun courtExercise(id: Long = 2): Exercise =
         Exercise(
-            id = id,
             name = "Court fixture",
             category = "스포츠",
             stableKey = "court_fixture_$id",
@@ -503,9 +504,9 @@ class TodayReadinessEngineTest {
         plannedSets: List<WorkoutSet> = emptyList()
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
-            id = exercise.id * 100 + date.dayOfMonth,
+            id = exercise.stableKey.hashCode().toLong() * 100 + date.dayOfMonth,
             date = date.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )

@@ -32,8 +32,18 @@ class TissueEvidenceValidatorTest {
 
         val canonical = ExerciseMetadataAdapter.fromCsv(asset("metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"))
         val catalog = TissueMetadataParser.catalog(tissueAsset("canonical_tissue_catalog_v1.csv"))
+        val historicalEvidenceKeys = canonical.map { it.stableKey }.toSet() + HISTORICAL_MERGED_KEYS
+        val report = TissueEvidenceValidator.validate(
+            sources,
+            draft,
+            blind,
+            final,
+            historicalEvidenceKeys,
+            catalog
+        )
         assertTrue(
-            TissueEvidenceValidator.validate(sources, draft, blind, final, canonical.map { it.stableKey }.toSet(), catalog).isValid
+            report.errors.toString(),
+            report.isValid
         )
     }
 
@@ -310,4 +320,8 @@ class TissueEvidenceValidatorTest {
     private fun asset(relative: String): String = sequenceOf(
         File("src/main/assets/$relative"), File("app/src/main/assets/$relative")
     ).first(File::exists).readText(Charsets.UTF_8)
+
+    private companion object {
+        val HISTORICAL_MERGED_KEYS = setOf("ex_bb728af2", "ex_f892893e")
+    }
 }

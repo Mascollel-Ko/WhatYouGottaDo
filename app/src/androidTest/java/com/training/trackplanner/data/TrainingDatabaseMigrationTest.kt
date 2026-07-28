@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Ignore
@@ -245,7 +246,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO training_program_items (
-                    programId, weekNumber, dayOfWeek, orderIndex, exerciseId, exerciseName,
+                    programId, weekNumber, dayOfWeek, orderIndex, exerciseStableKey, exerciseName,
                     category, restSeconds, prescription, setCount, reps, weightKg, seconds
                 ) VALUES (1, 1, 1, 1, 1, 'Legacy', 'Strength', 60, 'legacy', 3, 8, 40.0, 0)
                 """.trimIndent()
@@ -270,7 +271,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO workout_entries (
-                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    id, date, exerciseStableKey, exerciseName, category, restSeconds, notes, rpe, maxReps,
                     createdAt, completedAt, displayOrder, firstConfirmedAt
                 ) VALUES (
                     1, '2026-07-13', 1, 'Legacy', 'Strength', 60, '', NULL, NULL,
@@ -390,7 +391,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO workout_entries (
-                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    id, date, exerciseStableKey, exerciseName, category, restSeconds, notes, rpe, maxReps,
                     createdAt, completedAt, displayOrder, firstConfirmedAt, performedAt
                 ) VALUES (
                     7, '2026-07-20', 9, 'Migration fixture', 'Strength', 90, 'keep me', 9.0, 5,
@@ -542,7 +543,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO training_program_items (
-                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseId,
+                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseStableKey,
                     exerciseName, category, restSeconds, prescription, setCount,
                     reps, weightKg, seconds, trainingSlot, dayIntensity, weightSource
                 ) VALUES
@@ -587,10 +588,149 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate24To25UsesCanonicalKeysAndPreservesUnresolvedHistoryForReview() {
+        helper.createDatabase(TEST_DB_24_25, 24).use { database ->
+            insertExercise24(database, 1, "ex_201f6426", "B-스탠스 RDL", "BARBELL", false)
+            insertExercise24(database, 2, "ex_d2bb7946", "루마니안 데드리프트", "", false)
+            insertExercise24(database, 3, "user_exercise_test", "내 운동", "DUMBBELL", true)
+            insertRuntimeMetadata24(database, "ex_201f6426", "B-스탠스 RDL")
+            database.execSQL(
+                """
+                INSERT INTO workout_entries (
+                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe,
+                    maxReps, createdAt, completedAt, displayOrder, firstConfirmedAt, performedAt
+                ) VALUES
+                    (10, '2026-07-01', 1, 'B-스탠스 RDL', '근력운동', 90, '', 8.0, NULL, 1, 1, 0, 1, 1),
+                    (11, '2026-07-02', 0, 'ID zero', '근력운동', 60, '', NULL, NULL, 1, NULL, 0, NULL, NULL),
+                    (12, '2026-07-03', 999, 'Dangling', '근력운동', 60, '', NULL, NULL, 1, NULL, 0, NULL, NULL),
+                    (13, '2026-07-04', 2, 'Generic RDL', '근력운동', 90, '', 8.0, NULL, 1, 1, 0, 1, 1),
+                    (14, '2026-07-05', 3, '내 운동', '근력운동', 60, '', 7.0, NULL, 1, 1, 0, 1, 1)
+                """.trimIndent()
+            )
+            database.execSQL(
+                """
+                INSERT INTO training_programs (
+                    id, stableKey, name, durationDays, createdAt, goal, weeklyTrainingDays,
+                    sessionMinutes, availableEquipment, excludedExerciseText, badmintonTransferRatio,
+                    sportStrengthRatio, periodizationType, updatedAt
+                ) VALUES (1, 'program', 'Program', 7, 1, '', 1, 45, '', '', 0.4, 'AUTO', '', 1)
+                """.trimIndent()
+            )
+            database.execSQL(
+                """
+                INSERT INTO training_program_items (
+                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseId, exerciseName,
+                    category, restSeconds, prescription, setCount, reps, weightKg, seconds,
+                    trainingSlot, dayIntensity, weightSource
+                ) VALUES
+                    (20, 1, 1, 1, 0, 1, 'B-스탠스 RDL', '근력운동', 90, '', 3, 8, 20.0, 0, NULL, NULL, NULL),
+                    (21, 1, 1, 1, 1, 2, 'Generic RDL', '근력운동', 90, '', 3, 8, 20.0, 0, NULL, NULL, NULL),
+                    (22, 1, 1, 1, 2, 0, 'ID zero', '근력운동', 60, '', 1, 0, 0.0, 0, NULL, NULL, NULL)
+                """.trimIndent()
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB_24_25, 25, true, MIGRATION_24_25).use { database ->
+            check(database.count("workout_entries") == 5)
+            check(database.count("training_program_items") == 3)
+            check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 10") == "single_leg_rdl")
+            check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 13") == "migration_review_2")
+            check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 14") == "user_exercise_test")
+            check(
+                database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 11") ==
+                    ExerciseMigrationKeyPolicy.UNRESOLVED_REFERENCE_KEY
+            )
+            check(
+                database.singleString("SELECT stableKey FROM runtime_exercise_metadata") ==
+                    "single_leg_rdl"
+            )
+            check(database.count("exercise_identity_migration_issues") >= 3)
+            check(database.singleString("SELECT name FROM exercises WHERE stableKey = 'user_exercise_test'") == "내 운동")
+        }
+    }
+
+    private fun insertExercise24(
+        database: SupportSQLiteDatabase,
+        id: Long,
+        stableKey: String,
+        name: String,
+        equipment: String,
+        custom: Boolean
+    ) {
+        insertRowWithDefaults(
+            database = database,
+            table = "exercises",
+            values = mapOf(
+                "id" to id,
+                "stableKey" to stableKey,
+                "name" to name,
+                "category" to "근력운동",
+                "equipment" to equipment,
+                "equipmentTags" to equipment,
+                "isActive" to 1,
+                "isCustom" to if (custom) 1 else 0
+            )
+        )
+    }
+
+    private fun insertRuntimeMetadata24(
+        database: SupportSQLiteDatabase,
+        stableKey: String,
+        name: String
+    ) {
+        insertRowWithDefaults(
+            database = database,
+            table = "runtime_exercise_metadata",
+            values = mapOf(
+                "stableKey" to stableKey,
+                "exerciseName" to name
+            )
+        )
+    }
+
+    private fun insertRowWithDefaults(
+        database: SupportSQLiteDatabase,
+        table: String,
+        values: Map<String, Any>
+    ) {
+        val columns = mutableListOf<Pair<String, String>>()
+        database.query("PRAGMA table_info(`$table`)").use { cursor ->
+            val nameIndex = cursor.getColumnIndexOrThrow("name")
+            val typeIndex = cursor.getColumnIndexOrThrow("type")
+            while (cursor.moveToNext()) columns += cursor.getString(nameIndex) to cursor.getString(typeIndex)
+        }
+        val arguments = columns.map { (column, type) ->
+            values[column] ?: when (type.uppercase()) {
+                "INTEGER" -> 0
+                "REAL" -> 0.0
+                else -> ""
+            }
+        }.toTypedArray()
+        database.execSQL(
+            "INSERT INTO `$table` (${columns.joinToString { "`${it.first}`" }}) " +
+                "VALUES (${columns.joinToString { "?" }})",
+            arguments
+        )
+    }
+
+    private fun SupportSQLiteDatabase.count(table: String): Int =
+        query("SELECT COUNT(*) FROM `$table`").use { cursor ->
+            check(cursor.moveToFirst())
+            cursor.getInt(0)
+        }
+
+    private fun SupportSQLiteDatabase.singleString(sql: String): String =
+        query(sql).use { cursor ->
+            check(cursor.moveToFirst())
+            cursor.getString(0)
+        }
+
     private companion object {
         const val TEST_DB = "training-migration-test"
         const val TEST_DB_22_23 = "training-migration-22-23-test"
         const val TEST_DB_23_24 = "training-migration-23-24-test"
+        const val TEST_DB_24_25 = "training-migration-24-25-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

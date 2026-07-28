@@ -126,7 +126,7 @@ class ProgramCoveragePolicyV0358Test {
         subtype: String,
         slot: String
     ): Pair<Exercise, RuntimeExerciseMetadata> {
-        val exercise = Exercise(id = id, name = name, category = "TRAINING", stableKey = "policy_$id")
+        val exercise = Exercise(name = name, category = "TRAINING", stableKey = "policy_$id")
         return exercise to RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
             movementFamily = family,
             movementSubtype = subtype,
@@ -166,7 +166,7 @@ class ProgramCoveragePolicyV0358Test {
         weekNumber = 1,
         dayOfWeek = id,
         orderIndex = 1,
-        exerciseId = id.toLong(),
+        exerciseStableKey = "item_$id",
         exerciseName = "item-$id",
         category = "TRAINING",
         restSeconds = 60,

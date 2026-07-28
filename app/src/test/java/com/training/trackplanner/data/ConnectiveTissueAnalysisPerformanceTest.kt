@@ -42,19 +42,20 @@ class ConnectiveTissueAnalysisPerformanceTest {
             .allowMainThreadQueries()
             .build()
         return try {
-            val exerciseId = database.exerciseDao().insertExercise(
+            database.exerciseDao().insertExercise(
                 Exercise(
                     name = "스쿼트",
                     category = "근력운동",
                     stableKey = "barbell_back_squat"
                 )
             )
+            val exerciseStableKey = "barbell_back_squat"
             dates.sorted().forEach { date ->
                 val performedAt = date.atTime(12, 0).atZone(zoneId).toInstant().toEpochMilli()
                 val entryId = database.workoutDao().insertEntry(
                     WorkoutEntry(
                         date = date.toString(),
-                        exerciseId = exerciseId,
+                        exerciseStableKey = exerciseStableKey,
                         exerciseName = "스쿼트",
                         category = "근력운동",
                         rpe = 7.0,

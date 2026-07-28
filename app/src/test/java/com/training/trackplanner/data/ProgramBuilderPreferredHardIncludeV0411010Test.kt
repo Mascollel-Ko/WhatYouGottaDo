@@ -127,7 +127,6 @@ class ProgramBuilderPreferredHardIncludeV0411010Test {
         movementCategory: String
     ): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "strength",
             detail1 = movementCategory,

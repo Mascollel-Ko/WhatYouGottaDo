@@ -153,7 +153,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     @Test
     fun inventoryHardExcludesSelectedStableKeysOnly() {
         val kept = Exercise(
-            id = 1,
             name = "Barbell squat",
             category = "strength",
             stableKey = "barbell_squat",
@@ -161,7 +160,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val excluded = Exercise(
-            id = 2,
             name = "Captain chair leg raise",
             category = "strength",
             stableKey = "captain_chair_leg_raise",
@@ -183,7 +181,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     @Test
     fun inventoryKeepsSoftMismatchesButStillHardExcludesDirectSportAndSelectedKeys() {
         val equipmentMismatch = Exercise(
-            id = 1,
             name = "Barbell squat",
             category = "strength",
             stableKey = "barbell_squat",
@@ -191,7 +188,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val nonProgramSelectable = Exercise(
-            id = 2,
             name = "Accessory row",
             category = "strength",
             stableKey = "accessory_row",
@@ -199,7 +195,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             planningEligibility = "LAB_ONLY"
         )
         val directSportSession = Exercise(
-            id = 3,
             name = "Badminton match",
             category = "sport",
             stableKey = "badminton_match",
@@ -208,7 +203,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val excluded = Exercise(
-            id = 4,
             name = "Excluded push up",
             category = "strength",
             stableKey = "excluded_push_up",
@@ -274,7 +268,7 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
                     weekNumber = 1,
                     dayOfWeek = 1,
                     orderIndex = 1,
-                    exerciseId = 1,
+                    exerciseStableKey = "test_exercise_1",
                     exerciseName = "Fixture hinge",
                     category = "strength",
                     restSeconds = 90,
@@ -298,7 +292,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
-                id = 1,
                 name = "Fixture hinge",
                 category = "strength",
                 stableKey = "fixture_hinge",
@@ -306,7 +299,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             ),
             metadata = RuntimeExerciseMetadataDefaults.forExercise(
                 Exercise(
-                    id = 1,
                     name = "Fixture hinge",
                     category = "strength",
                     stableKey = "fixture_hinge",
@@ -330,7 +322,6 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
 
     private fun explosiveCandidate(): ProgramCandidate {
         val exercise = Exercise(
-            id = 2,
             name = "Fixture jump",
             category = "power",
             stableKey = "fixture_jump",

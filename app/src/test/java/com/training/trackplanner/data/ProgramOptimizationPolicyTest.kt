@@ -21,8 +21,8 @@ class ProgramOptimizationPolicyTest {
             after.issues.any { it.type == ProgramEvaluationIssueType.HIGH_LOWER_BODY_FATIGUE_CLUSTER })
         assertTrue("summary should mention fatigue redistribution",
             optimized.optimizationSummary.messages.any { it.contains("하체 피로") })
-        assertEquals("repair must not add exercises", skeleton.items.map(ProgramSkeletonItem::exerciseId).toSet(),
-            optimized.items.map(ProgramSkeletonItem::exerciseId).toSet())
+        assertEquals("repair must not add exercises", skeleton.items.map(ProgramSkeletonItem::exerciseStableKey).toSet(),
+            optimized.items.map(ProgramSkeletonItem::exerciseStableKey).toSet())
     }
 
     @Test
@@ -98,7 +98,7 @@ class ProgramOptimizationPolicyTest {
         weekNumber = week,
         dayOfWeek = day,
         orderIndex = order,
-        exerciseId = (week * 100 + day * 10 + order).toLong(),
+        exerciseStableKey = "$week-$day-$order",
         exerciseName = if (highLower) "바벨 스쿼트" else "덤벨 보조 운동 $order",
         category = "근력",
         restSeconds = 60,

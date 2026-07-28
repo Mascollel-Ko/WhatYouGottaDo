@@ -285,7 +285,7 @@ class FatigueSlotPolicyTest {
             weekNumber = 1,
             dayOfWeek = 1,
             orderIndex = 1,
-            exerciseId = 1,
+            exerciseStableKey = "test_exercise_1",
             exerciseName = "Fixture movement",
             category = "strength",
             setCount = setCount,
@@ -295,7 +295,6 @@ class FatigueSlotPolicyTest {
     private fun candidate(vararg slots: ProgramSlotId): ProgramCandidate =
         ProgramCandidate(
             exercise = Exercise(
-                id = 1,
                 name = slots.joinToString(prefix = "fixture "),
                 category = "strength",
                 stableKey = "fatigue_slot_fixture_${slots.joinToString("_")}"

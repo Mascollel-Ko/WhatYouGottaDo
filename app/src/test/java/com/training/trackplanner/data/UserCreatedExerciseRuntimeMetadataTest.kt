@@ -81,14 +81,12 @@ class UserCreatedExerciseRuntimeMetadataTest {
     @Test
     fun copyMetadataFromExistingExerciseKeepsNewCustomIdentity() {
         val draft = Exercise(
-            id = 0,
             name = "내 커스텀 운동",
             category = "근력",
             stableKey = "",
             isCustom = true
         )
         val source = Exercise(
-            id = 10,
             name = "스쿼트",
             category = "근력운동",
             stableKey = "barbell_back_squat",

@@ -108,7 +108,6 @@ class StrengthPosteriorModelTest {
         repeat(8) { index ->
             val date = LocalDate.parse("2026-07-01").plusWeeks(index.toLong())
             val exercise = Exercise(
-                id = index.toLong() + 1,
                 name = "Front squat",
                 category = "Strength",
                 stableKey = "front-squat",
@@ -117,11 +116,11 @@ class StrengthPosteriorModelTest {
                 estimated1RmEligible = true
             )
             val record = WorkoutEntryWithSets(
-                entry = WorkoutEntry(id = index.toLong() + 1, date = date.toString(), exerciseId = exercise.id, exerciseName = exercise.name, category = exercise.category),
+                entry = WorkoutEntry(id = index.toLong() + 1, date = date.toString(), exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = exercise.category),
                 sets = listOf(
                     WorkoutSet(
                         id = index.toLong() + 1,
-                        entryId = exercise.id,
+                        entryId = index.toLong() + 1,
                         setIndex = 1,
                         reps = 5,
                         weightKg = 100.0 + index * 2.0,
@@ -275,7 +274,6 @@ class StrengthPosteriorModelTest {
 
     private fun observation(reps: Int, weight: Double, rpe: Double?): StrengthExerciseSessionObservation {
         val exercise = Exercise(
-            id = 1,
             name = "Bench press",
             category = "Strength",
             stableKey = "barbell_bench_press"
@@ -284,7 +282,7 @@ class StrengthPosteriorModelTest {
             entry = WorkoutEntry(
                 id = 1,
                 date = "2026-07-20",
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category
             ),

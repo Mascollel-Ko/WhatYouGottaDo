@@ -9,9 +9,9 @@ import java.io.File
 class TissueC4AExerciseCatalogBridgeTest {
     @Test
     fun liveCanonicalCatalogIsMappedByExactStableKeyAndAuditedMovementFamily() {
-        assertEquals(239, canonical.size)
+        assertEquals(224, canonical.size)
         assertEquals(64, movementRegistry.size)
-        assertEquals(239, mappings.size)
+        assertEquals(224, mappings.size)
         assertEquals(canonical.map { it.getValue("stableKey") }.toSet(), mappings.map { it.stableKey }.toSet())
         assertEquals(setOf("AUDITED_APPLICABLE", "AUDITED_NOT_APPLICABLE"), mappings.map { it.mappingStatus }.toSet())
         assertFalse(TissueMetadataParser.table(asset("tissue_mtc_exercise_movement_family_mapping_v1.csv")).header.contains("exerciseName"))
@@ -19,8 +19,8 @@ class TissueC4AExerciseCatalogBridgeTest {
 
     @Test
     fun everyApplicableExerciseComplexRelationshipHasDeterministicNonNullMtc() {
-        assertEquals(378, applicability.size)
-        assertEquals(1134, traces.size)
+        assertEquals(365, applicability.size)
+        assertEquals(1095, traces.size)
         assertTrue(bridgeReport.errors.toString(), bridgeReport.isValid)
         assertTrue(traces.all { it.researchScore == null && it.operationalScore > 0.0 })
         assertTrue(traces.all { it.provenanceTier == TissueMtcProvenanceTier.MOVEMENT_FAMILY_DEFAULT })

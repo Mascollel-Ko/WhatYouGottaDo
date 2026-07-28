@@ -64,7 +64,7 @@ class RecordCsvBackupRestoreTest {
         val entry = WorkoutEntry(
             id = 10,
             date = "2026-06-15",
-            exerciseId = 1,
+            exerciseStableKey = "barbell_squat",
             exerciseName = "스쿼트",
             category = "근력운동",
             restSeconds = 120,
@@ -84,7 +84,6 @@ class RecordCsvBackupRestoreTest {
             metrics = listOf(DailyMetric(date = "2026-06-15", sleepHours = 7.0, bodyWeightKg = 72.0)),
             exercises = listOf(
                 Exercise(
-                    id = 1,
                     name = "스쿼트",
                     category = "근력운동",
                     stableKey = "barbell_squat"
@@ -103,7 +102,6 @@ class RecordCsvBackupRestoreTest {
     @Test
     fun restoreCsvExportsAndParsesExerciseMasterRows() {
         val exercise = Exercise(
-            id = 1,
             name = "Test Squat",
             category = "근력운동",
             stableKey = "test_squat",
@@ -132,7 +130,6 @@ class RecordCsvBackupRestoreTest {
     @Test
     fun restoreCsvKeepsLowercaseQuadricepsOverrideUsableForMuscleLoad() {
         val exercise = Exercise(
-            id = 1,
             name = "Deadlift override",
             category = "근력운동",
             stableKey = "conventional_deadlift",
@@ -142,7 +139,7 @@ class RecordCsvBackupRestoreTest {
         val entry = WorkoutEntry(
             id = 10,
             date = "2026-06-10",
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )
@@ -163,7 +160,6 @@ class RecordCsvBackupRestoreTest {
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
         val restored = parsed.exerciseRows.single().let { row ->
             Exercise(
-                id = exercise.id,
                 name = row.name,
                 category = row.category,
                 stableKey = row.stableKey,
@@ -187,7 +183,6 @@ class RecordCsvBackupRestoreTest {
     @Test
     fun restoreCsvRoundTripsCustomExerciseRawAndRuntimeMetadata() {
         val exercise = Exercise(
-            id = 1,
             name = "내 커스텀 로테이션",
             category = "근력",
             stableKey = "user_ex_custom_rotation",
@@ -230,7 +225,6 @@ class RecordCsvBackupRestoreTest {
     @Test
     fun restoreCsvRoundTripsBuiltInExerciseMetadataOverride() {
         val exercise = Exercise(
-            id = 1,
             name = "Deadlift",
             category = "Strength",
             stableKey = "deadlift",

@@ -67,7 +67,11 @@ class PerformanceTrendEngineTest {
             )
         }
         val weeks = WeeklyAnalysisAggregator().aggregate(today, completedEntries, emptyList())
-        val result = StrengthPerformanceIndexCalculator().calculate(weeks, mapOf(strength.id to strength), emptyList())
+        val result = StrengthPerformanceIndexCalculator().calculate(
+            weeks,
+            mapOf(strength.stableKey to strength),
+            emptyList()
+        )
         val latest = result.last()
 
         val expected = TrendMath.clamp(
@@ -105,15 +109,15 @@ class PerformanceTrendEngineTest {
 
         val result = StrengthPerformanceIndexCalculator(catalog).calculate(
             weeks = weeks,
-            exerciseMap = listOf(squat, deadlift).associateBy(Exercise::id),
+            exerciseMap = listOf(squat, deadlift).associateBy(Exercise::stableKey),
             allDailyMetrics = emptyList()
         )
         val latest = result.last()
 
         assertTrue("rawVolume should include canonical squat/deadlift records", latest.rawVolume > 0.0)
         assertTrue("effectiveSets should include canonical squat/deadlift records", latest.effectiveSets > 0)
-        assertTrue("raw intensity should produce a squat exercise score", squat.id in latest.exerciseScores)
-        assertTrue("raw intensity should produce a deadlift exercise score", deadlift.id in latest.exerciseScores)
+        assertTrue("raw intensity should produce a squat exercise score", squat.stableKey in latest.exerciseScores)
+        assertTrue("raw intensity should produce a deadlift exercise score", deadlift.stableKey in latest.exerciseScores)
         assertFalse(componentReport(latest), latest.allStrengthComponentsAreFallback100())
     }
 
@@ -131,12 +135,12 @@ class PerformanceTrendEngineTest {
         val weeks = WeeklyAnalysisAggregator().aggregate(today, entries, emptyList())
 
         val latest = StrengthPerformanceIndexCalculator(catalog)
-            .calculate(weeks, mapOf(squat.id to squat), emptyList())
+            .calculate(weeks, mapOf(squat.stableKey to squat), emptyList())
             .last()
 
         assertTrue("rawVolume proves the set reached rawVolumeByWeek", latest.rawVolume > 0.0)
         assertTrue("effectiveSets proves the set reached effectiveSetsByWeek", latest.effectiveSets > 0)
-        assertTrue("exerciseScores proves the set reached rawIntensityByWeek", squat.id in latest.exerciseScores)
+        assertTrue("exerciseScores proves the set reached rawIntensityByWeek", squat.stableKey in latest.exerciseScores)
         assertEquals(componentReport(latest), 100.0, latest.intensityIndex, 0.001)
         assertEquals(componentReport(latest), 100.0, latest.volumeIndex, 0.001)
         assertEquals(componentReport(latest), 100.0, latest.efficiencyIndex, 0.001)
@@ -144,7 +148,7 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
-    fun lostCanonicalStableKeyStillFeedsChartFacingStrengthSeriesThroughUniqueNameMetadata() {
+    fun lostCanonicalStableKeyDoesNotFeedStrengthSeriesThroughDisplayName() {
         val analysisToday = LocalDate.parse("2026-06-26")
         val canonicalCatalog = canonicalRuntimeCatalog()
         val squat = canonicalExercise(301, canonicalCatalog, "barbell_back_squat")
@@ -181,43 +185,25 @@ class PerformanceTrendEngineTest {
             entriesWithSets = entries,
             dailyMetrics = emptyList()
         )
-        val chartPoints = summary.strengthPerformanceSeries.dataPoints.mapNotNull { point -> point.value }
-
         assertEquals("all confirmed records should enter weekly aggregation", entries.size, groupedWeeks.sumOf { week -> week.entries.size })
-        assertTrue(squatFeatures.estimated1RmEligible)
-        assertTrue(deadliftFeatures.estimated1RmEligible)
-        assertEquals("ESTIMATED_1RM", squatFeatures.progressMetricType)
-        assertEquals("ESTIMATED_1RM", deadliftFeatures.progressMetricType)
-        assertTrue("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
-        assertTrue("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
-        assertTrue(
-            "confirmed squat/deadlift records should reach raw strength inputs",
-            summary.strengthWeeks.any { week -> week.rawVolume > 0.0 || week.effectiveSets > 0 }
-        )
-        assertTrue(
-            "rawVolume should include lost-key canonical squat/deadlift records",
-            summary.strengthWeeks.any { week -> week.rawVolume > 0.0 }
-        )
-        assertTrue(
-            "effectiveSets should include lost-key canonical squat/deadlift records",
-            summary.strengthWeeks.any { week -> week.effectiveSets > 0 }
-        )
-        assertTrue(
-            "exerciseScores should include squat/deadlift intensity inputs",
-            summary.strengthWeeks.any { week -> squat.id in week.exerciseScores || deadlift.id in week.exerciseScores }
-        )
         assertFalse(
-            "strengthPerformanceSeries should move when multi-week squat/deadlift loads change: $chartPoints",
-            chartPoints.allApproximatelyEqual()
+            "display names must not restore canonical squat eligibility",
+            squatFeatures.estimated1RmEligible || deadliftFeatures.estimated1RmEligible
         )
-        assertEquals(
-            summary.strengthPerformanceSeries.dataPoints,
-            summary.dashboardChartSpecs.first().lineSeries.single().points
+        assertTrue(squatFeatures.progressMetricType.isBlank())
+        assertTrue(deadliftFeatures.progressMetricType.isBlank())
+        assertFalse("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
+        assertFalse("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
+        assertTrue(
+            "unknown stableKeys must not impersonate canonical strength identities",
+            summary.strengthWeeks.all { week ->
+                squat.stableKey !in week.exerciseScores && deadlift.stableKey !in week.exerciseScores
+            }
         )
     }
 
     @Test
-    fun stalePersistedMetadataForLostCanonicalStableKeyStillMovesStrengthSeries() {
+    fun stalePersistedMetadataForLostStableKeyDoesNotBorrowCanonicalIdentity() {
         val analysisToday = LocalDate.parse("2026-06-26")
         val canonicalCatalog = canonicalRuntimeCatalog()
         val squat = canonicalExercise(401, canonicalCatalog, "barbell_back_squat")
@@ -253,20 +239,17 @@ class PerformanceTrendEngineTest {
             entriesWithSets = entries,
             dailyMetrics = emptyList()
         )
-        val chartPoints = summary.strengthPerformanceSeries.dataPoints.mapNotNull { point -> point.value }
-
-        assertTrue(squatFeatures.estimated1RmEligible)
-        assertTrue(deadliftFeatures.estimated1RmEligible)
-        assertEquals("ESTIMATED_1RM", squatFeatures.progressMetricType)
-        assertEquals("ESTIMATED_1RM", deadliftFeatures.progressMetricType)
-        assertTrue("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
-        assertTrue("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
-        assertTrue("rawVolume should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.rawVolume > 0.0 })
-        assertTrue("effectiveSets should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.effectiveSets > 0 })
-        assertTrue("exerciseScores should survive stale persisted metadata", summary.strengthWeeks.any { week -> week.exerciseScores.isNotEmpty() })
         assertFalse(
-            "strengthPerformanceSeries should move with stale persisted metadata present: $chartPoints",
-            chartPoints.allApproximatelyEqual()
+            "stale defaults must not restore canonical squat eligibility",
+            squatFeatures.estimated1RmEligible || deadliftFeatures.estimated1RmEligible
+        )
+        assertTrue(squatFeatures.progressMetricType.isBlank())
+        assertTrue(deadliftFeatures.progressMetricType.isBlank())
+        assertTrue(
+            "stale lost-key metadata must remain isolated from canonical strength identities",
+            summary.strengthWeeks.all { week ->
+                squat.stableKey !in week.exerciseScores && deadlift.stableKey !in week.exerciseScores
+            }
         )
     }
 
@@ -316,7 +299,7 @@ class PerformanceTrendEngineTest {
             mode = DetailChartMode.RANKING,
             selectedMetrics = emptyList(),
             badmintonWeeks = summary.badmintonWeeks,
-            exerciseDisplayNamesById = summary.exerciseDisplayNamesById
+            exerciseDisplayNamesByStableKey = summary.exerciseDisplayNamesByStableKey
         )
 
         assertEquals("랜덤 풋워크", ranking.bars.single().label)
@@ -528,7 +511,6 @@ class PerformanceTrendEngineTest {
 
     private fun strengthExercise(id: Long = 1): Exercise =
         Exercise(
-            id = id,
             name = "Strength fixture",
             category = "근력운동",
             stableKey = "strength_fixture_$id",
@@ -569,7 +551,6 @@ class PerformanceTrendEngineTest {
 
     private fun badmintonExercise(id: Long = 2, name: String = "Badminton fixture"): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "스포츠",
             stableKey = "badminton_fixture_$id",
@@ -610,7 +591,6 @@ class PerformanceTrendEngineTest {
 
     private fun antiRotationSupportExercise(id: Long, name: String, stableKey: String): Exercise =
         Exercise(
-            id = id,
             name = name,
             category = "기능성운동",
             stableKey = stableKey,
@@ -651,7 +631,6 @@ class PerformanceTrendEngineTest {
     ): Exercise {
         val metadata = catalog.resolveByStableKey(stableKey) ?: error("Missing canonical metadata for $stableKey")
         return Exercise(
-            id = id,
             name = metadata.exerciseName,
             category = "근력운동",
             stableKey = metadata.stableKey
@@ -687,9 +666,9 @@ class PerformanceTrendEngineTest {
         entryName: String = exercise.name
     ): WorkoutEntryWithSets {
         val entry = WorkoutEntry(
-            id = exercise.id * 100 + date.dayOfYear,
+            id = exercise.stableKey.hashCode().toLong() * 100 + date.dayOfYear,
             date = date.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = entryName,
             category = exercise.category
         )

@@ -87,7 +87,6 @@ class BadmintonTransferCoverageAnalyzerTest {
     fun rawLowerBodyStrengthRecordsDoNotCreateCoverageAxis() {
         val today = LocalDate.of(2026, 6, 22)
         val exercise = Exercise(
-            id = 99,
             name = "raw squat",
             category = "strength",
             stableKey = "raw_squat",
@@ -99,7 +98,7 @@ class BadmintonTransferCoverageAnalyzerTest {
         val entry = WorkoutEntry(
             id = 990,
             date = today.minusDays(1).toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )

@@ -13,10 +13,10 @@ class TissueRcvAssetImportTest {
     fun importsReviewedRcvAll06AuthorityWithExactPhaseTwoCounts() {
         val catalog = repository().catalog
 
-        assertEquals(239, catalog.exerciseStableKeys.size)
-        assertEquals(3507, catalog.authorityRows.size)
-        assertEquals(238, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
-        assertEquals(239, catalog.protocols.size)
+        assertEquals(224, catalog.exerciseStableKeys.size)
+        assertEquals(3224, catalog.authorityRows.size)
+        assertEquals(223, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
+        assertEquals(224, catalog.protocols.size)
         assertEquals(50, catalog.protocolClasses.size)
         assertEquals(13, catalog.diProfiles.size)
         assertEquals(21, catalog.curves.size)
@@ -31,7 +31,7 @@ class TissueRcvAssetImportTest {
         val rows = repository().catalog.authorityRows
         val rowsByPair = rows.groupBy { it.exerciseStableKey to it.loadUnitStableKey }
 
-        assertEquals(3501, rowsByPair.size)
+        assertEquals(3218, rowsByPair.size)
         assertEquals(5, rowsByPair.count { it.value.size > 1 })
         assertEquals(3, rowsByPair.maxOf { it.value.size })
     }
@@ -132,6 +132,11 @@ class TissueRcvAssetImportTest {
 
     private fun sha256(file: File): String =
         MessageDigest.getInstance("SHA-256")
-            .digest(file.readBytes())
+            .digest(
+                file.readText(Charsets.UTF_8)
+                    .replace("\r\n", "\n")
+                    .replace('\r', '\n')
+                    .toByteArray(Charsets.UTF_8)
+            )
             .joinToString("") { "%02x".format(it) }
 }

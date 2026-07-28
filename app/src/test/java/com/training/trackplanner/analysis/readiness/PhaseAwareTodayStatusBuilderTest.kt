@@ -173,7 +173,7 @@ class PhaseAwareTodayStatusBuilderTest {
         val entry = WorkoutEntry(
             id = 100,
             date = today.toString(),
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             category = exercise.category
         )
@@ -202,7 +202,6 @@ class PhaseAwareTodayStatusBuilderTest {
 
     private fun heavyExercise(): Exercise =
         Exercise(
-            id = 1,
             name = "Heavy fixture",
             category = "근력운동",
             stableKey = "heavy_fixture",

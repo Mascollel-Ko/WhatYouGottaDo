@@ -10,7 +10,6 @@ class MuscleLoadInputBuilderTest {
     @Test
     fun metadataAliasesBuildCanonicalBucketWeights() {
         val exercise = Exercise(
-            id = 1,
             name = "대퇴근 테스트",
             category = "근력",
             stableKey = "user_ex_quad",
@@ -20,7 +19,7 @@ class MuscleLoadInputBuilderTest {
 
         val loads = MuscleLoadInputBuilder.contributions(
             exercise = exercise,
-            entry = WorkoutEntry(date = "2026-06-10", exerciseId = exercise.id, exerciseName = exercise.name, category = exercise.category)
+            entry = WorkoutEntry(date = "2026-06-10", exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = exercise.category)
         )
 
         assertEquals(1.0, loads[MuscleBucket.QUADS] ?: 0.0, 0.001)

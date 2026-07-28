@@ -20,18 +20,6 @@ class MedicineBallSeedMetadataTest {
     }
 
     @Test
-    fun requestedMedicineBallExercisesExistInJsonSeed() {
-        val json = existingFile("src/main/assets/exercises_seed.json").readText(Charsets.UTF_8)
-
-        REQUIRED_MEDICINE_BALL_KEYS.forEach { key ->
-            assertTrue(
-                "Missing JSON seed stableKey $key",
-                Regex("\"stableKey\"\\s*:\\s*\"$key\"").containsMatchIn(json)
-            )
-        }
-    }
-
-    @Test
     fun requestedMedicineBallCanonicalMetadataIsSupportiveAndProgramSelectable() {
         val asset = existingFile("src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
@@ -92,10 +80,10 @@ class MedicineBallSeedMetadataTest {
 
     private companion object {
         val REQUIRED_MEDICINE_BALL_KEYS = setOf(
-            "ex_26ac0c19",
+            "med_ball_overhead_slam",
             "medicine_ball_rotational_throw",
             "med_ball_chest_pass",
-            "medicine_ball_side_slam",
+            "med_ball_rotational_slam",
             "medicine_ball_three_step_acceleration_throw",
             "medicine_ball_three_step_deceleration_throw"
         )

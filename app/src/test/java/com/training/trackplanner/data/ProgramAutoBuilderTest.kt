@@ -1,5 +1,6 @@
 package com.training.trackplanner.data
 
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -93,13 +94,7 @@ class ProgramAutoBuilderTest {
 
     @Test
     fun squatMainReplacesAccessorySquatWithAllowedAlternative() {
-        val skeleton = build(
-            request = request(days = 4, minutes = 45, weeks = 4, ratio = 0.0),
-            exercises = listOf(
-                exercise(id = 1, name = "스쿼트", stableKey = "barbell_back_squat"),
-                exercise(id = 2, name = "프론트 스쿼트", stableKey = "front_squat")
-            )
-        )
+        val skeleton = build(request(days = 4, minutes = 45, weeks = 4, ratio = 0.0))
         val squatDay = skeleton.items
             .filter { it.weekNumber == 1 }
             .groupBy { it.dayOfWeek }
@@ -110,8 +105,14 @@ class ProgramAutoBuilderTest {
 
         assertEquals("barbell_back_squat", mainSquat.stableKey)
         assertEquals(1, squatDay.count { it.stableKey == mainSquat.stableKey })
-        assertEquals("front_squat", pairedLower.stableKey)
-        assertTrue(pairedLower.exerciseName in setOf("레그 익스텐션", "핵스쿼트", "프론트 스쿼트", "스플릿스쿼트", "체어스쿼트"))
+        assertTrue(
+            pairedLower.stableKey in setOf(
+                "ex_f2a79d37",
+                "ex_e9e97659",
+                "ex_b78a8f95",
+                "ex_c5043892"
+            )
+        )
     }
 
     @Test
@@ -235,18 +236,34 @@ class ProgramAutoBuilderTest {
 
     private fun build(
         request: ProgramSkeletonRequest,
-        exercises: List<Exercise> = emptyList()
+        exercises: List<Exercise> = loadSeedExercises()
     ): GeneratedProgramSkeleton =
         ProgramAutoBuilder().build(request, exercises = exercises)
 
-    private fun exercise(id: Long, name: String, stableKey: String): Exercise =
-        Exercise(
-            id = id,
-            name = name,
-            category = "근력운동",
-            stableKey = stableKey,
-            defaultRestSeconds = 90
-        )
+    private fun loadSeedExercises(): List<Exercise> {
+        val lines = seedFile().readLines(Charsets.UTF_8).filter(String::isNotBlank)
+        val header = SeedData.parseCsvLine(lines.first()).map { it.removePrefix("\uFEFF") }
+        return lines.drop(1)
+            .map(SeedData::parseCsvLine)
+            .map { values -> header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap() }
+            .filter { it["row_type"] == "exercise" }
+            .map { row ->
+                Exercise(
+                    name = row["exercise_name"].orEmpty(),
+                    category = row["category"].orEmpty(),
+                    defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
+                    stableKey = row["stable_key"].orEmpty(),
+                    equipment = row["equipment_tags"].orEmpty(),
+                    isActive = true
+                )
+            }
+    }
+
+    private fun seedFile(): File =
+        sequenceOf(
+            File("src/main/assets/training_settings_seed.csv"),
+            File("app/src/main/assets/training_settings_seed.csv")
+        ).firstOrNull(File::exists) ?: error("Missing training settings seed.")
 
     private fun chestShoulderDay(skeleton: GeneratedProgramSkeleton, week: Int): List<ProgramSkeletonItem> =
         skeleton.items.filter { it.weekNumber == week && it.dayOfWeek == 3 }
