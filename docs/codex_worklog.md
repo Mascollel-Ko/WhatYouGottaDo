@@ -3775,3 +3775,86 @@ Verification
 - No device/emulator was attached. Room `23 -> 24` instrumentation source
   compiled but could not execute.
 - Release commit, main push, tag and CI are pending.
+
+## v0.5.0.6 exercise stableKey canonicalization
+
+### Baseline and cause
+- Started from clean `origin/main`
+  `19686fb8a61b95a855013508b30a73ddde20377c` on
+  `codex/exercise-stablekey-canonicalization`.
+- Previous identity was `0.5.0.5 / 500005`, Room `24`, restore CSV schema `7`,
+  active built-in catalog `239`.
+- Numeric exercise IDs, duplicate seed identities and first-error backup
+  validation prevented one canonical identity and complete diagnostics.
+
+### Workbook and catalog
+- Read all six workbook sheets and generated
+  `outputs/exercise_canonicalization_preflight.md/.csv` before applying decisions.
+- Applied 26 decision groups: 13 merge groups, 6 rename/redefine-only decisions,
+  2 split groups (7 source identities to 4 targets), 2 delete decisions and one
+  delete/recreate decision.
+- Final built-in/runtime/tissue exercise key sets are identical at `224`.
+- Program seed contains `753` explicit canonical stableKey references.
+- Added `33` exact import-only legacy mappings.
+- Added deterministic catalog tooling and generated a 224-row canonical catalog
+  plus the remaining-reference audit under `outputs/`.
+
+### Identity and migration
+- `Exercise.stableKey` is the Room primary key and sole app-level exercise
+  identity. Workout/program item references now store indexed nonblank
+  `exerciseStableKey`.
+- Added non-destructive Room `24 -> 25` migration. Valid references are
+  backfilled; ID 0, dangling, blank, deleted and ambiguous split rows remain
+  diagnosable instead of being guessed or silently deleted.
+- User-created UUID stableKeys survive rename. Normal runtime has no legacy
+  name/fuzzy/contains fallback.
+- Strength derived identity boundary is `strength-derived-state-0.5.0.6`;
+  incompatible derived rows rebuild once from preserved raw workouts, then live
+  completion events append incrementally.
+
+### Backup, restore and diagnostics
+- Restore CSV schema is `8`; exercise references contain canonical stableKey
+  only.
+- Added all-error preflight before destination open, deterministic manifest,
+  count/hash validation, canonical restore planning, transaction rollback and
+  post-restore validation.
+- Added persistent transfer reports with stage/count/warning/error details and a
+  latest-20 retention policy. Report tables are not exported.
+- Added `최근 작업 상세 보기`, copy and diagnostic-file actions.
+
+### Metadata invariants
+- Tissue canonical exercise index/protocol is `224/224`; authority is `3224`
+  rows over `223` mapped exercises with one intentional unresolved generic
+  stretch.
+- Workbook tissue actions are KEEP family `11`, REBUILD family `11` and
+  SPLIT_RECALIBRATE `4`.
+- The 77 load units, exposure formulas, recovery curves, priors, personal
+  calibration and bounded COD C modifier values are unchanged.
+
+### Validation and release
+- Canonicalization, exact legacy import, backup integrity, restore, report
+  persistence, metadata and tissue focused tests passed.
+- Program generation focused tests passed.
+- Full `:app:testDebugUnitTest` passed with 1,060 tests and zero failures.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`,
+  `:app:assembleDebug` and `:app:validateConnectiveTissuePriorBaselines`
+  passed.
+- Protocol validation passed for 8 families and 32 protocols. Tissue
+  publication integrity passed for 10 sources with zero blocking notices.
+- The canonicalizer was rerun from the supplied workbook and produced
+  byte-identical outputs: 224 exercises, 753 program items, 224 runtime rows,
+  224 tissue identities and 33 legacy mappings.
+- Debug APK:
+  `app/build/outputs/apk/debug/app-debug.apk`, 46,675,527 bytes,
+  SHA-256 `e43cc3035cab6410cc55fd2b193ab093866204309e4d30dd34fa7600857f13e5`.
+- `:app:lintDebug` remains blocked by the pre-existing minSdk 26/API 27
+  `android:windowLightNavigationBar` issue in unchanged `values/themes.xml`.
+- No device/emulator was attached, so the compiled Room `24 -> 25`
+  instrumentation migration test could not execute.
+- Commits:
+  - `47c21e937ed08c60752ec82f0e07eb0215bff10f` stableKey-only runtime/schema
+  - `401ece4ca451b5303b3607bf8b3462b95f25a581` canonical catalog/metadata
+  - `a4ec7c4ec4b389db89851150965dc6854673822b` regression tests
+  - `2456cb3` canonical protocol documentation
+- Main push, annotated `v0.5.0.6` tag and GitHub Actions are pending final
+  execution.
