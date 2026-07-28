@@ -17,7 +17,12 @@ object TissueMetadataParser {
         return TissueCsvTable(
             header = header,
             rows = records.drop(1).filter { row -> row.any(String::isNotBlank) }.map { row ->
-                header.mapIndexed { index, key -> key to row.getOrElse(index) { "" }.trim() }.toMap()
+                header.mapIndexed { index, key ->
+                    key to row.getOrElse(index) { "" }
+                        .replace("\r\n", "\n")
+                        .replace('\r', '\n')
+                        .trim()
+                }.toMap()
             }
         )
     }

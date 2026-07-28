@@ -53,7 +53,7 @@ internal class ProgramAutoBuilder(
             }
         }
         val missing = items
-            .filter { it.exerciseId == 0L }
+            .filter { it.exerciseStableKey.isBlank() }
             .map(ProgramSkeletonItem::exerciseName)
             .distinct()
             .sorted()

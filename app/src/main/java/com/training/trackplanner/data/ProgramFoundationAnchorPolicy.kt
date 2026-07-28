@@ -153,7 +153,12 @@ internal class ProgramFoundationAnchorPolicy {
         ProgramTrainingSlot.POWER_REACTIVE_LIGHT -> listOf("barbell_back_squat", "barbell_deadlift")
         ProgramTrainingSlot.UPPER_STRENGTH,
         ProgramTrainingSlot.UPPER_STRENGTH_SCAP,
-        ProgramTrainingSlot.UPPER_SCAP_CORE_FULL -> listOf("pull_up", "ex_32219f7a", "ex_8e1b313e")
+        ProgramTrainingSlot.UPPER_SCAP_CORE_FULL -> listOf(
+            "pull_up",
+            "ex_32219f7a",
+            "half_kneeling_single_arm_dumbbell_press",
+            "half_kneeling_single_arm_kettlebell_press"
+        )
         else -> SELECTED_MAIN_ORDER
     }
 
@@ -162,13 +167,15 @@ internal class ProgramFoundationAnchorPolicy {
         "barbell_deadlift" -> ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN
         "pull_up" -> ProgramSlotId.UPPER_PULL_ANCHOR
         "ex_32219f7a",
-        "ex_8e1b313e" -> ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT
+        "half_kneeling_single_arm_dumbbell_press",
+        "half_kneeling_single_arm_kettlebell_press" -> ProgramSlotId.ATHLETIC_OVERHEAD_PRESS_SUPPORT
         else -> ProgramSlotId.LOWER_SQUAT_PATTERN
     }
 
     private fun roleForSelectedMain(stableKey: String): ProgramExerciseRole = when (stableKey) {
         "ex_32219f7a",
-        "ex_8e1b313e" -> ProgramExerciseRole.SUPPORT
+        "half_kneeling_single_arm_dumbbell_press",
+        "half_kneeling_single_arm_kettlebell_press" -> ProgramExerciseRole.SUPPORT
         else -> ProgramExerciseRole.ANCHOR
     }
 
@@ -180,7 +187,8 @@ internal class ProgramFoundationAnchorPolicy {
             "barbell_deadlift",
             "pull_up",
             "ex_32219f7a",
-            "ex_8e1b313e"
+            "half_kneeling_single_arm_dumbbell_press",
+            "half_kneeling_single_arm_kettlebell_press"
         )
     }
 }

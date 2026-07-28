@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import java.time.LocalDate
+import java.security.MessageDigest
 import java.util.Locale
 
 data class RecordCsvTransferResult(
@@ -55,7 +56,8 @@ sealed class RecordCsvImportData {
         val posteriorLocalStates: List<StrengthExercisePerformanceStateEntity> = emptyList(),
         val posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
         val posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList(),
-        val programSnapshot: RestoreProgramSnapshot? = null
+        val programSnapshot: RestoreProgramSnapshot? = null,
+        val manifest: BackupManifest? = null
     ) : RecordCsvImportData()
 
     data class DailyTimeseries(
@@ -63,6 +65,14 @@ sealed class RecordCsvImportData {
         val warningCount: Int
     ) : RecordCsvImportData()
 }
+
+data class BackupManifest(
+    val formatVersion: Int,
+    val appVersion: String,
+    val exportedAt: Long,
+    val entityCounts: Map<String, Int>,
+    val contentSha256: String
+)
 
 data class RestoreDailyRow(
     val date: String,
@@ -195,7 +205,9 @@ data class DailyTimeseriesRow(
 
 object RecordCsvBackupRestore {
     private const val CURRENT_RESTORE_SCHEMA_VERSION = 7
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 8
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 1
+    private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
     private val restoreHeader = listOf(
         "schema_version",
@@ -348,7 +360,7 @@ object RecordCsvBackupRestore {
         includeProgramSnapshot: Boolean = false
     ): String {
         val builder = StringBuilder()
-        val exercisesById = exercises.associateBy { exercise -> exercise.id }
+        val exercisesById = exercises.associateBy { exercise -> exercise.stableKey }
         fun MetadataTokenField.exportRaw(): String = raw.ifBlank { values.joinToString("|") }
         fun appendMappedRow(
             rowType: String,
@@ -681,7 +693,7 @@ object RecordCsvBackupRestore {
                                 set.seconds.toString(),
                                 "",
                                 "",
-                                exercisesById[entry.exerciseId]?.stableKey.orEmpty()
+                                exercisesById[entry.exerciseStableKey]?.stableKey.orEmpty()
                             )
                         )
                     }
@@ -805,23 +817,55 @@ object RecordCsvBackupRestore {
         return builder.toString()
     }
 
+    fun wrapWithManifest(
+        body: String,
+        appVersion: String,
+        exportedAt: Long,
+        entityCounts: Map<String, Int>
+    ): String {
+        val normalizedBody = body.replace("\r\n", "\n").replace('\r', '\n')
+        val counts = entityCounts.toSortedMap().entries.joinToString("|") { (key, value) -> "$key=$value" }
+        val hash = sha256(normalizedBody)
+        return listOf(
+            MANIFEST_PREFIX,
+            CURRENT_BACKUP_FORMAT_VERSION.toString(),
+            appVersion,
+            exportedAt.toString(),
+            counts,
+            hash
+        ).joinToString(",") + "\n" + normalizedBody
+    }
+
     fun parse(text: String): RecordCsvImportData {
-        val rows = parseCsvRows(text)
+        val (body, manifest) = unwrapManifest(text)
+        val rows = parseCsvRows(body)
         if (rows.isEmpty()) {
-            return RecordCsvImportData.Restore(emptyList(), emptyList(), emptyList(), emptyList(), warningCount = 1)
+            return RecordCsvImportData.Restore(
+                emptyList(),
+                emptyList(),
+                emptyList(),
+                emptyList(),
+                warningCount = 1,
+                manifest = manifest
+            )
         }
         val header = rows.first().map { value -> value.trim() }
         val index = header.withIndex().associate { (i, name) -> name to i }
-        return if ("row_type" in index) {
-            parseRestore(rows.drop(1), index)
+        val parsed = if ("row_type" in index) {
+            parseRestore(rows.drop(1), index, manifest)
         } else {
             parseDailyTimeseries(rows.drop(1), index)
         }
+        if (parsed is RecordCsvImportData.Restore && manifest != null) {
+            validateManifestCounts(manifest, parsed)
+        }
+        return parsed
     }
 
     private fun parseRestore(
         rows: List<List<String>>,
-        index: Map<String, Int>
+        index: Map<String, Int>,
+        manifest: BackupManifest?
     ): RecordCsvImportData.Restore {
         var warnings = 0
         var backupSchemaVersion = 1
@@ -1194,9 +1238,133 @@ object RecordCsvBackupRestore {
             posteriorLocalStates = posteriorLocalStates,
             posteriorLocalHistory = posteriorLocalHistory,
             posteriorProxyHistory = posteriorProxyHistory,
-            programSnapshot = programSnapshot
+            programSnapshot = programSnapshot,
+            manifest = manifest
         )
     }
+
+    private fun unwrapManifest(text: String): Pair<String, BackupManifest?> {
+        if (!text.startsWith(MANIFEST_PREFIX)) return text to null
+        val newline = text.indexOf('\n')
+        if (newline < 0) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "백업 manifest 뒤에 본문이 없습니다."
+            )
+        }
+        val fields = text.substring(0, newline).trimEnd('\r').split(',', limit = 6)
+        if (fields.size != 6 || fields[0] != MANIFEST_PREFIX) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "백업 manifest 형식이 올바르지 않습니다."
+            )
+        }
+        val formatVersion = fields[1].toIntOrNull()
+            ?: throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "백업 형식 버전을 읽을 수 없습니다."
+            )
+        if (formatVersion != CURRENT_BACKUP_FORMAT_VERSION) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
+                "지원하지 않는 백업 형식 버전입니다: $formatVersion"
+            )
+        }
+        val exportedAt = fields[3].toLongOrNull()
+            ?: throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "백업 생성 시각을 읽을 수 없습니다."
+            )
+        val counts = fields[4]
+            .split('|')
+            .filter(String::isNotBlank)
+            .associate { token ->
+                val parts = token.split('=', limit = 2)
+                if (parts.size != 2 || parts[0].isBlank() || parts[1].toIntOrNull() == null) {
+                    throw DataTransferFormatException(
+                        DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                        "백업 개수 manifest가 올바르지 않습니다."
+                    )
+                }
+                parts[0] to parts[1].toInt()
+            }
+        val body = text.substring(newline + 1).replace("\r\n", "\n").replace('\r', '\n')
+        val actualHash = sha256(body)
+        if (!actualHash.equals(fields[5], ignoreCase = true)) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_HASH_MISMATCH,
+                "백업 본문 해시가 manifest와 일치하지 않습니다."
+            )
+        }
+        return body to BackupManifest(
+            formatVersion = formatVersion,
+            appVersion = fields[2],
+            exportedAt = exportedAt,
+            entityCounts = counts,
+            contentSha256 = fields[5]
+        )
+    }
+
+    private fun validateManifestCounts(
+        manifest: BackupManifest,
+        data: RecordCsvImportData.Restore
+    ) {
+        val actual = restoreEntityCounts(data)
+        val mismatches = manifest.entityCounts.filter { (key, expected) -> actual[key] != expected }
+        if (mismatches.isNotEmpty()) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_COUNT_MISMATCH,
+                "백업 manifest 개수와 본문 개수가 일치하지 않습니다: " +
+                    mismatches.entries.joinToString { (key, value) -> "$key=$value/${actual[key]}" }
+            )
+        }
+    }
+
+    fun backupEntityCounts(
+        exerciseCount: Int,
+        dailyMetricCount: Int,
+        dailyCheckInCount: Int,
+        smashSpeedCount: Int,
+        profileCount: Int,
+        entryCount: Int,
+        setCount: Int,
+        runtimeMetadataCount: Int,
+        programCount: Int,
+        programItemCount: Int,
+        programTombstoneCount: Int
+    ): Map<String, Int> = linkedMapOf(
+        "exercise" to exerciseCount,
+        "daily_metric" to dailyMetricCount,
+        "daily_check_in" to dailyCheckInCount,
+        "smash_speed" to smashSpeedCount,
+        "initial_profile" to profileCount,
+        "workout_entry" to entryCount,
+        "workout_set" to setCount,
+        "runtime_metadata" to runtimeMetadataCount,
+        "program" to programCount,
+        "program_item" to programItemCount,
+        "program_tombstone" to programTombstoneCount
+    )
+
+    private fun restoreEntityCounts(data: RecordCsvImportData.Restore): Map<String, Int> =
+        backupEntityCounts(
+            exerciseCount = data.exerciseRows.size,
+            dailyMetricCount = data.dailyRows.size,
+            dailyCheckInCount = data.checkInRows.size,
+            smashSpeedCount = data.smashSpeedRows.size,
+            profileCount = if (data.profileRows.isEmpty()) 0 else 1,
+            entryCount = data.setRows.map(RestoreSetRow::entryKey).distinct().size,
+            setCount = data.setRows.size,
+            runtimeMetadataCount = data.runtimeMetadataRows.size,
+            programCount = data.programSnapshot?.programs?.size ?: 0,
+            programItemCount = data.programSnapshot?.items?.size ?: 0,
+            programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0
+        )
+
+    private fun sha256(value: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(value.toByteArray(Charsets.UTF_8))
+            .joinToString("") { byte -> "%02x".format(byte) }
 
     private fun validateProgramSnapshot(
         programs: List<TrainingProgram>,

@@ -44,7 +44,7 @@ object CommonStrengthMetrics {
             entry.sets.count { set -> (set.rpe ?: 0.0) >= HARD_SET_RPE_CANDIDATE }
         }
         val unilateralSetCount = entries.sumOf { entry ->
-            val laterality = input.exerciseMetadataMap[entry.exerciseId]?.laterality.orUnknown()
+            val laterality = input.exerciseMetadataMap[entry.exerciseStableKey]?.laterality.orUnknown()
             if (laterality.startsWith("UNILATERAL") || laterality == "CONTRALATERAL") {
                 entry.sets.size
             } else {
@@ -78,7 +78,7 @@ object CommonStrengthMetrics {
         tokenSelector: AnalysisExerciseMetadata.() -> String
     ): Map<String, Double> =
         groupBy { entry ->
-            input.exerciseMetadataMap[entry.exerciseId]?.tokenSelector().orUnknown()
+            input.exerciseMetadataMap[entry.exerciseStableKey]?.tokenSelector().orUnknown()
         }.mapValues { (_, entries) -> entries.sumOf { it.volumeLoad(input) } }
 
     private fun List<AnalysisEntry>.sumVolumeByMetadataTokens(
@@ -87,7 +87,7 @@ object CommonStrengthMetrics {
     ): Map<String, Double> {
         val result = linkedMapOf<String, Double>()
         forEach { entry ->
-            val tokens = input.exerciseMetadataMap[entry.exerciseId]
+            val tokens = input.exerciseMetadataMap[entry.exerciseStableKey]
                 ?.tokenSelector()
                 .tokensOrUnknown()
             tokens.forEach { token ->
@@ -102,7 +102,7 @@ object CommonStrengthMetrics {
         tokenSelector: AnalysisExerciseMetadata.() -> String
     ): Map<String, Int> =
         groupBy { entry ->
-            input.exerciseMetadataMap[entry.exerciseId]?.tokenSelector().orUnknown()
+            input.exerciseMetadataMap[entry.exerciseStableKey]?.tokenSelector().orUnknown()
         }.mapValues { (_, entries) -> entries.sumOf { it.sets.size } }
 
     private fun ratioFromBodyRegions(
@@ -146,7 +146,7 @@ object CommonStrengthMetrics {
     }
 
     private fun AnalysisEntry.volumeLoad(input: AnalysisInputSnapshot): Double {
-        val metadata = input.exerciseMetadataMap[exerciseId]
+        val metadata = input.exerciseMetadataMap[exerciseStableKey]
         val bodyWeightKg = input.conditionRecordsUntilToday
             .filter { record -> record.date <= date }
             .maxByOrNull { record -> record.date }

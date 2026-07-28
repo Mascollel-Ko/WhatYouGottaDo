@@ -13,7 +13,6 @@ object UserExerciseStableKeyGenerator {
 internal object ExerciseStableKeyPolicy {
     fun preserveOnEdit(existing: Exercise, edited: Exercise, repairedKey: String): Exercise =
         edited.copy(
-            id = existing.id,
             stableKey = existing.stableKey.ifBlank { repairedKey },
             isCustom = existing.isCustom,
             isActive = existing.isActive,
@@ -23,7 +22,6 @@ internal object ExerciseStableKeyPolicy {
     fun mergeSeed(existing: Exercise, seed: Exercise): Exercise? {
         if (existing.isCustom) return null
         return seed.copy(
-            id = existing.id,
             stableKey = existing.stableKey,
             imageAssetName = seed.imageAssetName.ifBlank { existing.imageAssetName },
             isActive = existing.isActive,
@@ -41,8 +39,7 @@ internal object ExerciseSeedMetadataPolicy {
     ): Exercise {
         val seed = seedByStableKey[exercise.stableKey.seedLookupKey()] ?: return exercise
         return seed.copy(
-            id = exercise.id,
-            stableKey = seed.stableKey,
+            stableKey = exercise.stableKey,
             imageAssetName = seed.imageAssetName.ifBlank { exercise.imageAssetName },
             isActive = exercise.isActive,
             archivedAt = exercise.archivedAt,

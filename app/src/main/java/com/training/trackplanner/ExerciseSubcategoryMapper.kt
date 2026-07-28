@@ -65,14 +65,14 @@ internal object ExerciseSubcategoryMapper {
         exercises: List<Exercise>,
         broadCategory: String,
         query: String,
-        metadataByExerciseId: Map<Long, RuntimeExerciseMetadata>
+        metadataByExerciseId: Map<String, RuntimeExerciseMetadata>
     ): Map<ExerciseSubcategory, Int> {
         val scoped = exercises.filter { exercise ->
             exercise.category == broadCategory && matchesSearch(exercise, query)
         }
         return availableFor(broadCategory).associateWith { subcategory ->
             scoped.count { exercise ->
-                subcategory in categoriesFor(exercise, metadataByExerciseId[exercise.id])
+                subcategory in categoriesFor(exercise, metadataByExerciseId[exercise.stableKey])
             }
         }
     }

@@ -44,7 +44,7 @@ import com.training.trackplanner.data.withWeekDays
 internal fun ProgramSkeletonPreview(
     skeleton: GeneratedProgramSkeleton,
     exercises: List<Exercise>,
-    metadataByExerciseId: Map<Long, RuntimeExerciseMetadata>,
+    metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
     onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
 ) {
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
@@ -86,7 +86,7 @@ internal fun ProgramSkeletonPreview(
             exercises = exercises.filter(Exercise::isActive),
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
-                val metadata = metadataByExerciseId[exercise.id] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
+                val metadata = metadataByExerciseId[exercise.stableKey] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
                 val nextOrder = skeleton.items
                     .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
                     .maxOfOrNull(ProgramSkeletonItem::orderIndex)
@@ -316,11 +316,11 @@ private fun draftItemForExercise(
         exercise.mode.contains("시간") ||
         exercise.category in timedCategories
     return ProgramSkeletonItem(
-        localId = "manual-$weekNumber-$dayOfWeek-${exercise.id}-${System.nanoTime()}",
+        localId = "manual-$weekNumber-$dayOfWeek-${exercise.stableKey}-${System.nanoTime()}",
         weekNumber = weekNumber,
         dayOfWeek = dayOfWeek,
         orderIndex = orderIndex,
-        exerciseId = exercise.id,
+        exerciseStableKey = exercise.stableKey,
         exerciseName = exercise.name,
         category = exercise.category,
         restSeconds = exercise.defaultRestSeconds,

@@ -131,9 +131,9 @@ data class StrengthAnalysisLifecycleResult(
 object StrengthModelRevisionPolicy {
     const val CURRENT_REVISION_KEY = "strength-revision-3.0.0"
     const val LEGACY_REVISION_KEY = "strength-revision-2.1.0"
-    const val DERIVED_STATE_VERSION = "strength-derived-state-0.5.0.4"
-    const val CORRECTION_REASON = "STRENGTH_DERIVED_RESET_REBUILD_0_5_0_4"
-    const val REBUILD_MARKER_KEY = "strength_derived_reset_rebuild_0_5_0_4_complete"
+    const val DERIVED_STATE_VERSION = "strength-derived-state-0.5.0.6"
+    const val CORRECTION_REASON = "EXERCISE_STABLE_KEY_CANONICALIZATION_0_5_0_6"
+    const val REBUILD_MARKER_KEY = "strength_derived_reset_rebuild_0_5_0_6_complete"
     const val OBSOLETE_REBUILD_MARKER_KEY = "strength_model_correction_rebuild_0_5_0_3"
     const val STATUS_BUILDING = "BUILDING"
     const val STATUS_ACTIVE = "ACTIVE"

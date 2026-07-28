@@ -20,7 +20,7 @@ class CourtDurationRecoveryAnalyzer {
         history: List<DailyFatigueResult>,
         sleepSignal: SleepRecoverySignal
     ): CourtDurationRecoverySignal? {
-        val exerciseById = exercises.associateBy { it.id }
+        val exerciseById = exercises.associateBy(Exercise::stableKey)
         val checkInByDate = checkIns.associateBy { runCatching { LocalDate.parse(it.date) }.getOrNull() }
         val fatigueByDate = history.associateBy { it.state.date }
         val courtMinutesByDate = entriesWithSets.asSequence()
@@ -28,7 +28,7 @@ class CourtDurationRecoveryAnalyzer {
             .mapNotNull { record ->
                 val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
                 if (date > today) return@mapNotNull null
-                val exercise = exerciseById[record.entry.exerciseId] ?: return@mapNotNull null
+                val exercise = exerciseById[record.entry.exerciseStableKey] ?: return@mapNotNull null
                 val metadata = runtimeMetadataCatalog.resolve(exercise) ?: return@mapNotNull null
                 if (!metadata.isCourtSession()) return@mapNotNull null
                 val seconds = record.sets.filter { it.confirmed }.sumOf { it.seconds }

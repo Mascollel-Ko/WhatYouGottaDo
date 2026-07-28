@@ -8,8 +8,8 @@ internal class RecordMutationService(
     private val workoutDao: WorkoutDao,
     private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null
 ) {
-    suspend fun addWorkoutEntry(date: String, exerciseId: Long): Long {
-        val exercise = exerciseDao.findById(exerciseId) ?: return 0L
+    suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long {
+        val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return 0L
         return mutateDate(date) {
             val beforeInsert = normalizeDisplayOrder(date)
             val latestConfirmedEntryId = beforeInsert
@@ -22,7 +22,7 @@ internal class RecordMutationService(
             val entryId = workoutDao.insertEntry(
                 WorkoutEntry(
                     date = date,
-                    exerciseId = exercise.id,
+                    exerciseStableKey = exercise.stableKey,
                     exerciseName = exercise.name,
                     category = exercise.category,
                     restSeconds = exercise.defaultRestSeconds,
@@ -64,7 +64,7 @@ internal class RecordMutationService(
                     rpe = null,
                     restSecondsOverride = null
                 )
-                ?: defaultSet(entry.id, nextIndex, exerciseDao.findById(entry.exerciseId))
+                ?: defaultSet(entry.id, nextIndex, exerciseDao.findByStableKey(entry.exerciseStableKey))
             workoutDao.insertSet(nextSet)
             refreshEntryCompletion(entry.id)
         }

@@ -132,7 +132,8 @@ internal class ProgramIssueDrivenRerankPolicy(
 
     private fun roleForSelectedMain(stableKey: String): ProgramExerciseRole = when (stableKey) {
         "ex_32219f7a",
-        "ex_8e1b313e" -> ProgramExerciseRole.SUPPORT
+        "half_kneeling_single_arm_dumbbell_press",
+        "half_kneeling_single_arm_kettlebell_press" -> ProgramExerciseRole.SUPPORT
         else -> ProgramExerciseRole.ANCHOR
     }
 
@@ -158,7 +159,7 @@ internal class ProgramIssueDrivenRerankPolicy(
                 runCatching { ProgramSlotId.valueOf(name) }.getOrNull()
             }
         return copy(
-            exerciseId = candidate.exercise.id,
+            exerciseStableKey = candidate.exercise.stableKey,
             exerciseName = candidate.exercise.name,
             category = candidate.exercise.category,
             restSeconds = candidate.exercise.defaultRestSeconds,

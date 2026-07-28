@@ -9,14 +9,14 @@ import java.time.LocalDate
 class PerformanceDropDetector {
     fun detect(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         today: LocalDate,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
     ): PerformanceSignalSnapshot {
         val completedRecords = entriesWithSets
             .filter { record -> record.sets.any { set -> set.confirmed } }
             .filter { record -> runCatching { LocalDate.parse(record.entry.date) }.getOrNull()?.let { it <= today } == true }
-            .groupBy { record -> record.entry.exerciseId }
+            .groupBy { record -> record.entry.exerciseStableKey }
 
         var sameLoadRpeIncrease = false
         var sameLoadRepsDrop = false
@@ -25,8 +25,8 @@ class PerformanceDropDetector {
         var largeE1RmDropCount = 0
         val reasons = mutableListOf<String>()
 
-        completedRecords.forEach { (exerciseId, records) ->
-            val exercise = exerciseMap[exerciseId] ?: return@forEach
+        completedRecords.forEach { (exerciseStableKey, records) ->
+            val exercise = exerciseMap[exerciseStableKey] ?: return@forEach
             val sorted = records.sortedBy { record -> record.entry.date }
             if (sorted.size < 2) return@forEach
             val latest = sorted.last()

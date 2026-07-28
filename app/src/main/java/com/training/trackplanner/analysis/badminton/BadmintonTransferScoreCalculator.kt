@@ -18,13 +18,13 @@ class BadmintonTransferScoreCalculator(
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>
     ): BadmintonTransferWindowSnapshot {
-        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+        val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
         val safeWindowDays = windowDays.coerceAtLeast(1)
         val start = today.minusDays(safeWindowDays.toLong() - 1)
         val contributions = entriesWithSets.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
             if (date !in start..today) return@mapNotNull null
-            contribution(record, exerciseMap[record.entry.exerciseId])
+            contribution(record, exerciseMap[record.entry.exerciseStableKey])
         }
         return BadmintonTransferWindowSnapshot(
             windowDays = safeWindowDays,
@@ -42,13 +42,13 @@ class BadmintonTransferScoreCalculator(
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>
     ): BadmintonTransferScoreSnapshot {
-        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+        val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
         val start28 = today.minusDays(BadmintonTransferConstants.BASELINE_WINDOW_DAYS - 1)
         val start7 = today.minusDays(BadmintonTransferConstants.RECENT_WINDOW_DAYS - 1)
         val contributions28 = entriesWithSets.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
             if (date !in start28..today) return@mapNotNull null
-            contribution(record, exerciseMap[record.entry.exerciseId])
+            contribution(record, exerciseMap[record.entry.exerciseStableKey])
         }
         val contributions7 = contributions28.filter { contribution -> contribution.date in start7..today }
 
@@ -90,7 +90,7 @@ class BadmintonTransferScoreCalculator(
 
         return TransferContribution(
             date = date,
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = AnalysisExerciseDisplayNameResolver.resolve(record.entry, exercise, runtimeMetadataCatalog),
             transferType = rawTransferType,
             axes = axes,
@@ -147,11 +147,11 @@ class BadmintonTransferScoreCalculator(
         contributions: List<TransferContribution>
     ): List<BadmintonTransferExerciseStimulus> =
         contributions
-            .groupBy { contribution -> contribution.exerciseId }
+            .groupBy { contribution -> contribution.exerciseStableKey }
             .map { (_, grouped) ->
                 val first = grouped.first()
                 BadmintonTransferExerciseStimulus(
-                    exerciseId = first.exerciseId,
+                    exerciseStableKey = first.exerciseStableKey,
                     exerciseName = first.exerciseName,
                     stimulus = grouped.sumOf { contribution -> contribution.totalStimulus },
                     transferType = grouped.maxByOrNull { contribution ->
@@ -176,7 +176,7 @@ class BadmintonTransferScoreCalculator(
 
     private data class TransferContribution(
         val date: LocalDate,
-        val exerciseId: Long,
+        val exerciseStableKey: String,
         val exerciseName: String,
         val transferType: BadmintonTransferType,
         val axes: Set<BadmintonTransferAxis>,

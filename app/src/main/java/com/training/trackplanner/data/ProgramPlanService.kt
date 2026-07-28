@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 private data class TodayProgramGateContext(
     val date: String,
     val gate: ProgramFatigueGate,
-    val candidatesByExerciseId: Map<Long, ProgramCandidate>
+    val candidatesByExerciseStableKey: Map<String, ProgramCandidate>
 )
 
 internal class ProgramPlanService(
@@ -89,9 +89,9 @@ internal class ProgramPlanService(
         programId: Long,
         weekNumber: Int,
         dayOfWeek: Int,
-        exerciseId: Long
+        exerciseStableKey: String
     ) {
-        val exercise = exerciseDao.findById(exerciseId) ?: return
+        val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return
         val nextOrder = (programDao.itemsForProgramDay(programId, weekNumber, dayOfWeek)
             .maxOfOrNull { it.orderIndex } ?: 0) + 1
         programDao.insertProgramItem(
@@ -100,7 +100,7 @@ internal class ProgramPlanService(
                 weekNumber = weekNumber,
                 dayOfWeek = dayOfWeek,
                 orderIndex = nextOrder,
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 category = exercise.category,
                 restSeconds = exercise.defaultRestSeconds,
@@ -167,9 +167,9 @@ internal class ProgramPlanService(
             TodayProgramGateContext(
                 date = today,
                 gate = fatigueSlotPolicy.gate(gateSnapshot),
-                candidatesByExerciseId = exercises.associate { exercise ->
+                candidatesByExerciseStableKey = exercises.associate { exercise ->
                     val metadata = metadataCatalog.resolve(exercise)
-                    exercise.id to ProgramCandidate(
+                    exercise.stableKey to ProgramCandidate(
                         exercise = exercise,
                         metadata = metadata,
                         canonical = metadata != null,
@@ -191,13 +191,13 @@ internal class ProgramPlanService(
                     item = item,
                     itemDate = itemDate,
                     todayDate = todayGateContext?.date,
-                    candidate = todayGateContext?.candidatesByExerciseId?.get(item.exerciseId),
+                    candidate = todayGateContext?.candidatesByExerciseStableKey?.get(item.exerciseStableKey),
                     gate = todayGateContext?.gate
                 ) ?: return@forEachIndexed
                 val entryId = workoutDao.insertEntry(
                     WorkoutEntry(
                         date = itemDate,
-                        exerciseId = adjustedItem.exerciseId,
+                        exerciseStableKey = adjustedItem.exerciseStableKey,
                         exerciseName = adjustedItem.exerciseName,
                         category = adjustedItem.category,
                         restSeconds = adjustedItem.restSeconds,
@@ -254,7 +254,7 @@ internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): Trainin
         weekNumber = weekNumber,
         dayOfWeek = dayOfWeek,
         orderIndex = orderIndex,
-        exerciseId = exerciseId,
+        exerciseStableKey = exerciseStableKey,
         exerciseName = exerciseName,
         category = category,
         restSeconds = restSeconds,

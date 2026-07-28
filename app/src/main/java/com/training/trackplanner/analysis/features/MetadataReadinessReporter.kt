@@ -4,7 +4,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.MetadataSanityChecker
 
 data class ExerciseReadinessRow(
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val metadataConfidence: String,
     val fatigueReady: ReadinessStatus,
@@ -50,7 +50,7 @@ object MetadataReadinessReporter {
                 ?.map { issue -> "${issue.field}: ${issue.message}" }
                 .orEmpty()
             ExerciseReadinessRow(
-                exerciseId = exercise.id,
+                exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 metadataConfidence = exercise.metadataConfidence,
                 fatigueReady = fatigueReady(exercise, missingFields, suspicious),

@@ -13,39 +13,41 @@ internal class ExerciseMetadataEditorService(
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
     private val seedExercisesByStableKey: () -> Map<String, Exercise>
 ) {
-    suspend fun exerciseEditorData(exerciseId: Long?): ExerciseRuntimeMetadataEditorData {
+    suspend fun exerciseEditorData(exerciseStableKey: String?): ExerciseRuntimeMetadataEditorData {
         val persistedRows = runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         val resolver = RuntimeExerciseMetadataResolver(canonicalRuntimeMetadataCatalog, persistedRows)
         val options = RuntimeMetadataEditorOptions.from(
             canonicalRuntimeMetadataCatalog.all() + persistedRows
         )
-        val exercise = exerciseId?.let { exerciseDao.findById(it) }
+        val exercise = exerciseStableKey?.let { exerciseDao.findByStableKey(it) }
             ?: Exercise(
                 name = "",
                 category = "\uADFC\uB825\uC6B4\uB3D9",
                 stableKey = "",
                 isCustom = true
             )
-        val metadata = if (exerciseId == null) {
+        val metadata = if (exerciseStableKey == null) {
             RuntimeExerciseMetadataDefaults.forIdentity("", "")
         } else {
             resolver.resolve(exercise)
         }
         val copySources = exerciseDao.allExercises()
             .asSequence()
-            .filter { source -> source.id != exercise.id && source.name.isNotBlank() }
+            .filter { source -> source.stableKey != exercise.stableKey && source.name.isNotBlank() }
             .sortedBy { source -> source.name }
             .map { source -> ExerciseMetadataCopySource(source, resolver.resolve(source)) }
             .toList()
         return ExerciseRuntimeMetadataEditorData(exercise, metadata, options, copySources)
     }
 
-    suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): Long {
+    suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): String {
         require(data.exercise.name.isNotBlank()) { "\uC6B4\uB3D9 \uC774\uB984\uC744 \uC785\uB825\uD558\uC138\uC694." }
         require(data.exercise.category.isNotBlank()) { "\uBD84\uB958\uB97C \uC785\uB825\uD558\uC138\uC694." }
         require(data.exercise.defaultRestSeconds in 0..3600) { "\uD734\uC2DD \uC2DC\uAC04\uC740 0~3600\uCD08\uB85C \uC785\uB825\uD558\uC138\uC694." }
         return db.withTransaction {
-            val existing = data.exercise.id.takeIf { it > 0 }?.let { exerciseDao.findById(it) }
+            val existing = data.exercise.stableKey
+                .takeIf(String::isNotBlank)
+                ?.let { exerciseDao.findByStableKey(it) }
             val savedExercise = if (existing == null) {
                 insertUserExerciseWithUniqueKey(data.exercise)
             } else {
@@ -62,20 +64,19 @@ internal class ExerciseMetadataEditorService(
                     safeForSeedMutation = false
                 ).toEntity()
             )
-            savedExercise.id
+            savedExercise.stableKey
         }
     }
 
-    suspend fun resetExerciseMetadataOverride(exerciseId: Long): Boolean =
+    suspend fun resetExerciseMetadataOverride(exerciseStableKey: String): Boolean =
         db.withTransaction {
-            val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction false
+            val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return@withTransaction false
             runtimeExerciseMetadataDao.deleteByStableKey(exercise.stableKey)
             val seed = seedExercisesByStableKey()[ExerciseMetadataOverrideBackupMapper.overrideKey(exercise.stableKey)]
             if (seed != null) {
                 exerciseDao.updateExercise(
                     seed.copy(
-                        id = exercise.id,
-                        stableKey = seed.stableKey,
+                        stableKey = exercise.stableKey,
                         imageAssetName = seed.imageAssetName.ifBlank { exercise.imageAssetName },
                         isActive = exercise.isActive,
                         archivedAt = exercise.archivedAt,
@@ -93,11 +94,11 @@ internal class ExerciseMetadataEditorService(
             runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         ).resolve(exercise)
 
-    suspend fun resolvedRuntimeMetadataByExerciseId(): Map<Long, RuntimeExerciseMetadata> {
+    suspend fun resolvedRuntimeMetadataByExerciseStableKey(): Map<String, RuntimeExerciseMetadata> {
         val exercises = exerciseDao.allExercises()
         val catalog = resolvedRuntimeMetadataCatalog(exercises)
         return exercises.associate { exercise ->
-            exercise.id to (catalog.resolve(exercise) ?: RuntimeExerciseMetadataDefaults.forExercise(exercise))
+            exercise.stableKey to (catalog.resolve(exercise) ?: RuntimeExerciseMetadataDefaults.forExercise(exercise))
         }
     }
 
@@ -109,8 +110,8 @@ internal class ExerciseMetadataEditorService(
             runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         ).catalog(exercises)
 
-    suspend fun setExerciseActive(exerciseId: Long, active: Boolean) {
-        val exercise = exerciseDao.findById(exerciseId) ?: return
+    suspend fun setExerciseActive(exerciseStableKey: String, active: Boolean) {
+        val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return
         exerciseDao.updateExercise(
             exercise.copy(
                 isActive = active,
@@ -119,14 +120,14 @@ internal class ExerciseMetadataEditorService(
         )
     }
 
-    suspend fun deleteExerciseIfUnused(exerciseId: Long): ExerciseDeleteResult =
+    suspend fun deleteExerciseIfUnused(exerciseStableKey: String): ExerciseDeleteResult =
         db.withTransaction {
-            val exercise = exerciseDao.findById(exerciseId) ?: return@withTransaction ExerciseDeleteResult(
+            val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return@withTransaction ExerciseDeleteResult(
                 deleted = false,
                 referenced = false
             )
-            val referenced = workoutDao.countEntriesForExercise(exerciseId) > 0 ||
-                programDao.countProgramItemsForExercise(exerciseId) > 0
+            val referenced = workoutDao.countEntriesForExercise(exerciseStableKey) > 0 ||
+                programDao.countProgramItemsForExercise(exerciseStableKey) > 0
             if (referenced || !exercise.isCustom) {
                 return@withTransaction ExerciseDeleteResult(deleted = false, referenced = true)
             }
@@ -144,15 +145,11 @@ internal class ExerciseMetadataEditorService(
     }
 
     private suspend fun insertUserExerciseWithUniqueKey(draft: Exercise): Exercise {
-        repeat(USER_KEY_RETRY_LIMIT) {
-            val candidate = draft.copy(
-                id = 0,
-                stableKey = uniqueUserExerciseStableKey(),
-                isCustom = true
-            )
-            val id = exerciseDao.insertExercise(candidate)
-            if (id > 0) return candidate.copy(id = id)
-        }
-        error("\uC0AC\uC6A9\uC790 \uC6B4\uB3D9 \uC2DD\uBCC4\uC790\uB97C \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.")
+        val candidate = draft.copy(
+            stableKey = uniqueUserExerciseStableKey(),
+            isCustom = true
+        )
+        exerciseDao.insertExercise(candidate)
+        return candidate
     }
 }

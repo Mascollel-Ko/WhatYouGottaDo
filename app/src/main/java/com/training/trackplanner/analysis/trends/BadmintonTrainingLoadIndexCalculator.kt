@@ -13,7 +13,7 @@ class BadmintonTrainingLoadIndexCalculator(
 ) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): List<BadmintonWeekIndex> {
         val courtRaw = weeks.map { week -> week.entries.courtVolumeRaw(exerciseMap) }
         val footworkRaw = weeks.map { week -> week.entries.footworkReactiveRaw(exerciseMap) }
@@ -55,7 +55,7 @@ class BadmintonTrainingLoadIndexCalculator(
 
     fun dailyLoads(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): List<BadmintonDailyLoadPoint> =
         entriesWithSets
             .filter { record -> record.sets.any { set -> set.confirmed } }
@@ -78,18 +78,18 @@ class BadmintonTrainingLoadIndexCalculator(
 
     fun methodExamples(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        exerciseMap: Map<Long, Exercise>,
-        displayNamesById: Map<Long, String>
+        exerciseMap: Map<String, Exercise>,
+        displayNamesByStableKey: Map<String, String>
     ): Map<String, List<String>> {
         val examples = linkedMapOf<String, MutableList<String>>()
         entriesWithSets
             .filter { record -> record.sets.any { set -> set.confirmed } }
             .forEach { record ->
-                val exercise = exerciseMap[record.entry.exerciseId] ?: return@forEach
+                val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@forEach
                 val features = featuresFor(record, exerciseMap) ?: return@forEach
                 val dose = record.badmintonDose(features)
                 if (dose <= 0.0) return@forEach
-                val name = displayName(record, exercise, displayNamesById)
+                val name = displayName(record, exercise, displayNamesByStableKey)
                 if (name.isBlank()) return@forEach
                 features.transferObjectiveKeys().forEach { key ->
                     val list = examples.getOrPut(key) { mutableListOf() }
@@ -108,7 +108,7 @@ class BadmintonTrainingLoadIndexCalculator(
     }
 
     private fun List<WorkoutEntryWithSets>.courtVolumeRaw(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
@@ -118,7 +118,7 @@ class BadmintonTrainingLoadIndexCalculator(
             ?: 0.0
 
     private fun List<WorkoutEntryWithSets>.footworkReactiveRaw(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
@@ -135,7 +135,7 @@ class BadmintonTrainingLoadIndexCalculator(
             ?: 0.0
 
     private fun List<WorkoutEntryWithSets>.supportRaw(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Double =
         sumOf { record ->
             val features = featuresFor(record, exerciseMap) ?: return@sumOf 0.0
@@ -148,18 +148,18 @@ class BadmintonTrainingLoadIndexCalculator(
             ?: 0.0
 
     private fun List<WorkoutEntryWithSets>.itemScores(
-        exerciseMap: Map<Long, Exercise>
-    ): Map<Long, Double> =
+        exerciseMap: Map<String, Exercise>
+    ): Map<String, Double> =
         associate { record ->
             val features = featuresFor(record, exerciseMap)
             val dose = if (features == null || features.isShuttlePlaySession()) 0.0 else {
                 record.baseDose() * PerformanceTrendConstants.badmintonSupportWeight(features.badmintonTransferStrength)
             }
-            record.entry.exerciseId to dose
+            record.entry.exerciseStableKey to dose
         }.filterValues { value -> value > 0.0 }
 
     private fun List<WorkoutEntryWithSets>.methodRaw(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Map<String, Double> {
         val totals = mutableMapOf<String, Double>()
         forEach { record ->
@@ -194,18 +194,18 @@ class BadmintonTrainingLoadIndexCalculator(
     private fun displayName(
         record: WorkoutEntryWithSets,
         exercise: Exercise,
-        displayNamesById: Map<Long, String>
+        displayNamesByStableKey: Map<String, String>
     ): String =
-        listOf(displayNamesById[exercise.id], record.entry.exerciseName, exercise.name)
+        listOf(displayNamesByStableKey[exercise.stableKey], record.entry.exerciseName, exercise.name)
             .filterNotNull()
             .firstOrNull { name -> !name.matches(Regex("""운동\s*\d+""")) }
             .orEmpty()
 
     private fun featuresFor(
         record: WorkoutEntryWithSets,
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): AnalysisExerciseFeatures? {
-        val exercise = exerciseMap[record.entry.exerciseId] ?: return null
+        val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return null
         return AnalysisFeatureExtractor.fromRecord(
             exercise,
             record.entry,

@@ -235,7 +235,7 @@ data class StrengthWeekIndex(
     val confidence: AnalysisConfidence,
     val rawVolume: Double,
     val effectiveSets: Int,
-    val exerciseScores: Map<Long, Double>,
+    val exerciseScores: Map<String, Double>,
     val patternVolumes: Map<String, Double>
 )
 
@@ -249,7 +249,7 @@ data class BadmintonWeekIndex(
     val courtRaw: Double,
     val footworkReactiveRaw: Double,
     val supportRaw: Double,
-    val itemScores: Map<Long, Double>
+    val itemScores: Map<String, Double>
 )
 
 data class FatigueWeekIndex(
@@ -300,7 +300,7 @@ data class PerformanceTrendSummary(
     val repRangeWeeks: List<RepRangeWeekShare> = emptyList(),
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
     val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
-    val exerciseDisplayNamesById: Map<Long, String> = emptyMap(),
+    val exerciseDisplayNamesByStableKey: Map<String, String> = emptyMap(),
     val proxyPerformanceSummary: ProxyPerformanceSummary? = null,
     val persistentStrengthPerformanceSummary: PersistentStrengthPerformanceSummary? = null
 )

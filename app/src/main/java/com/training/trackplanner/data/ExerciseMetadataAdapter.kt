@@ -108,12 +108,6 @@ class RuntimeExerciseMetadataCatalog private constructor(
     private val byStableKey = metadata
         .filter { it.stableKey.isNotBlank() }
         .associateBy { it.stableKey.catalogLookupKey() }
-    private val byUniqueExerciseName = metadata
-        .filter { it.exerciseName.isNotBlank() }
-        .groupBy { it.exerciseName.catalogLookupKey() }
-        .filterValues { rows -> rows.size == 1 }
-        .mapValues { (_, rows) -> rows.single() }
-
     val size: Int
         get() = byStableKey.size
 
@@ -122,19 +116,8 @@ class RuntimeExerciseMetadataCatalog private constructor(
     fun resolveByStableKey(stableKey: String): RuntimeExerciseMetadata? =
         byStableKey[stableKey.catalogLookupKey()]
 
-    fun resolveLegacyName(exerciseName: String): RuntimeExerciseMetadata? =
-        byUniqueExerciseName[exerciseName.catalogLookupKey()]
-
-    fun resolve(stableKey: String, exerciseName: String, allowNameFallback: Boolean): RuntimeExerciseMetadata? =
-        resolveByStableKey(stableKey)
-            ?: if (allowNameFallback) resolveLegacyName(exerciseName) else null
-
-    fun resolve(exercise: Exercise): RuntimeExerciseMetadata? {
-        resolveByStableKey(exercise.stableKey)?.let { metadata -> return metadata }
-        // Exact unique-name fallback keeps older DB rows analyzable when their preserved stableKey
-        // predates the canonical metadata key. Ambiguous display names intentionally do not match.
-        return resolveLegacyName(exercise.name)
-    }
+    fun resolve(exercise: Exercise): RuntimeExerciseMetadata? =
+        resolveByStableKey(exercise.stableKey)
 
     companion object {
         val EMPTY = RuntimeExerciseMetadataCatalog(emptyList())

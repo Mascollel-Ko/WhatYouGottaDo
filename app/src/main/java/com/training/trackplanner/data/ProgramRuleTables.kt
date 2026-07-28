@@ -83,101 +83,134 @@ internal object ProgramRuleTables {
         }
 
     val mainExercises: Map<ProgramMainArea, List<ProgramExerciseSpec>> = mapOf(
-        ProgramMainArea.LOWER_ANTERIOR to listOf(main("스쿼트", ProgramMainArea.LOWER_ANTERIOR, "main-squat")),
-        ProgramMainArea.LOWER_POSTERIOR to listOf(main("데드리프트", ProgramMainArea.LOWER_POSTERIOR, "main-hinge")),
+        ProgramMainArea.LOWER_ANTERIOR to listOf(
+            main("barbell_back_squat", "스쿼트", ProgramMainArea.LOWER_ANTERIOR, "main-squat")
+        ),
+        ProgramMainArea.LOWER_POSTERIOR to listOf(
+            main("barbell_deadlift", "데드리프트", ProgramMainArea.LOWER_POSTERIOR, "main-hinge")
+        ),
         ProgramMainArea.CHEST to listOf(
-            main("벤치프레스", ProgramMainArea.CHEST, "main-chest"),
-            main("인클라인 벤치프레스", ProgramMainArea.CHEST, "main-chest"),
-            main("덤벨 벤치프레스", ProgramMainArea.CHEST, "main-chest"),
-            main("인클라인 덤벨 벤치프레스", ProgramMainArea.CHEST, "main-chest")
+            main("barbell_bench_press", "벤치프레스", ProgramMainArea.CHEST, "main-chest"),
+            main("ex_3a7d3eda", "덤벨 벤치프레스", ProgramMainArea.CHEST, "main-chest"),
+            main("ex_a61f1e96", "인클라인 덤벨 프레스", ProgramMainArea.CHEST, "main-chest")
         ),
         ProgramMainArea.SHOULDER to listOf(
-            main("덤벨 프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
-            main("케틀벨 프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
-            main("앉아서 하는 오버헤드 프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
-            main("하프닐링 원암 프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
-            main("랜드마인 프레스", ProgramMainArea.SHOULDER, "main-shoulder")
+            main("ex_79f3bdbe", "덤벨 숄더프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
+            main("ex_32219f7a", "오버헤드 프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
+            main("ex_bb4b4276", "등받이 없는 덤벨 시티드 숄더프레스", ProgramMainArea.SHOULDER, "main-shoulder"),
+            main(
+                "half_kneeling_single_arm_dumbbell_press",
+                "하프 닐링 원암 덤벨 프레스",
+                ProgramMainArea.SHOULDER,
+                "main-shoulder"
+            ),
+            main(
+                "half_kneeling_single_arm_kettlebell_press",
+                "하프 닐링 원암 케틀벨 프레스",
+                ProgramMainArea.SHOULDER,
+                "main-shoulder"
+            )
         ),
         ProgramMainArea.BACK to listOf(
-            main("풀업", ProgramMainArea.BACK, "main-back"),
-            main("중량 풀업", ProgramMainArea.BACK, "main-back")
+            main("pull_up", "풀업", ProgramMainArea.BACK, "main-back"),
+            main("ex_e41f4c2b", "중량 풀업", ProgramMainArea.BACK, "main-back")
         )
     )
 
     val pairedAccessories: Map<ProgramMainArea, List<ProgramExerciseSpec>> = mapOf(
         ProgramMainArea.LOWER_ANTERIOR to paired(
             ProgramMainArea.LOWER_ANTERIOR,
-            "스플릿스쿼트",
-            "체어스쿼트",
-            "핵스쿼트",
-            "레그 익스텐션",
-            "프론트 스쿼트"
+            "ex_f2a79d37" to "스플릿 스쿼트",
+            "ex_e9e97659" to "핵 스쿼트",
+            "ex_b78a8f95" to "레그 익스텐션",
+            "ex_c5043892" to "프론트 스쿼트"
         ),
         ProgramMainArea.LOWER_POSTERIOR to paired(
             ProgramMainArea.LOWER_POSTERIOR,
-            "루마니안 데드리프트",
-            "원레그 RDL",
-            "힙쓰러스트",
-            "레그컬 머신"
+            "barbell_romanian_deadlift" to "루마니안 바벨 데드리프트",
+            "dumbbell_romanian_deadlift" to "루마니안 덤벨 데드리프트",
+            "single_leg_rdl" to "원레그 루마니안 데드리프트",
+            "ex_721f7b5b" to "힙 쓰러스트",
+            "ex_2822ec2e" to "레그 컬"
         ),
         ProgramMainArea.CHEST to paired(
             ProgramMainArea.CHEST,
-            "푸시업",
-            "체스트프레스 머신",
-            "플라이",
-            "딥스"
+            "ex_28902b13" to "푸시업",
+            "ex_1dbee10e" to "머신 체스트프레스",
+            "ex_4c779df2" to "케이블 플라이",
+            "ex_6463edad" to "딥스"
         ),
         ProgramMainArea.SHOULDER to paired(
             ProgramMainArea.SHOULDER,
-            "덤벨 래터럴 레이즈",
-            "케틀벨 헤일로",
-            "랜드마인 프레스",
-            "Y레이즈"
+            "ex_93538692" to "덤벨 래터럴 레이즈",
+            "kettlebell_halo" to "케틀벨 헤일로",
+            "face_pull" to "페이스풀"
         ),
         ProgramMainArea.BACK to paired(
             ProgramMainArea.BACK,
-            "랫풀다운",
-            "롱풀 / 케이블로우",
-            "케이블풀다운",
-            "덤벨로우"
+            "ex_dc9e5953" to "랫풀다운",
+            "ex_fa31f7a6" to "케이블 로우",
+            "ex_ca5cce66" to "스트레이트암 풀다운",
+            "ex_30a0e9aa" to "원암 덤벨 로우"
         )
     )
 
     val smallPartAccessories: Map<ProgramSmallPart, List<ProgramExerciseSpec>> = mapOf(
-        ProgramSmallPart.BICEPS to small(ProgramSmallPart.BICEPS, "덤벨컬", "해머컬", "리버스컬"),
-        ProgramSmallPart.TRICEPS to small(ProgramSmallPart.TRICEPS, "오버헤드 케이블 익스텐션"),
-        ProgramSmallPart.FOREARM to small(ProgramSmallPart.FOREARM, "리버스 프로네이션&수피네이션", "리버스컬"),
-        ProgramSmallPart.CALF to small(ProgramSmallPart.CALF, "원레그 카프레이즈", "투레그 카프레이즈")
+        ProgramSmallPart.BICEPS to small(
+            ProgramSmallPart.BICEPS,
+            "ex_281347da" to "덤벨 컬",
+            "ex_2892da5a" to "해머 컬",
+            "ex_dd2f732e" to "리버스 컬"
+        ),
+        ProgramSmallPart.TRICEPS to small(
+            ProgramSmallPart.TRICEPS,
+            "ex_a9e8859c" to "오버헤드 트라이셉스 익스텐션"
+        ),
+        ProgramSmallPart.FOREARM to small(
+            ProgramSmallPart.FOREARM,
+            "ex_f6703b06" to "덤벨 프로네이션/수피네이션",
+            "ex_dd2f732e" to "리버스 컬"
+        ),
+        ProgramSmallPart.CALF to small(
+            ProgramSmallPart.CALF,
+            "ex_5ca7133f" to "원레그 카프 레이즈",
+            "ex_bd072cd" to "스탠딩 카프 레이즈"
+        )
     )
 
     val badmintonAccessories: Map<ProgramBadmintonCategory, List<ProgramExerciseSpec>> = mapOf(
-        ProgramBadmintonCategory.STEP to badminton(ProgramBadmintonCategory.STEP, "6방향 섀도우 풋워크"),
-        ProgramBadmintonCategory.ACCELERATION to badminton(ProgramBadmintonCategory.ACCELERATION, "불가리안백 스타트"),
+        ProgramBadmintonCategory.STEP to badminton(
+            ProgramBadmintonCategory.STEP,
+            "ex_33841b88" to "6코너 풋워크"
+        ),
+        ProgramBadmintonCategory.ACCELERATION to badminton(
+            ProgramBadmintonCategory.ACCELERATION,
+            "medicine_ball_three_step_acceleration_throw" to "메디신볼 3스텝 가속 던지기"
+        ),
         ProgramBadmintonCategory.DECELERATION to badminton(
             ProgramBadmintonCategory.DECELERATION,
-            "래터럴 바운드",
-            "싱글 버니홉",
-            "사이드가속후감속",
-            "좌우 콕줍기",
-            "6방향 콕줍기"
+            "lateral_bound_continuous" to "래터럴 바운드",
+            "ex_314df428" to "원레그 홉 투 스틱",
+            "medicine_ball_three_step_deceleration_throw" to "메디신볼 3스텝 감속 던지기",
+            "ex_421ba24b" to "좌우 랜덤 콕줍기",
+            "ex_bc84eb7f" to "6방향 랜덤 콕줍기"
         ),
         ProgramBadmintonCategory.REACTION to badminton(
             ProgramBadmintonCategory.REACTION,
-            "2방향 랜덤 비프 풋워크 좌우",
-            "2방향 랜덤 비프 풋워크 앞뒤",
-            "스플릿스텝 리액션"
+            "ex_c5f4c242" to "랜덤 비프 풋워크",
+            "ex_8e69fc74" to "스플릿 스텝 리액션"
         ),
         ProgramBadmintonCategory.ANTI_ROTATION to badminton(
             ProgramBadmintonCategory.ANTI_ROTATION,
-            "데드버그",
-            "랜드마인 레인보우",
-            "팔로프 프레스",
-            "바이퍼 로테이션 하→상",
-            "케틀벨 헤일로"
+            "ex_d5bdffe1" to "데드버그",
+            "landmine_anti_rotation" to "랜드마인 안티로테이션",
+            "ex_99728d25" to "팔로프 프레스",
+            "vipr_rotational_lift" to "바이퍼 회전 위로",
+            "kettlebell_halo" to "케틀벨 헤일로"
         ),
         ProgramBadmintonCategory.ROTATION_GENERATION to badminton(
             ProgramBadmintonCategory.ROTATION_GENERATION,
-            "바이퍼 촙 상→하"
+            "vipr_chop" to "바이퍼 회전 아래로"
         )
     )
 
@@ -245,40 +278,58 @@ internal object ProgramRuleTables {
         )
     )
 
-    private fun main(name: String, area: ProgramMainArea, group: String) = ProgramExerciseSpec(
+    private fun main(
+        stableKey: String,
+        name: String,
+        area: ProgramMainArea,
+        group: String
+    ) = ProgramExerciseSpec(
         displayName = name,
         slotType = ProgramAutoSlotType.MAIN,
+        stableKey = stableKey,
         mainArea = area,
         substitutionGroup = group
     )
 
-    private fun paired(area: ProgramMainArea, vararg names: String): List<ProgramExerciseSpec> =
-        names.map {
+    private fun paired(
+        area: ProgramMainArea,
+        vararg exercises: Pair<String, String>
+    ): List<ProgramExerciseSpec> =
+        exercises.map { (stableKey, name) ->
             ProgramExerciseSpec(
-                displayName = it,
+                displayName = name,
                 slotType = ProgramAutoSlotType.STRENGTH_ACCESSORY,
+                stableKey = stableKey,
                 strengthAccessoryClass = ProgramStrengthAccessoryClass.PAIRED_MAIN_ACCESSORY,
                 pairedMainArea = area,
                 substitutionGroup = "paired-${area.name.lowercase()}"
             )
         }
 
-    private fun small(part: ProgramSmallPart, vararg names: String): List<ProgramExerciseSpec> =
-        names.map {
+    private fun small(
+        part: ProgramSmallPart,
+        vararg exercises: Pair<String, String>
+    ): List<ProgramExerciseSpec> =
+        exercises.map { (stableKey, name) ->
             ProgramExerciseSpec(
-                displayName = it,
+                displayName = name,
                 slotType = ProgramAutoSlotType.STRENGTH_ACCESSORY,
+                stableKey = stableKey,
                 strengthAccessoryClass = ProgramStrengthAccessoryClass.SMALL_PART_ACCESSORY,
                 strengthBodyPart = part,
                 substitutionGroup = "small-${part.name.lowercase()}"
             )
         }
 
-    private fun badminton(category: ProgramBadmintonCategory, vararg names: String): List<ProgramExerciseSpec> =
-        names.map {
+    private fun badminton(
+        category: ProgramBadmintonCategory,
+        vararg exercises: Pair<String, String>
+    ): List<ProgramExerciseSpec> =
+        exercises.map { (stableKey, name) ->
             ProgramExerciseSpec(
-                displayName = it,
+                displayName = name,
                 slotType = ProgramAutoSlotType.BADMINTON_ACCESSORY,
+                stableKey = stableKey,
                 badmintonCategory = category,
                 substitutionGroup = "badminton-${category.name.lowercase()}"
             )

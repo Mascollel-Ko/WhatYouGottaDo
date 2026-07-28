@@ -40,17 +40,14 @@ internal class BackupRestoreImportService(
         var skipped = 0
         db.withTransaction {
             val seedByStableKey = seedExercisesByStableKey()
-            val runtimeMetadataRows = data.runtimeMetadataRows.map { metadata ->
-                metadata.copy(stableKey = canonicalImportedStableKey(metadata.stableKey))
-            }
+            val runtimeMetadataRows = data.runtimeMetadataRows
             val restoredRuntimeOverrideKeys = ExerciseMetadataOverrideBackupMapper.overrideKeys(runtimeMetadataRows)
             profileFromRows(data.profileRows)?.let { profile ->
                 initialUserProfileDao.upsert(profile)
                 profileCount = 1
             }
             data.exerciseRows.forEach { row ->
-                val normalized = row.copy(stableKey = canonicalImportedStableKey(row.stableKey))
-                if (upsertRestoredExercise(normalized, seedByStableKey, restoredRuntimeOverrideKeys)) {
+                if (upsertRestoredExercise(row, seedByStableKey, restoredRuntimeOverrideKeys)) {
                     exerciseCount += 1
                 }
             }
@@ -158,14 +155,14 @@ internal class BackupRestoreImportService(
                     val exercise = findOrCreateImportedExercise(
                         first.exerciseName,
                         first.category,
-                        canonicalImportedStableKey(first.stableKey),
+                        first.stableKey,
                         seedByStableKey
                     )
                     val confirmedCount = importedSets.count { row -> row.setConfirmed }
                     val entryId = workoutDao.insertEntry(
                         WorkoutEntry(
                             date = first.date,
-                            exerciseId = exercise.id,
+                            exerciseStableKey = exercise.stableKey,
                             exerciseName = exercise.name,
                             category = first.category,
                             restSeconds = first.restSeconds,
@@ -192,6 +189,7 @@ internal class BackupRestoreImportService(
                     }
                     entryCount += 1
                 }
+            validateRestoredExerciseReferences()
             strengthPosteriorCoordinator.scheduleDerivedResetRebuild()
         }
         skipped += data.posteriorEvents.size +
@@ -291,7 +289,7 @@ internal class BackupRestoreImportService(
                     weekNumber = item.weekNumber,
                     dayOfWeek = item.dayOfWeek,
                     orderIndex = item.orderIndex,
-                    exerciseId = exercise.id,
+                    exerciseStableKey = exercise.stableKey,
                     exerciseName = item.exerciseName.ifBlank { exercise.name },
                     category = item.category.ifBlank { exercise.category },
                     restSeconds = item.restSeconds,
@@ -503,6 +501,22 @@ internal class BackupRestoreImportService(
         return counts
     }
 
+    private suspend fun validateRestoredExerciseReferences() {
+        val exerciseKeys = exerciseDao.allExercises().mapTo(mutableSetOf(), Exercise::stableKey)
+        val invalidEntries = workoutDao.allEntries().filter { entry ->
+            entry.exerciseStableKey.isBlank() || entry.exerciseStableKey !in exerciseKeys
+        }
+        require(invalidEntries.isEmpty()) {
+            "Post-restore workout exercise validation failed: ${invalidEntries.map(WorkoutEntry::id)}"
+        }
+        val invalidProgramItems = programDao.allProgramItems().filter { item ->
+            item.exerciseStableKey.isBlank() || item.exerciseStableKey !in exerciseKeys
+        }
+        require(invalidProgramItems.isEmpty()) {
+            "Post-restore program exercise validation failed: ${invalidProgramItems.map(TrainingProgramItem::id)}"
+        }
+    }
+
     private data class PosteriorRestoreCounts(
         val events: Int = 0,
         val history: Int = 0,
@@ -516,8 +530,6 @@ internal class BackupRestoreImportService(
         val skipped: Int = 0
     )
 
-    private fun canonicalImportedStableKey(stableKey: String): String =
-        if (stableKey.trim() == "imported_배드민턴") "ex_ae9ecdbc" else stableKey
 }
 
 private data class ProgramRestoreCounts(

@@ -161,7 +161,7 @@ object ExerciseMetadataMapper {
         val forceToken: String,
         val planeToken: String,
         val lateralityToken: String,
-        val loadProfileToken: String,
+        val loadProfileTokens: Set<String>,
         val trainingRoleToken: String,
         val sportTransferTokens: Set<String>,
         val primaryMuscleTokens: Set<String>,
@@ -174,7 +174,7 @@ object ExerciseMetadataMapper {
                     candidate == forceToken ||
                     candidate == planeToken ||
                     candidate == lateralityToken ||
-                    candidate == loadProfileToken ||
+                    candidate in loadProfileTokens ||
                     candidate == trainingRoleToken ||
                     candidate in sportTransferTokens ||
                     candidate in primaryMuscleTokens ||
@@ -199,7 +199,7 @@ object ExerciseMetadataMapper {
                     forceToken = seed.forceTypeToken.ifBlank { exercise.forceType },
                     planeToken = seed.planeToken.ifBlank { exercise.plane },
                     lateralityToken = laterality,
-                    loadProfileToken = exercise.loadProfile,
+                    loadProfileTokens = exercise.loadProfile.splitTokens(),
                     trainingRoleToken = exercise.trainingRole,
                     sportTransferTokens = exercise.sportTransferDirect.splitTokens() + exercise.sportTransferSupportive.splitTokens(),
                     primaryMuscleTokens = exercise.primaryMuscles.splitTokens(),
@@ -321,11 +321,11 @@ object ExerciseMetadataMapper {
     }
 
     private fun MetadataSource.toAxialLoadLevel(pattern: MovementPattern): AxialLoadLevel = when {
-        loadProfileToken == "HIGH_AXIAL_LOAD" -> AxialLoadLevel.HIGH
-        loadProfileToken in setOf("LUMBAR_STRESS_HIGH", "HIGH_LOAD") -> AxialLoadLevel.MODERATE
+        "HIGH_AXIAL_LOAD" in loadProfileTokens -> AxialLoadLevel.HIGH
+        loadProfileTokens.any { it in setOf("LUMBAR_STRESS_HIGH", "HIGH_LOAD") } -> AxialLoadLevel.MODERATE
         pattern in setOf(MovementPattern.HINGE, MovementPattern.SQUAT) -> AxialLoadLevel.MODERATE
         pattern == MovementPattern.LUNGE -> AxialLoadLevel.LOW
-        loadProfileToken in setOf("LOW_LOAD", "LOW_AXIAL_LOAD") -> AxialLoadLevel.LOW
+        loadProfileTokens.any { it in setOf("LOW_LOAD", "LOW_AXIAL_LOAD") } -> AxialLoadLevel.LOW
         else -> AxialLoadLevel.NONE
     }
 

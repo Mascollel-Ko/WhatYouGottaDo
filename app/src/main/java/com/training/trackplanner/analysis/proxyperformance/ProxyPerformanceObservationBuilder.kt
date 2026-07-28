@@ -23,7 +23,7 @@ internal object ProxyPerformanceObservationBuilder {
         dailyMetrics: List<DailyMetric>,
         initialProfile: InitialUserProfile? = null
     ): ProxyObservationBuildResult {
-        val exercisesById = exercises.associateBy(Exercise::id)
+        val exercisesById = exercises.associateBy(Exercise::stableKey)
         val bodyWeights = TreeMap<String, Double>().apply {
             dailyMetrics.forEach { metric ->
                 metric.bodyWeightKg?.takeIf { value -> value.isFinite() && value > 0.0 }
@@ -42,7 +42,7 @@ internal object ProxyPerformanceObservationBuilder {
                 )
                 return@mapNotNull null
             }
-            val exercise = exercisesById[entry.exerciseId] ?: return@mapNotNull null
+            val exercise = exercisesById[entry.exerciseStableKey] ?: return@mapNotNull null
             val runtimeMetadata = runtimeMetadataCatalog.resolve(exercise)
             val activityKind = runtimeMetadata?.activityKind?.ifBlank { exercise.activityKind }
                 ?: exercise.activityKind
@@ -90,7 +90,6 @@ internal object ProxyPerformanceObservationBuilder {
                 date = date,
                 performedAt = entry.performedAt,
                 displayOrder = entry.displayOrder,
-                exerciseId = exercise.id,
                 exerciseStableKey = exercise.stableKey,
                 exerciseName = exercise.name,
                 directTarget = directTarget,

@@ -16,7 +16,7 @@ import java.time.LocalDate
 class DailyAnalysisLoadAggregator {
     fun aggregate(
         entriesWithSets: List<WorkoutEntryWithSets>,
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
         dailyMetrics: List<DailyMetric> = emptyList(),
         initialProfile: InitialUserProfile? = null
@@ -24,7 +24,7 @@ class DailyAnalysisLoadAggregator {
         val contributions = entriesWithSets.mapNotNull { entryWithSets ->
             val confirmedSets = entryWithSets.sets.filter { set -> set.confirmed }
             if (confirmedSets.isEmpty()) return@mapNotNull null
-            val exercise = exerciseMap[entryWithSets.entry.exerciseId] ?: return@mapNotNull null
+            val exercise = exerciseMap[entryWithSets.entry.exerciseStableKey] ?: return@mapNotNull null
             val date = runCatching { LocalDate.parse(entryWithSets.entry.date) }.getOrNull()
                 ?: return@mapNotNull null
             val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
@@ -85,7 +85,7 @@ class DailyAnalysisLoadAggregator {
 
             DailyLoadContribution(
                 date = date,
-                exerciseId = features.exerciseId,
+                exerciseStableKey = features.exerciseStableKey,
                 entryId = entryWithSets.entry.id,
                 exerciseName = features.exerciseName,
                 recoveryDecayProfile = features.recoveryDecayProfile.ifBlank { "SHORT" },

@@ -21,7 +21,7 @@ class TodayReadinessEngine(
     private val fatiguePresentationMapper: FatiguePresentationMapper = FatiguePresentationMapper()
 ) {
     fun analyze(input: TodayReadinessEngineInput): TodayReadinessSummary {
-        val exerciseMap = input.exercises.associateBy { exercise -> exercise.id }
+        val exerciseMap = input.exercises.associateBy { exercise -> exercise.stableKey }
         val completedEntriesUntilToday = input.entriesWithSets.filter { record ->
             val date = runCatching { java.time.LocalDate.parse(record.entry.date) }.getOrNull()
             date != null && date <= input.today && record.sets.any { set -> set.confirmed }

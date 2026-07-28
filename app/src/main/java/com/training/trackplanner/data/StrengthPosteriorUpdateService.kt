@@ -47,7 +47,7 @@ class StrengthPosteriorEventProcessor(
         return runCatching {
             val date = LocalDate.parse(event.sessionDate)
             val records = workoutDao.entriesWithSets(event.sessionDate)
-            val exercises = exerciseDao.allExercises().associateBy(Exercise::id)
+            val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
             val currentFingerprint = StrengthCompletionFingerprint.forRevision(
                 event.revisionKey,
                 StrengthCompletionFingerprint.build(event.sessionDate, records, exercises)
@@ -73,7 +73,7 @@ class StrengthPosteriorEventProcessor(
                     ).toPosterior()
             }
             val observations = records.mapNotNull { record ->
-                val exercise = exercises[record.entry.exerciseId] ?: return@mapNotNull null
+                val exercise = exercises[record.entry.exerciseStableKey] ?: return@mapNotNull null
                 val theta = curvePosteriors["exercise:${exercise.stableKey}"]?.meanTheta
                     ?: curvePosteriors["global:user-strength-endurance"]?.meanTheta
                     ?: 0.0
@@ -380,7 +380,7 @@ class StrengthPosteriorUpdateCoordinator(
         val key = sessionKey(date)
         posteriorDao.eventBySessionKeyAndRevision(key, revisionKey)?.let { existing -> return existing.eventUuid }
         val records = workoutDao.entriesWithSets(date)
-        val exercises = exerciseDao.allExercises().associateBy(Exercise::id)
+        val exercises = exerciseDao.allExercises().associateBy(Exercise::stableKey)
         val completionFingerprint = StrengthCompletionFingerprint.forRevision(
             revisionKey,
             StrengthCompletionFingerprint.build(date, records, exercises)
@@ -426,20 +426,20 @@ object StrengthCompletionFingerprint {
     fun build(
         date: String,
         records: List<WorkoutEntryWithSets>,
-        exercisesById: Map<Long, Exercise>
+        exercisesById: Map<String, Exercise>
     ): String {
         val values = mutableListOf("strength-completion-fingerprint-v1", date)
         records.sortedWith(
             compareBy<WorkoutEntryWithSets> { record -> record.entry.performedAt ?: Long.MIN_VALUE }
                 .thenBy { record -> record.entry.displayOrder }
-                .thenBy { record -> exercisesById[record.entry.exerciseId]?.stableKey.orEmpty() }
+                .thenBy { record -> exercisesById[record.entry.exerciseStableKey]?.stableKey.orEmpty() }
                 .thenBy { record -> record.entry.createdAt }
         ).forEachIndexed { entryIndex, record ->
             val confirmed = record.sets.filter(WorkoutSet::confirmed).sortedWith(
                 compareBy(WorkoutSet::setIndex, WorkoutSet::reps, WorkoutSet::weightKg, WorkoutSet::seconds)
             )
             if (confirmed.isEmpty()) return@forEachIndexed
-            values += exercisesById[record.entry.exerciseId]?.stableKey ?: "missing-exercise:${record.entry.exerciseId}"
+            values += exercisesById[record.entry.exerciseStableKey]?.stableKey ?: "missing-exercise:${record.entry.exerciseStableKey}"
             values += entryIndex.toString()
             values += record.entry.rpe?.toBits()?.toString().orEmpty()
             confirmed.forEachIndexed { setIndex, set ->

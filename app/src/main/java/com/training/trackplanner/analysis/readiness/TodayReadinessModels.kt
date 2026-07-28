@@ -91,7 +91,7 @@ data class TodayReadinessSummary(
 
 data class DailyLoadContribution(
     val date: LocalDate,
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val entryId: Long,
     val exerciseName: String,
     val recoveryDecayProfile: String,

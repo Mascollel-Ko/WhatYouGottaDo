@@ -45,7 +45,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     var editorData by remember { mutableStateOf<ExerciseRuntimeMetadataEditorData?>(null) }
     var managementMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(exercises.map { it.id to it.stableKey }) {
+    LaunchedEffect(exercises.map(Exercise::stableKey)) {
         if (exercises.isNotEmpty()) viewModel.refreshExerciseRuntimeMetadata()
     }
 
@@ -85,7 +85,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
             broadAndSearchFiltered.filter { exercise ->
                 selectedSubcategory in ExerciseSubcategoryMapper.categoriesFor(
                     exercise,
-                    runtimeMetadataById[exercise.id]
+                    runtimeMetadataById[exercise.stableKey]
                 )
             }
         }
@@ -99,7 +99,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteExerciseIfUnused(exercise.id) { deleted ->
+                        viewModel.deleteExerciseIfUnused(exercise.stableKey) { deleted ->
                             managementMessage = if (deleted) {
                                 "운동을 삭제했습니다."
                             } else {
@@ -124,10 +124,10 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
         ExerciseInfoDialog(
             exercise = exercise,
             onDismiss = { detailCandidate = null },
-            metadata = runtimeMetadataById[exercise.id],
+            metadata = runtimeMetadataById[exercise.stableKey],
             onEditMetadata = {
                 detailCandidate = null
-                viewModel.loadExerciseEditor(exercise.id) { editorData = it }
+                viewModel.loadExerciseEditor(exercise.stableKey) { editorData = it }
             }
         )
     }
@@ -147,7 +147,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                 }
             },
             onReset = {
-                viewModel.resetExerciseMetadataOverride(data.exercise.id) { result ->
+                viewModel.resetExerciseMetadataOverride(data.exercise.stableKey) { result ->
                     result.onSuccess {
                         managementMessage = "메타데이터 기본값으로 되돌렸습니다."
                         editorData = null
@@ -244,7 +244,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                 }
             }
         } else {
-            items(filtered, key = { it.id }) { exercise ->
+            items(filtered, key = Exercise::stableKey) { exercise ->
                 ExerciseListItem(
                     exercise = exercise,
                     selected = false,
@@ -254,7 +254,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = {
-                                viewModel.setExerciseActive(exercise.id, !exercise.isActive)
+                                viewModel.setExerciseActive(exercise.stableKey, !exercise.isActive)
                                 managementMessage = if (exercise.isActive) {
                                     "운동을 숨겼습니다."
                                 } else {
@@ -268,7 +268,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                             Text("삭제")
                         }
                         OutlinedButton(
-                            onClick = { viewModel.loadExerciseEditor(exercise.id) { editorData = it } }
+                            onClick = { viewModel.loadExerciseEditor(exercise.stableKey) { editorData = it } }
                         ) {
                             Text("수정")
                         }

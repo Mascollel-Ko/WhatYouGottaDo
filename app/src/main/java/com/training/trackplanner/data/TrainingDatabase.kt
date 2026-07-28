@@ -19,6 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TrainingProgram::class,
         TrainingProgramItem::class,
         TrainingProgramTombstone::class,
+        ExerciseIdentityMigrationIssue::class,
         AppMeta::class,
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class,
@@ -32,12 +33,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
 abstract class TrainingDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao
+    abstract fun exerciseIdentityMigrationIssueDao(): ExerciseIdentityMigrationIssueDao
     abstract fun workoutDao(): WorkoutDao
     abstract fun programDao(): ProgramDao
     abstract fun dailyMetricDao(): DailyMetricDao
@@ -831,7 +833,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_20_21,
                         MIGRATION_21_22,
                         MIGRATION_22_23,
-                        MIGRATION_23_24
+                        MIGRATION_23_24,
+                        MIGRATION_24_25
                     )
                     .build()
                     .also { instance = it }

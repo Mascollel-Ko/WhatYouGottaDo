@@ -480,7 +480,7 @@ private fun PerformanceDetailSectionView(section: PerformanceDetailSection, summ
             mode,
             selectedMetrics.toList(),
             summary.badmintonWeeks,
-            summary.exerciseDisplayNamesById
+            summary.exerciseDisplayNamesByStableKey
         )
         PerformanceDetailSectionType.FATIGUE -> chartBuilder.fatigueDetail(mode, selectedMetrics.toList(), summary.fatigueWeeks)
         PerformanceDetailSectionType.RELATIONSHIP -> return

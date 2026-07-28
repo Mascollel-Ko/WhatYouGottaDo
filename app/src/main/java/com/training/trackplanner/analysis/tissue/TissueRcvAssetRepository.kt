@@ -261,12 +261,12 @@ class TissueRcvAssetRepository private constructor(
 
 object TissueRcvAssetValidator {
     fun requireValid(catalog: TissueRcvCatalog) {
-        require(catalog.exerciseStableKeys.size == 239) { "Expected 239 exercise stable keys." }
-        require(catalog.authorityRows.size == 3507) { "Expected 3,507 authority score rows." }
-        require(catalog.authorityRows.map { it.exerciseStableKey }.toSet().size == 238) {
+        require(catalog.exerciseStableKeys.size == 224) { "Expected 224 exercise stable keys." }
+        require(catalog.authorityRows.size == 3224) { "Expected 3,224 authority score rows." }
+        require(catalog.authorityRows.map { it.exerciseStableKey }.toSet().size == 223) {
             "Exactly one generic exercise must remain without an authority score."
         }
-        require(catalog.protocols.size == 239) { "Expected 239 exercise protocol mappings." }
+        require(catalog.protocols.size == 224) { "Expected 224 exercise protocol mappings." }
         require(catalog.protocolClasses.size == 50) { "Expected 50 protocol classes." }
         require(catalog.diProfiles.size == 13) { "Expected 13 D/I profiles." }
         require(catalog.curves.size == 21 && catalog.curves.values.sumOf { it.knots.size } == 114) {

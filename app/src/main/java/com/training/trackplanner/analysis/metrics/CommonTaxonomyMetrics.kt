@@ -39,7 +39,7 @@ object CommonTaxonomyMetrics {
         selector: AnalysisExerciseMetadata.() -> String
     ): Map<String, Int> =
         groupBy { entry ->
-            input.exerciseMetadataMap[entry.exerciseId]?.selector().orUnknown()
+            input.exerciseMetadataMap[entry.exerciseStableKey]?.selector().orUnknown()
         }.mapValues { (_, entries) -> entries.sumOf { it.sets.size } }
 
     private fun List<AnalysisEntry>.tokenDistribution(
@@ -48,7 +48,7 @@ object CommonTaxonomyMetrics {
     ): Map<String, Int> {
         val result = linkedMapOf<String, Int>()
         forEach { entry ->
-            val tokens = input.exerciseMetadataMap[entry.exerciseId]
+            val tokens = input.exerciseMetadataMap[entry.exerciseStableKey]
                 ?.selector()
                 .tokensOrUnknown()
             tokens.forEach { token ->
@@ -63,7 +63,7 @@ object CommonTaxonomyMetrics {
     ): Map<String, Int> {
         val result = linkedMapOf<String, Int>()
         forEach { entry ->
-            val metadata = input.exerciseMetadataMap[entry.exerciseId]
+            val metadata = input.exerciseMetadataMap[entry.exerciseStableKey]
             val tokens = listOf(
                 metadata?.sportTransferDirect,
                 metadata?.sportTransferSupportive

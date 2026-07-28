@@ -35,11 +35,11 @@ class DailyFatigueCalculator(
         initialProfile: InitialUserProfile?,
         dailyMetrics: List<DailyMetric> = emptyList()
     ): List<DailyFatigueResult> {
-        val exerciseMap = exercises.associateBy { it.id }
+        val exerciseMap = exercises.associateBy(Exercise::stableKey)
         val records = entriesWithSets.mapNotNull { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@mapNotNull null
             val confirmedSets = record.sets.filter { it.confirmed }
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@mapNotNull null
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
             if (confirmedSets.isEmpty()) return@mapNotNull null
             val metadata = ResolvedFatigueMetadata.from(exercise, metadataCatalog.resolve(exercise))
             RecordContext(

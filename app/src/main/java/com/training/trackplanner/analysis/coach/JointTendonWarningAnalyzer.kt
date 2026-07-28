@@ -60,13 +60,13 @@ class JointTendonWarningAnalyzer {
         exercises: List<Exercise>,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
     ): List<String> {
-        val exerciseById = exercises.associateBy { it.id }
+        val exerciseById = exercises.associateBy(Exercise::stableKey)
         return entriesWithSets.asSequence()
             .filter { record -> record.sets.any { it.confirmed } }
             .filter { record ->
                 runCatching { LocalDate.parse(record.entry.date) }.getOrNull()?.let { it in start..today } == true
             }
-            .mapNotNull { record -> exerciseById[record.entry.exerciseId] }
+            .mapNotNull { record -> exerciseById[record.entry.exerciseStableKey] }
             .mapNotNull { exercise -> runtimeMetadataCatalog.resolve(exercise) }
             .filter { metadata -> metadata.hasJointTendonStress() }
             .flatMap { metadata -> metadata.jointStressTokens().asSequence() }

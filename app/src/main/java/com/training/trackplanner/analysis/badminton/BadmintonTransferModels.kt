@@ -41,7 +41,7 @@ enum class BadmintonTransferDetailChartMode(val displayName: String) {
 }
 
 data class BadmintonTransferExerciseStimulus(
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val stimulus: Double,
     val transferType: BadmintonTransferType,

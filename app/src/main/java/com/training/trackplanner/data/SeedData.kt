@@ -1,8 +1,6 @@
 package com.training.trackplanner.data
 
 import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
 import java.util.Locale
 
 data class ProgramSeed(
@@ -16,6 +14,7 @@ data class ProgramItemSeed(
     val weekNumber: Int,
     val dayOfWeek: Int,
     val orderIndex: Int,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int,
@@ -28,7 +27,6 @@ data class ProgramItemSeed(
 
 object SeedData {
     private const val SETTINGS_SEED_ASSET = "training_settings_seed.csv"
-    private const val EXERCISE_SEED_ASSET = "exercises_seed.json"
     private const val EXERCISE_IMAGE_MAPPING_ASSET = "exercise_image_mapping.csv"
 
     fun exercises(context: Context): List<Exercise> {
@@ -59,8 +57,9 @@ object SeedData {
         return rows
             .filter { row -> row["row_type"] == "exercise" }
             .mapNotNull { row ->
-                val name = normalizedExerciseName(row.value("exercise_name"))
-                val stableKey = row.value("stable_key").ifBlank { stableKeyFor(name) }
+                val name = row.value("exercise_name")
+                val stableKey = row.value("stable_key")
+                require(stableKey.isNotBlank()) { "Built-in exercise '$name' is missing stable_key." }
                 val generated = generatedByStableKey[stableKey.normalizedSeedKey()] ?: return@mapNotNull null
                 stableKey.normalizedSeedKey() to generated.copy(
                     primaryMuscles = row.value("primary_muscles"),
@@ -118,74 +117,12 @@ object SeedData {
             }
         }
 
-    private fun exercisesFromJson(
-        context: Context,
-        imageMappings: List<ExerciseImageMapping>
-    ): List<Exercise> =
-        context.assets.open(EXERCISE_SEED_ASSET).bufferedReader(Charsets.UTF_8).use { reader ->
-            val root = JSONObject(reader.readText())
-            val exercises = root.optJSONArray("exercises") ?: JSONArray()
-            (0 until exercises.length())
-                .map { index -> exerciseFromJson(exercises.getJSONObject(index), imageMappings) }
-                .also(::validateCatalog)
-        }
-
-    private fun exerciseFromJson(
-        item: JSONObject,
-        imageMappings: List<ExerciseImageMapping>
-    ): Exercise {
-        val name = item.optString("name").ifBlank { item.optString("exerciseName") }
-        val category = item.optString("category")
-        val patternTokens = item.stringList("movementPattern").toSet()
-        val stableKey = item.optString("stableKey").ifBlank { stableKeyFor(name) }
-        val base = Exercise(
-            name = name,
-            category = category,
-            detail1 = item.optString("detail1"),
-            detail2 = item.optString("detail2"),
-            mode = item.optString("mode"),
-            description = item.optString("description"),
-            defaultRestSeconds = item.optInt("defaultRestSeconds", 60),
-            familyId = item.optString("familyId").ifBlank { familyIdFor(name, category) },
-            familyName = item.optString("familyName").ifBlank { familyIdFor(name, category).replace('_', ' ') },
-            familyRole = canonicalFamilyRole(item.optString("familyRole")),
-            familyE1rmMultiplier = item.optDoubleOrNull("familyE1rmMultiplier") ?: 1.0,
-            stableKey = stableKey,
-            movementPattern = ExerciseTaxonomy.list(patternTokens.joinToString(","), ExerciseTaxonomy.movementPatterns, "movementPattern"),
-            movementCategory = ExerciseTaxonomy.single(item.firstString("movementCategory"), ExerciseTaxonomy.movementCategories, "movementCategory"),
-            primaryMuscles = ExerciseTaxonomy.list(item.stringList("primaryMuscles").joinToString(","), ExerciseTaxonomy.muscles, "primaryMuscles"),
-            secondaryMuscles = ExerciseTaxonomy.list(item.stringList("secondaryMuscles").joinToString(","), ExerciseTaxonomy.muscles, "secondaryMuscles"),
-            equipment = ExerciseTaxonomy.list(item.stringList("equipment").joinToString(","), ExerciseTaxonomy.equipment, "equipment"),
-            equipmentTags = ExerciseTaxonomy.list(item.stringList("equipmentTags").joinToString(","), ExerciseTaxonomy.equipment, "equipmentTags"),
-            forceType = ExerciseTaxonomy.single(item.firstString("forceType"), ExerciseTaxonomy.forceTypes, "forceType"),
-            bodyRegion = ExerciseTaxonomy.single(item.firstString("bodyRegion"), ExerciseTaxonomy.bodyRegions, "bodyRegion"),
-            plane = item.firstString("plane"),
-            laterality = item.firstString("laterality"),
-            trainingRole = ExerciseTaxonomy.single(item.firstString("trainingRole"), ExerciseTaxonomy.trainingRoles, "trainingRole"),
-            stabilityRoles = ExerciseTaxonomy.list(item.stringList("stabilityRoles").joinToString(","), ExerciseTaxonomy.stabilityRoles, "stabilityRoles"),
-            sportTransferDirect = ExerciseTaxonomy.list(item.stringList("sportTransferDirect").joinToString(","), ExerciseTaxonomy.sportTransferDirect, "sportTransferDirect"),
-            sportTransferSupportive = ExerciseTaxonomy.list(item.stringList("sportTransferSupportive").joinToString(","), ExerciseTaxonomy.sportTransferSupportive, "sportTransferSupportive"),
-            accessoryRoles = ExerciseTaxonomy.list(item.stringList("accessoryRoles").joinToString(","), ExerciseTaxonomy.accessoryRoles, "accessoryRoles"),
-            loadProfile = ExerciseTaxonomy.single(item.firstString("loadProfile"), ExerciseTaxonomy.loadProfiles, "loadProfile"),
-            metadataConfidence = item.optString("metadataConfidence").ifBlank { MetadataConfidence.LOW.name }
-        )
-        return ExerciseMetadataMapper.applySeedMetadata(
-            exercise = base,
-            source = SeedMetadataSource(
-                movementPatternTokens = patternTokens,
-                movementCategoryToken = item.firstString("movementCategory"),
-                forceTypeToken = item.firstString("forceType"),
-                planeToken = item.firstString("plane"),
-                isUnilateral = item.optBooleanOrNull("isUnilateral")
-            )
-        ).withRecoveredImage(imageMappings)
-    }
-
     private fun programItemFromCsv(row: Map<String, String>): ProgramItemSeed =
         ProgramItemSeed(
             weekNumber = row.value("week_number").toIntOrNull() ?: 1,
             dayOfWeek = row.value("day_of_week").toIntOrNull() ?: 1,
             orderIndex = row.value("order_index").toIntOrNull() ?: 1,
+            exerciseStableKey = row.value("stable_key"),
             exerciseName = row.value("exercise_name"),
             category = row.value("category"),
             restSeconds = row.value("rest_seconds").toIntOrNull()
@@ -202,8 +139,7 @@ object SeedData {
         row: Map<String, String>,
         imageMappings: List<ExerciseImageMapping>
     ): Exercise {
-        val originalName = row.value("exercise_name")
-        val name = normalizedExerciseName(originalName)
+        val name = row.value("exercise_name")
         val category = row.value("category")
         val detail1 = row.value("detail1")
         val detail2 = row.value("detail2")
@@ -214,11 +150,16 @@ object SeedData {
         val rest = row.value("default_rest_seconds").toIntOrNull() ?: 60
         val sourceText = listOf(name, category, detail1, detail2, mode, description).joinToString(" ")
         val familyId = row.value("family_id").ifBlank { familyIdFor(name, category) }
-        val muscles = musclesFor(detail1, category, sourceText)
-        val secondaryMuscles = musclesFor(detail2, category, sourceText)
-            .filterNot { it in muscles }
-            .ifEmpty { fallbackSecondaryMuscles(category, muscles) }
-        val equipment = equipmentFor(sourceText)
+        val muscles = row.value("primary_muscles").canonicalTokens(ExerciseTaxonomy.muscles)
+            .ifEmpty { musclesFor(detail1, category, sourceText) }
+        val secondaryMuscles = row.value("secondary_muscles").canonicalTokens(ExerciseTaxonomy.muscles)
+            .ifEmpty {
+                musclesFor(detail2, category, sourceText)
+                    .filterNot { it in muscles }
+                    .ifEmpty { fallbackSecondaryMuscles(category, muscles) }
+            }
+        val equipment = row.value("equipment_tags").canonicalTokens(ExerciseTaxonomy.equipment)
+            .ifEmpty { equipmentFor(sourceText) }
         val movementPattern = movementPatternFor(name, category, sourceText)
         val forceType = forceTypeFor(name, category, sourceText, movementPattern)
         val bodyRegion = bodyRegionFor(category, muscles, secondaryMuscles, sourceText)
@@ -245,7 +186,9 @@ object SeedData {
             familyName = row.value("family_name").ifBlank { familyId.replace('_', ' ') },
             familyRole = canonicalFamilyRole(row.value("family_role")),
             familyE1rmMultiplier = row.value("family_e1rm_multiplier").toDoubleOrNull() ?: 1.0,
-            stableKey = row.value("stable_key").ifBlank { stableKeyFor(name) },
+            stableKey = row.value("stable_key").also { stableKey ->
+                require(stableKey.isNotBlank()) { "Built-in exercise '$name' is missing stable_key." }
+            },
             movementPattern = ExerciseTaxonomy.single(movementPattern, ExerciseTaxonomy.movementPatterns, "movementPattern"),
             movementCategory = ExerciseTaxonomy.single(movementCategoryFor(category), ExerciseTaxonomy.movementCategories, "movementCategory"),
             primaryMuscles = ExerciseTaxonomy.list(muscles.joinToString(","), ExerciseTaxonomy.muscles, "primaryMuscles"),
@@ -254,12 +197,20 @@ object SeedData {
             forceType = ExerciseTaxonomy.single(forceType, ExerciseTaxonomy.forceTypes, "forceType"),
             bodyRegion = ExerciseTaxonomy.single(bodyRegion, ExerciseTaxonomy.bodyRegions, "bodyRegion"),
             laterality = ExerciseTaxonomy.single(laterality, ExerciseTaxonomy.lateralities, "laterality"),
-            trainingRole = ExerciseTaxonomy.single(trainingRole, ExerciseTaxonomy.trainingRoles, "trainingRole"),
+            trainingRole = row.value("training_role").ifBlank {
+                ExerciseTaxonomy.single(trainingRole, ExerciseTaxonomy.trainingRoles, "trainingRole")
+            },
             stabilityRoles = ExerciseTaxonomy.list(stabilityRoles.joinToString(","), ExerciseTaxonomy.stabilityRoles, "stabilityRoles"),
-            sportTransferDirect = ExerciseTaxonomy.list(sportTransferDirect.joinToString(","), ExerciseTaxonomy.sportTransferDirect, "sportTransferDirect"),
-            sportTransferSupportive = ExerciseTaxonomy.list(sportTransferSupportive.joinToString(","), ExerciseTaxonomy.sportTransferSupportive, "sportTransferSupportive"),
+            sportTransferDirect = row.value("sport_transfer_direct").ifBlank {
+                ExerciseTaxonomy.list(sportTransferDirect.joinToString(","), ExerciseTaxonomy.sportTransferDirect, "sportTransferDirect")
+            },
+            sportTransferSupportive = row.value("sport_transfer_supportive").ifBlank {
+                ExerciseTaxonomy.list(sportTransferSupportive.joinToString(","), ExerciseTaxonomy.sportTransferSupportive, "sportTransferSupportive")
+            },
             accessoryRoles = ExerciseTaxonomy.list(accessoryRoles.joinToString(","), ExerciseTaxonomy.accessoryRoles, "accessoryRoles"),
-            loadProfile = ExerciseTaxonomy.single(loadProfile, ExerciseTaxonomy.loadProfiles, "loadProfile"),
+            loadProfile = row.value("load_profile").ifBlank {
+                ExerciseTaxonomy.single(loadProfile, ExerciseTaxonomy.loadProfiles, "loadProfile")
+            },
             metadataConfidence = ExerciseTaxonomy.single(
                 metadataConfidenceFor(name, sportTransferDirect),
                 ExerciseTaxonomy.metadataConfidence,
@@ -299,16 +250,7 @@ object SeedData {
             ActivityKind.DAILY_METRIC_ONLY -> PlanningEligibility.ANALYSIS_ONLY
         }
 
-    private fun normalizedExerciseName(name: String): String = when (name) {
-        "배드민턴" -> "배드민턴 경기 기록"
-        "래터럴 바운드" -> "래터럴 바운드 투 스틱"
-        "싱글 레그 홉 앤 스틱" -> "홉 투 스틱"
-        "6코너 섀도우 풋워크" -> "6코너 풋워크"
-        "싱글 레그 RDL" -> "원레그 RDL"
-        else -> name
-    }
-
-    private fun parseCsvLine(line: String): List<String> {
+    internal fun parseCsvLine(line: String): List<String> {
         val values = mutableListOf<String>()
         val current = StringBuilder()
         var inQuotes = false
@@ -390,28 +332,6 @@ object SeedData {
             assets.open(name).close()
             true
         }.getOrDefault(false)
-
-    private fun JSONObject.firstString(key: String): String =
-        stringList(key).firstOrNull().orEmpty()
-
-    private fun JSONObject.stringList(key: String): List<String> {
-        val value = opt(key) ?: return emptyList()
-        return when (value) {
-            is JSONArray -> (0 until value.length()).mapNotNull { index ->
-                value.optString(index).trim().takeIf { item -> item.isNotBlank() }
-            }
-            is String -> value.split('|', ',', '/', ';')
-                .map { item -> item.trim() }
-                .filter { item -> item.isNotBlank() }
-            else -> emptyList()
-        }
-    }
-
-    private fun JSONObject.optDoubleOrNull(key: String): Double? =
-        if (has(key) && !isNull(key)) optDouble(key) else null
-
-    private fun JSONObject.optBooleanOrNull(key: String): Boolean? =
-        if (has(key) && !isNull(key)) optBoolean(key) else null
 
     private fun String.normalizedForMapping(): String =
         trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), "")
@@ -727,27 +647,27 @@ object SeedData {
             name.contains("풋워크") || name.contains("콕줍기") -> "badminton_footwork"
             category == "유산소운동" -> "cardio"
             category == "스포츠" -> "sport"
-            else -> stableKeyFor(name)
+            else -> nameFamilyKey(name)
         }
     }
 
-    private fun stableKeyFor(name: String): String =
+    private fun nameFamilyKey(name: String): String =
         name.lowercase(Locale.ROOT)
             .replace(Regex("[^a-z0-9가-힣]+"), "_")
             .trim('_')
 
     private fun validateCatalog(exercises: List<Exercise>) {
-        val requiredNames = setOf(
-            "스쿼트",
-            "벤치프레스",
-            "풀업",
-            "데드리프트",
-            "런지",
-            "원레그 RDL",
-            "래터럴 바운드 투 스틱",
-            "홉 투 스틱",
-            "6코너 풋워크",
-            "배드민턴 경기 기록"
+        val requiredStableKeys = setOf(
+            "barbell_back_squat",
+            "barbell_bench_press",
+            "pull_up",
+            "barbell_deadlift",
+            "ex_64644b5e",
+            "single_leg_rdl",
+            "ex_34e7d21",
+            "ex_314df428",
+            "ex_33841b88",
+            "ex_ae9ecdbc"
         )
         val requiredCategories = setOf("근력운동", "기능성운동", "유산소운동", "스포츠")
         val engineFields = exercises.flatMap { exercise ->
@@ -796,7 +716,7 @@ object SeedData {
         require(exercises.map { it.stableKey }.distinct().size == exercises.size) {
             "Seed catalog contains duplicate stable keys."
         }
-        require(exercises.map { it.name }.containsAll(requiredNames)) {
+        require(exercises.map { it.stableKey }.containsAll(requiredStableKeys)) {
             "Seed catalog is missing required Phase 1 exercises."
         }
         require(exercises.map { it.category }.toSet().containsAll(requiredCategories)) {
@@ -815,6 +735,9 @@ object SeedData {
             .map { value -> value.trim().uppercase(Locale.ROOT) }
             .filter { value -> value.isNotEmpty() && value != "NONE" }
             .toSet()
+
+    private fun String.canonicalTokens(allowed: Set<String>): List<String> =
+        splitSeedTokens().filter { token -> token in allowed }
 
     private fun String.toBooleanFlagOrNull(): Boolean? = when (trim()) {
         "1", "true", "TRUE" -> true

@@ -18,7 +18,7 @@ class AnalysisInputCollector(
         val windows = AnalysisWindows.from(today)
         val exerciseMetadata = db.exerciseDao()
             .allExercises()
-            .associate { exercise -> exercise.id to exercise.toAnalysisMetadata() }
+            .associate { exercise -> exercise.stableKey to exercise.toAnalysisMetadata() }
 
         val completedEntries = db.workoutDao()
             .entriesWithSetsUntil(todayString)
@@ -71,7 +71,7 @@ class AnalysisInputCollector(
         AnalysisEntry(
             entryId = entry.id,
             date = date,
-            exerciseId = entry.exerciseId,
+            exerciseStableKey = entry.exerciseStableKey,
             exerciseName = entry.exerciseName,
             category = entry.category,
             restSeconds = entry.restSeconds,
@@ -95,7 +95,7 @@ class AnalysisInputCollector(
     private fun Exercise.toAnalysisMetadata(): AnalysisExerciseMetadata {
         val runtime = runtimeMetadataCatalog.resolve(this)
         return AnalysisExerciseMetadata(
-            exerciseId = id,
+            exerciseStableKey = stableKey,
             stableKey = stableKey,
             activityKind = runtime?.activityKind?.takeIf { it.isNotBlank() } ?: activityKind,
             planningEligibility = runtime?.planningEligibility

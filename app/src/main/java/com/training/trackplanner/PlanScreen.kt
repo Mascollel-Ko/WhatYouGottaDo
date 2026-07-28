@@ -806,7 +806,7 @@ private fun skeletonFromProgram(
                 weekNumber = item.weekNumber,
                 dayOfWeek = item.dayOfWeek,
                 orderIndex = item.orderIndex,
-                exerciseId = item.exerciseId,
+                exerciseStableKey = item.exerciseStableKey,
                 exerciseName = item.exerciseName,
                 category = item.category,
                 restSeconds = item.restSeconds,

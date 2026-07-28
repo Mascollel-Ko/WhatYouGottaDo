@@ -120,7 +120,7 @@ internal class ProgramSlotAllocator {
             weekNumber = context.weekNumber,
             dayOfWeek = context.dayOfWeek,
             orderIndex = orderIndex,
-            exerciseId = resolved.exerciseId,
+            exerciseStableKey = resolved.exerciseStableKey,
             exerciseName = resolved.exerciseName,
             category = resolved.category,
             restSeconds = prescription.restSeconds,

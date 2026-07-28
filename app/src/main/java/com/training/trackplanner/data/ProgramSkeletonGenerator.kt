@@ -113,7 +113,7 @@ data class ProgramSkeletonItem(
     val weekNumber: Int,
     val dayOfWeek: Int,
     val orderIndex: Int,
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int,

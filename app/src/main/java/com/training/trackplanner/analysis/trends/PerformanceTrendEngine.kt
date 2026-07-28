@@ -34,13 +34,13 @@ class PerformanceTrendEngine(
         entriesWithSets: List<WorkoutEntryWithSets>,
         dailyMetrics: List<DailyMetric>
     ): PerformanceTrendSummary {
-        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
-        val exerciseDisplayNamesById = exerciseDisplayNamesById(exercises, entriesWithSets)
+        val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
+        val exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey(exercises, entriesWithSets)
         val weeks = weeklyAggregator.aggregate(today, entriesWithSets, dailyMetrics)
         val strengthWeeks = strengthCalculator.calculate(weeks, exerciseMap, dailyMetrics)
         val badmintonWeeks = badmintonCalculator.calculate(weeks, exerciseMap)
         val badmintonDailyLoads = badmintonCalculator.dailyLoads(entriesWithSets, exerciseMap)
-        val badmintonMethodExamples = badmintonCalculator.methodExamples(entriesWithSets, exerciseMap, exerciseDisplayNamesById)
+        val badmintonMethodExamples = badmintonCalculator.methodExamples(entriesWithSets, exerciseMap, exerciseDisplayNamesByStableKey)
         val fatigueWeeks = fatigueWeeks(today, weeks, entriesWithSets, exercises, dailyMetrics)
         val repRangeWeeks = repRangeWeeks(weeks)
         val metricSeries = metricSeries(strengthWeeks, badmintonWeeks, fatigueWeeks)
@@ -74,7 +74,7 @@ class PerformanceTrendEngine(
             .mapNotNull { series -> series.forecastRange?.let { range -> series.metricId to range } }
             .toMap()
 
-        val detailSections = detailSections(strengthWeeks, badmintonWeeks, fatigueWeeks, metricSeries, exerciseDisplayNamesById)
+        val detailSections = detailSections(strengthWeeks, badmintonWeeks, fatigueWeeks, metricSeries, exerciseDisplayNamesByStableKey)
         val provisional = PerformanceTrendSummary(
             strengthPerformanceSeries = strengthSeries,
             badmintonTrainingSeries = badmintonSeries,
@@ -96,7 +96,7 @@ class PerformanceTrendEngine(
             repRangeWeeks = repRangeWeeks,
             metricSeries = metricSeries,
             badmintonMethodExamples = badmintonMethodExamples,
-            exerciseDisplayNamesById = exerciseDisplayNamesById
+            exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey
         )
         return provisional.copy(
             dashboardChartSpecs = chartSpecBuilder.dashboardSpecs(provisional)
@@ -110,7 +110,7 @@ class PerformanceTrendEngine(
         exercises: List<Exercise>,
         dailyMetrics: List<DailyMetric>
     ): List<FatigueWeekIndex> {
-        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+        val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
         val completedEntries = entriesWithSets.filter { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
             date != null && date <= today && record.sets.any { set -> set.confirmed }
@@ -232,7 +232,7 @@ class PerformanceTrendEngine(
         badmintonWeeks: List<BadmintonWeekIndex>,
         fatigueWeeks: List<FatigueWeekIndex>,
         metricSeries: Map<TrendMetricId, List<TrendDataPoint>>,
-        exerciseDisplayNamesById: Map<Long, String>
+        exerciseDisplayNamesByStableKey: Map<String, String>
     ): List<PerformanceDetailSection> {
         val scatter = scatterAnalyzer.analyze(
             TrendMetricId.BADMINTON_TRAINING,
@@ -262,7 +262,7 @@ class PerformanceTrendEngine(
                     DetailChartMode.TREND,
                     listOf(TrendMetricId.COURT_VOLUME),
                     badmintonWeeks,
-                    exerciseDisplayNamesById
+                    exerciseDisplayNamesByStableKey
                 ),
                 shortInterpretation = sentenceBuilder.badmintonInterpretation(badmintonWeeks.lastOrNull()),
                 confidence = badmintonWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
@@ -308,17 +308,17 @@ class PerformanceTrendEngine(
         }
     }
 
-    private fun exerciseDisplayNamesById(
+    private fun exerciseDisplayNamesByStableKey(
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>
-    ): Map<Long, String> {
-        val exerciseMap = exercises.associateBy { exercise -> exercise.id }
+    ): Map<String, String> {
+        val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
         val defaults = exercises.associate { exercise ->
-            exercise.id to AnalysisExerciseDisplayNameResolver.resolve(null, exercise, runtimeMetadataCatalog)
+            exercise.stableKey to AnalysisExerciseDisplayNameResolver.resolve(null, exercise, runtimeMetadataCatalog)
         }
         val fromEntries = entriesWithSets.mapNotNull { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@mapNotNull null
-            exercise.id to AnalysisExerciseDisplayNameResolver.resolve(record.entry, exercise, runtimeMetadataCatalog)
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
+            exercise.stableKey to AnalysisExerciseDisplayNameResolver.resolve(record.entry, exercise, runtimeMetadataCatalog)
         }.toMap()
         return defaults + fromEntries
     }

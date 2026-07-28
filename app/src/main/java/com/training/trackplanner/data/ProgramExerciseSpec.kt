@@ -7,7 +7,6 @@ internal enum class ProgramMainArea(val label: String) {
     SHOULDER("Shoulder"),
     BACK("Back")
 }
-
 internal enum class ProgramIntensityLabel {
     HIGH_LOW,
     MEDIUM_LOW,
@@ -46,7 +45,7 @@ internal enum class ProgramBadmintonCategory(val label: String) {
 internal data class ProgramExerciseSpec(
     val displayName: String,
     val slotType: ProgramAutoSlotType,
-    val stableKey: String? = null,
+    val stableKey: String,
     val mainArea: ProgramMainArea? = null,
     val strengthAccessoryClass: ProgramStrengthAccessoryClass? = null,
     val strengthBodyPart: ProgramSmallPart? = null,
@@ -64,7 +63,7 @@ internal data class ProgramExerciseSpec(
 
 internal data class ResolvedProgramExercise(
     val spec: ProgramExerciseSpec,
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int,
@@ -72,20 +71,19 @@ internal data class ResolvedProgramExercise(
 )
 
 internal fun ProgramExerciseSpec.resolve(exercises: List<Exercise>): ResolvedProgramExercise {
-    val matched = stableKey?.let { key -> exercises.firstOrNull { it.stableKey == key } }
-        ?: exercises.firstOrNull { it.name.normalizedExerciseName() == displayName.normalizedExerciseName() }
-        ?: exercises.firstOrNull {
-            val actual = it.name.normalizedExerciseName()
-            val wanted = displayName.normalizedExerciseName()
-            actual.contains(wanted) || wanted.contains(actual)
-        }
+    val requestedKey = requireNotNull(stableKey.takeIf(String::isNotBlank)) {
+        "Built-in program exercise '$displayName' must declare a canonical stableKey."
+    }
+    val matched = requireNotNull(exercises.firstOrNull { it.stableKey == requestedKey }) {
+        "Built-in program exercise '$displayName' cannot resolve stableKey '$requestedKey'."
+    }
     return ResolvedProgramExercise(
         spec = this,
-        exerciseId = matched?.id ?: 0L,
-        exerciseName = matched?.name ?: displayName,
-        category = matched?.category?.ifBlank { category } ?: category,
-        restSeconds = matched?.defaultRestSeconds ?: defaultRestSeconds(),
-        stableKey = matched?.stableKey?.ifBlank { stableKey.orEmpty() } ?: stableKey.orEmpty()
+        exerciseStableKey = matched.stableKey,
+        exerciseName = matched.name,
+        category = matched.category.ifBlank { category },
+        restSeconds = matched.defaultRestSeconds,
+        stableKey = matched.stableKey
     )
 }
 
@@ -95,10 +93,3 @@ private fun ProgramExerciseSpec.defaultRestSeconds(): Int =
         ProgramAutoSlotType.STRENGTH_ACCESSORY -> 75
         ProgramAutoSlotType.BADMINTON_ACCESSORY -> 60
     }
-
-private fun String.normalizedExerciseName(): String =
-    lowercase()
-        .replace(" ", "")
-        .replace("/", "")
-        .replace("-", "")
-        .replace("·", "")

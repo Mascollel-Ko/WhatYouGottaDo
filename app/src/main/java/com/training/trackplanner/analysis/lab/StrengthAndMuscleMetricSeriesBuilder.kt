@@ -21,13 +21,13 @@ object StrengthAndMuscleMetricSeriesBuilder {
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
         dailyMetrics: List<DailyMetric> = emptyList()
     ): Map<TrendMetricId, List<TrendDataPoint>> {
-        val exercisesById = exercises.associateBy { it.id }
+        val exercisesById = exercises.associateBy(Exercise::stableKey)
         val dailyLoads = MuscleBucket.values().associateWith { mutableMapOf<LocalDate, Double>() }
         val datesWithConfirmedSets = mutableSetOf<LocalDate>()
 
         entriesWithSets.forEach { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@forEach
-            val exercise = exercisesById[record.entry.exerciseId]
+            val exercise = exercisesById[record.entry.exerciseStableKey]
             val runtimeMetadata = exercise?.let(runtimeMetadataCatalog::resolve)
             val confirmedSets = record.sets.filter { set -> set.confirmed }
             if (confirmedSets.isEmpty()) return@forEach

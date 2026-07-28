@@ -81,7 +81,6 @@ data class ProxyPerformanceObservation(
     val date: LocalDate,
     val performedAt: Long?,
     val displayOrder: Int,
-    val exerciseId: Long,
     val exerciseStableKey: String,
     val exerciseName: String,
     val directTarget: MajorLiftTarget?,

@@ -6,7 +6,7 @@ import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
 
 data class AnalysisExerciseFeatures(
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val stableKey: String,
     val activityKind: String,
@@ -168,7 +168,7 @@ object ExerciseAnalysisMapper {
         val runtimePhysicalQualities = runtimeMetadata?.badmintonPhysicalQualities?.values?.toSet().orEmpty()
 
         return AnalysisExerciseFeatures(
-            exerciseId = exercise.id,
+            exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
             stableKey = exercise.stableKey,
             activityKind = runtimeMetadata?.activityKind

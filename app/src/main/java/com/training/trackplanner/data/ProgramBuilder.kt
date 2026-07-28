@@ -95,7 +95,7 @@ class ProgramBuilder internal constructor(
                 exerciseSlots.forEachIndexed { itemIndex, templateSlot ->
                     val role = templateSlot.role
                     val absoluteDay = (week.weekIndex - 1) * 7 + day.dayOfWeek
-                    val scoreTraceByExerciseId = mutableMapOf<Long, ProgramCandidateScoreTrace>()
+                    val scoreTraceByExerciseId = mutableMapOf<String, ProgramCandidateScoreTrace>()
                     val query = slotCandidateQuery.query(
                         inventory = inventory,
                         selected = selected,
@@ -156,7 +156,7 @@ class ProgramBuilder internal constructor(
                                 )
                             )
                             val adjustment = selectedExerciseScorePolicy.adjust(baseScore + contextRerankScore, candidate)
-                            scoreTraceByExerciseId[candidate.exercise.id] = ProgramCandidateScoreTrace(
+                            scoreTraceByExerciseId[candidate.exercise.stableKey] = ProgramCandidateScoreTrace(
                                 exerciseName = candidate.exercise.name,
                                 stableKey = candidate.exercise.stableKey,
                                 baseScore = baseScore,
@@ -168,7 +168,7 @@ class ProgramBuilder internal constructor(
                             adjustment.score
                         },
                         scoreTrace = { candidate, finalScore ->
-                            scoreTraceByExerciseId[candidate.exercise.id]
+                            scoreTraceByExerciseId[candidate.exercise.stableKey]
                                 ?: ProgramCandidateScoreTrace(
                                     exerciseName = candidate.exercise.name,
                                     stableKey = candidate.exercise.stableKey,
@@ -261,11 +261,11 @@ class ProgramBuilder internal constructor(
                         today = today
                     )
                     generated += ProgramSkeletonItem(
-                        localId = "${week.weekIndex}-${day.dayOfWeek}-${itemIndex + 1}-${picked.exercise.id}",
+                        localId = "${week.weekIndex}-${day.dayOfWeek}-${itemIndex + 1}-${picked.exercise.stableKey}",
                         weekNumber = week.weekIndex,
                         dayOfWeek = day.dayOfWeek,
                         orderIndex = itemIndex + 1,
-                        exerciseId = picked.exercise.id,
+                        exerciseStableKey = picked.exercise.stableKey,
                         exerciseName = picked.exercise.name,
                         category = picked.exercise.category,
                         restSeconds = picked.exercise.defaultRestSeconds,
@@ -505,7 +505,7 @@ class ProgramBuilder internal constructor(
                 runCatching { ProgramSlotId.valueOf(name) }.getOrNull()
             }
         return copy(
-            exerciseId = candidate.exercise.id,
+            exerciseStableKey = candidate.exercise.stableKey,
             exerciseName = candidate.exercise.name,
             category = candidate.exercise.category,
             restSeconds = candidate.exercise.defaultRestSeconds,
@@ -569,11 +569,11 @@ class ProgramBuilder internal constructor(
         val duration = prescriptionPolicy.estimateItemDurationSeconds(candidate, prescription)
         return copy(
             items = items + ProgramSkeletonItem(
-                localId = "$weekNumber-$dayOfWeek-$orderIndex-${candidate.exercise.id}-preferred",
+                localId = "$weekNumber-$dayOfWeek-$orderIndex-${candidate.exercise.stableKey}-preferred",
                 weekNumber = weekNumber,
                 dayOfWeek = dayOfWeek,
                 orderIndex = orderIndex,
-                exerciseId = candidate.exercise.id,
+                exerciseStableKey = candidate.exercise.stableKey,
                 exerciseName = candidate.exercise.name,
                 category = candidate.exercise.category,
                 restSeconds = candidate.exercise.defaultRestSeconds,

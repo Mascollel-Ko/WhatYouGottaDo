@@ -115,10 +115,13 @@ class TrainingRepository(
     private val dailyCheckInDao = db.dailyCheckInDao()
     private val smashSpeedDao = db.smashSpeedDao()
     private val appMetaDao = db.appMetaDao()
+    private val exerciseIdentityMigrationIssueDao = db.exerciseIdentityMigrationIssueDao()
+    private val dataTransferReportStore = DataTransferReportStore(appMetaDao)
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val legacyExerciseImportMapper = LegacyExerciseImportMapper.fromAssets(context)
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
     private val repetitionCurveRegistry = RepetitionCurveRegistry.fromContext(context)
     private val rpeRirPolicy = RpeRirPolicy.fromContext(context)
@@ -184,23 +187,7 @@ class TrainingRepository(
     )
     private val dailyTimeseriesImportService = DailyTimeseriesImportService(
         db = db,
-        workoutDao = workoutDao,
-        dailyStatusService = dailyStatusService,
-        confirmedCategoryCounts = { row -> row.confirmedCategoryCounts() },
-        findOrCreateConfirmedExercise = { category ->
-            findOrCreateImportedExercise(
-                name = "CSV 복원 $category",
-                category = category,
-                forceFatigueOnly = true
-            )
-        },
-        findOrCreatePlannedExercise = {
-            findOrCreateImportedExercise(
-                name = "CSV 복원 계획",
-                category = "근력운동",
-                forceFatigueOnly = true
-            )
-        }
+        dailyStatusService = dailyStatusService
     )
     private val readQueryService = RepositoryReadQueryService(
         exerciseDao = exerciseDao,
@@ -373,7 +360,10 @@ class TrainingRepository(
     fun entriesForDate(date: String): Flow<List<WorkoutEntryWithSets>> =
         readQueryService.entriesForDate(date)
 
-    suspend fun exportRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+    suspend fun exportRecordsBackup(
+        uri: Uri,
+        onReportChanged: (DataTransferReport) -> Unit = {}
+    ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         BackupExportService(
             context = context,
             workoutDao = workoutDao,
@@ -385,15 +375,38 @@ class TrainingRepository(
             runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
             appMetaDao = appMetaDao,
             strengthPosteriorDao = strengthPosteriorDao,
-            programDao = programDao
-        ).export(uri)
+            programDao = programDao,
+            exerciseIdentityMigrationIssueDao = exerciseIdentityMigrationIssueDao,
+            reportStore = dataTransferReportStore,
+            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+        ).export(uri, onReportChanged)
     }
 
-    suspend fun importRecordsBackup(uri: Uri): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+    suspend fun latestDataTransferReport(): DataTransferReport? = withContext(Dispatchers.IO) {
+        dataTransferReportStore.latest()
+    }
+
+    suspend fun recentDataTransferReports(): List<DataTransferReport> = withContext(Dispatchers.IO) {
+        dataTransferReportStore.recent()
+    }
+
+    suspend fun saveDataTransferReport(uri: Uri, report: DataTransferReport) = withContext(Dispatchers.IO) {
+        context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
+            writer.write(report.detailText())
+        } ?: error("진단 보고서 파일을 열 수 없습니다.")
+    }
+
+    suspend fun importRecordsBackup(
+        uri: Uri,
+        onReportChanged: (DataTransferReport) -> Unit = {}
+    ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
         BackupImportService(
             restoreImporter = backupRestoreImportService::importRestoreCsv,
-            dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv
-        ).import(context, uri)
+            dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv,
+            canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
+            canonicalStableKeys = { SeedData.exercises(context).mapTo(mutableSetOf(), Exercise::stableKey) },
+            reportStore = dataTransferReportStore
+        ).import(context, uri, onReportChanged)
     }
 
     fun entryCount(date: String): Flow<Int> =
@@ -461,7 +474,6 @@ class TrainingRepository(
             .let(ExerciseMetadataOverrideBackupMapper::overrideKeys)
         SeedData.exercises(context).forEach { seed ->
             val existing = exerciseDao.findByStableKey(seed.stableKey)
-                ?: exerciseDao.findByName(seed.name)
             if (existing == null) {
                 exerciseDao.insertExercise(seed)
             } else if (ExerciseMetadataOverrideBackupMapper.hasOverride(existing.stableKey, runtimeOverrideKeys)) {
@@ -474,19 +486,19 @@ class TrainingRepository(
         }
     }
 
-    suspend fun exerciseEditorData(exerciseId: Long?): ExerciseRuntimeMetadataEditorData =
+    suspend fun exerciseEditorData(exerciseStableKey: String?): ExerciseRuntimeMetadataEditorData =
         withContext(Dispatchers.IO) {
-            exerciseMetadataEditorService.exerciseEditorData(exerciseId)
+            exerciseMetadataEditorService.exerciseEditorData(exerciseStableKey)
         }
 
-    suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): Long =
+    suspend fun saveExerciseEditor(data: ExerciseRuntimeMetadataEditorData): String =
         withContext(Dispatchers.IO) {
             exerciseMetadataEditorService.saveExerciseEditor(data)
         }
 
-    suspend fun resetExerciseMetadataOverride(exerciseId: Long): Boolean =
+    suspend fun resetExerciseMetadataOverride(exerciseStableKey: String): Boolean =
         withContext(Dispatchers.IO) {
-            exerciseMetadataEditorService.resetExerciseMetadataOverride(exerciseId)
+            exerciseMetadataEditorService.resetExerciseMetadataOverride(exerciseStableKey)
         }
 
     suspend fun resolveRuntimeMetadata(exercise: Exercise): RuntimeExerciseMetadata =
@@ -494,9 +506,9 @@ class TrainingRepository(
             exerciseMetadataEditorService.resolveRuntimeMetadata(exercise)
         }
 
-    suspend fun resolvedRuntimeMetadataByExerciseId(): Map<Long, RuntimeExerciseMetadata> =
+    suspend fun resolvedRuntimeMetadataByExerciseStableKey(): Map<String, RuntimeExerciseMetadata> =
         withContext(Dispatchers.IO) {
-            exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseId()
+            exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
         }
 
     private suspend fun repairCustomExerciseStableKeys() {
@@ -512,16 +524,16 @@ class TrainingRepository(
     ): RuntimeExerciseMetadataCatalog =
         exerciseMetadataEditorService.resolvedRuntimeMetadataCatalog(exercises)
 
-    suspend fun setExerciseActive(exerciseId: Long, active: Boolean) = withContext(Dispatchers.IO) {
-        exerciseMetadataEditorService.setExerciseActive(exerciseId, active)
+    suspend fun setExerciseActive(exerciseStableKey: String, active: Boolean) = withContext(Dispatchers.IO) {
+        exerciseMetadataEditorService.setExerciseActive(exerciseStableKey, active)
     }
 
-    suspend fun deleteExerciseIfUnused(exerciseId: Long): ExerciseDeleteResult = withContext(Dispatchers.IO) {
-        exerciseMetadataEditorService.deleteExerciseIfUnused(exerciseId)
+    suspend fun deleteExerciseIfUnused(exerciseStableKey: String): ExerciseDeleteResult = withContext(Dispatchers.IO) {
+        exerciseMetadataEditorService.deleteExerciseIfUnused(exerciseStableKey)
     }
 
-    suspend fun addWorkoutEntry(date: String, exerciseId: Long): Long = withContext(Dispatchers.IO) {
-        recordMutationService.addWorkoutEntry(date, exerciseId)
+    suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long = withContext(Dispatchers.IO) {
+        recordMutationService.addWorkoutEntry(date, exerciseStableKey)
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) = withContext(Dispatchers.IO) {
@@ -568,9 +580,9 @@ class TrainingRepository(
         programId: Long,
         weekNumber: Int,
         dayOfWeek: Int,
-        exerciseId: Long
+        exerciseStableKey: String
     ) = withContext(Dispatchers.IO) {
-        programPlanService.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseId)
+        programPlanService.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseStableKey)
     }
 
     suspend fun updateProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
@@ -665,14 +677,8 @@ class TrainingRepository(
         seedByStableKey: Map<String, Exercise>,
         restoredRuntimeOverrideKeys: Set<String>
     ): Boolean {
-        val stableKey = row.stableKey.ifBlank {
-            if (row.isCustom) {
-                "imported_${row.name.stableToken()}"
-            } else {
-                canonicalRuntimeMetadataCatalog.resolveLegacyName(row.name)?.stableKey
-                    ?: "imported_${row.name.stableToken()}"
-            }
-        }
+        val stableKey = row.stableKey.trim()
+        require(stableKey.isNotBlank()) { "Restore exercise stableKey must be nonblank." }
         val category = row.category.ifBlank { "근력운동" }
         val csvExercise = Exercise(
             name = row.name,
@@ -710,13 +716,12 @@ class TrainingRepository(
         } else {
             ExerciseMetadataMapper.applyLegacyMetadata(csvExercise)
         }
-        val existing = exerciseDao.findByStableKey(stableKey) ?: exerciseDao.findByName(row.name)
+        val existing = exerciseDao.findByStableKey(stableKey)
         if (existing == null) {
             exerciseDao.insertExercise(restored)
         } else {
             val updated = restored.copy(
-                id = existing.id,
-                stableKey = existing.stableKey.ifBlank { restored.stableKey },
+                stableKey = existing.stableKey,
                 imageAssetName = restored.imageAssetName.ifBlank { existing.imageAssetName },
                 isCustom = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey)) {
                     false
@@ -908,38 +913,30 @@ class TrainingRepository(
     private suspend fun findOrCreateImportedExercise(
         name: String,
         category: String,
-        forceFatigueOnly: Boolean = false,
-        stableKey: String = "",
+        stableKey: String,
         seedByStableKey: Map<String, Exercise> = emptyMap()
     ): Exercise {
-        val resolvedStableKey = stableKey.takeIf { it.isNotBlank() }
-            ?: canonicalRuntimeMetadataCatalog.resolveLegacyName(name)?.stableKey
-        val existingExercise = resolvedStableKey
-            ?.let { key -> exerciseDao.findByStableKey(key) }
-            ?: exerciseDao.findByName(name)
+        require(stableKey.isNotBlank()) { "Restore exercise stableKey must not be blank." }
+        val existingExercise = exerciseDao.findByStableKey(stableKey)
         existingExercise?.let { existing ->
             val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(existing, seedByStableKey)
-            val updated = if (forceFatigueOnly) {
-                seedBacked.withFatigueOnlyPlanningMetadata()
-            } else {
-                seedBacked.withInferredPlanningMetadata()
-            }
+            val updated = seedBacked.withInferredPlanningMetadata()
             if (updated != existing) {
                 exerciseDao.updateExercise(updated)
             }
             return updated
         }
-        resolvedStableKey
-            ?.let { key -> seedByStableKey[key.trim().lowercase()] }
+        stableKey
+            .let { key -> seedByStableKey[key.trim().lowercase()] }
             ?.let { seed ->
-                val insertedId = exerciseDao.insertExercise(seed)
-                return if (insertedId > 0) seed.copy(id = insertedId) else exerciseDao.findByStableKey(seed.stableKey) ?: seed
+                exerciseDao.insertExercise(seed)
+                return exerciseDao.findByStableKey(seed.stableKey) ?: seed
             }
         val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
             Exercise(
                 name = name,
                 category = category,
-                stableKey = resolvedStableKey ?: "imported_${name.stableToken()}",
+                stableKey = stableKey,
                 movementPattern = category.defaultMovementPattern(),
                 movementCategory = category.defaultMovementCategory(),
                 primaryMuscles = category.defaultPrimaryMuscles(),
@@ -949,37 +946,10 @@ class TrainingRepository(
                 laterality = "BILATERAL",
                 metadataConfidence = MetadataConfidence.LOW.name
             )
-        ).let { exercise ->
-            if (forceFatigueOnly) exercise.withFatigueOnlyPlanningMetadata() else exercise
-        }
-        val insertedId = exerciseDao.insertExercise(mapped)
-        return if (insertedId > 0) {
-            mapped.copy(id = insertedId)
-        } else {
-            exerciseDao.findByName(name) ?: mapped
-        }
+        )
+        exerciseDao.insertExercise(mapped)
+        return exerciseDao.findByStableKey(mapped.stableKey) ?: mapped
     }
-
-    private fun DailyTimeseriesRow.confirmedCategoryCounts(): Map<String, Int> {
-        val raw = linkedMapOf(
-            "근력운동" to strengthEntries,
-            "기능성운동" to functionalEntries,
-            "유산소운동" to cardioEntries,
-            "스포츠" to sportsEntries
-        ).filterValues { count -> count > 0 }
-        if (raw.isNotEmpty()) return raw
-        return if (confirmedEntries > 0 || totalSets > 0 || totalReps > 0 || totalSeconds > 0 || totalTonnageKg > 0.0) {
-            mapOf("근력운동" to 1)
-        } else {
-            emptyMap()
-        }
-    }
-
-    private fun String.stableToken(): String =
-        lowercase(Locale.US)
-            .replace(Regex("[^a-z0-9가-힣]+"), "_")
-            .trim('_')
-            .ifBlank { "record" }
 
     private fun String.defaultMovementPattern(): String =
         when (this) {
@@ -1020,37 +990,59 @@ class TrainingRepository(
     internal suspend fun seedMissingPrograms(
         seeds: List<ProgramSeed> = SeedData.programs(context)
     ) {
+        val exercisesByStableKey = exerciseDao.allExercises()
+            .associateBy(Exercise::stableKey)
         seeds.forEach { seed ->
             val programName = seed.displayName()
             if (programDao.findProgramByStableKey(seed.key) != null) return@forEach
             if (programDao.findProgramTombstone(seed.key) != null) return@forEach
 
-            val programId = programDao.insertProgram(
-                TrainingProgram(
-                    stableKey = seed.key,
-                    name = programName,
-                    durationDays = seed.durationDays
+            val resolvedItems = seed.items.map { itemSeed ->
+                itemSeed to exercisesByStableKey[itemSeed.exerciseStableKey]
+            }
+            val unresolved = resolvedItems.firstOrNull { (itemSeed, exercise) ->
+                itemSeed.exerciseStableKey.isBlank() || exercise?.stableKey.isNullOrBlank()
+            }
+            if (unresolved != null) {
+                if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                    Log.d(
+                        "ProgramSeed",
+                        "Skipped program '$programName': unresolved '${unresolved.first.exerciseName}' " +
+                            "(${unresolved.first.exerciseStableKey})"
+                    )
+                }
+                return@forEach
+            }
+
+            db.withTransaction {
+                val programId = programDao.insertProgram(
+                    TrainingProgram(
+                        stableKey = seed.key,
+                        name = programName,
+                        durationDays = seed.durationDays
+                    )
                 )
-            )
-            val items = seed.items.map { itemSeed ->
-                val exercise = exerciseDao.findByName(itemSeed.exerciseName)
-                TrainingProgramItem(
-                    programId = programId,
-                    weekNumber = itemSeed.weekNumber,
-                    dayOfWeek = itemSeed.dayOfWeek,
-                    orderIndex = itemSeed.orderIndex,
-                    exerciseId = exercise?.id ?: 0,
-                    exerciseName = exercise?.name ?: itemSeed.exerciseName,
-                    category = exercise?.category ?: itemSeed.category,
-                    restSeconds = itemSeed.restSeconds,
-                    prescription = itemSeed.prescription,
-                    setCount = itemSeed.setCount.coerceAtLeast(1),
-                    reps = itemSeed.reps,
-                    weightKg = itemSeed.weightKg,
-                    seconds = itemSeed.seconds
+                programDao.insertProgramItems(
+                    resolvedItems.map { (itemSeed, resolvedExercise) ->
+                        val exercise = requireNotNull(resolvedExercise)
+                        TrainingProgramItem(
+                            programId = programId,
+                            weekNumber = itemSeed.weekNumber,
+                            dayOfWeek = itemSeed.dayOfWeek,
+                            orderIndex = itemSeed.orderIndex,
+                            exerciseStableKey = exercise.stableKey,
+                            exerciseName = exercise.name,
+                            category = exercise.category,
+                            restSeconds = itemSeed.restSeconds,
+                            prescription = itemSeed.prescription,
+                            setCount = itemSeed.setCount.coerceAtLeast(1),
+                            reps = itemSeed.reps,
+                            weightKg = itemSeed.weightKg,
+                            seconds = itemSeed.seconds
+                        )
+                    }
                 )
             }
-            programDao.insertProgramItems(items)
         }
     }
 
@@ -1097,7 +1089,7 @@ class TrainingRepository(
             item.weekNumber == seed.weekNumber &&
                 item.dayOfWeek == seed.dayOfWeek &&
                 item.orderIndex == seed.orderIndex &&
-                item.exerciseName == seed.exerciseName &&
+                item.exerciseStableKey == seed.exerciseStableKey &&
                 item.category == seed.category &&
                 item.restSeconds == seed.restSeconds &&
                 item.prescription == seed.prescription &&
@@ -1239,6 +1231,5 @@ class TrainingRepository(
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"
         const val META_PROGRAM_STABLE_KEY_REPAIR_VERSION = "program_stable_key_repair_version"
-        const val TIMESERIES_IMPORT_NOTE = "CSV daily_timeseries import"
     }
 }

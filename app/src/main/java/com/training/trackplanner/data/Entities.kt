@@ -1,15 +1,13 @@
 package com.training.trackplanner.data
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(
-    tableName = "exercises",
-    indices = [Index(value = ["stableKey"], unique = true)]
-)
+@Entity(tableName = "exercises")
 data class Exercise(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val stableKey: String,
     val name: String,
     val category: String,
     val detail1: String = "",
@@ -21,7 +19,6 @@ data class Exercise(
     val familyName: String = "",
     val familyRole: String = "",
     val familyE1rmMultiplier: Double = 1.0,
-    val stableKey: String,
     val movementPattern: String = "",
     val movementCategory: String = "",
     val primaryMuscles: String = "",
@@ -79,11 +76,22 @@ data class Exercise(
     val needsReview: Boolean = false
 )
 
-@Entity(tableName = "workout_entries")
+@Entity(
+    tableName = "workout_entries",
+    foreignKeys = [
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["stableKey"],
+            childColumns = ["exerciseStableKey"],
+            onDelete = ForeignKey.NO_ACTION
+        )
+    ],
+    indices = [Index(value = ["exerciseStableKey"])]
+)
 data class WorkoutEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: String,
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int = 60,
@@ -206,14 +214,34 @@ data class TrainingProgramTombstone(
     val seedVersion: Int? = null
 )
 
-@Entity(tableName = "training_program_items")
+@Entity(
+    tableName = "training_program_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = TrainingProgram::class,
+            parentColumns = ["id"],
+            childColumns = ["programId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["stableKey"],
+            childColumns = ["exerciseStableKey"],
+            onDelete = ForeignKey.NO_ACTION
+        )
+    ],
+    indices = [
+        Index(value = ["programId"]),
+        Index(value = ["exerciseStableKey"])
+    ]
+)
 data class TrainingProgramItem(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val programId: Long,
     val weekNumber: Int,
     val dayOfWeek: Int,
     val orderIndex: Int,
-    val exerciseId: Long,
+    val exerciseStableKey: String,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int = 60,
@@ -225,6 +253,25 @@ data class TrainingProgramItem(
     val trainingSlot: String? = null,
     val dayIntensity: String? = null,
     val weightSource: String? = null
+)
+
+@Entity(
+    tableName = "exercise_identity_migration_issues",
+    indices = [
+        Index(value = ["issueCode"]),
+        Index(value = ["sourceExerciseId"])
+    ]
+)
+data class ExerciseIdentityMigrationIssue(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val issueCode: String,
+    val sourceExerciseId: Long?,
+    val sourceStableKey: String,
+    val canonicalStableKey: String,
+    val entityType: String,
+    val entityRowId: Long?,
+    val message: String,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 object ProgramStableKeyPolicy {

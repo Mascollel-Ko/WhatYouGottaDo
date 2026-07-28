@@ -14,7 +14,7 @@ class StrengthPerformanceIndexCalculator(
 ) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         allDailyMetrics: List<DailyMetric>
     ): List<StrengthWeekIndex> {
         val rawIntensityByWeek = weeks.map { week ->
@@ -31,10 +31,10 @@ class StrengthPerformanceIndexCalculator(
         }
 
         return weeks.mapIndexed { index, week ->
-            val intensityScores = rawIntensityByWeek[index].mapNotNull { (exerciseId, intensityRaw) ->
-                val exercise = exerciseMap[exerciseId] ?: return@mapNotNull null
+            val intensityScores = rawIntensityByWeek[index].mapNotNull { (exerciseStableKey, intensityRaw) ->
+                val exercise = exerciseMap[exerciseStableKey] ?: return@mapNotNull null
                 val features = AnalysisFeatureExtractor.fromExercise(exercise, runtimeMetadataCatalog.resolve(exercise))
-                val history = rawIntensityByWeek.map { values -> values[exerciseId] }
+                val history = rawIntensityByWeek.map { values -> values[exerciseStableKey] }
                 val (baseline, confidence) = TrendMath.baselineFor(history, index)
                 val score = if (baseline == null) 100.0 else TrendMath.higherIsBetterScore(intensityRaw, baseline)
                 WeightedScore(
@@ -123,10 +123,10 @@ class StrengthPerformanceIndexCalculator(
     }
 
     private fun List<WorkoutEntryWithSets>.maxIntensityByExercise(
-        exerciseMap: Map<Long, Exercise>
-    ): Map<Long, Double> =
+        exerciseMap: Map<String, Exercise>
+    ): Map<String, Double> =
         mapNotNull { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@mapNotNull null
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -137,17 +137,17 @@ class StrengthPerformanceIndexCalculator(
             val maxE1rm = record.sets
                 .filter { set -> set.confirmed && set.weightKg > 0.0 && set.reps in 1..12 }
                 .maxOfOrNull { set -> set.weightKg * (1.0 + set.reps / 30.0) }
-            maxE1rm?.let { value -> record.entry.exerciseId to value }
+            maxE1rm?.let { value -> record.entry.exerciseStableKey to value }
         }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, values) -> values.maxOrNull() ?: 0.0 }
 
     private fun List<WorkoutEntryWithSets>.weeklyStrengthVolumeRaw(
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         allDailyMetrics: List<DailyMetric>
     ): Double =
         sumOf { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@sumOf 0.0
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@sumOf 0.0
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -169,10 +169,10 @@ class StrengthPerformanceIndexCalculator(
         }
 
     private fun List<WorkoutEntryWithSets>.weeklyEffectiveSets(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Int =
         sumOf { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@sumOf 0
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@sumOf 0
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -188,10 +188,10 @@ class StrengthPerformanceIndexCalculator(
         }
 
     private fun List<WorkoutEntryWithSets>.efficiencyRaw(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): Double? {
         val hardSets = flatMap { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@flatMap emptyList<SetWork>()
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@flatMap emptyList<SetWork>()
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -216,7 +216,7 @@ class StrengthPerformanceIndexCalculator(
 
     private fun sameLoadEfficiencyScore(
         weeks: List<WeeklyTrainingData>,
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         index: Int
     ): Double? {
         if (index <= 0) return null
@@ -224,7 +224,7 @@ class StrengthPerformanceIndexCalculator(
         val previousSets = weeks.take(index).flatMap { week -> week.entries.comparableRpeSets(exerciseMap) }
         val deltas = currentSets.mapNotNull { current ->
             val previous = previousSets.lastOrNull { candidate ->
-                candidate.exerciseId == current.exerciseId &&
+                candidate.exerciseStableKey == current.exerciseStableKey &&
                     kotlin.math.abs(candidate.weightKg - current.weightKg) <= 1.0 &&
                     kotlin.math.abs(candidate.reps - current.reps) <= 1
             }
@@ -235,10 +235,10 @@ class StrengthPerformanceIndexCalculator(
     }
 
     private fun List<WorkoutEntryWithSets>.comparableRpeSets(
-        exerciseMap: Map<Long, Exercise>
+        exerciseMap: Map<String, Exercise>
     ): List<ComparableRpeSet> =
         flatMap { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@flatMap emptyList()
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@flatMap emptyList()
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -250,7 +250,7 @@ class StrengthPerformanceIndexCalculator(
                 val rpe = set.rpe ?: record.entry.rpe ?: return@mapNotNull null
                 if (!set.confirmed || set.weightKg <= 0.0 || set.reps <= 0) return@mapNotNull null
                 ComparableRpeSet(
-                    exerciseId = record.entry.exerciseId,
+                    exerciseStableKey = record.entry.exerciseStableKey,
                     weightKg = set.weightKg,
                     reps = set.reps,
                     rpe = rpe
@@ -259,22 +259,22 @@ class StrengthPerformanceIndexCalculator(
         }
 
     private fun intensityScoresByExercise(
-        rawIntensityByWeek: List<Map<Long, Double>>,
-        exerciseMap: Map<Long, Exercise>,
+        rawIntensityByWeek: List<Map<String, Double>>,
+        exerciseMap: Map<String, Exercise>,
         index: Int
-    ): Map<Long, Double> =
-        rawIntensityByWeek[index].mapValues { (exerciseId, value) ->
-            val baseline = TrendMath.baselineFor(rawIntensityByWeek.map { week -> week[exerciseId] }, index).first
+    ): Map<String, Double> =
+        rawIntensityByWeek[index].mapValues { (exerciseStableKey, value) ->
+            val baseline = TrendMath.baselineFor(rawIntensityByWeek.map { week -> week[exerciseStableKey] }, index).first
             TrendMath.higherIsBetterScore(value, baseline)
-        }.filterKeys { exerciseId -> exerciseId in exerciseMap.keys }
+        }.filterKeys { exerciseStableKey -> exerciseStableKey in exerciseMap.keys }
 
     private fun List<WorkoutEntryWithSets>.patternVolumes(
-        exerciseMap: Map<Long, Exercise>,
+        exerciseMap: Map<String, Exercise>,
         allDailyMetrics: List<DailyMetric>
     ): Map<String, Double> {
         val totals = mutableMapOf<String, Double>()
         forEach { record ->
-            val exercise = exerciseMap[record.entry.exerciseId] ?: return@forEach
+            val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@forEach
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
                 record.entry,
@@ -328,7 +328,7 @@ class StrengthPerformanceIndexCalculator(
     )
 
     private data class ComparableRpeSet(
-        val exerciseId: Long,
+        val exerciseStableKey: String,
         val weightKg: Double,
         val reps: Int,
         val rpe: Double

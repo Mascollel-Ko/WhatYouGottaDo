@@ -42,10 +42,10 @@ internal class ConnectiveTissueAnalysisService(
         val profile = initialUserProfileDao.profile()
         val dailyMetrics = dailyMetricDao.allMetrics()
         val checkIns = dailyCheckInDao.all()
-        val exercisesById = exerciseDao.allExercises().associateBy(Exercise::id)
+        val exercisesById = exerciseDao.allExercises().associateBy(Exercise::stableKey)
         val records = workoutDao.allEntriesWithSets().mapNotNull { record ->
             if (record.sets.none(WorkoutSet::confirmed)) return@mapNotNull null
-            val exercise = exercisesById[record.entry.exerciseId] ?: return@mapNotNull null
+            val exercise = exercisesById[record.entry.exerciseStableKey] ?: return@mapNotNull null
             val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
                 record.entry.date,
                 dailyMetrics,

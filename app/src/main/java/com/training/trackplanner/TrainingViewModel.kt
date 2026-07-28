@@ -28,6 +28,7 @@ import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyRecordSummary
+import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
@@ -148,14 +149,17 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _recordTransferMessage = MutableStateFlow<String?>(null)
     val recordTransferMessage: StateFlow<String?> =
         _recordTransferMessage.asStateFlow()
+    private val _dataTransferReport = MutableStateFlow<DataTransferReport?>(null)
+    val dataTransferReport: StateFlow<DataTransferReport?> = _dataTransferReport.asStateFlow()
 
-    private val _exerciseRuntimeMetadata = MutableStateFlow<Map<Long, RuntimeExerciseMetadata>>(emptyMap())
-    val exerciseRuntimeMetadata: StateFlow<Map<Long, RuntimeExerciseMetadata>> =
+    private val _exerciseRuntimeMetadata = MutableStateFlow<Map<String, RuntimeExerciseMetadata>>(emptyMap())
+    val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
         _exerciseRuntimeMetadata.asStateFlow()
 
     init {
         viewModelScope.launch {
             repository.seedIfNeeded()
+            _dataTransferReport.value = repository.latestDataTransferReport()
             refreshExerciseRuntimeMetadataInternal()
             refreshAnalysisSummaries()
         }
@@ -206,9 +210,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun addWorkout(date: String, exerciseId: Long, onAdded: (Long) -> Unit = {}) {
+    fun addWorkout(date: String, exerciseStableKey: String, onAdded: (Long) -> Unit = {}) {
         viewModelScope.launch {
-            val entryId = repository.addWorkoutEntry(date, exerciseId)
+            val entryId = repository.addWorkoutEntry(date, exerciseStableKey)
             refreshAnalysisSummaries()
             if (entryId > 0) onAdded(entryId)
         }
@@ -327,10 +331,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         programId: Long,
         weekNumber: Int,
         dayOfWeek: Int,
-        exerciseId: Long
+        exerciseStableKey: String
     ) {
         viewModelScope.launch {
-            repository.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseId)
+            repository.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseStableKey)
         }
     }
 
@@ -436,19 +440,19 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun setExerciseActive(exerciseId: Long, active: Boolean) {
+    fun setExerciseActive(exerciseStableKey: String, active: Boolean) {
         viewModelScope.launch {
-            repository.setExerciseActive(exerciseId, active)
+            repository.setExerciseActive(exerciseStableKey, active)
             refreshAnalysisSummaries()
         }
     }
 
     fun loadExerciseEditor(
-        exerciseId: Long?,
+        exerciseStableKey: String?,
         onLoaded: (ExerciseRuntimeMetadataEditorData) -> Unit
     ) {
         viewModelScope.launch {
-            onLoaded(repository.exerciseEditorData(exerciseId))
+            onLoaded(repository.exerciseEditorData(exerciseStableKey))
         }
     }
 
@@ -458,7 +462,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun saveExerciseEditor(
         data: ExerciseRuntimeMetadataEditorData,
-        onResult: (Result<Long>) -> Unit
+        onResult: (Result<String>) -> Unit
     ) {
         viewModelScope.launch {
             val result = runCatching { repository.saveExerciseEditor(data) }
@@ -471,11 +475,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun resetExerciseMetadataOverride(
-        exerciseId: Long,
+        exerciseStableKey: String,
         onResult: (Result<Boolean>) -> Unit
     ) {
         viewModelScope.launch {
-            val result = runCatching { repository.resetExerciseMetadataOverride(exerciseId) }
+            val result = runCatching { repository.resetExerciseMetadataOverride(exerciseStableKey) }
             if (result.isSuccess) {
                 refreshExerciseRuntimeMetadataInternal()
                 refreshAnalysisSummaries()
@@ -485,12 +489,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     }
 
     private suspend fun refreshExerciseRuntimeMetadataInternal() {
-        _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseId()
+        _exerciseRuntimeMetadata.value = repository.resolvedRuntimeMetadataByExerciseStableKey()
     }
 
-    fun deleteExerciseIfUnused(exerciseId: Long, onResult: (Boolean) -> Unit) {
+    fun deleteExerciseIfUnused(exerciseStableKey: String, onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
-            val result = repository.deleteExerciseIfUnused(exerciseId)
+            val result = repository.deleteExerciseIfUnused(exerciseStableKey)
             onResult(result.deleted)
             refreshAnalysisSummaries()
         }
@@ -576,7 +580,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun backupRecords(uri: Uri) {
         viewModelScope.launch {
             runCatching {
-                repository.exportRecordsBackup(uri)
+                repository.exportRecordsBackup(uri) { report -> _dataTransferReport.value = report }
             }.onSuccess { result ->
                 _recordTransferMessage.value = result.summaryText("기록 백업")
             }.onFailure { error ->
@@ -588,13 +592,24 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun restoreRecords(uri: Uri) {
         viewModelScope.launch {
             runCatching {
-                repository.importRecordsBackup(uri)
+                repository.importRecordsBackup(uri) { report -> _dataTransferReport.value = report }
             }.onSuccess { result ->
                 _recordTransferMessage.value = result.summaryText("기록 복원")
                 refreshAnalysisSummaries()
             }.onFailure { error ->
                 _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
             }
+        }
+    }
+
+    fun saveLatestDataTransferReport(uri: Uri) {
+        val report = _dataTransferReport.value ?: return
+        viewModelScope.launch {
+            runCatching { repository.saveDataTransferReport(uri, report) }
+                .onFailure { error ->
+                    _recordTransferMessage.value =
+                        "진단 보고서 저장 실패: ${error.message ?: "알 수 없는 오류"}"
+                }
         }
     }
 

@@ -67,7 +67,7 @@ object CommonPlanProjectionMetrics {
     ): Double? {
         if (entries.isEmpty()) return null
         val weightedSets = entries.sumOf { entry ->
-            val axialLoadLevel = input.exerciseMetadataMap[entry.exerciseId]?.axialLoadLevel.orEmpty()
+            val axialLoadLevel = input.exerciseMetadataMap[entry.exerciseStableKey]?.axialLoadLevel.orEmpty()
             when (axialLoadLevel) {
                 "HIGH" -> entry.sets.size * 2.0
                 "MODERATE" -> entry.sets.size * 1.0
@@ -83,7 +83,7 @@ object CommonPlanProjectionMetrics {
         selector: AnalysisExerciseMetadata.() -> String
     ): Map<String, Int> =
         groupBy { entry ->
-            input.exerciseMetadataMap[entry.exerciseId]?.selector().orUnknown()
+            input.exerciseMetadataMap[entry.exerciseStableKey]?.selector().orUnknown()
         }.mapValues { (_, entries) -> entries.sumOf { it.sets.size } }
 
     private fun List<AnalysisEntry>.sportTransferDistribution(
@@ -91,7 +91,7 @@ object CommonPlanProjectionMetrics {
     ): Map<String, Int> {
         val result = linkedMapOf<String, Int>()
         forEach { entry ->
-            val metadata = input.exerciseMetadataMap[entry.exerciseId]
+            val metadata = input.exerciseMetadataMap[entry.exerciseStableKey]
             val tokens = listOf(
                 metadata?.sportTransferDirect,
                 metadata?.sportTransferSupportive
@@ -118,7 +118,7 @@ object CommonPlanProjectionMetrics {
         input: AnalysisInputSnapshot,
         entry: AnalysisEntry
     ): Double {
-        val metadata = input.exerciseMetadataMap[entry.exerciseId]
+        val metadata = input.exerciseMetadataMap[entry.exerciseStableKey]
         val bodyWeightKg = input.conditionRecordsUntilToday
             .filter { record -> record.date <= entry.date }
             .maxByOrNull { record -> record.date }

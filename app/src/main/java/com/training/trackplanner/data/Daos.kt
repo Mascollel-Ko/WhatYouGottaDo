@@ -55,12 +55,6 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY category, name")
     fun observeExercises(): Flow<List<Exercise>>
 
-    @Query("SELECT * FROM exercises WHERE id = :id LIMIT 1")
-    suspend fun findById(id: Long): Exercise?
-
-    @Query("SELECT * FROM exercises WHERE name = :name LIMIT 1")
-    suspend fun findByName(name: String): Exercise?
-
     @Query("SELECT * FROM exercises WHERE stableKey = :stableKey LIMIT 1")
     suspend fun findByStableKey(stableKey: String): Exercise?
 
@@ -74,16 +68,40 @@ interface ExerciseDao {
     suspend fun customExercisesWithBlankStableKey(): List<Exercise>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertAll(exercises: List<Exercise>)
+    suspend fun insertAllUnchecked(exercises: List<Exercise>)
+
+    suspend fun insertAll(exercises: List<Exercise>) {
+        require(exercises.all { it.stableKey.isNotBlank() }) { "Exercise stableKey must not be blank." }
+        insertAllUnchecked(exercises)
+    }
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertExercise(exercise: Exercise): Long
+    suspend fun insertExerciseUnchecked(exercise: Exercise)
+
+    suspend fun insertExercise(exercise: Exercise) {
+        require(exercise.stableKey.isNotBlank()) { "Exercise stableKey must not be blank." }
+        insertExerciseUnchecked(exercise)
+    }
 
     @Update
-    suspend fun updateExercise(exercise: Exercise)
+    suspend fun updateExerciseUnchecked(exercise: Exercise)
+
+    suspend fun updateExercise(exercise: Exercise) {
+        require(exercise.stableKey.isNotBlank()) { "Exercise stableKey must not be blank." }
+        updateExerciseUnchecked(exercise)
+    }
 
     @Delete
     suspend fun deleteExercise(exercise: Exercise)
+}
+
+@Dao
+interface ExerciseIdentityMigrationIssueDao {
+    @Query("SELECT * FROM exercise_identity_migration_issues ORDER BY id")
+    suspend fun all(): List<ExerciseIdentityMigrationIssue>
+
+    @Query("SELECT COUNT(*) FROM exercise_identity_migration_issues")
+    suspend fun count(): Int
 }
 
 @Dao
@@ -116,7 +134,12 @@ interface RuntimeExerciseMetadataDao {
     suspend fun all(): List<RuntimeExerciseMetadataEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(metadata: RuntimeExerciseMetadataEntity)
+    suspend fun upsertUnchecked(metadata: RuntimeExerciseMetadataEntity)
+
+    suspend fun upsert(metadata: RuntimeExerciseMetadataEntity) {
+        require(metadata.stableKey.isNotBlank()) { "Runtime metadata stableKey must not be blank." }
+        upsertUnchecked(metadata)
+    }
 
     @Query("DELETE FROM runtime_exercise_metadata WHERE stableKey = :stableKey")
     suspend fun deleteByStableKey(stableKey: String)
@@ -124,6 +147,12 @@ interface RuntimeExerciseMetadataDao {
 
 @Dao
 interface WorkoutDao {
+    @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
+    suspend fun allEntries(): List<WorkoutEntry>
+
+    @Query("SELECT * FROM workout_sets ORDER BY entryId, setIndex, id")
+    suspend fun allSets(): List<WorkoutSet>
+
     @Transaction
     @Query("SELECT * FROM workout_entries WHERE date = :date ORDER BY createdAt, id")
     fun observeEntriesWithSets(date: String): Flow<List<WorkoutEntryWithSets>>
@@ -169,8 +198,8 @@ interface WorkoutDao {
     @Query("SELECT COUNT(*) FROM workout_entries WHERE date = :date")
     suspend fun countEntriesOnDate(date: String): Int
 
-    @Query("SELECT COUNT(*) FROM workout_entries WHERE exerciseId = :exerciseId")
-    suspend fun countEntriesForExercise(exerciseId: Long): Int
+    @Query("SELECT COUNT(*) FROM workout_entries WHERE exerciseStableKey = :exerciseStableKey")
+    suspend fun countEntriesForExercise(exerciseStableKey: String): Int
 
     @Query(
         """
@@ -183,13 +212,23 @@ interface WorkoutDao {
     suspend fun countSetsOnDates(dates: List<String>): Int
 
     @Insert
-    suspend fun insertEntry(entry: WorkoutEntry): Long
+    suspend fun insertEntryUnchecked(entry: WorkoutEntry): Long
+
+    suspend fun insertEntry(entry: WorkoutEntry): Long {
+        require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
+        return insertEntryUnchecked(entry)
+    }
 
     @Query("SELECT * FROM workout_entries WHERE id = :entryId LIMIT 1")
     suspend fun findEntryById(entryId: Long): WorkoutEntry?
 
     @Update
-    suspend fun updateEntry(entry: WorkoutEntry)
+    suspend fun updateEntryUnchecked(entry: WorkoutEntry)
+
+    suspend fun updateEntry(entry: WorkoutEntry) {
+        require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
+        updateEntryUnchecked(entry)
+    }
 
     @Insert
     suspend fun insertSet(set: WorkoutSet): Long
@@ -386,7 +425,7 @@ interface WorkoutDao {
             GROUP_CONCAT(DISTINCT NULLIF(exercises.bodyRegion, '')) AS bodyPartSummary
         FROM workout_entries
         LEFT JOIN workout_sets ON workout_sets.entryId = workout_entries.id
-        LEFT JOIN exercises ON exercises.id = workout_entries.exerciseId
+        LEFT JOIN exercises ON exercises.stableKey = workout_entries.exerciseStableKey
         WHERE workout_entries.date BETWEEN :startDate AND :endDate
         GROUP BY workout_entries.date
         ORDER BY workout_entries.date
@@ -421,8 +460,8 @@ interface ProgramDao {
     @Query("SELECT COUNT(*) FROM training_program_items")
     suspend fun countProgramItems(): Int
 
-    @Query("SELECT COUNT(*) FROM training_program_items WHERE exerciseId = :exerciseId")
-    suspend fun countProgramItemsForExercise(exerciseId: Long): Int
+    @Query("SELECT COUNT(*) FROM training_program_items WHERE exerciseStableKey = :exerciseStableKey")
+    suspend fun countProgramItemsForExercise(exerciseStableKey: String): Int
 
     @Query(
         """
@@ -482,13 +521,30 @@ interface ProgramDao {
     suspend fun deleteAllPrograms()
 
     @Insert
-    suspend fun insertProgramItem(item: TrainingProgramItem): Long
+    suspend fun insertProgramItemUnchecked(item: TrainingProgramItem): Long
+
+    suspend fun insertProgramItem(item: TrainingProgramItem): Long {
+        require(item.exerciseStableKey.isNotBlank()) { "Program item exerciseStableKey must not be blank." }
+        return insertProgramItemUnchecked(item)
+    }
 
     @Insert
-    suspend fun insertProgramItems(items: List<TrainingProgramItem>)
+    suspend fun insertProgramItemsUnchecked(items: List<TrainingProgramItem>)
+
+    suspend fun insertProgramItems(items: List<TrainingProgramItem>) {
+        require(items.all { it.exerciseStableKey.isNotBlank() }) {
+            "Program item exerciseStableKey must not be blank."
+        }
+        insertProgramItemsUnchecked(items)
+    }
 
     @Update
-    suspend fun updateProgramItem(item: TrainingProgramItem)
+    suspend fun updateProgramItemUnchecked(item: TrainingProgramItem)
+
+    suspend fun updateProgramItem(item: TrainingProgramItem) {
+        require(item.exerciseStableKey.isNotBlank()) { "Program item exerciseStableKey must not be blank." }
+        updateProgramItemUnchecked(item)
+    }
 
     @Delete
     suspend fun deleteProgramItem(item: TrainingProgramItem)
@@ -567,6 +623,26 @@ interface AppMetaDao {
 
     @Query("DELETE FROM app_meta WHERE `key` = :key")
     suspend fun delete(key: String)
+
+    @Query("SELECT * FROM app_meta WHERE `key` LIKE :prefix ORDER BY updatedAt DESC LIMIT 1")
+    suspend fun latestByPrefix(prefix: String): AppMeta?
+
+    @Query("SELECT * FROM app_meta WHERE `key` LIKE :prefix ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun latestByPrefix(prefix: String, limit: Int): List<AppMeta>
+
+    @Query(
+        """
+        DELETE FROM app_meta
+        WHERE `key` LIKE :prefix
+          AND `key` NOT IN (
+              SELECT `key` FROM app_meta
+              WHERE `key` LIKE :prefix
+              ORDER BY updatedAt DESC
+              LIMIT :limit
+          )
+        """
+    )
+    suspend fun trimLatest(prefix: String, limit: Int)
 }
 
 @Dao

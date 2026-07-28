@@ -27,7 +27,7 @@ internal class ProgramSlotCandidateQuery(
         selectedCount: Int
     ): ProgramSlotCandidateQueryResult {
         val unblockedBase = inventory.candidates.filterNot { candidate ->
-            selected.any { it.exercise.id == candidate.exercise.id }
+            selected.any { it.exercise.stableKey == candidate.exercise.stableKey }
         }
         val base = unblockedBase.filter(captainChairAllowed)
         val captainChairBlocked = unblockedBase.size - base.size
@@ -53,11 +53,11 @@ internal class ProgramSlotCandidateQuery(
             .map { candidate -> candidate to score(candidate) }
             .sortedByDescending { it.second }
         val pool = adaptiveSelectionPool(scored, selectionPoolSize)
-        val poolIds = pool.map { (candidate, _) -> candidate.exercise.id }.toSet()
+        val poolIds = pool.map { (candidate, _) -> candidate.exercise.stableKey }.toSet()
         val scoreAdjustments = scoreTrace?.let { trace ->
             scored.map { (candidate, finalScore) ->
                 trace(candidate, finalScore).copy(
-                    selectionWindowIncluded = candidate.exercise.id in poolIds
+                    selectionWindowIncluded = candidate.exercise.stableKey in poolIds
                 )
             }
         }.orEmpty()

@@ -65,7 +65,7 @@ internal fun RecordScreen(
     }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
     val listState = rememberLazyListState()
-    val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.id } }
+    val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.stableKey } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
     var pendingAddedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -112,7 +112,7 @@ internal fun RecordScreen(
             onDismiss = { showExercisePicker = false },
             onSelect = { exercise ->
                 val hadConfirmedSet = entries.any { record -> record.sets.any(WorkoutSet::confirmed) }
-                viewModel.addWorkout(selectedDate, exercise.id) { addedEntryId ->
+                viewModel.addWorkout(selectedDate, exercise.stableKey) { addedEntryId ->
                     pendingAddedAfterConfirmed = hadConfirmedSet
                     pendingAddedEntryId = addedEntryId
                 }
@@ -188,7 +188,7 @@ internal fun RecordScreen(
                 WorkoutEntryCard(
                     selectedDate = selectedDate,
                     entryWithSets = entryWithSets,
-                    exercise = exerciseMap[entryWithSets.entry.exerciseId],
+                    exercise = exerciseMap[entryWithSets.entry.exerciseStableKey],
                     restTimerSessionController = restTimerSessionController,
                     timerState = timerState,
                     onUpdateEntry = viewModel::updateWorkoutEntry,

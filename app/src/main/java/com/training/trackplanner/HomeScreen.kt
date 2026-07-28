@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,10 +23,12 @@ import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,12 +44,16 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.DataTransferReport
+import com.training.trackplanner.data.DataTransferStatus
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -58,9 +66,11 @@ internal fun HomeScreen(
     val today = remember { LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) }
     val summary by viewModel.homeTodaySummary.collectAsState()
     val transferMessage by viewModel.recordTransferMessage.collectAsState()
+    val transferReport by viewModel.dataTransferReport.collectAsState()
     val initialProfile by viewModel.initialUserProfile.collectAsState()
     val todayCheckIn by viewModel.todayCheckIn.collectAsState()
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
+    var showTransferReport by rememberSaveable { mutableStateOf(false) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv")
     ) { uri ->
@@ -70,6 +80,11 @@ internal fun HomeScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let(viewModel::restoreRecords)
+    }
+    val reportSaveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        uri?.let(viewModel::saveLatestDataTransferReport)
     }
 
     LazyColumn(
@@ -103,6 +118,7 @@ internal fun HomeScreen(
         item {
             RecordManagementCard(
                 message = transferMessage,
+                report = transferReport,
                 onBackup = {
                     backupLauncher.launch("whatyougottatrain_backup_$today.csv")
                 },
@@ -115,7 +131,8 @@ internal fun HomeScreen(
                             "text/*"
                         )
                     )
-                }
+                },
+                onShowReport = { showTransferReport = true }
             )
         }
         item {
@@ -133,6 +150,15 @@ internal fun HomeScreen(
             onSave = { profile ->
                 viewModel.saveInitialUserProfile(profile)
                 showInitialProfile = false
+            }
+        )
+    }
+    if (showTransferReport && transferReport != null) {
+        DataTransferReportDialog(
+            report = transferReport!!,
+            onDismiss = { showTransferReport = false },
+            onSave = {
+                reportSaveLauncher.launch("whatyougottatrain_diagnostic_${transferReport!!.operationId}.txt")
             }
         )
     }
@@ -414,8 +440,10 @@ private fun MiniTrendChart(
 @Composable
 private fun RecordManagementCard(
     message: String?,
+    report: DataTransferReport?,
     onBackup: () -> Unit,
-    onRestore: () -> Unit
+    onRestore: () -> Unit,
+    onShowReport: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -444,6 +472,20 @@ private fun RecordManagementCard(
                     Text("기록 복원")
                 }
             }
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                enabled = report != null,
+                onClick = onShowReport
+            ) {
+                Text("최근 작업 상세 보기")
+            }
+            if (report?.status == DataTransferStatus.RUNNING) {
+                Text(
+                    text = report.currentStage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             message?.let {
                 Text(
                     text = it,
@@ -453,6 +495,43 @@ private fun RecordManagementCard(
             }
         }
     }
+}
+
+@Composable
+private fun DataTransferReportDialog(
+    report: DataTransferReport,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    val clipboard = LocalClipboardManager.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("최근 작업 상세") },
+        text = {
+            Text(
+                modifier = Modifier
+                    .heightIn(max = 520.dp)
+                    .verticalScroll(rememberScrollState()),
+                text = report.detailText(),
+                style = MaterialTheme.typography.bodySmall
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { clipboard.setText(AnnotatedString(report.detailText())) }) {
+                Text("상세 내용 복사")
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = onSave) {
+                    Text("진단 보고서 파일로 저장")
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("닫기")
+                }
+            }
+        }
+    )
 }
 
 @Composable

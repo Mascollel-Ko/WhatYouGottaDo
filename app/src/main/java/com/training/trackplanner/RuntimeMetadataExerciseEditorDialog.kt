@@ -80,7 +80,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
-                        if (exercise.id == 0L) "사용자 운동 추가" else "운동 메타데이터 수정",
+                        if (exercise.stableKey.isBlank()) "사용자 운동 추가" else "운동 메타데이터 수정",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -217,7 +217,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                if (onReset != null && exercise.id > 0L) {
+                if (onReset != null && exercise.stableKey.isNotBlank()) {
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { showResetConfirm = true }
@@ -262,15 +262,13 @@ internal fun RuntimeMetadataExerciseEditorDialog(
             onSelect = { source ->
                 val preserveName = exercise.name
                 val preserveStableKey = exercise.stableKey
-                val preserveId = exercise.id
                 val preserveCustom = exercise.isCustom
                 val preserveActive = exercise.isActive
                 val preserveArchivedAt = exercise.archivedAt
                 val preserveDescription = exercise.description
                 val copyRest = restText.isBlank() ||
-                    (initial.exercise.id == 0L && restText == initial.exercise.defaultRestSeconds.toString())
+                    (initial.exercise.stableKey.isBlank() && restText == initial.exercise.defaultRestSeconds.toString())
                 exercise = exercise.copyEditableMetadataFrom(source.exercise).copy(
-                    id = preserveId,
                     name = preserveName,
                     stableKey = preserveStableKey,
                     description = preserveDescription,
@@ -331,7 +329,7 @@ private fun ExerciseMetadataCopyDialog(
                     Text("검색 결과가 없습니다.", style = MaterialTheme.typography.bodyMedium)
                 } else {
                     LazyColumn(modifier = Modifier.heightIn(max = 420.dp)) {
-                        items(filtered, key = { it.exercise.id }) { source ->
+                        items(filtered, key = { it.exercise.stableKey }) { source ->
                             TextButton(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { onSelect(source) }

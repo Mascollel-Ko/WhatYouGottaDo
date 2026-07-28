@@ -2,14 +2,14 @@ package com.training.trackplanner.analysis.core
 
 import java.time.LocalDate
 
-typealias ExerciseId = Long
+typealias ExerciseStableKey = String
 
 data class AnalysisInputSnapshot(
     val today: LocalDate,
     val completedEntriesUntilToday: List<AnalysisEntry>,
     val plannedEntriesFromTomorrow: List<AnalysisEntry>,
     val conditionRecordsUntilToday: List<AnalysisConditionRecord>,
-    val exerciseMetadataMap: Map<ExerciseId, AnalysisExerciseMetadata>,
+    val exerciseMetadataMap: Map<ExerciseStableKey, AnalysisExerciseMetadata>,
     val recentWindow: AnalysisWindow,
     val futureWindow: AnalysisWindow,
     val windows: AnalysisWindows
@@ -18,7 +18,7 @@ data class AnalysisInputSnapshot(
 data class AnalysisEntry(
     val entryId: Long,
     val date: LocalDate,
-    val exerciseId: ExerciseId,
+    val exerciseStableKey: ExerciseStableKey,
     val exerciseName: String,
     val category: String,
     val restSeconds: Int,
@@ -46,7 +46,7 @@ data class AnalysisConditionRecord(
 )
 
 data class AnalysisExerciseMetadata(
-    val exerciseId: ExerciseId,
+    val exerciseStableKey: ExerciseStableKey,
     val stableKey: String,
     val activityKind: String,
     val planningEligibility: String,

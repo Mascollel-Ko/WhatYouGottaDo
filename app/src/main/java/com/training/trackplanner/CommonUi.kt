@@ -249,7 +249,7 @@ internal fun ExercisePickerDialog(
                     modifier = Modifier.heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(filtered, key = { it.id }) { exercise ->
+                    items(filtered, key = Exercise::stableKey) { exercise ->
                         ExerciseListItem(
                             exercise = exercise,
                             selected = false,

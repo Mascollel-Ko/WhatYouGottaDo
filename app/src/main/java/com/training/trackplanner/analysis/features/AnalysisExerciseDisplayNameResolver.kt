@@ -14,9 +14,8 @@ object AnalysisExerciseDisplayNameResolver {
         firstUsable(
             entry?.exerciseName,
             exercise.name,
-            catalog.resolveByStableKey(exercise.stableKey)?.exerciseName,
-            catalog.resolveLegacyName(entry?.exerciseName.orEmpty())?.exerciseName
-        ) ?: "운동 ${exercise.id}"
+            catalog.resolveByStableKey(exercise.stableKey)?.exerciseName
+        ) ?: "운동 ${exercise.stableKey}"
 
     private fun firstUsable(vararg candidates: String?): String? =
         candidates.firstOrNull { candidate -> candidate != null && !candidate.isFallbackName() }?.trim()
