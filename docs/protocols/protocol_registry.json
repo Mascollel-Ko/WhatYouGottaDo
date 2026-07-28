@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-07-27",
+  "lastUpdated": "2026-07-28",
   "families": [
     {
       "familyId": "OFI",
@@ -41,7 +41,7 @@
     {
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
-      "descriptionKo": "legacy 호환성과 authoritative program snapshot",
+      "descriptionKo": "stableKey 운동 identity, legacy 호환성과 authoritative snapshot",
       "indexDocument": "data_portability/BACKUP_AND_RESTORE.md"
     },
     {
@@ -406,7 +406,7 @@
       "familyId": "CONNECTIVE_TISSUE",
       "titleKo": "연결조직 load unit catalogue",
       "titleEn": "Connective-tissue Load-unit Catalogue",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -416,7 +416,7 @@
       ],
       "canonicalDocument": "connective_tissue/LOAD_UNIT_CATALOGUE.md",
       "implementedFromAppVersion": "v0.4.2.7",
-      "lastAuditedCommit": "f2479c8cbf89649469495966d3e8cc09ff49ad8d",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt",
         "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvModels.kt"
@@ -430,7 +430,10 @@
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_joint_complexes_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissues_v1.csv",
         "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_tissue_relationships_v1.csv",
-        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_index_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_protocols_v1.csv",
+        "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_load_unit_authority_v1.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.8_release_notes.md",
@@ -558,7 +561,7 @@
           "productPolicyStatus": "SCENARIO_WEIGHTS_AND_PROFILE_SHARING",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "DESIGNED",
             "GENERATED",
@@ -583,7 +586,7 @@
           "productPolicyStatus": "BOUNDED_PURE_EVALUATOR",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "DESIGNED",
             "GENERATED",
@@ -604,7 +607,7 @@
           "productPolicyStatus": "ZERO_WHEN_NUMERICALLY_NEGLIGIBLE",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "GENERATED",
             "VALIDATED",
@@ -624,7 +627,7 @@
           "productPolicyStatus": "PROFILE_INPUT_ONLY_NOT_RECENT_HISTORY",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "GENERATED",
             "VALIDATED",
@@ -644,7 +647,7 @@
           "productPolicyStatus": "DOMAIN_EFFECT_APPROXIMATELY_PLUS_OR_MINUS_4_PERCENT",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "DESIGNED",
             "VALIDATED",
@@ -664,7 +667,7 @@
           "productPolicyStatus": "NO_MANUAL_THRESHOLD_EDITS",
           "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
           "registrySchemaVersion": "1.0.0",
-          "generatedArtifactChecksum": "52afc97806cf5135fcc12e2e550b6d136bbdd05094e4912904f1c8a3c8ff7baf",
+          "generatedArtifactChecksum": "cd764237e74ecd6e811543ce017a01ac8ef1405e6d6f74b511f010279aa5910c",
           "implementationStatus": [
             "GENERATED",
             "VALIDATED",
@@ -845,7 +848,7 @@
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_method_reviews/3.3_badminton_transfer_review_template.md"
@@ -952,7 +955,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 운동 catalogue",
       "titleEn": "Badminton Exercise Catalogue",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -962,19 +965,20 @@
       ],
       "canonicalDocument": "badminton/BADMINTON_EXERCISE_CATALOGUE.md",
       "implementedFromAppVersion": "v0.3.5.0",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt",
         "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
         "app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json",
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/metadata_evidence_sources_v0.3.5.0.md"
@@ -1012,7 +1016,7 @@
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/exercise_metadata_reclassification_plan_v0.3.5.0.md"
@@ -1075,7 +1079,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "3.0.0",
+      "currentVersion": "3.0.1",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1086,7 +1090,7 @@
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
       "implementedFromAppVersion": "v0.5.0.3",
-      "lastAuditedCommit": "aedf260",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
@@ -1211,7 +1215,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력 운동 catalogue",
       "titleEn": "Strength Exercise Catalogue",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1221,19 +1225,20 @@
       ],
       "canonicalDocument": "strength/STRENGTH_EXERCISE_CATALOGUE.md",
       "implementedFromAppVersion": "v0.3.5.0",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt",
         "app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
         "app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json",
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/metadata_evidence_sources_v0.3.5.0.md",
@@ -1250,7 +1255,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동 프로그램 생성 개요",
       "titleEn": "Automatic Program Builder Overview",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1259,7 +1264,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
@@ -1270,7 +1275,7 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md",
@@ -1310,7 +1315,7 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md"
@@ -1348,7 +1353,7 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md",
@@ -1389,7 +1394,7 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramBuilderSelectedMainSlotRepairTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/exercises_seed.json"
+        "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.1.10.9_program_builder_selected_main_slot_repair_worklog.md",
@@ -1439,11 +1444,56 @@
       "publicSummaryAvailable": true
     },
     {
+      "protocolId": "DATA-EXERCISE-IDENTITY",
+      "familyId": "DATA_PORTABILITY",
+      "titleKo": "운동 identity와 정본화",
+      "titleEn": "Exercise Identity and Canonicalization",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
+      "implementedFromAppVersion": "v0.5.0.6",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/Entities.kt",
+        "app/src/main/java/com/training/trackplanner/data/Daos.kt",
+        "app/src/main/java/com/training/trackplanner/data/ExerciseStableKeyMigration.kt",
+        "app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt",
+        "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseStableKeyPreservationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/training_settings_seed.csv",
+        "app/src/main/assets/exercise_legacy_import_map.csv",
+        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json"
+      ],
+      "supportingDocuments": [
+        "outputs/exercise_canonicalization_preflight.md",
+        "outputs/exercise_identity_reference_audit.md",
+        "docs/v0.5.0.6_release_notes.md"
+      ],
+      "knownGaps": [
+        "Equipment-unspecified legacy split rows require explicit repair instead of an automatic guess."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
       "protocolId": "DATA-BACKUP-RESTORE",
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1452,11 +1502,15 @@
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
       "implementedFromAppVersion": "v0.5.0.5",
-      "lastAuditedCommit": "48b137d351cb75736f7fbb23ebff4dc027353466",
+      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupExportService.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt",
+        "app/src/main/java/com/training/trackplanner/data/BackupPreflightValidator.kt",
+        "app/src/main/java/com/training/trackplanner/data/BackupRestoreCanonicalizer.kt",
+        "app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt",
+        "app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt"
@@ -1464,14 +1518,20 @@
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordCsvBackupRestoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/BackupIntegrityBoundaryTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/DataTransferReportStoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
         "app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/training_settings_seed.csv"
+        "app/src/main/assets/training_settings_seed.csv",
+        "app/src/main/assets/exercise_legacy_import_map.csv",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json"
       ],
       "supportingDocuments": [
-        "docs/v0.5.0.5_release_notes.md"
+        "docs/v0.5.0.5_release_notes.md",
+        "docs/v0.5.0.6_release_notes.md"
       ],
       "knownGaps": [
         "새 program snapshot은 partial merge가 아니라 authoritative replacement입니다.",

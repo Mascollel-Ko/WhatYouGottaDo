@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-PROXY-PERFORMANCE |
-| Protocol version | 3.0.0 |
+| Protocol version | 3.0.1 |
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.3 |
-| Last audited commit | aedf260 |
+| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
 | Supersedes | 2.1.0 |
 
@@ -175,7 +175,7 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 - proxy는 target registry의 sparse shared-factor loading만 사용하고 dense exercise-pair matrix나 절대중량 변환표를 만들지 않습니다.
 - reviewed row가 없는 e1RM-eligible 운동의 metadata proxy는 squat/knee-dominant, hinge/deadlift, horizontal press와 vertical pull family에만 보수적으로 허용하며 `strength-proxy-metadata-2.0.0`으로 식별합니다.
 
-현재 model/version boundary는 `strength-performance-model-3.0.0`, `strength-revision-3.0.0`, `strength-derived-state-0.5.0.4`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.1.0`, `strength-proxy-registry-2.0.0`, `strength-proxy-metadata-2.0.0`, `strength-rpe-rir-policy-1.0.0`, `strength-scalar-grid-1.0.0`, `repetition-curve-assets-2.0.0`, `repetition-curve-assignments-1.0.0`입니다. 호환되지 않는 이전 derived state는 current summary에 섞지 않고 v0.5.0.4 correction에서 삭제합니다.
+현재 model/version boundary는 `strength-performance-model-3.0.0`, `strength-revision-3.0.0`, `strength-derived-state-0.5.0.6`, `strength-factor-schema-2.0.0`, `strength-target-registry-1.1.0`, `strength-proxy-registry-2.0.0`, `strength-proxy-metadata-2.0.0`, `strength-rpe-rir-policy-1.0.0`, `strength-scalar-grid-1.0.0`, `repetition-curve-assets-2.0.0`, `repetition-curve-assignments-1.0.0`입니다. 호환되지 않는 이전 derived state는 current summary에 섞지 않고 raw workout에서 한 번 재구축합니다.
 
 ## 14. 알려진 한계
 
@@ -190,7 +190,7 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 
 ## 15. 현재 구현 상태
 
-- Room version `23`, migrations `MIGRATION_21_22`, `MIGRATION_22_23`
+- Room version `25`; exercise-key migration 이후 posterior state는 canonical exerciseStableKey만 사용합니다.
 - revision tables: `strength_model_revisions`, `strength_exercise_performance_state`, `strength_exercise_performance_history`, `strength_proxy_transfer_history`
 - retained tables: `strength_posterior_events`, `strength_posterior_history`, `strength_posterior_model_state`, `strength_curve_posteriors`, `strength_posterior_evidence`
 - obsolete parser/provenance markers remain readable: `strength_posterior_bootstrap_v2`, `strength_model_correction_rebuild_0_5_0_3`
@@ -254,6 +254,9 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 
 ## 20. 변경 이력
 
+- `3.0.1` (2026-07-28): exercise identity가 바뀌는 model boundary에서
+  derived state를 한 번 비우고 보존된 raw workout을 canonical stableKey로 재생한 뒤
+  새 completion event만 순차 반영하도록 고정했습니다.
 - `3.0.0` (2026-07-26): known RPE의 discrete RIR mixture, missing-RPE lower censoring, 실패 upper censoring, 15-node same-session 공통효과 적분, 1,025-point scalar grid, exercise-local posterior, shared-only proxy innovation, 1~20회 곡선, Room 23 revision/correction rebuild와 backup schema 6을 등록했습니다.
 - `3.0.0` lifecycle correction (2026-07-26): 수학 모델 버전은 유지하면서 `strength-derived-state-0.5.0.4` 호환성 경계를 추가했습니다. 호환되지 않는 파생 상태만 원시 완료 기록에서 한 번 재구축하고, legacy ACTIVE fallback을 제거했으며, 성공 이후에는 새 완료 event만 append합니다.
 - `2.1.0` (2026-07-26): 관련 세션 distinct-event 집계, reviewed metadata 기반 e1RM proxy 확장, confirmed 0회·RPE 10 실패 상한, 8주 prior 연쇄 이동 검증, model 2.0.0 compatibility와 platform-independent text checksum을 추가했습니다.

@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5 |
-| Last audited commit | 48b137d351cb75736f7fbb23ebff4dc027353466 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6 |
+| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -57,7 +57,7 @@ schema의 identity fallback이 아닙니다.
 
 ## 7. 계산 또는 분류 계약
 
-전체 restore CSV schema는 `7`, program backup schema는 `1`입니다. 새
+전체 restore CSV schema는 `8`, program backup schema는 `1`입니다. 새
 백업은 다음 row type을 사용합니다.
 
 | Row type | 의미 |
@@ -142,7 +142,7 @@ program tombstone 개수가 추가됩니다.
 ### Import transaction
 
 Authoritative restore는 같은 Room transaction에서 exercise stable key를
-destination local exercise ID로 먼저 해석한 뒤 현재 item, program,
+canonical exercise row로 먼저 해석한 뒤 현재 item, program,
 tombstone을 snapshot으로 교체합니다. local program ID는 새로 발급하고
 item parent를 remap합니다. 하나라도 해석 또는 insert가 실패하면 program
 graph를 포함한 import transaction 전체를 rollback합니다. 같은 파일을
@@ -172,10 +172,17 @@ stable key만 사용합니다.
 
 ## 15. 현재 구현 상태
 
-App `v0.5.0.5`, restore CSV schema `7`, program backup schema `1`에서
+App `v0.5.0.6`, restore CSV schema `8`, program backup schema `1`에서
 구현됩니다.
 
-Room `24`는 `training_programs.stableKey` unique index와
+Room `25`는 `Exercise.stableKey` primary key와 workout/program item의
+`exerciseStableKey` foreign key/index를 사용합니다. `24 -> 25` migration은
+유효한 numeric exercise reference를 canonical stableKey로 backfill하고 final
+table에서 exercise ID column을 제거합니다. ID 0, dangling reference, blank key와
+ambiguous split은 structured migration issue로 보존하며 destructive migration을
+사용하지 않습니다.
+
+Room `24`에서 도입한 `training_programs.stableKey` unique index와
 `training_program_tombstones` table을 추가합니다. `23 -> 24` migration은
 program/item row를 보존하고 임시 persistent legacy key를 backfill합니다.
 Initialization repair는 exact seed graph가 유일하게 일치할 때만 built-in
@@ -187,6 +194,10 @@ migration은 사용하지 않습니다.
 - `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupExportService.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt`
+- `app/src/main/java/com/training/trackplanner/data/BackupPreflightValidator.kt`
+- `app/src/main/java/com/training/trackplanner/data/BackupRestoreCanonicalizer.kt`
+- `app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt`
+- `app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt`
 - `app/src/main/java/com/training/trackplanner/data/Entities.kt`
 - `app/src/main/java/com/training/trackplanner/data/Daos.kt`
 - `app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt`
@@ -199,21 +210,30 @@ migration은 사용하지 않습니다.
   round-trip/idempotence, tombstone/seed evolution, modified built-in,
   empty snapshot, rollback, stable-key repair와 identity policy
 - `RecordCsvBackupRestoreTest`: 기존 CSV parser/export compatibility
+- `BackupIntegrityBoundaryTest`: all-error preflight, manifest/hash/count와
+  destination no-write 보장
+- `DataTransferReportStoreTest`: 성공/실패 report persistence와 최근 20개 retention
+- `LegacyExerciseImportMapperTest`: exact import-only mapping과 ambiguous rejection
 - `BackupRestoreImportBehaviorTest`: 기존 import transaction behavior
-- `TrainingDatabaseMigrationTest`: Room `23 -> 24` row 보존, key/index/table
+- `TrainingDatabaseMigrationTest`: Room `23 -> 24`와 `24 -> 25` row/reference 보존
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/training_settings_seed.csv`: built-in program
   `program_key`와 seed graph
-- Room exported schema `23.json`, `24.json`: migration boundary
+- Room exported schema `23.json`, `24.json`, `25.json`: migration boundary
+- `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
 
 ## 19. 관련 문서
 
 - `docs/v0.5.0.5_release_notes.md`: app release scope와 검증 결과
+- `docs/v0.5.0.6_release_notes.md`: stableKey-only backup format과 정본화 release
+- `docs/protocols/data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md`
 - `docs/codex_worklog.md`: implementation worklog
 
 ## 20. 변경 이력
 
 - `1.0.0`: authoritative program snapshot, stable identity, tombstone와
   legacy compatibility 계약 추가.
+- `1.1.0`: backup format 8 manifest/hash/count 검증, all-error preflight,
+  stableKey-only exercise reference, structured report와 Room 24→25 rollback 계약 추가.

@@ -18,3 +18,7 @@
 - **heuristic**: 불완전한 입력에서 일관된 동작을 만들기 위한 engineering 판단입니다.
 - **canonical state**: 동일 입력에 대해 제품이 표시하도록 정한 표준 상태입니다.
 - **calibration**: 개인 history와 비교할 수 있을 때 상대 위치를 계산하는 과정입니다.
+- **exercise stableKey**: 이름과 설치별 숫자 ID가 바뀌어도 유지되는 운동의 유일한
+  application-level identity입니다. v0.5.0.6부터 운동 reference는 이 key만 저장합니다.
+- **legacy exercise alias**: 과거 backup import에서만 exact canonical stableKey로
+  바꾸는 명시적 호환 key입니다. 정상 runtime resolution에는 사용하지 않습니다.

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -75,6 +75,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
+- v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
+  explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -91,7 +93,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/exercises_seed.json`](../../../app/src/main/assets/exercises_seed.json)
+- [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
 
 ## 19. 관련 문서
 
@@ -101,4 +103,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-28): program seed, generation spec와 future entry의
+  exercise reference를 canonical stableKey-only로 고정했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

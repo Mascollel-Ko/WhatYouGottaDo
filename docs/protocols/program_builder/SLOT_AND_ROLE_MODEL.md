@@ -92,7 +92,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/exercises_seed.json`](../../../app/src/main/assets/exercises_seed.json)
+- [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
 
 ## 19. 관련 문서
 

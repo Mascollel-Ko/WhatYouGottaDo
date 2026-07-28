@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-CATALOGUE |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.3.5.0 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -15,7 +15,7 @@
 
 ## 1. 일반 사용자용 요약
 
-239-row canonical exercise metadata와 사용자 override가 배드민턴 taxonomy와 transfer 분석의 catalogue입니다.
+224-row canonical exercise metadata와 사용자 override가 배드민턴 taxonomy와 transfer 분석의 catalogue입니다.
 
 ## 2. 목적
 
@@ -74,6 +74,8 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
+- v0.5.0.6 canonicalization: `6코너 풋워크`는 `ex_33841b88` 하나로
+  통합했고 transfer 분류와 random-beep cue를 보존했습니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -86,12 +88,13 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 - [`app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt)
 
 ## 18. 권위 자산
 
 - [`app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv`](../../../app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv)
 - [`app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json`](../../../app/src/main/assets/metadata/canonical_exercise_metadata_manifest.json)
-- [`app/src/main/assets/exercises_seed.json`](../../../app/src/main/assets/exercises_seed.json)
+- [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
 
 ## 19. 관련 문서
 
@@ -101,3 +104,5 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 ## 20. 변경 이력
 
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
+- `1.1.0` (2026-07-28): workbook canonical naming과 merge/split 결과를
+  224개 stableKey catalogue 및 transfer metadata에 반영했습니다.

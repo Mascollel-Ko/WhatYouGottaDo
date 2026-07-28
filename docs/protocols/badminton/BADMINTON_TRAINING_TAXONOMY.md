@@ -94,7 +94,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 ## 18. 권위 자산
 
 - [`app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv`](../../../app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv)
-- [`app/src/main/assets/exercises_seed.json`](../../../app/src/main/assets/exercises_seed.json)
+- [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
 
 ## 19. 관련 문서
 

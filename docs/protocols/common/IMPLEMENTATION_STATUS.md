@@ -20,3 +20,6 @@ Runtime protocol 내부의 비활성 generated component는 protocol 전체의 `
 - `TESTED`: runtime activation, fallback과 주요 product-facing 경계를 대응 테스트가 검증합니다.
 
 `GENERATED`나 `VALIDATED`만으로 runtime activation을 주장하지 않습니다. `CT-PERSONAL-CALIBRATION`의 BasePrior는 v0.4.2.12부터 `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`이며, runtime parser·stable-key/hour lookup·fallback·UI 계약이 함께 검증됩니다.
+
+Exercise identity canonicalization은 v0.5.0.6에서 `IMPLEMENTED`이며 Room
+`24 -> 25`, backup format `8`, catalog/legacy importer regression tests로 검증합니다.

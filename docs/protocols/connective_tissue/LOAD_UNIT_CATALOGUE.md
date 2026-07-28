@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-LOAD-UNIT-CATALOGUE |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.7; EDU-2 copy active from v0.4.2.13 |
-| Last audited commit | f2479c8cbf89649469495966d3e8cc09ff49ad8d |
+| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
 | Supersedes | CT-LOAD-UNIT-CATALOGUE 1.0.0 |
 
@@ -75,6 +75,11 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
 - Educational coverage: `77 LOAD_UNIT + 15 JOINT_COMPLEX = 92/92`, metadata `RCV-ALL-0.6-EDU-2`
+- Exercise identity coverage: canonical exercise index/protocol `224/224`,
+  authority rows `3224`, mapped exercise keys `223`, unresolved generic stretch `1`
+- Workbook tissue actions: KEEP 계열 `11`, REBUILD 계열 `11`,
+  SPLIT_RECALIBRATE `4`. 기존 77 load unit, 공식, recovery curve, prior와
+  제한된 COD C modifier 값은 변경하지 않았습니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -87,6 +92,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 - [`app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetImportTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEducationalCopyContractTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/tissue/TissueEducationalCopyContractTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt)
 
 ## 18. 권위 자산
 
@@ -104,5 +110,8 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-07-28): exercise identity를 224개 canonical stableKey로
+  정본화하고 workbook의 KEEP/REBUILD/SPLIT 결정을 반영했습니다. 수치 protocol은
+  유지했습니다.
 - `1.1.0` (2026-07-18): 77개 child와 15개 parent의 EDU-2 설명, hierarchy 작성 원칙과 완전 커버리지 검증을 추가했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
