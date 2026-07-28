@@ -3951,3 +3951,40 @@ Verification
 - `:app:assembleDebug` passed and produced a 46,676,079-byte APK with SHA-256
   `281d1fa8155726a2a5cb1542e85bea4ab9ae2ef3d517c8d6b610f6f3ded6d38c`.
 - Main/tag push and GitHub artifact verification: pending.
+
+## v0.5.0.10 calendar OFI tint and exercise search
+
+### Baseline and implementation
+- Started from latest `origin/main`
+  `a7e3b44a88f76f50a59e75dfb88f8db0930523e1` (`0.5.0.9 / 500009`).
+- Implementation commit:
+  `c2f30971e12849fbc18b7cb3ab97e12499707e23`.
+- Reused canonical
+  `DailyFatigueResult.state.overallFatigueIndex` through
+  `DailyFatigueCalculator.calculateSeries`; no OFI formula, baseline,
+  threshold, label or projected-fatigue behavior changed.
+
+### Changes
+- Added one visible-month OFI map, including historical months and canonical
+  rest-day residual fatigue while clamping future ranges to today.
+- Added continuous interpolation from each existing calendar base color to
+  Material `errorContainer`, plus contrast-safe small text.
+- Added one visible-month confirmed-record exercise search query across
+  canonical and historical snapshot names.
+- Added a 3.dp search-match border with precedence over the existing 1.dp
+  today border. Search highlighting remains independent from OFI tint.
+- Added focused presentation, Room query and analysis-range regression tests.
+- Bumped the app to `0.5.0.10 / 500010` and OFI presentation protocol to
+  `1.3.0`.
+
+### Validation
+- `:app:compileDebugKotlin`: passed.
+- Focused `CalendarDayPresentationTest`, `WorkoutCalendarSearchTest` and
+  `AnalysisSummaryServiceTest`: passed.
+- Full `:app:testDebugUnitTest`: 1,075 tests, zero failures.
+- `:app:assembleDebug`: passed; generated a 46,676,079-byte APK with SHA-256
+  `d6d9bbfa0df611722d34dacd12c1a32807056b627e81d51aecdd753b55e68aad`.
+- Protocol documentation validation: passed, 8 families and 32 protocols.
+- Instrumentation tests were not run because `adb devices` reported no
+  attached emulator or device.
+- Final documentation commit, main push and CI: pending.

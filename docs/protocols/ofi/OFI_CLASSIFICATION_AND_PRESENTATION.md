@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CLASSIFICATION |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.15 |
-| Last audited commit | 7c29fa80b31fad642273e0a3ec5924109dafac21 |
+| Implemented from app version | v0.4.2.15; calendar presentation from v0.5.0.10 |
+| Last audited commit | c2f30971e12849fbc18b7cb3ab97e12499707e23 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -55,6 +55,10 @@ OFI 상태는 0~39 `LOW`, 40~74 `NORMAL`, 75~86 `ELEVATED`, 87~97 `CAUTION`, 98~
 
 v0.5.0.0부터 기본 OFI 요약은 overall 상태 아래에 canonical 다섯 축을 텍스트 행으로 표시합니다. 각 행은 축 이름과 상태 라벨을 우선하며 낮음·보통은 중립색, 높음·매우 높음만 경고색으로 강조합니다. 축별 큰 막대, 개별 강조색, 반복 아이콘과 기여 운동 목록은 기본 요약에 넣지 않고 기존 상세 경로에서 확인합니다. 이 변경은 계산, threshold, 분류와 projected OFI를 변경하지 않습니다.
 
+v0.5.0.10부터 기록 달력은 보이는 날짜 범위의 canonical 일별 `DailyFatigueResult.state.overallFatigueIndex`를 사용합니다. 기존 셀 상태 색을 시작색으로 유지하고 OFI를 `0..100`으로 제한한 선형 비율로 Material `errorContainer`까지 연속 보간합니다. OFI가 없거나 미래인 날짜에는 값을 만들지 않으며, 회복 잔여가 있는 휴식일은 기존 `DailyFatigueCalculator.calculateSeries` 결과를 그대로 표시합니다. 이 표현은 OFI 계산식, baseline, threshold, 라벨과 projected fatigue를 변경하지 않습니다.
+
+운동명 검색 강조는 OFI 배경과 독립된 테두리 채널입니다. 현재 canonical 운동명 또는 기록 당시 `WorkoutEntry.exerciseName`의 부분 문자열이 일치하고 해당 기록에 확인된 세트가 하나 이상 있을 때만 3.dp 테두리를 표시합니다. 검색 테두리는 오늘의 기존 1.dp 테두리보다 우선하며 계획 전용 또는 미확인 세트 전용 날짜는 검색 결과로 강조하지 않습니다.
+
 ## 10. 예외 및 fallback
 
 필수 입력이 없으면 현재 코드의 명시된 빈 결과 또는 보수적 기본 경로를 사용하며 값을 추정해 만들지 않습니다.
@@ -91,6 +95,13 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 - [`app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
+- [`app/src/main/java/com/training/trackplanner/CalendarDayPresentation.kt`](../../../app/src/main/java/com/training/trackplanner/CalendarDayPresentation.kt)
+- [`app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt`](../../../app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt)
+- [`app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`](../../../app/src/main/java/com/training/trackplanner/TrainingViewModel.kt)
+- [`app/src/main/java/com/training/trackplanner/data/AnalysisSummaryService.kt`](../../../app/src/main/java/com/training/trackplanner/data/AnalysisSummaryService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/Daos.kt`](../../../app/src/main/java/com/training/trackplanner/data/Daos.kt)
+- [`app/src/main/java/com/training/trackplanner/data/RepositoryReadQueryService.kt`](../../../app/src/main/java/com/training/trackplanner/data/RepositoryReadQueryService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt)
 
 ## 17. 검증 테스트
 
@@ -100,6 +111,9 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 - [`app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/fatigue/FatigueAnalysisMapperTest.kt)
 - [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/CurrentFatigueStatusCardUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/CurrentFatigueStatusCardUiTest.kt)
+- [`app/src/test/java/com/training/trackplanner/CalendarDayPresentationTest.kt`](../../../app/src/test/java/com/training/trackplanner/CalendarDayPresentationTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/AnalysisSummaryServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/AnalysisSummaryServiceTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/WorkoutCalendarSearchTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/WorkoutCalendarSearchTest.kt)
 
 ## 18. 권위 자산
 
@@ -111,10 +125,12 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 - [`docs/v0.4.2.6_release_notes.md`](../../v0.4.2.6_release_notes.md)
 - [`docs/v0.4.2.15_release_notes.md`](../../v0.4.2.15_release_notes.md)
 - [`docs/v0.5.0.0_release_notes.md`](../../v0.5.0.0_release_notes.md)
+- [`docs/v0.5.0.10_release_notes.md`](../../v0.5.0.10_release_notes.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-07-29): 기록 달력에 canonical 일별 OFI의 연속 Material 색 보간과 확인된 운동 기록 검색 테두리 계약을 추가했습니다. OFI 계산과 분류는 변경하지 않았습니다.
 - `1.2.0` (2026-07-19): v0.5.0.0에서 canonical 다섯 축을 조용한 텍스트 행으로 표시하고 실제 상승 상태만 강하게 강조하도록 정리했습니다. 계산과 분류는 변경하지 않았습니다.
 - `1.1.1` (2026-07-19): v0.4.2.16에서 rolling OFI chart의 실제 날짜 범위와 일별 시간축 표시 계약을 추가했습니다. OFI 계산과 분류는 변경하지 않았습니다.
 - `1.1.0` (2026-07-18): OFI 카드와 Home/Analysis 요약을 canonical 다섯 축으로 통일했습니다.
