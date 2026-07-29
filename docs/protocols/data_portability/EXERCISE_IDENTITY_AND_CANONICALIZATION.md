@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.0.2 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8 |
-| Last audited commit | 65844c8670b12dc78c424bc5cf76bb97892adbd3 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11 |
+| Last audited commit | f27463841c60384a0779a60ea92ed82d4d0e2c85 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -55,6 +55,10 @@ legacy 정책은 검토 완료된 generic RDL을 barbell RDL로, generic half-kn
 one-arm press 세 key를 dumbbell press로 직접 해석합니다. 이 결정은 장비 추론이나
 사용자 선택을 요구하지 않습니다.
 
+복원 중 이미 같은 stableKey로 생성된 Exercise는 이후 WorkoutSet 행 해석에서
+identity 대상으로만 재사용합니다. 해당 Exercise의 이름, category, targetMuscles,
+기타 사용자 수정 metadata를 seed 값으로 다시 덮어쓰지 않습니다.
+
 ## 8. 집계 방식
 
 bulk 처리에서는 exercise를 stableKey로 한 번 preload한 map을 사용합니다. 프로그램
@@ -78,7 +82,9 @@ drop합니다. 삭제된 generic `원암 로우`의 legacy Exercise 정의 행�
 ## 11. 개인화 또는 보정
 
 사용자 metadata override와 근력 posterior는 canonical stableKey에 귀속됩니다. 운동
-rename은 override, history 또는 posterior identity를 바꾸지 않습니다.
+rename은 override, history 또는 posterior identity를 바꾸지 않습니다. 복원된 runtime
+metadata override가 있으면 같은 stableKey의 사용자 수정 Exercise metadata도 이후
+set-row import와 seed refresh에서 함께 보존됩니다.
 
 ## 12. 연구 근거
 
@@ -149,3 +155,5 @@ WorkoutEntry/TrainingProgramItem은 기록 손실을 피하기 위해 자동 추
 - `1.0.1` (2026-07-29): generic RDL과 generic half-kneeling press의 검토된
   direct import mapping, 삭제된 generic 원암 로우 Exercise 정의의 warning-drop
   계약을 추가했습니다.
+- `1.0.2` (2026-07-29): 복원된 동일 stableKey Exercise를 set-row import가 seed
+  metadata로 다시 덮지 않는 사용자 metadata 보존 계약을 추가했습니다.

@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.1.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6 |
-| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11 |
+| Last audited commit | f27463841c60384a0779a60ea92ed82d4d0e2c85 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -148,6 +148,12 @@ item parent를 remap합니다. 하나라도 해석 또는 insert가 실패하면
 graph를 포함한 import transaction 전체를 rollback합니다. 같은 파일을
 반복 import해도 최종 상태와 row 수는 같습니다.
 
+Exercise 행과 runtime metadata override를 복원한 뒤 WorkoutSet 행이 기존
+stableKey를 해석할 때는 이미 복원된 Exercise를 그대로 참조합니다. 이 단계는
+seed metadata를 재적용하거나 이름, category, targetMuscles 등 사용자 수정값을
+변경하지 않습니다. 이후 일반 seed refresh도 같은 stableKey의 사용자 수정
+Exercise와 runtime override를 덮어쓰지 않습니다.
+
 ### Tombstone과 seed
 
 정상 삭제 경로에서 built-in program을 삭제하면 item과 program 삭제와
@@ -237,3 +243,5 @@ migration은 사용하지 않습니다.
   legacy compatibility 계약 추가.
 - `1.1.0`: backup format 8 manifest/hash/count 검증, all-error preflight,
   stableKey-only exercise reference, structured report와 Room 24→25 rollback 계약 추가.
+- `1.1.1`: set-row import가 이미 복원된 stableKey Exercise의 사용자 metadata를
+  seed 값으로 덮지 않는 복원 순서 계약을 추가.

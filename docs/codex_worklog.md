@@ -3988,3 +3988,54 @@ Verification
 - Instrumentation tests were not run because `adb devices` reported no
   attached emulator or device.
 - Final documentation commit, main push and CI: pending.
+
+## v0.5.0.11 restored metadata preservation and manual plan prefill
+
+### Baseline and cause
+- Started from latest `origin/main`
+  `b57582ec5296b006b6de237fbbd5d3ae7316cd6d` (`0.5.0.10 / 500010`).
+- During restore, WorkoutSet exercise resolution reapplied built-in seed
+  metadata to an Exercise that had already been restored by stableKey. This
+  erased user-edited Exercise fields even when a runtime metadata override
+  was present.
+- Manual Record-screen exercise insertion always created a zero-value planned
+  set instead of reusing the user's latest confirmed prescription.
+
+### Implementation commits
+- `f27463841c60384a0779a60ea92ed82d4d0e2c85`
+  (`fix(backup): preserve exercise metadata overrides`)
+  - Existing exact-stableKey exercises are now reused without mutation during
+    set-row restore.
+  - Added an actual `barbell_deadlift` seed regression proving user-edited
+    target muscles and runtime override survive import, seed refresh and
+    repeated import while workout identity remains intact.
+- `4138e99256ac609cb14df94f763cef662e81c7cf`
+  (`feat(record): prefill plans from last confirmed set`)
+  - Added one deterministic DAO query for the latest confirmed set of the same
+    stableKey at or before the target date.
+  - Manual `addWorkoutEntry` copies only reps, weight and manual-weight mode
+    into one fresh unconfirmed planned set.
+  - Program, copy/move, restore and add-set flows were not changed.
+
+### Regression coverage
+- Restore coverage protects exact stableKey identity, user-edited built-in
+  Exercise metadata, runtime override, repeated import and seed refresh.
+- Record mutation coverage protects ordering, future/unconfirmed exclusion,
+  rename and same-name separation, custom UUID exercises, no-history defaults,
+  unchanged add-set behavior and exclusion of planned sets from fatigue and
+  strength posterior evidence.
+
+### Release state
+- Version updated to `0.5.0.11 / 500011`.
+- Focused backup, metadata, record mutation and strength-event suites passed:
+  56 tests, zero failures.
+- `:app:compileDebugKotlin` passed.
+- Full `:app:testDebugUnitTest` passed: 1,084 tests, zero failures and zero
+  errors.
+- `:app:assembleDebug` passed; generated a 46,676,079-byte APK with SHA-256
+  `484b3df656d9a5f853ea32108fa280a0a9fd09d3bb214631829395c7b76848cc`.
+- Protocol documentation validation passed: 8 families and 32 protocols.
+- Instrumentation tests were not run because `adb devices` reported no
+  attached emulator or device.
+- Documentation commit, main push, `v0.5.0.11` tag and GitHub Actions:
+  pending.

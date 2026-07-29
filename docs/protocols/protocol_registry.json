@@ -1459,7 +1459,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "운동 identity와 정본화",
       "titleEn": "Exercise Identity and Canonicalization",
-      "currentVersion": "1.0.1",
+      "currentVersion": "1.0.2",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1467,14 +1467,15 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8",
-      "lastAuditedCommit": "65844c8670b12dc78c424bc5cf76bb97892adbd3",
+      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11",
+      "lastAuditedCommit": "f27463841c60384a0779a60ea92ed82d4d0e2c85",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/Entities.kt",
         "app/src/main/java/com/training/trackplanner/data/Daos.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseStableKeyMigration.kt",
         "app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt",
-        "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt"
+        "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
+        "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt",
@@ -1493,7 +1494,8 @@
         "outputs/exercise_canonicalization_preflight.md",
         "outputs/exercise_identity_reference_audit.md",
         "docs/v0.5.0.6_release_notes.md",
-        "docs/v0.5.0.8_release_notes.md"
+        "docs/v0.5.0.8_release_notes.md",
+        "docs/v0.5.0.11_release_notes.md"
       ],
       "knownGaps": [
         "Unreviewed equipment-unspecified legacy split rows require explicit repair instead of an automatic guess."
@@ -1506,7 +1508,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.1.1",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1514,8 +1516,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
-      "implementedFromAppVersion": "v0.5.0.5",
-      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
+      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11",
+      "lastAuditedCommit": "f27463841c60384a0779a60ea92ed82d4d0e2c85",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupExportService.kt",
@@ -1544,7 +1546,8 @@
       ],
       "supportingDocuments": [
         "docs/v0.5.0.5_release_notes.md",
-        "docs/v0.5.0.6_release_notes.md"
+        "docs/v0.5.0.6_release_notes.md",
+        "docs/v0.5.0.11_release_notes.md"
       ],
       "knownGaps": [
         "새 program snapshot은 partial merge가 아니라 authoritative replacement입니다.",
