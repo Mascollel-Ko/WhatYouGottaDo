@@ -239,6 +239,32 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sets WHERE id = :setId LIMIT 1")
     suspend fun findSetById(setId: Long): WorkoutSet?
 
+    @Query(
+        """
+        SELECT workout_sets.*
+        FROM workout_sets
+        INNER JOIN workout_entries ON workout_entries.id = workout_sets.entryId
+        WHERE workout_entries.exerciseStableKey = :exerciseStableKey
+          AND workout_entries.date <= :targetDate
+          AND workout_sets.confirmed = 1
+        ORDER BY workout_entries.date DESC,
+                 COALESCE(
+                     workout_entries.performedAt,
+                     workout_entries.firstConfirmedAt,
+                     workout_entries.completedAt,
+                     workout_entries.createdAt
+                 ) DESC,
+                 workout_entries.id DESC,
+                 workout_sets.setIndex DESC,
+                 workout_sets.id DESC
+        LIMIT 1
+        """
+    )
+    suspend fun latestConfirmedSetForExerciseAtOrBefore(
+        exerciseStableKey: String,
+        targetDate: String
+    ): WorkoutSet?
+
     @Delete
     suspend fun deleteSet(set: WorkoutSet)
 

@@ -12,6 +12,7 @@ internal class RecordMutationService(
         val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return 0L
         return mutateDate(date) {
             val beforeInsert = normalizeDisplayOrder(date)
+            val previousSet = workoutDao.latestConfirmedSetForExerciseAtOrBefore(exercise.stableKey, date)
             val latestConfirmedEntryId = beforeInsert
                 .filter { record -> record.sets.any(WorkoutSet::confirmed) }
                 .maxByOrNull { record ->
@@ -29,7 +30,16 @@ internal class RecordMutationService(
                     displayOrder = beforeInsert.size + 1
                 )
             )
-            workoutDao.insertSet(defaultSet(entryId, 1, exercise))
+            val initialSet = defaultSet(entryId, 1, exercise).let { default ->
+                previousSet?.let { source ->
+                    default.copy(
+                        reps = source.reps,
+                        weightKg = source.weightKg,
+                        manualWeight = source.manualWeight
+                    )
+                } ?: default
+            }
+            workoutDao.insertSet(initialSet)
             if (latestConfirmedEntryId != null) {
                 moveEntryAfter(date, entryId, latestConfirmedEntryId)
             }
