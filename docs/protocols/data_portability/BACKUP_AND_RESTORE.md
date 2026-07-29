@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.1.1 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11 |
-| Last audited commit | f27463841c60384a0779a60ea92ed82d4d0e2c85 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12 |
+| Last audited commit | e7d9317cf2ba618b8fadfcdcb772763a32618c09 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -57,7 +57,8 @@ schema의 identity fallback이 아닙니다.
 
 ## 7. 계산 또는 분류 계약
 
-전체 restore CSV schema는 `8`, program backup schema는 `1`입니다. 새
+전체 restore CSV schema는 `8`, backup format은 `9`, program backup
+schema는 `2`입니다. 새
 백업은 다음 row type을 사용합니다.
 
 | Row type | 의미 |
@@ -65,7 +66,12 @@ schema의 identity fallback이 아닙니다.
 | `program_snapshot` | 완전한 program snapshot의 존재와 schema version |
 | `program` | program stable key와 설정 |
 | `program_item` | parent program key, exercise stable key와 처방 |
+| `program_item_set` | parent item의 논리 위치와 set별 reps/weight/seconds |
 | `program_tombstone` | 사용자가 삭제한 built-in program key |
+
+`program_item_set` row가 하나 이상 있으면 그 item의 자식 set 전체가
+authoritative입니다. Program schema `1` 또는 자식 row가 없는 legacy item은
+기존 scalar setCount/reps/weight/seconds를 setCount만큼 반복해 해석합니다.
 
 `program_snapshot` marker가 authoritative 여부를 결정합니다. marker가
 있고 program row가 0개인 파일은 유효한 빈 snapshot이며, 복원 시 현재
@@ -75,14 +81,16 @@ program을 모두 제거합니다. marker가 없는 legacy 파일은 program 정
 
 ## 8. 집계 방식
 
-Export count는 program, program item과 program tombstone을 각각 셉니다.
+Export count는 program, program item, program item set과 program
+tombstone을 각각 셉니다.
 Snapshot은 incremental patch가 아니라 export 시점의 전체 program graph를
 한 단위로 집계합니다.
 
 ## 9. 출력과 UI 해석
 
 백업·복원 완료 결과는 기존 profile/daily/check-in/entry/set 개수와 함께
-program, program item, program tombstone 개수를 표시합니다. 0은 오류가
+program, program item, program item set, program tombstone 개수를
+표시합니다. 0은 오류가
 아니며 legacy import 또는 실제 빈 snapshot일 수 있고, 둘은 marker로
 구분합니다.
 
@@ -94,6 +102,7 @@ Parser는 program table을 변경하기 전에 전체 snapshot을 읽고 다음�
 - conflicting marker 또는 지원하지 않는 future schema
 - blank/duplicate program key
 - orphan item 또는 blank exercise key
+- orphan program item set, 중복·불연속 set index 또는 잘못된 set 값
 - 잘못된 week/day/order/rest/set/repetition/weight/seconds 값
 - 같은 program/day의 중복 item position
 - blank/duplicate tombstone
@@ -148,6 +157,10 @@ item parent를 remap합니다. 하나라도 해석 또는 insert가 실패하면
 graph를 포함한 import transaction 전체를 rollback합니다. 같은 파일을
 반복 import해도 최종 상태와 row 수는 같습니다.
 
+Program item set은 program과 item의 logical key를 먼저 검증한 뒤 새 local
+item ID로 remap합니다. 기존 item set은 item/program 교체와 같은
+transaction에서 삭제되고 새 authoritative set snapshot으로 복원됩니다.
+
 Exercise 행과 runtime metadata override를 복원한 뒤 WorkoutSet 행이 기존
 stableKey를 해석할 때는 이미 복원된 Exercise를 그대로 참조합니다. 이 단계는
 seed metadata를 재적용하거나 이름, category, targetMuscles 등 사용자 수정값을
@@ -178,8 +191,13 @@ stable key만 사용합니다.
 
 ## 15. 현재 구현 상태
 
-App `v0.5.0.6`, restore CSV schema `8`, program backup schema `1`에서
+App `v0.5.0.12`, restore CSV schema `8`, backup format `9`, program backup
+schema `2`에서
 구현됩니다.
+
+Room `26`은 `training_program_item_sets` child table을 추가합니다. `25 -> 26`
+migration은 기존 program/item과 workout history를 그대로 두고 빈 child
+table만 생성하므로 기존 scalar prescription fallback이 유지됩니다.
 
 Room `25`는 `Exercise.stableKey` primary key와 workout/program item의
 `exerciseStableKey` foreign key/index를 사용합니다. `24 -> 25` migration은
@@ -214,26 +232,29 @@ migration은 사용하지 않습니다.
 
 - `ProgramBackupRestoreTest`: legacy non-destructive import, snapshot
   round-trip/idempotence, tombstone/seed evolution, modified built-in,
-  empty snapshot, rollback, stable-key repair와 identity policy
+  empty snapshot, rollback, stable-key repair, exact item-set round-trip와
+  orphan item-set rejection
 - `RecordCsvBackupRestoreTest`: 기존 CSV parser/export compatibility
 - `BackupIntegrityBoundaryTest`: all-error preflight, manifest/hash/count와
   destination no-write 보장
 - `DataTransferReportStoreTest`: 성공/실패 report persistence와 최근 20개 retention
 - `LegacyExerciseImportMapperTest`: exact import-only mapping과 ambiguous rejection
 - `BackupRestoreImportBehaviorTest`: 기존 import transaction behavior
-- `TrainingDatabaseMigrationTest`: Room `23 -> 24`와 `24 -> 25` row/reference 보존
+- `TrainingDatabaseMigrationTest`: Room `23 -> 24`, `24 -> 25`, `25 -> 26`
+  row/reference 보존
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/training_settings_seed.csv`: built-in program
   `program_key`와 seed graph
-- Room exported schema `23.json`, `24.json`, `25.json`: migration boundary
+- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`: migration boundary
 - `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
 
 ## 19. 관련 문서
 
 - `docs/v0.5.0.5_release_notes.md`: app release scope와 검증 결과
 - `docs/v0.5.0.6_release_notes.md`: stableKey-only backup format과 정본화 release
+- `docs/v0.5.0.12_release_notes.md`: exact program set prescription release
 - `docs/protocols/data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md`
 - `docs/codex_worklog.md`: implementation worklog
 
@@ -245,3 +266,6 @@ migration은 사용하지 않습니다.
   stableKey-only exercise reference, structured report와 Room 24→25 rollback 계약 추가.
 - `1.1.1`: set-row import가 이미 복원된 stableKey Exercise의 사용자 metadata를
   seed 값으로 덮지 않는 복원 순서 계약을 추가.
+- `1.2.0`: backup format 9와 program schema 2의 authoritative
+  `program_item_set` row, legacy scalar fallback, validation과 transactional
+  remap 계약을 추가.

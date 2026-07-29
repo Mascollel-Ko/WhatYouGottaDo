@@ -1266,7 +1266,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동 프로그램 생성 개요",
       "titleEn": "Automatic Program Builder Overview",
-      "currentVersion": "1.0.1",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1274,23 +1274,30 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0",
-      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
+      "implementedFromAppVersion": "v0.4.2.0; exact manual set prescriptions from v0.5.0.12",
+      "lastAuditedCommit": "e7d9317cf2ba618b8fadfcdcb772763a32618c09",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt"
+        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt",
+        "app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt",
+        "app/src/main/java/com/training/trackplanner/PlanProgramSections.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt",
+        "app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md",
-        "docs/v0.3.5.3_program_builder_architecture.md"
+        "docs/v0.3.5.3_program_builder_architecture.md",
+        "docs/v0.5.0.12_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
@@ -1508,7 +1515,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.1.1",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1516,8 +1523,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
-      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11",
-      "lastAuditedCommit": "f27463841c60384a0779a60ea92ed82d4d0e2c85",
+      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12",
+      "lastAuditedCommit": "e7d9317cf2ba618b8fadfcdcb772763a32618c09",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupExportService.kt",
@@ -1528,7 +1535,8 @@
         "app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt"
+        "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
@@ -1542,12 +1550,14 @@
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
         "app/src/main/assets/exercise_legacy_import_map.csv",
-        "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json"
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/26.json"
       ],
       "supportingDocuments": [
         "docs/v0.5.0.5_release_notes.md",
         "docs/v0.5.0.6_release_notes.md",
-        "docs/v0.5.0.11_release_notes.md"
+        "docs/v0.5.0.11_release_notes.md",
+        "docs/v0.5.0.12_release_notes.md"
       ],
       "knownGaps": [
         "새 program snapshot은 partial merge가 아니라 authoritative replacement입니다.",

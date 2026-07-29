@@ -40,7 +40,7 @@ class StrengthPosteriorBackupRestoreTest {
         val csv = fixture.csv()
         val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
 
-        assertEquals(7, parsed.backupSchemaVersion)
+        assertEquals(RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION, parsed.backupSchemaVersion)
         assertTrue(parsed.posteriorFormatPresent)
         assertEquals(fixture.marker, parsed.posteriorBootstrapMarker)
         assertEquals(listOf(fixture.supersededRevision, fixture.revision), parsed.posteriorRevisions)

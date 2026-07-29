@@ -218,7 +218,7 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    private const val CURRENT_RESTORE_SCHEMA_VERSION = 8
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 8
     internal const val CURRENT_BACKUP_FORMAT_VERSION = 9
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"

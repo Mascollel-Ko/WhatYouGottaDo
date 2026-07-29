@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0 |
-| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
+| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12 |
+| Last audited commit | e7d9317cf2ba618b8fadfcdcb772763a32618c09 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -45,9 +45,19 @@
 
 기간은 3~8주, 주당 일수는 3~7일, 시간은 30/45/60분으로 정규화하고 각 week/day slot을 독립 생성합니다.
 
+수동 프로그램은 자동 생성 범위와 별개입니다. 기록 달력에서 선택한
+inclusive 날짜 범위는 첫 날짜를 1주차 월요일로 매핑하고 날짜 간 빈칸을
+그대로 둡니다. 같은 날짜의 동일 운동 기록도 합치지 않으며 각 기록과
+set 순서를 별도 program item과 set prescription으로 보존합니다.
+
 ## 9. 출력과 UI 해석
 
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
+
+저장된 프로그램 상세는 실제 운동이 있는 날짜만 표시하고, 각 운동을
+read-only card로 보여 줍니다. 운동 identity를 현재 catalogue에서 해석할 수
+있으면 기존 `ExerciseInfoDialog`를 열며, 그렇지 않아도 저장된 이름과
+처방 snapshot은 계속 표시합니다.
 
 ## 10. 예외 및 fallback
 
@@ -77,6 +87,10 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - Runtime implementation status: `IMPLEMENTED`
 - v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
   explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
+- v0.5.0.12 manual program boundary: `training_program_item_sets`가 있으면
+  set별 reps/weight/seconds가 authoritative하며, 자식 row가 없는 기존
+  program item은 scalar setCount/reps/weight/seconds를 반복하는 legacy
+  fallback으로 해석합니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -85,11 +99,17 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt)
+- [`app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt`](../../../app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt)
+- [`app/src/main/java/com/training/trackplanner/PlanProgramSections.kt`](../../../app/src/main/java/com/training/trackplanner/PlanProgramSections.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
+- [`app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt)
 
 ## 18. 권위 자산
 
@@ -103,6 +123,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-30): 기록 범위의 exact manual program 변환, set별
+  authoritative prescription, legacy scalar fallback과 저장 프로그램 card
+  표시 계약을 추가했습니다.
 - `1.0.1` (2026-07-28): program seed, generation spec와 future entry의
   exercise reference를 canonical stableKey-only로 고정했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

@@ -4039,3 +4039,52 @@ Verification
   attached emulator or device.
 - Documentation commit, main push, `v0.5.0.11` tag and GitHub Actions:
   pending.
+
+## v0.5.0.12 record range programs and exact set prescriptions
+
+### Baseline and cause
+- Started from latest `origin/main`
+  `a7ac160a42695ca82c1ad19c2b89655093a0db84`
+  (`0.5.0.11 / 500011`).
+- Scalar-only `TrainingProgramItem` rows could not preserve top/backoff,
+  mixed-repetition or timed sets when a calendar range became a reusable
+  program.
+- Program Open rendered summary text rather than the existing exercise detail
+  experience.
+
+### Implementation
+- Implementation commit:
+  `e7d9317cf2ba618b8fadfcdcb772763a32618c09`.
+- Added Room 26 `TrainingProgramItemSet` and one
+  `ProgramSetPrescriptionResolver`; child rows are authoritative and existing
+  scalar items remain readable.
+- Added transactional inclusive record-range conversion with week 1 Monday
+  anchoring, blank-gap preservation, duplicate-row preservation and no source
+  mutation.
+- Program application creates exact new planned/unconfirmed sets. Editing,
+  validation and repair use the same canonical resolver.
+- Backup format 9/program schema 2 round-trips the child graph through the
+  existing repository export/import path while preserving schema 1 fallback.
+- Program Open now uses compact read-only cards and the existing
+  `ExerciseInfoDialog`.
+
+### Files and tests
+- New production file:
+  `app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`.
+- New tests:
+  `RecordRangeProgramServiceTest` and `ProgramRecordUiContractTest`.
+- Extended `ProgramBackupRestoreTest`,
+  `ProgramPlanServiceMappingTest` and `TrainingDatabaseMigrationTest`.
+- Focused record-range, backup, mapping and UI-contract tests passed.
+- `:app:compileDebugKotlin` and
+  `:app:compileDebugAndroidTestKotlin` passed.
+- Full `:app:testDebugUnitTest`: 1,090 tests passed.
+- Focused Room 25-to-26 instrumentation migration: passed on `emulator-5554`.
+- `:app:assembleDebug`: passed; APK 46,725,231 bytes, SHA-256
+  `8857f8ecf4627fdd4c7677c05720291e5d1a6b62eb69a77086470b8e95216022`.
+- Protocol validation: passed, 8 families and 32 protocols.
+- `:app:lintDebug`: ran and failed on the pre-existing unchanged
+  `themes.xml` API 27/minSdk 26 issue.
+- Full historical migration class: five pre-existing fixture/schema failures;
+  the new 25-to-26 migration method passes independently.
+- Main push: pending.
