@@ -4087,4 +4087,50 @@ Verification
   `themes.xml` API 27/minSdk 26 issue.
 - Full historical migration class: five pre-existing fixture/schema failures;
   the new 25-to-26 migration method passes independently.
+- v0.5.0.12 commits were pushed to `origin/main`; final SHA
+  `7eaeccdacb8014fd9e5019dbe557b9f40040da51`. GitHub Android Debug Build
+  run `30475434076` completed successfully and uploaded the debug APK.
+
+## v0.5.0.13 exact saved-program application
+
+### Baseline and cause
+- Started from latest `origin/main`
+  `7eaeccdacb8014fd9e5019dbe557b9f40040da51`
+  (`0.5.0.12 / 500012`).
+- Legacy scalar programs could receive a current-day `TrainingGateSnapshot`
+  during application and silently lose exercises or sets, while child-set
+  programs bypassed the adjustment.
+
+### Implementation
+- Implementation commit:
+  `2369d91aaa80351193b20ccc2714d2be11edd3a2`.
+- Removed the gate parameter from ViewModel, repository and service application
+  APIs instead of retaining a nullable compatibility parameter.
+- Removed application-only metadata resolution and
+  `TodayProgramGateContext`.
+- All saved items now use `ProgramSetPrescriptionResolver` and materialize
+  every set exactly as unconfirmed workout plans.
+- Existing fatigue/readiness analysis, `FatigueSlotPolicy`, generation
+  constraints and warnings remain intact outside saved-program application.
+
+### Regression coverage
+- Legacy heavy-lower, high-impact, COD, overhead and upper-push items preserve
+  exact scalar prescriptions.
+- Today and future application produce equivalent prescriptions.
+- Heterogeneous and timed child sets, order and unconfirmed state are preserved.
+- Append/overwrite and confirmed-history behavior remain unchanged.
+- Reflection coverage verifies no application layer accepts
+  `TrainingGateSnapshot`.
+- Room 26 and all backup/schema versions are unchanged.
+
+### Validation
+- Focused `RecordRangeProgramServiceTest` and `FatigueSlotPolicyTest`: passed.
+- Full `:app:testDebugUnitTest`: 1,093 tests across 188 suites, zero failures,
+  errors or skips.
+- `:app:compileDebugKotlin`: passed.
+- `:app:assembleDebug`: passed; APK 46,708,847 bytes, SHA-256
+  `CA3AA8E18EB81F21F4B7EACAE9BA7B73A07BB5300090CBFA73BE7FA4812DB131`.
+- `scripts/validate_protocol_docs.py`: passed, 8 families and 32 protocols.
+- `:app:lintDebug`: ran and failed only on the pre-existing unchanged
+  `app/src/main/res/values/themes.xml:5` API 27/minSdk 26 `NewApi` issue.
 - Main push: pending.

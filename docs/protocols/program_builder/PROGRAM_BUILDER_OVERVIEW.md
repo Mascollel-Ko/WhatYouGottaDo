@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12 |
-| Last audited commit | e7d9317cf2ba618b8fadfcdcb772763a32618c09 |
+| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13 |
+| Last audited commit | 2369d91aaa80351193b20ccc2714d2be11edd3a2 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -41,6 +41,12 @@
 
 공개 경로는 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`입니다. 현재 UI 입력은 이름, 기간, 주당 운동일, 하루 시간, 배드민턴 비율이며 builder는 goal, equipment, 제외어, sport-strength, periodization과 preferred/excluded stable key를 현재 기본값으로 정규화합니다.
 
+저장 프로그램 적용은 생성이나 재평가가 아니라 exact materialization입니다.
+`TrainingViewModel → TrainingRepository → ProgramPlanService` 적용 경로는
+fatigue/readiness gate를 입력받지 않습니다. 모든 item은
+`ProgramSetPrescriptionResolver`로 해석하고 저장된 운동과 set 처방을
+그대로 unconfirmed workout plan으로 만듭니다.
+
 ## 8. 집계 방식
 
 기간은 3~8주, 주당 일수는 3~7일, 시간은 30/45/60분으로 정규화하고 각 week/day slot을 독립 생성합니다.
@@ -58,6 +64,10 @@ set 순서를 별도 program item과 set prescription으로 보존합니다.
 read-only card로 보여 줍니다. 운동 identity를 현재 catalogue에서 해석할 수
 있으면 기존 `ExerciseInfoDialog`를 열며, 그렇지 않아도 저장된 이름과
 처방 snapshot은 계속 표시합니다.
+
+표시된 처방과 적용 결과는 같은 canonical resolver를 사용합니다. 피로도,
+readiness, OFI와 연결조직 분석은 정보와 권고이며 저장 프로그램을 자동으로
+삭제, 축소, 교체하거나 변경하지 않습니다.
 
 ## 10. 예외 및 fallback
 
@@ -91,6 +101,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
   set별 reps/weight/seconds가 authoritative하며, 자식 row가 없는 기존
   program item은 scalar setCount/reps/weight/seconds를 반복하는 legacy
   fallback으로 해석합니다.
+- v0.5.0.13 application boundary: scalar/child storage 형식, 적용 날짜와
+  현재 fatigue/readiness 상태에 관계없이 저장된 모든 운동과 set을
+  unconfirmed plan으로 정확히 적용합니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -118,11 +131,14 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 19. 관련 문서
 
 - [`docs/v0.4.2.0_release_notes.md`](../../v0.4.2.0_release_notes.md)
+- [`docs/v0.5.0.13_release_notes.md`](../../v0.5.0.13_release_notes.md)
 - [`docs/v0.3.5.3_program_builder_architecture.md`](../../v0.3.5.3_program_builder_architecture.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-07-30): 저장 프로그램 적용을 fatigue/readiness와 분리한
+  exact materialization 계약을 추가했습니다.
 - `1.1.0` (2026-07-30): 기록 범위의 exact manual program 변환, set별
   authoritative prescription, legacy scalar fallback과 저장 프로그램 card
   표시 계약을 추가했습니다.

@@ -1266,7 +1266,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동 프로그램 생성 개요",
       "titleEn": "Automatic Program Builder Overview",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1274,8 +1274,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; exact manual set prescriptions from v0.5.0.12",
-      "lastAuditedCommit": "e7d9317cf2ba618b8fadfcdcb772763a32618c09",
+      "implementedFromAppVersion": "v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13",
+      "lastAuditedCommit": "2369d91aaa80351193b20ccc2714d2be11edd3a2",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
@@ -1297,7 +1297,8 @@
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md",
         "docs/v0.3.5.3_program_builder_architecture.md",
-        "docs/v0.5.0.12_release_notes.md"
+        "docs/v0.5.0.12_release_notes.md",
+        "docs/v0.5.0.13_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
@@ -1430,7 +1431,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "프로그램 평가 계약",
       "titleEn": "Program Evaluation",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.0.1",
       "status": "DRAFT",
       "implementationStatus": "SPECIFICATION_ONLY",
       "evidenceProfile": [
@@ -1439,7 +1440,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_EVALUATION.md",
       "implementedFromAppVersion": null,
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "lastAuditedCommit": "2369d91aaa80351193b20ccc2714d2be11edd3a2",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramEvaluationPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt",
@@ -1452,7 +1453,8 @@
       "authorityAssets": [],
       "supportingDocuments": [
         "docs/v0.4.1.10.4_program_builder_quality_worklog.md",
-        "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md"
+        "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md",
+        "docs/v0.5.0.13_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",

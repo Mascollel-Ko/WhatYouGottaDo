@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-EVALUATION |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.0.1 |
 | Status | DRAFT |
 | Implementation status | SPECIFICATION_ONLY |
 | Implemented from app version | — |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 2369d91aaa80351193b20ccc2714d2be11edd3a2 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -41,6 +41,10 @@
 
 현재 `ProgramAutoBuilder` output은 `evaluation = null`이고 고정 optimization summary를 반환합니다. 따라서 `ProgramEvaluationPolicy`의 score, issue, repair를 사용자에게 현재 실행되는 계약으로 주장하지 않습니다.
 
+평가 또는 fatigue/readiness 결과는 저장 프로그램 적용의 입력이 아닙니다.
+프로그램 적용은 저장된 운동과 set을 그대로 materialize하며, 평가 결과가
+운동 삭제·교체·set 축소 또는 volume scaling을 수행하지 않습니다.
+
 ## 8. 집계 방식
 
 입력 단위 결과를 해당 protocol의 날짜, 주간 또는 항목 단위로만 집계하며 서로 다른 의미의 축을 임의로 합산하지 않습니다.
@@ -48,6 +52,9 @@
 ## 9. 출력과 UI 해석
 
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
+
+평가, fatigue와 readiness 표시는 advisory입니다. 저장 프로그램을
+편집하거나 일부 계획을 수행하지 않을지는 사용자가 결정합니다.
 
 ## 10. 예외 및 fallback
 
@@ -69,6 +76,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
 - 공개 output의 evaluation은 null이며 optimization summary는 평가 결과가 아닌 고정 문구입니다.
+- 저장 프로그램 적용은 평가/repair 경로와 분리된 exact materialization입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
@@ -101,4 +109,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.0.1` (2026-07-30): 평가와 fatigue/readiness를 저장 프로그램
+  적용 변경 입력으로 사용하지 않는 advisory boundary를 명시했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
