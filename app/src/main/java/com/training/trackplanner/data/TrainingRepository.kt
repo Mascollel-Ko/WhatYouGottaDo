@@ -16,7 +16,6 @@ import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
-import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
@@ -234,7 +233,6 @@ class TrainingRepository(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         programDao = programDao,
-        runtimeMetadataCatalogResolver = ::resolvedRuntimeMetadataCatalog,
         prescriptionNoteFormatter = ::noteFromPrescription,
         builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )
@@ -638,10 +636,9 @@ class TrainingRepository(
     suspend fun applyProgramToDates(
         programId: Long,
         startDate: String,
-        mode: ProgramApplyMode,
-        trainingGate: TrainingGateSnapshot? = null
+        mode: ProgramApplyMode
     ) = withContext(Dispatchers.IO) {
-        programPlanService.applyProgramToDates(programId, startDate, mode, trainingGate)
+        programPlanService.applyProgramToDates(programId, startDate, mode)
     }
 
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =

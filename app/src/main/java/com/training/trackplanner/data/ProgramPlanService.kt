@@ -1,18 +1,10 @@
 package com.training.trackplanner.data
 
 import androidx.room.withTransaction
-import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
-import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-
-private data class TodayProgramGateContext(
-    val date: String,
-    val gate: ProgramFatigueGate,
-    val candidatesByExerciseStableKey: Map<String, ProgramCandidate>
-)
 
 data class RecordRangeProgramSummary(
     val startDate: String,
@@ -30,7 +22,6 @@ internal class ProgramPlanService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val programDao: ProgramDao,
-    private val runtimeMetadataCatalogResolver: suspend (List<Exercise>) -> RuntimeExerciseMetadataCatalog,
     private val prescriptionNoteFormatter: (String) -> String,
     private val builtInProgramKeys: () -> Set<String>
 ) {
@@ -174,8 +165,7 @@ internal class ProgramPlanService(
     suspend fun applyProgramToDates(
         programId: Long,
         startDate: String,
-        mode: ProgramApplyMode,
-        trainingGate: TrainingGateSnapshot? = null
+        mode: ProgramApplyMode
     ) {
         val program = programDao.findProgram(programId) ?: return
         val items = programDao.itemsForProgram(program.id)
@@ -183,25 +173,6 @@ internal class ProgramPlanService(
         val storedSetsByItemId = programDao.programItemSetsForProgram(program.id)
             .groupBy(TrainingProgramItemSet::programItemId)
         val range = program.dateRangeFor(startDate) ?: return
-        val fatigueSlotPolicy = FatigueSlotPolicy.DEFAULT
-        val todayGateContext = trainingGate?.let { gateSnapshot ->
-            val today = SystemAnalysisDateProvider().today().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            val exercises = exerciseDao.allExercises()
-            val metadataCatalog = runtimeMetadataCatalogResolver(exercises)
-            TodayProgramGateContext(
-                date = today,
-                gate = fatigueSlotPolicy.gate(gateSnapshot),
-                candidatesByExerciseStableKey = exercises.associate { exercise ->
-                    val metadata = metadataCatalog.resolve(exercise)
-                    exercise.stableKey to ProgramCandidate(
-                        exercise = exercise,
-                        metadata = metadata,
-                        canonical = metadata != null,
-                        slotCapabilities = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
-                    )
-                }
-            )
-        }
         db.withTransaction {
             if (mode == ProgramApplyMode.Overwrite) {
                 workoutDao.deletePlannedOnlySetsBetween(range.first, range.second)
@@ -212,30 +183,19 @@ internal class ProgramPlanService(
             items.forEachIndexed { index, item ->
                 val itemDate = dateForProgramItem(startDate, item)
                 val storedSets = storedSetsByItemId[item.id].orEmpty()
-                val adjustedItem = if (storedSets.isNotEmpty()) {
-                    item
-                } else {
-                    fatigueSlotPolicy.adjustItemForResolvedDate(
-                        item = item,
-                        itemDate = itemDate,
-                        todayDate = todayGateContext?.date,
-                        candidate = todayGateContext?.candidatesByExerciseStableKey?.get(item.exerciseStableKey),
-                        gate = todayGateContext?.gate
-                    ) ?: return@forEachIndexed
-                }
                 val entryId = workoutDao.insertEntry(
                     WorkoutEntry(
                         date = itemDate,
-                        exerciseStableKey = adjustedItem.exerciseStableKey,
-                        exerciseName = adjustedItem.exerciseName,
-                        category = adjustedItem.category,
-                        restSeconds = adjustedItem.restSeconds,
-                        notes = prescriptionNoteFormatter(adjustedItem.prescription),
+                        exerciseStableKey = item.exerciseStableKey,
+                        exerciseName = item.exerciseName,
+                        category = item.category,
+                        restSeconds = item.restSeconds,
+                        notes = prescriptionNoteFormatter(item.prescription),
                         createdAt = now + index,
                         displayOrder = index + 1
                     )
                 )
-                ProgramSetPrescriptionResolver.resolve(adjustedItem, storedSets).forEach { set ->
+                ProgramSetPrescriptionResolver.resolve(item, storedSets).forEach { set ->
                     workoutDao.insertSet(
                         WorkoutSet(
                             entryId = entryId,

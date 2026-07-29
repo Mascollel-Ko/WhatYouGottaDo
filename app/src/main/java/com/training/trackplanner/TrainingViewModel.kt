@@ -401,13 +401,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         mode: ProgramApplyMode
     ) {
         viewModelScope.launch {
-            repository.applyProgramToDates(
-                programId = programId,
-                startDate = startDate,
-                mode = mode,
-                trainingGate = _phaseAwareTodayStatus.value?.current?.fatiguePresentation?.gate
-                    ?: _todayReadinessSummary.value?.fatiguePresentation?.gate
-            )
+            repository.applyProgramToDates(programId, startDate, mode)
             refreshAnalysisSummaries()
         }
     }
