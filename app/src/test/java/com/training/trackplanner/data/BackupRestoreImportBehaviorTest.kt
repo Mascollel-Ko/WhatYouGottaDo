@@ -60,6 +60,50 @@ class BackupRestoreImportBehaviorTest {
     }
 
     @Test
+    fun restoreWorkoutSetsNeverReapplySeedOverUserEditedBuiltInExercise() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val seed = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
+        val edited = seed.copy(primaryMuscles = "${seed.primaryMuscles}|QUADRICEPS")
+        val override = RuntimeExerciseMetadataDefaults.forExercise(edited)
+        val entry = WorkoutEntry(
+            id = 71,
+            date = "2026-07-20",
+            exerciseStableKey = edited.stableKey,
+            exerciseName = edited.name,
+            category = edited.category
+        )
+        val set = WorkoutSet(
+            id = 72,
+            entryId = entry.id,
+            setIndex = 1,
+            reps = 3,
+            weightKg = 180.0,
+            confirmed = true,
+            manualWeight = true
+        )
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = listOf(WorkoutEntryWithSets(entry, listOf(set))),
+            metrics = emptyList(),
+            exercises = listOf(edited),
+            runtimeMetadata = listOf(override)
+        )
+        db.exerciseDao().insertExercise(seed)
+
+        val first = repository.importRecordsBackup(writeBackup(csv))
+        assertEquals(1, first.entryCount)
+        assertRestoredDeadliftOverride(db, edited.stableKey)
+
+        repository.seedIfNeeded()
+        assertRestoredDeadliftOverride(db, edited.stableKey)
+
+        val duplicate = repository.importRecordsBackup(writeBackup(csv))
+        assertEquals(0, duplicate.entryCount)
+        assertEquals(1, duplicate.skippedDuplicateCount)
+        assertRestoredDeadliftOverride(db, edited.stableKey)
+    }
+
+    @Test
     fun restoreBackupPreservesCustomExerciseStableKeyAndOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
@@ -478,6 +522,18 @@ class BackupRestoreImportBehaviorTest {
 
     private fun repository(db: TrainingDatabase): TrainingRepository =
         TrainingRepository(db, context)
+
+    private suspend fun assertRestoredDeadliftOverride(db: TrainingDatabase, stableKey: String) {
+        val restoredExercise = db.exerciseDao().findByStableKey(stableKey)!!
+        val restoredOverride = db.runtimeExerciseMetadataDao().findByStableKey(stableKey)
+        val restoredRecord = db.workoutDao().allEntriesWithSets().single()
+
+        assertEquals(stableKey, restoredExercise.stableKey)
+        assertTrue(restoredExercise.primaryMuscles.contains("QUADRICEPS"))
+        assertNotNull(restoredOverride)
+        assertEquals(stableKey, restoredRecord.entry.exerciseStableKey)
+        assertEquals(1, restoredRecord.sets.size)
+    }
 
     private fun writeBackup(csv: String): Uri {
         val file = File.createTempFile("restore-import", ".csv")

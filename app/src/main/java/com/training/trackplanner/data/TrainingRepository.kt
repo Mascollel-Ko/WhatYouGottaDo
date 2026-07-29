@@ -929,15 +929,7 @@ class TrainingRepository(
         seedByStableKey: Map<String, Exercise> = emptyMap()
     ): Exercise {
         require(stableKey.isNotBlank()) { "Restore exercise stableKey must not be blank." }
-        val existingExercise = exerciseDao.findByStableKey(stableKey)
-        existingExercise?.let { existing ->
-            val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(existing, seedByStableKey)
-            val updated = seedBacked.withInferredPlanningMetadata()
-            if (updated != existing) {
-                exerciseDao.updateExercise(updated)
-            }
-            return updated
-        }
+        exerciseDao.findByStableKey(stableKey)?.let { existing -> return existing }
         stableKey
             .let { key -> seedByStableKey[key.trim().lowercase()] }
             ?.let { seed ->
