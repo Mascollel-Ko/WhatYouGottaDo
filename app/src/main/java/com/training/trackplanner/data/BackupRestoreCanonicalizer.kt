@@ -200,7 +200,8 @@ internal class BackupRestoreCanonicalizer(
         val snapshot = data.programSnapshot?.let { current ->
             current.copy(
                 programs = current.programs.filter { it.stableKey !in droppedProgramKeys },
-                items = programItems
+                items = programItems,
+                sets = current.sets.filter { it.programStableKey !in droppedProgramKeys }
             )
         }
 

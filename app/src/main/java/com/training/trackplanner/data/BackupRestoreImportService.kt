@@ -35,6 +35,7 @@ internal class BackupRestoreImportService(
         var setCount = 0
         var programCount = 0
         var programItemCount = 0
+        var programItemSetCount = 0
         var programTombstoneCount = 0
         var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
@@ -60,6 +61,7 @@ internal class BackupRestoreImportService(
                 val counts = restoreProgramSnapshot(snapshot)
                 programCount = counts.programs
                 programItemCount = counts.items
+                programItemSetCount = counts.sets
                 programTombstoneCount = counts.tombstones
             }
             val importedDailyMetrics = mutableMapOf<String, DailyMetric>()
@@ -245,6 +247,7 @@ internal class BackupRestoreImportService(
             posteriorProxyTransferCount = posteriorCounts.proxyHistory,
             programCount = programCount,
             programItemCount = programItemCount,
+            programItemSetCount = programItemSetCount,
             programTombstoneCount = programTombstoneCount,
             skippedDuplicateCount = skipped,
             warningCount = data.warningCount +
@@ -263,7 +266,12 @@ internal class BackupRestoreImportService(
                 "Program item exercise stable key cannot be resolved: ${item.exerciseStableKey}"
             }
         }
+        val itemPositions = snapshot.items.associateBy(ProgramBackupItem::logicalPosition)
+        require(snapshot.sets.all { set -> set.logicalPosition() in itemPositions }) {
+            "Program item set parent cannot be resolved."
+        }
 
+        programDao.deleteAllProgramItemSets()
         programDao.deleteAllProgramItems()
         programDao.deleteAllPrograms()
         programDao.deleteAllProgramTombstones()
@@ -276,14 +284,14 @@ internal class BackupRestoreImportService(
             .associate { program ->
                 program.stableKey to programDao.insertProgram(program.copy(id = 0))
             }
-        resolvedItems.sortedWith(
+        val localItemIds = resolvedItems.sortedWith(
             compareBy<Pair<ProgramBackupItem, Exercise>> { (item, _) -> item.programStableKey }
                 .thenBy { (item, _) -> item.weekNumber }
                 .thenBy { (item, _) -> item.dayOfWeek }
                 .thenBy { (item, _) -> item.orderIndex }
                 .thenBy { (item, _) -> item.exerciseStableKey }
-        ).forEach { (item, exercise) ->
-            programDao.insertProgramItem(
+        ).associate { (item, exercise) ->
+            item.logicalPosition() to programDao.insertProgramItem(
                 TrainingProgramItem(
                     programId = checkNotNull(localProgramIds[item.programStableKey]),
                     weekNumber = item.weekNumber,
@@ -304,9 +312,31 @@ internal class BackupRestoreImportService(
                 )
             )
         }
+        snapshot.sets
+            .sortedWith(
+                compareBy(ProgramBackupItemSet::programStableKey)
+                    .thenBy(ProgramBackupItemSet::weekNumber)
+                    .thenBy(ProgramBackupItemSet::dayOfWeek)
+                    .thenBy(ProgramBackupItemSet::orderIndex)
+                    .thenBy(ProgramBackupItemSet::setIndex)
+            )
+            .forEach { set ->
+                programDao.insertProgramItemSets(
+                    listOf(
+                        TrainingProgramItemSet(
+                            programItemId = checkNotNull(localItemIds[set.logicalPosition()]),
+                            setIndex = set.setIndex,
+                            reps = set.reps,
+                            weightKg = set.weightKg,
+                            seconds = set.seconds
+                        )
+                    )
+                )
+            }
         return ProgramRestoreCounts(
             programs = snapshot.programs.size,
             items = snapshot.items.size,
+            sets = snapshot.sets.size,
             tombstones = snapshot.tombstones.size
         )
     }
@@ -535,5 +565,12 @@ internal class BackupRestoreImportService(
 private data class ProgramRestoreCounts(
     val programs: Int,
     val items: Int,
+    val sets: Int,
     val tombstones: Int
 )
+
+private fun ProgramBackupItem.logicalPosition(): String =
+    "$programStableKey|$weekNumber|$dayOfWeek|$orderIndex"
+
+private fun ProgramBackupItemSet.logicalPosition(): String =
+    "$programStableKey|$weekNumber|$dayOfWeek|$orderIndex"

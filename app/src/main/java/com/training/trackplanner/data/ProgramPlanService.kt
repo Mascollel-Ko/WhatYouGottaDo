@@ -6,11 +6,23 @@ import com.training.trackplanner.analysis.readiness.TrainingGateSnapshot
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 private data class TodayProgramGateContext(
     val date: String,
     val gate: ProgramFatigueGate,
     val candidatesByExerciseStableKey: Map<String, ProgramCandidate>
+)
+
+data class RecordRangeProgramSummary(
+    val startDate: String,
+    val endDate: String,
+    val durationDays: Int,
+    val entryCount: Int,
+    val setCount: Int,
+    val confirmedSetCount: Int,
+    val unconfirmedSetCount: Int,
+    val defaultName: String
 )
 
 internal class ProgramPlanService(
@@ -26,6 +38,9 @@ internal class ProgramPlanService(
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         programDao.observeItems(programId)
+
+    fun programItemSets(programId: Long): Flow<List<TrainingProgramItemSet>> =
+        programDao.observeProgramItemSets(programId)
 
     suspend fun createProgram(): Long =
         programDao.insertProgram(
@@ -66,9 +81,12 @@ internal class ProgramPlanService(
             programDao.insertProgram(program)
         }
         programDao.deleteProgramTombstone(program.stableKey)
-        programDao.insertProgramItems(
-            skeleton.items.map { item -> item.toTrainingProgramItem(programId) }
-        )
+        skeleton.items.forEach { item ->
+            val itemId = programDao.insertProgramItem(item.toTrainingProgramItem(programId))
+            programDao.insertProgramItemSets(
+                ProgramSetPrescriptionResolver.resolve(item).map { set -> set.toEntity(itemId) }
+            )
+        }
         programId
     }
 
@@ -94,7 +112,8 @@ internal class ProgramPlanService(
         val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return
         val nextOrder = (programDao.itemsForProgramDay(programId, weekNumber, dayOfWeek)
             .maxOfOrNull { it.orderIndex } ?: 0) + 1
-        programDao.insertProgramItem(
+        val seconds = if (exercise.mode.contains("시간") || exercise.category in timedCategories) 30 else 0
+        val itemId = programDao.insertProgramItem(
             TrainingProgramItem(
                 programId = programId,
                 weekNumber = weekNumber,
@@ -108,11 +127,14 @@ internal class ProgramPlanService(
                 setCount = 1,
                 reps = 0,
                 weightKg = 0.0,
-                seconds = if (exercise.mode.contains("시간") || exercise.category in timedCategories) 30 else 0,
+                seconds = seconds,
                 trainingSlot = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
                 dayIntensity = ProgramDayIntensity.MODERATE.name,
                 weightSource = "MANUAL_INPUT"
             )
+        )
+        programDao.insertProgramItemSets(
+            listOf(ProgramSetPrescription(1, 0, 0.0, seconds).toEntity(itemId))
         )
     }
 
@@ -158,6 +180,8 @@ internal class ProgramPlanService(
         val program = programDao.findProgram(programId) ?: return
         val items = programDao.itemsForProgram(program.id)
         if (items.isEmpty()) return
+        val storedSetsByItemId = programDao.programItemSetsForProgram(program.id)
+            .groupBy(TrainingProgramItemSet::programItemId)
         val range = program.dateRangeFor(startDate) ?: return
         val fatigueSlotPolicy = FatigueSlotPolicy.DEFAULT
         val todayGateContext = trainingGate?.let { gateSnapshot ->
@@ -187,13 +211,18 @@ internal class ProgramPlanService(
             val now = System.currentTimeMillis()
             items.forEachIndexed { index, item ->
                 val itemDate = dateForProgramItem(startDate, item)
-                val adjustedItem = fatigueSlotPolicy.adjustItemForResolvedDate(
-                    item = item,
-                    itemDate = itemDate,
-                    todayDate = todayGateContext?.date,
-                    candidate = todayGateContext?.candidatesByExerciseStableKey?.get(item.exerciseStableKey),
-                    gate = todayGateContext?.gate
-                ) ?: return@forEachIndexed
+                val storedSets = storedSetsByItemId[item.id].orEmpty()
+                val adjustedItem = if (storedSets.isNotEmpty()) {
+                    item
+                } else {
+                    fatigueSlotPolicy.adjustItemForResolvedDate(
+                        item = item,
+                        itemDate = itemDate,
+                        todayDate = todayGateContext?.date,
+                        candidate = todayGateContext?.candidatesByExerciseStableKey?.get(item.exerciseStableKey),
+                        gate = todayGateContext?.gate
+                    ) ?: return@forEachIndexed
+                }
                 val entryId = workoutDao.insertEntry(
                     WorkoutEntry(
                         date = itemDate,
@@ -206,21 +235,115 @@ internal class ProgramPlanService(
                         displayOrder = index + 1
                     )
                 )
-                repeat(adjustedItem.setCount.coerceAtLeast(1)) { setIndex ->
+                ProgramSetPrescriptionResolver.resolve(adjustedItem, storedSets).forEach { set ->
                     workoutDao.insertSet(
                         WorkoutSet(
                             entryId = entryId,
-                            setIndex = setIndex + 1,
-                            reps = adjustedItem.reps,
-                            weightKg = adjustedItem.weightKg,
-                            seconds = adjustedItem.seconds,
+                            setIndex = set.setIndex,
+                            reps = set.reps,
+                            weightKg = set.weightKg,
+                            seconds = set.seconds,
                             confirmed = false,
-                            manualWeight = adjustedItem.weightKg > 0.0
+                            manualWeight = set.weightKg > 0.0
                         )
                     )
                 }
             }
         }
+    }
+
+    suspend fun recordRangeProgramSummary(
+        firstDate: String,
+        secondDate: String
+    ): RecordRangeProgramSummary {
+        val range = normalizedDateRange(firstDate, secondDate)
+        val entries = workoutDao.entriesWithSetsBetween(range.first.toString(), range.second.toString())
+        val sets = entries.flatMap(WorkoutEntryWithSets::sets)
+        return RecordRangeProgramSummary(
+            startDate = range.first.toString(),
+            endDate = range.second.toString(),
+            durationDays = ChronoUnit.DAYS.between(range.first, range.second).toInt() + 1,
+            entryCount = entries.size,
+            setCount = sets.size,
+            confirmedSetCount = sets.count(WorkoutSet::confirmed),
+            unconfirmedSetCount = sets.count { !it.confirmed },
+            defaultName = "${range.first.format(PROGRAM_NAME_DATE)}~" +
+                "${range.second.format(PROGRAM_NAME_DATE)} 기록 프로그램"
+        )
+    }
+
+    suspend fun createProgramFromRecordRange(
+        firstDate: String,
+        secondDate: String,
+        name: String
+    ): Long = db.withTransaction {
+        val range = normalizedDateRange(firstDate, secondDate)
+        val entries = workoutDao.entriesWithSetsBetween(range.first.toString(), range.second.toString())
+        require(entries.isNotEmpty()) { "선택한 기간에 저장할 운동 기록이 없습니다." }
+        val durationDays = ChronoUnit.DAYS.between(range.first, range.second).toInt() + 1
+        val weeklyTrainingDays = entries
+            .groupBy { row ->
+                ChronoUnit.DAYS.between(range.first, LocalDate.parse(row.entry.date)).toInt() / 7
+            }
+            .maxOfOrNull { (_, rows) -> rows.map { it.entry.date }.distinct().size }
+            ?: 0
+        val now = System.currentTimeMillis()
+        val defaultName = "${range.first.format(PROGRAM_NAME_DATE)}~" +
+            "${range.second.format(PROGRAM_NAME_DATE)} 기록 프로그램"
+        val programId = programDao.insertProgram(
+            TrainingProgram(
+                stableKey = ProgramStableKeyPolicy.newUserKey(),
+                name = name.trim().ifBlank { defaultName },
+                durationDays = durationDays,
+                createdAt = now,
+                weeklyTrainingDays = weeklyTrainingDays,
+                updatedAt = now
+            )
+        )
+        entries
+            .groupBy { it.entry.date }
+            .toSortedMap()
+            .forEach { (date, dayEntries) ->
+                val offset = ChronoUnit.DAYS.between(range.first, LocalDate.parse(date)).toInt()
+                dayEntries
+                    .sortedWith(
+                        compareBy<WorkoutEntryWithSets> { it.entry.displayOrder }
+                            .thenBy { it.entry.createdAt }
+                            .thenBy { it.entry.id }
+                    )
+                    .forEachIndexed { order, row ->
+                        val prescriptions = row.sets
+                            .sortedWith(compareBy<WorkoutSet> { it.setIndex }.thenBy { it.id })
+                            .mapIndexed { index, set ->
+                                ProgramSetPrescription(index + 1, set.reps, set.weightKg, set.seconds)
+                            }
+                        val summary = ProgramSetPrescriptionResolver.summarize(prescriptions)
+                        val itemId = programDao.insertProgramItem(
+                            TrainingProgramItem(
+                                programId = programId,
+                                weekNumber = offset / 7 + 1,
+                                dayOfWeek = offset % 7 + 1,
+                                orderIndex = order + 1,
+                                exerciseStableKey = row.entry.exerciseStableKey,
+                                exerciseName = row.entry.exerciseName,
+                                category = row.entry.category,
+                                restSeconds = row.entry.restSeconds,
+                                prescription = row.entry.notes,
+                                setCount = summary.setCount,
+                                reps = summary.reps,
+                                weightKg = summary.weightKg,
+                                seconds = summary.seconds,
+                                weightSource = "RECORDED"
+                            )
+                        )
+                        if (prescriptions.isNotEmpty()) {
+                            programDao.insertProgramItemSets(
+                                prescriptions.map { set -> set.toEntity(itemId) }
+                            )
+                        }
+                    }
+            }
+        programId
     }
 
     private suspend fun reindexProgramDay(programId: Long, weekNumber: Int, dayOfWeek: Int) {
@@ -244,12 +367,31 @@ internal class ProgramPlanService(
     }
 
     private companion object {
+        val PROGRAM_NAME_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         val timedCategories = setOf("유산소운동", "스포츠")
     }
 }
 
-internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem =
-    TrainingProgramItem(
+private fun normalizedDateRange(firstDate: String, secondDate: String): Pair<LocalDate, LocalDate> {
+    val first = LocalDate.parse(firstDate)
+    val second = LocalDate.parse(secondDate)
+    return if (first <= second) first to second else second to first
+}
+
+private fun ProgramSetPrescription.toEntity(programItemId: Long): TrainingProgramItemSet =
+    TrainingProgramItemSet(
+        programItemId = programItemId,
+        setIndex = setIndex,
+        reps = reps,
+        weightKg = weightKg,
+        seconds = seconds
+    )
+
+internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): TrainingProgramItem {
+    val summary = ProgramSetPrescriptionResolver.summarize(
+        ProgramSetPrescriptionResolver.resolve(this)
+    )
+    return TrainingProgramItem(
         programId = programId,
         weekNumber = weekNumber,
         dayOfWeek = dayOfWeek,
@@ -259,11 +401,12 @@ internal fun ProgramSkeletonItem.toTrainingProgramItem(programId: Long): Trainin
         category = category,
         restSeconds = restSeconds,
         prescription = prescription,
-        setCount = setCount.coerceAtLeast(1),
-        reps = reps,
-        weightKg = weightKg,
-        seconds = seconds,
+        setCount = summary.setCount,
+        reps = summary.reps,
+        weightKg = summary.weightKg,
+        seconds = summary.seconds,
         trainingSlot = trainingSlot.ifBlank { ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name },
         dayIntensity = dayIntensity.ifBlank { ProgramDayIntensity.MODERATE.name },
         weightSource = weightSource.ifBlank { "MANUAL_OR_EXISTING" }
     )
+}

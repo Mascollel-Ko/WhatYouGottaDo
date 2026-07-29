@@ -517,7 +517,8 @@ internal object ProgramBuilderValidator {
                 ProgramDayIntensity.LIGHT.name -> 0.75
                 else -> 1.0
             }
-            levelWeight * intensityWeight * (item.setCount / 3.0).coerceIn(0.5, 1.5)
+            val setCount = ProgramSetPrescriptionResolver.resolve(item).size
+            levelWeight * intensityWeight * (setCount / 3.0).coerceIn(0.5, 1.5)
         }.sortedDescending()
         loads.firstOrNull().orZero() + loads.drop(1).sum() * 0.25
     }
@@ -554,9 +555,11 @@ internal object ProgramBuilderValidator {
         filter { it.isNotBlank() && it != "NONE" && it != "NOT_APPLICABLE" }.toSet()
 
     private fun fallbackDuration(item: ProgramSkeletonItem): Int {
-        val workPerSet = if (item.seconds > 0) item.seconds else max(30, item.reps * 4)
-        return 45 + item.setCount * workPerSet +
-            (item.setCount - 1).coerceAtLeast(0) * item.restSeconds
+        val sets = ProgramSetPrescriptionResolver.resolve(item)
+        val workSeconds = sets.sumOf { set ->
+            if (set.seconds > 0) set.seconds else max(30, set.reps * 4)
+        }
+        return 45 + workSeconds + (sets.size - 1).coerceAtLeast(0) * item.restSeconds
     }
 
     private fun warmupReserveSeconds(minutes: Int): Int = when {

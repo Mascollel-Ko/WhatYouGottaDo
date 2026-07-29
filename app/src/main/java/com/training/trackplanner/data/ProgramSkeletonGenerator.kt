@@ -153,7 +153,8 @@ data class ProgramSkeletonItem(
     val slotCapabilityConfidence: String = SlotCapabilityConfidence.NONE.name,
     val slotCapabilityWarnings: List<String> = emptyList(),
     val requestedTemplateSlot: String = "",
-    val requiredTemplateAnchor: Boolean = false
+    val requiredTemplateAnchor: Boolean = false,
+    val setPrescriptions: List<ProgramSetPrescription> = emptyList()
 )
 
 data class GeneratedProgramSkeleton(

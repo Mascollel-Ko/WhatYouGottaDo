@@ -256,6 +256,30 @@ data class TrainingProgramItem(
 )
 
 @Entity(
+    tableName = "training_program_item_sets",
+    foreignKeys = [
+        ForeignKey(
+            entity = TrainingProgramItem::class,
+            parentColumns = ["id"],
+            childColumns = ["programItemId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["programItemId"]),
+        Index(value = ["programItemId", "setIndex"], unique = true)
+    ]
+)
+data class TrainingProgramItemSet(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val programItemId: Long,
+    val setIndex: Int,
+    val reps: Int = 0,
+    val weightKg: Double = 0.0,
+    val seconds: Int = 0
+)
+
+@Entity(
     tableName = "exercise_identity_migration_issues",
     indices = [
         Index(value = ["issueCode"]),

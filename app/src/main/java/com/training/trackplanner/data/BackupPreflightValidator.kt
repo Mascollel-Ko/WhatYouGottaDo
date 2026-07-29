@@ -13,6 +13,7 @@ internal object BackupPreflightValidator {
         workoutSets: List<WorkoutSet>,
         programs: List<TrainingProgram>,
         programItems: List<TrainingProgramItem>,
+        programItemSets: List<TrainingProgramItemSet> = emptyList(),
         runtimeMetadata: List<RuntimeExerciseMetadata>,
         migrationIssues: List<ExerciseIdentityMigrationIssue>
     ): BackupPreflightResult {
@@ -22,6 +23,7 @@ internal object BackupPreflightValidator {
         val programsById = programs.associateBy(TrainingProgram::id)
         val entryIds = workoutEntries.mapTo(mutableSetOf(), WorkoutEntry::id)
         val setEntryIds = workoutSets.mapTo(mutableSetOf(), WorkoutSet::entryId)
+        val programItemIds = programItems.mapTo(mutableSetOf(), TrainingProgramItem::id)
 
         exercises
             .groupBy(Exercise::stableKey)
@@ -123,6 +125,43 @@ internal object BackupPreflightValidator {
                 )
             }
         }
+        programItemSets
+            .groupBy(TrainingProgramItemSet::programItemId)
+            .forEach { (programItemId, sets) ->
+                if (programItemId !in programItemIds) {
+                    errors += DataTransferDiagnostic(
+                        code = DataTransferDiagnosticCodes.ORPHAN_PROGRAM_ITEM,
+                        messageKo = "상위 프로그램 항목이 없는 세트 처방입니다.",
+                        stage = DataTransferStages.PREFLIGHT,
+                        entityType = "TrainingProgramItemSet",
+                        entityRowId = sets.firstOrNull()?.id
+                    )
+                }
+                val indices = sets.map(TrainingProgramItemSet::setIndex).sorted()
+                if (indices != (1..indices.size).toList()) {
+                    errors += DataTransferDiagnostic(
+                        code = DataTransferDiagnosticCodes.ORPHAN_PROGRAM_ITEM,
+                        messageKo = "프로그램 세트 순서는 1부터 중복 없이 이어져야 합니다.",
+                        stage = DataTransferStages.PREFLIGHT,
+                        entityType = "TrainingProgramItemSet",
+                        entityRowId = sets.firstOrNull()?.id
+                    )
+                }
+                sets.filter { set ->
+                    set.reps < 0 ||
+                        !set.weightKg.isFinite() ||
+                        set.weightKg < 0.0 ||
+                        set.seconds < 0
+                }.forEach { set ->
+                    errors += DataTransferDiagnostic(
+                        code = DataTransferDiagnosticCodes.ORPHAN_PROGRAM_ITEM,
+                        messageKo = "프로그램 세트 처방 값이 올바르지 않습니다.",
+                        stage = DataTransferStages.PREFLIGHT,
+                        entityType = "TrainingProgramItemSet",
+                        entityRowId = set.id
+                    )
+                }
+            }
 
         runtimeMetadata.filter { it.stableKey.isBlank() || it.stableKey !in exercisesByKey }.forEach { metadata ->
             errors += DataTransferDiagnostic(
@@ -189,6 +228,7 @@ internal object BackupPreflightValidator {
                 "workout_set" to workoutSets.size,
                 "program" to programs.size,
                 "program_item" to programItems.size,
+                "program_item_set" to programItemSets.size,
                 "runtime_metadata" to runtimeMetadata.size
             ),
             warnings = warnings,

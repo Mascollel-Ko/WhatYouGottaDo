@@ -118,9 +118,8 @@ class ProgramBackupRestoreTest {
                 updatedAt = 400L
             )
         )
-        source.programDao().insertProgramItems(
-            listOf(
-                TrainingProgramItem(
+        val squatItemId = source.programDao().insertProgramItem(
+            TrainingProgramItem(
                     programId = modifiedBuiltInId,
                     weekNumber = 1,
                     dayOfWeek = 1,
@@ -137,8 +136,18 @@ class ProgramBackupRestoreTest {
                     trainingSlot = "LOWER_STRENGTH",
                     dayIntensity = "HARD",
                     weightSource = "MANUAL_INPUT"
-                ),
-                TrainingProgramItem(
+                )
+        )
+        source.programDao().insertProgramItemSets(
+            listOf(
+                TrainingProgramItemSet(programItemId = squatItemId, setIndex = 1, reps = 3, weightKg = 110.0),
+                TrainingProgramItemSet(programItemId = squatItemId, setIndex = 2, reps = 5, weightKg = 100.5),
+                TrainingProgramItemSet(programItemId = squatItemId, setIndex = 3, reps = 8, weightKg = 85.0),
+                TrainingProgramItemSet(programItemId = squatItemId, setIndex = 4, reps = 8, weightKg = 85.0)
+            )
+        )
+        source.programDao().insertProgramItem(
+            TrainingProgramItem(
                     programId = userProgramId,
                     weekNumber = 2,
                     dayOfWeek = 4,
@@ -155,7 +164,6 @@ class ProgramBackupRestoreTest {
                     trainingSlot = "UPPER_PULL",
                     dayIntensity = "MODERATE",
                     weightSource = "MANUAL_INPUT"
-                )
             )
         )
         source.programDao().upsertProgramTombstone(
@@ -179,6 +187,7 @@ class ProgramBackupRestoreTest {
 
         assertEquals(2, first.programCount)
         assertEquals(2, first.programItemCount)
+        assertEquals(4, first.programItemSetCount)
         assertEquals(1, first.programTombstoneCount)
         assertEquals(firstState, secondState)
         assertEquals(2, second.programCount)
@@ -188,6 +197,13 @@ class ProgramBackupRestoreTest {
         val restoredItems = target.programDao().allProgramItems()
         assertEquals(squat.stableKey, restoredItems.single { it.exerciseName == squat.name }.exerciseStableKey)
         assertTrue(restoredItems.single { it.exerciseName == squat.name }.prescription.contains("\n"))
+        val restoredSquatItem = restoredItems.single { it.exerciseName == squat.name }
+        assertEquals(
+            listOf(3 to 110.0, 5 to 100.5, 8 to 85.0, 8 to 85.0),
+            target.programDao().programItemSetsForProgram(restoredSquatItem.programId)
+                .filter { it.programItemId == restoredSquatItem.id }
+                .map { it.reps to it.weightKg }
+        )
 
         repository(target).seedMissingPrograms(listOf(SeedData.programs(context).first()))
         assertEquals("수정된, \"배드민턴\" 프로그램", target.programDao().findProgramByStableKey("3")?.name)
@@ -415,7 +431,12 @@ class ProgramBackupRestoreTest {
 
         assertTrue(
             runCatching {
-                RecordCsvBackupRestore.parse(csv + marker.replace(",1,", ",99,") + "\n")
+                RecordCsvBackupRestore.parse(
+                    csv + marker.replace(
+                        ",${RecordCsvBackupRestore.CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION},",
+                        ",99,"
+                    ) + "\n"
+                )
             }.isFailure
         )
         assertTrue(
@@ -423,6 +444,36 @@ class ProgramBackupRestoreTest {
                 RecordCsvBackupRestore.parse(csv + programRow + "\n")
             }.isFailure
         )
+    }
+
+    @Test
+    fun `program snapshot rejects an orphan set prescription`() {
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            programs = listOf(
+                TrainingProgram(
+                    stableKey = "user_program_orphan_set",
+                    name = "Orphan set",
+                    durationDays = 7
+                )
+            ),
+            programItemSets = listOf(
+                ProgramBackupItemSet(
+                    programStableKey = "user_program_orphan_set",
+                    weekNumber = 1,
+                    dayOfWeek = 1,
+                    orderIndex = 1,
+                    setIndex = 1,
+                    reps = 5,
+                    weightKg = 80.0,
+                    seconds = 0
+                )
+            ),
+            includeProgramSnapshot = true
+        )
+
+        assertTrue(runCatching { RecordCsvBackupRestore.parse(csv) }.isFailure)
     }
 
     private fun newDatabase(): TrainingDatabase =

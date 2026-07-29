@@ -24,6 +24,7 @@ data class RecordCsvTransferResult(
     val posteriorProxyTransferCount: Int = 0,
     val programCount: Int = 0,
     val programItemCount: Int = 0,
+    val programItemSetCount: Int = 0,
     val programTombstoneCount: Int = 0,
     val skippedDuplicateCount: Int = 0,
     val warningCount: Int = 0
@@ -31,7 +32,8 @@ data class RecordCsvTransferResult(
     fun summaryText(action: String): String =
         "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, " +
             "entry $entryCount, set $setCount, program $programCount, program item $programItemCount, " +
-            "program tombstone $programTombstoneCount, skip $skippedDuplicateCount"
+            "program item set $programItemSetCount, program tombstone $programTombstoneCount, " +
+            "skip $skippedDuplicateCount"
 }
 
 sealed class RecordCsvImportData {
@@ -178,10 +180,22 @@ data class ProgramBackupItem(
     val weightSource: String?
 )
 
+data class ProgramBackupItemSet(
+    val programStableKey: String,
+    val weekNumber: Int,
+    val dayOfWeek: Int,
+    val orderIndex: Int,
+    val setIndex: Int,
+    val reps: Int,
+    val weightKg: Double,
+    val seconds: Int
+)
+
 data class RestoreProgramSnapshot(
     val schemaVersion: Int,
     val programs: List<TrainingProgram>,
     val items: List<ProgramBackupItem>,
+    val sets: List<ProgramBackupItemSet>,
     val tombstones: List<TrainingProgramTombstone>
 )
 
@@ -204,9 +218,9 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    private const val CURRENT_RESTORE_SCHEMA_VERSION = 7
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 8
-    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 1
+    private const val CURRENT_RESTORE_SCHEMA_VERSION = 8
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 9
+    internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
     private val restoreHeader = listOf(
@@ -329,6 +343,7 @@ object RecordCsvBackupRestore {
         "program_exercise_stable_key",
         "program_prescription",
         "program_set_count",
+        "program_item_set_index",
         "program_training_slot",
         "program_day_intensity",
         "program_weight_source",
@@ -356,6 +371,7 @@ object RecordCsvBackupRestore {
         posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList(),
         programs: List<TrainingProgram> = emptyList(),
         programItems: List<ProgramBackupItem> = emptyList(),
+        programItemSets: List<ProgramBackupItemSet> = emptyList(),
         programTombstones: List<TrainingProgramTombstone> = emptyList(),
         includeProgramSnapshot: Boolean = false
     ): String {
@@ -457,6 +473,27 @@ object RecordCsvBackupRestore {
                         "program_training_slot" to item.trainingSlot.orEmpty(),
                         "program_day_intensity" to item.dayIntensity.orEmpty(),
                         "program_weight_source" to item.weightSource.orEmpty()
+                    )
+                )
+            }
+            programItemSets.sortedWith(
+                compareBy(ProgramBackupItemSet::programStableKey)
+                    .thenBy(ProgramBackupItemSet::weekNumber)
+                    .thenBy(ProgramBackupItemSet::dayOfWeek)
+                    .thenBy(ProgramBackupItemSet::orderIndex)
+                    .thenBy(ProgramBackupItemSet::setIndex)
+            ).forEach { set ->
+                appendMappedRow(
+                    rowType = "program_item_set",
+                    values = mapOf(
+                        "program_stable_key" to set.programStableKey,
+                        "program_week_number" to set.weekNumber.toString(),
+                        "program_day_of_week" to set.dayOfWeek.toString(),
+                        "program_order_index" to set.orderIndex.toString(),
+                        "program_item_set_index" to set.setIndex.toString(),
+                        "reps" to set.reps.toString(),
+                        "weight_kg" to set.weightKg.formatNumber(),
+                        "seconds" to set.seconds.toString()
                     )
                 )
             }
@@ -890,6 +927,7 @@ object RecordCsvBackupRestore {
         val programSnapshotVersions = mutableListOf<Int>()
         val programs = mutableListOf<TrainingProgram>()
         val programItems = mutableListOf<ProgramBackupItem>()
+        val programItemSets = mutableListOf<ProgramBackupItemSet>()
         val programTombstones = mutableListOf<TrainingProgramTombstone>()
         rows.forEachIndexed { rowIndex, row ->
             backupSchemaVersion = maxOf(backupSchemaVersion, row.safeInt(index, "schema_version") ?: 1)
@@ -942,6 +980,19 @@ object RecordCsvBackupRestore {
                         trainingSlot = row.value(index, "program_training_slot").ifBlank { null },
                         dayIntensity = row.value(index, "program_day_intensity").ifBlank { null },
                         weightSource = row.value(index, "program_weight_source").ifBlank { null }
+                    )
+                    return@forEachIndexed
+                }
+                "program_item_set" -> {
+                    programItemSets += ProgramBackupItemSet(
+                        programStableKey = row.value(index, "program_stable_key").trim(),
+                        weekNumber = row.requiredInt(index, "program_week_number", rowType),
+                        dayOfWeek = row.requiredInt(index, "program_day_of_week", rowType),
+                        orderIndex = row.requiredInt(index, "program_order_index", rowType),
+                        setIndex = row.requiredInt(index, "program_item_set_index", rowType),
+                        reps = row.requiredInt(index, "reps", rowType),
+                        weightKg = row.requiredDouble(index, "weight_kg", rowType),
+                        seconds = row.requiredInt(index, "seconds", rowType)
                     )
                     return@forEachIndexed
                 }
@@ -1197,7 +1248,8 @@ object RecordCsvBackupRestore {
                 else -> warnings += 1
             }
         }
-        val programRowsWithoutMarker = programs.size + programItems.size + programTombstones.size
+        val programRowsWithoutMarker =
+            programs.size + programItems.size + programItemSets.size + programTombstones.size
         val programSnapshot = if (programSnapshotVersions.isEmpty()) {
             if (programRowsWithoutMarker > 0) warnings += programRowsWithoutMarker
             null
@@ -1209,11 +1261,12 @@ object RecordCsvBackupRestore {
             require(schemaVersion in 1..CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION) {
                 "Unsupported program backup schema version: $schemaVersion."
             }
-            validateProgramSnapshot(programs, programItems, programTombstones)
+            validateProgramSnapshot(programs, programItems, programItemSets, programTombstones)
             RestoreProgramSnapshot(
                 schemaVersion = schemaVersion,
                 programs = programs,
                 items = programItems,
+                sets = programItemSets,
                 tombstones = programTombstones
             )
         }
@@ -1264,7 +1317,7 @@ object RecordCsvBackupRestore {
                 DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
                 "백업 형식 버전을 읽을 수 없습니다."
             )
-        if (formatVersion != CURRENT_BACKUP_FORMAT_VERSION) {
+        if (formatVersion !in 8..CURRENT_BACKUP_FORMAT_VERSION) {
             throw DataTransferFormatException(
                 DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
                 "지원하지 않는 백업 형식 버전입니다: $formatVersion"
@@ -1331,6 +1384,7 @@ object RecordCsvBackupRestore {
         runtimeMetadataCount: Int,
         programCount: Int,
         programItemCount: Int,
+        programItemSetCount: Int = 0,
         programTombstoneCount: Int
     ): Map<String, Int> = linkedMapOf(
         "exercise" to exerciseCount,
@@ -1343,6 +1397,7 @@ object RecordCsvBackupRestore {
         "runtime_metadata" to runtimeMetadataCount,
         "program" to programCount,
         "program_item" to programItemCount,
+        "program_item_set" to programItemSetCount,
         "program_tombstone" to programTombstoneCount
     )
 
@@ -1358,6 +1413,7 @@ object RecordCsvBackupRestore {
             runtimeMetadataCount = data.runtimeMetadataRows.size,
             programCount = data.programSnapshot?.programs?.size ?: 0,
             programItemCount = data.programSnapshot?.items?.size ?: 0,
+            programItemSetCount = data.programSnapshot?.sets?.size ?: 0,
             programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0
         )
 
@@ -1369,6 +1425,7 @@ object RecordCsvBackupRestore {
     private fun validateProgramSnapshot(
         programs: List<TrainingProgram>,
         items: List<ProgramBackupItem>,
+        sets: List<ProgramBackupItemSet>,
         tombstones: List<TrainingProgramTombstone>
     ) {
         require(programs.all { program -> program.stableKey.isNotBlank() }) {
@@ -1413,6 +1470,43 @@ object RecordCsvBackupRestore {
                 ).joinToString("|")
             }.distinct().size == items.size
         ) { "Duplicate program item position." }
+
+        val itemPositions = items.mapTo(mutableSetOf()) { item ->
+            listOf(
+                item.programStableKey,
+                item.weekNumber.toString(),
+                item.dayOfWeek.toString(),
+                item.orderIndex.toString()
+            ).joinToString("|")
+        }
+        require(sets.all { set ->
+            listOf(
+                set.programStableKey,
+                set.weekNumber.toString(),
+                set.dayOfWeek.toString(),
+                set.orderIndex.toString()
+            ).joinToString("|") in itemPositions
+        }) { "Orphan program item set." }
+        require(sets.all { set ->
+            set.setIndex > 0 &&
+                set.reps >= 0 &&
+                set.weightKg.isFinite() &&
+                set.weightKg >= 0.0 &&
+                set.seconds >= 0
+        }) { "Invalid program item set values in authoritative snapshot." }
+        sets.groupBy { set ->
+            listOf(
+                set.programStableKey,
+                set.weekNumber.toString(),
+                set.dayOfWeek.toString(),
+                set.orderIndex.toString()
+            ).joinToString("|")
+        }.values.forEach { itemSets ->
+            val indices = itemSets.map(ProgramBackupItemSet::setIndex).sorted()
+            require(indices == (1..indices.size).toList()) {
+                "Program item set indices must be unique and contiguous."
+            }
+        }
 
         require(tombstones.all { tombstone -> tombstone.programStableKey.isNotBlank() }) {
             "Program tombstone stable keys must be nonblank."

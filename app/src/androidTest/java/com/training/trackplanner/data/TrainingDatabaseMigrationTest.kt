@@ -650,6 +650,58 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate25To26AddsProgramItemSetTableWithoutChangingLegacyItems() {
+        helper.createDatabase(TEST_DB_25_26, 25).use { database ->
+            insertRowWithDefaults(
+                database,
+                "training_programs",
+                mapOf(
+                    "id" to 1,
+                    "stableKey" to "user_program_test",
+                    "name" to "Legacy",
+                    "durationDays" to 7
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "exercises",
+                mapOf(
+                    "stableKey" to "squat",
+                    "name" to "스쿼트",
+                    "category" to "근력운동"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "training_program_items",
+                mapOf(
+                    "id" to 10,
+                    "programId" to 1,
+                    "weekNumber" to 1,
+                    "dayOfWeek" to 1,
+                    "orderIndex" to 1,
+                    "exerciseStableKey" to "squat",
+                    "exerciseName" to "스쿼트",
+                    "category" to "근력운동",
+                    "setCount" to 3,
+                    "reps" to 5,
+                    "weightKg" to 100.0
+                )
+            )
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB_25_26,
+            26,
+            true,
+            TrainingDatabase.MIGRATION_25_26
+        ).use { database ->
+            check(database.count("training_program_items") == 1)
+            check(database.count("training_program_item_sets") == 0)
+        }
+    }
+
     private fun insertExercise24(
         database: SupportSQLiteDatabase,
         id: Long,
@@ -731,6 +783,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_22_23 = "training-migration-22-23-test"
         const val TEST_DB_23_24 = "training-migration-23-24-test"
         const val TEST_DB_24_25 = "training-migration-24-25-test"
+        const val TEST_DB_25_26 = "training-migration-25-26-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

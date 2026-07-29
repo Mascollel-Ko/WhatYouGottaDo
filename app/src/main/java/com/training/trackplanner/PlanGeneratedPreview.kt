@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.ProgramSetPrescription
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.deleteDraftItem
@@ -240,15 +242,13 @@ private fun ProgramDraftItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(item.exerciseName, fontWeight = FontWeight.SemiBold)
-                Text(
-                    listOfNotNull(
-                        "${item.setCount}×${if (item.seconds > 0) "${item.seconds}초" else "${item.reps}회"}",
-                        item.weightKg.takeIf { it > 0.0 }?.let { "${formatDecimal(it)}kg" },
-                        item.restSeconds.takeIf { it > 0 }?.let { "휴식 ${it}초" }
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                programSetSummaryLines(item).forEach { line ->
+                    Text(
+                        line,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             TextButton(onClick = onEdit) { Text("수정") }
             TextButton(onClick = onDelete) { Text("삭제") }
@@ -262,10 +262,9 @@ private fun ProgramDraftItemDialog(
     onDismiss: () -> Unit,
     onSave: (ProgramSkeletonItem) -> Unit
 ) {
-    var setCountText by rememberSaveable(item.localId) { mutableStateOf(item.setCount.toString()) }
-    var repsText by rememberSaveable(item.localId) { mutableStateOf(item.reps.toString()) }
-    var secondsText by rememberSaveable(item.localId) { mutableStateOf(item.seconds.toString()) }
-    var weightText by rememberSaveable(item.localId) { mutableStateOf(formatDecimal(item.weightKg)) }
+    var sets by remember(item.localId) {
+        mutableStateOf(ProgramSetPrescriptionResolver.resolve(item))
+    }
     var restText by rememberSaveable(item.localId) { mutableStateOf(item.restSeconds.toString()) }
 
     AlertDialog(
@@ -273,13 +272,66 @@ private fun ProgramDraftItemDialog(
         title = { Text(item.exerciseName) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProgramNumberField(Modifier.weight(1f), "세트", setCountText, onChange = { setCountText = it })
-                    ProgramNumberField(Modifier.weight(1f), "반복", repsText, onChange = { repsText = it })
+                sets.forEachIndexed { index, set ->
+                    Text("${index + 1}세트", fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ProgramNumberField(
+                            Modifier.weight(1f),
+                            "반복",
+                            set.reps.toString(),
+                            onChange = { value ->
+                                sets = sets.updated(
+                                    index,
+                                    set.copy(reps = (value.toIntOrNull() ?: 0).coerceAtLeast(0))
+                                )
+                            }
+                        )
+                        ProgramNumberField(
+                            Modifier.weight(1f),
+                            "시간",
+                            set.seconds.toString(),
+                            onChange = { value ->
+                                sets = sets.updated(
+                                    index,
+                                    set.copy(seconds = (value.toIntOrNull() ?: 0).coerceAtLeast(0))
+                                )
+                            },
+                            suffix = "초"
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ProgramDecimalField(
+                            Modifier.weight(1f),
+                            "중량",
+                            formatDecimal(set.weightKg),
+                            onChange = { value ->
+                                sets = sets.updated(
+                                    index,
+                                    set.copy(weightKg = (value.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0))
+                                )
+                            },
+                            suffix = "kg"
+                        )
+                        TextButton(
+                            enabled = sets.size > 1,
+                            onClick = {
+                                sets = sets
+                                    .filterIndexed { current, _ -> current != index }
+                                    .mapIndexed { current, value -> value.copy(setIndex = current + 1) }
+                            }
+                        ) {
+                            Text("삭제")
+                        }
+                    }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ProgramNumberField(Modifier.weight(1f), "시간", secondsText, onChange = { secondsText = it }, suffix = "초")
-                    ProgramDecimalField(Modifier.weight(1f), "중량", weightText, onChange = { weightText = it }, suffix = "kg")
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val previous = sets.lastOrNull() ?: ProgramSetPrescription(1, 0, 0.0, 0)
+                        sets = sets + previous.copy(setIndex = sets.size + 1)
+                    }
+                ) {
+                    Text("세트 추가")
                 }
                 ProgramNumberField(Modifier.fillMaxWidth(), "휴식", restText, onChange = { restText = it }, suffix = "초")
             }
@@ -287,13 +339,16 @@ private fun ProgramDraftItemDialog(
         confirmButton = {
             Button(
                 onClick = {
+                    val normalizedSets = sets.mapIndexed { index, set -> set.copy(setIndex = index + 1) }
+                    val summary = ProgramSetPrescriptionResolver.summarize(normalizedSets)
                     onSave(
                         item.copy(
-                            setCount = (setCountText.toIntOrNull() ?: 1).coerceAtLeast(1),
-                            reps = (repsText.toIntOrNull() ?: 0).coerceAtLeast(0),
-                            seconds = (secondsText.toIntOrNull() ?: 0).coerceAtLeast(0),
-                            weightKg = weightText.toDoubleOrNull() ?: 0.0,
-                            restSeconds = (restText.toIntOrNull() ?: 0).coerceAtLeast(0)
+                            setCount = summary.setCount,
+                            reps = summary.reps,
+                            seconds = summary.seconds,
+                            weightKg = summary.weightKg,
+                            restSeconds = (restText.toIntOrNull() ?: 0).coerceAtLeast(0),
+                            setPrescriptions = normalizedSets
                         )
                     )
                 }
@@ -304,6 +359,28 @@ private fun ProgramDraftItemDialog(
         }
     )
 }
+
+private fun List<ProgramSetPrescription>.updated(
+    index: Int,
+    value: ProgramSetPrescription
+): List<ProgramSetPrescription> =
+    mapIndexed { current, existing -> if (current == index) value else existing }
+
+private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
+    val sets = ProgramSetPrescriptionResolver.resolve(item)
+    val rest = item.restSeconds.takeIf { it > 0 }?.let { " · 휴식 ${it}초" }.orEmpty()
+    if (sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1) {
+        return listOf("${sets.size}세트 · ${sets.first().displayText()}$rest")
+    }
+    return sets.map { set -> "${set.setIndex}세트 · ${set.displayText()}$rest" }
+}
+
+private fun ProgramSetPrescription.displayText(): String =
+    buildList {
+        if (reps > 0) add("${reps}회")
+        if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
+        if (seconds > 0) add("${seconds}초")
+    }.ifEmpty { listOf("처방 없음") }.joinToString(" · ")
 
 private fun draftItemForExercise(
     exercise: Exercise,

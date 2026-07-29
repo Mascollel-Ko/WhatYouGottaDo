@@ -64,4 +64,34 @@ class ProgramPlanServiceMappingTest {
         assertEquals(ProgramDayIntensity.MODERATE.name, stored.dayIntensity)
         assertEquals("MANUAL_OR_EXISTING", stored.weightSource)
     }
+
+    @Test
+    fun heterogeneousSetRowsProduceOnlyCompatibilityScalars() {
+        val stored = ProgramSkeletonItem(
+            localId = "mixed",
+            weekNumber = 1,
+            dayOfWeek = 1,
+            orderIndex = 1,
+            exerciseStableKey = "squat",
+            exerciseName = "Squat",
+            category = "Strength",
+            restSeconds = 120,
+            prescription = "",
+            setCount = 9,
+            reps = 99,
+            weightKg = 999.0,
+            seconds = 0,
+            selectionReason = "",
+            weightSource = "",
+            setPrescriptions = listOf(
+                ProgramSetPrescription(1, 3, 110.0, 0),
+                ProgramSetPrescription(2, 8, 80.0, 0)
+            )
+        ).toTrainingProgramItem(programId = 11)
+
+        assertEquals(2, stored.setCount)
+        assertEquals(0, stored.reps)
+        assertEquals(0.0, stored.weightKg, 0.0)
+        assertEquals(0, stored.seconds)
+    }
 }

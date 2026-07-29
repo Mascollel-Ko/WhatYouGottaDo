@@ -50,6 +50,7 @@ internal class BackupExportService(
             val posteriorRevisions = strengthPosteriorDao.allRevisions()
             val programs = programDao.allPrograms()
             val programItems = programDao.allProgramItems()
+            val programItemSets = programDao.allProgramItemSets()
             val programTombstones = programDao.allProgramTombstones()
             val migrationIssues = exerciseIdentityMigrationIssueDao.all()
             val posteriorLocalStates = posteriorRevisions.flatMap { revision ->
@@ -69,6 +70,7 @@ internal class BackupExportService(
                 workoutSets = sets,
                 programs = programs,
                 programItems = programItems,
+                programItemSets = programItemSets,
                 runtimeMetadata = runtimeMetadata,
                 migrationIssues = migrationIssues
             )
@@ -87,6 +89,7 @@ internal class BackupExportService(
             }
 
             val programsById = programs.associateBy(TrainingProgram::id)
+            val programItemsById = programItems.associateBy(TrainingProgramItem::id)
             val exercisesByKey = exercises.associateBy(Exercise::stableKey)
             val backupProgramItems = programItems.map { item ->
                 val program = checkNotNull(programsById[item.programId])
@@ -108,6 +111,20 @@ internal class BackupExportService(
                     trainingSlot = item.trainingSlot,
                     dayIntensity = item.dayIntensity,
                     weightSource = item.weightSource
+                )
+            }
+            val backupProgramItemSets = programItemSets.map { set ->
+                val item = checkNotNull(programItemsById[set.programItemId])
+                val program = checkNotNull(programsById[item.programId])
+                ProgramBackupItemSet(
+                    programStableKey = program.stableKey,
+                    weekNumber = item.weekNumber,
+                    dayOfWeek = item.dayOfWeek,
+                    orderIndex = item.orderIndex,
+                    setIndex = set.setIndex,
+                    reps = set.reps,
+                    weightKg = set.weightKg,
+                    seconds = set.seconds
                 )
             }
             val exportedExercises = ExerciseMetadataOverrideBackupMapper.exportExercises(
@@ -137,6 +154,7 @@ internal class BackupExportService(
                 posteriorProxyHistory = posteriorProxyHistory,
                 programs = programs,
                 programItems = backupProgramItems,
+                programItemSets = backupProgramItemSets,
                 programTombstones = programTombstones,
                 includeProgramSnapshot = true
             )
@@ -155,6 +173,7 @@ internal class BackupExportService(
                 runtimeMetadataCount = runtimeMetadata.count { it.stableKey.isNotBlank() },
                 programCount = programs.size,
                 programItemCount = backupProgramItems.size,
+                programItemSetCount = backupProgramItemSets.size,
                 programTombstoneCount = programTombstones.size
             )
             val csv = RecordCsvBackupRestore.wrapWithManifest(
@@ -229,6 +248,7 @@ internal class BackupExportService(
                 posteriorProxyTransferCount = posteriorProxyHistory.size,
                 programCount = programs.size,
                 programItemCount = backupProgramItems.size,
+                programItemSetCount = backupProgramItemSets.size,
                 programTombstoneCount = programTombstones.size,
                 warningCount = preflight.warnings.size
             )

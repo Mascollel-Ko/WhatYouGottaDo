@@ -109,6 +109,7 @@ internal class BackupImportService(
         "workout_entry" to data.setRows.map(RestoreSetRow::entryKey).distinct().size,
         "workout_set" to data.setRows.size,
         "program" to (data.programSnapshot?.programs?.size ?: 0),
-        "program_item" to (data.programSnapshot?.items?.size ?: 0)
+        "program_item" to (data.programSnapshot?.items?.size ?: 0),
+        "program_item_set" to (data.programSnapshot?.sets?.size ?: 0)
     )
 }

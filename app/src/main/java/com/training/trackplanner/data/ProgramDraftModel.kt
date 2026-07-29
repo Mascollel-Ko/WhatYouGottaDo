@@ -91,7 +91,7 @@ private fun normalizeWeekDaySchedule(
 ): Map<Int, Set<Int>> {
     val itemDays = items.groupBy(ProgramSkeletonItem::weekNumber)
         .mapValues { (_, rows) -> rows.map(ProgramSkeletonItem::dayOfWeek).filter { it in 1..7 }.toSortedSet() }
-    return (1..durationWeeks.coerceIn(1, 12)).associateWith { week ->
+    return (1..durationWeeks.coerceAtLeast(1)).associateWith { week ->
         (schedule[week].orEmpty() + itemDays[week].orEmpty())
             .filter { it in 1..7 }
             .toSortedSet()

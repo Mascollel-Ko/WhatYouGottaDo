@@ -42,9 +42,11 @@ import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramItemRestoreMetadataParser
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
+import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.defaultProgramWeekDaySchedule
 import com.training.trackplanner.data.emptyProgramSkeleton
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
@@ -248,6 +250,11 @@ private fun ProgramEditorScreen(
     } else {
         remember { mutableStateOf(emptyList()) }
     }
+    val existingItemSets by if (program != null) {
+        remember(program.id) { viewModel.programItemSets(program.id) }.collectAsState(initial = emptyList())
+    } else {
+        remember { mutableStateOf(emptyList()) }
+    }
     var nameText by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf(program?.name ?: "")
     }
@@ -255,7 +262,10 @@ private fun ProgramEditorScreen(
         mutableStateOf(false)
     }
     var durationWeeks by rememberSaveable(program?.id ?: 0L) {
-        mutableStateOf(((program?.durationDays ?: 28) / 7).coerceIn(3, 8))
+        mutableStateOf(
+            program?.let { ((it.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1) }
+                ?: 4
+        )
     }
     var weeklyDays by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.weeklyTrainingDays ?: 3).takeIf { it > 0 } ?: 3)
@@ -275,9 +285,10 @@ private fun ProgramEditorScreen(
     var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
 
-    LaunchedEffect(program?.id, existingItems) {
+    LaunchedEffect(program?.id, existingItems, existingItemSets) {
         if (program != null && skeleton == null && existingItems.isNotEmpty()) {
-            skeleton = skeletonFromProgram(program, existingItems).withResolvedWeekDaySchedule()
+            skeleton = skeletonFromProgram(program, existingItems, existingItemSets)
+                .withResolvedWeekDaySchedule()
         }
     }
 
@@ -590,14 +601,27 @@ private fun ProgramDetailScreen(
     val items by remember(program.id) {
         viewModel.programItems(program.id)
     }.collectAsState(initial = emptyList())
+    val itemSets by remember(program.id) {
+        viewModel.programItemSets(program.id)
+    }.collectAsState(initial = emptyList())
+    val exercises by viewModel.exercises.collectAsState()
+    val runtimeMetadata by viewModel.exerciseRuntimeMetadata.collectAsState()
+    var infoExerciseKey by rememberSaveable { mutableStateOf<String?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val groupedKeys = remember(items) {
-        if (items.isEmpty()) {
-            listOf(1 to 1)
-        } else {
-            items.map { it.weekNumber to it.dayOfWeek }
-                .distinct()
-                .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+        items.map { it.weekNumber to it.dayOfWeek }
+            .distinct()
+            .sortedWith(compareBy<Pair<Int, Int>> { it.first }.thenBy { it.second })
+    }
+
+    infoExerciseKey?.let { stableKey ->
+        exercises.firstOrNull { it.stableKey == stableKey }?.let { exercise ->
+            ExerciseInfoDialog(
+                exercise = exercise,
+                metadata = runtimeMetadata[stableKey],
+                onEditMetadata = null,
+                onDismiss = { infoExerciseKey = null }
+            )
         }
     }
 
@@ -667,7 +691,10 @@ private fun ProgramDetailScreen(
             ProgramDaySummarySection(
                 weekNumber = key.first,
                 dayOfWeek = key.second,
-                items = dayItems
+                items = dayItems,
+                setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId),
+                onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
+                availableExerciseKeys = exercises.mapTo(mutableSetOf()) { it.stableKey }
             )
         }
     }
@@ -762,7 +789,8 @@ private fun ProgramApplyCard(
 
 private fun skeletonFromProgram(
     program: TrainingProgram,
-    items: List<TrainingProgramItem>
+    items: List<TrainingProgramItem>,
+    itemSets: List<TrainingProgramItemSet>
 ): GeneratedProgramSkeleton {
     val restoredItems = items.map { item ->
         item to ProgramItemRestoreMetadataParser.resolve(item)
@@ -777,9 +805,10 @@ private fun skeletonFromProgram(
         badmintonTransferRatio = program.badmintonTransferRatio.coerceIn(0.0, 0.90),
         sportStrengthRatio = "AUTO",
         periodizationType = ProgramPeriodizationType.AUTO,
-        durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
+        durationWeeks = ((program.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1)
     )
-    val durationWeeks = (program.durationDays / 7).coerceIn(3, 8)
+    val durationWeeks = ((program.durationDays.coerceAtLeast(1) + 6) / 7).coerceAtLeast(1)
+    val setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId)
     val weekPlans = (1..durationWeeks).map { week ->
         ProgramWeekPlan(
             weekIndex = week,
@@ -818,7 +847,11 @@ private fun skeletonFromProgram(
                 selectionReason = "기존 프로그램",
                 weightSource = metadata.weightSource,
                 trainingSlot = metadata.trainingSlot,
-                dayIntensity = metadata.dayIntensity
+                dayIntensity = metadata.dayIntensity,
+                setPrescriptions = ProgramSetPrescriptionResolver.resolve(
+                    item,
+                    setsByItemId[item.id].orEmpty()
+                )
             )
         },
         warnings = buildList {

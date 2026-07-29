@@ -50,11 +50,22 @@ internal class ProgramRepairPolicy(
                     !item.requiredTemplateAnchor &&
                     isHighLowerStress(item)
                 ) {
+                    val sets = ProgramSetPrescriptionResolver.resolve(item)
+                    val reducedSets = sets.dropLast(1).ifEmpty { sets.take(1) }
+                    val summary = ProgramSetPrescriptionResolver.summarize(reducedSets)
                     item.copy(
                         trainingSlot = ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
                         dayIntensity = ProgramDayIntensity.LIGHT.name,
                         requestedTemplateSlot = ProgramSlotId.RECOVERY_PREHAB_LIGHT.name,
-                        setCount = (item.setCount - 1).coerceAtLeast(1),
+                        setCount = summary.setCount,
+                        reps = summary.reps,
+                        weightKg = summary.weightKg,
+                        seconds = summary.seconds,
+                        setPrescriptions = if (item.setPrescriptions.isEmpty()) {
+                            emptyList()
+                        } else {
+                            reducedSets
+                        },
                         stressMagnitudeHint = "LOW",
                         neuromuscularStressLevel = "LOW",
                         jointTendonImpactStressLevel = "LOW"

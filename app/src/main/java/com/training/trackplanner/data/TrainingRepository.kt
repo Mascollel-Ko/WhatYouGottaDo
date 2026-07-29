@@ -436,6 +436,9 @@ class TrainingRepository(
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         programPlanService.programItems(programId)
 
+    fun programItemSets(programId: Long): Flow<List<TrainingProgramItemSet>> =
+        programPlanService.programItemSets(programId)
+
     suspend fun saveInitialUserProfile(profile: InitialUserProfile) = withContext(Dispatchers.IO) {
         val existing = initialUserProfileDao.profile()
         initialUserProfileDao.upsert(
@@ -603,6 +606,21 @@ class TrainingRepository(
 
     suspend fun deleteProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
         programPlanService.deleteProgramItem(item)
+    }
+
+    suspend fun recordRangeProgramSummary(
+        firstDate: String,
+        secondDate: String
+    ): RecordRangeProgramSummary = withContext(Dispatchers.IO) {
+        programPlanService.recordRangeProgramSummary(firstDate, secondDate)
+    }
+
+    suspend fun createProgramFromRecordRange(
+        firstDate: String,
+        secondDate: String,
+        name: String
+    ): Long = withContext(Dispatchers.IO) {
+        programPlanService.createProgramFromRecordRange(firstDate, secondDate, name)
     }
 
     suspend fun programHasDateConflicts(programId: Long, startDate: String): Boolean =

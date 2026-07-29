@@ -1,5 +1,6 @@
 package com.training.trackplanner
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
@@ -37,12 +38,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyRecordSummary
+import com.training.trackplanner.data.RecordRangeProgramSummary
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -54,6 +57,7 @@ internal fun RecordCalendarScreen(
     onDateSelected: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var visibleMonth by rememberSaveable(selectedDate) {
         mutableStateOf(YearMonth.from(LocalDate.parse(selectedDate)).toString())
     }
@@ -81,6 +85,8 @@ internal fun RecordCalendarScreen(
     var pendingRangeDelete by remember { mutableStateOf<PendingRangeDelete?>(null) }
     var rangeCopy by remember { mutableStateOf<CalendarRangeCopy?>(null) }
     var rangeDelete by remember { mutableStateOf<CalendarRangeDelete?>(null) }
+    var programRangeStart by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingProgramSummary by remember { mutableStateOf<RecordRangeProgramSummary?>(null) }
 
     BackHandler {
         when {
@@ -91,6 +97,8 @@ internal fun RecordCalendarScreen(
             pendingAction != null -> pendingAction = null
             rangeCopy != null -> rangeCopy = null
             rangeDelete != null -> rangeDelete = null
+            pendingProgramSummary != null -> pendingProgramSummary = null
+            programRangeStart != null -> programRangeStart = null
             else -> onBack()
         }
     }
@@ -127,6 +135,31 @@ internal fun RecordCalendarScreen(
             onRangeDelete = {
                 rangeDelete = CalendarRangeDelete(sourceStart = sourceDate)
                 actionMenuDate = null
+            },
+            onSaveAsProgram = {
+                programRangeStart = sourceDate
+                actionMenuDate = null
+            }
+        )
+    }
+
+    pendingProgramSummary?.let { summary ->
+        RecordRangeProgramDialog(
+            summary = summary,
+            onDismiss = { pendingProgramSummary = null },
+            onSave = { name ->
+                viewModel.createProgramFromRecordRange(
+                    firstDate = summary.startDate,
+                    secondDate = summary.endDate,
+                    name = name,
+                    onSaved = {
+                        pendingProgramSummary = null
+                        Toast.makeText(context, "프로그램으로 저장했습니다.", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { message ->
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                    }
+                )
             }
         )
     }
@@ -277,6 +310,12 @@ internal fun RecordCalendarScreen(
                     onCancel = { rangeDelete = null }
                 )
             }
+            programRangeStart?.let { start ->
+                ActionModeCard(
+                    text = "$start 부터 프로그램으로 저장할 마지막 날짜 선택",
+                    onCancel = { programRangeStart = null }
+                )
+            }
         }
         item {
             CalendarGrid(
@@ -286,19 +325,35 @@ internal fun RecordCalendarScreen(
                 ofiByDate = ofiByDate,
                 exerciseSearchMatches = matchingDateSet,
                 onDateSelected = { date ->
-                    handleCalendarDateClick(
-                        date = date,
-                        pendingAction = pendingAction,
-                        rangeCopy = rangeCopy,
-                        rangeDelete = rangeDelete,
-                        viewModel = viewModel,
-                        onPlainDateSelected = onDateSelected,
-                        onPendingConflict = { pendingConflict = it },
-                        onPendingRangeDelete = { pendingRangeDelete = it },
-                        onPendingActionChange = { pendingAction = it },
-                        onRangeCopyChange = { rangeCopy = it },
-                        onRangeDeleteChange = { rangeDelete = it }
-                    )
+                    val rangeStart = programRangeStart
+                    if (rangeStart != null) {
+                        programRangeStart = null
+                        viewModel.loadRecordRangeProgramSummary(rangeStart, date) { summary ->
+                            if (summary.entryCount == 0) {
+                                Toast.makeText(
+                                    context,
+                                    "선택한 기간에 저장할 운동 기록이 없습니다.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                pendingProgramSummary = summary
+                            }
+                        }
+                    } else {
+                        handleCalendarDateClick(
+                            date = date,
+                            pendingAction = pendingAction,
+                            rangeCopy = rangeCopy,
+                            rangeDelete = rangeDelete,
+                            viewModel = viewModel,
+                            onPlainDateSelected = onDateSelected,
+                            onPendingConflict = { pendingConflict = it },
+                            onPendingRangeDelete = { pendingRangeDelete = it },
+                            onPendingActionChange = { pendingAction = it },
+                            onRangeCopyChange = { rangeCopy = it },
+                            onRangeDeleteChange = { rangeDelete = it }
+                        )
+                    }
                 },
                 onDateLongClick = { actionMenuDate = it }
             )
@@ -490,7 +545,8 @@ private fun CalendarActionDialog(
     onDelete: () -> Unit,
     onRangeCopy: () -> Unit,
     onRangeCopyWithState: () -> Unit,
-    onRangeDelete: () -> Unit
+    onRangeDelete: () -> Unit,
+    onSaveAsProgram: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -515,6 +571,9 @@ private fun CalendarActionDialog(
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeDelete) {
                     Text("선택 삭제")
                 }
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onSaveAsProgram) {
+                    Text("기간을 프로그램으로 저장")
+                }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onDelete) {
                     Text("삭제")
                 }
@@ -524,6 +583,53 @@ private fun CalendarActionDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("닫기")
+            }
+        }
+    )
+}
+
+@Composable
+private fun RecordRangeProgramDialog(
+    summary: RecordRangeProgramSummary,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var name by rememberSaveable(summary.startDate, summary.endDate) {
+        mutableStateOf(summary.defaultName)
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("기록 기간을 프로그램으로 저장") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("프로그램명") },
+                    singleLine = true
+                )
+                Text("기간: ${summary.startDate} ~ ${summary.endDate} (${summary.durationDays}일)")
+                Text("운동 ${summary.entryCount}개 · 세트 ${summary.setCount}개")
+                Text("완료 ${summary.confirmedSetCount}세트 · 계획 ${summary.unconfirmedSetCount}세트")
+                Text(
+                    "첫 날짜를 1주차 월요일로 두고 빈 날짜 간격도 그대로 보존합니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = name.isNotBlank(),
+                onClick = { onSave(name.trim()) }
+            ) {
+                Text("저장")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("취소")
             }
         }
     )

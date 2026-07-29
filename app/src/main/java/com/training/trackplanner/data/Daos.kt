@@ -173,6 +173,19 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntriesWithSets(): List<WorkoutEntryWithSets>
 
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM workout_entries
+        WHERE date BETWEEN :startDate AND :endDate
+        ORDER BY date, displayOrder, createdAt, id
+        """
+    )
+    suspend fun entriesWithSetsBetween(
+        startDate: String,
+        endDate: String
+    ): List<WorkoutEntryWithSets>
+
     @Query(
         """
         SELECT workout_entries.date
@@ -549,6 +562,34 @@ interface ProgramDao {
         dayOfWeek: Int
     ): List<TrainingProgramItem>
 
+    @Query(
+        """
+        SELECT training_program_item_sets.* FROM training_program_item_sets
+        INNER JOIN training_program_items
+            ON training_program_items.id = training_program_item_sets.programItemId
+        WHERE training_program_items.programId = :programId
+        ORDER BY training_program_items.weekNumber, training_program_items.dayOfWeek,
+            training_program_items.orderIndex, training_program_item_sets.setIndex,
+            training_program_item_sets.id
+        """
+    )
+    fun observeProgramItemSets(programId: Long): Flow<List<TrainingProgramItemSet>>
+
+    @Query("SELECT * FROM training_program_item_sets ORDER BY programItemId, setIndex, id")
+    suspend fun allProgramItemSets(): List<TrainingProgramItemSet>
+
+    @Query(
+        """
+        SELECT training_program_item_sets.* FROM training_program_item_sets
+        INNER JOIN training_program_items
+            ON training_program_items.id = training_program_item_sets.programItemId
+        WHERE training_program_items.programId = :programId
+        ORDER BY training_program_item_sets.programItemId, training_program_item_sets.setIndex,
+            training_program_item_sets.id
+        """
+    )
+    suspend fun programItemSetsForProgram(programId: Long): List<TrainingProgramItemSet>
+
     @Insert
     suspend fun insertProgram(program: TrainingProgram): Long
 
@@ -584,6 +625,12 @@ interface ProgramDao {
         }
         insertProgramItemsUnchecked(items)
     }
+
+    @Insert
+    suspend fun insertProgramItemSets(sets: List<TrainingProgramItemSet>)
+
+    @Query("DELETE FROM training_program_item_sets")
+    suspend fun deleteAllProgramItemSets()
 
     @Update
     suspend fun updateProgramItemUnchecked(item: TrainingProgramItem)

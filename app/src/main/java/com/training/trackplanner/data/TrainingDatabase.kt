@@ -18,6 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SmashSpeedRecord::class,
         TrainingProgram::class,
         TrainingProgramItem::class,
+        TrainingProgramItemSet::class,
         TrainingProgramTombstone::class,
         ExerciseIdentityMigrationIssue::class,
         AppMeta::class,
@@ -33,7 +34,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 25,
+    version = 26,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -834,10 +835,39 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_21_22,
                         MIGRATION_22_23,
                         MIGRATION_23_24,
-                        MIGRATION_24_25
+                        MIGRATION_24_25,
+                        MIGRATION_25_26
                     )
                     .build()
                     .also { instance = it }
             }
+
+        internal val MIGRATION_25_26 = object : Migration(25, 26) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `training_program_item_sets` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `programItemId` INTEGER NOT NULL,
+                        `setIndex` INTEGER NOT NULL,
+                        `reps` INTEGER NOT NULL,
+                        `weightKg` REAL NOT NULL,
+                        `seconds` INTEGER NOT NULL,
+                        FOREIGN KEY(`programItemId`) REFERENCES `training_program_items`(`id`)
+                            ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_training_program_item_sets_programItemId` " +
+                        "ON `training_program_item_sets` (`programItemId`)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                        "`index_training_program_item_sets_programItemId_setIndex` " +
+                        "ON `training_program_item_sets` (`programItemId`, `setIndex`)"
+                )
+            }
+        }
     }
 }

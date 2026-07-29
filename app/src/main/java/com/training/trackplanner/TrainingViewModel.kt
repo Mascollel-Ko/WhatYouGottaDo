@@ -36,11 +36,13 @@ import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
+import com.training.trackplanner.data.RecordRangeProgramSummary
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.SmashSpeedRecord
 import com.training.trackplanner.data.TrainingDatabase
 import com.training.trackplanner.data.TrainingProgramItem
+import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.WorkoutEntry
@@ -199,6 +201,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         repository.programItems(programId)
+
+    fun programItemSets(programId: Long): Flow<List<TrainingProgramItemSet>> =
+        repository.programItemSets(programId)
 
     fun checkInForDate(date: String): Flow<DailyCheckIn?> =
         repository.observeCheckInForDate(date)
@@ -361,6 +366,32 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun deleteProgramItem(item: TrainingProgramItem) {
         viewModelScope.launch {
             repository.deleteProgramItem(item)
+        }
+    }
+
+    fun loadRecordRangeProgramSummary(
+        firstDate: String,
+        secondDate: String,
+        onResult: (RecordRangeProgramSummary) -> Unit
+    ) {
+        viewModelScope.launch {
+            onResult(repository.recordRangeProgramSummary(firstDate, secondDate))
+        }
+    }
+
+    fun createProgramFromRecordRange(
+        firstDate: String,
+        secondDate: String,
+        name: String,
+        onSaved: (Long) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                repository.createProgramFromRecordRange(firstDate, secondDate, name)
+            }.onSuccess(onSaved).onFailure { error ->
+                onError(error.message ?: "프로그램을 저장하지 못했습니다.")
+            }
         }
     }
 
