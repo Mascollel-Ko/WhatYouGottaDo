@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-07-29",
+  "lastUpdated": "2026-07-30",
   "families": [
     {
       "familyId": "OFI",
@@ -1471,6 +1471,50 @@
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
         "공개 output의 evaluation은 null이며 optimization summary는 평가 결과가 아닌 고정 문구입니다."
+      ],
+      "supersedes": [],
+      "publicSummaryAvailable": true
+    },
+    {
+      "protocolId": "DATA-METADATA-ANALYSIS-CONTRACT",
+      "familyId": "DATA_PORTABILITY",
+      "titleKo": "메타데이터 분석 계약",
+      "titleEn": "Metadata Analysis Contract",
+      "currentVersion": "1.0.0",
+      "status": "ACTIVE",
+      "implementationStatus": "PARTIALLY_IMPLEMENTED",
+      "evidenceProfile": [
+        "PRODUCT_POLICY",
+        "ENGINEERING_HEURISTIC"
+      ],
+      "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline",
+      "lastAuditedCommit": "47f93eadaff64a49f6dc886a9319191c7388029c",
+      "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/contracts/UserExerciseAnalysisContractProjector.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractShadowParity.kt"
+      ],
+      "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractArchitectureTest.kt"
+      ],
+      "authorityAssets": [
+        "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
+        "app/src/test/resources/analysis-contract/analysis_contract_program_golden_v1.csv"
+      ],
+      "supportingDocuments": [
+        "docs/metadata_analysis_contract_and_migration_plan_ko.md",
+        "docs/audits/metadata_field_usage_matrix.md",
+        "docs/audits/metadata_parsing_inference_audit.md",
+        "docs/audits/metadata_analysis_contract_parity_report.md",
+        "docs/v0.5.0.16_release_notes.md"
+      ],
+      "knownGaps": [
+        "기존 production calculators와 ProgramAutoBuilder가 계속 권위 경로이며 typed contract는 shadow-only입니다.",
+        "사용자 운동 관계는 Room에 저장하지 않고 exact persisted metadata에서 projection하며 미해결 관계는 INCOMPLETE입니다.",
+        "관절 동작 관계는 현재 canonical runtime metadata에 권위 입력이 없어 비어 있습니다."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

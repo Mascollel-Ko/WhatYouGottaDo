@@ -112,6 +112,15 @@ Focused tests cover:
 
 Metadata reclassification, built-in catalog regeneration, legacy external import changes, and a separate user metadata taxonomy were deliberately not performed.
 
+## Analysis contract shadow boundary
+
+Starting with v0.5.0.16, persisted scalar values and
+`MetadataTokenField.values` may be projected into typed analysis relations for
+shadow validation. Missing OFI, muscle, program, or connective-tissue
+relationships remain `INCOMPLETE`; they are never guessed from the exercise
+name, stableKey fragments, or raw delimiters. The existing runtime metadata
+resolver and production calculators remain authoritative.
+
 Verification completed for this change:
 
 - required focused unit tests: passed

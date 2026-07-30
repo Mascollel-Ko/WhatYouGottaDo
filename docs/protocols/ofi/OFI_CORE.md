@@ -98,6 +98,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`docs/v0.4.2.6_canonical_ofi_fatigue_pipeline.md`](../../v0.4.2.6_canonical_ofi_fatigue_pipeline.md)
 - [`docs/v0.4.2.6_release_notes.md`](../../v0.4.2.6_release_notes.md)
 - [`docs/v0.4.2.15_release_notes.md`](../../v0.4.2.15_release_notes.md)
+- [`docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`](../data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md): 현재 OFI 출력을 stableKey별 shadow baseline으로 동결하며 계산 authority는 이 문서와 기존 runtime에 유지합니다.
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력

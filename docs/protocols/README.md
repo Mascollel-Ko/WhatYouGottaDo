@@ -59,6 +59,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.1` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_EVALUATION.md) |
 | `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.0.2` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; legacy direct-map correction `v0.5.0.8`; restore metadata preservation `v0.5.0.11` | `f27463841c60384a0779a60ea92ed82d4d0e2c85` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; format 8 `v0.5.0.6`; exact program sets `v0.5.0.12` | `e7d9317cf2ba618b8fadfcdcb772763a32618c09` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline | `47f93eadaff64a49f6dc886a9319191c7388029c` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
@@ -82,6 +83,9 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
   field-aware 한국어/영어 label은 presentation에서만 적용합니다. 정상
   사용자 화면은 program diagnostic 또는 enum code를 직접 표시하지 않으며
   unknown metadata 값도 원문을 보존합니다.
+- v0.5.0.16은 224개 built-in stableKey의 현재 분석 출력을 typed relation
+  baseline으로 동결합니다. 이 관계는 shadow 검증 전용이며 기존 OFI, 프로그램,
+  근육, 배드민턴 및 연결조직 계산기가 계속 production authority입니다.
 - `CT-PERSONAL-CALIBRATION`의 generated BasePrior, profile adjustment, per-unit PersonalBaseline와 relative-state UI는 v0.4.2.12부터 `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`입니다. 짧은 history도 prior로 분류하며 `w_perUnit`은 비교 경계에만 적용됩니다.
 - 연결조직 교육 설명은 v0.4.2.13부터 `RCV-ALL-0.6-EDU-2`의 77개 하위 조직과 15개 상위 관절군을 완전 커버하며, 한 대화상자에서 `위치`, `주요 기능`, `주로 사용되는 동작`만 보여 줍니다.
 - 앱에서는 홈의 `이 앱이 분석하는 것 보기`에서 제품 설명을 거쳐 이 공개 프로토콜 인덱스를 열 수 있습니다.

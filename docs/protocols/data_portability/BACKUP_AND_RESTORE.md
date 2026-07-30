@@ -255,6 +255,9 @@ migration은 사용하지 않습니다.
 - `docs/v0.5.0.5_release_notes.md`: app release scope와 검증 결과
 - `docs/v0.5.0.6_release_notes.md`: stableKey-only backup format과 정본화 release
 - `docs/v0.5.0.12_release_notes.md`: exact program set prescription release
+- `docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`:
+  immutable built-in shadow relations and non-persisted user projection. Phase
+  0/1 adds no Room row, backup row, manifest change, or restore migration.
 - `docs/protocols/data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md`
 - `docs/codex_worklog.md`: implementation worklog
 

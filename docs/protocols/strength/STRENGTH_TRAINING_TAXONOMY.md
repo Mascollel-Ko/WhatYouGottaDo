@@ -96,6 +96,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 ## 19. 관련 문서
 
 - [`docs/exercise_metadata_reclassification_plan_v0.3.5.0.md`](../../exercise_metadata_reclassification_plan_v0.3.5.0.md)
+- [`docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`](../data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md): 현재 muscle contribution 출력을 stableKey별 shadow relation으로 동결합니다.
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력

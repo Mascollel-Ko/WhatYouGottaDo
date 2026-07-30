@@ -150,6 +150,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`docs/v0.5.0.13_release_notes.md`](../../v0.5.0.13_release_notes.md)
 - [`docs/v0.5.0.14_release_notes.md`](../../v0.5.0.14_release_notes.md)
 - [`docs/v0.3.5.3_program_builder_architecture.md`](../../v0.3.5.3_program_builder_architecture.md)
+- [`docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`](../data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md): slot relation shadow와 공개 generator golden을 정의하며 production generator는 변경하지 않습니다.
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
