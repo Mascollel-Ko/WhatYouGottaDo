@@ -470,10 +470,7 @@ class ProgramBuilder internal constructor(
         return adjusted.copy(
             validationDetails = mergedIssues,
             validationIssues = renderedIssues,
-            warnings = (adjusted.warnings + renderedIssues + outcomeMessages).distinct(),
-            optimizationSummary = adjusted.optimizationSummary.copy(
-                messages = (adjusted.optimizationSummary.messages + outcomeMessages).distinct()
-            )
+            warnings = (adjusted.warnings + renderedIssues + outcomeMessages).distinct()
         )
     }
 
@@ -670,19 +667,40 @@ internal fun GeneratedProgramSkeleton.withExerciseConstraintSummary(): Generated
     val excludedCount = request.excludedExerciseStableKeys.count(String::isNotBlank)
     val preferred = request.preferredExerciseStableKeys.filter(String::isNotBlank).toSet()
     val preferredSelected = items.map(ProgramSkeletonItem::stableKey).toSet().intersect(preferred).size
-    val messages = buildList {
-        if (excludedCount > 0) add("PROGRAM_EXCLUDED_EXERCISES_APPLIED: $excludedCount")
+    val notices = buildList {
+        if (excludedCount > 0) {
+            add(
+                ProgramUserNotice(
+                    code = ProgramUserNoticeCode.EXCLUDED_EXERCISES_APPLIED,
+                    count = excludedCount,
+                    level = ProgramUserNoticeLevel.INFO
+                )
+            )
+        }
         if (preferred.isNotEmpty()) {
             if (preferredSelected > 0) {
-                add("PROGRAM_PREFERRED_EXERCISES_INCLUDED: $preferredSelected/${preferred.size}")
+                add(
+                    ProgramUserNotice(
+                        code = ProgramUserNoticeCode.PREFERRED_EXERCISES_INCLUDED,
+                        selectedCount = preferredSelected,
+                        totalCount = preferred.size,
+                        level = ProgramUserNoticeLevel.INFO
+                    )
+                )
             }
         }
     }
-    if (messages.isEmpty()) return this
+    if (notices.isEmpty()) return this
+    val diagnostics = buildList {
+        if (excludedCount > 0) add("PROGRAM_EXCLUDED_EXERCISES_APPLIED: $excludedCount")
+        if (preferred.isNotEmpty() && preferredSelected > 0) {
+            add("PROGRAM_PREFERRED_EXERCISES_INCLUDED: $preferredSelected/${preferred.size}")
+        }
+    }
     return copy(
-        warnings = (warnings + messages).distinct(),
+        warnings = (warnings + diagnostics).distinct(),
         optimizationSummary = optimizationSummary.copy(
-            messages = (optimizationSummary.messages + messages).distinct()
+            notices = (optimizationSummary.notices + notices).distinct()
         )
     )
 }

@@ -31,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.GeneratedProgramSkeleton
@@ -43,6 +44,8 @@ import com.training.trackplanner.data.ProgramItemRestoreMetadataParser
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.ProgramUserNotice
+import com.training.trackplanner.data.ProgramUserNoticeLevel
 import com.training.trackplanner.data.ProgramWeekPlan
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
@@ -540,7 +543,7 @@ private fun ProgramEditorScreen(
 }
 
 @Composable
-private fun ProgramBuildProgressCard(
+internal fun ProgramBuildProgressCard(
     progress: ProgramBuildProgressState,
     onRetry: () -> Unit
 ) {
@@ -565,9 +568,26 @@ private fun ProgramBuildProgressCard(
             }
         }
         is ProgramBuildProgressState.Completed -> {
-            val messages = progress.summary.messages
-            if (messages.isNotEmpty()) {
-                InfoCard(messages.joinToString("\n"))
+            val notices = progress.summary.notices
+            if (notices.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.program_result_heading),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        notices.forEach { notice ->
+                            ProgramUserNoticeRow(notice)
+                        }
+                    }
+                }
             }
         }
         is ProgramBuildProgressState.Failed -> {
@@ -586,6 +606,28 @@ private fun ProgramBuildProgressCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ProgramUserNoticeRow(notice: ProgramUserNotice) {
+    val context = LocalContext.current
+    val levelLabel = when (notice.level) {
+        ProgramUserNoticeLevel.SUCCESS -> stringResource(R.string.program_notice_success_description)
+        ProgramUserNoticeLevel.INFO -> stringResource(R.string.program_notice_info_description)
+        ProgramUserNoticeLevel.WARNING -> stringResource(R.string.program_notice_warning_description)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(
+            text = levelLabel,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = context.programUserNoticeText(notice),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

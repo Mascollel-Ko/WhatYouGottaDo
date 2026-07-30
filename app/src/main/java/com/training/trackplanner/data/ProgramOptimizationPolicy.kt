@@ -36,14 +36,14 @@ internal class ProgramOptimizationPolicy(
             }
         }
 
-        val messages = if (acceptedActions.isNotEmpty()) {
-            acceptedActions.map(::messageForAction).distinct()
+        val notices = if (acceptedActions.isNotEmpty()) {
+            acceptedActions.map(::programNoticeForOptimizationAction).distinct()
         } else {
-            currentEvaluation.suggestions.take(3)
+            emptyList()
         }
         return current.copy(
             evaluation = currentEvaluation,
-            optimizationSummary = ProgramOptimizationSummary(messages = messages),
+            optimizationSummary = ProgramOptimizationSummary(notices = notices),
             optimizationTrace = traces
         )
     }
@@ -54,11 +54,20 @@ internal class ProgramOptimizationPolicy(
         return after.overallScore >= before.overallScore + 2 || severeAfter < severeBefore
     }
 
-    private fun messageForAction(action: String): String = when (action) {
-        "REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN" -> "洹쇰젰 硫붿씤 ?대룞???꾩옄?섏? ?딅룄濡?蹂댁젙?덉뒿?덈떎."
-        "REOPEN_WEAK_SLOT_FOR_FOUNDATION" -> "근력운동과 배드민턴 전이훈련의 균형을 보정했습니다."
-        "REOPEN_REPEATED_CORE_SLOT" -> "반복되는 코어 패턴을 다른 안정성 운동으로 조정했습니다."
-        "SOFTEN_ADJACENT_HIGH_LOWER_DAY" -> "연속 하체 피로가 몰리지 않도록 일부 운동을 재배치했습니다."
-        else -> "자동 골자 품질을 보정했습니다."
-    }
 }
+
+internal fun programNoticeForOptimizationAction(action: String): ProgramUserNotice =
+    ProgramUserNotice(
+        code = when (action) {
+            "REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN" ->
+                ProgramUserNoticeCode.MAIN_EXERCISE_PRIORITY_RESTORED
+            "REOPEN_WEAK_SLOT_FOR_FOUNDATION" ->
+                ProgramUserNoticeCode.FOUNDATION_BALANCE_RESTORED
+            "REOPEN_REPEATED_CORE_SLOT" ->
+                ProgramUserNoticeCode.REPEATED_CORE_PATTERN_REPLACED
+            "SOFTEN_ADJACENT_HIGH_LOWER_DAY" ->
+                ProgramUserNoticeCode.ADJACENT_LOWER_FATIGUE_REDUCED
+            else -> ProgramUserNoticeCode.AUTOMATIC_QUALITY_ADJUSTMENT
+        },
+        level = ProgramUserNoticeLevel.SUCCESS
+    )

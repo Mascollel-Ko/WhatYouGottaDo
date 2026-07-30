@@ -37,7 +37,7 @@ class ProgramBuilderPreferredHardIncludeV0411010Test {
         assertFalse(result.validationDetails.any { it.code == "PROGRAM_PREFERRED_EXERCISE_INACTIVE" })
         assertFalse(result.validationDetails.any { it.code == "PROGRAM_PREFERRED_EXCLUDED_CONFLICT" })
         assertTrue(
-            result.optimizationSummary.messages.any {
+            result.warnings.any {
                 it.startsWith("PROGRAM_PREFERRED_EXERCISE_FORCED: ${preferred.stableKey}") ||
                     it == "PROGRAM_PREFERRED_EXERCISE_INCLUDED: ${preferred.stableKey}"
             }
@@ -85,7 +85,7 @@ class ProgramBuilderPreferredHardIncludeV0411010Test {
             today = LocalDate.of(2026, 1, 5)
         )
 
-        val messages = result.optimizationSummary.messages.toSet()
+        val messages = result.warnings.toSet()
         assertTrue("PROGRAM_PREFERRED_EXERCISE_MISSING: missing_preferred" in messages)
         assertTrue("PROGRAM_PREFERRED_EXERCISE_INACTIVE: inactive_preferred" in messages)
         assertTrue("PROGRAM_PREFERRED_EXCLUDED_CONFLICT: preferred_bodyweight_row" in messages)

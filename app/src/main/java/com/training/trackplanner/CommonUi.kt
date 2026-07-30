@@ -399,11 +399,15 @@ internal fun ExerciseInfoDialog(
     metadata: RuntimeExerciseMetadata? = null,
     onEditMetadata: (() -> Unit)? = null
 ) {
+    val catalogue = rememberMetadataDisplayCatalogue()
     val displayExercise = metadata
         ?.exerciseName
         ?.takeIf { name -> name.isNotBlank() }
         ?.let { name -> exercise.copy(name = name) }
         ?: exercise
+    val sections = remember(displayExercise, metadata, catalogue) {
+        displayExercise.infoSections(metadata, catalogue)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -427,14 +431,25 @@ internal fun ExerciseInfoDialog(
                 item {
                     ExerciseDetailCard(displayExercise)
                 }
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        displayExercise.infoTags(metadata).forEach { (label, value) ->
-                            Text(
-                                text = "$label: $value",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                items(sections, key = ExerciseInfoSection::title) { section ->
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = section.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        section.fields.forEach { field ->
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = field.label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = field.value,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
                     }
                 }
@@ -443,26 +458,143 @@ internal fun ExerciseInfoDialog(
     )
 }
 
-private fun Exercise.infoTags(metadata: RuntimeExerciseMetadata? = null): List<Pair<String, String>> =
+private data class ExerciseInfoSection(
+    val title: String,
+    val fields: List<ExerciseInfoField>
+)
+
+private data class ExerciseInfoField(
+    val label: String,
+    val value: String
+)
+
+private fun Exercise.infoSections(
+    metadata: RuntimeExerciseMetadata?,
+    catalogue: MetadataDisplayCatalogue
+): List<ExerciseInfoSection> =
     listOf(
-        "주동근" to primaryMuscles,
-        "보조근" to secondaryMuscles,
-        "장비" to equipment.ifBlank { equipmentTags },
-        "패턴" to movementPattern,
-        "분류" to movementCategory,
-        "축부하" to axialLoadLevel,
-        "측성" to laterality,
-        "훈련역할" to trainingRole,
-        "직접전이" to sportTransferDirect,
-        "보조전이" to sportTransferSupportive,
-        "메타" to metadataConfidence,
-        "프로그램 슬롯" to metadata?.programSlot.orEmpty(),
-        "전이 수준" to metadata?.badmintonTransferLevel.orEmpty(),
-        "전이 목적" to metadata?.badmintonTransferType?.values.orEmpty().joinToString(","),
-        "주 스트레스" to metadata?.primaryStressProfile.orEmpty(),
-        "신경계 피로" to metadata?.neuromuscularStressLevel.orEmpty(),
-        "회복 기간" to metadata?.recoveryDurationClass.orEmpty()
-    ).filter { (_, value) -> value.isNotBlank() }
+        ExerciseInfoSection(
+            title = "주요 동작",
+            fields = listOf(
+                ExerciseInfoField(
+                    "동작 패턴",
+                    catalogue.label(MetadataDisplayField.MOVEMENT_PATTERN, movementPattern)
+                ),
+                ExerciseInfoField(
+                    "동작 분류",
+                    catalogue.label(MetadataDisplayField.MOVEMENT_CATEGORY, movementCategory)
+                ),
+                ExerciseInfoField(
+                    "훈련 역할",
+                    catalogue.label(MetadataDisplayField.TRAINING_ROLE, trainingRole)
+                ),
+                ExerciseInfoField(
+                    "축성 부하",
+                    catalogue.label(MetadataDisplayField.AXIAL_LOAD, axialLoadLevel)
+                ),
+                ExerciseInfoField(
+                    "좌우 사용",
+                    catalogue.label(MetadataDisplayField.LATERALITY, laterality)
+                )
+            )
+        ),
+        ExerciseInfoSection(
+            title = "사용 근육과 장비",
+            fields = listOf(
+                ExerciseInfoField("주동근", primaryMuscles),
+                ExerciseInfoField("보조근", secondaryMuscles),
+                ExerciseInfoField("장비", equipment.ifBlank { equipmentTags })
+            )
+        ),
+        ExerciseInfoSection(
+            title = "프로그램 활용",
+            fields = listOf(
+                ExerciseInfoField(
+                    "프로그램 역할",
+                    catalogue.label(
+                        MetadataDisplayField.PROGRAM_SLOT,
+                        metadata?.programSlot.orEmpty()
+                    )
+                ),
+                ExerciseInfoField(
+                    "메타데이터 상태",
+                    catalogue.label(MetadataDisplayField.METADATA_CONFIDENCE, metadataConfidence)
+                )
+            )
+        ),
+        ExerciseInfoSection(
+            title = "스트레스와 회복",
+            fields = listOf(
+                ExerciseInfoField(
+                    "주 스트레스",
+                    catalogue.label(
+                        MetadataDisplayField.PRIMARY_STRESS_PROFILE,
+                        metadata?.primaryStressProfile.orEmpty()
+                    )
+                ),
+                ExerciseInfoField(
+                    "근신경계 피로",
+                    catalogue.label(
+                        MetadataDisplayField.NEUROMUSCULAR_STRESS,
+                        metadata?.neuromuscularStressLevel.orEmpty()
+                    )
+                ),
+                ExerciseInfoField(
+                    "회복 기간",
+                    catalogue.label(
+                        MetadataDisplayField.RECOVERY_DURATION,
+                        metadata?.recoveryDurationClass.orEmpty()
+                    )
+                )
+            )
+        ),
+        ExerciseInfoSection(
+            title = "배드민턴 전이",
+            fields = listOf(
+                ExerciseInfoField(
+                    "전이 수준",
+                    catalogue.label(
+                        MetadataDisplayField.BADMINTON_TRANSFER_LEVEL,
+                        metadata?.badmintonTransferLevel.orEmpty()
+                    )
+                ),
+                ExerciseInfoField(
+                    "전이 목적",
+                    metadata?.badmintonTransferType?.values
+                        .orEmpty()
+                        .joinToString(" · ") { value ->
+                            catalogue.label(MetadataDisplayField.BADMINTON_TRANSFER_TYPE, value)
+                        }
+                ),
+                ExerciseInfoField(
+                    "직접 전이",
+                    sportTransferDirect.localizedTokens(
+                        catalogue,
+                        MetadataDisplayField.DIRECT_TRANSFER
+                    )
+                ),
+                ExerciseInfoField(
+                    "보조 전이",
+                    sportTransferSupportive.localizedTokens(
+                        catalogue,
+                        MetadataDisplayField.SUPPORTIVE_TRANSFER
+                    )
+                )
+            )
+        )
+    ).mapNotNull { section ->
+        val visibleFields = section.fields.filterNot { field -> field.value.isBlank() }
+        section.copy(fields = visibleFields).takeIf { visibleFields.isNotEmpty() }
+    }
+
+private fun String.localizedTokens(
+    catalogue: MetadataDisplayCatalogue,
+    field: MetadataDisplayField
+): String =
+    split(',', '|', '/', ';')
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .joinToString(" · ") { value -> catalogue.label(field, value) }
 
 @Composable
 internal fun MetricCard(label: String, value: String) {

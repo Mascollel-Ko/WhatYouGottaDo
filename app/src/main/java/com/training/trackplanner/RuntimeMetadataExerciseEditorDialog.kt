@@ -133,13 +133,13 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("2. 프로그램/분석") {
-                            MetadataSingleSelectField("활동 종류", metadata.activityKind, options.values("activityKind", metadata.activityKind)) { metadata = metadata.copy(activityKind = it) }
-                            MetadataSingleSelectField("프로그램 사용 여부", metadata.planningEligibility, options.values("planningEligibility", metadata.planningEligibility)) { metadata = metadata.copy(planningEligibility = it) }
-                            MetadataSingleSelectField("프로그램 역할", metadata.programSlot, options.values("programSlot", metadata.programSlot)) { metadata = metadata.copy(programSlot = it) }
-                            MetadataSingleSelectField("중복 억제 그룹", metadata.redundancyGroup, options.values("redundancyGroup", metadata.redundancyGroup)) { metadata = metadata.copy(redundancyGroup = it) }
-                            MetadataSingleSelectField("진행 지표", metadata.progressMetricType, options.values("progressMetricType", metadata.progressMetricType)) { metadata = metadata.copy(progressMetricType = it) }
-                            MetadataSingleSelectField("근력 진행 그룹", metadata.strengthProgressionGroup, options.values("strengthProgressionGroup", metadata.strengthProgressionGroup)) { metadata = metadata.copy(strengthProgressionGroup = it) }
-                            MetadataMultiSelectField("분석 대상", metadata.analysisEligibility.values, options.values("analysisEligibility")) { metadata = metadata.copy(analysisEligibility = token(it)) }
+                            MetadataSingleSelectField("활동 종류", metadata.activityKind, options.values("activityKind", metadata.activityKind), MetadataDisplayField.ACTIVITY_KIND) { metadata = metadata.copy(activityKind = it) }
+                            MetadataSingleSelectField("프로그램 사용 여부", metadata.planningEligibility, options.values("planningEligibility", metadata.planningEligibility), MetadataDisplayField.PLANNING_ELIGIBILITY) { metadata = metadata.copy(planningEligibility = it) }
+                            MetadataSingleSelectField("프로그램 역할", metadata.programSlot, options.values("programSlot", metadata.programSlot), MetadataDisplayField.PROGRAM_SLOT) { metadata = metadata.copy(programSlot = it) }
+                            MetadataSingleSelectField("중복 억제 그룹", metadata.redundancyGroup, options.values("redundancyGroup", metadata.redundancyGroup), MetadataDisplayField.REDUNDANCY_GROUP) { metadata = metadata.copy(redundancyGroup = it) }
+                            MetadataSingleSelectField("진행 지표", metadata.progressMetricType, options.values("progressMetricType", metadata.progressMetricType), MetadataDisplayField.PROGRESS_METRIC) { metadata = metadata.copy(progressMetricType = it) }
+                            MetadataSingleSelectField("근력 진행 그룹", metadata.strengthProgressionGroup, options.values("strengthProgressionGroup", metadata.strengthProgressionGroup), MetadataDisplayField.STRENGTH_PROGRESSION_GROUP) { metadata = metadata.copy(strengthProgressionGroup = it) }
+                            MetadataMultiSelectField("분석 대상", metadata.analysisEligibility.values, options.values("analysisEligibility"), MetadataDisplayField.ANALYSIS_ELIGIBILITY) { metadata = metadata.copy(analysisEligibility = token(it)) }
                         }
                     }
                     item {
@@ -153,62 +153,62 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                             MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted()) {
                                 exercise = exercise.copy(equipment = joinExerciseTokens(it), equipmentTags = joinExerciseTokens(it))
                             }
-                            MetadataSingleSelectField("원본 동작 패턴", exercise.movementPattern, MovementPattern.entries.map { it.name }) {
+                            MetadataSingleSelectField("원본 동작 패턴", exercise.movementPattern, MovementPattern.entries.map { it.name }, MetadataDisplayField.MOVEMENT_PATTERN) {
                                 exercise = exercise.copy(movementPattern = it)
                             }
-                            MetadataSingleSelectField("원본 동작 분류", exercise.movementCategory, MovementCategory.entries.map { it.name }) {
+                            MetadataSingleSelectField("원본 동작 분류", exercise.movementCategory, MovementCategory.entries.map { it.name }, MetadataDisplayField.MOVEMENT_CATEGORY) {
                                 exercise = exercise.copy(movementCategory = it)
                             }
-                            MetadataSingleSelectField("힘/부하 유형", exercise.forceType, FatigueForceType.entries.map { it.name }) {
+                            MetadataSingleSelectField("힘/부하 유형", exercise.forceType, FatigueForceType.entries.map { it.name }, MetadataDisplayField.FORCE_TYPE) {
                                 exercise = exercise.copy(forceType = it)
                             }
                             MetadataSingleSelectField("신체 부위", exercise.bodyRegion, ExerciseTaxonomy.bodyRegions.sorted()) {
                                 exercise = exercise.copy(bodyRegion = it)
                             }
-                            MetadataSingleSelectField("운동 역할", exercise.trainingRole, FatigueTrainingRole.entries.map { it.name }) {
+                            MetadataSingleSelectField("운동 역할", exercise.trainingRole, FatigueTrainingRole.entries.map { it.name }, MetadataDisplayField.TRAINING_ROLE) {
                                 exercise = exercise.copy(trainingRole = it)
                             }
-                            MetadataSingleSelectField("동작 계열", metadata.movementFamily, options.values("movementFamily", metadata.movementFamily)) { metadata = metadata.copy(movementFamily = it) }
-                            MetadataSingleSelectField("동작 세부형", metadata.movementSubtype, options.values("movementSubtype", metadata.movementSubtype)) { metadata = metadata.copy(movementSubtype = it) }
+                            MetadataSingleSelectField("동작 계열", metadata.movementFamily, options.values("movementFamily", metadata.movementFamily), MetadataDisplayField.MOVEMENT_FAMILY) { metadata = metadata.copy(movementFamily = it) }
+                            MetadataSingleSelectField("동작 세부형", metadata.movementSubtype, options.values("movementSubtype", metadata.movementSubtype), MetadataDisplayField.MOVEMENT_SUBTYPE) { metadata = metadata.copy(movementSubtype = it) }
                         }
                     }
                     item {
                         MetadataEditorSection("4. 스트레스/피로") {
-                            MetadataSingleSelectField("주 스트레스", metadata.primaryStressProfile, options.values("primaryStressProfile", metadata.primaryStressProfile)) { metadata = metadata.copy(primaryStressProfile = it) }
-                            MetadataMultiSelectField("보조 스트레스", metadata.secondaryStressTags.values, options.values("secondaryStressTags")) { metadata = metadata.copy(secondaryStressTags = token(it)) }
-                            MetadataMultiSelectField("건 스트레스", metadata.tendonStressTags.values, options.values("tendonStressTags")) { metadata = metadata.copy(tendonStressTags = token(it)) }
-                            MetadataMultiSelectField("관절 안정성", metadata.ligamentJointStabilityStressTags.values, options.values("ligamentJointStabilityStressTags")) { metadata = metadata.copy(ligamentJointStabilityStressTags = token(it)) }
-                            MetadataMultiSelectField("충격 스트레스", metadata.jointImpactStressTags.values, options.values("jointImpactStressTags")) { metadata = metadata.copy(jointImpactStressTags = token(it)) }
-                            MetadataMultiSelectField("인지 스트레스", metadata.cognitiveStressTags.values, options.values("cognitiveStressTags")) { metadata = metadata.copy(cognitiveStressTags = token(it)) }
-                            MetadataMultiSelectField("스포츠 맥락", metadata.sportContextTags.values, options.values("sportContextTags")) { metadata = metadata.copy(sportContextTags = token(it)) }
-                            MetadataSingleSelectField("회복 감쇠", metadata.recoveryDecayProfile, options.values("recoveryDecayProfile", metadata.recoveryDecayProfile)) { metadata = metadata.copy(recoveryDecayProfile = it) }
-                            MetadataSingleSelectField("전체 스트레스 크기", metadata.stressMagnitudeHint, options.values("stressMagnitudeHint", metadata.stressMagnitudeHint)) { metadata = metadata.copy(stressMagnitudeHint = it) }
+                            MetadataSingleSelectField("주 스트레스", metadata.primaryStressProfile, options.values("primaryStressProfile", metadata.primaryStressProfile), MetadataDisplayField.PRIMARY_STRESS_PROFILE) { metadata = metadata.copy(primaryStressProfile = it) }
+                            MetadataMultiSelectField("보조 스트레스", metadata.secondaryStressTags.values, options.values("secondaryStressTags"), MetadataDisplayField.SECONDARY_STRESS) { metadata = metadata.copy(secondaryStressTags = token(it)) }
+                            MetadataMultiSelectField("건 스트레스", metadata.tendonStressTags.values, options.values("tendonStressTags"), MetadataDisplayField.TENDON_STRESS) { metadata = metadata.copy(tendonStressTags = token(it)) }
+                            MetadataMultiSelectField("관절 안정성", metadata.ligamentJointStabilityStressTags.values, options.values("ligamentJointStabilityStressTags"), MetadataDisplayField.LIGAMENT_JOINT_STABILITY) { metadata = metadata.copy(ligamentJointStabilityStressTags = token(it)) }
+                            MetadataMultiSelectField("충격 스트레스", metadata.jointImpactStressTags.values, options.values("jointImpactStressTags"), MetadataDisplayField.JOINT_IMPACT) { metadata = metadata.copy(jointImpactStressTags = token(it)) }
+                            MetadataMultiSelectField("인지 스트레스", metadata.cognitiveStressTags.values, options.values("cognitiveStressTags"), MetadataDisplayField.COGNITIVE_STRESS) { metadata = metadata.copy(cognitiveStressTags = token(it)) }
+                            MetadataMultiSelectField("스포츠 맥락", metadata.sportContextTags.values, options.values("sportContextTags"), MetadataDisplayField.SPORT_CONTEXT) { metadata = metadata.copy(sportContextTags = token(it)) }
+                            MetadataSingleSelectField("회복 감쇠", metadata.recoveryDecayProfile, options.values("recoveryDecayProfile", metadata.recoveryDecayProfile), MetadataDisplayField.RECOVERY_DECAY) { metadata = metadata.copy(recoveryDecayProfile = it) }
+                            MetadataSingleSelectField("전체 스트레스 크기", metadata.stressMagnitudeHint, options.values("stressMagnitudeHint", metadata.stressMagnitudeHint), MetadataDisplayField.STRESS_LEVEL) { metadata = metadata.copy(stressMagnitudeHint = it) }
                         }
                     }
                     item {
                         MetadataEditorSection("5. 배드민턴 전이") {
-                            MetadataSingleSelectField("전이 수준", metadata.badmintonTransferLevel, options.values("badmintonTransferLevel", metadata.badmintonTransferLevel)) { metadata = metadata.copy(badmintonTransferLevel = it) }
-                            MetadataMultiSelectField("전이 종류", metadata.badmintonTransferType.values, options.values("badmintonTransferType")) { metadata = metadata.copy(badmintonTransferType = token(it)) }
-                            MetadataMultiSelectField("기술 목표", metadata.badmintonSkillTargets.values, options.values("badmintonSkillTargets")) { metadata = metadata.copy(badmintonSkillTargets = token(it)) }
-                            MetadataMultiSelectField("신체 능력", metadata.badmintonPhysicalQualities.values, options.values("badmintonPhysicalQualities")) { metadata = metadata.copy(badmintonPhysicalQualities = token(it)) }
-                            MetadataSingleSelectField("전이 신뢰도", metadata.transferConfidence, options.values("transferConfidence", metadata.transferConfidence)) { metadata = metadata.copy(transferConfidence = it) }
+                            MetadataSingleSelectField("전이 수준", metadata.badmintonTransferLevel, options.values("badmintonTransferLevel", metadata.badmintonTransferLevel), MetadataDisplayField.BADMINTON_TRANSFER_LEVEL) { metadata = metadata.copy(badmintonTransferLevel = it) }
+                            MetadataMultiSelectField("전이 종류", metadata.badmintonTransferType.values, options.values("badmintonTransferType"), MetadataDisplayField.BADMINTON_TRANSFER_TYPE) { metadata = metadata.copy(badmintonTransferType = token(it)) }
+                            MetadataMultiSelectField("기술 목표", metadata.badmintonSkillTargets.values, options.values("badmintonSkillTargets"), MetadataDisplayField.BADMINTON_SKILL_TARGET) { metadata = metadata.copy(badmintonSkillTargets = token(it)) }
+                            MetadataMultiSelectField("신체 능력", metadata.badmintonPhysicalQualities.values, options.values("badmintonPhysicalQualities"), MetadataDisplayField.BADMINTON_PHYSICAL_QUALITY) { metadata = metadata.copy(badmintonPhysicalQualities = token(it)) }
+                            MetadataSingleSelectField("전이 신뢰도", metadata.transferConfidence, options.values("transferConfidence", metadata.transferConfidence), MetadataDisplayField.TRANSFER_CONFIDENCE) { metadata = metadata.copy(transferConfidence = it) }
                         }
                     }
                     item {
                         MetadataEditorSection("6. 근거/상태") {
-                            MetadataSingleSelectField("근거 신뢰도", metadata.sourceConfidenceLevel, options.values("sourceConfidenceLevel", metadata.sourceConfidenceLevel)) { metadata = metadata.copy(sourceConfidenceLevel = it) }
-                            MetadataSingleSelectField("근거 상태", metadata.finalSourceStatus, options.values("finalSourceStatus", metadata.finalSourceStatus)) { metadata = metadata.copy(finalSourceStatus = it) }
+                            MetadataSingleSelectField("근거 신뢰도", metadata.sourceConfidenceLevel, options.values("sourceConfidenceLevel", metadata.sourceConfidenceLevel), MetadataDisplayField.SOURCE_CONFIDENCE) { metadata = metadata.copy(sourceConfidenceLevel = it) }
+                            MetadataSingleSelectField("근거 상태", metadata.finalSourceStatus, options.values("finalSourceStatus", metadata.finalSourceStatus), MetadataDisplayField.FINAL_SOURCE_STATUS) { metadata = metadata.copy(finalSourceStatus = it) }
                         }
                     }
                     item {
                         MetadataEditorSection("7. 고급 런타임 필드") {
                             Text("stableKey: ${exercise.stableKey.ifBlank { "저장 시 자동 생성" }}", style = MaterialTheme.typography.bodySmall)
-                            MetadataSingleSelectField("근신경계", metadata.neuromuscularStressLevel, options.values("neuromuscularStressLevel", metadata.neuromuscularStressLevel)) { metadata = metadata.copy(neuromuscularStressLevel = it) }
-                            MetadataSingleSelectField("전신 근육", metadata.systemicMuscularStressLevel, options.values("systemicMuscularStressLevel", metadata.systemicMuscularStressLevel)) { metadata = metadata.copy(systemicMuscularStressLevel = it) }
-                            MetadataSingleSelectField("국소 근육", metadata.localMuscularStressLevel, options.values("localMuscularStressLevel", metadata.localMuscularStressLevel)) { metadata = metadata.copy(localMuscularStressLevel = it) }
-                            MetadataSingleSelectField("관절/건/충격", metadata.jointTendonImpactStressLevel, options.values("jointTendonImpactStressLevel", metadata.jointTendonImpactStressLevel)) { metadata = metadata.copy(jointTendonImpactStressLevel = it) }
-                            MetadataSingleSelectField("동작 집중", metadata.movementFocusDemandLevel, options.values("movementFocusDemandLevel", metadata.movementFocusDemandLevel)) { metadata = metadata.copy(movementFocusDemandLevel = it) }
-                            MetadataSingleSelectField("회복 기간", metadata.recoveryDurationClass, options.values("recoveryDurationClass", metadata.recoveryDurationClass)) { metadata = metadata.copy(recoveryDurationClass = it) }
+                            MetadataSingleSelectField("근신경계", metadata.neuromuscularStressLevel, options.values("neuromuscularStressLevel", metadata.neuromuscularStressLevel), MetadataDisplayField.NEUROMUSCULAR_STRESS) { metadata = metadata.copy(neuromuscularStressLevel = it) }
+                            MetadataSingleSelectField("전신 근육", metadata.systemicMuscularStressLevel, options.values("systemicMuscularStressLevel", metadata.systemicMuscularStressLevel), MetadataDisplayField.SYSTEMIC_MUSCULAR_STRESS) { metadata = metadata.copy(systemicMuscularStressLevel = it) }
+                            MetadataSingleSelectField("국소 근육", metadata.localMuscularStressLevel, options.values("localMuscularStressLevel", metadata.localMuscularStressLevel), MetadataDisplayField.LOCAL_MUSCULAR_STRESS) { metadata = metadata.copy(localMuscularStressLevel = it) }
+                            MetadataSingleSelectField("관절/건/충격", metadata.jointTendonImpactStressLevel, options.values("jointTendonImpactStressLevel", metadata.jointTendonImpactStressLevel), MetadataDisplayField.JOINT_TENDON_IMPACT_STRESS) { metadata = metadata.copy(jointTendonImpactStressLevel = it) }
+                            MetadataSingleSelectField("동작 집중", metadata.movementFocusDemandLevel, options.values("movementFocusDemandLevel", metadata.movementFocusDemandLevel), MetadataDisplayField.MOVEMENT_FOCUS_DEMAND) { metadata = metadata.copy(movementFocusDemandLevel = it) }
+                            MetadataSingleSelectField("회복 기간", metadata.recoveryDurationClass, options.values("recoveryDurationClass", metadata.recoveryDurationClass), MetadataDisplayField.RECOVERY_DURATION) { metadata = metadata.copy(recoveryDurationClass = it) }
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Checkbox(checked = false, onCheckedChange = null, enabled = false)
                                 Text("seed 자동 변경 허용 안 함")
@@ -301,16 +301,21 @@ internal fun RuntimeMetadataExerciseEditorDialog(
 }
 
 @Composable
-private fun ExerciseMetadataCopyDialog(
+internal fun ExerciseMetadataCopyDialog(
     sources: List<ExerciseMetadataCopySource>,
     onDismiss: () -> Unit,
     onSelect: (ExerciseMetadataCopySource) -> Unit
 ) {
+    val catalogue = rememberMetadataDisplayCatalogue()
     var query by remember { mutableStateOf("") }
-    val filtered = remember(sources, query) {
+    val filtered = remember(sources, query, catalogue) {
         val needle = query.trim()
         sources.filter { source ->
-            needle.isBlank() || source.exercise.name.contains(needle, ignoreCase = true)
+            needle.isBlank() ||
+                source.exercise.name.contains(needle, ignoreCase = true) ||
+                catalogue
+                    .option(MetadataDisplayField.PROGRAM_SLOT, source.metadata.programSlot)
+                    .matches(needle)
         }.take(80)
     }
     AlertDialog(
@@ -337,7 +342,13 @@ private fun ExerciseMetadataCopyDialog(
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(source.exercise.name, style = MaterialTheme.typography.bodyMedium)
                                     Text(
-                                        listOf(source.exercise.category, source.metadata.programSlot)
+                                        listOf(
+                                            source.exercise.category,
+                                            catalogue.label(
+                                                MetadataDisplayField.PROGRAM_SLOT,
+                                                source.metadata.programSlot
+                                            )
+                                        )
                                             .filter(String::isNotBlank)
                                             .joinToString(" · "),
                                         style = MaterialTheme.typography.bodySmall

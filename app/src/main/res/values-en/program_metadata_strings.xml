@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="program_result_heading">Program result</string>
+    <string name="program_notice_rule_table_structure_created">Main exercises, strength support, and badminton transfer work were arranged for the goal.</string>
+    <string name="program_notice_main_exercise_priority_restored">The plan was adjusted so support work does not displace the main strength exercise.</string>
+    <string name="program_notice_foundation_balance_restored">The balance between strength work and badminton transfer training was adjusted.</string>
+    <string name="program_notice_repeated_core_pattern_replaced">A repeated core pattern was replaced with another stability exercise.</string>
+    <string name="program_notice_adjacent_lower_fatigue_reduced">Some exercises were rearranged to avoid consecutive lower-body fatigue.</string>
+    <string name="program_notice_automatic_quality_adjustment">The exercise composition was adjusted automatically.</string>
+    <plurals name="program_notice_excluded_exercises_applied">
+        <item quantity="one">%1$d selected exercise was excluded from the program.</item>
+        <item quantity="other">%1$d selected exercises were excluded from the program.</item>
+    </plurals>
+    <string name="program_notice_preferred_exercises_included">%2$d of %1$d preferred exercises were included in the program.</string>
+    <string name="program_notice_success_description">Automatic adjustment completed</string>
+    <string name="program_notice_info_description">Program information</string>
+    <string name="program_notice_warning_description">Needs attention</string>
+    <string name="metadata_not_selected">Not selected</string>
+    <string name="metadata_unknown_value">Unregistered value · %1$s</string>
+    <string name="metadata_search">Search</string>
+    <string name="metadata_clear_all">Clear all</string>
+    <string name="metadata_apply">Apply</string>
+    <string name="metadata_cancel">Cancel</string>
+    <string name="metadata_more_count">%1$d more</string>
+    <string name="metadata_expand">Expand</string>
+    <string name="metadata_collapse">Collapse</string>
+</resources>

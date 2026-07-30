@@ -1,0 +1,1112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="metadata_display_entries">
+        <item>ACTIVITY_KIND|EXERCISE|Exercise</item>
+        <item>ACTIVITY_KIND|SPORT_SESSION|Sport session</item>
+        <item>ANALYSIS_ELIGIBILITY|ACCESSORY_VOLUME|Accessory volume</item>
+        <item>ANALYSIS_ELIGIBILITY|BADMINTON_SUPPORTIVE|Badminton supportive</item>
+        <item>ANALYSIS_ELIGIBILITY|BADMINTON_TRANSFER|Badminton transfer</item>
+        <item>ANALYSIS_ELIGIBILITY|BALANCE|Balance</item>
+        <item>ANALYSIS_ELIGIBILITY|CONDITIONING|Conditioning</item>
+        <item>ANALYSIS_ELIGIBILITY|CONTROL|Control</item>
+        <item>ANALYSIS_ELIGIBILITY|COORDINATION|Coordination</item>
+        <item>ANALYSIS_ELIGIBILITY|CORE_ACCESSORY|Core accessory</item>
+        <item>ANALYSIS_ELIGIBILITY|CORE_STABILITY|Core stability</item>
+        <item>ANALYSIS_ELIGIBILITY|EXCLUDED_FROM_ANALYSIS|Excluded from analysis</item>
+        <item>ANALYSIS_ELIGIBILITY|FATIGUE|Fatigue</item>
+        <item>ANALYSIS_ELIGIBILITY|FATIGUE_LOW|Fatigue low</item>
+        <item>ANALYSIS_ELIGIBILITY|HYPERTROPHY_VOLUME|Hypertrophy volume</item>
+        <item>ANALYSIS_ELIGIBILITY|MOBILITY|Mobility</item>
+        <item>ANALYSIS_ELIGIBILITY|PATTERN_QUALITY|Pattern quality</item>
+        <item>ANALYSIS_ELIGIBILITY|RECOVERY_CONTEXT|Recovery context</item>
+        <item>ANALYSIS_ELIGIBILITY|RECOVERY_ONLY|Recovery only</item>
+        <item>ANALYSIS_ELIGIBILITY|SESSION_LOAD|Session load</item>
+        <item>ANALYSIS_ELIGIBILITY|SHOULDER_STABILITY|Shoulder stability</item>
+        <item>ANALYSIS_ELIGIBILITY|SPORT_SESSION_LOAD|Sport session load</item>
+        <item>ANALYSIS_ELIGIBILITY|STRENGTH_PROGRESS|Strength progress</item>
+        <item>ANALYSIS_ELIGIBILITY|STRENGTH_VOLUME|Strength volume</item>
+        <item>ANALYSIS_ELIGIBILITY|TEST_METRIC|Test metric</item>
+        <item>ANALYSIS_ELIGIBILITY|TEST_ONLY|Test only</item>
+        <item>AXIAL_LOAD|HIGH|High</item>
+        <item>AXIAL_LOAD|LOW|Low</item>
+        <item>AXIAL_LOAD|MODERATE|Moderate</item>
+        <item>AXIAL_LOAD|NONE|None</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ACCELERATION|Acceleration</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|AEROBIC_BASE|Aerobic base</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANAEROBIC_REPEATABILITY|Anaerobic repeatability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANKLE_STIFFNESS|Ankle stiffness</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTERIOR_CHAIN|Anterior chain</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTI_ROTATION|Anti rotation</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTI_ROTATION_STABILITY|Anti rotation stability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CALF_ACHILLES|Calf achilles</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CALF_ELASTICITY|Calf elasticity</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CORE_BRACING|Core bracing</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CROSSOVER|Crossover</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|DECELERATION|Deceleration</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FIRST_STEP|First step</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FRONTAL_PLANE_CONTROL|Frontal plane control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FRONT_LUNGE|Front lunge</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|GRIP_ENDURANCE|Grip endurance</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|GRIP_FOREARM|Grip forearm</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HINGE|Hinge</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_CONTROL|Hip control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_KNEE_EXTENSION_STRENGTH|Hip knee extension strength</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_STABILITY|Hip stability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|JUMP_LANDING|Jump landing</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|KNEE_CONTROL|Knee control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LATERAL_MOVE|Lateral move</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_BODY_FORCE|Lower body force</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_PULL|Lower pull</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_PUSH|Lower push</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|MULTI_DIRECTION|Multi direction</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|NONE|None</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|POSTERIOR_CHAIN|Posterior chain</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REACTION_RANDOM|Reaction random</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REACTIVE_AGILITY|Reactive agility</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REAR_COURT|Rear court</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|RECOVERY_STEP|Recovery step</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATION|Rotation</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_CONTROL|Rotational control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_POWER|Rotational power</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_STRENGTH|Rotational strength</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATOR_CUFF_CONTROL|Rotator cuff control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SCAPULAR_CONTROL|Scapular control</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SCAPULAR_STABILITY|Scapular stability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SHOULDER_CARE|Shoulder care</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SHOULDER_DURABILITY|Shoulder durability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SINGLE_LEG_STABILITY|Single leg stability</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SPLIT_STEP|Split step</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SQUAT_PATTERN|Squat pattern</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UNILATERAL_LOWER|Unilateral lower</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UNILATERAL_UPPER|Unilateral upper</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_BODY_EXPLOSIVE_POWER|Upper body explosive power</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_PULL|Upper pull</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_PUSH|Upper push</item>
+        <item>BADMINTON_SKILL_TARGET|ANTI_ROTATION_STABILITY|Anti rotation stability</item>
+        <item>BADMINTON_SKILL_TARGET|CHANGE_OF_DIRECTION|Change of direction</item>
+        <item>BADMINTON_SKILL_TARGET|CONDITIONING|Conditioning</item>
+        <item>BADMINTON_SKILL_TARGET|DECELERATION_CONTROL|Deceleration control</item>
+        <item>BADMINTON_SKILL_TARGET|DEFENSIVE_COVERAGE|Defensive coverage</item>
+        <item>BADMINTON_SKILL_TARGET|DRIVE|Drive</item>
+        <item>BADMINTON_SKILL_TARGET|FIRST_STEP|First step</item>
+        <item>BADMINTON_SKILL_TARGET|FIRST_STEP_REACTION|First step reaction</item>
+        <item>BADMINTON_SKILL_TARGET|FOOTWORK_SPEED|Footwork speed</item>
+        <item>BADMINTON_SKILL_TARGET|FRONT_COURT_LUNGE|Front court lunge</item>
+        <item>BADMINTON_SKILL_TARGET|GRIP_ENDURANCE|Grip endurance</item>
+        <item>BADMINTON_SKILL_TARGET|JUMP_LANDING_CONTROL|Jump landing control</item>
+        <item>BADMINTON_SKILL_TARGET|LATERAL_LUNGE|Lateral lunge</item>
+        <item>BADMINTON_SKILL_TARGET|LATERAL_MOVEMENT|Lateral movement</item>
+        <item>BADMINTON_SKILL_TARGET|LUNGE_REACH|Lunge reach</item>
+        <item>BADMINTON_SKILL_TARGET|MULTI_SHUTTLE_ENDURANCE|Multi shuttle endurance</item>
+        <item>BADMINTON_SKILL_TARGET|NET_PLAY|Net play</item>
+        <item>BADMINTON_SKILL_TARGET|NONE|None</item>
+        <item>BADMINTON_SKILL_TARGET|OVERHEAD_CLEAR|Overhead clear</item>
+        <item>BADMINTON_SKILL_TARGET|OVERHEAD_POWER|Overhead power</item>
+        <item>BADMINTON_SKILL_TARGET|RALLY_TOLERANCE|Rally tolerance</item>
+        <item>BADMINTON_SKILL_TARGET|REAR_COURT_RECOVERY|Rear court recovery</item>
+        <item>BADMINTON_SKILL_TARGET|ROTATION_SEQUENCING|Rotation sequencing</item>
+        <item>BADMINTON_SKILL_TARGET|SHOULDER_DURABILITY|Shoulder durability</item>
+        <item>BADMINTON_SKILL_TARGET|SMASH|Smash</item>
+        <item>BADMINTON_SKILL_TARGET|SPLIT_STEP|Split step</item>
+        <item>BADMINTON_TRANSFER_LEVEL|DIRECT|Direct</item>
+        <item>BADMINTON_TRANSFER_LEVEL|GENERAL|General</item>
+        <item>BADMINTON_TRANSFER_LEVEL|NONE|No direct transfer</item>
+        <item>BADMINTON_TRANSFER_LEVEL|SUPPORTIVE|Supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|ACCELERATION|Acceleration</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANKLE_CALF_SSC_SUPPORTIVE|Ankle calf SSC supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANTI_ROTATION_STABILITY|Anti rotation stability</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANTI_ROTATION_STABILITY_SUPPORTIVE|Anti rotation stability supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|CHANGE_OF_DIRECTION_DIRECT|Change of direction direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|CONDITIONING|Conditioning</item>
+        <item>BADMINTON_TRANSFER_TYPE|CORE_STABILITY_SUPPORTIVE|Core stability supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|DECELERATION|Deceleration</item>
+        <item>BADMINTON_TRANSFER_TYPE|FOOTWORK|Footwork</item>
+        <item>BADMINTON_TRANSFER_TYPE|FOOTWORK_DIRECT|Footwork direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_CONDITIONING_SUPPORTIVE|General conditioning supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_POWER_SUPPORTIVE|General power supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_STRENGTH_SUPPORTIVE|General strength supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|GRIP_FOREARM|Grip forearm</item>
+        <item>BADMINTON_TRANSFER_TYPE|GRIP_WRIST_SUPPORTIVE|Grip wrist supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|JUMP_LANDING|Jump landing</item>
+        <item>BADMINTON_TRANSFER_TYPE|LOWER_BODY_SUPPORTIVE|Lower body supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|LUNGE_REACH|Lunge reach</item>
+        <item>BADMINTON_TRANSFER_TYPE|LUNGE_REACH_DIRECT|Lunge reach direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|NONE|None</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_HITTING_DIRECT|Overhead hitting direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_POWER|Overhead power</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_POWER_SUPPORTIVE|Overhead power supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|RALLY_CONDITIONING_DIRECT|Rally conditioning direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|REACTION|Reaction</item>
+        <item>BADMINTON_TRANSFER_TYPE|REACTION_DECISION_DIRECT|Reaction decision direct</item>
+        <item>BADMINTON_TRANSFER_TYPE|ROTATION_POWER|Rotation power</item>
+        <item>BADMINTON_TRANSFER_TYPE|ROTATION_POWER_SUPPORTIVE|Rotation power supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_CARE|Shoulder care</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_CARE_SUPPORTIVE|Shoulder care supportive</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_SCAPULAR_SUPPORTIVE|Shoulder scapular supportive</item>
+        <item>COGNITIVE_STRESS|COACHING_FEEDBACK_PROCESSING_LOAD|Coaching feedback processing load</item>
+        <item>COGNITIVE_STRESS|DECISION_MAKING_LOAD|Decision making load</item>
+        <item>COGNITIVE_STRESS|MOTOR_LEARNING_LOAD|Motor learning load</item>
+        <item>COGNITIVE_STRESS|NONE|None</item>
+        <item>COGNITIVE_STRESS|PACING_LOAD|Pacing load</item>
+        <item>COGNITIVE_STRESS|POSITIONAL_AWARENESS|Positional awareness</item>
+        <item>COGNITIVE_STRESS|REACTION_DECISION_LOAD|Reaction decision load</item>
+        <item>COGNITIVE_STRESS|REACTION_LOAD|Reaction load</item>
+        <item>COGNITIVE_STRESS|SEQUENCE_CONTROL|Sequence control</item>
+        <item>COGNITIVE_STRESS|TACTICAL_CONCENTRATION_LOAD|Tactical concentration load</item>
+        <item>COGNITIVE_STRESS|TECHNICAL_CONCENTRATION_LOAD|Technical concentration load</item>
+        <item>COGNITIVE_STRESS|VISUAL_TRACKING_LOAD|Visual tracking load</item>
+        <item>DIRECT_TRANSFER|ACCELERATION|Acceleration</item>
+        <item>DIRECT_TRANSFER|ANTI_ROTATION_STABILITY|Anti rotation stability</item>
+        <item>DIRECT_TRANSFER|CONDITIONING|Conditioning</item>
+        <item>DIRECT_TRANSFER|DECELERATION|Deceleration</item>
+        <item>DIRECT_TRANSFER|FOOTWORK|Footwork</item>
+        <item>DIRECT_TRANSFER|GRIP_FOREARM|Grip forearm</item>
+        <item>DIRECT_TRANSFER|JUMP_LANDING|Jump landing</item>
+        <item>DIRECT_TRANSFER|LUNGE_REACH|Lunge reach</item>
+        <item>DIRECT_TRANSFER|NONE|None</item>
+        <item>DIRECT_TRANSFER|OVERHEAD_POWER|Overhead power</item>
+        <item>DIRECT_TRANSFER|REACTION|Reaction</item>
+        <item>DIRECT_TRANSFER|ROTATION_POWER|Rotation power</item>
+        <item>DIRECT_TRANSFER|SHOULDER_CARE|Shoulder care</item>
+        <item>FINAL_SOURCE_STATUS|SOURCE_ACCEPTED|Source accepted</item>
+        <item>FINAL_SOURCE_STATUS|SOURCE_ACCEPTED_WITH_LIMITATION|Source accepted with limitations</item>
+        <item>FORCE_TYPE|ACCELERATE|Accelerate</item>
+        <item>FORCE_TYPE|BRACE|Brace</item>
+        <item>FORCE_TYPE|CARRY|Carry</item>
+        <item>FORCE_TYPE|DECELERATE|Decelerate</item>
+        <item>FORCE_TYPE|HINGE|Hinge</item>
+        <item>FORCE_TYPE|LAND|Land</item>
+        <item>FORCE_TYPE|PULL|Pull</item>
+        <item>FORCE_TYPE|PUSH|Push</item>
+        <item>FORCE_TYPE|ROTATE|Rotate</item>
+        <item>FORCE_TYPE|SQUAT|Squat</item>
+        <item>JOINT_IMPACT|COURT_DECELERATION_IMPACT|Court deceleration impact</item>
+        <item>JOINT_IMPACT|DECELERATION_IMPACT|Deceleration impact</item>
+        <item>JOINT_IMPACT|DIRECTION_CHANGE_IMPACT_STRESS|Direction change impact stress</item>
+        <item>JOINT_IMPACT|HIGH_AMPLITUDE_JUMP_LANDING_STRESS|High amplitude jump landing stress</item>
+        <item>JOINT_IMPACT|JUMP_LANDING_IMPACT_STRESS|Jump landing impact stress</item>
+        <item>JOINT_IMPACT|LOW_LEVEL_REACTIVE_IMPACT|Low level reactive impact</item>
+        <item>JOINT_IMPACT|NONE|None</item>
+        <item>JOINT_IMPACT|REPEATED_LOW_AMPLITUDE_IMPACT_STRESS|Repeated low amplitude impact stress</item>
+        <item>JOINT_IMPACT|REPETITIVE_LOCOMOTION_IMPACT|Repetitive locomotion impact</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|HIGH|High</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|LOW|Low</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|MODERATE|Moderate</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|VERY_HIGH|Very high</item>
+        <item>LATERALITY|ALTERNATING|Alternating</item>
+        <item>LATERALITY|ASYMMETRIC|Asymmetric</item>
+        <item>LATERALITY|BILATERAL|Bilateral</item>
+        <item>LATERALITY|UNILATERAL|Unilateral</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_ACHILLES|Ankle achilles</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_EVERSION_CONTROL_STRESS|Ankle eversion control stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_INVERSION_LIGAMENT_STRESS|Ankle inversion ligament stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_STABILITY_STRESS|Ankle stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|ELBOW|Elbow</item>
+        <item>LIGAMENT_JOINT_STABILITY|ELBOW_JOINT_STRESS|Elbow joint stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP|Hip</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP_PELVIS_STABILITY_STRESS|Hip pelvis stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP_ROTATIONAL_CONTROL_STRESS|Hip rotational control stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|JOINT_RANGE_CONTROL_STRESS|Joint range control stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE|Knee</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_ANKLE_STABILITY_STRESS|Knee ankle stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_HIP_STABILITY_STRESS|Knee hip stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_JOINT_STRESS|Knee joint stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_ROTATIONAL_STABILITY_STRESS|Knee rotational stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_STABILITY_STRESS|Knee stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_VALGUS_CONTROL_STRESS|Knee valgus control stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|LOW_BACK|Low back</item>
+        <item>LIGAMENT_JOINT_STABILITY|LUMBOPELVIC_CONTROL_STRESS|Lumbopelvic control stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|NONE|None</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER|Shoulder</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_EXTENSION_STABILITY_STRESS|Shoulder extension stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_JOINT_STABILITY_STRESS|Shoulder joint stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_SCAPULAR_STABILITY_STRESS|Shoulder scapular stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST|Wrist</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST_STABILITY_STRESS|Wrist stability stress</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST_SUPPORT_STRESS|Wrist support stress</item>
+        <item>LOCAL_MUSCULAR_STRESS|HIGH|High</item>
+        <item>LOCAL_MUSCULAR_STRESS|LOW|Low</item>
+        <item>LOCAL_MUSCULAR_STRESS|MODERATE|Moderate</item>
+        <item>LOCAL_MUSCULAR_STRESS|VERY_HIGH|Very high</item>
+        <item>METADATA_CONFIDENCE|HIGH|High</item>
+        <item>METADATA_CONFIDENCE|LOW|Low</item>
+        <item>METADATA_CONFIDENCE|MEDIUM|Medium</item>
+        <item>METADATA_CONFIDENCE|NEEDS_REVIEW|Needs review</item>
+        <item>METADATA_CONFIDENCE|UNKNOWN|Unknown</item>
+        <item>MOVEMENT_CATEGORY|CONDITIONING|Conditioning</item>
+        <item>MOVEMENT_CATEGORY|HYPERTROPHY|Hypertrophy</item>
+        <item>MOVEMENT_CATEGORY|MOBILITY|Mobility</item>
+        <item>MOVEMENT_CATEGORY|PLYOMETRIC|Plyometric</item>
+        <item>MOVEMENT_CATEGORY|POWER|Power</item>
+        <item>MOVEMENT_CATEGORY|PREHAB|Prehab</item>
+        <item>MOVEMENT_CATEGORY|REACTIVE|Reactive</item>
+        <item>MOVEMENT_CATEGORY|RECOVERY|Recovery</item>
+        <item>MOVEMENT_CATEGORY|SKILL_DRILL|Skill drill</item>
+        <item>MOVEMENT_CATEGORY|SPEED|Speed</item>
+        <item>MOVEMENT_CATEGORY|STABILITY|Stability</item>
+        <item>MOVEMENT_CATEGORY|STRENGTH|Strength</item>
+        <item>MOVEMENT_CATEGORY|TEST|Test</item>
+        <item>MOVEMENT_FAMILY|ACCESSORY_ROTATION|Accessory rotation</item>
+        <item>MOVEMENT_FAMILY|ANKLE_STIFFNESS_SSC_CONDITIONING|Ankle stiffness SSC conditioning</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION|Anti rotation</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION_ANTI_EXTENSION_CORE|Anti rotation anti extension core</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION_ANTI_EXTENSION_CORE_VARIANTS|Anti rotation anti extension core variants</item>
+        <item>MOVEMENT_FAMILY|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic overhead press support</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_DECEL_COD|Badminton decel COD</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_FOOTWORK_REACTION|Badminton footwork reaction</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_OVERHEAD_POWER_TEST|Badminton overhead power test</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_REACTIVE_LUNGE_FOOTWORK|Badminton reactive lunge footwork</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_SESSION_SPORT_RECORDS|Badminton session sport records</item>
+        <item>MOVEMENT_FAMILY|BALLISTIC_HINGE_POWER|Ballistic hinge power</item>
+        <item>MOVEMENT_FAMILY|BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS|Bench press dumbbell press machine press variants</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_CONDITIONING_CORE|Bodyweight conditioning core</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_CONDITIONING_POWER|Bodyweight conditioning power</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_VERTICAL_PUSH_VARIANTS|Bodyweight vertical push variants</item>
+        <item>MOVEMENT_FAMILY|BOUND|Bound</item>
+        <item>MOVEMENT_FAMILY|CALF_ANKLE_CAPACITY|Calf ankle capacity</item>
+        <item>MOVEMENT_FAMILY|CALF_RAISE_ANKLE_STIFFNESS_VARIANTS|Calf raise ankle stiffness variants</item>
+        <item>MOVEMENT_FAMILY|CARDIO_RECORDS|Cardio records</item>
+        <item>MOVEMENT_FAMILY|CARRY|Carry</item>
+        <item>MOVEMENT_FAMILY|CHEST_ISOLATION|Chest isolation</item>
+        <item>MOVEMENT_FAMILY|CORE_FLEXION_ANTERIOR_CORE|Core flexion anterior core</item>
+        <item>MOVEMENT_FAMILY|DEADLIFT_HINGE_VARIANTS|Deadlift hinge variants</item>
+        <item>MOVEMENT_FAMILY|DIP_COMPOUND_PUSH_VARIANTS|Dip compound push variants</item>
+        <item>MOVEMENT_FAMILY|DIP_TRICEPS_PUSH|Dip triceps push</item>
+        <item>MOVEMENT_FAMILY|ELBOW_EXTENSION_TRICEPS_ISOLATION_VARIANTS|Elbow extension triceps isolation variants</item>
+        <item>MOVEMENT_FAMILY|ELBOW_FLEXION_BICEPS_CURL_VARIANTS|Elbow flexion biceps curl variants</item>
+        <item>MOVEMENT_FAMILY|ELBOW_FLEXION_BRACHIALIS_BRACHIORADIALIS_VARIANTS|Elbow flexion brachialis brachioradialis variants</item>
+        <item>MOVEMENT_FAMILY|EXTERNAL_ROTATION_INTERNAL_ROTATION_VARIANTS|External rotation internal rotation variants</item>
+        <item>MOVEMENT_FAMILY|FOOTWORK|Footwork</item>
+        <item>MOVEMENT_FAMILY|FOOTWORK_SPLIT_STEP_REACTION_DRILL_VARIANTS|Footwork split step reaction drill variants</item>
+        <item>MOVEMENT_FAMILY|FOREARM_GRIP_ACCESSORY|Forearm grip accessory</item>
+        <item>MOVEMENT_FAMILY|FOREARM_GRIP_ELBOW_SUPPORT|Forearm grip elbow support</item>
+        <item>MOVEMENT_FAMILY|GLUTE_ISOLATION_ACCESSORY|Glute isolation accessory</item>
+        <item>MOVEMENT_FAMILY|HALF_KNEELING_UNILATERAL_SHOULDER_PRESS_VARIANTS|Half kneeling unilateral shoulder press variants</item>
+        <item>MOVEMENT_FAMILY|HAMSTRING_CURL_VARIANTS|Hamstring curl variants</item>
+        <item>MOVEMENT_FAMILY|HINGE|Hinge</item>
+        <item>MOVEMENT_FAMILY|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|Hip abduction glute med accessory</item>
+        <item>MOVEMENT_FAMILY|HIP_ADDUCTION_ACCESSORY|Hip adduction accessory</item>
+        <item>MOVEMENT_FAMILY|HIP_HINGE_POSTERIOR_CHAIN|Hip hinge posterior chain</item>
+        <item>MOVEMENT_FAMILY|HIP_THRUST_GLUTE_BRIDGE_VARIANTS|Hip thrust glute bridge variants</item>
+        <item>MOVEMENT_FAMILY|HOP|Hop</item>
+        <item>MOVEMENT_FAMILY|ISOLATION|Isolation</item>
+        <item>MOVEMENT_FAMILY|JUMP|Jump</item>
+        <item>MOVEMENT_FAMILY|JUMP_LUNGE_PLYOMETRIC|Jump lunge plyometric</item>
+        <item>MOVEMENT_FAMILY|KNEE_DOMINANT_ISOMETRIC|Knee dominant isometric</item>
+        <item>MOVEMENT_FAMILY|KNEE_EXTENSION_QUAD_ISOLATION|Knee extension quad isolation</item>
+        <item>MOVEMENT_FAMILY|LATERAL_BOUND_CONTINUOUS_VARIANTS|Lateral bound continuous variants</item>
+        <item>MOVEMENT_FAMILY|LATERAL_BOUND_LANDING_DECELERATION_VARIANTS|Lateral bound landing deceleration variants</item>
+        <item>MOVEMENT_FAMILY|LATERAL_RAISE_DELTOID_ISOLATION_VARIANTS|Lateral raise deltoid isolation variants</item>
+        <item>MOVEMENT_FAMILY|LAT_STRAIGHT_ARM_PULLDOWN_OR_PULLOVER_ACCESSORY|Lat straight arm pulldown or pullover accessory</item>
+        <item>MOVEMENT_FAMILY|LEG_PRESS_KNEE_DOMINANT_MACHINE_VARIANTS|Leg press knee dominant machine variants</item>
+        <item>MOVEMENT_FAMILY|LOADED_CARRY_VARIANTS|Loaded carry variants</item>
+        <item>MOVEMENT_FAMILY|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_FAMILY|LOWER_SQUAT_PATTERN|Lower squat pattern</item>
+        <item>MOVEMENT_FAMILY|LUNGE|Lunge</item>
+        <item>MOVEMENT_FAMILY|LUNGE_SPLIT_SQUAT_VARIANTS|Lunge split squat variants</item>
+        <item>MOVEMENT_FAMILY|MOBILITY|Mobility</item>
+        <item>MOVEMENT_FAMILY|MOBILITY_WARMUP_RECOVERY_EXERCISES|Mobility warmup recovery exercises</item>
+        <item>MOVEMENT_FAMILY|NORDIC_HAMSTRING_ECCENTRIC|Nordic hamstring eccentric</item>
+        <item>MOVEMENT_FAMILY|NOT_APPLICABLE|Not applicable</item>
+        <item>MOVEMENT_FAMILY|OTHER_SPORT_SESSION_RECORDS|Other sport session records</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_PRESS_VARIANTS|Overhead press variants</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_SMASH_SUPPORT|Overhead smash support</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_TRICEPS_LONG_HEAD|Overhead triceps long head</item>
+        <item>MOVEMENT_FAMILY|PLYOMETRIC_JUMP_VARIANTS|Plyometric jump variants</item>
+        <item>MOVEMENT_FAMILY|POSTERIOR_CHAIN_LOW_LOAD_CONTROL|Posterior chain low load control</item>
+        <item>MOVEMENT_FAMILY|POWER_CORE_SHOULDER|Power core shoulder</item>
+        <item>MOVEMENT_FAMILY|POWER_REACTIVE_LOW_VOLUME|Power reactive low volume</item>
+        <item>MOVEMENT_FAMILY|PREHAB|Prehab</item>
+        <item>MOVEMENT_FAMILY|PULLOVER_LAT_CHEST_ACCESSORY|Pullover lat chest accessory</item>
+        <item>MOVEMENT_FAMILY|PULL_HORIZONTAL|Pull horizontal</item>
+        <item>MOVEMENT_FAMILY|PULL_UP_CHIN_UP_LAT_PULLDOWN_VARIANTS|Pull up chin up lat pulldown variants</item>
+        <item>MOVEMENT_FAMILY|PULL_VERTICAL|Pull vertical</item>
+        <item>MOVEMENT_FAMILY|PUSH_HORIZONTAL|Push horizontal</item>
+        <item>MOVEMENT_FAMILY|PUSH_UP_VARIANTS|Push up variants</item>
+        <item>MOVEMENT_FAMILY|PUSH_VERTICAL|Push vertical</item>
+        <item>MOVEMENT_FAMILY|QUAD_ECCENTRIC_KNEE_DOMINANT|Quad eccentric knee dominant</item>
+        <item>MOVEMENT_FAMILY|REAR_DELT_FLY_HORIZONTAL_ABDUCTION_VARIANTS|Rear delt fly horizontal abduction variants</item>
+        <item>MOVEMENT_FAMILY|RECOVERY_PREHAB_LIGHT|Recovery prehab light</item>
+        <item>MOVEMENT_FAMILY|ROTATION|Rotation</item>
+        <item>MOVEMENT_FAMILY|ROTATIONAL_KINETIC_CHAIN|Rotational kinetic chain</item>
+        <item>MOVEMENT_FAMILY|ROW_VARIANTS|Row variants</item>
+        <item>MOVEMENT_FAMILY|RUNNING_MECHANICS_SUPPORT|Running mechanics support</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_CONTROL_RECOVERY_PREHAB_VARIANTS|Scapular control recovery prehab variants</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_RETRACTION_EXTERNAL_ROTATION_CONTROL_VARIANTS|Scapular retraction external rotation control variants</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_SHOULDER_SUPPORT|Scapular shoulder support</item>
+        <item>MOVEMENT_FAMILY|SERRATUS_SCAPULAR_PROTRACTION_CONTROL_VARIANTS|Serratus scapular protraction control variants</item>
+        <item>MOVEMENT_FAMILY|SINGLE_LEG_STRENGTH_CONTROL|Single leg strength control</item>
+        <item>MOVEMENT_FAMILY|SPRINT_ACCELERATION_CONDITIONING|Sprint acceleration conditioning</item>
+        <item>MOVEMENT_FAMILY|SQUAT|Squat</item>
+        <item>MOVEMENT_FAMILY|SQUAT_VARIANTS|Squat variants</item>
+        <item>MOVEMENT_FAMILY|STEP_UP_VARIANTS|Step up variants</item>
+        <item>MOVEMENT_FAMILY|TRUNK_ANTI_ROTATION_STABILITY|Trunk anti rotation stability</item>
+        <item>MOVEMENT_FAMILY|TURKISH_GETUP_TOTAL_BODY_STABILITY|Turkish getup total body stability</item>
+        <item>MOVEMENT_FAMILY|UPPER_PULL_ANCHOR|Upper pull anchor</item>
+        <item>MOVEMENT_FAMILY|UPPER_PUSH_SUPPORT|Upper push support</item>
+        <item>MOVEMENT_FOCUS_DEMAND|HIGH|High</item>
+        <item>MOVEMENT_FOCUS_DEMAND|LOW|Low</item>
+        <item>MOVEMENT_FOCUS_DEMAND|MODERATE|Moderate</item>
+        <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|Very high</item>
+        <item>MOVEMENT_PATTERN|ANTI_ROTATION|Anti rotation</item>
+        <item>MOVEMENT_PATTERN|BOUND|Bound</item>
+        <item>MOVEMENT_PATTERN|CARRY|Carry</item>
+        <item>MOVEMENT_PATTERN|FOOTWORK|Footwork</item>
+        <item>MOVEMENT_PATTERN|HINGE|Hinge</item>
+        <item>MOVEMENT_PATTERN|HOP|Hop</item>
+        <item>MOVEMENT_PATTERN|ISOLATION|Isolation</item>
+        <item>MOVEMENT_PATTERN|JUMP|Jump</item>
+        <item>MOVEMENT_PATTERN|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_PATTERN|LUNGE|Lunge</item>
+        <item>MOVEMENT_PATTERN|MOBILITY|Mobility</item>
+        <item>MOVEMENT_PATTERN|PREHAB|Prehab</item>
+        <item>MOVEMENT_PATTERN|PULL_HORIZONTAL|Pull horizontal</item>
+        <item>MOVEMENT_PATTERN|PULL_VERTICAL|Pull vertical</item>
+        <item>MOVEMENT_PATTERN|PUSH_HORIZONTAL|Push horizontal</item>
+        <item>MOVEMENT_PATTERN|PUSH_VERTICAL|Push vertical</item>
+        <item>MOVEMENT_PATTERN|ROTATION|Rotation</item>
+        <item>MOVEMENT_PATTERN|SQUAT|Squat</item>
+        <item>MOVEMENT_SUBTYPE|AGILITY_LADDER|Agility ladder</item>
+        <item>MOVEMENT_SUBTYPE|ANKLE_HIP_MOBILITY|Ankle hip mobility</item>
+        <item>MOVEMENT_SUBTYPE|ANKLING|Ankling</item>
+        <item>MOVEMENT_SUBTYPE|ANTI_ROTATION|Anti rotation</item>
+        <item>MOVEMENT_SUBTYPE|ARCHER_PUSH_UP|Archer push up</item>
+        <item>MOVEMENT_SUBTYPE|ARNOLD_PRESS|Arnold press</item>
+        <item>MOVEMENT_SUBTYPE|A_SKIP|A skip</item>
+        <item>MOVEMENT_SUBTYPE|BACK_SQUAT|Back squat</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_LESSON|Badminton lesson</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_OVERHEAD_POWER_TEST|Badminton overhead power test</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_SESSION|Badminton session</item>
+        <item>MOVEMENT_SUBTYPE|BAND_CHOP|Band chop</item>
+        <item>MOVEMENT_SUBTYPE|BAND_EXTERNAL_ROTATION|Band external rotation</item>
+        <item>MOVEMENT_SUBTYPE|BAND_LIFT|Band lift</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_BENCH_PRESS|Barbell bench press</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_OVERHEAD_PRESS|Barbell overhead press</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_ROMANIAN_DEADLIFT|Barbell romanian deadlift</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_ROW|Barbell row</item>
+        <item>MOVEMENT_SUBTYPE|BASKETBALL_SESSION|Basketball session</item>
+        <item>MOVEMENT_SUBTYPE|BENCH_DIP|Bench dip</item>
+        <item>MOVEMENT_SUBTYPE|BIRD_DOG|Bird dog</item>
+        <item>MOVEMENT_SUBTYPE|BODYWEIGHT_SQUAT|Bodyweight squat</item>
+        <item>MOVEMENT_SUBTYPE|BOUND|Bound</item>
+        <item>MOVEMENT_SUBTYPE|BOX_JUMP|Box jump</item>
+        <item>MOVEMENT_SUBTYPE|BOX_STEP_UP|Box step up</item>
+        <item>MOVEMENT_SUBTYPE|BULGARIAN_SPLIT_SQUAT|Bulgarian split squat</item>
+        <item>MOVEMENT_SUBTYPE|BURPEE|Burpee</item>
+        <item>MOVEMENT_SUBTYPE|B_SKIP|B skip</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_CHOP|Cable chop</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_CURL|Cable curl</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_FLY|Cable fly</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_KICKBACK|Cable kickback</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_LATERAL_RAISE|Cable lateral raise</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_LIFT|Cable lift</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_PULL_THROUGH|Cable pull through</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_ROW|Cable row</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_SINGLE_ARM_TRICEPS_PUSHDOWN|Cable single arm triceps pushdown</item>
+        <item>MOVEMENT_SUBTYPE|CAPTAINS_CHAIR_LEG_RAISE|Captains chair leg raise</item>
+        <item>MOVEMENT_SUBTYPE|CARRY|Carry</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ONE_ARM_DUMBBELL_ROW|Chest supported one arm dumbbell row</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ONE_ARM_ROW|Chest supported one arm row</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ROW|Chest supported row</item>
+        <item>MOVEMENT_SUBTYPE|CHIN_UP|Chin up</item>
+        <item>MOVEMENT_SUBTYPE|CLOSE_GRIP_BENCH_PRESS_TRICEPS_EMPHASIS|Close grip bench press triceps emphasis</item>
+        <item>MOVEMENT_SUBTYPE|COMPOUND_DIP|Compound dip</item>
+        <item>MOVEMENT_SUBTYPE|CONCENTRATION_CURL|Concentration curl</item>
+        <item>MOVEMENT_SUBTYPE|CONE_DRILL|Cone drill</item>
+        <item>MOVEMENT_SUBTYPE|CONVENTIONAL_DEADLIFT|Conventional deadlift</item>
+        <item>MOVEMENT_SUBTYPE|COPENHAGEN_PLANK|Copenhagen plank</item>
+        <item>MOVEMENT_SUBTYPE|COSSACK_SQUAT|Cossack squat</item>
+        <item>MOVEMENT_SUBTYPE|CROSS_BODY_HAMMER_CURL|Cross body hammer curl</item>
+        <item>MOVEMENT_SUBTYPE|DEAD_BUG|Dead bug</item>
+        <item>MOVEMENT_SUBTYPE|DECLINE_PUSH_UP|Decline push up</item>
+        <item>MOVEMENT_SUBTYPE|DIAMOND_PUSH_UP|Diamond push up</item>
+        <item>MOVEMENT_SUBTYPE|DROP_JUMP|Drop jump</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_BENCH_PRESS|Dumbbell bench press</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_CURL|Dumbbell curl</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_KICKBACK|Dumbbell kickback</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_LATERAL_RAISE|Dumbbell lateral raise</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_OVERHEAD_PRESS|Dumbbell overhead press</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_PULLOVER|Dumbbell pullover</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_ROMANIAN_DEADLIFT|Dumbbell romanian deadlift</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_STEP_UP|Dumbbell step up</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_WOODCHOP|Dumbbell woodchop</item>
+        <item>MOVEMENT_SUBTYPE|EZ_BAR_CURL|EZ bar curl</item>
+        <item>MOVEMENT_SUBTYPE|FACE_PULL|Face pull</item>
+        <item>MOVEMENT_SUBTYPE|FARMERS_CARRY|Farmers carry</item>
+        <item>MOVEMENT_SUBTYPE|FLAT_DUMBBELL_FLY|Flat dumbbell fly</item>
+        <item>MOVEMENT_SUBTYPE|FOOTWORK|Footwork</item>
+        <item>MOVEMENT_SUBTYPE|FOOTWORK_MAX_REPETITION_TEST_6_CORNER|Footwork max repetition test 6 corner</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_BACK_RANDOM_SHUTTLE_PICKUP|Front back random shuttle pickup</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_FOOT_ELEVATED_SPLIT_SQUAT|Front foot elevated split squat</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_PLANK|Front plank</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_SQUAT|Front squat</item>
+        <item>MOVEMENT_SUBTYPE|GENERAL_STRETCHING|General stretching</item>
+        <item>MOVEMENT_SUBTYPE|GENERIC_LUNGE|Generic lunge</item>
+        <item>MOVEMENT_SUBTYPE|GLUTE_BRIDGE|Glute bridge</item>
+        <item>MOVEMENT_SUBTYPE|GOBLET_SQUAT|Goblet squat</item>
+        <item>MOVEMENT_SUBTYPE|HACK_SQUAT|Hack squat</item>
+        <item>MOVEMENT_SUBTYPE|HALF_KNEELING_SINGLE_ARM_DUMBBELL_PRESS|Half kneeling single arm dumbbell press</item>
+        <item>MOVEMENT_SUBTYPE|HALF_KNEELING_SINGLE_ARM_KETTLEBELL_PRESS|Half kneeling single arm kettlebell press</item>
+        <item>MOVEMENT_SUBTYPE|HAMMER_CURL|Hammer curl</item>
+        <item>MOVEMENT_SUBTYPE|HANDSTAND_PUSH_UP|Handstand push up</item>
+        <item>MOVEMENT_SUBTYPE|HANGING_LEG_RAISE|Hanging leg raise</item>
+        <item>MOVEMENT_SUBTYPE|HIGH_INTENSITY_RALLY_FOOTWORK|High intensity rally footwork</item>
+        <item>MOVEMENT_SUBTYPE|HINGE|Hinge</item>
+        <item>MOVEMENT_SUBTYPE|HIP_ABDUCTION_MACHINE|Hip abduction machine</item>
+        <item>MOVEMENT_SUBTYPE|HIP_ADDUCTION_MACHINE_OR_CABLE|Hip adduction machine or cable</item>
+        <item>MOVEMENT_SUBTYPE|HIP_THRUST|Hip thrust</item>
+        <item>MOVEMENT_SUBTYPE|HOLLOW_BODY_HOLD|Hollow body hold</item>
+        <item>MOVEMENT_SUBTYPE|HOP|Hop</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_CURL|Incline dumbbell curl</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_FLY|Incline dumbbell fly</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_PRESS|Incline dumbbell press</item>
+        <item>MOVEMENT_SUBTYPE|INDOOR_CYCLING|Indoor cycling</item>
+        <item>MOVEMENT_SUBTYPE|INTERVAL_RUNNING|Interval running</item>
+        <item>MOVEMENT_SUBTYPE|INVERTED_ROW|Inverted row</item>
+        <item>MOVEMENT_SUBTYPE|ISOLATION|Isolation</item>
+        <item>MOVEMENT_SUBTYPE|JUMP|Jump</item>
+        <item>MOVEMENT_SUBTYPE|JUMP_LUNGE|Jump lunge</item>
+        <item>MOVEMENT_SUBTYPE|JUMP_ROPE|Jump rope</item>
+        <item>MOVEMENT_SUBTYPE|KETTLEBELL_HALO|Kettlebell halo</item>
+        <item>MOVEMENT_SUBTYPE|KETTLEBELL_SWING|Kettlebell swing</item>
+        <item>MOVEMENT_SUBTYPE|LANDMINE_ANTI_ROTATION|Landmine anti rotation</item>
+        <item>MOVEMENT_SUBTYPE|LANDMINE_ROTATION|Landmine rotation</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_BOUND_CONTINUOUS|Lateral bound continuous</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_BOUND_TO_STICK|Lateral bound to stick</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_DECELERATION_STOP|Lateral deceleration stop</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_LUNGE|Lateral lunge</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_RANDOM_SHUTTLE_PICKUP|Lateral random shuttle pickup</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_STEP_DOWN|Lateral step down</item>
+        <item>MOVEMENT_SUBTYPE|LAT_PULLDOWN|Lat pulldown</item>
+        <item>MOVEMENT_SUBTYPE|LEANING_LATERAL_RAISE|Leaning lateral raise</item>
+        <item>MOVEMENT_SUBTYPE|LEG_CURL|Leg curl</item>
+        <item>MOVEMENT_SUBTYPE|LEG_EXTENSION|Leg extension</item>
+        <item>MOVEMENT_SUBTYPE|LEG_PRESS|Leg press</item>
+        <item>MOVEMENT_SUBTYPE|LIGHT_SHUTTLE_PICKUP|Light shuttle pickup</item>
+        <item>MOVEMENT_SUBTYPE|LINE_HOP|Line hop</item>
+        <item>MOVEMENT_SUBTYPE|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_SUBTYPE|LUNGE|Lunge</item>
+        <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|Lying triceps extension</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|Machine chest press</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|Machine overhead press</item>
+        <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|Meadows row</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|Med ball chest pass</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_OVERHEAD_SLAM|Med ball overhead slam</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_ROTATIONAL_SLAM|Med ball rotational slam</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_ROTATIONAL_THROW|Med ball rotational throw</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_SCOOP_TOSS|Med ball scoop toss</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_THREE_STEP_ACCELERATION_THROW|Med ball three step acceleration throw</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_THREE_STEP_DECELERATION_THROW|Med ball three step deceleration throw</item>
+        <item>MOVEMENT_SUBTYPE|MINIBAND_SIDEWALK|Miniband sidewalk</item>
+        <item>MOVEMENT_SUBTYPE|MOBILITY|Mobility</item>
+        <item>MOVEMENT_SUBTYPE|MOUNTAIN_CLIMBER|Mountain climber</item>
+        <item>MOVEMENT_SUBTYPE|MULTI_SHUTTLE_FOOTWORK|Multi shuttle footwork</item>
+        <item>MOVEMENT_SUBTYPE|NEGATIVE_PULL_UP|Negative pull up</item>
+        <item>MOVEMENT_SUBTYPE|NORDIC_HAMSTRING_CURL|Nordic hamstring curl</item>
+        <item>MOVEMENT_SUBTYPE|NOT_APPLICABLE|Not applicable</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_CURL|One arm cable curl</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_FLY|One arm cable fly</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_HIGH_ROW|One arm cable high row</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_LATERAL_RAISE|One arm cable lateral raise</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_ROW|One arm cable row</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_BENCH_PRESS|One arm dumbbell bench press</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_CURL|One arm dumbbell curl</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_RDL|One arm dumbbell RDL</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_HAMMER_CURL|One arm hammer curl</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_INCLINE_DUMBBELL_PRESS|One arm incline dumbbell press</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_INVERTED_ROW|One arm inverted row</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_LAT_PULLDOWN|One arm lat pulldown</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_MACHINE_ROW|One arm machine row</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_OVERHEAD_PRESS|One arm overhead press</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_OVERHEAD_TRICEPS_EXTENSION|One arm overhead triceps extension</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_REAR_DELT_CABLE_FLY|One arm rear delt cable fly</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_ROW|One arm row</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_STRAIGHT_ARM_PULLDOWN|One arm straight arm pulldown</item>
+        <item>MOVEMENT_SUBTYPE|OVERHEAD_CABLE_SINGLE_ARM_TRICEPS_EXTENSION|Overhead cable single arm triceps extension</item>
+        <item>MOVEMENT_SUBTYPE|OVERHEAD_TRICEPS_EXTENSION|Overhead triceps extension</item>
+        <item>MOVEMENT_SUBTYPE|PACE_CHANGE_FOOTWORK|Pace change footwork</item>
+        <item>MOVEMENT_SUBTYPE|PALLOF_PRESS|Pallof press</item>
+        <item>MOVEMENT_SUBTYPE|PIKE_PUSH_UP|Pike push up</item>
+        <item>MOVEMENT_SUBTYPE|PISTOL_SQUAT|Pistol squat</item>
+        <item>MOVEMENT_SUBTYPE|PLATE_ROTATIONAL_PRESS_OUT|Plate rotational press out</item>
+        <item>MOVEMENT_SUBTYPE|POGO_JUMP|Pogo jump</item>
+        <item>MOVEMENT_SUBTYPE|PREACHER_CURL|Preacher curl</item>
+        <item>MOVEMENT_SUBTYPE|PREHAB|Prehab</item>
+        <item>MOVEMENT_SUBTYPE|PRONATION_SUPINATION|Pronation supination</item>
+        <item>MOVEMENT_SUBTYPE|PULL_HORIZONTAL|Pull horizontal</item>
+        <item>MOVEMENT_SUBTYPE|PULL_UP|Pull up</item>
+        <item>MOVEMENT_SUBTYPE|PULL_VERTICAL|Pull vertical</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_HORIZONTAL|Push horizontal</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_UP|Push up</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_VERTICAL|Push vertical</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_BEEP_FOOTWORK|Random beep footwork</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_CHANGE_OF_DIRECTION_DRILL|Random change of direction drill</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_FOOTWORK|Random footwork</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_SHUTTLE_PICKUP_6_DIRECTION|Random shuttle pickup 6 direction</item>
+        <item>MOVEMENT_SUBTYPE|REAR_DELT_CABLE_FLY|Rear delt cable fly</item>
+        <item>MOVEMENT_SUBTYPE|REAR_DELT_FLY|Rear delt fly</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_CURL|Reverse curl</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_LUNGE|Reverse lunge</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_NORDIC_CURL|Reverse nordic curl</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_WRIST_CURL|Reverse wrist curl</item>
+        <item>MOVEMENT_SUBTYPE|RING_ROW|Ring row</item>
+        <item>MOVEMENT_SUBTYPE|ROPE_HAMMER_CURL|Rope hammer curl</item>
+        <item>MOVEMENT_SUBTYPE|ROTATION|Rotation</item>
+        <item>MOVEMENT_SUBTYPE|ROWING_MACHINE_CARDIO|Rowing machine cardio</item>
+        <item>MOVEMENT_SUBTYPE|RUNNING|Running</item>
+        <item>MOVEMENT_SUBTYPE|RUNNING_FUTSAL_SESSION|Running futsal session</item>
+        <item>MOVEMENT_SUBTYPE|SCAPULAR_PULL_UP|Scapular pull up</item>
+        <item>MOVEMENT_SUBTYPE|SCAPULAR_PUSH_UP|Scapular push up</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_CALF_RAISE|Seated calf raise</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_ONE_ARM_CABLE_ROW|Seated one arm cable row</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_UNSUPPORTED_OVERHEAD_PRESS|Seated unsupported overhead press</item>
+        <item>MOVEMENT_SUBTYPE|SHUTTLE_RUN|Shuttle run</item>
+        <item>MOVEMENT_SUBTYPE|SIDE_PLANK|Side plank</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_BOX_SQUAT|Single leg box squat</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_CALF_RAISE|Single leg calf raise</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_GLUTE_BRIDGE|Single leg glute bridge</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_HACK_SQUAT|Single leg hack squat</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_HOP_AND_STICK|Single leg hop and stick</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_CURL|Single leg leg curl</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_EXTENSION|Single leg leg extension</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_PRESS|Single leg leg press</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_RDL|Single leg RDL</item>
+        <item>MOVEMENT_SUBTYPE|SIX_CORNER_FOOTWORK|Six corner footwork</item>
+        <item>MOVEMENT_SUBTYPE|SKATER_SQUAT|Skater squat</item>
+        <item>MOVEMENT_SUBTYPE|SKIP_BOUND|Skip bound</item>
+        <item>MOVEMENT_SUBTYPE|SMITH_MACHINE_LUNGE|Smith machine lunge</item>
+        <item>MOVEMENT_SUBTYPE|SMITH_MACHINE_SQUAT|Smith machine squat</item>
+        <item>MOVEMENT_SUBTYPE|SOCCER_SESSION|Soccer session</item>
+        <item>MOVEMENT_SUBTYPE|SPIDER_CURL|Spider curl</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_SQUAT|Split squat</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP|Split step</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP_LATERAL_REACTIVE_LUNGE|Split step lateral reactive lunge</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP_REACTION|Split step reaction</item>
+        <item>MOVEMENT_SUBTYPE|SQUAT|Squat</item>
+        <item>MOVEMENT_SUBTYPE|STAIR_CLIMBING|Stair climbing</item>
+        <item>MOVEMENT_SUBTYPE|STANDING_CALF_RAISE|Standing calf raise</item>
+        <item>MOVEMENT_SUBTYPE|STANDING_LEG_CURL|Standing leg curl</item>
+        <item>MOVEMENT_SUBTYPE|STRAIGHT_ARM_PULLDOWN|Straight arm pulldown</item>
+        <item>MOVEMENT_SUBTYPE|STRIDE_RUN|Stride run</item>
+        <item>MOVEMENT_SUBTYPE|SUPERMAN|Superman</item>
+        <item>MOVEMENT_SUBTYPE|SWIMMING|Swimming</item>
+        <item>MOVEMENT_SUBTYPE|TENNIS_SESSION|Tennis session</item>
+        <item>MOVEMENT_SUBTYPE|TRACK_SPRINT|Track sprint</item>
+        <item>MOVEMENT_SUBTYPE|TRICEPS_PUSHDOWN|Triceps pushdown</item>
+        <item>MOVEMENT_SUBTYPE|TURKISH_GETUP|Turkish getup</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_CHOP|VIPR chop</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_ROTATIONAL_LIFT|VIPR rotational lift</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_ROTATIONAL_PRESS_OUT|VIPR rotational press out</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_STEP_AND_ROTATE|VIPR step and rotate</item>
+        <item>MOVEMENT_SUBTYPE|V_UP|V up</item>
+        <item>MOVEMENT_SUBTYPE|WALKING_LUNGE|Walking lunge</item>
+        <item>MOVEMENT_SUBTYPE|WALL_DRIVE|Wall drive</item>
+        <item>MOVEMENT_SUBTYPE|WALL_SIT|Wall sit</item>
+        <item>MOVEMENT_SUBTYPE|WALL_SLIDE|Wall slide</item>
+        <item>MOVEMENT_SUBTYPE|WEIGHTED_CHIN_UP|Weighted chin up</item>
+        <item>MOVEMENT_SUBTYPE|WEIGHTED_PULL_UP|Weighted pull up</item>
+        <item>MOVEMENT_SUBTYPE|WRIST_CURL|Wrist curl</item>
+        <item>MOVEMENT_SUBTYPE|WRIST_EXTENSION|Wrist extension</item>
+        <item>MOVEMENT_SUBTYPE|YATES_ROW|Yates row</item>
+        <item>NEUROMUSCULAR_STRESS|HIGH|High</item>
+        <item>NEUROMUSCULAR_STRESS|LOW|Low</item>
+        <item>NEUROMUSCULAR_STRESS|MODERATE|Moderate</item>
+        <item>NEUROMUSCULAR_STRESS|VERY_HIGH|Very high</item>
+        <item>PLANNING_ELIGIBILITY|ANALYSIS_ONLY|Analysis only</item>
+        <item>PLANNING_ELIGIBILITY|FATIGUE_ONLY|Fatigue analysis only</item>
+        <item>PLANNING_ELIGIBILITY|HIDDEN|Hidden</item>
+        <item>PLANNING_ELIGIBILITY|PROGRAM_SELECTABLE|Available for programs</item>
+        <item>PRIMARY_STRESS_PROFILE|ANKLE_SSC_REACTIVE_STRESS|Ankle SSC reactive stress</item>
+        <item>PRIMARY_STRESS_PROFILE|ANTI_ROTATION_CORE_STABILITY_STRESS|Anti rotation core stability stress</item>
+        <item>PRIMARY_STRESS_PROFILE|BALLISTIC_POWER_STRESS|Ballistic power stress</item>
+        <item>PRIMARY_STRESS_PROFILE|BODYWEIGHT_PUSH_STRESS|Bodyweight push stress</item>
+        <item>PRIMARY_STRESS_PROFILE|CARDIO_CONDITIONING_STRESS|Cardio conditioning stress</item>
+        <item>PRIMARY_STRESS_PROFILE|COURT_SKILL_COGNITIVE_STRESS|Court skill cognitive stress</item>
+        <item>PRIMARY_STRESS_PROFILE|COURT_SPORT_MOVEMENT_STRESS|Court sport movement stress</item>
+        <item>PRIMARY_STRESS_PROFILE|DIP_PUSH_STRESS|Dip push stress</item>
+        <item>PRIMARY_STRESS_PROFILE|DYNAMIC_CORE_FLEXION_STRESS|Dynamic core flexion stress</item>
+        <item>PRIMARY_STRESS_PROFILE|ECCENTRIC_TENDON_STRESS|Eccentric tendon stress</item>
+        <item>PRIMARY_STRESS_PROFILE|HEAVY_AXIAL_LOWER_STRESS|Heavy axial lower stress</item>
+        <item>PRIMARY_STRESS_PROFILE|HINGE_POSTERIOR_CHAIN_STRESS|Hinge posterior chain stress</item>
+        <item>PRIMARY_STRESS_PROFILE|HORIZONTAL_PUSH_STRESS|Horizontal push stress</item>
+        <item>PRIMARY_STRESS_PROFILE|HORIZONTAL_ROW_STRESS|Horizontal row stress</item>
+        <item>PRIMARY_STRESS_PROFILE|ISOLATION_ACCESSORY_STRESS|Isolation accessory stress</item>
+        <item>PRIMARY_STRESS_PROFILE|ISOMETRIC_CORE_BRACING_STRESS|Isometric core bracing stress</item>
+        <item>PRIMARY_STRESS_PROFILE|LOADED_CARRY_BRACING_STRESS|Loaded carry bracing stress</item>
+        <item>PRIMARY_STRESS_PROFILE|LOW_LOAD_PREHAB_CONTROL_STRESS|Low load prehab control stress</item>
+        <item>PRIMARY_STRESS_PROFILE|LUNGE_DECELERATION_STRESS|Lunge deceleration stress</item>
+        <item>PRIMARY_STRESS_PROFILE|MACHINE_LOWER_BODY_STRESS|Machine lower body stress</item>
+        <item>PRIMARY_STRESS_PROFILE|MOBILITY_RECOVERY_STRESS|Mobility recovery stress</item>
+        <item>PRIMARY_STRESS_PROFILE|OVERHEAD_PUSH_STRESS|Overhead push stress</item>
+        <item>PRIMARY_STRESS_PROFILE|OVERHEAD_RACKET_STRESS|Overhead racket stress</item>
+        <item>PRIMARY_STRESS_PROFILE|PLYOMETRIC_LANDING_STRESS|Plyometric landing stress</item>
+        <item>PRIMARY_STRESS_PROFILE|ROTATIONAL_CORE_STABILITY_STRESS|Rotational core stability stress</item>
+        <item>PRIMARY_STRESS_PROFILE|UNILATERAL_LOWER_STABILITY_STRESS|Unilateral lower stability stress</item>
+        <item>PRIMARY_STRESS_PROFILE|VERTICAL_PULL_STRESS|Vertical pull stress</item>
+        <item>PROGRAM_SLOT|ACCESSORY_ROTATION|Accessory rotation</item>
+        <item>PROGRAM_SLOT|ANKLE_CALF_SUPPORT|Ankle calf support</item>
+        <item>PROGRAM_SLOT|ANKLE_SSC_CONDITIONING|Ankle SSC conditioning</item>
+        <item>PROGRAM_SLOT|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic overhead press support</item>
+        <item>PROGRAM_SLOT|BADMINTON_DECEL_COD|Badminton decel COD</item>
+        <item>PROGRAM_SLOT|BADMINTON_FOOTWORK|Badminton footwork</item>
+        <item>PROGRAM_SLOT|BADMINTON_FOOTWORK_REACTION|Badminton footwork reaction</item>
+        <item>PROGRAM_SLOT|BALLISTIC_HINGE_POWER|Ballistic hinge power</item>
+        <item>PROGRAM_SLOT|BICEPS_ACCESSORY|Biceps accessory</item>
+        <item>PROGRAM_SLOT|BODYWEIGHT_LOWER_PATTERN|Bodyweight lower pattern</item>
+        <item>PROGRAM_SLOT|BODYWEIGHT_VERTICAL_PUSH|Bodyweight vertical push</item>
+        <item>PROGRAM_SLOT|BRACHIALIS_FOREARM_ACCESSORY|Brachialis forearm accessory</item>
+        <item>PROGRAM_SLOT|CALF_ANKLE_CAPACITY|Calf ankle capacity</item>
+        <item>PROGRAM_SLOT|CHEST_ISOLATION_ACCESSORY|Chest isolation accessory</item>
+        <item>PROGRAM_SLOT|CONDITIONING|Conditioning</item>
+        <item>PROGRAM_SLOT|CONDITIONING_CORE|Conditioning core</item>
+        <item>PROGRAM_SLOT|CORE_FLEXION_ACCESSORY|Core flexion accessory</item>
+        <item>PROGRAM_SLOT|CORE_STABILITY|Core stability</item>
+        <item>PROGRAM_SLOT|CORE_STABILITY_ACCESSORY|Core stability accessory</item>
+        <item>PROGRAM_SLOT|DECELERATION_LANDING|Deceleration landing</item>
+        <item>PROGRAM_SLOT|FOREARM_GRIP_ACCESSORY|Forearm grip accessory</item>
+        <item>PROGRAM_SLOT|FOREARM_GRIP_ELBOW_SUPPORT|Forearm grip elbow support</item>
+        <item>PROGRAM_SLOT|GLUTE_ACCESSORY|Glute accessory</item>
+        <item>PROGRAM_SLOT|GLUTE_POSTERIOR_CHAIN_ACCESSORY|Glute posterior chain accessory</item>
+        <item>PROGRAM_SLOT|HAMSTRING_ISOLATION_ACCESSORY|Hamstring isolation accessory</item>
+        <item>PROGRAM_SLOT|HIP_ABDUCTOR_GLUTE_MED_ACCESSORY|Hip abductor glute med accessory</item>
+        <item>PROGRAM_SLOT|HIP_ADDUCTOR_ACCESSORY|Hip adductor accessory</item>
+        <item>PROGRAM_SLOT|HIP_HINGE_POSTERIOR_CHAIN|Hip hinge posterior chain</item>
+        <item>PROGRAM_SLOT|HORIZONTAL_PULL_STRENGTH|Horizontal pull strength</item>
+        <item>PROGRAM_SLOT|HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY|Horizontal push strength or accessory</item>
+        <item>PROGRAM_SLOT|KNEE_DOMINANT_ACCESSORY|Knee dominant accessory</item>
+        <item>PROGRAM_SLOT|LAT_ACCESSORY|Lat accessory</item>
+        <item>PROGRAM_SLOT|LOADED_CARRY_BRACING|Loaded carry bracing</item>
+        <item>PROGRAM_SLOT|LOWER_BODY_ISOMETRIC_ACCESSORY|Lower body isometric accessory</item>
+        <item>PROGRAM_SLOT|LOWER_SQUAT_PATTERN|Lower squat pattern</item>
+        <item>PROGRAM_SLOT|MACHINE_LOWER_BODY_STRENGTH|Machine lower body strength</item>
+        <item>PROGRAM_SLOT|MAIN_HINGE_STRENGTH|Main hinge strength</item>
+        <item>PROGRAM_SLOT|MAIN_LOWER_STRENGTH|Main lower strength</item>
+        <item>PROGRAM_SLOT|MOBILITY_RECOVERY|Mobility recovery</item>
+        <item>PROGRAM_SLOT|NOT_APPLICABLE|Not applicable</item>
+        <item>PROGRAM_SLOT|OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY|Overhead push strength or accessory</item>
+        <item>PROGRAM_SLOT|OVERHEAD_SMASH_SUPPORT|Overhead smash support</item>
+        <item>PROGRAM_SLOT|PLYOMETRIC_POWER|Plyometric power</item>
+        <item>PROGRAM_SLOT|POSTERIOR_CHAIN_ACCESSORY|Posterior chain accessory</item>
+        <item>PROGRAM_SLOT|POSTERIOR_CHAIN_CONTROL_ACCESSORY|Posterior chain control accessory</item>
+        <item>PROGRAM_SLOT|POWER_REACTIVE_LOW_VOLUME|Power reactive low volume</item>
+        <item>PROGRAM_SLOT|PULLOVER_ACCESSORY|Pullover accessory</item>
+        <item>PROGRAM_SLOT|QUAD_ISOLATION_ACCESSORY|Quad isolation accessory</item>
+        <item>PROGRAM_SLOT|REAR_DELT_SCAPULAR_ACCESSORY|Rear delt scapular accessory</item>
+        <item>PROGRAM_SLOT|RECOVERY_PREHAB_LIGHT|Recovery prehab light</item>
+        <item>PROGRAM_SLOT|RECOVERY_PREHAB_SCAPULAR_CONTROL|Recovery prehab scapular control</item>
+        <item>PROGRAM_SLOT|ROTATIONAL_KINETIC_CHAIN|Rotational kinetic chain</item>
+        <item>PROGRAM_SLOT|ROTATOR_CUFF_CARE|Rotator cuff care</item>
+        <item>PROGRAM_SLOT|RUNNING_MECHANICS_SUPPORT|Running mechanics support</item>
+        <item>PROGRAM_SLOT|SCAPULAR_CONTROL_ACCESSORY|Scapular control accessory</item>
+        <item>PROGRAM_SLOT|SCAPULAR_SHOULDER_SUPPORT|Scapular shoulder support</item>
+        <item>PROGRAM_SLOT|SHOULDER_ACCESSORY|Shoulder accessory</item>
+        <item>PROGRAM_SLOT|SINGLE_LEG_STRENGTH_CONTROL|Single leg strength control</item>
+        <item>PROGRAM_SLOT|TOTAL_BODY_STABILITY_SKILL|Total body stability skill</item>
+        <item>PROGRAM_SLOT|TRICEPS_ACCESSORY|Triceps accessory</item>
+        <item>PROGRAM_SLOT|TRICEPS_EMPHASIS_COMPOUND_PUSH|Triceps emphasis compound push</item>
+        <item>PROGRAM_SLOT|TRUNK_ANTI_ROTATION_STABILITY|Trunk anti rotation stability</item>
+        <item>PROGRAM_SLOT|UNILATERAL_HINGE_ACCESSORY|Unilateral hinge accessory</item>
+        <item>PROGRAM_SLOT|UNILATERAL_LOWER_ACCESSORY|Unilateral lower accessory</item>
+        <item>PROGRAM_SLOT|UNILATERAL_LOWER_STRENGTH|Unilateral lower strength</item>
+        <item>PROGRAM_SLOT|UNILATERAL_SHOULDER_PRESS|Unilateral shoulder press</item>
+        <item>PROGRAM_SLOT|UNILATERAL_UPPER_PUSH|Unilateral upper push</item>
+        <item>PROGRAM_SLOT|UPPER_PULL_ANCHOR|Upper pull anchor</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_ACCESSORY|Upper push accessory</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_COMPOUND|Upper push compound</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_STRENGTH|Upper push strength</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_SUPPORT|Upper push support</item>
+        <item>PROGRAM_SLOT|VERTICAL_PULL_STRENGTH|Vertical pull strength</item>
+        <item>PROGRESS_METRIC|COUNT_ONLY|Count only</item>
+        <item>PROGRESS_METRIC|DISTANCE_OR_TIME_LOAD|Distance or time load</item>
+        <item>PROGRESS_METRIC|ESTIMATED_1RM|Estimated 1RM</item>
+        <item>PROGRESS_METRIC|LOAD_REPS|Load and repetitions</item>
+        <item>PROGRESS_METRIC|LOAD_REPS_OR_REPS|Load reps or reps</item>
+        <item>PROGRESS_METRIC|LOAD_REPS_OR_TIME|Load reps or time</item>
+        <item>PROGRESS_METRIC|MACHINE_LOAD_REPS|Machine load reps</item>
+        <item>PROGRESS_METRIC|NOT_APPLICABLE|Not applicable</item>
+        <item>PROGRESS_METRIC|QUALITY_BASED|Performance quality</item>
+        <item>PROGRESS_METRIC|QUALITY_LOAD_REPS|Quality load reps</item>
+        <item>PROGRESS_METRIC|REPS_AT_LOAD|Reps at load</item>
+        <item>PROGRESS_METRIC|REPS_OR_TIME|Repetitions or time</item>
+        <item>PROGRESS_METRIC|SESSION_DURATION|Session duration</item>
+        <item>PROGRESS_METRIC|TIME|Time</item>
+        <item>PROGRESS_METRIC|TIME_DISTANCE|Time and distance</item>
+        <item>PROGRESS_METRIC|TIME_DISTANCE_PACE_OR_INTENSITY|Time distance pace or intensity</item>
+        <item>PROGRESS_METRIC|TIME_OR_COMPLETION|Time or completion</item>
+        <item>PROGRESS_METRIC|TIME_OR_DISTANCE|Time or distance</item>
+        <item>PROGRESS_METRIC|TIME_OR_REPS|Time or reps</item>
+        <item>PROGRESS_METRIC|VOLUME_LOAD|Volume load</item>
+        <item>RECOVERY_DECAY|LONG|Long</item>
+        <item>RECOVERY_DECAY|MEDIUM|Medium</item>
+        <item>RECOVERY_DECAY|SHORT|Short</item>
+        <item>RECOVERY_DECAY|VERY_LONG|Very long</item>
+        <item>RECOVERY_DURATION|LONG|Long</item>
+        <item>RECOVERY_DURATION|MEDIUM|Medium</item>
+        <item>RECOVERY_DURATION|SHORT|Short</item>
+        <item>RECOVERY_DURATION|VERY_LONG|Very long</item>
+        <item>REDUNDANCY_GROUP|ACCESSORY_ROTATION|Accessory rotation</item>
+        <item>REDUNDANCY_GROUP|ANKLE_STIFFNESS_SSC_CONDITIONING|Ankle stiffness SSC conditioning</item>
+        <item>REDUNDANCY_GROUP|ANTERIOR_CORE_FLEXION|Anterior core flexion</item>
+        <item>REDUNDANCY_GROUP|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic overhead press support</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_COURT_FOOTWORK|Badminton court footwork</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_DECEL_COD|Badminton decel COD</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_FOOTWORK_REACTION|Badminton footwork reaction</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_REACTIVE_LUNGE_FOOTWORK|Badminton reactive lunge footwork</item>
+        <item>REDUNDANCY_GROUP|BALLISTIC_HINGE_POWER|Ballistic hinge power</item>
+        <item>REDUNDANCY_GROUP|BAND_ROTATIONAL_CHAIN|Band rotational chain</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_CONDITIONING_CORE|Bodyweight conditioning core</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_CONDITIONING_POWER|Bodyweight conditioning power</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_HORIZONTAL_PUSH|Bodyweight horizontal push</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_SQUAT_PATTERN|Bodyweight squat pattern</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_VERTICAL_PUSH|Bodyweight vertical push</item>
+        <item>REDUNDANCY_GROUP|CABLE_ROTATIONAL_CHAIN|Cable rotational chain</item>
+        <item>REDUNDANCY_GROUP|CALF_ACHILLES_ANKLE_STIFFNESS|Calf achilles ankle stiffness</item>
+        <item>REDUNDANCY_GROUP|CALF_ANKLE_CAPACITY|Calf ankle capacity</item>
+        <item>REDUNDANCY_GROUP|CARDIO_CONDITIONING|Cardio conditioning</item>
+        <item>REDUNDANCY_GROUP|CARRY_GRIP_CORE_BRACING|Carry grip core bracing</item>
+        <item>REDUNDANCY_GROUP|CHEST_FLY_ISOLATION|Chest fly isolation</item>
+        <item>REDUNDANCY_GROUP|CLOSE_GRIP_BENCH_TRICEPS_PUSH|Close grip bench triceps push</item>
+        <item>REDUNDANCY_GROUP|CORE_BRACING_CONTROL|Core bracing control</item>
+        <item>REDUNDANCY_GROUP|DIP_COMPOUND_PUSH|Dip compound push</item>
+        <item>REDUNDANCY_GROUP|DIP_TRICEPS_PUSH|Dip triceps push</item>
+        <item>REDUNDANCY_GROUP|DUMBBELL_RDL_HINGE_ACCESSORY|Dumbbell RDL hinge accessory</item>
+        <item>REDUNDANCY_GROUP|ELBOW_EXTENSION_TRICEPS|Elbow extension triceps</item>
+        <item>REDUNDANCY_GROUP|ELBOW_FLEXION_CURL|Elbow flexion curl</item>
+        <item>REDUNDANCY_GROUP|ELBOW_FLEXION_NEUTRAL_PRONATED_CURL|Elbow flexion neutral pronated curl</item>
+        <item>REDUNDANCY_GROUP|FOREARM_GRIP_ELBOW_SUPPORT|Forearm grip elbow support</item>
+        <item>REDUNDANCY_GROUP|FOREARM_WRIST_GRIP_ACCESSORY|Forearm wrist grip accessory</item>
+        <item>REDUNDANCY_GROUP|FRONTAL_PLANE_SQUAT_ACCESSORY|Frontal plane squat accessory</item>
+        <item>REDUNDANCY_GROUP|GLUTE_ISOLATION_ACCESSORY|Glute isolation accessory</item>
+        <item>REDUNDANCY_GROUP|HALF_KNEELING_UNILATERAL_VERTICAL_PUSH|Half kneeling unilateral vertical push</item>
+        <item>REDUNDANCY_GROUP|HAMSTRING_KNEE_FLEXION_ISOLATION|Hamstring knee flexion isolation</item>
+        <item>REDUNDANCY_GROUP|HANDSTAND_VERTICAL_PUSH|Handstand vertical push</item>
+        <item>REDUNDANCY_GROUP|HEAVY_HINGE|Heavy hinge</item>
+        <item>REDUNDANCY_GROUP|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|Hip abduction glute med accessory</item>
+        <item>REDUNDANCY_GROUP|HIP_ADDUCTION_ACCESSORY|Hip adduction accessory</item>
+        <item>REDUNDANCY_GROUP|HIP_EXTENSION_ACCESSORY|Hip extension accessory</item>
+        <item>REDUNDANCY_GROUP|HIP_HINGE_POSTERIOR_CHAIN|Hip hinge posterior chain</item>
+        <item>REDUNDANCY_GROUP|HIP_THRUST_GLUTE|Hip thrust glute</item>
+        <item>REDUNDANCY_GROUP|HORIZONTAL_PULL_COMPOUND|Horizontal pull compound</item>
+        <item>REDUNDANCY_GROUP|HORIZONTAL_PUSH_COMPOUND|Horizontal push compound</item>
+        <item>REDUNDANCY_GROUP|KNEE_EXTENSION_QUAD_ISOLATION|Knee extension quad isolation</item>
+        <item>REDUNDANCY_GROUP|LANDMINE_ROTATIONAL_CHAIN|Landmine rotational chain</item>
+        <item>REDUNDANCY_GROUP|LATERAL_CONTINUOUS_SSC|Lateral continuous SSC</item>
+        <item>REDUNDANCY_GROUP|LATERAL_DECELERATION_SSC|Lateral deceleration SSC</item>
+        <item>REDUNDANCY_GROUP|LATERAL_DELTOID_ISOLATION|Lateral deltoid isolation</item>
+        <item>REDUNDANCY_GROUP|LOADED_ROTATIONAL_CHAIN|Loaded rotational chain</item>
+        <item>REDUNDANCY_GROUP|LOWER_BODY_ISOMETRIC_HOLD|Lower body isometric hold</item>
+        <item>REDUNDANCY_GROUP|LOWER_SQUAT_PATTERN|Lower squat pattern</item>
+        <item>REDUNDANCY_GROUP|LOW_LOAD_POSTERIOR_CHAIN_CONTROL|Low load posterior chain control</item>
+        <item>REDUNDANCY_GROUP|LUNGE_UNILATERAL_LOWER|Lunge unilateral lower</item>
+        <item>REDUNDANCY_GROUP|MACHINE_KNEE_DOMINANT_PRESS|Machine knee dominant press</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_EXPLOSIVE_THROW|Med ball explosive throw</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_OVERHEAD_POWER|Med ball overhead power</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_ROTATIONAL_POWER|Med ball rotational power</item>
+        <item>REDUNDANCY_GROUP|MOBILITY_RECOVERY_PREP|Mobility recovery prep</item>
+        <item>REDUNDANCY_GROUP|NORDIC_HAMSTRING_ECCENTRIC|Nordic hamstring eccentric</item>
+        <item>REDUNDANCY_GROUP|NOT_APPLICABLE|Not applicable</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_PRESS_SHOULDER_DOMINANT|Overhead press shoulder dominant</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_SMASH_SUPPORT|Overhead smash support</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_TRICEPS_LONG_HEAD|Overhead triceps long head</item>
+        <item>REDUNDANCY_GROUP|PLYOMETRIC_LUNGE_SSC|Plyometric lunge SSC</item>
+        <item>REDUNDANCY_GROUP|POSTERIOR_DELTOID_HORIZONTAL_ABDUCTION|Posterior deltoid horizontal abduction</item>
+        <item>REDUNDANCY_GROUP|POWER_REACTIVE_LOW_VOLUME|Power reactive low volume</item>
+        <item>REDUNDANCY_GROUP|PULLOVER_LAT_CHEST_ACCESSORY|Pullover lat chest accessory</item>
+        <item>REDUNDANCY_GROUP|QUAD_ECCENTRIC_KNEE_DOMINANT|Quad eccentric knee dominant</item>
+        <item>REDUNDANCY_GROUP|RECOVERY_PREHAB_LIGHT|Recovery prehab light</item>
+        <item>REDUNDANCY_GROUP|ROTATIONAL_KINETIC_CHAIN|Rotational kinetic chain</item>
+        <item>REDUNDANCY_GROUP|ROTATOR_CUFF_PREHAB|Rotator cuff prehab</item>
+        <item>REDUNDANCY_GROUP|RUNNING_MECHANICS_SUPPORT|Running mechanics support</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_PROTRACTION_CONTROL|Scapular protraction control</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_RETRACTION_EXTERNAL_ROTATION|Scapular retraction external rotation</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_SHOULDER_CONTROL|Scapular shoulder control</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_SHOULDER_SUPPORT|Scapular shoulder support</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_UPWARD_ROTATION_CONTROL|Scapular upward rotation control</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_HINGE_STABILITY|Single leg hinge stability</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_SQUAT_STABILITY|Single leg squat stability</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_STRENGTH_CONTROL|Single leg strength control</item>
+        <item>REDUNDANCY_GROUP|SPRINT_ACCELERATION_CONDITIONING|Sprint acceleration conditioning</item>
+        <item>REDUNDANCY_GROUP|SQUAT_PATTERN_ACCESSORY|Squat pattern accessory</item>
+        <item>REDUNDANCY_GROUP|SQUAT_PATTERN_HEAVY_LOWER|Squat pattern heavy lower</item>
+        <item>REDUNDANCY_GROUP|STEP_UP_SINGLE_LEG_KNEE_HIP_EXTENSION|Step up single leg knee hip extension</item>
+        <item>REDUNDANCY_GROUP|STRAIGHT_ARM_LAT_ACCESSORY|Straight arm lat accessory</item>
+        <item>REDUNDANCY_GROUP|TOTAL_BODY_STABILITY_SKILL|Total body stability skill</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_MOVEMENT|Trunk anti movement</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_ROTATION_CONTROL|Trunk anti rotation control</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_ROTATION_STABILITY|Trunk anti rotation stability</item>
+        <item>REDUNDANCY_GROUP|UNILATERAL_HORIZONTAL_PUSH|Unilateral horizontal push</item>
+        <item>REDUNDANCY_GROUP|UNILATERAL_INCLINE_PUSH|Unilateral incline push</item>
+        <item>REDUNDANCY_GROUP|UPPER_PULL_ANCHOR|Upper pull anchor</item>
+        <item>REDUNDANCY_GROUP|UPPER_PUSH_SUPPORT|Upper push support</item>
+        <item>REDUNDANCY_GROUP|VERTICAL_JUMP_SSC|Vertical jump SSC</item>
+        <item>REDUNDANCY_GROUP|VERTICAL_PULL_COMPOUND|Vertical pull compound</item>
+        <item>REDUNDANCY_GROUP|VIPR_ROTATIONAL_CHAIN|VIPR rotational chain</item>
+        <item>SECONDARY_STRESS|ACCELERATION_DECELERATION_LOAD|Acceleration deceleration load</item>
+        <item>SECONDARY_STRESS|ACCELERATION_LOAD|Acceleration load</item>
+        <item>SECONDARY_STRESS|AEROBIC_ANAEROBIC_LOAD|Aerobic anaerobic load</item>
+        <item>SECONDARY_STRESS|ANTERIOR_CORE_LOAD|Anterior core load</item>
+        <item>SECONDARY_STRESS|ANTERIOR_DELTOID_LOAD|Anterior deltoid load</item>
+        <item>SECONDARY_STRESS|ANTERIOR_SHOULDER_LOAD|Anterior shoulder load</item>
+        <item>SECONDARY_STRESS|ANTI_ROTATION|Anti rotation</item>
+        <item>SECONDARY_STRESS|ANTI_ROTATION_LOAD|Anti rotation load</item>
+        <item>SECONDARY_STRESS|BARBELL_LOAD|Barbell load</item>
+        <item>SECONDARY_STRESS|BICEPS_LOAD|Biceps load</item>
+        <item>SECONDARY_STRESS|BICEPS_LOCAL_LOAD|Biceps local load</item>
+        <item>SECONDARY_STRESS|BODYWEIGHT_LOAD|Bodyweight load</item>
+        <item>SECONDARY_STRESS|BRACHIALIS_BRACHIORADIALIS_LOAD|Brachialis brachioradialis load</item>
+        <item>SECONDARY_STRESS|CALF_ANKLE_SSC_LOAD|Calf ankle SSC load</item>
+        <item>SECONDARY_STRESS|CHANGE_OF_DIRECTION_LOAD|Change of direction load</item>
+        <item>SECONDARY_STRESS|CHEST_LOAD|Chest load</item>
+        <item>SECONDARY_STRESS|CONDITIONING_LOAD|Conditioning load</item>
+        <item>SECONDARY_STRESS|CORE_BRACING_LOAD|Core bracing load</item>
+        <item>SECONDARY_STRESS|COURT_MOVEMENT_LOAD|Court movement load</item>
+        <item>SECONDARY_STRESS|DECELERATION|Deceleration</item>
+        <item>SECONDARY_STRESS|DECELERATION_LOAD|Deceleration load</item>
+        <item>SECONDARY_STRESS|DELTOID_LOAD|Deltoid load</item>
+        <item>SECONDARY_STRESS|ELASTIC_SSC|Elastic SSC</item>
+        <item>SECONDARY_STRESS|ELASTIC_SSC_LOAD|Elastic SSC load</item>
+        <item>SECONDARY_STRESS|ELBOW_EXTENSION_LOAD|Elbow extension load</item>
+        <item>SECONDARY_STRESS|ELBOW_FLEXION_LOAD|Elbow flexion load</item>
+        <item>SECONDARY_STRESS|EXTERNAL_LOAD|External load</item>
+        <item>SECONDARY_STRESS|FRONTAL_PLANE_LOAD|Frontal plane load</item>
+        <item>SECONDARY_STRESS|GLUTE_LOAD|Glute load</item>
+        <item>SECONDARY_STRESS|GLUTE_LOCAL_LOAD|Glute local load</item>
+        <item>SECONDARY_STRESS|GLUTE_MED_LOCAL_LOAD|Glute med local load</item>
+        <item>SECONDARY_STRESS|GRIP_FOREARM|Grip forearm</item>
+        <item>SECONDARY_STRESS|GRIP_FOREARM_LOAD|Grip forearm load</item>
+        <item>SECONDARY_STRESS|GRIP_LOAD|Grip load</item>
+        <item>SECONDARY_STRESS|HAMSTRING_LOAD|Hamstring load</item>
+        <item>SECONDARY_STRESS|HAMSTRING_LOCAL_LOAD|Hamstring local load</item>
+        <item>SECONDARY_STRESS|HEAVY_LOAD|Heavy load</item>
+        <item>SECONDARY_STRESS|HIP_ABDUCTION_LOAD|Hip abduction load</item>
+        <item>SECONDARY_STRESS|HIP_ADDUCTOR_LOCAL_LOAD|Hip adductor local load</item>
+        <item>SECONDARY_STRESS|HIP_CONTROL_LOAD|Hip control load</item>
+        <item>SECONDARY_STRESS|HIP_EXTENSION_LOAD|Hip extension load</item>
+        <item>SECONDARY_STRESS|HIP_FLEXION_LOAD|Hip flexion load</item>
+        <item>SECONDARY_STRESS|HIP_STABILITY_LOAD|Hip stability load</item>
+        <item>SECONDARY_STRESS|JUMP_LANDING_LOAD|Jump landing load</item>
+        <item>SECONDARY_STRESS|KNEE_CONTROL_LOAD|Knee control load</item>
+        <item>SECONDARY_STRESS|KNEE_EXTENSION_LOAD|Knee extension load</item>
+        <item>SECONDARY_STRESS|KNEE_FLEXION_LOAD|Knee flexion load</item>
+        <item>SECONDARY_STRESS|LANDING_LOAD|Landing load</item>
+        <item>SECONDARY_STRESS|LATERAL_DELTOID_LOCAL_LOAD|Lateral deltoid local load</item>
+        <item>SECONDARY_STRESS|LATERAL_MOVEMENT_LOAD|Lateral movement load</item>
+        <item>SECONDARY_STRESS|LAT_LOAD|Lat load</item>
+        <item>SECONDARY_STRESS|LAT_LOCAL_LOAD|Lat local load</item>
+        <item>SECONDARY_STRESS|LOCAL_MUSCLE|Local muscle</item>
+        <item>SECONDARY_STRESS|LOCAL_STABILIZER_LOAD|Local stabilizer load</item>
+        <item>SECONDARY_STRESS|LOWER_BODY_POWER_LOAD|Lower body power load</item>
+        <item>SECONDARY_STRESS|LOW_FATIGUE_REHAB|Low fatigue rehab</item>
+        <item>SECONDARY_STRESS|LOW_LOAD_CONTROL|Low load control</item>
+        <item>SECONDARY_STRESS|LUNGE_REACH_LOAD|Lunge reach load</item>
+        <item>SECONDARY_STRESS|MACHINE_GUIDED_LOAD|Machine guided load</item>
+        <item>SECONDARY_STRESS|MOBILITY_CONTROL_LOAD|Mobility control load</item>
+        <item>SECONDARY_STRESS|NEURAL_HEAVY|Neural heavy</item>
+        <item>SECONDARY_STRESS|NEURAL_LOAD|Neural load</item>
+        <item>SECONDARY_STRESS|NEURAL_SPEED|Neural speed</item>
+        <item>SECONDARY_STRESS|NEURAL_SPEED_LOAD|Neural speed load</item>
+        <item>SECONDARY_STRESS|OVERHEAD_RACKET_LOAD|Overhead racket load</item>
+        <item>SECONDARY_STRESS|OVERHEAD_REPETITION|Overhead repetition</item>
+        <item>SECONDARY_STRESS|OVERHEAD_REPETITION_LOAD|Overhead repetition load</item>
+        <item>SECONDARY_STRESS|PECTORAL_LOAD|Pectoral load</item>
+        <item>SECONDARY_STRESS|PECTORAL_LOCAL_LOAD|Pectoral local load</item>
+        <item>SECONDARY_STRESS|POSTERIOR_DELTOID_LOCAL_LOAD|Posterior deltoid local load</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_ISOMETRIC_LOAD|Quadriceps isometric load</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_LOAD|Quadriceps load</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_LOCAL_LOAD|Quadriceps local load</item>
+        <item>SECONDARY_STRESS|QUAD_LOAD|Quad load</item>
+        <item>SECONDARY_STRESS|RACKET_SKILL_LOAD|Racket skill load</item>
+        <item>SECONDARY_STRESS|REACTIVE_MOVEMENT_LOAD|Reactive movement load</item>
+        <item>SECONDARY_STRESS|REACTIVE_SSC_LOAD|Reactive SSC load</item>
+        <item>SECONDARY_STRESS|REAR_DELTOID_LOAD|Rear deltoid load</item>
+        <item>SECONDARY_STRESS|REPEATED_PATTERN_LOAD|Repeated pattern load</item>
+        <item>SECONDARY_STRESS|REPEATED_SPRINT_LOAD|Repeated sprint load</item>
+        <item>SECONDARY_STRESS|ROTATION_POWER|Rotation power</item>
+        <item>SECONDARY_STRESS|ROTATION_POWER_LOAD|Rotation power load</item>
+        <item>SECONDARY_STRESS|RUNNING_MECHANICS_LOAD|Running mechanics load</item>
+        <item>SECONDARY_STRESS|SCAPULAR_CONTROL_LOAD|Scapular control load</item>
+        <item>SECONDARY_STRESS|SCAPULAR_RETRACTION_LOAD|Scapular retraction load</item>
+        <item>SECONDARY_STRESS|SCAPULAR_STABILITY_LOAD|Scapular stability load</item>
+        <item>SECONDARY_STRESS|SHOULDER_CONTROL_LOAD|Shoulder control load</item>
+        <item>SECONDARY_STRESS|SHOULDER_EXTENSION_LOAD|Shoulder extension load</item>
+        <item>SECONDARY_STRESS|SHOULDER_ROTATION_LOAD|Shoulder rotation load</item>
+        <item>SECONDARY_STRESS|SHOULDER_STABILITY_LOAD|Shoulder stability load</item>
+        <item>SECONDARY_STRESS|SINGLE_LEG_STABILITY_LOAD|Single leg stability load</item>
+        <item>SECONDARY_STRESS|STABILITY_COORDINATION_LOAD|Stability coordination load</item>
+        <item>SECONDARY_STRESS|STRAIGHT_ARM_SHOULDER_EXTENSION_LOAD|Straight arm shoulder extension load</item>
+        <item>SECONDARY_STRESS|SYSTEMIC|Systemic</item>
+        <item>SECONDARY_STRESS|SYSTEMIC_CONDITIONING_LOAD|Systemic conditioning load</item>
+        <item>SECONDARY_STRESS|TOTAL_BODY_COORDINATION_LOAD|Total body coordination load</item>
+        <item>SECONDARY_STRESS|TRICEPS_LOAD|Triceps load</item>
+        <item>SECONDARY_STRESS|TRICEPS_LOCAL_LOAD|Triceps local load</item>
+        <item>SECONDARY_STRESS|UNILATERAL_CONTROL_LOAD|Unilateral control load</item>
+        <item>SECONDARY_STRESS|UPPER_BACK_LOAD|Upper back load</item>
+        <item>SECONDARY_STRESS|WRIST_CONTROL_LOAD|Wrist control load</item>
+        <item>SOURCE_CONFIDENCE|ANATOMY_SUPPORTED|Anatomy supported</item>
+        <item>SOURCE_CONFIDENCE|HEURISTIC_ACCEPTED|Heuristic accepted</item>
+        <item>SOURCE_CONFIDENCE|SOURCE_WEAK_BUT_ACCEPTABLE|Source weak but acceptable</item>
+        <item>SOURCE_CONFIDENCE|VERIFIED_EXACT|Verified exact</item>
+        <item>SOURCE_CONFIDENCE|VERIFIED_FAMILY|Verified family</item>
+        <item>SPORT_CONTEXT|BADMINTON_DIRECT_TRANSFER|Badminton direct transfer</item>
+        <item>SPORT_CONTEXT|BADMINTON_FOOTWORK|Badminton footwork</item>
+        <item>SPORT_CONTEXT|BADMINTON_LESSON|Badminton lesson</item>
+        <item>SPORT_CONTEXT|BADMINTON_LUNGE_REACH|Badminton lunge reach</item>
+        <item>SPORT_CONTEXT|BADMINTON_MATCH|Badminton match</item>
+        <item>SPORT_CONTEXT|BADMINTON_MULTI_SHUTTLE|Badminton multi shuttle</item>
+        <item>SPORT_CONTEXT|BADMINTON_OVERHEAD_TEST|Badminton overhead test</item>
+        <item>SPORT_CONTEXT|BADMINTON_RALLY|Badminton rally</item>
+        <item>SPORT_CONTEXT|GENERAL_CONDITIONING|General conditioning</item>
+        <item>SPORT_CONTEXT|GENERAL_COURT_SPORT|General court sport</item>
+        <item>SPORT_CONTEXT|NONE|None</item>
+        <item>SPORT_CONTEXT|OTHER_SPORT_SESSION|Other sport session</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ACCESSORY_ROTATION|Accessory rotation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ANTERIOR_CORE_FLEXION|Anterior core flexion</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ANTI_ROTATION|Anti rotation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic overhead press support</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_DECEL_COD|Badminton decel COD</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_FOOTWORK_REACTION|Badminton footwork reaction</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_TEST|Badminton test</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BALLISTIC_HINGE_POWER|Ballistic hinge power</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_CONDITIONING_CORE|Bodyweight conditioning core</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_HORIZONTAL_PUSH|Bodyweight horizontal push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_SQUAT_PATTERN|Bodyweight squat pattern</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_VERTICAL_PUSH|Bodyweight vertical push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CALF_ACHILLES_ANKLE_STIFFNESS|Calf achilles ankle stiffness</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CALF_ANKLE_CAPACITY|Calf ankle capacity</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARDIO_CONDITIONING|Cardio conditioning</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARRY|Carry</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARRY_GRIP_CORE_BRACING|Carry grip core bracing</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CHEST_FLY_ISOLATION|Chest fly isolation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CLOSE_GRIP_BENCH_TRICEPS_PUSH|Close grip bench triceps push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CORE|Core</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CORE_BRACING_CONTROL|Core bracing control</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DIP_COMPOUND_PUSH|Dip compound push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DIP_TRICEPS_PUSH|Dip triceps push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DUMBBELL_RDL_HINGE_ACCESSORY|Dumbbell RDL hinge accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_EXTENSION_TRICEPS|Elbow extension triceps</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_FLEXION_CURL|Elbow flexion curl</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_FLEXION_NEUTRAL_PRONATED_CURL|Elbow flexion neutral pronated curl</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FOREARM_GRIP_ELBOW_SUPPORT|Forearm grip elbow support</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FOREARM_WRIST_GRIP_ACCESSORY|Forearm wrist grip accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FRONTAL_PLANE_SQUAT_ACCESSORY|Frontal plane squat accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|GLUTE_ISOLATION_ACCESSORY|Glute isolation accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HALF_KNEELING_UNILATERAL_VERTICAL_PUSH|Half kneeling unilateral vertical push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HAMSTRING_KNEE_FLEXION_ISOLATION|Hamstring knee flexion isolation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HANDSTAND_VERTICAL_PUSH|Handstand vertical push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HEAVY_HINGE|Heavy hinge</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HINGE|Hinge</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|Hip abduction glute med accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_ADDUCTION_ACCESSORY|Hip adduction accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_EXTENSION_ACCESSORY|Hip extension accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_HINGE_POSTERIOR_CHAIN|Hip hinge posterior chain</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_THRUST_GLUTE|Hip thrust glute</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HORIZONTAL_PULL_COMPOUND|Horizontal pull compound</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HORIZONTAL_PUSH_COMPOUND|Horizontal push compound</item>
+        <item>STRENGTH_PROGRESSION_GROUP|KNEE_EXTENSION_QUAD_ISOLATION|Knee extension quad isolation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LATERAL_DELTOID_ISOLATION|Lateral deltoid isolation</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOWER_BODY_ISOMETRIC_HOLD|Lower body isometric hold</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOWER_SQUAT_PATTERN|Lower squat pattern</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOW_LOAD_POSTERIOR_CHAIN_CONTROL|Low load posterior chain control</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LUNGE|Lunge</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LUNGE_UNILATERAL_LOWER|Lunge unilateral lower</item>
+        <item>STRENGTH_PROGRESSION_GROUP|MACHINE_KNEE_DOMINANT_PRESS|Machine knee dominant press</item>
+        <item>STRENGTH_PROGRESSION_GROUP|MOBILITY_RECOVERY_PREP|Mobility recovery prep</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NONE|None</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NORDIC_HAMSTRING_ECCENTRIC|Nordic hamstring eccentric</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NOT_APPLICABLE|Not applicable</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_PRESS_SHOULDER_DOMINANT|Overhead press shoulder dominant</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_SMASH_SUPPORT|Overhead smash support</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_TRICEPS_LONG_HEAD|Overhead triceps long head</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POSTERIOR_DELTOID_HORIZONTAL_ABDUCTION|Posterior deltoid horizontal abduction</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POWER_CORE_SHOULDER|Power core shoulder</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POWER_REACTIVE_LOW_VOLUME|Power reactive low volume</item>
+        <item>STRENGTH_PROGRESSION_GROUP|PULLOVER_LAT_CHEST_ACCESSORY|Pullover lat chest accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|QUAD_ECCENTRIC_KNEE_DOMINANT|Quad eccentric knee dominant</item>
+        <item>STRENGTH_PROGRESSION_GROUP|RECOVERY_PREHAB_LIGHT|Recovery prehab light</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ROTATIONAL_KINETIC_CHAIN|Rotational kinetic chain</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ROTATION_POWER|Rotation power</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SCAPULAR_SHOULDER_SUPPORT|Scapular shoulder support</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SHOULDER_OVERHEAD|Shoulder overhead</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_HINGE_STABILITY|Single leg hinge stability</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_SQUAT_STABILITY|Single leg squat stability</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_STRENGTH_CONTROL|Single leg strength control</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT|Squat</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT_PATTERN_ACCESSORY|Squat pattern accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT_PATTERN_HEAVY_LOWER|Squat pattern heavy lower</item>
+        <item>STRENGTH_PROGRESSION_GROUP|STEP_UP_SINGLE_LEG_KNEE_HIP_EXTENSION|Step up single leg knee hip extension</item>
+        <item>STRENGTH_PROGRESSION_GROUP|STRAIGHT_ARM_LAT_ACCESSORY|Straight arm lat accessory</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TOTAL_BODY_STABILITY_SKILL|Total body stability skill</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TRUNK_ANTI_MOVEMENT|Trunk anti movement</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TRUNK_ANTI_ROTATION_STABILITY|Trunk anti rotation stability</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UNILATERAL_HORIZONTAL_PUSH|Unilateral horizontal push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UNILATERAL_INCLINE_PUSH|Unilateral incline push</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_ANCHOR|Upper pull anchor</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_HORIZONTAL|Upper pull horizontal</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_VERTICAL|Upper pull vertical</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_HORIZONTAL|Upper push horizontal</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_SUPPORT|Upper push support</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_VERTICAL|Upper push vertical</item>
+        <item>STRENGTH_PROGRESSION_GROUP|VERTICAL_PULL_COMPOUND|Vertical pull compound</item>
+        <item>STRESS_LEVEL|HIGH|High</item>
+        <item>STRESS_LEVEL|LOW|Low</item>
+        <item>STRESS_LEVEL|MODERATE|Moderate</item>
+        <item>STRESS_LEVEL|VERY_HIGH|Very high</item>
+        <item>SUPPORTIVE_TRANSFER|ACCELERATION|Acceleration</item>
+        <item>SUPPORTIVE_TRANSFER|ANTI_ROTATION_STABILITY|Anti rotation stability</item>
+        <item>SUPPORTIVE_TRANSFER|CONDITIONING|Conditioning</item>
+        <item>SUPPORTIVE_TRANSFER|DECELERATION|Deceleration</item>
+        <item>SUPPORTIVE_TRANSFER|FOOTWORK|Footwork</item>
+        <item>SUPPORTIVE_TRANSFER|GRIP_FOREARM|Grip forearm</item>
+        <item>SUPPORTIVE_TRANSFER|JUMP_LANDING|Jump landing</item>
+        <item>SUPPORTIVE_TRANSFER|LUNGE_REACH|Lunge reach</item>
+        <item>SUPPORTIVE_TRANSFER|NONE|None</item>
+        <item>SUPPORTIVE_TRANSFER|OVERHEAD_POWER|Overhead power</item>
+        <item>SUPPORTIVE_TRANSFER|REACTION|Reaction</item>
+        <item>SUPPORTIVE_TRANSFER|ROTATION_POWER|Rotation power</item>
+        <item>SUPPORTIVE_TRANSFER|SHOULDER_CARE|Shoulder care</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|HIGH|High</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|LOW|Low</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|MODERATE|Moderate</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|VERY_HIGH|Very high</item>
+        <item>TENDON_STRESS|ACHILLES_TENDON_STRESS|Achilles tendon stress</item>
+        <item>TENDON_STRESS|ADDUCTOR_TENDON_STRESS|Adductor tendon stress</item>
+        <item>TENDON_STRESS|ANKLE_ACHILLES|Ankle achilles</item>
+        <item>TENDON_STRESS|BICEPS_TENDON_STRESS|Biceps tendon stress</item>
+        <item>TENDON_STRESS|ELBOW|Elbow</item>
+        <item>TENDON_STRESS|ELBOW_TENDON_STRESS|Elbow tendon stress</item>
+        <item>TENDON_STRESS|FOREARM_EXTENSOR_TENDON_STRESS|Forearm extensor tendon stress</item>
+        <item>TENDON_STRESS|FOREARM_FLEXOR_TENDON_STRESS|Forearm flexor tendon stress</item>
+        <item>TENDON_STRESS|GLUTE_MED_TENDON_STRESS|Glute med tendon stress</item>
+        <item>TENDON_STRESS|HAMSTRING_TENDON_STRESS|Hamstring tendon stress</item>
+        <item>TENDON_STRESS|HIP|Hip</item>
+        <item>TENDON_STRESS|KNEE|Knee</item>
+        <item>TENDON_STRESS|LOW_BACK|Low back</item>
+        <item>TENDON_STRESS|NONE|None</item>
+        <item>TENDON_STRESS|PATELLAR_TENDON_STRESS|Patellar tendon stress</item>
+        <item>TENDON_STRESS|PECTORAL_TENDON_STRESS|Pectoral tendon stress</item>
+        <item>TENDON_STRESS|QUADRICEPS_TENDON_STRESS|Quadriceps tendon stress</item>
+        <item>TENDON_STRESS|QUAD_TENDON_STRESS|Quad tendon stress</item>
+        <item>TENDON_STRESS|ROTATOR_CUFF_TENDON_STRESS|Rotator cuff tendon stress</item>
+        <item>TENDON_STRESS|SHOULDER|Shoulder</item>
+        <item>TENDON_STRESS|SHOULDER_TENDON_STRESS|Shoulder tendon stress</item>
+        <item>TENDON_STRESS|TRICEPS_TENDON_STRESS|Triceps tendon stress</item>
+        <item>TENDON_STRESS|WRIST|Wrist</item>
+        <item>TRAINING_ROLE|ACCESSORY|Accessory</item>
+        <item>TRAINING_ROLE|CONDITIONING|Conditioning</item>
+        <item>TRAINING_ROLE|MAIN_STRENGTH|Main strength</item>
+        <item>TRAINING_ROLE|MOBILITY|Mobility</item>
+        <item>TRAINING_ROLE|PLYOMETRIC|Plyometric</item>
+        <item>TRAINING_ROLE|POWER|Power</item>
+        <item>TRAINING_ROLE|PREHAB|Prehab</item>
+        <item>TRAINING_ROLE|RECOVERY|Recovery</item>
+        <item>TRAINING_ROLE|SECONDARY_STRENGTH|Secondary strength</item>
+        <item>TRAINING_ROLE|SKILL|Skill</item>
+        <item>TRAINING_ROLE|SPEED_REACTIVE|Speed reactive</item>
+        <item>TRAINING_ROLE|STABILITY|Stability</item>
+        <item>TRAINING_ROLE|TEST|Test</item>
+        <item>TRANSFER_CONFIDENCE|HIGH|High</item>
+        <item>TRANSFER_CONFIDENCE|LOW|Low</item>
+        <item>TRANSFER_CONFIDENCE|MEDIUM|Medium</item>
+        <item>TRANSFER_CONFIDENCE|NONE|Not assessed</item>
+    </string-array>
+</resources>

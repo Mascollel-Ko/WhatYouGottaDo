@@ -13,13 +13,17 @@ class ProgramBuildProgressStateTest {
         )
         val completed: ProgramBuildProgressState = ProgramBuildProgressState.Completed(
             skeleton = emptyProgramSkeleton(request(), emptyMap()),
-            summary = ProgramOptimizationSummary(messages = listOf("45분 세션에 맞게 운동 수를 조정했습니다."))
+            summary = ProgramOptimizationSummary(
+                notices = listOf(
+                    ProgramUserNotice(ProgramUserNoticeCode.AUTOMATIC_QUALITY_ADJUSTMENT)
+                )
+            )
         )
         val failed: ProgramBuildProgressState = ProgramBuildProgressState.Failed("자동 골자 생성에 실패했습니다.")
 
         assertEquals(40, (running as ProgramBuildProgressState.Running).progressPercent)
         assertTrue(running.message.contains("메인 운동 후보"))
-        assertTrue((completed as ProgramBuildProgressState.Completed).summary.messages.isNotEmpty())
+        assertTrue((completed as ProgramBuildProgressState.Completed).summary.notices.isNotEmpty())
         assertTrue((failed as ProgramBuildProgressState.Failed).message.contains("실패"))
     }
 

@@ -284,9 +284,14 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             )
         ).withExerciseConstraintSummary()
 
-        assertTrue(skeleton.optimizationSummary.messages.any { it == "PROGRAM_EXCLUDED_EXERCISES_APPLIED: 1" })
-        assertTrue(skeleton.optimizationSummary.messages.any { it == "PROGRAM_PREFERRED_EXERCISES_INCLUDED: 1/2" })
-        assertFalse(skeleton.optimizationSummary.messages.any { it.contains("반영되지 않았습니다") })
+        assertTrue(skeleton.optimizationSummary.notices.any {
+            it.code == ProgramUserNoticeCode.EXCLUDED_EXERCISES_APPLIED && it.count == 1
+        })
+        assertTrue(skeleton.optimizationSummary.notices.any {
+            it.code == ProgramUserNoticeCode.PREFERRED_EXERCISES_INCLUDED &&
+                it.selectedCount == 1 &&
+                it.totalCount == 2
+        })
     }
 
     private fun candidate(slot: ProgramSlotId): ProgramCandidate =

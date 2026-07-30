@@ -223,6 +223,8 @@ data class RuntimeMetadataEditorOptions(
             .sorted()
 
     companion object {
+        internal fun knownValuesByField(): Map<String, List<String>> = defaultValuesByField
+
         fun from(metadata: Collection<RuntimeExerciseMetadata>): RuntimeMetadataEditorOptions {
             fun single(selector: (RuntimeExerciseMetadata) -> String): List<String> =
                 metadata.map(selector).filter(String::isNotBlank).distinct()

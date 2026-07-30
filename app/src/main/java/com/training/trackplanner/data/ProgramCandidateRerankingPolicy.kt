@@ -105,7 +105,7 @@ internal class ProgramCandidateRerankingPolicy(
         val LOADED_EQUIPMENT = setOf("BARBELL", "DUMBBELL", "MACHINE", "CABLE")
         val LOADED_NAME_HINTS = setOf(
             "barbell", "dumbbell", "machine", "cable", "squat", "deadlift", "row", "press",
-            "諛붾꺼", "?ㅻ꺼", "癒몄떊", "耳?대툝"
+            "바벨", "덤벨", "머신", "케이블"
         )
     }
 }

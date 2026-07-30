@@ -68,7 +68,12 @@ internal class ProgramAutoBuilder(
             warnings = missing.map { "RULE_TABLE_EXERCISE_FALLBACK: $it" },
             evaluation = null,
             optimizationSummary = ProgramOptimizationSummary(
-                messages = listOf("규칙표 기반으로 메인 운동, 근력 보조, 배드민턴 전이 보조를 배치했습니다.")
+                notices = listOf(
+                    ProgramUserNotice(
+                        code = ProgramUserNoticeCode.RULE_TABLE_STRUCTURE_CREATED,
+                        level = ProgramUserNoticeLevel.SUCCESS
+                    )
+                )
             ),
             templateId = "DETERMINISTIC_BADMINTON_RULE_TABLE",
             representativeTemplate = true

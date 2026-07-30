@@ -1,0 +1,1112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="metadata_display_entries">
+        <item>ACTIVITY_KIND|EXERCISE|운동</item>
+        <item>ACTIVITY_KIND|SPORT_SESSION|스포츠 세션</item>
+        <item>ANALYSIS_ELIGIBILITY|ACCESSORY_VOLUME|보조 볼륨</item>
+        <item>ANALYSIS_ELIGIBILITY|BADMINTON_SUPPORTIVE|배드민턴 보조</item>
+        <item>ANALYSIS_ELIGIBILITY|BADMINTON_TRANSFER|배드민턴 전이</item>
+        <item>ANALYSIS_ELIGIBILITY|BALANCE|균형</item>
+        <item>ANALYSIS_ELIGIBILITY|CONDITIONING|컨디셔닝</item>
+        <item>ANALYSIS_ELIGIBILITY|CONTROL|제어</item>
+        <item>ANALYSIS_ELIGIBILITY|COORDINATION|협응</item>
+        <item>ANALYSIS_ELIGIBILITY|CORE_ACCESSORY|코어 보조</item>
+        <item>ANALYSIS_ELIGIBILITY|CORE_STABILITY|코어 안정성</item>
+        <item>ANALYSIS_ELIGIBILITY|EXCLUDED_FROM_ANALYSIS|Excluded From Analysis</item>
+        <item>ANALYSIS_ELIGIBILITY|FATIGUE|피로도</item>
+        <item>ANALYSIS_ELIGIBILITY|FATIGUE_LOW|저피로도</item>
+        <item>ANALYSIS_ELIGIBILITY|HYPERTROPHY_VOLUME|근비대 볼륨</item>
+        <item>ANALYSIS_ELIGIBILITY|MOBILITY|가동성</item>
+        <item>ANALYSIS_ELIGIBILITY|PATTERN_QUALITY|패턴 품질</item>
+        <item>ANALYSIS_ELIGIBILITY|RECOVERY_CONTEXT|회복 맥락</item>
+        <item>ANALYSIS_ELIGIBILITY|RECOVERY_ONLY|회복 분석만</item>
+        <item>ANALYSIS_ELIGIBILITY|SESSION_LOAD|세션 부하</item>
+        <item>ANALYSIS_ELIGIBILITY|SHOULDER_STABILITY|어깨 안정성</item>
+        <item>ANALYSIS_ELIGIBILITY|SPORT_SESSION_LOAD|스포츠 세션 부하</item>
+        <item>ANALYSIS_ELIGIBILITY|STRENGTH_PROGRESS|근력 진행</item>
+        <item>ANALYSIS_ELIGIBILITY|STRENGTH_VOLUME|근력 볼륨</item>
+        <item>ANALYSIS_ELIGIBILITY|TEST_METRIC|테스트 지표</item>
+        <item>ANALYSIS_ELIGIBILITY|TEST_ONLY|테스트 만</item>
+        <item>AXIAL_LOAD|HIGH|높음</item>
+        <item>AXIAL_LOAD|LOW|낮음</item>
+        <item>AXIAL_LOAD|MODERATE|보통</item>
+        <item>AXIAL_LOAD|NONE|없음</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ACCELERATION|가속</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|AEROBIC_BASE|유산소 기초</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANAEROBIC_REPEATABILITY|무산소 반복 능력</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANKLE_STIFFNESS|발목 강성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTERIOR_CHAIN|전면 운동사슬</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTI_ROTATION|항 회전</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ANTI_ROTATION_STABILITY|항 회전 안정성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CALF_ACHILLES|종아리 아킬레스</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CALF_ELASTICITY|종아리 탄성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CORE_BRACING|코어 브레이싱</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|CROSSOVER|Crossover</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|DECELERATION|감속</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FIRST_STEP|첫 스텝</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FRONTAL_PLANE_CONTROL|전두면 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|FRONT_LUNGE|Front 런지</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|GRIP_ENDURANCE|그립 지구력</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|GRIP_FOREARM|그립 전완</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HINGE|힌지</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_CONTROL|고관절 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_KNEE_EXTENSION_STRENGTH|고관절 무릎 신전 근력</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|HIP_STABILITY|고관절 안정성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|JUMP_LANDING|점프 착지</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|KNEE_CONTROL|무릎 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LATERAL_MOVE|측면 Move</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_BODY_FORCE|하체 힘</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_PULL|하체 당기기</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|LOWER_PUSH|하체 밀기</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|MULTI_DIRECTION|다방향 방향</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|NONE|없음</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|POSTERIOR_CHAIN|후면 운동사슬</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REACTION_RANDOM|반응 Random</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REACTIVE_AGILITY|반응성 민첩성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|REAR_COURT|후면 코트</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|RECOVERY_STEP|회복 Step</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATION|회전</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_CONTROL|회전 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_POWER|회전 파워</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATIONAL_STRENGTH|회전 근력</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|ROTATOR_CUFF_CONTROL|회전근개 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SCAPULAR_CONTROL|견갑 제어</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SCAPULAR_STABILITY|견갑 안정성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SHOULDER_CARE|어깨 관리</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SHOULDER_DURABILITY|어깨 지구성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SINGLE_LEG_STABILITY|한발 안정성</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SPLIT_STEP|스플릿 스텝</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|SQUAT_PATTERN|스쿼트 패턴</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UNILATERAL_LOWER|편측 하체</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UNILATERAL_UPPER|편측 상체</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_BODY_EXPLOSIVE_POWER|상체 폭발력</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_PULL|상체 당기기</item>
+        <item>BADMINTON_PHYSICAL_QUALITY|UPPER_PUSH|상체 밀기</item>
+        <item>BADMINTON_SKILL_TARGET|ANTI_ROTATION_STABILITY|항 회전 안정성</item>
+        <item>BADMINTON_SKILL_TARGET|CHANGE_OF_DIRECTION|방향 전환</item>
+        <item>BADMINTON_SKILL_TARGET|CONDITIONING|컨디셔닝</item>
+        <item>BADMINTON_SKILL_TARGET|DECELERATION_CONTROL|감속 제어</item>
+        <item>BADMINTON_SKILL_TARGET|DEFENSIVE_COVERAGE|수비 범위</item>
+        <item>BADMINTON_SKILL_TARGET|DRIVE|Drive</item>
+        <item>BADMINTON_SKILL_TARGET|FIRST_STEP|첫 스텝</item>
+        <item>BADMINTON_SKILL_TARGET|FIRST_STEP_REACTION|첫 Step 반응</item>
+        <item>BADMINTON_SKILL_TARGET|FOOTWORK_SPEED|풋워크 속도</item>
+        <item>BADMINTON_SKILL_TARGET|FRONT_COURT_LUNGE|전위 코트 런지</item>
+        <item>BADMINTON_SKILL_TARGET|GRIP_ENDURANCE|그립 지구력</item>
+        <item>BADMINTON_SKILL_TARGET|JUMP_LANDING_CONTROL|점프 착지 제어</item>
+        <item>BADMINTON_SKILL_TARGET|LATERAL_LUNGE|측면 런지</item>
+        <item>BADMINTON_SKILL_TARGET|LATERAL_MOVEMENT|측면 동작</item>
+        <item>BADMINTON_SKILL_TARGET|LUNGE_REACH|런지 리치</item>
+        <item>BADMINTON_SKILL_TARGET|MULTI_SHUTTLE_ENDURANCE|멀티 셔틀 지구력</item>
+        <item>BADMINTON_SKILL_TARGET|NET_PLAY|네트 플레이</item>
+        <item>BADMINTON_SKILL_TARGET|NONE|없음</item>
+        <item>BADMINTON_SKILL_TARGET|OVERHEAD_CLEAR|오버헤드 클리어</item>
+        <item>BADMINTON_SKILL_TARGET|OVERHEAD_POWER|머리 위 파워</item>
+        <item>BADMINTON_SKILL_TARGET|RALLY_TOLERANCE|랠리 지속 능력</item>
+        <item>BADMINTON_SKILL_TARGET|REAR_COURT_RECOVERY|후면 코트 회복</item>
+        <item>BADMINTON_SKILL_TARGET|ROTATION_SEQUENCING|회전 연결</item>
+        <item>BADMINTON_SKILL_TARGET|SHOULDER_DURABILITY|어깨 지구성</item>
+        <item>BADMINTON_SKILL_TARGET|SMASH|스매시</item>
+        <item>BADMINTON_SKILL_TARGET|SPLIT_STEP|스플릿 스텝</item>
+        <item>BADMINTON_TRANSFER_LEVEL|DIRECT|직접 전이</item>
+        <item>BADMINTON_TRANSFER_LEVEL|GENERAL|일반</item>
+        <item>BADMINTON_TRANSFER_LEVEL|NONE|직접 전이 없음</item>
+        <item>BADMINTON_TRANSFER_LEVEL|SUPPORTIVE|보조 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|ACCELERATION|가속</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANKLE_CALF_SSC_SUPPORTIVE|발목 종아리 SSC 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANTI_ROTATION_STABILITY|항 회전 안정성</item>
+        <item>BADMINTON_TRANSFER_TYPE|ANTI_ROTATION_STABILITY_SUPPORTIVE|항 회전 안정성 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|CHANGE_OF_DIRECTION_DIRECT|방향 전환 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|CONDITIONING|컨디셔닝</item>
+        <item>BADMINTON_TRANSFER_TYPE|CORE_STABILITY_SUPPORTIVE|코어 안정성 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|DECELERATION|감속</item>
+        <item>BADMINTON_TRANSFER_TYPE|FOOTWORK|풋워크</item>
+        <item>BADMINTON_TRANSFER_TYPE|FOOTWORK_DIRECT|풋워크 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_CONDITIONING_SUPPORTIVE|일반 컨디셔닝 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_POWER_SUPPORTIVE|일반 파워 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|GENERAL_STRENGTH_SUPPORTIVE|일반 근력 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|GRIP_FOREARM|그립 전완</item>
+        <item>BADMINTON_TRANSFER_TYPE|GRIP_WRIST_SUPPORTIVE|그립 손목 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|JUMP_LANDING|점프 착지</item>
+        <item>BADMINTON_TRANSFER_TYPE|LOWER_BODY_SUPPORTIVE|하체 신체 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|LUNGE_REACH|런지 리치</item>
+        <item>BADMINTON_TRANSFER_TYPE|LUNGE_REACH_DIRECT|런지·리치 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|NONE|없음</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_HITTING_DIRECT|오버헤드 타구 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_POWER|머리 위 파워</item>
+        <item>BADMINTON_TRANSFER_TYPE|OVERHEAD_POWER_SUPPORTIVE|머리 위 파워 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|RALLY_CONDITIONING_DIRECT|랠리 컨디셔닝 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|REACTION|반응</item>
+        <item>BADMINTON_TRANSFER_TYPE|REACTION_DECISION_DIRECT|반응·판단 직접 전이</item>
+        <item>BADMINTON_TRANSFER_TYPE|ROTATION_POWER|회전 파워</item>
+        <item>BADMINTON_TRANSFER_TYPE|ROTATION_POWER_SUPPORTIVE|회전 파워 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_CARE|어깨 관리</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_CARE_SUPPORTIVE|어깨 관리 보조</item>
+        <item>BADMINTON_TRANSFER_TYPE|SHOULDER_SCAPULAR_SUPPORTIVE|어깨 견갑 보조</item>
+        <item>COGNITIVE_STRESS|COACHING_FEEDBACK_PROCESSING_LOAD|코칭 피드백 처리 부하</item>
+        <item>COGNITIVE_STRESS|DECISION_MAKING_LOAD|판단 부하</item>
+        <item>COGNITIVE_STRESS|MOTOR_LEARNING_LOAD|운동 학습 부하</item>
+        <item>COGNITIVE_STRESS|NONE|없음</item>
+        <item>COGNITIVE_STRESS|PACING_LOAD|페이스 조절 부하</item>
+        <item>COGNITIVE_STRESS|POSITIONAL_AWARENESS|위치 인식</item>
+        <item>COGNITIVE_STRESS|REACTION_DECISION_LOAD|반응 판단 부하</item>
+        <item>COGNITIVE_STRESS|REACTION_LOAD|반응 부하</item>
+        <item>COGNITIVE_STRESS|SEQUENCE_CONTROL|순서 제어</item>
+        <item>COGNITIVE_STRESS|TACTICAL_CONCENTRATION_LOAD|전술 집중 부하</item>
+        <item>COGNITIVE_STRESS|TECHNICAL_CONCENTRATION_LOAD|기술 집중 부하</item>
+        <item>COGNITIVE_STRESS|VISUAL_TRACKING_LOAD|시각 추적 부하</item>
+        <item>DIRECT_TRANSFER|ACCELERATION|가속</item>
+        <item>DIRECT_TRANSFER|ANTI_ROTATION_STABILITY|항 회전 안정성</item>
+        <item>DIRECT_TRANSFER|CONDITIONING|컨디셔닝</item>
+        <item>DIRECT_TRANSFER|DECELERATION|감속</item>
+        <item>DIRECT_TRANSFER|FOOTWORK|풋워크</item>
+        <item>DIRECT_TRANSFER|GRIP_FOREARM|그립 전완</item>
+        <item>DIRECT_TRANSFER|JUMP_LANDING|점프 착지</item>
+        <item>DIRECT_TRANSFER|LUNGE_REACH|런지 리치</item>
+        <item>DIRECT_TRANSFER|NONE|없음</item>
+        <item>DIRECT_TRANSFER|OVERHEAD_POWER|머리 위 파워</item>
+        <item>DIRECT_TRANSFER|REACTION|반응</item>
+        <item>DIRECT_TRANSFER|ROTATION_POWER|회전 파워</item>
+        <item>DIRECT_TRANSFER|SHOULDER_CARE|어깨 관리</item>
+        <item>FINAL_SOURCE_STATUS|SOURCE_ACCEPTED|근거 사용 가능</item>
+        <item>FINAL_SOURCE_STATUS|SOURCE_ACCEPTED_WITH_LIMITATION|제한 조건과 함께 근거 사용</item>
+        <item>FORCE_TYPE|ACCELERATE|Accelerate</item>
+        <item>FORCE_TYPE|BRACE|Brace</item>
+        <item>FORCE_TYPE|CARRY|캐리</item>
+        <item>FORCE_TYPE|DECELERATE|Decelerate</item>
+        <item>FORCE_TYPE|HINGE|힌지</item>
+        <item>FORCE_TYPE|LAND|Land</item>
+        <item>FORCE_TYPE|PULL|당기기</item>
+        <item>FORCE_TYPE|PUSH|밀기</item>
+        <item>FORCE_TYPE|ROTATE|Rotate</item>
+        <item>FORCE_TYPE|SQUAT|스쿼트</item>
+        <item>JOINT_IMPACT|COURT_DECELERATION_IMPACT|코트 감속 충격</item>
+        <item>JOINT_IMPACT|DECELERATION_IMPACT|감속 충격</item>
+        <item>JOINT_IMPACT|DIRECTION_CHANGE_IMPACT_STRESS|방향 Change 충격 스트레스</item>
+        <item>JOINT_IMPACT|HIGH_AMPLITUDE_JUMP_LANDING_STRESS|High Amplitude 점프 착지 스트레스</item>
+        <item>JOINT_IMPACT|JUMP_LANDING_IMPACT_STRESS|점프 착지 충격 스트레스</item>
+        <item>JOINT_IMPACT|LOW_LEVEL_REACTIVE_IMPACT|Low Level 반응성 충격</item>
+        <item>JOINT_IMPACT|NONE|없음</item>
+        <item>JOINT_IMPACT|REPEATED_LOW_AMPLITUDE_IMPACT_STRESS|Repeated Low Amplitude 충격 스트레스</item>
+        <item>JOINT_IMPACT|REPETITIVE_LOCOMOTION_IMPACT|Repetitive Locomotion 충격</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|HIGH|높음</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|LOW|낮음</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|MODERATE|보통</item>
+        <item>JOINT_TENDON_IMPACT_STRESS|VERY_HIGH|매우 높음</item>
+        <item>LATERALITY|ALTERNATING|Alternating</item>
+        <item>LATERALITY|ASYMMETRIC|Asymmetric</item>
+        <item>LATERALITY|BILATERAL|Bilateral</item>
+        <item>LATERALITY|UNILATERAL|편측</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_ACHILLES|발목 아킬레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_EVERSION_CONTROL_STRESS|발목 Eversion 제어 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_INVERSION_LIGAMENT_STRESS|발목 Inversion 인대 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|ANKLE_STABILITY_STRESS|발목 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|ELBOW|팔꿈치</item>
+        <item>LIGAMENT_JOINT_STABILITY|ELBOW_JOINT_STRESS|팔꿈치 관절 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP|고관절</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP_PELVIS_STABILITY_STRESS|고관절 Pelvis 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|HIP_ROTATIONAL_CONTROL_STRESS|고관절 회전 제어 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|JOINT_RANGE_CONTROL_STRESS|관절 Range 제어 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE|무릎</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_ANKLE_STABILITY_STRESS|무릎 발목 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_HIP_STABILITY_STRESS|무릎 고관절 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_JOINT_STRESS|무릎 관절 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_ROTATIONAL_STABILITY_STRESS|무릎 회전 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_STABILITY_STRESS|무릎 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|KNEE_VALGUS_CONTROL_STRESS|무릎 Valgus 제어 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|LOW_BACK|Low 등</item>
+        <item>LIGAMENT_JOINT_STABILITY|LUMBOPELVIC_CONTROL_STRESS|요골반 제어 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|NONE|없음</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER|어깨</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_EXTENSION_STABILITY_STRESS|어깨 신전 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_JOINT_STABILITY_STRESS|어깨 관절 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|SHOULDER_SCAPULAR_STABILITY_STRESS|어깨 견갑 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST|손목</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST_STABILITY_STRESS|손목 안정성 스트레스</item>
+        <item>LIGAMENT_JOINT_STABILITY|WRIST_SUPPORT_STRESS|손목 보조 스트레스</item>
+        <item>LOCAL_MUSCULAR_STRESS|HIGH|높음</item>
+        <item>LOCAL_MUSCULAR_STRESS|LOW|낮음</item>
+        <item>LOCAL_MUSCULAR_STRESS|MODERATE|보통</item>
+        <item>LOCAL_MUSCULAR_STRESS|VERY_HIGH|매우 높음</item>
+        <item>METADATA_CONFIDENCE|HIGH|높음</item>
+        <item>METADATA_CONFIDENCE|LOW|낮음</item>
+        <item>METADATA_CONFIDENCE|MEDIUM|보통</item>
+        <item>METADATA_CONFIDENCE|NEEDS_REVIEW|검토 필요</item>
+        <item>METADATA_CONFIDENCE|UNKNOWN|확인되지 않음</item>
+        <item>MOVEMENT_CATEGORY|CONDITIONING|컨디셔닝</item>
+        <item>MOVEMENT_CATEGORY|HYPERTROPHY|근비대</item>
+        <item>MOVEMENT_CATEGORY|MOBILITY|가동성</item>
+        <item>MOVEMENT_CATEGORY|PLYOMETRIC|플라이오메트릭</item>
+        <item>MOVEMENT_CATEGORY|POWER|파워</item>
+        <item>MOVEMENT_CATEGORY|PREHAB|프리햅</item>
+        <item>MOVEMENT_CATEGORY|REACTIVE|반응성</item>
+        <item>MOVEMENT_CATEGORY|RECOVERY|회복</item>
+        <item>MOVEMENT_CATEGORY|SKILL_DRILL|기술 Drill</item>
+        <item>MOVEMENT_CATEGORY|SPEED|속도</item>
+        <item>MOVEMENT_CATEGORY|STABILITY|안정성</item>
+        <item>MOVEMENT_CATEGORY|STRENGTH|근력</item>
+        <item>MOVEMENT_CATEGORY|TEST|테스트</item>
+        <item>MOVEMENT_FAMILY|ACCESSORY_ROTATION|보조 회전</item>
+        <item>MOVEMENT_FAMILY|ANKLE_STIFFNESS_SSC_CONDITIONING|발목 강성 SSC 컨디셔닝</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION|항 회전</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION_ANTI_EXTENSION_CORE|항 회전 항 신전 코어</item>
+        <item>MOVEMENT_FAMILY|ANTI_ROTATION_ANTI_EXTENSION_CORE_VARIANTS|항 회전 항 신전 코어 Variants</item>
+        <item>MOVEMENT_FAMILY|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic 머리 위 프레스 보조</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_DECEL_COD|배드민턴 Decel COD</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_FOOTWORK_REACTION|배드민턴 풋워크 반응</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_OVERHEAD_POWER_TEST|배드민턴 머리 위 파워 테스트</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_REACTIVE_LUNGE_FOOTWORK|배드민턴 반응성 런지 풋워크</item>
+        <item>MOVEMENT_FAMILY|BADMINTON_SESSION_SPORT_RECORDS|배드민턴 Session 스포츠 Records</item>
+        <item>MOVEMENT_FAMILY|BALLISTIC_HINGE_POWER|탄도성 힌지 파워</item>
+        <item>MOVEMENT_FAMILY|BENCH_PRESS_DUMBBELL_PRESS_MACHINE_PRESS_VARIANTS|벤치 프레스 Dumbbell 프레스 머신 프레스 Variants</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_CONDITIONING_CORE|맨몸 컨디셔닝 코어</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_CONDITIONING_POWER|맨몸 컨디셔닝 파워</item>
+        <item>MOVEMENT_FAMILY|BODYWEIGHT_VERTICAL_PUSH_VARIANTS|맨몸 수직 밀기 Variants</item>
+        <item>MOVEMENT_FAMILY|BOUND|Bound</item>
+        <item>MOVEMENT_FAMILY|CALF_ANKLE_CAPACITY|종아리 발목 Capacity</item>
+        <item>MOVEMENT_FAMILY|CALF_RAISE_ANKLE_STIFFNESS_VARIANTS|종아리 Raise 발목 강성 Variants</item>
+        <item>MOVEMENT_FAMILY|CARDIO_RECORDS|유산소 Records</item>
+        <item>MOVEMENT_FAMILY|CARRY|캐리</item>
+        <item>MOVEMENT_FAMILY|CHEST_ISOLATION|가슴 고립</item>
+        <item>MOVEMENT_FAMILY|CORE_FLEXION_ANTERIOR_CORE|코어 굴곡 전면 코어</item>
+        <item>MOVEMENT_FAMILY|DEADLIFT_HINGE_VARIANTS|Deadlift 힌지 Variants</item>
+        <item>MOVEMENT_FAMILY|DIP_COMPOUND_PUSH_VARIANTS|Dip 복합 밀기 Variants</item>
+        <item>MOVEMENT_FAMILY|DIP_TRICEPS_PUSH|Dip 삼두근 밀기</item>
+        <item>MOVEMENT_FAMILY|ELBOW_EXTENSION_TRICEPS_ISOLATION_VARIANTS|팔꿈치 신전 삼두근 고립 Variants</item>
+        <item>MOVEMENT_FAMILY|ELBOW_FLEXION_BICEPS_CURL_VARIANTS|팔꿈치 굴곡 이두근 Curl Variants</item>
+        <item>MOVEMENT_FAMILY|ELBOW_FLEXION_BRACHIALIS_BRACHIORADIALIS_VARIANTS|팔꿈치 굴곡 Brachialis Brachioradialis Variants</item>
+        <item>MOVEMENT_FAMILY|EXTERNAL_ROTATION_INTERNAL_ROTATION_VARIANTS|External 회전 Internal 회전 Variants</item>
+        <item>MOVEMENT_FAMILY|FOOTWORK|풋워크</item>
+        <item>MOVEMENT_FAMILY|FOOTWORK_SPLIT_STEP_REACTION_DRILL_VARIANTS|풋워크 Split Step 반응 Drill Variants</item>
+        <item>MOVEMENT_FAMILY|FOREARM_GRIP_ACCESSORY|전완 그립 보조</item>
+        <item>MOVEMENT_FAMILY|FOREARM_GRIP_ELBOW_SUPPORT|전완 그립 팔꿈치 보조</item>
+        <item>MOVEMENT_FAMILY|GLUTE_ISOLATION_ACCESSORY|둔근 고립 보조</item>
+        <item>MOVEMENT_FAMILY|HALF_KNEELING_UNILATERAL_SHOULDER_PRESS_VARIANTS|Half Kneeling 편측 어깨 프레스 Variants</item>
+        <item>MOVEMENT_FAMILY|HAMSTRING_CURL_VARIANTS|햄스트링 Curl Variants</item>
+        <item>MOVEMENT_FAMILY|HINGE|힌지</item>
+        <item>MOVEMENT_FAMILY|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|고관절 Abduction 둔근 Med 보조</item>
+        <item>MOVEMENT_FAMILY|HIP_ADDUCTION_ACCESSORY|고관절 Adduction 보조</item>
+        <item>MOVEMENT_FAMILY|HIP_HINGE_POSTERIOR_CHAIN|고관절 힌지 후면 운동사슬</item>
+        <item>MOVEMENT_FAMILY|HIP_THRUST_GLUTE_BRIDGE_VARIANTS|고관절 Thrust 둔근 Bridge Variants</item>
+        <item>MOVEMENT_FAMILY|HOP|Hop</item>
+        <item>MOVEMENT_FAMILY|ISOLATION|고립</item>
+        <item>MOVEMENT_FAMILY|JUMP|점프</item>
+        <item>MOVEMENT_FAMILY|JUMP_LUNGE_PLYOMETRIC|점프 런지 플라이오메트릭</item>
+        <item>MOVEMENT_FAMILY|KNEE_DOMINANT_ISOMETRIC|무릎 Dominant 등척성</item>
+        <item>MOVEMENT_FAMILY|KNEE_EXTENSION_QUAD_ISOLATION|무릎 신전 대퇴사두근 고립</item>
+        <item>MOVEMENT_FAMILY|LATERAL_BOUND_CONTINUOUS_VARIANTS|측면 Bound Continuous Variants</item>
+        <item>MOVEMENT_FAMILY|LATERAL_BOUND_LANDING_DECELERATION_VARIANTS|측면 Bound 착지 감속 Variants</item>
+        <item>MOVEMENT_FAMILY|LATERAL_RAISE_DELTOID_ISOLATION_VARIANTS|측면 Raise Deltoid 고립 Variants</item>
+        <item>MOVEMENT_FAMILY|LAT_STRAIGHT_ARM_PULLDOWN_OR_PULLOVER_ACCESSORY|Lat Straight 팔 Pulldown Or Pullover 보조</item>
+        <item>MOVEMENT_FAMILY|LEG_PRESS_KNEE_DOMINANT_MACHINE_VARIANTS|다리 프레스 무릎 Dominant 머신 Variants</item>
+        <item>MOVEMENT_FAMILY|LOADED_CARRY_VARIANTS|중량 캐리 Variants</item>
+        <item>MOVEMENT_FAMILY|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_FAMILY|LOWER_SQUAT_PATTERN|하체 스쿼트 패턴</item>
+        <item>MOVEMENT_FAMILY|LUNGE|런지</item>
+        <item>MOVEMENT_FAMILY|LUNGE_SPLIT_SQUAT_VARIANTS|런지 Split 스쿼트 Variants</item>
+        <item>MOVEMENT_FAMILY|MOBILITY|가동성</item>
+        <item>MOVEMENT_FAMILY|MOBILITY_WARMUP_RECOVERY_EXERCISES|가동성 Warmup 회복 Exercises</item>
+        <item>MOVEMENT_FAMILY|NORDIC_HAMSTRING_ECCENTRIC|Nordic 햄스트링 신장성</item>
+        <item>MOVEMENT_FAMILY|NOT_APPLICABLE|해당 없음</item>
+        <item>MOVEMENT_FAMILY|OTHER_SPORT_SESSION_RECORDS|Other 스포츠 Session Records</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_PRESS_VARIANTS|머리 위 프레스 Variants</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_SMASH_SUPPORT|머리 위 Smash 보조</item>
+        <item>MOVEMENT_FAMILY|OVERHEAD_TRICEPS_LONG_HEAD|머리 위 삼두근 Long Head</item>
+        <item>MOVEMENT_FAMILY|PLYOMETRIC_JUMP_VARIANTS|플라이오메트릭 점프 Variants</item>
+        <item>MOVEMENT_FAMILY|POSTERIOR_CHAIN_LOW_LOAD_CONTROL|후면 운동사슬 Low 부하 제어</item>
+        <item>MOVEMENT_FAMILY|POWER_CORE_SHOULDER|파워 코어 어깨</item>
+        <item>MOVEMENT_FAMILY|POWER_REACTIVE_LOW_VOLUME|파워·반응성 저볼륨</item>
+        <item>MOVEMENT_FAMILY|PREHAB|프리햅</item>
+        <item>MOVEMENT_FAMILY|PULLOVER_LAT_CHEST_ACCESSORY|Pullover Lat 가슴 보조</item>
+        <item>MOVEMENT_FAMILY|PULL_HORIZONTAL|당기기 수평</item>
+        <item>MOVEMENT_FAMILY|PULL_UP_CHIN_UP_LAT_PULLDOWN_VARIANTS|당기기 Up Chin Up Lat Pulldown Variants</item>
+        <item>MOVEMENT_FAMILY|PULL_VERTICAL|당기기 수직</item>
+        <item>MOVEMENT_FAMILY|PUSH_HORIZONTAL|밀기 수평</item>
+        <item>MOVEMENT_FAMILY|PUSH_UP_VARIANTS|밀기 Up Variants</item>
+        <item>MOVEMENT_FAMILY|PUSH_VERTICAL|밀기 수직</item>
+        <item>MOVEMENT_FAMILY|QUAD_ECCENTRIC_KNEE_DOMINANT|대퇴사두근 신장성 무릎 Dominant</item>
+        <item>MOVEMENT_FAMILY|REAR_DELT_FLY_HORIZONTAL_ABDUCTION_VARIANTS|후면 Delt Fly 수평 Abduction Variants</item>
+        <item>MOVEMENT_FAMILY|RECOVERY_PREHAB_LIGHT|회복·프리햅 저강도</item>
+        <item>MOVEMENT_FAMILY|ROTATION|회전</item>
+        <item>MOVEMENT_FAMILY|ROTATIONAL_KINETIC_CHAIN|회전 운동사슬</item>
+        <item>MOVEMENT_FAMILY|ROW_VARIANTS|Row Variants</item>
+        <item>MOVEMENT_FAMILY|RUNNING_MECHANICS_SUPPORT|Running Mechanics 보조</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_CONTROL_RECOVERY_PREHAB_VARIANTS|견갑 제어 회복 프리햅 Variants</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_RETRACTION_EXTERNAL_ROTATION_CONTROL_VARIANTS|견갑 Retraction External 회전 제어 Variants</item>
+        <item>MOVEMENT_FAMILY|SCAPULAR_SHOULDER_SUPPORT|견갑·어깨 보조</item>
+        <item>MOVEMENT_FAMILY|SERRATUS_SCAPULAR_PROTRACTION_CONTROL_VARIANTS|Serratus 견갑 Protraction 제어 Variants</item>
+        <item>MOVEMENT_FAMILY|SINGLE_LEG_STRENGTH_CONTROL|한쪽 다리 근력 제어</item>
+        <item>MOVEMENT_FAMILY|SPRINT_ACCELERATION_CONDITIONING|Sprint 가속 컨디셔닝</item>
+        <item>MOVEMENT_FAMILY|SQUAT|스쿼트</item>
+        <item>MOVEMENT_FAMILY|SQUAT_VARIANTS|스쿼트 Variants</item>
+        <item>MOVEMENT_FAMILY|STEP_UP_VARIANTS|Step Up Variants</item>
+        <item>MOVEMENT_FAMILY|TRUNK_ANTI_ROTATION_STABILITY|몸통 항회전 안정성</item>
+        <item>MOVEMENT_FAMILY|TURKISH_GETUP_TOTAL_BODY_STABILITY|Turkish Getup Total 신체 안정성</item>
+        <item>MOVEMENT_FAMILY|UPPER_PULL_ANCHOR|상체 당기기 Anchor</item>
+        <item>MOVEMENT_FAMILY|UPPER_PUSH_SUPPORT|상체 밀기 보조</item>
+        <item>MOVEMENT_FOCUS_DEMAND|HIGH|높음</item>
+        <item>MOVEMENT_FOCUS_DEMAND|LOW|낮음</item>
+        <item>MOVEMENT_FOCUS_DEMAND|MODERATE|보통</item>
+        <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|매우 높음</item>
+        <item>MOVEMENT_PATTERN|ANTI_ROTATION|항 회전</item>
+        <item>MOVEMENT_PATTERN|BOUND|Bound</item>
+        <item>MOVEMENT_PATTERN|CARRY|캐리</item>
+        <item>MOVEMENT_PATTERN|FOOTWORK|풋워크</item>
+        <item>MOVEMENT_PATTERN|HINGE|힌지</item>
+        <item>MOVEMENT_PATTERN|HOP|Hop</item>
+        <item>MOVEMENT_PATTERN|ISOLATION|고립</item>
+        <item>MOVEMENT_PATTERN|JUMP|점프</item>
+        <item>MOVEMENT_PATTERN|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_PATTERN|LUNGE|런지</item>
+        <item>MOVEMENT_PATTERN|MOBILITY|가동성</item>
+        <item>MOVEMENT_PATTERN|PREHAB|프리햅</item>
+        <item>MOVEMENT_PATTERN|PULL_HORIZONTAL|당기기 수평</item>
+        <item>MOVEMENT_PATTERN|PULL_VERTICAL|당기기 수직</item>
+        <item>MOVEMENT_PATTERN|PUSH_HORIZONTAL|밀기 수평</item>
+        <item>MOVEMENT_PATTERN|PUSH_VERTICAL|밀기 수직</item>
+        <item>MOVEMENT_PATTERN|ROTATION|회전</item>
+        <item>MOVEMENT_PATTERN|SQUAT|스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|AGILITY_LADDER|애질리티 래더</item>
+        <item>MOVEMENT_SUBTYPE|ANKLE_HIP_MOBILITY|발목/고관절 가동성</item>
+        <item>MOVEMENT_SUBTYPE|ANKLING|앙클링</item>
+        <item>MOVEMENT_SUBTYPE|ANTI_ROTATION|항 회전</item>
+        <item>MOVEMENT_SUBTYPE|ARCHER_PUSH_UP|아처 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|ARNOLD_PRESS|아놀드 프레스</item>
+        <item>MOVEMENT_SUBTYPE|A_SKIP|A스킵</item>
+        <item>MOVEMENT_SUBTYPE|BACK_SQUAT|스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_LESSON|배드민턴 레슨</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_OVERHEAD_POWER_TEST|30초 반복 스매시 테스트</item>
+        <item>MOVEMENT_SUBTYPE|BADMINTON_SESSION|배드민턴</item>
+        <item>MOVEMENT_SUBTYPE|BAND_CHOP|밴드 우드찹</item>
+        <item>MOVEMENT_SUBTYPE|BAND_EXTERNAL_ROTATION|밴드 외회전</item>
+        <item>MOVEMENT_SUBTYPE|BAND_LIFT|밴드 리프트</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_BENCH_PRESS|벤치프레스</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_OVERHEAD_PRESS|오버헤드 프레스</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_ROMANIAN_DEADLIFT|루마니안 바벨 데드리프트</item>
+        <item>MOVEMENT_SUBTYPE|BARBELL_ROW|바벨 로우</item>
+        <item>MOVEMENT_SUBTYPE|BASKETBALL_SESSION|농구</item>
+        <item>MOVEMENT_SUBTYPE|BENCH_DIP|벤치 딥스</item>
+        <item>MOVEMENT_SUBTYPE|BIRD_DOG|버드독</item>
+        <item>MOVEMENT_SUBTYPE|BODYWEIGHT_SQUAT|맨몸 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|BOUND|Bound</item>
+        <item>MOVEMENT_SUBTYPE|BOX_JUMP|박스 점프</item>
+        <item>MOVEMENT_SUBTYPE|BOX_STEP_UP|박스 스텝업</item>
+        <item>MOVEMENT_SUBTYPE|BULGARIAN_SPLIT_SQUAT|불가리안 스플릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|BURPEE|버피</item>
+        <item>MOVEMENT_SUBTYPE|B_SKIP|B스킵</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_CHOP|케이블 우드찹</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_CURL|케이블 컬</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_FLY|케이블 플라이</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_KICKBACK|케이블 킥백</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_LATERAL_RAISE|케이블 래터럴 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_LIFT|케이블 리프트</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_PULL_THROUGH|케이블 풀스루</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_ROW|케이블 로우</item>
+        <item>MOVEMENT_SUBTYPE|CABLE_SINGLE_ARM_TRICEPS_PUSHDOWN|원암 케이블 트라이셉스 푸시다운</item>
+        <item>MOVEMENT_SUBTYPE|CAPTAINS_CHAIR_LEG_RAISE|캡틴체어 레그 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|CARRY|캐리</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ONE_ARM_DUMBBELL_ROW|체스트 서포티드 원암 덤벨 로우</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ONE_ARM_ROW|체스트 서포티드 원암 머신 로우</item>
+        <item>MOVEMENT_SUBTYPE|CHEST_SUPPORTED_ROW|체스트 서포티드 로우</item>
+        <item>MOVEMENT_SUBTYPE|CHIN_UP|친업</item>
+        <item>MOVEMENT_SUBTYPE|CLOSE_GRIP_BENCH_PRESS_TRICEPS_EMPHASIS|클로즈그립 벤치프레스</item>
+        <item>MOVEMENT_SUBTYPE|COMPOUND_DIP|딥스</item>
+        <item>MOVEMENT_SUBTYPE|CONCENTRATION_CURL|컨센트레이션 컬</item>
+        <item>MOVEMENT_SUBTYPE|CONE_DRILL|콘 드릴</item>
+        <item>MOVEMENT_SUBTYPE|CONVENTIONAL_DEADLIFT|데드리프트</item>
+        <item>MOVEMENT_SUBTYPE|COPENHAGEN_PLANK|코펜하겐 플랭크</item>
+        <item>MOVEMENT_SUBTYPE|COSSACK_SQUAT|코사크 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|CROSS_BODY_HAMMER_CURL|크로스바디 해머 컬</item>
+        <item>MOVEMENT_SUBTYPE|DEAD_BUG|데드버그</item>
+        <item>MOVEMENT_SUBTYPE|DECLINE_PUSH_UP|디클라인 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|DIAMOND_PUSH_UP|다이아몬드 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|DROP_JUMP|드롭 점프</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_BENCH_PRESS|덤벨 벤치프레스</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_CURL|덤벨 컬</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_KICKBACK|덤벨 킥백</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_LATERAL_RAISE|덤벨 래터럴 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_OVERHEAD_PRESS|덤벨 숄더프레스</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_PULLOVER|덤벨 풀오버</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_ROMANIAN_DEADLIFT|루마니안 덤벨 데드리프트</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_STEP_UP|덤벨 스텝업</item>
+        <item>MOVEMENT_SUBTYPE|DUMBBELL_WOODCHOP|덤벨 우드찹</item>
+        <item>MOVEMENT_SUBTYPE|EZ_BAR_CURL|EZ바 컬</item>
+        <item>MOVEMENT_SUBTYPE|FACE_PULL|페이스풀</item>
+        <item>MOVEMENT_SUBTYPE|FARMERS_CARRY|파머스 캐리</item>
+        <item>MOVEMENT_SUBTYPE|FLAT_DUMBBELL_FLY|플랫 덤벨 플라이</item>
+        <item>MOVEMENT_SUBTYPE|FOOTWORK|풋워크</item>
+        <item>MOVEMENT_SUBTYPE|FOOTWORK_MAX_REPETITION_TEST_6_CORNER|6코너 풋워크 최대반복 테스트</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_BACK_RANDOM_SHUTTLE_PICKUP|앞뒤 랜덤 콕줍기</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_FOOT_ELEVATED_SPLIT_SQUAT|프론트풋 엘리베이티드 스플릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_PLANK|플랭크</item>
+        <item>MOVEMENT_SUBTYPE|FRONT_SQUAT|프론트 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|GENERAL_STRETCHING|스트레칭</item>
+        <item>MOVEMENT_SUBTYPE|GENERIC_LUNGE|런지</item>
+        <item>MOVEMENT_SUBTYPE|GLUTE_BRIDGE|글루트 브릿지</item>
+        <item>MOVEMENT_SUBTYPE|GOBLET_SQUAT|고블릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|HACK_SQUAT|핵 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|HALF_KNEELING_SINGLE_ARM_DUMBBELL_PRESS|하프 닐링 원암 덤벨 프레스</item>
+        <item>MOVEMENT_SUBTYPE|HALF_KNEELING_SINGLE_ARM_KETTLEBELL_PRESS|하프 닐링 원암 케틀벨 프레스</item>
+        <item>MOVEMENT_SUBTYPE|HAMMER_CURL|해머 컬</item>
+        <item>MOVEMENT_SUBTYPE|HANDSTAND_PUSH_UP|핸드스탠드 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|HANGING_LEG_RAISE|행잉 레그 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|HIGH_INTENSITY_RALLY_FOOTWORK|안세영 참고 고강도 랠리 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|HINGE|힌지</item>
+        <item>MOVEMENT_SUBTYPE|HIP_ABDUCTION_MACHINE|힙 어브덕션</item>
+        <item>MOVEMENT_SUBTYPE|HIP_ADDUCTION_MACHINE_OR_CABLE|힙 어덕션</item>
+        <item>MOVEMENT_SUBTYPE|HIP_THRUST|힙 쓰러스트</item>
+        <item>MOVEMENT_SUBTYPE|HOLLOW_BODY_HOLD|할로우 바디 홀드</item>
+        <item>MOVEMENT_SUBTYPE|HOP|Hop</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_CURL|인클라인 덤벨 컬</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_FLY|인클라인 덤벨 플라이</item>
+        <item>MOVEMENT_SUBTYPE|INCLINE_DUMBBELL_PRESS|인클라인 덤벨 프레스</item>
+        <item>MOVEMENT_SUBTYPE|INDOOR_CYCLING|실내 자전거</item>
+        <item>MOVEMENT_SUBTYPE|INTERVAL_RUNNING|인터벌 러닝</item>
+        <item>MOVEMENT_SUBTYPE|INVERTED_ROW|인버티드 로우</item>
+        <item>MOVEMENT_SUBTYPE|ISOLATION|고립</item>
+        <item>MOVEMENT_SUBTYPE|JUMP|점프</item>
+        <item>MOVEMENT_SUBTYPE|JUMP_LUNGE|점프 런지</item>
+        <item>MOVEMENT_SUBTYPE|JUMP_ROPE|줄넘기</item>
+        <item>MOVEMENT_SUBTYPE|KETTLEBELL_HALO|케틀벨 헤일로</item>
+        <item>MOVEMENT_SUBTYPE|KETTLEBELL_SWING|케틀벨 스윙</item>
+        <item>MOVEMENT_SUBTYPE|LANDMINE_ANTI_ROTATION|랜드마인 안티로테이션</item>
+        <item>MOVEMENT_SUBTYPE|LANDMINE_ROTATION|랜드마인 좌우 회전</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_BOUND_CONTINUOUS|래터럴 바운드</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_BOUND_TO_STICK|래터럴 바운드 투 스틱</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_DECELERATION_STOP|사이드 스텝 후 정지</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_LUNGE|래터럴 런지</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_RANDOM_SHUTTLE_PICKUP|좌우 랜덤 콕줍기</item>
+        <item>MOVEMENT_SUBTYPE|LATERAL_STEP_DOWN|래터럴 스텝다운</item>
+        <item>MOVEMENT_SUBTYPE|LAT_PULLDOWN|랫풀다운</item>
+        <item>MOVEMENT_SUBTYPE|LEANING_LATERAL_RAISE|리닝 래터럴 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|LEG_CURL|레그 컬</item>
+        <item>MOVEMENT_SUBTYPE|LEG_EXTENSION|레그 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|LEG_PRESS|레그 프레스</item>
+        <item>MOVEMENT_SUBTYPE|LIGHT_SHUTTLE_PICKUP|가벼운 콕줍기</item>
+        <item>MOVEMENT_SUBTYPE|LINE_HOP|라인 홉</item>
+        <item>MOVEMENT_SUBTYPE|LOCOMOTION|Locomotion</item>
+        <item>MOVEMENT_SUBTYPE|LUNGE|런지</item>
+        <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|라잉 트라이셉스 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|머신 체스트프레스</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|머신 숄더프레스</item>
+        <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|메도우즈 로우</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|메디신볼 체스트 패스</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_OVERHEAD_SLAM|메디신볼 위에서 아래로 슬램</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_ROTATIONAL_SLAM|메디신볼 회전 아래로 슬램</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_ROTATIONAL_THROW|메디신볼 회전 옆으로 던지기</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_SCOOP_TOSS|메디신볼 로테이셔널 스쿱 토스</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_THREE_STEP_ACCELERATION_THROW|메디신볼 3스텝 가속 던지기</item>
+        <item>MOVEMENT_SUBTYPE|MED_BALL_THREE_STEP_DECELERATION_THROW|메디신볼 3스텝 감속 던지기</item>
+        <item>MOVEMENT_SUBTYPE|MINIBAND_SIDEWALK|미니밴드 사이드워크</item>
+        <item>MOVEMENT_SUBTYPE|MOBILITY|가동성</item>
+        <item>MOVEMENT_SUBTYPE|MOUNTAIN_CLIMBER|마운틴 클라이머</item>
+        <item>MOVEMENT_SUBTYPE|MULTI_SHUTTLE_FOOTWORK|멀티셔틀 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|NEGATIVE_PULL_UP|네거티브 풀업</item>
+        <item>MOVEMENT_SUBTYPE|NORDIC_HAMSTRING_CURL|노르딕 햄스트링 컬</item>
+        <item>MOVEMENT_SUBTYPE|NOT_APPLICABLE|해당 없음</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_CURL|원암 케이블 컬</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_FLY|원암 케이블 플라이</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_HIGH_ROW|원암 케이블 하이 로우</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_LATERAL_RAISE|원암 케이블 래터럴 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_CABLE_ROW|케이블 원암 로우</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_BENCH_PRESS|원암 덤벨 벤치프레스</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_CURL|원암 덤벨 컬</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_DUMBBELL_RDL|원암 덤벨 RDL</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_HAMMER_CURL|원암 해머 컬</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_INCLINE_DUMBBELL_PRESS|원암 인클라인 덤벨 프레스</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_INVERTED_ROW|원암 인버티드 로우</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_LAT_PULLDOWN|원암 랫풀다운</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_MACHINE_ROW|원암 머신 로우</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_OVERHEAD_PRESS|원암 덤벨 숄더프레스</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_OVERHEAD_TRICEPS_EXTENSION|원암 덤벨 오버헤드 트라이셉스 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_REAR_DELT_CABLE_FLY|원암 리어델트 케이블 플라이</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_ROW|원암 덤벨 로우</item>
+        <item>MOVEMENT_SUBTYPE|ONE_ARM_STRAIGHT_ARM_PULLDOWN|원암 스트레이트암 풀다운</item>
+        <item>MOVEMENT_SUBTYPE|OVERHEAD_CABLE_SINGLE_ARM_TRICEPS_EXTENSION|원암 케이블 오버헤드 트라이셉스 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|OVERHEAD_TRICEPS_EXTENSION|오버헤드 트라이셉스 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|PACE_CHANGE_FOOTWORK|린단 참고 페이스 체인지 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|PALLOF_PRESS|팔로프 프레스</item>
+        <item>MOVEMENT_SUBTYPE|PIKE_PUSH_UP|파이크 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|PISTOL_SQUAT|피스톨 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|PLATE_ROTATIONAL_PRESS_OUT|플레이트 로테이셔널 프레스아웃</item>
+        <item>MOVEMENT_SUBTYPE|POGO_JUMP|포고 점프</item>
+        <item>MOVEMENT_SUBTYPE|PREACHER_CURL|프리처 컬</item>
+        <item>MOVEMENT_SUBTYPE|PREHAB|프리햅</item>
+        <item>MOVEMENT_SUBTYPE|PRONATION_SUPINATION|덤벨 프로네이션/수피네이션</item>
+        <item>MOVEMENT_SUBTYPE|PULL_HORIZONTAL|당기기 수평</item>
+        <item>MOVEMENT_SUBTYPE|PULL_UP|풀업</item>
+        <item>MOVEMENT_SUBTYPE|PULL_VERTICAL|당기기 수직</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_HORIZONTAL|밀기 수평</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_UP|푸시업</item>
+        <item>MOVEMENT_SUBTYPE|PUSH_VERTICAL|밀기 수직</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_BEEP_FOOTWORK|랜덤 비프 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_CHANGE_OF_DIRECTION_DRILL|랜덤 방향전환 드릴</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_FOOTWORK|랜덤 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|RANDOM_SHUTTLE_PICKUP_6_DIRECTION|6방향 랜덤 콕줍기</item>
+        <item>MOVEMENT_SUBTYPE|REAR_DELT_CABLE_FLY|리어델트 케이블 플라이</item>
+        <item>MOVEMENT_SUBTYPE|REAR_DELT_FLY|리어델트 플라이</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_CURL|리버스 컬</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_LUNGE|리버스 런지</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_NORDIC_CURL|리버스 노르딕 컬</item>
+        <item>MOVEMENT_SUBTYPE|REVERSE_WRIST_CURL|리버스 리스트 컬</item>
+        <item>MOVEMENT_SUBTYPE|RING_ROW|링 로우</item>
+        <item>MOVEMENT_SUBTYPE|ROPE_HAMMER_CURL|로프 해머 컬</item>
+        <item>MOVEMENT_SUBTYPE|ROTATION|회전</item>
+        <item>MOVEMENT_SUBTYPE|ROWING_MACHINE_CARDIO|로잉머신</item>
+        <item>MOVEMENT_SUBTYPE|RUNNING|러닝</item>
+        <item>MOVEMENT_SUBTYPE|RUNNING_FUTSAL_SESSION|러닝 풋살</item>
+        <item>MOVEMENT_SUBTYPE|SCAPULAR_PULL_UP|스캡 풀업</item>
+        <item>MOVEMENT_SUBTYPE|SCAPULAR_PUSH_UP|스캡 푸시업</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_CALF_RAISE|시티드 카프 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_ONE_ARM_CABLE_ROW|시티드 원암 케이블 로우</item>
+        <item>MOVEMENT_SUBTYPE|SEATED_UNSUPPORTED_OVERHEAD_PRESS|등받이 없는 덤벨 시티드 숄더프레스</item>
+        <item>MOVEMENT_SUBTYPE|SHUTTLE_RUN|셔틀런</item>
+        <item>MOVEMENT_SUBTYPE|SIDE_PLANK|사이드 플랭크</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_BOX_SQUAT|원레그 박스 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_CALF_RAISE|원레그 카프 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_GLUTE_BRIDGE|원레그 힙 브릿지</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_HACK_SQUAT|원레그 핵 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_HOP_AND_STICK|원레그 홉 투 스틱</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_CURL|원레그 레그 컬</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_EXTENSION|원레그 레그 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_LEG_PRESS|원레그 레그 프레스</item>
+        <item>MOVEMENT_SUBTYPE|SINGLE_LEG_RDL|원레그 루마니안 데드리프트</item>
+        <item>MOVEMENT_SUBTYPE|SIX_CORNER_FOOTWORK|6코너 풋워크</item>
+        <item>MOVEMENT_SUBTYPE|SKATER_SQUAT|스케이터 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SKIP_BOUND|스킵 바운드</item>
+        <item>MOVEMENT_SUBTYPE|SMITH_MACHINE_LUNGE|스미스 머신 런지</item>
+        <item>MOVEMENT_SUBTYPE|SMITH_MACHINE_SQUAT|스미스 머신 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SOCCER_SESSION|축구</item>
+        <item>MOVEMENT_SUBTYPE|SPIDER_CURL|스파이더 컬</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_SQUAT|스플릿 스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP|스플릿 스텝</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP_LATERAL_REACTIVE_LUNGE|스플릿 스텝 후 좌우 런지</item>
+        <item>MOVEMENT_SUBTYPE|SPLIT_STEP_REACTION|스플릿 스텝 리액션</item>
+        <item>MOVEMENT_SUBTYPE|SQUAT|스쿼트</item>
+        <item>MOVEMENT_SUBTYPE|STAIR_CLIMBING|계단 오르기</item>
+        <item>MOVEMENT_SUBTYPE|STANDING_CALF_RAISE|스탠딩 카프 레이즈</item>
+        <item>MOVEMENT_SUBTYPE|STANDING_LEG_CURL|스탠딩 레그 컬</item>
+        <item>MOVEMENT_SUBTYPE|STRAIGHT_ARM_PULLDOWN|스트레이트암 풀다운</item>
+        <item>MOVEMENT_SUBTYPE|STRIDE_RUN|스트라이드</item>
+        <item>MOVEMENT_SUBTYPE|SUPERMAN|슈퍼맨</item>
+        <item>MOVEMENT_SUBTYPE|SWIMMING|수영</item>
+        <item>MOVEMENT_SUBTYPE|TENNIS_SESSION|테니스</item>
+        <item>MOVEMENT_SUBTYPE|TRACK_SPRINT|린단 참고 트랙 스프린트</item>
+        <item>MOVEMENT_SUBTYPE|TRICEPS_PUSHDOWN|트라이셉스 푸시다운</item>
+        <item>MOVEMENT_SUBTYPE|TURKISH_GETUP|터키시 겟업</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_CHOP|바이퍼 회전 아래로</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_ROTATIONAL_LIFT|바이퍼 회전 위로</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_ROTATIONAL_PRESS_OUT|바이퍼 로테이셔널 프레스아웃</item>
+        <item>MOVEMENT_SUBTYPE|VIPR_STEP_AND_ROTATE|바이퍼 스텝 앤 로테이트</item>
+        <item>MOVEMENT_SUBTYPE|V_UP|V업</item>
+        <item>MOVEMENT_SUBTYPE|WALKING_LUNGE|워킹 런지</item>
+        <item>MOVEMENT_SUBTYPE|WALL_DRIVE|월 드라이브</item>
+        <item>MOVEMENT_SUBTYPE|WALL_SIT|월싯</item>
+        <item>MOVEMENT_SUBTYPE|WALL_SLIDE|월 슬라이드</item>
+        <item>MOVEMENT_SUBTYPE|WEIGHTED_CHIN_UP|중량 친업</item>
+        <item>MOVEMENT_SUBTYPE|WEIGHTED_PULL_UP|중량 풀업</item>
+        <item>MOVEMENT_SUBTYPE|WRIST_CURL|덤벨 리스트 컬</item>
+        <item>MOVEMENT_SUBTYPE|WRIST_EXTENSION|덤벨 리스트 익스텐션</item>
+        <item>MOVEMENT_SUBTYPE|YATES_ROW|Yates Row</item>
+        <item>NEUROMUSCULAR_STRESS|HIGH|높음</item>
+        <item>NEUROMUSCULAR_STRESS|LOW|낮음</item>
+        <item>NEUROMUSCULAR_STRESS|MODERATE|보통</item>
+        <item>NEUROMUSCULAR_STRESS|VERY_HIGH|매우 높음</item>
+        <item>PLANNING_ELIGIBILITY|ANALYSIS_ONLY|분석에만 사용</item>
+        <item>PLANNING_ELIGIBILITY|FATIGUE_ONLY|피로도 분석에만 사용</item>
+        <item>PLANNING_ELIGIBILITY|HIDDEN|숨김</item>
+        <item>PLANNING_ELIGIBILITY|PROGRAM_SELECTABLE|프로그램에 사용 가능</item>
+        <item>PRIMARY_STRESS_PROFILE|ANKLE_SSC_REACTIVE_STRESS|발목 SSC 반응성 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|ANTI_ROTATION_CORE_STABILITY_STRESS|항 회전 코어 안정성 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|BALLISTIC_POWER_STRESS|탄도성 파워 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|BODYWEIGHT_PUSH_STRESS|맨몸 밀기 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|CARDIO_CONDITIONING_STRESS|유산소 컨디셔닝 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|COURT_SKILL_COGNITIVE_STRESS|코트 기술 인지 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|COURT_SPORT_MOVEMENT_STRESS|코트 스포츠 동작 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|DIP_PUSH_STRESS|Dip 밀기 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|DYNAMIC_CORE_FLEXION_STRESS|동적 코어 굴곡 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|ECCENTRIC_TENDON_STRESS|신장성 건 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|HEAVY_AXIAL_LOWER_STRESS|고중량 축성 하체 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|HINGE_POSTERIOR_CHAIN_STRESS|힌지 후면 운동사슬 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|HORIZONTAL_PUSH_STRESS|수평 밀기 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|HORIZONTAL_ROW_STRESS|수평 Row 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|ISOLATION_ACCESSORY_STRESS|고립 보조 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|ISOMETRIC_CORE_BRACING_STRESS|등척성 코어 브레이싱 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|LOADED_CARRY_BRACING_STRESS|중량 캐리 브레이싱 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|LOW_LOAD_PREHAB_CONTROL_STRESS|Low 부하 프리햅 제어 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|LUNGE_DECELERATION_STRESS|런지 감속 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|MACHINE_LOWER_BODY_STRESS|머신 하체 신체 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|MOBILITY_RECOVERY_STRESS|가동성 회복 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|OVERHEAD_PUSH_STRESS|머리 위 밀기 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|OVERHEAD_RACKET_STRESS|머리 위 Racket 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|PLYOMETRIC_LANDING_STRESS|플라이오메트릭 착지 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|ROTATIONAL_CORE_STABILITY_STRESS|회전 코어 안정성 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|UNILATERAL_LOWER_STABILITY_STRESS|편측 하체 안정성 스트레스</item>
+        <item>PRIMARY_STRESS_PROFILE|VERTICAL_PULL_STRESS|수직 당기기 스트레스</item>
+        <item>PROGRAM_SLOT|ACCESSORY_ROTATION|보조 회전</item>
+        <item>PROGRAM_SLOT|ANKLE_CALF_SUPPORT|발목 종아리 보조</item>
+        <item>PROGRAM_SLOT|ANKLE_SSC_CONDITIONING|발목 SSC 컨디셔닝</item>
+        <item>PROGRAM_SLOT|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic 머리 위 프레스 보조</item>
+        <item>PROGRAM_SLOT|BADMINTON_DECEL_COD|배드민턴 Decel COD</item>
+        <item>PROGRAM_SLOT|BADMINTON_FOOTWORK|배드민턴 풋워크</item>
+        <item>PROGRAM_SLOT|BADMINTON_FOOTWORK_REACTION|배드민턴 풋워크 반응</item>
+        <item>PROGRAM_SLOT|BALLISTIC_HINGE_POWER|탄도성 힌지 파워</item>
+        <item>PROGRAM_SLOT|BICEPS_ACCESSORY|이두근 보조</item>
+        <item>PROGRAM_SLOT|BODYWEIGHT_LOWER_PATTERN|맨몸 하체 패턴</item>
+        <item>PROGRAM_SLOT|BODYWEIGHT_VERTICAL_PUSH|맨몸 수직 밀기</item>
+        <item>PROGRAM_SLOT|BRACHIALIS_FOREARM_ACCESSORY|Brachialis 전완 보조</item>
+        <item>PROGRAM_SLOT|CALF_ANKLE_CAPACITY|종아리 발목 Capacity</item>
+        <item>PROGRAM_SLOT|CHEST_ISOLATION_ACCESSORY|가슴 고립 보조</item>
+        <item>PROGRAM_SLOT|CONDITIONING|컨디셔닝</item>
+        <item>PROGRAM_SLOT|CONDITIONING_CORE|컨디셔닝 코어</item>
+        <item>PROGRAM_SLOT|CORE_FLEXION_ACCESSORY|코어 굴곡 보조</item>
+        <item>PROGRAM_SLOT|CORE_STABILITY|코어 안정성</item>
+        <item>PROGRAM_SLOT|CORE_STABILITY_ACCESSORY|코어 안정성 보조</item>
+        <item>PROGRAM_SLOT|DECELERATION_LANDING|감속·착지</item>
+        <item>PROGRAM_SLOT|FOREARM_GRIP_ACCESSORY|전완 그립 보조</item>
+        <item>PROGRAM_SLOT|FOREARM_GRIP_ELBOW_SUPPORT|전완 그립 팔꿈치 보조</item>
+        <item>PROGRAM_SLOT|GLUTE_ACCESSORY|둔근 보조</item>
+        <item>PROGRAM_SLOT|GLUTE_POSTERIOR_CHAIN_ACCESSORY|둔근 후면 운동사슬 보조</item>
+        <item>PROGRAM_SLOT|HAMSTRING_ISOLATION_ACCESSORY|햄스트링 고립 보조</item>
+        <item>PROGRAM_SLOT|HIP_ABDUCTOR_GLUTE_MED_ACCESSORY|고관절 Abductor 둔근 Med 보조</item>
+        <item>PROGRAM_SLOT|HIP_ADDUCTOR_ACCESSORY|고관절 Adductor 보조</item>
+        <item>PROGRAM_SLOT|HIP_HINGE_POSTERIOR_CHAIN|고관절 힌지 후면 운동사슬</item>
+        <item>PROGRAM_SLOT|HORIZONTAL_PULL_STRENGTH|수평 당기기 근력</item>
+        <item>PROGRAM_SLOT|HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY|수평 밀기 근력·보조</item>
+        <item>PROGRAM_SLOT|KNEE_DOMINANT_ACCESSORY|무릎 Dominant 보조</item>
+        <item>PROGRAM_SLOT|LAT_ACCESSORY|Lat 보조</item>
+        <item>PROGRAM_SLOT|LOADED_CARRY_BRACING|중량 캐리 브레이싱</item>
+        <item>PROGRAM_SLOT|LOWER_BODY_ISOMETRIC_ACCESSORY|하체 신체 등척성 보조</item>
+        <item>PROGRAM_SLOT|LOWER_SQUAT_PATTERN|하체 스쿼트 패턴</item>
+        <item>PROGRAM_SLOT|MACHINE_LOWER_BODY_STRENGTH|머신 하체 신체 근력</item>
+        <item>PROGRAM_SLOT|MAIN_HINGE_STRENGTH|힌지 메인 근력</item>
+        <item>PROGRAM_SLOT|MAIN_LOWER_STRENGTH|하체 메인 근력</item>
+        <item>PROGRAM_SLOT|MOBILITY_RECOVERY|가동성 회복</item>
+        <item>PROGRAM_SLOT|NOT_APPLICABLE|해당 없음</item>
+        <item>PROGRAM_SLOT|OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY|머리 위 밀기 근력·보조</item>
+        <item>PROGRAM_SLOT|OVERHEAD_SMASH_SUPPORT|머리 위 Smash 보조</item>
+        <item>PROGRAM_SLOT|PLYOMETRIC_POWER|플라이오메트릭 파워</item>
+        <item>PROGRAM_SLOT|POSTERIOR_CHAIN_ACCESSORY|후면 운동사슬 보조</item>
+        <item>PROGRAM_SLOT|POSTERIOR_CHAIN_CONTROL_ACCESSORY|후면 운동사슬 제어 보조</item>
+        <item>PROGRAM_SLOT|POWER_REACTIVE_LOW_VOLUME|파워·반응성 저볼륨</item>
+        <item>PROGRAM_SLOT|PULLOVER_ACCESSORY|Pullover 보조</item>
+        <item>PROGRAM_SLOT|QUAD_ISOLATION_ACCESSORY|대퇴사두근 고립 보조</item>
+        <item>PROGRAM_SLOT|REAR_DELT_SCAPULAR_ACCESSORY|후면 Delt 견갑 보조</item>
+        <item>PROGRAM_SLOT|RECOVERY_PREHAB_LIGHT|회복·프리햅 저강도</item>
+        <item>PROGRAM_SLOT|RECOVERY_PREHAB_SCAPULAR_CONTROL|회복 프리햅 견갑 제어</item>
+        <item>PROGRAM_SLOT|ROTATIONAL_KINETIC_CHAIN|회전 운동사슬</item>
+        <item>PROGRAM_SLOT|ROTATOR_CUFF_CARE|회전근개 회전근개 관리</item>
+        <item>PROGRAM_SLOT|RUNNING_MECHANICS_SUPPORT|Running Mechanics 보조</item>
+        <item>PROGRAM_SLOT|SCAPULAR_CONTROL_ACCESSORY|견갑 제어 보조</item>
+        <item>PROGRAM_SLOT|SCAPULAR_SHOULDER_SUPPORT|견갑·어깨 보조</item>
+        <item>PROGRAM_SLOT|SHOULDER_ACCESSORY|어깨 보조</item>
+        <item>PROGRAM_SLOT|SINGLE_LEG_STRENGTH_CONTROL|한쪽 다리 근력 제어</item>
+        <item>PROGRAM_SLOT|TOTAL_BODY_STABILITY_SKILL|Total 신체 안정성 기술</item>
+        <item>PROGRAM_SLOT|TRICEPS_ACCESSORY|삼두근 보조</item>
+        <item>PROGRAM_SLOT|TRICEPS_EMPHASIS_COMPOUND_PUSH|삼두근 Emphasis 복합 밀기</item>
+        <item>PROGRAM_SLOT|TRUNK_ANTI_ROTATION_STABILITY|몸통 항회전 안정성</item>
+        <item>PROGRAM_SLOT|UNILATERAL_HINGE_ACCESSORY|편측 힌지 보조</item>
+        <item>PROGRAM_SLOT|UNILATERAL_LOWER_ACCESSORY|편측 하체 보조</item>
+        <item>PROGRAM_SLOT|UNILATERAL_LOWER_STRENGTH|편측 하체 근력</item>
+        <item>PROGRAM_SLOT|UNILATERAL_SHOULDER_PRESS|편측 어깨 프레스</item>
+        <item>PROGRAM_SLOT|UNILATERAL_UPPER_PUSH|편측 상체 밀기</item>
+        <item>PROGRAM_SLOT|UPPER_PULL_ANCHOR|상체 당기기 Anchor</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_ACCESSORY|상체 밀기 보조</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_COMPOUND|상체 밀기 복합</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_STRENGTH|상체 밀기 근력</item>
+        <item>PROGRAM_SLOT|UPPER_PUSH_SUPPORT|상체 밀기 보조</item>
+        <item>PROGRAM_SLOT|VERTICAL_PULL_STRENGTH|수직 당기기 근력</item>
+        <item>PROGRESS_METRIC|COUNT_ONLY|횟수만 기록</item>
+        <item>PROGRESS_METRIC|DISTANCE_OR_TIME_LOAD|Distance Or 시간 부하</item>
+        <item>PROGRESS_METRIC|ESTIMATED_1RM|추정 1RM</item>
+        <item>PROGRESS_METRIC|LOAD_REPS|중량·반복수</item>
+        <item>PROGRESS_METRIC|LOAD_REPS_OR_REPS|부하 Reps Or Reps</item>
+        <item>PROGRESS_METRIC|LOAD_REPS_OR_TIME|부하 Reps Or 시간</item>
+        <item>PROGRESS_METRIC|MACHINE_LOAD_REPS|머신 부하 Reps</item>
+        <item>PROGRESS_METRIC|NOT_APPLICABLE|해당 없음</item>
+        <item>PROGRESS_METRIC|QUALITY_BASED|수행 품질</item>
+        <item>PROGRESS_METRIC|QUALITY_LOAD_REPS|품질 부하 Reps</item>
+        <item>PROGRESS_METRIC|REPS_AT_LOAD|Reps At 부하</item>
+        <item>PROGRESS_METRIC|REPS_OR_TIME|반복수 또는 시간</item>
+        <item>PROGRESS_METRIC|SESSION_DURATION|세션 시간</item>
+        <item>PROGRESS_METRIC|TIME|시간</item>
+        <item>PROGRESS_METRIC|TIME_DISTANCE|시간·거리</item>
+        <item>PROGRESS_METRIC|TIME_DISTANCE_PACE_OR_INTENSITY|시간 Distance Pace Or Intensity</item>
+        <item>PROGRESS_METRIC|TIME_OR_COMPLETION|시간 Or Completion</item>
+        <item>PROGRESS_METRIC|TIME_OR_DISTANCE|시간 Or Distance</item>
+        <item>PROGRESS_METRIC|TIME_OR_REPS|시간 Or Reps</item>
+        <item>PROGRESS_METRIC|VOLUME_LOAD|볼륨 부하</item>
+        <item>RECOVERY_DECAY|LONG|김</item>
+        <item>RECOVERY_DECAY|MEDIUM|보통</item>
+        <item>RECOVERY_DECAY|SHORT|짧음</item>
+        <item>RECOVERY_DECAY|VERY_LONG|매우 김</item>
+        <item>RECOVERY_DURATION|LONG|김</item>
+        <item>RECOVERY_DURATION|MEDIUM|보통</item>
+        <item>RECOVERY_DURATION|SHORT|짧음</item>
+        <item>RECOVERY_DURATION|VERY_LONG|매우 김</item>
+        <item>REDUNDANCY_GROUP|ACCESSORY_ROTATION|보조 회전</item>
+        <item>REDUNDANCY_GROUP|ANKLE_STIFFNESS_SSC_CONDITIONING|발목 강성 SSC 컨디셔닝</item>
+        <item>REDUNDANCY_GROUP|ANTERIOR_CORE_FLEXION|전면 코어 굴곡</item>
+        <item>REDUNDANCY_GROUP|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic 머리 위 프레스 보조</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_COURT_FOOTWORK|배드민턴 코트 풋워크</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_DECEL_COD|배드민턴 Decel COD</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_FOOTWORK_REACTION|배드민턴 풋워크 반응</item>
+        <item>REDUNDANCY_GROUP|BADMINTON_REACTIVE_LUNGE_FOOTWORK|배드민턴 반응성 런지 풋워크</item>
+        <item>REDUNDANCY_GROUP|BALLISTIC_HINGE_POWER|탄도성 힌지 파워</item>
+        <item>REDUNDANCY_GROUP|BAND_ROTATIONAL_CHAIN|밴드 회전 운동사슬</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_CONDITIONING_CORE|맨몸 컨디셔닝 코어</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_CONDITIONING_POWER|맨몸 컨디셔닝 파워</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_HORIZONTAL_PUSH|맨몸 수평 밀기</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_SQUAT_PATTERN|맨몸 스쿼트 패턴</item>
+        <item>REDUNDANCY_GROUP|BODYWEIGHT_VERTICAL_PUSH|맨몸 수직 밀기</item>
+        <item>REDUNDANCY_GROUP|CABLE_ROTATIONAL_CHAIN|Cable 회전 운동사슬</item>
+        <item>REDUNDANCY_GROUP|CALF_ACHILLES_ANKLE_STIFFNESS|종아리 아킬레스 발목 강성</item>
+        <item>REDUNDANCY_GROUP|CALF_ANKLE_CAPACITY|종아리 발목 Capacity</item>
+        <item>REDUNDANCY_GROUP|CARDIO_CONDITIONING|유산소 컨디셔닝</item>
+        <item>REDUNDANCY_GROUP|CARRY_GRIP_CORE_BRACING|캐리 그립 코어 브레이싱</item>
+        <item>REDUNDANCY_GROUP|CHEST_FLY_ISOLATION|가슴 Fly 고립</item>
+        <item>REDUNDANCY_GROUP|CLOSE_GRIP_BENCH_TRICEPS_PUSH|Close 그립 벤치 삼두근 밀기</item>
+        <item>REDUNDANCY_GROUP|CORE_BRACING_CONTROL|코어 브레이싱 제어</item>
+        <item>REDUNDANCY_GROUP|DIP_COMPOUND_PUSH|Dip 복합 밀기</item>
+        <item>REDUNDANCY_GROUP|DIP_TRICEPS_PUSH|Dip 삼두근 밀기</item>
+        <item>REDUNDANCY_GROUP|DUMBBELL_RDL_HINGE_ACCESSORY|Dumbbell RDL 힌지 보조</item>
+        <item>REDUNDANCY_GROUP|ELBOW_EXTENSION_TRICEPS|팔꿈치 신전 삼두근</item>
+        <item>REDUNDANCY_GROUP|ELBOW_FLEXION_CURL|팔꿈치 굴곡 Curl</item>
+        <item>REDUNDANCY_GROUP|ELBOW_FLEXION_NEUTRAL_PRONATED_CURL|팔꿈치 굴곡 Neutral Pronated Curl</item>
+        <item>REDUNDANCY_GROUP|FOREARM_GRIP_ELBOW_SUPPORT|전완 그립 팔꿈치 보조</item>
+        <item>REDUNDANCY_GROUP|FOREARM_WRIST_GRIP_ACCESSORY|전완 손목 그립 보조</item>
+        <item>REDUNDANCY_GROUP|FRONTAL_PLANE_SQUAT_ACCESSORY|전두면 면 스쿼트 보조</item>
+        <item>REDUNDANCY_GROUP|GLUTE_ISOLATION_ACCESSORY|둔근 고립 보조</item>
+        <item>REDUNDANCY_GROUP|HALF_KNEELING_UNILATERAL_VERTICAL_PUSH|Half Kneeling 편측 수직 밀기</item>
+        <item>REDUNDANCY_GROUP|HAMSTRING_KNEE_FLEXION_ISOLATION|햄스트링 무릎 굴곡 고립</item>
+        <item>REDUNDANCY_GROUP|HANDSTAND_VERTICAL_PUSH|Handstand 수직 밀기</item>
+        <item>REDUNDANCY_GROUP|HEAVY_HINGE|고중량 힌지</item>
+        <item>REDUNDANCY_GROUP|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|고관절 Abduction 둔근 Med 보조</item>
+        <item>REDUNDANCY_GROUP|HIP_ADDUCTION_ACCESSORY|고관절 Adduction 보조</item>
+        <item>REDUNDANCY_GROUP|HIP_EXTENSION_ACCESSORY|고관절 신전 보조</item>
+        <item>REDUNDANCY_GROUP|HIP_HINGE_POSTERIOR_CHAIN|고관절 힌지 후면 운동사슬</item>
+        <item>REDUNDANCY_GROUP|HIP_THRUST_GLUTE|고관절 Thrust 둔근</item>
+        <item>REDUNDANCY_GROUP|HORIZONTAL_PULL_COMPOUND|수평 당기기 복합</item>
+        <item>REDUNDANCY_GROUP|HORIZONTAL_PUSH_COMPOUND|수평 밀기 복합</item>
+        <item>REDUNDANCY_GROUP|KNEE_EXTENSION_QUAD_ISOLATION|무릎 신전 대퇴사두근 고립</item>
+        <item>REDUNDANCY_GROUP|LANDMINE_ROTATIONAL_CHAIN|Landmine 회전 운동사슬</item>
+        <item>REDUNDANCY_GROUP|LATERAL_CONTINUOUS_SSC|측면 Continuous SSC</item>
+        <item>REDUNDANCY_GROUP|LATERAL_DECELERATION_SSC|측면 감속 SSC</item>
+        <item>REDUNDANCY_GROUP|LATERAL_DELTOID_ISOLATION|측면 Deltoid 고립</item>
+        <item>REDUNDANCY_GROUP|LOADED_ROTATIONAL_CHAIN|중량 회전 운동사슬</item>
+        <item>REDUNDANCY_GROUP|LOWER_BODY_ISOMETRIC_HOLD|하체 신체 등척성 Hold</item>
+        <item>REDUNDANCY_GROUP|LOWER_SQUAT_PATTERN|하체 스쿼트 패턴</item>
+        <item>REDUNDANCY_GROUP|LOW_LOAD_POSTERIOR_CHAIN_CONTROL|Low 부하 후면 운동사슬 제어</item>
+        <item>REDUNDANCY_GROUP|LUNGE_UNILATERAL_LOWER|런지 편측 하체</item>
+        <item>REDUNDANCY_GROUP|MACHINE_KNEE_DOMINANT_PRESS|머신 무릎 Dominant 프레스</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_EXPLOSIVE_THROW|Med Ball 폭발력 Throw</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_OVERHEAD_POWER|Med Ball 머리 위 파워</item>
+        <item>REDUNDANCY_GROUP|MED_BALL_ROTATIONAL_POWER|Med Ball 회전 파워</item>
+        <item>REDUNDANCY_GROUP|MOBILITY_RECOVERY_PREP|가동성 회복 Prep</item>
+        <item>REDUNDANCY_GROUP|NORDIC_HAMSTRING_ECCENTRIC|Nordic 햄스트링 신장성</item>
+        <item>REDUNDANCY_GROUP|NOT_APPLICABLE|해당 없음</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_PRESS_SHOULDER_DOMINANT|머리 위 프레스 어깨 Dominant</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_SMASH_SUPPORT|머리 위 Smash 보조</item>
+        <item>REDUNDANCY_GROUP|OVERHEAD_TRICEPS_LONG_HEAD|머리 위 삼두근 Long Head</item>
+        <item>REDUNDANCY_GROUP|PLYOMETRIC_LUNGE_SSC|플라이오메트릭 런지 SSC</item>
+        <item>REDUNDANCY_GROUP|POSTERIOR_DELTOID_HORIZONTAL_ABDUCTION|후면 Deltoid 수평 Abduction</item>
+        <item>REDUNDANCY_GROUP|POWER_REACTIVE_LOW_VOLUME|파워·반응성 저볼륨</item>
+        <item>REDUNDANCY_GROUP|PULLOVER_LAT_CHEST_ACCESSORY|Pullover Lat 가슴 보조</item>
+        <item>REDUNDANCY_GROUP|QUAD_ECCENTRIC_KNEE_DOMINANT|대퇴사두근 신장성 무릎 Dominant</item>
+        <item>REDUNDANCY_GROUP|RECOVERY_PREHAB_LIGHT|회복·프리햅 저강도</item>
+        <item>REDUNDANCY_GROUP|ROTATIONAL_KINETIC_CHAIN|회전 운동사슬</item>
+        <item>REDUNDANCY_GROUP|ROTATOR_CUFF_PREHAB|회전근개 회전근개 프리햅</item>
+        <item>REDUNDANCY_GROUP|RUNNING_MECHANICS_SUPPORT|Running Mechanics 보조</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_PROTRACTION_CONTROL|견갑 Protraction 제어</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_RETRACTION_EXTERNAL_ROTATION|견갑 Retraction External 회전</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_SHOULDER_CONTROL|견갑 어깨 제어</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_SHOULDER_SUPPORT|견갑·어깨 보조</item>
+        <item>REDUNDANCY_GROUP|SCAPULAR_UPWARD_ROTATION_CONTROL|견갑 Upward 회전 제어</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_HINGE_STABILITY|한쪽 다리 힌지 안정성</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_SQUAT_STABILITY|한쪽 다리 스쿼트 안정성</item>
+        <item>REDUNDANCY_GROUP|SINGLE_LEG_STRENGTH_CONTROL|한쪽 다리 근력 제어</item>
+        <item>REDUNDANCY_GROUP|SPRINT_ACCELERATION_CONDITIONING|Sprint 가속 컨디셔닝</item>
+        <item>REDUNDANCY_GROUP|SQUAT_PATTERN_ACCESSORY|스쿼트 패턴 보조</item>
+        <item>REDUNDANCY_GROUP|SQUAT_PATTERN_HEAVY_LOWER|스쿼트 패턴 고중량 하체</item>
+        <item>REDUNDANCY_GROUP|STEP_UP_SINGLE_LEG_KNEE_HIP_EXTENSION|Step Up 한쪽 다리 무릎 고관절 신전</item>
+        <item>REDUNDANCY_GROUP|STRAIGHT_ARM_LAT_ACCESSORY|Straight 팔 Lat 보조</item>
+        <item>REDUNDANCY_GROUP|TOTAL_BODY_STABILITY_SKILL|Total 신체 안정성 기술</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_MOVEMENT|몸통 항 동작</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_ROTATION_CONTROL|몸통 항 회전 제어</item>
+        <item>REDUNDANCY_GROUP|TRUNK_ANTI_ROTATION_STABILITY|몸통 항회전 안정성</item>
+        <item>REDUNDANCY_GROUP|UNILATERAL_HORIZONTAL_PUSH|편측 수평 밀기</item>
+        <item>REDUNDANCY_GROUP|UNILATERAL_INCLINE_PUSH|편측 Incline 밀기</item>
+        <item>REDUNDANCY_GROUP|UPPER_PULL_ANCHOR|상체 당기기 Anchor</item>
+        <item>REDUNDANCY_GROUP|UPPER_PUSH_SUPPORT|상체 밀기 보조</item>
+        <item>REDUNDANCY_GROUP|VERTICAL_JUMP_SSC|수직 점프 SSC</item>
+        <item>REDUNDANCY_GROUP|VERTICAL_PULL_COMPOUND|수직 당기기 복합</item>
+        <item>REDUNDANCY_GROUP|VIPR_ROTATIONAL_CHAIN|VIPR 회전 운동사슬</item>
+        <item>SECONDARY_STRESS|ACCELERATION_DECELERATION_LOAD|가속 감속 부하</item>
+        <item>SECONDARY_STRESS|ACCELERATION_LOAD|가속 부하</item>
+        <item>SECONDARY_STRESS|AEROBIC_ANAEROBIC_LOAD|유산소 무산소 부하</item>
+        <item>SECONDARY_STRESS|ANTERIOR_CORE_LOAD|전면 코어 부하</item>
+        <item>SECONDARY_STRESS|ANTERIOR_DELTOID_LOAD|전면 Deltoid 부하</item>
+        <item>SECONDARY_STRESS|ANTERIOR_SHOULDER_LOAD|전면 어깨 부하</item>
+        <item>SECONDARY_STRESS|ANTI_ROTATION|항 회전</item>
+        <item>SECONDARY_STRESS|ANTI_ROTATION_LOAD|항 회전 부하</item>
+        <item>SECONDARY_STRESS|BARBELL_LOAD|바벨 부하</item>
+        <item>SECONDARY_STRESS|BICEPS_LOAD|이두근 부하</item>
+        <item>SECONDARY_STRESS|BICEPS_LOCAL_LOAD|이두근 국소 부하</item>
+        <item>SECONDARY_STRESS|BODYWEIGHT_LOAD|맨몸 부하</item>
+        <item>SECONDARY_STRESS|BRACHIALIS_BRACHIORADIALIS_LOAD|Brachialis Brachioradialis 부하</item>
+        <item>SECONDARY_STRESS|CALF_ANKLE_SSC_LOAD|종아리 발목 SSC 부하</item>
+        <item>SECONDARY_STRESS|CHANGE_OF_DIRECTION_LOAD|Change Of 방향 부하</item>
+        <item>SECONDARY_STRESS|CHEST_LOAD|가슴 부하</item>
+        <item>SECONDARY_STRESS|CONDITIONING_LOAD|컨디셔닝 부하</item>
+        <item>SECONDARY_STRESS|CORE_BRACING_LOAD|코어 브레이싱 부하</item>
+        <item>SECONDARY_STRESS|COURT_MOVEMENT_LOAD|코트 동작 부하</item>
+        <item>SECONDARY_STRESS|DECELERATION|감속</item>
+        <item>SECONDARY_STRESS|DECELERATION_LOAD|감속 부하</item>
+        <item>SECONDARY_STRESS|DELTOID_LOAD|Deltoid 부하</item>
+        <item>SECONDARY_STRESS|ELASTIC_SSC|탄성 SSC</item>
+        <item>SECONDARY_STRESS|ELASTIC_SSC_LOAD|탄성 SSC 부하</item>
+        <item>SECONDARY_STRESS|ELBOW_EXTENSION_LOAD|팔꿈치 신전 부하</item>
+        <item>SECONDARY_STRESS|ELBOW_FLEXION_LOAD|팔꿈치 굴곡 부하</item>
+        <item>SECONDARY_STRESS|EXTERNAL_LOAD|External 부하</item>
+        <item>SECONDARY_STRESS|FRONTAL_PLANE_LOAD|전두면 면 부하</item>
+        <item>SECONDARY_STRESS|GLUTE_LOAD|둔근 부하</item>
+        <item>SECONDARY_STRESS|GLUTE_LOCAL_LOAD|둔근 국소 부하</item>
+        <item>SECONDARY_STRESS|GLUTE_MED_LOCAL_LOAD|둔근 Med 국소 부하</item>
+        <item>SECONDARY_STRESS|GRIP_FOREARM|그립 전완</item>
+        <item>SECONDARY_STRESS|GRIP_FOREARM_LOAD|그립 전완 부하</item>
+        <item>SECONDARY_STRESS|GRIP_LOAD|그립 부하</item>
+        <item>SECONDARY_STRESS|HAMSTRING_LOAD|햄스트링 부하</item>
+        <item>SECONDARY_STRESS|HAMSTRING_LOCAL_LOAD|햄스트링 국소 부하</item>
+        <item>SECONDARY_STRESS|HEAVY_LOAD|고중량 부하</item>
+        <item>SECONDARY_STRESS|HIP_ABDUCTION_LOAD|고관절 Abduction 부하</item>
+        <item>SECONDARY_STRESS|HIP_ADDUCTOR_LOCAL_LOAD|고관절 Adductor 국소 부하</item>
+        <item>SECONDARY_STRESS|HIP_CONTROL_LOAD|고관절 제어 부하</item>
+        <item>SECONDARY_STRESS|HIP_EXTENSION_LOAD|고관절 신전 부하</item>
+        <item>SECONDARY_STRESS|HIP_FLEXION_LOAD|고관절 굴곡 부하</item>
+        <item>SECONDARY_STRESS|HIP_STABILITY_LOAD|고관절 안정성 부하</item>
+        <item>SECONDARY_STRESS|JUMP_LANDING_LOAD|점프 착지 부하</item>
+        <item>SECONDARY_STRESS|KNEE_CONTROL_LOAD|무릎 제어 부하</item>
+        <item>SECONDARY_STRESS|KNEE_EXTENSION_LOAD|무릎 신전 부하</item>
+        <item>SECONDARY_STRESS|KNEE_FLEXION_LOAD|무릎 굴곡 부하</item>
+        <item>SECONDARY_STRESS|LANDING_LOAD|착지 부하</item>
+        <item>SECONDARY_STRESS|LATERAL_DELTOID_LOCAL_LOAD|측면 Deltoid 국소 부하</item>
+        <item>SECONDARY_STRESS|LATERAL_MOVEMENT_LOAD|측면 동작 부하</item>
+        <item>SECONDARY_STRESS|LAT_LOAD|Lat 부하</item>
+        <item>SECONDARY_STRESS|LAT_LOCAL_LOAD|Lat 국소 부하</item>
+        <item>SECONDARY_STRESS|LOCAL_MUSCLE|국소 Muscle</item>
+        <item>SECONDARY_STRESS|LOCAL_STABILIZER_LOAD|국소 Stabilizer 부하</item>
+        <item>SECONDARY_STRESS|LOWER_BODY_POWER_LOAD|하체 신체 파워 부하</item>
+        <item>SECONDARY_STRESS|LOW_FATIGUE_REHAB|Low 피로도 Rehab</item>
+        <item>SECONDARY_STRESS|LOW_LOAD_CONTROL|Low 부하 제어</item>
+        <item>SECONDARY_STRESS|LUNGE_REACH_LOAD|런지 리치 부하</item>
+        <item>SECONDARY_STRESS|MACHINE_GUIDED_LOAD|머신 Guided 부하</item>
+        <item>SECONDARY_STRESS|MOBILITY_CONTROL_LOAD|가동성 제어 부하</item>
+        <item>SECONDARY_STRESS|NEURAL_HEAVY|신경계 고중량</item>
+        <item>SECONDARY_STRESS|NEURAL_LOAD|신경계 부하</item>
+        <item>SECONDARY_STRESS|NEURAL_SPEED|신경계 속도</item>
+        <item>SECONDARY_STRESS|NEURAL_SPEED_LOAD|신경계 속도 부하</item>
+        <item>SECONDARY_STRESS|OVERHEAD_RACKET_LOAD|머리 위 Racket 부하</item>
+        <item>SECONDARY_STRESS|OVERHEAD_REPETITION|머리 위 반복</item>
+        <item>SECONDARY_STRESS|OVERHEAD_REPETITION_LOAD|머리 위 반복 부하</item>
+        <item>SECONDARY_STRESS|PECTORAL_LOAD|Pectoral 부하</item>
+        <item>SECONDARY_STRESS|PECTORAL_LOCAL_LOAD|Pectoral 국소 부하</item>
+        <item>SECONDARY_STRESS|POSTERIOR_DELTOID_LOCAL_LOAD|후면 Deltoid 국소 부하</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_ISOMETRIC_LOAD|Quadriceps 등척성 부하</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_LOAD|Quadriceps 부하</item>
+        <item>SECONDARY_STRESS|QUADRICEPS_LOCAL_LOAD|Quadriceps 국소 부하</item>
+        <item>SECONDARY_STRESS|QUAD_LOAD|대퇴사두근 부하</item>
+        <item>SECONDARY_STRESS|RACKET_SKILL_LOAD|Racket 기술 부하</item>
+        <item>SECONDARY_STRESS|REACTIVE_MOVEMENT_LOAD|반응성 동작 부하</item>
+        <item>SECONDARY_STRESS|REACTIVE_SSC_LOAD|반응성 SSC 부하</item>
+        <item>SECONDARY_STRESS|REAR_DELTOID_LOAD|후면 Deltoid 부하</item>
+        <item>SECONDARY_STRESS|REPEATED_PATTERN_LOAD|Repeated 패턴 부하</item>
+        <item>SECONDARY_STRESS|REPEATED_SPRINT_LOAD|Repeated Sprint 부하</item>
+        <item>SECONDARY_STRESS|ROTATION_POWER|회전 파워</item>
+        <item>SECONDARY_STRESS|ROTATION_POWER_LOAD|회전 파워 부하</item>
+        <item>SECONDARY_STRESS|RUNNING_MECHANICS_LOAD|Running Mechanics 부하</item>
+        <item>SECONDARY_STRESS|SCAPULAR_CONTROL_LOAD|견갑 제어 부하</item>
+        <item>SECONDARY_STRESS|SCAPULAR_RETRACTION_LOAD|견갑 Retraction 부하</item>
+        <item>SECONDARY_STRESS|SCAPULAR_STABILITY_LOAD|견갑 안정성 부하</item>
+        <item>SECONDARY_STRESS|SHOULDER_CONTROL_LOAD|어깨 제어 부하</item>
+        <item>SECONDARY_STRESS|SHOULDER_EXTENSION_LOAD|어깨 신전 부하</item>
+        <item>SECONDARY_STRESS|SHOULDER_ROTATION_LOAD|어깨 회전 부하</item>
+        <item>SECONDARY_STRESS|SHOULDER_STABILITY_LOAD|어깨 안정성 부하</item>
+        <item>SECONDARY_STRESS|SINGLE_LEG_STABILITY_LOAD|한쪽 다리 안정성 부하</item>
+        <item>SECONDARY_STRESS|STABILITY_COORDINATION_LOAD|안정성 협응 부하</item>
+        <item>SECONDARY_STRESS|STRAIGHT_ARM_SHOULDER_EXTENSION_LOAD|Straight 팔 어깨 신전 부하</item>
+        <item>SECONDARY_STRESS|SYSTEMIC|전신</item>
+        <item>SECONDARY_STRESS|SYSTEMIC_CONDITIONING_LOAD|전신 컨디셔닝 부하</item>
+        <item>SECONDARY_STRESS|TOTAL_BODY_COORDINATION_LOAD|Total 신체 협응 부하</item>
+        <item>SECONDARY_STRESS|TRICEPS_LOAD|삼두근 부하</item>
+        <item>SECONDARY_STRESS|TRICEPS_LOCAL_LOAD|삼두근 국소 부하</item>
+        <item>SECONDARY_STRESS|UNILATERAL_CONTROL_LOAD|편측 제어 부하</item>
+        <item>SECONDARY_STRESS|UPPER_BACK_LOAD|상체 등 부하</item>
+        <item>SECONDARY_STRESS|WRIST_CONTROL_LOAD|손목 제어 부하</item>
+        <item>SOURCE_CONFIDENCE|ANATOMY_SUPPORTED|해부학적 근거 지원</item>
+        <item>SOURCE_CONFIDENCE|HEURISTIC_ACCEPTED|휴리스틱 검토 완료</item>
+        <item>SOURCE_CONFIDENCE|SOURCE_WEAK_BUT_ACCEPTABLE|근거가 제한적이나 사용 가능</item>
+        <item>SOURCE_CONFIDENCE|VERIFIED_EXACT|운동 단위 확인</item>
+        <item>SOURCE_CONFIDENCE|VERIFIED_FAMILY|운동 계열 확인</item>
+        <item>SPORT_CONTEXT|BADMINTON_DIRECT_TRANSFER|배드민턴 직접 전이</item>
+        <item>SPORT_CONTEXT|BADMINTON_FOOTWORK|배드민턴 풋워크</item>
+        <item>SPORT_CONTEXT|BADMINTON_LESSON|배드민턴 Lesson</item>
+        <item>SPORT_CONTEXT|BADMINTON_LUNGE_REACH|배드민턴 런지 리치</item>
+        <item>SPORT_CONTEXT|BADMINTON_MATCH|배드민턴 Match</item>
+        <item>SPORT_CONTEXT|BADMINTON_MULTI_SHUTTLE|배드민턴 다방향 셔틀</item>
+        <item>SPORT_CONTEXT|BADMINTON_OVERHEAD_TEST|배드민턴 머리 위 테스트</item>
+        <item>SPORT_CONTEXT|BADMINTON_RALLY|배드민턴 랠리</item>
+        <item>SPORT_CONTEXT|GENERAL_CONDITIONING|일반 컨디셔닝</item>
+        <item>SPORT_CONTEXT|GENERAL_COURT_SPORT|일반 코트 스포츠</item>
+        <item>SPORT_CONTEXT|NONE|없음</item>
+        <item>SPORT_CONTEXT|OTHER_SPORT_SESSION|Other 스포츠 Session</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ACCESSORY_ROTATION|보조 회전</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ANTERIOR_CORE_FLEXION|전면 코어 굴곡</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ANTI_ROTATION|항 회전</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ATHLETIC_OVERHEAD_PRESS_SUPPORT|Athletic 머리 위 프레스 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_DECEL_COD|배드민턴 Decel COD</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_FOOTWORK_REACTION|배드민턴 풋워크 반응</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BADMINTON_TEST|배드민턴 테스트</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BALLISTIC_HINGE_POWER|탄도성 힌지 파워</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_CONDITIONING_CORE|맨몸 컨디셔닝 코어</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_HORIZONTAL_PUSH|맨몸 수평 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_SQUAT_PATTERN|맨몸 스쿼트 패턴</item>
+        <item>STRENGTH_PROGRESSION_GROUP|BODYWEIGHT_VERTICAL_PUSH|맨몸 수직 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CALF_ACHILLES_ANKLE_STIFFNESS|종아리 아킬레스 발목 강성</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CALF_ANKLE_CAPACITY|종아리 발목 Capacity</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARDIO_CONDITIONING|유산소 컨디셔닝</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARRY|캐리</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CARRY_GRIP_CORE_BRACING|캐리 그립 코어 브레이싱</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CHEST_FLY_ISOLATION|가슴 Fly 고립</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CLOSE_GRIP_BENCH_TRICEPS_PUSH|Close 그립 벤치 삼두근 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CORE|코어</item>
+        <item>STRENGTH_PROGRESSION_GROUP|CORE_BRACING_CONTROL|코어 브레이싱 제어</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DIP_COMPOUND_PUSH|Dip 복합 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DIP_TRICEPS_PUSH|Dip 삼두근 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|DUMBBELL_RDL_HINGE_ACCESSORY|Dumbbell RDL 힌지 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_EXTENSION_TRICEPS|팔꿈치 신전 삼두근</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_FLEXION_CURL|팔꿈치 굴곡 Curl</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ELBOW_FLEXION_NEUTRAL_PRONATED_CURL|팔꿈치 굴곡 Neutral Pronated Curl</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FOREARM_GRIP_ELBOW_SUPPORT|전완 그립 팔꿈치 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FOREARM_WRIST_GRIP_ACCESSORY|전완 손목 그립 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|FRONTAL_PLANE_SQUAT_ACCESSORY|전두면 면 스쿼트 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|GLUTE_ISOLATION_ACCESSORY|둔근 고립 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HALF_KNEELING_UNILATERAL_VERTICAL_PUSH|Half Kneeling 편측 수직 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HAMSTRING_KNEE_FLEXION_ISOLATION|햄스트링 무릎 굴곡 고립</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HANDSTAND_VERTICAL_PUSH|Handstand 수직 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HEAVY_HINGE|고중량 힌지</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HINGE|힌지</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_ABDUCTION_GLUTE_MED_ACCESSORY|고관절 Abduction 둔근 Med 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_ADDUCTION_ACCESSORY|고관절 Adduction 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_EXTENSION_ACCESSORY|고관절 신전 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_HINGE_POSTERIOR_CHAIN|고관절 힌지 후면 운동사슬</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HIP_THRUST_GLUTE|고관절 Thrust 둔근</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HORIZONTAL_PULL_COMPOUND|수평 당기기 복합</item>
+        <item>STRENGTH_PROGRESSION_GROUP|HORIZONTAL_PUSH_COMPOUND|수평 밀기 복합</item>
+        <item>STRENGTH_PROGRESSION_GROUP|KNEE_EXTENSION_QUAD_ISOLATION|무릎 신전 대퇴사두근 고립</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LATERAL_DELTOID_ISOLATION|측면 Deltoid 고립</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOWER_BODY_ISOMETRIC_HOLD|하체 신체 등척성 Hold</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOWER_SQUAT_PATTERN|하체 스쿼트 패턴</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LOW_LOAD_POSTERIOR_CHAIN_CONTROL|Low 부하 후면 운동사슬 제어</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LUNGE|런지</item>
+        <item>STRENGTH_PROGRESSION_GROUP|LUNGE_UNILATERAL_LOWER|런지 편측 하체</item>
+        <item>STRENGTH_PROGRESSION_GROUP|MACHINE_KNEE_DOMINANT_PRESS|머신 무릎 Dominant 프레스</item>
+        <item>STRENGTH_PROGRESSION_GROUP|MOBILITY_RECOVERY_PREP|가동성 회복 Prep</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NONE|없음</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NORDIC_HAMSTRING_ECCENTRIC|Nordic 햄스트링 신장성</item>
+        <item>STRENGTH_PROGRESSION_GROUP|NOT_APPLICABLE|해당 없음</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_PRESS_SHOULDER_DOMINANT|머리 위 프레스 어깨 Dominant</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_SMASH_SUPPORT|머리 위 Smash 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|OVERHEAD_TRICEPS_LONG_HEAD|머리 위 삼두근 Long Head</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POSTERIOR_DELTOID_HORIZONTAL_ABDUCTION|후면 Deltoid 수평 Abduction</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POWER_CORE_SHOULDER|파워 코어 어깨</item>
+        <item>STRENGTH_PROGRESSION_GROUP|POWER_REACTIVE_LOW_VOLUME|파워·반응성 저볼륨</item>
+        <item>STRENGTH_PROGRESSION_GROUP|PULLOVER_LAT_CHEST_ACCESSORY|Pullover Lat 가슴 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|QUAD_ECCENTRIC_KNEE_DOMINANT|대퇴사두근 신장성 무릎 Dominant</item>
+        <item>STRENGTH_PROGRESSION_GROUP|RECOVERY_PREHAB_LIGHT|회복·프리햅 저강도</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ROTATIONAL_KINETIC_CHAIN|회전 운동사슬</item>
+        <item>STRENGTH_PROGRESSION_GROUP|ROTATION_POWER|회전 파워</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SCAPULAR_SHOULDER_SUPPORT|견갑·어깨 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SHOULDER_OVERHEAD|어깨 머리 위</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_HINGE_STABILITY|한쪽 다리 힌지 안정성</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_SQUAT_STABILITY|한쪽 다리 스쿼트 안정성</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SINGLE_LEG_STRENGTH_CONTROL|한쪽 다리 근력 제어</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT|스쿼트</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT_PATTERN_ACCESSORY|스쿼트 패턴 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|SQUAT_PATTERN_HEAVY_LOWER|스쿼트 패턴 고중량 하체</item>
+        <item>STRENGTH_PROGRESSION_GROUP|STEP_UP_SINGLE_LEG_KNEE_HIP_EXTENSION|Step Up 한쪽 다리 무릎 고관절 신전</item>
+        <item>STRENGTH_PROGRESSION_GROUP|STRAIGHT_ARM_LAT_ACCESSORY|Straight 팔 Lat 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TOTAL_BODY_STABILITY_SKILL|Total 신체 안정성 기술</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TRUNK_ANTI_MOVEMENT|몸통 항 동작</item>
+        <item>STRENGTH_PROGRESSION_GROUP|TRUNK_ANTI_ROTATION_STABILITY|몸통 항회전 안정성</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UNILATERAL_HORIZONTAL_PUSH|편측 수평 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UNILATERAL_INCLINE_PUSH|편측 Incline 밀기</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_ANCHOR|상체 당기기 Anchor</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_HORIZONTAL|상체 당기기 수평</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PULL_VERTICAL|상체 당기기 수직</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_HORIZONTAL|상체 밀기 수평</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_SUPPORT|상체 밀기 보조</item>
+        <item>STRENGTH_PROGRESSION_GROUP|UPPER_PUSH_VERTICAL|상체 밀기 수직</item>
+        <item>STRENGTH_PROGRESSION_GROUP|VERTICAL_PULL_COMPOUND|수직 당기기 복합</item>
+        <item>STRESS_LEVEL|HIGH|높음</item>
+        <item>STRESS_LEVEL|LOW|낮음</item>
+        <item>STRESS_LEVEL|MODERATE|보통</item>
+        <item>STRESS_LEVEL|VERY_HIGH|매우 높음</item>
+        <item>SUPPORTIVE_TRANSFER|ACCELERATION|가속</item>
+        <item>SUPPORTIVE_TRANSFER|ANTI_ROTATION_STABILITY|항 회전 안정성</item>
+        <item>SUPPORTIVE_TRANSFER|CONDITIONING|컨디셔닝</item>
+        <item>SUPPORTIVE_TRANSFER|DECELERATION|감속</item>
+        <item>SUPPORTIVE_TRANSFER|FOOTWORK|풋워크</item>
+        <item>SUPPORTIVE_TRANSFER|GRIP_FOREARM|그립 전완</item>
+        <item>SUPPORTIVE_TRANSFER|JUMP_LANDING|점프 착지</item>
+        <item>SUPPORTIVE_TRANSFER|LUNGE_REACH|런지 리치</item>
+        <item>SUPPORTIVE_TRANSFER|NONE|없음</item>
+        <item>SUPPORTIVE_TRANSFER|OVERHEAD_POWER|머리 위 파워</item>
+        <item>SUPPORTIVE_TRANSFER|REACTION|반응</item>
+        <item>SUPPORTIVE_TRANSFER|ROTATION_POWER|회전 파워</item>
+        <item>SUPPORTIVE_TRANSFER|SHOULDER_CARE|어깨 관리</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|HIGH|높음</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|LOW|낮음</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|MODERATE|보통</item>
+        <item>SYSTEMIC_MUSCULAR_STRESS|VERY_HIGH|매우 높음</item>
+        <item>TENDON_STRESS|ACHILLES_TENDON_STRESS|아킬레스 건 스트레스</item>
+        <item>TENDON_STRESS|ADDUCTOR_TENDON_STRESS|Adductor 건 스트레스</item>
+        <item>TENDON_STRESS|ANKLE_ACHILLES|발목 아킬레스</item>
+        <item>TENDON_STRESS|BICEPS_TENDON_STRESS|이두근 건 스트레스</item>
+        <item>TENDON_STRESS|ELBOW|팔꿈치</item>
+        <item>TENDON_STRESS|ELBOW_TENDON_STRESS|팔꿈치 건 스트레스</item>
+        <item>TENDON_STRESS|FOREARM_EXTENSOR_TENDON_STRESS|전완 Extensor 건 스트레스</item>
+        <item>TENDON_STRESS|FOREARM_FLEXOR_TENDON_STRESS|전완 Flexor 건 스트레스</item>
+        <item>TENDON_STRESS|GLUTE_MED_TENDON_STRESS|둔근 Med 건 스트레스</item>
+        <item>TENDON_STRESS|HAMSTRING_TENDON_STRESS|햄스트링 건 스트레스</item>
+        <item>TENDON_STRESS|HIP|고관절</item>
+        <item>TENDON_STRESS|KNEE|무릎</item>
+        <item>TENDON_STRESS|LOW_BACK|Low 등</item>
+        <item>TENDON_STRESS|NONE|없음</item>
+        <item>TENDON_STRESS|PATELLAR_TENDON_STRESS|슬개건 건 스트레스</item>
+        <item>TENDON_STRESS|PECTORAL_TENDON_STRESS|Pectoral 건 스트레스</item>
+        <item>TENDON_STRESS|QUADRICEPS_TENDON_STRESS|Quadriceps 건 스트레스</item>
+        <item>TENDON_STRESS|QUAD_TENDON_STRESS|대퇴사두근 건 스트레스</item>
+        <item>TENDON_STRESS|ROTATOR_CUFF_TENDON_STRESS|회전근개 회전근개 건 스트레스</item>
+        <item>TENDON_STRESS|SHOULDER|어깨</item>
+        <item>TENDON_STRESS|SHOULDER_TENDON_STRESS|어깨 건 스트레스</item>
+        <item>TENDON_STRESS|TRICEPS_TENDON_STRESS|삼두근 건 스트레스</item>
+        <item>TENDON_STRESS|WRIST|손목</item>
+        <item>TRAINING_ROLE|ACCESSORY|보조</item>
+        <item>TRAINING_ROLE|CONDITIONING|컨디셔닝</item>
+        <item>TRAINING_ROLE|MAIN_STRENGTH|메인 근력</item>
+        <item>TRAINING_ROLE|MOBILITY|가동성</item>
+        <item>TRAINING_ROLE|PLYOMETRIC|플라이오메트릭</item>
+        <item>TRAINING_ROLE|POWER|파워</item>
+        <item>TRAINING_ROLE|PREHAB|프리햅</item>
+        <item>TRAINING_ROLE|RECOVERY|회복</item>
+        <item>TRAINING_ROLE|SECONDARY_STRENGTH|Secondary 근력</item>
+        <item>TRAINING_ROLE|SKILL|기술</item>
+        <item>TRAINING_ROLE|SPEED_REACTIVE|속도 반응성</item>
+        <item>TRAINING_ROLE|STABILITY|안정성</item>
+        <item>TRAINING_ROLE|TEST|테스트</item>
+        <item>TRANSFER_CONFIDENCE|HIGH|높음</item>
+        <item>TRANSFER_CONFIDENCE|LOW|낮음</item>
+        <item>TRANSFER_CONFIDENCE|MEDIUM|보통</item>
+        <item>TRANSFER_CONFIDENCE|NONE|평가 없음</item>
+    </string-array>
+</resources>

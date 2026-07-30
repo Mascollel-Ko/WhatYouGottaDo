@@ -20,7 +20,9 @@ class ProgramOptimizationPolicyTest {
         assertFalse("cluster should be resolved",
             after.issues.any { it.type == ProgramEvaluationIssueType.HIGH_LOWER_BODY_FATIGUE_CLUSTER })
         assertTrue("summary should mention fatigue redistribution",
-            optimized.optimizationSummary.messages.any { it.contains("하체 피로") })
+            optimized.optimizationSummary.notices.any {
+                it.code == ProgramUserNoticeCode.ADJACENT_LOWER_FATIGUE_REDUCED
+            })
         assertEquals("repair must not add exercises", skeleton.items.map(ProgramSkeletonItem::exerciseStableKey).toSet(),
             optimized.items.map(ProgramSkeletonItem::exerciseStableKey).toSet())
     }
