@@ -4186,3 +4186,37 @@ Verification
   `app/src/main/res/values/themes.xml:5` API 27/minSdk 26 `NewApi` issue
   (1 error, 37 warnings).
 - Release commit, main push and GitHub Actions: pending.
+
+## v0.5.0.15 startup migration hotfix
+
+### Baseline and cause
+
+- Started from `df8bd4a7b222794146a10d66496dd01b23427458`
+  (`0.5.0.14 / 500014`).
+- A test database upgrading through Room 24-to-25 closed the app at startup
+  because the unresolved-exercise INSERT supplied 69 values for 67 columns.
+
+### Implementation
+
+- Corrected only the placeholder value list in
+  `ExerciseStableKeyMigration.insertUnresolvedExercise`.
+- Added field-alignment assertions to the existing 24-to-25 migration
+  instrumentation test.
+- Room remains version 26; exported schemas, backup formats, exercise mappings
+  and user records are unchanged.
+
+### Verification
+
+- `:app:testDebugUnitTest`: 1,106 tests across 191 suites, zero failures,
+  errors or skips.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed; APK 46,921,615 bytes, SHA-256
+  `B3D87A5DF773895B019F53676302DFF2E6EA8073A178721AF4EB72DE1CEF4747`.
+- Protocol validation: passed, 8 families and 32 protocols.
+- The focused migration instrumentation run now passes the corrected INSERT and
+  reaches a separate pre-existing exported-schema fixture mismatch for
+  `workout_entries`.
+- A patched APK was installed over the original crashing emulator database
+  without clearing app data. After launch, `MainActivity` stayed resumed for
+  more than 20 seconds, the process stayed alive, and the crash log was empty.
+- Release commit, main push and GitHub Actions: pending.

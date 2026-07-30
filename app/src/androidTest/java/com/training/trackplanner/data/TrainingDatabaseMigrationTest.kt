@@ -647,6 +647,19 @@ class TrainingDatabaseMigrationTest {
             )
             check(database.count("exercise_identity_migration_issues") >= 3)
             check(database.singleString("SELECT name FROM exercises WHERE stableKey = 'user_exercise_test'") == "내 운동")
+            database.query(
+                """
+                SELECT metadataConfidence, isActive, isCustom, needsReview
+                FROM exercises
+                WHERE stableKey = '${ExerciseMigrationKeyPolicy.UNRESOLVED_REFERENCE_KEY}'
+                """.trimIndent()
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getString(0) == "UNKNOWN")
+                check(cursor.getInt(1) == 0)
+                check(cursor.getInt(2) == 1)
+                check(cursor.getInt(3) == 1)
+            }
         }
     }
 
