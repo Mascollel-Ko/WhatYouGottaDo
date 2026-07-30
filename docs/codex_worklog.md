@@ -4220,3 +4220,77 @@ Verification
   without clearing app data. After launch, `MainActivity` stayed resumed for
   more than 20 seconds, the process stayed alive, and the crash log was empty.
 - Release commit, main push and GitHub Actions: pending.
+
+## v0.5.0.16 metadata analysis contract Phase 0 and Phase 1
+
+### Baseline and objective
+
+- Started from latest `origin/main`
+  `47f93eadaff64a49f6dc886a9319191c7388029c`
+  (`0.5.0.15 / 500015`).
+- Read and adopted
+  `metadata_analysis_contract_and_migration_plan_ko.md` as the canonical
+  design.
+- Scope is limited to current-behavior audit, typed stableKey relations,
+  built-in baseline generation, and shadow parity. Production cutover is
+  explicitly deferred.
+
+### Phase 0
+
+- Added `tools/generate_metadata_analysis_contract_audit.ps1`.
+- Generated a 102-row metadata field usage/disposition matrix in CSV and
+  Markdown.
+- Generated a 292-row legacy parsing/inference inventory in CSV and Markdown.
+- Documented the baseline fixture policy, program production-path distinction,
+  rollback boundary, and known cutover gaps.
+
+### Phase 1
+
+- Added typed multi-membership models for analysis capability, canonical five
+  OFI axes and purpose-specific groups, program slots/roles/groups, muscle
+  contributions, badminton transfer/qualities, and support relations.
+- Added `AnalysisContractRepository` and the immutable
+  `ANALYSIS_CONTRACT_BASELINE_V1` asset: 9,781 relation rows for all 224
+  built-in stableKeys.
+- Added exact connective-tissue capability coverage from the existing reviewed
+  224-key RCV catalog without copying or changing tissue coefficients.
+- Added `UserExerciseAnalysisContractProjector`; no user row is migrated or
+  persisted, and missing OFI/muscle/program/tissue relationships remain
+  `INCOMPLETE`.
+- Added structured shadow diffing, a 307-row program-generation golden,
+  relation identity/cardinality guards, and a source gate that forbids semantic
+  name/stableKey/delimiter inference in the new package.
+
+### Compatibility
+
+- Existing production calculators and UI remain on the old authoritative path.
+- OFI, program, muscle, badminton, connective-tissue, protocol, threshold,
+  label, and exercise identity behavior is unchanged.
+- Room remains 26. Backup format remains 9, restore CSV schema remains 8, and
+  program backup schema remains 2.
+- No production Kotlin caller was switched to the contract repository.
+- Existing unrelated `outputs/*` work remains untouched and uncommitted.
+
+### Commits
+
+- `639330b`: `docs(metadata): freeze analysis contracts and parity policy`
+- `f73386e`: `feat(metadata): add typed stableKey analysis relationships`
+- `0cf9784`: `test(metadata): add shadow parity and coverage gates`
+- Release commit: pending.
+
+### Validation
+
+- Focused contract plus runtime metadata, OFI, program, muscle, badminton, and
+  backup tests: passed.
+- `:app:testDebugUnitTest`: 1,111 tests across 193 suites; zero failures,
+  errors, or skips.
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin`: passed.
+- Current Room `25 -> 26` migration: passed on Pixel 8 API 35 emulator.
+- Full historical migration suite: five pre-existing fixture failures remain;
+  no Room migration or schema was changed by this release.
+- Protocol validation: passed, 8 families and 33 protocols.
+- `:app:assembleDebug`: passed; APK 47,036,306 bytes, SHA-256
+  `22AF1D24AFA1F94297D68ED8544B7E55EDCCD2EFA80B898CB1435A6B397950C3`.
+- `:app:lintDebug`: one pre-existing `themes.xml:5` API 27/minSdk 26 `NewApi`
+  error and 37 warnings.
+- Release commits, main push, tag, and GitHub Actions: pending.
