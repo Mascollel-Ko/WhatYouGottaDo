@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0 |
-| Last audited commit | 7c29fa80b31fad642273e0a3ec5924109dafac21 |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14 |
+| Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -28,6 +28,7 @@ WhatYouGottaDo의 기본 화면은 장식보다 기록, 현재 상태와 다음 
 - Home과 Analysis의 최상위 정보 계층
 - OFI 기본 요약
 - 연결조직 분석을 포함한 공용 card, row, chip, spacing과 typography
+- metadata editor, exercise information, metadata copy와 program result UI
 
 ## 4. 비적용 범위
 
@@ -109,6 +110,12 @@ Material platform 관례에 근거합니다.
 - 선택 chip은 Material `FilterChip` semantics를 유지합니다.
 - 큰 진행 막대, 축마다 다른 색, 반복 아이콘과 contributor dump를 OFI
   기본 요약에 넣지 않습니다.
+- metadata selector는 label과 선택값을 세로로 분리하며 저장 identity는
+  canonical code를 유지합니다.
+- multi-select 요약은 wrapping chip을 사용하고 첫 3개와 나머지 개수를
+  표시합니다. 선택된 값은 editor에서 ellipsis로 숨기지 않습니다.
+- 사용자 화면은 diagnostic, enum, uppercase snake-case code를 직접
+  표시하지 않습니다.
 
 ## 14. 알려진 한계
 
@@ -123,6 +130,8 @@ Material platform 관례에 근거합니다.
 - canonical 다섯 축 OFI text summary: 구현됨
 - neutral light/dark palette, typography, shape와 spacing: 구현됨
 - 큰 글꼴과 dark theme focused Compose 검증: 구현됨
+- 320dp 폭과 1.5 font scale metadata/program-result 검증: 구현됨
+- grouped exercise information과 field-style metadata selector: 구현됨
 
 ## 16. 구현 위치
 
@@ -133,6 +142,11 @@ Material platform 관례에 근거합니다.
 - `app/src/main/java/com/training/trackplanner/AnalysisHubUi.kt`
 - `app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`
 - `app/src/main/java/com/training/trackplanner/ConnectiveTissueAnalysisUi.kt`
+- `app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt`
+- `app/src/main/java/com/training/trackplanner/RuntimeMetadataEditorControls.kt`
+- `app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt`
+- `app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt`
+- `app/src/main/java/com/training/trackplanner/PlanScreen.kt`
 - `app/src/main/java/com/training/trackplanner/ui/theme/Theme.kt`
 
 ## 17. 검증 테스트
@@ -142,6 +156,8 @@ Material platform 관례에 근거합니다.
 - `app/src/test/java/com/training/trackplanner/CurrentFatigueStatusCardUiTest.kt`
 - `app/src/test/java/com/training/trackplanner/ConnectiveTissueAnalysisUiTest.kt`
 - `app/src/test/java/com/training/trackplanner/AppExplanationUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`
 
 ## 18. 권위 자산
 
@@ -154,8 +170,12 @@ Material platform 관례에 근거합니다.
 - [프로토콜 라이브러리](../README.md)
 - [OFI 분류와 표시](../ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md)
 - [v0.5.0.0 릴리스 노트](../../v0.5.0.0_release_notes.md)
+- [v0.5.0.14 릴리스 노트](../../v0.5.0.14_release_notes.md)
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-07-30): metadata selector와 exercise information을
+  이해 중심 계층으로 정리하고 typed program notice, wrapping chip,
+  narrow-width 및 large-font 계약을 추가했습니다.
 - `1.0.0` (2026-07-19): v0.5.0.0 quiet refinement, 하단 내비게이션,
   단일 표면 계층, OFI 텍스트 요약과 restrained emphasis를 등록했습니다.

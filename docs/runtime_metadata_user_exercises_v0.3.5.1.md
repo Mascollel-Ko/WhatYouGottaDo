@@ -68,6 +68,32 @@ Single-value metadata uses searchable single selection. Token fields use searcha
 
 Saving the editor updates the `Exercise` identity row and the matching runtime metadata row in one Room transaction. Reopening resolves the saved Room row first, restoring all metadata values.
 
+## Presentation code and label boundary
+
+Starting with v0.5.0.14, metadata selectors keep canonical values and localized
+labels separate:
+
+```text
+stored identity and callback: PROGRAM_SELECTABLE
+Korean presentation: 프로그램에 사용 가능
+English presentation: Available for programs
+```
+
+One field-aware display catalogue supplies Korean and English labels, sorting,
+and Korean/canonical/English search aliases. The editor, information dialog,
+and copy dialog all use this catalogue. Existing readable Korean seed values
+remain unchanged. Unknown nonblank values remain selectable and persist
+unchanged; the UI identifies them as `등록되지 않은 값 · ORIGINAL_CODE`.
+
+Localization is presentation-only. It does not rewrite Room, canonical assets,
+runtime analysis inputs, program-builder inputs, backup rows, or restore rows.
+Adding another locale therefore requires no database or backup migration.
+
+The affected UI uses label-above-value selectors, grouped information sections,
+wrapping multi-select chips, vertical scrolling, and reachable actions at narrow
+widths and larger font scales. Localization work includes this responsive review
+rather than string replacement alone.
+
 ## Verification
 
 Focused tests cover:
@@ -80,6 +106,9 @@ Focused tests cover:
 - restored user metadata by generated key
 - program generation using resolved Room override metadata
 - Room migration `12 -> 13` table validation
+- localized label completeness across editor defaults, enums, and canonical CSV
+- canonical-code callbacks, unknown-value preservation, and multilingual search
+- 320dp / 1.5 font-scale Compose presentation with reachable editor actions
 
 Metadata reclassification, built-in catalog regeneration, legacy external import changes, and a separate user metadata taxonomy were deliberately not performed.
 

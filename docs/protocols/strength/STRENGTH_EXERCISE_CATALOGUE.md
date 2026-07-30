@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-CATALOGUE |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.3.5.0 |
-| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
+| Implemented from app version | v0.3.5.0; localized metadata presentation from v0.5.0.14 |
+| Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
 | Supersedes | — |
 
@@ -40,6 +40,14 @@
 ## 7. 계산 또는 분류 계약
 
 persisted runtime metadata override가 canonical seed보다 우선하고 stable key identity를 유지합니다. 운동별 movement, role, equipment, progression, muscle, stress와 confidence를 제공합니다.
+
+canonical metadata code는 언어 중립적인 저장·분석 계약입니다.
+v0.5.0.14의 field-aware display catalogue는 이 값을 변경하지 않고
+presentation에서만 한국어 또는 영어 label로 변환합니다. 알려진 code는
+등록된 label을 사용하고, 이미 읽을 수 있는 한국어 값은 그대로 표시하며,
+알 수 없는 nonblank 값은 원문을 보존한 채 `등록되지 않은 값 · CODE`
+형태로 표시합니다. locale 추가에는 Room 또는 backup migration이
+필요하지 않습니다.
 
 ## 8. 집계 방식
 
@@ -83,12 +91,16 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 - [`app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt`](../../../app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoader.kt)
 - [`app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt`](../../../app/src/main/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolver.kt)
+- [`app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt`](../../../app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt)
+- [`app/src/main/java/com/training/trackplanner/RuntimeMetadataEditorControls.kt`](../../../app/src/main/java/com/training/trackplanner/RuntimeMetadataEditorControls.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataAssetLoaderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ExerciseMetadataEditorBehaviorTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt)
+- [`app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt)
+- [`app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt)
 
 ## 18. 권위 자산
 
@@ -104,6 +116,8 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-07-30): canonical 저장 code와 field-aware 한국어/영어
+  presentation label 계약, unknown-value 보존 fallback을 추가했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
 - `1.1.0` (2026-07-28): workbook의 merge/rename/split/delete와 원레그/원암
   naming grammar를 적용하고 stableKey-only 224개 catalogue로 정본화했습니다.

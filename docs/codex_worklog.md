@@ -4134,3 +4134,55 @@ Verification
 - `:app:lintDebug`: ran and failed only on the pre-existing unchanged
   `app/src/main/res/values/themes.xml:5` API 27/minSdk 26 `NewApi` issue.
 - Main push: pending.
+
+## v0.5.0.14 localized metadata and program-result quality
+
+### Baseline and cause
+
+- Started from latest `origin/main`
+  `efb617567cbfea0a36882e06770409b3b1799dc8`
+  (`0.5.0.13 / 500013`).
+- A corrupted Korean optimization sentence and raw `PROGRAM_...` diagnostics
+  could reach the normal program completion UI.
+- Metadata editor and information surfaces mixed readable Korean values with
+  persisted uppercase canonical codes and became dense on narrow screens.
+
+### Implementation
+
+- Implementation commit:
+  `8f78c99b11af14c2715a36532d83256e7ebfe4bf`.
+- Added typed program notices; stable diagnostic action codes remain available
+  in internal trace/warning structures and Android resources resolve user text.
+- Added one field-aware metadata display catalogue with 1,107 Korean and 1,107
+  English labels, multilingual search aliases, canonical-code callbacks and
+  unknown-value preservation.
+- Reworked metadata selectors, wrapping multi-select summaries, grouped exercise
+  information, metadata copy and program-result notices.
+- Added focused completeness, code-exposure, presentation-boundary and
+  responsive Compose regression coverage.
+
+### Compatibility
+
+- Canonical persisted metadata values are unchanged.
+- Room remains version 26.
+- Backup manifest remains 9, restore CSV schema remains 8 and program backup
+  schema remains 2.
+- `app/schemas/` is unchanged.
+- No analysis classifier, exercise stable key, program application or
+  backup/restore behavior changed.
+
+### Validation
+
+- Focused program notice, catalogue, UI, editor, persistence, backup/restore
+  and ProgramBuilder suite: passed.
+- Full `:app:testDebugUnitTest`: 1,106 tests across 191 suites, zero failures,
+  errors or skips.
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed; APK 46,921,619 bytes, SHA-256
+  `1A9CD131A781FF43AF9E1E577BC0B0026D2431FFC489E00B48FD27BF4EDAAB2A`.
+- Protocol validation: passed, 8 families and 32 protocols.
+- `:app:lintDebug`: after the intentional Korean-only base-resource exemption,
+  failed only on the pre-existing unchanged
+  `app/src/main/res/values/themes.xml:5` API 27/minSdk 26 `NewApi` issue
+  (1 error, 37 warnings).
+- Release commit, main push and GitHub Actions: pending.

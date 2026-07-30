@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13 |
-| Last audited commit | 2369d91aaa80351193b20ccc2714d2be11edd3a2 |
+| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; typed user notices from v0.5.0.14 |
+| Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -60,6 +60,13 @@ set 순서를 별도 program item과 set prescription으로 보존합니다.
 
 표시는 계산 결과를 설명하는 제품 계약이며 진단, 손상량 또는 치료 권고로 해석하지 않습니다.
 
+v0.5.0.14부터 optimization action과 `PROGRAM_...` warning은 내부 trace와
+diagnostic으로만 유지합니다. 정상 완료 화면은
+`ProgramUserNoticeCode`와 정수 인자만 전달받고 Android presentation
+boundary에서 현재 locale의 문장으로 변환합니다. 따라서 domain/data
+계층은 Android `Context`에 의존하지 않으며, 정상 사용자 화면은 action
+code나 enum 이름을 직접 표시하지 않습니다.
+
 저장된 프로그램 상세는 실제 운동이 있는 날짜만 표시하고, 각 운동을
 read-only card로 보여 줍니다. 운동 identity를 현재 catalogue에서 해석할 수
 있으면 기존 `ExerciseInfoDialog`를 열며, 그렇지 않아도 저장된 이름과
@@ -104,6 +111,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - v0.5.0.13 application boundary: scalar/child storage 형식, 적용 날짜와
   현재 fatigue/readiness 상태에 관계없이 저장된 모든 운동과 set을
   unconfirmed plan으로 정확히 적용합니다.
+- v0.5.0.14 presentation boundary: optimization trace는 안정적인 내부
+  action code를 유지하고, 완료 화면은 typed notice를 한국어/영어
+  resource로 변환해 별도 항목과 severity로 표시합니다.
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -112,8 +122,12 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt)
+- [`app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt`](../../../app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt)
+- [`app/src/main/java/com/training/trackplanner/PlanScreen.kt`](../../../app/src/main/java/com/training/trackplanner/PlanScreen.kt)
 - [`app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt`](../../../app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt)
 - [`app/src/main/java/com/training/trackplanner/PlanProgramSections.kt`](../../../app/src/main/java/com/training/trackplanner/PlanProgramSections.kt)
 
@@ -121,6 +135,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt)
+- [`app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
 - [`app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt)
 
@@ -132,11 +148,14 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - [`docs/v0.4.2.0_release_notes.md`](../../v0.4.2.0_release_notes.md)
 - [`docs/v0.5.0.13_release_notes.md`](../../v0.5.0.13_release_notes.md)
+- [`docs/v0.5.0.14_release_notes.md`](../../v0.5.0.14_release_notes.md)
 - [`docs/v0.3.5.3_program_builder_architecture.md`](../../v0.3.5.3_program_builder_architecture.md)
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-07-30): 내부 optimization action과 사용자 완료 문구를
+  typed notice 및 locale resource 경계로 분리했습니다.
 - `1.2.0` (2026-07-30): 저장 프로그램 적용을 fatigue/readiness와 분리한
   exact materialization 계약을 추가했습니다.
 - `1.1.0` (2026-07-30): 기록 범위의 exact manual program 변환, set별

@@ -51,15 +51,15 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `STRENGTH` | `STRENGTH-PROXY-PERFORMANCE` | 지속형 근력 수행능력 사후분포 | `3.0.1` | `EXPERIMENTAL` | `IMPLEMENTED` | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY | `v0.5.0.3`; canonical identity rebuild `v0.5.0.6` | `401ece4ca451b5303b3607bf8b3462b95f25a581` | [문서](strength/PROXY_PERFORMANCE_ESTIMATION.md) |
 | `STRENGTH` | `STRENGTH-BODYWEIGHT-LOAD` | 체중 운동 유효 부하 | `1.0.1` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT`; weighted pull-up posterior boundary `v0.5.0.2` | `43f11ec` | [문서](strength/BODYWEIGHT_EFFECTIVE_LOAD.md) |
 | `STRENGTH` | `STRENGTH-DURATION-HOLD` | 시간 유지 운동 부하 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](strength/DURATION_HOLD_LOAD.md) |
-| `STRENGTH` | `STRENGTH-CATALOGUE` | 근력 운동 catalogue | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `v0.3.5.0`; canonical identities `v0.5.0.6` | `401ece4ca451b5303b3607bf8b3462b95f25a581` | [문서](strength/STRENGTH_EXERCISE_CATALOGUE.md) |
-| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-OVERVIEW` | 자동 프로그램 생성 개요 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; exact manual sets `v0.5.0.12`; exact application `v0.5.0.13` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
+| `STRENGTH` | `STRENGTH-CATALOGUE` | 근력 운동 catalogue | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `v0.3.5.0`; canonical identities `v0.5.0.6`; localized presentation `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](strength/STRENGTH_EXERCISE_CATALOGUE.md) |
+| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-OVERVIEW` | 자동 프로그램 생성 개요 | `1.3.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; exact manual sets `v0.5.0.12`; exact application `v0.5.0.13`; typed user notices `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SLOTS` | 프로그램 slot과 role 모델 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/SLOT_AND_ROLE_MODEL.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SCORING` | 운동 선택과 우선순위 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/EXERCISE_SELECTION_AND_SCORING.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-CONSTRAINTS` | 대체와 제약 규칙 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.1` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_EVALUATION.md) |
 | `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.0.2` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; legacy direct-map correction `v0.5.0.8`; restore metadata preservation `v0.5.0.11` | `f27463841c60384a0779a60ea92ed82d4d0e2c85` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; format 8 `v0.5.0.6`; exact program sets `v0.5.0.12` | `e7d9317cf2ba618b8fadfcdcb772763a32618c09` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0` | `7c29fa80b31fad642273e0a3ec5924109dafac21` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
+| `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
 
@@ -78,6 +78,10 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 - v0.5.0.13부터 저장 프로그램 적용은 fatigue/readiness와 분리된 exact
   materialization입니다. 모든 운동과 set은 저장된 그대로 unconfirmed
   plan이 되며 분석 결과는 advisory로만 남습니다.
+- v0.5.0.14부터 canonical metadata code는 저장·분석에 그대로 유지하고
+  field-aware 한국어/영어 label은 presentation에서만 적용합니다. 정상
+  사용자 화면은 program diagnostic 또는 enum code를 직접 표시하지 않으며
+  unknown metadata 값도 원문을 보존합니다.
 - `CT-PERSONAL-CALIBRATION`의 generated BasePrior, profile adjustment, per-unit PersonalBaseline와 relative-state UI는 v0.4.2.12부터 `DESIGNED / GENERATED / VALIDATED / RUNTIME_ACTIVE / TESTED`입니다. 짧은 history도 prior로 분류하며 `w_perUnit`은 비교 경계에만 적용됩니다.
 - 연결조직 교육 설명은 v0.4.2.13부터 `RCV-ALL-0.6-EDU-2`의 77개 하위 조직과 15개 상위 관절군을 완전 커버하며, 한 대화상자에서 `위치`, `주요 기능`, `주로 사용되는 동작`만 보여 줍니다.
 - 앱에서는 홈의 `이 앱이 분석하는 것 보기`에서 제품 설명을 거쳐 이 공개 프로토콜 인덱스를 열 수 있습니다.
