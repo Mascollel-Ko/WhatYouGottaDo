@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline |
-| Last audited commit | 47f93eadaff64a49f6dc886a9319191c7388029c |
+| Last audited commit | 7b5423208e22525ec765002591052b4b4b3bfb87 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -29,6 +29,7 @@
 - 사용자 운동의 보수적 shadow projection
 - old-vs-new structured parity와 production program golden
 - metadata field usage 및 legacy inference audit
+- legacy-to-target mapping, compatibility consumer inventory, migration issue ledger
 
 ## 4. 비적용 범위
 
@@ -36,6 +37,7 @@
 - 계산식, 임계값, label, scientific protocol 변경
 - legacy metadata field 삭제
 - user relation editor, Room relation table, backup schema 변경
+- v2.1 target provenance model의 Kotlin 구현 또는 REVIEWED_V1 row 추가
 
 ## 5. 용어
 
@@ -123,6 +125,27 @@ asset과 non-persisted projection을 사용해 Room/backup 변경 없이 rollbac
 - Room: 26, 변경 없음
 - Backup format: 9, 변경 없음
 - Restore CSV schema: 8, 변경 없음
+- Program backup schema: 2, 변경 없음
+
+### 15.1 Phase 0/1 shadow와 v2.1 target
+
+현재 Phase 0/1은 current-behavior reproduction 전용입니다. `AnalysisSourceStatus`는
+`MIGRATED_CURRENT_BEHAVIOR`, `USER_PERSISTED_EXACT`, `UNRESOLVED`이고 relation
+confidence는 scalar `Double` 하나입니다. `derivationMode`, `migrationFidelity`,
+`evidenceConfidence`, human approval의 확장 상태와 `REVIEWED_CANONICAL`은 Kotlin에
+구현되어 있지 않습니다. 이 미래 v2.1 target은 별도 승인, model 확장, migration,
+parity와 rollback 검증이 필요한 후속 작업입니다.
+
+Heuristic-derived BASELINE_V1 row는 reviewed truth가 아닙니다. audit에서는
+`LEGACY_HEURISTIC_FALLBACK`, `UNREVIEWED`, linked issue로 식별하고, 미래
+REVIEWED_V1에서는 stableKey 단위 human review 전까지 `UNRESOLVED`로 취급합니다.
+
+### 15.2 Legacy compatibility removal gate
+
+`progressMetricType`은 target canonical metadata가 아니며 현재
+`LEGACY_COMPATIBILITY_READONLY`입니다. production consumer가 0이고 replacement
+parity, backup/restore 호환성, rollback 검증, 명시적 제거 승인이 모두 끝나기
+전에는 Room, adapter, backup/restore에서 삭제하거나 이름을 바꾸지 않습니다.
 
 ## 16. 구현 위치
 
@@ -155,11 +178,17 @@ golden을 검증합니다.
 - `docs/audits/metadata_field_usage_matrix.md`
 - `docs/audits/metadata_parsing_inference_audit.csv`
 - `docs/audits/metadata_parsing_inference_audit.md`
+- `docs/audits/metadata_legacy_to_target_mapping_matrix.md`
+- `docs/audits/metadata_legacy_compatibility_consumers.md`
+- `docs/audits/metadata_migration_issue_ledger.md`
 - `docs/audits/metadata_analysis_contract_parity_report.md`
-- `docs/v0.5.0.16_release_notes.md`
+- `docs/v0.5.0.17_release_notes.md`
 
 ## 20. 변경 이력
 
 - `1.0.0` (2026-07-30): Phase 0 usage/inference audit와 Phase 1 typed
   stableKey relation baseline, user incomplete projection, shadow parity를
   추가했습니다.
+- `1.1.0` (2026-07-31): fixed-property v2.1 의미 경계, read-only compatibility
+  removal gate, legacy mapping/consumer/issue audit와 현재 shadow 구현 대 미래
+  provenance target 구분을 추가했습니다. Production cutover는 수행하지 않았습니다.

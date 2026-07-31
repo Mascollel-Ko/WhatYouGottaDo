@@ -4294,3 +4294,80 @@ Verification
 - `:app:lintDebug`: one pre-existing `themes.xml:5` API 27/minSdk 26 `NewApi`
   error and 37 warnings.
 - Release commits, main push, tag, and GitHub Actions: pending.
+
+## v0.5.0.17 metadata fixed-property strategy v2.1 audit
+
+### Baseline and scope
+
+- Started from latest `origin/main`
+  `7b5423208e22525ec765002591052b4b4b3bfb87`
+  (`0.5.0.16 / 500016`).
+- Adopted the revised fixed-property strategy v2.1 as documentation and audit
+  guardrails only. No production analyzer, service, UI, ProgramBuilder, Room,
+  backup, restore, or schema behavior changed.
+- Split current storage treatment from eventual replacement strategy and kept
+  `progressMetricType` outside target canonical exercise metadata as
+  `LEGACY_COMPATIBILITY_READONLY` with target relation `NONE`.
+
+### Deterministic audit artifacts
+
+- Field-usage/disposition matrix: 102 rows.
+- Broader parsing/inference inventory: 499 rows.
+- Consumer-specific legacy-to-target mapping matrix: 1,254 rows.
+- `progressMetricType` compatibility inventory: 86 rows across 38 Kotlin files
+  and 68 enclosing symbols: 41 production consumers, 27 test consumers, 6 UI
+  consumers, 2 backup/restore consumers, 1 parser consumer, and 35 writers.
+- Reviewed migration issue ledger: 20 issues: 14
+  `CURRENT_BUG_PRESERVED`, 4 `STRUCTURAL_AMBIGUITY`, and 2
+  `MISSING_AUTHORITY`; 16 high and 4 medium severity.
+- The high-risk preserved paths include SeedData movement/family/muscle/role/
+  transfer fallbacks, broad legacy OFI fatigue-category inference, name-based
+  program slot and loaded-strength inference, muscle contribution fallback,
+  badminton/balance relation inference, and strength proxy fallback. They were
+  inventoried, not corrected.
+
+### Immutable boundaries
+
+- `analysis_contract_baseline_v1.csv` remains byte-for-byte unchanged:
+  SHA-256
+  `6B0CBDEC60A38FCAFA1AA957BD8335EF9D3930175CF6E723E1A9D8265F384E52`,
+  1,092,904 bytes, 9,781 relation rows, and 224 stableKeys.
+- `AnalysisContractAssetLoader.kt` remains SHA-256
+  `7D6762652BADC3A240DD53719A63C873DCA1E50E84A47A3A58087CA10A05FC85`.
+- `AnalysisContractModels.kt` remains SHA-256
+  `835E15E87ECABA9B1FEDE4514F8E845584FF688AFCB8E76BF60B03A0BA01413E`.
+- `AnalysisContractShadowParity.kt` remains SHA-256
+  `672FF99DA41415E309E093DA19C6D175FA9D157A8349F10A18E33E2B55610BEB`.
+- `UserExerciseAnalysisContractProjector.kt` remains SHA-256
+  `82CD167EE83C74952AB8953B1BAFE82F74CF753AFA1007E455A0A28740318510`.
+- Room remains 26, backup format 9, restore CSV schema 8, and program backup
+  schema 2.
+
+### Commits
+
+- `67198df`: `docs(metadata): adopt fixed-property strategy v2.1`
+- `d341b64`: `audit(metadata): add legacy mapping and issue ledger`
+- `c6c7066`: `test(metadata): guard compatibility and heuristic provenance`
+- Release commit and main push: pending.
+
+### Verification
+
+- Deterministic metadata audit gate: passed, including repeat-generation hash
+  equality, mapping coverage, compatibility completeness, issue links, and
+  immutable source hashes.
+- Protocol validation: passed, 8 families and 33 protocols.
+- Focused `*AnalysisContract*` unit tests: passed.
+- Full `:app:testDebugUnitTest`: 1,116 tests across 194 suites; zero failures,
+  errors, or skips.
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed; APK 47,036,306 bytes, SHA-256
+  `014741BA3C002B745987C068E2A43A54633C4BCD84AE7BFD67840CDFF099E88D`.
+- `:app:lintDebug`: failed only on the pre-existing unchanged
+  `app/src/main/res/values/themes.xml:5` API 27/minSdk 26 `NewApi` issue
+  (1 error, 37 warnings).
+
+### Follow-up
+
+- The next recommended task is only the separately approved Kotlin provenance
+  model extension. Production analyzer cutover and scientific or taxonomy
+  correction remain outside this release.
