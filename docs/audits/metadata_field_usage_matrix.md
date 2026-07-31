@@ -5,111 +5,111 @@
 - Scope: every field in `Exercise` and `RuntimeExerciseMetadata`
 - Machine-readable companion: `metadata_field_usage_matrix.csv`
 
-| Field | Storage | Cardinality | OFI | Program | Muscle | Badminton | Tissue | UI | Backup | Parsing/inference | Disposition |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| `activityKind` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `analysisEligibility` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `appCueProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | NO | YES | NO | `REVIEW_REQUIRED` |
-| `badmintonPhysicalQualities` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `badmintonSkillTargets` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | NO | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `badmintonTransferLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `badmintonTransferType` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `cognitiveStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | NO | NO | NO | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `exerciseName` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `DISPLAY_ONLY` |
-| `finalSourceStatus` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `PROVENANCE_ONLY` |
-| `jointImpactStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `jointTendonImpactStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `ligamentJointStabilityStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | NO | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `localMuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `movementFamily` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | YES | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `movementFocusDemandLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `movementSubtype` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `neuromuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `planningEligibility` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `primaryStressProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `programSlot` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `progressMetricType` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `recoveryDecayProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | NO | NO | YES | NO | YES | YES | NO | `REVIEW_REQUIRED` |
-| `recoveryDurationClass` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `redundancyGroup` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `safeForSeedMutation` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `PROVENANCE_ONLY` |
-| `secondaryStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `sourceConfidenceLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `PROVENANCE_ONLY` |
-| `sportContextTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `stableKey` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` |
-| `strengthProgressionGroup` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `stressMagnitudeHint` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | NO | `REVIEW_REQUIRED` |
-| `systemicMuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `tendonStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | NO | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `transferConfidence` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `PROVENANCE_ONLY` |
-| `accessoryContributionGroup` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | YES | `DEPRECATE_AFTER_PARITY` |
-| `accessoryRoles` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | NO | `REVIEW_REQUIRED` |
-| `activityKind` | Room exercises | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `adaptiveBaselineGroups` | Room exercises | MULTI | YES | NO | NO | NO | NO | NO | NO | NO | `SPLIT_INTO_RELATIONS` |
-| `analysisEligibility` | Room exercises | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `antiRotationWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `archivedAt` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | NO | `KEEP_TYPED_AUTHORITY` |
-| `axialLoadLevel` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `REVIEW_REQUIRED` |
-| `badmintonSkillTargets` | Room exercises | MULTI | YES | NO | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `badmintonTransferRoles` | Room exercises | MULTI | YES | YES | NO | YES | NO | NO | NO | YES | `SPLIT_INTO_RELATIONS` |
-| `badmintonTransferStrength` | Room exercises | SINGLE | YES | YES | NO | YES | NO | NO | NO | YES | `REVIEW_REQUIRED` |
-| `balanceContributionTags` | Room exercises | MULTI | NO | NO | NO | YES | NO | NO | NO | YES | `REVIEW_REQUIRED` |
-| `bodyRegion` | Room exercises | SINGLE | NO | NO | NO | NO | YES | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `category` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `DISPLAY_ONLY` |
-| `compoundType` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `REVIEW_REQUIRED` |
-| `courtMovementTypes` | Room exercises | MULTI | YES | NO | NO | YES | NO | NO | NO | YES | `SPLIT_INTO_RELATIONS` |
-| `decelerationWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `defaultRestSeconds` | Room exercises | SINGLE | NO | YES | NO | NO | NO | YES | YES | NO | `REVIEW_REQUIRED` |
-| `description` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `DISPLAY_ONLY` |
-| `detail1` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `DISPLAY_ONLY` |
-| `detail2` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `DISPLAY_ONLY` |
-| `elasticSscWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `equipment` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `equipmentTags` | Room exercises | MULTI | NO | NO | YES | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `estimated1RmEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `familyE1rmMultiplier` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `REVIEW_REQUIRED` |
-| `familyId` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | YES | `DEPRECATE_AFTER_PARITY` |
-| `familyName` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | NO | `DISPLAY_ONLY` |
-| `familyRole` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `REVIEW_REQUIRED` |
-| `fatigueCategories` | Room exercises | MULTI | YES | YES | NO | YES | NO | NO | NO | NO | `SPLIT_INTO_RELATIONS` |
-| `forceType` | Room exercises | SINGLE | NO | NO | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `gripLoadWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `hypertrophyVolumeGroup` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `DEPRECATE_AFTER_PARITY` |
-| `imageAssetName` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `DISPLAY_ONLY` |
-| `isActive` | Room exercises | SINGLE | NO | YES | NO | YES | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` |
-| `isCustom` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` |
-| `jointStressTags` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | YES | `SPLIT_INTO_RELATIONS` |
-| `laterality` | Room exercises | SINGLE | NO | NO | NO | YES | NO | YES | YES | NO | `REVIEW_REQUIRED` |
-| `loadProfile` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | YES | NO | `REVIEW_REQUIRED` |
-| `localLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `mainLiftGroup` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | NO | YES | `DEPRECATE_AFTER_PARITY` |
-| `metadataConfidence` | Room exercises | SINGLE | YES | NO | NO | NO | NO | YES | YES | NO | `PROVENANCE_ONLY` |
-| `mobilityDemandLevel` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `REVIEW_REQUIRED` |
-| `mode` | Room exercises | SINGLE | NO | YES | YES | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `movementCategory` | Room exercises | SINGLE | YES | YES | YES | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `movementPattern` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `name` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `DISPLAY_ONLY` |
-| `needsReview` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` |
-| `neuralHeavyWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `neuralSpeedWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `overheadSwingWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `plane` | Room exercises | SINGLE | NO | NO | NO | YES | NO | NO | YES | NO | `REVIEW_REQUIRED` |
-| `planningEligibility` | Room exercises | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `REVIEW_REQUIRED` |
-| `primaryMuscles` | Room exercises | MULTI | YES | NO | YES | YES | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `progressMetricType` | Room exercises | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `recoveryDecayProfile` | Room exercises | SINGLE | YES | NO | NO | YES | NO | YES | YES | NO | `REVIEW_REQUIRED` |
-| `rotationPowerWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `secondaryMuscles` | Room exercises | MULTI | YES | NO | YES | YES | NO | YES | YES | NO | `SPLIT_INTO_RELATIONS` |
-| `sportTransferDirect` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `REVIEW_REQUIRED` |
-| `sportTransferSupportive` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `REVIEW_REQUIRED` |
-| `stabilityDemandLevel` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `REVIEW_REQUIRED` |
-| `stabilityRoles` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | NO | `SPLIT_INTO_RELATIONS` |
-| `stableKey` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` |
-| `strengthProgressionGroup` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `systemicLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
-| `trainingRole` | Room exercises | SINGLE | YES | YES | NO | YES | NO | YES | YES | YES | `SPLIT_INTO_RELATIONS` |
-| `volumeLoadEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `DEPRECATE_AFTER_PARITY` |
+| Field | Storage | Cardinality | OFI | Program | Muscle | Badminton | Tissue | UI | Backup | Parsing/inference | Current disposition | Eventual replacement |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
+| `activityKind` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `analysisEligibility` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `appCueProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `badmintonPhysicalQualities` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `badmintonSkillTargets` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | NO | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `badmintonTransferLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `badmintonTransferType` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `cognitiveStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | NO | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `exerciseName` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `finalSourceStatus` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
+| `jointImpactStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `jointTendonImpactStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `ligamentJointStabilityStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | NO | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `localMuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `movementFamily` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | YES | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `movementFocusDemandLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `movementSubtype` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `neuromuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `planningEligibility` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `primaryStressProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `programSlot` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `progressMetricType` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `LEGACY_COMPATIBILITY_READONLY` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `recoveryDecayProfile` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | NO | NO | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `recoveryDurationClass` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `redundancyGroup` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `safeForSeedMutation` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
+| `secondaryStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `sourceConfidenceLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
+| `sportContextTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `stableKey` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `strengthProgressionGroup` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `stressMagnitudeHint` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `systemicMuscularStressLevel` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `tendonStressTags` | canonical asset plus Room runtime_exercise_metadata override | MULTI | NO | NO | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `transferConfidence` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
+| `accessoryContributionGroup` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `accessoryRoles` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `activityKind` | Room exercises | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `adaptiveBaselineGroups` | Room exercises | MULTI | YES | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `analysisEligibility` | Room exercises | MULTI | YES | YES | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `antiRotationWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `archivedAt` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | NO | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `axialLoadLevel` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `badmintonSkillTargets` | Room exercises | MULTI | YES | NO | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `badmintonTransferRoles` | Room exercises | MULTI | YES | YES | NO | YES | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `badmintonTransferStrength` | Room exercises | SINGLE | YES | YES | NO | YES | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `balanceContributionTags` | Room exercises | MULTI | NO | NO | NO | YES | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `bodyRegion` | Room exercises | SINGLE | NO | NO | NO | NO | YES | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `category` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `compoundType` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `courtMovementTypes` | Room exercises | MULTI | YES | NO | NO | YES | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `decelerationWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `defaultRestSeconds` | Room exercises | SINGLE | NO | YES | NO | NO | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `description` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `detail1` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `DISPLAY_ONLY` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `detail2` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | YES | `DISPLAY_ONLY` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `elasticSscWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `equipment` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `equipmentTags` | Room exercises | MULTI | NO | NO | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `estimated1RmEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `familyE1rmMultiplier` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `familyId` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `familyName` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | NO | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `familyRole` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `fatigueCategories` | Room exercises | MULTI | YES | YES | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `forceType` | Room exercises | SINGLE | NO | NO | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `gripLoadWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `hypertrophyVolumeGroup` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `imageAssetName` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `isActive` | Room exercises | SINGLE | NO | YES | NO | YES | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `isCustom` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `jointStressTags` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `laterality` | Room exercises | SINGLE | NO | NO | NO | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `loadProfile` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `localLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `mainLiftGroup` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `metadataConfidence` | Room exercises | SINGLE | YES | NO | NO | NO | NO | YES | YES | NO | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
+| `mobilityDemandLevel` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `mode` | Room exercises | SINGLE | NO | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `movementCategory` | Room exercises | SINGLE | YES | YES | YES | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `movementPattern` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `name` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
+| `needsReview` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `neuralHeavyWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `neuralSpeedWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `overheadSwingWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `plane` | Room exercises | SINGLE | NO | NO | NO | YES | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `planningEligibility` | Room exercises | SINGLE | NO | YES | NO | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `primaryMuscles` | Room exercises | MULTI | YES | NO | YES | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `progressMetricType` | Room exercises | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `LEGACY_COMPATIBILITY_READONLY` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `recoveryDecayProfile` | Room exercises | SINGLE | YES | NO | NO | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `rotationPowerWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `secondaryMuscles` | Room exercises | MULTI | YES | NO | YES | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `sportTransferDirect` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `sportTransferSupportive` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `stabilityDemandLevel` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_REQUIRED` |
+| `stabilityRoles` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `stableKey` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
+| `strengthProgressionGroup` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `systemicLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
+| `trainingRole` | Room exercises | SINGLE | YES | YES | NO | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `SPLIT_INTO_RELATIONS_AFTER_PARITY` |
+| `volumeLoadEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `DEPRECATE_AFTER_PARITY` |
 
 ## Reading the matrix
 
-The producer and consumer file lists are retained in the CSV. A `SPLIT_INTO_RELATIONS` disposition is a Phase 1 target, not permission to delete the compatibility field. No field is removed before shadow parity and a later cutover approval.
+The producer and consumer file lists are retained in the CSV. `currentDisposition` governs the checked-out production code. `eventualReplacementStrategy` is only a future destination after parity, compatibility, rollback, and approval gates pass. The deprecated `recommendedDisposition` CSV column mirrors `currentDisposition` for older tooling.
