@@ -1480,7 +1480,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1489,7 +1489,7 @@
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
       "implementedFromAppVersion": "v0.5.0.16 shadow baseline",
-      "lastAuditedCommit": "7b5423208e22525ec765002591052b4b4b3bfb87",
+      "lastAuditedCommit": "bd6407c79f9854c6788bdca162d6b520d79e77cd",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt",
@@ -1510,16 +1510,20 @@
         "docs/audits/metadata_field_usage_matrix.md",
         "docs/audits/metadata_parsing_inference_audit.md",
         "docs/audits/metadata_legacy_to_target_mapping_matrix.md",
+        "docs/audits/metadata_semantic_review_summary.md",
         "docs/audits/metadata_legacy_compatibility_consumers.md",
-        "docs/audits/metadata_migration_issue_ledger.md",
+        "docs/audits/metadata_legacy_inference_risk_paths.md",
+        "docs/audits/metadata_stablekey_impact_audit.md",
+        "docs/audits/metadata_confirmed_errors.md",
         "docs/audits/metadata_analysis_contract_parity_report.md",
-        "docs/v0.5.0.17_release_notes.md"
+        "docs/v0.5.0.18_release_notes.md"
       ],
       "knownGaps": [
         "기존 production calculators와 ProgramAutoBuilder가 계속 권위 경로이며 typed contract는 shadow-only입니다.",
         "사용자 운동 관계는 Room에 저장하지 않고 exact persisted metadata에서 projection하며 미해결 관계는 INCOMPLETE입니다.",
         "관절 동작 관계는 현재 canonical runtime metadata에 권위 입력이 없어 비어 있습니다.",
-        "v2.1 derivationMode, migrationFidelity, evidenceConfidence, human approval 확장과 REVIEWED_CANONICAL은 아직 Kotlin에 구현되지 않았습니다.",
+        "v2.2 derivationMode, migrationFidelity, evidenceConfidence, human approval 확장과 REVIEWED_CANONICAL은 아직 Kotlin에 구현되지 않았습니다.",
+        "위험 경로는 확정 오류가 아니며 stableKey별 재현 증거가 있는 mismatch만 confirmed error로 분리됩니다.",
         "progressMetricType은 target canonical metadata가 아닌 read-only compatibility input이며 제거 gate가 통과되지 않았습니다."
       ],
       "supersedes": [],

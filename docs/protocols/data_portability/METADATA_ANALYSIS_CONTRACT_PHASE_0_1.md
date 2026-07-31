@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline |
@@ -29,7 +29,9 @@
 - 사용자 운동의 보수적 shadow projection
 - old-vs-new structured parity와 production program golden
 - metadata field usage 및 legacy inference audit
-- legacy-to-target mapping, compatibility consumer inventory, migration issue ledger
+- consumer-specific legacy-to-target mapping and semantic review
+- compatibility consumer inventory
+- stableKey-level legacy inference risk-path impact and separate confirmed-error ledger
 
 ## 4. 비적용 범위
 
@@ -37,7 +39,7 @@
 - 계산식, 임계값, label, scientific protocol 변경
 - legacy metadata field 삭제
 - user relation editor, Room relation table, backup schema 변경
-- v2.1 target provenance model의 Kotlin 구현 또는 REVIEWED_V1 row 추가
+- v2.2 target provenance model의 Kotlin 구현 또는 REVIEWED_V1 row 추가
 
 ## 5. 용어
 
@@ -127,18 +129,20 @@ asset과 non-persisted projection을 사용해 Room/backup 변경 없이 rollbac
 - Restore CSV schema: 8, 변경 없음
 - Program backup schema: 2, 변경 없음
 
-### 15.1 Phase 0/1 shadow와 v2.1 target
+### 15.1 Phase 0/1 shadow와 v2.2 target
 
 현재 Phase 0/1은 current-behavior reproduction 전용입니다. `AnalysisSourceStatus`는
 `MIGRATED_CURRENT_BEHAVIOR`, `USER_PERSISTED_EXACT`, `UNRESOLVED`이고 relation
 confidence는 scalar `Double` 하나입니다. `derivationMode`, `migrationFidelity`,
 `evidenceConfidence`, human approval의 확장 상태와 `REVIEWED_CANONICAL`은 Kotlin에
-구현되어 있지 않습니다. 이 미래 v2.1 target은 별도 승인, model 확장, migration,
+구현되어 있지 않습니다. 이 미래 v2.2 target은 별도 승인, model 확장, migration,
 parity와 rollback 검증이 필요한 후속 작업입니다.
 
 Heuristic-derived BASELINE_V1 row는 reviewed truth가 아닙니다. audit에서는
-`LEGACY_HEURISTIC_FALLBACK`, `UNREVIEWED`, linked issue로 식별하고, 미래
-REVIEWED_V1에서는 stableKey 단위 human review 전까지 `UNRESOLVED`로 취급합니다.
+`LegacyInferenceRiskPath`와 stableKey별 영향으로 식별합니다. 위험 경로의 존재만으로
+확정 오류를 선언하지 않으며, 재현 가능한 current-vs-authority mismatch만 별도
+`ConfirmedMetadataIssue`에 기록합니다. 미래 REVIEWED_V1에서는 stableKey 단위 human
+review 전까지 `UNRESOLVED`로 취급합니다.
 
 ### 15.2 Legacy compatibility removal gate
 
@@ -146,6 +150,15 @@ REVIEWED_V1에서는 stableKey 단위 human review 전까지 `UNRESOLVED`로 취
 `LEGACY_COMPATIBILITY_READONLY`입니다. production consumer가 0이고 replacement
 parity, backup/restore 호환성, rollback 검증, 명시적 제거 승인이 모두 끝나기
 전에는 Room, adapter, backup/restore에서 삭제하거나 이름을 바꾸지 않습니다.
+
+`activityKind` 역시 운동학 relation으로 자동 승격하지 않습니다. 현재 target은
+`NON_METADATA_LEGACY_COMPATIBILITY / NONE`이며 별도 catalog taxonomy가 승인되기
+전까지 `UNRESOLVED`입니다. `analysisEligibility`는 field-wide target을 두지 않고
+consumer symbol과 실제 semantic use별로 검토합니다.
+
+`defaultRestSeconds`는 program timing의 fixed property입니다. 초기 이행은 현재 값을
+`ExerciseProgramTimingProfile.defaultRestSeconds`로 direct copy하며, 생성된 프로그램의
+실제 처방 `restSeconds`와 혼동하지 않습니다.
 
 ## 16. 구현 위치
 
@@ -179,10 +192,13 @@ golden을 검증합니다.
 - `docs/audits/metadata_parsing_inference_audit.csv`
 - `docs/audits/metadata_parsing_inference_audit.md`
 - `docs/audits/metadata_legacy_to_target_mapping_matrix.md`
+- `docs/audits/metadata_semantic_review_summary.md`
 - `docs/audits/metadata_legacy_compatibility_consumers.md`
-- `docs/audits/metadata_migration_issue_ledger.md`
+- `docs/audits/metadata_legacy_inference_risk_paths.md`
+- `docs/audits/metadata_stablekey_impact_audit.md`
+- `docs/audits/metadata_confirmed_errors.md`
 - `docs/audits/metadata_analysis_contract_parity_report.md`
-- `docs/v0.5.0.17_release_notes.md`
+- `docs/v0.5.0.18_release_notes.md`
 
 ## 20. 변경 이력
 
@@ -192,3 +208,6 @@ golden을 검증합니다.
 - `1.1.0` (2026-07-31): fixed-property v2.1 의미 경계, read-only compatibility
   removal gate, legacy mapping/consumer/issue audit와 현재 shadow 구현 대 미래
   provenance target 구분을 추가했습니다. Production cutover는 수행하지 않았습니다.
+- `1.2.0` (2026-07-31): fixed-property strategy v2.2를 채택하고 program timing,
+  legacy compatibility, consumer-specific eligibility 경계를 교정했습니다. 위험 경로와
+  확정 오류를 분리하고 20 x 224 stableKey impact audit 계약을 추가했습니다.

@@ -59,12 +59,12 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.1` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_EVALUATION.md) |
 | `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.0.2` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; legacy direct-map correction `v0.5.0.8`; restore metadata preservation `v0.5.0.11` | `f27463841c60384a0779a60ea92ed82d4d0e2c85` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; format 8 `v0.5.0.6`; exact program sets `v0.5.0.12` | `e7d9317cf2ba618b8fadfcdcb772763a32618c09` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.1.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; v2.1 audit `v0.5.0.17` | `7b5423208e22525ec765002591052b4b4b3bfb87` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.2.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; v2.2 audit `v0.5.0.18` | `bd6407c79f9854c6788bdca162d6b520d79e77cd` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
 
-- v0.5.0.17의 metadata strategy v2.1은 고정 운동 속성과 기록·진행 protocol을 분리한 audit-only 경계입니다. 현재 Phase 0/1 shadow baseline과 production 계산은 그대로이며 미래 provenance model은 아직 구현되지 않았습니다.
+- v0.5.0.18의 metadata strategy v2.2 audit은 program timing fixed property, legacy compatibility, consumer-specific eligibility를 분리하고 위험 경로와 확정 오류를 별도 산출물로 관리합니다. 현재 Phase 0/1 shadow baseline과 production 계산은 그대로이며 미래 provenance model은 아직 구현되지 않았습니다.
 - v0.4.2.16부터 분석 주간 차트는 Monday-Sunday, Thursday month ownership, 월별 chronological ordinal을 한 shared authority로 사용하며 e1RM은 모든 표시 운동의 union domain을 보존합니다.
 - v0.5.0.0부터 주요 화면은 한 섹션당 하나의 의미 있는 surface, 중립 배경, restrained state emphasis와 canonical 다섯 행 OFI 요약을 사용합니다. 이 릴리스에는 bitmap이나 장식 illustration을 추가하지 않습니다.
 - v0.5.0.1부터 벤치프레스, 스쿼트, 데드리프트의 관련 운동 수행은 실제 e1RM과 분리된 실험적 proxy posterior로만 표시합니다. posterior는 `metricSeries`, legacy 시계열 분석 또는 strict BVAR/BLP 준비 입력에 들어가지 않습니다.
