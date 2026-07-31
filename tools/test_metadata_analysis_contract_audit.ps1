@@ -16,10 +16,16 @@ $generated = @(
     "docs/audits/metadata_parsing_inference_audit.md",
     "docs/audits/metadata_legacy_to_target_mapping_matrix.csv",
     "docs/audits/metadata_legacy_to_target_mapping_matrix.md",
+    "docs/audits/metadata_mapping_semantic_review.csv",
+    "docs/audits/metadata_mapping_semantic_review.md",
     "docs/audits/metadata_legacy_compatibility_consumers.csv",
     "docs/audits/metadata_legacy_compatibility_consumers.md",
-    "docs/audits/metadata_migration_issue_ledger.csv",
-    "docs/audits/metadata_migration_issue_ledger.md"
+    "docs/audits/metadata_legacy_inference_risk_paths.csv",
+    "docs/audits/metadata_legacy_inference_risk_paths.md",
+    "docs/audits/metadata_inference_stablekey_impact.csv",
+    "docs/audits/metadata_inference_stablekey_impact.md",
+    "docs/audits/confirmed_metadata_errors.csv",
+    "docs/audits/confirmed_metadata_errors.md"
 )
 
 & $generator -RepoRoot $RepoRoot
@@ -38,46 +44,108 @@ foreach ($relative in $generated) {
 $usage = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_field_usage_matrix.csv"))
 $mapping = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_legacy_to_target_mapping_matrix.csv"))
 $compatibility = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_legacy_compatibility_consumers.csv"))
-$issues = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_migration_issue_ledger.csv"))
+$risks = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_legacy_inference_risk_paths.csv"))
+$impact = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_inference_stablekey_impact.csv"))
+$confirmed = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/confirmed_metadata_errors.csv"))
 
+$mappingColumns = @(
+    "legacyField", "storageLocation", "currentProducer", "consumerFile", "consumerSymbol",
+    "consumerKind", "rawOrTokenMeaning", "consumerSemanticUse", "currentDisposition",
+    "eventualReplacementStrategy", "targetLayer", "targetRelation", "conversionMode",
+    "derivationMode", "mappingStatus", "reviewEvidence", "linkedRiskPathIds", "notes"
+)
+$impactColumns = @(
+    "riskPathId", "exerciseStableKey", "evaluationApplicability", "rawSourceValue", "rawValuePresent",
+    "fallbackTriggered", "fallbackInput", "fallbackOutput", "currentEffectiveValueOrRelation",
+    "affectedConsumer", "affectedAnalysis", "baselineObservableOutput", "counterfactualAvailable",
+    "outputWithoutFallback", "actualOutputDifference", "reviewClassification", "evidence", "notes"
+)
+$confirmedColumns = @(
+    "issueId", "riskPathId", "exerciseStableKey", "legacyField", "currentValueOrRelation",
+    "expectedValueOrRelation", "authorityOrEvidence", "affectedConsumers", "affectedAnalyses",
+    "programImpact", "ofiImpact", "muscleImpact", "badmintonImpact", "tissueImpact",
+    "strengthPerformanceImpact", "parityImpact", "severity", "approvalStatus",
+    "proposedResolution", "targetVersion"
+)
 Assert-True ($usage.Count -eq 102) "Expected 102 field/storage rows, found $($usage.Count)."
+Assert-True ($mapping[0].PSObject.Properties.Name.Count -eq $mappingColumns.Count) "Unexpected mapping column count."
+Assert-True (@($mappingColumns | Where-Object { $_ -notin $mapping[0].PSObject.Properties.Name }).Count -eq 0) "Missing required mapping columns."
+Assert-True (@($impactColumns | Where-Object { $_ -notin $impact[0].PSObject.Properties.Name }).Count -eq 0) "Missing required impact columns."
+$confirmedHeader = (Get-Content -LiteralPath (Join-Path $RepoRoot "docs/audits/confirmed_metadata_errors.csv") -TotalCount 1) -replace '"', '' -split ','
+Assert-True (@($confirmedColumns | Where-Object { $_ -notin $confirmedHeader }).Count -eq 0) "Missing required confirmed-error columns."
+
 foreach ($row in $usage) {
-    Assert-True (@($mapping | Where-Object { $_.legacyField -eq $row.fieldName -and $_.storageOwner -eq $row.storageLocation }).Count -gt 0) `
+    Assert-True (@($mapping | Where-Object { $_.legacyField -eq $row.fieldName -and $_.storageLocation -eq $row.storageLocation }).Count -gt 0) `
         "Missing mapping for $($row.storageLocation).$($row.fieldName)."
 }
 
-$progressUsage = @($usage | Where-Object fieldName -eq "progressMetricType")
-Assert-True ($progressUsage.Count -eq 2) "Expected both progressMetricType storage owners."
-Assert-True (@($progressUsage | Where-Object currentDisposition -ne "LEGACY_COMPATIBILITY_READONLY").Count -eq 0) `
-    "progressMetricType must remain LEGACY_COMPATIBILITY_READONLY."
-Assert-True (@($progressUsage | Where-Object eventualReplacementStrategy -ne "REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY").Count -eq 0) `
-    "progressMetricType eventual replacement is outside canonical metadata."
-Assert-True (@($progressUsage | Where-Object recommendedDisposition -eq "SPLIT_INTO_RELATIONS").Count -eq 0) `
-    "Deprecated disposition must not classify progressMetricType as canonical relations."
+$semanticUses = @(
+    "FIXED_EXERCISE_CLASSIFICATION", "FIXED_EXERCISE_RELATION", "FIXED_PROGRAM_PARAMETER",
+    "FIXED_ANALYSIS_PARAMETER", "PROGRAM_POLICY", "RECORD_OR_INPUT_PROTOCOL", "PRESENTATION_ONLY",
+    "PROVENANCE_ONLY", "LEGACY_COMPATIBILITY", "UNRESOLVED"
+)
+$mappingStatuses = @("AUTO_CANDIDATE", "SEMANTICALLY_REVIEWED", "APPROVED", "REJECTED", "UNRESOLVED")
+Assert-True (@($mapping | Where-Object { $_.consumerSemanticUse -notin $semanticUses }).Count -eq 0) "Invalid semantic-use category."
+Assert-True (@($mapping | Where-Object { $_.mappingStatus -notin $mappingStatuses }).Count -eq 0) "Invalid mapping status."
+Assert-True (@($mapping | Where-Object mappingStatus -eq "APPROVED").Count -eq 0) `
+    "Phase 2A must not promote candidate or unresolved mappings to APPROVED."
 
-$progressMappings = @($mapping | Where-Object legacyField -eq "progressMetricType")
-Assert-True ($progressMappings.Count -gt 0) "Missing progressMetricType mappings."
-Assert-True (@($progressMappings | Where-Object {
-    $_.targetLayer -ne "NON_METADATA_COMPATIBILITY_OR_ANALYSIS_PROTOCOL" -or
+$defaultRest = @($mapping | Where-Object legacyField -eq "defaultRestSeconds")
+Assert-True ($defaultRest.Count -gt 0) "Missing defaultRestSeconds mappings."
+Assert-True (@($defaultRest | Where-Object {
+    $_.consumerSemanticUse -ne "FIXED_PROGRAM_PARAMETER" -or
+    $_.targetLayer -ne "PROGRAM_GENERATION" -or
+    $_.targetRelation -ne "ExerciseProgramTimingProfile" -or
+    $_.conversionMode -ne "DIRECT_COPY" -or
+    $_.mappingStatus -ne "SEMANTICALLY_REVIEWED"
+}).Count -eq 0) "defaultRestSeconds mapping is not the reviewed timing profile."
+
+$activity = @($mapping | Where-Object legacyField -eq "activityKind")
+Assert-True ($activity.Count -gt 0) "Missing activityKind mappings."
+Assert-True (@($activity | Where-Object {
+    $_.currentDisposition -ne "LEGACY_COMPATIBILITY_READONLY" -or
+    $_.targetLayer -ne "NON_METADATA_LEGACY_COMPATIBILITY" -or
     $_.targetRelation -ne "NONE" -or
-    $_.conversionMode -ne "LEGACY_COMPATIBILITY_READONLY"
-}).Count -eq 0) "progressMetricType was mapped into target canonical metadata."
-Assert-True (@($compatibility | Where-Object legacyField -eq "progressMetricType").Count -gt 0) `
-    "progressMetricType compatibility consumers were not inventoried."
+    $_.consumerSemanticUse -ne "LEGACY_COMPATIBILITY"
+}).Count -eq 0) "activityKind was promoted into target movement/anatomy metadata."
 
-$issueIds = @{};
-foreach ($issue in $issues) { $issueIds[$issue.issueId] = $true }
-foreach ($row in ($mapping | Where-Object derivationMode -eq "LEGACY_HEURISTIC_FALLBACK")) {
-    Assert-True (-not [string]::IsNullOrWhiteSpace($row.knownIssueIds)) "Heuristic mapping lacks issue IDs: $($row.legacyField)."
-    foreach ($issueId in ($row.knownIssueIds -split ';')) {
-        Assert-True ($issueIds.ContainsKey($issueId)) "Unknown issue ID $issueId in $($row.legacyField)."
-    }
+$progress = @($mapping | Where-Object legacyField -eq "progressMetricType")
+Assert-True ($progress.Count -gt 0) "Missing progressMetricType mappings."
+Assert-True (@($progress | Where-Object {
+    $_.targetRelation -ne "NONE" -or
+    $_.currentDisposition -ne "LEGACY_COMPATIBILITY_READONLY" -or
+    $_.eventualReplacementStrategy -ne "REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY"
+}).Count -eq 0) "progressMetricType was mapped into target canonical metadata."
+Assert-True (@($compatibility | Where-Object legacyField -eq "progressMetricType").Count -gt 0) "Missing progressMetricType compatibility consumers."
+
+$analysisEligibility = @($mapping | Where-Object legacyField -eq "analysisEligibility")
+Assert-True (@($analysisEligibility.targetRelation | Sort-Object -Unique).Count -gt 2) "analysisEligibility still has a field-wide target."
+Assert-True (@($analysisEligibility | Where-Object mappingStatus -eq "APPROVED").Count -eq 0) "analysisEligibility candidates were silently approved."
+
+Assert-True ($risks.Count -eq 20) "Expected 20 risk paths, found $($risks.Count)."
+Assert-True ($impact.Count -eq 4480) "Expected 4,480 impact rows, found $($impact.Count)."
+Assert-True (@($impact.exerciseStableKey | Sort-Object -Unique).Count -eq 224) "Expected 224 impacted stableKeys."
+Assert-True (@($impact | Group-Object riskPathId, exerciseStableKey | Where-Object Count -ne 1).Count -eq 0) "Risk/stableKey pairs are incomplete or duplicated."
+$applicability = @("APPLICABLE", "NOT_APPLICABLE", "USER_EXERCISE_ONLY", "UNOBSERVABLE_WITHOUT_PRODUCTION_CHANGE")
+$classifications = @("NOT_TRIGGERED_FOR_BUILT_INS", "VALID_RESULT_BUT_HEURISTIC_IMPLEMENTATION", "CONFIRMED_CLASSIFICATION_ERROR", "STRUCTURAL_AMBIGUITY", "MISSING_AUTHORITY", "USER_EXERCISE_ONLY_RISK", "UNRESOLVED")
+Assert-True (@($impact | Where-Object evaluationApplicability -notin $applicability).Count -eq 0) "Invalid impact applicability."
+Assert-True (@($impact | Where-Object reviewClassification -notin $classifications).Count -eq 0) "Invalid impact classification."
+
+$riskIds = @{}; foreach ($risk in $risks) { $riskIds[$risk.riskPathId] = $true }
+foreach ($error in $confirmed) {
+    Assert-True ($riskIds.ContainsKey($error.riskPathId)) "Confirmed error lacks a risk path: $($error.issueId)."
+    Assert-True (-not [string]::IsNullOrWhiteSpace($error.exerciseStableKey)) "Confirmed error lacks exact stableKey evidence."
+    Assert-True (@($impact | Where-Object { $_.riskPathId -eq $error.riskPathId -and $_.exerciseStableKey -eq $error.exerciseStableKey -and $_.reviewClassification -eq "CONFIRMED_CLASSIFICATION_ERROR" }).Count -eq 1) `
+        "Confirmed error is not backed by one exact impact row: $($error.issueId)."
 }
+Assert-True ($confirmed.Count -eq @($impact | Where-Object reviewClassification -eq "CONFIRMED_CLASSIFICATION_ERROR").Count) `
+    "Risk paths and confirmed errors were conflated."
 
 $baseline = Join-Path $RepoRoot "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv"
 Assert-True ((Get-FileHash -Algorithm SHA256 -LiteralPath $baseline).Hash -eq "6B0CBDEC60A38FCAFA1AA957BD8335EF9D3930175CF6E723E1A9D8265F384E52") `
     "ANALYSIS_CONTRACT_BASELINE_V1 changed."
 $baselineRows = @(Import-Csv -LiteralPath $baseline)
+Assert-True ((Get-Item -LiteralPath $baseline).Length -eq 1092904) "ANALYSIS_CONTRACT_BASELINE_V1 byte size changed."
 Assert-True ($baselineRows.Count -eq 9781) "Expected 9,781 baseline relation rows, found $($baselineRows.Count)."
 Assert-True (@($baselineRows.exerciseStableKey | Sort-Object -Unique).Count -eq 224) "Expected 224 baseline stableKeys."
 
@@ -93,4 +161,4 @@ foreach ($entry in $contractHashes.GetEnumerator()) {
     Assert-True ($actual -eq $entry.Value) "Phase 0/1 contract Kotlin changed: $($entry.Key)."
 }
 
-Write-Host "Metadata v2.1 audit gates passed: $($usage.Count) fields, $($mapping.Count) mappings, $($compatibility.Count) compatibility rows, $($issues.Count) issues."
+Write-Host "Metadata v2.2 Phase 2A audit gates passed: $($usage.Count) fields, $($mapping.Count) mappings, $($risks.Count) risks, $($impact.Count) impact rows, $($confirmed.Count) confirmed errors."
