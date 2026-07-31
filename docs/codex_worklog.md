@@ -4371,3 +4371,82 @@ Verification
 - The next recommended task is only the separately approved Kotlin provenance
   model extension. Production analyzer cutover and scientific or taxonomy
   correction remain outside this release.
+
+## v0.5.0.18 metadata strategy v2.2 Phase 2A audit
+
+### Baseline and scope
+
+- Started from latest `origin/main`
+  `bd6407c79f9854c6788bdca162d6b520d79e77cd`
+  (`0.5.0.17 / 500017`).
+- Adopted the supplied fixed-property strategy v2.2 and performed Phase 2A
+  only: documentation, deterministic audit generation, generated evidence, and
+  tests.
+- No production Kotlin, immutable baseline, Room, backup/restore, analysis,
+  ProgramBuilder, or UI behavior changed. Existing unrelated `outputs/*` files
+  remained untouched and uncommitted.
+
+### Semantic review
+
+- Generated 3,632 exact consumer file/symbol mapping rows from 102 storage/field
+  rows and 499 parsing/inference discovery rows.
+- Corrected `defaultRestSeconds` to `ExerciseProgramTimingProfile`, retained
+  `activityKind` and `progressMetricType` as non-metadata compatibility with
+  target `NONE`, and split `analysisEligibility` into consumer-specific
+  destinations.
+- Mapping status counts: 44 `AUTO_CANDIDATE`, 105
+  `SEMANTICALLY_REVIEWED`, 3,483 `UNRESOLVED`, and 0 `APPROVED`.
+- The exact unresolved consumer decisions are retained in the mapping matrix
+  and semantic-review CSV. They were not guessed or promoted.
+
+### StableKey impact evidence
+
+- Reclassified the former 20 issue rows as implementation risk paths.
+- Evaluated all 20 paths against all 224 built-in stableKeys: 4,480 unique
+  path/key rows.
+- Results: 1,437 fallback-triggered, 224 valid heuristic, 224 structural
+  ambiguity, 989 missing authority, 1,344 unobservable without production
+  change, 1,699 not triggered, 0 user-exercise-only, and 0 confirmed errors.
+- The confirmed-error report is separate and empty because no independent
+  authority plus observable mismatch proved a classification error.
+
+### Timing and immutable boundaries
+
+- Added a test-only current-production timing oracle for minute bands,
+  warm-up, setup, execution, fixed default rest, set reduction, current
+  exclusion handling, candidate shortage, and 3-through-7-day schedules.
+- Timing/schedule oracle SHA-256:
+  `45601660EA8189A5ED39D6EB1786900E6205B9EA6B787A1FED2F5C100A1CBD77`.
+- `analysis_contract_baseline_v1.csv` remains SHA-256
+  `6B0CBDEC60A38FCAFA1AA957BD8335EF9D3930175CF6E723E1A9D8265F384E52`,
+  1,092,904 bytes, 9,781 rows, and 224 stableKeys.
+- Four production contract Kotlin hashes remain unchanged. Room remains 26,
+  backup format 9, restore CSV schema 8, and program backup schema 2.
+
+### Commits
+
+- `3acf799`: `docs(metadata): adopt fixed-property strategy v2.2`
+- `888850e`: `audit(metadata): review semantic mappings and stablekey impact`
+- `8e21251`: `test(metadata): guard timing parity and confirmed-error evidence`
+- Release commit and main push: pending.
+
+### Verification
+
+- Deterministic audit gate: passed across two generations of 16 artifacts.
+- Focused AnalysisContract/timing/prescription tests: 21 passed.
+- Protocol validation: passed, 8 families and 33 protocols.
+- Full unit tests: 1,120 tests across 195 suites; zero failures, errors, or
+  skips.
+- `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, and `assembleDebug`:
+  passed.
+- APK: 47,036,306 bytes; SHA-256
+  `D4B0211242DCAC2E090BD8FCEFBA374427811E072594DD9584A00351A21EEAF5`.
+- `lintDebug`: failed on the pre-existing unchanged `themes.xml:5` API
+  27/minSdk 26 `NewApi` issue; 1 error and 37 warnings.
+
+### Follow-up
+
+- Recommended next task: separately approved evidence review for the 989
+  missing-authority rows, prioritized by high-impact seed and strength-proxy
+  paths. Do not automatically proceed to provenance-model expansion or
+  production cutover.

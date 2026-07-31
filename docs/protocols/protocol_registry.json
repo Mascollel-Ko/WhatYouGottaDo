@@ -1489,7 +1489,7 @@
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
       "implementedFromAppVersion": "v0.5.0.16 shadow baseline",
-      "lastAuditedCommit": "bd6407c79f9854c6788bdca162d6b520d79e77cd",
+      "lastAuditedCommit": "888850e",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt",

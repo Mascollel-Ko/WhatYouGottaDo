@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline |
-| Last audited commit | 7b5423208e22525ec765002591052b4b4b3bfb87 |
+| Last audited commit | 888850e |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
