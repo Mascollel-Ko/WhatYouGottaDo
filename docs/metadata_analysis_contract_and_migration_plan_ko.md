@@ -2,8 +2,78 @@
 
 - 대상 저장소: `Mascollel-Ko/WhatYouGottaDo`
 - 검토 기준 커밋: `47f93eadaff64a49f6dc886a9319191c7388029c`
-- 기준 앱 버전: `0.5.0.14`
+- 기준 앱 버전: `0.5.0.17`
 - 문서 목적: OFI, 자동 프로그램 생성, 근육 분석, 배드민턴 전이 분석의 입력 계약을 명확히 하고, 기존 분석 결과를 최대한 보존하면서 문자열 추론 중심의 메타데이터 구조를 `stableKey` 기반 명시적 관계 구조로 이행하기 위한 기준을 확정한다.
+
+---
+
+## 0. v2.1 의미 경계와 구현 상태
+
+### 0.1 고정 속성만 운동 메타데이터다
+
+운동 메타데이터는 운동 자체에 고정된 속성이다. 사용자가 한 기록에서 입력한 중량, 반복수, 세트, 시간, 거리, RPE, RIR, 입력 조합, 세션 목적과 e1RM·총볼륨·주간 성장률 같은 진행 지표는 운동 메타데이터가 아니다. 현재 OFI, 근육 부하, 배드민턴 자극, 잔여 조직 부하와 프로그램 결과도 파생 결과이지 메타데이터가 아니다. 이 제외 개념을 위한 대체 운동 메타데이터 table은 만들지 않는다.
+
+운동 identity와 함께 사용하는 일곱 metadata layer는 다음과 같다.
+
+| 경계 | 고정 관계 예 | 제외되는 값 |
+|---|---|---|
+| Exercise identity | `stableKey`, 활성·archive·custom 상태 | 세션별 입력값 |
+| Movement and anatomy | 동작, 관절, 신체 부위, modality | 기록 입력 모드 |
+| Program generation | slot capability, role, group, equipment requirement | 생성된 프로그램·처방 |
+| OFI | 고정 축 routing, dose/recovery relation | 현재 OFI·readiness |
+| Muscle | 고정 muscle allocation relation | 현재 근육 부하 |
+| Badminton | 수행 영역 transfer와 physical quality membership | 현재 전이 자극 |
+| Connective tissue | 고정 조직 load/recovery relation | 현재 잔여 조직 부하 |
+| Provenance and review | 출처, 검토, 승인 상태 | 진행 분석 결과 |
+
+장비 관계는 자동 프로그램 생성의 필수 소비자이므로 program-generation layer에 둔다. 같은 canonical 장비 관계를 검색, 필터, 표시, 장비 가용성 기능이 읽는 것은 허용한다.
+
+### 0.2 현재 호환 필드와 제거 gate
+
+`progressMetricType`은 target canonical exercise metadata가 아니다. 현재 production 분석, 처방, UI, 백업·복원 소비자가 남아 있으므로 `LEGACY_COMPATIBILITY_READONLY`로 유지한다. 미래 책임은 canonical metadata relation이 아니라 분석·처방 protocol로 이동한다.
+
+호환 필드는 다음 조건을 모두 만족하기 전에는 Room, adapter, backup/restore 또는 production model에서 삭제·이름변경할 수 없다.
+
+```text
+production consumer count = 0
+AND replacement parity passed
+AND backup/restore compatibility preserved
+AND rollback path verified
+AND removal explicitly approved and documented
+```
+
+현재 처리와 미래 목적지는 별개다. `currentDisposition`은 현재 checkout의 필수 처리이고, `eventualReplacementStrategy`는 위 gate 이후의 이동 방향이다. 구형 `recommendedDisposition`은 tooling 호환용 deprecated alias이며 `currentDisposition`과 같아야 한다.
+
+### 0.3 provenance target과 현재 구현의 구분
+
+Audit와 미래 target에서 사용하는 derivation mode는 다음과 같다.
+
+- `RAW_EXPLICIT_VALUE`
+- `EXACT_TOKEN_EXPANSION`
+- `LEGACY_RESOLVER_EXPLICIT`
+- `LEGACY_HEURISTIC_FALLBACK`
+- `HUMAN_REVIEWED`
+- `NOT_APPLICABLE`
+
+`BASELINE_V1`은 현재 동작 재현용 immutable authority다. heuristic으로 만들어진 현재 관계는 BASELINE_V1에서 `MIGRATED_CURRENT_BEHAVIOR`, `LEGACY_HEURISTIC_FALLBACK`, `UNREVIEWED`, linked issue로 기록한다. 이는 reviewed truth가 아니다. 미래 `REVIEWED_V1`에서는 stableKey 단위 사람 검토 전까지 `UNRESOLVED`이며, 현재 출력과 같다는 이유만으로 `REVIEWED_CANONICAL`이 될 수 없다. migration fidelity와 evidence confidence도 서로 다른 개념이다.
+
+| 구분 | 현재 Phase 0/1 shadow 구현 | 미래 v2.1 target |
+|---|---|---|
+| Source status | `MIGRATED_CURRENT_BEHAVIOR`, `USER_PERSISTED_EXACT`, `UNRESOLVED` | source와 review 상태를 분리 |
+| Relation confidence | scalar `Double` 하나 | migration fidelity와 evidence confidence 분리 |
+| `derivationMode` | Kotlin 미구현 | 별도 승인 후 구현 |
+| `migrationFidelity` | Kotlin 미구현 | 별도 승인 후 구현 |
+| `evidenceConfidence` | Kotlin 미구현 | 별도 승인 후 구현 |
+| `REVIEWED_CANONICAL` | Kotlin 미구현 | human approval와 함께 별도 구현 |
+| Production consumer | contract repository를 읽지 않음 | parity와 승인 후 별도 cutover |
+
+이번 v2.1 audit은 target schema를 문서와 감사 산출물에만 표현한다. 현재 Kotlin enum/data class, baseline CSV shape, loader, repository, projector, shadow diff는 확장하지 않는다.
+
+### 0.4 migration issue ledger와 프로그램 parity
+
+`metadata_migration_issue_ledger`는 legacy fallback·catch-all·substring·token inference를 evidence 위치와 함께 보존한다. 발견된 current bug나 ambiguity는 이 audit에서 고치지 않는다. 제안된 correction은 별도 검토와 승인을 받아야 한다.
+
+자동 프로그램 parity는 candidate set, filtering/gates, slot capability, ordering, score trace, selected stableKey, prescription, warnings와 최종 schedule 전체를 고정 입력·random seed에서 비교해야 한다. v2.1 audit은 어떤 후보, 순서, 처방, message도 변경하지 않는다.
 
 ---
 
@@ -167,7 +237,7 @@ humanApprovalStatus
 ```text
 exerciseStableKey
 doseBasisId
-recordInputPolicy
+recoveryProfileId
 ```
 
 예:
@@ -180,7 +250,7 @@ recordInputPolicy
 - DISTANCE_TIME
 - QUALITY_COUNT
 
-현재 `progressMetricType`과 OFI workload basis를 분리할 필요가 있다. 진행 측정 방식과 피로 dose 방식이 우연히 같을 수는 있지만 같은 개념은 아니다.
+`doseBasisId`는 고정 OFI routing relation이며 세션에서 선택한 기록 입력 모드나 측정값을 저장하지 않는다. 실제 중량·반복·시간·거리·event 입력 해석은 별도 workload protocol 책임이다. `progressMetricType`과 OFI workload basis도 분리한다. 진행 측정 방식과 피로 dose 방식이 우연히 같을 수는 있지만 같은 개념은 아니다.
 
 ### B. `ExerciseOfiAxisContribution`
 
@@ -580,18 +650,18 @@ role
 | `courtMovementTypes` | performance domain 또는 physical quality로 분해 |
 | `jointStressTags` | 연결조직 authority와 UI 설명으로 분리 |
 | `analysisEligibility` | typed analysis capability relation으로 전환 |
-| `progressMetricType` | typed progression metric으로 유지하되 OFI dose basis와 분리 |
+| `progressMetricType` | target canonical metadata에서 제외. 현재는 `LEGACY_COMPATIBILITY_READONLY`, 제거 gate 이후 분석·처방 protocol로 이동 |
 | source/confidence 필드 | provenance 구조로 통합 |
 
 ## 8.3 레거시 필드 제거 시점
 
 레거시 필드는 다음 조건을 모두 충족한 뒤 제거한다.
 
-1. 새 구조가 모든 내장 운동을 100% 커버
-2. 백업·복구가 새 구조를 보존
-3. 새 분석기가 golden parity를 통과
-4. 최소 한 릴리스 동안 dual-read 또는 rollback 경로 유지
-5. 문서와 protocol registry 업데이트
+1. production consumer count가 0
+2. replacement parity 통과
+3. 백업·복구 호환성 보존
+4. rollback 경로 검증
+5. 제거가 명시적으로 승인되고 문서화됨
 
 ---
 
@@ -906,4 +976,3 @@ production 분석 소스에서 다음 패턴을 감시한다.
 8. 한국어 UI는 승인된 공식 용어만 표시한다.
 9. 백업·복구·마이그레이션·롤백이 검증된다.
 10. 프로토콜 문서와 registry가 코드와 일치한다.
-
