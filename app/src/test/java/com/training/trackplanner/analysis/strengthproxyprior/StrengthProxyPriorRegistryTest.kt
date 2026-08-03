@@ -77,11 +77,11 @@ class StrengthProxyPriorRegistryTest {
     @Test
     fun priorRegistryIsIsolatedFromTheProductionStrengthRegistry() {
         assertEquals(
-            "8C8B02DFD7E7BB8160CCEA588B943E148A032236CF0BA11E1E7D5F05CF7FC31B",
+            "65EDBCA0901D598844529360D5B75984C3C8B9A72F758B9364C49CD254B27C81",
             sha256("app/src/main/assets/strength_performance/strength_target_registry_v1.csv")
         )
         assertEquals(
-            "6236AB5BBC338A71E0411A45306C0088FB6E63040356F90B0040327ECE360196",
+            "E8F272FC70B451F00C8F84E0FEF301BA1247659DAAEE369CA3198B870082C349",
             sha256("app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv")
         )
         val sourceRoot = repoFile("app/src/main/java")
@@ -111,7 +111,7 @@ class StrengthProxyPriorRegistryTest {
     }
 
     private fun sha256(path: String): String = MessageDigest.getInstance("SHA-256")
-        .digest(repoFile(path).readBytes())
+        .digest(repoFile(path).readText(Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8))
         .joinToString("") { "%02X".format(it.toInt() and 0xFF) }
 
     private fun repoFile(path: String): File = File(repoRoot(), path)
