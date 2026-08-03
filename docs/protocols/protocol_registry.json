@@ -1090,7 +1090,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "3.0.1",
+      "currentVersion": "3.0.2",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1100,8 +1100,8 @@
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
-      "implementedFromAppVersion": "v0.5.0.3",
-      "lastAuditedCommit": "401ece4ca451b5303b3607bf8b3462b95f25a581",
+      "implementedFromAppVersion": "v0.5.0.3; isolated prior preflight from v0.5.0.19",
+      "lastAuditedCommit": "40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
@@ -1118,7 +1118,8 @@
         "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt",
         "app/src/main/java/com/training/trackplanner/data/StrengthPosteriorBackupCodec.kt",
         "app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt",
-        "app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt"
+        "app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistry.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurveRegistryTest.kt",
@@ -1131,7 +1132,8 @@
         "app/src/test/java/com/training/trackplanner/data/StrengthPosteriorBackupRestoreTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummaryTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUiTest.kt",
-        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
+        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistryTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/strength_performance/repetition_curve_source_v1.csv",
@@ -1144,12 +1146,16 @@
       ],
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
-        "docs/bayesian_time_series_lab_architecture.md"
+        "docs/bayesian_time_series_lab_architecture.md",
+        "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_target_refs_v1.csv",
+        "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_proxy_relations_v1.csv",
+        "docs/audits/strength_proxy_prior_seed_report.md"
       ],
       "knownGaps": [
         "General-resistance curves for squat, deadlift and pull-up remain provisional rather than exercise-specific validated curves.",
         "RPE/RIR probability mass, sparse proxy loadings, transfer coefficients and process variance are versioned product policies rather than user-calibrated research parameters.",
-        "Filtered history does not preserve posterior draws for strict BVAR or BLP propagation."
+        "Filtered history does not preserve posterior draws for strict BVAR or BLP propagation.",
+        "The Phase 2A.1 five-target strength-proxy prior registry is isolated and has no production posterior consumer."
       ],
       "supersedes": [
         "STRENGTH-PROXY-PERFORMANCE@2.1.0",
@@ -1480,7 +1486,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "1.2.0",
+      "currentVersion": "1.3.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1489,17 +1495,22 @@
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
       "implementedFromAppVersion": "v0.5.0.16 shadow baseline",
-      "lastAuditedCommit": "888850e",
+      "lastAuditedCommit": "40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt",
         "app/src/main/java/com/training/trackplanner/analysis/contracts/UserExerciseAnalysisContractProjector.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractShadowParity.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractShadowParity.kt",
+        "app/src/main/java/com/training/trackplanner/data/SeedData.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistry.kt",
+        "tools/generate_metadata_analysis_contract_audit.ps1"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractArchitectureTest.kt",
-        "tools/test_metadata_analysis_contract_audit.ps1"
+        "tools/test_metadata_analysis_contract_audit.ps1",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseSeedMetadataPolicyTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistryTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
@@ -1516,7 +1527,14 @@
         "docs/audits/metadata_inference_stablekey_impact.md",
         "docs/audits/confirmed_metadata_errors.md",
         "docs/audits/metadata_analysis_contract_parity_report.md",
-        "docs/v0.5.0.18_release_notes.md"
+        "docs/v0.5.0.18_release_notes.md",
+        "docs/audits/training_role_whitelist_reconstruction.csv",
+        "docs/audits/family_id_consumer_inventory.csv",
+        "docs/audits/load_profile_consumer_inventory.csv",
+        "docs/audits/metadata_taxonomy_decision_matrix.md",
+        "docs/audits/metadata_level1_korean_reference_registry_draft.md",
+        "docs/audits/strength_proxy_prior_seed_report.md",
+        "docs/v0.5.0.19_release_notes.md"
       ],
       "knownGaps": [
         "기존 production calculators와 ProgramAutoBuilder가 계속 권위 경로이며 typed contract는 shadow-only입니다.",
@@ -1524,7 +1542,9 @@
         "관절 동작 관계는 현재 canonical runtime metadata에 권위 입력이 없어 비어 있습니다.",
         "v2.2 derivationMode, migrationFidelity, evidenceConfidence, human approval 확장과 REVIEWED_CANONICAL은 아직 Kotlin에 구현되지 않았습니다.",
         "위험 경로는 확정 오류가 아니며 stableKey별 재현 증거가 있는 mismatch만 confirmed error로 분리됩니다.",
-        "progressMetricType은 target canonical metadata가 아닌 read-only compatibility input이며 제거 gate가 통과되지 않았습니다."
+        "progressMetricType은 target canonical metadata가 아닌 read-only compatibility input이며 제거 gate가 통과되지 않았습니다.",
+        "Phase 2A.1의 Level-1 한국어 registry는 REVIEW_REQUIRED 초안이며 production display catalogue가 아닙니다.",
+        "Phase 2A.1 strength-proxy prior는 production posterior에 연결되지 않았고 연구 검토가 남아 있습니다."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

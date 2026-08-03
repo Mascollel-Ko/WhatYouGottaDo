@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
 | Implemented from app version | v0.5.0.16 shadow baseline |
-| Last audited commit | 888850e |
+| Last audited commit | 40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -32,6 +32,8 @@
 - consumer-specific legacy-to-target mapping and semantic review
 - compatibility consumer inventory
 - stableKey-level legacy inference risk-path impact and separate confirmed-error ledger
+- Phase 2A.1 semantic corrections, taxonomy decision matrix, and Korean Level-1 registry preflight
+- isolated continuous strength-proxy prior registry with no production consumer
 
 ## 4. 비적용 범위
 
@@ -40,6 +42,7 @@
 - legacy metadata field 삭제
 - user relation editor, Room relation table, backup schema 변경
 - v2.2 target provenance model의 Kotlin 구현 또는 REVIEWED_V1 row 추가
+- strength-proxy personalised posterior, production output connection, or research-calibrated prior
 
 ## 5. 용어
 
@@ -78,6 +81,15 @@ reviewed authority에 남고 이 baseline에는 exact capability만 기록합니
 관계는 exercise당 한 global category로 축약하지 않습니다. 다중 기여는
 각각 별도 row입니다. `OFI_DOSE`와 `OFI_SNAPSHOT`처럼 single-select인
 관계는 중복 row를 거부합니다.
+
+## 8.1 Phase 2A.1 승인 의미
+
+- `trainingRole`: exact stableKey legacy whitelist만 허용하며 unlisted 운동은 빈 관계입니다. 최종 program role taxonomy로 자동 승격하지 않습니다.
+- `familyId`: target `NONE`, `DERIVED_NONCANONICAL`입니다.
+- `loadProfile`: target `NONE`, `LEGACY_COMPOSITE_TO_BE_DECOMPOSED`입니다.
+- `sportTransferDirect`: target contract는 closed-world exact whitelist이며 빈 관계는 authoritative `NONE`입니다. 현재 production의 이름 기반 legacy fallback은 별도 sport-transfer cutover 승인 전까지 결과 보존을 위해 유지합니다.
+- strength proxy: `metadata/strength_proxy_prior_v1` 아래 isolated prior-only 구조입니다. production strength registry와 Phase 0/1 네 Kotlin 파일은 변경하지 않습니다.
+- `MILITARY_PRESS`: 제품 책임자 결정으로 `ex_32219f7a`를 strict standing barbell overhead press direct anchor로 사용합니다. 무릎·엉덩이 drive를 의도하지 않으며 push press/jerk는 별도 stableKey입니다.
 
 Contract logical identity는 `ANALYSIS_CONTRACT_BASELINE_V1`입니다. 현재
 asset은 224개 stableKey와 9,781개 relation row를 포함합니다.

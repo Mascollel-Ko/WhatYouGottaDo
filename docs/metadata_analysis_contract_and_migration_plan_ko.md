@@ -1,12 +1,12 @@
-# WhatYouGottaDo 운동 메타데이터 전략 v2.2
+# WhatYouGottaDo 운동 메타데이터 전략 v2.3
 
 ## 0. 문서 지위
 
 - 문서 유형: 운동 메타데이터 분류·정규화·이행 전략
 - 적용 대상: 내장 운동 및 사용자 운동의 고정 분류, 고정 관계, 고정 프로그램·분석 파라미터
 - 제외 대상: 운동 기록, 세트 입력값, 사용자 선택, 세션 목적, 프로그램의 실제 처방 결과, 분석 결과
-- 이전 문서 상태: v2.1을 대체한다.
-- v2.2 개정 사유: `defaultRestSeconds`를 자동 프로그램 시간예산용 고정 파라미터로 명시하고, `activityKind`·`analysisEligibility`의 잘못된 target mapping을 교정하며, 자동 후보 mapping과 승인 mapping, 위험 경로와 확정 오류를 분리한다.
+- 이전 문서 상태: v2.2를 대체한다.
+- v2.3 개정 사유: 승인된 legacy `trainingRole` stableKey whitelist를 복구하고, `familyId`·`loadProfile`·`sportTransferDirect`의 target 의미를 확정하며, production과 분리된 strength-proxy prior 및 Level-1 한국어 taxonomy 검토 초안을 추가한다.
 - 핵심 식별자: `exerciseStableKey`
 
 ---
@@ -64,6 +64,15 @@
 위 값은 운동 기록, 사용자 상태, 프로그램 설정 또는 분석 프로토콜의 영역이다.
 
 예외적으로 `defaultRestSeconds`처럼 운동에 고정되어 자동 프로그램의 시간예산 계산에 사용되는 기본값은 메타데이터에 포함한다. 이는 생성된 프로그램의 실제 `restSeconds`와 동일한 개념이 아니다.
+
+## 1.3 v2.3 승인 경계
+
+- legacy `trainingRole`은 정확히 승인된 `exerciseStableKey`에만 존재한다. 이름·카테고리·장비·동작 문자열로 만들지 않으며, 빈 값은 관계 없음이다. 이 값은 최종 `ProgramRoleRef`가 아니다.
+- `familyId`의 target relation은 `NONE`이고 disposition은 `DERIVED_NONCANONICAL`이다. 목적별 reviewed relation으로 필요한 유사성을 계산하며 다른 universal family를 만들지 않는다.
+- `loadProfile`의 target relation은 `NONE`이고 disposition은 `LEGACY_COMPOSITE_TO_BE_DECOMPOSED`이다. 현재 저장 필드는 호환을 위해 유지하되 새 정본 소비자는 사용하지 않는다.
+- `sportTransferDirect`의 target contract는 complete closed-world whitelist다. 명시된 관계만 direct이고, 빈 값은 unresolved가 아닌 authoritative `NONE`이다. 현재 production의 이름 기반 legacy fallback은 sport-transfer cutover가 별도 승인될 때까지 결과 보존을 위해 그대로 유지한다.
+- strength-proxy prior는 별도 versioned asset과 package에만 존재하며 production strength posterior에 연결하지 않는다.
+- `MILITARY_PRESS`의 direct anchor는 제품 책임자 결정에 따라 `ex_32219f7a` (`오버헤드 프레스`)다. 의미는 서서 수행하는 strict barbell overhead press이며 의도적인 무릎·엉덩이 drive가 없다. push press, push jerk, split jerk는 별도 stableKey가 필요하다. 기존 `ex_32219f7a` 기록은 현재 strength model에서 이 정본 동작의 기록으로 취급한다.
 
 ---
 
