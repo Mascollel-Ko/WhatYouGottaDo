@@ -866,3 +866,25 @@ object ExerciseMetadataMapper {
             .filter { value -> value.isNotEmpty() && value != "NONE" }
             .toSet()
 }
+
+// Legacy program roles are sparse; analysis keeps its existing role signal from typed metadata.
+internal fun Exercise.derivedAnalysisTrainingRole(): String = when {
+    movementCategory == MovementCategory.PLYOMETRIC.name -> FatigueTrainingRole.PLYOMETRIC.name
+    movementCategory in setOf(MovementCategory.REACTIVE.name, MovementCategory.SPEED.name) -> FatigueTrainingRole.SPEED_REACTIVE.name
+    movementCategory == MovementCategory.POWER.name -> FatigueTrainingRole.POWER.name
+    movementCategory == MovementCategory.PREHAB.name || movementPattern == MovementPattern.PREHAB.name -> FatigueTrainingRole.PREHAB.name
+    movementCategory == MovementCategory.MOBILITY.name || movementPattern == MovementPattern.MOBILITY.name -> FatigueTrainingRole.MOBILITY.name
+    movementCategory == MovementCategory.CONDITIONING.name || movementPattern == MovementPattern.LOCOMOTION.name -> FatigueTrainingRole.CONDITIONING.name
+    movementCategory == MovementCategory.SKILL_DRILL.name || movementPattern == MovementPattern.FOOTWORK.name -> FatigueTrainingRole.SKILL.name
+    movementCategory == MovementCategory.TEST.name -> FatigueTrainingRole.TEST.name
+    movementCategory == MovementCategory.RECOVERY.name -> FatigueTrainingRole.RECOVERY.name
+    movementCategory == MovementCategory.STABILITY.name || movementPattern == MovementPattern.ANTI_ROTATION.name -> FatigueTrainingRole.STABILITY.name
+    compoundType == CompoundType.ISOLATION.name || movementCategory == MovementCategory.HYPERTROPHY.name -> FatigueTrainingRole.ACCESSORY.name
+    movementPattern in setOf(
+        MovementPattern.SQUAT.name,
+        MovementPattern.HINGE.name,
+        MovementPattern.PUSH_HORIZONTAL.name,
+        MovementPattern.PULL_VERTICAL.name
+    ) -> FatigueTrainingRole.MAIN_STRENGTH.name
+    else -> FatigueTrainingRole.SECONDARY_STRENGTH.name
+}

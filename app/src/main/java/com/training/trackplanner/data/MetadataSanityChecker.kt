@@ -246,7 +246,6 @@ object MetadataSanityChecker {
             "plane" to plane,
             "laterality" to laterality,
             "axialLoadLevel" to axialLoadLevel,
-            "trainingRole" to trainingRole,
             "badmintonTransferRoles" to badmintonTransferRoles,
             "fatigueCategories" to fatigueCategories,
             "adaptiveBaselineGroups" to adaptiveBaselineGroups,

@@ -25,7 +25,12 @@ $generated = @(
     "docs/audits/metadata_inference_stablekey_impact.csv",
     "docs/audits/metadata_inference_stablekey_impact.md",
     "docs/audits/confirmed_metadata_errors.csv",
-    "docs/audits/confirmed_metadata_errors.md"
+    "docs/audits/confirmed_metadata_errors.md",
+    "docs/audits/training_role_whitelist_reconstruction.csv",
+    "docs/audits/family_id_consumer_inventory.csv",
+    "docs/audits/load_profile_consumer_inventory.csv",
+    "docs/audits/metadata_taxonomy_decision_matrix.csv",
+    "docs/audits/metadata_taxonomy_decision_matrix.md"
 )
 
 & $generator -RepoRoot $RepoRoot
@@ -47,6 +52,10 @@ $compatibility = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/met
 $risks = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_legacy_inference_risk_paths.csv"))
 $impact = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_inference_stablekey_impact.csv"))
 $confirmed = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/confirmed_metadata_errors.csv"))
+$trainingRoles = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/training_role_whitelist_reconstruction.csv"))
+$familyInventory = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/family_id_consumer_inventory.csv"))
+$loadInventory = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/load_profile_consumer_inventory.csv"))
+$taxonomy = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_taxonomy_decision_matrix.csv"))
 
 $mappingColumns = @(
     "legacyField", "storageLocation", "currentProducer", "consumerFile", "consumerSymbol",
@@ -122,6 +131,21 @@ $analysisEligibility = @($mapping | Where-Object legacyField -eq "analysisEligib
 Assert-True (@($analysisEligibility.targetRelation | Sort-Object -Unique).Count -gt 2) "analysisEligibility still has a field-wide target."
 Assert-True (@($analysisEligibility | Where-Object mappingStatus -eq "APPROVED").Count -eq 0) "analysisEligibility candidates were silently approved."
 
+Assert-True ($trainingRoles.Count -eq 26) "Expected 26 approved legacy training-role rows."
+Assert-True (@($trainingRoles | Where-Object reconstructionStatus -ne "CONFIRMED_EXPLICIT").Count -eq 0) "Training roles contain unapproved inference."
+Assert-True (@($familyInventory | Where-Object { $_.targetLayer -ne "DERIVED_NONCANONICAL" -or $_.targetRelation -ne "NONE" }).Count -eq 0) `
+    "familyId was promoted into target canonical metadata."
+Assert-True (@($loadInventory | Where-Object { $_.targetLayer -ne "LEGACY_COMPOSITE_TO_BE_DECOMPOSED" -or $_.targetRelation -ne "NONE" }).Count -eq 0) `
+    "loadProfile was promoted into target canonical metadata."
+$closedWorldImpact = @($impact | Where-Object riskPathId -in @("META-SEED-TRAINING-ROLE", "META-SEED-SPORT-TRANSFER"))
+Assert-True (@($closedWorldImpact | Where-Object reviewClassification -eq "MISSING_AUTHORITY").Count -eq 0) `
+    "Closed-world relation absence was treated as missing authority."
+Assert-True (@($closedWorldImpact | Where-Object { $_.rawValuePresent -eq "FALSE" -and $_.outputWithoutFallback -ne "AUTHORITATIVE_NONE" }).Count -eq 0) `
+    "Closed-world blank relation is not authoritative NONE."
+$usageConcepts = @($usage.fieldName | Sort-Object -Unique)
+Assert-True ($taxonomy.Count -eq $usageConcepts.Count) "Taxonomy matrix does not cover every distinct current concept."
+Assert-True (@($usageConcepts | Where-Object { $_ -notin $taxonomy.currentConcept }).Count -eq 0) "Taxonomy matrix is missing current concepts."
+
 Assert-True ($risks.Count -eq 20) "Expected 20 risk paths, found $($risks.Count)."
 Assert-True ($impact.Count -eq 4480) "Expected 4,480 impact rows, found $($impact.Count)."
 Assert-True (@($impact.exerciseStableKey | Sort-Object -Unique).Count -eq 224) "Expected 224 impacted stableKeys."
@@ -161,4 +185,4 @@ foreach ($entry in $contractHashes.GetEnumerator()) {
     Assert-True ($actual -eq $entry.Value) "Phase 0/1 contract Kotlin changed: $($entry.Key)."
 }
 
-Write-Host "Metadata v2.2 Phase 2A audit gates passed: $($usage.Count) fields, $($mapping.Count) mappings, $($risks.Count) risks, $($impact.Count) impact rows, $($confirmed.Count) confirmed errors."
+Write-Host "Metadata v2.3 Phase 2A.1 audit gates passed: $($usage.Count) fields, $($mapping.Count) mappings, $($risks.Count) risks, $($impact.Count) impact rows, $($confirmed.Count) confirmed errors."

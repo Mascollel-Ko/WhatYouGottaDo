@@ -4,6 +4,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.derivedAnalysisTrainingRole
 
 data class AnalysisExerciseFeatures(
     val exerciseStableKey: String,
@@ -186,7 +187,7 @@ object ExerciseAnalysisMapper {
             plane = exercise.plane,
             laterality = exercise.laterality,
             axialLoadLevel = exercise.axialLoadLevel,
-            trainingRole = exercise.trainingRole,
+            trainingRole = exercise.derivedAnalysisTrainingRole(),
             systemicLoadWeight = exercise.systemicLoadWeight,
             neuralHeavyWeight = exercise.neuralHeavyWeight,
             neuralSpeedWeight = exercise.neuralSpeedWeight,

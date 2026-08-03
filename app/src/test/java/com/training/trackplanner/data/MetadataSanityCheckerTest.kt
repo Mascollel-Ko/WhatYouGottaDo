@@ -300,7 +300,6 @@ class MetadataSanityCheckerTest {
             plane,
             laterality,
             axialLoadLevel,
-            trainingRole,
             badmintonTransferRoles,
             fatigueCategories,
             adaptiveBaselineGroups,

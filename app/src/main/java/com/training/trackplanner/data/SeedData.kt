@@ -164,12 +164,13 @@ object SeedData {
         val forceType = forceTypeFor(name, category, sourceText, movementPattern)
         val bodyRegion = bodyRegionFor(category, muscles, secondaryMuscles, sourceText)
         val laterality = lateralityFor(sourceText)
-        val trainingRole = trainingRoleFor(category, sourceText, movementPattern)
+        val analysisTrainingRoleHint = trainingRoleFor(category, sourceText, movementPattern)
         val stabilityRoles = stabilityRolesFor(sourceText, movementPattern)
+        val legacyTrainingRole = row.value("training_role")
         val sportTransferDirect = sportTransferDirectFor(name, category, sourceText, movementPattern)
         val sportTransferSupportive = sportTransferSupportiveFor(category, sourceText, movementPattern)
         val accessoryRoles = accessoryRolesFor(sourceText, movementPattern)
-        val loadProfile = loadProfileFor(sourceText, forceType, trainingRole)
+        val loadProfile = loadProfileFor(sourceText, forceType, analysisTrainingRoleHint)
         val seedMovementTokens = row.value("movement_pattern").splitSeedTokens()
         val activityKind = activityKindFor(category, seedMovementTokens)
         val planningEligibility = planningEligibilityFor(activityKind)
@@ -197,8 +198,8 @@ object SeedData {
             forceType = ExerciseTaxonomy.single(forceType, ExerciseTaxonomy.forceTypes, "forceType"),
             bodyRegion = ExerciseTaxonomy.single(bodyRegion, ExerciseTaxonomy.bodyRegions, "bodyRegion"),
             laterality = ExerciseTaxonomy.single(laterality, ExerciseTaxonomy.lateralities, "laterality"),
-            trainingRole = row.value("training_role").ifBlank {
-                ExerciseTaxonomy.single(trainingRole, ExerciseTaxonomy.trainingRoles, "trainingRole")
+            trainingRole = legacyTrainingRole.ifBlank {
+                ExerciseTaxonomy.single(analysisTrainingRoleHint, ExerciseTaxonomy.trainingRoles, "trainingRole")
             },
             stabilityRoles = ExerciseTaxonomy.list(stabilityRoles.joinToString(","), ExerciseTaxonomy.stabilityRoles, "stabilityRoles"),
             sportTransferDirect = row.value("sport_transfer_direct").ifBlank {
@@ -228,7 +229,7 @@ object SeedData {
                 planeToken = row.value("plane"),
                 isUnilateral = row.value("is_unilateral").toBooleanFlagOrNull()
             )
-        ).withRecoveredImage(imageMappings)
+        ).copy(trainingRole = legacyTrainingRole).withRecoveredImage(imageMappings)
     }
 
     private fun activityKindFor(

@@ -10,6 +10,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.derivedAnalysisTrainingRole
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.max
@@ -499,7 +500,7 @@ class DailyFatigueCalculator(
                 val tokens = setOf(
                     exercise.movementPattern,
                     exercise.movementCategory,
-                    exercise.trainingRole,
+                    exercise.derivedAnalysisTrainingRole(),
                     exercise.fatigueCategories,
                     exercise.courtMovementTypes,
                     exercise.badmintonSkillTargets,
@@ -509,7 +510,7 @@ class DailyFatigueCalculator(
                     activityKind = exercise.activityKind,
                     movementFamily = exercise.movementPattern,
                     movementSubtype = "",
-                    programSlot = exercise.trainingRole,
+                    programSlot = exercise.derivedAnalysisTrainingRole(),
                     redundancyGroup = exercise.movementPattern,
                     progressMetricType = exercise.progressMetricType,
                     strengthProgressionGroup = exercise.strengthProgressionGroup,
@@ -517,7 +518,7 @@ class DailyFatigueCalculator(
                     cognitiveStressTags = emptySet(),
                     highForceNeuralStressLevel = maxLevel(
                         level(exercise.neuralHeavyWeight),
-                        highForceLevel(exercise.activityKind, exercise.progressMetricType, exercise.trainingRole, tokens)
+                        highForceLevel(exercise.activityKind, exercise.progressMetricType, exercise.derivedAnalysisTrainingRole(), tokens)
                     ),
                     systemicMuscularStressLevel = level(exercise.systemicLoadWeight),
                     localMuscularStressLevel = level(exercise.localLoadWeight),

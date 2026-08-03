@@ -118,6 +118,10 @@ $compatibilityFields = @("progressMetricType")
 
 function Current-Disposition([string]$Field) {
     if ($Field -in @("activityKind", "progressMetricType")) { return "LEGACY_COMPATIBILITY_READONLY" }
+    if ($Field -eq "trainingRole") { return "EXACT_LEGACY_STABLEKEY_WHITELIST" }
+    if ($Field -eq "familyId") { return "DERIVED_NONCANONICAL" }
+    if ($Field -eq "loadProfile") { return "LEGACY_COMPOSITE_TO_BE_DECOMPOSED" }
+    if ($Field -eq "sportTransferDirect") { return "CLOSED_WORLD_EXPLICIT_WHITELIST" }
     if ($identityFields -contains $Field) { return "KEEP_TYPED_AUTHORITY" }
     if ($provenanceFields -contains $Field) { return "PROVENANCE_ONLY" }
     if ($displayFields -contains $Field) { return "DISPLAY_ONLY" }
@@ -127,7 +131,11 @@ function Current-Disposition([string]$Field) {
 function Eventual-Replacement([string]$Field) {
     if ($Field -eq "progressMetricType") { return "REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY" }
     if ($Field -eq "activityKind") { return "REVIEW_SEPARATE_CATALOG_TAXONOMY" }
-    if ($Field -in @("mode", "detail1", "detail2", "loadProfile", "familyE1rmMultiplier")) {
+    if ($Field -eq "trainingRole") { return "PHASE_2B_PURPOSE_SPECIFIC_PROGRAM_RELATION_REVIEW" }
+    if ($Field -eq "familyId") { return "DERIVE_PER_USE_CASE_FROM_REVIEWED_TYPED_RELATIONS" }
+    if ($Field -eq "loadProfile") { return "DECOMPOSE_INTO_CONSUMER_SPECIFIC_TYPED_RELATIONS" }
+    if ($Field -eq "sportTransferDirect") { return "KEEP_CLOSED_WORLD_EXPLICIT_RELATION" }
+    if ($Field -in @("mode", "detail1", "detail2", "familyE1rmMultiplier")) {
         return "REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY"
     }
     if ($identityFields -contains $Field) { return "KEEP_TYPED_AUTHORITY" }
@@ -249,13 +257,13 @@ Set-Content -LiteralPath (Join-Path $docsRoot "metadata_parsing_inference_audit.
 $riskDefinitions = @(
     [pscustomobject]@{ Id="META-SEED-CSV-FALLBACK"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="exerciseFromCsv"; Field="multiple Exercise CSV fields"; Module="shared metadata/data"; Severity="HIGH"; Mode="UNOBSERVABLE"; Raw="" },
     [pscustomobject]@{ Id="META-SEED-MOVEMENT-PATTERN"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="movementPatternFor"; Field="movementPattern"; Module="movement/anatomy"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="movement_pattern" },
-    [pscustomobject]@{ Id="META-SEED-FAMILY"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="familyIdFor"; Field="familyId"; Module="movement/anatomy"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="family_id" },
+    [pscustomobject]@{ Id="META-SEED-FAMILY"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="familyIdFor"; Field="familyId"; Module="movement/anatomy"; Severity="HIGH"; Mode="LEGACY_NONCANONICAL"; Raw="family_id" },
     [pscustomobject]@{ Id="META-SEED-PRIMARY-MUSCLES"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="musclesFor"; Field="primaryMuscles"; Module="muscle/strength analysis"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="primary_muscles" },
     [pscustomobject]@{ Id="META-SEED-SECONDARY-MUSCLES"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="fallbackSecondaryMuscles"; Field="secondaryMuscles"; Module="muscle/strength analysis"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="secondary_muscles" },
     [pscustomobject]@{ Id="META-SEED-FORCE-TYPE"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="forceTypeFor"; Field="forceType"; Module="movement/anatomy"; Severity="MEDIUM"; Mode="SEED_FALLBACK"; Raw="force_type" },
-    [pscustomobject]@{ Id="META-SEED-TRAINING-ROLE"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="trainingRoleFor"; Field="trainingRole"; Module="program generation"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="training_role" },
-    [pscustomobject]@{ Id="META-SEED-SPORT-TRANSFER"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="sportTransferDirectFor"; Field="sportTransferDirect"; Module="badminton analysis"; Severity="HIGH"; Mode="SEED_FALLBACK"; Raw="sport_transfer_direct" },
-    [pscustomobject]@{ Id="META-SEED-LOAD-PROFILE"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="loadProfileFor"; Field="loadProfile"; Module="shared metadata/data"; Severity="MEDIUM"; Mode="SEED_FALLBACK"; Raw="load_profile" },
+    [pscustomobject]@{ Id="META-SEED-TRAINING-ROLE"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="exerciseFromCsv"; Field="trainingRole"; Module="program generation"; Severity="HIGH"; Mode="EXPLICIT_CLOSED_WORLD"; Raw="training_role" },
+    [pscustomobject]@{ Id="META-SEED-SPORT-TRANSFER"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="exerciseFromCsv"; Field="sportTransferDirect"; Module="badminton analysis"; Severity="HIGH"; Mode="EXPLICIT_CLOSED_WORLD"; Raw="sport_transfer_direct" },
+    [pscustomobject]@{ Id="META-SEED-LOAD-PROFILE"; File="app/src/main/java/com/training/trackplanner/data/SeedData.kt"; Symbol="loadProfileFor"; Field="loadProfile"; Module="shared metadata/data"; Severity="MEDIUM"; Mode="LEGACY_NONCANONICAL"; Raw="load_profile" },
     [pscustomobject]@{ Id="META-OFI-BROAD-FATIGUE"; File="app/src/main/java/com/training/trackplanner/data/ExerciseMetadataAdapter.kt"; Symbol="broadLegacyFatigueCategories"; Field="fatigueCategories"; Module="OFI/readiness"; Severity="HIGH"; Mode="VALID_HEURISTIC"; Raw="load_profile" },
     [pscustomobject]@{ Id="META-ACTIVITY-NAME-FALLBACK"; File="app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt"; Symbol="Exercise"; Field="activityKind"; Module="program generation"; Severity="HIGH"; Mode="CANONICAL_EXPLICIT"; Raw="currentActivityKind" },
     [pscustomobject]@{ Id="META-PROGRAM-SLOT-FALLBACK"; File="app/src/main/java/com/training/trackplanner/data/SlotCapabilityResolver.kt"; Symbol="resolve"; Field="programSlot"; Module="program generation"; Severity="HIGH"; Mode="UNOBSERVABLE"; Raw="programSlot" },
@@ -306,6 +314,22 @@ $impactRows = foreach ($definition in $riskDefinitions) {
         $notes = ""
 
         switch ($definition.Mode) {
+            "EXPLICIT_CLOSED_WORLD" {
+                $withoutFallback = if ([string]::IsNullOrWhiteSpace($raw)) { "AUTHORITATIVE_NONE" } else { $raw }
+                $current = $withoutFallback
+                $difference = "NO_FALLBACK"
+                $notes = "Exact stableKey whitelist; absence is authoritative NONE."
+            }
+            "LEGACY_NONCANONICAL" {
+                if ([string]::IsNullOrWhiteSpace($raw)) {
+                    $fallbackTriggered = "TRUE"
+                    $fallbackOutput = "LEGACY_COMPATIBILITY_VALUE"
+                    $current = "LEGACY_COMPATIBILITY_VALUE"
+                    $classification = "VALID_RESULT_BUT_HEURISTIC_IMPLEMENTATION"
+                    $difference = "NONCANONICAL_COMPATIBILITY_ONLY"
+                }
+                $notes = "Legacy compatibility field; no target canonical authority is asserted."
+            }
             "SEED_FALLBACK" {
                 if ([string]::IsNullOrWhiteSpace($raw)) {
                     $fallbackTriggered = "TRUE"
@@ -528,7 +552,47 @@ function Mapping-Decision([string]$Field, [string]$ConsumerFile, [string]$Consum
         reviewEvidence = "No v2.2-reviewed exact consumer decision"
         notes = "Requires semantic review of exact consumer and token/value meaning"
     }
-    if ($Field -eq "defaultRestSeconds") {
+    if ($Field -eq "trainingRole") {
+        $decision.rawOrTokenMeaning = "Legacy program-role value assigned only by exact exercise stableKey whitelist"
+        $decision.consumerSemanticUse = "LEGACY_COMPATIBILITY"
+        $decision.targetLayer = "NON_METADATA_LEGACY_PROGRAM_COMPATIBILITY"
+        $decision.targetRelation = "NONE"
+        $decision.conversionMode = "EXACT_STABLEKEY_WHITELIST_ONLY"
+        $decision.derivationMode = "RAW_EXPLICIT_VALUE"
+        $decision.mappingStatus = "SEMANTICALLY_REVIEWED"
+        $decision.reviewEvidence = "Phase 2A.1 approved legacy-role restoration policy"
+        $decision.notes = "Not promoted to final ProgramRoleRef; Phase 2B review remains required"
+    } elseif ($Field -eq "familyId") {
+        $decision.rawOrTokenMeaning = "Legacy broad family bucket with mixed use-case semantics"
+        $decision.consumerSemanticUse = "LEGACY_COMPATIBILITY"
+        $decision.targetLayer = "DERIVED_NONCANONICAL"
+        $decision.targetRelation = "NONE"
+        $decision.conversionMode = "DO_NOT_MIGRATE_AS_CANONICAL"
+        $decision.derivationMode = "DERIVE_PER_USE_CASE_FROM_REVIEWED_TYPED_RELATIONS"
+        $decision.mappingStatus = "SEMANTICALLY_REVIEWED"
+        $decision.reviewEvidence = "Phase 2A.1 approved familyId disposition"
+        $decision.notes = "Persisted field remains for Room and backup compatibility only"
+    } elseif ($Field -eq "loadProfile") {
+        $decision.rawOrTokenMeaning = "Legacy composite mixing axial load, stress, plyometric, magnitude, balance, laterality, and event semantics"
+        $decision.consumerSemanticUse = "LEGACY_COMPATIBILITY"
+        $decision.targetLayer = "LEGACY_COMPOSITE_TO_BE_DECOMPOSED"
+        $decision.targetRelation = "NONE"
+        $decision.conversionMode = "DECOMPOSE_BY_CONSUMER"
+        $decision.derivationMode = "CONSUMER_SPECIFIC_TYPED_RELATIONS"
+        $decision.mappingStatus = "SEMANTICALLY_REVIEWED"
+        $decision.reviewEvidence = "Phase 2A.1 approved loadProfile disposition"
+        $decision.notes = "Physical compatibility remains; no replacement mixed enum is approved"
+    } elseif ($Field -eq "sportTransferDirect") {
+        $decision.rawOrTokenMeaning = "Complete closed-world direct badminton-transfer whitelist"
+        $decision.consumerSemanticUse = "FIXED_EXERCISE_RELATION"
+        $decision.targetLayer = "BADMINTON_ANALYSIS"
+        $decision.targetRelation = "SportTransferDirectRef"
+        $decision.conversionMode = "EXACT_WHITELIST_RELATION"
+        $decision.derivationMode = "RAW_EXPLICIT_VALUE_OR_AUTHORITATIVE_NONE"
+        $decision.mappingStatus = "SEMANTICALLY_REVIEWED"
+        $decision.reviewEvidence = "Phase 2A.1 approved closed-world direct-transfer policy"
+        $decision.notes = "Absent relation is authoritative NONE, not missing authority"
+    } elseif ($Field -eq "defaultRestSeconds") {
         $decision.rawOrTokenMeaning = "Fixed per-exercise default used by automatic program session-time budgeting"
         $decision.consumerSemanticUse = "FIXED_PROGRAM_PARAMETER"
         $decision.targetLayer = "PROGRAM_GENERATION"
@@ -597,7 +661,7 @@ foreach ($usage in $usageRows) {
     foreach ($reference in ($references | Sort-Object File, Symbol)) {
         $decision = Mapping-Decision $usage.fieldName $reference.File $reference.Symbol
         $linked = @($riskDefinitions | Where-Object { $_.File -eq $reference.File -and $_.Symbol -eq $reference.Symbol } | Select-Object -ExpandProperty Id)
-        if ($linked.Count -gt 0) {
+        if ($linked.Count -gt 0 -and $decision.mappingStatus -eq "UNRESOLVED") {
             $decision.derivationMode = "LEGACY_HEURISTIC_FALLBACK"
             if ($decision.conversionMode -eq "UNRESOLVED") { $decision.conversionMode = "CURRENT_RESOLVER_OUTPUT" }
         }
@@ -641,6 +705,42 @@ foreach ($row in $mappingRows) {
 }
 Set-Content -LiteralPath (Join-Path $docsRoot "metadata_legacy_to_target_mapping_matrix.md") -Value $mappingLines -Encoding UTF8
 
+$trainingRoleRows = @($seedRows | Where-Object { -not [string]::IsNullOrWhiteSpace($_.training_role) } | ForEach-Object {
+    [pscustomobject]@{
+        exerciseStableKey = $_.stable_key
+        displayNameKo = $_.exercise_name
+        proposedLegacyRole = $_.training_role
+        evidenceType = "CHECKED_IN_EXPLICIT_STABLEKEY_ASSIGNMENT"
+        evidenceFileOrCommit = "app/src/main/assets/training_settings_seed.csv"
+        evidenceLocator = "stable_key=$($_.stable_key);training_role=$($_.training_role)"
+        evidenceLineageId = "LEGACY-TRAINING-ROLE-SEED-V1"
+        confidence = "HIGH"
+        reconstructionStatus = "CONFIRMED_EXPLICIT"
+        currentRuntimeRole = $_.training_role
+        proposedRuntimeRole = $_.training_role
+        programmeImpact = "EXPECTED_TRAINING_ROLE_POLICY_RESTORATION"
+        notes = "Exact stableKey whitelist only; not promoted to final ProgramRoleRef"
+    }
+} | Sort-Object exerciseStableKey)
+Write-Csv $trainingRoleRows @(
+    "exerciseStableKey", "displayNameKo", "proposedLegacyRole", "evidenceType",
+    "evidenceFileOrCommit", "evidenceLocator", "evidenceLineageId", "confidence",
+    "reconstructionStatus", "currentRuntimeRole", "proposedRuntimeRole", "programmeImpact", "notes"
+) (Join-Path $docsRoot "training_role_whitelist_reconstruction.csv")
+
+function Write-LegacyConsumerInventory([string]$Field, [string]$FileName) {
+    $rows = @($mappingRows | Where-Object legacyField -eq $Field | Select-Object `
+        legacyField, storageLocation, consumerFile, consumerSymbol, consumerKind, currentDisposition, `
+        targetLayer, targetRelation, conversionMode, derivationMode, mappingStatus, reviewEvidence, notes)
+    Write-Csv $rows @(
+        "legacyField", "storageLocation", "consumerFile", "consumerSymbol", "consumerKind",
+        "currentDisposition", "targetLayer", "targetRelation", "conversionMode", "derivationMode",
+        "mappingStatus", "reviewEvidence", "notes"
+    ) (Join-Path $docsRoot $FileName)
+}
+Write-LegacyConsumerInventory "familyId" "family_id_consumer_inventory.csv"
+Write-LegacyConsumerInventory "loadProfile" "load_profile_consumer_inventory.csv"
+
 $semanticRows = @()
 foreach ($group in ($mappingRows | Group-Object consumerSemanticUse | Sort-Object Name)) { $semanticRows += [pscustomobject]@{ summaryType="SEMANTIC_USE_COUNT"; key=$group.Name; count=$group.Count; details="" } }
 foreach ($group in ($mappingRows | Group-Object mappingStatus | Sort-Object Name)) { $semanticRows += [pscustomobject]@{ summaryType="MAPPING_STATUS_COUNT"; key=$group.Name; count=$group.Count; details="" } }
@@ -673,6 +773,75 @@ $semanticLines = @(
 )
 foreach ($row in $semanticRows) { $semanticLines += "| ``$($row.summaryType)`` | ``$(Escape-Markdown $row.key)`` | $($row.count) | $(Escape-Markdown $row.details) |" }
 Set-Content -LiteralPath (Join-Path $docsRoot "metadata_mapping_semantic_review.md") -Value $semanticLines -Encoding UTF8
+
+function Taxonomy-Decision([string]$Field) {
+    $decision = [ordered]@{
+        status = "UNRESOLVED"
+        targetConcept = "UNRESOLVED"
+        logicalQuestion = "Consumer-specific semantic review required"
+        reason = "No Phase 2A.1 approval"
+        koreanRegistryEligible = "NO"
+        reviewStatus = "REVIEW_REQUIRED"
+    }
+    switch ($Field) {
+        "stableKey" { $decision.status="KEEP"; $decision.targetConcept="ExerciseIdentity"; $decision.logicalQuestion="Which exercise identity is this?"; $decision.reason="Canonical identity key" }
+        "name" { $decision.status="PRESENTATION_ONLY"; $decision.targetConcept="ExerciseDisplayName"; $decision.logicalQuestion="How is the exercise displayed?"; $decision.reason="Display text is not classification" }
+        "exerciseName" { $decision.status="PRESENTATION_ONLY"; $decision.targetConcept="ExerciseDisplayName"; $decision.logicalQuestion="How is the exercise displayed?"; $decision.reason="Display text is not classification" }
+        "description" { $decision.status="PRESENTATION_ONLY"; $decision.targetConcept="ExerciseDescription"; $decision.logicalQuestion="How is the exercise explained?"; $decision.reason="Educational display text" }
+        "defaultRestSeconds" { $decision.status="PROGRAM_PARAMETER"; $decision.targetConcept="ExerciseProgramTimingProfile"; $decision.logicalQuestion="What default rest supports program time budgeting?"; $decision.reason="Approved fixed program parameter" }
+        "trainingRole" { $decision.status="LEGACY_ONLY"; $decision.targetConcept="NONE"; $decision.logicalQuestion="Which explicitly approved legacy role was assigned?"; $decision.reason="Exact stableKey whitelist pending Phase 2B role review" }
+        "familyId" { $decision.status="DERIVE"; $decision.targetConcept="NONE"; $decision.logicalQuestion="Which purpose-specific similarity relation is needed?"; $decision.reason="Approved DERIVED_NONCANONICAL disposition" }
+        "familyName" { $decision.status="PRESENTATION_ONLY"; $decision.targetConcept="NONE"; $decision.logicalQuestion="How was the legacy family displayed?"; $decision.reason="Legacy family display only" }
+        "loadProfile" { $decision.status="SPLIT"; $decision.targetConcept="ConsumerSpecificTypedRelations"; $decision.logicalQuestion="Which independent load or movement property is represented?"; $decision.reason="Approved legacy composite decomposition" }
+        "sportTransferDirect" { $decision.status="KEEP"; $decision.targetConcept="SportTransferDirectRef"; $decision.logicalQuestion="Does an approved direct-transfer relation exist?"; $decision.reason="Closed-world exact whitelist" }
+        "movementPattern" { $decision.status="SPLIT"; $decision.targetConcept="MovementPatternRef|MovementEventRef|MovementPhaseRef"; $decision.logicalQuestion="Which movement pattern event or phase applies?"; $decision.reason="Legacy token field mixes Level 1 questions"; $decision.koreanRegistryEligible="YES" }
+        "laterality" { $decision.status="KEEP"; $decision.targetConcept="LateralityRef"; $decision.logicalQuestion="What fixed laterality describes the exercise?"; $decision.reason="Level 1 kinematic classification"; $decision.koreanRegistryEligible="YES" }
+        "plane" { $decision.status="KEEP"; $decision.targetConcept="MovementPlaneRef"; $decision.logicalQuestion="In which movement plane is the exercise primarily performed?"; $decision.reason="Level 1 kinematic classification"; $decision.koreanRegistryEligible="YES" }
+        "equipmentTags" { $decision.status="SPLIT"; $decision.targetConcept="ExerciseEquipmentRequirement|EquipmentRef"; $decision.logicalQuestion="Which equipment relation is required optional or alternative?"; $decision.reason="Normalize token list into equipment relations"; $decision.koreanRegistryEligible="YES" }
+        "equipment" { $decision.status="SPLIT"; $decision.targetConcept="ExerciseEquipmentRequirement|EquipmentRef"; $decision.logicalQuestion="Which equipment relation is required optional or alternative?"; $decision.reason="Normalize legacy display tokens into equipment relations"; $decision.koreanRegistryEligible="YES" }
+        "jointEmphasis" { $decision.status="SPLIT"; $decision.targetConcept="JointComplexRef|JointActionRef"; $decision.logicalQuestion="Which joint complex and action are involved?"; $decision.reason="Legacy emphasis tokens require typed Level 1 relations"; $decision.koreanRegistryEligible="YES" }
+        "activityKind" { $decision.status="LEGACY_ONLY"; $decision.targetConcept="NONE"; $decision.logicalQuestion="Which legacy catalog kind applies?"; $decision.reason="Compatibility only pending separate catalog taxonomy" }
+        "progressMetricType" { $decision.status="LEGACY_ONLY"; $decision.targetConcept="NONE"; $decision.logicalQuestion="Which legacy progress protocol selector applies?"; $decision.reason="Compatibility only and not canonical exercise metadata" }
+        "analysisEligibility" { $decision.status="SPLIT"; $decision.targetConcept="ConsumerSpecificAnalysisCapability"; $decision.logicalQuestion="Which analysis capability is enabled for this consumer?"; $decision.reason="Field-wide target is semantically invalid" }
+        "metadataConfidence" { $decision.status="DEPRECATE"; $decision.targetConcept="RelationProvenance"; $decision.logicalQuestion="What evidence and review status supports each relation?"; $decision.reason="Single scalar confidence cannot represent relation provenance" }
+        "sourceConfidenceLevel" { $decision.status="DEPRECATE"; $decision.targetConcept="RelationProvenance"; $decision.logicalQuestion="What evidence and review status supports each relation?"; $decision.reason="Single scalar confidence cannot represent relation provenance" }
+        "finalSourceStatus" { $decision.status="DEPRECATE"; $decision.targetConcept="RelationProvenance"; $decision.logicalQuestion="What evidence and review status supports each relation?"; $decision.reason="Move provenance to each relation" }
+    }
+    if ($decision.status -ne "UNRESOLVED") { $decision.reviewStatus = "PHASE_2A1_REVIEWED" }
+    [pscustomobject]$decision
+}
+
+$taxonomyRows = @($usageRows | Group-Object fieldName | Sort-Object Name | ForEach-Object {
+    $decision = Taxonomy-Decision $_.Name
+    [pscustomobject]@{
+        currentConcept = $_.Name
+        sourceStorage = (($_.Group.storageLocation | Sort-Object -Unique) -join ";")
+        decisionStatus = $decision.status
+        targetConcept = $decision.targetConcept
+        logicalQuestion = $decision.logicalQuestion
+        decisionReason = $decision.reason
+        koreanRegistryEligible = $decision.koreanRegistryEligible
+        reviewStatus = $decision.reviewStatus
+        notes = if ($decision.status -eq "UNRESOLVED") { "Do not auto-promote or auto-translate" } else { "Phase 2A.1 decision" }
+    }
+})
+Write-Csv $taxonomyRows @(
+    "currentConcept", "sourceStorage", "decisionStatus", "targetConcept", "logicalQuestion",
+    "decisionReason", "koreanRegistryEligible", "reviewStatus", "notes"
+) (Join-Path $docsRoot "metadata_taxonomy_decision_matrix.csv")
+$taxonomyLines = @(
+    "# Metadata taxonomy decision matrix", "",
+    '- Generated by: `tools/generate_metadata_analysis_contract_audit.ps1`',
+    "- Current concepts: $($taxonomyRows.Count)",
+    "- Unresolved concepts: $(@($taxonomyRows | Where-Object decisionStatus -eq 'UNRESOLVED').Count)", "",
+    "Unresolved concepts are intentionally not promoted or auto-translated.", "",
+    "| Current concept | Decision | Target | Korean registry | Reason |",
+    "|---|---|---|---|---|"
+)
+foreach ($row in $taxonomyRows) {
+    $taxonomyLines += "| ``$($row.currentConcept)`` | ``$($row.decisionStatus)`` | ``$(Escape-Markdown $row.targetConcept)`` | $($row.koreanRegistryEligible) | $(Escape-Markdown $row.decisionReason) |"
+}
+Set-Content -LiteralPath (Join-Path $docsRoot "metadata_taxonomy_decision_matrix.md") -Value $taxonomyLines -Encoding UTF8
 
 $compatibilityRows = @()
 foreach ($field in ($compatibilityFields | Sort-Object -Unique)) {

@@ -9,6 +9,25 @@ import java.util.Locale
 
 class ExerciseSeedMetadataPolicyTest {
     @Test
+    fun legacyTrainingRolesUseOnlyTheApprovedStableKeyWhitelist() {
+        val seeds = exactSeedMap()
+
+        assertEquals(APPROVED_LEGACY_TRAINING_ROLES, seeds.mapValues { it.value.trainingRole }.filterValues(String::isNotBlank))
+        assertEquals("", seeds.getValue("barbell_back_squat").trainingRole)
+        assertEquals("", seeds.getValue("barbell_bench_press").trainingRole)
+    }
+
+    @Test
+    fun directSportTransferPreservesLegacyFallbackUntilCutover() {
+        val seeds = exactSeedMap()
+
+        assertEquals(
+            setOf("BADMINTON_FOOTWORK", "CHANGE_OF_DIRECTION", "COURT_CONDITIONING"),
+            seeds.getValue("ex_216351a1").sportTransferDirect.split(',').filter(String::isNotBlank).toSet()
+        )
+    }
+
+    @Test
     fun builtInBackupExportUsesExactSeedMetadataEvenWhenDbRowIsStale() {
         val seeds = exactSeedMap()
 
@@ -224,4 +243,35 @@ class ExerciseSeedMetadataPolicyTest {
 
     private fun String.seedLookupKey(): String =
         trim().lowercase(Locale.ROOT)
+
+    private companion object {
+        val APPROVED_LEGACY_TRAINING_ROLES = mapOf(
+            "single_leg_rdl" to "MAIN_STRENGTH",
+            "dumbbell_romanian_deadlift" to "MAIN_STRENGTH",
+            "barbell_romanian_deadlift" to "MAIN_STRENGTH",
+            "ex_e2efd0fe" to "MAIN_STRENGTH",
+            "ex_bd072cd" to "ACCESSORY",
+            "single_leg_hip_bridge" to "STABILITY",
+            "ex_d60745b4" to "ACCESSORY",
+            "ex_8824026f" to "PLYOMETRIC",
+            "ex_5ca7133f" to "ACCESSORY",
+            "ex_5322f2d1" to "ACCESSORY",
+            "ex_462c760e" to "SECONDARY_STRENGTH",
+            "ex_eb636bac" to "ACCESSORY",
+            "ex_33841b88" to "SPEED_REACTIVE",
+            "ex_a12de111" to "SPEED_REACTIVE",
+            "ex_34e7d21" to "PLYOMETRIC",
+            "lateral_bound_continuous" to "PLYOMETRIC",
+            "med_ball_overhead_slam" to "POWER",
+            "vipr_chop" to "POWER",
+            "ex_85f12271" to "STABILITY",
+            "ex_314df428" to "PLYOMETRIC",
+            "half_kneeling_single_arm_dumbbell_press" to "STABILITY",
+            "half_kneeling_single_arm_kettlebell_press" to "STABILITY",
+            "medicine_ball_rotational_throw" to "POWER",
+            "med_ball_rotational_slam" to "POWER",
+            "landmine_rotation" to "POWER",
+            "vipr_rotational_lift" to "POWER"
+        )
+    }
 }

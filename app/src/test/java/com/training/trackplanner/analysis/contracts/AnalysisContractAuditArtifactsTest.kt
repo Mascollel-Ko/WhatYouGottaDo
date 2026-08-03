@@ -10,6 +10,83 @@ import java.security.MessageDigest
 
 class AnalysisContractAuditArtifactsTest {
     @Test
+    fun phase2A1ApprovedSemanticBoundariesRemainExplicit() {
+        val usage = csv("docs/audits/metadata_field_usage_matrix.csv").associateBy { it["fieldName"] }
+        assertEquals("EXACT_LEGACY_STABLEKEY_WHITELIST", usage.getValue("trainingRole")["currentDisposition"])
+        assertEquals("DERIVED_NONCANONICAL", usage.getValue("familyId")["currentDisposition"])
+        assertEquals("LEGACY_COMPOSITE_TO_BE_DECOMPOSED", usage.getValue("loadProfile")["currentDisposition"])
+        assertEquals("CLOSED_WORLD_EXPLICIT_WHITELIST", usage.getValue("sportTransferDirect")["currentDisposition"])
+
+        val mappings = csv("docs/audits/metadata_legacy_to_target_mapping_matrix.csv")
+        assertTrue(mappings.filter { it["legacyField"] == "trainingRole" }.all {
+            it["targetRelation"] == "NONE" && it["conversionMode"] == "EXACT_STABLEKEY_WHITELIST_ONLY"
+        })
+        assertTrue(mappings.filter { it["legacyField"] == "familyId" }.all {
+            it["targetRelation"] == "NONE" && it["conversionMode"] == "DO_NOT_MIGRATE_AS_CANONICAL"
+        })
+        assertTrue(mappings.filter { it["legacyField"] == "loadProfile" }.all {
+            it["targetRelation"] == "NONE" && it["conversionMode"] == "DECOMPOSE_BY_CONSUMER"
+        })
+        assertTrue(mappings.filter { it["legacyField"] == "sportTransferDirect" }.all {
+            it["targetRelation"] == "SportTransferDirectRef" && it["conversionMode"] == "EXACT_WHITELIST_RELATION"
+        })
+
+        val impact = csv("docs/audits/metadata_inference_stablekey_impact.csv")
+            .filter { it["riskPathId"] in setOf("META-SEED-TRAINING-ROLE", "META-SEED-SPORT-TRANSFER") }
+        assertFalse(impact.any { it["reviewClassification"] == "MISSING_AUTHORITY" })
+        assertTrue(impact.filter { it["rawValuePresent"] == "FALSE" }.all { it["outputWithoutFallback"] == "AUTHORITATIVE_NONE" })
+    }
+
+    @Test
+    fun phase2A1TaxonomyPreflightCoversEveryCurrentConceptWithoutAutoTranslation() {
+        val usageConcepts = csv("docs/audits/metadata_field_usage_matrix.csv")
+            .mapNotNull { it["fieldName"] }
+            .toSet()
+        val decisions = csv("docs/audits/metadata_taxonomy_decision_matrix.csv")
+        assertEquals(usageConcepts, decisions.mapNotNull { it["currentConcept"] }.toSet())
+        assertTrue(decisions.all {
+            it["decisionStatus"] in setOf(
+                "KEEP", "SPLIT", "DERIVE", "DEPRECATE", "LEGACY_ONLY", "PRESENTATION_ONLY",
+                "ANALYSIS_PARAMETER", "PROGRAM_PARAMETER", "UNRESOLVED"
+            )
+        })
+
+        val registry = csv("docs/audits/metadata_level1_korean_reference_registry_draft.csv")
+        assertTrue(registry.isNotEmpty())
+        assertEquals(registry.size, registry.map { it["taxonomy"] to it["canonicalCode"] }.toSet().size)
+        registry.forEach { row ->
+            listOf(
+                "taxonomy", "canonicalCode", "displayNameKo", "displayNameEn", "definitionKo",
+                "logicalQuestionKo", "status", "reviewStatus"
+            ).forEach { field -> assertTrue("Blank $field in ${row["canonicalCode"]}", row[field].orEmpty().isNotBlank()) }
+            assertTrue(row["displayNameKo"].orEmpty().contains(Regex("[가-힣]")))
+            assertFalse(row["displayNameKo"].orEmpty().contains(Regex("[A-Za-z]")))
+            assertFalse(row["displayNameEn"].orEmpty().contains(Regex("[가-힣]")))
+            assertTrue(row["definitionKo"].orEmpty().contains(Regex("[가-힣]")))
+            assertTrue(row["logicalQuestionKo"].orEmpty().contains(Regex("[가-힣]")))
+            assertEquals("DRAFT", row["status"])
+            assertEquals("REVIEW_REQUIRED", row["reviewStatus"])
+        }
+    }
+
+    @Test
+    fun phase01ProductionContractFilesRemainByteForByteFrozen() {
+        val expectedHashes = mapOf(
+            "AnalysisContractModels.kt" to "835E15E87ECABA9B1FEDE4514F8E845584FF688AFCB8E76BF60B03A0BA01413E",
+            "AnalysisContractAssetLoader.kt" to "7D6762652BADC3A240DD53719A63C873DCA1E50E84A47A3A58087CA10A05FC85",
+            "AnalysisContractShadowParity.kt" to "672FF99DA41415E309E093DA19C6D175FA9D157A8349F10A18E33E2B55610BEB",
+            "UserExerciseAnalysisContractProjector.kt" to "82CD167EE83C74952AB8953B1BAFE82F74CF753AFA1007E455A0A28740318510"
+        )
+        val contractRoot = repoFile("app/src/main/java/com/training/trackplanner/analysis/contracts")
+        expectedHashes.forEach { (fileName, expectedHash) ->
+            val actual = MessageDigest.getInstance("SHA-256")
+                .digest(File(contractRoot, fileName).readBytes())
+                .joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+            assertEquals(fileName, expectedHash, actual)
+        }
+    }
+
+    @Test
     fun progressMetricRemainsReadOnlyCompatibilityOutsideCanonicalMetadata() {
         val usage = csv("docs/audits/metadata_field_usage_matrix.csv")
             .filter { it["fieldName"] == "progressMetricType" }

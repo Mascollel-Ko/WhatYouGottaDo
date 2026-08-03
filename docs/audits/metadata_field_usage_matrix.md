@@ -68,7 +68,7 @@
 | `equipmentTags` | Room exercises | MULTI | NO | NO | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `estimated1RmEligible` | Room exercises | SINGLE | NO | NO | YES | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `familyE1rmMultiplier` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
-| `familyId` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
+| `familyId` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | NO | YES | `DERIVED_NONCANONICAL` | `DERIVE_PER_USE_CASE_FROM_REVIEWED_TYPED_RELATIONS` |
 | `familyName` | Room exercises | SINGLE | NO | NO | NO | NO | NO | YES | NO | NO | `DISPLAY_ONLY` | `KEEP_PRESENTATION_ONLY` |
 | `familyRole` | Room exercises | SINGLE | NO | NO | YES | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `fatigueCategories` | Room exercises | MULTI | YES | YES | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
@@ -80,7 +80,7 @@
 | `isCustom` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | YES | NO | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
 | `jointStressTags` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `laterality` | Room exercises | SINGLE | NO | NO | NO | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
-| `loadProfile` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REPLACE_OUTSIDE_CANONICAL_METADATA_AFTER_PARITY` |
+| `loadProfile` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | YES | NO | `LEGACY_COMPOSITE_TO_BE_DECOMPOSED` | `DECOMPOSE_INTO_CONSUMER_SPECIFIC_TYPED_RELATIONS` |
 | `localLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `mainLiftGroup` | Room exercises | SINGLE | NO | NO | YES | NO | NO | YES | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `metadataConfidence` | Room exercises | SINGLE | YES | NO | NO | NO | NO | YES | YES | NO | `PROVENANCE_ONLY` | `CONSOLIDATE_PROVENANCE_AFTER_PARITY` |
@@ -100,12 +100,12 @@
 | `recoveryDecayProfile` | Room exercises | SINGLE | YES | NO | NO | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `rotationPowerWeight` | Room exercises | SINGLE | YES | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `secondaryMuscles` | Room exercises | MULTI | YES | NO | YES | YES | NO | YES | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
-| `sportTransferDirect` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
+| `sportTransferDirect` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | NO | `CLOSED_WORLD_EXPLICIT_WHITELIST` | `KEEP_CLOSED_WORLD_EXPLICIT_RELATION` |
 | `sportTransferSupportive` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `stabilityDemandLevel` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `stabilityRoles` | Room exercises | MULTI | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `stableKey` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
 | `strengthProgressionGroup` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `systemicLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
-| `trainingRole` | Room exercises | SINGLE | YES | YES | YES | YES | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
+| `trainingRole` | Room exercises | SINGLE | NO | YES | YES | YES | NO | YES | YES | YES | `EXACT_LEGACY_STABLEKEY_WHITELIST` | `PHASE_2B_PURPOSE_SPECIFIC_PROGRAM_RELATION_REVIEW` |
 | `volumeLoadEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |

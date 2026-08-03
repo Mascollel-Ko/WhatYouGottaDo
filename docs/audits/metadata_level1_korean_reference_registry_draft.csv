@@ -1,0 +1,87 @@
+taxonomy,canonicalCode,displayNameKo,displayNameEn,definitionKo,logicalQuestionKo,status,deprecatedAliases,reviewStatus
+MovementPatternRef,KNEE_DOMINANT_SQUAT,무릎 우세 스쿼트,Knee-dominant squat,무릎 폄을 중심으로 앉았다 일어나는 전신 동작 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,SQUAT,REVIEW_REQUIRED
+MovementPatternRef,HIP_HINGE,엉덩관절 힌지,Hip hinge,엉덩관절 굽힘과 폄을 중심으로 몸통과 골반을 움직이는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,HINGE,REVIEW_REQUIRED
+MovementPatternRef,SPLIT_STANCE_LUNGE,분할자세 런지,Split-stance lunge,앞뒤로 발을 나눈 자세에서 한쪽 다리에 부하를 싣는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,LUNGE,REVIEW_REQUIRED
+MovementPatternRef,HORIZONTAL_PUSH,수평 밀기,Horizontal push,몸통에서 앞쪽 수평 방향으로 저항을 미는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,PUSH_HORIZONTAL,REVIEW_REQUIRED
+MovementPatternRef,VERTICAL_PUSH,수직 밀기,Vertical push,몸통에서 위쪽으로 저항을 미는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,PUSH_VERTICAL,REVIEW_REQUIRED
+MovementPatternRef,HORIZONTAL_PULL,수평 당기기,Horizontal pull,앞쪽의 저항을 몸통 쪽 수평 방향으로 당기는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,PULL_HORIZONTAL,REVIEW_REQUIRED
+MovementPatternRef,VERTICAL_PULL,수직 당기기,Vertical pull,위쪽의 저항 또는 몸을 수직 방향으로 당기는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,PULL_VERTICAL,REVIEW_REQUIRED
+MovementPatternRef,CARRY,운반,Carry,외부 하중을 지지한 채 자세를 유지하며 이동하는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+MovementPatternRef,LOCOMOTION,이동,Locomotion,걷기 달리기 또는 반복 보행으로 위치를 바꾸는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+MovementPatternRef,JUMP,점프,Jump,지면을 밀어 신체가 공중에 뜨는 동작 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,HOP|BOUND,REVIEW_REQUIRED
+MovementPatternRef,ROTATION,회전,Rotation,몸통 또는 사지를 축 주위로 능동 회전시키는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+MovementPatternRef,ANTI_ROTATION,회전 저항,Anti-rotation,외부 회전력에 맞서 몸통 방향을 유지하는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+MovementPatternRef,ANTI_EXTENSION,신전 저항,Anti-extension,몸통이 과도하게 뒤로 펴지는 힘에 맞서 정렬을 유지하는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+MovementPatternRef,ANTI_LATERAL_FLEXION,측면 굽힘 저항,Anti-lateral flexion,몸통이 옆으로 굽는 힘에 맞서 정렬을 유지하는 패턴,이 운동의 전신 또는 몸통 수준 동작 패턴은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,CERVICAL_COMPLEX,목 복합체,Cervical complex,머리와 목의 움직임 및 안정성을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,THORACIC_COMPLEX,등 복합체,Thoracic complex,흉추와 흉곽의 움직임 및 안정성을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,LUMBAR_COMPLEX,허리 복합체,Lumbar complex,요추의 움직임 및 안정성을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,SPINE,REVIEW_REQUIRED
+JointComplexRef,LUMBOSACRAL_COMPLEX,허리엉치 복합체,Lumbosacral complex,요추와 엉치뼈 사이의 움직임 및 하중 전달을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,SACROILIAC_COMPLEX,엉치엉덩 복합체,Sacroiliac complex,엉치뼈와 엉덩뼈 사이의 하중 전달을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,HIP_COMPLEX,엉덩관절 복합체,Hip complex,넙다리뼈와 골반 사이의 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,HIP,REVIEW_REQUIRED
+JointComplexRef,PATELLOFEMORAL_COMPLEX,무릎뼈넙다리 복합체,Patellofemoral complex,무릎뼈와 넙다리뼈 사이의 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,KNEE_COMPLEX,무릎 복합체,Knee complex,넙다리뼈와 정강뼈를 중심으로 무릎 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,KNEE,REVIEW_REQUIRED
+JointComplexRef,ANKLE_COMPLEX,발목 복합체,Ankle complex,정강뼈와 발 사이의 발목 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,ANKLE,REVIEW_REQUIRED
+JointComplexRef,TARSAL_COMPLEX,발허리 복합체,Tarsal complex,발뼈 사이의 움직임과 지지를 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,SHOULDER_COMPLEX,어깨 복합체,Shoulder complex,위팔과 어깨뼈 및 빗장뼈의 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,SHOULDER,REVIEW_REQUIRED
+JointComplexRef,ELBOW_FLEXION_EXTENSION_COMPLEX,팔꿈치 굽힘폄 복합체,Elbow flexion-extension complex,팔꿈치 굽힘과 폄을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,ELBOW,REVIEW_REQUIRED
+JointComplexRef,RADIOULNAR_ROTATION_COMPLEX,노자 회전 복합체,Radioulnar rotation complex,아래팔의 엎침과 뒤침을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointComplexRef,WRIST_COMPLEX,손목 복합체,Wrist complex,아래팔과 손 사이의 손목 움직임을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,WRIST,REVIEW_REQUIRED
+JointComplexRef,HAND_GRIP_COMPLEX,손 쥐기 복합체,Hand-grip complex,손가락과 손바닥의 쥐기 동작을 이루는 상위 관절복합체,어느 관절복합체에서 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,FLEXION,굽힘,Flexion,관절을 이루는 두 분절 사이의 각도가 작아지는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,EXTENSION,폄,Extension,관절을 이루는 두 분절 사이의 각도가 커지는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,ABDUCTION,벌림,Abduction,신체의 기준선에서 멀어지는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,ADDUCTION,모음,Adduction,신체의 기준선으로 가까워지는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,INTERNAL_ROTATION,안쪽 돌림,Internal rotation,분절이 신체 안쪽 방향으로 회전하는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,EXTERNAL_ROTATION,바깥 돌림,External rotation,분절이 신체 바깥쪽 방향으로 회전하는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,PRONATION,엎침,Pronation,아래팔 또는 발이 엎어지는 방향으로 회전하는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,SUPINATION,뒤침,Supination,아래팔 또는 발이 뒤집히는 방향으로 회전하는 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,DORSIFLEXION,발등 굽힘,Dorsiflexion,발등이 정강이 쪽으로 가까워지는 발목 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,PLANTARFLEXION,발바닥 굽힘,Plantar flexion,발끝이 정강이에서 멀어지는 발목 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,RADIAL_DEVIATION,노쪽 치우침,Radial deviation,손이 노뼈 쪽으로 기울어지는 손목 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+JointActionRef,ULNAR_DEVIATION,자쪽 치우침,Ulnar deviation,손이 자뼈 쪽으로 기울어지는 손목 동작,해당 관절복합체에서 어떤 운동학적 동작이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,ACCELERATION,가속,Acceleration,이동 속도가 증가하는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,DECELERATION,감속,Deceleration,이동 속도가 감소하는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,CHANGE_OF_DIRECTION,방향 전환,Change of direction,이동 방향을 바꾸는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,TAKEOFF,도약,Takeoff,지면을 밀고 공중으로 떠오르는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,LANDING,착지,Landing,공중에서 지면 접촉으로 전환되는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,REACTIVE_BOUNCE,반응성 반동,Reactive bounce,짧은 접촉 뒤 빠르게 다시 힘을 내는 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementEventRef,CYCLIC_LOCOMOTION,주기적 이동,Cyclic locomotion,보행 주기가 반복되는 이동 운동 사건,이 운동에서 어떤 운동 사건이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementPhaseRef,CONCENTRIC,단축성 국면,Concentric phase,근육이 힘을 내며 짧아지는 운동 국면,이 운동에서 어떤 운동 국면이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementPhaseRef,ECCENTRIC,신장성 국면,Eccentric phase,근육이 힘을 내며 길어지는 운동 국면,이 운동에서 어떤 운동 국면이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementPhaseRef,ISOMETRIC,등척성 국면,Isometric phase,관절 움직임을 크게 만들지 않고 힘을 유지하는 운동 국면,이 운동에서 어떤 운동 국면이 발생하는가?,DRAFT,,REVIEW_REQUIRED
+MovementPlaneRef,SAGITTAL,시상면,Sagittal plane,앞뒤 방향 움직임을 설명하는 운동면,이 운동의 주된 움직임은 어느 운동면에서 일어나는가?,DRAFT,,REVIEW_REQUIRED
+MovementPlaneRef,FRONTAL,이마면,Frontal plane,좌우 방향 움직임을 설명하는 운동면,이 운동의 주된 움직임은 어느 운동면에서 일어나는가?,DRAFT,,REVIEW_REQUIRED
+MovementPlaneRef,TRANSVERSE,가로면,Transverse plane,수평 회전 방향 움직임을 설명하는 운동면,이 운동의 주된 움직임은 어느 운동면에서 일어나는가?,DRAFT,,REVIEW_REQUIRED
+MovementPlaneRef,MULTIPLANAR,다면,Multiplanar,두 개 이상의 운동면이 함께 관여하는 움직임,이 운동의 주된 움직임은 어느 운동면에서 일어나는가?,DRAFT,MULTI_PLANAR,REVIEW_REQUIRED
+LateralityRef,BILATERAL,양측,Bilateral,양쪽 팔다리가 같은 동작에 함께 참여하는 형태,이 운동의 고정적인 편측성은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+LateralityRef,UNILATERAL,편측,Unilateral,한쪽 팔다리를 중심으로 수행하는 형태,이 운동의 고정적인 편측성은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+LateralityRef,ALTERNATING,교대,Alternating,좌우를 번갈아 수행하는 형태,이 운동의 고정적인 편측성은 무엇인가?,DRAFT,,REVIEW_REQUIRED
+LateralityRef,ASYMMETRIC,비대칭,Asymmetric,좌우가 서로 다른 역할을 맡는 형태,이 운동의 고정적인 편측성은 무엇인가?,DRAFT,MULTIDIRECTIONAL,REVIEW_REQUIRED
+EquipmentRef,BARBELL,바벨,Barbell,양손으로 지지하는 긴 봉 형태의 외부 저항 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,바벨,REVIEW_REQUIRED
+EquipmentRef,DUMBBELL,덤벨,Dumbbell,한 손씩 독립적으로 지지하는 외부 저항 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,덤벨,REVIEW_REQUIRED
+EquipmentRef,KETTLEBELL,케틀벨,Kettlebell,손잡이가 달린 구형 외부 저항 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,케틀벨,REVIEW_REQUIRED
+EquipmentRef,EZ_BAR,이지바,EZ bar,굽은 손잡이 구간을 가진 짧은 바 형태 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,EZ바,REVIEW_REQUIRED
+EquipmentRef,MACHINE,저항 운동 기계,Resistance machine,정해진 궤도나 저항 구조를 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,머신,REVIEW_REQUIRED
+EquipmentRef,CABLE,케이블,Cable,도르래와 선형 줄로 저항을 전달하는 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,케이블,REVIEW_REQUIRED
+EquipmentRef,BODYWEIGHT,맨몸,Bodyweight,외부 저항 장비 없이 몸의 무게를 주 저항으로 사용하는 조건,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,맨몸,REVIEW_REQUIRED
+EquipmentRef,BENCH,벤치,Bench,앉거나 눕거나 몸을 지지하는 운동용 받침대,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,벤치,REVIEW_REQUIRED
+EquipmentRef,BOX_STEP,상자형 발판,Box or step,도약 착지 또는 높이 조절에 사용하는 상자형 발판,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,박스/스텝박스|BOX,REVIEW_REQUIRED
+EquipmentRef,CONE_MARKER,표시 원뿔,Cone marker,이동 경로나 위치를 표시하는 훈련용 원뿔,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,콘/마커,REVIEW_REQUIRED
+EquipmentRef,LANDMINE,랜드마인 장치,Landmine attachment,바벨 한쪽 끝을 회전 가능하게 고정하는 장치,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,랜드마인,REVIEW_REQUIRED
+EquipmentRef,LEG_CURL_MACHINE,다리 굽힘 기계,Leg curl machine,무릎 굽힘 저항을 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,레그컬 머신,REVIEW_REQUIRED
+EquipmentRef,LEG_EXTENSION_MACHINE,다리 폄 기계,Leg extension machine,무릎 폄 저항을 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,레그익스텐션 머신,REVIEW_REQUIRED
+EquipmentRef,LEG_PRESS_MACHINE,다리 밀기 기계,Leg press machine,다리로 발판을 미는 저항을 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,레그프레스 머신,REVIEW_REQUIRED
+EquipmentRef,ROWING_MACHINE,로잉 기계,Rowing machine,노 젓기 동작의 유산소 저항을 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,로잉머신,REVIEW_REQUIRED
+EquipmentRef,MEDICINE_BALL,메디신볼,Medicine ball,던지기와 회전 동작에 사용하는 중량 공,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,메디신볼,REVIEW_REQUIRED
+EquipmentRef,VIPR,바이퍼 원통,ViPR tube,들기 운반 회전 동작에 사용하는 중량 원통,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,바이퍼,REVIEW_REQUIRED
+EquipmentRef,BAND,탄성 밴드,Resistance band,늘어남에 따라 저항이 증가하는 탄성 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,밴드,REVIEW_REQUIRED
+EquipmentRef,WALL,벽,Wall,신체나 장비를 지지하는 고정 수직면,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,벽,REVIEW_REQUIRED
+EquipmentRef,SMITH_MACHINE,스미스 기계,Smith machine,바벨 이동 경로가 안내된 저항 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,스미스 머신,REVIEW_REQUIRED
+EquipmentRef,STATIONARY_BIKE,고정식 자전거,Stationary bike,제자리에서 페달을 밟는 유산소 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,실내자전거,REVIEW_REQUIRED
+EquipmentRef,PULL_UP_BAR,철봉,Pull-up bar,매달리기와 당기기 동작에 사용하는 고정 봉,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,철봉/풀업바,REVIEW_REQUIRED
+EquipmentRef,PARTNER_ANCHOR,동료 또는 고정대,Partner or anchor,신체나 장비를 고정하거나 저항을 제공하는 동료 또는 고정 구조,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,파트너/고정대,REVIEW_REQUIRED
+EquipmentRef,PARALLEL_BARS,평행봉,Parallel bars,양손 지지 동작에 사용하는 나란한 봉,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,평행봉,REVIEW_REQUIRED
+EquipmentRef,WEIGHT_PLATE,중량 원판,Weight plate,바벨 또는 독립 저항으로 사용하는 원판형 중량,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,플레이트,REVIEW_REQUIRED
+EquipmentRef,HACK_SQUAT_MACHINE,핵 스쿼트 기계,Hack squat machine,고정된 경로에서 스쿼트 저항을 제공하는 운동 기계,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,핵스쿼트 머신,REVIEW_REQUIRED
+EquipmentRef,SUSPENSION_STRAPS,서스펜션 스트랩,Suspension straps,고정점에 매달린 줄로 몸을 지지하는 운동 장비,이 운동에 어떤 장비 관계가 필요한가?,DRAFT,TRX/링,REVIEW_REQUIRED

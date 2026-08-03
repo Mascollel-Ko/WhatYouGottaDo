@@ -10,13 +10,13 @@ These rows describe implementation risk paths, not twenty proven classification 
 |---|---|---|---:|---:|---:|---:|---:|---:|
 | `META-SEED-CSV-FALLBACK` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#exerciseFromCsv` | `PARTIALLY_EVALUATED` | 224 | 0 | 0 | 0 | 0 | 0 |
 | `META-SEED-MOVEMENT-PATTERN` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#movementPatternFor` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
-| `META-SEED-FAMILY` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#familyIdFor` | `EVALUATED` | 170 | 0 | 0 | 170 | 0 | 54 |
+| `META-SEED-FAMILY` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#familyIdFor` | `EVALUATED` | 170 | 0 | 170 | 0 | 0 | 54 |
 | `META-SEED-PRIMARY-MUSCLES` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#musclesFor` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
 | `META-SEED-SECONDARY-MUSCLES` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#fallbackSecondaryMuscles` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
 | `META-SEED-FORCE-TYPE` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#forceTypeFor` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
-| `META-SEED-TRAINING-ROLE` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#trainingRoleFor` | `EVALUATED` | 198 | 0 | 0 | 198 | 0 | 26 |
-| `META-SEED-SPORT-TRANSFER` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#sportTransferDirectFor` | `EVALUATED` | 220 | 0 | 0 | 220 | 0 | 4 |
-| `META-SEED-LOAD-PROFILE` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#loadProfileFor` | `EVALUATED` | 198 | 0 | 0 | 198 | 0 | 26 |
+| `META-SEED-TRAINING-ROLE` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#exerciseFromCsv` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
+| `META-SEED-SPORT-TRANSFER` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#exerciseFromCsv` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
+| `META-SEED-LOAD-PROFILE` | `app/src/main/java/com/training/trackplanner/data/SeedData.kt#loadProfileFor` | `EVALUATED` | 198 | 0 | 198 | 0 | 0 | 26 |
 | `META-OFI-BROAD-FATIGUE` | `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataAdapter.kt#broadLegacyFatigueCategories` | `EVALUATED` | 224 | 0 | 224 | 0 | 0 | 0 |
 | `META-ACTIVITY-NAME-FALLBACK` | `app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt#Exercise` | `NOT_TRIGGERED_FOR_BUILT_INS` | 0 | 0 | 0 | 0 | 0 | 224 |
 | `META-PROGRAM-SLOT-FALLBACK` | `app/src/main/java/com/training/trackplanner/data/SlotCapabilityResolver.kt#resolve` | `PARTIALLY_EVALUATED` | 224 | 0 | 0 | 0 | 0 | 0 |
