@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-PROXY-PERFORMANCE |
-| Protocol version | 3.0.1 |
+| Protocol version | 3.0.2 |
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.3 |
-| Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
+| Last audited commit | 40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
 | Supersedes | 2.1.0 |
 
@@ -38,6 +38,14 @@
 | `strength.weighted_pull_up` | 중량 풀업 | `ex_e41f4c2b` | `BODYWEIGHT_PLUS_ADDED_LOAD` |
 
 입력은 완료 세션의 confirmed set, stable key, 반복수, RPE, 외부중량, 날짜별 체중·초기 profile 체중 및 versioned registry입니다. 출력은 current model state, immutable per-event history, compact evidence, personal curve posterior, 이벤트 상태와 UI 요약입니다.
+
+### 3.1 Phase 2A.1 prior-only registry boundary
+
+`metadata/strength_proxy_prior_v1`은 차기 모델을 위한 isolated configuration preflight이며 위 production posterior의 입력이 아닙니다. 이 registry는 `BENCH_PRESS`, `BACK_SQUAT`, generic `DEADLIFT`, `WEIGHTED_PULL_UP`, `MILITARY_PRESS` 다섯 target만 갖고 relation을 exact stableKey로만 연결합니다. non-direct 수치는 broad uncertainty의 `PROVISIONAL_PRODUCT_PRIOR / TEMPORARY_APPROVED`이며 과학적으로 검증된 kg 변환계수가 아닙니다.
+
+제품 책임자는 `MILITARY_PRESS` direct anchor를 `ex_32219f7a` (`오버헤드 프레스`)로 확정했습니다. 정본 실행은 서서 수행하는 strict barbell overhead press이며 의도적인 무릎·엉덩이 drive가 없습니다. push press, push jerk, split jerk는 이 anchor가 아니며 별도 stableKey를 가져야 합니다. 기존 `ex_32219f7a` 기록은 현재 strength model에서 이 정본 동작의 기록으로 취급합니다.
+
+한 proxy observation이 여러 target relation을 가져도 future posterior는 이를 독립 관측으로 중복 삽입하지 않습니다. shared factor는 한 번 갱신하고 여러 target posterior가 같은 shared state에 반응해야 합니다. 사용자별 상태는 exercise metadata가 아닌 별도 `UserStrengthProxyPosterior` 개념이며 이번 단계에서는 구현하지 않습니다.
 
 ## 4. 비적용 범위
 
