@@ -4450,3 +4450,53 @@ Verification
   missing-authority rows, prioritized by high-impact seed and strength-proxy
   paths. Do not automatically proceed to provenance-model expansion or
   production cutover.
+
+## v0.5.0.19 metadata strategy v2.3 Phase 2A.1
+
+### Baseline and protected state
+
+- Started from latest `origin/main` `40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee` (`0.5.0.18 / 500018`).
+- Preserved six pre-existing modified `outputs/*` files exactly as found; they remain excluded from all task staging and commits.
+- Kept `AnalysisContractModels.kt`, `AnalysisContractAssetLoader.kt`, `AnalysisContractShadowParity.kt`, and `UserExerciseAnalysisContractProjector.kt` byte-for-byte frozen.
+
+### Approved semantic corrections
+
+- Restored 26 explicit legacy `trainingRole` rows from the canonical seed by exact stableKey; unlisted exercises receive no role and name/category inference is not used.
+- Marked `familyId` `DERIVED_NONCANONICAL`, `loadProfile` `LEGACY_COMPOSITE_TO_BE_DECOMPOSED`, and blank `sportTransferDirect` authoritative `NONE` in the target audit model.
+- Preserved the current name-based direct-transfer fallback in `SeedData` because changing production sport-transfer results is outside Phase 2A.1. The closed-world rule is the approved target contract for a separately reviewed cutover.
+- Added deterministic training-role, family, load-profile, taxonomy-decision, and corrected risk-impact artifacts.
+
+### Strength-proxy prior and product decision
+
+- Added isolated `StrengthProxyPriorRegistry` models and versioned assets for five targets and 24 exact stableKey relations. No production strength output consumes them.
+- Non-direct rows are provisional temporary priors with broad uncertainty and mandatory later research review. Legacy coefficients seed specificity only and are not kilogram slopes.
+- Product-owner decision: `MILITARY_PRESS` uses `ex_32219f7a` (`오버헤드 프레스`) as a standing strict barbell overhead press without intentional knee or hip drive. Push press and jerk variants require separate stableKeys. Existing records under this key are treated as the canonical movement.
+- Future user state remains the separate, unimplemented `UserStrengthProxyPosterior`; shared observations must not be counted twice across targets.
+
+### Taxonomy preflight and documentation
+
+- Added a 94-concept decision matrix covering all 102 current field/storage rows and an 86-row explicit Level-1 Korean/English reference-registry draft.
+- All reference rows are `DRAFT / REVIEW_REQUIRED`; no underscore auto-translation, production display change, Room change, or stableKey change occurred.
+- Updated metadata strategy v2.3, metadata contract protocol 1.3.0, strength protocol 3.0.2, protocol registry/index, seed report, program parity report, and release notes.
+
+### Verification
+
+- Focused metadata, prior, audit, frozen-analysis, and program timing/builder parity tests: passed.
+- Deterministic metadata audit passed with 102 field rows, 501 parsing/inference rows, 3,633 mapping rows, 20 risk paths, 4,480 stableKey impact rows, and 0 confirmed metadata errors.
+- Protocol validation passed for 8 families and 33 protocols.
+- Full unit tests passed: 1,130 tests across 196 suites; zero failures, errors, or skips.
+- `compileDebugKotlin`, `compileDebugAndroidTestKotlin`, and `assembleDebug` passed.
+- Debug APK: 47,055,663 bytes; SHA-256 `C6691066A1696579FF4186FE215A10371DCE19529EED89B9E3078D7D55D271F9`.
+
+### Commits and publication
+
+- `f41594f`: `fix(metadata): restore approved legacy semantic boundaries`.
+- `bd832ed`: `feat(metadata): add isolated strength proxy prior registry`.
+- `69a3624`: `docs(metadata): publish Phase 2A.1 taxonomy preflight`.
+- Release commit: `chore(release): bump version to 0.5.0.19` (this release commit).
+- Main push, `v0.5.0.19` tag, and CI verification follow the release commit; the final task report records their actual remote state.
+
+### Follow-up
+
+- Review and approve the Level-1 Korean registry, then decide purpose-specific Phase 2B program and analysis relations.
+- Research and replace provisional strength-proxy priors without changing relation identity or connecting them to production until a separate approved task.
