@@ -4500,3 +4500,10 @@ Verification
 
 - Review and approve the Level-1 Korean registry, then decide purpose-specific Phase 2B program and analysis relations.
 - Research and replace provisional strength-proxy priors without changing relation identity or connecting them to production until a separate approved task.
+
+## v0.5.0.20 CI portability follow-up
+
+- GitHub Actions run `30789606827` exposed a platform-dependent test hash: Windows checked out the frozen CSV assets with CRLF while Linux checked them out with LF.
+- Production code and both frozen strength assets remain unchanged. `StrengthProxyPriorRegistryTest` now hashes canonical LF text so the same semantic asset content is guarded on both platforms.
+- The focused `StrengthProxyPriorRegistryTest` passed locally after the correction.
+- The already-pushed `v0.5.0.19` tag was not moved or rewritten. This follow-up uses `0.5.0.20 / 500020` and is tagged only after the corrected main HEAD passes GitHub Actions.
