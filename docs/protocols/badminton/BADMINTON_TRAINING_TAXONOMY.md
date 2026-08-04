@@ -103,15 +103,15 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 - [`outputs/badminton_transfer_closeout/badminton_transfer_stablekey_migration_v1.csv`](../../../outputs/badminton_transfer_closeout/badminton_transfer_stablekey_migration_v1.csv): retained, alias, split, historical generic lineage입니다.
 - [`docs/protocols/README.md`](../README.md)
 
-## 20. canonical code와 표시 이름
+## 20. 변경 이력
+
+- `1.1.0` (2026-08-04): latest canonical inventory, equipment split inheritance, legacy lineage, localization-readiness 경계를 문서화했습니다.
+- `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
+
+## 21. canonical code와 표시 이름
 
 분석과 relation join은 canonical code와 `exerciseStableKey`만 사용합니다. 한국어·영어 display name과 정의는 별도 localization field이며 분석 key가 아닙니다. underscore를 분리해 UI 문구를 자동 생성하거나 번역 문자열로 stableKey를 추론하지 않습니다.
 
 최신 closeout은 241개 selectable canonical identity를 authority로 사용합니다. 16개 historical generic source identity는 lineage로만 보존하며 새 selectable identity로 복원하지 않습니다. 33개 equipment variant는 독립 stableKey를 사용하고 broad transfer relation의 상속 출처를 명시합니다.
 
 이 identity 정리는 `ARTIFACT_ONLY`입니다. Room, seed, runtime resolver, backup, user data에는 반영하지 않습니다.
-
-## 21. 변경 이력
-
-- `1.1.0` (2026-08-04): latest canonical inventory, equipment split inheritance, legacy lineage, localization-readiness 경계를 문서화했습니다.
-- `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

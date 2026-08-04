@@ -110,7 +110,13 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 - [`outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md`](../../../outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md): source relation과 runtime-derived axis의 정규화 준비 경계입니다.
 - [`docs/protocols/README.md`](../README.md)
 
-## 20. source metadata와 runtime-derived axis의 경계
+## 20. 변경 이력
+
+- `1.1.0` (2026-08-04): 최신 241-row identity에 source metadata를 정합하고 source/runtime/display axis 층을 명시했습니다. runtime 계산은 변경하지 않았습니다.
+- `1.0.1` (2026-07-19): v0.4.2.16에서 주별 훈련량과 전이 자극이 동일한 월-주차 표시 권한을 사용하도록 문서화했습니다. 전이 계산과 색상은 변경하지 않았습니다.
+- `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
+
+## 21. source metadata와 runtime-derived axis의 경계
 
 배드민턴 전이는 다음 세 층을 구분합니다.
 
@@ -120,7 +126,7 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 세 번째 층은 첫 번째 층을 대체하는 source taxonomy가 아닙니다. source의 `DIRECT`, `SUPPORTIVE`, `GENERAL`, `NONE`은 유지하며 runtime `LOW`는 metadata가 일부 존재할 때 사용하는 fallback으로만 남습니다.
 
-## 21. artifact-only identity closeout
+## 22. artifact-only identity closeout
 
 - 224개 기존 source row를 최신 241개 canonical exercise identity에 대조했습니다.
 - 208개 retained identity는 기존 값을 유지했습니다.
@@ -130,9 +136,3 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 - canonical code와 한국어 display/definition은 분리했습니다. 미승인 한국어 정의는 `REVIEW_REQUIRED`입니다.
 
 이 closeout은 `ARTIFACT_ONLY`입니다. transfer weight, RPE factor, 7일/28일 window, equal axis split, fatigue cost, 추천, 차트, 색상, UI를 변경하지 않습니다.
-
-## 22. 변경 이력
-
-- `1.1.0` (2026-08-04): 최신 241-row identity에 source metadata를 정합하고 source/runtime/display axis 층을 명시했습니다. runtime 계산은 변경하지 않았습니다.
-- `1.0.1` (2026-07-19): v0.4.2.16에서 주별 훈련량과 전이 자극이 동일한 월-주차 표시 권한을 사용하도록 문서화했습니다. 전이 계산과 색상은 변경하지 않았습니다.
-- `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
