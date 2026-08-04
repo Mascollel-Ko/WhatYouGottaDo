@@ -20,8 +20,12 @@ data class SlotCapabilityProfile(
 }
 
 class SlotCapabilityResolver {
-    fun resolve(exercise: Exercise, metadata: RuntimeExerciseMetadata?): SlotCapabilityProfile {
-        val legacyMatches = matchSlots(legacyTokens(exercise))
+    fun resolve(
+        exercise: Exercise,
+        metadata: RuntimeExerciseMetadata?,
+        programSlotCapabilities: Set<ProgramSlotCapability> = emptySet()
+    ): SlotCapabilityProfile {
+        val legacyMatches = matchSlots(legacyTokens(exercise, programSlotCapabilities))
         val nameMatches = explicitNameFallback(exercise.name)
         if (metadata != null) {
             val identityMatches = matchSlots(metadataIdentityTokens(metadata))
@@ -124,15 +128,19 @@ class SlotCapabilityResolver {
         addAll(metadata.badmintonPhysicalQualities.values)
     }.tokenSet()
 
-    private fun legacyTokens(exercise: Exercise): Set<String> = listOf(
-        exercise.movementPattern,
-        exercise.movementCategory,
-        exercise.trainingRole,
-        exercise.strengthProgressionGroup,
-        exercise.badmintonTransferRoles,
-        exercise.stabilityRoles,
-        exercise.accessoryRoles
-    ).tokenSet()
+    private fun legacyTokens(
+        exercise: Exercise,
+        programSlotCapabilities: Set<ProgramSlotCapability>
+    ): Set<String> = (
+        listOf(
+            exercise.movementPattern,
+            exercise.movementCategory,
+            exercise.strengthProgressionGroup,
+            exercise.badmintonTransferRoles,
+            exercise.stabilityRoles,
+            exercise.accessoryRoles
+        ) + programSlotCapabilities.map(ProgramSlotCapability::legacyCompatibilityToken)
+        ).tokenSet()
 
     private fun matchSlots(tokens: Set<String>): List<ProgramSlotId> = RULES.mapNotNull { rule ->
         rule.slot.takeIf { tokens.hasAny(*rule.needles.toTypedArray()) }

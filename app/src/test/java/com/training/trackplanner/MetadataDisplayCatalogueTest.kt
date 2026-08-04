@@ -7,13 +7,14 @@ import com.training.trackplanner.data.AnalysisEligibility
 import com.training.trackplanner.data.AxialLoadLevel
 import com.training.trackplanner.data.FatigueForceType
 import com.training.trackplanner.data.FatigueLaterality
-import com.training.trackplanner.data.FatigueTrainingRole
 import com.training.trackplanner.data.MetadataConfidence
 import com.training.trackplanner.data.MovementCategory
 import com.training.trackplanner.data.MovementPattern
 import com.training.trackplanner.data.ProgramSlotId
+import com.training.trackplanner.data.ProgramSlotCapability
 import com.training.trackplanner.data.RuntimeMetadataEditorOptions
 import com.training.trackplanner.data.SeedData
+import com.training.trackplanner.data.TrainingRole
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -129,7 +130,8 @@ class MetadataDisplayCatalogueTest {
         add(MetadataDisplayField.MOVEMENT_PATTERN, MovementPattern.entries.map(Enum<*>::name))
         add(MetadataDisplayField.MOVEMENT_CATEGORY, MovementCategory.entries.map(Enum<*>::name))
         add(MetadataDisplayField.FORCE_TYPE, FatigueForceType.entries.map(Enum<*>::name))
-        add(MetadataDisplayField.TRAINING_ROLE, FatigueTrainingRole.entries.map(Enum<*>::name))
+        add(MetadataDisplayField.TRAINING_ROLE_RELATION, TrainingRole.entries.map(Enum<*>::name))
+        add(MetadataDisplayField.PROGRAM_SLOT_CAPABILITY, ProgramSlotCapability.entries.map(Enum<*>::name))
         add(MetadataDisplayField.AXIAL_LOAD, AxialLoadLevel.entries.map(Enum<*>::name))
         add(MetadataDisplayField.LATERALITY, FatigueLaterality.entries.map(Enum<*>::name))
         add(MetadataDisplayField.METADATA_CONFIDENCE, MetadataConfidence.entries.map(Enum<*>::name))

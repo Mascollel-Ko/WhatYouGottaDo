@@ -1353,7 +1353,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "프로그램 slot과 role 모델",
       "titleEn": "Program Slot and Role Model",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1361,24 +1361,31 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/SLOT_AND_ROLE_MODEL.md",
-      "implementedFromAppVersion": "v0.4.2.0",
+      "implementedFromAppVersion": "v0.4.2.0; typed role split from v0.5.0.21",
       "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt"
+        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/ExerciseRoleRelations.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/TrainingRoleSplitMigration.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseRoleRelationsTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/training_settings_seed.csv"
+        "app/src/main/assets/training_settings_seed.csv",
+        "app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv",
+        "app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv"
       ],
       "supportingDocuments": [
-        "docs/v0.4.2.0_release_notes.md"
+        "docs/v0.4.2.0_release_notes.md",
+        "docs/v0.5.0.21_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다."
@@ -1509,7 +1516,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1517,7 +1524,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21",
       "lastAuditedCommit": "40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
@@ -1537,7 +1544,9 @@
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
-        "app/src/test/resources/analysis-contract/analysis_contract_program_golden_v1.csv"
+        "app/src/test/resources/analysis-contract/analysis_contract_program_golden_v1.csv",
+        "app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv",
+        "app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv"
       ],
       "supportingDocuments": [
         "docs/metadata_analysis_contract_and_migration_plan_ko.md",
@@ -1557,7 +1566,8 @@
         "docs/audits/metadata_taxonomy_decision_matrix.md",
         "docs/audits/metadata_level1_korean_reference_registry_draft.md",
         "docs/audits/strength_proxy_prior_seed_report.md",
-        "docs/v0.5.0.19_release_notes.md"
+        "docs/v0.5.0.19_release_notes.md",
+        "docs/v0.5.0.21_release_notes.md"
       ],
       "knownGaps": [
         "기존 production calculators와 ProgramAutoBuilder가 계속 권위 경로이며 typed contract는 shadow-only입니다.",
@@ -1626,7 +1636,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.2.0",
+      "currentVersion": "1.3.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1634,7 +1644,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
-      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12",
+      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21",
       "lastAuditedCommit": "e7d9317cf2ba618b8fadfcdcb772763a32618c09",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
@@ -1647,7 +1657,8 @@
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt"
+        "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt",
+        "app/src/main/java/com/training/trackplanner/data/TrainingRoleSplitMigration.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
@@ -1656,19 +1667,24 @@
         "app/src/test/java/com/training/trackplanner/data/DataTransferReportStoreTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
         "app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt",
-        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
+        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ExerciseRoleBackupTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
         "app/src/main/assets/exercise_legacy_import_map.csv",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json",
-        "app/schemas/com.training.trackplanner.data.TrainingDatabase/26.json"
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/26.json",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/27.json",
+        "app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv",
+        "app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv"
       ],
       "supportingDocuments": [
         "docs/v0.5.0.5_release_notes.md",
         "docs/v0.5.0.6_release_notes.md",
         "docs/v0.5.0.11_release_notes.md",
-        "docs/v0.5.0.12_release_notes.md"
+        "docs/v0.5.0.12_release_notes.md",
+        "docs/v0.5.0.21_release_notes.md"
       ],
       "knownGaps": [
         "새 program snapshot은 partial merge가 아니라 authoritative replacement입니다.",

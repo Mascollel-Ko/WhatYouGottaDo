@@ -1091,19 +1091,24 @@
         <item>TENDON_STRESS|SHOULDER_TENDON_STRESS|어깨 건 스트레스</item>
         <item>TENDON_STRESS|TRICEPS_TENDON_STRESS|삼두근 건 스트레스</item>
         <item>TENDON_STRESS|WRIST|손목</item>
-        <item>TRAINING_ROLE|ACCESSORY|보조</item>
-        <item>TRAINING_ROLE|CONDITIONING|컨디셔닝</item>
-        <item>TRAINING_ROLE|MAIN_STRENGTH|메인 근력</item>
-        <item>TRAINING_ROLE|MOBILITY|가동성</item>
-        <item>TRAINING_ROLE|PLYOMETRIC|플라이오메트릭</item>
-        <item>TRAINING_ROLE|POWER|파워</item>
-        <item>TRAINING_ROLE|PREHAB|프리햅</item>
-        <item>TRAINING_ROLE|RECOVERY|회복</item>
-        <item>TRAINING_ROLE|SECONDARY_STRENGTH|Secondary 근력</item>
-        <item>TRAINING_ROLE|SKILL|기술</item>
-        <item>TRAINING_ROLE|SPEED_REACTIVE|속도 반응성</item>
-        <item>TRAINING_ROLE|STABILITY|안정성</item>
-        <item>TRAINING_ROLE|TEST|테스트</item>
+        <item>TRAINING_ROLE_RELATION|STRENGTH|근력</item>
+        <item>TRAINING_ROLE_RELATION|HYPERTROPHY|근비대</item>
+        <item>TRAINING_ROLE_RELATION|POWER|파워</item>
+        <item>TRAINING_ROLE_RELATION|PLYOMETRIC|플라이오메트릭</item>
+        <item>TRAINING_ROLE_RELATION|STABILITY|안정성</item>
+        <item>TRAINING_ROLE_RELATION|MOBILITY|가동성</item>
+        <item>TRAINING_ROLE_RELATION|PREHAB|프리햅</item>
+        <item>TRAINING_ROLE_RELATION|SKILL_DRILL|기술 훈련</item>
+        <item>TRAINING_ROLE_RELATION|CONDITIONING|컨디셔닝</item>
+        <item>TRAINING_ROLE_RELATION|TEST|테스트</item>
+        <item>TRAINING_ROLE_RELATION|RECOVERY|회복</item>
+        <item>PROGRAM_SLOT_CAPABILITY|MAIN_STRENGTH_SLOT|메인 근력 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|SECONDARY_STRENGTH_SLOT|보조 근력 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|ACCESSORY_SLOT|액세서리 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|POWER_SLOT|파워 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|PLYOMETRIC_SLOT|플라이오메트릭 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|SPEED_REACTIVE_SLOT|속도·반응 슬롯</item>
+        <item>PROGRAM_SLOT_CAPABILITY|STABILITY_SLOT|안정성 슬롯</item>
         <item>TRANSFER_CONFIDENCE|HIGH|높음</item>
         <item>TRANSFER_CONFIDENCE|LOW|낮음</item>
         <item>TRANSFER_CONFIDENCE|MEDIUM|보통</item>

@@ -485,10 +485,6 @@ private fun Exercise.infoSections(
                     catalogue.label(MetadataDisplayField.MOVEMENT_CATEGORY, movementCategory)
                 ),
                 ExerciseInfoField(
-                    "훈련 역할",
-                    catalogue.label(MetadataDisplayField.TRAINING_ROLE, trainingRole)
-                ),
-                ExerciseInfoField(
                     "축성 부하",
                     catalogue.label(MetadataDisplayField.AXIAL_LOAD, axialLoadLevel)
                 ),

@@ -117,8 +117,7 @@ class RuntimeExerciseMetadataResolverTest {
             volumeLoadEligible = true,
             analysisEligibility = "",
             movementPattern = "SQUAT",
-            movementCategory = "STRENGTH",
-            trainingRole = "MAIN_STRENGTH"
+            movementCategory = "STRENGTH"
         )
         val stalePersisted = RuntimeExerciseMetadataDefaults.forIdentity(dbExercise.stableKey, dbExercise.name)
         val resolver = RuntimeExerciseMetadataResolver(

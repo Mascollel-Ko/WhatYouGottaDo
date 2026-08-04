@@ -7,7 +7,9 @@ internal data class ProgramCandidate(
     val exercise: Exercise,
     val metadata: RuntimeExerciseMetadata?,
     val canonical: Boolean,
-    val slotCapabilities: SlotCapabilityProfile = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
+    val slotCapabilities: SlotCapabilityProfile = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata),
+    val trainingRoles: Set<TrainingRole> = emptySet(),
+    val programSlotCapabilities: Set<ProgramSlotCapability> = emptySet()
 ) {
     private val identityTokens: Set<String> = buildSet {
         metadata?.let { value ->
@@ -20,9 +22,9 @@ internal data class ProgramCandidate(
         if (!canonical) {
             add(exercise.movementPattern)
             add(exercise.movementCategory)
-            add(exercise.trainingRole)
             add(exercise.strengthProgressionGroup)
         }
+        programSlotCapabilities.mapTo(this, ProgramSlotCapability::legacyCompatibilityToken)
     }.flatMap(::splitTokens).toSet()
 
     private val structuredTokens: Set<String> = buildSet {
@@ -51,12 +53,12 @@ internal data class ProgramCandidate(
             add(exercise.planningEligibility)
             add(exercise.movementPattern)
             add(exercise.movementCategory)
-            add(exercise.trainingRole)
             add(exercise.badmintonTransferStrength)
             add(exercise.badmintonTransferRoles)
             add(exercise.progressMetricType)
             add(exercise.fatigueCategories)
         }
+        programSlotCapabilities.mapTo(this, ProgramSlotCapability::legacyCompatibilityToken)
     }.flatMap(::splitTokens).toSet()
 
     val isRecovery: Boolean = identityHas("RECOVERY", "PREHAB", "MOBILITY", "CONTROL")
@@ -84,7 +86,8 @@ internal data class ProgramCandidate(
             "ELASTIC_SSC", "REACTIVE_POWER", "EXPLOSIVE_POWER", "NEURAL_SPEED", "FIRST_STEP",
             "BALLISTIC", "SLAM", "THROW", "TOSS", "PUSH_PRESS"
         )
-    val isAnchor: Boolean = identityHas("COMPOUND", "HEAVY_HINGE", "SQUAT_HEAVY", "VERTICAL_PULL", "HORIZONTAL_PULL")
+    val isAnchor: Boolean = ProgramSlotCapability.MAIN_STRENGTH_SLOT in programSlotCapabilities ||
+        identityHas("COMPOUND", "HEAVY_HINGE", "SQUAT_HEAVY", "VERTICAL_PULL", "HORIZONTAL_PULL")
     val isDirectSportSession: Boolean = metadata?.activityKind == "SPORT_SESSION" ||
         exercise.activityKind == "SPORT_SESSION" ||
         exercise.resolvedActivityKind() == ActivityKind.SPORT_SESSION ||
@@ -163,7 +166,8 @@ internal data class ProgramCandidate(
     fun allowedForRole(slot: ProgramTrainingSlot, role: ProgramExerciseRole): Boolean {
         if (role == ProgramExerciseRole.ANCHOR && isRehabLikeActivation) return false
         return when (role) {
-            ProgramExerciseRole.ANCHOR -> slotCapabilities.primary.any(ANCHOR_CAPABILITY_SLOTS::contains)
+            ProgramExerciseRole.ANCHOR -> ProgramSlotCapability.MAIN_STRENGTH_SLOT in programSlotCapabilities ||
+                slotCapabilities.primary.any(ANCHOR_CAPABILITY_SLOTS::contains)
             ProgramExerciseRole.CORE -> hasStrongCapability(CORE_CAPABILITY_SLOTS) &&
                 !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
             ProgramExerciseRole.PREHAB -> isRecovery && hasStrongCapability(PREHAB_CAPABILITY_SLOTS) &&
@@ -179,9 +183,13 @@ internal data class ProgramCandidate(
                     hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
                 else -> hasStrongCapability(TRANSFER_CAPABILITY_SLOTS)
             }
-            ProgramExerciseRole.SUPPORT -> hasStrongCapability(SUPPORT_CAPABILITY_SLOTS) &&
+            ProgramExerciseRole.SUPPORT -> (
+                ProgramSlotCapability.SECONDARY_STRENGTH_SLOT in programSlotCapabilities ||
+                    hasStrongCapability(SUPPORT_CAPABILITY_SLOTS)
+                ) &&
                 !isHighImpact && !isHighIntensityCod && !isReactivePowerSpecific
-            ProgramExerciseRole.ACCESSORY -> hasResolvableCapability(ACCESSORY_CAPABILITY_SLOTS)
+            ProgramExerciseRole.ACCESSORY -> ProgramSlotCapability.ACCESSORY_SLOT in programSlotCapabilities ||
+                hasResolvableCapability(ACCESSORY_CAPABILITY_SLOTS)
         }
     }
 
@@ -228,7 +236,10 @@ internal data class ProgramCandidate(
         }
         ProgramExerciseRole.CORE -> if (isCore) 1.0 else 0.0
         ProgramExerciseRole.PREHAB -> if (isRecovery) 1.0 else 0.1
-        ProgramExerciseRole.ACCESSORY -> if (isIsolation || (!isAnchor && !isSportLike)) 0.9 else 0.2
+        ProgramExerciseRole.ACCESSORY -> if (
+            ProgramSlotCapability.ACCESSORY_SLOT in programSlotCapabilities ||
+            isIsolation || (!isAnchor && !isSportLike)
+        ) 0.9 else 0.2
     }
 
     fun slotFit(slot: ProgramTrainingSlot): Double = when (slot) {

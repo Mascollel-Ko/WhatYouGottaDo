@@ -40,26 +40,43 @@ internal object PerformanceTrendConstants {
     const val FATIGUE_MAX_WEIGHT = 0.25
     const val FATIGUE_RECOVERY_WEIGHT = 0.15
 
-    fun exerciseStrengthWeight(trainingRole: String, movementCategory: String): Double =
-        when (trainingRole) {
-            "MAIN_STRENGTH" -> 1.00
-            "SECONDARY_STRENGTH" -> 0.70
-            "ACCESSORY" -> 0.35
-            "POWER" -> 0.40
-            "PREHAB", "MOBILITY", "RECOVERY" -> 0.0
-            else -> if (movementCategory == "HYPERTROPHY") 0.45 else 0.25
+    fun exerciseStrengthWeight(
+        movementPattern: String,
+        movementCategory: String,
+        compoundType: String
+    ): Double =
+        when {
+            isLowProgressPurpose(movementPattern, movementCategory) -> 0.0
+            movementCategory == "POWER" -> 0.40
+            isNonStrengthPurpose(movementPattern, movementCategory) -> 0.25
+            compoundType == "ISOLATION" -> 0.35
+            movementCategory == "HYPERTROPHY" -> 0.35
+            movementPattern in MAIN_STRENGTH_PATTERNS -> 1.00
+            else -> 0.70
         }
 
-    fun volumeEligibilityWeight(trainingRole: String, movementCategory: String): Double =
-        when {
-            trainingRole == "MAIN_STRENGTH" -> 1.00
-            trainingRole == "SECONDARY_STRENGTH" -> 0.85
-            movementCategory == "HYPERTROPHY" -> 0.85
-            trainingRole == "ACCESSORY" -> 0.60
-            trainingRole == "POWER" -> 0.40
-            trainingRole in setOf("PREHAB", "MOBILITY", "RECOVERY") -> 0.0
-            else -> 0.20
-        }
+    fun volumeEligibilityWeight(
+        movementPattern: String,
+        movementCategory: String,
+        compoundType: String
+    ): Double = when {
+        isLowProgressPurpose(movementPattern, movementCategory) -> 0.0
+        movementCategory == "POWER" -> 0.40
+        isNonStrengthPurpose(movementPattern, movementCategory) -> 0.20
+        compoundType == "ISOLATION" -> 0.60
+        movementCategory == "HYPERTROPHY" -> 0.85
+        movementPattern in MAIN_STRENGTH_PATTERNS -> 1.00
+        else -> 0.85
+    }
+
+    fun isLowProgressPurpose(movementPattern: String, movementCategory: String): Boolean =
+        movementCategory in setOf("PREHAB", "MOBILITY", "RECOVERY") ||
+            movementPattern in setOf("PREHAB", "MOBILITY")
+
+    private fun isNonStrengthPurpose(movementPattern: String, movementCategory: String): Boolean =
+        movementCategory in setOf(
+            "PLYOMETRIC", "REACTIVE", "SPEED", "STABILITY", "CONDITIONING", "SKILL_DRILL", "TEST"
+        ) || movementPattern in setOf("FOOTWORK", "LOCOMOTION", "ANTI_ROTATION")
 
     fun badmintonSupportWeight(transferStrength: String): Double =
         when (transferStrength) {
@@ -78,4 +95,6 @@ internal object PerformanceTrendConstants {
             rpe < 10.0 -> 1.10
             else -> 1.15
         }
+
+    private val MAIN_STRENGTH_PATTERNS = setOf("SQUAT", "HINGE", "PUSH_HORIZONTAL", "PULL_VERTICAL")
 }

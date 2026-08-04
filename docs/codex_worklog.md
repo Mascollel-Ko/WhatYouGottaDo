@@ -4507,3 +4507,66 @@ Verification
 - Production code and both frozen strength assets remain unchanged. `StrengthProxyPriorRegistryTest` now hashes canonical LF text so the same semantic asset content is guarded on both platforms.
 - The focused `StrengthProxyPriorRegistryTest` passed locally after the correction.
 - The already-pushed `v0.5.0.19` tag was not moved or rewritten. This follow-up uses `0.5.0.20 / 500020` and is tagged only after the corrected main HEAD passes GitHub Actions.
+
+## v0.5.0.21 TrainingRole / ProgramSlotCapability split
+
+### Baseline and protected files
+
+- Started from `origin/main` `cc0f156451b35c26a68edffb8b4c2df8e4421e58` in an isolated worktree.
+- The original workspace's six pre-existing modified `outputs/*` files were not
+  reset, overwritten, staged, or committed.
+
+### Semantic split
+
+- Reused `docs/audits/training_role_whitelist_reconstruction.csv` as the exact
+  26-row authority.
+- Added independent typed `TrainingRole` and `ProgramSlotCapability` relation
+  systems and exact stableKey loaders.
+- Migrated all 26 placement rows mechanically. TrainingRole has 19
+  evidence-supported rows; ACCESSORY 5 and SPEED_REACTIVE 2 remain absent and
+  `REVIEW_REQUIRED` rather than inferred.
+- Removed the mixed production Exercise/seed/editor/analysis field and
+  `FatigueTrainingRole`.
+
+### Runtime, Room, and backup
+
+- Advanced ProgramBuilder candidate assembly and role checks consume
+  ProgramSlotCapability; TrainingRole does not grant placement.
+- Non-program consumers use existing movement category, movement pattern,
+  compound type, and dedicated analysis metadata.
+- Room 26 -> 27 adds normalized relation tables and preserves workout/program
+  graph IDs and rows without destructive migration.
+- Backup format 10 / restore schema 9 export normalized relation codes. Old
+  `training_role` remains import-only and is decomposed before persistence.
+
+### Artifacts and documentation
+
+- Added the two canonical relation CSVs and the complete closeout package under
+  `outputs/training_program_role_split_closeout/`, including the 10-sheet human
+  review workbook.
+- Updated the program slot, metadata contract, backup protocol, registry,
+  protocol index, release notes, and translation-readiness registry.
+
+### Verification
+
+- Focused relation/backup tests: passed.
+- Focused ProgramBuilder and directly affected analysis tests: passed.
+- Frozen analysis contract baseline parity: passed without changing the frozen
+  production contract or baseline asset.
+- Full unit tests: 1,136 passed, 0 failed.
+- `compileDebugKotlin`: passed.
+- `compileDebugAndroidTestKotlin`: passed.
+- Workbook reopen, required-sheet, formula-error, and visual render checks:
+  passed.
+- Deterministic closeout validation: PASS 50, REVIEW_REQUIRED 1, FAIL 0.
+- Protocol validator: passed for 8 families and 33 protocols.
+- Push, CI, and tag are recorded in the final task report after publication.
+
+### Deferred sequence
+
+1. Muscle consistency.
+2. Joint/tendon/ligament consistency.
+3. OFI/fatigue/recovery consistency.
+4. Full Korean metadata registry.
+5. Remaining badminton legacy dependency replacement.
+6. Full ProgramBuilder metadata and policy review.

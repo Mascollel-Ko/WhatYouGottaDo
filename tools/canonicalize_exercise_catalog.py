@@ -30,7 +30,6 @@ EQUIPMENT = {
 }
 
 EXTRA_COLUMNS = [
-    "training_role",
     "sport_transfer_direct",
     "sport_transfer_supportive",
     "load_profile",
@@ -154,7 +153,6 @@ def canonical_exercise(
             "laterality": metadata["laterality"],
             "plane": metadata["plane"],
             "is_unilateral": "1" if metadata["laterality"].startswith("UNILATERAL") else "0",
-            "training_role": metadata["trainingRole"],
             "sport_transfer_direct": metadata["sportTransferDirect"],
             "sport_transfer_supportive": metadata["sportTransferSupportive"],
             "load_profile": metadata["loadProfile"],

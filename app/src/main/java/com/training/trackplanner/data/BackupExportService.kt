@@ -10,6 +10,7 @@ internal class BackupExportService(
     private val dailyCheckInDao: DailyCheckInDao,
     private val smashSpeedDao: SmashSpeedDao,
     private val exerciseDao: ExerciseDao,
+    private val exerciseRoleRelationDao: ExerciseRoleRelationDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val appMetaDao: AppMetaDao,
@@ -39,6 +40,8 @@ internal class BackupExportService(
             val checkIns = dailyCheckInDao.all()
             val smashSpeeds = smashSpeedDao.all()
             val exercises = exerciseDao.allExercises()
+            val trainingRoleRelations = exerciseRoleRelationDao.allTrainingRoles()
+            val programSlotCapabilityRelations = exerciseRoleRelationDao.allProgramSlotCapabilities()
             val runtimeMetadata = runtimeExerciseMetadataDao.all()
                 .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
             val profile = initialUserProfileDao.profile()
@@ -156,6 +159,8 @@ internal class BackupExportService(
                 programItems = backupProgramItems,
                 programItemSets = backupProgramItemSets,
                 programTombstones = programTombstones,
+                trainingRoleRelations = trainingRoleRelations,
+                programSlotCapabilityRelations = programSlotCapabilityRelations,
                 includeProgramSnapshot = true
             )
             val dailyBackupCount = (

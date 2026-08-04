@@ -3,10 +3,10 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21 |
 | Last audited commit | e7d9317cf2ba618b8fadfcdcb772763a32618c09 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
@@ -191,7 +191,7 @@ stable key만 사용합니다.
 
 ## 15. 현재 구현 상태
 
-App `v0.5.0.12`, restore CSV schema `8`, backup format `9`, program backup
+App `v0.5.0.21`, restore CSV schema `9`, backup format `10`, program backup
 schema `2`에서
 구현됩니다.
 
@@ -212,6 +212,19 @@ program/item row를 보존하고 임시 persistent legacy key를 backfill합니�
 Initialization repair는 exact seed graph가 유일하게 일치할 때만 built-in
 key로 승격하며 marker를 기록해 다시 실행하지 않습니다. Destructive
 migration은 사용하지 않습니다.
+
+### Training and program role relations
+
+Room schema 27 stores `TrainingRole` and `ProgramSlotCapability` in separate
+normalized relation tables. Migration `26 -> 27` preserves exercise, workout,
+set, program, program-item, and item-set identities while rebuilding the
+foreign-key graph without destructive migration. The old mixed
+`Exercise.trainingRole` column is removed.
+
+New backup format 10 exports `training_role_codes` and
+`program_slot_capability_codes`; it does not export `training_role`. Old backup
+rows containing `training_role` are accepted only by the import compatibility
+mapper and are persisted solely as normalized relation rows.
 
 ## 16. 구현 위치
 
@@ -240,14 +253,14 @@ migration은 사용하지 않습니다.
 - `DataTransferReportStoreTest`: 성공/실패 report persistence와 최근 20개 retention
 - `LegacyExerciseImportMapperTest`: exact import-only mapping과 ambiguous rejection
 - `BackupRestoreImportBehaviorTest`: 기존 import transaction behavior
-- `TrainingDatabaseMigrationTest`: Room `23 -> 24`, `24 -> 25`, `25 -> 26`
+- `TrainingDatabaseMigrationTest`: Room `23 -> 24`, `24 -> 25`, `25 -> 26`, `26 -> 27`
   row/reference 보존
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/training_settings_seed.csv`: built-in program
   `program_key`와 seed graph
-- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`: migration boundary
+- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`: migration boundary
 - `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
 
 ## 19. 관련 문서
@@ -263,6 +276,9 @@ migration은 사용하지 않습니다.
 
 ## 20. 변경 이력
 
+- `1.3.0`: backup format 10 and restore schema 9 replace the mixed role column
+  with normalized TrainingRole and ProgramSlotCapability codes. Legacy
+  `training_role` remains import-only; Room migration 26 -> 27 is non-destructive.
 - `1.0.0`: authoritative program snapshot, stable identity, tombstone와
   legacy compatibility 계약 추가.
 - `1.1.0`: backup format 8 manifest/hash/count 검증, all-error preflight,

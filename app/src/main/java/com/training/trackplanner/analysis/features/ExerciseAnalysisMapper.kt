@@ -4,7 +4,6 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutSet
-import com.training.trackplanner.data.derivedAnalysisTrainingRole
 
 data class AnalysisExerciseFeatures(
     val exerciseStableKey: String,
@@ -23,7 +22,8 @@ data class AnalysisExerciseFeatures(
     val plane: String,
     val laterality: String,
     val axialLoadLevel: String,
-    val trainingRole: String,
+    val supportsConditioningOrSkillAnalysis: Boolean,
+    val supportsLowFatigueControlAnalysis: Boolean,
     val systemicLoadWeight: Double,
     val neuralHeavyWeight: Double,
     val neuralSpeedWeight: Double,
@@ -187,7 +187,8 @@ object ExerciseAnalysisMapper {
             plane = exercise.plane,
             laterality = exercise.laterality,
             axialLoadLevel = exercise.axialLoadLevel,
-            trainingRole = exercise.derivedAnalysisTrainingRole(),
+            supportsConditioningOrSkillAnalysis = exercise.supportsConditioningOrSkillAnalysis(),
+            supportsLowFatigueControlAnalysis = exercise.supportsLowFatigueControlAnalysis(),
             systemicLoadWeight = exercise.systemicLoadWeight,
             neuralHeavyWeight = exercise.neuralHeavyWeight,
             neuralSpeedWeight = exercise.neuralSpeedWeight,
@@ -288,4 +289,22 @@ object ExerciseAnalysisMapper {
                 "STRENGTH_PROGRESS".takeIf { estimated1RmEligible },
                 "HYPERTROPHY_VOLUME".takeIf { volumeLoadEligible }
             )
+
+    private fun Exercise.supportsConditioningOrSkillAnalysis(): Boolean = when {
+        movementCategory in setOf("PLYOMETRIC", "REACTIVE", "SPEED", "POWER", "PREHAB", "MOBILITY") ||
+            movementPattern in setOf("PREHAB", "MOBILITY") -> false
+        movementCategory == "CONDITIONING" || movementPattern == "LOCOMOTION" -> true
+        movementCategory == "SKILL_DRILL" || movementPattern == "FOOTWORK" -> true
+        else -> false
+    }
+
+    private fun Exercise.supportsLowFatigueControlAnalysis(): Boolean = when {
+        movementCategory in setOf("PLYOMETRIC", "REACTIVE", "SPEED", "POWER") -> false
+        movementCategory in setOf("PREHAB", "MOBILITY") || movementPattern in setOf("PREHAB", "MOBILITY") -> true
+        movementCategory == "CONDITIONING" || movementPattern == "LOCOMOTION" -> false
+        movementCategory == "SKILL_DRILL" || movementPattern == "FOOTWORK" -> false
+        movementCategory == "TEST" -> false
+        movementCategory in setOf("RECOVERY", "STABILITY") || movementPattern == "ANTI_ROTATION" -> true
+        else -> false
+    }
 }

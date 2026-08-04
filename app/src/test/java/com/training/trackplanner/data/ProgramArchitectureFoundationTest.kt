@@ -71,7 +71,6 @@ class ProgramArchitectureFoundationTest {
             stableKey = "test_split_squat",
             movementPattern = "LUNGE_SPLIT_SQUAT",
             movementCategory = "UNILATERAL_LOWER_ACCESSORY",
-            trainingRole = "MAIN_STRENGTH"
         )
         val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
             movementFamily = "UNCLASSIFIED",

@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
 TAXONOMY_PATH = ROOT / "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataTaxonomy.kt"
 SLOT_PATH = ROOT / "app/src/main/java/com/training/trackplanner/data/ProgramSlotDefinition.kt"
+ROLE_PATH = ROOT / "app/src/main/java/com/training/trackplanner/data/ExerciseRoleRelations.kt"
 KO_OUTPUT = ROOT / "app/src/main/res/values/metadata_display_catalog.xml"
 EN_OUTPUT = ROOT / "app/src/main/res/values-en/metadata_display_catalog.xml"
 
@@ -55,7 +56,8 @@ ENUM_FIELDS = {
     "MovementPattern": "MOVEMENT_PATTERN",
     "MovementCategory": "MOVEMENT_CATEGORY",
     "FatigueForceType": "FORCE_TYPE",
-    "FatigueTrainingRole": "TRAINING_ROLE",
+    "TrainingRole": "TRAINING_ROLE_RELATION",
+    "ProgramSlotCapability": "PROGRAM_SLOT_CAPABILITY",
     "AxialLoadLevel": "AXIAL_LOAD",
     "FatigueLaterality": "LATERALITY",
     "MetadataConfidence": "METADATA_CONFIDENCE",
@@ -339,7 +341,7 @@ def build_entries() -> tuple[dict[str, set[str]], dict[str, str]]:
                 if current is None or len(name) < len(current):
                     subtype_names[subtype] = name
 
-    taxonomy = TAXONOMY_PATH.read_text(encoding="utf-8")
+    taxonomy = TAXONOMY_PATH.read_text(encoding="utf-8") + ROLE_PATH.read_text(encoding="utf-8")
     for enum_name, field in ENUM_FIELDS.items():
         values[field].update(enum_values(taxonomy, enum_name))
     movement_patterns = enum_values(taxonomy, "MovementPattern")

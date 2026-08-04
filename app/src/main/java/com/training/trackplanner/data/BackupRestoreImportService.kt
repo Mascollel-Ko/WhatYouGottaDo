@@ -9,6 +9,7 @@ internal class BackupRestoreImportService(
     private val db: TrainingDatabase,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val exerciseDao: ExerciseDao,
+    private val exerciseRoleRelationDao: ExerciseRoleRelationDao,
     private val workoutDao: WorkoutDao,
     private val programDao: ProgramDao,
     private val dailyMetricDao: DailyMetricDao,
@@ -51,6 +52,27 @@ internal class BackupRestoreImportService(
                 if (upsertRestoredExercise(row, seedByStableKey, restoredRuntimeOverrideKeys)) {
                     exerciseCount += 1
                 }
+                val legacy = LegacyTrainingRoleImportMapper.resolve(row.legacyTrainingRole)
+                val trainingRoles = row.trainingRoleCodes + legacy.trainingRoles
+                val capabilities = row.programSlotCapabilityCodes + legacy.programSlotCapabilities
+                exerciseRoleRelationDao.upsertTrainingRoles(trainingRoles.map { role ->
+                    ExerciseTrainingRoleRelation(
+                        exerciseStableKey = row.stableKey,
+                        trainingRoleCode = role.name,
+                        provenance = "BACKUP_RESTORE",
+                        reviewStatus = "APPROVED",
+                        notes = "Imported normalized relation"
+                    )
+                })
+                exerciseRoleRelationDao.upsertProgramSlotCapabilities(capabilities.map { capability ->
+                    ExerciseProgramSlotCapabilityRelation(
+                        exerciseStableKey = row.stableKey,
+                        capabilityCode = capability.name,
+                        provenance = "BACKUP_RESTORE",
+                        reviewStatus = "APPROVED",
+                        notes = "Imported normalized relation"
+                    )
+                })
             }
             runtimeMetadataRows.forEach { metadata ->
                 runtimeExerciseMetadataDao.upsert(

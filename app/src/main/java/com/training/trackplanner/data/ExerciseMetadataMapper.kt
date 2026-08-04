@@ -3,6 +3,7 @@ package com.training.trackplanner.data
 data class SeedMetadataSource(
     val movementPatternTokens: Set<String> = emptySet(),
     val movementCategoryToken: String = "",
+    val analysisPurposeCategory: MovementCategory? = null,
     val forceTypeToken: String = "",
     val planeToken: String = "",
     val isUnilateral: Boolean? = null
@@ -39,17 +40,15 @@ object ExerciseMetadataMapper {
         val plane = source.toPlane(movementPattern)
         val laterality = source.toLaterality()
         val axialLoadLevel = source.toAxialLoadLevel(movementPattern)
-        val trainingRole = source.toTrainingRole(movementPattern, movementCategory, compoundType)
         val badmintonRoles = source.toBadmintonTransferRoles(movementPattern)
         val weights = source.toWeights(
             movementPattern = movementPattern,
             movementCategory = movementCategory,
             compoundType = compoundType,
             axialLoadLevel = axialLoadLevel,
-            trainingRole = trainingRole,
             badmintonRoles = badmintonRoles
         )
-        val fatigueCategories = source.toFatigueCategories(weights, trainingRole)
+        val fatigueCategories = source.toFatigueCategories(weights, movementPattern, movementCategory)
         val baselineGroups = source.toBaselineGroups(
             movementPattern = movementPattern,
             forceType = forceType,
@@ -57,12 +56,11 @@ object ExerciseMetadataMapper {
             badmintonRoles = badmintonRoles,
             fatigueCategories = fatigueCategories
         )
-        val recoveryDecayProfile = weights.toRecoveryDecayProfile(trainingRole)
+        val recoveryDecayProfile = weights.toRecoveryDecayProfile(movementPattern, movementCategory)
         val progressMetricType = source.toProgressMetricType(
             movementPattern = movementPattern,
             movementCategory = movementCategory,
-            compoundType = compoundType,
-            trainingRole = trainingRole
+            compoundType = compoundType
         )
         val estimated1RmEligible = progressMetricType == ProgressMetricType.ESTIMATED_1RM
         val volumeLoadEligible = progressMetricType in setOf(
@@ -75,7 +73,7 @@ object ExerciseMetadataMapper {
         val mainLiftGroup = source.toMainLiftGroup(movementPattern)
         val accessoryContributionGroup = source.toAccessoryContributionGroup(
             movementPattern = movementPattern,
-            trainingRole = trainingRole,
+            movementCategory = movementCategory,
             badmintonRoles = badmintonRoles
         )
         val badmintonTransferStrength = source.toBadmintonTransferStrength(badmintonRoles)
@@ -99,7 +97,8 @@ object ExerciseMetadataMapper {
             laterality = laterality
         )
         val analysisEligibility = source.toAnalysisEligibility(
-            trainingRole = trainingRole,
+            movementPattern = movementPattern,
+            movementCategory = movementCategory,
             progressMetricType = progressMetricType,
             badmintonTransferStrength = badmintonTransferStrength,
             balanceContributionTags = balanceContributionTags
@@ -115,7 +114,6 @@ object ExerciseMetadataMapper {
             plane = plane.name,
             laterality = laterality.name,
             axialLoadLevel = axialLoadLevel.name,
-            trainingRole = trainingRole.name,
             badmintonTransferRoles = badmintonRoles.toTokenString(),
             fatigueCategories = fatigueCategories.toTokenString(),
             adaptiveBaselineGroups = baselineGroups.toTokenString(),
@@ -158,24 +156,24 @@ object ExerciseMetadataMapper {
     private data class MetadataSource(
         val tokens: Set<String>,
         val categoryToken: String,
+        val analysisPurposeCategory: MovementCategory?,
         val forceToken: String,
         val planeToken: String,
         val lateralityToken: String,
         val loadProfileTokens: Set<String>,
-        val trainingRoleToken: String,
         val sportTransferTokens: Set<String>,
         val primaryMuscleTokens: Set<String>,
         val secondaryMuscleTokens: Set<String>
     ) {
         fun hasAny(vararg candidates: String): Boolean =
             candidates.any { candidate ->
-                candidate in tokens ||
+                    candidate in tokens ||
                     candidate == categoryToken ||
+                    candidate == analysisPurposeCategory?.name ||
                     candidate == forceToken ||
                     candidate == planeToken ||
                     candidate == lateralityToken ||
                     candidate in loadProfileTokens ||
-                    candidate == trainingRoleToken ||
                     candidate in sportTransferTokens ||
                     candidate in primaryMuscleTokens ||
                     candidate in secondaryMuscleTokens
@@ -196,11 +194,11 @@ object ExerciseMetadataMapper {
                 return MetadataSource(
                     tokens = sourceTokens + exercise.stabilityRoles.splitTokens() + exercise.accessoryRoles.splitTokens(),
                     categoryToken = seed.movementCategoryToken.ifBlank { exercise.movementCategory },
+                    analysisPurposeCategory = seed.analysisPurposeCategory,
                     forceToken = seed.forceTypeToken.ifBlank { exercise.forceType },
                     planeToken = seed.planeToken.ifBlank { exercise.plane },
                     lateralityToken = laterality,
                     loadProfileTokens = exercise.loadProfile.splitTokens(),
-                    trainingRoleToken = exercise.trainingRole,
                     sportTransferTokens = exercise.sportTransferDirect.splitTokens() + exercise.sportTransferSupportive.splitTokens(),
                     primaryMuscleTokens = exercise.primaryMuscles.splitTokens(),
                     secondaryMuscleTokens = exercise.secondaryMuscles.splitTokens()
@@ -262,11 +260,11 @@ object ExerciseMetadataMapper {
         categoryToken == "CARDIO" || categoryToken == "CONDITIONING" -> MovementCategory.CONDITIONING
         categoryToken == "SPORT" || pattern == MovementPattern.FOOTWORK -> MovementCategory.SKILL_DRILL
         categoryToken == "MOBILITY" || pattern == MovementPattern.MOBILITY -> MovementCategory.MOBILITY
-        trainingRoleToken == "PREHAB" -> MovementCategory.PREHAB
-        trainingRoleToken == "RECOVERY" -> MovementCategory.RECOVERY
-        trainingRoleToken == "TEST" -> MovementCategory.TEST
-        trainingRoleToken == "POWER" || categoryToken == "POWER" -> MovementCategory.POWER
-        trainingRoleToken == "HYPERTROPHY" -> MovementCategory.HYPERTROPHY
+        analysisPurposeCategory == MovementCategory.PREHAB -> MovementCategory.PREHAB
+        analysisPurposeCategory == MovementCategory.RECOVERY -> MovementCategory.RECOVERY
+        analysisPurposeCategory == MovementCategory.TEST -> MovementCategory.TEST
+        analysisPurposeCategory == MovementCategory.POWER || categoryToken == "POWER" -> MovementCategory.POWER
+        analysisPurposeCategory == MovementCategory.HYPERTROPHY -> MovementCategory.HYPERTROPHY
         else -> MovementCategory.STRENGTH
     }
 
@@ -329,26 +327,6 @@ object ExerciseMetadataMapper {
         else -> AxialLoadLevel.NONE
     }
 
-    private fun MetadataSource.toTrainingRole(
-        pattern: MovementPattern,
-        category: MovementCategory,
-        compoundType: CompoundType
-    ): FatigueTrainingRole = when {
-        category == MovementCategory.PLYOMETRIC -> FatigueTrainingRole.PLYOMETRIC
-        category == MovementCategory.REACTIVE || category == MovementCategory.SPEED -> FatigueTrainingRole.SPEED_REACTIVE
-        category == MovementCategory.POWER -> FatigueTrainingRole.POWER
-        category == MovementCategory.PREHAB || pattern == MovementPattern.PREHAB -> FatigueTrainingRole.PREHAB
-        category == MovementCategory.MOBILITY || pattern == MovementPattern.MOBILITY -> FatigueTrainingRole.MOBILITY
-        category == MovementCategory.CONDITIONING || pattern == MovementPattern.LOCOMOTION -> FatigueTrainingRole.CONDITIONING
-        category == MovementCategory.SKILL_DRILL || pattern == MovementPattern.FOOTWORK -> FatigueTrainingRole.SKILL
-        category == MovementCategory.TEST -> FatigueTrainingRole.TEST
-        category == MovementCategory.RECOVERY -> FatigueTrainingRole.RECOVERY
-        category == MovementCategory.STABILITY || pattern == MovementPattern.ANTI_ROTATION -> FatigueTrainingRole.STABILITY
-        compoundType == CompoundType.ISOLATION || category == MovementCategory.HYPERTROPHY -> FatigueTrainingRole.ACCESSORY
-        pattern in setOf(MovementPattern.SQUAT, MovementPattern.HINGE, MovementPattern.PUSH_HORIZONTAL, MovementPattern.PULL_VERTICAL) -> FatigueTrainingRole.MAIN_STRENGTH
-        else -> FatigueTrainingRole.SECONDARY_STRENGTH
-    }
-
     private fun MetadataSource.toBadmintonTransferRoles(
         pattern: MovementPattern
     ): Set<BadmintonTransferRole> {
@@ -389,7 +367,6 @@ object ExerciseMetadataMapper {
         movementCategory: MovementCategory,
         compoundType: CompoundType,
         axialLoadLevel: AxialLoadLevel,
-        trainingRole: FatigueTrainingRole,
         badmintonRoles: Set<BadmintonTransferRole>
     ): FatigueWeights {
         val isHeavyLower = movementPattern in setOf(MovementPattern.SQUAT, MovementPattern.HINGE, MovementPattern.LUNGE)
@@ -399,7 +376,7 @@ object ExerciseMetadataMapper {
             MovementPattern.PULL_HORIZONTAL,
             MovementPattern.PULL_VERTICAL
         ) && compoundType == CompoundType.COMPOUND
-        val isPrehab = trainingRole == FatigueTrainingRole.PREHAB || movementPattern == MovementPattern.PREHAB
+        val isPrehab = movementCategory == MovementCategory.PREHAB || movementPattern == MovementPattern.PREHAB
         val systemic = when {
             isPrehab -> 0.0
             isHeavyLower && axialLoadLevel in setOf(AxialLoadLevel.MODERATE, AxialLoadLevel.HIGH) -> 0.75
@@ -422,7 +399,7 @@ object ExerciseMetadataMapper {
             else -> 0.0
         }
         val local = when {
-            compoundType == CompoundType.ISOLATION || trainingRole == FatigueTrainingRole.ACCESSORY -> 0.75
+            compoundType == CompoundType.ISOLATION || movementCategory == MovementCategory.HYPERTROPHY -> 0.75
             isPrehab -> 0.25
             else -> 0.5
         }
@@ -466,7 +443,8 @@ object ExerciseMetadataMapper {
 
     private fun MetadataSource.toFatigueCategories(
         weights: FatigueWeights,
-        trainingRole: FatigueTrainingRole
+        movementPattern: MovementPattern,
+        movementCategory: MovementCategory
     ): Set<FatigueCategory> {
         val categories = linkedSetOf<FatigueCategory>()
         if (weights.systemicLoadWeight > 0.0) categories += FatigueCategory.SYSTEMIC
@@ -479,7 +457,9 @@ object ExerciseMetadataMapper {
         if (weights.antiRotationWeight > 0.0) categories += FatigueCategory.ANTI_ROTATION
         if (weights.overheadSwingWeight > 0.0) categories += FatigueCategory.OVERHEAD_REPETITION
         if (weights.gripLoadWeight > 0.0) categories += FatigueCategory.GRIP_FOREARM
-        if (trainingRole == FatigueTrainingRole.PREHAB) categories += FatigueCategory.LOW_FATIGUE_REHAB
+        if (movementCategory == MovementCategory.PREHAB || movementPattern == MovementPattern.PREHAB) {
+            categories += FatigueCategory.LOW_FATIGUE_REHAB
+        }
         return categories
     }
 
@@ -512,7 +492,7 @@ object ExerciseMetadataMapper {
         if (groups.isEmpty()) {
             when {
                 movementPattern in setOf(MovementPattern.MOBILITY, MovementPattern.PREHAB) ||
-                    trainingRoleToken in setOf("MOBILITY", "PREHAB", "RECOVERY") -> groups += AdaptiveBaselineGroup.RECOVERY_LOW_LOAD
+                    categoryToken in setOf("MOBILITY", "PREHAB", "RECOVERY") -> groups += AdaptiveBaselineGroup.RECOVERY_LOW_LOAD
                 primaryMuscleTokens.any { token -> token in setOf("HAMSTRING", "GLUTE", "GLUTE_MEDIUS", "ERECTOR_SPINAE") } -> groups += AdaptiveBaselineGroup.HINGE
                 primaryMuscleTokens.any { token -> token in setOf("QUADRICEPS", "RECTUS_FEMORIS", "CALF") } -> groups += AdaptiveBaselineGroup.SQUAT_PATTERN
                 primaryMuscleTokens.any { token -> token in setOf("CHEST", "UPPER_CHEST", "SHOULDER", "TRICEPS") } -> groups += AdaptiveBaselineGroup.UPPER_PUSH
@@ -524,9 +504,11 @@ object ExerciseMetadataMapper {
     }
 
     private fun FatigueWeights.toRecoveryDecayProfile(
-        trainingRole: FatigueTrainingRole
+        movementPattern: MovementPattern,
+        movementCategory: MovementCategory
     ): RecoveryDecayProfile = when {
-        trainingRole in setOf(FatigueTrainingRole.PREHAB, FatigueTrainingRole.MOBILITY, FatigueTrainingRole.RECOVERY) -> RecoveryDecayProfile.MINIMAL
+        movementCategory in setOf(MovementCategory.PREHAB, MovementCategory.MOBILITY, MovementCategory.RECOVERY) ||
+            movementPattern in setOf(MovementPattern.PREHAB, MovementPattern.MOBILITY) -> RecoveryDecayProfile.MINIMAL
         systemicLoadWeight >= 0.75 || neuralHeavyWeight >= 0.75 -> RecoveryDecayProfile.VERY_LONG
         decelerationWeight >= 0.75 || elasticSscWeight >= 0.75 -> RecoveryDecayProfile.LONG
         localLoadWeight >= 0.75 || neuralSpeedWeight >= 0.5 -> RecoveryDecayProfile.MEDIUM
@@ -542,23 +524,18 @@ object ExerciseMetadataMapper {
     private fun MetadataSource.toProgressMetricType(
         movementPattern: MovementPattern,
         movementCategory: MovementCategory,
-        compoundType: CompoundType,
-        trainingRole: FatigueTrainingRole
+        compoundType: CompoundType
     ): ProgressMetricType = when {
-        trainingRole == FatigueTrainingRole.TEST -> ProgressMetricType.MAX_REPS_TEST
-        trainingRole in setOf(
-            FatigueTrainingRole.PREHAB,
-            FatigueTrainingRole.MOBILITY,
-            FatigueTrainingRole.RECOVERY
-        ) -> ProgressMetricType.NOT_PROGRESS_TARGET
+        movementCategory == MovementCategory.TEST -> ProgressMetricType.MAX_REPS_TEST
+        movementCategory in setOf(MovementCategory.PREHAB, MovementCategory.MOBILITY, MovementCategory.RECOVERY) ||
+            movementPattern in setOf(MovementPattern.PREHAB, MovementPattern.MOBILITY) -> ProgressMetricType.NOT_PROGRESS_TARGET
         movementCategory in setOf(MovementCategory.REACTIVE, MovementCategory.PLYOMETRIC, MovementCategory.SKILL_DRILL) ||
             movementPattern == MovementPattern.FOOTWORK -> ProgressMetricType.QUALITY_BASED
         movementCategory == MovementCategory.POWER -> ProgressMetricType.QUALITY_BASED
         movementCategory == MovementCategory.CONDITIONING ||
             movementPattern == MovementPattern.LOCOMOTION -> ProgressMetricType.TIME_OR_DISTANCE
-        compoundType == CompoundType.ISOLATION ||
-            trainingRole == FatigueTrainingRole.ACCESSORY ||
-            movementCategory == MovementCategory.HYPERTROPHY -> ProgressMetricType.VOLUME_LOAD
+        compoundType == CompoundType.ISOLATION || movementCategory == MovementCategory.HYPERTROPHY ->
+            ProgressMetricType.VOLUME_LOAD
         movementPattern in setOf(
             MovementPattern.SQUAT,
             MovementPattern.HINGE,
@@ -624,11 +601,11 @@ object ExerciseMetadataMapper {
 
     private fun MetadataSource.toAccessoryContributionGroup(
         movementPattern: MovementPattern,
-        trainingRole: FatigueTrainingRole,
+        movementCategory: MovementCategory,
         badmintonRoles: Set<BadmintonTransferRole>
     ): AccessoryContributionGroup = when {
         BadmintonTransferRole.GRIP_FOREARM in badmintonRoles -> AccessoryContributionGroup.GRIP_FOREARM
-        BadmintonTransferRole.SHOULDER_CARE in badmintonRoles || trainingRole == FatigueTrainingRole.PREHAB -> AccessoryContributionGroup.SHOULDER_CARE
+        BadmintonTransferRole.SHOULDER_CARE in badmintonRoles || movementCategory == MovementCategory.PREHAB -> AccessoryContributionGroup.SHOULDER_CARE
         badmintonRoles.anyCourtRole() -> AccessoryContributionGroup.BADMINTON_SUPPORT
         movementPattern in setOf(MovementPattern.PUSH_HORIZONTAL, MovementPattern.PUSH_VERTICAL) -> AccessoryContributionGroup.UPPER_PUSH_ACCESSORY
         movementPattern in setOf(MovementPattern.PULL_HORIZONTAL, MovementPattern.PULL_VERTICAL) -> AccessoryContributionGroup.UPPER_PULL_ACCESSORY
@@ -808,16 +785,17 @@ object ExerciseMetadataMapper {
     }
 
     private fun MetadataSource.toAnalysisEligibility(
-        trainingRole: FatigueTrainingRole,
+        movementPattern: MovementPattern,
+        movementCategory: MovementCategory,
         progressMetricType: ProgressMetricType,
         badmintonTransferStrength: BadmintonTransferStrength,
         balanceContributionTags: Set<BalanceContributionTag>
     ): Set<AnalysisEligibility> {
-        if (trainingRole == FatigueTrainingRole.RECOVERY) {
+        if (movementCategory == MovementCategory.RECOVERY) {
             return setOf(AnalysisEligibility.RECOVERY_ONLY)
         }
         val eligibility = linkedSetOf<AnalysisEligibility>()
-        if (trainingRole != FatigueTrainingRole.TEST && trainingRole != FatigueTrainingRole.PREHAB) {
+        if (movementCategory !in setOf(MovementCategory.TEST, MovementCategory.PREHAB)) {
             eligibility += AnalysisEligibility.FATIGUE
         }
         if (progressMetricType == ProgressMetricType.ESTIMATED_1RM || progressMetricType == ProgressMetricType.REPS_AT_LOAD) {
@@ -832,11 +810,11 @@ object ExerciseMetadataMapper {
         if (balanceContributionTags.isNotEmpty()) {
             eligibility += AnalysisEligibility.BALANCE
         }
-        if (trainingRole == FatigueTrainingRole.PREHAB) {
+        if (movementCategory == MovementCategory.PREHAB || movementPattern == MovementPattern.PREHAB) {
             eligibility += AnalysisEligibility.RECOVERY_ONLY
             eligibility += AnalysisEligibility.BALANCE
         }
-        if (trainingRole == FatigueTrainingRole.TEST || progressMetricType == ProgressMetricType.MAX_REPS_TEST) {
+        if (movementCategory == MovementCategory.TEST || progressMetricType == ProgressMetricType.MAX_REPS_TEST) {
             eligibility.remove(AnalysisEligibility.FATIGUE)
             eligibility.remove(AnalysisEligibility.STRENGTH_PROGRESS)
             eligibility.remove(AnalysisEligibility.HYPERTROPHY_VOLUME)
@@ -865,26 +843,4 @@ object ExerciseMetadataMapper {
             .map { value -> value.trim().uppercase() }
             .filter { value -> value.isNotEmpty() && value != "NONE" }
             .toSet()
-}
-
-// Legacy program roles are sparse; analysis keeps its existing role signal from typed metadata.
-internal fun Exercise.derivedAnalysisTrainingRole(): String = when {
-    movementCategory == MovementCategory.PLYOMETRIC.name -> FatigueTrainingRole.PLYOMETRIC.name
-    movementCategory in setOf(MovementCategory.REACTIVE.name, MovementCategory.SPEED.name) -> FatigueTrainingRole.SPEED_REACTIVE.name
-    movementCategory == MovementCategory.POWER.name -> FatigueTrainingRole.POWER.name
-    movementCategory == MovementCategory.PREHAB.name || movementPattern == MovementPattern.PREHAB.name -> FatigueTrainingRole.PREHAB.name
-    movementCategory == MovementCategory.MOBILITY.name || movementPattern == MovementPattern.MOBILITY.name -> FatigueTrainingRole.MOBILITY.name
-    movementCategory == MovementCategory.CONDITIONING.name || movementPattern == MovementPattern.LOCOMOTION.name -> FatigueTrainingRole.CONDITIONING.name
-    movementCategory == MovementCategory.SKILL_DRILL.name || movementPattern == MovementPattern.FOOTWORK.name -> FatigueTrainingRole.SKILL.name
-    movementCategory == MovementCategory.TEST.name -> FatigueTrainingRole.TEST.name
-    movementCategory == MovementCategory.RECOVERY.name -> FatigueTrainingRole.RECOVERY.name
-    movementCategory == MovementCategory.STABILITY.name || movementPattern == MovementPattern.ANTI_ROTATION.name -> FatigueTrainingRole.STABILITY.name
-    compoundType == CompoundType.ISOLATION.name || movementCategory == MovementCategory.HYPERTROPHY.name -> FatigueTrainingRole.ACCESSORY.name
-    movementPattern in setOf(
-        MovementPattern.SQUAT.name,
-        MovementPattern.HINGE.name,
-        MovementPattern.PUSH_HORIZONTAL.name,
-        MovementPattern.PULL_VERTICAL.name
-    ) -> FatigueTrainingRole.MAIN_STRENGTH.name
-    else -> FatigueTrainingRole.SECONDARY_STRENGTH.name
 }

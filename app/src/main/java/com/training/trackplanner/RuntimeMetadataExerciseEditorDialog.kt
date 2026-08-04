@@ -36,7 +36,6 @@ import com.training.trackplanner.data.ExerciseMetadataCopySource
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.ExerciseTaxonomy
 import com.training.trackplanner.data.FatigueForceType
-import com.training.trackplanner.data.FatigueTrainingRole
 import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.MovementCategory
 import com.training.trackplanner.data.MovementPattern
@@ -164,9 +163,6 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                             }
                             MetadataSingleSelectField("신체 부위", exercise.bodyRegion, ExerciseTaxonomy.bodyRegions.sorted()) {
                                 exercise = exercise.copy(bodyRegion = it)
-                            }
-                            MetadataSingleSelectField("운동 역할", exercise.trainingRole, FatigueTrainingRole.entries.map { it.name }, MetadataDisplayField.TRAINING_ROLE) {
-                                exercise = exercise.copy(trainingRole = it)
                             }
                             MetadataSingleSelectField("동작 계열", metadata.movementFamily, options.values("movementFamily", metadata.movementFamily), MetadataDisplayField.MOVEMENT_FAMILY) { metadata = metadata.copy(movementFamily = it) }
                             MetadataSingleSelectField("동작 세부형", metadata.movementSubtype, options.values("movementSubtype", metadata.movementSubtype), MetadataDisplayField.MOVEMENT_SUBTYPE) { metadata = metadata.copy(movementSubtype = it) }

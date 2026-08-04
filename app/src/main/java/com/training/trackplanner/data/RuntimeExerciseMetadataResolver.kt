@@ -391,7 +391,6 @@ internal fun Exercise.copyEditableMetadataFrom(source: Exercise): Exercise =
         plane = source.plane,
         laterality = source.laterality,
         axialLoadLevel = source.axialLoadLevel,
-        trainingRole = source.trainingRole,
         stabilityRoles = source.stabilityRoles,
         sportTransferDirect = source.sportTransferDirect,
         sportTransferSupportive = source.sportTransferSupportive,

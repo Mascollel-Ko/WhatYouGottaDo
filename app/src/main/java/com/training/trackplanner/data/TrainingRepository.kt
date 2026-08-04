@@ -118,8 +118,10 @@ class TrainingRepository(
     private val dataTransferReportStore = DataTransferReportStore(appMetaDao)
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
+    private val exerciseRoleRelationDao = db.exerciseRoleRelationDao()
     private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val exerciseRoleRelationAssetLoader = ExerciseRoleRelationAssetLoader(context)
     private val legacyExerciseImportMapper = LegacyExerciseImportMapper.fromAssets(context)
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
     private val repetitionCurveRegistry = RepetitionCurveRegistry.fromContext(context)
@@ -161,6 +163,7 @@ class TrainingRepository(
         db = db,
         initialUserProfileDao = initialUserProfileDao,
         exerciseDao = exerciseDao,
+        exerciseRoleRelationDao = exerciseRoleRelationDao,
         workoutDao = workoutDao,
         programDao = programDao,
         dailyMetricDao = dailyMetricDao,
@@ -374,6 +377,7 @@ class TrainingRepository(
             dailyCheckInDao = dailyCheckInDao,
             smashSpeedDao = smashSpeedDao,
             exerciseDao = exerciseDao,
+            exerciseRoleRelationDao = exerciseRoleRelationDao,
             initialUserProfileDao = initialUserProfileDao,
             runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
             appMetaDao = appMetaDao,
@@ -454,6 +458,7 @@ class TrainingRepository(
 
         if (exerciseSeedVersion < EXERCISE_SEED_VERSION || exerciseDao.countExercises() == 0) {
             upsertSeedExercises()
+            seedExerciseRoleRelations()
             appMetaDao.upsert(
                 AppMeta(
                     key = META_EXERCISE_SEED_VERSION,
@@ -497,6 +502,15 @@ class TrainingRepository(
                 }
             }
         }
+    }
+
+    private suspend fun seedExerciseRoleRelations() {
+        val stableKeys = exerciseDao.allExercises().mapTo(mutableSetOf(), Exercise::stableKey)
+        exerciseRoleRelationAssetLoader.load(stableKeys)
+        exerciseRoleRelationDao.upsertTrainingRoles(exerciseRoleRelationAssetLoader.trainingRelations())
+        exerciseRoleRelationDao.upsertProgramSlotCapabilities(
+            exerciseRoleRelationAssetLoader.programSlotCapabilityRelations()
+        )
     }
 
     suspend fun exerciseEditorData(exerciseStableKey: String?): ExerciseRuntimeMetadataEditorData =
@@ -726,7 +740,6 @@ class TrainingRepository(
             bodyRegion = row.bodyRegion,
             plane = row.plane,
             laterality = row.laterality,
-            trainingRole = row.trainingRole,
             sportTransferDirect = row.sportTransferDirect,
             sportTransferSupportive = row.sportTransferSupportive,
             loadProfile = row.loadProfile,
@@ -1244,7 +1257,7 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 7
+        const val EXERCISE_SEED_VERSION = 8
         const val PROGRAM_SEED_VERSION = 1
         const val PROGRAM_STABLE_KEY_REPAIR_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"

@@ -64,6 +64,10 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 
 ## Reading and publishing
 
+- v0.5.0.21 separates intrinsic `TrainingRole` from placement-only
+  `ProgramSlotCapability`. The latter has exactly 26 approved stableKey rows,
+  is not an analysis input, and is backed by Room schema 27 and backup format 10.
+
 - v0.5.0.18의 metadata strategy v2.2 audit은 program timing fixed property, legacy compatibility, consumer-specific eligibility를 분리하고 위험 경로와 확정 오류를 별도 산출물로 관리합니다. 현재 Phase 0/1 shadow baseline과 production 계산은 그대로이며 미래 provenance model은 아직 구현되지 않았습니다.
 - v0.5.0.19의 metadata strategy v2.3 Phase 2A.1은 legacy role exact whitelist와 closed-world direct transfer를 복구하고 `familyId`/`loadProfile`을 비정본 호환으로 확정합니다. 다섯 target strength-proxy prior는 별도 package/asset에만 존재하며 production posterior에는 연결되지 않습니다.
 - 2026-08-04 strength-proxy relation closeout은 5개 direct anchor와 12개 shared-factor proxy의 membership만 artifact로 확정합니다. 7개 provisional relation은 exclusion provenance로 남기며 population/personal alpha와 no-session 주간 latent-state 보간 구현은 `DEFERRED`입니다.

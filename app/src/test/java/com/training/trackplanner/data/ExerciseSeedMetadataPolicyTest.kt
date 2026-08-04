@@ -9,12 +9,16 @@ import java.util.Locale
 
 class ExerciseSeedMetadataPolicyTest {
     @Test
-    fun legacyTrainingRolesUseOnlyTheApprovedStableKeyWhitelist() {
-        val seeds = exactSeedMap()
+    fun programSlotCapabilitiesUseOnlyTheApprovedStableKeyWhitelist() {
+        val actual = relationRows("exercise_program_slot_capability_relations_v1.csv")
+            .associate { row -> row.getValue("exerciseStableKey") to row.getValue("capabilityCode") }
+        val expected = APPROVED_LEGACY_TRAINING_ROLES.mapValues { (_, role) ->
+            LegacyTrainingRoleImportMapper.resolve(role).programSlotCapabilities.single().name
+        }
 
-        assertEquals(APPROVED_LEGACY_TRAINING_ROLES, seeds.mapValues { it.value.trainingRole }.filterValues(String::isNotBlank))
-        assertEquals("", seeds.getValue("barbell_back_squat").trainingRole)
-        assertEquals("", seeds.getValue("barbell_bench_press").trainingRole)
+        assertEquals(expected, actual)
+        assertFalse(actual.containsKey("barbell_back_squat"))
+        assertFalse(actual.containsKey("barbell_bench_press"))
     }
 
     @Test
@@ -172,7 +176,6 @@ class ExerciseSeedMetadataPolicyTest {
         assertEquals(seed.bodyRegion, actual.bodyRegion)
         assertEquals(seed.laterality, actual.laterality)
         assertEquals(seed.plane, actual.plane)
-        assertEquals(seed.trainingRole, actual.trainingRole)
         assertEquals(seed.sportTransferDirect, actual.sportTransferDirect)
         assertEquals(seed.sportTransferSupportive, actual.sportTransferSupportive)
         assertEquals(seed.loadProfile, actual.loadProfile)
@@ -209,6 +212,18 @@ class ExerciseSeedMetadataPolicyTest {
             .map(::parseCsvLine)
         val header = parsedRows.first()
         return parsedRows.drop(1).map { values ->
+            header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
+        }
+    }
+
+    private fun relationRows(fileName: String): List<Map<String, String>> {
+        val file = listOf(
+            File("src/main/assets/metadata/relations/$fileName"),
+            File("app/src/main/assets/metadata/relations/$fileName")
+        ).first(File::exists)
+        val rows = file.readLines(Charsets.UTF_8).filter(String::isNotBlank).map(::parseCsvLine)
+        val header = rows.first()
+        return rows.drop(1).map { values ->
             header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
         }
     }

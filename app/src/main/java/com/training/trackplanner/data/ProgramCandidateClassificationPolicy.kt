@@ -95,7 +95,7 @@ internal class ProgramCandidateClassificationPolicy {
             exercise.stableKey,
             exercise.movementPattern,
             exercise.movementCategory,
-            exercise.trainingRole,
+            programSlotCapabilities.joinToString("|") { it.legacyCompatibilityToken() },
             metadata?.movementFamily.orEmpty(),
             metadata?.movementSubtype.orEmpty(),
             metadata?.programSlot.orEmpty(),

@@ -55,6 +55,10 @@ object MetadataSanityChecker {
         val badmintonSkillTargets = exercise.badmintonSkillTargets.splitTokens()
         val balanceTags = exercise.balanceContributionTags.splitTokens()
         val jointStressTags = exercise.jointStressTags.splitTokens()
+        val isPrehab = exercise.movementCategory == MovementCategory.PREHAB.name ||
+            exercise.movementPattern == MovementPattern.PREHAB.name
+        val isRecovery = exercise.movementCategory == MovementCategory.RECOVERY.name
+        val isTest = exercise.movementCategory == MovementCategory.TEST.name
 
         exercise.requiredMetadataFields().forEach { (field, value) ->
             if (value.isBlank()) {
@@ -137,12 +141,12 @@ object MetadataSanityChecker {
             issues += exercise.review("analysisEligibility", "NOT_PROGRESS_TARGET cannot include STRENGTH_PROGRESS")
         }
         if (
-            exercise.trainingRole in setOf("PREHAB", "RECOVERY") &&
+            (isPrehab || isRecovery) &&
             exercise.progressMetricType !in setOf("NOT_PROGRESS_TARGET", "QUALITY_BASED")
         ) {
             issues += exercise.review("progressMetricType", "prehab/recovery should not use normal progress metrics")
         }
-        if (exercise.trainingRole == "TEST" && "TEST_ONLY" !in analysisEligibility) {
+        if (isTest && "TEST_ONLY" !in analysisEligibility) {
             issues += exercise.review("analysisEligibility", "TEST role requires TEST_ONLY eligibility")
         }
         if (
@@ -159,7 +163,7 @@ object MetadataSanityChecker {
             issues += exercise.review("balanceContributionTags", "ANTI_ROTATION movement requires ANTI_ROTATION balance tag")
         }
         if (
-            exercise.trainingRole == "PREHAB" &&
+            isPrehab &&
             jointStressTags.isEmpty() &&
             "SHOULDER_DURABILITY" !in badmintonSkillTargets &&
             exercise.stabilityDemandLevel == "NONE" &&
@@ -173,7 +177,7 @@ object MetadataSanityChecker {
         if (exercise.compoundType == "ISOLATION" && exercise.systemicLoadWeight >= 0.75) {
             issues += exercise.review("systemicLoadWeight", "isolation work has unusually high systemic load")
         }
-        if (exercise.trainingRole == "PREHAB" && exercise.systemicLoadWeight >= 0.5) {
+        if (isPrehab && exercise.systemicLoadWeight >= 0.5) {
             issues += exercise.review("systemicLoadWeight", "prehab work has unusually high systemic load")
         }
         if (exercise.axialLoadLevel == "HIGH" && exercise.systemicLoadWeight == 0.0) {

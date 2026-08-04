@@ -40,8 +40,9 @@ class StrengthPerformanceIndexCalculator(
                 WeightedScore(
                     score = score,
                     weight = PerformanceTrendConstants.exerciseStrengthWeight(
-                        features.trainingRole,
-                        features.movementCategory
+                        features.movementPattern,
+                        features.movementCategory,
+                        features.compoundType
                     ),
                     confidence = confidence
                 )
@@ -156,8 +157,9 @@ class StrengthPerformanceIndexCalculator(
             )
             if (!features.isStrengthLike()) return@sumOf 0.0
             val weight = PerformanceTrendConstants.volumeEligibilityWeight(
-                features.trainingRole,
-                features.movementCategory
+                features.movementPattern,
+                features.movementCategory,
+                features.compoundType
             )
             val bodyWeight = allDailyMetrics
                 .filter { metric -> metric.date <= record.entry.date }
@@ -183,7 +185,7 @@ class StrengthPerformanceIndexCalculator(
             record.sets.count { set ->
                 set.confirmed &&
                     (set.rpe == null || set.rpe >= 7.0) &&
-                    features.trainingRole !in excludedStrengthRoles
+                    !features.hasLowProgressPurpose()
             }
         }
 
@@ -308,13 +310,16 @@ class StrengthPerformanceIndexCalculator(
     private fun AnalysisExerciseFeatures.isStrengthProgressEligible(): Boolean =
         estimated1RmEligible &&
             progressMetricType == "ESTIMATED_1RM" &&
-            trainingRole !in excludedStrengthRoles &&
+            !hasLowProgressPurpose() &&
             "EXCLUDED_FROM_ANALYSIS" !in analysisEligibility
 
     private fun AnalysisExerciseFeatures.isStrengthLike(): Boolean =
         analysisEligibility.any { value ->
             value in setOf("STRENGTH_PROGRESS", "HYPERTROPHY_VOLUME")
-        } && trainingRole !in excludedStrengthRoles
+        } && !hasLowProgressPurpose()
+
+    private fun AnalysisExerciseFeatures.hasLowProgressPurpose(): Boolean =
+        PerformanceTrendConstants.isLowProgressPurpose(movementPattern, movementCategory)
 
     private data class WeightedScore(
         val score: Double,
@@ -334,7 +339,4 @@ class StrengthPerformanceIndexCalculator(
         val rpe: Double
     )
 
-    private companion object {
-        val excludedStrengthRoles = setOf("PREHAB", "MOBILITY", "RECOVERY")
-    }
 }

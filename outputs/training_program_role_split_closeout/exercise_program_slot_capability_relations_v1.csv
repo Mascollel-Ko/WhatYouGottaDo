@@ -1,0 +1,27 @@
+exerciseStableKey,capabilityCode,provenance,reviewStatus,notes
+barbell_romanian_deadlift,MAIN_STRENGTH_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from MAIN_STRENGTH
+dumbbell_romanian_deadlift,MAIN_STRENGTH_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from MAIN_STRENGTH
+ex_314df428,PLYOMETRIC_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from PLYOMETRIC
+ex_33841b88,SPEED_REACTIVE_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from SPEED_REACTIVE
+ex_34e7d21,PLYOMETRIC_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from PLYOMETRIC
+ex_462c760e,SECONDARY_STRENGTH_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from SECONDARY_STRENGTH
+ex_5322f2d1,ACCESSORY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
+ex_5ca7133f,ACCESSORY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
+ex_85f12271,STABILITY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from STABILITY
+ex_8824026f,PLYOMETRIC_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from PLYOMETRIC
+ex_a12de111,SPEED_REACTIVE_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from SPEED_REACTIVE
+ex_bd072cd,ACCESSORY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
+ex_d60745b4,ACCESSORY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
+ex_e2efd0fe,MAIN_STRENGTH_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from MAIN_STRENGTH
+ex_eb636bac,ACCESSORY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
+half_kneeling_single_arm_dumbbell_press,STABILITY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from STABILITY
+half_kneeling_single_arm_kettlebell_press,STABILITY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from STABILITY
+landmine_rotation,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
+lateral_bound_continuous,PLYOMETRIC_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from PLYOMETRIC
+med_ball_overhead_slam,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
+med_ball_rotational_slam,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
+medicine_ball_rotational_throw,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
+single_leg_hip_bridge,STABILITY_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from STABILITY
+single_leg_rdl,MAIN_STRENGTH_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from MAIN_STRENGTH
+vipr_chop,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER
+vipr_rotational_lift,POWER_SLOT,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from POWER

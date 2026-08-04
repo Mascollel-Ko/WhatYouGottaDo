@@ -114,7 +114,6 @@ class AnalysisInputCollector(
             plane = plane,
             laterality = laterality,
             axialLoadLevel = axialLoadLevel,
-            trainingRole = trainingRole,
             stabilityRoles = stabilityRoles,
             sportTransferDirect = sportTransferDirect,
             sportTransferSupportive = sportTransferSupportive,

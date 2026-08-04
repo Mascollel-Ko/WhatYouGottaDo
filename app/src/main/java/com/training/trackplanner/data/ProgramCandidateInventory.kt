@@ -16,7 +16,8 @@ internal class ProgramCandidateInventory(
         exercises: List<Exercise>,
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
         availableEquipment: Set<String>,
-        excludedExerciseStableKeys: Set<String> = emptySet()
+        excludedExerciseStableKeys: Set<String> = emptySet(),
+        roleRelationCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
     ): ProgramCandidateInventoryResult {
         val active = exercises.filter(Exercise::isActive)
         val hardEligible = active.map { exercise ->
@@ -25,7 +26,13 @@ internal class ProgramCandidateInventory(
                 exercise = exercise,
                 metadata = metadata,
                 canonical = metadata != null,
-                slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
+                trainingRoles = roleRelationCatalog.trainingRoles(exercise.stableKey),
+                programSlotCapabilities = roleRelationCatalog.programSlotCapabilities(exercise.stableKey),
+                slotCapabilities = slotCapabilityResolver.resolve(
+                    exercise,
+                    metadata,
+                    roleRelationCatalog.programSlotCapabilities(exercise.stableKey)
+                )
             )
         }.filterNot { it.isHardExcludedFromProgramInventory() }
         val normalizedExcluded = excludedExerciseStableKeys.filter(String::isNotBlank).toSet()

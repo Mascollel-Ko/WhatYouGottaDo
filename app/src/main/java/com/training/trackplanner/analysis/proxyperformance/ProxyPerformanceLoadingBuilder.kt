@@ -24,7 +24,6 @@ internal object ProxyPerformanceLoadingBuilder {
             features.strengthProgressionGroup,
             features.mainLiftGroup,
             features.accessoryContributionGroup,
-            features.trainingRole,
             exercise.familyId,
             exercise.familyName
         ).joinToString("|").uppercase()

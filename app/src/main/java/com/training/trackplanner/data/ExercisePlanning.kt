@@ -64,7 +64,6 @@ private fun Exercise.planningTokens(): Set<String> =
         movementPattern,
         movementCategory,
         forceType,
-        trainingRole,
         analysisEligibility
     )
         .flatMap { value -> value.split(',', '|', '/', ';', ' ') }

@@ -78,22 +78,6 @@ enum class AxialLoadLevel {
     HIGH
 }
 
-enum class FatigueTrainingRole {
-    MAIN_STRENGTH,
-    SECONDARY_STRENGTH,
-    ACCESSORY,
-    POWER,
-    PLYOMETRIC,
-    SPEED_REACTIVE,
-    STABILITY,
-    PREHAB,
-    MOBILITY,
-    CONDITIONING,
-    SKILL,
-    TEST,
-    RECOVERY
-}
-
 enum class BadmintonTransferRole {
     NONE,
     FOOTWORK,

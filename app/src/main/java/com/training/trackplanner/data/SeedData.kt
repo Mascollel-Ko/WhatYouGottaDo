@@ -164,13 +164,13 @@ object SeedData {
         val forceType = forceTypeFor(name, category, sourceText, movementPattern)
         val bodyRegion = bodyRegionFor(category, muscles, secondaryMuscles, sourceText)
         val laterality = lateralityFor(sourceText)
-        val analysisTrainingRoleHint = trainingRoleFor(category, sourceText, movementPattern)
+        val analysisPurposeCategory = analysisMovementCategoryFor(category, sourceText, movementPattern)
+        val movementCategory = movementCategoryFor(category)
         val stabilityRoles = stabilityRolesFor(sourceText, movementPattern)
-        val legacyTrainingRole = row.value("training_role")
         val sportTransferDirect = sportTransferDirectFor(name, category, sourceText, movementPattern)
         val sportTransferSupportive = sportTransferSupportiveFor(category, sourceText, movementPattern)
         val accessoryRoles = accessoryRolesFor(sourceText, movementPattern)
-        val loadProfile = loadProfileFor(sourceText, forceType, analysisTrainingRoleHint)
+        val loadProfile = loadProfileFor(sourceText, forceType, analysisPurposeCategory.name)
         val seedMovementTokens = row.value("movement_pattern").splitSeedTokens()
         val activityKind = activityKindFor(category, seedMovementTokens)
         val planningEligibility = planningEligibilityFor(activityKind)
@@ -191,16 +191,13 @@ object SeedData {
                 require(stableKey.isNotBlank()) { "Built-in exercise '$name' is missing stable_key." }
             },
             movementPattern = ExerciseTaxonomy.single(movementPattern, ExerciseTaxonomy.movementPatterns, "movementPattern"),
-            movementCategory = ExerciseTaxonomy.single(movementCategoryFor(category), ExerciseTaxonomy.movementCategories, "movementCategory"),
+            movementCategory = ExerciseTaxonomy.single(movementCategory, ExerciseTaxonomy.movementCategories, "movementCategory"),
             primaryMuscles = ExerciseTaxonomy.list(muscles.joinToString(","), ExerciseTaxonomy.muscles, "primaryMuscles"),
             secondaryMuscles = ExerciseTaxonomy.list(secondaryMuscles.joinToString(","), ExerciseTaxonomy.muscles, "secondaryMuscles"),
             equipmentTags = ExerciseTaxonomy.list(equipment.joinToString(","), ExerciseTaxonomy.equipment, "equipmentTags"),
             forceType = ExerciseTaxonomy.single(forceType, ExerciseTaxonomy.forceTypes, "forceType"),
             bodyRegion = ExerciseTaxonomy.single(bodyRegion, ExerciseTaxonomy.bodyRegions, "bodyRegion"),
             laterality = ExerciseTaxonomy.single(laterality, ExerciseTaxonomy.lateralities, "laterality"),
-            trainingRole = legacyTrainingRole.ifBlank {
-                ExerciseTaxonomy.single(analysisTrainingRoleHint, ExerciseTaxonomy.trainingRoles, "trainingRole")
-            },
             stabilityRoles = ExerciseTaxonomy.list(stabilityRoles.joinToString(","), ExerciseTaxonomy.stabilityRoles, "stabilityRoles"),
             sportTransferDirect = row.value("sport_transfer_direct").ifBlank {
                 ExerciseTaxonomy.list(sportTransferDirect.joinToString(","), ExerciseTaxonomy.sportTransferDirect, "sportTransferDirect")
@@ -225,11 +222,12 @@ object SeedData {
             source = SeedMetadataSource(
                 movementPatternTokens = seedMovementTokens,
                 movementCategoryToken = row.value("movement_category"),
+                analysisPurposeCategory = analysisPurposeCategory,
                 forceTypeToken = row.value("force_type"),
                 planeToken = row.value("plane"),
                 isUnilateral = row.value("is_unilateral").toBooleanFlagOrNull()
             )
-        ).copy(trainingRole = legacyTrainingRole).withRecoveredImage(imageMappings)
+        ).withRecoveredImage(imageMappings)
     }
 
     private fun activityKindFor(
@@ -348,6 +346,18 @@ object SeedData {
             normalized.matches(Regex("[A-Z0-9_]+")) -> normalized
             else -> "PRIMARY"
         }
+    }
+
+    private fun analysisMovementCategoryFor(category: String, text: String, pattern: String): MovementCategory = when {
+        category == "유산소운동" -> MovementCategory.CONDITIONING
+        category == "스포츠" -> MovementCategory.SKILL_DRILL
+        pattern == "MOBILITY" || hasAny(text, "모빌리티", "가동성") -> MovementCategory.MOBILITY
+        hasAny(text, "외회전", "월 슬라이드", "스캡", "보호") -> MovementCategory.PREHAB
+        hasAny(text, "풋워크", "콕줍기", "스플릿 스텝", "래더") -> MovementCategory.SKILL_DRILL
+        hasAny(text, "점프", "홉", "바운드", "포고", "탄성") -> MovementCategory.PLYOMETRIC
+        hasAny(text, "플랭크", "팔로프", "데드버그", "버드독", "안정") -> MovementCategory.STABILITY
+        hasAny(text, "컬", "레이즈", "트라이셉스", "익스텐션", "플라이") -> MovementCategory.HYPERTROPHY
+        else -> MovementCategory.STRENGTH
     }
 
     private fun movementCategoryFor(category: String): String = when (category) {
@@ -502,18 +512,6 @@ object SeedData {
         else -> "BILATERAL"
     }
 
-    private fun trainingRoleFor(category: String, text: String, pattern: String): String = when {
-        category == "유산소운동" -> "CONDITIONING"
-        category == "스포츠" -> "SKILL_DRILL"
-        pattern == "MOBILITY" || hasAny(text, "모빌리티", "가동성") -> "MOBILITY"
-        hasAny(text, "외회전", "월 슬라이드", "스캡", "보호") -> "PREHAB"
-        hasAny(text, "풋워크", "콕줍기", "스플릿 스텝", "래더") -> "SKILL_DRILL"
-        hasAny(text, "점프", "홉", "바운드", "포고", "탄성") -> "PLYOMETRIC"
-        hasAny(text, "플랭크", "팔로프", "데드버그", "버드독", "안정") -> "STABILITY"
-        hasAny(text, "컬", "레이즈", "트라이셉스", "익스텐션", "플라이") -> "HYPERTROPHY"
-        else -> "STRENGTH"
-    }
-
     private fun stabilityRolesFor(text: String, pattern: String): List<String> {
         val roles = linkedSetOf<String>()
         if (hasAny(text, "코어", "플랭크", "팔로프")) roles += "CORE_STABILITY"
@@ -614,11 +612,11 @@ object SeedData {
         return roles.toList()
     }
 
-    private fun loadProfileFor(text: String, forceType: String, trainingRole: String): String = when {
+    private fun loadProfileFor(text: String, forceType: String, movementCategory: String): String = when {
         hasAny(text, "데드리프트", "스쿼트", "바벨") -> "HIGH_AXIAL_LOAD"
         hasAny(text, "RDL", "굿모닝", "허리", "척추") -> "LUMBAR_STRESS_HIGH"
-        forceType == "PLYOMETRIC" || trainingRole == "PLYOMETRIC" -> "PLYOMETRIC_JUMP"
-        trainingRole in setOf("PREHAB", "MOBILITY", "RECOVERY") -> "LOW_LOAD"
+        forceType == "PLYOMETRIC" || movementCategory == "PLYOMETRIC" -> "PLYOMETRIC_JUMP"
+        movementCategory in setOf("PREHAB", "MOBILITY", "RECOVERY") -> "LOW_LOAD"
         hasAny(text, "어깨", "숄더", "오버헤드") -> "SHOULDER_STRESS_LOW"
         hasAny(text, "원레그", "싱글 레그", "한발", "균형") -> "SINGLE_LEG_BALANCE_DEMAND"
         else -> "MODERATE_LOAD"
@@ -686,7 +684,6 @@ object SeedData {
                 exercise.plane,
                 exercise.laterality,
                 exercise.axialLoadLevel,
-                exercise.trainingRole,
                 exercise.stabilityRoles,
                 exercise.sportTransferDirect,
                 exercise.sportTransferSupportive,

@@ -715,6 +715,76 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate26To27SplitsRolesAndPreservesUserRecords() {
+        helper.createDatabase(TEST_DB_26_27, 26).use { database ->
+            insertRowWithDefaults(
+                database,
+                "exercises",
+                mapOf(
+                    "stableKey" to "single_leg_rdl",
+                    "name" to "Single leg RDL",
+                    "category" to "Strength",
+                    "trainingRole" to "MAIN_STRENGTH"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "workout_entries",
+                mapOf(
+                    "id" to 11,
+                    "date" to "2026-08-01",
+                    "exerciseStableKey" to "single_leg_rdl",
+                    "exerciseName" to "Single leg RDL",
+                    "category" to "Strength"
+                )
+            )
+            insertRowWithDefaults(database, "workout_sets", mapOf("id" to 12, "entryId" to 11, "setIndex" to 1))
+            insertRowWithDefaults(
+                database,
+                "training_programs",
+                mapOf("id" to 21, "stableKey" to "migration_program", "name" to "Migration", "durationDays" to 7)
+            )
+            insertRowWithDefaults(
+                database,
+                "training_program_items",
+                mapOf(
+                    "id" to 22,
+                    "programId" to 21,
+                    "weekNumber" to 1,
+                    "dayOfWeek" to 1,
+                    "orderIndex" to 1,
+                    "exerciseStableKey" to "single_leg_rdl",
+                    "exerciseName" to "Single leg RDL",
+                    "category" to "Strength"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "training_program_item_sets",
+                mapOf("id" to 23, "programItemId" to 22, "setIndex" to 1)
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB_26_27, 27, true, MIGRATION_26_27).use { database ->
+            check(database.singleString(
+                "SELECT trainingRoleCode FROM exercise_training_role_relations WHERE exerciseStableKey='single_leg_rdl'"
+            ) == "STRENGTH")
+            check(database.singleString(
+                "SELECT capabilityCode FROM exercise_program_slot_capability_relations WHERE exerciseStableKey='single_leg_rdl'"
+            ) == "MAIN_STRENGTH_SLOT")
+            check(database.count("workout_entries") == 1)
+            check(database.count("workout_sets") == 1)
+            check(database.count("training_program_items") == 1)
+            check(database.count("training_program_item_sets") == 1)
+            database.query("PRAGMA table_info(`exercises`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val columns = buildList { while (cursor.moveToNext()) add(cursor.getString(nameIndex)) }
+                check("trainingRole" !in columns)
+            }
+        }
+    }
+
     private fun insertExercise24(
         database: SupportSQLiteDatabase,
         id: Long,
@@ -797,6 +867,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_23_24 = "training-migration-23-24-test"
         const val TEST_DB_24_25 = "training-migration-24-25-test"
         const val TEST_DB_25_26 = "training-migration-25-26-test"
+        const val TEST_DB_26_27 = "training-migration-26-27-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

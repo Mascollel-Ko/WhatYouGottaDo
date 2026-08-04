@@ -1091,19 +1091,24 @@
         <item>TENDON_STRESS|SHOULDER_TENDON_STRESS|Shoulder tendon stress</item>
         <item>TENDON_STRESS|TRICEPS_TENDON_STRESS|Triceps tendon stress</item>
         <item>TENDON_STRESS|WRIST|Wrist</item>
-        <item>TRAINING_ROLE|ACCESSORY|Accessory</item>
-        <item>TRAINING_ROLE|CONDITIONING|Conditioning</item>
-        <item>TRAINING_ROLE|MAIN_STRENGTH|Main strength</item>
-        <item>TRAINING_ROLE|MOBILITY|Mobility</item>
-        <item>TRAINING_ROLE|PLYOMETRIC|Plyometric</item>
-        <item>TRAINING_ROLE|POWER|Power</item>
-        <item>TRAINING_ROLE|PREHAB|Prehab</item>
-        <item>TRAINING_ROLE|RECOVERY|Recovery</item>
-        <item>TRAINING_ROLE|SECONDARY_STRENGTH|Secondary strength</item>
-        <item>TRAINING_ROLE|SKILL|Skill</item>
-        <item>TRAINING_ROLE|SPEED_REACTIVE|Speed reactive</item>
-        <item>TRAINING_ROLE|STABILITY|Stability</item>
-        <item>TRAINING_ROLE|TEST|Test</item>
+        <item>TRAINING_ROLE_RELATION|STRENGTH|Strength</item>
+        <item>TRAINING_ROLE_RELATION|HYPERTROPHY|Hypertrophy</item>
+        <item>TRAINING_ROLE_RELATION|POWER|Power</item>
+        <item>TRAINING_ROLE_RELATION|PLYOMETRIC|Plyometric</item>
+        <item>TRAINING_ROLE_RELATION|STABILITY|Stability</item>
+        <item>TRAINING_ROLE_RELATION|MOBILITY|Mobility</item>
+        <item>TRAINING_ROLE_RELATION|PREHAB|Prehab</item>
+        <item>TRAINING_ROLE_RELATION|SKILL_DRILL|Skill drill</item>
+        <item>TRAINING_ROLE_RELATION|CONDITIONING|Conditioning</item>
+        <item>TRAINING_ROLE_RELATION|TEST|Test</item>
+        <item>TRAINING_ROLE_RELATION|RECOVERY|Recovery</item>
+        <item>PROGRAM_SLOT_CAPABILITY|MAIN_STRENGTH_SLOT|Main strength slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|SECONDARY_STRENGTH_SLOT|Secondary strength slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|ACCESSORY_SLOT|Accessory slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|POWER_SLOT|Power slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|PLYOMETRIC_SLOT|Plyometric slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|SPEED_REACTIVE_SLOT|Speed reactive slot</item>
+        <item>PROGRAM_SLOT_CAPABILITY|STABILITY_SLOT|Stability slot</item>
         <item>TRANSFER_CONFIDENCE|HIGH|High</item>
         <item>TRANSFER_CONFIDENCE|LOW|Low</item>
         <item>TRANSFER_CONFIDENCE|MEDIUM|Medium</item>

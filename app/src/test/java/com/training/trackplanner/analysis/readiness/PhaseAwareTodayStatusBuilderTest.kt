@@ -215,7 +215,6 @@ class PhaseAwareTodayStatusBuilderTest {
             plane = "SAGITTAL",
             laterality = "BILATERAL",
             axialLoadLevel = "HIGH",
-            trainingRole = "MAIN_STRENGTH",
             fatigueCategories = "SYSTEMIC|NEURAL_HEAVY|LOCAL_MUSCLE",
             adaptiveBaselineGroups = "SYSTEMIC|HEAVY_LOWER|SQUAT_PATTERN",
             recoveryDecayProfile = "LONG",

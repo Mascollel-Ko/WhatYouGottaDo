@@ -63,7 +63,6 @@ data class AnalysisExerciseMetadata(
     val plane: String,
     val laterality: String,
     val axialLoadLevel: String,
-    val trainingRole: String,
     val stabilityRoles: String,
     val sportTransferDirect: String,
     val sportTransferSupportive: String,

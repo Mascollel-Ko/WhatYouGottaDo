@@ -34,7 +34,8 @@ class ProgramBuilder internal constructor(
         history: List<WorkoutEntryWithSets>,
         today: LocalDate = LocalDate.now(),
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
-        fatigueState: DailyFatigueState? = null
+        fatigueState: DailyFatigueState? = null,
+        roleRelationCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
     ): GeneratedProgramSkeleton {
         val normalized = request.copy(
             durationWeeks = request.durationWeeks.coerceIn(2, 12),
@@ -56,7 +57,8 @@ class ProgramBuilder internal constructor(
             exercises = exercises,
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             availableEquipment = normalized.availableEquipment,
-            excludedExerciseStableKeys = normalized.excludedExerciseStableKeys
+            excludedExerciseStableKeys = normalized.excludedExerciseStableKeys,
+            roleRelationCatalog = roleRelationCatalog
         )
         val candidates = inventory.candidates
         val availableSelectedMainStableKeys = inventory.reservoir.candidates
@@ -363,7 +365,8 @@ class ProgramBuilder internal constructor(
         return optimizationPolicy.optimize(validated, inventory.reservoir)
             .withPreferredExerciseHardIncludes(
                 exercises = exercises,
-                runtimeMetadataCatalog = runtimeMetadataCatalog
+                runtimeMetadataCatalog = runtimeMetadataCatalog,
+                roleRelationCatalog = roleRelationCatalog
             )
             .withExerciseConstraintSummary()
     }
@@ -393,7 +396,8 @@ class ProgramBuilder internal constructor(
 
     private fun GeneratedProgramSkeleton.withPreferredExerciseHardIncludes(
         exercises: List<Exercise>,
-        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+        roleRelationCatalog: ExerciseRoleRelationCatalog
     ): GeneratedProgramSkeleton {
         val preferred = request.preferredExerciseStableKeys.filter(String::isNotBlank).toSet()
         if (preferred.isEmpty()) return this
@@ -445,7 +449,7 @@ class ProgramBuilder internal constructor(
                 return@forEach
             }
             val exercise = exercisesByStableKey[key] ?: return@forEach
-            val candidate = preferredCandidate(exercise, runtimeMetadataCatalog)
+            val candidate = preferredCandidate(exercise, runtimeMetadataCatalog, roleRelationCatalog)
             val target = adjusted.preferredReplacementTarget(preferred)
             adjusted = if (target != null) {
                 outcomeMessages += "PROGRAM_PREFERRED_EXERCISE_FORCED: $key replaced ${target.stableKey.ifBlank { target.exerciseName }}"
@@ -476,7 +480,8 @@ class ProgramBuilder internal constructor(
 
     private fun preferredCandidate(
         exercise: Exercise,
-        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+        runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+        roleRelationCatalog: ExerciseRoleRelationCatalog
     ): ProgramCandidate {
         val catalogMetadata = runtimeMetadataCatalog.resolve(exercise)
         val metadata = catalogMetadata ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
@@ -484,7 +489,13 @@ class ProgramBuilder internal constructor(
             exercise = exercise,
             metadata = metadata,
             canonical = catalogMetadata != null,
-            slotCapabilities = slotCapabilityResolver.resolve(exercise, metadata)
+            trainingRoles = roleRelationCatalog.trainingRoles(exercise.stableKey),
+            programSlotCapabilities = roleRelationCatalog.programSlotCapabilities(exercise.stableKey),
+            slotCapabilities = slotCapabilityResolver.resolve(
+                exercise,
+                metadata,
+                roleRelationCatalog.programSlotCapabilities(exercise.stableKey)
+            )
         )
     }
 

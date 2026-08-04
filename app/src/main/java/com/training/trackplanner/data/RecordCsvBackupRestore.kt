@@ -130,7 +130,9 @@ data class RestoreExerciseRow(
     val bodyRegion: String,
     val laterality: String,
     val plane: String,
-    val trainingRole: String,
+    val legacyTrainingRole: String,
+    val trainingRoleCodes: Set<TrainingRole>,
+    val programSlotCapabilityCodes: Set<ProgramSlotCapability>,
     val sportTransferDirect: String,
     val sportTransferSupportive: String,
     val loadProfile: String,
@@ -218,8 +220,8 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 8
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 9
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 9
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 10
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -256,7 +258,8 @@ object RecordCsvBackupRestore {
         "body_region",
         "laterality",
         "plane",
-        "training_role",
+        "training_role_codes",
+        "program_slot_capability_codes",
         "sport_transfer_direct",
         "sport_transfer_supportive",
         "load_profile",
@@ -373,10 +376,16 @@ object RecordCsvBackupRestore {
         programItems: List<ProgramBackupItem> = emptyList(),
         programItemSets: List<ProgramBackupItemSet> = emptyList(),
         programTombstones: List<TrainingProgramTombstone> = emptyList(),
+        trainingRoleRelations: List<ExerciseTrainingRoleRelation> = emptyList(),
+        programSlotCapabilityRelations: List<ExerciseProgramSlotCapabilityRelation> = emptyList(),
         includeProgramSnapshot: Boolean = false
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.stableKey }
+        val trainingRolesByStableKey = trainingRoleRelations.groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+        val capabilitiesByStableKey = programSlotCapabilityRelations.groupBy(
+            ExerciseProgramSlotCapabilityRelation::exerciseStableKey
+        )
         fun MetadataTokenField.exportRaw(): String = raw.ifBlank { values.joinToString("|") }
         fun appendMappedRow(
             rowType: String,
@@ -522,51 +531,39 @@ object RecordCsvBackupRestore {
             )
         }
         exercises.sortedBy { exercise -> exercise.name }.forEach { exercise ->
-            builder.appendCsvRow(
-                listOf(
-                    "1",
-                    "exercise",
-                    "",
-                    "",
-                    "",
-                    exercise.name,
-                    exercise.category,
-                    "",
-                    exercise.defaultRestSeconds.toString(),
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    exercise.stableKey,
-                    exercise.description,
-                    exercise.defaultRestSeconds.toString(),
-                    exercise.imageAssetName,
-                    exercise.primaryMuscles,
-                    exercise.secondaryMuscles,
-                    exercise.equipment.ifBlank { exercise.equipmentTags },
-                    exercise.movementPattern,
-                    exercise.movementCategory,
-                    exercise.forceType,
-                    exercise.bodyRegion,
-                    exercise.laterality,
-                    exercise.plane,
-                    exercise.trainingRole,
-                    exercise.sportTransferDirect,
-                    exercise.sportTransferSupportive,
-                    exercise.loadProfile,
-                    exercise.metadataConfidence,
-                    exercise.isActive.toCsvBool(),
-                    exercise.isCustom.toCsvBool(),
-                    exercise.needsReview.toCsvBool(),
-                    exercise.detail1,
-                    exercise.detail2,
-                    exercise.mode
+            appendMappedRow(
+                rowType = "exercise",
+                values = mapOf(
+                    "exercise_name" to exercise.name,
+                    "category" to exercise.category,
+                    "rest_seconds" to exercise.defaultRestSeconds.toString(),
+                    "stable_key" to exercise.stableKey,
+                    "description" to exercise.description,
+                    "default_rest_seconds" to exercise.defaultRestSeconds.toString(),
+                    "image_asset_name" to exercise.imageAssetName,
+                    "primary_muscles" to exercise.primaryMuscles,
+                    "secondary_muscles" to exercise.secondaryMuscles,
+                    "equipment" to exercise.equipment.ifBlank { exercise.equipmentTags },
+                    "movement_pattern" to exercise.movementPattern,
+                    "movement_category" to exercise.movementCategory,
+                    "force_type" to exercise.forceType,
+                    "body_region" to exercise.bodyRegion,
+                    "laterality" to exercise.laterality,
+                    "plane" to exercise.plane,
+                    "training_role_codes" to trainingRolesByStableKey[exercise.stableKey].orEmpty()
+                        .map(ExerciseTrainingRoleRelation::trainingRoleCode).distinct().sorted().joinToString("|"),
+                    "program_slot_capability_codes" to capabilitiesByStableKey[exercise.stableKey].orEmpty()
+                        .map(ExerciseProgramSlotCapabilityRelation::capabilityCode).distinct().sorted().joinToString("|"),
+                    "sport_transfer_direct" to exercise.sportTransferDirect,
+                    "sport_transfer_supportive" to exercise.sportTransferSupportive,
+                    "load_profile" to exercise.loadProfile,
+                    "metadata_confidence" to exercise.metadataConfidence,
+                    "is_active" to exercise.isActive.toCsvBool(),
+                    "is_custom" to exercise.isCustom.toCsvBool(),
+                    "needs_review" to exercise.needsReview.toCsvBool(),
+                    "detail1" to exercise.detail1,
+                    "detail2" to exercise.detail2,
+                    "mode" to exercise.mode
                 )
             )
         }
@@ -1168,7 +1165,11 @@ object RecordCsvBackupRestore {
                         bodyRegion = row.value(index, "body_region"),
                         laterality = row.value(index, "laterality"),
                         plane = row.value(index, "plane"),
-                        trainingRole = row.value(index, "training_role"),
+                        legacyTrainingRole = row.value(index, "training_role"),
+                        trainingRoleCodes = row.value(index, "training_role_codes")
+                            .parseEnumTokens<TrainingRole>("training_role_codes"),
+                        programSlotCapabilityCodes = row.value(index, "program_slot_capability_codes")
+                            .parseEnumTokens<ProgramSlotCapability>("program_slot_capability_codes"),
                         sportTransferDirect = row.value(index, "sport_transfer_direct"),
                         sportTransferSupportive = row.value(index, "sport_transfer_supportive"),
                         loadProfile = row.value(index, "load_profile"),
@@ -1663,6 +1664,15 @@ object RecordCsvBackupRestore {
                 .all { value -> value in 1..5 }
 
     private fun Boolean.toCsvBool(): String = if (this) "1" else "0"
+
+    private inline fun <reified T : Enum<T>> String.parseEnumTokens(column: String): Set<T> =
+        split('|', ',')
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .mapTo(linkedSetOf()) { code ->
+                enumValues<T>().firstOrNull { it.name == code }
+                    ?: throw IllegalArgumentException("Invalid $column code: $code")
+            }
 
     private fun Double?.formatOptional(): String = this?.formatNumber().orEmpty()
 

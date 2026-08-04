@@ -68,11 +68,13 @@ class MetadataSanityCheckerTest {
                 assertFalse(exercise.analysisEligibility.hasToken("STRENGTH_PROGRESS"))
             }
             assertTrue(exercise.analysisEligibility.hasRealToken())
-            if (exercise.trainingRole == "PREHAB") {
+            if (exercise.movementCategory == MovementCategory.PREHAB.name ||
+                exercise.movementPattern == MovementPattern.PREHAB.name
+            ) {
                 assertTrue(exercise.systemicLoadWeight < 0.5)
                 assertFalse(exercise.analysisEligibility.hasToken("STRENGTH_PROGRESS"))
             }
-            if (exercise.trainingRole == "TEST") {
+            if (exercise.movementCategory == MovementCategory.TEST.name) {
                 assertTrue(exercise.analysisEligibility.hasToken("TEST_ONLY"))
                 assertFalse(exercise.analysisEligibility.hasToken("STRENGTH_PROGRESS"))
             }
@@ -96,7 +98,6 @@ class MetadataSanityCheckerTest {
             plane = Plane.SAGITTAL.name,
             laterality = FatigueLaterality.BILATERAL.name,
             axialLoadLevel = AxialLoadLevel.NONE.name,
-            trainingRole = FatigueTrainingRole.ACCESSORY.name,
             fatigueCategories = FatigueCategory.SYSTEMIC.name,
             adaptiveBaselineGroups = AdaptiveBaselineGroup.SYSTEMIC.name,
             recoveryDecayProfile = RecoveryDecayProfile.SHORT.name,

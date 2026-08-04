@@ -108,8 +108,7 @@ internal object BadmintonTransferMetadataMapper {
         }
 
         if (
-            features.trainingRole in setOf("CONDITIONING", "SKILL") ||
-            features.movementCategory in setOf("CONDITIONING", "SKILL_DRILL") ||
+            features.supportsConditioningOrSkillAnalysis ||
             "CONDITIONING" in transferTokens ||
             "CONDITIONING" in skillTargets ||
             "FOOTWORK_SPEED" in skillTargets
@@ -118,8 +117,7 @@ internal object BadmintonTransferMetadataMapper {
         }
 
         if (
-            features.trainingRole in setOf("PREHAB", "STABILITY", "MOBILITY", "RECOVERY") ||
-            features.movementCategory in setOf("STABILITY", "MOBILITY", "PREHAB", "RECOVERY") ||
+            features.supportsLowFatigueControlAnalysis ||
             "LOW_FATIGUE_REHAB" in features.fatigueCategories ||
             "RECOVERY_ONLY" in features.analysisEligibility ||
             (

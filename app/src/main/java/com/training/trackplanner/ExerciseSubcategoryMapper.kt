@@ -122,7 +122,6 @@ internal object ExerciseSubcategoryMapper {
             exercise.primaryMuscles,
             exercise.secondaryMuscles,
             exercise.equipment,
-            exercise.trainingRole,
             exercise.fatigueCategories,
             exercise.badmintonTransferRoles,
             exercise.stabilityRoles,

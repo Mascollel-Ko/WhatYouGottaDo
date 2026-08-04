@@ -120,20 +120,6 @@ object ExerciseTaxonomy {
         "CONTRALATERAL"
     )
 
-    val trainingRoles = setOf(
-        "STRENGTH",
-        "HYPERTROPHY",
-        "POWER",
-        "PLYOMETRIC",
-        "STABILITY",
-        "MOBILITY",
-        "PREHAB",
-        "SKILL_DRILL",
-        "CONDITIONING",
-        "TEST",
-        "RECOVERY"
-    )
-
     val stabilityRoles = setOf(
         "CORE_STABILITY",
         "ANTI_ROTATION",

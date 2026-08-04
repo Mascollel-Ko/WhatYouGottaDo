@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-SLOTS |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0 |
+| Implemented from app version | v0.4.2.0; typed role split from v0.5.0.21 |
 | Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -93,12 +93,36 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 18. 권위 자산
 
 - [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
+- [`app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv`](../../../app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv)
+- [`app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv`](../../../app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv)
 
 ## 19. 관련 문서
 
 - [`docs/v0.4.2.0_release_notes.md`](../../v0.4.2.0_release_notes.md)
 - [`docs/protocols/README.md`](../README.md)
 
+## 19.1 TrainingRole / ProgramSlotCapability semantic split
+
+- `TrainingRole` describes intrinsic training meaning only. It never grants main,
+  secondary, or accessory placement.
+- `ProgramSlotCapability` describes ProgramBuilder placement only. Analysis,
+  fatigue, muscle, connective-tissue, badminton-transfer, and strength-proxy
+  calculations do not consume it.
+- The initial capability authority contains exactly the 26 approved stableKeys
+  from `training_role_whitelist_reconstruction.csv`. No unlisted exercise is
+  inferred or expanded.
+- `ACCESSORY` and `SPEED_REACTIVE` migrate to placement capability only. Their
+  intrinsic TrainingRole remains absent pending independent review.
+- Room schema 27 stores the two concepts in separate normalized relation tables.
+  The legacy mixed `Exercise.trainingRole` column is removed.
+- The advanced `ProgramBuilder` compatibility path reads the typed capability.
+  The public `ProgramAutoBuilder` path remains a known architectural boundary;
+  a full ProgramBuilder policy redesign is deferred.
+
 ## 20. 변경 이력
+
+- `1.1.0` (2026-08-04): split intrinsic `TrainingRole` from placement-only
+  `ProgramSlotCapability`, migrated the approved 26 exact stableKeys, and
+  removed the mixed production field without broadening ProgramBuilder policy.
 
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

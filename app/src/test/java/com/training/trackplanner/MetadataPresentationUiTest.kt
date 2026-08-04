@@ -231,7 +231,6 @@ class MetadataPresentationUiTest {
             bodyRegion = "상체",
             laterality = "BILATERAL",
             axialLoadLevel = "LOW",
-            trainingRole = "SECONDARY_STRENGTH",
             metadataConfidence = "HIGH"
         )
 

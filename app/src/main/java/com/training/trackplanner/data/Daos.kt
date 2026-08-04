@@ -146,6 +146,27 @@ interface RuntimeExerciseMetadataDao {
 }
 
 @Dao
+interface ExerciseRoleRelationDao {
+    @Query("SELECT * FROM exercise_training_role_relations ORDER BY exerciseStableKey, trainingRoleCode")
+    suspend fun allTrainingRoles(): List<ExerciseTrainingRoleRelation>
+
+    @Query("SELECT * FROM exercise_program_slot_capability_relations ORDER BY exerciseStableKey, capabilityCode")
+    suspend fun allProgramSlotCapabilities(): List<ExerciseProgramSlotCapabilityRelation>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTrainingRoles(rows: List<ExerciseTrainingRoleRelation>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProgramSlotCapabilities(rows: List<ExerciseProgramSlotCapabilityRelation>)
+
+    @Query("DELETE FROM exercise_training_role_relations WHERE exerciseStableKey = :stableKey")
+    suspend fun deleteTrainingRoles(stableKey: String)
+
+    @Query("DELETE FROM exercise_program_slot_capability_relations WHERE exerciseStableKey = :stableKey")
+    suspend fun deleteProgramSlotCapabilities(stableKey: String)
+}
+
+@Dao
 interface WorkoutDao {
     @Query("SELECT * FROM workout_entries ORDER BY date, createdAt, id")
     suspend fun allEntries(): List<WorkoutEntry>

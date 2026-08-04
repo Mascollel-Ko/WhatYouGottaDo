@@ -3,10 +3,10 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21 |
 | Last audited commit | 40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
@@ -84,7 +84,14 @@ reviewed authority에 남고 이 baseline에는 exact capability만 기록합니
 
 ## 8.1 Phase 2A.1 승인 의미
 
-- `trainingRole`: exact stableKey legacy whitelist만 허용하며 unlisted 운동은 빈 관계입니다. 최종 program role taxonomy로 자동 승격하지 않습니다.
+- Legacy `trainingRole` is no longer a production metadata field. Intrinsic
+  meaning is represented by typed `TrainingRole` relations and placement is
+  represented independently by typed `ProgramSlotCapability` relations.
+- The approved 26 exact stableKeys migrate mechanically to
+  `ProgramSlotCapability`; unlisted exercises receive no manufactured relation.
+- Program placement capability is not an analysis input. Existing Phase 0/1
+  `programSlotCapabilities` contract rows remain a separate shadow-contract
+  namespace and do not consume the new Room relation.
 - `familyId`: target `NONE`, `DERIVED_NONCANONICAL`입니다.
 - `loadProfile`: target `NONE`, `LEGACY_COMPOSITE_TO_BE_DECOMPOSED`입니다.
 - `sportTransferDirect`: target contract는 closed-world exact whitelist이며 빈 관계는 authoritative `NONE`입니다. 현재 production의 이름 기반 legacy fallback은 별도 sport-transfer cutover 승인 전까지 결과 보존을 위해 유지합니다.
@@ -214,6 +221,11 @@ golden을 검증합니다.
 
 ## 20. 변경 이력
 
+- `1.4.0` (2026-08-04): removed the mixed production `trainingRole` field,
+  separated intrinsic TrainingRole from ProgramSlotCapability, and documented
+  that program placement relations are not analysis inputs.
+- `1.3.0` (2026-08-04): recorded the Phase 2A.1 exact legacy whitelist,
+  noncanonical family/load boundaries, and isolated strength-proxy prior.
 - `1.0.0` (2026-07-30): Phase 0 usage/inference audit와 Phase 1 typed
   stableKey relation baseline, user incomplete projection, shadow parity를
   추가했습니다.

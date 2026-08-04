@@ -31,7 +31,6 @@ data class Exercise(
     val plane: String = "",
     val laterality: String = "",
     val axialLoadLevel: String = "",
-    val trainingRole: String = "",
     val stabilityRoles: String = "",
     val sportTransferDirect: String = "",
     val sportTransferSupportive: String = "",
@@ -74,6 +73,48 @@ data class Exercise(
     val archivedAt: Long? = null,
     val isCustom: Boolean = false,
     val needsReview: Boolean = false
+)
+
+@Entity(
+    tableName = "exercise_training_role_relations",
+    primaryKeys = ["exerciseStableKey", "trainingRoleCode"],
+    foreignKeys = [
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["stableKey"],
+            childColumns = ["exerciseStableKey"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["exerciseStableKey"])]
+)
+data class ExerciseTrainingRoleRelation(
+    val exerciseStableKey: String,
+    val trainingRoleCode: String,
+    val provenance: String,
+    val reviewStatus: String,
+    val notes: String = ""
+)
+
+@Entity(
+    tableName = "exercise_program_slot_capability_relations",
+    primaryKeys = ["exerciseStableKey", "capabilityCode"],
+    foreignKeys = [
+        ForeignKey(
+            entity = Exercise::class,
+            parentColumns = ["stableKey"],
+            childColumns = ["exerciseStableKey"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["exerciseStableKey"])]
+)
+data class ExerciseProgramSlotCapabilityRelation(
+    val exerciseStableKey: String,
+    val capabilityCode: String,
+    val provenance: String,
+    val reviewStatus: String,
+    val notes: String = ""
 )
 
 @Entity(

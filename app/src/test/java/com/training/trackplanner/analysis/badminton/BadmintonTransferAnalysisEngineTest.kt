@@ -265,7 +265,6 @@ class BadmintonTransferAnalysisEngineTest {
             plane = "FRONTAL",
             laterality = "ALTERNATING",
             axialLoadLevel = "LOW",
-            trainingRole = "SKILL",
             badmintonTransferRoles = "FOOTWORK|REACTION|DECELERATION",
             fatigueCategories = "NEURAL_SPEED|DECELERATION|ELASTIC_SSC",
             adaptiveBaselineGroups = "BADMINTON_COURT|DECELERATION",

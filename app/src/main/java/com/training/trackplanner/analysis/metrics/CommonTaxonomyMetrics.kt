@@ -11,7 +11,6 @@ data class CommonTaxonomyMetricsResult(
     val planeDistribution: Map<String, Int>,
     val primaryMuscleDistribution: Map<String, Int>,
     val secondaryMuscleDistribution: Map<String, Int>,
-    val trainingRoleDistribution: Map<String, Int>,
     val sportTransferDistribution: Map<String, Int>,
     val stabilityRoleDistribution: Map<String, Int>,
     val loadProfileDistribution: Map<String, Int>
@@ -27,7 +26,6 @@ object CommonTaxonomyMetrics {
             planeDistribution = entries.distribution(input) { plane },
             primaryMuscleDistribution = entries.tokenDistribution(input) { primaryMuscles },
             secondaryMuscleDistribution = entries.tokenDistribution(input) { secondaryMuscles },
-            trainingRoleDistribution = entries.distribution(input) { trainingRole },
             sportTransferDistribution = entries.sportTransferDistribution(input),
             stabilityRoleDistribution = entries.tokenDistribution(input) { stabilityRoles },
             loadProfileDistribution = entries.distribution(input) { loadProfile }
