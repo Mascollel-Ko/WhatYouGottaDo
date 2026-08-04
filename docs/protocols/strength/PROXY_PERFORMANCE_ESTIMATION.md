@@ -3,13 +3,14 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-PROXY-PERFORMANCE |
-| Protocol version | 3.0.2 |
+| Protocol version | 3.1.0 |
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.3 |
-| Last audited commit | 40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee |
+| Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
-| Supersedes | 2.1.0 |
+| Relation closeout status | ARTIFACT_ONLY |
+| Supersedes | 3.0.2 |
 
 이 문서는 완료 세션 이벤트로만 갱신되는 벤치프레스, 스쿼트, 데드리프트, 중량 풀업 수행능력 사후분포의 단일 canonical 계약입니다. v3은 보고 RPE를 단일 RIR로 치환하지 않고 확률분포로 적분하며, 같은 세션의 공통 컨디션 효과와 exercise-local 수행 변화를 분리합니다. 프록시는 다른 운동의 절대 kg를 옮기지 않고 검토된 shared factor에 local innovation만 전달합니다. v0.5.0.1의 화면 진입 시 재계산 엔진과 기존 Epley 계열은 권위 경로가 아닙니다.
 
@@ -39,13 +40,29 @@
 
 입력은 완료 세션의 confirmed set, stable key, 반복수, RPE, 외부중량, 날짜별 체중·초기 profile 체중 및 versioned registry입니다. 출력은 current model state, immutable per-event history, compact evidence, personal curve posterior, 이벤트 상태와 UI 요약입니다.
 
-### 3.1 Phase 2A.1 prior-only registry boundary
+### 3.1 Strength-proxy relation membership closeout
 
-`metadata/strength_proxy_prior_v1`은 차기 모델을 위한 isolated configuration preflight이며 위 production posterior의 입력이 아닙니다. 이 registry는 `BENCH_PRESS`, `BACK_SQUAT`, generic `DEADLIFT`, `WEIGHTED_PULL_UP`, `MILITARY_PRESS` 다섯 target만 갖고 relation을 exact stableKey로만 연결합니다. non-direct 수치는 broad uncertainty의 `PROVISIONAL_PRODUCT_PRIOR / TEMPORARY_APPROVED`이며 과학적으로 검증된 kg 변환계수가 아닙니다.
+[`outputs/strength_proxy_relation_closeout/strength_proxy_relation_registry_v1.csv`](../../../outputs/strength_proxy_relation_closeout/strength_proxy_relation_registry_v1.csv)은 차기 모델을 위한 **관계 membership만** 확정한 `ARTIFACT_ONLY` 권위본입니다. 현재 production posterior와 `metadata/strength_proxy_prior_v1` asset은 이 작업에서 변경하거나 연결하지 않습니다. 기존 prior asset의 수치 열은 이 closeout의 권위가 아니며, population alpha, 개인 alpha, transfer slope, residual variance, shared-factor loading magnitude와 kg 환산계수는 모두 `DEFERRED`입니다.
+
+최종 membership은 direct anchor 5개와 `SHARED_FACTOR_ONLY` proxy 12개, 총 17개입니다.
+
+| target | direct anchor | shared-factor proxies |
+|---|---|---|
+| `BENCH_PRESS` | `barbell_bench_press` | `ex_27b3deb5`, `ex_3a7d3eda`, `ex_a61f1e96`, `ex_1dbee10e` |
+| `BACK_SQUAT` | `barbell_back_squat` | `ex_c5043892`, `ex_fa3416f6` |
+| `DEADLIFT` | `barbell_deadlift` | `barbell_romanian_deadlift`, `dumbbell_romanian_deadlift` |
+| `WEIGHTED_PULL_UP` | `ex_e41f4c2b` | `pull_up`, `ex_e41e8dcf`, `ex_6466fe77`, `ex_dc9e5953` |
+| `MILITARY_PRESS` | `ex_32219f7a` | 없음 |
+
+direct anchor만 `TARGET_SPECIFIC_ALLOWED`를 사용합니다. 나머지 relation은 모두 `SHARED_FACTOR_ONLY`이며 target-specific factor 관측, 다른 운동의 절대 kg 이전 또는 하나의 관측을 여러 pseudo-observation으로 복제하는 권한이 없습니다. registry에 relation이 없다는 것은 해당 target으로 근거를 보낼 권한이 없다는 뜻이며, 자동 추론이나 미완성 상태를 뜻하지 않습니다.
 
 제품 책임자는 `MILITARY_PRESS` direct anchor를 `ex_32219f7a` (`오버헤드 프레스`)로 확정했습니다. 정본 실행은 서서 수행하는 strict barbell overhead press이며 의도적인 무릎·엉덩이 drive가 없습니다. push press, push jerk, split jerk는 이 anchor가 아니며 별도 stableKey를 가져야 합니다. 기존 `ex_32219f7a` 기록은 현재 strength model에서 이 정본 동작의 기록으로 취급합니다.
 
-한 proxy observation이 여러 target relation을 가져도 future posterior는 이를 독립 관측으로 중복 삽입하지 않습니다. shared factor는 한 번 갱신하고 여러 target posterior가 같은 shared state에 반응해야 합니다. 사용자별 상태는 exercise metadata가 아닌 별도 `UserStrengthProxyPosterior` 개념이며 이번 단계에서는 구현하지 않습니다.
+이전 24행 provisional set에서 제외된 7개 relation은 [`strength_proxy_relation_exclusions_v1.csv`](../../../outputs/strength_proxy_relation_closeout/strength_proxy_relation_exclusions_v1.csv)에 역사적 provenance와 함께 남깁니다. 삭제하거나 active relation으로 해석하지 않습니다.
+
+### 3.2 Deferred weekly alpha-learning data contract
+
+미래 alpha learning은 운동별 주간 latent-strength series를 요구합니다. 세션이 없는 주도 series에서 사라지면 안 되고, 0이나 직전 관측의 단순 복사로 기록하면 안 됩니다. 양쪽에 관측이 있을 때는 latent-state interpolation을 사용하고 gap이 길수록 uncertainty를 증가시켜야 합니다. 각 주의 provenance는 최소 `OBSERVED`, `INTERPOLATED`, `EXTRAPOLATED`를 구분하며, interpolated state에는 직접 관측과 같은 likelihood weight를 주지 않습니다. 이 단계에서는 alpha 수치, threshold, Room entity, 상태 전이 또는 학습 알고리즘을 구현하지 않습니다.
 
 ## 4. 비적용 범위
 
@@ -195,6 +212,8 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 - current state는 model/likelihood/proxy/derived-state 호환성 의미가 바뀔 때만 명시적 correction rebuild가 필요합니다. 일반 startup이나 분석 화면 진입은 rebuild 조건이 아닙니다.
 - historical bootstrap은 설치 시점에 보이는 완료 기록을 chronological forward-filtering한 것으로 당시 실제 앱 처리 시각을 복원하지 않습니다.
 - instrumentation migration test는 연결된 기기 또는 emulator에서 별도로 실행해야 합니다.
+- 17개 relation membership은 `ARTIFACT_ONLY`이며 production posterior에는 아직 연결되지 않았습니다.
+- population alpha와 개인별 alpha learning은 필요한 주간 관측·보간 provenance 계약만 문서화했고 수치와 알고리즘은 `DEFERRED`입니다.
 
 ## 15. 현재 구현 상태
 
@@ -250,6 +269,9 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 - [`strength_proxy_loadings_v1.csv`](../../../app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv)
 - [`rpe_rir_distribution_v1.csv`](../../../app/src/main/assets/strength_performance/rpe_rir_distribution_v1.csv)
 - [`generate_strength_repetition_curves.py`](../../../tools/generate_strength_repetition_curves.py)
+- [`strength_proxy_relation_registry_v1.csv`](../../../outputs/strength_proxy_relation_closeout/strength_proxy_relation_registry_v1.csv)
+- [`strength_proxy_relation_exclusions_v1.csv`](../../../outputs/strength_proxy_relation_closeout/strength_proxy_relation_exclusions_v1.csv)
+- [`strength_proxy_relation_validation_v1.csv`](../../../outputs/strength_proxy_relation_closeout/strength_proxy_relation_validation_v1.csv)
 
 ## 19. 관련 문서
 
@@ -262,6 +284,7 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 
 ## 20. 변경 이력
 
+- `3.1.0` (2026-08-04): 5개 direct anchor와 12개 shared-factor proxy의 relation membership을 artifact-only 권위본으로 확정하고, 7개 exclusion provenance와 미래 no-session 주간 interpolation 요구를 기록했습니다. production posterior, alpha 수치와 개인화 알고리즘은 변경하지 않았습니다.
 - `3.0.1` (2026-07-28): exercise identity가 바뀌는 model boundary에서
   derived state를 한 번 비우고 보존된 raw workout을 canonical stableKey로 재생한 뒤
   새 completion event만 순차 반영하도록 고정했습니다.

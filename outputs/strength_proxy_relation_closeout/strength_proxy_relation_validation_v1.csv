@@ -1,0 +1,13 @@
+checkId,status,observed,expected,detail
+,PASS,17,17,Five direct anchors plus twelve shared-factor proxies.
+,PASS,17,17,No duplicate relation IDs.
+,PASS,17,17,No duplicate target/exercise pairs.
+,PASS,5,5,Each target has exactly one direct anchor.
+,PASS,12,12,All non-direct relations are shared-factor only.
+,PASS,0,0,Registry intentionally contains no alpha or population-prior numeric parameters.
+,PASS,17,17,Future alpha-learning weekly series must interpolate no-session weeks and retain uncertainty.
+EXCLUSION_COUNT,PASS,7,7,Seven prior provisional relations are preserved as explicit exclusions.
+MULTIPLE_DIRECT_ANCHOR_TARGET,PASS,5,5,No target has more than one direct anchor.
+NON_DIRECT_TARGET_SPECIFIC_ALLOWED,PASS,0,0,Only direct anchors may use the target-specific observation path.
+MISSING_NO_SESSION_INTERPOLATION_DOCUMENTATION,PASS,0,0,Future weekly no-session interpolation and provenance states are documented without implementing alpha learning.
+EXPECTED_MEMBERSHIP_MATCH,PASS,0,0,Attached relation membership exactly matches the product-owner-approved v1 set.

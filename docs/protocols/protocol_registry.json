@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-07-31",
+  "lastUpdated": "2026-08-04",
   "families": [
     {
       "familyId": "OFI",
@@ -1090,7 +1090,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "3.0.2",
+      "currentVersion": "3.1.0",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1100,8 +1100,8 @@
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
-      "implementedFromAppVersion": "v0.5.0.3; isolated prior preflight from v0.5.0.19",
-      "lastAuditedCommit": "40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee",
+      "implementedFromAppVersion": "v0.5.0.3; isolated prior preflight from v0.5.0.19; relation membership closeout ARTIFACT_ONLY",
+      "lastAuditedCommit": "86c56ca4f74c02f4d1da48b4dd985106642ae42b",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
@@ -1142,22 +1142,28 @@
         "app/src/main/assets/strength_performance/repetition_curve_assignments_v1.csv",
         "app/src/main/assets/strength_performance/strength_target_registry_v1.csv",
         "app/src/main/assets/strength_performance/strength_proxy_loadings_v1.csv",
-        "app/src/main/assets/strength_performance/rpe_rir_distribution_v1.csv"
+        "app/src/main/assets/strength_performance/rpe_rir_distribution_v1.csv",
+        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_registry_v1.csv",
+        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_exclusions_v1.csv",
+        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_validation_v1.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
         "docs/bayesian_time_series_lab_architecture.md",
         "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_target_refs_v1.csv",
         "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_proxy_relations_v1.csv",
-        "docs/audits/strength_proxy_prior_seed_report.md"
+        "docs/audits/strength_proxy_prior_seed_report.md",
+        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_closeout_v1.md"
       ],
       "knownGaps": [
         "General-resistance curves for squat, deadlift and pull-up remain provisional rather than exercise-specific validated curves.",
         "RPE/RIR probability mass, sparse proxy loadings, transfer coefficients and process variance are versioned product policies rather than user-calibrated research parameters.",
         "Filtered history does not preserve posterior draws for strict BVAR or BLP propagation.",
-        "The Phase 2A.1 five-target strength-proxy prior registry is isolated and has no production posterior consumer."
+        "The finalized 17-row relation membership remains artifact-only and has no production posterior consumer.",
+        "Population alpha, personalized alpha learning and weekly latent-state interpolation are deferred; only their future data/provenance contract is documented."
       ],
       "supersedes": [
+        "STRENGTH-PROXY-PERFORMANCE@3.0.2",
         "STRENGTH-PROXY-PERFORMANCE@2.1.0",
         "STRENGTH-PROXY-PERFORMANCE@1.0.0"
       ],
