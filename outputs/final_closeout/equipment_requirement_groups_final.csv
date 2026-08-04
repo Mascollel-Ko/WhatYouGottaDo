@@ -1,0 +1,267 @@
+exerciseStableKey,exerciseName,groupId,requirementModel,memberOrder,equipmentCode,simultaneousRequired,sourceStableKey,note
+band_lift,밴드 리프트,eqreq_band_lift,SINGLE,1,BAND,NO,band_lift,Single atomic equipment requirement.
+band_pallof_press,밴드 팔로프 프레스,eqreq_band_pallof_press,SINGLE,1,BAND,NO,ex_99728d25,Single atomic equipment requirement.
+band_woodchop,밴드 우드찹,eqreq_band_woodchop,SINGLE,1,BAND,NO,band_woodchop,Single atomic equipment requirement.
+barbell_back_squat,스쿼트,eqreq_barbell_back_squat,SINGLE,1,BARBELL,NO,barbell_back_squat,Single atomic equipment requirement.
+barbell_bench_press,벤치프레스,eqreq_barbell_bench_press,ALL_REQUIRED,1,BARBELL,YES,barbell_bench_press,All listed atomic items are simultaneously required.
+barbell_bench_press,벤치프레스,eqreq_barbell_bench_press,ALL_REQUIRED,2,BENCH,YES,barbell_bench_press,All listed atomic items are simultaneously required.
+barbell_deadlift,데드리프트,eqreq_barbell_deadlift,SINGLE,1,BARBELL,NO,barbell_deadlift,Single atomic equipment requirement.
+barbell_reverse_curl,바벨 리버스 컬,eqreq_barbell_reverse_curl,SINGLE,1,BARBELL,NO,ex_dd2f732e,Single atomic equipment requirement.
+barbell_reverse_wrist_curl,바벨 리버스 리스트 컬,eqreq_barbell_reverse_wrist_curl,SINGLE,1,BARBELL,NO,ex_8e18b02a,Single atomic equipment requirement.
+barbell_romanian_deadlift,루마니안 바벨 데드리프트,eqreq_barbell_romanian_deadlift,SINGLE,1,BARBELL,NO,barbell_romanian_deadlift,Single atomic equipment requirement.
+cable_hip_adduction,케이블 힙 어덕션,eqreq_cable_hip_adduction,SINGLE,1,CABLE,NO,ex_eaea872c,Single atomic equipment requirement.
+cable_lift,케이블 리프트,eqreq_cable_lift,SINGLE,1,CABLE,NO,cable_lift,Single atomic equipment requirement.
+cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,eqreq_cable_overhead_triceps_extension,SINGLE,1,CABLE,NO,ex_a9e8859c,Single atomic equipment requirement.
+cable_pallof_press,케이블 팔로프 프레스,eqreq_cable_pallof_press,SINGLE,1,CABLE,NO,ex_99728d25,Single atomic equipment requirement.
+cable_rear_delt_fly,케이블 리어델트 플라이,eqreq_cable_rear_delt_fly,SINGLE,1,CABLE,NO,ex_7176cbee,Single atomic equipment requirement.
+cable_woodchop,케이블 우드찹,eqreq_cable_woodchop,SINGLE,1,CABLE,NO,cable_woodchop,Single atomic equipment requirement.
+chest_supported_row_machine,체스트 서포티드 로우 머신,eqreq_chest_supported_row_machine,SINGLE,1,ROW_MACHINE,NO,ex_8e51640a,Single atomic equipment requirement.
+dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,eqreq_dumbbell_chest_supported_row,ALL_REQUIRED,1,DUMBBELL,YES,ex_8e51640a,All listed atomic items are simultaneously required.
+dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,eqreq_dumbbell_chest_supported_row,ALL_REQUIRED,2,BENCH,YES,ex_8e51640a,All listed atomic items are simultaneously required.
+dumbbell_farmer_carry,덤벨 파머스 캐리,eqreq_dumbbell_farmer_carry,SINGLE,1,DUMBBELL,NO,ex_a1fc4533,Single atomic equipment requirement.
+dumbbell_goblet_squat,덤벨 고블릿 스쿼트,eqreq_dumbbell_goblet_squat,SINGLE,1,DUMBBELL,NO,ex_ac7df636,Single atomic equipment requirement.
+dumbbell_lying_triceps_extension,덤벨 라잉 트라이셉스 익스텐션,eqreq_dumbbell_lying_triceps_extension,SINGLE,1,DUMBBELL,NO,ex_d20b7487,Single atomic equipment requirement.
+dumbbell_overhead_triceps_extension,덤벨 오버헤드 트라이셉스 익스텐션,eqreq_dumbbell_overhead_triceps_extension,SINGLE,1,DUMBBELL,NO,ex_a9e8859c,Single atomic equipment requirement.
+dumbbell_preacher_curl,덤벨 프리처 컬,eqreq_dumbbell_preacher_curl,SINGLE,1,DUMBBELL,NO,ex_e994008a,Single atomic equipment requirement.
+dumbbell_rear_delt_fly,덤벨 리어델트 플라이,eqreq_dumbbell_rear_delt_fly,SINGLE,1,DUMBBELL,NO,ex_7176cbee,Single atomic equipment requirement.
+dumbbell_reverse_wrist_curl,덤벨 리버스 리스트 컬,eqreq_dumbbell_reverse_wrist_curl,SINGLE,1,DUMBBELL,NO,ex_8e18b02a,Single atomic equipment requirement.
+dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,eqreq_dumbbell_romanian_deadlift,SINGLE,1,DUMBBELL,NO,dumbbell_romanian_deadlift,Single atomic equipment requirement.
+dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,eqreq_dumbbell_single_leg_rdl,SINGLE,1,DUMBBELL,NO,single_leg_rdl,Single atomic equipment requirement.
+dumbbell_spider_curl,덤벨 스파이더 컬,eqreq_dumbbell_spider_curl,ALL_REQUIRED,1,DUMBBELL,YES,ex_516f4456,All listed atomic items are simultaneously required.
+dumbbell_spider_curl,덤벨 스파이더 컬,eqreq_dumbbell_spider_curl,ALL_REQUIRED,2,BENCH,YES,ex_516f4456,All listed atomic items are simultaneously required.
+dumbbell_woodchop,덤벨 우드찹,eqreq_dumbbell_woodchop,SINGLE,1,DUMBBELL,NO,dumbbell_woodchop,Single atomic equipment requirement.
+ex_1052e9fa,스미스 머신 런지,eqreq_ex_1052e9fa,SINGLE,1,SMITH_MACHINE,NO,ex_1052e9fa,Single atomic equipment requirement.
+ex_149730de,발목/고관절 가동성,,NONE,,,NO,ex_149730de,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_16b298db,미니밴드 사이드워크,eqreq_ex_16b298db,SINGLE,1,BAND,NO,ex_16b298db,Single atomic equipment requirement.
+ex_1a4858d7,농구,eqreq_ex_1a4858d7,SINGLE,1,BASKETBALL,NO,ex_1a4858d7,Single atomic equipment requirement.
+ex_1a4bbdcf,축구,eqreq_ex_1a4bbdcf,SINGLE,1,SOCCER_BALL,NO,ex_1a4bbdcf,Single atomic equipment requirement.
+ex_1c7f2342,랜덤 풋워크,,NONE,,,NO,ex_1c7f2342,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_1cf51b6b,노르딕 햄스트링 컬,eqreq_ex_1cf51b6b,SINGLE,1,HEEL_ANCHOR,NO,ex_1cf51b6b,Single atomic equipment requirement.
+ex_1dbee10e,머신 체스트프레스,eqreq_ex_1dbee10e,SINGLE,1,CHEST_PRESS_MACHINE,NO,ex_1dbee10e,Single atomic equipment requirement.
+ex_2055b629,애질리티 래더,eqreq_ex_2055b629,SINGLE,1,AGILITY_LADDER,NO,ex_2055b629,Single atomic equipment requirement.
+ex_216351a1,가벼운 콕줍기,eqreq_ex_216351a1,SINGLE,1,SHUTTLECOCKS,NO,ex_216351a1,Single atomic equipment requirement.
+ex_27b3deb5,클로즈그립 벤치프레스,eqreq_ex_27b3deb5,ALL_REQUIRED,1,BARBELL,YES,ex_27b3deb5,All listed atomic items are simultaneously required.
+ex_27b3deb5,클로즈그립 벤치프레스,eqreq_ex_27b3deb5,ALL_REQUIRED,2,BENCH,YES,ex_27b3deb5,All listed atomic items are simultaneously required.
+ex_281347da,덤벨 컬,eqreq_ex_281347da,SINGLE,1,DUMBBELL,NO,ex_281347da,Single atomic equipment requirement.
+ex_2822ec2e,레그 컬,eqreq_ex_2822ec2e,SINGLE,1,LEG_CURL_MACHINE,NO,ex_2822ec2e,Single atomic equipment requirement.
+ex_282a9d87,링 로우,eqreq_ex_282a9d87,SINGLE,1,GYMNASTIC_RINGS,NO,ex_282a9d87,Single atomic equipment requirement.
+ex_28347c1f,버드독,,NONE,,,NO,ex_28347c1f,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_284ecca6,슈퍼맨,,NONE,,,NO,ex_284ecca6,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_28902b13,푸시업,,NONE,,,NO,ex_28902b13,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_2892da5a,해머 컬,eqreq_ex_2892da5a,SINGLE,1,DUMBBELL,NO,ex_2892da5a,Single atomic equipment requirement.
+ex_2a826c82,할로우 바디 홀드,,NONE,,,NO,ex_2a826c82,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_2f3b56d0,테니스,eqreq_ex_2f3b56d0,ALL_REQUIRED,1,TENNIS_BALL,YES,ex_2f3b56d0,All listed atomic items are simultaneously required.
+ex_2f3b56d0,테니스,eqreq_ex_2f3b56d0,ALL_REQUIRED,2,TENNIS_RACKET,YES,ex_2f3b56d0,All listed atomic items are simultaneously required.
+ex_30a0e9aa,원암 덤벨 로우,eqreq_ex_30a0e9aa,SINGLE,1,DUMBBELL,NO,ex_30a0e9aa,Single atomic equipment requirement.
+ex_314df428,원레그 홉 투 스틱,,NONE,,,NO,ex_314df428,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_32219f7a,오버헤드 프레스,eqreq_ex_32219f7a,SINGLE,1,BARBELL,NO,ex_32219f7a,Single atomic equipment requirement.
+ex_32eb8457,원암 랫풀다운,eqreq_ex_32eb8457,SINGLE,1,CABLE,NO,ex_32eb8457,Single atomic equipment requirement.
+ex_33841b88,6코너 풋워크,,NONE,,,NO,ex_33841b88,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_33d2da8e,원암 머신 로우,eqreq_ex_33d2da8e,SINGLE,1,ROW_MACHINE,NO,ex_33d2da8e,Single atomic equipment requirement.
+ex_34e7d21,래터럴 바운드 투 스틱,,NONE,,,NO,ex_34e7d21,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_377448a9,스플릿 스텝 후 좌우 런지,,NONE,,,NO,ex_377448a9,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_389920ab,글루트 브릿지,eqreq_ex_389920ab,SINGLE,1,BARBELL,NO,ex_389920ab,Single atomic equipment requirement.
+ex_389e0556,원암 덤벨 벤치프레스,eqreq_ex_389e0556,ALL_REQUIRED,1,BENCH,YES,ex_389e0556,All listed atomic items are simultaneously required.
+ex_389e0556,원암 덤벨 벤치프레스,eqreq_ex_389e0556,ALL_REQUIRED,2,DUMBBELL,YES,ex_389e0556,All listed atomic items are simultaneously required.
+ex_3a7d3eda,덤벨 벤치프레스,eqreq_ex_3a7d3eda,ALL_REQUIRED,1,BENCH,YES,ex_3a7d3eda,All listed atomic items are simultaneously required.
+ex_3a7d3eda,덤벨 벤치프레스,eqreq_ex_3a7d3eda,ALL_REQUIRED,2,DUMBBELL,YES,ex_3a7d3eda,All listed atomic items are simultaneously required.
+ex_3c3692aa,케이블 원암 로우,eqreq_ex_3c3692aa,SINGLE,1,CABLE,NO,ex_3c3692aa,Single atomic equipment requirement.
+ex_3caa236b,파이크 푸시업,,NONE,,,NO,ex_3caa236b,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_3d5719de,원암 케이블 컬,eqreq_ex_3d5719de,SINGLE,1,CABLE,NO,ex_3d5719de,Single atomic equipment requirement.
+ex_3f184ef9,버피,,NONE,,,NO,ex_3f184ef9,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_40fa57be,원암 케이블 하이 로우,eqreq_ex_40fa57be,SINGLE,1,CABLE,NO,ex_40fa57be,Single atomic equipment requirement.
+ex_421ba24b,좌우 랜덤 콕줍기,eqreq_ex_421ba24b,SINGLE,1,SHUTTLECOCKS,NO,ex_421ba24b,Single atomic equipment requirement.
+ex_4255e429,앞뒤 랜덤 콕줍기,eqreq_ex_4255e429,SINGLE,1,SHUTTLECOCKS,NO,ex_4255e429,Single atomic equipment requirement.
+ex_442617f6,원암 케이블 플라이,eqreq_ex_442617f6,SINGLE,1,CABLE,NO,ex_442617f6,Single atomic equipment requirement.
+ex_462c760e,체스트 서포티드 원암 머신 로우,eqreq_ex_462c760e,SINGLE,1,ROW_MACHINE,NO,ex_462c760e,Single atomic equipment requirement.
+ex_4773b6ea,린단 참고 트랙 스프린트,,NONE,,,NO,ex_4773b6ea,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_4aa3725a,머신 숄더프레스,eqreq_ex_4aa3725a,SINGLE,1,SHOULDER_PRESS_MACHINE,NO,ex_4aa3725a,Single atomic equipment requirement.
+ex_4c76dbb2,케이블 풀스루,eqreq_ex_4c76dbb2,SINGLE,1,CABLE,NO,ex_4c76dbb2,Single atomic equipment requirement.
+ex_4c779df2,케이블 플라이,eqreq_ex_4c779df2,SINGLE,1,CABLE,NO,ex_4c779df2,Single atomic equipment requirement.
+ex_5004ca76,린단 참고 페이스 체인지 풋워크,,NONE,,,NO,ex_5004ca76,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,eqreq_ex_5322f2d1,SINGLE,1,CABLE,NO,ex_5322f2d1,Single atomic equipment requirement.
+ex_5c8751d2,시티드 카프 레이즈,eqreq_ex_5c8751d2,SINGLE,1,SEATED_CALF_RAISE_MACHINE,NO,ex_5c8751d2,Single atomic equipment requirement.
+ex_5ca7133f,원레그 카프 레이즈,eqreq_ex_5ca7133f,SINGLE,1,DUMBBELL,NO,ex_5ca7133f,Single atomic equipment requirement.
+ex_6232f4bc,박스 스텝업,eqreq_ex_6232f4bc,SINGLE,1,BOX_STEP,NO,ex_6232f4bc,Single atomic equipment requirement.
+ex_64422511,랜덤 방향전환 드릴,,NONE,,,NO,ex_64422511,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_644e0f9d,V업,,NONE,,,NO,ex_644e0f9d,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_6463edad,딥스,eqreq_ex_6463edad,SINGLE,1,PARALLEL_BARS,NO,ex_6463edad,Single atomic equipment requirement.
+ex_64644b5e,런지,eqreq_ex_64644b5e,SINGLE,1,DUMBBELL,NO,ex_64644b5e,Single atomic equipment requirement.
+ex_64661229,월싯,eqreq_ex_64661229,SINGLE,1,WALL,NO,ex_64661229,Single atomic equipment requirement.
+ex_6466fe77,친업,eqreq_ex_6466fe77,SINGLE,1,PULL_UP_BAR,NO,ex_6466fe77,Single atomic equipment requirement.
+ex_681d9ed2,러닝,,NONE,,,NO,ex_681d9ed2,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_681eed4a,수영,eqreq_ex_681eed4a,SINGLE,1,SWIMMING_POOL,NO,ex_681eed4a,Single atomic equipment requirement.
+ex_69a56484,래터럴 스텝다운,eqreq_ex_69a56484,SINGLE,1,BOX_STEP,NO,ex_69a56484,Single atomic equipment requirement.
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,eqreq_ex_6a966452,ALL_REQUIRED,1,BENCH,YES,ex_6a966452,All listed atomic items are simultaneously required.
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,eqreq_ex_6a966452,ALL_REQUIRED,2,DUMBBELL,YES,ex_6a966452,All listed atomic items are simultaneously required.
+ex_704cbf1a,덤벨 스텝업,eqreq_ex_704cbf1a,ALL_REQUIRED,1,BOX_STEP,YES,ex_704cbf1a,All listed atomic items are simultaneously required.
+ex_704cbf1a,덤벨 스텝업,eqreq_ex_704cbf1a,ALL_REQUIRED,2,DUMBBELL,YES,ex_704cbf1a,All listed atomic items are simultaneously required.
+ex_708e64ce,덤벨 풀오버,eqreq_ex_708e64ce,SINGLE,1,DUMBBELL,NO,ex_708e64ce,Single atomic equipment requirement.
+ex_70f19bf,리닝 래터럴 레이즈,eqreq_ex_70f19bf,SINGLE,1,DUMBBELL,NO,ex_70f19bf,Single atomic equipment requirement.
+ex_721f7b5b,힙 쓰러스트,eqreq_ex_721f7b5b,SINGLE,1,BARBELL,NO,ex_721f7b5b,Single atomic equipment requirement.
+ex_728da646,힙 어브덕션,eqreq_ex_728da646,SINGLE,1,HIP_ABDUCTION_MACHINE,NO,ex_728da646,Single atomic equipment requirement.
+ex_72f11dc5,덤벨 리스트 익스텐션,eqreq_ex_72f11dc5,SINGLE,1,DUMBBELL,NO,ex_72f11dc5,Single atomic equipment requirement.
+ex_73b0b63f,아처 푸시업,,NONE,,,NO,ex_73b0b63f,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_7404067c,케틀벨 스윙,eqreq_ex_7404067c,SINGLE,1,KETTLEBELL,NO,ex_7404067c,Single atomic equipment requirement.
+ex_74c2d13b,계단 오르기,eqreq_ex_74c2d13b,SINGLE,1,STAIRS,NO,ex_74c2d13b,Single atomic equipment requirement.
+ex_752b45ae,멀티셔틀 풋워크,eqreq_ex_752b45ae,SINGLE,1,SHUTTLECOCKS,NO,ex_752b45ae,Single atomic equipment requirement.
+ex_767e188e,아놀드 프레스,eqreq_ex_767e188e,SINGLE,1,DUMBBELL,NO,ex_767e188e,Single atomic equipment requirement.
+ex_7814843a,원암 덤벨 숄더프레스,eqreq_ex_7814843a,SINGLE,1,DUMBBELL,NO,ex_7814843a,Single atomic equipment requirement.
+ex_79f3bdbe,덤벨 숄더프레스,eqreq_ex_79f3bdbe,SINGLE,1,DUMBBELL,NO,ex_79f3bdbe,Single atomic equipment requirement.
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,eqreq_ex_7ce96a7a,ALL_REQUIRED,1,BOX_STEP,YES,ex_7ce96a7a,All listed atomic items are simultaneously required.
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,eqreq_ex_7ce96a7a,ALL_REQUIRED,2,DUMBBELL,YES,ex_7ce96a7a,All listed atomic items are simultaneously required.
+ex_7deabeba,리어델트 케이블 플라이,eqreq_ex_7deabeba,SINGLE,1,CABLE,NO,ex_7deabeba,Single atomic equipment requirement.
+ex_85b2ac56,원암 덤벨 컬,eqreq_ex_85b2ac56,SINGLE,1,DUMBBELL,NO,ex_85b2ac56,Single atomic equipment requirement.
+ex_85f12271,원레그 박스 스쿼트,eqreq_ex_85f12271,ALL_REQUIRED,1,BENCH,YES,ex_85f12271,All listed atomic items are simultaneously required.
+ex_85f12271,원레그 박스 스쿼트,eqreq_ex_85f12271,ALL_REQUIRED,2,BOX_STEP,YES,ex_85f12271,All listed atomic items are simultaneously required.
+ex_86323ed6,원암 해머 컬,eqreq_ex_86323ed6,SINGLE,1,DUMBBELL,NO,ex_86323ed6,Single atomic equipment requirement.
+ex_8633d8db,EZ바 컬,eqreq_ex_8633d8db,SINGLE,1,EZ_BAR,NO,ex_8633d8db,Single atomic equipment requirement.
+ex_8824026f,원레그 레그 컬,eqreq_ex_8824026f,SINGLE,1,LEG_CURL_MACHINE,NO,ex_8824026f,Single atomic equipment requirement.
+ex_8a3800f1,리버스 노르딕 컬,,NONE,,,NO,ex_8a3800f1,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_8e4bf08e,Yates Row,eqreq_ex_8e4bf08e,SINGLE,1,BARBELL,NO,ex_8e4bf08e,Single atomic equipment requirement.
+ex_8e69fc74,스플릿 스텝 리액션,,NONE,,,NO,ex_8e69fc74,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_91b749b3,플랫 덤벨 플라이,eqreq_ex_91b749b3,SINGLE,1,DUMBBELL,NO,ex_91b749b3,Single atomic equipment requirement.
+ex_91d8430b,30초 반복 스매시 테스트,eqreq_ex_91d8430b,ALL_REQUIRED,1,BADMINTON_RACKET,YES,ex_91d8430b,All listed atomic items are simultaneously required.
+ex_91d8430b,30초 반복 스매시 테스트,eqreq_ex_91d8430b,ALL_REQUIRED,2,SHUTTLECOCKS,YES,ex_91d8430b,All listed atomic items are simultaneously required.
+ex_91f6958d,터키시 겟업,eqreq_ex_91f6958d,SINGLE,1,KETTLEBELL,NO,ex_91f6958d,Single atomic equipment requirement.
+ex_93538692,덤벨 래터럴 레이즈,eqreq_ex_93538692,SINGLE,1,DUMBBELL,NO,ex_93538692,Single atomic equipment requirement.
+ex_95028bfe,덤벨 리스트 컬,eqreq_ex_95028bfe,SINGLE,1,DUMBBELL,NO,ex_95028bfe,Single atomic equipment requirement.
+ex_9b132c23,사이드 스텝 후 정지,,NONE,,,NO,ex_9b132c23,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_9bd6dddb,줄넘기,eqreq_ex_9bd6dddb,SINGLE,1,JUMP_ROPE,NO,ex_9bd6dddb,Single atomic equipment requirement.
+ex_9f283612,원암 인클라인 덤벨 프레스,eqreq_ex_9f283612,ALL_REQUIRED,1,BENCH,YES,ex_9f283612,All listed atomic items are simultaneously required.
+ex_9f283612,원암 인클라인 덤벨 프레스,eqreq_ex_9f283612,ALL_REQUIRED,2,DUMBBELL,YES,ex_9f283612,All listed atomic items are simultaneously required.
+ex_a091b9fe,원레그 레그 프레스,eqreq_ex_a091b9fe,SINGLE,1,LEG_PRESS_MACHINE,NO,ex_a091b9fe,Single atomic equipment requirement.
+ex_a12de111,A스킵,,NONE,,,NO,ex_a12de111,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a12de4d2,B스킵,,NONE,,,NO,ex_a12de4d2,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a345e30b,캡틴체어 레그 레이즈,eqreq_ex_a345e30b,SINGLE,1,CAPTAINS_CHAIR,NO,ex_a345e30b,Single atomic equipment requirement.
+ex_a3ddd8ac,라인 홉,,NONE,,,NO,ex_a3ddd8ac,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a4040be3,셔틀런,,NONE,,,NO,ex_a4040be3,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a412dd45,앙클링,,NONE,,,NO,ex_a412dd45,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a4350c0f,콘 드릴,eqreq_ex_a4350c0f,SINGLE,1,CONE_MARKER,NO,ex_a4350c0f,Single atomic equipment requirement.
+ex_a44ae2ca,플랭크,,NONE,,,NO,ex_a44ae2ca,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_a60496be,원암 리어델트 케이블 플라이,eqreq_ex_a60496be,SINGLE,1,CABLE,NO,ex_a60496be,Single atomic equipment requirement.
+ex_a611010d,코사크 스쿼트,eqreq_ex_a611010d,SINGLE,1,KETTLEBELL,NO,ex_a611010d,Single atomic equipment requirement.
+ex_a61f1e96,인클라인 덤벨 프레스,eqreq_ex_a61f1e96,ALL_REQUIRED,1,BENCH,YES,ex_a61f1e96,All listed atomic items are simultaneously required.
+ex_a61f1e96,인클라인 덤벨 프레스,eqreq_ex_a61f1e96,ALL_REQUIRED,2,DUMBBELL,YES,ex_a61f1e96,All listed atomic items are simultaneously required.
+ex_a61f307a,인클라인 덤벨 플라이,eqreq_ex_a61f307a,ALL_REQUIRED,1,BENCH,YES,ex_a61f307a,All listed atomic items are simultaneously required.
+ex_a61f307a,인클라인 덤벨 플라이,eqreq_ex_a61f307a,ALL_REQUIRED,2,DUMBBELL,YES,ex_a61f307a,All listed atomic items are simultaneously required.
+ex_a76f20b6,시티드 원암 케이블 로우,eqreq_ex_a76f20b6,SINGLE,1,CABLE,NO,ex_a76f20b6,Single atomic equipment requirement.
+ex_a8385c4a,코펜하겐 플랭크,eqreq_ex_a8385c4a,SINGLE,1,BENCH,NO,ex_a8385c4a,Single atomic equipment requirement.
+ex_a9b52886,마운틴 클라이머,,NONE,,,NO,ex_a9b52886,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_ab468462,레그 프레스,eqreq_ex_ab468462,SINGLE,1,LEG_PRESS_MACHINE,NO,ex_ab468462,Single atomic equipment requirement.
+ex_ab918e2b,실내 자전거,eqreq_ex_ab918e2b,SINGLE,1,STATIONARY_BIKE,NO,ex_ab918e2b,Single atomic equipment requirement.
+ex_aca9d312,러닝 풋살,eqreq_ex_aca9d312,SINGLE,1,SOCCER_BALL,NO,ex_aca9d312,Single atomic equipment requirement.
+ex_ae9ecdbc,배드민턴,eqreq_ex_ae9ecdbc,ALL_REQUIRED,1,BADMINTON_RACKET,YES,ex_ae9ecdbc,All listed atomic items are simultaneously required.
+ex_ae9ecdbc,배드민턴,eqreq_ex_ae9ecdbc,ALL_REQUIRED,2,SHUTTLECOCKS,YES,ex_ae9ecdbc,All listed atomic items are simultaneously required.
+ex_b076570e,원암 케이블 래터럴 레이즈,eqreq_ex_b076570e,SINGLE,1,CABLE,NO,ex_b076570e,Single atomic equipment requirement.
+ex_b3f447be,행잉 레그 레이즈,eqreq_ex_b3f447be,SINGLE,1,PULL_UP_BAR,NO,ex_b3f447be,Single atomic equipment requirement.
+ex_b4b198de,래터럴 런지,eqreq_ex_b4b198de,SINGLE,1,DUMBBELL,NO,ex_b4b198de,Single atomic equipment requirement.
+ex_b59bed7d,스탠딩 레그 컬,eqreq_ex_b59bed7d,SINGLE,1,LEG_CURL_MACHINE,NO,ex_b59bed7d,Single atomic equipment requirement.
+ex_b69ab702,크로스바디 해머 컬,eqreq_ex_b69ab702,SINGLE,1,DUMBBELL,NO,ex_b69ab702,Single atomic equipment requirement.
+ex_b76d3f92,케이블 래터럴 레이즈,eqreq_ex_b76d3f92,SINGLE,1,CABLE,NO,ex_b76d3f92,Single atomic equipment requirement.
+ex_b78a8f95,레그 익스텐션,eqreq_ex_b78a8f95,SINGLE,1,LEG_EXTENSION_MACHINE,NO,ex_b78a8f95,Single atomic equipment requirement.
+ex_badminton_lesson,배드민턴 레슨,eqreq_ex_badminton_lesson,ALL_REQUIRED,1,BADMINTON_RACKET,YES,ex_badminton_lesson,All listed atomic items are simultaneously required.
+ex_badminton_lesson,배드민턴 레슨,eqreq_ex_badminton_lesson,ALL_REQUIRED,2,SHUTTLECOCKS,YES,ex_badminton_lesson,All listed atomic items are simultaneously required.
+ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,eqreq_ex_bb4b4276,SINGLE,1,DUMBBELL,NO,ex_bb4b4276,Single atomic equipment requirement.
+ex_bc84eb7f,6방향 랜덤 콕줍기,eqreq_ex_bc84eb7f,SINGLE,1,SHUTTLECOCKS,NO,ex_bc84eb7f,Single atomic equipment requirement.
+ex_c1a81cb2,로프 해머 컬,eqreq_ex_c1a81cb2,SINGLE,1,CABLE,NO,ex_c1a81cb2,Single atomic equipment requirement.
+ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,eqreq_ex_c1bf2aa8,SINGLE,1,SHUTTLECOCKS,NO,ex_c1bf2aa8,Single atomic equipment requirement.
+ex_c365e5e2,원암 스트레이트암 풀다운,eqreq_ex_c365e5e2,SINGLE,1,CABLE,NO,ex_c365e5e2,Single atomic equipment requirement.
+ex_c4535de3,스캡 푸시업,,NONE,,,NO,ex_c4535de3,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_c4ea0a2a,스킵 바운드,,NONE,,,NO,ex_c4ea0a2a,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_c5043892,프론트 스쿼트,eqreq_ex_c5043892,SINGLE,1,BARBELL,NO,ex_c5043892,Single atomic equipment requirement.
+ex_c536edc2,원암 케이블 숄더프레스,eqreq_ex_c536edc2,SINGLE,1,CABLE,NO,ex_c536edc2,Single atomic equipment requirement.
+ex_c5c2fdef,스트라이드,,NONE,,,NO,ex_c5c2fdef,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_c5f4c242,랜덤 비프 풋워크,eqreq_ex_c5f4c242,SINGLE,1,AUDIO_CUE_DEVICE,NO,ex_c5f4c242,Single atomic equipment requirement.
+ex_c62c0716,컨센트레이션 컬,eqreq_ex_c62c0716,SINGLE,1,DUMBBELL,NO,ex_c62c0716,Single atomic equipment requirement.
+ex_c6d9efef,스플릿 스텝,,NONE,,,NO,ex_c6d9efef,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_c7977dfd,6코너 풋워크 최대반복 테스트,,NONE,,,NO,ex_c7977dfd,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_c8bcf3ce,리버스 런지,eqreq_ex_c8bcf3ce,SINGLE,1,DUMBBELL,NO,ex_c8bcf3ce,Single atomic equipment requirement.
+ex_ca5cce66,스트레이트암 풀다운,eqreq_ex_ca5cce66,SINGLE,1,CABLE,NO,ex_ca5cce66,Single atomic equipment requirement.
+ex_cb3c4dc2,맨몸 스쿼트,,NONE,,,NO,ex_cb3c4dc2,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_d5048362,인클라인 덤벨 컬,eqreq_ex_d5048362,ALL_REQUIRED,1,BENCH,YES,ex_d5048362,All listed atomic items are simultaneously required.
+ex_d5048362,인클라인 덤벨 컬,eqreq_ex_d5048362,ALL_REQUIRED,2,DUMBBELL,YES,ex_d5048362,All listed atomic items are simultaneously required.
+ex_d5bdffe1,데드버그,,NONE,,,NO,ex_d5bdffe1,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_d60745b4,원레그 레그 익스텐션,eqreq_ex_d60745b4,SINGLE,1,LEG_EXTENSION_MACHINE,NO,ex_d60745b4,Single atomic equipment requirement.
+ex_d6726746,드롭 점프,eqreq_ex_d6726746,SINGLE,1,BOX_STEP,NO,ex_d6726746,Single atomic equipment requirement.
+ex_d67e5761,피스톨 스쿼트,,NONE,,,NO,ex_d67e5761,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_d7c90536,로잉머신,eqreq_ex_d7c90536,SINGLE,1,ROWING_MACHINE,NO,ex_d7c90536,Single atomic equipment requirement.
+ex_d9e141e4,박스 점프,eqreq_ex_d9e141e4,SINGLE,1,BOX_STEP,NO,ex_d9e141e4,Single atomic equipment requirement.
+ex_da56a4fe,덤벨 킥백,eqreq_ex_da56a4fe,SINGLE,1,DUMBBELL,NO,ex_da56a4fe,Single atomic equipment requirement.
+ex_dc9e5953,랫풀다운,eqreq_ex_dc9e5953,SINGLE,1,LAT_PULLDOWN_MACHINE,NO,ex_dc9e5953,Single atomic equipment requirement.
+ex_dd16e07a,스트레칭,,NONE,,,NO,ex_dd16e07a,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_de46b7f6,바벨 로우,eqreq_ex_de46b7f6,SINGLE,1,BARBELL,NO,ex_de46b7f6,Single atomic equipment requirement.
+ex_debf6a8b,다이아몬드 푸시업,,NONE,,,NO,ex_debf6a8b,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_deca2b61,벤치 딥스,eqreq_ex_deca2b61,SINGLE,1,BENCH,NO,ex_deca2b61,Single atomic equipment requirement.
+ex_df966b45,점프 런지,,NONE,,,NO,ex_df966b45,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_e0b1e364,원암 덤벨 RDL,eqreq_ex_e0b1e364,SINGLE,1,DUMBBELL,NO,ex_e0b1e364,Single atomic equipment requirement.
+ex_e1894690,스캡 풀업,eqreq_ex_e1894690,SINGLE,1,PULL_UP_BAR,NO,ex_e1894690,Single atomic equipment requirement.
+ex_e2efd0fe,불가리안 스플릿 스쿼트,eqreq_ex_e2efd0fe,ALL_REQUIRED,1,BENCH,YES,ex_e2efd0fe,All listed atomic items are simultaneously required.
+ex_e2efd0fe,불가리안 스플릿 스쿼트,eqreq_ex_e2efd0fe,ALL_REQUIRED,2,DUMBBELL,YES,ex_e2efd0fe,All listed atomic items are simultaneously required.
+ex_e3715c0b,워킹 런지,eqreq_ex_e3715c0b,SINGLE,1,DUMBBELL,NO,ex_e3715c0b,Single atomic equipment requirement.
+ex_e41e8dcf,중량 친업,eqreq_ex_e41e8dcf,ALL_REQUIRED,1,DUMBBELL,YES,ex_e41e8dcf,All listed atomic items are simultaneously required.
+ex_e41e8dcf,중량 친업,eqreq_ex_e41e8dcf,ALL_REQUIRED,2,PULL_UP_BAR,YES,ex_e41e8dcf,All listed atomic items are simultaneously required.
+ex_e41e8dcf,중량 친업,eqreq_ex_e41e8dcf,ALL_REQUIRED,3,WEIGHT_BELT,YES,ex_e41e8dcf,All listed atomic items are simultaneously required.
+ex_e41f4c2b,중량 풀업,eqreq_ex_e41f4c2b,ALL_REQUIRED,1,DUMBBELL,YES,ex_e41f4c2b,All listed atomic items are simultaneously required.
+ex_e41f4c2b,중량 풀업,eqreq_ex_e41f4c2b,ALL_REQUIRED,2,PULL_UP_BAR,YES,ex_e41f4c2b,All listed atomic items are simultaneously required.
+ex_e41f4c2b,중량 풀업,eqreq_ex_e41f4c2b,ALL_REQUIRED,3,WEIGHT_BELT,YES,ex_e41f4c2b,All listed atomic items are simultaneously required.
+ex_e465d1e9,포고 점프,,NONE,,,NO,ex_e465d1e9,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_e4f911bb,네거티브 풀업,eqreq_ex_e4f911bb,SINGLE,1,PULL_UP_BAR,NO,ex_e4f911bb,Single atomic equipment requirement.
+ex_e709eeda,케이블 컬,eqreq_ex_e709eeda,SINGLE,1,CABLE,NO,ex_e709eeda,Single atomic equipment requirement.
+ex_e8ff8cfa,밴드 외회전,eqreq_ex_e8ff8cfa,SINGLE,1,BAND,NO,ex_e8ff8cfa,Single atomic equipment requirement.
+ex_e9e97659,핵 스쿼트,eqreq_ex_e9e97659,SINGLE,1,HACK_SQUAT_MACHINE,NO,ex_e9e97659,Single atomic equipment requirement.
+ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,eqreq_ex_eb636bac,SINGLE,1,CABLE,NO,ex_eb636bac,Single atomic equipment requirement.
+ex_ee378da7,스케이터 스쿼트,eqreq_ex_ee378da7,SINGLE,1,DUMBBELL,NO,ex_ee378da7,Single atomic equipment requirement.
+ex_f1d31d3d,원레그 핵 스쿼트,eqreq_ex_f1d31d3d,SINGLE,1,HACK_SQUAT_MACHINE,NO,ex_f1d31d3d,Single atomic equipment requirement.
+ex_f2a79d37,스플릿 스쿼트,eqreq_ex_f2a79d37,SINGLE,1,DUMBBELL,NO,ex_f2a79d37,Single atomic equipment requirement.
+ex_f332aeab,월 드라이브,eqreq_ex_f332aeab,SINGLE,1,WALL,NO,ex_f332aeab,Single atomic equipment requirement.
+ex_f459ad2a,메도우즈 로우,eqreq_ex_f459ad2a,ALL_REQUIRED,1,BARBELL,YES,ex_f459ad2a,All listed atomic items are simultaneously required.
+ex_f459ad2a,메도우즈 로우,eqreq_ex_f459ad2a,ALL_REQUIRED,2,LANDMINE,YES,ex_f459ad2a,All listed atomic items are simultaneously required.
+ex_f6703b06,덤벨 프로네이션/수피네이션,eqreq_ex_f6703b06,SINGLE,1,DUMBBELL,NO,ex_f6703b06,Single atomic equipment requirement.
+ex_f6d43398,사이드 플랭크,,NONE,,,NO,ex_f6d43398,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_f97a05ab,월 슬라이드,eqreq_ex_f97a05ab,SINGLE,1,WALL,NO,ex_f97a05ab,Single atomic equipment requirement.
+ex_fa2e73b3,핸드스탠드 푸시업,eqreq_ex_fa2e73b3,SINGLE,1,WALL,NO,ex_fa2e73b3,Single atomic equipment requirement.
+ex_fa31f7a6,케이블 로우,eqreq_ex_fa31f7a6,SINGLE,1,CABLE,NO,ex_fa31f7a6,Single atomic equipment requirement.
+ex_fa3416f6,스미스 머신 스쿼트,eqreq_ex_fa3416f6,SINGLE,1,SMITH_MACHINE,NO,ex_fa3416f6,Single atomic equipment requirement.
+ex_fa34ddfe,케이블 킥백,eqreq_ex_fa34ddfe,SINGLE,1,CABLE,NO,ex_fa34ddfe,Single atomic equipment requirement.
+ex_fa570291,트라이셉스 푸시다운,eqreq_ex_fa570291,SINGLE,1,CABLE,NO,ex_fa570291,Single atomic equipment requirement.
+ex_faae2044,인터벌 러닝,,NONE,,,NO,ex_faae2044,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+ex_fb67af37,디클라인 푸시업,eqreq_ex_fb67af37,SINGLE,1,BENCH,NO,ex_fb67af37,Single atomic equipment requirement.
+ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,eqreq_ex_fdbdf454,SINGLE,1,DUMBBELL,NO,ex_fdbdf454,Single atomic equipment requirement.
+ez_bar_lying_triceps_extension,EZ바 라잉 트라이셉스 익스텐션,eqreq_ez_bar_lying_triceps_extension,SINGLE,1,EZ_BAR,NO,ex_d20b7487,Single atomic equipment requirement.
+ez_bar_preacher_curl,EZ바 프리처 컬,eqreq_ez_bar_preacher_curl,SINGLE,1,EZ_BAR,NO,ex_e994008a,Single atomic equipment requirement.
+ez_bar_reverse_curl,EZ바 리버스 컬,eqreq_ez_bar_reverse_curl,SINGLE,1,EZ_BAR,NO,ex_dd2f732e,Single atomic equipment requirement.
+ez_bar_spider_curl,EZ바 스파이더 컬,eqreq_ez_bar_spider_curl,ALL_REQUIRED,1,EZ_BAR,YES,ex_516f4456,All listed atomic items are simultaneously required.
+ez_bar_spider_curl,EZ바 스파이더 컬,eqreq_ez_bar_spider_curl,ALL_REQUIRED,2,BENCH,YES,ex_516f4456,All listed atomic items are simultaneously required.
+face_pull,페이스풀,eqreq_face_pull,SINGLE,1,CABLE,NO,face_pull,Single atomic equipment requirement.
+gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,eqreq_gymnastic_ring_inverted_row,SINGLE,1,GYMNASTIC_RINGS,NO,ex_e159d15a,Single atomic equipment requirement.
+half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,eqreq_half_kneeling_single_arm_dumbbell_press,SINGLE,1,DUMBBELL,NO,half_kneeling_single_arm_dumbbell_press,Single atomic equipment requirement.
+half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,eqreq_half_kneeling_single_arm_kettlebell_press,SINGLE,1,KETTLEBELL,NO,half_kneeling_single_arm_kettlebell_press,Single atomic equipment requirement.
+hip_adduction_machine,힙 어덕션 머신,eqreq_hip_adduction_machine,SINGLE,1,HIP_ADDUCTION_MACHINE,NO,ex_eaea872c,Single atomic equipment requirement.
+kettlebell_farmer_carry,케틀벨 파머스 캐리,eqreq_kettlebell_farmer_carry,SINGLE,1,KETTLEBELL,NO,ex_a1fc4533,Single atomic equipment requirement.
+kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,eqreq_kettlebell_goblet_squat,SINGLE,1,KETTLEBELL,NO,ex_ac7df636,Single atomic equipment requirement.
+kettlebell_halo,케틀벨 헤일로,eqreq_kettlebell_halo,SINGLE,1,KETTLEBELL,NO,kettlebell_halo,Single atomic equipment requirement.
+kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,eqreq_kettlebell_single_leg_rdl,SINGLE,1,KETTLEBELL,NO,single_leg_rdl,Single atomic equipment requirement.
+landmine_anti_rotation,랜드마인 안티로테이션,eqreq_landmine_anti_rotation,SINGLE,1,LANDMINE,NO,landmine_anti_rotation,Single atomic equipment requirement.
+landmine_rotation,랜드마인 좌우 회전,eqreq_landmine_rotation,SINGLE,1,LANDMINE,NO,landmine_rotation,Single atomic equipment requirement.
+lateral_bound_continuous,래터럴 바운드,,NONE,,,NO,lateral_bound_continuous,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+med_ball_chest_pass,메디신볼 체스트 패스,eqreq_med_ball_chest_pass,SINGLE,1,MEDICINE_BALL,NO,med_ball_chest_pass,Single atomic equipment requirement.
+med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,eqreq_med_ball_overhead_slam,SINGLE,1,MEDICINE_BALL,NO,med_ball_overhead_slam,Single atomic equipment requirement.
+med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,eqreq_med_ball_rotational_scoop_toss,SINGLE,1,MEDICINE_BALL,NO,med_ball_rotational_scoop_toss,Single atomic equipment requirement.
+med_ball_rotational_slam,메디신볼 회전 아래로 슬램,eqreq_med_ball_rotational_slam,SINGLE,1,MEDICINE_BALL,NO,med_ball_rotational_slam,Single atomic equipment requirement.
+medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,eqreq_medicine_ball_rotational_throw,SINGLE,1,MEDICINE_BALL,NO,medicine_ball_rotational_throw,Single atomic equipment requirement.
+medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,eqreq_medicine_ball_three_step_acceleration_throw,SINGLE,1,MEDICINE_BALL,NO,medicine_ball_three_step_acceleration_throw,Single atomic equipment requirement.
+medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,eqreq_medicine_ball_three_step_deceleration_throw,SINGLE,1,MEDICINE_BALL,NO,medicine_ball_three_step_deceleration_throw,Single atomic equipment requirement.
+one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,eqreq_one_arm_gymnastic_ring_row,SINGLE,1,GYMNASTIC_RINGS,NO,ex_d9084b5e,Single atomic equipment requirement.
+one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,eqreq_one_arm_suspension_trainer_row,SINGLE,1,SUSPENSION_TRAINER,NO,ex_d9084b5e,Single atomic equipment requirement.
+plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,eqreq_plate_rotational_press_out,SINGLE,1,WEIGHT_PLATE,NO,plate_rotational_press_out,Single atomic equipment requirement.
+pull_up,풀업,eqreq_pull_up,SINGLE,1,PULL_UP_BAR,NO,pull_up,Single atomic equipment requirement.
+single_leg_hip_bridge,원레그 힙 브릿지,,NONE,,,NO,single_leg_hip_bridge,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,,NONE,,,NO,ex_bd072cd,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+standing_calf_raise_machine,스탠딩 카프 레이즈 머신,eqreq_standing_calf_raise_machine,SINGLE,1,STANDING_CALF_RAISE_MACHINE,NO,ex_bd072cd,Single atomic equipment requirement.
+standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,eqreq_standing_dumbbell_calf_raise,SINGLE,1,DUMBBELL,NO,ex_bd072cd,Single atomic equipment requirement.
+suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,eqreq_suspension_trainer_inverted_row,SINGLE,1,SUSPENSION_TRAINER,NO,ex_e159d15a,Single atomic equipment requirement.
+vipr_chop,바이퍼 회전 아래로,eqreq_vipr_chop,SINGLE,1,VIPR,NO,vipr_chop,Single atomic equipment requirement.
+vipr_rotational_lift,바이퍼 회전 위로,eqreq_vipr_rotational_lift,SINGLE,1,VIPR,NO,vipr_rotational_lift,Single atomic equipment requirement.
+vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,eqreq_vipr_rotational_press_out,SINGLE,1,VIPR,NO,vipr_rotational_press_out,Single atomic equipment requirement.
+vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,eqreq_vipr_step_and_rotate,SINGLE,1,VIPR,NO,vipr_step_and_rotate,Single atomic equipment requirement.

@@ -1,0 +1,36 @@
+taxonomy,code,status,aliasOf,definition,sourceDisposition,affectedExerciseCount
+MovementPattern,BOUND,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,4
+MovementPattern,CARRY,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,2
+MovementPattern,GAIT,CANONICAL,,Use the existing leaf code; retain the workbook token only as a migration alias.,USER_APPROVED_ARTIFACT_TERMINOLOGY,28
+MovementPattern,HINGE,CANONICAL,,Use the existing leaf code; retain the workbook token only as a migration alias.,USER_APPROVED_ARTIFACT_TERMINOLOGY,9
+MovementPattern,HOP,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,8
+MovementPattern,HORIZONTAL_PULL,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,19
+MovementPattern,HORIZONTAL_PUSH,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,14
+MovementPattern,JUMP,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,4
+MovementPattern,LUNGE,CANONICAL,,Use the existing leaf code; retain the workbook token only as a migration alias.,USER_APPROVED_ARTIFACT_TERMINOLOGY,11
+MovementPattern,SHUFFLE_CHASSE,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,3
+MovementPattern,SQUAT,CANONICAL,,Use the existing leaf code; retain the workbook token only as a migration alias.,USER_APPROVED_ARTIFACT_TERMINOLOGY,18
+MovementPattern,STEP,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,25
+MovementPattern,STRIKE,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,1
+MovementPattern,SWING,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,1
+MovementPattern,THROW,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,7
+MovementPattern,TRUNK_BRACE,CANONICAL,,Approved leaf; retained only where bracing is exercise-defining. Incidental co-tags were removed by independent row review.,USER_APPROVED_ARTIFACT_TERMINOLOGY,11
+MovementPattern,TRUNK_EXTENSION,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,1
+MovementPattern,TRUNK_FLEXION,CANONICAL,,Workbook mapping uses a semantically distinct leaf with concrete search/program value.,USER_APPROVED_ARTIFACT_TERMINOLOGY,4
+MovementPattern,TRUNK_ROTATION,CANONICAL,,Use the existing leaf code; retain the workbook token only as a migration alias.,USER_APPROVED_ARTIFACT_TERMINOLOGY,16
+MovementPattern,VERTICAL_PULL,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,8
+MovementPattern,VERTICAL_PUSH,CANONICAL,,Reviewed canonical movement-pattern leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,13
+MovementPattern,KNEE_DOMINANT_SQUAT,DEPRECATED_ALIAS,SQUAT,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
+MovementPattern,HIP_HINGE,DEPRECATED_ALIAS,HINGE,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
+MovementPattern,SPLIT_STANCE_LUNGE,DEPRECATED_ALIAS,LUNGE,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
+MovementPattern,LOCOMOTION,DEPRECATED_ALIAS,GAIT,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
+MovementPattern,ROTATION,DEPRECATED_ALIAS,TRUNK_ROTATION,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
+MovementEvent,ACCELERATION,CANONICAL,,Reviewed canonical movement-event leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,17
+MovementEvent,CHANGE_OF_DIRECTION,CANONICAL,,Reviewed canonical movement-event leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,17
+MovementEvent,DECELERATION,CANONICAL,,Reviewed canonical movement-event leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,19
+MovementEvent,LANDING,CANONICAL,,Reviewed canonical movement-event leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,15
+MovementEvent,REBOUND,CANONICAL,,REBOUND duplicates the existing REACTIVE_BOUNCE event.,USER_APPROVED_ARTIFACT_TERMINOLOGY,9
+MovementEvent,RELEASE,CANONICAL,,Discrete event is distinct and remains sparse under the approved applicability rule.,USER_APPROVED_ARTIFACT_TERMINOLOGY,7
+MovementEvent,STABILIZATION,CANONICAL,,Discrete event is distinct and remains sparse under the approved applicability rule.,USER_APPROVED_ARTIFACT_TERMINOLOGY,3
+MovementEvent,TAKEOFF,CANONICAL,,Reviewed canonical movement-event leaf used by the final inventory.,USER_APPROVED_ARTIFACT_TERMINOLOGY,15
+MovementEvent,REACTIVE_BOUNCE,DEPRECATED_ALIAS,REBOUND,Repository-era code retained only as a migration token; not authoritative in the final artifact.,DEPRECATED_REPOSITORY_ALIAS,0
