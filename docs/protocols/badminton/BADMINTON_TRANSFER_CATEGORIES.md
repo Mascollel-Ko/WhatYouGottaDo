@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
+| Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 현재 동작과 artifact-only stableKey 정본화의 경계를 함께 기록합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -106,9 +106,33 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 - [`docs/metadata_evidence_sources_v0.3.5.0.md`](../../metadata_evidence_sources_v0.3.5.0.md)
 - [`docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`](../data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md): 현재 transfer/quality/fatigue-cost 출력을 stableKey별 shadow relation으로 동결합니다.
+- [`outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md`](../../../outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md): 241개 canonical identity 정합성 결과와 남은 검토 항목입니다.
+- [`outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md`](../../../outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md): source relation과 runtime-derived axis의 정규화 준비 경계입니다.
 - [`docs/protocols/README.md`](../README.md)
 
-## 20. 변경 이력
+## 20. source metadata와 runtime-derived axis의 경계
 
+배드민턴 전이는 다음 세 층을 구분합니다.
+
+1. exercise-level source metadata: `badmintonTransferLevel`, transfer type code, skill target code, physical quality code, court movement type code, confidence, provenance
+2. current runtime mapper: `BadmintonTransferMetadataMapper`가 effective metadata와 기존 compatibility field를 함께 읽는 구현 층
+3. derived analysis/display axis: `DECELERATION_LANDING`, `UNILATERAL_STABILITY`, `LATERAL_MOVEMENT`, `ROTATION_CONTROL`, `RACKET_SUPPORT`, `AEROBIC_FOOTWORK`, `LOW_FATIGUE_CONTROL`
+
+세 번째 층은 첫 번째 층을 대체하는 source taxonomy가 아닙니다. source의 `DIRECT`, `SUPPORTIVE`, `GENERAL`, `NONE`은 유지하며 runtime `LOW`는 metadata가 일부 존재할 때 사용하는 fallback으로만 남습니다.
+
+## 21. artifact-only identity closeout
+
+- 224개 기존 source row를 최신 241개 canonical exercise identity에 대조했습니다.
+- 208개 retained identity는 기존 값을 유지했습니다.
+- 33개 equipment-specific identity는 generic source의 넓은 배드민턴 전이 의미를 명시적 lineage와 함께 상속했습니다.
+- historical generic identity는 다시 selectable하게 만들지 않았고, legacy alias는 migration artifact에서만 canonical identity로 연결했습니다.
+- legacy movement field 의존성은 별도 audit에 남겼으며 runtime mapper를 교체하지 않았습니다.
+- canonical code와 한국어 display/definition은 분리했습니다. 미승인 한국어 정의는 `REVIEW_REQUIRED`입니다.
+
+이 closeout은 `ARTIFACT_ONLY`입니다. transfer weight, RPE factor, 7일/28일 window, equal axis split, fatigue cost, 추천, 차트, 색상, UI를 변경하지 않습니다.
+
+## 22. 변경 이력
+
+- `1.1.0` (2026-08-04): 최신 241-row identity에 source metadata를 정합하고 source/runtime/display axis 층을 명시했습니다. runtime 계산은 변경하지 않았습니다.
 - `1.0.1` (2026-07-19): v0.4.2.16에서 주별 훈련량과 전이 자극이 동일한 월-주차 표시 권한을 사용하도록 문서화했습니다. 전이 계산과 색상은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

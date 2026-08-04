@@ -1,0 +1,288 @@
+sourceStableKey,sourceExerciseName,finalStableKey,finalExerciseName,identityResolution,sourceSelectable,finalSelectable,relationMigrationAction,notes
+ex_e3487166,원암 로우,,,DROP_CANDIDATE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DROP_DELETED_EXERCISE_WITH_WARNING; no selectable badminton relation is created.
+imported_csv_복원_계획,CSV 복원 계획,,,DROP_CANDIDATE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DROP_PLACEHOLDER_WITH_WARNING; no selectable badminton relation is created.
+imported_csv_복원_근력운동,CSV 복원 근력운동,,,DROP_CANDIDATE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DROP_PLACEHOLDER_WITH_WARNING; no selectable badminton relation is created.
+imported_csv_복원_기능성운동,CSV 복원 기능성운동,,,DROP_CANDIDATE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DROP_PLACEHOLDER_WITH_WARNING; no selectable badminton relation is created.
+imported_csv_복원_스포츠,CSV 복원 스포츠,,,DROP_CANDIDATE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DROP_PLACEHOLDER_WITH_WARNING; no selectable badminton relation is created.
+ex_516f4456,스파이더 컬,dumbbell_spider_curl,덤벨 스파이더 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_516f4456,스파이더 컬,ez_bar_spider_curl,EZ바 스파이더 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_7176cbee,리어델트 플라이,cable_rear_delt_fly,케이블 리어델트 플라이,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_7176cbee,리어델트 플라이,dumbbell_rear_delt_fly,덤벨 리어델트 플라이,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_8e18b02a,리버스 리스트 컬,barbell_reverse_wrist_curl,바벨 리버스 리스트 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_8e18b02a,리버스 리스트 컬,dumbbell_reverse_wrist_curl,덤벨 리버스 리스트 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_8e51640a,체스트 서포티드 로우,chest_supported_row_machine,체스트 서포티드 로우 머신,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_8e51640a,체스트 서포티드 로우,dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_99728d25,팔로프 프레스,band_pallof_press,밴드 팔로프 프레스,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_99728d25,팔로프 프레스,cable_pallof_press,케이블 팔로프 프레스,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_a1fc4533,파머스 캐리,dumbbell_farmer_carry,덤벨 파머스 캐리,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_a1fc4533,파머스 캐리,kettlebell_farmer_carry,케틀벨 파머스 캐리,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_a9e8859c,오버헤드 트라이셉스 익스텐션,cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_a9e8859c,오버헤드 트라이셉스 익스텐션,dumbbell_overhead_triceps_extension,덤벨 오버헤드 트라이셉스 익스텐션,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_ac7df636,고블릿 스쿼트,dumbbell_goblet_squat,덤벨 고블릿 스쿼트,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_ac7df636,고블릿 스쿼트,kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_bd072cd,스탠딩 카프 레이즈,standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_bd072cd,스탠딩 카프 레이즈,standing_calf_raise_machine,스탠딩 카프 레이즈 머신,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_bd072cd,스탠딩 카프 레이즈,standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_d20b7487,라잉 트라이셉스 익스텐션,dumbbell_lying_triceps_extension,덤벨 라잉 트라이셉스 익스텐션,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_d20b7487,라잉 트라이셉스 익스텐션,ez_bar_lying_triceps_extension,EZ바 라잉 트라이셉스 익스텐션,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_d9084b5e,원암 인버티드 로우,one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_d9084b5e,원암 인버티드 로우,one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_dd2f732e,리버스 컬,barbell_reverse_curl,바벨 리버스 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_dd2f732e,리버스 컬,ez_bar_reverse_curl,EZ바 리버스 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_e159d15a,인버티드 로우,gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_e159d15a,인버티드 로우,suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_e994008a,프리처 컬,dumbbell_preacher_curl,덤벨 프리처 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_e994008a,프리처 컬,ez_bar_preacher_curl,EZ바 프리처 컬,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_eaea872c,힙 어덕션,cable_hip_adduction,케이블 힙 어덕션,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_eaea872c,힙 어덕션,hip_adduction_machine,힙 어덕션 머신,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+single_leg_rdl,원레그 루마니안 데드리프트,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+single_leg_rdl,원레그 루마니안 데드리프트,kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,EQUIPMENT_VARIANT_SPLIT,NO,YES,INHERIT_REVIEWED_SOURCE_METADATA,Concrete variant receives broad badminton-transfer metadata with explicit generic-source lineage; historical generic records are not auto-migrated.
+ex_201f6426,B-스탠스 RDL,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DIRECT pointed to split generic single_leg_rdl; no concrete equipment variant is inferred.
+ex_516f4456,스파이더 컬,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_7176cbee,리어델트 플라이,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_885b629,킥스탠스 RDL,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DIRECT pointed to split generic single_leg_rdl; no concrete equipment variant is inferred.
+ex_8e18b02a,리버스 리스트 컬,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_8e51640a,체스트 서포티드 로우,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_99728d25,팔로프 프레스,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_a1fc4533,파머스 캐리,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_a9e8859c,오버헤드 트라이셉스 익스텐션,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_ac7df636,고블릿 스쿼트,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_bd072cd,스탠딩 카프 레이즈,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_d20b7487,라잉 트라이셉스 익스텐션,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_d9084b5e,원암 인버티드 로우,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_dd2f732e,리버스 컬,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_e159d15a,인버티드 로우,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_e994008a,프리처 컬,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_eaea872c,힙 어덕션,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_f892893e,카프 레이즈,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DIRECT pointed to split generic ex_bd072cd; no concrete equipment variant is inferred.
+imported_싱글_레그_rdl,싱글 레그 RDL,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Legacy import rule DIRECT pointed to split generic single_leg_rdl; no concrete equipment variant is inferred.
+single_leg_rdl,원레그 루마니안 데드리프트,,,HISTORICAL_GENERIC_NON_SELECTABLE,NO,NO,PRESERVE_LINEAGE_ONLY,Historical generic identity is not re-created and does not remain an authoritative selectable relation.
+ex_26ac0c19,메디신볼 슬램,med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_5715d6ca,싱글 레그 글루트 브릿지,single_leg_hip_bridge,원레그 힙 브릿지,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_66e8c8c2,하프 닐링 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_8354acd,바이퍼 트위스트(아래로),vipr_chop,바이퍼 회전 아래로,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_8380d7fe,원암 하프 닐링 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_8e1b313e,하프 닐링 원암 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_9523db82,덤벨 루마니안 데드리프트,dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_bb728af2,리어풋 엘리베이티드 스플릿 스쿼트,ex_e2efd0fe,불가리안 스플릿 스쿼트,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_c821775c,하이니 스킵,ex_a12de111,A스킵,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_d2bb7946,루마니안 데드리프트,barbell_romanian_deadlift,루마니안 바벨 데드리프트,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_d634055c,싱글 레그 힙 쓰러스트,single_leg_hip_bridge,원레그 힙 브릿지,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_d79824d2,하프 닐링 케틀벨 원암 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+ex_e0759156,하프 닐링 케틀벨 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+imported_6코너_섀도우_풋워크,6코너 섀도우 풋워크,ex_33841b88,6코너 풋워크,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+imported_래터럴_바운드,래터럴 바운드,lateral_bound_continuous,래터럴 바운드,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+imported_배드민턴,배드민턴,ex_ae9ecdbc,배드민턴,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+imported_싱글_레그_홉_앤_스틱,싱글 레그 홉 앤 스틱,ex_314df428,원레그 홉 투 스틱,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+landmine_rainbow,랜드마인 레인보우,landmine_rotation,랜드마인 좌우 회전,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+med_ball_side_throw,메디신볼 사이드 스로우,medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+medicine_ball_side_slam,메디신볼 사이드 슬램,med_ball_rotational_slam,메디신볼 회전 아래로 슬램,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+vipr_shovel_scoop,바이퍼 셔블 / 스쿱,vipr_rotational_lift,바이퍼 회전 위로,LEGACY_ALIAS_TO_CANONICAL,NO,YES,ROUTE_IMPORT_TO_CANONICAL_ONLY,Legacy import rule DIRECT; authoritative metadata exists only on the final canonical stableKey.
+band_lift,밴드 리프트,band_lift,밴드 리프트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+band_woodchop,밴드 우드찹,band_woodchop,밴드 우드찹,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+barbell_back_squat,스쿼트,barbell_back_squat,스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+barbell_bench_press,벤치프레스,barbell_bench_press,벤치프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+barbell_deadlift,데드리프트,barbell_deadlift,데드리프트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+barbell_romanian_deadlift,루마니안 바벨 데드리프트,barbell_romanian_deadlift,루마니안 바벨 데드리프트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+cable_lift,케이블 리프트,cable_lift,케이블 리프트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+cable_woodchop,케이블 우드찹,cable_woodchop,케이블 우드찹,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+dumbbell_woodchop,덤벨 우드찹,dumbbell_woodchop,덤벨 우드찹,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1052e9fa,스미스 머신 런지,ex_1052e9fa,스미스 머신 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_149730de,발목/고관절 가동성,ex_149730de,발목/고관절 가동성,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_16b298db,미니밴드 사이드워크,ex_16b298db,미니밴드 사이드워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1a4858d7,농구,ex_1a4858d7,농구,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1a4bbdcf,축구,ex_1a4bbdcf,축구,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1c7f2342,랜덤 풋워크,ex_1c7f2342,랜덤 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1cf51b6b,노르딕 햄스트링 컬,ex_1cf51b6b,노르딕 햄스트링 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_1dbee10e,머신 체스트프레스,ex_1dbee10e,머신 체스트프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_2055b629,애질리티 래더,ex_2055b629,애질리티 래더,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_216351a1,가벼운 콕줍기,ex_216351a1,가벼운 콕줍기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_27b3deb5,클로즈그립 벤치프레스,ex_27b3deb5,클로즈그립 벤치프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_281347da,덤벨 컬,ex_281347da,덤벨 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_2822ec2e,레그 컬,ex_2822ec2e,레그 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_282a9d87,링 로우,ex_282a9d87,링 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_28347c1f,버드독,ex_28347c1f,버드독,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_284ecca6,슈퍼맨,ex_284ecca6,슈퍼맨,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_28902b13,푸시업,ex_28902b13,푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_2892da5a,해머 컬,ex_2892da5a,해머 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_2a826c82,할로우 바디 홀드,ex_2a826c82,할로우 바디 홀드,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_2f3b56d0,테니스,ex_2f3b56d0,테니스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_30a0e9aa,원암 덤벨 로우,ex_30a0e9aa,원암 덤벨 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_314df428,원레그 홉 투 스틱,ex_314df428,원레그 홉 투 스틱,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_32219f7a,오버헤드 프레스,ex_32219f7a,오버헤드 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_32eb8457,원암 랫풀다운,ex_32eb8457,원암 랫풀다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_33841b88,6코너 풋워크,ex_33841b88,6코너 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_33d2da8e,원암 머신 로우,ex_33d2da8e,원암 머신 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_34e7d21,래터럴 바운드 투 스틱,ex_34e7d21,래터럴 바운드 투 스틱,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_377448a9,스플릿 스텝 후 좌우 런지,ex_377448a9,스플릿 스텝 후 좌우 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_389920ab,글루트 브릿지,ex_389920ab,글루트 브릿지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_389e0556,원암 덤벨 벤치프레스,ex_389e0556,원암 덤벨 벤치프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_3a7d3eda,덤벨 벤치프레스,ex_3a7d3eda,덤벨 벤치프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_3c3692aa,케이블 원암 로우,ex_3c3692aa,케이블 원암 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_3caa236b,파이크 푸시업,ex_3caa236b,파이크 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_3d5719de,원암 케이블 컬,ex_3d5719de,원암 케이블 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_3f184ef9,버피,ex_3f184ef9,버피,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_40fa57be,원암 케이블 하이 로우,ex_40fa57be,원암 케이블 하이 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_421ba24b,좌우 랜덤 콕줍기,ex_421ba24b,좌우 랜덤 콕줍기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_4255e429,앞뒤 랜덤 콕줍기,ex_4255e429,앞뒤 랜덤 콕줍기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_442617f6,원암 케이블 플라이,ex_442617f6,원암 케이블 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_462c760e,체스트 서포티드 원암 머신 로우,ex_462c760e,체스트 서포티드 원암 머신 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_4773b6ea,린단 참고 트랙 스프린트,ex_4773b6ea,린단 참고 트랙 스프린트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_4aa3725a,머신 숄더프레스,ex_4aa3725a,머신 숄더프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_4c76dbb2,케이블 풀스루,ex_4c76dbb2,케이블 풀스루,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_4c779df2,케이블 플라이,ex_4c779df2,케이블 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_5004ca76,린단 참고 페이스 체인지 풋워크,ex_5004ca76,린단 참고 페이스 체인지 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_5c8751d2,시티드 카프 레이즈,ex_5c8751d2,시티드 카프 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_5ca7133f,원레그 카프 레이즈,ex_5ca7133f,원레그 카프 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_6232f4bc,박스 스텝업,ex_6232f4bc,박스 스텝업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_64422511,랜덤 방향전환 드릴,ex_64422511,랜덤 방향전환 드릴,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_644e0f9d,V업,ex_644e0f9d,V업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_6463edad,딥스,ex_6463edad,딥스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_64644b5e,런지,ex_64644b5e,런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_64661229,월싯,ex_64661229,월싯,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_6466fe77,친업,ex_6466fe77,친업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_681d9ed2,러닝,ex_681d9ed2,러닝,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_681eed4a,수영,ex_681eed4a,수영,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_69a56484,래터럴 스텝다운,ex_69a56484,래터럴 스텝다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,ex_6a966452,체스트 서포티드 원암 덤벨 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_704cbf1a,덤벨 스텝업,ex_704cbf1a,덤벨 스텝업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_708e64ce,덤벨 풀오버,ex_708e64ce,덤벨 풀오버,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_70f19bf,리닝 래터럴 레이즈,ex_70f19bf,리닝 래터럴 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_721f7b5b,힙 쓰러스트,ex_721f7b5b,힙 쓰러스트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_728da646,힙 어브덕션,ex_728da646,힙 어브덕션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_72f11dc5,덤벨 리스트 익스텐션,ex_72f11dc5,덤벨 리스트 익스텐션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_73b0b63f,아처 푸시업,ex_73b0b63f,아처 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_7404067c,케틀벨 스윙,ex_7404067c,케틀벨 스윙,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_74c2d13b,계단 오르기,ex_74c2d13b,계단 오르기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_752b45ae,멀티셔틀 풋워크,ex_752b45ae,멀티셔틀 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_767e188e,아놀드 프레스,ex_767e188e,아놀드 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_7814843a,원암 덤벨 숄더프레스,ex_7814843a,원암 덤벨 숄더프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_79f3bdbe,덤벨 숄더프레스,ex_79f3bdbe,덤벨 숄더프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_7deabeba,리어델트 케이블 플라이,ex_7deabeba,리어델트 케이블 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_85b2ac56,원암 덤벨 컬,ex_85b2ac56,원암 덤벨 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_85f12271,원레그 박스 스쿼트,ex_85f12271,원레그 박스 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_86323ed6,원암 해머 컬,ex_86323ed6,원암 해머 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_8633d8db,EZ바 컬,ex_8633d8db,EZ바 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_8824026f,원레그 레그 컬,ex_8824026f,원레그 레그 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_8a3800f1,리버스 노르딕 컬,ex_8a3800f1,리버스 노르딕 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_8e4bf08e,Yates Row,ex_8e4bf08e,Yates Row,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_8e69fc74,스플릿 스텝 리액션,ex_8e69fc74,스플릿 스텝 리액션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_91b749b3,플랫 덤벨 플라이,ex_91b749b3,플랫 덤벨 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_91d8430b,30초 반복 스매시 테스트,ex_91d8430b,30초 반복 스매시 테스트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_91f6958d,터키시 겟업,ex_91f6958d,터키시 겟업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_93538692,덤벨 래터럴 레이즈,ex_93538692,덤벨 래터럴 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_95028bfe,덤벨 리스트 컬,ex_95028bfe,덤벨 리스트 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_9b132c23,사이드 스텝 후 정지,ex_9b132c23,사이드 스텝 후 정지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_9bd6dddb,줄넘기,ex_9bd6dddb,줄넘기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_9f283612,원암 인클라인 덤벨 프레스,ex_9f283612,원암 인클라인 덤벨 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a091b9fe,원레그 레그 프레스,ex_a091b9fe,원레그 레그 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a12de111,A스킵,ex_a12de111,A스킵,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a12de4d2,B스킵,ex_a12de4d2,B스킵,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a345e30b,캡틴체어 레그 레이즈,ex_a345e30b,캡틴체어 레그 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a3ddd8ac,라인 홉,ex_a3ddd8ac,라인 홉,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a4040be3,셔틀런,ex_a4040be3,셔틀런,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a412dd45,앙클링,ex_a412dd45,앙클링,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a4350c0f,콘 드릴,ex_a4350c0f,콘 드릴,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a44ae2ca,플랭크,ex_a44ae2ca,플랭크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a60496be,원암 리어델트 케이블 플라이,ex_a60496be,원암 리어델트 케이블 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a611010d,코사크 스쿼트,ex_a611010d,코사크 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a61f1e96,인클라인 덤벨 프레스,ex_a61f1e96,인클라인 덤벨 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a61f307a,인클라인 덤벨 플라이,ex_a61f307a,인클라인 덤벨 플라이,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a76f20b6,시티드 원암 케이블 로우,ex_a76f20b6,시티드 원암 케이블 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a8385c4a,코펜하겐 플랭크,ex_a8385c4a,코펜하겐 플랭크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_a9b52886,마운틴 클라이머,ex_a9b52886,마운틴 클라이머,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_ab468462,레그 프레스,ex_ab468462,레그 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_ab918e2b,실내 자전거,ex_ab918e2b,실내 자전거,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_aca9d312,러닝 풋살,ex_aca9d312,러닝 풋살,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_ae9ecdbc,배드민턴,ex_ae9ecdbc,배드민턴,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b076570e,원암 케이블 래터럴 레이즈,ex_b076570e,원암 케이블 래터럴 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b3f447be,행잉 레그 레이즈,ex_b3f447be,행잉 레그 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b4b198de,래터럴 런지,ex_b4b198de,래터럴 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b59bed7d,스탠딩 레그 컬,ex_b59bed7d,스탠딩 레그 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b69ab702,크로스바디 해머 컬,ex_b69ab702,크로스바디 해머 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b76d3f92,케이블 래터럴 레이즈,ex_b76d3f92,케이블 래터럴 레이즈,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_b78a8f95,레그 익스텐션,ex_b78a8f95,레그 익스텐션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_badminton_lesson,배드민턴 레슨,ex_badminton_lesson,배드민턴 레슨,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_bc84eb7f,6방향 랜덤 콕줍기,ex_bc84eb7f,6방향 랜덤 콕줍기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c1a81cb2,로프 해머 컬,ex_c1a81cb2,로프 해머 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c365e5e2,원암 스트레이트암 풀다운,ex_c365e5e2,원암 스트레이트암 풀다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c4535de3,스캡 푸시업,ex_c4535de3,스캡 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c4ea0a2a,스킵 바운드,ex_c4ea0a2a,스킵 바운드,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c5043892,프론트 스쿼트,ex_c5043892,프론트 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c536edc2,원암 케이블 숄더프레스,ex_c536edc2,원암 케이블 숄더프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c5c2fdef,스트라이드,ex_c5c2fdef,스트라이드,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c5f4c242,랜덤 비프 풋워크,ex_c5f4c242,랜덤 비프 풋워크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c62c0716,컨센트레이션 컬,ex_c62c0716,컨센트레이션 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c6d9efef,스플릿 스텝,ex_c6d9efef,스플릿 스텝,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c7977dfd,6코너 풋워크 최대반복 테스트,ex_c7977dfd,6코너 풋워크 최대반복 테스트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_c8bcf3ce,리버스 런지,ex_c8bcf3ce,리버스 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_ca5cce66,스트레이트암 풀다운,ex_ca5cce66,스트레이트암 풀다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_cb3c4dc2,맨몸 스쿼트,ex_cb3c4dc2,맨몸 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d5048362,인클라인 덤벨 컬,ex_d5048362,인클라인 덤벨 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d5bdffe1,데드버그,ex_d5bdffe1,데드버그,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d60745b4,원레그 레그 익스텐션,ex_d60745b4,원레그 레그 익스텐션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d6726746,드롭 점프,ex_d6726746,드롭 점프,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d67e5761,피스톨 스쿼트,ex_d67e5761,피스톨 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d7c90536,로잉머신,ex_d7c90536,로잉머신,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_d9e141e4,박스 점프,ex_d9e141e4,박스 점프,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_da56a4fe,덤벨 킥백,ex_da56a4fe,덤벨 킥백,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_dc9e5953,랫풀다운,ex_dc9e5953,랫풀다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_dd16e07a,스트레칭,ex_dd16e07a,스트레칭,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_de46b7f6,바벨 로우,ex_de46b7f6,바벨 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_debf6a8b,다이아몬드 푸시업,ex_debf6a8b,다이아몬드 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_deca2b61,벤치 딥스,ex_deca2b61,벤치 딥스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_df966b45,점프 런지,ex_df966b45,점프 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e0b1e364,원암 덤벨 RDL,ex_e0b1e364,원암 덤벨 RDL,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e1894690,스캡 풀업,ex_e1894690,스캡 풀업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e2efd0fe,불가리안 스플릿 스쿼트,ex_e2efd0fe,불가리안 스플릿 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e3715c0b,워킹 런지,ex_e3715c0b,워킹 런지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e41e8dcf,중량 친업,ex_e41e8dcf,중량 친업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e41f4c2b,중량 풀업,ex_e41f4c2b,중량 풀업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e465d1e9,포고 점프,ex_e465d1e9,포고 점프,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e4f911bb,네거티브 풀업,ex_e4f911bb,네거티브 풀업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e709eeda,케이블 컬,ex_e709eeda,케이블 컬,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e8ff8cfa,밴드 외회전,ex_e8ff8cfa,밴드 외회전,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_e9e97659,핵 스쿼트,ex_e9e97659,핵 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_ee378da7,스케이터 스쿼트,ex_ee378da7,스케이터 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f1d31d3d,원레그 핵 스쿼트,ex_f1d31d3d,원레그 핵 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f2a79d37,스플릿 스쿼트,ex_f2a79d37,스플릿 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f332aeab,월 드라이브,ex_f332aeab,월 드라이브,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f459ad2a,메도우즈 로우,ex_f459ad2a,메도우즈 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f6703b06,덤벨 프로네이션/수피네이션,ex_f6703b06,덤벨 프로네이션/수피네이션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f6d43398,사이드 플랭크,ex_f6d43398,사이드 플랭크,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_f97a05ab,월 슬라이드,ex_f97a05ab,월 슬라이드,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fa2e73b3,핸드스탠드 푸시업,ex_fa2e73b3,핸드스탠드 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fa31f7a6,케이블 로우,ex_fa31f7a6,케이블 로우,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fa3416f6,스미스 머신 스쿼트,ex_fa3416f6,스미스 머신 스쿼트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fa34ddfe,케이블 킥백,ex_fa34ddfe,케이블 킥백,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fa570291,트라이셉스 푸시다운,ex_fa570291,트라이셉스 푸시다운,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_faae2044,인터벌 러닝,ex_faae2044,인터벌 러닝,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fb67af37,디클라인 푸시업,ex_fb67af37,디클라인 푸시업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+face_pull,페이스풀,face_pull,페이스풀,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+kettlebell_halo,케틀벨 헤일로,kettlebell_halo,케틀벨 헤일로,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+landmine_anti_rotation,랜드마인 안티로테이션,landmine_anti_rotation,랜드마인 안티로테이션,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+landmine_rotation,랜드마인 좌우 회전,landmine_rotation,랜드마인 좌우 회전,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+lateral_bound_continuous,래터럴 바운드,lateral_bound_continuous,래터럴 바운드,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+med_ball_chest_pass,메디신볼 체스트 패스,med_ball_chest_pass,메디신볼 체스트 패스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+med_ball_rotational_slam,메디신볼 회전 아래로 슬램,med_ball_rotational_slam,메디신볼 회전 아래로 슬램,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+pull_up,풀업,pull_up,풀업,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+single_leg_hip_bridge,원레그 힙 브릿지,single_leg_hip_bridge,원레그 힙 브릿지,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+vipr_chop,바이퍼 회전 아래로,vipr_chop,바이퍼 회전 아래로,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+vipr_rotational_lift,바이퍼 회전 위로,vipr_rotational_lift,바이퍼 회전 위로,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.
+vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,RETAINED_CANONICAL,YES,YES,PRESERVE_ON_CANONICAL,Authoritative relation remains on the same stableKey.

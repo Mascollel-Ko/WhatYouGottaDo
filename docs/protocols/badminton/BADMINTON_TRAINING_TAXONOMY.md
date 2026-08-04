@@ -3,15 +3,15 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
 | Supersedes | — |
 
-`1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+`1.1.0`은 현재 동작과 artifact-only identity/taxonomy 정본화의 경계를 함께 기록합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
 
@@ -99,8 +99,19 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 ## 19. 관련 문서
 
 - [`docs/analysis_method_reviews/3.3_badminton_transfer_review_template.md`](../../analysis_method_reviews/3.3_badminton_transfer_review_template.md)
+- [`outputs/badminton_transfer_closeout/badminton_transfer_canonical_registry_v1.csv`](../../../outputs/badminton_transfer_closeout/badminton_transfer_canonical_registry_v1.csv): 최신 canonical identity별 source transfer metadata입니다.
+- [`outputs/badminton_transfer_closeout/badminton_transfer_stablekey_migration_v1.csv`](../../../outputs/badminton_transfer_closeout/badminton_transfer_stablekey_migration_v1.csv): retained, alias, split, historical generic lineage입니다.
 - [`docs/protocols/README.md`](../README.md)
 
-## 20. 변경 이력
+## 20. canonical code와 표시 이름
 
+분석과 relation join은 canonical code와 `exerciseStableKey`만 사용합니다. 한국어·영어 display name과 정의는 별도 localization field이며 분석 key가 아닙니다. underscore를 분리해 UI 문구를 자동 생성하거나 번역 문자열로 stableKey를 추론하지 않습니다.
+
+최신 closeout은 241개 selectable canonical identity를 authority로 사용합니다. 16개 historical generic source identity는 lineage로만 보존하며 새 selectable identity로 복원하지 않습니다. 33개 equipment variant는 독립 stableKey를 사용하고 broad transfer relation의 상속 출처를 명시합니다.
+
+이 identity 정리는 `ARTIFACT_ONLY`입니다. Room, seed, runtime resolver, backup, user data에는 반영하지 않습니다.
+
+## 21. 변경 이력
+
+- `1.1.0` (2026-08-04): latest canonical inventory, equipment split inheritance, legacy lineage, localization-readiness 경계를 문서화했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

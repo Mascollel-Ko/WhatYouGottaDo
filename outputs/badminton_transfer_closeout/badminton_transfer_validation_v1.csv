@@ -1,0 +1,43 @@
+checkId,status,observed,expected,detail
+CANONICAL_INVENTORY_COUNT,PASS,241,241,One review row exists for every latest canonical exercise identity.
+DUPLICATE_FINAL_CANONICAL_STABLEKEY,PASS,0,0,Final relation keys are unique.
+UNRESOLVED_IDENTITY,PASS,0,0,Every source identity has an explicit resolution.
+ORPHAN_BADMINTON_RELATION,PASS,0,0,All authoritative relations point to canonical identities.
+RELATION_POINTING_TO_DROPPED_IDENTITY,PASS,0,0,No relation points to a dropped or historical generic identity.
+DUPLICATE_ALIAS_AUTHORITY,PASS,0,0,"Aliases exist only in migration lineage, not the authoritative relation registry."
+HISTORICAL_GENERIC_NEWLY_SELECTABLE,PASS,0,0,Historical generic identities were not re-created as selectable relations.
+INVALID_TRANSFER_LEVEL,PASS,0,0,Output levels are restricted to the populated source vocabulary.
+INVALID_TRANSFER_TYPE_CODE,PASS,0,0,Output type codes are restricted to the populated source vocabulary.
+INVALID_SKILL_TARGET_CODE,PASS,0,0,Output skill codes are restricted to the populated source vocabulary.
+INVALID_PHYSICAL_QUALITY_CODE,PASS,0,0,Output quality codes are restricted to the populated source vocabulary.
+INVALID_COURT_MOVEMENT_CODE,PASS,0,0,Court codes match the existing CourtMovementType enum.
+INVALID_CONFIDENCE_VALUE,PASS,0,0,Confidence values are inherited from source metadata.
+BLANK_RELATION_REVIEW_STATUS,PASS,0,0,Every authoritative relation has a review status.
+UNDOCUMENTED_EQUIPMENT_INHERITANCE,PASS,0,0,Every equipment split has an explicit inheritance decision and rationale.
+SOURCE_AND_RUNTIME_AXIS_COLLAPSE,PASS,0,0,Runtime display axes are not stored as source transfer types.
+PRODUCTION_EXERCISE_NAME_INFERENCE_ADDED,PASS,0,0,Artifact generation joins only by stableKey and declared split/legacy maps.
+KOREAN_TEXT_USED_AS_CANONICAL_KEY,PASS,0,0,Canonical codes and Korean display text remain separate workbook fields.
+PRODUCTION_BADMINTON_CALCULATION_CHANGE,PASS,0,0,No production Kotlin file is written.
+RUNTIME_TRANSFER_WEIGHT_CHANGE,PASS,0,0,"Weights remain DIRECT 1.0, SUPPORTIVE 0.6, GENERAL 0.25, LOW 0.1, NONE 0."
+RPE_FACTOR_CHANGE,PASS,0,0,Current runtime RPE factors are unchanged.
+ANALYSIS_WINDOW_CHANGE,PASS,0,0,Current 7-day and 28-day windows are unchanged.
+RECOMMENDATION_LOGIC_CHANGE,PASS,0,0,Recommendation code is unchanged.
+CHART_BEHAVIOR_CHANGE,PASS,0,0,Chart code and colors are unchanged.
+UI_BEHAVIOR_CHANGE,PASS,0,0,UI source is unchanged.
+ROOM_SCHEMA_CHANGE,PASS,0,0,Room entities and schema are unchanged.
+SEED_MUTATION,PASS,0,0,Seed assets are read only.
+PROGRAM_BUILDER_CHANGE,PASS,0,0,ProgramBuilder source is unchanged.
+MUSCLE_MAPPING_CHANGE,PASS,0,0,Muscle mappings are unchanged.
+CONNECTIVE_TISSUE_MAPPING_CHANGE,PASS,0,0,Connective-tissue mappings are unchanged.
+OFI_MAPPING_CHANGE,PASS,0,0,OFI mappings are unchanged.
+STRENGTH_POSTERIOR_BEHAVIOR_CHANGE,PASS,0,0,Strength runtime is unchanged.
+BACKUP_FORMAT_CHANGE,PASS,0,0,Backup assets and code are unchanged.
+USER_DATA_MIGRATION,PASS,0,0,No migration or user data is touched.
+OUTPUT_CSV_REPARSE,PASS,0,0,All five generated CSV artifacts are reparsed before successful generator exit.
+WORKBOOK_REOPENS,PASS,0,0,The exported XLSX is imported again before successful generator exit.
+REQUIRED_WORKBOOK_SHEETS_PRESENT,PASS,13,13,All required workbook sheet names are checked after reopen.
+REQUIRED_MARKDOWN_FILES_PRESENT,PASS,2,2,Both required Markdown artifacts are checked after writing.
+BROWSER_ADDED_FILENAME_SUFFIX,PASS,0,0,Generated output filenames contain no browser-added numeric suffix.
+UNINTENDED_UNTRACKED_FILE_COMMITTED,PASS,0,0,Only required outputs and governed badminton docs may be staged; final path-specific Git audit is required.
+LEGACY_DEPENDENCY_REPLACEMENT_GAPS,REVIEW_REQUIRED,15,0,Legacy mapper inputs cannot all be replaced losslessly; this artifact records the future parity work without changing runtime behavior.
+TRANSLATION_DEFINITION_GAPS,REVIEW_REQUIRED,95,0,Canonical code inventory is complete for this phase; approved Korean definitions remain future localization work.
