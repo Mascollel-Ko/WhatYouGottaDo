@@ -1,4 +1,4 @@
-# WhatYouGottaDo 운동 메타데이터 전략 v2.3
+# WhatYouGottaDo 운동 메타데이터 전략 v2.4
 
 ## 0. 문서 지위
 
@@ -2070,3 +2070,61 @@ humanApprovalStatus
 - `activityKind`가 운동학 relation으로 자동 승격되지 않음
 - `analysisEligibility`가 모든 소비처에서 프로그램 capability로 일괄 매핑되지 않음
 - `AUTO_CANDIDATE` mapping이 승인 없이 REVIEWED_V1에 사용되지 않음
+
+# 21. v2.4 canonical workbook authority cutover
+
+## 21.1 Authority and generated runtime assets
+
+Human edits are made only in
+`docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`.
+`tools/metadata_authority` validates and deterministically exports
+`app/src/main/assets/metadata/canonical_v1`. Android does not parse XLSX and
+normal bundled loading has no seed/name/category inference fallback.
+
+The publishing sequence is fixed:
+
+```text
+Edit workbook -> validate/export -> review generated diff -> run tests
+-> commit workbook and assets together
+```
+
+## 21.2 Approved cutover boundaries
+
+- `mappingConfidence` records mapping confidence only;
+  `identityDecisionStatus` records retention/approval decisions.
+- The 16 `HISTORY_ONLY_GENERIC` identities stay readable, inactive, and
+  non-selectable. Historical stableKeys are not mapped to equipment variants.
+- `single_leg_rdl` and `ex_bd072cd` keep history-only relations; active slots
+  belong only to their explicitly approved concrete variants.
+- `ex_8824026f` is `STRENGTH` and `ACCESSORY_SLOT` with approved provenance.
+- `ExerciseProgramTimingProfile.defaultRestSeconds` contains the exact old
+  effective value for all 241 selectable exercises. It is not generated
+  prescription `restSeconds`.
+
+## 21.3 Runtime ownership and compatibility
+
+`CanonicalExerciseMetadataRepository` owns bundled identity and fixed relation
+loading. `SeedData` is a bootstrap facade. `ExerciseMetadataMapper` is retained
+only for legacy/import compatibility and legacy parity fixtures; it is not a
+normal bundled metadata source. Protected scientific relations and stableKey
+lineage override ordinary persisted metadata, while custom exercise/user fields
+retain their existing persistence behavior.
+
+Room stays at schema 27. Backup format and restore schema do not change. No
+workout, saved program, custom exercise, user ID, or generic history stableKey
+is rewritten.
+
+## 21.4 Scope and scientific boundaries
+
+Production export excludes `RESEARCH_DRAFT`, `DEFERRED_REVIEW`, and
+`NOT_ADJUDICATED` relation rows. Relationship correctness remains explicitly
+`NOT_ADJUDICATED`. `researchContextAxisScoreC` is not
+`runtimeCodContextModifier`; research scores such as 7.8 or 9.3 are never used
+as runtime multipliers. The reviewed tissue runtime contract remains separate,
+with ordinary multiplier 1.00 and approved maximum 1.09.
+
+## 21.5 Rollback
+
+Revert the 0.5.0.22 application commit to restore the previous asset/bootstrap
+path. No Room rollback or user-data rewrite is necessary because this cutover
+has no schema migration and performs no generic-to-variant history rewrite.

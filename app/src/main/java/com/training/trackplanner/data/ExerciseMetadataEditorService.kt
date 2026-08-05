@@ -112,6 +112,8 @@ internal class ExerciseMetadataEditorService(
 
     suspend fun setExerciseActive(exerciseStableKey: String, active: Boolean) {
         val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return
+        if (active && seedExercisesByStableKey()[ExerciseMetadataOverrideBackupMapper.overrideKey(exerciseStableKey)]
+                ?.planningEligibility == "HISTORY_ONLY") return
         exerciseDao.updateExercise(
             exercise.copy(
                 isActive = active,

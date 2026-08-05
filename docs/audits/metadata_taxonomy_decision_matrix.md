@@ -102,3 +102,20 @@ Unresolved concepts are intentionally not promoted or auto-translated.
 | `trainingRole` | `LEGACY_ONLY` | `NONE` | NO | Exact stableKey whitelist pending Phase 2B role review |
 | `transferConfidence` | `UNRESOLVED` | `UNRESOLVED` | NO | No Phase 2A.1 approval |
 | `volumeLoadEligible` | `UNRESOLVED` | `UNRESOLVED` | NO | No Phase 2A.1 approval |
+
+## Canonical authority cutover (2026-08-05)
+
+This matrix remains the Phase 2A.1 decision audit; it is not the runtime asset.
+Approved production rows now live in
+`docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx` and are
+exported to `metadata/canonical_v1`.
+
+The cutover applies five explicit decisions only: decision status is separated
+from mapping confidence; 16 history-only identities are non-selectable;
+single-leg RDL and standing calf-raise active slots belong to approved concrete
+variants; `ex_8824026f` is strength/accessory rather than plyometric; and
+`defaultRestSeconds` is a materialized `ExerciseProgramTimingProfile` value.
+
+Rows not promoted by the workbook keep their existing unresolved or deferred
+status. Relationship correctness remains `NOT_ADJUDICATED`; absence of conflict
+rows is not a zero-conflict adjudication.

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.0.2 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11 |
-| Last audited commit | f27463841c60384a0779a60ea92ed82d4d0e2c85 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22 |
+| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -148,8 +148,27 @@ WorkoutEntry/TrainingProgramItem은 기록 손실을 피하기 위해 자동 추
 - [배드민턴 운동 catalogue](../badminton/BADMINTON_EXERCISE_CATALOGUE.md)
 - [연결조직 load unit catalogue](../connective_tissue/LOAD_UNIT_CATALOGUE.md)
 
+## 19.1 Canonical workbook authority
+
+- Authoring source: `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`
+- Runtime manifest: `app/src/main/assets/metadata/canonical_v1/manifest.json`
+- Strict loader: `CanonicalExerciseMetadataRepository`
+- Selectable identities: 241
+- History-only identities: 16, readable but inactive and non-selectable
+- Relationship adjudication: `NOT_ADJUDICATED`
+
+The workbook/export path replaces normal bundled seed inference. Legacy import
+mapping remains isolated and does not rewrite a historical generic stableKey to
+an equipment variant.
+
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-05): made the canonical workbook and deterministic
+  `canonical_v1` assets the bundled identity authority. The catalog contains
+  241 selectable identities plus 16 inactive history-only compatibility
+  identities. History-only keys cannot be selected, reactivated, inferred to
+  equipment variants, or used by fresh seed programs. Existing stableKeys are
+  not rewritten and Room remains schema 27.
 - `1.0.0` (2026-07-28): stableKey-only identity, Room 24→25 migration,
   workbook canonicalization과 import-only legacy mapping 계약을 추가했습니다.
 - `1.0.1` (2026-07-29): generic RDL과 generic half-kneeling press의 검토된

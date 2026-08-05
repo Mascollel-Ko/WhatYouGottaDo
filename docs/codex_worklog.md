@@ -4570,3 +4570,89 @@ Verification
 4. Full Korean metadata registry.
 5. Remaining badminton legacy dependency replacement.
 6. Full ProgramBuilder metadata and policy review.
+
+## v0.5.0.22 canonical metadata workbook authority cutover
+
+### Baseline and isolation
+
+- Started from `origin/main` commit
+  `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` in an isolated worktree on
+  `codex/metadata-workbook-authority`.
+- Preserved the original workspace and its six modified `outputs/*` files;
+  none is reset, overwritten, staged, or included in this task.
+- Application version moves from `0.5.0.21 / 500021` to
+  `0.5.0.22 / 500022`. Room remains schema 27.
+
+### Workbook authority and deterministic export
+
+- Added `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx` as
+  the sole human-editable bundled metadata source.
+- Added pinned Python validation/export tooling and deterministic check mode.
+  The generated `canonical_v1` manifest records workbook SHA-256, file hashes,
+  row counts, primary keys, and export scopes without timestamps.
+- The workbook has 257 identities: 241 selectable and 16 history-only. It adds
+  explicit program timing and complete exercise bootstrap sheets.
+- `21_CONFLICT_REPORT` records `NOT_ADJUDICATED`; this release does not claim
+  full relationship correctness. Research drafts are not runtime assets.
+
+### Approved decisions
+
+- Separated `identityDecisionStatus` from `mappingConfidence` for
+  `ex_bd072cd` and `single_leg_rdl` without inventing confidence.
+- Kept all 16 history-only identities readable but inactive and non-selectable.
+- Scoped generic single-leg RDL/calf slot relations to history and assigned
+  active slots only to the approved concrete variants.
+- Reclassified `ex_8824026f` from plyometric to `STRENGTH` plus
+  `ACCESSORY_SLOT` with approved provenance.
+- Materialized the exact old effective `defaultRestSeconds` for all 241
+  selectable identities without changing generated prescription values.
+
+### Runtime cutover and compatibility
+
+- Added `CanonicalExerciseMetadataRepository` as the strict typed bundled
+  metadata entry point. Invalid manifests, hashes, row counts, enums, joins, or
+  history/selectability boundaries fail closed.
+- `SeedData`, runtime metadata loading, role/capability loading, ProgramBuilder
+  candidate identity, and repository bootstrap now delegate to canonical
+  assets. `ExerciseMetadataMapper` remains only in explicit legacy/import and
+  parity paths, never as a normal bundled fallback.
+- Canonical lineage and protected scientific metadata cannot be replaced by
+  an ordinary persisted override. Existing user-editable runtime fields such
+  as program slot and custom exercise behavior remain preserved.
+- Existing history-only workout/program references remain readable. New seed
+  programs containing an unresolved or history-only item are skipped whole.
+  No generic stableKey is inferred or rewritten to an equipment variant.
+- Room schema 27, backup format 10, restore schema 9, workout history, custom
+  exercises, saved programs, IDs, and reviewed tissue runtime assets remain.
+
+### Parity and validation
+
+- Whole-catalog parity covers the previous 224 identities. Allowed differences
+  are limited to the approved history planning gate, role/slot transfers,
+  `ex_8824026f` correction, and materialized timing.
+- Program golden row count and structure are unchanged; 89 rows change only
+  `exerciseStableKey` because approved concrete variants replace generic
+  candidate identities. Slot order, prescription, sets, reps, load, duration,
+  rest, and week structure are unchanged.
+- Workbook schema/formula/reopen validation passed for all 30 sheets. The
+  final authority SHA-256 is
+  `892b23a1fd9220f18a005f893b32f1046ca15670eb6a2d0196b53d38c77ecadd`.
+- Deterministic export and `--check` passed for 17 generated metadata files;
+  all 5 Python exporter tests passed.
+- Focused canonical loader/resolver, seed/restore, ProgramBuilder, analysis
+  contract, and tissue parity suites passed after the final cutover fixes.
+- Full `:app:testDebugUnitTest` passed: 1,144 tests, 0 failures.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug` passed. The debug APK is 47,384,543 bytes with SHA-256
+  `53586ee2d4530854110101bdaa68ffa04ed6070e043ca6b45500262614843ee5`.
+- Protocol validation passed: 8 families and 33 protocols.
+- Commit and current-branch push are pending the final diff review; no release
+  tag is created for this branch cutover.
+
+### Deferred and rollback
+
+- Full relationship correctness adjudication, research-draft activation, and
+  deferred review rows remain out of production.
+- Rollback is the previous application commit and asset path. No Room rollback
+  or data rewrite is required because this release has no schema migration and
+  no history stableKey rewrite.

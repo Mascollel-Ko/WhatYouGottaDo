@@ -9,7 +9,7 @@ import java.security.MessageDigest
 
 class RuntimeExerciseMetadataAssetLoaderTest {
     @Test
-    fun canonicalPass31AssetHasExpectedRowsAndDecisions() {
+    fun canonicalAuthorityAssetHasExpectedRowsAndScopes() {
         val asset = sequenceOf(
             File("src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}"),
             File("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
@@ -17,13 +17,13 @@ class RuntimeExerciseMetadataAssetLoaderTest {
 
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
 
-        assertEquals(224, rows.size)
-        assertEquals(224, rows.map { it.stableKey.lowercase() }.distinct().size)
+        assertEquals(257, rows.size)
+        assertEquals(257, rows.map { it.stableKey.lowercase() }.distinct().size)
         assertFalse(rows.any { it.stableKey.isBlank() })
         assertEquals(18, rows.count { it.badmintonTransferLevel == "DIRECT" })
-        assertEquals(88, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
-        assertEquals(89, rows.count { it.badmintonTransferLevel == "GENERAL" })
-        assertEquals(29, rows.count { it.badmintonTransferLevel == "NONE" })
+        assertEquals(101, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
+        assertEquals(105, rows.count { it.badmintonTransferLevel == "GENERAL" })
+        assertEquals(33, rows.count { it.badmintonTransferLevel == "NONE" })
         assertEquals(47, rows.count { it.stressMagnitudeHint == "HIGH" })
         assertTrue(rows.all { it.neuromuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.systemicMuscularStressLevel.isNotBlank() })
@@ -33,33 +33,14 @@ class RuntimeExerciseMetadataAssetLoaderTest {
         assertTrue(rows.all { it.recoveryDurationClass.isNotBlank() })
         assertTrue(rows.all { it.appCueProfile in RuntimeExerciseMetadataAssetLoader.APP_CUE_PROFILES })
 
-        val randomBeepCueNames = setOf(
-            "랜덤 비프 풋워크",
-            "스플릿 스텝 리액션",
-            "랜덤 방향전환 드릴",
-            "랜덤 풋워크",
-            "6코너 풋워크",
-            "앞뒤 랜덤 콕줍기",
-            "좌우 랜덤 콕줍기",
-            "6방향 랜덤 콕줍기"
+        val randomBeepCueKeys = setOf(
+            "ex_1c7f2342", "ex_33841b88", "ex_421ba24b", "ex_4255e429",
+            "ex_64422511", "ex_8e69fc74", "ex_bc84eb7f", "ex_c5f4c242"
         )
-        assertEquals(
-            randomBeepCueNames,
-            rows.filter { it.appCueProfile == "RANDOM_BEEP_CUE" }
-                .map { it.exerciseName }
-                .toSet()
-        )
-        assertTrue(rows.filterNot { it.exerciseName in randomBeepCueNames }
-            .all { it.appCueProfile == "NONE" })
-
-        val byName = rows.associateBy { it.exerciseName }
-        assertEquals("GENERAL", byName.getValue("슈퍼맨").badmintonTransferLevel)
-        assertEquals("LOW", byName.getValue("레그 익스텐션").stressMagnitudeHint)
-        assertEquals("LOW", byName.getValue("레그 컬").stressMagnitudeHint)
-        assertEquals("HIGH", byName.getValue("벤치프레스").stressMagnitudeHint)
-        assertEquals("HIGH", byName.getValue("딥스").stressMagnitudeHint)
-        assertEquals("HIGH", byName.getValue("벤치 딥스").stressMagnitudeHint)
-        assertEquals("SUPPORTIVE", byName.getValue("케이블 원암 로우").badmintonTransferLevel)
+        assertEquals(randomBeepCueKeys, rows.filter { it.appCueProfile == "RANDOM_BEEP_CUE" }.map { it.stableKey }.toSet())
+        assertTrue(rows.filterNot { it.stableKey in randomBeepCueKeys }.all { it.appCueProfile == "NONE" })
+        assertEquals(16, rows.count { it.planningEligibility == "HISTORY_ONLY" })
+        assertEquals("HISTORY_ONLY", rows.single { it.stableKey == "single_leg_rdl" }.planningEligibility)
     }
 
     @Test

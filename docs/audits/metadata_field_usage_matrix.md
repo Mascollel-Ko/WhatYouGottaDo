@@ -107,5 +107,20 @@
 | `stableKey` | Room exercises | SINGLE | YES | YES | YES | YES | YES | YES | YES | YES | `KEEP_TYPED_AUTHORITY` | `KEEP_TYPED_AUTHORITY` |
 | `strengthProgressionGroup` | Room exercises | SINGLE | YES | YES | YES | NO | NO | YES | YES | YES | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
 | `systemicLoadWeight` | Room exercises | SINGLE | YES | NO | NO | YES | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
-| `trainingRole` | Room exercises | SINGLE | NO | YES | YES | YES | NO | YES | YES | YES | `EXACT_LEGACY_STABLEKEY_WHITELIST` | `PHASE_2B_PURPOSE_SPECIFIC_PROGRAM_RELATION_REVIEW` |
+| `trainingRole` | canonical relation asset plus Room normalized relation table | MULTI | NO | YES | NO | NO | NO | NO | YES | YES | `SPLIT_TYPED_RELATION` | `ExerciseTrainingRole` |
 | `volumeLoadEligible` | Room exercises | SINGLE | NO | NO | NO | NO | NO | NO | NO | NO | `KEEP_CURRENT_BEHAVIOR` | `REVIEW_CONSUMER_SPECIFICALLY` |
+
+## Canonical authority cutover (2026-08-05)
+
+The generated `canonical_v1` assets supersede this audit's old bundled storage
+labels for production reads. `CanonicalExerciseMetadataRepository` now owns
+identity, runtime metadata, movement, muscle, OFI, recovery, badminton,
+progression, strength proxy, equipment, typed TrainingRole,
+ProgramSlotCapability, and program timing reads.
+
+`SeedData` delegates normal bootstrap to the repository. The legacy scalar
+snapshot remains compatibility evidence, and `ExerciseMetadataMapper` remains
+only in explicit import/restore compatibility and parity fixtures. It is not a
+production fallback. Custom exercise and user presentation fields continue to
+use their existing persistence path; protected scientific relations do not
+accept ordinary runtime overrides.

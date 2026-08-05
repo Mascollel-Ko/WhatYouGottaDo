@@ -29,21 +29,15 @@ object SeedData {
     private const val SETTINGS_SEED_ASSET = "training_settings_seed.csv"
     private const val EXERCISE_IMAGE_MAPPING_ASSET = "exercise_image_mapping.csv"
 
-    fun exercises(context: Context): List<Exercise> {
-        val imageMappings = exerciseImageMappings(context)
-        val rows = csvRows(context)
-
-        return exercisesFromParsedRows(rows, imageMappings)
-    }
+    fun exercises(context: Context): List<Exercise> =
+        CanonicalExerciseMetadataRepositoryProvider.get(context).exercises()
 
     internal fun exercisesFromParsedRows(rows: List<Map<String, String>>): List<Exercise> =
         exercisesFromParsedRows(rows, emptyList())
 
-    internal fun exactExerciseMetadataByStableKey(context: Context): Map<String, Exercise> {
-        val imageMappings = exerciseImageMappings(context)
-        val rows = csvRows(context)
-        return exactExerciseMetadataFromParsedRows(rows, imageMappings)
-    }
+    internal fun exactExerciseMetadataByStableKey(context: Context): Map<String, Exercise> =
+        CanonicalExerciseMetadataRepositoryProvider.get(context).exercises(includeHistory = true)
+            .associateBy { exercise -> exercise.stableKey.normalizedSeedKey() }
 
     internal fun exactExerciseMetadataFromParsedRows(rows: List<Map<String, String>>): Map<String, Exercise> =
         exactExerciseMetadataFromParsedRows(rows, emptyList())
@@ -720,8 +714,10 @@ object SeedData {
         require(exercises.map { it.category }.toSet().containsAll(requiredCategories)) {
             "Seed catalog must include strength, functional, cardio, and sport categories."
         }
-        require(engineFields.none { it.contains(Regex("[가-힣]")) }) {
-            "Engine-facing metadata must use canonical English taxonomy tokens only."
+        val nonCanonicalFields = engineFields.filter { it.contains(Regex("[가-힣]")) }
+        require(nonCanonicalFields.isEmpty()) {
+            "Engine-facing metadata must use canonical English taxonomy tokens only: " +
+                nonCanonicalFields.distinct().take(5)
         }
     }
 

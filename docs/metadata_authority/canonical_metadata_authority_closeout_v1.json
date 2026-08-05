@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "applicationVersion": "0.5.0.22",
+  "baselineCommit": "233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec",
+  "authorityWorkbook": {
+    "path": "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
+    "sha256": "892b23a1fd9220f18a005f893b32f1046ca15670eb6a2d0196b53d38c77ecadd"
+  },
+  "generatedManifest": "app/src/main/assets/metadata/canonical_v1/manifest.json",
+  "identityCounts": { "total": 257, "selectable": 241, "historyOnly": 16 },
+  "roomSchema": { "before": 27, "after": 27 },
+  "relationshipAdjudication": "NOT_ADJUDICATED",
+  "researchRuntimeStatus": "NOT_EXPORTED_TO_RUNTIME_ASSETS",
+  "approvedDecisions": [
+    "IDENTITY_DECISION_STATUS_SEPARATED_FROM_MAPPING_CONFIDENCE",
+    "HISTORY_ONLY_IDENTITIES_NON_SELECTABLE",
+    "GENERIC_PROGRAM_CAPABILITIES_TRANSFERRED_TO_APPROVED_VARIANTS",
+    "EX_8824026F_RECLASSIFIED_STRENGTH_ACCESSORY",
+    "DEFAULT_REST_SECONDS_MATERIALIZED"
+  ],
+  "migrationSafety": {
+    "destructiveMigration": false,
+    "historyStableKeyRewrite": false,
+    "userRecordRewrite": false,
+    "backupFormatChanged": false
+  },
+  "deferred": [
+    "RELATIONSHIP_CORRECTNESS_ADJUDICATION",
+    "RESEARCH_DRAFT_RUNTIME_ACTIVATION",
+    "DEFERRED_REVIEW_ROWS"
+  ]
+}

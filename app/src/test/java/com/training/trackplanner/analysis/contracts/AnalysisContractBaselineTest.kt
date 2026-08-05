@@ -158,7 +158,7 @@ class AnalysisContractBaselineTest {
 
     @Test
     fun builtInRelationsCoverEveryStableKeyAndAnalysis() {
-        val exercises = SeedData.exercises(context)
+        val exercises = legacyExercises()
         val repository = AnalysisContractAssetLoader(context).load()
 
         assertEquals(224, exercises.size)
@@ -204,9 +204,9 @@ class AnalysisContractBaselineTest {
     }
 
     private fun renderCurrentOracle(): String {
-        val exercises = SeedData.exercises(context).sortedBy(Exercise::stableKey)
+        val exercises = legacyExercises().sortedBy(Exercise::stableKey)
         val metadataByKey = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(
-            canonicalMetadataFile().readText(Charsets.UTF_8)
+            legacyMetadataFile().readText(Charsets.UTF_8)
         ).associateBy(RuntimeExerciseMetadata::stableKey)
         return buildString {
             appendLine(HEADER)
@@ -427,6 +427,27 @@ class AnalysisContractBaselineTest {
 
     private fun canonicalMetadataFile(): File =
         repoFile("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
+
+    private fun legacyMetadataFile(): File =
+        repoFile("app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
+
+    private fun legacyExercises(): List<Exercise> {
+        fun rows(asset: String): List<Map<String, String>> =
+            context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { reader ->
+                val parsed = reader.lineSequence().filter(String::isNotBlank).map(SeedData::parseCsvLine).toList()
+                val header = parsed.first().map { it.removePrefix("\uFEFF") }
+                parsed.drop(1).map { values ->
+                    header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
+                }
+            }
+        val images = rows("exercise_image_mapping.csv").associate { row ->
+            row.getValue("stable_key") to (row.getValue("image_asset_name") to (row.getValue("needs_review") == "1"))
+        }
+        return SeedData.exercisesFromParsedRows(rows("training_settings_seed.csv")).map { exercise ->
+            val image = images[exercise.stableKey] ?: return@map exercise
+            exercise.copy(imageAssetName = image.first, needsReview = exercise.needsReview || image.second)
+        }
+    }
 
     private fun repoFile(path: String): File {
         val current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile

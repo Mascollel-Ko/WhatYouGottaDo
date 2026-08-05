@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.3.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21 |
-| Last audited commit | e7d9317cf2ba618b8fadfcdcb772763a32618c09 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22 |
+| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -191,7 +191,7 @@ stable key만 사용합니다.
 
 ## 15. 현재 구현 상태
 
-App `v0.5.0.21`, restore CSV schema `9`, backup format `10`, program backup
+App `v0.5.0.22`, restore CSV schema `9`, backup format `10`, program backup
 schema `2`에서
 구현됩니다.
 
@@ -225,6 +225,13 @@ New backup format 10 exports `training_role_codes` and
 `program_slot_capability_codes`; it does not export `training_role`. Old backup
 rows containing `training_role` are accepted only by the import compatibility
 mapper and are persisted solely as normalized relation rows.
+
+Canonical workbook cutover does not change backup format 10, restore schema 9,
+or Room schema 27. The 16 history-only stableKeys remain valid readable
+references and are never rewritten to a concrete equipment variant. Existing
+saved programs referencing them remain readable. Fresh built-in seed programs
+containing an unresolved or history-only item are skipped atomically, while
+workout history and exercise rows are preserved.
 
 ## 16. 구현 위치
 
@@ -262,6 +269,10 @@ mapper and are persisted solely as normalized relation rows.
   `program_key`와 seed graph
 - Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`: migration boundary
 - `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
+- `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`: bundled
+  identity and metadata authoring authority
+- `app/src/main/assets/metadata/canonical_v1/manifest.json`: generated runtime
+  asset integrity and scope contract
 
 ## 19. 관련 문서
 
@@ -276,6 +287,9 @@ mapper and are persisted solely as normalized relation rows.
 
 ## 20. 변경 이력
 
+- `1.3.1`: documents the v0.5.0.22 canonical metadata authority cutover. The
+  backup and Room formats are unchanged, history-only keys remain readable,
+  and no generic-to-variant restore migration is introduced.
 - `1.3.0`: backup format 10 and restore schema 9 replace the mixed role column
   with normalized TrainingRole and ProgramSlotCapability codes. Legacy
   `training_role` remains import-only; Room migration 26 -> 27 is non-destructive.

@@ -246,14 +246,14 @@ class ProgramAutoBuilderTest {
         return lines.drop(1)
             .map(SeedData::parseCsvLine)
             .map { values -> header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap() }
-            .filter { it["row_type"] == "exercise" }
+            .filter { it["isActive"] == "YES" && it["planningEligibility"] != "HISTORY_ONLY" }
             .map { row ->
                 Exercise(
-                    name = row["exercise_name"].orEmpty(),
+                    name = row["name"].orEmpty(),
                     category = row["category"].orEmpty(),
-                    defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
-                    stableKey = row["stable_key"].orEmpty(),
-                    equipment = row["equipment_tags"].orEmpty(),
+                    defaultRestSeconds = row["defaultRestSeconds"]?.toIntOrNull() ?: 60,
+                    stableKey = row["stableKey"].orEmpty(),
+                    equipment = row["equipmentTags"].orEmpty(),
                     isActive = true
                 )
             }
@@ -261,9 +261,9 @@ class ProgramAutoBuilderTest {
 
     private fun seedFile(): File =
         sequenceOf(
-            File("src/main/assets/training_settings_seed.csv"),
-            File("app/src/main/assets/training_settings_seed.csv")
-        ).firstOrNull(File::exists) ?: error("Missing training settings seed.")
+            File("src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"),
+            File("app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv")
+        ).firstOrNull(File::exists) ?: error("Missing canonical exercise bootstrap.")
 
     private fun chestShoulderDay(skeleton: GeneratedProgramSkeleton, week: Int): List<ProgramSkeletonItem> =
         skeleton.items.filter { it.weekNumber == week && it.dayOfWeek == 3 }

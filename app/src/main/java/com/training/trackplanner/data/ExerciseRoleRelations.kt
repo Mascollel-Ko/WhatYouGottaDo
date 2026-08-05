@@ -118,24 +118,8 @@ class ExerciseRoleRelationCatalog private constructor(
 
 class ExerciseRoleRelationAssetLoader(private val context: Context) {
     fun load(validExerciseStableKeys: Set<String>): ExerciseRoleRelationCatalog {
-        val training = parse(TRAINING_ROLE_ASSET).map { fields ->
-            ExerciseTrainingRoleRelation(
-                exerciseStableKey = fields.getValue("exerciseStableKey"),
-                trainingRoleCode = TrainingRole.valueOf(fields.getValue("trainingRoleCode")).name,
-                provenance = fields.getValue("provenance"),
-                reviewStatus = fields.getValue("reviewStatus"),
-                notes = fields.getValue("notes")
-            )
-        }
-        val capabilities = parse(PROGRAM_SLOT_ASSET).map { fields ->
-            ExerciseProgramSlotCapabilityRelation(
-                exerciseStableKey = fields.getValue("exerciseStableKey"),
-                capabilityCode = ProgramSlotCapability.valueOf(fields.getValue("capabilityCode")).name,
-                provenance = fields.getValue("provenance"),
-                reviewStatus = fields.getValue("reviewStatus"),
-                notes = fields.getValue("notes")
-            )
-        }
+        val training = trainingRelations()
+        val capabilities = programSlotCapabilityRelations()
         val orphans = (training.map { it.exerciseStableKey } + capabilities.map { it.exerciseStableKey })
             .filterNot(validExerciseStableKeys::contains)
             .distinct()
@@ -143,40 +127,9 @@ class ExerciseRoleRelationAssetLoader(private val context: Context) {
         return ExerciseRoleRelationCatalog.of(training, capabilities)
     }
 
-    fun trainingRelations(): List<ExerciseTrainingRoleRelation> = parse(TRAINING_ROLE_ASSET).map { fields ->
-        ExerciseTrainingRoleRelation(
-            exerciseStableKey = fields.getValue("exerciseStableKey"),
-            trainingRoleCode = TrainingRole.valueOf(fields.getValue("trainingRoleCode")).name,
-            provenance = fields.getValue("provenance"),
-            reviewStatus = fields.getValue("reviewStatus"),
-            notes = fields.getValue("notes")
-        )
-    }
+    fun trainingRelations(): List<ExerciseTrainingRoleRelation> =
+        CanonicalExerciseMetadataRepositoryProvider.get(context).trainingRoleRelations()
 
     fun programSlotCapabilityRelations(): List<ExerciseProgramSlotCapabilityRelation> =
-        parse(PROGRAM_SLOT_ASSET).map { fields ->
-            ExerciseProgramSlotCapabilityRelation(
-                exerciseStableKey = fields.getValue("exerciseStableKey"),
-                capabilityCode = ProgramSlotCapability.valueOf(fields.getValue("capabilityCode")).name,
-                provenance = fields.getValue("provenance"),
-                reviewStatus = fields.getValue("reviewStatus"),
-                notes = fields.getValue("notes")
-            )
-        }
-
-    private fun parse(asset: String): List<Map<String, String>> {
-        val rows = context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { reader ->
-            reader.lineSequence().filter(String::isNotBlank).map(SeedData::parseCsvLine).toList()
-        }
-        require(rows.isNotEmpty()) { "Empty relation asset: $asset" }
-        val header = rows.first().map { it.trim().trimStart('\uFEFF') }
-        return rows.drop(1).map { values ->
-            header.mapIndexed { index, name -> name to values.getOrElse(index) { "" }.trim() }.toMap()
-        }
-    }
-
-    private companion object {
-        const val TRAINING_ROLE_ASSET = "metadata/relations/exercise_training_role_relations_v1.csv"
-        const val PROGRAM_SLOT_ASSET = "metadata/relations/exercise_program_slot_capability_relations_v1.csv"
-    }
+        CanonicalExerciseMetadataRepositoryProvider.get(context).programSlotCapabilityRelations()
 }

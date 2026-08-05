@@ -18,3 +18,7 @@ local.properties
 
 # Local generated workspace artifacts
 work/
+
+# Developer-side metadata exporter caches
+__pycache__/
+*.pyc

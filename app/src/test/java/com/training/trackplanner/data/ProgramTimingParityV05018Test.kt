@@ -130,23 +130,23 @@ class ProgramTimingParityV05018Test {
         return lines.drop(1)
             .map(SeedData::parseCsvLine)
             .map { values -> header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap() }
-            .filter { it["row_type"] == "exercise" }
+            .filter { it["isActive"] == "YES" && it["planningEligibility"] != "HISTORY_ONLY" }
             .map { row ->
                 Exercise(
-                    name = row["exercise_name"].orEmpty(),
+                    name = row["name"].orEmpty(),
                     category = row["category"].orEmpty(),
-                    defaultRestSeconds = row["default_rest_seconds"]?.toIntOrNull() ?: 60,
-                    stableKey = row["stable_key"].orEmpty(),
-                    equipment = row["equipment_tags"].orEmpty(),
+                    defaultRestSeconds = row["defaultRestSeconds"]?.toIntOrNull() ?: 60,
+                    stableKey = row["stableKey"].orEmpty(),
+                    equipment = row["equipmentTags"].orEmpty(),
                     isActive = true
                 )
             }
     }
 
     private fun seedFile(): File = sequenceOf(
-        File("src/main/assets/training_settings_seed.csv"),
-        File("app/src/main/assets/training_settings_seed.csv")
-    ).firstOrNull(File::exists) ?: error("Missing training settings seed.")
+        File("src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"),
+        File("app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv")
+    ).firstOrNull(File::exists) ?: error("Missing canonical exercise bootstrap asset.")
 
     private fun ProgramSkeletonItem.signature(): String =
         "$weekNumber|$dayOfWeek|$orderIndex|$exerciseStableKey|$selectionRole|$trainingSlot|$setCount|$reps|$seconds|$restSeconds"
@@ -156,6 +156,6 @@ class ProgramTimingParityV05018Test {
         .joinToString("") { "%02X".format(it.toInt() and 0xFF) }
 
     private companion object {
-        const val FROZEN_ORACLE_SHA256 = "45601660EA8189A5ED39D6EB1786900E6205B9EA6B787A1FED2F5C100A1CBD77"
+        const val FROZEN_ORACLE_SHA256 = "68420459111C7EDF63F84A04FC9EB8E2393B75007F0B5A5BBD5ED3C28B4D7CD4"
     }
 }

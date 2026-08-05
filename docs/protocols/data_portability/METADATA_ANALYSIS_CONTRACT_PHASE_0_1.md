@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21 |
-| Last audited commit | 40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22 |
+| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -185,6 +185,7 @@ consumer symbol과 실제 semantic use별로 검토합니다.
 - `app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractAssetLoader.kt`
 - `app/src/main/java/com/training/trackplanner/analysis/contracts/UserExerciseAnalysisContractProjector.kt`
 - `app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractShadowParity.kt`
+- `app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt`
 
 ## 17. 검증 테스트
 
@@ -199,6 +200,8 @@ golden을 검증합니다.
 
 - `app/src/main/assets/metadata/analysis_contract_baseline_v1.csv`
 - `app/src/test/resources/analysis-contract/analysis_contract_program_golden_v1.csv`
+- `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`
+- `app/src/main/assets/metadata/canonical_v1/manifest.json`
 
 이 asset은 shadow contract의 권위 자산입니다. 실제 사용자 계산의 권위는
 기존 calculator와 기존 reviewed tissue assets입니다.
@@ -221,6 +224,11 @@ golden을 검증합니다.
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-05): cut bundled metadata reads over to deterministic
+  workbook-generated assets and a strict canonical repository. Frozen analysis
+  behavior remains unchanged except the approved history/slot/reclassification
+  boundaries; reviewed tissue runtime assets remain separate. Relationship
+  correctness remains explicitly `NOT_ADJUDICATED`.
 - `1.4.0` (2026-08-04): removed the mixed production `trainingRole` field,
   separated intrinsic TrainingRole from ProgramSlotCapability, and documented
   that program placement relations are not analysis inputs.

@@ -1,0 +1,177 @@
+{
+  "authorityWorkbookSha256": "892b23a1fd9220f18a005f893b32f1046ca15670eb6a2d0196b53d38c77ecadd",
+  "counts": {
+    "bootstrapRows": 257,
+    "historyOnlyIdentityRows": 16,
+    "identityRows": 257,
+    "programSlotRows": 31,
+    "selectableIdentityRows": 241,
+    "timingRows": 241,
+    "trainingRoleRows": 19
+  },
+  "files": [
+    {
+      "path": "badminton_relations.csv",
+      "primaryKey": [
+        "relationKey"
+      ],
+      "rowCount": 1865,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "e9d22c985b6985e7e210cd6a0b16d3864ba4611af07912273e75ab153cd42d2b"
+    },
+    {
+      "path": "equipment_relations.csv",
+      "primaryKey": [
+        "exerciseStableKey",
+        "groupId",
+        "memberOrder"
+      ],
+      "rowCount": 266,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "034fe71e5b586b6268f4975913686d94962e71a387a5aecdfb51f7888b58b34c"
+    },
+    {
+      "path": "exercise_bootstrap.csv",
+      "primaryKey": [
+        "stableKey"
+      ],
+      "rowCount": 257,
+      "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
+      "sha256": "204e74ae94f038842d9887145edbfa173616cd19f914c99ded4fe0a0ba3d7e43"
+    },
+    {
+      "path": "history_identity.csv",
+      "primaryKey": [
+        "stableKey"
+      ],
+      "rowCount": 16,
+      "scope": "HISTORY_COMPATIBILITY_ONLY",
+      "sha256": "3b53170adb6ec7382aa4865e0b231176c775765be5813587a92290a3609cfab5"
+    },
+    {
+      "path": "history_program_slot_capabilities.csv",
+      "primaryKey": [
+        "exerciseStableKey",
+        "capabilityCode"
+      ],
+      "rowCount": 2,
+      "scope": "HISTORY_COMPATIBILITY_ONLY",
+      "sha256": "d2f4ea4de9548e89ba63c06d5cca338ee339b036b5f1ee9fa0386bda6126759a"
+    },
+    {
+      "path": "history_training_roles.csv",
+      "primaryKey": [
+        "exerciseStableKey",
+        "trainingRoleCode"
+      ],
+      "rowCount": 1,
+      "scope": "HISTORY_COMPATIBILITY_ONLY",
+      "sha256": "fc7b81db1fd3fbb0389efa196d572cb43370bad0852ac67f64252dfe6a64d650"
+    },
+    {
+      "path": "identity_master.csv",
+      "primaryKey": [
+        "stableKey"
+      ],
+      "rowCount": 257,
+      "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
+      "sha256": "0c3c7d1449332de39ecd52d9b8635e05bea5dbb9a749da12a7b61cdbb4421b7a"
+    },
+    {
+      "path": "movement_relations.csv",
+      "primaryKey": [
+        "relationId"
+      ],
+      "rowCount": 2240,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "1c4feabd677ddee3bd01d32f7f2553ccfe257f3111c17dd85c8a1d88f66f657d"
+    },
+    {
+      "path": "muscle_relations.csv",
+      "primaryKey": [
+        "relationKey"
+      ],
+      "rowCount": 797,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "733337040bdd0aad150fcc1a2313f299ec26676e043761cdc2733ed3de78c6ca"
+    },
+    {
+      "path": "ofi_relations.csv",
+      "primaryKey": [
+        "relationKey"
+      ],
+      "rowCount": 3913,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "9c93a4b4b49a4cc0c05d97260b25010b8a5e3216b3b251e6d14c25bd1e92b78d"
+    },
+    {
+      "path": "program_slot_capabilities.csv",
+      "primaryKey": [
+        "exerciseStableKey",
+        "capabilityCode"
+      ],
+      "rowCount": 29,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "7ea5b94537a3f9cde303dd934dba6329bd85087c2f3bf260f9ad58996352f30c"
+    },
+    {
+      "path": "program_timing.csv",
+      "primaryKey": [
+        "stableKey"
+      ],
+      "rowCount": 241,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "080427fc700a765b64053d3d9f2a0195970a2024a116d02d9f8469e03368c0ae"
+    },
+    {
+      "path": "progression_relations.csv",
+      "primaryKey": [
+        "relationKey"
+      ],
+      "rowCount": 194,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "096db7ab522b293e943a908aa12ef2dc208ac1e9138cde29569a4865c80069aa"
+    },
+    {
+      "path": "recovery_relations.csv",
+      "primaryKey": [
+        "exerciseStableKey"
+      ],
+      "rowCount": 241,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "fc154d99b7c7c3a4cd807cc8c929949a1830e96669390a92c49329800b64d475"
+    },
+    {
+      "path": "runtime_metadata.csv",
+      "primaryKey": [
+        "stableKey"
+      ],
+      "rowCount": 257,
+      "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
+      "sha256": "781a2b0acd2df110fe859e1306b0030d73017c10a3868fcf814127c6b5500bb0"
+    },
+    {
+      "path": "strength_proxy_relations.csv",
+      "primaryKey": [
+        "relationId"
+      ],
+      "rowCount": 17,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "4ab67d84d1cea801b2c08dc272200d4170da6a62506403aa330a0e7e95573b8f"
+    },
+    {
+      "path": "training_roles.csv",
+      "primaryKey": [
+        "exerciseStableKey",
+        "trainingRoleCode"
+      ],
+      "rowCount": 18,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "88ca06f29633e9d93ff07461e1642828ab6037fb1a6020722741dc3e98094203"
+    }
+  ],
+  "generatorVersion": "1.0.0",
+  "relationshipAdjudication": "NOT_ADJUDICATED",
+  "researchScope": "NOT_EXPORTED_TO_RUNTIME_ASSETS",
+  "schemaVersion": 1
+}

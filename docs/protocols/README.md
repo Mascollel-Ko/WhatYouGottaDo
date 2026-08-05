@@ -53,16 +53,22 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `STRENGTH` | `STRENGTH-DURATION-HOLD` | 시간 유지 운동 부하 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](strength/DURATION_HOLD_LOAD.md) |
 | `STRENGTH` | `STRENGTH-CATALOGUE` | 근력 운동 catalogue | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `v0.3.5.0`; canonical identities `v0.5.0.6`; localized presentation `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](strength/STRENGTH_EXERCISE_CATALOGUE.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-OVERVIEW` | 자동 프로그램 생성 개요 | `1.3.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; exact manual sets `v0.5.0.12`; exact application `v0.5.0.13`; typed user notices `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](program_builder/PROGRAM_BUILDER_OVERVIEW.md) |
-| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SLOTS` | 프로그램 slot과 role 모델 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/SLOT_AND_ROLE_MODEL.md) |
+| `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SLOTS` | 프로그램 slot과 role 모델 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0`; workbook authority `v0.5.0.22` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](program_builder/SLOT_AND_ROLE_MODEL.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SCORING` | 운동 선택과 우선순위 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/EXERCISE_SELECTION_AND_SCORING.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-CONSTRAINTS` | 대체와 제약 규칙 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.1` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_EVALUATION.md) |
-| `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.0.2` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; legacy direct-map correction `v0.5.0.8`; restore metadata preservation `v0.5.0.11` | `f27463841c60384a0779a60ea92ed82d4d0e2c85` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
-| `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; format 8 `v0.5.0.6`; exact program sets `v0.5.0.12` | `e7d9317cf2ba618b8fadfcdcb772763a32618c09` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.3.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; v2.3 Phase 2A.1 corrections `v0.5.0.19` | `40615fab9c7ff892b0e48dd5a244eeb77e7cf2ee` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
+| `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; workbook authority `v0.5.0.22` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
+| `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.3.1` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.5.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; bundled authority `v0.5.0.22` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
+
+- v0.5.0.22 makes the repository XLSX the human-editable bundled metadata
+  authority. Deterministic generated assets feed one strict canonical
+  repository; 16 history-only identities remain readable but inactive and
+  non-selectable. Relationship correctness remains `NOT_ADJUDICATED`, research
+  drafts are not runtime assets, and Room stays at schema 27.
 
 - v0.5.0.21 separates intrinsic `TrainingRole` from placement-only
   `ProgramSlotCapability`. The latter has exactly 26 approved stableKey rows,

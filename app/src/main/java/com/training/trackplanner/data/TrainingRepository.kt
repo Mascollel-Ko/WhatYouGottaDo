@@ -120,7 +120,8 @@ class TrainingRepository(
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
     private val exerciseRoleRelationDao = db.exerciseRoleRelationDao()
     private val strengthPosteriorDao = db.strengthPosteriorDao()
-    private val canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalogProvider.get(context)
+    private val canonicalMetadataRepository = CanonicalExerciseMetadataRepositoryProvider.get(context)
+    private val canonicalRuntimeMetadataCatalog = canonicalMetadataRepository.runtimeMetadataCatalog()
     private val exerciseRoleRelationAssetLoader = ExerciseRoleRelationAssetLoader(context)
     private val legacyExerciseImportMapper = LegacyExerciseImportMapper.fromAssets(context)
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
@@ -490,10 +491,15 @@ class TrainingRepository(
         val runtimeOverrideKeys = runtimeExerciseMetadataDao.all()
             .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
             .let(ExerciseMetadataOverrideBackupMapper::overrideKeys)
-        SeedData.exercises(context).forEach { seed ->
+        SeedData.exactExerciseMetadataByStableKey(context).values.forEach { seed ->
+            val historyOnly = canonicalMetadataRepository.identity(seed.stableKey)?.historyOnly == true
             val existing = exerciseDao.findByStableKey(seed.stableKey)
             if (existing == null) {
                 exerciseDao.insertExercise(seed)
+            } else if (historyOnly) {
+                ExerciseStableKeyPolicy.mergeSeed(existing, seed)?.let { merged ->
+                    exerciseDao.updateExercise(merged.copy(isActive = false))
+                }
             } else if (ExerciseMetadataOverrideBackupMapper.hasOverride(existing.stableKey, runtimeOverrideKeys)) {
                 return@forEach
             } else {
@@ -507,10 +513,16 @@ class TrainingRepository(
     private suspend fun seedExerciseRoleRelations() {
         val stableKeys = exerciseDao.allExercises().mapTo(mutableSetOf(), Exercise::stableKey)
         exerciseRoleRelationAssetLoader.load(stableKeys)
-        exerciseRoleRelationDao.upsertTrainingRoles(exerciseRoleRelationAssetLoader.trainingRelations())
-        exerciseRoleRelationDao.upsertProgramSlotCapabilities(
-            exerciseRoleRelationAssetLoader.programSlotCapabilityRelations()
-        )
+        val trainingRoles = exerciseRoleRelationAssetLoader.trainingRelations()
+        val slotCapabilities = exerciseRoleRelationAssetLoader.programSlotCapabilityRelations()
+        db.withTransaction {
+            canonicalMetadataRepository.identities().forEach { identity ->
+                exerciseRoleRelationDao.deleteTrainingRoles(identity.stableKey)
+                exerciseRoleRelationDao.deleteProgramSlotCapabilities(identity.stableKey)
+            }
+            exerciseRoleRelationDao.upsertTrainingRoles(trainingRoles)
+            exerciseRoleRelationDao.upsertProgramSlotCapabilities(slotCapabilities)
+        }
     }
 
     suspend fun exerciseEditorData(exerciseStableKey: String?): ExerciseRuntimeMetadataEditorData =
@@ -751,10 +763,14 @@ class TrainingRepository(
             needsReview = row.needsReview
         )
         val hasRestoredOverride = ExerciseMetadataOverrideBackupMapper.hasOverride(stableKey, restoredRuntimeOverrideKeys)
+        val historyOnly = seedByStableKey[ExerciseMetadataOverrideBackupMapper.overrideKey(stableKey)]
+            ?.planningEligibility == "HISTORY_ONLY"
         val restored = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey) && !hasRestoredOverride) {
             ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(csvExercise, seedByStableKey)
         } else {
             ExerciseMetadataMapper.applyLegacyMetadata(csvExercise)
+        }.let { exercise ->
+            if (historyOnly) exercise.copy(isActive = false, planningEligibility = "HISTORY_ONLY") else exercise
         }
         val existing = exerciseDao.findByStableKey(stableKey)
         if (existing == null) {
@@ -1033,7 +1049,9 @@ class TrainingRepository(
                 itemSeed to exercisesByStableKey[itemSeed.exerciseStableKey]
             }
             val unresolved = resolvedItems.firstOrNull { (itemSeed, exercise) ->
-                itemSeed.exerciseStableKey.isBlank() || exercise?.stableKey.isNullOrBlank()
+                itemSeed.exerciseStableKey.isBlank() ||
+                    exercise?.stableKey.isNullOrBlank() ||
+                    canonicalMetadataRepository.identity(itemSeed.exerciseStableKey)?.selectable != true
             }
             if (unresolved != null) {
                 if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
@@ -1257,7 +1275,7 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 8
+        const val EXERCISE_SEED_VERSION = 9
         const val PROGRAM_SEED_VERSION = 1
         const val PROGRAM_STABLE_KEY_REPAIR_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"

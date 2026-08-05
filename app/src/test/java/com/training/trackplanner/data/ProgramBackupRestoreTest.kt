@@ -205,13 +205,13 @@ class ProgramBackupRestoreTest {
                 .map { it.reps to it.weightKg }
         )
 
-        repository(target).seedMissingPrograms(listOf(SeedData.programs(context).first()))
+        repository(target).seedMissingPrograms(listOf(SeedData.programs(context).first { it.key == "10" }))
         assertEquals("수정된, \"배드민턴\" 프로그램", target.programDao().findProgramByStableKey("3")?.name)
     }
 
     @Test
     fun `deleting a built in program persists tombstone through restore and later seeding`() = runBlocking {
-        val seed = SeedData.programs(context).first()
+        val seed = SeedData.programs(context).first { it.key == "10" }
         val source = newDatabase()
         val sourceRepository = repository(source)
         val programId = source.programDao().insertProgram(
@@ -237,6 +237,40 @@ class ProgramBackupRestoreTest {
         assertNull(target.programDao().findProgramByStableKey(seed.key))
         assertNotNull(target.programDao().findProgramTombstone(seed.key))
         assertNotNull(target.programDao().findProgramByStableKey(futureSeed.key))
+    }
+
+    @Test
+    fun `history only exercise keeps readable row but cannot seed a new program`() = runBlocking {
+        val db = newDatabase()
+        val historyExercise = SeedData.exactExerciseMetadataByStableKey(context).getValue("single_leg_rdl")
+        db.exerciseDao().insertExercise(historyExercise)
+        val seed = ProgramSeed(
+            key = "history_only_seed",
+            name = "History-only seed",
+            durationDays = 7,
+            items = listOf(
+                ProgramItemSeed(
+                    weekNumber = 1,
+                    dayOfWeek = 1,
+                    orderIndex = 1,
+                    exerciseStableKey = historyExercise.stableKey,
+                    exerciseName = historyExercise.name,
+                    category = historyExercise.category,
+                    restSeconds = historyExercise.defaultRestSeconds,
+                    prescription = "2x8",
+                    setCount = 2,
+                    reps = 8,
+                    weightKg = 0.0,
+                    seconds = 0
+                )
+            )
+        )
+
+        repository(db).seedMissingPrograms(listOf(seed))
+
+        assertNull(db.programDao().findProgramByStableKey(seed.key))
+        assertNotNull(db.exerciseDao().findByStableKey(historyExercise.stableKey))
+        assertTrue(db.exerciseDao().findByStableKey(historyExercise.stableKey)?.isActive == false)
     }
 
     @Test
@@ -321,7 +355,7 @@ class ProgramBackupRestoreTest {
     @Test
     fun `legacy key repair maps only an exact seed graph and is stable on second startup`() = runBlocking {
         val db = newDatabase()
-        val seed = SeedData.programs(context).first()
+        val seed = SeedData.programs(context).first { it.key == "10" }
         insertSeedExercises(db, seed)
         val exactId = db.programDao().insertProgram(
             TrainingProgram(

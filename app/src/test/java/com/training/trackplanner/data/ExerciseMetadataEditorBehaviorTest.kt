@@ -244,6 +244,18 @@ class ExerciseMetadataEditorBehaviorTest {
     }
 
     @Test
+    fun historyOnlyExerciseCannotBeReactivated() = runBlocking {
+        val db = newDatabase()
+        val repository = repository(db)
+        val history = SeedData.exactExerciseMetadataByStableKey(context).getValue("single_leg_rdl")
+        db.exerciseDao().insertExercise(history)
+
+        repository.setExerciseActive(history.stableKey, true)
+
+        assertFalse(db.exerciseDao().findByStableKey(history.stableKey)!!.isActive)
+    }
+
+    @Test
     fun deleteExerciseIfUnusedDeletesOnlyUnusedCustomExerciseAndItsOverride() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)

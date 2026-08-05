@@ -1,0 +1,242 @@
+exerciseStableKey,exerciseName,recoveryDecayProfile,recoveryDurationClass,stressMagnitudeHint,sourceStableKey,provenanceStatus,sourceStatus,provenance
+band_lift,밴드 리프트,MEDIUM,MEDIUM,MODERATE,band_lift,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+band_pallof_press,밴드 팔로프 프레스,SHORT,SHORT,LOW,ex_99728d25,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+band_woodchop,밴드 우드찹,MEDIUM,MEDIUM,MODERATE,band_woodchop,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+barbell_back_squat,스쿼트,VERY_LONG,VERY_LONG,VERY_HIGH,barbell_back_squat,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+barbell_bench_press,벤치프레스,MEDIUM,MEDIUM,HIGH,barbell_bench_press,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+barbell_deadlift,데드리프트,VERY_LONG,VERY_LONG,VERY_HIGH,barbell_deadlift,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+barbell_reverse_curl,바벨 리버스 컬,SHORT,SHORT,LOW,ex_dd2f732e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+barbell_reverse_wrist_curl,바벨 리버스 리스트 컬,SHORT,SHORT,LOW,ex_8e18b02a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+barbell_romanian_deadlift,루마니안 바벨 데드리프트,LONG,LONG,HIGH,barbell_romanian_deadlift,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+cable_hip_adduction,케이블 힙 어덕션,SHORT,SHORT,LOW,ex_eaea872c,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+cable_lift,케이블 리프트,MEDIUM,MEDIUM,MODERATE,cable_lift,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,MEDIUM,MEDIUM,MODERATE,ex_a9e8859c,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+cable_pallof_press,케이블 팔로프 프레스,SHORT,SHORT,LOW,ex_99728d25,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+cable_rear_delt_fly,케이블 리어델트 플라이,SHORT,SHORT,LOW,ex_7176cbee,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+cable_woodchop,케이블 우드찹,MEDIUM,MEDIUM,MODERATE,cable_woodchop,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+chest_supported_row_machine,체스트 서포티드 로우 머신,MEDIUM,MEDIUM,MODERATE,ex_8e51640a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,MEDIUM,MEDIUM,MODERATE,ex_8e51640a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_farmer_carry,덤벨 파머스 캐리,MEDIUM,MEDIUM,MODERATE,ex_a1fc4533,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_goblet_squat,덤벨 고블릿 스쿼트,SHORT,SHORT,LOW,ex_ac7df636,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_lying_triceps_extension,덤벨 라잉 트라이셉스 익스텐션,SHORT,SHORT,LOW,ex_d20b7487,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_overhead_triceps_extension,덤벨 오버헤드 트라이셉스 익스텐션,MEDIUM,MEDIUM,MODERATE,ex_a9e8859c,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_preacher_curl,덤벨 프리처 컬,SHORT,SHORT,LOW,ex_e994008a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_rear_delt_fly,덤벨 리어델트 플라이,SHORT,SHORT,LOW,ex_7176cbee,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_reverse_wrist_curl,덤벨 리버스 리스트 컬,SHORT,SHORT,LOW,ex_8e18b02a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,LONG,LONG,HIGH,dumbbell_romanian_deadlift,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,MEDIUM,MEDIUM,MODERATE,single_leg_rdl,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_spider_curl,덤벨 스파이더 컬,SHORT,SHORT,LOW,ex_516f4456,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+dumbbell_woodchop,덤벨 우드찹,MEDIUM,MEDIUM,MODERATE,dumbbell_woodchop,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_1052e9fa,스미스 머신 런지,MEDIUM,MEDIUM,MODERATE,ex_1052e9fa,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_149730de,발목/고관절 가동성,SHORT,SHORT,LOW,ex_149730de,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_16b298db,미니밴드 사이드워크,SHORT,SHORT,LOW,ex_16b298db,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_1a4858d7,농구,LONG,LONG,HIGH,ex_1a4858d7,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_1a4bbdcf,축구,LONG,LONG,HIGH,ex_1a4bbdcf,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_1c7f2342,랜덤 풋워크,MEDIUM,MEDIUM,MODERATE,ex_1c7f2342,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_1cf51b6b,노르딕 햄스트링 컬,VERY_LONG,VERY_LONG,VERY_HIGH,ex_1cf51b6b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_1dbee10e,머신 체스트프레스,MEDIUM,MEDIUM,MODERATE,ex_1dbee10e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_2055b629,애질리티 래더,MEDIUM,MEDIUM,MODERATE,ex_2055b629,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_216351a1,가벼운 콕줍기,MEDIUM,MEDIUM,MODERATE,ex_216351a1,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_27b3deb5,클로즈그립 벤치프레스,MEDIUM,MEDIUM,MODERATE,ex_27b3deb5,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_281347da,덤벨 컬,SHORT,SHORT,LOW,ex_281347da,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_2822ec2e,레그 컬,SHORT,SHORT,LOW,ex_2822ec2e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_282a9d87,링 로우,MEDIUM,MEDIUM,MODERATE,ex_282a9d87,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_28347c1f,버드독,SHORT,SHORT,LOW,ex_28347c1f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_284ecca6,슈퍼맨,SHORT,SHORT,LOW,ex_284ecca6,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_28902b13,푸시업,SHORT,SHORT,LOW,ex_28902b13,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_2892da5a,해머 컬,SHORT,SHORT,LOW,ex_2892da5a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_2a826c82,할로우 바디 홀드,SHORT,SHORT,LOW,ex_2a826c82,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_2f3b56d0,테니스,LONG,LONG,HIGH,ex_2f3b56d0,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_30a0e9aa,원암 덤벨 로우,MEDIUM,MEDIUM,MODERATE,ex_30a0e9aa,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_314df428,원레그 홉 투 스틱,LONG,LONG,HIGH,ex_314df428,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_32219f7a,오버헤드 프레스,MEDIUM,MEDIUM,MODERATE,ex_32219f7a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_32eb8457,원암 랫풀다운,MEDIUM,MEDIUM,MODERATE,ex_32eb8457,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_33841b88,6코너 풋워크,MEDIUM,MEDIUM,MODERATE,ex_33841b88,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_33d2da8e,원암 머신 로우,MEDIUM,MEDIUM,MODERATE,ex_33d2da8e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_34e7d21,래터럴 바운드 투 스틱,LONG,LONG,HIGH,ex_34e7d21,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_377448a9,스플릿 스텝 후 좌우 런지,LONG,LONG,HIGH,ex_377448a9,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_389920ab,글루트 브릿지,MEDIUM,MEDIUM,MODERATE,ex_389920ab,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_389e0556,원암 덤벨 벤치프레스,MEDIUM,MEDIUM,MODERATE,ex_389e0556,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_3a7d3eda,덤벨 벤치프레스,MEDIUM,MEDIUM,MODERATE,ex_3a7d3eda,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_3c3692aa,케이블 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_3c3692aa,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_3caa236b,파이크 푸시업,MEDIUM,MEDIUM,MODERATE,ex_3caa236b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_3d5719de,원암 케이블 컬,SHORT,SHORT,LOW,ex_3d5719de,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_3f184ef9,버피,MEDIUM,MEDIUM,HIGH,ex_3f184ef9,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_40fa57be,원암 케이블 하이 로우,MEDIUM,MEDIUM,MODERATE,ex_40fa57be,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_421ba24b,좌우 랜덤 콕줍기,MEDIUM,MEDIUM,MODERATE,ex_421ba24b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_4255e429,앞뒤 랜덤 콕줍기,MEDIUM,MEDIUM,MODERATE,ex_4255e429,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_442617f6,원암 케이블 플라이,SHORT,SHORT,LOW,ex_442617f6,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_462c760e,체스트 서포티드 원암 머신 로우,MEDIUM,MEDIUM,MODERATE,ex_462c760e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_4773b6ea,린단 참고 트랙 스프린트,LONG,LONG,HIGH,ex_4773b6ea,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_4aa3725a,머신 숄더프레스,MEDIUM,MEDIUM,MODERATE,ex_4aa3725a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_4c76dbb2,케이블 풀스루,MEDIUM,MEDIUM,MODERATE,ex_4c76dbb2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_4c779df2,케이블 플라이,SHORT,SHORT,LOW,ex_4c779df2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_5004ca76,린단 참고 페이스 체인지 풋워크,MEDIUM,MEDIUM,MODERATE,ex_5004ca76,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,SHORT,SHORT,LOW,ex_5322f2d1,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_5c8751d2,시티드 카프 레이즈,SHORT,SHORT,MODERATE,ex_5c8751d2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_5ca7133f,원레그 카프 레이즈,SHORT,SHORT,MODERATE,ex_5ca7133f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_6232f4bc,박스 스텝업,MEDIUM,MEDIUM,MODERATE,ex_6232f4bc,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_64422511,랜덤 방향전환 드릴,MEDIUM,MEDIUM,MODERATE,ex_64422511,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_644e0f9d,V업,SHORT,SHORT,MODERATE,ex_644e0f9d,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_6463edad,딥스,MEDIUM,MEDIUM,HIGH,ex_6463edad,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_64644b5e,런지,LONG,LONG,HIGH,ex_64644b5e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_64661229,월싯,SHORT,SHORT,LOW,ex_64661229,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_6466fe77,친업,MEDIUM,MEDIUM,MODERATE,ex_6466fe77,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_681d9ed2,러닝,MEDIUM,MEDIUM,MODERATE,ex_681d9ed2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_681eed4a,수영,MEDIUM,MEDIUM,MODERATE,ex_681eed4a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_69a56484,래터럴 스텝다운,MEDIUM,MEDIUM,MODERATE,ex_69a56484,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,MEDIUM,MEDIUM,MODERATE,ex_6a966452,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_704cbf1a,덤벨 스텝업,MEDIUM,MEDIUM,MODERATE,ex_704cbf1a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_708e64ce,덤벨 풀오버,MEDIUM,MEDIUM,MODERATE,ex_708e64ce,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_70f19bf,리닝 래터럴 레이즈,SHORT,SHORT,LOW,ex_70f19bf,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_721f7b5b,힙 쓰러스트,MEDIUM,MEDIUM,MODERATE,ex_721f7b5b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_728da646,힙 어브덕션,SHORT,SHORT,LOW,ex_728da646,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_72f11dc5,덤벨 리스트 익스텐션,SHORT,SHORT,LOW,ex_72f11dc5,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_73b0b63f,아처 푸시업,SHORT,SHORT,LOW,ex_73b0b63f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_7404067c,케틀벨 스윙,LONG,LONG,HIGH,ex_7404067c,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_74c2d13b,계단 오르기,MEDIUM,MEDIUM,MODERATE,ex_74c2d13b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_752b45ae,멀티셔틀 풋워크,LONG,LONG,HIGH,ex_752b45ae,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_767e188e,아놀드 프레스,MEDIUM,MEDIUM,MODERATE,ex_767e188e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_7814843a,원암 덤벨 숄더프레스,MEDIUM,MEDIUM,MODERATE,ex_7814843a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_79f3bdbe,덤벨 숄더프레스,MEDIUM,MEDIUM,MODERATE,ex_79f3bdbe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_7ce96a7a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_7deabeba,리어델트 케이블 플라이,SHORT,SHORT,LOW,ex_7deabeba,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_85b2ac56,원암 덤벨 컬,SHORT,SHORT,LOW,ex_85b2ac56,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_85f12271,원레그 박스 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_85f12271,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_86323ed6,원암 해머 컬,SHORT,SHORT,LOW,ex_86323ed6,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_8633d8db,EZ바 컬,SHORT,SHORT,LOW,ex_8633d8db,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_8824026f,원레그 레그 컬,SHORT,SHORT,LOW,ex_8824026f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_8a3800f1,리버스 노르딕 컬,VERY_LONG,VERY_LONG,VERY_HIGH,ex_8a3800f1,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_8e4bf08e,Yates Row,MEDIUM,MEDIUM,MODERATE,ex_8e4bf08e,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_8e69fc74,스플릿 스텝 리액션,MEDIUM,MEDIUM,MODERATE,ex_8e69fc74,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_91b749b3,플랫 덤벨 플라이,SHORT,SHORT,LOW,ex_91b749b3,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_91d8430b,30초 반복 스매시 테스트,MEDIUM,MEDIUM,MODERATE,ex_91d8430b,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_91f6958d,터키시 겟업,MEDIUM,MEDIUM,MODERATE,ex_91f6958d,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_93538692,덤벨 래터럴 레이즈,SHORT,SHORT,LOW,ex_93538692,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_95028bfe,덤벨 리스트 컬,SHORT,SHORT,LOW,ex_95028bfe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_9b132c23,사이드 스텝 후 정지,LONG,LONG,HIGH,ex_9b132c23,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_9bd6dddb,줄넘기,LONG,LONG,HIGH,ex_9bd6dddb,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_9f283612,원암 인클라인 덤벨 프레스,MEDIUM,MEDIUM,MODERATE,ex_9f283612,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a091b9fe,원레그 레그 프레스,MEDIUM,MEDIUM,MODERATE,ex_a091b9fe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a12de111,A스킵,MEDIUM,MEDIUM,MODERATE,ex_a12de111,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_a12de4d2,B스킵,MEDIUM,MEDIUM,MODERATE,ex_a12de4d2,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_a345e30b,캡틴체어 레그 레이즈,SHORT,SHORT,MODERATE,ex_a345e30b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a3ddd8ac,라인 홉,LONG,LONG,HIGH,ex_a3ddd8ac,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a4040be3,셔틀런,MEDIUM,MEDIUM,MODERATE,ex_a4040be3,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a412dd45,앙클링,MEDIUM,MEDIUM,MODERATE,ex_a412dd45,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_a4350c0f,콘 드릴,MEDIUM,MEDIUM,MODERATE,ex_a4350c0f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a44ae2ca,플랭크,SHORT,SHORT,LOW,ex_a44ae2ca,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a60496be,원암 리어델트 케이블 플라이,SHORT,SHORT,LOW,ex_a60496be,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a611010d,코사크 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_a611010d,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a61f1e96,인클라인 덤벨 프레스,MEDIUM,MEDIUM,MODERATE,ex_a61f1e96,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a61f307a,인클라인 덤벨 플라이,SHORT,SHORT,LOW,ex_a61f307a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a76f20b6,시티드 원암 케이블 로우,MEDIUM,MEDIUM,MODERATE,ex_a76f20b6,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_a8385c4a,코펜하겐 플랭크,SHORT,SHORT,LOW,ex_a8385c4a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_a9b52886,마운틴 클라이머,SHORT,SHORT,MODERATE,ex_a9b52886,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_ab468462,레그 프레스,MEDIUM,MEDIUM,MODERATE,ex_ab468462,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_ab918e2b,실내 자전거,MEDIUM,MEDIUM,MODERATE,ex_ab918e2b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_aca9d312,러닝 풋살,LONG,LONG,HIGH,ex_aca9d312,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_ae9ecdbc,배드민턴,MEDIUM,MEDIUM,MODERATE,ex_ae9ecdbc,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b076570e,원암 케이블 래터럴 레이즈,SHORT,SHORT,LOW,ex_b076570e,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b3f447be,행잉 레그 레이즈,SHORT,SHORT,MODERATE,ex_b3f447be,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b4b198de,래터럴 런지,LONG,LONG,HIGH,ex_b4b198de,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b59bed7d,스탠딩 레그 컬,SHORT,SHORT,LOW,ex_b59bed7d,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b69ab702,크로스바디 해머 컬,SHORT,SHORT,LOW,ex_b69ab702,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b76d3f92,케이블 래터럴 레이즈,SHORT,SHORT,LOW,ex_b76d3f92,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_b78a8f95,레그 익스텐션,SHORT,SHORT,LOW,ex_b78a8f95,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_badminton_lesson,배드민턴 레슨,MEDIUM,MEDIUM,MODERATE,ex_badminton_lesson,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,MEDIUM,MEDIUM,MODERATE,ex_bb4b4276,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_bc84eb7f,6방향 랜덤 콕줍기,MEDIUM,MEDIUM,MODERATE,ex_bc84eb7f,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c1a81cb2,로프 해머 컬,SHORT,SHORT,LOW,ex_c1a81cb2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,LONG,LONG,HIGH,ex_c1bf2aa8,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c365e5e2,원암 스트레이트암 풀다운,SHORT,SHORT,LOW,ex_c365e5e2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c4535de3,스캡 푸시업,SHORT,SHORT,LOW,ex_c4535de3,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c4ea0a2a,스킵 바운드,MEDIUM,MEDIUM,MODERATE,ex_c4ea0a2a,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_c5043892,프론트 스쿼트,VERY_LONG,VERY_LONG,VERY_HIGH,ex_c5043892,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c536edc2,원암 케이블 숄더프레스,MEDIUM,MEDIUM,MODERATE,ex_c536edc2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c5c2fdef,스트라이드,MEDIUM,MEDIUM,MODERATE,ex_c5c2fdef,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_c5f4c242,랜덤 비프 풋워크,MEDIUM,MEDIUM,MODERATE,ex_c5f4c242,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c62c0716,컨센트레이션 컬,SHORT,SHORT,LOW,ex_c62c0716,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c6d9efef,스플릿 스텝,MEDIUM,MEDIUM,MODERATE,ex_c6d9efef,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c7977dfd,6코너 풋워크 최대반복 테스트,LONG,LONG,HIGH,ex_c7977dfd,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_c8bcf3ce,리버스 런지,LONG,LONG,HIGH,ex_c8bcf3ce,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_ca5cce66,스트레이트암 풀다운,SHORT,SHORT,LOW,ex_ca5cce66,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_cb3c4dc2,맨몸 스쿼트,SHORT,SHORT,LOW,ex_cb3c4dc2,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d5048362,인클라인 덤벨 컬,SHORT,SHORT,LOW,ex_d5048362,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d5bdffe1,데드버그,SHORT,SHORT,LOW,ex_d5bdffe1,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d60745b4,원레그 레그 익스텐션,SHORT,SHORT,LOW,ex_d60745b4,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d6726746,드롭 점프,LONG,LONG,HIGH,ex_d6726746,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d67e5761,피스톨 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_d67e5761,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d7c90536,로잉머신,MEDIUM,MEDIUM,MODERATE,ex_d7c90536,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_d9e141e4,박스 점프,LONG,LONG,HIGH,ex_d9e141e4,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_da56a4fe,덤벨 킥백,SHORT,SHORT,LOW,ex_da56a4fe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_dc9e5953,랫풀다운,MEDIUM,MEDIUM,MODERATE,ex_dc9e5953,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_dd16e07a,스트레칭,SHORT,SHORT,LOW,ex_dd16e07a,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_de46b7f6,바벨 로우,MEDIUM,MEDIUM,MODERATE,ex_de46b7f6,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_debf6a8b,다이아몬드 푸시업,SHORT,SHORT,LOW,ex_debf6a8b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_deca2b61,벤치 딥스,MEDIUM,MEDIUM,HIGH,ex_deca2b61,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_df966b45,점프 런지,LONG,LONG,HIGH,ex_df966b45,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e0b1e364,원암 덤벨 RDL,MEDIUM,MEDIUM,MODERATE,ex_e0b1e364,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e1894690,스캡 풀업,MEDIUM,MEDIUM,MODERATE,ex_e1894690,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e2efd0fe,불가리안 스플릿 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_e2efd0fe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e3715c0b,워킹 런지,LONG,LONG,HIGH,ex_e3715c0b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e41e8dcf,중량 친업,LONG,LONG,HIGH,ex_e41e8dcf,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e41f4c2b,중량 풀업,LONG,LONG,HIGH,ex_e41f4c2b,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e465d1e9,포고 점프,LONG,LONG,HIGH,ex_e465d1e9,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e4f911bb,네거티브 풀업,MEDIUM,MEDIUM,MODERATE,ex_e4f911bb,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e709eeda,케이블 컬,SHORT,SHORT,LOW,ex_e709eeda,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e8ff8cfa,밴드 외회전,SHORT,SHORT,LOW,ex_e8ff8cfa,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_e9e97659,핵 스쿼트,LONG,LONG,HIGH,ex_e9e97659,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,SHORT,SHORT,LOW,ex_eb636bac,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_ee378da7,스케이터 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_ee378da7,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_f1d31d3d,원레그 핵 스쿼트,LONG,LONG,HIGH,ex_f1d31d3d,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_f2a79d37,스플릿 스쿼트,MEDIUM,MEDIUM,MODERATE,ex_f2a79d37,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_f332aeab,월 드라이브,MEDIUM,MEDIUM,MODERATE,ex_f332aeab,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_f459ad2a,메도우즈 로우,MEDIUM,MEDIUM,MODERATE,ex_f459ad2a,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_f6703b06,덤벨 프로네이션/수피네이션,SHORT,SHORT,LOW,ex_f6703b06,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_f6d43398,사이드 플랭크,SHORT,SHORT,LOW,ex_f6d43398,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_f97a05ab,월 슬라이드,SHORT,SHORT,LOW,ex_f97a05ab,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fa2e73b3,핸드스탠드 푸시업,MEDIUM,MEDIUM,HIGH,ex_fa2e73b3,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fa31f7a6,케이블 로우,MEDIUM,MEDIUM,MODERATE,ex_fa31f7a6,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+ex_fa3416f6,스미스 머신 스쿼트,VERY_LONG,VERY_LONG,VERY_HIGH,ex_fa3416f6,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fa34ddfe,케이블 킥백,SHORT,SHORT,LOW,ex_fa34ddfe,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fa570291,트라이셉스 푸시다운,SHORT,SHORT,LOW,ex_fa570291,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_faae2044,인터벌 러닝,LONG,LONG,HIGH,ex_faae2044,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fb67af37,디클라인 푸시업,SHORT,SHORT,LOW,ex_fb67af37,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,MEDIUM,MEDIUM,MODERATE,ex_fdbdf454,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ez_bar_lying_triceps_extension,EZ바 라잉 트라이셉스 익스텐션,SHORT,SHORT,LOW,ex_d20b7487,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ez_bar_preacher_curl,EZ바 프리처 컬,SHORT,SHORT,LOW,ex_e994008a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ez_bar_reverse_curl,EZ바 리버스 컬,SHORT,SHORT,LOW,ex_dd2f732e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+ez_bar_spider_curl,EZ바 스파이더 컬,SHORT,SHORT,LOW,ex_516f4456,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+face_pull,페이스풀,SHORT,SHORT,LOW,face_pull,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,MEDIUM,MEDIUM,MODERATE,ex_e159d15a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,MEDIUM,MEDIUM,MODERATE,half_kneeling_single_arm_dumbbell_press,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,MEDIUM,MEDIUM,MODERATE,half_kneeling_single_arm_kettlebell_press,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+hip_adduction_machine,힙 어덕션 머신,SHORT,SHORT,LOW,ex_eaea872c,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+kettlebell_farmer_carry,케틀벨 파머스 캐리,MEDIUM,MEDIUM,MODERATE,ex_a1fc4533,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,SHORT,SHORT,LOW,ex_ac7df636,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+kettlebell_halo,케틀벨 헤일로,SHORT,SHORT,LOW,kettlebell_halo,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,MEDIUM,MEDIUM,MODERATE,single_leg_rdl,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+landmine_anti_rotation,랜드마인 안티로테이션,MEDIUM,MEDIUM,MODERATE,landmine_anti_rotation,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+landmine_rotation,랜드마인 좌우 회전,LONG,LONG,HIGH,landmine_rotation,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+lateral_bound_continuous,래터럴 바운드,LONG,LONG,HIGH,lateral_bound_continuous,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+med_ball_chest_pass,메디신볼 체스트 패스,LONG,LONG,HIGH,med_ball_chest_pass,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,LONG,LONG,HIGH,med_ball_overhead_slam,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,LONG,LONG,HIGH,med_ball_rotational_scoop_toss,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+med_ball_rotational_slam,메디신볼 회전 아래로 슬램,LONG,LONG,HIGH,med_ball_rotational_slam,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,LONG,LONG,HIGH,medicine_ball_rotational_throw,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,LONG,LONG,HIGH,medicine_ball_three_step_acceleration_throw,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,LONG,LONG,HIGH,medicine_ball_three_step_deceleration_throw,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_d9084b5e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_d9084b5e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,SHORT,SHORT,LOW,plate_rotational_press_out,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+pull_up,풀업,MEDIUM,MEDIUM,MODERATE,pull_up,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+single_leg_hip_bridge,원레그 힙 브릿지,MEDIUM,MEDIUM,MODERATE,single_leg_hip_bridge,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+standing_calf_raise_machine,스탠딩 카프 레이즈 머신,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,MEDIUM,MEDIUM,MODERATE,ex_e159d15a,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+vipr_chop,바이퍼 회전 아래로,LONG,LONG,HIGH,vipr_chop,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+vipr_rotational_lift,바이퍼 회전 위로,LONG,LONG,HIGH,vipr_rotational_lift,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,MEDIUM,MEDIUM,MODERATE,vipr_rotational_press_out,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
+vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,LONG,LONG,HIGH,vipr_step_and_rotate,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset

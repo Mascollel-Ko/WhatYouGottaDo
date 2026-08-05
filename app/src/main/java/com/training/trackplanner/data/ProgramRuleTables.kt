@@ -129,7 +129,8 @@ internal object ProgramRuleTables {
             ProgramMainArea.LOWER_POSTERIOR,
             "barbell_romanian_deadlift" to "루마니안 바벨 데드리프트",
             "dumbbell_romanian_deadlift" to "루마니안 덤벨 데드리프트",
-            "single_leg_rdl" to "원레그 루마니안 데드리프트",
+            "dumbbell_single_leg_rdl" to "덤벨 원레그 루마니안 데드리프트",
+            "kettlebell_single_leg_rdl" to "케틀벨 원레그 루마니안 데드리프트",
             "ex_721f7b5b" to "힙 쓰러스트",
             "ex_2822ec2e" to "레그 컬"
         ),
@@ -160,21 +161,26 @@ internal object ProgramRuleTables {
             ProgramSmallPart.BICEPS,
             "ex_281347da" to "덤벨 컬",
             "ex_2892da5a" to "해머 컬",
-            "ex_dd2f732e" to "리버스 컬"
+            "barbell_reverse_curl" to "바벨 리버스 컬",
+            "ez_bar_reverse_curl" to "EZ바 리버스 컬"
         ),
         ProgramSmallPart.TRICEPS to small(
             ProgramSmallPart.TRICEPS,
-            "ex_a9e8859c" to "오버헤드 트라이셉스 익스텐션"
+            "cable_overhead_triceps_extension" to "케이블 오버헤드 트라이셉스 익스텐션",
+            "dumbbell_overhead_triceps_extension" to "덤벨 오버헤드 트라이셉스 익스텐션"
         ),
         ProgramSmallPart.FOREARM to small(
             ProgramSmallPart.FOREARM,
             "ex_f6703b06" to "덤벨 프로네이션/수피네이션",
-            "ex_dd2f732e" to "리버스 컬"
+            "barbell_reverse_curl" to "바벨 리버스 컬",
+            "ez_bar_reverse_curl" to "EZ바 리버스 컬"
         ),
         ProgramSmallPart.CALF to small(
             ProgramSmallPart.CALF,
             "ex_5ca7133f" to "원레그 카프 레이즈",
-            "ex_bd072cd" to "스탠딩 카프 레이즈"
+            "standing_bodyweight_calf_raise" to "맨몸 스탠딩 카프 레이즈",
+            "standing_calf_raise_machine" to "스탠딩 카프 레이즈 머신",
+            "standing_dumbbell_calf_raise" to "덤벨 스탠딩 카프 레이즈"
         )
     )
 
@@ -204,7 +210,8 @@ internal object ProgramRuleTables {
             ProgramBadmintonCategory.ANTI_ROTATION,
             "ex_d5bdffe1" to "데드버그",
             "landmine_anti_rotation" to "랜드마인 안티로테이션",
-            "ex_99728d25" to "팔로프 프레스",
+            "band_pallof_press" to "밴드 팔로프 프레스",
+            "cable_pallof_press" to "케이블 팔로프 프레스",
             "vipr_rotational_lift" to "바이퍼 회전 위로",
             "kettlebell_halo" to "케틀벨 헤일로"
         ),

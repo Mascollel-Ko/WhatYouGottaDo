@@ -17,7 +17,7 @@ class ExerciseRoleRelationsTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun canonicalAssetsMigrateExactlyTheApproved26ProgramCapabilities() {
+    fun canonicalAssetsPreserveLegacyCapabilitiesExceptApprovedAuthorityDeltas() {
         val exercises = SeedData.exercises(context)
         val catalog = ExerciseRoleRelationAssetLoader(context).load(
             exercises.mapTo(mutableSetOf(), Exercise::stableKey)
@@ -28,6 +28,15 @@ class ExerciseRoleRelationsTest {
                 .resolve(row.getValue("proposedLegacyRole"))
                 .programSlotCapabilities
                 .single()
+        }.toMutableMap().apply {
+            remove("single_leg_rdl")
+            remove("ex_bd072cd")
+            this["dumbbell_single_leg_rdl"] = ProgramSlotCapability.MAIN_STRENGTH_SLOT
+            this["kettlebell_single_leg_rdl"] = ProgramSlotCapability.MAIN_STRENGTH_SLOT
+            this["standing_bodyweight_calf_raise"] = ProgramSlotCapability.ACCESSORY_SLOT
+            this["standing_calf_raise_machine"] = ProgramSlotCapability.ACCESSORY_SLOT
+            this["standing_dumbbell_calf_raise"] = ProgramSlotCapability.ACCESSORY_SLOT
+            this["ex_8824026f"] = ProgramSlotCapability.ACCESSORY_SLOT
         }
         val actual = exercises.associateNotNull { exercise ->
             catalog.programSlotCapabilities(exercise.stableKey)
@@ -36,6 +45,7 @@ class ExerciseRoleRelationsTest {
         }
 
         assertEquals(26, baseline.size)
+        assertEquals(29, expected.size)
         assertEquals(expected, actual)
         assertTrue(catalog.programSlotCapabilities("barbell_back_squat").isEmpty())
     }

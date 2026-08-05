@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-SLOTS |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; typed role split from v0.5.0.21 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.0; typed role split from v0.5.0.21; workbook authority from v0.5.0.22 |
+| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -84,6 +84,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt)
 
 ## 17. 검증 테스트
 
@@ -92,9 +93,10 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
-- [`app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv`](../../../app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv)
-- [`app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv`](../../../app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv)
+- [`docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`](../../metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx)
+- [`app/src/main/assets/metadata/canonical_v1/training_roles.csv`](../../../app/src/main/assets/metadata/canonical_v1/training_roles.csv)
+- [`app/src/main/assets/metadata/canonical_v1/program_slot_capabilities.csv`](../../../app/src/main/assets/metadata/canonical_v1/program_slot_capabilities.csv)
+- [`app/src/main/assets/metadata/canonical_v1/program_timing.csv`](../../../app/src/main/assets/metadata/canonical_v1/program_timing.csv)
 
 ## 19. 관련 문서
 
@@ -121,6 +123,11 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-05): moved active TrainingRole, ProgramSlotCapability,
+  and materialized timing authority to the canonical workbook export. The 16
+  history-only identities and their compatibility relations remain readable
+  but cannot enter ProgramBuilder. Approved concrete variants replace generic
+  identities in active candidate tables without changing slot policy.
 - `1.1.0` (2026-08-04): split intrinsic `TrainingRole` from placement-only
   `ProgramSlotCapability`, migrated the approved 26 exact stableKeys, and
   removed the mixed production field without broadening ProgramBuilder policy.

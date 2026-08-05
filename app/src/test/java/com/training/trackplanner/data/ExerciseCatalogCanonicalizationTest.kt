@@ -21,7 +21,7 @@ class ExerciseCatalogCanonicalizationTest {
         val keys = exercises.map(Exercise::stableKey)
         val names = exercises.map(Exercise::name)
 
-        assertEquals(224, exercises.size)
+        assertEquals(241, exercises.size)
         assertTrue(keys.all(String::isNotBlank))
         assertEquals(keys.size, keys.distinct().size)
         assertEquals(names.size, names.distinct().size)
@@ -43,10 +43,12 @@ class ExerciseCatalogCanonicalizationTest {
             "imported_csv_복원_계획",
             "imported_csv_복원_근력운동",
             "imported_csv_복원_기능성운동",
-            "imported_csv_복원_스포츠"
+            "imported_csv_복원_스포츠",
+            "single_leg_rdl"
         )
         val required = setOf(
-            "single_leg_rdl",
+            "dumbbell_single_leg_rdl",
+            "kettlebell_single_leg_rdl",
             "barbell_romanian_deadlift",
             "dumbbell_romanian_deadlift",
             "half_kneeling_single_arm_dumbbell_press",

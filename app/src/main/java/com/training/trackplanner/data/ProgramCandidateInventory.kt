@@ -58,6 +58,7 @@ internal class ProgramCandidateInventory(
         val HARD_PLANNING_EXCLUSIONS = setOf(
             PlanningEligibility.FATIGUE_ONLY.name,
             PlanningEligibility.ANALYSIS_ONLY.name,
+            "HISTORY_ONLY",
             "HIDDEN"
         )
         val HARD_LEGACY_PLANNING_EXCLUSIONS = setOf(

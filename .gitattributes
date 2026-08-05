@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Frozen analysis-contract byte checks must be platform-independent.
+app/src/main/java/com/training/trackplanner/analysis/contracts/*.kt text eol=lf
+app/src/main/assets/metadata/analysis_contract_baseline_v1.csv text eol=lf

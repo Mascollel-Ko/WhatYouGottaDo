@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 class LegacyExerciseImportMapperTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val mapper by lazy { LegacyExerciseImportMapper.fromAssets(context) }
-    private val canonicalKeys by lazy { SeedData.exercises(context).mapTo(mutableSetOf(), Exercise::stableKey) }
+    private val canonicalKeys by lazy { SeedData.exactExerciseMetadataByStableKey(context).keys }
 
     @Test
     fun everyReviewedLegacyMappingHasItsDeclaredDeterministicOutcome() {

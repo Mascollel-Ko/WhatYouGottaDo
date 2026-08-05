@@ -512,3 +512,17 @@ This report is a discovery inventory. A matching path is not by itself a confirm
 | `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt` | 881 | `sanitizeTagList` | shared metadata/data | `context-dependent string/token collection` | MEDIUM | movement/anatomy typed relation or explicit compatibility mapping |
 | `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt` | 897 | `normalizeProfileSex` | shared metadata/data | `context-dependent string/token collection` | MEDIUM | movement/anatomy typed relation or explicit compatibility mapping |
 | `app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt` | 913 | `breakWeeksToProfileCategory` | shared metadata/data | `context-dependent string/token collection` | MEDIUM | movement/anatomy typed relation or explicit compatibility mapping |
+
+## Canonical authority cutover (2026-08-05)
+
+The rows above are a historical inference inventory, not a list of current
+bundled metadata authority paths. Normal bundled loading now uses strict typed
+parsing and exact stableKey joins in `CanonicalExerciseMetadataRepository`.
+Missing or invalid generated assets fail closed; they do not fall back to this
+inventory's seed/name/category inference.
+
+`ExerciseMetadataMapper` and the legacy `SeedData.exercisesFromParsedRows`
+parser remain isolated for import compatibility and whole-catalog parity tests.
+They are not invoked by `SeedData.exercises(context)` or canonical runtime
+metadata loading. No history-only generic key is inferred to an equipment
+variant.
