@@ -127,7 +127,10 @@ data class ExerciseProgramSlotCapabilityRelation(
             onDelete = ForeignKey.NO_ACTION
         )
     ],
-    indices = [Index(value = ["exerciseStableKey"])]
+    indices = [
+        Index(value = ["exerciseStableKey"]),
+        Index(value = ["backupSourceId"], unique = true)
+    ]
 )
 data class WorkoutEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -143,7 +146,8 @@ data class WorkoutEntry(
     val completedAt: Long? = null,
     val displayOrder: Int = 0,
     val firstConfirmedAt: Long? = null,
-    val performedAt: Long? = null
+    val performedAt: Long? = null,
+    val backupSourceId: String? = null
 )
 
 @Entity(tableName = "workout_sets")

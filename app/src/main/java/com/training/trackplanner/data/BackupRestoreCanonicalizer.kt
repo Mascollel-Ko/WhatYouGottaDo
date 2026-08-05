@@ -1,9 +1,19 @@
 package com.training.trackplanner.data
 
+internal data class RestorePreflightPlan(
+    val currentCanonicalResolved: Set<String> = emptySet(),
+    val currentHistoryResolved: Set<String> = emptySet(),
+    val customResolved: Set<String> = emptySet(),
+    val backupHistoricalCreated: Set<String> = emptySet(),
+    val legacyExplicitlyMapped: Map<String, String> = emptyMap(),
+    val minimalHistoricalStubCreated: Set<String> = emptySet()
+)
+
 internal data class RestoreCanonicalizationResult(
     val data: RecordCsvImportData.Restore,
     val warnings: List<DataTransferDiagnostic>,
-    val errors: List<DataTransferDiagnostic>
+    val errors: List<DataTransferDiagnostic>,
+    val plan: RestorePreflightPlan = RestorePreflightPlan()
 )
 
 internal class BackupRestoreCanonicalizer(
@@ -11,210 +21,335 @@ internal class BackupRestoreCanonicalizer(
 ) {
     fun canonicalize(
         data: RecordCsvImportData.Restore,
-        canonicalStableKeys: Set<String>
+        canonicalExercises: Map<String, Exercise>
     ): RestoreCanonicalizationResult {
         val warnings = mutableListOf<DataTransferDiagnostic>()
         val errors = mutableListOf<DataTransferDiagnostic>()
-        val isLegacy = data.manifest == null
-        val exerciseRowsByKey = data.exerciseRows
+        val currentCanonical = mutableSetOf<String>()
+        val currentHistory = mutableSetOf<String>()
+        val custom = mutableSetOf<String>()
+        val backupHistorical = mutableSetOf<String>()
+        val legacyMapped = mutableMapOf<String, String>()
+        val minimalStubs = mutableSetOf<String>()
+        val isLegacy = (data.manifest?.formatVersion ?: 0) < 11
+        val canonicalByKey = canonicalExercises.entries.associate { (key, exercise) -> key.trim() to exercise }
+        val referencedKeys = buildSet {
+            data.setRows.mapTo(this, RestoreSetRow::stableKey)
+            data.programSnapshot?.items.orEmpty().mapTo(this, ProgramBackupItem::exerciseStableKey)
+        }.filterTo(mutableSetOf(), String::isNotBlank)
+
+        data.exerciseRows
+            .filter { it.stableKey.isNotBlank() }
+            .groupBy(RestoreExerciseRow::stableKey)
+            .filterValues { rows -> rows.distinct().size > 1 }
+            .keys
+            .forEach { stableKey ->
+                errors += diagnostic(
+                    code = DataTransferDiagnosticCodes.RESTORE_IDENTITY_CONTRADICTION,
+                    message = "Backup contains contradictory exercise definitions for stableKey $stableKey.",
+                    stableKey = stableKey
+                )
+            }
+        data.exerciseRows
+            .filter { row -> row.isCustom && row.stableKey.isNotBlank() && row.stableKey in canonicalByKey }
+            .forEach { row ->
+                errors += diagnostic(
+                    code = DataTransferDiagnosticCodes.RESTORE_IDENTITY_CONTRADICTION,
+                    message = "Custom exercise collides with current built-in stableKey ${row.stableKey}.",
+                    stableKey = row.stableKey
+                )
+            }
+
+        validateProgramGraph(data.programSnapshot, errors)
+        if (errors.isNotEmpty()) return RestoreCanonicalizationResult(data, warnings, errors)
+
+        val sourceRowsByKey = data.exerciseRows
             .filter { it.stableKey.isNotBlank() }
             .associateBy(RestoreExerciseRow::stableKey)
-        val customKeyMap = mutableMapOf<String, String>()
-        val customNameMap = data.exerciseRows
+        val customNames = data.exerciseRows
             .filter(RestoreExerciseRow::isCustom)
             .groupBy(RestoreExerciseRow::name)
             .filterValues { it.size == 1 }
             .mapValues { (_, rows) ->
-                rows.single().stableKey
-                    .takeIf(UserExerciseStableKeyGenerator::isUserExerciseKey)
+                rows.single().stableKey.takeIf(UserExerciseStableKeyGenerator::isUserExerciseKey)
                     ?: UserExerciseStableKeyGenerator.generate()
             }
-        data.exerciseRows.filter(RestoreExerciseRow::isCustom).forEach { row ->
-            if (row.stableKey.isNotBlank()) {
-                customKeyMap[row.stableKey] = row.stableKey
-                    .takeIf(UserExerciseStableKeyGenerator::isUserExerciseKey)
-                    ?: customNameMap.getValue(row.name)
+        val customKeys = data.exerciseRows
+            .filter { row -> row.isCustom && row.stableKey.isNotBlank() }
+            .associate { row -> row.stableKey to row.stableKey }
+        val resolutionCache = mutableMapOf<Pair<String, String>, LegacyExerciseResolution>()
+
+        fun resolve(stableKey: String, name: String, equipment: String, entityType: String): LegacyExerciseResolution {
+            val cacheKey = stableKey to name
+            return resolutionCache.getOrPut(cacheKey) {
+                customKeys[stableKey]?.let { key ->
+                    custom += key
+                    return@getOrPut LegacyExerciseResolution.Resolved(key, "BACKUP_CUSTOM_STABLE_KEY", name)
+                }
+                if (stableKey.isBlank()) {
+                    customNames[name]?.let { key ->
+                        custom += key
+                        return@getOrPut LegacyExerciseResolution.Resolved(key, "LEGACY_CUSTOM_EXACT_NAME", name)
+                    }
+                    return@getOrPut legacyMapper.resolve(
+                        oldStableKey = stableKey,
+                        oldName = name,
+                        equipment = equipment,
+                        canonicalStableKeys = canonicalByKey.keys,
+                        stage = DataTransferStages.PLANNING,
+                        entityType = entityType
+                    )
+                }
+                canonicalByKey[stableKey]?.let { current ->
+                    if (current.planningEligibility == "HISTORY_ONLY") currentHistory += stableKey
+                    else currentCanonical += stableKey
+                    return@getOrPut LegacyExerciseResolution.Resolved(
+                        canonicalStableKey = stableKey,
+                        method = "CURRENT_CANONICAL_STABLE_KEY",
+                        canonicalName = current.name
+                    )
+                }
+                if (isLegacy) {
+                    when (val mapped = legacyMapper.resolve(
+                        oldStableKey = stableKey,
+                        oldName = name,
+                        equipment = equipment,
+                        canonicalStableKeys = canonicalByKey.keys,
+                        stage = DataTransferStages.PLANNING,
+                        entityType = entityType
+                    )) {
+                        is LegacyExerciseResolution.Resolved -> {
+                            legacyMapped[stableKey] = mapped.canonicalStableKey
+                            return@getOrPut mapped.copy(
+                                canonicalName = canonicalByKey[mapped.canonicalStableKey]?.name
+                                    ?: mapped.canonicalName
+                            )
+                        }
+                        is LegacyExerciseResolution.Dropped -> if (stableKey !in referencedKeys) {
+                            return@getOrPut mapped
+                        } else warnings += mapped.diagnostic.copy(
+                            messageKo = "Deleted legacy identity was retained as history because user data references it."
+                        )
+                        is LegacyExerciseResolution.Rejected -> warnings += mapped.diagnostic.copy(
+                            messageKo = "Unmapped legacy identity was retained as inactive history."
+                        )
+                    }
+                }
+                backupHistorical += stableKey
+                LegacyExerciseResolution.Resolved(stableKey, "BACKUP_HISTORICAL_STABLE_KEY", name)
             }
         }
 
-        fun resolve(
-            stableKey: String,
-            name: String,
-            equipment: String,
-            entityType: String,
-            entityRowId: Long? = null
-        ): LegacyExerciseResolution {
-            customKeyMap[stableKey]?.let {
-                return LegacyExerciseResolution.Resolved(it, "LEGACY_CUSTOM_EXERCISE")
-            }
-            if (stableKey.isBlank()) {
-                customNameMap[name]?.let {
-                    return LegacyExerciseResolution.Resolved(it, "LEGACY_CUSTOM_EXACT_NAME")
+        val resolvedRows = data.exerciseRows.mapNotNull { row ->
+            when (val resolution = resolve(row.stableKey, row.name, row.equipment, "Exercise")) {
+                is LegacyExerciseResolution.Resolved -> {
+                    val current = canonicalByKey[resolution.canonicalStableKey]
+                    row.copy(
+                        stableKey = resolution.canonicalStableKey,
+                        name = current?.name ?: resolution.canonicalName.ifBlank { row.name },
+                        isActive = if (current == null) false else row.isActive,
+                        needsReview = row.needsReview || current == null
+                    )
+                }
+                is LegacyExerciseResolution.Dropped -> {
+                    warnings += resolution.diagnostic
+                    null
+                }
+                is LegacyExerciseResolution.Rejected -> {
+                    errors += resolution.diagnostic
+                    null
                 }
             }
-            if (!isLegacy) {
-                return if (stableKey in canonicalStableKeys ||
-                    (UserExerciseStableKeyGenerator.isUserExerciseKey(stableKey) &&
-                        data.exerciseRows.any { it.isCustom && it.stableKey == stableKey })
-                ) {
-                    LegacyExerciseResolution.Resolved(stableKey, "NEW_BACKUP_EXACT_STABLE_KEY")
-                } else {
-                    LegacyExerciseResolution.Rejected(
-                        DataTransferDiagnostic(
-                            code = DataTransferDiagnosticCodes.RESTORE_CANONICAL_KEY_UNRESOLVED,
-                            messageKo = "새 백업의 운동 stableKey를 현재 정본 목록에서 찾을 수 없습니다.",
-                            stage = DataTransferStages.PLANNING,
-                            entityType = entityType,
-                            entityRowId = entityRowId,
-                            sourceExerciseStableKey = stableKey,
-                            sourceExerciseName = name,
-                            attemptedCanonicalStableKey = stableKey,
-                            resolutionMethod = "NEW_BACKUP_EXACT_STABLE_KEY",
-                            candidateCount = 0
-                        )
+        }.distinctBy(RestoreExerciseRow::stableKey).toMutableList()
+
+        val referenceDetails = linkedMapOf<String, Pair<String, String>>()
+        data.setRows.forEach { row -> referenceDetails.putIfAbsent(row.stableKey, row.exerciseName to row.category) }
+        data.programSnapshot?.items.orEmpty().forEach { item ->
+            referenceDetails.putIfAbsent(item.exerciseStableKey, item.exerciseName to item.category)
+        }
+        data.runtimeMetadataRows.forEach { row ->
+            referenceDetails.putIfAbsent(row.stableKey, row.exerciseName to "Historical")
+        }
+        referenceDetails.forEach { (sourceKey, details) ->
+            val source = sourceRowsByKey[sourceKey]
+            val resolution = resolve(sourceKey, details.first, source?.equipment.orEmpty(), "ExerciseReference")
+            if (resolution is LegacyExerciseResolution.Resolved &&
+                resolvedRows.none { it.stableKey == resolution.canonicalStableKey }
+            ) {
+                val current = canonicalByKey[resolution.canonicalStableKey]
+                resolvedRows += minimalStub(
+                    stableKey = resolution.canonicalStableKey,
+                    name = current?.name ?: resolution.canonicalName.ifBlank { details.first },
+                    category = current?.category ?: details.second,
+                    current = current
+                )
+                if (current == null) {
+                    minimalStubs += resolution.canonicalStableKey
+                    warnings += diagnostic(
+                        code = DataTransferDiagnosticCodes.RESTORE_HISTORICAL_STUB_CREATED,
+                        message = "Created an inactive historical exercise stub for ${resolution.canonicalStableKey}.",
+                        stableKey = resolution.canonicalStableKey
                     )
                 }
             }
-            return legacyMapper.resolve(
-                oldStableKey = stableKey,
-                oldName = name,
-                equipment = equipment,
-                canonicalStableKeys = canonicalStableKeys,
-                stage = DataTransferStages.PLANNING,
-                entityType = entityType,
-                entityRowId = entityRowId
-            )
         }
 
-        val exerciseRows = data.exerciseRows.mapNotNull { row ->
-            when (val resolution = resolve(
-                stableKey = row.stableKey,
-                name = row.name,
-                equipment = row.equipment,
-                entityType = "Exercise"
-            )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(
-                    stableKey = resolution.canonicalStableKey,
-                    name = resolution.canonicalName.ifBlank { row.name }
-                )
+        fun resolved(stableKey: String, name: String, entityType: String): LegacyExerciseResolution.Resolved? {
+            val source = sourceRowsByKey[stableKey]
+            return when (val result = resolve(stableKey, name, source?.equipment.orEmpty(), entityType)) {
+                is LegacyExerciseResolution.Resolved -> result
                 is LegacyExerciseResolution.Dropped -> {
-                    warnings += resolution.diagnostic
+                    warnings += result.diagnostic
                     null
                 }
                 is LegacyExerciseResolution.Rejected -> {
-                    errors += resolution.diagnostic
+                    errors += result.diagnostic
                     null
                 }
             }
-        }.distinctBy(RestoreExerciseRow::stableKey)
+        }
 
-        val runtimeMetadataRows = data.runtimeMetadataRows.mapNotNull { row ->
-            val sourceExercise = exerciseRowsByKey[row.stableKey]
-            when (val resolution = resolve(
-                stableKey = row.stableKey,
-                name = row.exerciseName,
-                equipment = sourceExercise?.equipment.orEmpty(),
-                entityType = "RuntimeExerciseMetadata"
-            )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(
+        val runtimeRows = data.runtimeMetadataRows.mapNotNull { row ->
+            resolved(row.stableKey, row.exerciseName, "RuntimeExerciseMetadata")?.let { resolution ->
+                row.copy(
                     stableKey = resolution.canonicalStableKey,
-                    exerciseName = resolution.canonicalName.ifBlank { row.exerciseName }
+                    exerciseName = canonicalByKey[resolution.canonicalStableKey]?.name
+                        ?: resolution.canonicalName.ifBlank { row.exerciseName }
                 )
-                is LegacyExerciseResolution.Dropped -> {
-                    warnings += resolution.diagnostic
-                    null
-                }
-                is LegacyExerciseResolution.Rejected -> {
-                    errors += resolution.diagnostic
-                    null
-                }
             }
         }.distinctBy(RuntimeExerciseMetadata::stableKey)
-
-        val droppedEntryKeys = mutableSetOf<String>()
+        val snapshotRows = data.metadataSnapshotRows.mapNotNull { row ->
+            resolved(row.stableKey, sourceRowsByKey[row.stableKey]?.name.orEmpty(), "ExerciseMetadataSnapshot")
+                ?.let { row.copy(stableKey = it.canonicalStableKey) }
+        }
         val setRows = data.setRows.mapNotNull { row ->
-            val sourceExercise = exerciseRowsByKey[row.stableKey]
-            when (val resolution = resolve(
-                stableKey = row.stableKey,
-                name = row.exerciseName,
-                equipment = sourceExercise?.equipment.orEmpty(),
-                entityType = "WorkoutEntry"
-            )) {
-                is LegacyExerciseResolution.Resolved -> row.copy(
+            resolved(row.stableKey, row.exerciseName, "WorkoutEntry")?.let { resolution ->
+                row.copy(
                     stableKey = resolution.canonicalStableKey,
-                    exerciseName = resolution.canonicalName.ifBlank { row.exerciseName }
+                    exerciseName = canonicalByKey[resolution.canonicalStableKey]?.name
+                        ?: resolution.canonicalName.ifBlank { row.exerciseName }
                 )
-                is LegacyExerciseResolution.Dropped -> {
-                    warnings += resolution.diagnostic.copy(
-                        workoutDate = row.date,
-                        sourceExerciseName = row.exerciseName
-                    )
-                    droppedEntryKeys += row.entryKey
-                    null
-                }
-                is LegacyExerciseResolution.Rejected -> {
-                    errors += resolution.diagnostic.copy(
-                        workoutDate = row.date,
-                        sourceExerciseName = row.exerciseName
-                    )
-                    null
-                }
             }
-        }.filter { it.entryKey !in droppedEntryKeys }
-
-        val droppedProgramKeys = mutableSetOf<String>()
-        val programItems = data.programSnapshot?.items.orEmpty().mapNotNull { item ->
-            val sourceExercise = exerciseRowsByKey[item.exerciseStableKey]
-            when (val resolution = resolve(
-                stableKey = item.exerciseStableKey,
-                name = item.exerciseName,
-                equipment = sourceExercise?.equipment.orEmpty(),
-                entityType = "TrainingProgramItem"
-            )) {
-                is LegacyExerciseResolution.Resolved -> item.copy(
-                    exerciseStableKey = resolution.canonicalStableKey,
-                    exerciseName = resolution.canonicalName.ifBlank { item.exerciseName }
-                )
-                is LegacyExerciseResolution.Dropped -> {
-                    warnings += resolution.diagnostic.copy(
-                        programStableKey = item.programStableKey,
-                        programItemRowId = null,
-                        week = item.weekNumber,
-                        day = item.dayOfWeek,
-                        order = item.orderIndex
-                    )
-                    droppedProgramKeys += item.programStableKey
-                    null
-                }
-                is LegacyExerciseResolution.Rejected -> {
-                    errors += resolution.diagnostic.copy(
-                        programStableKey = item.programStableKey,
-                        week = item.weekNumber,
-                        day = item.dayOfWeek,
-                        order = item.orderIndex
-                    )
-                    null
-                }
-            }
-        }.filter { it.programStableKey !in droppedProgramKeys }
+        }
         val snapshot = data.programSnapshot?.let { current ->
             current.copy(
-                programs = current.programs.filter { it.stableKey !in droppedProgramKeys },
-                items = programItems,
-                sets = current.sets.filter { it.programStableKey !in droppedProgramKeys }
+                items = current.items.mapNotNull { item ->
+                    resolved(item.exerciseStableKey, item.exerciseName, "TrainingProgramItem")?.let { resolution ->
+                        item.copy(
+                            exerciseStableKey = resolution.canonicalStableKey,
+                            exerciseName = canonicalByKey[resolution.canonicalStableKey]?.name
+                                ?: resolution.canonicalName.ifBlank { item.exerciseName }
+                        )
+                    }
+                }
             )
         }
 
+        if (isLegacy && setRows.any { it.entrySourceId == null }) {
+            warnings += diagnostic(
+                code = DataTransferDiagnosticCodes.RESTORE_LEGACY_ENTRY_IDENTITY_FALLBACK,
+                message = "Legacy workout entries lack durable source identities; conservative content matching was used."
+            )
+        }
+        val distinctWarnings = warnings.distinct()
+        val distinctErrors = errors.distinct()
         return RestoreCanonicalizationResult(
             data = data.copy(
-                exerciseRows = exerciseRows,
+                exerciseRows = resolvedRows,
                 setRows = setRows,
-                runtimeMetadataRows = runtimeMetadataRows,
+                runtimeMetadataRows = runtimeRows,
+                metadataSnapshotRows = snapshotRows,
                 programSnapshot = snapshot,
-                warningCount = data.warningCount + warnings.size
+                warningCount = data.warningCount + distinctWarnings.size
             ),
-            warnings = warnings.distinct(),
-            errors = errors.distinct()
+            warnings = distinctWarnings,
+            errors = distinctErrors,
+            plan = RestorePreflightPlan(
+                currentCanonicalResolved = currentCanonical,
+                currentHistoryResolved = currentHistory,
+                customResolved = custom,
+                backupHistoricalCreated = backupHistorical,
+                legacyExplicitlyMapped = legacyMapped,
+                minimalHistoricalStubCreated = minimalStubs
+            )
         )
     }
+
+    private fun validateProgramGraph(
+        snapshot: RestoreProgramSnapshot?,
+        errors: MutableList<DataTransferDiagnostic>
+    ) {
+        snapshot ?: return
+        val programKeys = snapshot.programs.map(TrainingProgram::stableKey)
+        if (programKeys.size != programKeys.distinct().size) {
+            errors += diagnostic(DataTransferDiagnosticCodes.RESTORE_IDENTITY_CONTRADICTION, "Duplicate program identity in backup.")
+        }
+        val positions = snapshot.items.map { item ->
+            "${item.programStableKey}|${item.weekNumber}|${item.dayOfWeek}|${item.orderIndex}"
+        }
+        if (positions.size != positions.distinct().size) {
+            errors += diagnostic(DataTransferDiagnosticCodes.RESTORE_IDENTITY_CONTRADICTION, "Duplicate program item position in backup.")
+        }
+        snapshot.items.filter { it.programStableKey !in programKeys }.forEach { item ->
+            errors += diagnostic(
+                DataTransferDiagnosticCodes.RESTORE_PROGRAM_PARENT_MISSING,
+                "Program item parent is missing: ${item.programStableKey}."
+            )
+        }
+        snapshot.sets.filter { set ->
+            "${set.programStableKey}|${set.weekNumber}|${set.dayOfWeek}|${set.orderIndex}" !in positions
+        }.forEach { set ->
+            errors += diagnostic(
+                DataTransferDiagnosticCodes.RESTORE_PROGRAM_PARENT_MISSING,
+                "Program item set parent is missing: ${set.programStableKey}."
+            )
+        }
+    }
+
+    private fun minimalStub(
+        stableKey: String,
+        name: String,
+        category: String,
+        current: Exercise?
+    ): RestoreExerciseRow = RestoreExerciseRow(
+        name = current?.name ?: name.ifBlank { stableKey },
+        stableKey = stableKey,
+        category = current?.category ?: category.ifBlank { "Historical" },
+        detail1 = "",
+        detail2 = "",
+        mode = "",
+        description = "",
+        defaultRestSeconds = current?.defaultRestSeconds ?: 60,
+        imageAssetName = current?.imageAssetName.orEmpty(),
+        primaryMuscles = "",
+        secondaryMuscles = "",
+        equipment = "",
+        movementPattern = "",
+        movementCategory = "",
+        forceType = "",
+        bodyRegion = "",
+        laterality = "",
+        plane = "",
+        legacyTrainingRole = "",
+        trainingRoleCodes = emptySet(),
+        programSlotCapabilityCodes = emptySet(),
+        sportTransferDirect = "",
+        sportTransferSupportive = "",
+        loadProfile = "",
+        metadataConfidence = MetadataConfidence.LOW.name,
+        isActive = current?.isActive ?: false,
+        isCustom = current?.isCustom ?: UserExerciseStableKeyGenerator.isUserExerciseKey(stableKey),
+        needsReview = current?.needsReview ?: true
+    )
+
+    private fun diagnostic(
+        code: String,
+        message: String,
+        stableKey: String? = null
+    ) = DataTransferDiagnostic(
+        code = code,
+        messageKo = message,
+        stage = DataTransferStages.PLANNING,
+        sourceExerciseStableKey = stableKey.orEmpty()
+    )
 }

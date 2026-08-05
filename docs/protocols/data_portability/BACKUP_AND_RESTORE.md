@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.3.1 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22 |
-| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24 |
+| Last audited commit | 7fb03e06408091a00b68b2f1aea4026bb198f1df |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -36,8 +36,9 @@
 
 ## 4. 비적용 범위
 
-Workout 기록, 프로필, 일별 상태, exercise metadata와 strength analysis
-입력의 기존 백업 의미는 바꾸지 않습니다. Backup 암호화, cloud
+프로필, 일별 상태와 strength analysis 입력의 기존 백업 의미는 바꾸지
+않습니다. Exercise metadata는 v0.5.0.24부터 이 계약의 typed snapshot
+범위에 포함됩니다. Backup 암호화, cloud
 synchronization, partial merge와 cross-account conflict resolution은
 제공하지 않습니다.
 
@@ -233,9 +234,41 @@ saved programs referencing them remain readable. Fresh built-in seed programs
 containing an unresolved or history-only item are skipped atomically, while
 workout history and exercise rows are preserved.
 
+### Self-contained exercise metadata snapshot
+
+App v0.5.0.24 uses backup format 11, restore schema 10, and Room schema 28.
+Every exported exercise has typed `exercise_metadata_snapshot` rows containing
+`stableKey`, field key, field scope, value encoding, serialized value, and an
+explicit-empty flag. The central registry classifies 109 represented fields:
+2 `IDENTITY_STABLE`, 4 `CURRENT_CANONICAL_NAME`, 95
+`BACKUP_SNAPSHOT_WINS`, 4 `CURRENT_CANONICAL_SYSTEM_VALUE`, and 4
+`DERIVED_REBUILD` fields.
+
+`stableKey` remains identity. A current built-in keeps its current canonical
+display name while represented editable metadata and normalized role relations
+are restored from the backup snapshot. Relation snapshots replace the complete
+backed-up domain; they are not unioned with seed relations. Explicit empty and
+missing are distinct. Missing old-format fields retain the current compatible
+default, while explicit empty fields restore empty.
+
+An exercise absent from the current catalog is restored with its original
+stableKey as inactive, history-only data. Workout and program references remain
+readable and no name-based runtime inference is introduced. A referenced key
+without a full exercise row receives only the minimal historical stub needed to
+preserve the graph. Custom exercises preserve their exact stableKey and metadata.
+
+Workout entries carry an optional immutable backup source identity. Distinct
+source identities preserve legitimate identical-looking entries; importing the
+same source again is idempotent. Old backups without source identities use the
+stable legacy fallback and emit a compatibility warning. Preflight validates
+identity contradictions and the program graph before the single restore
+transaction, so a failed plan writes nothing.
+
 ## 16. 구현 위치
 
 - `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt`
+- `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataBackupContract.kt`
+- `app/src/main/java/com/training/trackplanner/data/BackupSourceIdentityMigration.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupExportService.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupPreflightValidator.kt`
@@ -261,13 +294,16 @@ workout history and exercise rows are preserved.
 - `LegacyExerciseImportMapperTest`: exact import-only mapping과 ambiguous rejection
 - `BackupRestoreImportBehaviorTest`: 기존 import transaction behavior
 - `TrainingDatabaseMigrationTest`: Room `23 -> 24`, `24 -> 25`, `25 -> 26`, `26 -> 27`
-  row/reference 보존
+  and `27 -> 28` row/reference preservation
+- `SelfContainedExerciseBackupRestoreTest`: current/unknown/custom/history-only
+  identity, explicit-empty, relation replacement, reopen/re-export, source-ID
+  idempotence, duplicate preservation, and preflight rollback
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/training_settings_seed.csv`: built-in program
   `program_key`와 seed graph
-- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`: migration boundary
+- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`, `28.json`: migration boundary
 - `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
 - `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`: bundled
   identity and metadata authoring authority
@@ -287,6 +323,11 @@ workout history and exercise rows are preserved.
 
 ## 20. 변경 이력
 
+- `1.4.0`: backup format 11 and restore schema 10 add typed, explicit-empty
+  exercise metadata snapshots. Unknown stableKeys restore as inactive history,
+  current built-ins retain current canonical names, relation domains replace
+  exactly, and Room 27 -> 28 adds immutable workout-entry source identity for
+  idempotence without collapsing legitimate duplicate records.
 - `1.3.1`: documents the v0.5.0.22 canonical metadata authority cutover. The
   backup and Room formats are unchanged, history-only keys remain readable,
   and no generic-to-variant restore migration is introduced.

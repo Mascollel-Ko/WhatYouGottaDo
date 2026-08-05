@@ -175,18 +175,9 @@ class TrainingRepository(
         appMetaDao = appMetaDao,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator,
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
         seedExercisesByStableKey = ::seedExercisesByStableKey,
-        profileFromRows = { rows -> rows.toInitialUserProfile() },
-        upsertRestoredExercise = ::upsertRestoredExercise,
-        hasDuplicateRestoreEntry = ::hasDuplicateRestoreEntry,
-        findOrCreateImportedExercise = { name, category, stableKey, seedByStableKey ->
-            findOrCreateImportedExercise(
-                name = name,
-                category = category,
-                stableKey = stableKey,
-                seedByStableKey = seedByStableKey
-            )
-        }
+        profileFromRows = { rows -> rows.toInitialUserProfile() }
     )
     private val dailyTimeseriesImportService = DailyTimeseriesImportService(
         db = db,
@@ -385,6 +376,7 @@ class TrainingRepository(
             strengthPosteriorDao = strengthPosteriorDao,
             programDao = programDao,
             exerciseIdentityMigrationIssueDao = exerciseIdentityMigrationIssueDao,
+            canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
             reportStore = dataTransferReportStore,
             appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
         ).export(uri, onReportChanged)
@@ -412,7 +404,7 @@ class TrainingRepository(
             restoreImporter = backupRestoreImportService::importRestoreCsv,
             dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv,
             canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
-            canonicalStableKeys = { SeedData.exercises(context).mapTo(mutableSetOf(), Exercise::stableKey) },
+            canonicalExercises = { SeedData.exactExerciseMetadataByStableKey(context) },
             reportStore = dataTransferReportStore
         ).import(context, uri, onReportChanged)
     }
@@ -515,13 +507,27 @@ class TrainingRepository(
         exerciseRoleRelationAssetLoader.load(stableKeys)
         val trainingRoles = exerciseRoleRelationAssetLoader.trainingRelations()
         val slotCapabilities = exerciseRoleRelationAssetLoader.programSlotCapabilityRelations()
+        val backupTrainingRoleKeys = exerciseRoleRelationDao.allTrainingRoles()
+            .filter { it.provenance == "BACKUP_RESTORE" }
+            .mapTo(mutableSetOf(), ExerciseTrainingRoleRelation::exerciseStableKey)
+        val backupCapabilityKeys = exerciseRoleRelationDao.allProgramSlotCapabilities()
+            .filter { it.provenance == "BACKUP_RESTORE" }
+            .mapTo(mutableSetOf(), ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
         db.withTransaction {
             canonicalMetadataRepository.identities().forEach { identity ->
-                exerciseRoleRelationDao.deleteTrainingRoles(identity.stableKey)
-                exerciseRoleRelationDao.deleteProgramSlotCapabilities(identity.stableKey)
+                if (identity.stableKey !in backupTrainingRoleKeys) {
+                    exerciseRoleRelationDao.deleteTrainingRoles(identity.stableKey)
+                }
+                if (identity.stableKey !in backupCapabilityKeys) {
+                    exerciseRoleRelationDao.deleteProgramSlotCapabilities(identity.stableKey)
+                }
             }
-            exerciseRoleRelationDao.upsertTrainingRoles(trainingRoles)
-            exerciseRoleRelationDao.upsertProgramSlotCapabilities(slotCapabilities)
+            exerciseRoleRelationDao.upsertTrainingRoles(
+                trainingRoles.filter { it.exerciseStableKey !in backupTrainingRoleKeys }
+            )
+            exerciseRoleRelationDao.upsertProgramSlotCapabilities(
+                slotCapabilities.filter { it.exerciseStableKey !in backupCapabilityKeys }
+            )
         }
     }
 
@@ -711,21 +717,8 @@ class TrainingRepository(
         calendarRecordService.copyDateRangeAsPlan(sourceStart, sourceEnd, targetStart, conflictMode, keepConfirmed)
     }
 
-    private suspend fun hasDuplicateRestoreEntry(
-        first: RestoreSetRow,
-        rows: List<RestoreSetRow>
-    ): Boolean =
-        workoutDao.entriesWithSets(first.date).any { existing ->
-            existing.entry.exerciseName == first.exerciseName &&
-                existing.entry.category == first.category &&
-                existing.entry.restSeconds == first.restSeconds &&
-                existing.entry.notes == first.notes &&
-                existing.entry.rpe == first.rpe &&
-                existing.entry.maxReps == first.maxReps &&
-            existing.sets.sortedBy { set -> set.setIndex }.matchesRestoreRows(rows)
-        }
-
-    private suspend fun upsertRestoredExercise(
+    @Suppress("unused")
+    private suspend fun legacyUpsertRestoredExercise(
         row: RestoreExerciseRow,
         seedByStableKey: Map<String, Exercise>,
         restoredRuntimeOverrideKeys: Set<String>

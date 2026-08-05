@@ -110,7 +110,7 @@ class BackupRestoreImportBehaviorTest {
         val exercise = Exercise(
             name = "Custom restore lift",
             category = "Strength",
-            stableKey = "user_ex_restore_lift",
+            stableKey = "legacy_custom_restore_lift",
             primaryMuscles = "QUADRICEPS",
             isCustom = true
         )
@@ -124,8 +124,8 @@ class BackupRestoreImportBehaviorTest {
         )
 
         val result = repository.importRecordsBackup(writeBackup(csv))
-        val restoredExercise = db.exerciseDao().findByStableKey("user_ex_restore_lift")!!
-        val restoredMetadata = db.runtimeExerciseMetadataDao().findByStableKey("user_ex_restore_lift")!!.toRuntimeMetadata()
+        val restoredExercise = db.exerciseDao().findByStableKey("legacy_custom_restore_lift")!!
+        val restoredMetadata = db.runtimeExerciseMetadataDao().findByStableKey("legacy_custom_restore_lift")!!.toRuntimeMetadata()
 
         assertEquals(1, result.exerciseCount)
         assertEquals("Custom restore lift", restoredExercise.name)

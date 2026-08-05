@@ -46,6 +46,7 @@ sealed class RecordCsvImportData {
         val checkInRows: List<RestoreCheckInRow> = emptyList(),
         val smashSpeedRows: List<RestoreSmashSpeedRow> = emptyList(),
         val runtimeMetadataRows: List<RuntimeExerciseMetadata> = emptyList(),
+        val metadataSnapshotRows: List<ExerciseMetadataSnapshotRow> = emptyList(),
         val backupSchemaVersion: Int = 1,
         val posteriorFormatPresent: Boolean = false,
         val posteriorBootstrapMarker: String? = null,
@@ -160,7 +161,15 @@ data class RestoreSetRow(
     val weightKg: Double,
     val seconds: Int,
     val sleepHours: Double?,
-    val bodyWeightKg: Double?
+    val bodyWeightKg: Double?,
+    val entrySourceId: String? = null,
+    val entryCreatedAt: Long? = null,
+    val entryCompletedAt: Long? = null,
+    val entryDisplayOrder: Int? = null,
+    val entryFirstConfirmedAt: Long? = null,
+    val entryPerformedAt: Long? = null,
+    val setManualWeight: Boolean? = null,
+    val setRestSecondsOverride: Int? = null
 )
 
 data class ProgramBackupItem(
@@ -220,8 +229,8 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 9
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 10
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 10
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 11
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
@@ -230,7 +239,13 @@ object RecordCsvBackupRestore {
         "row_type",
         "date",
         "entry_key",
+        "entry_source_id",
         "entry_order",
+        "entry_created_at",
+        "entry_completed_at",
+        "entry_display_order",
+        "entry_first_confirmed_at",
+        "entry_performed_at",
         "exercise_name",
         "category",
         "confirmed",
@@ -240,6 +255,8 @@ object RecordCsvBackupRestore {
         "notes",
         "set_index",
         "set_confirmed",
+        "set_manual_weight",
+        "set_rest_seconds_override",
         "reps",
         "weight_kg",
         "seconds",
@@ -319,6 +336,11 @@ object RecordCsvBackupRestore {
         "runtime_movement_focus_demand_level",
         "runtime_recovery_duration_class",
         "runtime_app_cue_profile",
+        "metadata_field_key",
+        "metadata_field_scope",
+        "metadata_value_encoding",
+        "metadata_value",
+        "metadata_is_explicit_empty",
         "strength_event_uuid",
         "strength_target_key",
         "strength_completion_fingerprint",
@@ -378,6 +400,7 @@ object RecordCsvBackupRestore {
         programTombstones: List<TrainingProgramTombstone> = emptyList(),
         trainingRoleRelations: List<ExerciseTrainingRoleRelation> = emptyList(),
         programSlotCapabilityRelations: List<ExerciseProgramSlotCapabilityRelation> = emptyList(),
+        metadataSnapshots: List<ExerciseMetadataSnapshotRow> = emptyList(),
         includeProgramSnapshot: Boolean = false
     ): String {
         val builder = StringBuilder()
@@ -567,6 +590,21 @@ object RecordCsvBackupRestore {
                 )
             )
         }
+        metadataSnapshots
+            .sortedWith(compareBy(ExerciseMetadataSnapshotRow::stableKey).thenBy(ExerciseMetadataSnapshotRow::fieldKey))
+            .forEach { snapshot ->
+                appendMappedRow(
+                    rowType = "exercise_metadata_snapshot",
+                    values = mapOf(
+                        "stable_key" to snapshot.stableKey,
+                        "metadata_field_key" to snapshot.fieldKey,
+                        "metadata_field_scope" to snapshot.fieldScope.name,
+                        "metadata_value_encoding" to snapshot.valueEncoding.name,
+                        "metadata_value" to snapshot.value,
+                        "metadata_is_explicit_empty" to snapshot.isExplicitEmpty.toCsvBool()
+                    )
+                )
+            }
         runtimeMetadata
             .filter { metadata -> metadata.stableKey.isNotBlank() }
             .sortedBy { metadata -> metadata.stableKey }
@@ -630,27 +668,12 @@ object RecordCsvBackupRestore {
             val metric = metricsByDate[date]
             val checkIn = checkInsByDate[date]
             if (metric != null || checkIn?.sleepHours != null || checkIn?.bodyWeightKg != null) {
-                builder.appendCsvRow(
-                    listOf(
-                        "1",
-                        "daily",
-                        date,
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        (metric?.sleepHours ?: checkIn?.sleepHours).formatOptional(),
-                        (metric?.bodyWeightKg ?: checkIn?.bodyWeightKg).formatOptional()
+                appendMappedRow(
+                    rowType = "daily",
+                    values = mapOf(
+                        "date" to date,
+                        "sleep_hours" to (metric?.sleepHours ?: checkIn?.sleepHours).formatOptional(),
+                        "body_weight_kg" to (metric?.bodyWeightKg ?: checkIn?.bodyWeightKg).formatOptional()
                     )
                 )
             }
@@ -705,29 +728,35 @@ object RecordCsvBackupRestore {
                     val entry = item.entry
                     val entryConfirmed = item.sets.any { set -> set.confirmed }
                     val orderedSets = item.sets.sortedBy { set -> set.setIndex }
+                    val sourceId = entry.backupSourceId ?: "entry:${entry.id}:${entry.createdAt}"
                     orderedSets.forEach { set ->
-                        builder.appendCsvRow(
-                            listOf(
-                                "1",
-                                "set",
-                                entry.date,
-                                entry.id.toString(),
-                                (entryIndex + 1).toString(),
-                                entry.exerciseName,
-                                entry.category,
-                                entryConfirmed.toCsvBool(),
-                                entry.restSeconds.toString(),
-                                (set.rpe ?: entry.rpe).formatOptional(),
-                                entry.maxReps?.toString().orEmpty(),
-                                entry.notes,
-                                set.setIndex.toString(),
-                                set.confirmed.toCsvBool(),
-                                set.reps.toString(),
-                                set.weightKg.formatNumber(),
-                                set.seconds.toString(),
-                                "",
-                                "",
-                                exercisesById[entry.exerciseStableKey]?.stableKey.orEmpty()
+                        appendMappedRow(
+                            rowType = "set",
+                            values = mapOf(
+                                "date" to entry.date,
+                                "entry_key" to entry.id.toString(),
+                                "entry_source_id" to sourceId,
+                                "entry_order" to (entryIndex + 1).toString(),
+                                "entry_created_at" to entry.createdAt.toString(),
+                                "entry_completed_at" to entry.completedAt?.toString().orEmpty(),
+                                "entry_display_order" to entry.displayOrder.toString(),
+                                "entry_first_confirmed_at" to entry.firstConfirmedAt?.toString().orEmpty(),
+                                "entry_performed_at" to entry.performedAt?.toString().orEmpty(),
+                                "exercise_name" to entry.exerciseName,
+                                "category" to entry.category,
+                                "confirmed" to entryConfirmed.toCsvBool(),
+                                "rest_seconds" to entry.restSeconds.toString(),
+                                "rpe" to (set.rpe ?: entry.rpe).formatOptional(),
+                                "max_reps" to entry.maxReps?.toString().orEmpty(),
+                                "notes" to entry.notes,
+                                "set_index" to set.setIndex.toString(),
+                                "set_confirmed" to set.confirmed.toCsvBool(),
+                                "set_manual_weight" to set.manualWeight.toCsvBool(),
+                                "set_rest_seconds_override" to set.restSecondsOverride?.toString().orEmpty(),
+                                "reps" to set.reps.toString(),
+                                "weight_kg" to set.weightKg.formatNumber(),
+                                "seconds" to set.seconds.toString(),
+                                "stable_key" to exercisesById[entry.exerciseStableKey]?.stableKey.orEmpty()
                             )
                         )
                     }
@@ -912,6 +941,7 @@ object RecordCsvBackupRestore {
         val checkInRows = mutableListOf<RestoreCheckInRow>()
         val smashSpeedRows = mutableListOf<RestoreSmashSpeedRow>()
         val runtimeMetadataRows = mutableListOf<RuntimeExerciseMetadata>()
+        val metadataSnapshotRows = mutableListOf<ExerciseMetadataSnapshotRow>()
         val posteriorEvents = mutableListOf<StrengthPosteriorEventEntity>()
         val posteriorHistory = mutableListOf<StrengthPosteriorHistoryEntity>()
         val posteriorModelStates = mutableListOf<StrengthPosteriorModelStateEntity>()
@@ -931,6 +961,20 @@ object RecordCsvBackupRestore {
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             val posteriorPayload = row.value(index, "strength_posterior_payload")
             when (rowType) {
+                "exercise_metadata_snapshot" -> {
+                    val snapshot = ExerciseMetadataSnapshotRow(
+                        stableKey = row.value(index, "stable_key").trim(),
+                        fieldKey = row.value(index, "metadata_field_key").trim(),
+                        fieldScope = row.requiredEnum(index, "metadata_field_scope", rowType),
+                        valueEncoding = row.requiredEnum(index, "metadata_value_encoding", rowType),
+                        value = row.value(index, "metadata_value"),
+                        isExplicitEmpty = row.safeBool(index, "metadata_is_explicit_empty")
+                            ?: error("exercise_metadata_snapshot is missing metadata_is_explicit_empty.")
+                    )
+                    ExerciseMetadataFieldPolicyRegistry.validate(listOf(snapshot))
+                    metadataSnapshotRows += snapshot
+                    return@forEachIndexed
+                }
                 "program_snapshot" -> {
                     programSnapshotVersions += requireNotNull(
                         row.safeInt(index, "program_backup_schema_version")
@@ -1124,6 +1168,9 @@ object RecordCsvBackupRestore {
                         safeForSeedMutation = false,
                         appCueProfile = value("runtime_app_cue_profile", base.appCueProfile)
                     )
+                    if ((manifest?.formatVersion ?: 0) < 11) {
+                        metadataSnapshotRows += legacyRuntimeSnapshotRows(stableKey, row, index)
+                    }
                 }
                 return@forEachIndexed
             }
@@ -1144,7 +1191,7 @@ object RecordCsvBackupRestore {
                 if (name.isBlank()) {
                     warnings += 1
                 } else {
-                    exerciseRows += RestoreExerciseRow(
+                    val exerciseRow = RestoreExerciseRow(
                         name = name,
                         stableKey = row.value(index, "stable_key"),
                         category = row.value(index, "category"),
@@ -1178,6 +1225,10 @@ object RecordCsvBackupRestore {
                         isCustom = row.safeBool(index, "is_custom") ?: false,
                         needsReview = row.safeBool(index, "needs_review") ?: false
                     )
+                    exerciseRows += exerciseRow
+                    if ((manifest?.formatVersion ?: 0) < 11 && exerciseRow.stableKey.isNotBlank()) {
+                        metadataSnapshotRows += legacyExerciseSnapshotRows(exerciseRow.stableKey, row, index)
+                    }
                 }
                 return@forEachIndexed
             }
@@ -1212,7 +1263,15 @@ object RecordCsvBackupRestore {
                     weightKg = row.safeDouble(index, "weight_kg") ?: 0.0,
                     seconds = row.safeInt(index, "seconds") ?: 0,
                     sleepHours = row.safeSleepHours(index),
-                    bodyWeightKg = row.safeDouble(index, "body_weight_kg")
+                    bodyWeightKg = row.safeDouble(index, "body_weight_kg"),
+                    entrySourceId = row.value(index, "entry_source_id").ifBlank { null },
+                    entryCreatedAt = row.safeLong(index, "entry_created_at"),
+                    entryCompletedAt = row.safeLong(index, "entry_completed_at"),
+                    entryDisplayOrder = row.safeInt(index, "entry_display_order"),
+                    entryFirstConfirmedAt = row.safeLong(index, "entry_first_confirmed_at"),
+                    entryPerformedAt = row.safeLong(index, "entry_performed_at"),
+                    setManualWeight = row.safeBool(index, "set_manual_weight"),
+                    setRestSecondsOverride = row.safeInt(index, "set_rest_seconds_override")
                 )
                 "check_in" -> {
                     val candidate = RestoreCheckInRow(
@@ -1271,6 +1330,7 @@ object RecordCsvBackupRestore {
                 tombstones = programTombstones
             )
         }
+        ExerciseMetadataFieldPolicyRegistry.validate(metadataSnapshotRows)
         return RecordCsvImportData.Restore(
             exerciseRows = exerciseRows,
             profileRows = profileRows,
@@ -1280,6 +1340,7 @@ object RecordCsvBackupRestore {
             checkInRows = checkInRows,
             smashSpeedRows = smashSpeedRows,
             runtimeMetadataRows = runtimeMetadataRows,
+            metadataSnapshotRows = metadataSnapshotRows,
             backupSchemaVersion = backupSchemaVersion,
             posteriorFormatPresent = posteriorFormatPresent,
             posteriorBootstrapMarker = posteriorBootstrapMarker,
@@ -1386,7 +1447,8 @@ object RecordCsvBackupRestore {
         programCount: Int,
         programItemCount: Int,
         programItemSetCount: Int = 0,
-        programTombstoneCount: Int
+        programTombstoneCount: Int,
+        metadataSnapshotCount: Int = 0
     ): Map<String, Int> = linkedMapOf(
         "exercise" to exerciseCount,
         "daily_metric" to dailyMetricCount,
@@ -1396,6 +1458,7 @@ object RecordCsvBackupRestore {
         "workout_entry" to entryCount,
         "workout_set" to setCount,
         "runtime_metadata" to runtimeMetadataCount,
+        "exercise_metadata_snapshot" to metadataSnapshotCount,
         "program" to programCount,
         "program_item" to programItemCount,
         "program_item_set" to programItemSetCount,
@@ -1415,13 +1478,127 @@ object RecordCsvBackupRestore {
             programCount = data.programSnapshot?.programs?.size ?: 0,
             programItemCount = data.programSnapshot?.items?.size ?: 0,
             programItemSetCount = data.programSnapshot?.sets?.size ?: 0,
-            programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0
+            programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0,
+            metadataSnapshotCount = data.metadataSnapshotRows.size
         )
 
     private fun sha256(value: String): String =
         MessageDigest.getInstance("SHA-256")
             .digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { byte -> "%02x".format(byte) }
+
+    private fun legacyExerciseSnapshotRows(
+        stableKey: String,
+        row: List<String>,
+        index: Map<String, Int>
+    ): List<ExerciseMetadataSnapshotRow> {
+        val columns = linkedMapOf(
+            "is_custom" to "identity.isCustom",
+            "category" to "exercise.category",
+            "detail1" to "exercise.detail1",
+            "detail2" to "exercise.detail2",
+            "mode" to "exercise.mode",
+            "description" to "exercise.description",
+            "default_rest_seconds" to "exercise.defaultRestSeconds",
+            "image_asset_name" to "exercise.imageAssetName",
+            "primary_muscles" to "exercise.primaryMuscles",
+            "secondary_muscles" to "exercise.secondaryMuscles",
+            "equipment" to "exercise.equipment",
+            "movement_pattern" to "exercise.movementPattern",
+            "movement_category" to "exercise.movementCategory",
+            "force_type" to "exercise.forceType",
+            "body_region" to "exercise.bodyRegion",
+            "laterality" to "exercise.laterality",
+            "plane" to "exercise.plane",
+            "sport_transfer_direct" to "exercise.sportTransferDirect",
+            "sport_transfer_supportive" to "exercise.sportTransferSupportive",
+            "load_profile" to "exercise.loadProfile",
+            "metadata_confidence" to "exercise.metadataConfidence",
+            "is_active" to "exercise.isActive",
+            "needs_review" to "exercise.needsReview",
+            "training_role_codes" to "relation.trainingRoles",
+            "program_slot_capability_codes" to "relation.programSlotCapabilities"
+        )
+        return buildList {
+            columns.forEach { (column, fieldKey) ->
+                if (column !in index) return@forEach
+                legacySnapshotRow(stableKey, fieldKey, row.value(index, column), row, index, column)?.let(::add)
+            }
+            if ("equipment" in index) {
+                legacySnapshotRow(stableKey, "exercise.equipmentTags", row.value(index, "equipment"), row, index, "equipment")?.let(::add)
+            }
+        }
+    }
+
+    private fun legacyRuntimeSnapshotRows(
+        stableKey: String,
+        row: List<String>,
+        index: Map<String, Int>
+    ): List<ExerciseMetadataSnapshotRow> {
+        val columns = linkedMapOf(
+            "runtime_activity_kind" to "runtime.activityKind",
+            "runtime_planning_eligibility" to "runtime.planningEligibility",
+            "runtime_movement_family" to "runtime.movementFamily",
+            "runtime_movement_subtype" to "runtime.movementSubtype",
+            "runtime_program_slot" to "runtime.programSlot",
+            "runtime_redundancy_group" to "runtime.redundancyGroup",
+            "runtime_progress_metric_type" to "runtime.progressMetricType",
+            "runtime_strength_progression_group" to "runtime.strengthProgressionGroup",
+            "runtime_analysis_eligibility" to "runtime.analysisEligibility",
+            "runtime_primary_stress_profile" to "runtime.primaryStressProfile",
+            "runtime_secondary_stress_tags" to "runtime.secondaryStressTags",
+            "runtime_tendon_stress_tags" to "runtime.tendonStressTags",
+            "runtime_ligament_joint_stability_stress_tags" to "runtime.ligamentJointStabilityStressTags",
+            "runtime_joint_impact_stress_tags" to "runtime.jointImpactStressTags",
+            "runtime_cognitive_stress_tags" to "runtime.cognitiveStressTags",
+            "runtime_sport_context_tags" to "runtime.sportContextTags",
+            "runtime_recovery_decay_profile" to "runtime.recoveryDecayProfile",
+            "runtime_stress_magnitude_hint" to "runtime.stressMagnitudeHint",
+            "runtime_badminton_transfer_level" to "runtime.badmintonTransferLevel",
+            "runtime_badminton_transfer_type" to "runtime.badmintonTransferType",
+            "runtime_badminton_skill_targets" to "runtime.badmintonSkillTargets",
+            "runtime_badminton_physical_qualities" to "runtime.badmintonPhysicalQualities",
+            "runtime_transfer_confidence" to "runtime.transferConfidence",
+            "runtime_source_confidence_level" to "runtime.sourceConfidenceLevel",
+            "runtime_final_source_status" to "runtime.finalSourceStatus",
+            "runtime_neuromuscular_stress_level" to "runtime.neuromuscularStressLevel",
+            "runtime_systemic_muscular_stress_level" to "runtime.systemicMuscularStressLevel",
+            "runtime_local_muscular_stress_level" to "runtime.localMuscularStressLevel",
+            "runtime_joint_tendon_impact_stress_level" to "runtime.jointTendonImpactStressLevel",
+            "runtime_movement_focus_demand_level" to "runtime.movementFocusDemandLevel",
+            "runtime_recovery_duration_class" to "runtime.recoveryDurationClass"
+        )
+        return columns.mapNotNull { (column, fieldKey) ->
+            column.takeIf(index::containsKey)?.let {
+                legacySnapshotRow(stableKey, fieldKey, row.value(index, column), row, index, column)
+            }
+        }
+    }
+
+    private fun legacySnapshotRow(
+        stableKey: String,
+        fieldKey: String,
+        rawValue: String,
+        row: List<String>,
+        index: Map<String, Int>,
+        column: String
+    ): ExerciseMetadataSnapshotRow? {
+        val definition = requireNotNull(ExerciseMetadataFieldPolicyRegistry.definition(fieldKey))
+        val value = when (definition.valueEncoding) {
+            ExerciseMetadataValueEncoding.BOOLEAN -> row.safeBool(index, column)?.toString() ?: return null
+            ExerciseMetadataValueEncoding.INTEGER,
+            ExerciseMetadataValueEncoding.DOUBLE -> rawValue.takeIf(String::isNotBlank) ?: return null
+            else -> rawValue
+        }
+        return ExerciseMetadataSnapshotRow(
+            stableKey = stableKey,
+            fieldKey = fieldKey,
+            fieldScope = definition.fieldScope,
+            valueEncoding = definition.valueEncoding,
+            value = value,
+            isExplicitEmpty = value.isEmpty()
+        )
+    }
 
     private fun validateProgramSnapshot(
         programs: List<TrainingProgram>,
@@ -1634,6 +1811,16 @@ object RecordCsvBackupRestore {
         key: String,
         rowType: String
     ): Double = requireNotNull(safeDouble(index, key)) { "$rowType has invalid $key." }
+
+    private inline fun <reified T : Enum<T>> List<String>.requiredEnum(
+        index: Map<String, Int>,
+        key: String,
+        rowType: String
+    ): T {
+        val value = value(index, key).trim()
+        return enumValues<T>().firstOrNull { it.name == value }
+            ?: error("$rowType has invalid $key: $value")
+    }
 
     private fun List<String>.safeBool(index: Map<String, Int>, key: String): Boolean? =
         when (value(index, key).trim().lowercase(Locale.US)) {

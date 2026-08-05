@@ -134,3 +134,14 @@ only in explicit import/restore compatibility and parity fixtures. It is not a
 production fallback. Custom exercise and user presentation fields continue to
 use their existing persistence path; protected scientific relations do not
 accept ordinary runtime overrides.
+
+## Backup policy overlay (v0.5.0.24)
+
+This matrix remains the consumer inventory. Backup precedence is centralized
+in `ExerciseMetadataFieldPolicyRegistry`, which covers 109 fields: 2 identity,
+4 current-canonical-name, 95 backup-snapshot-wins, 4 current-canonical-system,
+and 4 derived-rebuild fields. Export reads the effective exercise/runtime state
+rather than replacing it with seed values. Restore replaces represented
+editable scalars and normalized relation domains exactly, distinguishes missing
+from explicit empty, and rebuilds derived analysis values instead of persisting
+them as authority.

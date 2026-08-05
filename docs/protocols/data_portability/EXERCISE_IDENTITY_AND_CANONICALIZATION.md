@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22 |
-| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24 |
+| Last audited commit | 7fb03e06408091a00b68b2f1aea4026bb198f1df |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -161,8 +161,28 @@ The workbook/export path replaces normal bundled seed inference. Legacy import
 mapping remains isolated and does not rewrite a historical generic stableKey to
 an equipment variant.
 
+## 19.2 Self-contained restore identity
+
+Backup format 11 does not use the current catalog as a blanket allowlist.
+Current built-in identities resolve by exact stableKey and use the current
+canonical display name. A backup identity absent from the current catalog is
+materialized with the same stableKey as inactive, history-only data so workout
+and program history remain readable. It is not inferred to another exercise by
+name, equipment, or movement similarity.
+
+Custom exercise stableKeys and represented editable metadata restore exactly.
+Only an explicit reviewed legacy import mapping may change an old identity.
+Contradictory definitions and custom/current identity collisions fail preflight
+before the restore transaction. Referenced identities without a full exercise
+row receive a minimal inactive historical stub rather than being silently
+dropped.
+
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-06): defined self-contained backup identity semantics.
+  Current built-ins keep current canonical names, missing-catalog stableKeys
+  remain inactive history, custom identities restore exactly, and the current
+  catalog is no longer a blanket restore allowlist.
 - `1.1.0` (2026-08-05): made the canonical workbook and deterministic
   `canonical_v1` assets the bundled identity authority. The catalog contains
   241 selectable identities plus 16 inactive history-only compatibility

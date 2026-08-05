@@ -790,6 +790,30 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate27To28AddsNullableUniqueBackupSourceIdentity() {
+        helper.createDatabase(TEST_DB_27_28, 27).close()
+
+        helper.runMigrationsAndValidate(TEST_DB_27_28, 28, true, MIGRATION_27_28).use { database ->
+            database.query("PRAGMA table_info(`workout_entries`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val notNullIndex = cursor.getColumnIndexOrThrow("notnull")
+                val columns = buildMap {
+                    while (cursor.moveToNext()) put(cursor.getString(nameIndex), cursor.getInt(notNullIndex))
+                }
+                check(columns["backupSourceId"] == 0)
+            }
+            database.query("PRAGMA index_list(`workout_entries`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val uniqueIndex = cursor.getColumnIndexOrThrow("unique")
+                val indexes = buildMap {
+                    while (cursor.moveToNext()) put(cursor.getString(nameIndex), cursor.getInt(uniqueIndex))
+                }
+                check(indexes["index_workout_entries_backupSourceId"] == 1)
+            }
+        }
+    }
+
     private fun SupportSQLiteDatabase.foreignKeyTarget(table: String, column: String): String? =
         query("PRAGMA foreign_key_list(`$table`)").use { cursor ->
             val tableIndex = cursor.getColumnIndexOrThrow("table")
@@ -882,6 +906,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_24_25 = "training-migration-24-25-test"
         const val TEST_DB_25_26 = "training-migration-25-26-test"
         const val TEST_DB_26_27 = "training-migration-26-27-test"
+        const val TEST_DB_27_28 = "training-migration-27-28-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

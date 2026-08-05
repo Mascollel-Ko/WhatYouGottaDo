@@ -15,7 +15,9 @@ class BackupImportServiceTest {
             },
             dailyTimeseriesImporter = { error("daily importer should not run") },
             canonicalizer = BackupRestoreCanonicalizer(LegacyExerciseImportMapper.fromMappings(emptyList())),
-            canonicalStableKeys = { setOf("barbell_deadlift") }
+            canonicalExercises = {
+                mapOf("barbell_deadlift" to Exercise("barbell_deadlift", "Deadlift", "Strength"))
+            }
         )
         val csv = """
             schema_version,row_type,date,entry_key,entry_order,exercise_name,category,confirmed,rest_seconds,set_index,set_confirmed,reps,weight_kg,seconds,stable_key
@@ -38,7 +40,7 @@ class BackupImportServiceTest {
                 RecordCsvTransferResult(format = "daily_timeseries", dailyMetricCount = importedRows)
             },
             canonicalizer = BackupRestoreCanonicalizer(LegacyExerciseImportMapper.fromMappings(emptyList())),
-            canonicalStableKeys = { emptySet() }
+            canonicalExercises = { emptyMap() }
         )
         val csv = """
             date,sleep_hours,body_weight_kg,total_entries,confirmed_entries,planned_entries,total_sets,total_reps,total_tonnage_kg,total_seconds,strength_entries,functional_entries,cardio_entries,sports_entries,exercises_summary

@@ -1,6 +1,6 @@
 {
   "registryVersion": "1.0.0",
-  "lastUpdated": "2026-08-05",
+  "lastUpdated": "2026-08-06",
   "families": [
     {
       "familyId": "OFI",
@@ -1606,7 +1606,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "운동 identity와 정본화",
       "titleEn": "Exercise Identity and Canonicalization",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1614,8 +1614,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22",
-      "lastAuditedCommit": "233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec",
+      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24",
+      "lastAuditedCommit": "7fb03e06408091a00b68b2f1aea4026bb198f1df",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/Entities.kt",
         "app/src/main/java/com/training/trackplanner/data/Daos.kt",
@@ -1623,20 +1623,23 @@
         "app/src/main/java/com/training/trackplanner/data/LegacyExerciseImportMapper.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingDatabase.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
-        "app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt"
+        "app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt",
+        "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataBackupContract.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ExerciseCatalogCanonicalizationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ExerciseStableKeyPreservationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
         "app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt",
-        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt"
+        "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/SelfContainedExerciseBackupRestoreTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
         "app/src/main/assets/exercise_legacy_import_map.csv",
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/28.json",
         "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
         "app/src/main/assets/metadata/canonical_v1/manifest.json"
       ],
@@ -1646,7 +1649,8 @@
         "docs/v0.5.0.6_release_notes.md",
         "docs/v0.5.0.8_release_notes.md",
         "docs/v0.5.0.11_release_notes.md",
-        "docs/v0.5.0.22_release_notes.md"
+        "docs/v0.5.0.22_release_notes.md",
+        "docs/v0.5.0.24_release_notes.md"
       ],
       "knownGaps": [
         "Unreviewed equipment-unspecified legacy split rows require explicit repair instead of an automatic guess.",
@@ -1660,7 +1664,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.3.1",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1668,8 +1672,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
-      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22",
-      "lastAuditedCommit": "233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec",
+      "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24",
+      "lastAuditedCommit": "7fb03e06408091a00b68b2f1aea4026bb198f1df",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupExportService.kt",
@@ -1682,7 +1686,9 @@
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt",
-        "app/src/main/java/com/training/trackplanner/data/TrainingRoleSplitMigration.kt"
+        "app/src/main/java/com/training/trackplanner/data/TrainingRoleSplitMigration.kt",
+        "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataBackupContract.kt",
+        "app/src/main/java/com/training/trackplanner/data/BackupSourceIdentityMigration.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
@@ -1692,7 +1698,8 @@
         "app/src/test/java/com/training/trackplanner/data/LegacyExerciseImportMapperTest.kt",
         "app/src/test/java/com/training/trackplanner/data/BackupRestoreImportBehaviorTest.kt",
         "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ExerciseRoleBackupTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ExerciseRoleBackupTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/SelfContainedExerciseBackupRestoreTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
@@ -1700,6 +1707,7 @@
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/26.json",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/27.json",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/28.json",
         "app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv",
         "app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv",
         "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
@@ -1711,11 +1719,12 @@
         "docs/v0.5.0.11_release_notes.md",
         "docs/v0.5.0.12_release_notes.md",
         "docs/v0.5.0.21_release_notes.md",
-        "docs/v0.5.0.22_release_notes.md"
+        "docs/v0.5.0.22_release_notes.md",
+        "docs/v0.5.0.24_release_notes.md"
       ],
       "knownGaps": [
         "새 program snapshot은 partial merge가 아니라 authoritative replacement입니다.",
-        "Program item exercise stable key가 대상 database에 없으면 이름 fallback 없이 import를 실패합니다."
+        "Old backups without immutable workout source IDs use the stable legacy idempotence fallback and emit a compatibility warning."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true

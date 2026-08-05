@@ -17,6 +17,7 @@ internal class BackupExportService(
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val programDao: ProgramDao,
     private val exerciseIdentityMigrationIssueDao: ExerciseIdentityMigrationIssueDao,
+    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
     private val reportStore: DataTransferReportStore,
     private val appVersion: String
 ) {
@@ -42,8 +43,13 @@ internal class BackupExportService(
             val exercises = exerciseDao.allExercises()
             val trainingRoleRelations = exerciseRoleRelationDao.allTrainingRoles()
             val programSlotCapabilityRelations = exerciseRoleRelationDao.allProgramSlotCapabilities()
-            val runtimeMetadata = runtimeExerciseMetadataDao.all()
+            val persistedRuntimeMetadata = runtimeExerciseMetadataDao.all()
                 .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
+            val runtimeResolver = RuntimeExerciseMetadataResolver(
+                canonicalRuntimeMetadataCatalog,
+                persistedRuntimeMetadata
+            )
+            val runtimeMetadata = exercises.map(runtimeResolver::resolve)
             val profile = initialUserProfileDao.profile()
             val posteriorEvents = strengthPosteriorDao.allEvents()
             val posteriorHistory = strengthPosteriorDao.allHistory()
@@ -130,17 +136,29 @@ internal class BackupExportService(
                     seconds = set.seconds
                 )
             }
-            val exportedExercises = ExerciseMetadataOverrideBackupMapper.exportExercises(
-                exercises = exercises,
-                seedByStableKey = SeedData.exactExerciseMetadataByStableKey(context),
-                runtimeMetadata = runtimeMetadata
+            val trainingRolesByKey = trainingRoleRelations.groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+            val capabilitiesByKey = programSlotCapabilityRelations.groupBy(
+                ExerciseProgramSlotCapabilityRelation::exerciseStableKey
             )
+            val runtimeByKey = runtimeMetadata.associateBy(RuntimeExerciseMetadata::stableKey)
+            val metadataSnapshots = exercises.flatMap { exercise ->
+                ExerciseMetadataFieldPolicyRegistry.snapshot(
+                    ExerciseMetadataSnapshotSource(
+                        exercise = exercise,
+                        runtimeMetadata = checkNotNull(runtimeByKey[exercise.stableKey]),
+                        trainingRoles = trainingRolesByKey[exercise.stableKey].orEmpty()
+                            .mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode),
+                        programSlotCapabilities = capabilitiesByKey[exercise.stableKey].orEmpty()
+                            .mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                    )
+                )
+            }
 
             session.stage(DataTransferStages.SERIALIZING)
             val body = RecordCsvBackupRestore.buildRestoreCsv(
                 entriesWithSets = entriesWithSets,
                 metrics = metrics,
-                exercises = exportedExercises,
+                exercises = exercises,
                 initialProfile = profile,
                 checkIns = checkIns,
                 smashSpeeds = smashSpeeds,
@@ -161,6 +179,7 @@ internal class BackupExportService(
                 programTombstones = programTombstones,
                 trainingRoleRelations = trainingRoleRelations,
                 programSlotCapabilityRelations = programSlotCapabilityRelations,
+                metadataSnapshots = metadataSnapshots,
                 includeProgramSnapshot = true
             )
             val dailyBackupCount = (
@@ -168,7 +187,7 @@ internal class BackupExportService(
                     checkIns.filter { it.sleepHours != null || it.bodyWeightKg != null }.map(DailyCheckIn::date)
                 ).distinct().size
             val manifestCounts = RecordCsvBackupRestore.backupEntityCounts(
-                exerciseCount = exportedExercises.size,
+                exerciseCount = exercises.size,
                 dailyMetricCount = dailyBackupCount,
                 dailyCheckInCount = checkIns.size,
                 smashSpeedCount = smashSpeeds.size,
@@ -179,7 +198,8 @@ internal class BackupExportService(
                 programCount = programs.size,
                 programItemCount = backupProgramItems.size,
                 programItemSetCount = backupProgramItemSets.size,
-                programTombstoneCount = programTombstones.size
+                programTombstoneCount = programTombstones.size,
+                metadataSnapshotCount = metadataSnapshots.size
             )
             val csv = RecordCsvBackupRestore.wrapWithManifest(
                 body = body,

@@ -9,6 +9,27 @@ import org.junit.Test
 
 class RuntimeExerciseMetadataResolverTest {
     @Test
+    fun persistedHistoricalMetadataPreservesIntentionalEmptyValues() {
+        val exercise = Exercise("removed_runtime", "Removed", "Strength", isActive = false)
+        val persisted = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
+            progressMetricType = "",
+            strengthProgressionGroup = "",
+            analysisEligibility = MetadataTokenField.parse(""),
+            safeForSeedMutation = false
+        )
+
+        val resolved = RuntimeExerciseMetadataResolver(
+            RuntimeExerciseMetadataCatalog.EMPTY,
+            listOf(persisted)
+        ).resolve(exercise)
+
+        assertEquals("", resolved.progressMetricType)
+        assertEquals("", resolved.strengthProgressionGroup)
+        assertTrue(resolved.analysisEligibility.values.isEmpty())
+        assertFalse(resolved.safeForSeedMutation)
+    }
+
+    @Test
     fun resolutionPreservesEditableRoomFieldsAndCanonicalProtectedFields() {
         val builtIn = exercise("builtin_key", "Built in")
         val canonical = RuntimeExerciseMetadataDefaults.forExercise(builtIn).copy(
@@ -116,7 +137,7 @@ class RuntimeExerciseMetadataResolverTest {
     }
 
     @Test
-    fun exerciseRowMetadataRepairsStalePersistedDefaultWhenCanonicalIsMissing() {
+    fun persistedMetadataWinsWhenCanonicalIsMissing() {
         val dbExercise = exercise("legacy_squat_key", "Legacy Squat").copy(
             progressMetricType = "",
             strengthProgressionGroup = "SQUAT",
@@ -134,10 +155,10 @@ class RuntimeExerciseMetadataResolverTest {
 
         val resolved = resolver.resolve(dbExercise)
 
-        assertEquals("ESTIMATED_1RM", resolved.progressMetricType)
-        assertEquals("SQUAT", resolved.strengthProgressionGroup)
-        assertTrue("STRENGTH_PROGRESS" in resolved.analysisEligibility)
-        assertTrue("HYPERTROPHY_VOLUME" in resolved.analysisEligibility)
+        assertEquals("NOT_APPLICABLE", resolved.progressMetricType)
+        assertEquals("NOT_APPLICABLE", resolved.strengthProgressionGroup)
+        assertFalse("STRENGTH_PROGRESS" in resolved.analysisEligibility)
+        assertFalse("HYPERTROPHY_VOLUME" in resolved.analysisEligibility)
     }
 
     private fun exercise(stableKey: String, name: String) = Exercise(

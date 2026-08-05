@@ -535,3 +535,13 @@ parser remain isolated for import compatibility and whole-catalog parity tests.
 They are not invoked by `SeedData.exercises(context)` or canonical runtime
 metadata loading. No history-only generic key is inferred to an equipment
 variant.
+
+## Backup and restore boundary (v0.5.0.24)
+
+`ExerciseMetadataFieldPolicyRegistry` is the authority for backup precedence;
+the historical rows above remain an inference inventory. Backup format 11
+serializes typed field keys and explicit-empty state. Restore joins by exact
+stableKey, uses only explicit reviewed legacy mappings for old identities, and
+does not infer an unknown exercise from name, equipment, category, or current
+catalog membership. An unknown referenced stableKey is retained as inactive
+history or as a minimal historical stub instead of being guessed or dropped.

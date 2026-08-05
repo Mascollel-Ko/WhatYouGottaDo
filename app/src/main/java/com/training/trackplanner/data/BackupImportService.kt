@@ -7,7 +7,7 @@ internal class BackupImportService(
     private val restoreImporter: suspend (RecordCsvImportData.Restore) -> RecordCsvTransferResult,
     private val dailyTimeseriesImporter: suspend (RecordCsvImportData.DailyTimeseries) -> RecordCsvTransferResult,
     private val canonicalizer: BackupRestoreCanonicalizer,
-    private val canonicalStableKeys: () -> Set<String>,
+    private val canonicalExercises: () -> Map<String, Exercise>,
     private val reportStore: DataTransferReportStore? = null
 ) {
     suspend fun import(
@@ -44,7 +44,7 @@ internal class BackupImportService(
             val warnings = mutableListOf<DataTransferDiagnostic>()
             val result = when (parsed) {
                 is RecordCsvImportData.Restore -> {
-                    val canonicalized = canonicalizer.canonicalize(parsed, canonicalStableKeys())
+                    val canonicalized = canonicalizer.canonicalize(parsed, canonicalExercises())
                     warnings += canonicalized.warnings
                     if (canonicalized.errors.isNotEmpty()) {
                         throw DataTransferFailure(
@@ -89,7 +89,7 @@ internal class BackupImportService(
     internal suspend fun importText(text: String): RecordCsvTransferResult =
         when (val data = RecordCsvBackupRestore.parse(text)) {
             is RecordCsvImportData.Restore -> {
-                val canonicalized = canonicalizer.canonicalize(data, canonicalStableKeys())
+                val canonicalized = canonicalizer.canonicalize(data, canonicalExercises())
                 if (canonicalized.errors.isNotEmpty()) {
                     throw DataTransferFormatException(
                         canonicalized.errors.first().code,

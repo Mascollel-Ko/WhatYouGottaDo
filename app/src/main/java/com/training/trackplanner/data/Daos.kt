@@ -256,6 +256,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_entries WHERE id = :entryId LIMIT 1")
     suspend fun findEntryById(entryId: Long): WorkoutEntry?
 
+    @Query("SELECT * FROM workout_entries WHERE backupSourceId = :sourceId LIMIT 1")
+    suspend fun findEntryByBackupSourceId(sourceId: String): WorkoutEntry?
+
     @Update
     suspend fun updateEntryUnchecked(entry: WorkoutEntry)
 

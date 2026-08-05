@@ -8,6 +8,7 @@ import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -306,7 +307,7 @@ class ProgramBackupRestoreTest {
     }
 
     @Test
-    fun `unresolved program item rolls back the complete import transaction`() = runBlocking {
+    fun `program item with absent current exercise restores a historical identity`() = runBlocking {
         val db = newDatabase()
         db.programDao().insertProgram(
             TrainingProgram(stableKey = "user_program_existing", name = "Existing", durationDays = 7)
@@ -341,15 +342,21 @@ class ProgramBackupRestoreTest {
             includeProgramSnapshot = true
         )
 
-        val failure = runCatching {
-            repository(db).importRecordsBackup(writeBackup(backup))
-        }.exceptionOrNull()
+        val repository = repository(db)
+        repository.importRecordsBackup(writeBackup(backup))
 
-        assertNotNull(failure)
-        assertTrue(failure?.message.orEmpty().contains("missing_exercise"))
-        assertNotNull(db.programDao().findProgramByStableKey("user_program_existing"))
-        assertNull(db.programDao().findProgramByStableKey("user_program_incoming"))
-        assertEquals(99L, db.programDao().findProgramTombstone("3")?.deletedAt)
+        val historical = db.exerciseDao().findByStableKey("missing_exercise")
+        assertNotNull(historical)
+        assertFalse(historical!!.isActive)
+        assertEquals("HISTORY_ONLY", historical.planningEligibility)
+        assertNull(db.programDao().findProgramByStableKey("user_program_existing"))
+        assertNotNull(db.programDao().findProgramByStableKey("user_program_incoming"))
+        assertEquals("missing_exercise", db.programDao().allProgramItems().single().exerciseStableKey)
+        assertNull(db.programDao().findProgramTombstone("3"))
+        assertEquals("NONE", historical.analysisEligibility)
+        assertTrue(repository.latestDataTransferReport()!!.warnings.any { diagnostic ->
+            diagnostic.code == DataTransferDiagnosticCodes.RESTORE_HISTORICAL_STUB_CREATED
+        })
     }
 
     @Test

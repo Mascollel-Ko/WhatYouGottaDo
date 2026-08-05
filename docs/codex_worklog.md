@@ -4712,3 +4712,52 @@ Verification
   ProgramBuilder policy, or Room schema version changed.
 - Revert workbook, generated display resources, catalogue/UI routing, and docs
   together. No persistence migration or user-data rewrite is required.
+
+## 2026-08-06 - v0.5.0.24 self-contained exercise backup and restore
+
+### Baseline
+
+- Started from Korean metadata display commit
+  `7fb03e06408091a00b68b2f1aea4026bb198f1df` on isolated branch
+  `codex/self-contained-backup-restore`.
+- Preserved its ancestors `e81bfaa256c8c517b28500d04e09dfefda186eb4`
+  and `f0d18cf894c54e8a77c5912d39f08c658686c037`.
+- Baseline app 0.5.0.23, backup format 10, restore schema 9, Room 27.
+
+### Changes
+
+- Added `ExerciseMetadataBackupContract` with a typed 109-field policy registry
+  and explicit-empty snapshots.
+- Export now reads effective persisted metadata and exact normalized relations.
+- Restore preflight classifies current, history-only, custom, backup-historical,
+  explicitly mapped legacy, and minimal-stub identities before one transaction.
+- Current built-ins keep current canonical names; represented editable metadata
+  wins. Unknown keys remain inactive history, and custom keys remain exact.
+- Relation domains replace exactly. Runtime overrides remain durable through
+  seed refresh and repository/database reopen.
+- Added immutable optional workout-entry source identity and Room 27 -> 28
+  migration so repeated imports are idempotent without collapsing legitimate
+  identical-looking entries.
+- Added format 11/schema 10 backward-compatible parsing and precise preflight
+  contradiction diagnostics.
+
+### Verification
+
+- Focused backup/restore selection: 56 passed in the final full run, including six new self-contained
+  round-trip, history, idempotence, explicit-empty, and rollback tests.
+- Registry count contract: passed (2/4/95/4/4, total 109).
+- First full unit run found two contract-boundary failures. Added the new
+  compatibility consumer to its static inventory and classified
+  `recoveryDecayProfile` as a current-canonical protected field while retaining
+  it in historical snapshots. Focused regression tests then passed.
+- Final `:app:testDebugUnitTest`: 1,157 tests across 200 suites, zero failures,
+  errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Room 27 -> 28 migration instrumentation: 1 passed on the Pixel 8 AVD.
+- Protocol validation: 8 families and 33 protocols passed.
+- Authority workbook validation, deterministic asset check, and six Python
+  metadata-authority tests passed.
+- Debug APK: 47,766,440 bytes; SHA-256
+  `A70C0E1E7276E98208F62E01FB42ECC5D0E4943EC5FD018488DFC8D210F5A366`.
+- Commit, main integration, push, and remote verification: pending final closeout.

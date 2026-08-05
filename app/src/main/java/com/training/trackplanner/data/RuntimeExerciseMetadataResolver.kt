@@ -75,31 +75,11 @@ class RuntimeExerciseMetadataResolver(
                 } else {
                     persisted.planningEligibility
                 },
-                primaryStressProfile = canonical.primaryStressProfile,
-                secondaryStressTags = canonical.secondaryStressTags,
-                tendonStressTags = canonical.tendonStressTags,
-                ligamentJointStabilityStressTags = canonical.ligamentJointStabilityStressTags,
-                jointImpactStressTags = canonical.jointImpactStressTags,
-                cognitiveStressTags = canonical.cognitiveStressTags,
-                sportContextTags = canonical.sportContextTags,
                 recoveryDecayProfile = canonical.recoveryDecayProfile,
-                stressMagnitudeHint = canonical.stressMagnitudeHint,
-                badmintonTransferLevel = canonical.badmintonTransferLevel,
-                badmintonTransferType = canonical.badmintonTransferType,
-                badmintonSkillTargets = canonical.badmintonSkillTargets,
-                badmintonPhysicalQualities = canonical.badmintonPhysicalQualities,
-                transferConfidence = canonical.transferConfidence,
-                sourceConfidenceLevel = canonical.sourceConfidenceLevel,
-                finalSourceStatus = canonical.finalSourceStatus,
-                neuromuscularStressLevel = canonical.neuromuscularStressLevel,
-                systemicMuscularStressLevel = canonical.systemicMuscularStressLevel,
-                localMuscularStressLevel = canonical.localMuscularStressLevel,
-                jointTendonImpactStressLevel = canonical.jointTendonImpactStressLevel,
-                movementFocusDemandLevel = canonical.movementFocusDemandLevel,
-                recoveryDurationClass = canonical.recoveryDurationClass,
                 safeForSeedMutation = false,
                 appCueProfile = canonical.appCueProfile
             )
+            persisted != null && !persisted.safeForSeedMutation -> persisted
             persisted != null -> persisted.copy(
                 progressMetricType = persisted.progressMetricType.ifSet() ?: repairSource.progressMetricType,
                 strengthProgressionGroup = persisted.strengthProgressionGroup.ifSet()
