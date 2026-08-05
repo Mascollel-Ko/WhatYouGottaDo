@@ -5,6 +5,7 @@ import csv
 import json
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
 
@@ -13,18 +14,28 @@ TOOLS = Path(__file__).resolve().parents[1]
 REPO = TOOLS.parents[1]
 sys.path.insert(0, str(TOOLS))
 
-from authority_common import load_workbook, sheet_rows  # noqa: E402
+from authority_common import DISPLAY_HEADERS, DISPLAY_SHEET, load_workbook, sheet_rows  # noqa: E402
 from export_canonical_metadata import export  # noqa: E402
 from validate_authority_workbook import validate  # noqa: E402
 
 
 WORKBOOK = REPO / "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx"
 ASSETS = REPO / "app/src/main/assets/metadata/canonical_v1"
+RESOURCES = REPO / "app/src/main/res"
 
 
 def csv_by_key(path: Path, key: str) -> dict[str, dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as source:
         return {row[key]: row for row in csv.DictReader(source)}
+
+
+def export_to(directory: Path):
+    return export(
+        WORKBOOK,
+        directory / "assets",
+        directory / "res",
+        directory / "display_manifest.json",
+    )
 
 
 class MetadataAuthorityTest(unittest.TestCase):
@@ -35,19 +46,24 @@ class MetadataAuthorityTest(unittest.TestCase):
         self.assertEqual(16, counts["historyOnlyIdentityRows"])
         self.assertEqual(241, counts["timingRows"])
         self.assertEqual(257, counts["bootstrapRows"])
+        self.assertEqual(1819, counts["displayRows"])
+        self.assertEqual(1683, counts["productionDisplayRows"])
+        workbook = load_workbook(WORKBOOK, read_only=True)
+        self.assertEqual(DISPLAY_HEADERS, [str(cell.value or "").strip() for cell in workbook[DISPLAY_SHEET][1]])
 
     def test_export_is_byte_deterministic_and_excludes_research_workbook_layers(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
             first_path = Path(first)
             second_path = Path(second)
-            export(WORKBOOK, first_path)
-            export(WORKBOOK, second_path)
+            export_to(first_path)
+            export_to(second_path)
             first_files = sorted(path.relative_to(first_path) for path in first_path.rglob("*") if path.is_file())
             second_files = sorted(path.relative_to(second_path) for path in second_path.rglob("*") if path.is_file())
             self.assertEqual(first_files, second_files)
-            self.assertNotIn(Path("tissue_load_relations.csv"), first_files)
-            self.assertIn(Path("exercise_bootstrap.csv"), first_files)
-            self.assertIn(Path("movement_relations.csv"), first_files)
+            self.assertNotIn(Path("assets/tissue_load_relations.csv"), first_files)
+            self.assertIn(Path("assets/exercise_bootstrap.csv"), first_files)
+            self.assertIn(Path("assets/metadata_display_labels_ko.csv"), first_files)
+            self.assertIn(Path("res/values/metadata_display_catalog.xml"), first_files)
             for relative in first_files:
                 self.assertEqual(
                     hashlib.sha256((first_path / relative).read_bytes()).digest(),
@@ -62,8 +78,9 @@ class MetadataAuthorityTest(unittest.TestCase):
         self.assertEqual(16, len(history))
         self.assertTrue(all(identities[key]["selectable"] == "NO" for key in history))
         with tempfile.TemporaryDirectory() as directory:
-            export(WORKBOOK, Path(directory))
-            runtime = (Path(directory) / "runtime_metadata.csv").read_text(encoding="utf-8")
+            output = Path(directory)
+            export_to(output)
+            runtime = (output / "assets/runtime_metadata.csv").read_text(encoding="utf-8")
             for key in history:
                 line = next(line for line in runtime.splitlines() if line.startswith(key + ","))
                 self.assertIn(",HISTORY_ONLY,", line)
@@ -95,6 +112,17 @@ class MetadataAuthorityTest(unittest.TestCase):
             self.assertEqual(entry["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
             with path.open(encoding="utf-8-sig", newline="") as source:
                 self.assertEqual(entry["rowCount"], sum(1 for _ in csv.DictReader(source)))
+
+    def test_display_resources_parse_and_have_consistent_locale_keys(self):
+        def resource_keys(path: Path) -> set[str]:
+            root = ET.parse(path).getroot()
+            array = next(child for child in root if child.attrib.get("name") == "metadata_display_entries")
+            return {"|".join((item.text or "").split("|")[:2]) for item in array}
+
+        korean = resource_keys(RESOURCES / "values/metadata_display_catalog.xml")
+        english = resource_keys(RESOURCES / "values-en/metadata_display_catalog.xml")
+        self.assertEqual(korean, english)
+        self.assertEqual(1819, len(korean))
 
 
 if __name__ == "__main__":

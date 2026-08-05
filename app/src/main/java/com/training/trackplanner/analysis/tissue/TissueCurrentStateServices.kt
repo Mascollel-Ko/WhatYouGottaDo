@@ -130,6 +130,7 @@ class TissueCurrentStateAggregator(
             baseline?.personalBaseline?.isValid == true
         return TissueDimensionState(
             key = TissueRcvLoadKey(unit.stableKey, "UNIT_TOTAL"),
+            loadUnitCode = unit.code,
             loadUnitName = unit.nameKo,
             educationalInfo = catalog.educationalInfo.getValue(unit.stableKey),
             jointComplexStableKey = unit.jointComplexStableKey,
@@ -167,6 +168,7 @@ class TissueCurrentStateAggregator(
             val jointResiduals = residuals.filter { it.event.jointComplexStableKey == joint.stableKey }
             TissueJointComplexSummary(
                 jointComplexStableKey = joint.stableKey,
+                jointComplexCode = joint.code,
                 nameKo = joint.nameKo,
                 educationalInfo = catalog.educationalInfo.getValue(joint.stableKey),
                 status = highest?.status ?: TissueCanonicalStatus.UNAVAILABLE,

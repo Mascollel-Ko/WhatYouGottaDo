@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import html
 import shutil
 import tempfile
 from pathlib import Path
 
 from authority_common import (
     BOOTSTRAP_SHEET,
+    DISPLAY_SHEET,
     HISTORY_COMPATIBILITY_ONLY,
     HISTORY_ONLY_STATUS,
     IDENTITY_SHEET,
@@ -82,6 +84,16 @@ RELATION_EXPORTS = {
     "20_EQUIPMENT_REL": ("equipment_relations.csv", ["exerciseStableKey", "groupId", "memberOrder"]),
 }
 
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_RESOURCE_ROOT = ROOT / "app/src/main/res"
+DEFAULT_DISPLAY_MANIFEST = ROOT / "docs/metadata_authority/metadata_display_resource_manifest.json"
+DISPLAY_CSV_HEADERS = [
+    "displayField", "canonicalCode", "koreanLabel", "koreanShortLabel",
+    "koreanFormalLabel", "koreanDescription", "koreanSearchAliases",
+    "englishLabel", "englishSearchAliases", "allowedLatinTokens",
+    "displayScope", "reviewStatus",
+]
+
 
 def runtime_rows(workbook) -> list[dict[str, str]]:
     identities = index_by(sheet_rows(workbook, IDENTITY_SHEET), "stableKey")
@@ -105,7 +117,43 @@ def runtime_rows(workbook) -> list[dict[str, str]]:
     return rows
 
 
-def export(workbook_path: Path, output: Path) -> dict:
+def write_display_resource(path: Path, rows: list[dict[str, str]], *, locale: str) -> None:
+    label_field = "koreanLabel" if locale == "ko" else "englishLabel"
+    alias_fields = (
+        ("koreanLabel", "koreanShortLabel", "koreanFormalLabel", "koreanSearchAliases")
+        if locale == "ko" else
+        ("englishLabel", "englishSearchAliases")
+    )
+    visible = [row for row in rows if row["displayScope"] in {"PRODUCTION", "EDITOR_ONLY", "SEARCH_ONLY"}]
+    labels = [f"{row['displayField']}|{row['canonicalCode']}|{row[label_field]}" for row in visible]
+    aliases = []
+    for row in visible:
+        values: list[str] = []
+        for field in alias_fields:
+            values.extend(token.strip() for token in row[field].split("|") if token.strip())
+        aliases.append(f"{row['displayField']}|{row['canonicalCode']}|{'|'.join(dict.fromkeys(values))}")
+
+    def array(name: str, values: list[str]) -> str:
+        body = "\n".join(f"        <item>{html.escape(value, quote=False)}</item>" for value in values)
+        return f"    <string-array name=\"{name}\">\n{body}\n    </string-array>"
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n"
+        + array("metadata_display_entries", labels) + "\n"
+        + array("metadata_display_alias_entries", aliases) + "\n"
+        + "</resources>\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def export(
+    workbook_path: Path,
+    output: Path,
+    resource_root: Path = DEFAULT_RESOURCE_ROOT,
+    display_manifest_path: Path = DEFAULT_DISPLAY_MANIFEST,
+) -> dict:
     counts = validate(workbook_path)
     workbook = load_workbook(workbook_path, read_only=True)
     identities = sheet_rows(workbook, IDENTITY_SHEET)
@@ -133,6 +181,23 @@ def export(workbook_path: Path, output: Path) -> dict:
 
     bootstrap = sheet_rows(workbook, BOOTSTRAP_SHEET)
     emit("exercise_bootstrap.csv", list(bootstrap[0]), sorted(bootstrap, key=lambda row: row["stableKey"]), ["stableKey"], "CANONICAL_AND_HISTORY_COMPATIBILITY")
+
+    display = sorted(sheet_rows(workbook, DISPLAY_SHEET), key=lambda row: (row["displayField"], row["canonicalCode"]))
+    emit("metadata_display_labels_ko.csv", DISPLAY_CSV_HEADERS, display, ["displayField", "canonicalCode"], "PRESENTATION_AND_SEARCH")
+    ko_resource = resource_root / "values/metadata_display_catalog.xml"
+    en_resource = resource_root / "values-en/metadata_display_catalog.xml"
+    write_display_resource(ko_resource, display, locale="ko")
+    write_display_resource(en_resource, display, locale="en")
+    write_json(display_manifest_path, {
+        "authorityWorkbookSha256": sha256(workbook_path),
+        "files": [
+            {"path": "app/src/main/res/values/metadata_display_catalog.xml", "rowCount": len(display), "sha256": sha256(ko_resource)},
+            {"path": "app/src/main/res/values-en/metadata_display_catalog.xml", "rowCount": len(display), "sha256": sha256(en_resource)},
+        ],
+        "productionRowCount": sum(row["displayScope"] == "PRODUCTION" for row in display),
+        "registryRowCount": len(display),
+        "schemaVersion": 1,
+    })
 
     timing = sheet_rows(workbook, TIMING_SHEET)
     emit("program_timing.csv", list(timing[0]), sorted(timing, key=lambda row: row["stableKey"]), ["stableKey"], PRODUCTION_ACTIVE)
@@ -184,14 +249,25 @@ def main() -> None:
     args = parser.parse_args()
     if args.check:
         with tempfile.TemporaryDirectory() as directory:
-            generated = Path(directory) / "canonical_v1"
-            export(args.workbook, generated)
+            temporary = Path(directory)
+            generated = temporary / "canonical_v1"
+            generated_resources = temporary / "res"
+            generated_manifest = temporary / "metadata_display_resource_manifest.json"
+            export(args.workbook, generated, generated_resources, generated_manifest)
             compare_directories(generated, args.output)
+            for relative in ("values/metadata_display_catalog.xml", "values-en/metadata_display_catalog.xml"):
+                if not filecmp.cmp(generated_resources / relative, DEFAULT_RESOURCE_ROOT / relative, shallow=False):
+                    raise ValueError(f"Generated display resource is stale: {relative}")
+            if not filecmp.cmp(generated_manifest, DEFAULT_DISPLAY_MANIFEST, shallow=False):
+                raise ValueError("Generated display resource manifest is stale")
         print("Canonical metadata assets are deterministic and current.")
     else:
-        if args.output.exists():
-            shutil.rmtree(args.output)
-        manifest = export(args.workbook, args.output)
+        with tempfile.TemporaryDirectory() as directory:
+            generated = Path(directory) / "canonical_v1"
+            manifest = export(args.workbook, generated)
+            if args.output.exists():
+                shutil.rmtree(args.output)
+            shutil.copytree(generated, args.output)
         print(f"Exported {len(manifest['files'])} canonical metadata files to {args.output}")
 
 

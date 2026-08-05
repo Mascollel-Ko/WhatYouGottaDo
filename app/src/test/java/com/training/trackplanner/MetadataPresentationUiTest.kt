@@ -178,6 +178,30 @@ class MetadataPresentationUiTest {
     }
 
     @Test
+    fun exerciseInfoTranslatesCanonicalMuscleAndEquipmentTokens() {
+        val exercise = exercise().copy(
+            primaryMuscles = "LAT",
+            secondaryMuscles = "TRICEPS",
+            equipment = "DUMBBELL",
+            equipmentTags = "DUMBBELL"
+        )
+        sizedContent {
+            ExerciseInfoDialog(
+                exercise = exercise,
+                metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise),
+                onDismiss = {}
+            )
+        }
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("광배근"))
+        compose.onNodeWithText("광배근").assertIsDisplayed()
+        compose.onNodeWithText("덤벨").assertExists()
+        listOf("LAT", "TRICEPS", "DUMBBELL").forEach { rawCode ->
+            compose.onAllNodes(hasText(rawCode, substring = true)).assertCountEquals(0)
+        }
+    }
+
+    @Test
     fun fullEditorKeepsPrimaryActionsReachableAt320DpAndLargeFont() {
         val exercise = exercise().copy(stableKey = "", name = "")
         val metadata = RuntimeExerciseMetadataDefaults.forExercise(exercise)

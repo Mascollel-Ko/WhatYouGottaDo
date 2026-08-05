@@ -53,6 +53,10 @@ class ConnectiveTissueAnalysisUiTest {
     @get:Rule
     val compose = createComposeRule()
 
+    private val displayCatalogue by lazy {
+        MetadataDisplayCatalogue.from(ApplicationProvider.getApplicationContext())
+    }
+
     @Test
     fun relativeStateResourcesUseExactVocabulary() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -132,7 +136,9 @@ class ConnectiveTissueAnalysisUiTest {
         content(state)
 
         compose.onAllNodesWithText("하위 조직 보기").assertCountEquals(3)
-        compose.onNodeWithContentDescription("${first.nameKo} 정보 보기").performClick()
+        compose.onNodeWithContentDescription(
+            "${displayCatalogue.label(MetadataDisplayField.JOINT_COMPLEX, first.jointComplexCode)} 정보 보기"
+        ).performClick()
         compose.onNodeWithText(
             "이 설명은 운동 부하를 이해하기 위한 일반 정보이며 의학적 진단이 아닙니다."
         ).assertExists()
@@ -148,7 +154,9 @@ class ConnectiveTissueAnalysisUiTest {
         val first = state.jointComplexes.first()
         content(state)
 
-        compose.onNodeWithContentDescription("${first.nameKo} 정보 보기").performClick()
+        compose.onNodeWithContentDescription(
+            "${displayCatalogue.label(MetadataDisplayField.JOINT_COMPLEX, first.jointComplexCode)} 정보 보기"
+        ).performClick()
         compose.onAllNodesWithText("위치").assertCountEquals(1)
         compose.onAllNodesWithText("주요 기능").assertCountEquals(1)
         compose.onAllNodesWithText("주로 사용되는 동작").assertCountEquals(1)
@@ -175,13 +183,17 @@ class ConnectiveTissueAnalysisUiTest {
         }
 
         val scrollNodesBeforeDialog = compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().size
-        compose.onNodeWithContentDescription("${first.nameKo} 정보 보기").performClick()
+        compose.onNodeWithContentDescription(
+            "${displayCatalogue.label(MetadataDisplayField.JOINT_COMPLEX, first.jointComplexCode)} 정보 보기"
+        ).performClick()
         assertTrue(compose.onAllNodes(hasScrollAction()).fetchSemanticsNodes().size > scrollNodesBeforeDialog)
         compose.onNodeWithText("닫기").performClick()
 
         compose.onAllNodesWithText("하위 조직 보기")[0].performClick()
         val child = first.childStates.first()
-        compose.onNodeWithContentDescription("${child.loadUnitName} 정보 보기").performClick()
+        compose.onNodeWithContentDescription(
+            "${displayCatalogue.label(MetadataDisplayField.TISSUE, child.loadUnitCode)} 정보 보기"
+        ).performClick()
         assertTrue(compose.onAllNodesWithText(child.loadUnitName).fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithText(child.educationalInfo.anatomicalLocationKo).assertExists()
     }

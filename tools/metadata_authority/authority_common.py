@@ -17,6 +17,15 @@ PROGRAM_SLOT_SHEET = "19_PROGRAM_SLOT"
 CONFLICT_SHEET = "21_CONFLICT_REPORT"
 TIMING_SHEET = "28_PROGRAM_TIMING"
 BOOTSTRAP_SHEET = "29_EXERCISE_BOOTSTRAP"
+DISPLAY_SHEET = "30_METADATA_DISPLAY_LABELS"
+
+DISPLAY_HEADERS = [
+    "displayField", "canonicalCode", "termCategory", "koreanLabel",
+    "koreanShortLabel", "koreanFormalLabel", "koreanDescription",
+    "koreanSearchAliases", "englishLabel", "englishSearchAliases",
+    "selectionPolicy", "sourceTier", "sourceReferences", "allowedLatinTokens",
+    "displayScope", "reviewStatus", "selectionRationale", "notes",
+]
 
 HISTORY_ONLY_STATUS = "HISTORY_ONLY_GENERIC"
 PRODUCTION_ACTIVE = "PRODUCTION_ACTIVE"

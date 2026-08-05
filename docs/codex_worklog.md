@@ -4656,3 +4656,59 @@ Verification
 - Rollback is the previous application commit and asset path. No Room rollback
   or data rewrite is required because this release has no schema migration and
   no history stableKey rewrite.
+
+## 2026-08-05 - v0.5.0.23 Korean metadata display authority
+
+### Baseline and incident fix
+
+- Baseline: `f0d18cf894c54e8a77c5912d39f08c658686c037` on
+  `codex/metadata-workbook-authority`; app 0.5.0.22, Room 27.
+- Android Studio cold launch exposed invalid foreign-key targets left by Room
+  table-rebuild migrations. Commit
+  `e81bfaa256c8c517b28500d04e09dfefda186eb4` points temporary child tables at
+  the final parent names. Focused 24->25 and 26->27 migration tests passed, and
+  the upgraded emulator database stayed running without `AndroidRuntime` crash.
+
+### Display authority
+
+- Added workbook sheet `30_METADATA_DISPLAY_LABELS` with 1,819 unique rows:
+  1,683 `PRODUCTION` and 136 `SEARCH_ONLY` compatibility rows.
+- Added independent production inventory
+  `docs/metadata_authority/metadata_display_inventory.csv`.
+- Added deterministic display CSV, Korean XML, English XML, and display-resource
+  manifest generation. The old independently maintained XML generator was
+  removed.
+- Expanded `MetadataDisplayCatalogue` to all inventoried namespaces and to
+  Korean/English aliases plus canonical-code search.
+- Routed exercise list/detail/info, filters, metadata editor, plan item,
+  connective-tissue, and OFI metadata display through typed lookups.
+- The exact product-owner label `e1RM` is preserved. `REVIEW_REQUIRED=0`,
+  unresolved=0, and raw UI exposure moved from 376 inventory rows to 0.
+
+### Verification
+
+- Python metadata-authority suite: 6 passed.
+- Deterministic exporter `--check`: passed.
+- `:app:compileDebugKotlin`: passed.
+- `MetadataDisplayCatalogueTest`: passed, including every production row,
+  official/common alias search, representative namespaces, and exact `e1RM`.
+- Full `:app:testDebugUnitTest`: 1,149 passed after updating three connective-
+  tissue UI expectations to the new typed display label path.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Protocol validation: 8 families and 33 protocols passed.
+- Workbook SHA-256:
+  `d5f1afb383506cdf6d2f8021002cd468eb122973e46bdc4f1e8837e0086cfbe0`.
+- Debug APK: 47,700,912 bytes; SHA-256
+  `f821f1652cfddcd06f1d6c54d1ba34f3c043dbe1d44da2705a28faff3a7b33a3`.
+- Display-authority commit and current-branch push remain pending final diff
+  review. No release tag is created for this branch task.
+- Added path-scoped LF attributes for generated canonical CSV/JSON and display
+  XML resources so byte-level authority hashes remain deterministic on Windows.
+
+### Invariants and rollback
+
+- No canonical code, relation, formula, calculation, backup value, user data,
+  ProgramBuilder policy, or Room schema version changed.
+- Revert workbook, generated display resources, catalogue/UI routing, and docs
+  together. No persistence migration or user-data rewrite is required.

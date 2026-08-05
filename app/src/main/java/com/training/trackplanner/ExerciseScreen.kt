@@ -44,6 +44,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     var detailCandidate by remember { mutableStateOf<Exercise?>(null) }
     var editorData by remember { mutableStateOf<ExerciseRuntimeMetadataEditorData?>(null) }
     var managementMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val displayCatalogue = rememberMetadataDisplayCatalogue()
 
     LaunchedEffect(exercises.map(Exercise::stableKey)) {
         if (exercises.isNotEmpty()) viewModel.refreshExerciseRuntimeMetadata()
@@ -55,10 +56,11 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val categories = remember(visibleExercises) {
         listOf("전체") + visibleExercises.map { it.category }.distinct()
     }
-    val broadAndSearchFiltered = remember(visibleExercises, query, selectedCategory) {
+    val broadAndSearchFiltered = remember(visibleExercises, query, selectedCategory, displayCatalogue) {
         visibleExercises.filter { exercise ->
             val categoryMatches = selectedCategory == "전체" || exercise.category == selectedCategory
-            val queryMatches = ExerciseSubcategoryMapper.matchesSearch(exercise, query)
+            val queryMatches = ExerciseSubcategoryMapper.matchesSearch(exercise, query) ||
+                exercise.matchesMetadataQuery(query, displayCatalogue)
             categoryMatches && queryMatches
         }
     }
@@ -192,7 +194,14 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                                 selectedCategory = category
                                 selectedSubcategoryKey = null
                             },
-                            label = { Text(category) }
+                            label = {
+                                Text(
+                                    if (category == "전체") category else displayCatalogue.label(
+                                        MetadataDisplayField.EXERCISE_CATEGORY,
+                                        category
+                                    )
+                                )
+                            }
                         )
                     }
                 }

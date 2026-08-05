@@ -5,6 +5,16 @@
 - Field/storage rows: 102
 - Machine-readable companion: `metadata_field_usage_matrix.csv`
 
+## v0.5.0.23 presentation ownership addendum
+
+Canonical metadata remains an analysis and persistence input under the usage
+matrix below. User-facing labels are a separate presentation concern owned by
+`30_METADATA_DISPLAY_LABELS` in the canonical workbook and consumed only
+through `MetadataDisplayCatalogue`. The registry does not alter field
+cardinality, analysis eligibility, ProgramBuilder use, backup values, or Room
+storage. Its machine-readable inventory is
+`docs/metadata_authority/metadata_display_inventory.csv`.
+
 | Field | Storage | Cardinality | OFI | Program | Muscle | Badminton | Tissue | UI | Backup | Parsing/inference | Current disposition | Eventual replacement |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|
 | `activityKind` | canonical asset plus Room runtime_exercise_metadata override | SINGLE | YES | YES | NO | NO | NO | YES | YES | YES | `LEGACY_COMPATIBILITY_READONLY` | `REVIEW_SEPARATE_CATALOG_TAXONOMY` |

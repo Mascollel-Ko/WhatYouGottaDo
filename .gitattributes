@@ -4,3 +4,11 @@
 # Frozen analysis-contract byte checks must be platform-independent.
 app/src/main/java/com/training/trackplanner/analysis/contracts/*.kt text eol=lf
 app/src/main/assets/metadata/analysis_contract_baseline_v1.csv text eol=lf
+
+# Generated metadata authority hashes must remain stable on Windows checkouts.
+app/src/main/assets/metadata/canonical_v1/*.csv text eol=lf
+app/src/main/assets/metadata/canonical_v1/*.json text eol=lf
+app/src/main/res/values/metadata_display_catalog.xml text eol=lf
+app/src/main/res/values-en/metadata_display_catalog.xml text eol=lf
+docs/metadata_authority/metadata_display_inventory.csv text eol=lf
+docs/metadata_authority/metadata_display_resource_manifest.json text eol=lf

@@ -143,13 +143,13 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("3. 동작 분류") {
-                            MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted()) {
+                            MetadataMultiSelectField("주동근", splitExerciseTokens(exercise.primaryMuscles), ExerciseTaxonomy.muscles.sorted(), MetadataDisplayField.MUSCLE) {
                                 exercise = exercise.copy(primaryMuscles = joinExerciseTokens(it))
                             }
-                            MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted()) {
+                            MetadataMultiSelectField("보조근", splitExerciseTokens(exercise.secondaryMuscles), ExerciseTaxonomy.muscles.sorted(), MetadataDisplayField.MUSCLE) {
                                 exercise = exercise.copy(secondaryMuscles = joinExerciseTokens(it))
                             }
-                            MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted()) {
+                            MetadataMultiSelectField("장비", splitExerciseTokens(exercise.equipment.ifBlank { exercise.equipmentTags }), ExerciseTaxonomy.equipment.sorted(), MetadataDisplayField.EQUIPMENT) {
                                 exercise = exercise.copy(equipment = joinExerciseTokens(it), equipmentTags = joinExerciseTokens(it))
                             }
                             MetadataSingleSelectField("원본 동작 패턴", exercise.movementPattern, MovementPattern.entries.map { it.name }, MetadataDisplayField.MOVEMENT_PATTERN) {
@@ -161,7 +161,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                             MetadataSingleSelectField("힘/부하 유형", exercise.forceType, FatigueForceType.entries.map { it.name }, MetadataDisplayField.FORCE_TYPE) {
                                 exercise = exercise.copy(forceType = it)
                             }
-                            MetadataSingleSelectField("신체 부위", exercise.bodyRegion, ExerciseTaxonomy.bodyRegions.sorted()) {
+                            MetadataSingleSelectField("신체 부위", exercise.bodyRegion, ExerciseTaxonomy.bodyRegions.sorted(), MetadataDisplayField.BODY_REGION) {
                                 exercise = exercise.copy(bodyRegion = it)
                             }
                             MetadataSingleSelectField("동작 계열", metadata.movementFamily, options.values("movementFamily", metadata.movementFamily), MetadataDisplayField.MOVEMENT_FAMILY) { metadata = metadata.copy(movementFamily = it) }
@@ -198,7 +198,6 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                     }
                     item {
                         MetadataEditorSection("7. 고급 런타임 필드") {
-                            Text("stableKey: ${exercise.stableKey.ifBlank { "저장 시 자동 생성" }}", style = MaterialTheme.typography.bodySmall)
                             MetadataSingleSelectField("근신경계", metadata.neuromuscularStressLevel, options.values("neuromuscularStressLevel", metadata.neuromuscularStressLevel), MetadataDisplayField.NEUROMUSCULAR_STRESS) { metadata = metadata.copy(neuromuscularStressLevel = it) }
                             MetadataSingleSelectField("전신 근육", metadata.systemicMuscularStressLevel, options.values("systemicMuscularStressLevel", metadata.systemicMuscularStressLevel), MetadataDisplayField.SYSTEMIC_MUSCULAR_STRESS) { metadata = metadata.copy(systemicMuscularStressLevel = it) }
                             MetadataSingleSelectField("국소 근육", metadata.localMuscularStressLevel, options.values("localMuscularStressLevel", metadata.localMuscularStressLevel), MetadataDisplayField.LOCAL_MUSCULAR_STRESS) { metadata = metadata.copy(localMuscularStressLevel = it) }
@@ -309,6 +308,7 @@ internal fun ExerciseMetadataCopyDialog(
         sources.filter { source ->
             needle.isBlank() ||
                 source.exercise.name.contains(needle, ignoreCase = true) ||
+                catalogue.option(MetadataDisplayField.EXERCISE_CATEGORY, source.exercise.category).matches(needle) ||
                 catalogue
                     .option(MetadataDisplayField.PROGRAM_SLOT, source.metadata.programSlot)
                     .matches(needle)
@@ -339,7 +339,10 @@ internal fun ExerciseMetadataCopyDialog(
                                     Text(source.exercise.name, style = MaterialTheme.typography.bodyMedium)
                                     Text(
                                         listOf(
-                                            source.exercise.category,
+                                            catalogue.label(
+                                                MetadataDisplayField.EXERCISE_CATEGORY,
+                                                source.exercise.category
+                                            ),
                                             catalogue.label(
                                                 MetadataDisplayField.PROGRAM_SLOT,
                                                 source.metadata.programSlot

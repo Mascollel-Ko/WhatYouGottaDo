@@ -1520,7 +1520,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "1.5.0",
+      "currentVersion": "1.6.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1528,7 +1528,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23",
       "lastAuditedCommit": "233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
@@ -1540,14 +1540,18 @@
         "tools/generate_metadata_analysis_contract_audit.ps1",
         "app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt",
         "tools/metadata_authority/export_canonical_metadata.py",
-        "tools/metadata_authority/validate_authority_workbook.py"
+        "tools/metadata_authority/validate_authority_workbook.py",
+        "tools/metadata_authority/display_inventory.py",
+        "app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractArchitectureTest.kt",
         "tools/test_metadata_analysis_contract_audit.ps1",
         "app/src/test/java/com/training/trackplanner/data/ExerciseSeedMetadataPolicyTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistryTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/strengthproxyprior/StrengthProxyPriorRegistryTest.kt",
+        "app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt",
+        "tools/metadata_authority/tests/test_metadata_authority.py"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
@@ -1555,7 +1559,11 @@
         "app/src/main/assets/metadata/relations/exercise_training_role_relations_v1.csv",
         "app/src/main/assets/metadata/relations/exercise_program_slot_capability_relations_v1.csv",
         "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
-        "app/src/main/assets/metadata/canonical_v1/manifest.json"
+        "app/src/main/assets/metadata/canonical_v1/manifest.json",
+        "app/src/main/assets/metadata/canonical_v1/metadata_display_labels_ko.csv",
+        "app/src/main/res/values/metadata_display_catalog.xml",
+        "app/src/main/res/values-en/metadata_display_catalog.xml",
+        "docs/metadata_authority/metadata_display_resource_manifest.json"
       ],
       "supportingDocuments": [
         "docs/metadata_analysis_contract_and_migration_plan_ko.md",
@@ -1577,7 +1585,9 @@
         "docs/audits/strength_proxy_prior_seed_report.md",
         "docs/v0.5.0.19_release_notes.md",
         "docs/v0.5.0.21_release_notes.md",
-        "docs/v0.5.0.22_release_notes.md"
+        "docs/v0.5.0.22_release_notes.md",
+        "docs/metadata_authority/metadata_display_terminology_closeout.md",
+        "docs/v0.5.0.23_release_notes.md"
       ],
       "knownGaps": [
         "관계 정확성 전체 판정은 NOT_ADJUDICATED이며 deferred/research rows는 production asset으로 승격되지 않습니다.",
@@ -1586,7 +1596,6 @@
         "v2.2 derivationMode, migrationFidelity, evidenceConfidence, human approval 확장과 REVIEWED_CANONICAL은 아직 Kotlin에 구현되지 않았습니다.",
         "위험 경로는 확정 오류가 아니며 stableKey별 재현 증거가 있는 mismatch만 confirmed error로 분리됩니다.",
         "progressMetricType은 target canonical metadata가 아닌 read-only compatibility input이며 제거 gate가 통과되지 않았습니다.",
-        "Phase 2A.1의 Level-1 한국어 registry는 REVIEW_REQUIRED 초안이며 production display catalogue가 아닙니다.",
         "Phase 2A.1 strength-proxy prior는 production posterior에 연결되지 않았고 연구 검토가 남아 있습니다."
       ],
       "supersedes": [],
@@ -1716,7 +1725,7 @@
       "familyId": "UI_PRESENTATION",
       "titleKo": "조용한 UI 표시 원칙",
       "titleEn": "Quiet UI Presentation",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1724,7 +1733,7 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "presentation/QUIET_UI_PRESENTATION.md",
-      "implementedFromAppVersion": "v0.5.0.0; metadata and program-result refinement from v0.5.0.14",
+      "implementedFromAppVersion": "v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23",
       "lastAuditedCommit": "8f78c99b11af14c2715a36532d83256e7ebfe4bf",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/MainActivity.kt",
@@ -1738,7 +1747,9 @@
         "app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt",
         "app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt",
         "app/src/main/java/com/training/trackplanner/PlanScreen.kt",
-        "app/src/main/java/com/training/trackplanner/ui/theme/Theme.kt"
+        "app/src/main/java/com/training/trackplanner/ui/theme/Theme.kt",
+        "app/src/main/res/values/metadata_display_catalog.xml",
+        "app/src/main/res/values-en/metadata_display_catalog.xml"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/BottomNavigationUiTest.kt",
@@ -1747,12 +1758,18 @@
         "app/src/test/java/com/training/trackplanner/ConnectiveTissueAnalysisUiTest.kt",
         "app/src/test/java/com/training/trackplanner/AppExplanationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
-        "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt"
+        "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
+        "app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt"
       ],
-      "authorityAssets": [],
+      "authorityAssets": [
+        "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
+        "docs/metadata_authority/metadata_display_resource_manifest.json"
+      ],
       "supportingDocuments": [
         "docs/v0.5.0.0_release_notes.md",
-        "docs/v0.5.0.14_release_notes.md"
+        "docs/v0.5.0.14_release_notes.md",
+        "docs/metadata_authority/metadata_display_terminology_closeout.md",
+        "docs/v0.5.0.23_release_notes.md"
       ],
       "knownGaps": [
         "Deep chart and editor surfaces retain their existing specialized layouts and can be refined incrementally under this same presentation authority."

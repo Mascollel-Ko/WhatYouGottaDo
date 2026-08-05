@@ -222,10 +222,9 @@ internal fun ExercisePickerDialog(
     onSelect: (Exercise) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
+    val catalogue = rememberMetadataDisplayCatalogue()
     val filtered = exercises.filter { exercise ->
-        query.isBlank() ||
-            exercise.name.contains(query, ignoreCase = true) ||
-            exercise.category.contains(query, ignoreCase = true)
+        exercise.matchesMetadataQuery(query, catalogue)
     }
 
     AlertDialog(
@@ -269,6 +268,7 @@ internal fun ExerciseListItem(
     onClick: (() -> Unit)? = null,
     onInfo: (() -> Unit)? = null
 ) {
+    val catalogue = rememberMetadataDisplayCatalogue()
     val cardModifier = if (onClick != null) {
         Modifier
             .fillMaxWidth()
@@ -302,7 +302,10 @@ internal fun ExerciseListItem(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = listOf(exercise.category, exercise.mode)
+                    text = listOf(
+                        catalogue.label(MetadataDisplayField.EXERCISE_CATEGORY, exercise.category),
+                        catalogue.label(MetadataDisplayField.EXERCISE_MODE, exercise.mode)
+                    )
                         .filter { it.isNotBlank() }
                         .joinToString(" / "),
                     style = MaterialTheme.typography.bodySmall,
@@ -321,6 +324,7 @@ internal fun ExerciseListItem(
 @Composable
 internal fun ExerciseDetailCard(exercise: Exercise) {
     val context = LocalContext.current
+    val catalogue = rememberMetadataDisplayCatalogue()
     val bitmap = remember(exercise.imageAssetName) {
         runCatching {
             if (exercise.imageAssetName.isBlank()) {
@@ -372,7 +376,11 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = listOf(exercise.category, exercise.detail1, exercise.detail2)
+                text = listOf(
+                    catalogue.label(MetadataDisplayField.EXERCISE_CATEGORY, exercise.category),
+                    catalogue.label(MetadataDisplayField.EXERCISE_DETAIL, exercise.detail1),
+                    catalogue.label(MetadataDisplayField.EXERCISE_DETAIL, exercise.detail2)
+                )
                     .filter { it.isNotBlank() }
                     .joinToString(" / "),
                 style = MaterialTheme.typography.bodyMedium,
@@ -497,9 +505,9 @@ private fun Exercise.infoSections(
         ExerciseInfoSection(
             title = "사용 근육과 장비",
             fields = listOf(
-                ExerciseInfoField("주동근", primaryMuscles),
-                ExerciseInfoField("보조근", secondaryMuscles),
-                ExerciseInfoField("장비", equipment.ifBlank { equipmentTags })
+                ExerciseInfoField("주동근", primaryMuscles.localizedTokens(catalogue, MetadataDisplayField.MUSCLE)),
+                ExerciseInfoField("보조근", secondaryMuscles.localizedTokens(catalogue, MetadataDisplayField.MUSCLE)),
+                ExerciseInfoField("장비", equipment.ifBlank { equipmentTags }.localizedTokens(catalogue, MetadataDisplayField.EQUIPMENT))
             )
         ),
         ExerciseInfoSection(
@@ -591,6 +599,24 @@ private fun String.localizedTokens(
         .map(String::trim)
         .filter(String::isNotBlank)
         .joinToString(" · ") { value -> catalogue.label(field, value) }
+
+internal fun Exercise.matchesMetadataQuery(
+    query: String,
+    catalogue: MetadataDisplayCatalogue
+): Boolean {
+    val normalized = query.trim()
+    if (normalized.isEmpty() || name.contains(normalized, ignoreCase = true)) return true
+    return listOf(
+        catalogue.option(MetadataDisplayField.EXERCISE_CATEGORY, category),
+        catalogue.option(MetadataDisplayField.EXERCISE_MODE, mode)
+    ).plus(
+        primaryMuscles.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.MUSCLE, it.trim()) }
+    ).plus(
+        secondaryMuscles.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.MUSCLE, it.trim()) }
+    ).plus(
+        equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.EQUIPMENT, it.trim()) }
+    ).any { option -> option.matches(normalized) }
+}
 
 @Composable
 internal fun MetricCard(label: String, value: String) {

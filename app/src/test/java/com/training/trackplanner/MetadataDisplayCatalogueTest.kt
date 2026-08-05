@@ -70,6 +70,71 @@ class MetadataDisplayCatalogueTest {
     }
 
     @Test
+    fun officialCommonAndEnglishAliasesResolveToOneKoreanOption() {
+        val option = korean.option(MetadataDisplayField.MUSCLE, "LAT")
+
+        assertEquals("광배근", option.label)
+        assertTrue(option.matches("넓은등근"))
+        assertTrue(option.matches("lat"))
+        assertTrue(option.matches("LAT"))
+        assertEquals("LAT", option.code)
+    }
+
+    @Test
+    fun productOwnerApprovedE1rmLabelRemainsExact() {
+        assertEquals(
+            "e1RM",
+            korean.label(MetadataDisplayField.PROGRESS_METRIC, "ESTIMATED_1RM")
+        )
+    }
+
+    @Test
+    fun representativeProductionNamespacesUseKoreanLabels() {
+        val expected = mapOf(
+            MetadataDisplayField.EQUIPMENT to ("DUMBBELL" to "덤벨"),
+            MetadataDisplayField.MOVEMENT_PATTERN to ("TRUNK_BRACE" to "몸통 고정"),
+            MetadataDisplayField.BODY_REGION to ("LOWER" to "하체"),
+            MetadataDisplayField.TISSUE to ("tissue_achilles_tendon" to "아킬레스건"),
+            MetadataDisplayField.JOINT_COMPLEX to ("jc_ankle_hindfoot" to "발목·후족부 복합체"),
+            MetadataDisplayField.TRAINING_ROLE_RELATION to ("STRENGTH" to "근력"),
+            MetadataDisplayField.PROGRAM_SLOT_CAPABILITY to ("MAIN_STRENGTH_SLOT" to "메인 근력 슬롯"),
+            MetadataDisplayField.OFI_AXIS to ("HIGH_SPEED" to "고속"),
+            MetadataDisplayField.STRENGTH_PROXY_ROLE to ("DIRECT_ANCHOR" to "직접 기준 운동"),
+            MetadataDisplayField.RECOVERY_PROFILE to ("LONG" to "긴")
+        )
+
+        expected.forEach { (field, pair) ->
+            assertEquals("$field | ${pair.first}", pair.second, korean.label(field, pair.first))
+        }
+    }
+
+    @Test
+    fun everyProductionRegistryRowResolvesWithoutRawOrUnapprovedLatinFallback() {
+        val assets = context(Locale.KOREAN).assets
+        assets.open(DISPLAY_ASSET).bufferedReader().useLines { lines ->
+            val rows = lines.iterator()
+            val headers = SeedData.parseCsvLine(rows.next())
+            val index = headers.withIndex().associate { it.value to it.index }
+            rows.forEachRemaining { line ->
+                val columns = SeedData.parseCsvLine(line)
+                if (columns[index.getValue("displayScope")] != "PRODUCTION") return@forEachRemaining
+                val field = MetadataDisplayField.valueOf(columns[index.getValue("displayField")])
+                val code = columns[index.getValue("canonicalCode")]
+                val expectedLabel = columns[index.getValue("koreanLabel")]
+                val allowedLatin = columns[index.getValue("allowedLatinTokens")]
+                    .split("|")
+                    .filter(String::isNotBlank)
+                    .toSet()
+                val actual = korean.label(field, code)
+                assertEquals("$field | $code", expectedLabel, actual)
+                assertTrue("blank label: $field | $code", actual.isNotBlank())
+                assertFalse("raw label: $field | $code", RAW_SNAKE_CASE.matches(actual))
+                assertEquals("Latin allowlist: $field | $code", allowedLatin, LATIN_TOKEN.findAll(actual).map { it.value }.toSet())
+            }
+        }
+    }
+
+    @Test
     fun readableKoreanAndUnknownCodesRemainEditableWithoutChangingIdentity() {
         assertEquals(
             "대퇴사두근",
@@ -100,7 +165,7 @@ class MetadataDisplayCatalogueTest {
             "Missing metadata labels:\n${missing.joinToString("\n")}",
             missing.isEmpty()
         )
-        assertTrue("expected a complete catalogue", korean.registeredCount() >= 900)
+        assertTrue("expected a complete catalogue", korean.registeredCount() >= 1_600)
     }
 
     @Test
@@ -167,7 +232,9 @@ class MetadataDisplayCatalogueTest {
 
     private companion object {
         const val CANONICAL_ASSET = "metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+        const val DISPLAY_ASSET = "metadata/canonical_v1/metadata_display_labels_ko.csv"
         val RAW_SNAKE_CASE = Regex("[A-Z][A-Z0-9_]*_[A-Z0-9_]+")
+        val LATIN_TOKEN = Regex("[A-Za-z][A-Za-z0-9]*")
         val CSV_FIELDS = mapOf(
             MetadataDisplayField.ACTIVITY_KIND to "currentActivityKind",
             MetadataDisplayField.PLANNING_ELIGIBILITY to "currentPlanningEligibility",

@@ -5,6 +5,9 @@ import android.content.res.Configuration
 import java.util.Locale
 
 internal enum class MetadataDisplayField(val runtimeField: String?) {
+    EXERCISE_CATEGORY(null),
+    EXERCISE_MODE(null),
+    EXERCISE_DETAIL(null),
     ACTIVITY_KIND("activityKind"),
     PLANNING_ELIGIBILITY("planningEligibility"),
     PROGRAM_SLOT("programSlot"),
@@ -12,11 +15,31 @@ internal enum class MetadataDisplayField(val runtimeField: String?) {
     PROGRESS_METRIC("progressMetricType"),
     STRENGTH_PROGRESSION_GROUP("strengthProgressionGroup"),
     ANALYSIS_ELIGIBILITY("analysisEligibility"),
+    BODY_REGION(null),
+    PLANE(null),
+    MUSCLE(null),
+    MUSCLE_GROUP(null),
+    EQUIPMENT(null),
+    TISSUE(null),
+    JOINT_COMPLEX(null),
     MOVEMENT_PATTERN(null),
     MOVEMENT_CATEGORY(null),
+    COMPOUND_TYPE(null),
     FORCE_TYPE(null),
+    JOINT_ACTION(null),
+    MOVEMENT_EVENT(null),
+    KINETIC_CHAIN(null),
+    STABILITY_DEMAND(null),
+    MOBILITY_DEMAND(null),
+    STABILITY_ROLE(null),
+    LOAD_PROFILE(null),
+    EQUIPMENT_REQUIREMENT_MODEL(null),
     TRAINING_ROLE_RELATION(null),
     PROGRAM_SLOT_CAPABILITY(null),
+    OFI_AXIS(null),
+    STRENGTH_PROXY_ROLE(null),
+    RECOVERY_PROFILE(null),
+    PROGRESSION_GROUP(null),
     MOVEMENT_FAMILY("movementFamily"),
     MOVEMENT_SUBTYPE("movementSubtype"),
     PRIMARY_STRESS_PROFILE("primaryStressProfile"),
@@ -72,6 +95,9 @@ internal class MetadataDisplayCatalogue private constructor(
     private val localized: Map<MetadataKey, String>,
     private val korean: Map<MetadataKey, String>,
     private val english: Map<MetadataKey, String>,
+    private val localizedAliases: Map<MetadataKey, List<String>>,
+    private val koreanAliases: Map<MetadataKey, List<String>>,
+    private val englishAliases: Map<MetadataKey, List<String>>,
     private val unknownValueLabel: (String) -> String
 ) {
     fun label(field: MetadataDisplayField, canonicalCode: String): String {
@@ -93,7 +119,11 @@ internal class MetadataDisplayCatalogue private constructor(
                 localized[key],
                 korean[key],
                 english[key]
-            ).filter(String::isNotBlank).distinct()
+            ).plus(localizedAliases[key].orEmpty())
+                .plus(koreanAliases[key].orEmpty())
+                .plus(englishAliases[key].orEmpty())
+                .filter(String::isNotBlank)
+                .distinct()
         )
     }
 
@@ -138,6 +168,15 @@ internal class MetadataDisplayCatalogue private constructor(
                 english = parseEntries(
                     englishResources.getStringArray(R.array.metadata_display_entries)
                 ),
+                localizedAliases = parseAliases(
+                    localizedResources.getStringArray(R.array.metadata_display_alias_entries)
+                ),
+                koreanAliases = parseAliases(
+                    koreanResources.getStringArray(R.array.metadata_display_alias_entries)
+                ),
+                englishAliases = parseAliases(
+                    englishResources.getStringArray(R.array.metadata_display_alias_entries)
+                ),
                 unknownValueLabel = { code ->
                     localizedResources.getString(R.string.metadata_unknown_value, code)
                 }
@@ -152,6 +191,16 @@ internal class MetadataDisplayCatalogue private constructor(
                     field = MetadataDisplayField.valueOf(parts[0]),
                     code = parts[1]
                 ) to parts[2]
+            }
+
+        private fun parseAliases(entries: Array<String>): Map<MetadataKey, List<String>> =
+            entries.associate { entry ->
+                val parts = entry.split(ENTRY_SEPARATOR, limit = 3)
+                require(parts.size == 3) { "Invalid metadata display alias entry: $entry" }
+                MetadataKey(
+                    field = MetadataDisplayField.valueOf(parts[0]),
+                    code = parts[1]
+                ) to parts[2].split(ENTRY_SEPARATOR).filter(String::isNotBlank)
             }
 
         private fun canonicalCodeForLookup(

@@ -3,12 +3,28 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14 |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23 |
 | Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
+
+## Canonical metadata display language (v0.5.0.23)
+
+- Korean metadata text is generated from workbook sheet
+  `30_METADATA_DISPLAY_LABELS`; XML is not hand-authored authority.
+- UI code passes complete canonical values to `MetadataDisplayCatalogue`.
+  Delimited values are split into complete tokens before lookup; substring
+  replacement is forbidden.
+- Korean search matches the primary label, formal/common Korean aliases,
+  English label/aliases, and canonical code without creating duplicate options.
+- Korean rendering never uses an unknown raw-code fallback. Debug diagnostics
+  may retain a raw code separately from ordinary user content.
+- Latin text requires the row-level allowlist. The product-owner-approved
+  primary label `e1RM` remains exactly `e1RM`.
+- Custom exercise names, user notes, user-authored descriptions, and program
+  names remain free text and are not translated by the metadata catalogue.
 | Supersedes | — |
 
 ## 1. 일반 사용자용 요약

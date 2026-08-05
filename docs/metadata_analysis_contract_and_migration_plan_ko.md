@@ -2128,3 +2128,19 @@ with ordinary multiplier 1.00 and approved maximum 1.09.
 Revert the 0.5.0.22 application commit to restore the previous asset/bootstrap
 path. No Room rollback or user-data rewrite is necessary because this cutover
 has no schema migration and performs no generic-to-variant history rewrite.
+
+## 21.6 v0.5.0.23 Korean display-language boundary
+
+Canonical metadata codes remain the inputs to storage, analysis, backup, and
+program logic. Korean display terminology is owned separately by workbook
+sheet `30_METADATA_DISPLAY_LABELS` and never changes those codes or their
+scientific meaning.
+
+`MetadataDisplayCatalogue` performs exact typed lookup after canonical parsing.
+Formal Korean terms, common professional terms, English terms, and canonical
+codes may all be search aliases, but only the active-locale primary label is
+rendered. Unknown production codes fail coverage validation. User-authored
+exercise names, notes, descriptions, and program names bypass this registry.
+
+The primary label for `ESTIMATED_1RM` is the product-owner-approved exact text
+`e1RM`. It does not modify the underlying strength calculation.

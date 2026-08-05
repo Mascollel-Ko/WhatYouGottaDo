@@ -64,6 +64,11 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 
 ## Reading and publishing
 
+- v0.5.0.23 adds `30_METADATA_DISPLAY_LABELS` as the Korean metadata display
+  authority. Deterministic CSV/XML resources feed `MetadataDisplayCatalogue`;
+  Korean rendering has no raw-code release fallback, aliases remain search-only,
+  `e1RM` is preserved exactly, and Room remains schema 27.
+
 - v0.5.0.22 makes the repository XLSX the human-editable bundled metadata
   authority. Deterministic generated assets feed one strict canonical
   repository; 16 history-only identities remain readable but inactive and

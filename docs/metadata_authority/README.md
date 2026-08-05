@@ -27,6 +27,47 @@ The exporter is deterministic: stable primary-key sorting, UTF-8, LF
 newlines, no timestamps, and a SHA-256 manifest. Generated CSV/JSON assets
 must not be hand-edited.
 
+## Korean display terminology authority
+
+`30_METADATA_DISPLAY_LABELS` is the human-editable authority for metadata
+display text. Its primary key is `(displayField, canonicalCode)`. The sheet
+stores the Korean primary, short, formal, and help labels; Korean and English
+search aliases; source tier and references; the Latin-token allowlist; scope;
+review state; rationale; and migration notes.
+
+The Korean terminology source order is official Korean anatomy/medical usage,
+Korean sports-science usage, then established Korean professional usage.
+When an official term differs from the term Korean trainees commonly search,
+the common term is the primary label, the official term is retained as the
+formal label, and both resolve through aliases. Latin text is rejected unless
+the row explicitly allows it. `ESTIMATED_1RM` is the product-owner exception:
+its primary label remains exactly `e1RM`.
+
+The exporter generates these presentation files from the sheet:
+
+```text
+app/src/main/assets/metadata/canonical_v1/metadata_display_labels_ko.csv
+app/src/main/res/values/metadata_display_catalog.xml
+app/src/main/res/values-en/metadata_display_catalog.xml
+docs/metadata_authority/metadata_display_resource_manifest.json
+```
+
+`MetadataDisplayCatalogue` is the only typed boundary for canonical metadata
+shown by the Android UI. It displays the active locale while search also
+matches canonical codes and both locales' labels and aliases. A production
+code with no registry row is a validation failure, not a release fallback.
+
+The publishing workflow is therefore:
+
+```text
+Edit 30_METADATA_DISPLAY_LABELS
+-> validate terminology coverage
+-> generate CSV/XML
+-> review the diff
+-> run tests
+-> commit the workbook and generated files together
+```
+
 ## Scope contract
 
 Workbook rows distinguish `PRODUCTION_CANONICAL`, `LEGACY_COMPATIBILITY`,
@@ -62,3 +103,7 @@ Revert the application commit to restore the previous generated asset path and
 bootstrap behavior. Room remains schema 27, no destructive migration runs,
 and no workout, program, custom exercise, or history-only stableKey is
 rewritten by this cutover.
+
+For a display-only rollback, revert the workbook, generated display CSV/XML,
+manifest, catalogue, and UI-routing changes together. Do not edit generated
+resources independently and do not migrate persisted canonical codes.

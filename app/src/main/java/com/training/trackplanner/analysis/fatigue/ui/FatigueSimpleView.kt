@@ -14,6 +14,8 @@ import com.training.trackplanner.analysis.fatigue.FatigueLoadItem
 import com.training.trackplanner.analysis.fatigue.FatigueSeries
 import com.training.trackplanner.analysis.fatigue.FatigueSimpleUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
+import com.training.trackplanner.MetadataDisplayField
+import com.training.trackplanner.rememberMetadataDisplayCatalogue
 
 @Composable
 internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
@@ -63,11 +65,15 @@ internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
 
 @Composable
 private fun LoadList(title: String, items: List<FatigueLoadItem>, modifier: Modifier) {
+    val displayCatalogue = rememberMetadataDisplayCatalogue()
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         items.take(2).forEach { item ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(item.label, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    displayCatalogue.label(MetadataDisplayField.OFI_AXIS, item.key),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 Text(item.score.toString(), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
             }
         }

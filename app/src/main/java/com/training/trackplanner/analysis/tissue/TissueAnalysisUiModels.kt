@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.tissue
 
 data class TissueAnalysisChildUi(
     val key: String,
+    val displayCode: String,
     val name: String,
     val info: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
@@ -11,6 +12,7 @@ data class TissueAnalysisChildUi(
 
 data class TissueAnalysisJointUi(
     val key: String,
+    val displayCode: String,
     val name: String,
     val info: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
@@ -61,6 +63,7 @@ object TissueAnalysisUiMapper {
             joints = state.jointComplexes.map { joint ->
                 TissueAnalysisJointUi(
                     key = joint.jointComplexStableKey,
+                    displayCode = joint.jointComplexCode,
                     name = joint.nameKo,
                     info = joint.educationalInfo,
                     status = joint.status,
@@ -70,6 +73,7 @@ object TissueAnalysisUiMapper {
                     children = joint.childStates.map { child ->
                         TissueAnalysisChildUi(
                             key = "${child.key.loadUnitStableKey}|${child.key.loadDimension}",
+                            displayCode = child.loadUnitCode,
                             name = if (child.key.loadDimension == "UNOBSERVED" ||
                                 child.key.loadDimension == "UNIT_TOTAL"
                             ) {

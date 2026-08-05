@@ -75,6 +75,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
         return
     }
     val ui = TissueAnalysisUiMapper.map(state)
+    val displayCatalogue = rememberMetadataDisplayCatalogue()
     var expandedJoint by rememberSaveable { mutableStateOf<String?>(null) }
     var showAllJoints by rememberSaveable { mutableStateOf(false) }
     var selectedInfoKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -101,6 +102,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
             }
         }
         ui.visibleJoints(showAllJoints).forEach { joint ->
+            val jointName = displayCatalogue.label(MetadataDisplayField.JOINT_COMPLEX, joint.displayCode)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
@@ -114,11 +116,11 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                             modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(joint.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text(jointName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             TissueInfoButton(
                                 contentDescription = stringResource(
                                     R.string.tissue_analysis_info_description,
-                                    joint.name
+                                    jointName
                                 ),
                                 onClick = { selectedInfoKey = joint.info.stableKey }
                             )
@@ -161,6 +163,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                     }
                     if (expandedJoint == joint.key) {
                         joint.children.forEachIndexed { index, child ->
+                            val childName = displayCatalogue.label(MetadataDisplayField.TISSUE, child.displayCode)
                             if (index > 0) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                             }
@@ -175,14 +178,14 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        child.name,
+                                        childName,
                                         modifier = Modifier.weight(1f),
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     TissueInfoButton(
                                         contentDescription = stringResource(
                                             R.string.tissue_analysis_info_description,
-                                            child.name
+                                            childName
                                         ),
                                         onClick = { selectedInfoKey = child.info.stableKey }
                                     )

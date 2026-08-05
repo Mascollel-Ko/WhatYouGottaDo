@@ -3,12 +3,26 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.5.0 |
+| Protocol version | 1.6.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23 |
 | Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.23 Korean metadata display authority
+
+Workbook sheet `30_METADATA_DISPLAY_LABELS` owns presentation labels and
+aliases for canonical metadata. It is outside the analysis relation model:
+canonical codes, coefficients, eligibility, formulas, and persisted values
+remain unchanged. Android resources are deterministic generated outputs, not
+independent authorities.
+
+The typed `MetadataDisplayCatalogue` uses exact namespace/code lookup. Search
+may match Korean formal/common aliases, English labels/aliases, or the
+canonical code, while rendering uses only the active-locale primary label.
+Raw production-code fallback is prohibited. `e1RM` remains exactly `e1RM` by
+product-owner decision.
 | Supersedes | 없음 |
 
 ## 1. 일반 사용자용 요약

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 from authority_common import (
@@ -10,6 +11,8 @@ from authority_common import (
     HISTORY_COMPATIBILITY_ONLY,
     HISTORY_ONLY_STATUS,
     IDENTITY_SHEET,
+    DISPLAY_HEADERS,
+    DISPLAY_SHEET,
     PROGRAM_SLOT_SHEET,
     PRODUCTION_ACTIVE,
     TIMING_SHEET,
@@ -18,6 +21,7 @@ from authority_common import (
     load_workbook,
     sheet_rows,
 )
+from display_inventory import collect_inventory
 
 
 REQUIRED_SHEETS = {
@@ -28,7 +32,7 @@ REQUIRED_SHEETS = {
     "16_DIRECTED_EDGES", "17_STRENGTH_PROXY", TRAINING_ROLE_SHEET, PROGRAM_SLOT_SHEET,
     "20_EQUIPMENT_REL", CONFLICT_SHEET, "22_DEFERRED_REVIEW", "23_PATCH_LOG",
     "24_INFERENCE_AUDIT", "25_FIELD_DICTIONARY", "26_EXPORT_CONTRACT",
-    "27_MIGRATION_NOTES", TIMING_SHEET, BOOTSTRAP_SHEET,
+    "27_MIGRATION_NOTES", TIMING_SHEET, BOOTSTRAP_SHEET, DISPLAY_SHEET,
 }
 
 TRAINING_ROLES = {
@@ -39,6 +43,13 @@ PROGRAM_SLOTS = {
     "MAIN_STRENGTH_SLOT", "SECONDARY_STRENGTH_SLOT", "ACCESSORY_SLOT", "POWER_SLOT",
     "PLYOMETRIC_SLOT", "SPEED_REACTIVE_SLOT", "STABILITY_SLOT",
 }
+TERM_CATEGORIES = {"ANATOMY", "BIOMECHANICS", "TRAINING", "EQUIPMENT", "BADMINTON", "RECOVERY", "ANALYSIS", "STATUS", "ABBREVIATION", "PRODUCT_TERM", "OTHER"}
+SELECTION_POLICIES = {"OFFICIAL_STANDARD", "COMMON_PROFESSIONAL_USAGE", "OFFICIAL_WITH_COMMON_ALIAS", "ESTABLISHED_LOANWORD", "ABBREVIATION_PRESERVED", "PRODUCT_DEFINED", "CONTEXTUAL_PARAPHRASE"}
+SOURCE_TIERS = {"TIER_1_OFFICIAL", "TIER_2_SPORTS_SCIENCE", "TIER_3_PROFESSIONAL_USAGE", "PRODUCT_OWNER_DECISION", "EXISTING_APPROVED_LABEL"}
+DISPLAY_SCOPES = {"PRODUCTION", "EDITOR_ONLY", "SEARCH_ONLY", "INTERNAL_ONLY", "INTENTIONALLY_HIDDEN"}
+REVIEW_STATUSES = {"APPROVED_EXISTING", "APPROVED_RESEARCHED", "PRODUCT_OWNER_APPROVED", "REVIEW_REQUIRED", "INTENTIONALLY_HIDDEN"}
+LATIN_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9]*")
+RAW_CANONICAL = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
 
 
 def require_unique(rows: list[dict[str, str]], fields: tuple[str, ...], label: str) -> None:
@@ -125,6 +136,43 @@ def validate(path: Path) -> dict[str, int]:
         require(int(timing_by_key[stable_key]["defaultRestSeconds"]) == int(bootstrap_by_key[stable_key]["defaultRestSeconds"]), f"Rest parity mismatch: {stable_key}")
         require(0 <= int(timing_by_key[stable_key]["defaultRestSeconds"]) <= 3600, f"Rest out of range: {stable_key}")
 
+    display_sheet = workbook[DISPLAY_SHEET]
+    display_headers = [str(cell.value or "").strip() for cell in display_sheet[1]]
+    require(display_headers == DISPLAY_HEADERS, f"Invalid {DISPLAY_SHEET} headers")
+    display_rows = sheet_rows(workbook, DISPLAY_SHEET)
+    require_unique(display_rows, ("displayField", "canonicalCode"), DISPLAY_SHEET)
+    require(all(row["canonicalCode"] for row in display_rows), f"Blank canonicalCode in {DISPLAY_SHEET}")
+    expected_production = set(collect_inventory())
+    actual_production = {
+        (row["displayField"], row["canonicalCode"])
+        for row in display_rows
+        if row["displayScope"] == "PRODUCTION"
+    }
+    require(actual_production == expected_production, f"Display coverage mismatch: missing={sorted(expected_production - actual_production)[:10]}, orphan={sorted(actual_production - expected_production)[:10]}")
+    for row in display_rows:
+        key = f"{row['displayField']}|{row['canonicalCode']}"
+        require(row["termCategory"] in TERM_CATEGORIES, f"Invalid termCategory: {key}")
+        require(row["selectionPolicy"] in SELECTION_POLICIES, f"Invalid selectionPolicy: {key}")
+        require(row["sourceTier"] in SOURCE_TIERS, f"Invalid sourceTier: {key}")
+        require(row["displayScope"] in DISPLAY_SCOPES, f"Invalid displayScope: {key}")
+        require(row["reviewStatus"] in REVIEW_STATUSES, f"Invalid reviewStatus: {key}")
+        if row["displayScope"] == "PRODUCTION":
+            require(bool(row["koreanLabel"]), f"Blank Korean production label: {key}")
+            require(bool(row["englishLabel"]), f"Blank English production label: {key}")
+            require(bool(row["sourceReferences"]), f"Blank source reference: {key}")
+            require(bool(row["selectionRationale"]), f"Blank selection rationale: {key}")
+            require(not RAW_CANONICAL.fullmatch(row["koreanLabel"]), f"Raw canonical Korean label: {key}")
+        latin = set(LATIN_TOKEN.findall(row["koreanLabel"]))
+        allowed = {token for token in row["allowedLatinTokens"].split("|") if token}
+        require(latin == allowed, f"Latin token allowlist mismatch: {key}, label={sorted(latin)}, allowed={sorted(allowed)}")
+    e1rm = next((row for row in display_rows if row["displayField"] == "PROGRESS_METRIC" and row["canonicalCode"] == "ESTIMATED_1RM"), None)
+    require(e1rm is not None, "Missing e1RM display row")
+    require(e1rm["koreanLabel"] == "e1RM", "e1RM Korean label must remain exact")
+    require(e1rm["selectionPolicy"] == "ABBREVIATION_PRESERVED", "e1RM selection policy mismatch")
+    require(e1rm["sourceTier"] == "PRODUCT_OWNER_DECISION", "e1RM source tier mismatch")
+    require(e1rm["allowedLatinTokens"] == "e1RM", "e1RM Latin allowlist mismatch")
+    require(e1rm["reviewStatus"] == "PRODUCT_OWNER_APPROVED", "e1RM review status mismatch")
+
     relation_primary_keys = {
         "09_MOVEMENT_REL": ("relationId",),
         "10_MUSCLE_REL": ("relationKey",),
@@ -162,6 +210,8 @@ def validate(path: Path) -> dict[str, int]:
         "programSlotRows": len(slots),
         "timingRows": len(timing),
         "bootstrapRows": len(bootstrap),
+        "displayRows": len(display_rows),
+        "productionDisplayRows": len(actual_production),
     }
 
 
