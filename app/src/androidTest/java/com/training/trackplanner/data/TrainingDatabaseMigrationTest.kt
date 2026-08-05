@@ -634,6 +634,8 @@ class TrainingDatabaseMigrationTest {
         helper.runMigrationsAndValidate(TEST_DB_24_25, 25, true, MIGRATION_24_25).use { database ->
             check(database.count("workout_entries") == 5)
             check(database.count("training_program_items") == 3)
+            check(database.foreignKeyTarget("workout_entries", "exerciseStableKey") == "exercises")
+            check(database.foreignKeyTarget("training_program_items", "exerciseStableKey") == "exercises")
             check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 10") == "single_leg_rdl")
             check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 13") == "migration_review_2")
             check(database.singleString("SELECT exerciseStableKey FROM workout_entries WHERE id = 14") == "user_exercise_test")
@@ -777,6 +779,9 @@ class TrainingDatabaseMigrationTest {
             check(database.count("workout_sets") == 1)
             check(database.count("training_program_items") == 1)
             check(database.count("training_program_item_sets") == 1)
+            check(database.foreignKeyTarget("workout_entries", "exerciseStableKey") == "exercises")
+            check(database.foreignKeyTarget("training_program_items", "exerciseStableKey") == "exercises")
+            check(database.foreignKeyTarget("training_program_item_sets", "programItemId") == "training_program_items")
             database.query("PRAGMA table_info(`exercises`)").use { cursor ->
                 val nameIndex = cursor.getColumnIndexOrThrow("name")
                 val columns = buildList { while (cursor.moveToNext()) add(cursor.getString(nameIndex)) }
@@ -784,6 +789,15 @@ class TrainingDatabaseMigrationTest {
             }
         }
     }
+
+    private fun SupportSQLiteDatabase.foreignKeyTarget(table: String, column: String): String? =
+        query("PRAGMA foreign_key_list(`$table`)").use { cursor ->
+            val tableIndex = cursor.getColumnIndexOrThrow("table")
+            val fromIndex = cursor.getColumnIndexOrThrow("from")
+            generateSequence { if (cursor.moveToNext()) cursor else null }
+                .firstOrNull { it.getString(fromIndex) == column }
+                ?.getString(tableIndex)
+        }
 
     private fun insertExercise24(
         database: SupportSQLiteDatabase,

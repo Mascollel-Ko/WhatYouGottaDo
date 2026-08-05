@@ -389,7 +389,7 @@ private fun createWorkoutEntriesTable(db: SupportSQLiteDatabase) {
             `rpe` REAL, `maxReps` INTEGER, `createdAt` INTEGER NOT NULL,
             `completedAt` INTEGER, `displayOrder` INTEGER NOT NULL,
             `firstConfirmedAt` INTEGER, `performedAt` INTEGER,
-            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises_new`(`stableKey`)
+            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises`(`stableKey`)
                 ON UPDATE NO ACTION ON DELETE NO ACTION
         )
         """.trimIndent()
@@ -410,7 +410,7 @@ private fun createProgramItemsTable(db: SupportSQLiteDatabase) {
             `weightSource` TEXT,
             FOREIGN KEY(`programId`) REFERENCES `training_programs`(`id`)
                 ON UPDATE NO ACTION ON DELETE CASCADE,
-            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises_new`(`stableKey`)
+            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises`(`stableKey`)
                 ON UPDATE NO ACTION ON DELETE NO ACTION
         )
         """.trimIndent()

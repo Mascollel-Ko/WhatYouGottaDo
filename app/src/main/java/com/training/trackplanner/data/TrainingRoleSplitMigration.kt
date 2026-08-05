@@ -83,7 +83,7 @@ private fun recreateExerciseReferences(db: SupportSQLiteDatabase) {
             `rpe` REAL, `maxReps` INTEGER, `createdAt` INTEGER NOT NULL,
             `completedAt` INTEGER, `displayOrder` INTEGER NOT NULL,
             `firstConfirmedAt` INTEGER, `performedAt` INTEGER,
-            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises_new`(`stableKey`)
+            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises`(`stableKey`)
                 ON UPDATE NO ACTION ON DELETE NO ACTION
         )
         """.trimIndent()
@@ -102,7 +102,7 @@ private fun recreateExerciseReferences(db: SupportSQLiteDatabase) {
             `weightSource` TEXT,
             FOREIGN KEY(`programId`) REFERENCES `training_programs`(`id`)
                 ON UPDATE NO ACTION ON DELETE CASCADE,
-            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises_new`(`stableKey`)
+            FOREIGN KEY(`exerciseStableKey`) REFERENCES `exercises`(`stableKey`)
                 ON UPDATE NO ACTION ON DELETE NO ACTION
         )
         """.trimIndent()
@@ -114,7 +114,7 @@ private fun recreateExerciseReferences(db: SupportSQLiteDatabase) {
             `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `programItemId` INTEGER NOT NULL,
             `setIndex` INTEGER NOT NULL, `reps` INTEGER NOT NULL, `weightKg` REAL NOT NULL,
             `seconds` INTEGER NOT NULL,
-            FOREIGN KEY(`programItemId`) REFERENCES `training_program_items_new`(`id`)
+            FOREIGN KEY(`programItemId`) REFERENCES `training_program_items`(`id`)
                 ON UPDATE NO ACTION ON DELETE CASCADE
         )
         """.trimIndent()
