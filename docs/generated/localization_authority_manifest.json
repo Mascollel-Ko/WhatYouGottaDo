@@ -1,0 +1,12 @@
+{
+  "authority": "WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx",
+  "authoritySha256": "0CA2D8D01B603499D8509CC6E6E00BA027818B1F693D4B2978BF642C0F7DFE3A",
+  "pinnedBaseline": "5eecdac1d3dc87fe5a8982221b891345a8794710",
+  "currentBaselineCheckRequired": 0,
+  "uiApprovedRows": 612,
+  "exerciseApprovedRows": 257,
+  "metadataAuthoritativeRows": 1834,
+  "tissueApprovedRows": 92,
+  "exactUiRuntimeEntries": 420,
+  "provenance": "LOC-AUTH-2026-08-09-v2-FULL-APPROVED"
+}
