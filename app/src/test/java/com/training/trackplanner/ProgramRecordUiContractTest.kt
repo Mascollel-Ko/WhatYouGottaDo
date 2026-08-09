@@ -24,7 +24,7 @@ class ProgramRecordUiContractTest {
 
         assertTrue(sections.contains("ProgramSetPrescriptionResolver.resolve"))
         assertTrue(sections.contains("Icons.Default.Info"))
-        assertTrue(sections.contains("운동 정보"))
+        assertTrue(sections.contains("R.string.exercise_info_content_description"))
         assertTrue(screen.contains("ExerciseInfoDialog("))
         assertTrue(screen.contains("viewModel.programItemSets(program.id)"))
         assertFalse(screen.contains("listOf(1 to 1)"))

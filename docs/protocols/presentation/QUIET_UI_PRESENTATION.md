@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26 |
-| Last audited commit | 28f40346492d1f7df9e593214a3b806295f27222 |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27 |
+| Last audited commit | ed3b265bd6128099526f6737e590f15b294e126b |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 
 ## Canonical metadata display language (v0.5.0.23, routing v0.5.0.26)
@@ -35,8 +35,9 @@
 - Editor labels are localized but callbacks return canonical token or token-set
   values. Korean production metadata coverage must remain complete; search-only
   compatibility aliases remain searchable.
-- Exercise-name bilingualization, the Home language selector, and general UI
-  string migration remain future localization phases.
+- Built-in/history exercise names, ordinary UI, metadata presentation, and
+  connective-tissue education follow the active application locale. Custom
+  exercise names and other user-entered content remain unchanged.
 | Supersedes | — |
 
 ## 1. 일반 사용자용 요약
@@ -90,7 +91,7 @@ canonical classifier, projected OFI와 축 상태 의미는 기존 계산 결과
 
 ## 9. 출력과 UI 해석
 
-하단 탭은 한 Material outlined icon family와 항상 보이는 한국어 라벨을
+하단 탭은 한 Material outlined icon family와 항상 보이는 active-locale 라벨을
 사용합니다.
 
 | 탭 | 라벨 | 아이콘 의미 |
@@ -112,7 +113,7 @@ OFI 기본 요약은 overall 상태 다음에 canonical 다섯 축을
 ## 10. 예외 및 fallback
 
 긴 라벨이나 큰 글꼴은 글자를 줄이지 않고 wrapping 또는 기존 scroll
-container로 처리합니다. 아이콘을 표시할 수 없어도 한국어 탭 라벨과
+container로 처리합니다. 아이콘을 표시할 수 없어도 active-locale 탭 라벨과
 content description이 의미를 유지합니다.
 
 ## 11. 개인화 또는 보정
@@ -153,7 +154,9 @@ Material platform 관례에 근거합니다.
 
 ## 15. 현재 구현 상태
 
-- 하단 내비게이션 아이콘과 한국어 라벨: 구현됨
+- 하단 내비게이션 아이콘과 active-locale 라벨: 구현됨
+- Home 한국어/English 선택과 system-locale 기본 동작: 구현됨
+- runtime UI, 접근성, built-in exercise, metadata와 tissue 교육 localization: 구현됨
 - Home과 Analysis의 중첩 card 축소: 구현됨
 - canonical 다섯 축 OFI text summary: 구현됨
 - neutral light/dark palette, typography, shape와 spacing: 구현됨
@@ -202,9 +205,14 @@ Material platform 관례에 근거합니다.
 - [OFI 분류와 표시](../ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md)
 - [v0.5.0.0 릴리스 노트](../../v0.5.0.0_release_notes.md)
 - [v0.5.0.14 릴리스 노트](../../v0.5.0.14_release_notes.md)
+- [한국어/영어 localization 계약](LOCALIZATION.md)
+- [v0.5.0.27 릴리스 노트](../../v0.5.0.27_release_notes.md)
 
 ## 20. 변경 이력
 
+- `1.4.0` (2026-08-10): approved Korean/English runtime localization,
+  active-locale accessibility/date presentation, and the compact Home locale
+  selector were added without changing identity or calculations.
 - `1.3.0` (2026-08-09): production metadata surfaces now use authoritative
   fieldKey routing, exact hybrid free-text behavior, typed presentation, and a
   deterministic zero-leak coverage gate.

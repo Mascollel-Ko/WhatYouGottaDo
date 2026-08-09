@@ -3,6 +3,24 @@
 `WhatYouGottaDo_metadata_authority_v1.xlsx` is the single human-editable
 authoring source for bundled exercise metadata. Android never reads XLSX.
 
+## Korean/English localization authority
+
+`WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx`
+is the approved Korean/English presentation authority for the v0.5.0.27
+baseline. Its SHA-256 is
+`0CA2D8D01B603499D8509CC6E6E00BA027818B1F693D4B2978BF642C0F7DFE3A`.
+Android never reads this workbook at runtime. `tools/localization` generates
+deterministic Android resources and stable-key catalogues from it, while
+checked-in `CODEX_GENERATED_ENGLISH` rows cover current-baseline production
+text not materialized as exact workbook rows.
+
+Translation precedence is exact workbook text, compatible existing repository
+English, then current-baseline generated English. The baseline has blanket
+product-owner approval and `CHECK_REQUIRED = 0`; future strings still have to
+enter the deterministic generation and audit path. Localized display text never
+changes canonical metadata codes, stable keys, persisted exercise names, or
+user-entered content.
+
 ## Publishing workflow
 
 ```text

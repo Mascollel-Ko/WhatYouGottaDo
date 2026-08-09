@@ -4946,3 +4946,64 @@ Verification
   files remain recoverable from Git history.
 - Protocol validation passed for 8 families and 33 protocols; no application,
   Room, asset, test, or version files changed.
+
+## 2026-08-10 - v0.5.0.27 Korean/English runtime localization
+
+### Preserved baseline
+
+- Started from origin/main `5eecdac1d3dc87fe5a8982221b891345a8794710`
+  and retained local cleanup commit
+  `ad4fbf378cb4032b3d2291faeb0946a7ec2bd1b3` plus the earlier localization
+  audit checkpoint. The 225 intentionally deleted obsolete Markdown files were
+  not restored.
+- Effective pre-release invariants are Room 29, backup format 12, restore
+  schema 11, and unchanged semantic/display metadata revisions.
+
+### Implementation checkpoints
+
+- `9178bb1`: imported the approved workbook and deterministic runtime assets.
+- `608ce49`: added AppCompat locale persistence, supported-locale config, and
+  the Home `한국어` / `English` selector. Empty override still follows system.
+- `6d0cd68`: routed built-in/history exercise names and connective-tissue
+  education by stable identity; custom names remain unchanged.
+- `ed3b265`: completed exact/dynamic UI routing, contextual units/plurals,
+  active-locale dates and accessibility, and zero-leak deterministic audits.
+
+### Coverage and boundaries
+
+- Authority: 612 UI rows, 257 exercise names, 1,834 metadata rows, and 92
+  tissue education entities. All 241 active plus 16 history-only exercise names
+  have English presentation; current-baseline `CHECK_REQUIRED` and unexplained
+  English-mode Korean leak counts are both zero.
+- Runtime localization is presentation-only. No Room, backup, restore,
+  stableKey, canonical metadata, ProgramBuilder, OFI, strength, badminton,
+  tissue, or user-record behavior changed.
+
+### Verification status
+
+- Localization generation and audit deterministic checks: passed.
+- Localization Python tests: 5 passed.
+- Focused locale, presentation, chart temporal/accessibility, metadata, tissue,
+  and daily check-in tests: passed.
+- The initial full unit run exposed 28 stale test contracts after English became
+  the default under an English Robolectric environment. Eight Korean-copy test
+  classes now declare `qualifiers = "ko"`; the program source contract checks
+  the resource identifier, and the tissue navigation assertion compares
+  educational display names. No production behavior changed for these fixes.
+- Final `:app:testDebugUnitTest`: 1,211 tests passed, zero failures.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- `:app:connectedDebugAndroidTest`: 25 tests, one skipped, zero failures, and
+  zero errors on the Pixel 8 AVD.
+- Localization authority and audit stale checks passed; five localization
+  Python tests passed. The UI inventory was regenerated only for shifted source
+  line positions.
+- Metadata workbook validation, canonical export stale check, display-routing
+  audit, and eight metadata-authority Python tests passed.
+- Protocol validation passed for 8 families and 34 protocols.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 51,093,378 bytes,
+  SHA-256
+  `654140487A4C4C46BCCED6F586608934869901F3C4918504C46DB8EA5573FCA7`.
+- The 225-document cleanup remains in branch ancestry and no deleted obsolete
+  document was restored. Main integration, release tag, push, and CI
+  confirmation remain the final Git steps.

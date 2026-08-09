@@ -8,7 +8,7 @@ application, tests, tooling, and protocol registry.
 - `docs/audits/`: audits referenced by current contracts or validation.
 - `docs/analysis_method_reviews/`: current analysis review templates.
 - `docs/reviews/`: reviewed copy required by current contract tests.
-- `docs/v0.5.0.26_release_notes.md`: release notes for the current version.
+- `docs/v0.5.0.27_release_notes.md`: release notes for the current version.
 - `docs/codex_worklog.md`: cumulative implementation worklog.
 
 Older release notes, handoffs, superseded designs, and generated Markdown

@@ -134,7 +134,10 @@ class TissueAggregationAndRankingTest {
         val summary = TissueAnalysisUiMapper.summary(state)
 
         assertEquals(TissueCanonicalStatus.LOW, summary.status)
-        assertEquals(state.ofiSummary.topJointComplexes.joinToString { it.nameKo }, summary.topAreas)
+        assertEquals(
+            state.ofiSummary.topJointComplexes.joinToString { it.nameKo },
+            summary.topAreas.joinToString { it.displayNameKo }
+        )
     }
 
     @Test

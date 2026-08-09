@@ -21,6 +21,14 @@ class AppLanguageRegistryTest {
     fun localePriorityListUsesFirstSupportedLocale() {
         assertEquals(
             AppLanguage.ENGLISH,
+            AppLanguageRegistry.effectiveLanguage(LocaleListCompat.forLanguageTags("en-US"))
+        )
+        assertEquals(
+            AppLanguage.ENGLISH,
+            AppLanguageRegistry.effectiveLanguage(LocaleListCompat.forLanguageTags("en-GB"))
+        )
+        assertEquals(
+            AppLanguage.ENGLISH,
             AppLanguageRegistry.effectiveLanguage(LocaleListCompat.forLanguageTags("ja,en,ko"))
         )
         assertEquals(
