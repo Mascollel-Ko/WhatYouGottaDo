@@ -2,6 +2,7 @@ package com.training.trackplanner.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.training.trackplanner.MetadataDisplayField
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -26,7 +27,10 @@ class ExerciseMetadataFieldRegistryContractTest {
             field.policy == ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE
         })
         assertTrue(fields.filter { it.valueKind == ExerciseMetadataValueKind.FREE_TEXT }.all { field ->
-            field.localizationMode == ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH
+            field.localizationMode in setOf(
+                ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH,
+                ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH
+            )
         })
         assertTrue(fields.filter { it.localizationMode == ExerciseMetadataLocalizationMode.NEVER_DISPLAY }.all { field ->
             field.displayDisposition == ExerciseMetadataDisplayDisposition.NON_DISPLAY_IDENTIFIER
@@ -34,6 +38,47 @@ class ExerciseMetadataFieldRegistryContractTest {
         assertEquals(10, ExerciseMetadataFieldPolicyRegistry.semanticProjection().lineSequence().first().split('|').size)
         assertEquals(6, ExerciseMetadataFieldPolicyRegistry.displayProjection().lineSequence().first().split('|').size)
     }
+
+    @Test
+    fun displayDomainsAndLocalizationModesMatchFieldSemantics() {
+        val fields = ExerciseMetadataFieldPolicyRegistry.fields
+        val catalogueModes = setOf(
+            ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE,
+            ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH
+        )
+
+        fields.filter { it.localizationMode in catalogueModes }.forEach { field ->
+            MetadataDisplayField.valueOf(field.displayDomain)
+        }
+        assertEquals("MOVEMENT_PATTERN", definition("exercise.movementPattern").displayDomain)
+        assertEquals("AXIAL_LOAD", definition("exercise.axialLoadLevel").displayDomain)
+        assertEquals("LATERALITY", definition("exercise.laterality").displayDomain)
+        assertEquals("FORCE_TYPE", definition("exercise.forceType").displayDomain)
+        assertEquals("EXERCISE_MODE", definition("exercise.mode").displayDomain)
+        assertEquals(
+            ExerciseMetadataLocalizationMode.LOCALE_FORMATTER,
+            definition("exercise.defaultRestSeconds").localizationMode
+        )
+        assertEquals(
+            ExerciseMetadataLocalizationMode.ANDROID_STRING_RESOURCE,
+            definition("exercise.estimated1RmEligible").localizationMode
+        )
+        assertEquals(
+            ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH,
+            definition("exercise.category").localizationMode
+        )
+        assertEquals(
+            ExerciseMetadataLocalizationMode.NEVER_DISPLAY,
+            definition("exercise.archivedAt").localizationMode
+        )
+        assertEquals(
+            ExerciseMetadataDisplayDisposition.NON_DISPLAY_IDENTIFIER,
+            definition("exercise.archivedAt").displayDisposition
+        )
+    }
+
+    private fun definition(fieldKey: String): ExerciseMetadataFieldDefinition =
+        requireNotNull(ExerciseMetadataFieldPolicyRegistry.definition(fieldKey))
 
     @Test
     fun artifactsAreDeterministicAndCurrent() {

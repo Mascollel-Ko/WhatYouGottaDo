@@ -42,6 +42,7 @@ enum class ExerciseMetadataValueKind {
 
 enum class ExerciseMetadataLocalizationMode {
     METADATA_DISPLAY_CATALOGUE,
+    METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH,
     EXERCISE_NAME_CATALOGUE,
     ANDROID_STRING_RESOURCE,
     LOCALE_FORMATTER,
@@ -86,8 +87,15 @@ internal data class ExerciseMetadataFieldDefinition(
     val write: ((ExerciseMetadataRestoreTarget, String) -> Unit)? = null,
     val valueKind: ExerciseMetadataValueKind = valueKindFor(fieldKey, valueEncoding),
     val displayDomain: String = displayDomainFor(fieldKey),
-    val localizationMode: ExerciseMetadataLocalizationMode = localizationModeFor(fieldKey),
-    val displayDisposition: ExerciseMetadataDisplayDisposition = displayDispositionFor(fieldKey),
+    val localizationMode: ExerciseMetadataLocalizationMode = localizationModeFor(
+        fieldKey,
+        valueKind,
+        displayDomain
+    ),
+    val displayDisposition: ExerciseMetadataDisplayDisposition = displayDispositionFor(
+        fieldKey,
+        localizationMode
+    ),
     val allowsUserFreeText: Boolean = fieldKey in FREE_TEXT_FIELDS,
     val supportsExplicitEmpty: Boolean = policy == ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE &&
         valueEncoding in setOf(ExerciseMetadataValueEncoding.STRING, ExerciseMetadataValueEncoding.TOKEN_SET),
@@ -251,6 +259,9 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         require(byKey.size == fields.size) { "Duplicate exercise metadata field-policy key." }
         require(fields.filter { it.read != null }.all { it.write != null || it.fieldScope.name.endsWith("RELATION") }) {
             "Snapshot field is missing a restore handler."
+        }
+        require(fields.all(::hasCompatiblePresentationContract)) {
+            "Exercise metadata field registry contains an invalid presentation contract."
         }
     }
 
@@ -532,6 +543,84 @@ private val FREE_TEXT_FIELDS = setOf(
     "exercise.description"
 )
 
+private val HYBRID_CATALOGUE_USER_TEXT_FIELDS = setOf(
+    "exercise.category",
+    "exercise.detail1",
+    "exercise.detail2"
+)
+
+private val DISPLAY_DOMAIN_BY_FIELD_KEY = mapOf(
+    "exercise.category" to "EXERCISE_CATEGORY",
+    "exercise.detail1" to "EXERCISE_DETAIL",
+    "exercise.detail2" to "EXERCISE_DETAIL",
+    "exercise.mode" to "EXERCISE_MODE",
+    "exercise.movementPattern" to "MOVEMENT_PATTERN",
+    "exercise.movementCategory" to "MOVEMENT_CATEGORY",
+    "exercise.primaryMuscles" to "MUSCLE",
+    "exercise.secondaryMuscles" to "MUSCLE",
+    "exercise.equipment" to "EQUIPMENT",
+    "exercise.equipmentTags" to "EQUIPMENT",
+    "exercise.compoundType" to "COMPOUND_TYPE",
+    "exercise.forceType" to "FORCE_TYPE",
+    "exercise.bodyRegion" to "BODY_REGION",
+    "exercise.plane" to "PLANE",
+    "exercise.laterality" to "LATERALITY",
+    "exercise.axialLoadLevel" to "AXIAL_LOAD",
+    "exercise.stabilityRoles" to "STABILITY_ROLE",
+    "exercise.sportTransferDirect" to "DIRECT_TRANSFER",
+    "exercise.sportTransferSupportive" to "SUPPORTIVE_TRANSFER",
+    "exercise.badmintonTransferRoles" to "BADMINTON_TRANSFER_TYPE",
+    "exercise.fatigueCategories" to "SECONDARY_STRESS",
+    "exercise.loadProfile" to "LOAD_PROFILE",
+    "exercise.recoveryDecayProfile" to "RECOVERY_PROFILE",
+    "exercise.progressMetricType" to "PROGRESS_METRIC",
+    "exercise.strengthProgressionGroup" to "STRENGTH_PROGRESSION_GROUP",
+    "exercise.badmintonTransferStrength" to "BADMINTON_TRANSFER_LEVEL",
+    "exercise.courtMovementTypes" to "BADMINTON_PHYSICAL_QUALITY",
+    "exercise.badmintonSkillTargets" to "BADMINTON_SKILL_TARGET",
+    "exercise.jointStressTags" to "LIGAMENT_JOINT_STABILITY",
+    "exercise.stabilityDemandLevel" to "STABILITY_DEMAND",
+    "exercise.mobilityDemandLevel" to "MOBILITY_DEMAND",
+    "exercise.balanceContributionTags" to "BADMINTON_PHYSICAL_QUALITY",
+    "exercise.analysisEligibility" to "ANALYSIS_ELIGIBILITY",
+    "exercise.activityKind" to "ACTIVITY_KIND",
+    "exercise.planningEligibility" to "PLANNING_ELIGIBILITY",
+    "exercise.metadataConfidence" to "METADATA_CONFIDENCE",
+    "runtime.activityKind" to "ACTIVITY_KIND",
+    "runtime.planningEligibility" to "PLANNING_ELIGIBILITY",
+    "runtime.movementFamily" to "MOVEMENT_FAMILY",
+    "runtime.movementSubtype" to "MOVEMENT_SUBTYPE",
+    "runtime.programSlot" to "PROGRAM_SLOT",
+    "runtime.redundancyGroup" to "REDUNDANCY_GROUP",
+    "runtime.progressMetricType" to "PROGRESS_METRIC",
+    "runtime.strengthProgressionGroup" to "STRENGTH_PROGRESSION_GROUP",
+    "runtime.analysisEligibility" to "ANALYSIS_ELIGIBILITY",
+    "runtime.primaryStressProfile" to "PRIMARY_STRESS_PROFILE",
+    "runtime.secondaryStressTags" to "SECONDARY_STRESS",
+    "runtime.tendonStressTags" to "TENDON_STRESS",
+    "runtime.ligamentJointStabilityStressTags" to "LIGAMENT_JOINT_STABILITY",
+    "runtime.jointImpactStressTags" to "JOINT_IMPACT",
+    "runtime.cognitiveStressTags" to "COGNITIVE_STRESS",
+    "runtime.sportContextTags" to "SPORT_CONTEXT",
+    "runtime.recoveryDecayProfile" to "RECOVERY_DECAY",
+    "runtime.stressMagnitudeHint" to "STRESS_LEVEL",
+    "runtime.badmintonTransferLevel" to "BADMINTON_TRANSFER_LEVEL",
+    "runtime.badmintonTransferType" to "BADMINTON_TRANSFER_TYPE",
+    "runtime.badmintonSkillTargets" to "BADMINTON_SKILL_TARGET",
+    "runtime.badmintonPhysicalQualities" to "BADMINTON_PHYSICAL_QUALITY",
+    "runtime.transferConfidence" to "TRANSFER_CONFIDENCE",
+    "runtime.sourceConfidenceLevel" to "SOURCE_CONFIDENCE",
+    "runtime.finalSourceStatus" to "FINAL_SOURCE_STATUS",
+    "runtime.neuromuscularStressLevel" to "NEUROMUSCULAR_STRESS",
+    "runtime.systemicMuscularStressLevel" to "SYSTEMIC_MUSCULAR_STRESS",
+    "runtime.localMuscularStressLevel" to "LOCAL_MUSCULAR_STRESS",
+    "runtime.jointTendonImpactStressLevel" to "JOINT_TENDON_IMPACT_STRESS",
+    "runtime.movementFocusDemandLevel" to "MOVEMENT_FOCUS_DEMAND",
+    "runtime.recoveryDurationClass" to "RECOVERY_DURATION",
+    "relation.trainingRoles" to "TRAINING_ROLE_RELATION",
+    "relation.programSlotCapabilities" to "PROGRAM_SLOT_CAPABILITY"
+)
+
 private val EDITOR_WRITABLE_FIELDS = setOf(
     "exercise.category",
     "exercise.description",
@@ -638,32 +727,69 @@ private fun valueKindFor(
     else -> ExerciseMetadataValueKind.CANONICAL_TOKEN
 }
 
-private fun displayDomainFor(fieldKey: String): String = when {
-    fieldKey.contains("Muscle", ignoreCase = true) -> "MUSCLE"
-    fieldKey.contains("equipment", ignoreCase = true) -> "EQUIPMENT"
-    fieldKey.contains("movementPattern", ignoreCase = true) -> "MOVEMENT_PATTERN"
-    fieldKey.contains("movementCategory", ignoreCase = true) -> "MOVEMENT_CATEGORY"
-    fieldKey.startsWith("runtime.") -> fieldKey.removePrefix("runtime.")
-    fieldKey.startsWith("relation.") -> fieldKey.removePrefix("relation.")
-    else -> fieldKey
-}
+private fun displayDomainFor(fieldKey: String): String = DISPLAY_DOMAIN_BY_FIELD_KEY[fieldKey].orEmpty()
 
-private fun localizationModeFor(fieldKey: String): ExerciseMetadataLocalizationMode = when {
+private fun localizationModeFor(
+    fieldKey: String,
+    valueKind: ExerciseMetadataValueKind,
+    displayDomain: String
+): ExerciseMetadataLocalizationMode = when {
     fieldKey == "exercise.name" || fieldKey.endsWith("exerciseName") ->
         ExerciseMetadataLocalizationMode.EXERCISE_NAME_CATALOGUE
-    fieldKey in FREE_TEXT_FIELDS -> ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH
+    fieldKey in HYBRID_CATALOGUE_USER_TEXT_FIELDS ->
+        ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH
+    valueKind == ExerciseMetadataValueKind.FREE_TEXT ->
+        ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH
+    valueKind in setOf(ExerciseMetadataValueKind.INTEGER, ExerciseMetadataValueKind.DECIMAL) ->
+        ExerciseMetadataLocalizationMode.LOCALE_FORMATTER
+    valueKind == ExerciseMetadataValueKind.DURATION && fieldKey != "exercise.archivedAt" ->
+        ExerciseMetadataLocalizationMode.LOCALE_FORMATTER
+    valueKind == ExerciseMetadataValueKind.BOOLEAN ->
+        ExerciseMetadataLocalizationMode.ANDROID_STRING_RESOURCE
     fieldKey.startsWith("derived.") || fieldKey == "identity.stableKey" ->
         ExerciseMetadataLocalizationMode.NEVER_DISPLAY
-    else -> ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE
+    displayDomain.isNotBlank() -> ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE
+    else -> ExerciseMetadataLocalizationMode.NEVER_DISPLAY
 }
 
-private fun displayDispositionFor(fieldKey: String): ExerciseMetadataDisplayDisposition = when {
-    fieldKey == "identity.stableKey" || fieldKey.startsWith("derived.") ->
+private fun displayDispositionFor(
+    fieldKey: String,
+    localizationMode: ExerciseMetadataLocalizationMode
+): ExerciseMetadataDisplayDisposition = when {
+    localizationMode == ExerciseMetadataLocalizationMode.NEVER_DISPLAY ->
         ExerciseMetadataDisplayDisposition.NON_DISPLAY_IDENTIFIER
     fieldKey in EDITOR_WRITABLE_FIELDS -> ExerciseMetadataDisplayDisposition.ADVANCED_EDITOR
     fieldKey.startsWith("identity.") || fieldKey.startsWith("relation.") ->
         ExerciseMetadataDisplayDisposition.INTERNAL_ADMIN
     else -> ExerciseMetadataDisplayDisposition.PRODUCTION_UI
+}
+
+private fun hasCompatiblePresentationContract(field: ExerciseMetadataFieldDefinition): Boolean = when (
+    field.localizationMode
+) {
+    ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE ->
+        field.valueKind in setOf(
+            ExerciseMetadataValueKind.CANONICAL_TOKEN,
+            ExerciseMetadataValueKind.CANONICAL_TOKEN_SET
+        ) && field.displayDomain.isNotBlank()
+    ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE_OR_USER_TEXT_PASSTHROUGH ->
+        field.valueKind == ExerciseMetadataValueKind.FREE_TEXT &&
+            field.fieldKey in HYBRID_CATALOGUE_USER_TEXT_FIELDS &&
+            field.displayDomain.isNotBlank()
+    ExerciseMetadataLocalizationMode.EXERCISE_NAME_CATALOGUE ->
+        field.valueKind == ExerciseMetadataValueKind.EXERCISE_REFERENCE
+    ExerciseMetadataLocalizationMode.ANDROID_STRING_RESOURCE ->
+        field.valueKind == ExerciseMetadataValueKind.BOOLEAN
+    ExerciseMetadataLocalizationMode.LOCALE_FORMATTER ->
+        field.valueKind in setOf(
+            ExerciseMetadataValueKind.INTEGER,
+            ExerciseMetadataValueKind.DECIMAL,
+            ExerciseMetadataValueKind.DURATION
+        )
+    ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH ->
+        field.valueKind == ExerciseMetadataValueKind.FREE_TEXT
+    ExerciseMetadataLocalizationMode.NEVER_DISPLAY ->
+        field.displayDisposition == ExerciseMetadataDisplayDisposition.NON_DISPLAY_IDENTIFIER
 }
 
 private fun sourceOwnerFor(scope: ExerciseMetadataFieldScope): String = when (scope) {
