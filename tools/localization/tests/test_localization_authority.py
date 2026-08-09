@@ -18,6 +18,8 @@ class LocalizationAuthorityTest(unittest.TestCase):
 
         self.assertEqual(612, manifest["uiApprovedRows"])
         self.assertEqual(257, manifest["exerciseApprovedRows"])
+        self.assertEqual(257, manifest["exerciseDescriptionLocalizedRows"])
+        self.assertEqual(12, manifest["seedProgramLocalizedRows"])
         self.assertEqual(1834, manifest["metadataAuthoritativeRows"])
         self.assertEqual(92, manifest["tissueApprovedRows"])
         self.assertEqual(0, manifest["currentBaselineCheckRequired"])
@@ -36,6 +38,14 @@ class LocalizationAuthorityTest(unittest.TestCase):
         english_exercises = first[authority.OUTPUTS["exercise_en"]]
         self.assertIn("Barbell Deadlift", english_exercises)
         self.assertNotIn("Conventional Deadlift", english_exercises)
+        self.assertIn(
+            "Hold the EZ-bar with your elbows fixed and curl it upward.",
+            first[authority.OUTPUTS["exercise_description_en"]],
+        )
+        self.assertIn(
+            "Badminton Strength Support - 4 Weeks",
+            first[authority.OUTPUTS["program_name_en"]],
+        )
         english_ui = first[authority.OUTPUTS["ui_en"]]
         self.assertIn("It will be displayed as your exercise records accumulate.", english_ui)
         self.assertEqual(

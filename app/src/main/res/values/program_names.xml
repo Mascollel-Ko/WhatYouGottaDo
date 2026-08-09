@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="program_name_10">스트렝스 최대측정주</string>
+    <string name="program_name_11">초보자 스트렝스 4주 기초</string>
+    <string name="program_name_12">초보자 보디빌딩 4주 머신+복합</string>
+    <string name="program_name_13">초보자 기능성 안정화 4주</string>
+    <string name="program_name_14">초보자 러닝 보조 4주</string>
+    <string name="program_name_3">배드민턴 웨이트 보조 4주</string>
+    <string name="program_name_4">일반 스트렝스 4주 블록</string>
+    <string name="program_name_5">보디빌딩 3일 스플릿</string>
+    <string name="program_name_6">보디빌딩 4일 스플릿</string>
+    <string name="program_name_7">보디빌딩 5일 스플릿</string>
+    <string name="program_name_8">배드민턴 최적화 4주 스플릿</string>
+    <string name="program_name_9">기능성+스트렝스 최대측정주</string>
+</resources>

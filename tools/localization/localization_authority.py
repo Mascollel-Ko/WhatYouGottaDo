@@ -23,6 +23,10 @@ TISSUE_KO = (
 )
 BASELINE_GENERATED_EN = ROOT / "tools/localization/current_baseline_generated_en.csv"
 DYNAMIC_BASELINE_EN = ROOT / "tools/localization/current_baseline_dynamic_en.csv"
+EXERCISE_DESCRIPTION_EN = ROOT / "tools/localization/exercise_description_generated_en.csv"
+PROGRAM_NAME_EN = ROOT / "tools/localization/program_name_generated_en.csv"
+EXERCISE_BOOTSTRAP = ROOT / "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"
+TRAINING_SETTINGS_SEED = ROOT / "app/src/main/assets/training_settings_seed.csv"
 
 OUTPUTS = {
     "ui_base": ROOT / "app/src/main/res/values/localization_generated.xml",
@@ -30,6 +34,10 @@ OUTPUTS = {
     "strings_en": ROOT / "app/src/main/res/values-en/strings.xml",
     "exercise_base": ROOT / "app/src/main/res/values/exercise_names.xml",
     "exercise_en": ROOT / "app/src/main/res/values-en/exercise_names.xml",
+    "exercise_description_base": ROOT / "app/src/main/res/values/exercise_descriptions.xml",
+    "exercise_description_en": ROOT / "app/src/main/res/values-en/exercise_descriptions.xml",
+    "program_name_base": ROOT / "app/src/main/res/values/program_names.xml",
+    "program_name_en": ROOT / "app/src/main/res/values-en/program_names.xml",
     "tissue_base": ROOT / "app/src/main/res/values/tissue_education.xml",
     "tissue_en": ROOT / "app/src/main/res/values-en/tissue_education.xml",
     "kotlin": (
@@ -370,6 +378,56 @@ def _exercise_assets(rows: list[dict[str, object]]) -> tuple[str, str, dict[str,
     )
 
 
+def _identity_text_assets(
+    translations: list[dict[str, str]],
+    canonical: dict[str, str],
+    resource_prefix: str,
+) -> tuple[str, str, dict[str, str]]:
+    translated: dict[str, tuple[str, str]] = {}
+    for row in translations:
+        stable_key = row["stableKey"].strip()
+        korean = row["korean"].strip()
+        english = row["english"].strip()
+        if row["provenance"].strip() != "CODEX_GENERATED_ENGLISH":
+            raise ValueError(f"Invalid generated-English provenance: {stable_key}")
+        if stable_key not in canonical or canonical[stable_key] != korean:
+            raise ValueError(f"Generated localization source mismatch: {stable_key}")
+        if not english:
+            raise ValueError(f"Blank generated English: {stable_key}")
+        translated[stable_key] = (korean, english)
+    if translated.keys() != canonical.keys():
+        missing = sorted(canonical.keys() - translated.keys())
+        extra = sorted(translated.keys() - canonical.keys())
+        raise ValueError(f"Generated localization coverage mismatch: missing={missing}, extra={extra}")
+    keys = {stable_key: f"{resource_prefix}_{stable_key}" for stable_key in translated}
+    return (
+        _xml_strings([(keys[key], value[0]) for key, value in translated.items()]),
+        _xml_strings([(keys[key], value[1]) for key, value in translated.items()]),
+        keys,
+    )
+
+
+def _exercise_description_assets() -> tuple[str, str, dict[str, str]]:
+    canonical = {
+        row["stableKey"].strip(): row["description"].strip()
+        for row in _csv_rows(EXERCISE_BOOTSTRAP)
+    }
+    return _identity_text_assets(
+        _csv_rows(EXERCISE_DESCRIPTION_EN),
+        canonical,
+        "exercise_description",
+    )
+
+
+def _program_name_assets() -> tuple[str, str, dict[str, str]]:
+    canonical = {
+        row["program_key"].strip(): row["program_name"].strip()
+        for row in _csv_rows(TRAINING_SETTINGS_SEED)
+        if row["row_type"].strip() == "program"
+    }
+    return _identity_text_assets(_csv_rows(PROGRAM_NAME_EN), canonical, "program_name")
+
+
 def _tissue_assets(rows: list[dict[str, object]]) -> tuple[str, str, dict[str, tuple[str, str, str, str]]]:
     with TISSUE_KO.open(encoding="utf-8", newline="") as handle:
         korean_rows = {row["stableKey"]: row for row in csv.DictReader(handle)}
@@ -404,6 +462,8 @@ def _generated_kotlin(
     exact_ui: dict[str, str],
     ui_patterns: list[tuple[str, str]],
     exercise_keys: dict[str, str],
+    exercise_description_keys: dict[str, str],
+    program_name_keys: dict[str, str],
     tissue_keys: dict[str, tuple[str, str, str, str]],
 ) -> str:
     lines = [
@@ -448,6 +508,16 @@ def _generated_kotlin(
             f"R.string.{resources[0]}, R.string.{resources[1]}, "
             f"R.string.{resources[2]}, R.string.{resources[3]}),"
         )
+    lines.extend(["    )", "", "    val exerciseDescriptionIds: Map<String, Int> = mapOf("])
+    lines.extend(
+        f'        "{_kotlin_string(stable_key)}" to R.string.{resource},'
+        for stable_key, resource in sorted(exercise_description_keys.items())
+    )
+    lines.extend(["    )", "", "    val programNameIds: Map<String, Int> = mapOf("])
+    lines.extend(
+        f'        "{_kotlin_string(stable_key)}" to R.string.{resource},'
+        for stable_key, resource in sorted(program_name_keys.items())
+    )
     lines.extend(["    )", "}", ""])
     return "\n".join(lines)
 
@@ -477,6 +547,10 @@ def _artifacts() -> dict[Path, str]:
         baseline_generated,
     )
     exercise_base, exercise_en, exercise_keys = _exercise_assets(exercises)
+    exercise_description_base, exercise_description_en, exercise_description_keys = (
+        _exercise_description_assets()
+    )
+    program_name_base, program_name_en, program_name_keys = _program_name_assets()
     tissue_base, tissue_en, tissue_keys = _tissue_assets(tissues)
     manifest = {
         "authority": AUTHORITY.name,
@@ -485,6 +559,8 @@ def _artifacts() -> dict[Path, str]:
         "currentBaselineCheckRequired": 0,
         "uiApprovedRows": len(ui),
         "exerciseApprovedRows": len(exercises),
+        "exerciseDescriptionLocalizedRows": len(exercise_description_keys),
+        "seedProgramLocalizedRows": len(program_name_keys),
         "metadataAuthoritativeRows": len(metadata),
         "tissueApprovedRows": len(tissues),
         "exactUiRuntimeEntries": len(exact_ui),
@@ -500,9 +576,20 @@ def _artifacts() -> dict[Path, str]:
         OUTPUTS["strings_en"]: strings_en,
         OUTPUTS["exercise_base"]: exercise_base,
         OUTPUTS["exercise_en"]: exercise_en,
+        OUTPUTS["exercise_description_base"]: exercise_description_base,
+        OUTPUTS["exercise_description_en"]: exercise_description_en,
+        OUTPUTS["program_name_base"]: program_name_base,
+        OUTPUTS["program_name_en"]: program_name_en,
         OUTPUTS["tissue_base"]: tissue_base,
         OUTPUTS["tissue_en"]: tissue_en,
-        OUTPUTS["kotlin"]: _generated_kotlin(exact_ui, ui_patterns, exercise_keys, tissue_keys),
+        OUTPUTS["kotlin"]: _generated_kotlin(
+            exact_ui,
+            ui_patterns,
+            exercise_keys,
+            exercise_description_keys,
+            program_name_keys,
+            tissue_keys,
+        ),
         OUTPUTS["manifest"]: json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
     }
 

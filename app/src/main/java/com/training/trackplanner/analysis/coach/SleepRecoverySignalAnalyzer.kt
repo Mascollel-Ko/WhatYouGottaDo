@@ -42,6 +42,12 @@ class SleepRecoverySignalAnalyzer {
             baselineAverageHours = baselineAverage,
             sleepDeficitHours = deficit,
             severity = severity,
+            messageCode = when (severity) {
+                CoachingSignalSeverity.CAUTION -> SleepRecoveryMessageCode.CAUTION
+                CoachingSignalSeverity.WATCH -> SleepRecoveryMessageCode.WATCH
+                CoachingSignalSeverity.INFO -> SleepRecoveryMessageCode.INFO
+                CoachingSignalSeverity.NONE -> SleepRecoveryMessageCode.INSUFFICIENT_DATA
+            },
             headline = when (severity) {
                 CoachingSignalSeverity.CAUTION -> "최근 수면이 많이 낮습니다"
                 CoachingSignalSeverity.WATCH -> "최근 수면을 보수적으로 봅니다"

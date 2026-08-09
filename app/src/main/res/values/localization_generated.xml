@@ -86,7 +86,6 @@
     <string name="loc_baseline_11c675356677">하체 피로</string>
     <string name="loc_baseline_11da17a5d736">간단히</string>
     <string name="loc_baseline_12319de074f1">주간 항회전/회전코어 운동량</string>
-    <string name="loc_baseline_1234337d06eb">기록</string>
     <string name="loc_baseline_125c2e77c0ac">다음 피로 변화</string>
     <string name="loc_baseline_12ba86d4ed1c">기존 프로그램</string>
     <string name="loc_baseline_133aee6ab576">주간 등/광배 최근 3일 운동량</string>
@@ -109,7 +108,6 @@
     <string name="loc_baseline_17468bf90757">상태 지문 ${summary.modelStateFingerprint?.take(16) ?:</string>
     <string name="loc_baseline_17505620ff53">계획 0세트</string>
     <string name="loc_baseline_17611cc1edb4">전신 피로 입력이 높습니다.</string>
-    <string name="loc_baseline_17aadbb326dd">삭제</string>
     <string name="loc_baseline_185430024067">검색어 지우기</string>
     <string name="loc_baseline_189a21c33e5f">기본 휴식시간(초)</string>
     <string name="loc_baseline_1941b66b6945">이 차트는 전체 대비 나눠 보는 표가 아니라 전이 목적별 자극량을 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다.</string>
@@ -135,7 +133,6 @@
     <string name="loc_baseline_1cc2a22eba6a">주간 측면코어 최근 7일 운동량</string>
     <string name="loc_baseline_1cc77b377a4f">복부</string>
     <string name="loc_baseline_1ccde183b5ad">근력운동에서 발생한 주간 피로 부담</string>
-    <string name="loc_baseline_1d1e99c66c79">수정</string>
     <string name="loc_baseline_1e03b584320e">선택복사</string>
     <string name="loc_baseline_1e63ff0b0728">체크인 지표 고도화</string>
     <string name="loc_baseline_1e7dd2a9d89a">고중량·힘 신경계</string>
@@ -178,6 +175,7 @@
     <string name="loc_baseline_27d6266d5c33">객관적 운동 부하는 평소 수준이지만, 오늘 전신 피로 입력이 높아 회복 상태를 주의로 봅니다.</string>
     <string name="loc_baseline_27fdc64abeea">직접 수행 기록이 아직 없습니다.</string>
     <string name="loc_baseline_28613bf275d5">고부하 항목 조절</string>
+    <string name="loc_baseline_2877fa42b01c">수면</string>
     <string name="loc_baseline_28915e72cdb0">세트별 휴식</string>
     <string name="loc_baseline_293fa48188e1">운동 삭제</string>
     <string name="loc_baseline_29416770e703">코트 이동, 스텝, 위치 회복을 직접 보강하는 전이 목적입니다.</string>
@@ -191,8 +189,6 @@
     <string name="loc_baseline_2b39c5061ab4">Bayesian 시계열 분석 결과</string>
     <string name="loc_baseline_2b3f726b4be6">점프/착지</string>
     <string name="loc_baseline_2b7b91d61abb">현재 강도 유지</string>
-    <string name="loc_baseline_2ba51b93b5bd">기본 프로그램</string>
-    <string name="loc_baseline_2bff89318dcd">주요 동작</string>
     <string name="loc_baseline_2c0ac99a3d08">관계 탐색 지표를 계산하고 있습니다.</string>
     <string name="loc_baseline_2c127dec4cc0">오늘은 예정 훈련을 진행해도 좋습니다.</string>
     <string name="loc_baseline_2c79666166c1">부위별</string>
@@ -261,7 +257,6 @@
     <string name="loc_baseline_3d877091a30c">자동 골자 생성 시간이 길어졌습니다. 조건을 조금 줄이고 다시 시도해 주세요.</string>
     <string name="loc_baseline_3db62b145373">RPE/세트 여유 조절</string>
     <string name="loc_baseline_3dbdab223796">최근 이벤트 지문 ${summary.latestEventFingerprint?.take(16) ?:</string>
-    <string name="loc_baseline_3ddad202131f">홈</string>
     <string name="loc_baseline_3e1146f68c1d">숨김</string>
     <string name="loc_baseline_3e18ed7e0871">전체 스트레스 크기</string>
     <string name="loc_baseline_3e63d83c5134">전완/그립</string>
@@ -279,7 +274,6 @@
     <string name="loc_baseline_417307eba915">3세트 x 3-5회 · RPE 7.5-8.5</string>
     <string name="loc_baseline_420a55b276ed">지수</string>
     <string name="loc_baseline_421cc497eddc">8주</string>
-    <string name="loc_baseline_421f8fe1e605">레벨</string>
     <string name="loc_baseline_4240d433c490">로우</string>
     <string name="loc_baseline_426fbdedf47d">e1RM 하락</string>
     <string name="loc_baseline_427845233f69">케이블 오버헤드 트라이셉스 익스텐션</string>
@@ -322,6 +316,7 @@
     <string name="loc_baseline_49f029a789ac">몸무게(kg)</string>
     <string name="loc_baseline_4a26944dabb1">회복 체크인 종합</string>
     <string name="loc_baseline_4a34bbeea5a6">휴식 중</string>
+    <string name="loc_baseline_4a731fb5be0d">홈</string>
     <string name="loc_baseline_4a99d2731fe6">처리된 완료 세션이 아직 없습니다.</string>
     <string name="loc_baseline_4ad7bddf2299">낮은 신뢰도 구간입니다. 우연히 보이는 관계일 수 있습니다.</string>
     <string name="loc_baseline_4ae6b66b8d6c">오늘 상태</string>
@@ -341,7 +336,6 @@
     <string name="loc_baseline_53094a76aa6a">주간 코트 훈련량</string>
     <string name="loc_baseline_533797fc9af0">덤벨 스탠딩 카프 레이즈</string>
     <string name="loc_baseline_534800133402">반응</string>
-    <string name="loc_baseline_534edff5dd7c">적용</string>
     <string name="loc_baseline_5386f106771a">벤치 특이성</string>
     <string name="loc_baseline_53a7aa7f8a2c">참고용 · 소표본</string>
     <string name="loc_baseline_549a746897af">전이 종류</string>
@@ -367,8 +361,6 @@
     <string name="loc_baseline_58e964ffbdad">고중량 하체</string>
     <string name="loc_baseline_59c961346932">유산소/운동</string>
     <string name="loc_baseline_5a6a393a476d">계획으로 복사</string>
-    <string name="loc_baseline_5a7d4c693886">분석</string>
-    <string name="loc_baseline_5a9dae4200a8">운동 정보</string>
     <string name="loc_baseline_5ad08fa58e36">케이블 팔로프 프레스</string>
     <string name="loc_baseline_5b17552b351e">M2 · 공유 요인</string>
     <string name="loc_baseline_5b2351a1fd46">반드시 쉬어야 합니다</string>
@@ -389,7 +381,6 @@
     <string name="loc_baseline_5dace340d95f">현재 근력 분석을 재계산하지 못했습니다.</string>
     <string name="loc_baseline_5dcb72e8dce2">모두 해제</string>
     <string name="loc_baseline_5dd2e5f77ecb">최근 운동량이 평소보다 빠르게 늘었습니다</string>
-    <string name="loc_baseline_5de96f8b8cdf">사후분포 중앙값</string>
     <string name="loc_baseline_5e23b89d530c">전단 부하에 대응</string>
     <string name="loc_baseline_5e784e6167c9">피로도 낮음</string>
     <string name="loc_baseline_5e87859369e0">관절 복합체별 회복 상태와 주요 기여 운동을 봅니다.</string>
@@ -409,11 +400,11 @@
     <string name="loc_baseline_6047b05cdd77">주요 리프트, 근육군, 반복수 구간 흐름을 봅니다.</string>
     <string name="loc_baseline_60a6852595a5">상세 실패 메시지가 저장되지 않았습니다.</string>
     <string name="loc_baseline_6101a772f838">메타데이터 수정</string>
-    <string name="loc_baseline_6151cedc3e2d">동작 패턴</string>
     <string name="loc_baseline_61a0a63c4428">5~8주</string>
     <string name="loc_baseline_61a6068c33ea">관절/건 불편감 입력</string>
     <string name="loc_baseline_61d1f93abe16">강도, 수행량, 효율을 합친 주간 근력 지수</string>
     <string name="loc_baseline_61fae770f5e9">전신 피로 입력</string>
+    <string name="loc_baseline_6287a0f78db0">계획</string>
     <string name="loc_baseline_62b49881f594">1~5회는 저반복/고강도, 6~9회는 중반복/중강도, 10회 이상은 고반복/볼륨으로 분류합니다.</string>
     <string name="loc_baseline_62cfc37230b4">점프/감속 드릴</string>
     <string name="loc_baseline_62fc7d69232d">바이퍼 회전 위로</string>
@@ -424,7 +415,6 @@
     <string name="loc_baseline_643e771c04b8">오버헤드프레스</string>
     <string name="loc_baseline_6481be912ad6">운동 메모</string>
     <string name="loc_baseline_64a83fcc7e5a">CSV 복원</string>
-    <string name="loc_baseline_6589a8b52620">성장률</string>
     <string name="loc_baseline_658d2952235f">활성 revision ${summary.activeRevisionKey ?:</string>
     <string name="loc_baseline_65f45f5fc2bf">전신 피로 입력 상승</string>
     <string name="loc_baseline_6617a2ebdadd">프로그램을 저장하지 못했습니다.</string>
@@ -436,6 +426,7 @@
     <string name="loc_baseline_68106876f1f0">랜드마인 로테이션</string>
     <string name="loc_baseline_6826c6cd461c">주간 스매시 속도 기록 횟수</string>
     <string name="loc_baseline_682c561bf4f5">다음달</string>
+    <string name="loc_baseline_68f16e2e18e5">사용 근육과 장비</string>
     <string name="loc_baseline_6932505aa01d">주간 전완/그립 최근 7일 운동량</string>
     <string name="loc_baseline_69dfe37c948d">배드민턴 웨이트 보조 4주</string>
     <string name="loc_baseline_69eb86944325">3라운드 x 10-20초</string>
@@ -474,6 +465,7 @@
     <string name="loc_baseline_70ee58bf235f">덤벨 프로네이션/수피네이션</string>
     <string name="loc_baseline_713e6abe13ed">외생 통제 Z 선택</string>
     <string name="loc_baseline_714682771273">M0 · 직전값 기준</string>
+    <string name="loc_baseline_71bf9e7f26c5">삭제</string>
     <string name="loc_baseline_72089b209745">근육통</string>
     <string name="loc_baseline_722ab9b5184c">훈련 지표 사이의 관계를 탐색합니다. 이 결과는 인과관계가 아니라 패턴 탐색용입니다.</string>
     <string name="loc_baseline_7250e237238e">)} 부담이 함께 누적된 영향일 가능성이 큽니다.</string>
@@ -485,7 +477,6 @@
     <string name="loc_baseline_73294a467665">프로그램 기간</string>
     <string name="loc_baseline_7359a8f1927c">컨디션</string>
     <string name="loc_baseline_73669bc1f445">남은 계획의 예상 피로도는 관리 가능한 범위입니다.</string>
-    <string name="loc_baseline_73845762f291">사용 근육과 장비</string>
     <string name="loc_baseline_7415a2ebfc51">시계열 분석에 사용할 주간 지표가 부족합니다.</string>
     <string name="loc_baseline_743638ff7d17">45분 세션에 맞게 운동 수를 조정했습니다.</string>
     <string name="loc_baseline_745c20d835e1">프로그램을 고른 뒤 시작일을 적용하면 날짜별 계획 세트가 만들어집니다.</string>
@@ -513,6 +504,7 @@
     <string name="loc_baseline_79666bda855c">새 프로그램</string>
     <string name="loc_baseline_7a76049be91d">프로그램에서 가져오기</string>
     <string name="loc_baseline_7ab0e0ae5bdd">월</string>
+    <string name="loc_baseline_7ad9cf4c26e5">운동 정보</string>
     <string name="loc_baseline_7af17b6c17f1">확장 기반</string>
     <string name="loc_baseline_7b387db84d93">남은 계획을 마쳐도 예상 피로도는 평소 범위입니다.</string>
     <string name="loc_baseline_7b4320f39456">선택 입력</string>
@@ -590,7 +582,6 @@
     <string name="loc_baseline_90439bc8de27">끝나면 예상 피로도는 현재 흐름과 비슷합니다.</string>
     <string name="loc_baseline_909c17d0ea0e">4주</string>
     <string name="loc_baseline_90b25151bbd5">빈 프로그램으로 시작</string>
-    <string name="loc_baseline_90c711f73bbc">수면</string>
     <string name="loc_baseline_91085c24fb86">최근 운동 공백이 있어 기준선을 보수적으로 적용했습니다.</string>
     <string name="loc_baseline_9141014dc5e6">런지/리치</string>
     <string name="loc_baseline_9168081c39b7">수면이 평소보다 짧게 잡혔습니다.</string>
@@ -615,6 +606,7 @@
     <string name="loc_baseline_978d1e773ecc">현재 부담이 약간 높습니다.</string>
     <string name="loc_baseline_97da04f879ff">주간 이두 최근 3일 운동량</string>
     <string name="loc_baseline_98a87af8bd8c">회복 지속</string>
+    <string name="loc_baseline_99b1fb48b807">수정</string>
     <string name="loc_baseline_99e6c13d1354">피로 기여도 추이</string>
     <string name="loc_baseline_9ad2ff92bc5c">일괄 편집</string>
     <string name="loc_baseline_9b313ca9b63c">초</string>
@@ -635,16 +627,17 @@
     <string name="loc_baseline_9dc16d7bab4c">통제 변수 선택</string>
     <string name="loc_baseline_9df995cfd994">기본 분류를 입력하세요.</string>
     <string name="loc_baseline_9e403e8abeab">부담 낮추기</string>
+    <string name="loc_baseline_9e4eb33a1eaf">동작 패턴</string>
     <string name="loc_baseline_9e64452c5317">프록시만 반영된 주</string>
     <string name="loc_baseline_9e667008e0d1">프록시 전이 제외 · ${local.proxyTransferExclusionReason ?:</string>
     <string name="loc_baseline_9e9ab74505d5">보통 신뢰도 · 패턴 탐색</string>
     <string name="loc_baseline_9e9b24777593">전체 선택</string>
     <string name="loc_baseline_9ea562bf0f99">후보 주</string>
+    <string name="loc_baseline_9eb8927d664f">주요 동작</string>
     <string name="loc_baseline_9f38bdd9fb3a">긴 코트 시간 뒤 회복 입력을 확인합니다</string>
     <string name="loc_baseline_9f7a22d76eb0">풋워크/반응</string>
     <string name="loc_baseline_a0283eae91fb">멈춤, 착지, 방향전환 직전의 감속 능력을 보강하는 훈련입니다.</string>
     <string name="loc_baseline_a06c23387b04">오늘 컨디션</string>
-    <string name="loc_baseline_a0a1ed2e2690">이미지 없음</string>
     <string name="loc_baseline_a0a7783e0561">처음부터 재시도</string>
     <string name="loc_baseline_a0fc8e013a4f">오늘 운동 후 제한 신호를 우선 봅니다.</string>
     <string name="loc_baseline_a152ae1c013d">3~4주</string>
@@ -741,6 +734,7 @@
     <string name="loc_baseline_b92f47dec45b">kg 수정</string>
     <string name="loc_baseline_b93551c2ff24">리액션</string>
     <string name="loc_baseline_b947641986f1">앱 밖에서도 휴식 종료를 보려면 알림 권한이 필요합니다.</string>
+    <string name="loc_baseline_b94be021d47b">기록</string>
     <string name="loc_baseline_b9d8fe5ca2a9">자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다.</string>
     <string name="loc_baseline_b9fec0e1a00d">팔로프</string>
     <string name="loc_baseline_ba271b70eeae">급성기계곡선</string>
@@ -794,11 +788,13 @@
     <string name="loc_baseline_c31548ac089d">횟수 +</string>
     <string name="loc_baseline_c332999a5684">좌우 사용</string>
     <string name="loc_baseline_c335e32e57dd">근육군별 운동량 기록이 부족합니다.</string>
+    <string name="loc_baseline_c3664e7fe4cf">레벨</string>
     <string name="loc_baseline_c3b335d60c37">M1 · 직접 기록</string>
     <string name="loc_baseline_c3e5e48155a5">배드민턴 훈련에서 발생한 주간 피로 부담</string>
     <string name="loc_baseline_c41402a5fd1b">외전</string>
     <string name="loc_baseline_c444d8af8266">여성</string>
     <string name="loc_baseline_c46f97a10fdb">세트 RPE</string>
+    <string name="loc_baseline_c48303d5dbf6">분석</string>
     <string name="loc_baseline_c4dfd12384e8">근신경계</string>
     <string name="loc_baseline_c5549487d67f">인과관계 확정이 아니라 주간 기록 기반의 탐색적 패턴입니다.</string>
     <string name="loc_baseline_c57e222bd5a4">덮어쓰기는 미확인 계획만 삭제합니다. 실제 완료 기록은 삭제되지 않습니다.</string>
@@ -813,7 +809,7 @@
     <string name="loc_baseline_c76f82de2b04">설명</string>
     <string name="loc_baseline_c77115ae830c">반복수 구간 비중 추이</string>
     <string name="loc_baseline_c7e9a967acfe">스매시 평균 속도</string>
-    <string name="loc_baseline_c8221c1905b9">계획</string>
+    <string name="loc_baseline_c81d2149590c">이미지 없음</string>
     <string name="loc_baseline_c83923fb5088">저반복/고강도</string>
     <string name="loc_baseline_c8b32b37fd60">완료 세션 이벤트 원장과 저장된 필터링 사후분포를 진단합니다. Bayesian 시계열 실험실과는 별도 모델입니다.</string>
     <string name="loc_baseline_c8d800a86328">통증/부상</string>
@@ -867,6 +863,7 @@
     <string name="loc_baseline_d79cef083c7a">회전 동작</string>
     <string name="loc_baseline_d7ce478f16d8">필요한 분석 화면으로 들어가 훈련 지표를 확인합니다.</string>
     <string name="loc_baseline_d888be67f1df">양의 신호</string>
+    <string name="loc_baseline_d8d4e7d1f0a5">성장률</string>
     <string name="loc_baseline_d9007e0cb533">통증/주의 부위</string>
     <string name="loc_baseline_d905d4d1ce34">기립</string>
     <string name="loc_baseline_d90e9bea7bef">초기 프로필과 최근 기록을 함께 보면 조절이 낫습니다.</string>
@@ -879,6 +876,7 @@
     <string name="loc_baseline_da9974e883be">오늘 계획은 아직 없습니다.</string>
     <string name="loc_baseline_daa9a8086fb0">M3 · 공유+종목 요인</string>
     <string name="loc_baseline_dab5ff83e8ae">피로 심화</string>
+    <string name="loc_baseline_dabc5886cb47">기본 프로그램</string>
     <string name="loc_baseline_dad1d49f7836">스매시 최고 속도</string>
     <string name="loc_baseline_daf7deb33cf5">예정 훈련 진행</string>
     <string name="loc_baseline_db08cd0dd0f3">원본 동작 패턴</string>
@@ -985,6 +983,7 @@
     <string name="loc_baseline_f5bc17133d0f">여</string>
     <string name="loc_baseline_f5bc3298f83a">회복 기간</string>
     <string name="loc_baseline_f5bfb738c23f">벤치프레스</string>
+    <string name="loc_baseline_f60d1f205790">적용</string>
     <string name="loc_baseline_f6212df24f0e">집중력/의욕 입력이 낮아 반응 드릴과 고강도 배드민턴은 강도를 낮춰 진행하는 편이 낫습니다.</string>
     <string name="loc_baseline_f65890b73f90">예시 운동: ${sample.joinToString(</string>
     <string name="loc_baseline_f705bdac9427">아직 기록이 부족해 이 관계를 판단하기 어렵습니다.</string>
@@ -1019,6 +1018,7 @@
     <string name="loc_baseline_fc5d327adfd9">수면 입력도 낮아 회복 해석을 보수적으로 봅니다.</string>
     <string name="loc_baseline_fc8fd940ecc5">가벼운 상체</string>
     <string name="loc_baseline_fc9b3cd18b96">고축부하 힌지</string>
+    <string name="loc_baseline_fca5af159abb">사후분포 중앙값</string>
     <string name="loc_baseline_fcad0fa86b54">기본 분류</string>
     <string name="loc_baseline_fcb8accc0587">최근 28일 평균(7일 환산)</string>
     <string name="loc_baseline_fcd77b384bf4">최근 안정적으로 소화한 유형은 기준선을 약간 높게 적용합니다.</string>

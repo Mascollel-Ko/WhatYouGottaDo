@@ -288,7 +288,10 @@ private fun PersistentStrengthSingleTargetCurrent(
     when (displayMode) {
         StrengthPerformanceDisplayMode.LEVEL -> {
             val medianLabel = if (target.isWeightedPullUp()) "추정 총부하" else "사후분포 중앙값"
-            Text("$medianLabel ${kgOrDash(target.currentMedianKg)}", fontWeight = FontWeight.SemiBold)
+            Text(
+                "${localizedUiText(medianLabel)} ${kgOrDash(target.currentMedianKg)}",
+                fontWeight = FontWeight.SemiBold
+            )
             Text("80% 범위 ${rangeOrDash(target.currentLow80Kg, target.currentHigh80Kg)}")
             if (target.isWeightedPullUp()) {
                 Text("현재 체중 기준 추가중량 ${signedKgOrDash(target.currentAddedWeightKg)}")
@@ -624,7 +627,7 @@ private fun PersistentTargetSelector(
                 modifier = Modifier.testTag("persistent-strength-target-${target.targetKey}"),
                 selected = selected,
                 onClick = { onToggled(target.targetKey) },
-                label = { Text(target.displayNameKo) },
+                label = { Text(target.displayNameKo, maxLines = 1, softWrap = false) },
                 leadingIcon = {
                     Surface(
                         modifier = Modifier.size(9.dp),

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_signal_insufficient_headline">수면 데이터 부족</string>
+    <string name="sleep_signal_insufficient_detail">최근 수면 데이터가 부족해 수면 보정 신호를 계산할 수 없습니다.</string>
+    <string name="sleep_signal_caution_headline">최근 수면이 매우 낮습니다</string>
+    <string name="sleep_signal_watch_headline">최근 수면은 주의가 필요합니다</string>
+    <string name="sleep_signal_info_headline">최근 수면은 큰 경고 신호가 아닙니다</string>
+    <string name="sleep_signal_baseline_detail">최근 3일 평균 %1$s시간, 기준 %2$s시간입니다. 오늘 강도 해석을 보수적으로 적용합니다.</string>
+    <string name="sleep_signal_caution_detail">최근 3일 평균 %1$s시간입니다. 고강도 훈련 판단에는 여유를 둡니다.</string>
+    <string name="sleep_signal_watch_detail">최근 3일 평균 %1$s시간입니다. 피로 신호를 조금 더 보수적으로 봅니다.</string>
+    <string name="sleep_signal_info_detail">최근 3일 평균 %1$s시간입니다. 수면만으로 강한 조절 신호를 만들지는 않습니다.</string>
+    <string name="rpe_signal_headline">비슷한 부하에서 RPE가 상승했습니다</string>
+    <string name="rpe_signal_detail">%1$s의 최근 RPE 평균 %2$s, 이전 비슷한 세트 %3$s입니다. 오늘은 같은 무게라도 체감 강도를 확인하며 조절합니다.</string>
+    <string name="rpe_signal_sleep_context">최근 수면 입력이 낮아 RPE 해석을 보수적으로 봅니다.</string>
+    <string name="joint_tendon_signal_headline">관절/건 불편감 입력을 확인합니다</string>
+    <string name="joint_tendon_signal_related_detail">최근 불편감 입력과 관련 운동 기록이 함께 보입니다. 점프, 감속, 고중량 하체는 강도를 낮춰 확인합니다.</string>
+    <string name="joint_tendon_signal_discomfort_detail">최근 불편감 입력이 높습니다. 운동 기록만으로 단정하지 않고 오늘 부하를 보수적으로 조절합니다.</string>
+    <string name="joint_tendon_signal_sleep_context">수면 입력도 낮아 회복 해석을 보수적으로 봅니다.</string>
+    <string name="court_signal_insufficient_headline">코트 시간 반응 데이터가 적습니다</string>
+    <string name="court_signal_insufficient_detail">배드민턴 시간과 다음날 회복 입력을 날짜 기준으로 모으는 중입니다.</string>
+    <string name="court_signal_caution_headline">긴 코트 시간 뒤 회복 입력을 확인합니다</string>
+    <string name="court_signal_watch_headline">90분 이상 코트 시간 뒤 반응을 봅니다</string>
+    <string name="court_signal_reference_headline">코트 시간 반응은 참고 수준입니다</string>
+    <string name="court_signal_threshold_detail">%1$d분 이상 배드민턴 뒤 다음날 피로/불편감 입력이 높았던 기록이 있습니다. 같은 패턴을 단정하지 않고 다음날 강도를 보수적으로 봅니다.</string>
+    <string name="court_signal_reference_detail">현재 기록에서는 긴 코트 시간이 항상 다음날 높은 피로 입력으로 이어진다고 보기 어렵습니다.</string>
+    <string name="court_signal_sleep_context">최근 수면 입력이 낮아 긴 코트 시간 뒤 회복 해석을 보수적으로 봅니다.</string>
+</resources>

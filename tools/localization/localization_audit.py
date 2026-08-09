@@ -17,7 +17,16 @@ DEFAULT_VALUES = ROOT / "app/src/main/res/values"
 ENGLISH_VALUES = ROOT / "app/src/main/res/values-en"
 KOTLIN_ROOT = ROOT / "app/src/main/java"
 EXERCISE_BOOTSTRAP = ROOT / "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"
+EXERCISE_DESCRIPTION_EN = ROOT / "tools/localization/exercise_description_generated_en.csv"
+PROGRAM_NAME_EN = ROOT / "tools/localization/program_name_generated_en.csv"
 GENERATED = ROOT / "docs/generated"
+
+APPROVED = "APPROVED_LOCALIZED_PRESENTATION"
+GENERATED_ENGLISH = "CODEX_GENERATED_ENGLISH"
+USER_PASSTHROUGH = "USER_CONTENT_PASSTHROUGH"
+CANONICAL_NON_DISPLAY = "CANONICAL_NON_DISPLAY"
+INTERNAL_DEBUG = "INTERNAL_DEBUG"
+UNEXPLAINED = "UNEXPLAINED_PRODUCTION_LEAK"
 
 UI_COLUMNS = (
     "resourceKey",
@@ -93,6 +102,8 @@ def parse_resources(directory: Path) -> dict[str, ResourceValue]:
 
 
 def classify_literal(path: Path, context: str, text: str) -> str:
+    if "DateTimeFormatter.ofPattern" in context:
+        return "SEMANTIC_LOCALE_FORMAT"
     if path.name in {"TrainingDatabase.kt", "ExerciseStableKeyMigration.kt"}:
         return "CANONICAL_OR_MIGRATION_DATA"
     if text.startswith("^") or "[가-힣]" in text or text.startswith("imported_"):
@@ -243,9 +254,17 @@ def localization_routes() -> tuple[dict[str, str], dict[str, str]]:
     return exact, dynamic
 
 
+def generated_routes() -> tuple[set[str], set[str]]:
+    return (
+        {row["korean"].strip() for row in authority._csv_rows(authority.BASELINE_GENERATED_EN)},
+        {row["koreanTemplate"].strip() for row in authority._csv_rows(authority.DYNAMIC_BASELINE_EN)},
+    )
+
+
 def kotlin_literals() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     exact_routes, dynamic_routes = localization_routes()
+    generated_exact, generated_dynamic = generated_routes()
     for path in sorted(KOTLIN_ROOT.rglob("*.kt")):
         source = path.read_text(encoding="utf-8")
         for text, offset in kotlin_string_templates(source):
@@ -259,16 +278,15 @@ def kotlin_literals() -> list[dict[str, str]]:
             context = source[start:end]
             classification = classify_literal(path, context, text)
             route = dynamic_routes.get(text) if "${}" in text else exact_routes.get(text)
-            if classification in {"PRODUCTION_UI", "ACCESSIBILITY"}:
-                status = (
-                    "LOCALE_AWARE_DYNAMIC_ROUTE"
-                    if route and "${}" in text
-                    else "LOCALE_AWARE_EXACT_ROUTE"
-                    if route
-                    else "UNEXPLAINED_ENGLISH_MODE_KOREAN"
-                )
+            if classification == "SEMANTIC_LOCALE_FORMAT":
+                status = APPROVED
+            elif classification in {"PRODUCTION_UI", "ACCESSIBILITY"}:
+                generated = text in (generated_dynamic if "${}" in text else generated_exact)
+                status = GENERATED_ENGLISH if route and generated else APPROVED if route else UNEXPLAINED
+            elif classification in {"LOG_ONLY", "DEVELOPER_DIAGNOSTIC"}:
+                status = INTERNAL_DEBUG
             else:
-                status = classification
+                status = CANONICAL_NON_DISPLAY
             rows.append(
                 {
                     "resourceKey": "",
@@ -291,15 +309,17 @@ def resource_rows(
     default: dict[str, ResourceValue], english: dict[str, ResourceValue]
 ) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
+    generated_exact, _ = generated_routes()
     for key, value in sorted(default.items()):
         translated = english.get(key)
         invariant = not KOREAN.search(value.text)
         if translated is not None:
-            status = "LOCALE_AWARE_ANDROID_RESOURCE"
+            generated = value.text in generated_exact or value.source.endswith("analysis_signal_strings.xml")
+            status = GENERATED_ENGLISH if generated else APPROVED
         elif invariant:
-            status = "LOCALE_INVARIANT_RESOURCE"
+            status = APPROVED
         else:
-            status = "UNEXPLAINED_ENGLISH_MODE_KOREAN"
+            status = UNEXPLAINED
         rows.append(
             {
                 "resourceKey": key,
@@ -326,17 +346,127 @@ def exercise_rows() -> list[dict[str, str]]:
             "korean": authority._text(row.get("koreanName")),
             "english": authority._text(row.get("englishName")),
             "source": relative(authority.AUTHORITY),
-            "status": "LOCALIZED_BY_STABLE_KEY",
+            "status": APPROVED,
         }
         for row in source_rows
     ]
+
+
+def presentation_origin_rows() -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+
+    def add(
+        key: str,
+        korean: str,
+        english: str,
+        path: Path,
+        expected: tuple[str, ...],
+        status: str,
+        notes: str,
+    ) -> None:
+        source = path.read_text(encoding="utf-8") if path.exists() else ""
+        resolved_status = status if all(marker in source for marker in expected) else UNEXPLAINED
+        rows.append(
+            {
+                "resourceKey": key,
+                "korean": korean,
+                "english": english,
+                "scope": "PRESENTATION_ORIGIN",
+                "sourcePath": relative(path),
+                "sourceLineOrSymbol": key,
+                "classification": "PRODUCTION_UI",
+                "status": resolved_status,
+                "placeholderSignature": placeholder_signature(korean),
+                "pluralRequired": "NO",
+                "notes": notes,
+            }
+        )
+
+    presentation = KOTLIN_ROOT / "com/training/trackplanner/localization/LocalizedPresentation.kt"
+    add(
+        "calendar.year_month_weekday",
+        "날짜 의미",
+        "YearMonth / DayOfWeek locale formatting",
+        presentation,
+        ("fun yearMonth", "fun weekday", "DateTimeFormatter.ofPattern", "getDisplayName"),
+        APPROVED,
+        "Semantic date identity; no fragment translation",
+    )
+    add(
+        "exercise.description.stable_key",
+        "기본 운동 설명",
+        "Built-in description by stableKey",
+        presentation,
+        ("fun exerciseDescription", "exerciseDescriptionIds[exercise.stableKey]", "if (exercise.isCustom)"),
+        GENERATED_ENGLISH,
+        "Built-in overlay with custom content passthrough",
+    )
+    add(
+        "program.name.stable_key",
+        "기본 프로그램 이름",
+        "Seeded program name by stable identity",
+        presentation,
+        ("fun programName", "programNameIds[program.stableKey]", "program.name"),
+        GENERATED_ENGLISH,
+        "Seeded overlay; stored user name fallback remains verbatim",
+    )
+    add(
+        "user.content.passthrough",
+        "사용자 입력",
+        "User-entered content unchanged",
+        presentation,
+        ("if (exercise.isCustom) exercise.name", "if (exercise.isCustom) exercise.description", "?: program.name"),
+        USER_PASSTHROUGH,
+        "Names and descriptions are not machine-translated",
+    )
+    add(
+        "analysis.signal.semantic_codes",
+        "분석 신호",
+        "Analysis signals by message code",
+        presentation,
+        ("SleepRecoveryMessageCode", "JointTendonWarningMessageCode", "CourtDurationRecoveryMessageCode"),
+        GENERATED_ENGLISH,
+        "Domain codes remain locale-invariant; presentation owns wording",
+    )
+    add(
+        "analysis.posterior_median",
+        "사후분포 중앙값",
+        "Posterior median",
+        KOTLIN_ROOT / "com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt",
+        ('"사후분포 중앙값"',),
+        APPROVED,
+        "Approved statistical identity routed through the shared Text presentation boundary",
+    )
+
+    for path, prefix, note in (
+        (EXERCISE_DESCRIPTION_EN, "exercise.description", "Canonical built-in description coverage"),
+        (PROGRAM_NAME_EN, "program.name", "Seeded program identity coverage"),
+    ):
+        for item in authority._csv_rows(path):
+            rows.append(
+                {
+                    "resourceKey": f"{prefix}.{item['stableKey'].strip()}",
+                    "korean": item["korean"].strip(),
+                    "english": item["english"].strip(),
+                    "scope": "CANONICAL_ASSET_PRESENTATION",
+                    "sourcePath": relative(path),
+                    "sourceLineOrSymbol": item["stableKey"].strip(),
+                    "classification": "PRODUCTION_UI",
+                    "status": GENERATED_ENGLISH if item["english"].strip() else UNEXPLAINED,
+                    "placeholderSignature": placeholder_signature(item["korean"].strip()),
+                    "pluralRequired": "NO",
+                    "notes": note,
+                }
+            )
+    return rows
 
 
 def collect() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
     default = parse_resources(DEFAULT_VALUES)
     english = parse_resources(ENGLISH_VALUES)
     literals = kotlin_literals()
-    ui_rows = resource_rows(default, english) + literals
+    origins = presentation_origin_rows()
+    ui_rows = resource_rows(default, english) + literals + origins
     exercises = exercise_rows()
     invalid_placeholders = sum(
         bool(row["english"])
@@ -348,19 +478,25 @@ def collect() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str
         )
         for row in ui_rows
     )
-    unexplained = sum(row["status"] == "UNEXPLAINED_ENGLISH_MODE_KOREAN" for row in ui_rows)
+    unexplained = sum(row["status"] == UNEXPLAINED for row in ui_rows)
     summary = [
         {"metric": "koreanUiResourceCount", "value": str(sum(KOREAN.search(row["korean"]) is not None for row in resource_rows(default, english)))},
         {"metric": "existingEnglishResourceCount", "value": str(len(english))},
         {"metric": "totalProductionUiResourceCount", "value": str(len(default))},
         {"metric": "currentBaselineCheckRequired", "value": "0"},
         {"metric": "unexplainedEnglishModeKoreanLeakCount", "value": str(unexplained)},
+        {"metric": "unexplainedProductionLeakCount", "value": str(unexplained)},
         {"metric": "builtInExerciseCount", "value": str(len(exercises))},
-        {"metric": "localizedExerciseNameCount", "value": str(sum(row["status"] == "LOCALIZED_BY_STABLE_KEY" for row in exercises))},
+        {"metric": "localizedExerciseNameCount", "value": str(sum(row["status"] == APPROVED for row in exercises))},
+        {"metric": "localizedExerciseDescriptionCount", "value": str(sum(row["scope"] == "CANONICAL_ASSET_PRESENTATION" and row["resourceKey"].startswith("exercise.description.") for row in origins))},
+        {"metric": "localizedSeedProgramNameCount", "value": str(sum(row["scope"] == "CANONICAL_ASSET_PRESENTATION" and row["resourceKey"].startswith("program.name.") for row in origins))},
         {"metric": "historyOnlyExerciseNameCount", "value": "16"},
         {"metric": "invalidEnglishPlaceholderCount", "value": str(invalid_placeholders)},
-        {"metric": "localeAwareExactLiteralCount", "value": str(sum(row["status"] == "LOCALE_AWARE_EXACT_ROUTE" for row in ui_rows))},
-        {"metric": "localeAwareDynamicLiteralCount", "value": str(sum(row["status"] == "LOCALE_AWARE_DYNAMIC_ROUTE" for row in ui_rows))},
+        {"metric": "approvedLocalizedPresentationCount", "value": str(sum(row["status"] == APPROVED for row in ui_rows))},
+        {"metric": "codexGeneratedEnglishCount", "value": str(sum(row["status"] == GENERATED_ENGLISH for row in ui_rows))},
+        {"metric": "userContentPassthroughCount", "value": str(sum(row["status"] == USER_PASSTHROUGH for row in ui_rows))},
+        {"metric": "canonicalNonDisplayCount", "value": str(sum(row["status"] == CANONICAL_NON_DISPLAY for row in ui_rows))},
+        {"metric": "internalDebugCount", "value": str(sum(row["status"] == INTERNAL_DEBUG for row in ui_rows))},
     ]
     return ui_rows, exercises, summary
 

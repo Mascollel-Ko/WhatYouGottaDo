@@ -61,7 +61,8 @@ class CourtDurationRecoveryAnalyzer {
                 detail = "배드민턴 시간과 다음날 회복 입력을 날짜 기준으로 모으는 중입니다.",
                 observedThresholdMinutes = null,
                 sampleSize = pairs.size,
-                sleepContext = null
+                sleepContext = null,
+                messageCode = CourtDurationRecoveryMessageCode.INSUFFICIENT_DATA
             )
         }
 
@@ -95,7 +96,12 @@ class CourtDurationRecoveryAnalyzer {
             },
             observedThresholdMinutes = strongestThreshold,
             sampleSize = pairs.size,
-            sleepContext = sleepContext
+            sleepContext = sleepContext,
+            messageCode = when (severity) {
+                CoachingSignalSeverity.CAUTION -> CourtDurationRecoveryMessageCode.LONG_DURATION_CAUTION
+                CoachingSignalSeverity.WATCH -> CourtDurationRecoveryMessageCode.LONG_DURATION_WATCH
+                else -> CourtDurationRecoveryMessageCode.REFERENCE
+            }
         )
     }
 

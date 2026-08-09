@@ -127,7 +127,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 검토된 최소 local 관측 수 미충족,Minimum number of local observations reviewed not met,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/strengthperformance/PersistentStrengthPerformanceSummary.kt
 계산 중,Calculating,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt
 계산기가 추가 오류 메시지를 남기지 않았습니다.,The calculator did not leave any additional error messages.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt
-계획,plan,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+계획,Plan,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 계획 0세트,Plan 0 sets,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 계획대로 진행 가능,Can proceed as planned,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/PhaseAwareTodayStatus.kt
 계획에 보완할 여지가 있습니다,There is room for improvement in the plan,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/text/AnalysisSentencePolicy.kt
@@ -209,7 +209,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 기능,function,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기능곡선,Functional curve,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt
 기능성운동,functional exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
-기록,record,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+기록,Record,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기록 기간을 프로그램으로 저장,Save the recording period as a program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기록 기준으로는,Based on records,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/text/AnalysisSentencePolicy.kt
 기록 백업 실패: ${error.message ?:,History backup failed: ${error.message ?:,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -222,7 +222,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 기본 horizon은 2주이며 1~8주에서 선택할 수 있습니다. 자료가 부족하면 가능한 기간으로 자동 축소합니다.,"The default horizon is 2 weeks, and you can select from 1 to 8 weeks. If there is insufficient data, the period is automatically reduced to the available period.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 기본 분류,Basic classification,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기본 분류를 입력하세요.,Please enter your default classification.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-기본 프로그램,basic program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+기본 프로그램,Basic program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기본 프로그램을 준비하는 중입니다. 잠시 후 다시 확인하세요.,We are preparing the basic program. Please check back later.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기본 휴식,basic rest,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 기본 휴식시간(초),Default rest time (seconds),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -298,7 +298,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 동작 분류,Movement classification,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 동작 세부형,Action details,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 동작 집중,focus on movement,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
-동작 패턴,motion pattern,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+동작 패턴,Motion pattern,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 되돌리기,revert,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 둔근/햄스트링,Glute/Hamstrings,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleBucketSelection.kt
 등,etc.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleBucketSelection.kt
@@ -319,7 +319,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 레그익스텐션,leg extension,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramCandidate.kt
 레그컬,leg curl,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramCandidate.kt
 레그프레스,leg press,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramCandidate.kt
-레벨,level,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+레벨,Level,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 로우,low,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleLoadInputBuilder.kt
 롤링 사전검증,Rolling pre-verification,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
 루마니안,Romanian,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleLoadInputBuilder.kt
@@ -421,7 +421,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 부위별 피로,Fatigue by area,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 부족,shortage,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
 분,minute,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-분석,analyze,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisScreen.kt
+분석,Analysis,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisScreen.kt
 분석 가능한 주간 데이터가 부족합니다. 최소 8~12주 이상의 기록이 필요합니다.,There is insufficient weekly data available for analysis. At least 8 to 12 weeks of records are required.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 분석 단위,unit of analysis,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt
 분석 대상,analysis target,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -444,11 +444,11 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 사두,sadhu,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 사선,diagonal,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 사용 가능한 지표,Available Metrics,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
-사용 근육과 장비,muscles and equipment used,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+사용 근육과 장비,Muscles and equipment used,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 사용 주,use note,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 사용자 메타데이터 수정값을 삭제하고 기본값으로 되돌립니다.,Deletes user metadata modifications and reverts them to default.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-사후분포 중앙값,Median posterior distribution,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
-삭제,delete,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
+사후분포 중앙값,Posterior median,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+삭제,Delete,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
 삼각,triangle,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 삼두,triceps,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt
 상관계수,correlation coefficient,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
@@ -476,7 +476,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 성공/실패,success/failure,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 성과,result,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisLabModels.kt
 성별,gender,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
-성장률,growth rate,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+성장률,Growth rate,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 성장률 음영은 이전 중앙값 대비 현재 추정 범위이며 정확한 성장률 사후분포가 아닙니다.,"The growth rate shading is a range of current estimates relative to the previous median, not the exact posterior distribution of growth rates.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 성장률 이전 추정 없음,No previous estimates of growth rates,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 세부 분류,Detailed classification,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
@@ -497,7 +497,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 손목/손,wrist/hand,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 숄더,shoulder,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleLoadInputBuilder.kt
 수,number,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
-수면,sleep,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
+수면,Sleep,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 수면 기록 부족,lack of sleep history,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachingSignalModels.kt
 수면 부족 / 회복 입력,Enter sleep deprivation/recovery,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
 수면 시간이 낮게 기록됐습니다.,Sleep time was recorded as low.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/RecoverySignalInterpreter.kt
@@ -506,7 +506,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 수면시간이 낮아 피로 해석을 보수적으로 적용합니다.,Fatigue analysis is applied conservatively due to low sleep time.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
 수면이 평소보다 짧게 잡혔습니다.,Sleep was shorter than usual.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/RecoverySignalInterpreter.kt
 수면질,sleep quality,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
-수정,correction,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+수정,Edit,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
 수치 진단 ${summary.numericalDiagnostics.ifEmpty { listOf(,Numerical Diagnostics ${summary.numericalDiagnostics.ifEmpty { listOf(,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 수트케이스,suitcase,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 수행 저하 신호,signs of poor performance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
@@ -617,7 +617,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 운동 수,number of exercises,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt
 운동 이름을 입력하세요.,Enter the exercise name.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 운동 전,before exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueModels.kt
-운동 정보,exercise information,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+운동 정보,Exercise information,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 운동 추가,Add exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
 운동 프로그램 삭제,Delete exercise program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 운동 프로그램을 삭제했습니다.,I deleted my exercise program.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -643,7 +643,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 이동,movement,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 이동하면 원본 날짜의 운동 기록이 삭제됩니다.,"When you move, your workout history from the original date will be deleted.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 이두,biceps,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt
-이미지 없음,no image,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+이미지 없음,No image,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 이전 버전 보수적 하한 관측,Previous version conservative lower bound observation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 이전 중앙값 대비 현재 추정 범위,Current estimate range versus the previous median,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 이전 추정 없음,No previous estimates,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
@@ -683,7 +683,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 저반복/고강도,Low repetition/high intensity,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 저반복/고강도(1~5회),Low reps/high intensity (1-5 reps),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 저장,save,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
-적용,apply,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/ui/FatigueSourceMultiSelect.kt
+적용,Apply,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/ui/FatigueSourceMultiSelect.kt
 전단 부하에 대응,Responds to shear load,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/tissue/TissueRcvAssetRepository.kt
 전신 근육,full body muscles,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
 전신 부담,full body strain,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
@@ -783,7 +783,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 주동근,Joo Dong-geun,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 주별 배드민턴 전이 자극량,Weekly badminton transfer stimulation amount,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 주별로 표시할 배드민턴 관련 훈련 기록이 없습니다.,There are no badminton-related training records to display by state.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt
-주요 동작,main action,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+주요 동작,Main action,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 "주요 리프트, 근육군, 반복수 구간 흐름을 봅니다.","View the flow of major lifts, muscle groups, and reps.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisScreen.kt
 주요 목표,main goal,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 주요 운동 프록시 추정 실험,Key motion proxy estimation experiments,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
@@ -989,7 +989,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 현재 피로 상태와 피로 축별 주요 기여 운동을 봅니다.,View your current fatigue state and major contributing exercises for each fatigue axis.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisScreen.kt
 현재 피로가 누적된 상태입니다. 추가 고강도 운동은 피하는 편이 좋습니다.,Fatigue is currently accumulated. It is best to avoid additional high-intensity exercise.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/PhaseAwareTodayStatus.kt
 현재 회복 판단,Current recovery judgment,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/PhaseAwareTodayStatus.kt
-홈,home,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+홈,Home,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 홉 투 스틱,hop to stick,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 홉/바운드/점프,Hop/Bound/Jump,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 화,fury,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt

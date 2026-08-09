@@ -72,7 +72,10 @@ class RpeAutoregulationAnalyzer {
             headline = "비슷한 부하에서 RPE가 상승했습니다",
             detail = "${top.exerciseName}의 최근 RPE 평균 ${top.recentRpe.formatOneDecimal()}, 이전 비슷한 세트 ${top.baselineRpe.formatOneDecimal()}입니다. 오늘은 같은 무게라도 체감 강도를 확인하며 조절합니다.",
             sleepContext = sleepContext,
-            sampleSize = top.sampleSize
+            sampleSize = top.sampleSize,
+            recentAverageRpe = top.recentRpe,
+            baselineAverageRpe = top.baselineRpe,
+            messageCode = RpeAutoregulationMessageCode.INCREASED_AT_SIMILAR_LOAD
         )
     }
 

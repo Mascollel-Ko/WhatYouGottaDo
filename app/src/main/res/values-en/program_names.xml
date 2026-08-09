@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="program_name_10">Strength Max-Test Week</string>
+    <string name="program_name_11">Beginner Strength Foundations - 4 Weeks</string>
+    <string name="program_name_12">Beginner Bodybuilding Machines and Compounds - 4 Weeks</string>
+    <string name="program_name_13">Beginner Functional Stability - 4 Weeks</string>
+    <string name="program_name_14">Beginner Running Support - 4 Weeks</string>
+    <string name="program_name_3">Badminton Strength Support - 4 Weeks</string>
+    <string name="program_name_4">General Strength - 4-Week Block</string>
+    <string name="program_name_5">Bodybuilding 3-Day Split</string>
+    <string name="program_name_6">Bodybuilding 4-Day Split</string>
+    <string name="program_name_7">Bodybuilding 5-Day Split</string>
+    <string name="program_name_8">Badminton Optimization - 4-Week Split</string>
+    <string name="program_name_9">Functional and Strength Max-Test Week</string>
+</resources>

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.localization.localizedExerciseName
+import com.training.trackplanner.localization.localizedExerciseDescription
 import java.time.LocalDate
 import java.util.Locale
 
@@ -142,7 +143,7 @@ internal fun QuietChoiceChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(label) },
+        label = { Text(label, maxLines = 1, softWrap = false) },
         shape = MaterialTheme.shapes.small,
         colors = FilterChipDefaults.filterChipColors(
             containerColor = MaterialTheme.colorScheme.surface,
@@ -329,6 +330,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
     val context = LocalContext.current
     val translator = rememberMetadataTranslator()
     val displayName = localizedExerciseName(exercise)
+    val displayDescription = localizedExerciseDescription(exercise)
     val bitmap = remember(exercise.imageAssetName) {
         runCatching {
             if (exercise.imageAssetName.isBlank()) {
@@ -391,9 +393,9 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (exercise.description.isNotBlank()) {
+            if (displayDescription.isNotBlank()) {
                 Text(
-                    text = exercise.description,
+                    text = displayDescription,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

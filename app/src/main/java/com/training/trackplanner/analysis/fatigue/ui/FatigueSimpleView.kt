@@ -57,8 +57,8 @@ internal fun FatigueSimpleView(state: FatigueSimpleUiState) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            LoadList("높은 부하", state.highLoadItems, Modifier.weight(1f))
-            LoadList("여유 부하", state.availableLoadItems, Modifier.weight(1f))
+            LoadList("고부하 축", state.highLoadItems, Modifier.weight(1f))
+            LoadList("저부하 축", state.availableLoadItems, Modifier.weight(1f))
         }
     }
 }
@@ -78,7 +78,7 @@ private fun LoadList(title: String, items: List<FatigueLoadItem>, modifier: Modi
             }
         }
         if (items.isEmpty()) {
-            Text("운동 기록이 쌓이면 표시됩니다.", style = MaterialTheme.typography.bodySmall)
+            Text("운동 기록이 더 쌓이면 표시됩니다.", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

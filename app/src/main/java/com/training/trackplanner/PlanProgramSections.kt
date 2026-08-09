@@ -28,6 +28,7 @@ import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.localization.localizedExerciseName
+import com.training.trackplanner.localization.localizedProgramName
 
 @Composable
 internal fun ProgramDaySummarySection(
@@ -141,6 +142,7 @@ internal fun ProgramCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val displayName = localizedProgramName(program)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -155,7 +157,7 @@ internal fun ProgramCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = program.name,
+                        text = displayName,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )

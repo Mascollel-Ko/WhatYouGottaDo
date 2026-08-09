@@ -23,8 +23,8 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 
 private enum class FatigueAnalysisMode(val label: String) {
-    SIMPLE("간단히"),
-    DETAIL("자세히")
+    SIMPLE("개요"),
+    DETAIL("상세")
 }
 
 @Composable

@@ -49,7 +49,12 @@ class JointTendonWarningAnalyzer {
             detail = detail,
             relatedStressLabels = stressLabels.take(4),
             sleepContext = sleepContext,
-            sampleSize = recentCheckIns.size + stressLabels.size
+            sampleSize = recentCheckIns.size + stressLabels.size,
+            messageCode = if (hasMetadataStress) {
+                JointTendonWarningMessageCode.RELATED_EXERCISE_STRESS
+            } else {
+                JointTendonWarningMessageCode.DISCOMFORT_ONLY
+            }
         )
     }
 

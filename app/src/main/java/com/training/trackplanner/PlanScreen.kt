@@ -52,6 +52,7 @@ import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.defaultProgramWeekDaySchedule
 import com.training.trackplanner.data.emptyProgramSkeleton
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
+import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
 
 @Composable
@@ -168,9 +169,10 @@ private fun ProgramListScreen(
     }
 
     applyTarget?.let { program ->
+        val displayName = localizedProgramName(program)
         AlertDialog(
             onDismissRequest = { applyTarget = null },
-            title = { Text("${program.name} 적용") },
+            title = { Text("$displayName 적용") },
             text = {
                 ProgramApplyCard(
                     program = program,
@@ -638,6 +640,7 @@ private fun ProgramDetailScreen(
     onEdit: () -> Unit,
     onDeleted: () -> Unit
 ) {
+    val displayName = localizedProgramName(program)
     val context = LocalContext.current
     val items by remember(program.id) {
         viewModel.programItems(program.id)
@@ -721,7 +724,7 @@ private fun ProgramDetailScreen(
         }
         item {
             ScreenHeader(
-                title = program.name,
+                title = displayName,
                 body = "주차와 요일별 운동 구성을 텍스트 요약으로 확인합니다."
             )
         }

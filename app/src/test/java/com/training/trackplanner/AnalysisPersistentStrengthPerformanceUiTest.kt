@@ -95,6 +95,20 @@ class AnalysisPersistentStrengthPerformanceUiTest {
     }
 
     @Test
+    @Config(sdk = [34], qualifiers = "en-rUS-w360dp-h800dp")
+    fun `english performance card uses posterior terminology and complete key lift names`() {
+        content { PersistentStrengthPerformanceCards(summary()) }
+
+        compose.onNodeWithText("Estimation of current performance").assertIsDisplayed()
+        compose.onNodeWithText("Level").assertIsDisplayed()
+        compose.onNodeWithText("Growth rate").assertIsDisplayed()
+        compose.onNodeWithText("Posterior median 100.0 kg").assertExists()
+        compose.onNodeWithText("Back squat").assertExists()
+        compose.onNodeWithText("Bench Press").assertExists()
+        compose.onNodeWithText("Barbell Deadlift").assertExists()
+    }
+
+    @Test
     fun `selection keeps one target and moves focus when focused target is removed`() {
         val keys = summary().targets.map(PersistentStrengthTargetSummary::targetKey)
         val initial = initialStrengthPerformanceSelectionState(keys)

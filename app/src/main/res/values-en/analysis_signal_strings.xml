@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sleep_signal_insufficient_headline">Insufficient sleep data</string>
+    <string name="sleep_signal_insufficient_detail">There is not enough recent sleep data to calculate a sleep-adjusted signal.</string>
+    <string name="sleep_signal_caution_headline">Recent sleep is very low</string>
+    <string name="sleep_signal_watch_headline">Recent sleep needs attention</string>
+    <string name="sleep_signal_info_headline">Recent sleep is not a major warning signal</string>
+    <string name="sleep_signal_baseline_detail">The 3-day average is %1$s hours, compared with a baseline of %2$s hours. Today\'s intensity is interpreted conservatively.</string>
+    <string name="sleep_signal_caution_detail">The 3-day average is %1$s hours. Allow extra margin when deciding on high-intensity training.</string>
+    <string name="sleep_signal_watch_detail">The 3-day average is %1$s hours. Fatigue signals are interpreted a little more conservatively.</string>
+    <string name="sleep_signal_info_detail">The 3-day average is %1$s hours. Sleep alone does not produce a strong adjustment signal.</string>
+    <string name="rpe_signal_headline">RPE increased at a similar load</string>
+    <string name="rpe_signal_detail">%1$s has a recent average RPE of %2$s, compared with %3$s for similar previous sets. Check perceived intensity and adjust even when using the same weight.</string>
+    <string name="rpe_signal_sleep_context">Recent sleep input is low, so the RPE interpretation is conservative.</string>
+    <string name="joint_tendon_signal_headline">Review the joint and tendon discomfort input</string>
+    <string name="joint_tendon_signal_related_detail">Recent discomfort and related workout records appear together. Reduce intensity while checking jumps, deceleration, and heavy lower-body work.</string>
+    <string name="joint_tendon_signal_discomfort_detail">Recent discomfort input is high. The workout records alone are not conclusive, so adjust today\'s load conservatively.</string>
+    <string name="joint_tendon_signal_sleep_context">Sleep input is also low, so the recovery interpretation is conservative.</string>
+    <string name="court_signal_insufficient_headline">Limited court-duration response data</string>
+    <string name="court_signal_insufficient_detail">Badminton duration and next-day recovery inputs are being collected by date.</string>
+    <string name="court_signal_caution_headline">Review recovery after long court sessions</string>
+    <string name="court_signal_watch_headline">Review responses after 90 minutes or more on court</string>
+    <string name="court_signal_reference_headline">Court-duration response is currently a reference signal</string>
+    <string name="court_signal_threshold_detail">Some records show high next-day fatigue or discomfort after at least %1$d minutes of badminton. This does not establish a fixed pattern, so next-day intensity is interpreted conservatively.</string>
+    <string name="court_signal_reference_detail">Current records do not show that longer court sessions always lead to high next-day fatigue input.</string>
+    <string name="court_signal_sleep_context">Recent sleep input is low, so recovery after long court sessions is interpreted conservatively.</string>
+</resources>

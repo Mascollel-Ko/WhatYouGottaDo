@@ -5,6 +5,8 @@
   "currentBaselineCheckRequired": 0,
   "uiApprovedRows": 612,
   "exerciseApprovedRows": 257,
+  "exerciseDescriptionLocalizedRows": 257,
+  "seedProgramLocalizedRows": 12,
   "metadataAuthoritativeRows": 1834,
   "tissueApprovedRows": 92,
   "exactUiRuntimeEntries": 2773,

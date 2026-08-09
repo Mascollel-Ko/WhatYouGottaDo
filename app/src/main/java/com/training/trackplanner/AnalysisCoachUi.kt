@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
@@ -59,6 +60,7 @@ import com.training.trackplanner.analysis.trends.PerformanceDetailSectionType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.AnalysisStats
+import com.training.trackplanner.localization.LocalizedPresentation
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -237,11 +239,19 @@ internal const val LOCAL_MUSCLE_EMPTY_TEXT = "두드러지게 피로한 근육�
 
 @Composable
 internal fun RecognitionSignalsCard(summary: CoachingSignalsSummary) {
+    val context = LocalContext.current
     val performanceRows = listOfNotNull(
-        summary.rpe?.let { signal -> Triple("수행 감소", signal.severity, "${signal.headline} ${signal.detail}".trim()) },
-        summary.jointTendon?.let { signal -> Triple("불편감 경고", signal.severity, "${signal.headline} ${signal.detail}".trim()) },
-        summary.courtRecovery?.let { signal -> Triple("코트 회복 반응", signal.severity, "${signal.headline} ${signal.detail}".trim()) }
+        summary.rpe?.let { signal ->
+            Triple("수행 감소", signal.severity, LocalizedPresentation.rpeAutoregulationSignal(context, signal).combined())
+        },
+        summary.jointTendon?.let { signal ->
+            Triple("불편감 경고", signal.severity, LocalizedPresentation.jointTendonSignal(context, signal).combined())
+        },
+        summary.courtRecovery?.let { signal ->
+            Triple("코트 회복 반응", signal.severity, LocalizedPresentation.courtDurationSignal(context, signal).combined())
+        }
     )
+    val sleepText = LocalizedPresentation.sleepRecoverySignal(context, summary.sleep)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("인식 신호", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -258,7 +268,7 @@ internal fun RecognitionSignalsCard(summary: CoachingSignalsSummary) {
             RecognitionSignalDetail(
                 label = "수면",
                 severity = summary.sleep.severity,
-                detail = "${summary.sleep.headline} ${summary.sleep.detail}".trim()
+                detail = sleepText.combined()
             )
         }
     }

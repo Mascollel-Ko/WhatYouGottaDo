@@ -1,6 +1,8 @@
 package com.training.trackplanner
 
 import com.training.trackplanner.localization.localizedUiText
+import com.training.trackplanner.localization.localizedWeekday
+import com.training.trackplanner.localization.localizedYearMonth
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -47,6 +49,7 @@ import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.RecordRangeProgramSummary
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -232,7 +235,7 @@ internal fun RecordCalendarScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${month.year}년 ${month.monthValue}월",
+                    text = localizedYearMonth(month),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -378,10 +381,10 @@ private fun CalendarGrid(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("월", "화", "수", "목", "금", "토", "일").forEach { label ->
+            DayOfWeek.entries.forEach { dayOfWeek ->
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = label,
+                    text = localizedWeekday(dayOfWeek),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
