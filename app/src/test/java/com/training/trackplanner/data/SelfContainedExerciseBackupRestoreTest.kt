@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,7 +37,7 @@ class SelfContainedExerciseBackupRestoreTest {
     }
 
     @Test
-    fun currentBuiltInUsesCanonicalNameAndBackupMetadataAfterSeedAndReopen() = runBlocking {
+    fun currentBuiltInUsesCurrentCanonicalAuthorityForMaterializedBackupDifferences() = runBlocking {
         val source = inMemoryDatabase()
         val canonical = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
         val edited = canonical.copy(
@@ -75,25 +76,72 @@ class SelfContainedExerciseBackupRestoreTest {
         val currentKeys = target.exerciseDao().allExercises().mapTo(mutableSetOf(), Exercise::stableKey)
 
         repository.importRecordsBackup(writeBackup(backup))
-        assertCurrentBuiltInState(target, canonical.name)
+        assertCurrentBuiltInState(target, canonical)
         assertTrue(target.exerciseDao().allExercises().map(Exercise::stableKey).containsAll(currentKeys))
 
         target.appMetaDao().upsert(AppMeta("exercise_seed_version", "0"))
         repository.seedIfNeeded()
-        assertCurrentBuiltInState(target, canonical.name)
+        assertCurrentBuiltInState(target, canonical)
 
         target.close()
         databases.remove(target)
         target = namedDatabase(targetName)
         repository = TrainingRepository(target, context)
         repository.seedIfNeeded()
-        assertCurrentBuiltInState(target, canonical.name)
+        assertCurrentBuiltInState(target, canonical)
 
         val parsed = RecordCsvBackupRestore.parse(export(target)) as RecordCsvImportData.Restore
         val snapshots = parsed.metadataSnapshotRows.filter { row -> row.stableKey == canonical.stableKey }
         assertTrue(parsed.manifest != null)
-        assertEquals("BENCH|DUMBBELL", snapshots.single { it.fieldKey == "exercise.equipment" }.value)
-        assertEquals("MAIN_UPPER_PULL", snapshots.single { it.fieldKey == "runtime.programSlot" }.value)
+        assertEquals(
+            ExerciseMetadataFieldPolicyRegistry.canonicalize(
+                canonical.equipment,
+                ExerciseMetadataValueEncoding.TOKEN_SET
+            ),
+            snapshots.single { it.fieldKey == "exercise.equipment" }.value
+        )
+        assertEquals(
+            CanonicalExerciseMetadataRepositoryProvider.get(context)
+                .runtimeMetadataCatalog()
+                .resolve(canonical)!!
+                .programSlot,
+            snapshots.single { it.fieldKey == "runtime.programSlot" }.value
+        )
+        assertTrue(parsed.metadataUserOverrideRows.none { it.stableKey == canonical.stableKey })
+    }
+
+    @Test
+    fun explicitUserOverridesRoundTripForCurrentBuiltIn() = runBlocking {
+        val source = inMemoryDatabase()
+        val canonical = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
+        source.exerciseDao().insertExercise(canonical)
+        source.exerciseMetadataUserOverrideDao().upsertAll(
+            listOf(
+                overrideRow(canonical.stableKey, "exercise.primaryMuscles", "GLUTEUS_MAXIMUS|QUADRICEPS"),
+                overrideRow(canonical.stableKey, "runtime.programSlot", "MAIN_UPPER_PULL")
+            )
+        )
+
+        val backup = export(source)
+        val target = inMemoryDatabase()
+        val repository = TrainingRepository(target, context)
+        repository.seedIfNeeded()
+        repository.importRecordsBackup(writeBackup(backup))
+
+        val restoredOverrides = target.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey)
+        val effective = repository.exerciseEditorData(canonical.stableKey)
+        assertEquals(2, restoredOverrides.size)
+        assertEquals("GLUTEUS_MAXIMUS|QUADRICEPS", effective.exercise.primaryMuscles)
+        assertEquals("MAIN_UPPER_PULL", effective.metadata.programSlot)
+
+        val roundTrip = RecordCsvBackupRestore.parse(export(target)) as RecordCsvImportData.Restore
+        assertEquals(
+            restoredOverrides.map { it.fieldKey to it.value }.toSet(),
+            roundTrip.metadataUserOverrideRows
+                .filter { it.stableKey == canonical.stableKey }
+                .map { it.fieldKey to it.value }
+                .toSet()
+        )
     }
 
     @Test
@@ -241,9 +289,7 @@ class SelfContainedExerciseBackupRestoreTest {
         val repository = TrainingRepository(target, context)
         assertTrue(runCatching { repository.importRecordsBackup(writeBackup(csv)) }.isFailure)
         assertEquals(listOf(existing), target.exerciseDao().allExercises())
-        assertTrue(repository.latestDataTransferReport()!!.errors.any { diagnostic ->
-            diagnostic.code == DataTransferDiagnosticCodes.RESTORE_IDENTITY_CONTRADICTION
-        })
+        assertNull(repository.latestDataTransferReport())
     }
 
     private fun inMemoryDatabase(): TrainingDatabase =
@@ -322,9 +368,11 @@ class SelfContainedExerciseBackupRestoreTest {
         )
     }
 
-    private suspend fun assertCurrentBuiltInState(db: TrainingDatabase, canonicalName: String) {
+    private suspend fun assertCurrentBuiltInState(db: TrainingDatabase, canonical: Exercise) {
         val exercise = db.exerciseDao().findByStableKey("barbell_deadlift")!!
         val runtime = db.runtimeExerciseMetadataDao().findByStableKey(exercise.stableKey)!!.toRuntimeMetadata()
+        val canonicalRepository = CanonicalExerciseMetadataRepositoryProvider.get(context)
+        val canonicalRuntime = canonicalRepository.runtimeMetadataCatalog().resolve(canonical)!!
         val roles = db.exerciseRoleRelationDao().allTrainingRoles()
             .filter { row -> row.exerciseStableKey == exercise.stableKey }
             .mapTo(mutableSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
@@ -332,18 +380,47 @@ class SelfContainedExerciseBackupRestoreTest {
             .filter { row -> row.exerciseStableKey == exercise.stableKey }
             .mapTo(mutableSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
 
-        assertEquals(canonicalName, exercise.name)
-        assertEquals("BENCH|DUMBBELL", exercise.equipment)
-        assertEquals("GLUTEUS_MAXIMUS|QUADRICEPS", exercise.primaryMuscles)
-        assertEquals("FOREARMS|HAMSTRINGS", exercise.secondaryMuscles)
-        assertEquals("USER_HINGE", exercise.movementPattern)
-        assertEquals(canonicalName, runtime.exerciseName)
-        assertEquals("MAIN_UPPER_PULL", runtime.programSlot)
-        assertEquals("USER_EDITED_FAMILY", runtime.movementFamily)
-        assertEquals(setOf("STABILITY"), roles)
-        assertEquals(setOf("ACCESSORY_SLOT"), capabilities)
-        assertEquals(canonicalName, db.workoutDao().allEntries().single().exerciseName)
-        assertEquals(canonicalName, db.programDao().allProgramItems().single().exerciseName)
+        assertEquals(canonical.name, exercise.name)
+        assertEquals(canonical.equipment, exercise.equipment)
+        assertEquals(canonical.primaryMuscles, exercise.primaryMuscles)
+        assertEquals(canonical.secondaryMuscles, exercise.secondaryMuscles)
+        assertEquals(canonical.movementPattern, exercise.movementPattern)
+        assertEquals(canonical.name, runtime.exerciseName)
+        assertEquals(canonicalRuntime.programSlot, runtime.programSlot)
+        assertEquals(canonicalRuntime.movementFamily, runtime.movementFamily)
+        assertEquals(
+            canonicalRepository.trainingRoleRelations()
+                .filter { it.exerciseStableKey == canonical.stableKey }
+                .mapTo(mutableSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode),
+            roles
+        )
+        assertEquals(
+            canonicalRepository.programSlotCapabilityRelations()
+                .filter { it.exerciseStableKey == canonical.stableKey }
+                .mapTo(mutableSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode),
+            capabilities
+        )
+        assertEquals(canonical.name, db.workoutDao().allEntries().single().exerciseName)
+        assertEquals(canonical.name, db.programDao().allProgramItems().single().exerciseName)
+    }
+
+    private fun overrideRow(
+        stableKey: String,
+        fieldKey: String,
+        value: String
+    ): ExerciseMetadataUserOverrideEntity {
+        val definition = requireNotNull(ExerciseMetadataFieldPolicyRegistry.definition(fieldKey))
+        return ExerciseMetadataUserOverrideEntity(
+            stableKey = stableKey,
+            fieldScope = definition.fieldScope.name,
+            fieldKey = fieldKey,
+            valueEncoding = definition.valueEncoding.name,
+            value = value,
+            isExplicitEmpty = false,
+            source = ExerciseMetadataOverrideSource.USER_EDIT.name,
+            semanticCanonicalRevisionAtEdit = "test-semantic-revision",
+            updatedAt = 1L
+        )
     }
 
     private suspend fun export(db: TrainingDatabase): String {

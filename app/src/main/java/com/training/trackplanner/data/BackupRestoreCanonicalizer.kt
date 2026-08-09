@@ -147,8 +147,8 @@ internal class BackupRestoreCanonicalizer(
                     row.copy(
                         stableKey = resolution.canonicalStableKey,
                         name = current?.name ?: resolution.canonicalName.ifBlank { row.name },
-                        isActive = if (current == null) false else row.isActive,
-                        needsReview = row.needsReview || current == null
+                        isActive = if (current != null || row.isCustom) row.isActive else false,
+                        needsReview = row.needsReview || (!row.isCustom && current == null)
                     )
                 }
                 is LegacyExerciseResolution.Dropped -> {
@@ -222,6 +222,13 @@ internal class BackupRestoreCanonicalizer(
             resolved(row.stableKey, sourceRowsByKey[row.stableKey]?.name.orEmpty(), "ExerciseMetadataSnapshot")
                 ?.let { row.copy(stableKey = it.canonicalStableKey) }
         }
+        val overrideRows = data.metadataUserOverrideRows.mapNotNull { row ->
+            resolved(row.stableKey, sourceRowsByKey[row.stableKey]?.name.orEmpty(), "ExerciseMetadataUserOverride")
+                ?.let { row.copy(stableKey = it.canonicalStableKey).validated() }
+        }
+        require(
+            overrideRows.distinctBy { Triple(it.stableKey, it.fieldScope, it.fieldKey) }.size == overrideRows.size
+        ) { "Backup contains duplicate explicit metadata override fields." }
         val setRows = data.setRows.mapNotNull { row ->
             resolved(row.stableKey, row.exerciseName, "WorkoutEntry")?.let { resolution ->
                 row.copy(
@@ -259,6 +266,7 @@ internal class BackupRestoreCanonicalizer(
                 setRows = setRows,
                 runtimeMetadataRows = runtimeRows,
                 metadataSnapshotRows = snapshotRows,
+                metadataUserOverrideRows = overrideRows,
                 programSnapshot = snapshot,
                 warningCount = data.warningCount + distinctWarnings.size
             ),

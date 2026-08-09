@@ -123,6 +123,9 @@ interface SmashSpeedDao {
 
     @Query("DELETE FROM smash_speed_records WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("DELETE FROM smash_speed_records WHERE parentWorkoutEntryId IN (:entryIds)")
+    suspend fun deleteForParentWorkoutEntries(entryIds: List<Long>)
 }
 
 @Dao
@@ -742,6 +745,9 @@ interface DailyCheckInDao {
 
 @Dao
 interface AppMetaDao {
+    @Query("SELECT * FROM app_meta ORDER BY `key`")
+    suspend fun all(): List<AppMeta>
+
     @Query("SELECT value FROM app_meta WHERE `key` = :key LIMIT 1")
     suspend fun value(key: String): String?
 

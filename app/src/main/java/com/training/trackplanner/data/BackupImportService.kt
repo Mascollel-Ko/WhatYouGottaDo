@@ -5,11 +5,87 @@ import android.net.Uri
 
 internal class BackupImportService(
     private val restoreImporter: suspend (RecordCsvImportData.Restore) -> RecordCsvTransferResult,
+    private val restorePlanImporter: (suspend (BackupRestorePlan) -> RecordCsvTransferResult)? = null,
+    private val restorePlanner: BackupRestorePlanner? = null,
     private val dailyTimeseriesImporter: suspend (RecordCsvImportData.DailyTimeseries) -> RecordCsvTransferResult,
     private val canonicalizer: BackupRestoreCanonicalizer,
     private val canonicalExercises: () -> Map<String, Exercise>,
     private val reportStore: DataTransferReportStore? = null
 ) {
+    internal data class PreparedRestore(
+        val prepared: BackupRestorePrepared,
+        val warnings: List<DataTransferDiagnostic>,
+        val fileDisplayName: String
+    )
+
+    suspend fun prepare(context: Context, uri: Uri): PreparedRestore {
+        val text = try {
+            context.contentResolver.openInputStream(uri)
+                ?.bufferedReader(Charsets.UTF_8)
+                ?.use { reader -> reader.readText() }
+        } catch (error: Throwable) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "Unable to read the restore file. ${error.message.orEmpty()}".trim()
+            )
+        } ?: throw DataTransferFormatException(
+            DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+            "The restore file is empty or unavailable."
+        )
+        val parsed = RecordCsvBackupRestore.parse(text)
+        require(parsed is RecordCsvImportData.Restore) {
+            "Selectable restore is available only for a full backup file."
+        }
+        val canonicalized = canonicalizer.canonicalize(parsed, canonicalExercises())
+        if (canonicalized.errors.isNotEmpty()) {
+            throw DataTransferFormatException(
+                canonicalized.errors.first().code,
+                canonicalized.errors.first().messageKo
+            )
+        }
+        return PreparedRestore(
+            prepared = checkNotNull(restorePlanner).prepare(canonicalized.data),
+            warnings = canonicalized.warnings,
+            fileDisplayName = uri.lastPathSegment.orEmpty()
+        )
+    }
+
+    suspend fun plan(
+        prepared: PreparedRestore,
+        workoutMode: WorkoutRestoreMode,
+        exerciseMode: ExerciseListRestoreMode
+    ): BackupRestorePlan = checkNotNull(restorePlanner).plan(prepared.prepared, workoutMode, exerciseMode)
+
+    suspend fun execute(
+        prepared: PreparedRestore,
+        plan: BackupRestorePlan,
+        onReportChanged: (DataTransferReport) -> Unit = {}
+    ): RecordCsvTransferResult {
+        val session = DataTransferReportSession(
+            store = checkNotNull(reportStore),
+            operation = DataTransferOperation.RESTORE,
+            fileDisplayName = prepared.fileDisplayName,
+            onChanged = onReportChanged
+        )
+        return try {
+            val result = checkNotNull(restorePlanImporter)(plan)
+            session.begin()
+            session.counts(restoreCounts(prepared.prepared.data))
+            session.stage(DataTransferStages.POSTRESTORE_VALIDATION)
+            session.finish(warnings = prepared.warnings)
+            result
+        } catch (error: Throwable) {
+            session.begin()
+            val diagnostic = DataTransferDiagnostic(
+                code = if (error is DataTransferFormatException) error.diagnosticCode
+                else DataTransferDiagnosticCodes.RESTORE_CANONICAL_KEY_UNRESOLVED,
+                messageKo = error.message ?: "Restore failed.",
+                stage = session.report.currentStage
+            )
+            throw DataTransferFailure(session.finish(errors = listOf(diagnostic)))
+        }
+    }
+
     suspend fun import(
         context: Context,
         uri: Uri,

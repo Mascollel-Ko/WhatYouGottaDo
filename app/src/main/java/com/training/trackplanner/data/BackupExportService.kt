@@ -13,11 +13,14 @@ internal class BackupExportService(
     private val exerciseRoleRelationDao: ExerciseRoleRelationDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
+    private val exerciseMetadataUserOverrideDao: ExerciseMetadataUserOverrideDao,
     private val appMetaDao: AppMetaDao,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val programDao: ProgramDao,
     private val exerciseIdentityMigrationIssueDao: ExerciseIdentityMigrationIssueDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider,
     private val reportStore: DataTransferReportStore,
     private val appVersion: String
 ) {
@@ -34,6 +37,8 @@ internal class BackupExportService(
         session.begin()
         try {
             session.stage(DataTransferStages.LOADING)
+            workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
+            val sourceDatabaseLineageId = workoutSourceIdentityProvider.sourceDatabaseLineageId()
             val entriesWithSets = workoutDao.allEntriesWithSets()
             val entries = workoutDao.allEntries()
             val sets = workoutDao.allSets()
@@ -43,13 +48,44 @@ internal class BackupExportService(
             val exercises = exerciseDao.allExercises()
             val trainingRoleRelations = exerciseRoleRelationDao.allTrainingRoles()
             val programSlotCapabilityRelations = exerciseRoleRelationDao.allProgramSlotCapabilities()
-            val persistedRuntimeMetadata = runtimeExerciseMetadataDao.all()
+            val persistedRuntimeByKey = runtimeExerciseMetadataDao.all()
                 .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-            val runtimeResolver = RuntimeExerciseMetadataResolver(
-                canonicalRuntimeMetadataCatalog,
-                persistedRuntimeMetadata
+                .associateBy(RuntimeExerciseMetadata::stableKey)
+            val metadataUserOverrides = exerciseMetadataUserOverrideDao.all()
+            val overridesByKey = metadataUserOverrides.groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
+            val materializedRolesByKey = trainingRoleRelations
+                .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+                .mapValues { (_, rows) -> rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode) }
+            val materializedCapabilitiesByKey = programSlotCapabilityRelations
+                .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
+                .mapValues { (_, rows) ->
+                    rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                }
+            val effectiveResolver = ExerciseMetadataEffectiveStateResolver(
+                canonicalExercisesByStableKey = canonicalMetadataRepository.exercises(includeHistory = true)
+                    .associateBy(Exercise::stableKey),
+                canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+                canonicalTrainingRolesByStableKey = canonicalMetadataRepository.trainingRoleRelations()
+                    .groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
+                    .mapValues { (_, rows) ->
+                        rows.mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
+                    },
+                canonicalProgramSlotsByStableKey = canonicalMetadataRepository.programSlotCapabilityRelations()
+                    .groupBy(ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
+                    .mapValues { (_, rows) ->
+                        rows.mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                    }
             )
-            val runtimeMetadata = exercises.map(runtimeResolver::resolve)
+            val effectiveStates = exercises.associate { exercise ->
+                exercise.stableKey to effectiveResolver.resolve(
+                    materializedExercise = exercise,
+                    materializedRuntimeMetadata = persistedRuntimeByKey[exercise.stableKey],
+                    materializedTrainingRoles = materializedRolesByKey[exercise.stableKey].orEmpty(),
+                    materializedProgramSlotCapabilities = materializedCapabilitiesByKey[exercise.stableKey].orEmpty(),
+                    overrides = overridesByKey[exercise.stableKey].orEmpty()
+                )
+            }
+            val runtimeMetadata = effectiveStates.values.map(ExerciseMetadataEffectiveState::runtimeMetadata)
             val profile = initialUserProfileDao.profile()
             val posteriorEvents = strengthPosteriorDao.allEvents()
             val posteriorHistory = strengthPosteriorDao.allHistory()
@@ -136,20 +172,14 @@ internal class BackupExportService(
                     seconds = set.seconds
                 )
             }
-            val trainingRolesByKey = trainingRoleRelations.groupBy(ExerciseTrainingRoleRelation::exerciseStableKey)
-            val capabilitiesByKey = programSlotCapabilityRelations.groupBy(
-                ExerciseProgramSlotCapabilityRelation::exerciseStableKey
-            )
-            val runtimeByKey = runtimeMetadata.associateBy(RuntimeExerciseMetadata::stableKey)
             val metadataSnapshots = exercises.flatMap { exercise ->
+                val state = checkNotNull(effectiveStates[exercise.stableKey])
                 ExerciseMetadataFieldPolicyRegistry.snapshot(
                     ExerciseMetadataSnapshotSource(
-                        exercise = exercise,
-                        runtimeMetadata = checkNotNull(runtimeByKey[exercise.stableKey]),
-                        trainingRoles = trainingRolesByKey[exercise.stableKey].orEmpty()
-                            .mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode),
-                        programSlotCapabilities = capabilitiesByKey[exercise.stableKey].orEmpty()
-                            .mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                        exercise = state.exercise,
+                        runtimeMetadata = state.runtimeMetadata,
+                        trainingRoles = state.trainingRoles,
+                        programSlotCapabilities = state.programSlotCapabilities
                     )
                 )
             }
@@ -180,6 +210,8 @@ internal class BackupExportService(
                 trainingRoleRelations = trainingRoleRelations,
                 programSlotCapabilityRelations = programSlotCapabilityRelations,
                 metadataSnapshots = metadataSnapshots,
+                metadataUserOverrides = metadataUserOverrides,
+                sourceDatabaseLineageId = sourceDatabaseLineageId,
                 includeProgramSnapshot = true
             )
             val dailyBackupCount = (
@@ -199,13 +231,20 @@ internal class BackupExportService(
                 programItemCount = backupProgramItems.size,
                 programItemSetCount = backupProgramItemSets.size,
                 programTombstoneCount = programTombstones.size,
-                metadataSnapshotCount = metadataSnapshots.size
+                metadataSnapshotCount = metadataSnapshots.size,
+                metadataUserOverrideCount = metadataUserOverrides.size
             )
             val csv = RecordCsvBackupRestore.wrapWithManifest(
                 body = body,
                 appVersion = appVersion,
                 exportedAt = System.currentTimeMillis(),
-                entityCounts = manifestCounts
+                entityCounts = manifestCounts,
+                representedExerciseStableKeys = exercises.mapTo(sortedSetOf(), Exercise::stableKey),
+                semanticCanonicalRevision = ExerciseMetadataRevisionPolicy.project(
+                    context,
+                    canonicalMetadataRepository
+                ).semanticCanonicalMetadataRevision,
+                sourceDatabaseLineageId = sourceDatabaseLineageId
             )
 
             session.stage(DataTransferStages.WRITING)

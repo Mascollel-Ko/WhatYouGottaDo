@@ -30,6 +30,7 @@ import com.training.trackplanner.data.DailyCheckIn
 import com.training.trackplanner.data.DailyRecordSummary
 import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.InitialUserProfile
@@ -48,6 +49,7 @@ import com.training.trackplanner.data.TrainingRepository
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
+import com.training.trackplanner.data.WorkoutRestoreMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -155,6 +157,8 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         _recordTransferMessage.asStateFlow()
     private val _dataTransferReport = MutableStateFlow<DataTransferReport?>(null)
     val dataTransferReport: StateFlow<DataTransferReport?> = _dataTransferReport.asStateFlow()
+    private val _backupRestoreUiState = MutableStateFlow<BackupRestoreUiState>(BackupRestoreUiState.Idle)
+    val backupRestoreUiState: StateFlow<BackupRestoreUiState> = _backupRestoreUiState.asStateFlow()
 
     private val _exerciseRuntimeMetadata = MutableStateFlow<Map<String, RuntimeExerciseMetadata>>(emptyMap())
     val exerciseRuntimeMetadata: StateFlow<Map<String, RuntimeExerciseMetadata>> =
@@ -630,15 +634,81 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
 
     fun restoreRecords(uri: Uri) {
         viewModelScope.launch {
+            _backupRestoreUiState.value = BackupRestoreUiState.Preparing
             runCatching {
-                repository.importRecordsBackup(uri) { report -> _dataTransferReport.value = report }
+                repository.prepareRecordsRestore(uri)
+            }.onSuccess { preparation ->
+                _backupRestoreUiState.value = preparation.initialUiState()
+            }.onFailure { error ->
+                _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
+                _backupRestoreUiState.value = BackupRestoreUiState.Failed(
+                    error.message ?: "복원 사전검사에 실패했습니다."
+                )
+            }
+        }
+    }
+
+    fun chooseWorkoutRestoreMode(mode: WorkoutRestoreMode) {
+        val current = _backupRestoreUiState.value as? BackupRestoreUiState.ChooseWorkoutMode ?: return
+        _backupRestoreUiState.value = BackupRestoreUiState.ChooseExerciseMode(mode, current.impact)
+    }
+
+    fun chooseExerciseRestoreMode(mode: ExerciseListRestoreMode) {
+        val current = _backupRestoreUiState.value as? BackupRestoreUiState.ChooseExerciseMode ?: return
+        viewModelScope.launch {
+            runCatching { repository.planRecordsRestore(current.workoutMode, mode) }
+                .onSuccess { impact ->
+                    _backupRestoreUiState.value = BackupRestoreUiState.Confirm(
+                        workoutMode = current.workoutMode,
+                        exerciseMode = mode,
+                        impact = impact
+                    )
+                }
+                .onFailure { error ->
+                    _backupRestoreUiState.value = BackupRestoreUiState.Failed(
+                        error.message ?: "복원 계획을 만들지 못했습니다."
+                    )
+                }
+        }
+    }
+
+    fun backToWorkoutRestoreMode() {
+        val current = _backupRestoreUiState.value as? BackupRestoreUiState.ChooseExerciseMode ?: return
+        if (current.impact.overlappingWorkoutDateCount > 0) {
+            _backupRestoreUiState.value = BackupRestoreUiState.ChooseWorkoutMode(current.impact)
+        }
+    }
+
+    fun backToExerciseRestoreMode() {
+        val current = _backupRestoreUiState.value as? BackupRestoreUiState.Confirm ?: return
+        _backupRestoreUiState.value = BackupRestoreUiState.ChooseExerciseMode(
+            workoutMode = current.workoutMode,
+            impact = current.impact
+        )
+    }
+
+    fun confirmPreparedRecordsRestore() {
+        if (_backupRestoreUiState.value !is BackupRestoreUiState.Confirm) return
+        viewModelScope.launch {
+            _backupRestoreUiState.value = BackupRestoreUiState.Restoring
+            runCatching {
+                repository.confirmRecordsRestore { report -> _dataTransferReport.value = report }
             }.onSuccess { result ->
                 _recordTransferMessage.value = result.summaryText("기록 복원")
+                _backupRestoreUiState.value = BackupRestoreUiState.Idle
                 refreshAnalysisSummaries()
             }.onFailure { error ->
                 _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
+                _backupRestoreUiState.value = BackupRestoreUiState.Failed(
+                    error.message ?: "복원에 실패했습니다."
+                )
             }
         }
+    }
+
+    fun cancelPreparedRecordsRestore() {
+        repository.cancelPendingRecordsRestore()
+        _backupRestoreUiState.value = BackupRestoreUiState.Idle
     }
 
     fun saveLatestDataTransferReport(uri: Uri) {

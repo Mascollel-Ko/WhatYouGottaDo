@@ -47,6 +47,7 @@ sealed class RecordCsvImportData {
         val smashSpeedRows: List<RestoreSmashSpeedRow> = emptyList(),
         val runtimeMetadataRows: List<RuntimeExerciseMetadata> = emptyList(),
         val metadataSnapshotRows: List<ExerciseMetadataSnapshotRow> = emptyList(),
+        val metadataUserOverrideRows: List<ExerciseMetadataUserOverrideEntity> = emptyList(),
         val backupSchemaVersion: Int = 1,
         val posteriorFormatPresent: Boolean = false,
         val posteriorBootstrapMarker: String? = null,
@@ -74,7 +75,12 @@ data class BackupManifest(
     val appVersion: String,
     val exportedAt: Long,
     val entityCounts: Map<String, Int>,
-    val contentSha256: String
+    val contentSha256: String,
+    val capabilities: Set<String> = emptySet(),
+    val representedExerciseCount: Int? = null,
+    val representedExerciseStableKeySha256: String? = null,
+    val semanticCanonicalRevision: String? = null,
+    val sourceDatabaseLineageId: String? = null
 )
 
 data class RestoreDailyRow(
@@ -103,6 +109,7 @@ data class RestoreSmashSpeedRow(
     val source: String?,
     val note: String?,
     val parentWorkoutEntryId: Long?,
+    val parentWorkoutEntrySourceId: String? = null,
     val createdAt: Long?,
     val updatedAt: Long?
 )
@@ -139,6 +146,7 @@ data class RestoreExerciseRow(
     val loadProfile: String,
     val metadataConfidence: String,
     val isActive: Boolean,
+    val archivedAt: Long? = null,
     val isCustom: Boolean,
     val needsReview: Boolean
 )
@@ -229,9 +237,10 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 10
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 11
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 11
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 12
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
+    internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
 
     private val restoreHeader = listOf(
@@ -302,6 +311,7 @@ object RecordCsvBackupRestore {
         "source",
         "smash_note",
         "parent_workout_entry_id",
+        "parent_workout_entry_source_id",
         "smash_created_at",
         "smash_updated_at",
         "runtime_activity_kind",
@@ -341,6 +351,10 @@ object RecordCsvBackupRestore {
         "metadata_value_encoding",
         "metadata_value",
         "metadata_is_explicit_empty",
+        "metadata_override_source",
+        "metadata_semantic_revision_at_edit",
+        "metadata_override_updated_at",
+        "exercise_archived_at",
         "strength_event_uuid",
         "strength_target_key",
         "strength_completion_fingerprint",
@@ -401,6 +415,8 @@ object RecordCsvBackupRestore {
         trainingRoleRelations: List<ExerciseTrainingRoleRelation> = emptyList(),
         programSlotCapabilityRelations: List<ExerciseProgramSlotCapabilityRelation> = emptyList(),
         metadataSnapshots: List<ExerciseMetadataSnapshotRow> = emptyList(),
+        metadataUserOverrides: List<ExerciseMetadataUserOverrideEntity> = emptyList(),
+        sourceDatabaseLineageId: String = "standalone-backup",
         includeProgramSnapshot: Boolean = false
     ): String {
         val builder = StringBuilder()
@@ -582,6 +598,7 @@ object RecordCsvBackupRestore {
                     "load_profile" to exercise.loadProfile,
                     "metadata_confidence" to exercise.metadataConfidence,
                     "is_active" to exercise.isActive.toCsvBool(),
+                    "exercise_archived_at" to exercise.archivedAt?.toString().orEmpty(),
                     "is_custom" to exercise.isCustom.toCsvBool(),
                     "needs_review" to exercise.needsReview.toCsvBool(),
                     "detail1" to exercise.detail1,
@@ -602,6 +619,29 @@ object RecordCsvBackupRestore {
                         "metadata_value_encoding" to snapshot.valueEncoding.name,
                         "metadata_value" to snapshot.value,
                         "metadata_is_explicit_empty" to snapshot.isExplicitEmpty.toCsvBool()
+                    )
+                )
+            }
+        metadataUserOverrides
+            .sortedWith(
+                compareBy(ExerciseMetadataUserOverrideEntity::stableKey)
+                    .thenBy(ExerciseMetadataUserOverrideEntity::fieldScope)
+                    .thenBy(ExerciseMetadataUserOverrideEntity::fieldKey)
+            )
+            .forEach { override ->
+                override.validated()
+                appendMappedRow(
+                    rowType = "exercise_metadata_user_override",
+                    values = mapOf(
+                        "stable_key" to override.stableKey,
+                        "metadata_field_key" to override.fieldKey,
+                        "metadata_field_scope" to override.fieldScope,
+                        "metadata_value_encoding" to override.valueEncoding,
+                        "metadata_value" to override.value,
+                        "metadata_is_explicit_empty" to override.isExplicitEmpty.toCsvBool(),
+                        "metadata_override_source" to override.source,
+                        "metadata_semantic_revision_at_edit" to override.semanticCanonicalRevisionAtEdit,
+                        "metadata_override_updated_at" to override.updatedAt.toString()
                     )
                 )
             }
@@ -713,6 +753,9 @@ object RecordCsvBackupRestore {
                             "source" -> record.source
                             "smash_note" -> record.note.orEmpty()
                             "parent_workout_entry_id" -> record.parentWorkoutEntryId?.toString().orEmpty()
+                            "parent_workout_entry_source_id" -> record.parentWorkoutEntryId
+                                ?.let { parentId -> entriesWithSets.firstOrNull { it.entry.id == parentId }?.entry?.backupSourceId }
+                                .orEmpty()
                             "smash_created_at" -> record.createdAt.toString()
                             "smash_updated_at" -> record.updatedAt.toString()
                             else -> ""
@@ -728,7 +771,8 @@ object RecordCsvBackupRestore {
                     val entry = item.entry
                     val entryConfirmed = item.sets.any { set -> set.confirmed }
                     val orderedSets = item.sets.sortedBy { set -> set.setIndex }
-                    val sourceId = entry.backupSourceId ?: "entry:${entry.id}:${entry.createdAt}"
+                    val sourceId = entry.backupSourceId
+                        ?: "$sourceDatabaseLineageId:workout_entry:${entry.id}"
                     orderedSets.forEach { set ->
                         appendMappedRow(
                             rowType = "set",
@@ -884,18 +928,33 @@ object RecordCsvBackupRestore {
         body: String,
         appVersion: String,
         exportedAt: Long,
-        entityCounts: Map<String, Int>
+        entityCounts: Map<String, Int>,
+        capabilities: Set<String> = setOf(EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY),
+        representedExerciseStableKeys: Set<String> = emptySet(),
+        semanticCanonicalRevision: String? = null,
+        sourceDatabaseLineageId: String? = null
     ): String {
         val normalizedBody = body.replace("\r\n", "\n").replace('\r', '\n')
         val counts = entityCounts.toSortedMap().entries.joinToString("|") { (key, value) -> "$key=$value" }
         val hash = sha256(normalizedBody)
+        val representedKeys = representedExerciseStableKeys
+            .ifEmpty { representedExerciseKeysFromBody(normalizedBody) }
+            .map(String::trim)
+            .filter(String::isNotBlank)
+            .distinct()
+            .sorted()
         return listOf(
             MANIFEST_PREFIX,
             CURRENT_BACKUP_FORMAT_VERSION.toString(),
             appVersion,
             exportedAt.toString(),
             counts,
-            hash
+            hash,
+            capabilities.toSortedSet().joinToString("|"),
+            representedKeys.size.toString(),
+            sha256(representedKeys.joinToString("\n")),
+            semanticCanonicalRevision.orEmpty(),
+            sourceDatabaseLineageId.orEmpty()
         ).joinToString(",") + "\n" + normalizedBody
     }
 
@@ -921,6 +980,24 @@ object RecordCsvBackupRestore {
         }
         if (parsed is RecordCsvImportData.Restore && manifest != null) {
             validateManifestCounts(manifest, parsed)
+            if (manifest.formatVersion >= 12) {
+                require(parsed.backupSchemaVersion == CURRENT_RESTORE_SCHEMA_VERSION) {
+                    "Backup format 12 must use restore schema $CURRENT_RESTORE_SCHEMA_VERSION."
+                }
+                val represented = parsed.exerciseRows.map(RestoreExerciseRow::stableKey)
+                    .map(String::trim)
+                    .filter(String::isNotBlank)
+                    .distinct()
+                    .sorted()
+                require(manifest.representedExerciseCount == represented.size) {
+                    "Backup represented exercise count does not match its exercise rows."
+                }
+                require(
+                    manifest.representedExerciseStableKeySha256 == sha256(represented.joinToString("\n"))
+                ) {
+                    "Backup represented exercise authority hash does not match its exercise rows."
+                }
+            }
         }
         return parsed
     }
@@ -930,6 +1007,26 @@ object RecordCsvBackupRestore {
         index: Map<String, Int>,
         manifest: BackupManifest?
     ): RecordCsvImportData.Restore {
+        val isFormat12 = (manifest?.formatVersion ?: 0) >= 12
+        if (isFormat12) {
+            val requiredColumns = setOf(
+                "entry_source_id",
+                "parent_workout_entry_source_id",
+                "exercise_archived_at",
+                "metadata_override_source",
+                "metadata_semantic_revision_at_edit",
+                "metadata_override_updated_at",
+                "is_active",
+                "needs_review"
+            )
+            val missingColumns = requiredColumns - index.keys
+            if (missingColumns.isNotEmpty()) {
+                throw DataTransferFormatException(
+                    DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
+                    "Backup format 12 is missing required columns: ${missingColumns.sorted().joinToString()}"
+                )
+            }
+        }
         var warnings = 0
         var backupSchemaVersion = 1
         var posteriorFormatPresent = false
@@ -942,6 +1039,7 @@ object RecordCsvBackupRestore {
         val smashSpeedRows = mutableListOf<RestoreSmashSpeedRow>()
         val runtimeMetadataRows = mutableListOf<RuntimeExerciseMetadata>()
         val metadataSnapshotRows = mutableListOf<ExerciseMetadataSnapshotRow>()
+        val metadataUserOverrideRows = mutableListOf<ExerciseMetadataUserOverrideEntity>()
         val posteriorEvents = mutableListOf<StrengthPosteriorEventEntity>()
         val posteriorHistory = mutableListOf<StrengthPosteriorHistoryEntity>()
         val posteriorModelStates = mutableListOf<StrengthPosteriorModelStateEntity>()
@@ -961,6 +1059,25 @@ object RecordCsvBackupRestore {
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             val posteriorPayload = row.value(index, "strength_posterior_payload")
             when (rowType) {
+                "exercise_metadata_user_override" -> {
+                    val override = ExerciseMetadataUserOverrideEntity(
+                        stableKey = row.value(index, "stable_key").trim(),
+                        fieldScope = row.value(index, "metadata_field_scope").trim(),
+                        fieldKey = row.value(index, "metadata_field_key").trim(),
+                        valueEncoding = row.value(index, "metadata_value_encoding").trim(),
+                        value = row.value(index, "metadata_value"),
+                        isExplicitEmpty = row.safeBool(index, "metadata_is_explicit_empty")
+                            ?: error("exercise_metadata_user_override is missing metadata_is_explicit_empty."),
+                        source = row.value(index, "metadata_override_source").trim(),
+                        semanticCanonicalRevisionAtEdit = row.value(
+                            index,
+                            "metadata_semantic_revision_at_edit"
+                        ).trim(),
+                        updatedAt = row.requiredLong(index, "metadata_override_updated_at", rowType)
+                    ).validated()
+                    metadataUserOverrideRows += override
+                    return@forEachIndexed
+                }
                 "exercise_metadata_snapshot" -> {
                     val snapshot = ExerciseMetadataSnapshotRow(
                         stableKey = row.value(index, "stable_key").trim(),
@@ -1191,9 +1308,18 @@ object RecordCsvBackupRestore {
                 if (name.isBlank()) {
                     warnings += 1
                 } else {
+                    val stableKey = row.value(index, "stable_key").trim()
+                    val isActive = row.safeBool(index, "is_active")
+                    val needsReview = row.safeBool(index, "needs_review")
+                    if (isFormat12 && (stableKey.isBlank() || isActive == null || needsReview == null)) {
+                        throw DataTransferFormatException(
+                            DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
+                            "Backup format 12 exercise rows require stableKey, isActive, archivedAt, and needsReview state."
+                        )
+                    }
                     val exerciseRow = RestoreExerciseRow(
                         name = name,
-                        stableKey = row.value(index, "stable_key"),
+                        stableKey = stableKey,
                         category = row.value(index, "category"),
                         detail1 = row.value(index, "detail1"),
                         detail2 = row.value(index, "detail2"),
@@ -1221,9 +1347,10 @@ object RecordCsvBackupRestore {
                         sportTransferSupportive = row.value(index, "sport_transfer_supportive"),
                         loadProfile = row.value(index, "load_profile"),
                         metadataConfidence = row.value(index, "metadata_confidence"),
-                        isActive = row.safeBool(index, "is_active") ?: true,
+                        isActive = isActive ?: true,
+                        archivedAt = row.safeLong(index, "exercise_archived_at"),
                         isCustom = row.safeBool(index, "is_custom") ?: false,
-                        needsReview = row.safeBool(index, "needs_review") ?: false
+                        needsReview = needsReview ?: false
                     )
                     exerciseRows += exerciseRow
                     if ((manifest?.formatVersion ?: 0) < 11 && exerciseRow.stableKey.isNotBlank()) {
@@ -1300,6 +1427,10 @@ object RecordCsvBackupRestore {
                             source = row.value(index, "source").ifBlank { null },
                             note = row.value(index, "smash_note").ifBlank { null },
                             parentWorkoutEntryId = row.safeLong(index, "parent_workout_entry_id"),
+                            parentWorkoutEntrySourceId = row.value(
+                                index,
+                                "parent_workout_entry_source_id"
+                            ).ifBlank { null },
                             createdAt = row.safeLong(index, "smash_created_at"),
                             updatedAt = row.safeLong(index, "smash_updated_at")
                         )
@@ -1341,6 +1472,7 @@ object RecordCsvBackupRestore {
             smashSpeedRows = smashSpeedRows,
             runtimeMetadataRows = runtimeMetadataRows,
             metadataSnapshotRows = metadataSnapshotRows,
+            metadataUserOverrideRows = metadataUserOverrideRows,
             backupSchemaVersion = backupSchemaVersion,
             posteriorFormatPresent = posteriorFormatPresent,
             posteriorBootstrapMarker = posteriorBootstrapMarker,
@@ -1367,8 +1499,8 @@ object RecordCsvBackupRestore {
                 "백업 manifest 뒤에 본문이 없습니다."
             )
         }
-        val fields = text.substring(0, newline).trimEnd('\r').split(',', limit = 6)
-        if (fields.size != 6 || fields[0] != MANIFEST_PREFIX) {
+        val fields = text.substring(0, newline).trimEnd('\r').split(',')
+        if (fields.size < 6 || fields[0] != MANIFEST_PREFIX) {
             throw DataTransferFormatException(
                 DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
                 "백업 manifest 형식이 올바르지 않습니다."
@@ -1383,6 +1515,12 @@ object RecordCsvBackupRestore {
             throw DataTransferFormatException(
                 DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
                 "지원하지 않는 백업 형식 버전입니다: $formatVersion"
+            )
+        }
+        if (formatVersion >= 12 && fields.size != 11) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "Backup format 12 manifest must include capability and authority metadata."
             )
         }
         val exportedAt = fields[3].toLongOrNull()
@@ -1411,12 +1549,30 @@ object RecordCsvBackupRestore {
                 "백업 본문 해시가 manifest와 일치하지 않습니다."
             )
         }
+        val capabilities = if (formatVersion >= 12) {
+            fields[6].split('|').filter(String::isNotBlank).toSet()
+        } else {
+            emptySet()
+        }
+        if (formatVersion >= 12 && EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY !in capabilities) {
+            throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_SCHEMA_UNSUPPORTED,
+                "Backup format 12 is missing $EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY."
+            )
+        }
+        val representedCount = fields.getOrNull(7)?.toIntOrNull()
+        val representedHash = fields.getOrNull(8)?.ifBlank { null }
         return body to BackupManifest(
             formatVersion = formatVersion,
             appVersion = fields[2],
             exportedAt = exportedAt,
             entityCounts = counts,
-            contentSha256 = fields[5]
+            contentSha256 = fields[5],
+            capabilities = capabilities,
+            representedExerciseCount = representedCount,
+            representedExerciseStableKeySha256 = representedHash,
+            semanticCanonicalRevision = fields.getOrNull(9)?.ifBlank { null },
+            sourceDatabaseLineageId = fields.getOrNull(10)?.ifBlank { null }
         )
     }
 
@@ -1448,7 +1604,8 @@ object RecordCsvBackupRestore {
         programItemCount: Int,
         programItemSetCount: Int = 0,
         programTombstoneCount: Int,
-        metadataSnapshotCount: Int = 0
+        metadataSnapshotCount: Int = 0,
+        metadataUserOverrideCount: Int = 0
     ): Map<String, Int> = linkedMapOf(
         "exercise" to exerciseCount,
         "daily_metric" to dailyMetricCount,
@@ -1459,6 +1616,7 @@ object RecordCsvBackupRestore {
         "workout_set" to setCount,
         "runtime_metadata" to runtimeMetadataCount,
         "exercise_metadata_snapshot" to metadataSnapshotCount,
+        "exercise_metadata_user_override" to metadataUserOverrideCount,
         "program" to programCount,
         "program_item" to programItemCount,
         "program_item_set" to programItemSetCount,
@@ -1479,13 +1637,26 @@ object RecordCsvBackupRestore {
             programItemCount = data.programSnapshot?.items?.size ?: 0,
             programItemSetCount = data.programSnapshot?.sets?.size ?: 0,
             programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0,
-            metadataSnapshotCount = data.metadataSnapshotRows.size
+            metadataSnapshotCount = data.metadataSnapshotRows.size,
+            metadataUserOverrideCount = data.metadataUserOverrideRows.size
         )
 
     private fun sha256(value: String): String =
         MessageDigest.getInstance("SHA-256")
             .digest(value.toByteArray(Charsets.UTF_8))
             .joinToString("") { byte -> "%02x".format(byte) }
+
+    private fun representedExerciseKeysFromBody(body: String): Set<String> {
+        val rows = parseCsvRows(body)
+        if (rows.isEmpty()) return emptySet()
+        val index = rows.first().withIndex().associate { (position, name) -> name.trim() to position }
+        return rows.drop(1)
+            .asSequence()
+            .filter { row -> row.value(index, "row_type").trim().equals("exercise", ignoreCase = true) }
+            .map { row -> row.value(index, "stable_key").trim() }
+            .filter(String::isNotBlank)
+            .toSet()
+    }
 
     private fun legacyExerciseSnapshotRows(
         stableKey: String,

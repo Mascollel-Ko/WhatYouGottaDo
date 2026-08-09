@@ -54,6 +54,8 @@ import com.training.trackplanner.analysis.fatigue.MiniTrendPoint
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.DataTransferStatus
+import com.training.trackplanner.data.ExerciseListRestoreMode
+import com.training.trackplanner.data.WorkoutRestoreMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -67,6 +69,7 @@ internal fun HomeScreen(
     val summary by viewModel.homeTodaySummary.collectAsState()
     val transferMessage by viewModel.recordTransferMessage.collectAsState()
     val transferReport by viewModel.dataTransferReport.collectAsState()
+    val restoreUiState by viewModel.backupRestoreUiState.collectAsState()
     val initialProfile by viewModel.initialUserProfile.collectAsState()
     val todayCheckIn by viewModel.todayCheckIn.collectAsState()
     var showInitialProfile by rememberSaveable { mutableStateOf(false) }
@@ -159,6 +162,204 @@ internal fun HomeScreen(
             onDismiss = { showTransferReport = false },
             onSave = {
                 reportSaveLauncher.launch("whatyougottatrain_diagnostic_${transferReport!!.operationId}.txt")
+            }
+        )
+    }
+    BackupRestoreDialogHost(
+        state = restoreUiState,
+        onWorkoutMode = viewModel::chooseWorkoutRestoreMode,
+        onExerciseMode = viewModel::chooseExerciseRestoreMode,
+        onConfirm = viewModel::confirmPreparedRecordsRestore,
+        onBackToWorkout = viewModel::backToWorkoutRestoreMode,
+        onBackToExercise = viewModel::backToExerciseRestoreMode,
+        onCancel = viewModel::cancelPreparedRecordsRestore
+    )
+}
+
+@Composable
+internal fun BackupRestoreDialogHost(
+    state: BackupRestoreUiState,
+    onWorkoutMode: (WorkoutRestoreMode) -> Unit,
+    onExerciseMode: (ExerciseListRestoreMode) -> Unit,
+    onConfirm: () -> Unit,
+    onBackToWorkout: () -> Unit,
+    onBackToExercise: () -> Unit,
+    onCancel: () -> Unit
+) {
+    when (state) {
+        BackupRestoreUiState.Idle -> Unit
+        BackupRestoreUiState.Preparing,
+        BackupRestoreUiState.Restoring -> AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.restore_progress_title)) },
+            text = { Text(stringResource(R.string.restore_progress_body)) },
+            confirmButton = {}
+        )
+        is BackupRestoreUiState.ChooseWorkoutMode -> AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.restore_workout_overlap_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.restore_workout_overlap_impact,
+                        state.impact.overlappingWorkoutDateCount,
+                        state.impact.currentEntriesOnOverlappingDates,
+                        state.impact.backupEntriesOnOverlappingDates
+                    )
+                )
+            },
+            confirmButton = {
+                Column {
+                    TextButton(onClick = { onWorkoutMode(WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES) }) {
+                        Text(stringResource(R.string.restore_workout_replace))
+                    }
+                    TextButton(onClick = { onWorkoutMode(WorkoutRestoreMode.APPEND_TO_CURRENT) }) {
+                        Text(stringResource(R.string.restore_workout_append))
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
+            }
+        )
+        is BackupRestoreUiState.ChooseExerciseMode -> AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.restore_exercise_list_title)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(
+                            R.string.restore_exercise_list_impact,
+                            state.impact.representedExerciseCount,
+                            state.impact.backupOverrideFieldsThatWouldReplaceCurrentCount
+                        )
+                    )
+                    if (state.impact.sameStableKeyCustomDefinitionsThatWouldBeReplacedCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_custom_definition_warning,
+                                state.impact.sameStableKeyCustomDefinitionsThatWouldBeReplacedCount
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Column {
+                    TextButton(
+                        onClick = {
+                            onExerciseMode(ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES)
+                        }
+                    ) { Text(stringResource(R.string.restore_exercise_preserve)) }
+                    TextButton(
+                        onClick = {
+                            onExerciseMode(ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST)
+                        }
+                    ) { Text(stringResource(R.string.restore_exercise_apply)) }
+                }
+            },
+            dismissButton = {
+                Row {
+                    if (state.impact.overlappingWorkoutDateCount > 0) {
+                        TextButton(onClick = onBackToWorkout) {
+                            Text(stringResource(R.string.restore_back))
+                        }
+                    }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
+                }
+            }
+        )
+        is BackupRestoreUiState.Confirm -> AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.restore_final_title)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(
+                            if (state.workoutMode == WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES) {
+                                R.string.restore_workout_replace
+                            } else {
+                                R.string.restore_workout_append
+                            }
+                        )
+                    )
+                    Text(
+                        stringResource(
+                            if (state.exerciseMode == ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES) {
+                                R.string.restore_exercise_preserve
+                            } else {
+                                R.string.restore_exercise_apply
+                            }
+                        )
+                    )
+                    if (state.impact.overlappingWorkoutDateCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_final_workout_overlap,
+                                state.impact.overlappingWorkoutDateCount
+                            )
+                        )
+                    }
+                    if (state.impact.activeExercisesThatWouldDisappearCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_final_exercises_deactivated,
+                                state.impact.activeExercisesThatWouldDisappearCount
+                            )
+                        )
+                    }
+                    if (state.impact.referencedExercisesRequiringInternalRetentionCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_final_references_retained,
+                                state.impact.referencedExercisesRequiringInternalRetentionCount
+                            )
+                        )
+                    }
+                    if (state.impact.currentMetadataOverrideFieldsThatWouldBeRemovedCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_final_metadata_overrides_removed,
+                                state.impact.currentMetadataOverrideFieldsThatWouldBeRemovedCount
+                            )
+                        )
+                    }
+                    if (state.impact.sameStableKeyCustomDefinitionsThatWouldBeReplacedCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_custom_definition_warning,
+                                state.impact.sameStableKeyCustomDefinitionsThatWouldBeReplacedCount
+                            )
+                        )
+                    }
+                    if (state.impact.outOfScopeSameSourceIdentityDivergenceCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_final_out_of_scope_source_preserved,
+                                state.impact.outOfScopeSameSourceIdentityDivergenceCount
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = onConfirm) { Text(stringResource(R.string.restore_confirm)) }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = onBackToExercise) {
+                        Text(stringResource(R.string.restore_back))
+                    }
+                    TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_cancel)) }
+                }
+            }
+        )
+        is BackupRestoreUiState.Failed -> AlertDialog(
+            onDismissRequest = onCancel,
+            title = { Text(stringResource(R.string.restore_failed_title)) },
+            text = { Text(state.message) },
+            confirmButton = {
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_close)) }
             }
         )
     }

@@ -452,9 +452,9 @@ internal object ExerciseMetadataFieldPolicyRegistry {
             { target, value ->
                 target.exercise = write(
                     target.exercise,
-                    value.takeIf(String::isNotEmpty)?.toLongOrNull()
-                        ?: value.takeIf(String::isEmpty)?.let { null }
-                        ?: error("Invalid long metadata: $key")
+                    if (value.isEmpty()) null else requireNotNull(value.toLongOrNull()) {
+                        "Invalid long metadata: $key"
+                    }
                 )
             }
         )

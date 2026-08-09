@@ -17,15 +17,30 @@ internal class BackupRestoreImportService(
     private val dailyStatusService: DailyStatusService,
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
+    private val exerciseMetadataUserOverrideDao: ExerciseMetadataUserOverrideDao,
     private val appMetaDao: AppMetaDao,
     private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
+    private val restorePlanner: BackupRestorePlanner,
     private val seedExercisesByStableKey: () -> Map<String, Exercise>,
     private val profileFromRows: (List<RestoreProfileRow>) -> InitialUserProfile?
 ) {
     suspend fun importRestoreCsv(data: RecordCsvImportData.Restore): RecordCsvTransferResult {
+        val prepared = restorePlanner.prepare(data)
+        return importRestorePlan(
+            restorePlanner.plan(
+                prepared = prepared,
+                workoutMode = WorkoutRestoreMode.APPEND_TO_CURRENT,
+                exerciseMode = ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES
+            )
+        )
+    }
+
+    suspend fun importRestorePlan(plan: BackupRestorePlan): RecordCsvTransferResult {
+        val data = plan.prepared.data
         var exerciseCount = 0
         var dailyCount = 0
         var checkInCount = 0
@@ -40,7 +55,15 @@ internal class BackupRestoreImportService(
         var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
         db.withTransaction {
+            require(
+                restorePlanner.currentFingerprint(
+                    backupHash = plan.prepared.backupContentSha256,
+                    workoutMode = plan.workoutMode,
+                    exerciseMode = plan.exerciseMode
+                ) == plan.contentFingerprint
+            ) { "Restore preflight is stale because the target data changed. Please review the backup again." }
             val seedByStableKey = seedExercisesByStableKey()
+            val isFormat12 = (data.manifest?.formatVersion ?: 0) >= 12
             val runtimeMetadataByKey = data.runtimeMetadataRows.associateBy(RuntimeExerciseMetadata::stableKey)
             val snapshotsByKey = data.metadataSnapshotRows.groupBy(ExerciseMetadataSnapshotRow::stableKey)
             profileFromRows(data.profileRows)?.let { profile ->
@@ -49,23 +72,62 @@ internal class BackupRestoreImportService(
             }
             data.exerciseRows.forEach { row ->
                 val snapshots = snapshotsByKey[row.stableKey].orEmpty()
-                val restored = restoreExercise(row, seedByStableKey, runtimeMetadataByKey[row.stableKey], snapshots)
+                val existingBefore = exerciseDao.findByStableKey(row.stableKey)
+                val canonical = seedByStableKey[row.stableKey]
+                val restoredFromBackup = if (isFormat12 && canonical != null) {
+                    restoreCurrentBuiltInExercise(
+                        canonical = canonical,
+                        existing = existingBefore,
+                        row = row,
+                        applyBackupUserState = plan.exerciseMode ==
+                            ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST
+                    )
+                } else {
+                    restoreExercise(row, seedByStableKey, runtimeMetadataByKey[row.stableKey], snapshots)
+                }
+                val restored = if (
+                    plan.exerciseMode == ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES &&
+                    existingBefore != null && canonical == null
+                ) {
+                    val active = existingBefore.isActive || restoredFromBackup.exercise.isActive
+                    restoredFromBackup.copy(
+                        exercise = restoredFromBackup.exercise.copy(
+                            isActive = active,
+                            archivedAt = if (active) null else existingBefore.archivedAt,
+                            needsReview = existingBefore.needsReview
+                        )
+                    )
+                } else {
+                    restoredFromBackup
+                }
                 val existing = exerciseDao.findByStableKey(restored.exercise.stableKey)
                 if (existing == null) exerciseDao.insertExercise(restored.exercise)
                 else exerciseDao.updateExercise(restored.exercise)
                 runtimeExerciseMetadataDao.upsert(restored.runtimeMetadata.toEntity())
                 exerciseCount += 1
                 val legacy = LegacyTrainingRoleImportMapper.resolve(row.legacyTrainingRole)
-                val trainingRoles = ExerciseMetadataFieldPolicyRegistry.relationValues(
-                    snapshots,
-                    "relation.trainingRoles"
-                ) ?: (row.trainingRoleCodes + legacy.trainingRoles).map(TrainingRole::name).toSet()
-                    .takeIf(Set<String>::isNotEmpty)
-                val capabilities = ExerciseMetadataFieldPolicyRegistry.relationValues(
-                    snapshots,
-                    "relation.programSlotCapabilities"
-                ) ?: (row.programSlotCapabilityCodes + legacy.programSlotCapabilities)
-                    .map(ProgramSlotCapability::name).toSet().takeIf(Set<String>::isNotEmpty)
+                val trainingRoles = if (isFormat12 && canonical != null) {
+                    canonicalMetadataRepository.trainingRoleRelations()
+                        .filter { it.exerciseStableKey == row.stableKey }
+                        .mapTo(sortedSetOf(), ExerciseTrainingRoleRelation::trainingRoleCode)
+                } else {
+                    ExerciseMetadataFieldPolicyRegistry.relationValues(
+                        snapshots,
+                        "relation.trainingRoles"
+                    ) ?: (row.trainingRoleCodes + legacy.trainingRoles).map(TrainingRole::name).toSet()
+                        .takeIf(Set<String>::isNotEmpty)
+                }
+                val capabilities = if (isFormat12 && canonical != null) {
+                    canonicalMetadataRepository.programSlotCapabilityRelations()
+                        .filter { it.exerciseStableKey == row.stableKey }
+                        .mapTo(sortedSetOf(), ExerciseProgramSlotCapabilityRelation::capabilityCode)
+                } else {
+                    ExerciseMetadataFieldPolicyRegistry.relationValues(
+                        snapshots,
+                        "relation.programSlotCapabilities"
+                    ) ?: (row.programSlotCapabilityCodes + legacy.programSlotCapabilities)
+                        .map(ProgramSlotCapability::name).toSet().takeIf(Set<String>::isNotEmpty)
+                }
                 trainingRoles?.let { restoredRoles ->
                     exerciseRoleRelationDao.deleteTrainingRoles(row.stableKey)
                     exerciseRoleRelationDao.upsertTrainingRoles(restoredRoles.map { role ->
@@ -89,6 +151,22 @@ internal class BackupRestoreImportService(
                         notes = "Imported normalized relation"
                     )
                     })
+                }
+            }
+            if (isFormat12) {
+                applyMetadataOverrides(data, plan.exerciseMode)
+                if (plan.exerciseMode == ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST) {
+                    val canonicalKeys = seedByStableKey.keys
+                    val represented = plan.prepared.representedExerciseStableKeys
+                    exerciseDao.allExercises()
+                        .filter { exercise ->
+                            exercise.stableKey !in represented && exercise.stableKey !in canonicalKeys && exercise.isActive
+                        }
+                        .forEach { exercise ->
+                            exerciseDao.updateExercise(
+                                exercise.copy(isActive = false, archivedAt = exercise.archivedAt ?: System.currentTimeMillis())
+                            )
+                        }
                 }
             }
             data.programSnapshot?.let { snapshot ->
@@ -135,32 +213,6 @@ internal class BackupRestoreImportService(
                 }
                 checkInCount += 1
             }
-            data.smashSpeedRows.forEach { row ->
-                val existing = smashSpeedDao.forDate(row.date)
-                val duplicate = existing.any { record ->
-                    record.attemptIndex == row.attemptIndex &&
-                        kotlin.math.abs(record.speedKmh - row.speedKmh) < 0.001 &&
-                        record.note == row.note
-                }
-                if (duplicate) {
-                    skipped += 1
-                } else {
-                    val now = System.currentTimeMillis()
-                    smashSpeedDao.upsert(
-                        SmashSpeedRecord(
-                            date = row.date,
-                            speedKmh = row.speedKmh,
-                            attemptIndex = row.attemptIndex,
-                            source = row.source ?: "external_app",
-                            note = row.note,
-                            parentWorkoutEntryId = row.parentWorkoutEntryId,
-                            createdAt = row.createdAt ?: now,
-                            updatedAt = row.updatedAt ?: now
-                        ).validated()
-                    )
-                    smashSpeedCount += 1
-                }
-            }
             data.setRows
                 .filter { row -> row.sleepHours != null || row.bodyWeightKg != null }
                 .distinctBy { row -> row.date }
@@ -174,72 +226,135 @@ internal class BackupRestoreImportService(
                     importedDailyMetrics[row.date] = dailyMetricDao.metric(row.date)!!
                     dailyCount += 1
                 }
-            data.setRows
-                .groupBy { row -> row.entryKey }
-                .values
-                .sortedWith(
-                    compareBy<List<RestoreSetRow>> { rows -> rows.first().date }
-                        .thenBy { rows -> rows.first().entryOrder }
-                )
-                .forEach { rows ->
-                    val first = rows.first()
-                    val importedSets = rows.sortedBy { row -> row.setIndex }
-                    first.entrySourceId?.let { sourceId ->
-                        workoutDao.findEntryByBackupSourceId(sourceId)?.let { existing ->
-                            val existingSets = workoutDao.entriesWithSets(existing.date)
-                                .first { it.entry.id == existing.id }.sets.sortedBy(WorkoutSet::setIndex)
-                            require(existing.exerciseStableKey == first.stableKey && existingSets.matchesRestoreRows(importedSets)) {
-                                "Backup source entry identity conflicts with existing data: $sourceId"
-                            }
-                            skipped += 1
-                            return@forEach
-                        }
+            val currentBeforeRestore = workoutDao.allEntriesWithSets()
+            val currentBySource = currentBeforeRestore.mapNotNull { item ->
+                item.entry.backupSourceId?.let { source -> source to item }
+            }.toMap()
+            if (
+                plan.workoutMode == WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES &&
+                plan.prepared.overlappingDates.isNotEmpty()
+            ) {
+                val dates = plan.prepared.overlappingDates.toList()
+                val replacedEntryIds = currentBeforeRestore
+                    .filter { item -> item.entry.date in plan.prepared.overlappingDates }
+                    .map { item -> item.entry.id }
+                if (replacedEntryIds.isNotEmpty()) {
+                    smashSpeedDao.deleteForParentWorkoutEntries(replacedEntryIds)
+                }
+                workoutDao.deleteSetsOnDates(dates)
+                workoutDao.deleteEntriesOnDates(dates)
+            }
+            val restoredEntryIdsByBackupKey = mutableMapOf<String, Long>()
+            val restoredEntryIdsBySource = mutableMapOf<String, Long>()
+            plan.prepared.workoutGraphs.forEach { graph ->
+                val existing = graph.sourceId?.let(currentBySource::get)
+                if (existing != null) {
+                    val sameContent = existing.toRestoreGraph().contentToken() == graph.contentToken()
+                    val existingWasReplaced = plan.workoutMode == WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES &&
+                        existing.entry.date in plan.prepared.overlappingDates
+                    if (!existingWasReplaced) {
+                        skipped += 1
+                        restoredEntryIdsByBackupKey[graph.entryKey] = existing.entry.id
+                        graph.sourceId?.let { restoredEntryIdsBySource[it] = existing.entry.id }
+                        return@forEach
                     }
-                    if (first.entrySourceId == null && hasLegacyDuplicateRestoreEntry(first, importedSets)) {
+                    if (sameContent && existing.entry.date !in plan.prepared.overlappingDates) {
                         skipped += 1
                         return@forEach
                     }
-                    val exercise = requireNotNull(exerciseDao.findByStableKey(first.stableKey)) {
-                        "Restore exercise cannot be resolved after preflight: ${first.stableKey}"
-                    }
-                    val confirmedCount = importedSets.count { row -> row.setConfirmed }
-                    val entryId = workoutDao.insertEntry(
-                        WorkoutEntry(
-                            date = first.date,
-                            exerciseStableKey = exercise.stableKey,
-                            exerciseName = exercise.name,
-                            category = first.category,
-                            restSeconds = first.restSeconds,
-                            notes = first.notes,
-                            rpe = first.rpe,
-                            maxReps = first.maxReps,
-                            createdAt = first.entryCreatedAt ?: System.currentTimeMillis(),
-                            completedAt = first.entryCompletedAt
-                                ?: if (confirmedCount > 0) System.currentTimeMillis() else null,
-                            displayOrder = first.entryDisplayOrder ?: first.entryOrder,
-                            firstConfirmedAt = first.entryFirstConfirmedAt,
-                            performedAt = first.entryPerformedAt,
-                            backupSourceId = workoutSourceIdentityProvider.sourceIdForImport(first.entrySourceId)
+                }
+                val first = graph.sets.first()
+                val legacyDuplicate = if (graph.sourceId == null) {
+                    findLegacyDuplicateRestoreEntry(first, graph.sets)
+                } else null
+                if (legacyDuplicate != null) {
+                    skipped += 1
+                    restoredEntryIdsByBackupKey[graph.entryKey] = legacyDuplicate.entry.id
+                    return@forEach
+                }
+                val exercise = requireNotNull(exerciseDao.findByStableKey(graph.stableKey)) {
+                    "Restore exercise cannot be resolved after preflight: ${graph.stableKey}"
+                }
+                val confirmedCount = graph.sets.count(RestoreSetRow::setConfirmed)
+                val sourceId = workoutSourceIdentityProvider.sourceIdForImport(graph.sourceId)
+                val entryId = workoutDao.insertEntry(
+                    WorkoutEntry(
+                        date = graph.date,
+                        exerciseStableKey = exercise.stableKey,
+                        exerciseName = exercise.name,
+                        category = graph.category,
+                        restSeconds = graph.restSeconds,
+                        notes = graph.notes,
+                        rpe = graph.rpe,
+                        maxReps = graph.maxReps,
+                        createdAt = graph.createdAt ?: System.currentTimeMillis(),
+                        completedAt = graph.completedAt
+                            ?: if (confirmedCount > 0) System.currentTimeMillis() else null,
+                        displayOrder = graph.displayOrder ?: first.entryOrder,
+                        firstConfirmedAt = graph.firstConfirmedAt,
+                        performedAt = graph.performedAt,
+                        backupSourceId = sourceId
+                    )
+                )
+                graph.sets.forEachIndexed { index, row ->
+                    workoutDao.insertSet(
+                        WorkoutSet(
+                            entryId = entryId,
+                            setIndex = row.setIndex,
+                            reps = row.reps,
+                            weightKg = row.weightKg,
+                            seconds = row.seconds,
+                            confirmed = row.setConfirmed,
+                            manualWeight = row.setManualWeight ?: (row.weightKg > 0.0),
+                            rpe = row.rpe,
+                            restSecondsOverride = row.setRestSecondsOverride
                         )
                     )
-                    importedSets.forEachIndexed { index, row ->
-                        workoutDao.insertSet(
-                            WorkoutSet(
-                                entryId = entryId,
-                                setIndex = index + 1,
-                                reps = row.reps,
-                                weightKg = row.weightKg,
-                                seconds = row.seconds,
-                                confirmed = row.setConfirmed,
-                                manualWeight = row.setManualWeight ?: (row.weightKg > 0.0),
-                                rpe = row.rpe,
-                                restSecondsOverride = row.setRestSecondsOverride
-                            )
-                        )
-                        setCount += 1
-                    }
-                    entryCount += 1
+                    setCount += 1
                 }
+                restoredEntryIdsByBackupKey[graph.entryKey] = entryId
+                restoredEntryIdsBySource[sourceId] = entryId
+                entryCount += 1
+            }
+            data.smashSpeedRows.forEach { row ->
+                val existing = smashSpeedDao.forDate(row.date)
+                val duplicate = existing.any { record ->
+                    record.attemptIndex == row.attemptIndex &&
+                        kotlin.math.abs(record.speedKmh - row.speedKmh) < 0.001 &&
+                        record.note == row.note
+                }
+                if (duplicate) {
+                    skipped += 1
+                } else {
+                    val now = System.currentTimeMillis()
+                    val parentEntryId = when {
+                        row.parentWorkoutEntrySourceId != null ->
+                            restoredEntryIdsBySource[row.parentWorkoutEntrySourceId]
+                                ?: workoutDao.findEntryByBackupSourceId(row.parentWorkoutEntrySourceId)?.id
+                        row.parentWorkoutEntryId != null -> restoredEntryIdsByBackupKey[row.parentWorkoutEntryId.toString()]
+                        else -> null
+                    }
+                    require(
+                        (row.parentWorkoutEntryId == null && row.parentWorkoutEntrySourceId == null) ||
+                            parentEntryId != null
+                    ) {
+                        "Smash-speed parent workout entry could not be remapped from the backup graph."
+                    }
+                    smashSpeedDao.upsert(
+                        SmashSpeedRecord(
+                            date = row.date,
+                            speedKmh = row.speedKmh,
+                            attemptIndex = row.attemptIndex,
+                            source = row.source ?: "external_app",
+                            note = row.note,
+                            parentWorkoutEntryId = parentEntryId,
+                            createdAt = row.createdAt ?: now,
+                            updatedAt = row.updatedAt ?: now
+                        ).validated()
+                    )
+                    smashSpeedCount += 1
+                }
+            }
             validateRestoredExerciseReferences()
             strengthPosteriorCoordinator.scheduleDerivedResetRebuild()
         }
@@ -302,6 +417,60 @@ internal class BackupRestoreImportService(
             warningCount = data.warningCount +
                 if (strengthLifecycle.status == StrengthAnalysisLifecycleStatus.REBUILD_FAILED) 1 else 0
         )
+    }
+
+    private fun restoreCurrentBuiltInExercise(
+        canonical: Exercise,
+        existing: Exercise?,
+        row: RestoreExerciseRow,
+        applyBackupUserState: Boolean
+    ): RestoredExerciseState {
+        val currentHistoryOnly = canonical.planningEligibility == "HISTORY_ONLY"
+        val active = when {
+            currentHistoryOnly -> false
+            !applyBackupUserState && existing != null -> existing.isActive || row.isActive
+            else -> row.isActive
+        }
+        val archivedAt = when {
+            active -> null
+            !applyBackupUserState && existing != null -> existing.archivedAt
+            else -> row.archivedAt ?: existing?.archivedAt ?: System.currentTimeMillis()
+        }
+        val needsReview = if (!applyBackupUserState && existing != null) existing.needsReview else row.needsReview
+        val exercise = canonical.copy(
+            isActive = active,
+            archivedAt = archivedAt,
+            isCustom = false,
+            needsReview = needsReview,
+            planningEligibility = if (currentHistoryOnly) "HISTORY_ONLY" else canonical.planningEligibility
+        )
+        val runtime = (canonicalRuntimeMetadataCatalog.resolve(canonical)
+            ?: RuntimeExerciseMetadataDefaults.forExercise(canonical)).copy(
+            stableKey = canonical.stableKey,
+            exerciseName = canonical.name,
+            planningEligibility = if (currentHistoryOnly) "HISTORY_ONLY" else canonical.planningEligibility,
+            safeForSeedMutation = false
+        )
+        return RestoredExerciseState(exercise, runtime)
+    }
+
+    private suspend fun applyMetadataOverrides(
+        data: RecordCsvImportData.Restore,
+        mode: ExerciseListRestoreMode
+    ) {
+        val rowsByStableKey = data.metadataUserOverrideRows
+            .groupBy(ExerciseMetadataUserOverrideEntity::stableKey)
+        when (mode) {
+            ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES ->
+                exerciseMetadataUserOverrideDao.upsertAll(data.metadataUserOverrideRows)
+            ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST ->
+                data.exerciseRows.map(RestoreExerciseRow::stableKey).distinct().forEach { stableKey ->
+                    exerciseMetadataUserOverrideDao.replaceForStableKey(
+                        stableKey,
+                        rowsByStableKey[stableKey].orEmpty()
+                    )
+                }
+        }
     }
 
     private suspend fun restoreExercise(
@@ -368,10 +537,10 @@ internal class BackupRestoreImportService(
         return RestoredExerciseState(exercise, runtime)
     }
 
-    private suspend fun hasLegacyDuplicateRestoreEntry(
+    private suspend fun findLegacyDuplicateRestoreEntry(
         first: RestoreSetRow,
         rows: List<RestoreSetRow>
-    ): Boolean = workoutDao.entriesWithSets(first.date).any { existing ->
+    ): WorkoutEntryWithSets? = workoutDao.entriesWithSets(first.date).firstOrNull { existing ->
         existing.entry.exerciseStableKey == first.stableKey &&
             existing.entry.category == first.category &&
             existing.entry.restSeconds == first.restSeconds &&
@@ -725,7 +894,7 @@ private fun RestoreExerciseRow.toFallbackExercise(): Exercise = Exercise(
     metadataConfidence = metadataConfidence.ifBlank { MetadataConfidence.LOW.name },
     imageAssetName = imageAssetName,
     isActive = isActive,
-    archivedAt = if (isActive) null else System.currentTimeMillis(),
+    archivedAt = if (isActive) null else archivedAt ?: System.currentTimeMillis(),
     isCustom = isCustom,
     needsReview = needsReview
 )
@@ -753,6 +922,7 @@ private fun Exercise.mergeLegacyRow(row: RestoreExerciseRow): Exercise = copy(
     metadataConfidence = row.metadataConfidence,
     imageAssetName = row.imageAssetName,
     isActive = row.isActive,
+    archivedAt = row.archivedAt,
     isCustom = row.isCustom,
     needsReview = row.needsReview
 )

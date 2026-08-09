@@ -183,6 +183,24 @@ class TrainingRepository(
                 .semanticCanonicalMetadataRevision
         }
     )
+    private val backupRestorePlanner = BackupRestorePlanner(
+        initialUserProfileDao = initialUserProfileDao,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        programDao = programDao,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        smashSpeedDao = smashSpeedDao,
+        runtimeMetadataDao = runtimeExerciseMetadataDao,
+        relationDao = exerciseRoleRelationDao,
+        overrideDao = exerciseMetadataUserOverrideDao,
+        appMetaDao = appMetaDao,
+        canonicalExercises = ::seedExercisesByStableKey,
+        semanticRevision = {
+            ExerciseMetadataRevisionPolicy.project(context, canonicalMetadataRepository)
+                .semanticCanonicalMetadataRevision
+        }
+    )
     private val backupRestoreImportService = BackupRestoreImportService(
         db = db,
         initialUserProfileDao = initialUserProfileDao,
@@ -195,11 +213,14 @@ class TrainingRepository(
         dailyStatusService = dailyStatusService,
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+        exerciseMetadataUserOverrideDao = exerciseMetadataUserOverrideDao,
         appMetaDao = appMetaDao,
         workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        canonicalMetadataRepository = canonicalMetadataRepository,
+        restorePlanner = backupRestorePlanner,
         seedExercisesByStableKey = ::seedExercisesByStableKey,
         profileFromRows = { rows -> rows.toInitialUserProfile() }
     )
@@ -207,6 +228,8 @@ class TrainingRepository(
         db = db,
         dailyStatusService = dailyStatusService
     )
+    private var pendingBackupRestore: BackupImportService.PreparedRestore? = null
+    private var pendingBackupRestorePlan: BackupRestorePlan? = null
     private val readQueryService = RepositoryReadQueryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -399,11 +422,14 @@ class TrainingRepository(
             exerciseRoleRelationDao = exerciseRoleRelationDao,
             initialUserProfileDao = initialUserProfileDao,
             runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
+            exerciseMetadataUserOverrideDao = exerciseMetadataUserOverrideDao,
             appMetaDao = appMetaDao,
             strengthPosteriorDao = strengthPosteriorDao,
             programDao = programDao,
             exerciseIdentityMigrationIssueDao = exerciseIdentityMigrationIssueDao,
             canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+            canonicalMetadataRepository = canonicalMetadataRepository,
+            workoutSourceIdentityProvider = workoutSourceIdentityProvider,
             reportStore = dataTransferReportStore,
             appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
         ).export(uri, onReportChanged)
@@ -427,14 +453,62 @@ class TrainingRepository(
         uri: Uri,
         onReportChanged: (DataTransferReport) -> Unit = {}
     ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
-        BackupImportService(
-            restoreImporter = backupRestoreImportService::importRestoreCsv,
-            dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv,
-            canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
-            canonicalExercises = { SeedData.exactExerciseMetadataByStableKey(context) },
-            reportStore = dataTransferReportStore
-        ).import(context, uri, onReportChanged)
+        val service = backupImportService()
+        val prepared = service.prepare(context, uri)
+        val plan = service.plan(
+            prepared,
+            WorkoutRestoreMode.APPEND_TO_CURRENT,
+            ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES
+        )
+        service.execute(prepared, plan, onReportChanged)
     }
+
+    suspend fun prepareRecordsRestore(uri: Uri): BackupRestorePreparation = withContext(Dispatchers.IO) {
+        cancelPendingRecordsRestore()
+        val prepared = backupImportService().prepare(context, uri)
+        pendingBackupRestore = prepared
+        BackupRestorePreparation(
+            hasOverlappingWorkoutDates = prepared.prepared.overlappingDates.isNotEmpty(),
+            impact = prepared.prepared.baseImpact
+        )
+    }
+
+    suspend fun planRecordsRestore(
+        workoutMode: WorkoutRestoreMode,
+        exerciseMode: ExerciseListRestoreMode
+    ): BackupRestoreImpact = withContext(Dispatchers.IO) {
+        val prepared = checkNotNull(pendingBackupRestore) { "No prepared backup restore is pending." }
+        val plan = backupImportService().plan(prepared, workoutMode, exerciseMode)
+        pendingBackupRestorePlan = plan
+        plan.impact
+    }
+
+    suspend fun confirmRecordsRestore(
+        onReportChanged: (DataTransferReport) -> Unit = {}
+    ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        val prepared = checkNotNull(pendingBackupRestore) { "No prepared backup restore is pending." }
+        val plan = checkNotNull(pendingBackupRestorePlan) { "No confirmed backup restore plan is pending." }
+        try {
+            backupImportService().execute(prepared, plan, onReportChanged)
+        } finally {
+            cancelPendingRecordsRestore()
+        }
+    }
+
+    fun cancelPendingRecordsRestore() {
+        pendingBackupRestore = null
+        pendingBackupRestorePlan = null
+    }
+
+    private fun backupImportService(): BackupImportService = BackupImportService(
+        restoreImporter = backupRestoreImportService::importRestoreCsv,
+        restorePlanImporter = backupRestoreImportService::importRestorePlan,
+        restorePlanner = backupRestorePlanner,
+        dailyTimeseriesImporter = dailyTimeseriesImportService::importDailyTimeseriesCsv,
+        canonicalizer = BackupRestoreCanonicalizer(legacyExerciseImportMapper),
+        canonicalExercises = { SeedData.exactExerciseMetadataByStableKey(context) },
+        reportStore = dataTransferReportStore
+    )
 
     fun entryCount(date: String): Flow<Int> =
         readQueryService.entryCount(date)

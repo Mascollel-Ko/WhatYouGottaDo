@@ -34,7 +34,7 @@ class BackupRestoreImportBehaviorTest {
     }
 
     @Test
-    fun restoreBackupPreservesRuntimeMetadataOverridePrecedence() = runBlocking {
+    fun legacyRuntimeSnapshotDoesNotBecomeExplicitOverrideAuthority() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
         val seed = SeedData.exactExerciseMetadataByStableKey(context).values.first()
@@ -51,16 +51,20 @@ class BackupRestoreImportBehaviorTest {
         val restoredExercise = db.exerciseDao().findByStableKey(seed.stableKey)!!
         val restoredOverride = db.runtimeExerciseMetadataDao().findByStableKey(seed.stableKey)!!.toRuntimeMetadata()
         val resolved = repository.resolveRuntimeMetadata(restoredExercise)
+        val canonical = CanonicalExerciseMetadataRepositoryProvider.get(context)
+            .runtimeMetadataCatalog()
+            .resolve(seed)!!
 
         assertEquals("restore", result.format)
         assertEquals(1, result.exerciseCount)
         assertEquals("RESTORED_SLOT", restoredOverride.programSlot)
-        assertEquals("RESTORED_SLOT", resolved.programSlot)
+        assertEquals(canonical.programSlot, resolved.programSlot)
+        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(seed.stableKey).isEmpty())
         assertFalse(restoredOverride.safeForSeedMutation)
     }
 
     @Test
-    fun restoreWorkoutSetsNeverReapplySeedOverUserEditedBuiltInExercise() = runBlocking {
+    fun legacyMaterializedDifferencesDoNotBecomeBuiltInOverrides() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
         val seed = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
@@ -92,15 +96,15 @@ class BackupRestoreImportBehaviorTest {
 
         val first = repository.importRecordsBackup(writeBackup(csv))
         assertEquals(1, first.entryCount)
-        assertRestoredDeadliftOverride(db, edited.stableKey)
+        assertLegacyDifferenceIsNotOverride(db, seed)
 
         repository.seedIfNeeded()
-        assertRestoredDeadliftOverride(db, edited.stableKey)
+        assertLegacyDifferenceIsNotOverride(db, seed)
 
         val duplicate = repository.importRecordsBackup(writeBackup(csv))
         assertEquals(0, duplicate.entryCount)
         assertEquals(1, duplicate.skippedDuplicateCount)
-        assertRestoredDeadliftOverride(db, edited.stableKey)
+        assertLegacyDifferenceIsNotOverride(db, seed)
     }
 
     @Test
@@ -523,15 +527,14 @@ class BackupRestoreImportBehaviorTest {
     private fun repository(db: TrainingDatabase): TrainingRepository =
         TrainingRepository(db, context)
 
-    private suspend fun assertRestoredDeadliftOverride(db: TrainingDatabase, stableKey: String) {
-        val restoredExercise = db.exerciseDao().findByStableKey(stableKey)!!
-        val restoredOverride = db.runtimeExerciseMetadataDao().findByStableKey(stableKey)
+    private suspend fun assertLegacyDifferenceIsNotOverride(db: TrainingDatabase, canonical: Exercise) {
+        val effective = TrainingRepository(db, context).exerciseEditorData(canonical.stableKey)
         val restoredRecord = db.workoutDao().allEntriesWithSets().single()
 
-        assertEquals(stableKey, restoredExercise.stableKey)
-        assertTrue(restoredExercise.primaryMuscles.contains("QUADRICEPS"))
-        assertNotNull(restoredOverride)
-        assertEquals(stableKey, restoredRecord.entry.exerciseStableKey)
+        assertEquals(canonical.primaryMuscles, effective.exercise.primaryMuscles)
+        assertTrue(db.exerciseMetadataUserOverrideDao().findByStableKey(canonical.stableKey).isEmpty())
+        assertNotNull(db.runtimeExerciseMetadataDao().findByStableKey(canonical.stableKey))
+        assertEquals(canonical.stableKey, restoredRecord.entry.exerciseStableKey)
         assertEquals(1, restoredRecord.sets.size)
     }
 

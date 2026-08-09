@@ -65,6 +65,10 @@ class SmashSpeedServiceTest {
             records.removeAll { it.id == id }
         }
 
+        override suspend fun deleteForParentWorkoutEntries(entryIds: List<Long>) {
+            records.removeAll { it.parentWorkoutEntryId in entryIds }
+        }
+
         private fun recordsFor(date: String): List<SmashSpeedRecord> =
             records
                 .filter { it.date == date }

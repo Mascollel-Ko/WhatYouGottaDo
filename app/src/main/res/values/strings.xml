@@ -104,4 +104,26 @@
     <string name="public_protocol_action">공개 프로토콜 문서 보기</string>
     <string name="public_protocol_action_description">브라우저에서 공개 프로토콜 문서 열기</string>
     <string name="public_protocol_browser_unavailable">브라우저를 열 수 없습니다.</string>
+    <string name="restore_progress_title">복원 준비 중</string>
+    <string name="restore_progress_body">백업 내용을 확인하고 있습니다. 잠시만 기다려 주세요.</string>
+    <string name="restore_workout_overlap_title">겹치는 운동일을 어떻게 처리할까요?</string>
+    <string name="restore_workout_overlap_impact">겹치는 날짜 %1$d일 · 현재 기록 %2$d개 · 백업 기록 %3$d개</string>
+    <string name="restore_workout_replace">겹치는 날짜의 운동 기록 교체</string>
+    <string name="restore_workout_append">현재 기록을 유지하고 백업 기록 추가</string>
+    <string name="restore_exercise_list_title">활성 운동 목록을 어떻게 처리할까요?</string>
+    <string name="restore_exercise_list_impact">백업에 포함된 운동 %1$d개 · 교체될 메타데이터 편집 %2$d개</string>
+    <string name="restore_custom_definition_warning">같은 사용자 운동 %1$d개의 이름과 설정이 백업 정의로 교체됩니다.</string>
+    <string name="restore_exercise_preserve">현재 활성 운동 목록 유지</string>
+    <string name="restore_exercise_apply">백업의 활성 운동 목록 적용</string>
+    <string name="restore_final_title">복원 내용을 최종 확인하세요</string>
+    <string name="restore_final_workout_overlap">겹치는 운동일 %1$d일에 선택한 기록 방식을 적용합니다.</string>
+    <string name="restore_final_exercises_deactivated">현재 활성 운동 %1$d개가 비활성화됩니다.</string>
+    <string name="restore_final_references_retained">기록 또는 프로그램이 참조하는 운동 %1$d개는 조회를 위해 보존됩니다.</string>
+    <string name="restore_final_metadata_overrides_removed">현재 메타데이터 편집 %1$d개가 제거됩니다.</string>
+    <string name="restore_final_out_of_scope_source_preserved">교체 범위 밖의 같은 source 기록 차이 %1$d개는 현재 상태로 보존됩니다.</string>
+    <string name="restore_confirm">복원 시작</string>
+    <string name="restore_back">뒤로</string>
+    <string name="restore_cancel">취소</string>
+    <string name="restore_close">닫기</string>
+    <string name="restore_failed_title">복원할 수 없습니다</string>
 </resources>
