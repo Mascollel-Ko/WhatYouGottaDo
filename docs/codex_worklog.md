@@ -5007,3 +5007,70 @@ Verification
 - The 225-document cleanup remains in branch ancestry and no deleted obsolete
   document was restored. Main integration, release tag, push, and CI
   confirmation remain the final Git steps.
+
+## 2026-08-10 - v0.5.0.28 production localization correctness
+
+### Baseline and scope
+
+- Started from origin/main and `v0.5.0.27` at
+  `b7fafda997ac5ae3d8b9e569cfd17a0d6e09e19a`.
+- Kept Room 29, backup format 12, restore schema 11, stable identities,
+  metadata, user data, ProgramBuilder, and every analysis calculation frozen.
+- Preserved the untracked `app/outputs/` directory and did not restore deleted
+  obsolete documents.
+
+### Implementation
+
+- Commit `793b2d7824260930866ecab05069b4d6b559d869` routes calendar labels by
+  date semantics, all 257 built-in descriptions and 12 seeded names by stable
+  identity, and reported coaching output by message code.
+- Approved performance/fatigue terminology and UI-role casing replaced bad
+  generic translations. Key-lift chips use intrinsic width in a horizontally
+  scrollable row so `Barbell Deadlift` remains complete.
+- Custom exercise descriptions and user-created program names remain exact
+  passthrough content.
+- The localization audit now covers runtime presentation origins and reports
+  `APPROVED_LOCALIZED_PRESENTATION`, `CODEX_GENERATED_ENGLISH`,
+  `USER_CONTENT_PASSTHROUGH`, `CANONICAL_NON_DISPLAY`, `INTERNAL_DEBUG`, and
+  `UNEXPLAINED_PRODUCTION_LEAK` separately. Unexplained leaks remain zero.
+
+### Failure classes recorded
+
+1. Date semantics cannot use fragment translation.
+2. Built-in asset prose is localization coverage.
+3. Exercise descriptions require stable identity.
+4. Seeded program names require stable identity.
+5. Dynamic analysis messages require semantic codes.
+6. Statistical labels require metric/model identity.
+7. Exact source-text matching is insufficient for generated messages.
+8. Generic translation cannot override approved contextual terms.
+9. English casing depends on UI role.
+10. Localization QA includes narrow-screen layout.
+11. Leak audits must inspect runtime paths.
+
+### Technical detail classification
+
+- Persistent-strength lifecycle status, observation counts, rebuild/correction
+  mode, provenance, and numerical diagnostics are
+  `USER_FACING_TECHNICAL_DETAIL`; they remain available behind the existing
+  expandable analysis detail with localized labels.
+- Log and exception-only material remains `INTERNAL_DEBUG`; no reviewed
+  user-facing technical field was removed.
+
+### Verification
+
+- Approved workbook hash remained
+  `0CA2D8D01B603499D8509CC6E6E00BA027818B1F693D4B2978BF642C0F7DFE3A`.
+- Localization generator/audit Python suite: 5 passed.
+- Focused localization, Compose presentation, current-performance, and
+  coaching analyzer suite: 30 passed.
+- `:app:compileDebugKotlin`: passed.
+- Metadata authority and display-routing Python suite: 8 passed.
+- Protocol validation: 8 families and 34 protocols passed.
+- Full `:app:testDebugUnitTest`: 1,218 tests, zero failures and zero skipped.
+- `:app:compileDebugAndroidTestKotlin` and `:app:assembleDebug`: passed.
+- `:app:connectedDebugAndroidTest`: passed on the Pixel 8 AVD; one migration
+  case was skipped and no test failed.
+- Debug APK: 51,303,390 bytes, SHA-256
+  `12D8B8E632659F024431659647C0EF81504C9BCDEECF1CE9D34214CEF17EC6A9`.
+- Main push, `v0.5.0.28` tag, and CI confirmation remain the release Git steps.

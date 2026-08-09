@@ -61,7 +61,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.5.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22`; metadata snapshot `v0.5.0.24`; selectable safe restore `v0.5.0.25` | `b44088c2a32d7222d97e5a213a2efea02d250f10` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
 | `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.8.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; bundled authority `v0.5.0.22`; explicit ownership `v0.5.0.25`; fieldKey routing `v0.5.0.26` | `28f40346492d1f7df9e593214a3b806295f27222` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.4.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14`; fieldKey metadata routing `v0.5.0.26`; localized surfaces `v0.5.0.27` | `ed3b265bd6128099526f6737e590f15b294e126b` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
-| `UI_PRESENTATION` | `UI-LOCALIZATION` | 한국어/영어 localization 계약 | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.27` | `ed3b265bd6128099526f6737e590f15b294e126b` | [문서](presentation/LOCALIZATION.md) |
+| `UI_PRESENTATION` | `UI-LOCALIZATION` | 한국어/영어 localization 계약 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.27`; correctness hardening `v0.5.0.28` | `793b2d7824260930866ecab05069b4d6b559d869` | [문서](presentation/LOCALIZATION.md) |
 
 ## Reading and publishing
 

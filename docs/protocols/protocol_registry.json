@@ -1837,7 +1837,7 @@
       "familyId": "UI_PRESENTATION",
       "titleKo": "한국어/영어 localization 계약",
       "titleEn": "Korean and English Localization",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1845,8 +1845,8 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "presentation/LOCALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.27",
-      "lastAuditedCommit": "ed3b265bd6128099526f6737e590f15b294e126b",
+      "implementedFromAppVersion": "v0.5.0.27; correctness hardening from v0.5.0.28",
+      "lastAuditedCommit": "793b2d7824260930866ecab05069b4d6b559d869",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/localization/AppLanguageRegistry.kt",
         "app/src/main/java/com/training/trackplanner/localization/LocalizedPresentation.kt",
@@ -1871,7 +1871,8 @@
       ],
       "supportingDocuments": [
         "docs/audits/v0.5.0.26_localization_translation_gate_audit.md",
-        "docs/v0.5.0.27_release_notes.md"
+        "docs/v0.5.0.27_release_notes.md",
+        "docs/v0.5.0.28_release_notes.md"
       ],
       "knownGaps": [
         "Connected cold-launch verification requires an available Android emulator."

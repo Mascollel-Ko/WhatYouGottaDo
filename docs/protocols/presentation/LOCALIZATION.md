@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-LOCALIZATION |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.27 |
-| Last audited commit | ed3b265bd6128099526f6737e590f15b294e126b |
+| Implemented from app version | v0.5.0.27; correctness hardening from v0.5.0.28 |
+| Last audited commit | 793b2d7824260930866ecab05069b4d6b559d869 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | v0.5.0.26 translation-gate audit policy |
 
@@ -160,9 +160,62 @@ hand-maintained authority가 아닙니다.
 - [조용한 UI 표시 원칙](QUIET_UI_PRESENTATION.md)
 - [Localization authority README](../../metadata_authority/README.md)
 - [v0.5.0.27 release notes](../../v0.5.0.27_release_notes.md)
+- [v0.5.0.28 release notes](../../v0.5.0.28_release_notes.md)
+
+## v0.5.0.28 production presentation routing
+
+- Calendar month and weekday output is derived from `YearMonth` and
+  `DayOfWeek` with the active application locale. Date fragments are never
+  sent through the generic text catalogue.
+- All 257 built-in/history exercise descriptions and all 12 seeded program
+  names use stable-identity overlays. Custom exercise text and user-created
+  program names pass through unchanged.
+- Sleep, RPE, joint/tendon, and court-duration coaching signals expose stable
+  message codes. Android resources format those states without making domain
+  calculations locale-dependent.
+- Statistical labels preserve model identity. In particular, the current
+  performance card uses `Posterior median`; it does not substitute a posterior
+  mean or e1RM label.
+- Fatigue controls use the approved semantic labels `Overview`, `Details`,
+  `High-load axes`, and `Lower-load axes`.
+- Canonical key-lift chips retain their complete names in a horizontally
+  scrollable intrinsic-width row.
+
+The strengthened audit classifies each production origin as
+`APPROVED_LOCALIZED_PRESENTATION`, `CODEX_GENERATED_ENGLISH`,
+`USER_CONTENT_PASSTHROUGH`, `CANONICAL_NON_DISPLAY`, `INTERNAL_DEBUG`, or
+`UNEXPLAINED_PRODUCTION_LEAK`. Completion requires zero unexplained leaks and
+runtime presentation tests for representative English and Korean states.
+
+### Failure classes now guarded
+
+1. Structured date semantics must not use generic word translation.
+2. Asset-originated built-in prose is localization coverage.
+3. Built-in descriptions localize by stable identity.
+4. Seeded program copy localizes by stable identity.
+5. Dynamic analysis messages localize from semantic codes.
+6. Statistical labels localize from metric/model identity.
+7. Exact Korean-source matching is insufficient for generated messages.
+8. Generic translation cannot override approved context-sensitive terms.
+9. English casing follows the UI role, not blanket title casing.
+10. Localization QA includes narrow-screen adaptive layout.
+11. Production leak audits inspect runtime paths, not only source literals.
+
+### Performance technical-detail classification
+
+The expandable persistent-strength diagnostics are
+`USER_FACING_TECHNICAL_DETAIL`: lifecycle status, observation counts,
+rebuild/correction state, provenance, and numerical diagnostics explain a
+user-triggered analysis result. Their labels are localized while technical
+codes remain exact. No field on the reviewed card was classified as
+`INTERNAL_DEBUG_ONLY`; ordinary logs and exception diagnostics remain internal
+and are classified separately by the audit.
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-10): stable-identity built-in prose, semantic calendar and
+  coaching output, approved statistical/fatigue wording, adaptive selector
+  layout, and runtime-origin leak auditing were added.
 - `1.0.0` (2026-08-10): approved Korean/English runtime localization,
   system/explicit locale behavior, stable identity presentation and release
   validation gates were registered.
