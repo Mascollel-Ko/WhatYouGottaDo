@@ -57,6 +57,7 @@ class MetadataTranslatorTest {
         assertEquals("근력운동", korean.translate("exercise.category", "근력운동"))
         assertEquals("근력운동", english.translate("exercise.category", "근력운동"))
         assertEquals("가슴/삼두근", korean.translate("exercise.detail1", "가슴/삼두근"))
+        assertEquals("광배근", korean.translate("exercise.detail2", "광배근"))
         val custom = "내 커스텀 폭발력 운동"
         assertEquals(custom, korean.translate("exercise.category", custom))
         assertEquals("근력운동 추가", korean.translate("exercise.category", "근력운동 추가"))

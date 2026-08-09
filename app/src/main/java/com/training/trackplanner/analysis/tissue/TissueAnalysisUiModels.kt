@@ -74,13 +74,7 @@ object TissueAnalysisUiMapper {
                         TissueAnalysisChildUi(
                             key = "${child.key.loadUnitStableKey}|${child.key.loadDimension}",
                             displayCode = child.loadUnitCode,
-                            name = if (child.key.loadDimension == "UNOBSERVED" ||
-                                child.key.loadDimension == "UNIT_TOTAL"
-                            ) {
-                                child.loadUnitName
-                            } else {
-                                "${child.loadUnitName} · ${child.key.loadDimension}"
-                            },
+                            name = child.loadUnitName,
                             info = child.educationalInfo,
                             status = child.status,
                             recoveryRange = range(child.rawResidual),

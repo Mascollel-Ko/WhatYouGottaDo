@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.7.0 |
+| Protocol version | 1.8.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25 |
-| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26 |
+| Last audited commit | 28f40346492d1f7df9e593214a3b806295f27222 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
 ## v0.5.0.23 Korean metadata display authority
@@ -24,6 +24,28 @@ canonical code, while rendering uses only the active-locale primary label.
 Raw production-code fallback is prohibited. `e1RM` remains exactly `e1RM` by
 product-owner decision.
 | Supersedes | 없음 |
+
+## v0.5.0.26 field-display routing contract
+
+`ExerciseMetadataFieldPolicyRegistry` owns `fieldKey -> valueKind ->
+localizationMode -> displayDomain -> displayDisposition`. Generated CSV/JSON
+contracts are deterministic projections of that registry. Android UI callers
+provide a fieldKey and canonical value to the thin `MetadataTranslator`; they
+do not select a `MetadataDisplayField` domain themselves.
+
+`MetadataDisplayCatalogue` remains the only label and search-alias content
+authority. Canonical token sets are translated token by token. Ordinary free
+text is passed through. `exercise.category`, `exercise.detail1`, and
+`exercise.detail2` are explicit hybrid fields: exact registered values use the
+catalogue and arbitrary user text remains byte-for-byte unchanged with no fuzzy
+matching. Numeric, actual elapsed duration, and boolean values use typed
+formatting. `exercise.archivedAt` retains its semantic value kind but is
+`NEVER_DISPLAY`; it is not formatted as an elapsed duration.
+
+Canonical values remain unchanged in Room, overrides, backup, restore,
+analysis, and ProgramBuilder. Exercise-name localization is intentionally
+outside this phase. Korean reachable production catalogue coverage must remain
+complete, while compatibility/search-only aliases stay searchable.
 
 ## 1. 일반 사용자용 요약
 
@@ -212,11 +234,17 @@ consumer symbol과 실제 semantic use별로 검토합니다.
 - `app/src/main/java/com/training/trackplanner/analysis/contracts/UserExerciseAnalysisContractProjector.kt`
 - `app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractShadowParity.kt`
 - `app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt`
+- `app/src/main/java/com/training/trackplanner/data/ExerciseMetadataBackupContract.kt`
+- `app/src/main/java/com/training/trackplanner/MetadataTranslator.kt`
+- `app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt`
 
 ## 17. 검증 테스트
 
 - `app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt`
 - `app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractArchitectureTest.kt`
+- `app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt`
+- `app/src/test/java/com/training/trackplanner/MetadataTranslatorTest.kt`
+- `app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt`
 
 Baseline test는 relation coverage, structured parity, normalized asset parity,
 사용자 incomplete 상태와 production program schedule/stableKey/prescription
@@ -250,6 +278,10 @@ golden을 검증합니다.
 
 ## 20. 변경 이력
 
+- `1.8.0` (2026-08-09): authoritative fieldKey display routing, typed and
+  hybrid presentation policies, zero-gap Korean production coverage, and
+  deterministic routing validation were connected without changing semantic
+  or persistence metadata.
 - `1.5.0` (2026-08-05): cut bundled metadata reads over to deterministic
   workbook-generated assets and a strict canonical repository. Frozen analysis
   behavior remains unchanged except the approved history/slot/reclassification

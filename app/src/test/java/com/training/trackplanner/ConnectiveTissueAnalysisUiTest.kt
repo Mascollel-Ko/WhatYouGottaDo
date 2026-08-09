@@ -191,8 +191,9 @@ class ConnectiveTissueAnalysisUiTest {
 
         compose.onAllNodesWithText("하위 조직 보기")[0].performClick()
         val child = first.childStates.first()
+        val childUi = TissueAnalysisUiMapper.map(state).joints.first().children.first()
         compose.onNodeWithContentDescription(
-            "${displayCatalogue.label(MetadataDisplayField.TISSUE, child.loadUnitCode)} 정보 보기"
+            "${childUi.name} 정보 보기"
         ).performClick()
         assertTrue(compose.onAllNodesWithText(child.loadUnitName).fetchSemanticsNodes().isNotEmpty())
         compose.onNodeWithText(child.educationalInfo.anatomicalLocationKo).assertExists()

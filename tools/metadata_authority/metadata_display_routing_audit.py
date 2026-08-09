@@ -66,6 +66,18 @@ def collect(root: Path) -> dict[str, int]:
         for row in inventory
     }
 
+    invalid_domains = {
+        (row["fieldScope"], row["fieldKey"])
+        for row in contract
+        if row["localizationMode"] in CATALOGUE_MODES
+        and row["displayDomain"] not in domains
+    }
+    invalid_modes = {
+        (row["fieldScope"], row["fieldKey"])
+        for row in contract
+        if invalid_mode(row)
+    }
+
     return {
         "userVisibleCatalogueFieldCount": len(catalogue_fields),
         "hybridCatalogueUserTextFieldCount": sum(
@@ -80,13 +92,10 @@ def collect(root: Path) -> dict[str, int]:
         "missingReachableProductionPairCount": sum(
             not row["koreanLabel"].strip() for row in production
         ),
-        "invalidDisplayDomainCount": sum(
-            row["localizationMode"] in CATALOGUE_MODES
-            and row["displayDomain"] not in domains
-            for row in contract
-        ),
-        "invalidLocalizationModeForValueKindCount": sum(
-            invalid_mode(row) for row in contract
+        "invalidDisplayDomainCount": len(invalid_domains),
+        "invalidLocalizationModeForValueKindCount": len(invalid_modes),
+        "missingOrInvalidUserVisiblePresentationContractCount": len(
+            invalid_domains | invalid_modes
         ),
         "expectedCompatibilityOnlyPairCount": len(compatibility),
         "unexpectedOrphanProductionPairCount": sum(
@@ -105,6 +114,26 @@ def collect(root: Path) -> dict[str, int]:
     }
 
 
+def validate(metrics: dict[str, int]) -> None:
+    zero_required = (
+        "missingReachableProductionPairCount",
+        "invalidDisplayDomainCount",
+        "invalidLocalizationModeForValueKindCount",
+        "missingOrInvalidUserVisiblePresentationContractCount",
+        "unexpectedOrphanProductionPairCount",
+        "postRefactorRawCodeProneUiPathCount",
+    )
+    failures = [f"{key}={metrics[key]}" for key in zero_required if metrics[key] != 0]
+    if metrics["translatedReachableProductionPairCount"] != metrics["reachableProductionPairCount"]:
+        failures.append(
+            "translatedReachableProductionPairCount="
+            f"{metrics['translatedReachableProductionPairCount']}/"
+            f"{metrics['reachableProductionPairCount']}"
+        )
+    if failures:
+        raise ValueError("Invalid metadata display routing: " + ", ".join(failures))
+
+
 def render(metrics: dict[str, int]) -> str:
     output = io.StringIO(newline="")
     writer = csv.writer(output, lineterminator="\n")
@@ -119,7 +148,9 @@ def main() -> int:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     destination = root / "docs/generated/metadata_display_coverage_audit.csv"
-    content = render(collect(root))
+    metrics = collect(root)
+    validate(metrics)
+    content = render(metrics)
     if args.write:
         destination.write_text(content, encoding="utf-8", newline="")
     elif destination.read_text(encoding="utf-8") != content:

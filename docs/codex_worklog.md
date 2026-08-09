@@ -4858,3 +4858,77 @@ Verification
   `8DD208E1149F7FBB359B482B10D0FB3E63FDD87A6003D7E9E108D2AF17B3841C`.
 - Phase D checkpoint, main fast-forward integration, and main push remain the
   final Git steps. No release tag is required by this task.
+
+## 2026-08-09 - v0.5.0.26 metadata field routing localization Phase 1
+
+### Baseline and cleanup
+
+- Started from `dbe8c11f2d4b25e8f9dae50bf01d746896b27eb1`, app
+  `0.5.0.25` / `500025`, Room 29, backup format 12, and restore schema 11.
+- Used branch `codex/metadata-field-routing-localization-v05026`; no separate
+  worktree was needed.
+- Deleted only the six previously preserved generated quality outputs in
+  cleanup commit `86c29c9`; no other `outputs/*` path was removed.
+
+### Phase A - audit and contract repair
+
+- Commit `3ff4bbe` repaired authoritative display domains and
+  valueKind/localizationMode routing, added three explicit hybrid fields, kept
+  `archivedAt` semantic but non-display, regenerated contracts, and added the
+  deterministic source/coverage audit.
+- Semantic revision remained
+  `3d2b2c343f82463d00bf5d453e019526924e296402ce0e6f731a3cf3379b966d`;
+  display revision became
+  `f7248bd18f29a504cb44fada456f33481a5b1228942f0915d6a6043b846ab915`.
+
+### Phase B - fieldKey routing boundary
+
+- Commit `f5ad924` added `MetadataTranslator` as a thin registry-driven facade
+  over the existing `MetadataDisplayCatalogue` content and alias authority.
+- Token, token-set, exact hybrid/passthrough, ordinary text, typed numeric,
+  elapsed duration, boolean, exercise-reference, and non-display routes are
+  covered without persisting localized values.
+
+### Phase C - production UI integration
+
+- Commit `28f4034` migrated metadata editor/copy, exercise picker/list/detail,
+  exercise filter, and program category UI to fieldKey routing without layout
+  changes.
+- Editor callbacks retain canonical single and token-set values. Arbitrary
+  hybrid text remains unchanged and existing Korean/English search aliases are
+  still supplied by the catalogue.
+- Production raw-code-prone direct routing paths fell from 70 to 0. Reachable
+  Korean production coverage is 1683/1683 with 136 expected search-only pairs.
+- Focused translator/catalogue/registry/Compose tests passed (28 tests) and
+  `:app:compileDebugKotlin` passed.
+
+### Phase D - release closeout
+
+- Added failing release gates for missing reachable Korean labels, invalid
+  display domains, invalid localization modes, orphan production rows, stale
+  coverage, and reintroduced direct UI routing.
+- Updated the existing metadata-analysis and quiet-presentation protocols,
+  metadata authority README, generated audit, registry, and release notes.
+- Version target is `0.5.0.26` / `500026`; Room 29, backup 12, restore 11,
+  semantic metadata, persistence, analysis, and ProgramBuilder remain unchanged.
+- Safe unknown-token presentation exposed a tissue child-label boundary error:
+  load-unit identifiers had been sent to the unrelated tissue-code catalogue.
+  The UI now uses the mapper's reviewed load-unit name. Tissue calculations,
+  state classification, recovery, and baselines were not changed.
+- Focused translator/catalogue/registry/Compose coverage passed (29 tests), and
+  the metadata authority/routing Python suite passed (8 tests).
+- Final `:app:testDebugUnitTest` passed with 1,204 tests and zero failures.
+  An earlier run's stale Robolectric window-pointer failures disappeared after
+  a fresh no-daemon rerun of the affected classes; the final full suite passed.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug` passed.
+- `:app:connectedDebugAndroidTest` passed on `emulator-5554`: 25 tests,
+  one skipped, zero failures, and zero errors.
+- Metadata authority, deterministic export/stale checks, coverage validation,
+  and protocol validation passed. The protocol registry contains 8 families
+  and 33 protocols.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 47,914,145 bytes,
+  SHA-256
+  `ead6817b83d802766d328d2b8e20eb284820146d81354b5d24718d6a077a4d42`.
+- Final Phase D commit, main integration, tag, push, and CI confirmation remain
+  the release Git steps.

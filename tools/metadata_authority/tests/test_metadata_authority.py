@@ -17,6 +17,9 @@ sys.path.insert(0, str(TOOLS))
 from authority_common import DISPLAY_HEADERS, DISPLAY_SHEET, load_workbook, sheet_rows  # noqa: E402
 from export_canonical_metadata import export  # noqa: E402
 from validate_authority_workbook import validate  # noqa: E402
+from metadata_display_routing_audit import collect as collect_display_routing  # noqa: E402
+from metadata_display_routing_audit import render as render_display_routing  # noqa: E402
+from metadata_display_routing_audit import validate as validate_display_routing  # noqa: E402
 
 
 WORKBOOK = REPO / "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx"
@@ -123,6 +126,32 @@ class MetadataAuthorityTest(unittest.TestCase):
         english = resource_keys(RESOURCES / "values-en/metadata_display_catalog.xml")
         self.assertEqual(korean, english)
         self.assertEqual(1819, len(korean))
+
+    def test_display_routing_audit_is_current_and_complete(self):
+        metrics = collect_display_routing(REPO)
+        validate_display_routing(metrics)
+        self.assertEqual(1683, metrics["reachableProductionPairCount"])
+        self.assertEqual(1683, metrics["translatedReachableProductionPairCount"])
+        self.assertEqual(136, metrics["expectedCompatibilityOnlyPairCount"])
+        self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
+        self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])
+        self.assertEqual(
+            render_display_routing(metrics),
+            (REPO / "docs/generated/metadata_display_coverage_audit.csv").read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    def test_display_routing_validation_rejects_invalid_domain_and_missing_translation(self):
+        valid = collect_display_routing(REPO)
+        for field in (
+            "invalidDisplayDomainCount",
+            "missingReachableProductionPairCount",
+        ):
+            broken = dict(valid)
+            broken[field] = 1
+            with self.assertRaisesRegex(ValueError, field):
+                validate_display_routing(broken)
 
 
 if __name__ == "__main__":

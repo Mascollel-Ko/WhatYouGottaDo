@@ -52,10 +52,20 @@ app/src/main/res/values-en/metadata_display_catalog.xml
 docs/metadata_authority/metadata_display_resource_manifest.json
 ```
 
-`MetadataDisplayCatalogue` is the only typed boundary for canonical metadata
-shown by the Android UI. It displays the active locale while search also
-matches canonical codes and both locales' labels and aliases. A production
-code with no registry row is a validation failure, not a release fallback.
+`ExerciseMetadataFieldPolicyRegistry` is the fieldKey routing authority.
+`MetadataTranslator` is the thin Android presentation boundary: it reads that
+registry and delegates label and alias content only to
+`MetadataDisplayCatalogue`. The catalogue remains the sole translation-content
+authority and displays the active locale while search also matches canonical
+codes and both locales' labels and aliases. A production code with no registry
+row is a validation failure, not a release fallback.
+
+Canonical tokens and token sets use exact catalogue lookup. `category`,
+`detail1`, and `detail2` use exact registered lookup with unchanged arbitrary
+user-text passthrough. Ordinary free text is never fuzzy translated. Numeric,
+elapsed-duration, and boolean fields use typed presentation; `archivedAt` is
+explicitly `NEVER_DISPLAY`, not an elapsed duration. Exercise-name localization
+remains outside this contract.
 
 The publishing workflow is therefore:
 
@@ -114,6 +124,18 @@ identity or persisted metadata overrides.
 Runtime revision ownership is split: semantic canonical metadata and semantic
 field projection determine reconciliation, while display routing and localized
 labels determine only `metadataDisplayDictionaryRevision`.
+
+The deterministic routing and coverage gates are:
+
+```powershell
+python tools/metadata_authority/metadata_display_routing_audit.py
+python -m unittest discover -s tools/metadata_authority/tests
+```
+
+They reject unknown display domains, invalid value-kind/localization-mode
+combinations, missing reachable Korean production labels, orphan production
+labels, stale generated coverage, and direct field-domain decisions in the
+audited production UI paths.
 
 ## Rollback
 

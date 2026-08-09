@@ -119,4 +119,25 @@ class ExerciseMetadataFieldRegistryContractTest {
         assertTrue(first.metadataDisplayDictionaryRevision.matches(Regex("[0-9a-f]{64}")))
         assertNotEquals(first.semanticCanonicalMetadataRevision, first.metadataDisplayDictionaryRevision)
     }
+
+    @Test
+    fun releasePreservesPersistenceAndRevisionInvariants() {
+        val revisions = ExerciseMetadataRevisionPolicy.project(context, repository)
+        assertEquals(
+            "3d2b2c343f82463d00bf5d453e019526924e296402ce0e6f731a3cf3379b966d",
+            revisions.semanticCanonicalMetadataRevision
+        )
+        assertEquals(
+            "f7248bd18f29a504cb44fada456f33481a5b1228942f0915d6a6043b846ab915",
+            revisions.metadataDisplayDictionaryRevision
+        )
+        assertTrue(
+            Regex("version\\s*=\\s*29").containsMatchIn(
+                File("src/main/java/com/training/trackplanner/data/TrainingDatabase.kt")
+                    .readText(Charsets.UTF_8)
+            )
+        )
+        assertEquals(12, RecordCsvBackupRestore.CURRENT_BACKUP_FORMAT_VERSION)
+        assertEquals(11, RecordCsvBackupRestore.CURRENT_RESTORE_SCHEMA_VERSION)
+    }
 }

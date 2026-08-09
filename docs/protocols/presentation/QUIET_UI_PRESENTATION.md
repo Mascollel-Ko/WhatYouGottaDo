@@ -3,18 +3,20 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23 |
-| Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26 |
+| Last audited commit | 28f40346492d1f7df9e593214a3b806295f27222 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 
-## Canonical metadata display language (v0.5.0.23)
+## Canonical metadata display language (v0.5.0.23, routing v0.5.0.26)
 
 - Korean metadata text is generated from workbook sheet
   `30_METADATA_DISPLAY_LABELS`; XML is not hand-authored authority.
-- UI code passes complete canonical values to `MetadataDisplayCatalogue`.
+- UI code passes `fieldKey` plus the complete canonical value to
+  `MetadataTranslator`. `ExerciseMetadataFieldPolicyRegistry` owns routing and
+  `MetadataDisplayCatalogue` remains the sole label/alias content authority.
   Delimited values are split into complete tokens before lookup; substring
   replacement is forbidden.
 - Korean search matches the primary label, formal/common Korean aliases,
@@ -25,6 +27,16 @@
   primary label `e1RM` remains exactly `e1RM`.
 - Custom exercise names, user notes, user-authored descriptions, and program
   names remain free text and are not translated by the metadata catalogue.
+- Built-in `category`, `detail1`, and `detail2` values use exact catalogue
+  identity; arbitrary text in those hybrid fields passes through unchanged.
+- Numeric and actual elapsed-duration metadata use locale formatting, booleans
+  use Android string resources, and `archivedAt` is never presented as elapsed
+  duration. Internal/derived `NEVER_DISPLAY` fields are not rendered.
+- Editor labels are localized but callbacks return canonical token or token-set
+  values. Korean production metadata coverage must remain complete; search-only
+  compatibility aliases remain searchable.
+- Exercise-name bilingualization, the Home language selector, and general UI
+  string migration remain future localization phases.
 | Supersedes | — |
 
 ## 1. 일반 사용자용 요약
@@ -159,6 +171,7 @@ Material platform 관례에 근거합니다.
 - `app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt`
 - `app/src/main/java/com/training/trackplanner/ConnectiveTissueAnalysisUi.kt`
 - `app/src/main/java/com/training/trackplanner/MetadataDisplayCatalogue.kt`
+- `app/src/main/java/com/training/trackplanner/MetadataTranslator.kt`
 - `app/src/main/java/com/training/trackplanner/RuntimeMetadataEditorControls.kt`
 - `app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt`
 - `app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt`
@@ -174,6 +187,8 @@ Material platform 관례에 근거합니다.
 - `app/src/test/java/com/training/trackplanner/AppExplanationUiTest.kt`
 - `app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`
 - `app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`
+- `app/src/test/java/com/training/trackplanner/MetadataTranslatorTest.kt`
+- `app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt`
 
 ## 18. 권위 자산
 
@@ -190,6 +205,11 @@ Material platform 관례에 근거합니다.
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-09): production metadata surfaces now use authoritative
+  fieldKey routing, exact hybrid free-text behavior, typed presentation, and a
+  deterministic zero-leak coverage gate.
+- `1.2.0` (2026-08-05): registered the workbook-generated Korean/English
+  metadata display catalogue and no-raw-code presentation boundary.
 - `1.1.0` (2026-07-30): metadata selector와 exercise information을
   이해 중심 계층으로 정리하고 typed program notice, wrapping chip,
   narrow-width 및 large-font 계약을 추가했습니다.

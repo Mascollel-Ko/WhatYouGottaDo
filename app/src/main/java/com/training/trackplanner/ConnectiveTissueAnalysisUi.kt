@@ -163,7 +163,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                     }
                     if (expandedJoint == joint.key) {
                         joint.children.forEachIndexed { index, child ->
-                            val childName = displayCatalogue.label(MetadataDisplayField.TISSUE, child.displayCode)
+                            val childName = child.name
                             if (index > 0) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                             }
