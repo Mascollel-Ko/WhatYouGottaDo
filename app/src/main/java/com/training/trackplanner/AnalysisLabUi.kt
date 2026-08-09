@@ -48,6 +48,7 @@ import com.training.trackplanner.analysis.trends.PerformanceChartSpecBuilder
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.ScatterRelationshipAnalyzer
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.localization.localizedUiText
 
 @Composable
 internal fun AnalysisLabContent(summary: PerformanceTrendSummary) {
@@ -664,10 +665,19 @@ private fun LabMetricCatalogCard(metrics: List<AnalysisMetricDescriptor>) {
             Text("사용 가능한 지표", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text("현재 데이터가 있는 지표 ${metrics.size}개", style = MaterialTheme.typography.bodySmall)
             metrics.groupBy { it.category }.forEach { (category, descriptors) ->
-                val preview = descriptors.take(6).joinToString { it.displayName }
-                val suffix = if (descriptors.size > 6) " 외 ${descriptors.size - 6}개" else ""
+                val categoryLabel = localizedUiText(category.displayLabelKo())
+                val previewLabels = mutableListOf<String>()
+                for (descriptor in descriptors.take(6)) {
+                    previewLabels += localizedUiText(descriptor.displayName)
+                }
+                val preview = previewLabels.joinToString()
+                val summary = if (descriptors.size > 6) {
+                    "$categoryLabel: $preview 외 ${descriptors.size - 6}개"
+                } else {
+                    "$categoryLabel: $preview"
+                }
                 Text(
-                    "${category.displayLabelKo()}: $preview$suffix",
+                    summary,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

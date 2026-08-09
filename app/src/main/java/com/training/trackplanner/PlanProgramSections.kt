@@ -15,8 +15,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,7 +61,7 @@ internal fun ProgramDaySummarySection(
                 ) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(displayName, fontWeight = FontWeight.SemiBold)
+                            MaterialText(displayName, fontWeight = FontWeight.SemiBold)
                             item.category.takeIf(String::isNotBlank)?.let { category ->
                                 Text(
                                     translator.translate("exercise.category", category).orEmpty(),
@@ -88,7 +90,7 @@ internal fun ProgramDaySummarySection(
                     }
                     if (item.restSeconds > 0) {
                         Text(
-                            "세트 간 휴식 ${item.restSeconds}초",
+                            stringResource(R.string.inter_set_rest, item.restSeconds),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -105,6 +107,7 @@ internal fun ProgramDaySummarySection(
         }
     }
 }
+@Composable
 private fun programPrescriptionLines(
     item: TrainingProgramItem,
     storedSets: List<TrainingProgramItemSet>
@@ -112,18 +115,22 @@ private fun programPrescriptionLines(
     val sets = ProgramSetPrescriptionResolver.resolve(item, storedSets)
     val uniform = sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1
     return if (uniform) {
-        listOf("${sets.size}세트 · ${sets.first().displayText()}")
+        listOf(
+            "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
+                sets.first().displayText()
+        )
     } else {
-        sets.map { set -> "${set.setIndex}세트 · ${set.displayText()}" }
+        sets.map { set -> "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}" }
     }
 }
 
+@Composable
 private fun ProgramSetPrescription.displayText(): String =
     buildList {
-        if (reps > 0) add("${reps}회")
+        if (reps > 0) add(pluralStringResource(R.plurals.repetition_count, reps, reps))
         if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
-        if (seconds > 0) add("${seconds}초")
-    }.ifEmpty { listOf("처방 없음") }.joinToString(" · ")
+        if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
+    }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")
 
 
 @Composable

@@ -42,6 +42,7 @@ import com.training.trackplanner.analysis.trends.IntervalBand
 import com.training.trackplanner.analysis.trends.IntervalPoint
 import com.training.trackplanner.analysis.trends.TrendChartRange
 import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.localization.localizedUiText
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -201,11 +202,17 @@ private fun StrengthRebuildFailureContent(
             }
         }
         if (detailsVisible) {
+            val diagnosticCode = localizedUiText(
+                "진단 코드: ${summary.lifecycleDiagnosticCode ?: "REBUILD_FAILED"}"
+            )
+            val diagnosticMessageLines = mutableListOf<String>()
+            for (line in (summary.lifecycleDiagnosticMessage
+                ?: "상세 실패 메시지가 저장되지 않았습니다.").lines()) {
+                diagnosticMessageLines += localizedUiText(line)
+            }
+            val diagnosticMessage = diagnosticMessageLines.joinToString("\n")
             Text(
-                text = buildString {
-                    appendLine("진단 코드: ${summary.lifecycleDiagnosticCode ?: "REBUILD_FAILED"}")
-                    append(summary.lifecycleDiagnosticMessage ?: "상세 실패 메시지가 저장되지 않았습니다.")
-                },
+                text = "$diagnosticCode\n$diagnosticMessage",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -305,8 +312,7 @@ private fun PersistentStrengthSingleTargetCurrent(
                 Text("이전 사후분포 중앙값 ${kgOrDash(latest.previousMedianKg)}")
                 Text("현재 사후분포 중앙값 ${kgOrDash(latest.currentMedianKg)}")
                 Text(
-                    "이전 중앙값 대비 현재 추정 범위 " +
-                        percentRangeOrDash(latest.lowGrowthPercent, latest.highGrowthPercent)
+                    "이전 중앙값 대비 현재 추정 범위 ${percentRangeOrDash(latest.lowGrowthPercent, latest.highGrowthPercent)}"
                 )
             }
         }
@@ -375,9 +381,7 @@ private fun PersistentStrengthDiagnostics(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "관련 세션 ${selected.relevantSessionCount} · 직접 1RM ${selected.directObservationCount} · " +
-                    "RPE 확률 관측 ${selected.knownRpeObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · " +
-                    "프록시 혁신 ${selected.proxyObservationCount} · 실패 ${selected.failureObservationCount}",
+                "관련 세션 ${selected.relevantSessionCount} · 직접 1RM ${selected.directObservationCount} · RPE 확률 관측 ${selected.knownRpeObservationCount} · 강한 nRM ${selected.strongNrmObservationCount} · 프록시 혁신 ${selected.proxyObservationCount} · 실패 ${selected.failureObservationCount}",
                 style = MaterialTheme.typography.labelSmall
             )
             Text(
@@ -506,12 +510,10 @@ private fun PersistentStrengthHistoryRow(
                 Text("성장률 이전 추정 없음")
             } else {
                 Text(
-                    "성장률 ${percentOrDash(growth.medianGrowthPercent)} · 이전 ${kgOrDash(growth.previousMedianKg)} · " +
-                        "현재 ${kgOrDash(growth.currentMedianKg)}"
+                    "성장률 ${percentOrDash(growth.medianGrowthPercent)} · 이전 ${kgOrDash(growth.previousMedianKg)} · 현재 ${kgOrDash(growth.currentMedianKg)}"
                 )
                 Text(
-                    "이전 중앙값 대비 현재 추정 범위 " +
-                        percentRangeOrDash(growth.lowGrowthPercent, growth.highGrowthPercent)
+                    "이전 중앙값 대비 현재 추정 범위 ${percentRangeOrDash(growth.lowGrowthPercent, growth.highGrowthPercent)}"
                 )
             }
         }
@@ -540,8 +542,11 @@ internal fun PersistentStrengthPerformanceLabCard(summary: PersistentStrengthPer
             return
         }
         StrengthAnalysisLifecycleStatus.REBUILD_FAILED -> {
-            val diagnostic = summary.lifecycleDiagnosticCode?.let { "\n진단 코드: $it" }.orEmpty()
-            InfoCard("현재 근력 분석을 재계산하지 못했습니다.$diagnostic")
+            val message = localizedUiText("현재 근력 분석을 재계산하지 못했습니다.")
+            val diagnostic = summary.lifecycleDiagnosticCode
+                ?.let { "\n${localizedUiText("진단 코드: $it")}" }
+                .orEmpty()
+            InfoCard(message + diagnostic)
             return
         }
         StrengthAnalysisLifecycleStatus.CURRENT -> Unit

@@ -62,6 +62,7 @@ import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.WorkoutRestoreMode
 import com.training.trackplanner.localization.AppLanguage
 import com.training.trackplanner.localization.AppLanguageRegistry
+import com.training.trackplanner.localization.localizedUiText
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -540,18 +541,16 @@ private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+            val currentStatus = localizedUiText(
+                "현재 상태: ${summary.fatigueCard.primary.score} · ${summary.fatigueCard.primary.label}"
+            )
+            val statusLines = listOfNotNull(
+                localizedUiText("현재 상태"),
+                summary.fatigueCard.phaseLabel?.let { localizedUiText(it) },
+                currentStatus
+            )
             Text(
-                text = buildString {
-                    append("현재 상태\n")
-                    summary.fatigueCard.phaseLabel?.let { label ->
-                        append(label)
-                        append("\n")
-                    }
-                    append("현재 상태: ")
-                    append(summary.fatigueCard.primary.score)
-                    append(" · ")
-                    append(summary.fatigueCard.primary.label)
-                },
+                text = statusLines.joinToString("\n"),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )

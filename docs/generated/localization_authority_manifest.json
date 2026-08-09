@@ -7,6 +7,10 @@
   "exerciseApprovedRows": 257,
   "metadataAuthoritativeRows": 1834,
   "tissueApprovedRows": 92,
-  "exactUiRuntimeEntries": 420,
+  "exactUiRuntimeEntries": 2773,
+  "workbookExactUiRuntimeEntries": 420,
+  "metadataExactUiRuntimeEntries": 1319,
+  "codexGeneratedEnglishEntries": 1034,
+  "dynamicUiRuntimeEntries": 286,
   "provenance": "LOC-AUTH-2026-08-09-v2-FULL-APPROVED"
 }

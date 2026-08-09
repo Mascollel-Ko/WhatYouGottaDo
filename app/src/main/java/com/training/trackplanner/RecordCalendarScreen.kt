@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.localization.localizedUiText
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -266,6 +268,7 @@ internal fun RecordCalendarScreen(
             }
         }
         item {
+            val clearSearchDescription = localizedUiText("검색어 지우기")
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = exerciseSearchQuery,
@@ -277,7 +280,7 @@ internal fun RecordCalendarScreen(
                         IconButton(onClick = { exerciseSearchQuery = "" }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
-                                contentDescription = "검색어 지우기"
+                                contentDescription = clearSearchDescription
                             )
                         }
                     }

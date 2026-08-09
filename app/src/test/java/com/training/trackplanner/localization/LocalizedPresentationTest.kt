@@ -54,6 +54,27 @@ class LocalizedPresentationTest {
         )
     }
 
+    @Test
+    fun dynamicUiTextPreservesRuntimeValues() {
+        val english = context(Locale.ENGLISH)
+
+        assertEquals(
+            "Currently RPE: 8.5",
+            LocalizedPresentation.uiText(english, "현재 RPE: 8.5")
+        )
+    }
+
+    @Test
+    fun datesUseTheActiveEnglishLocaleWithoutChangingKoreanSources() {
+        val english = context(Locale.ENGLISH)
+        val korean = context(Locale.KOREAN)
+
+        assertEquals("Oct 11, 2027", LocalizedPresentation.uiText(english, "2027년 10월 11일"))
+        assertEquals("Oct 11 – Oct 17", LocalizedPresentation.uiText(english, "10월 11일~10월 17일"))
+        assertEquals("October 2027 · Week 2", LocalizedPresentation.uiText(english, "2027년 10월 2주"))
+        assertEquals("2027년 10월 11일", LocalizedPresentation.uiText(korean, "2027년 10월 11일"))
+    }
+
     private fun context(locale: Locale): Context {
         val base = ApplicationProvider.getApplicationContext<Context>()
         return base.createConfigurationContext(

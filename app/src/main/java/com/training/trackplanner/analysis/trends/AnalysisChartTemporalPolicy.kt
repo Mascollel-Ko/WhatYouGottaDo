@@ -28,9 +28,10 @@ object AnalysisChartTemporalPolicy {
             .with(TemporalAdjusters.nextOrSame(DayOfWeek.THURSDAY))
             .minusDays(3)
         val ordinal = ChronoUnit.WEEKS.between(firstOwnedMonday, monday).toInt() + 1
-        val compact = buildString {
-            if (includeYear) append("${owner.year}년 ")
-            append("${owner.monthValue}월 ${ordinal}주")
+        val compact = if (includeYear) {
+            "${owner.year}년 ${owner.monthValue}월 ${ordinal}주"
+        } else {
+            "${owner.monthValue}월 ${ordinal}주"
         }
         return AnalysisWeekLabel(
             weekStart = monday,
@@ -106,7 +107,7 @@ object AnalysisChartTemporalPolicy {
         }
         ChartTimeGranularity.WEEKLY -> {
             val label = weekLabel(date, includeYear = spansOwningYears(domain)).compactLabel
-            label.replace("월 ", "월\n")
+            label.substringBeforeLast(" ") + "\n" + label.substringAfterLast(" ")
         }
     }
 
@@ -147,9 +148,10 @@ object AnalysisChartTemporalPolicy {
     }
 
     private fun fullDate(date: LocalDate, includeYear: Boolean): String =
-        buildString {
-            if (includeYear) append("${date.year}년 ")
-            append("${date.monthValue}월 ${date.dayOfMonth}일 ${weekday(date.dayOfWeek)}요일")
+        if (includeYear) {
+            "${date.year}년 ${date.monthValue}월 ${date.dayOfMonth}일 ${weekday(date.dayOfWeek)}요일"
+        } else {
+            "${date.monthValue}월 ${date.dayOfMonth}일 ${weekday(date.dayOfWeek)}요일"
         }
 
     private fun owningMonth(date: LocalDate): YearMonth =

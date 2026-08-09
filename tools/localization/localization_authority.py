@@ -21,6 +21,8 @@ TISSUE_KO = (
     ROOT
     / "app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_educational_info_v1.csv"
 )
+BASELINE_GENERATED_EN = ROOT / "tools/localization/current_baseline_generated_en.csv"
+DYNAMIC_BASELINE_EN = ROOT / "tools/localization/current_baseline_dynamic_en.csv"
 
 OUTPUTS = {
     "ui_base": ROOT / "app/src/main/res/values/localization_generated.xml",
@@ -37,9 +39,12 @@ OUTPUTS = {
     "manifest": ROOT / "docs/generated/localization_authority_manifest.json",
 }
 
-ANDROID_PLACEHOLDER = re.compile(r"%(?:\d+\$)?[-#+ 0,(<]*\d*(?:\.\d+)?[a-zA-Z]")
+ANDROID_PLACEHOLDER = re.compile(
+    r"%(?:(?:\d+\$)[-#+ 0,(<]*\d*(?:\.\d+)?|[-#+0,(<]*\d*(?:\.\d+)?)[bBhHsScCdoxXeEfgGaAtT]"
+)
 KOTLIN_PLACEHOLDER = re.compile(r"\$\{[^}]+}|\$[A-Za-z_][A-Za-z0-9_]*")
 CELL_REF = re.compile(r"([A-Z]+)(\d+)")
+CONTEXT_ONLY_APPROVAL_KEYS = {"approval_1359", "approval_1447"}
 
 
 def _xlsx_rows(path: Path, sheet_name: str) -> list[dict[str, object]]:
@@ -154,20 +159,74 @@ def _xml_strings(entries: list[tuple[str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _csv_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _source_template(value: str) -> str:
+    return re.sub(
+        rf"{KOTLIN_PLACEHOLDER.pattern}|{ANDROID_PLACEHOLDER.pattern}",
+        "${}",
+        value,
+    )
+
+
+def _resource_template(value: str) -> str:
+    count = 0
+
+    def replace(_: re.Match[str]) -> str:
+        nonlocal count
+        count += 1
+        return f"%{count}$s"
+
+    return re.sub(r"\$\{\}|" + ANDROID_PLACEHOLDER.pattern, replace, value)
+
+
+def _english_resource_template(value: str) -> str:
+    sequential = 0
+
+    def replace(match: re.Match[str]) -> str:
+        nonlocal sequential
+        token = match.group(0)
+        indexed = re.match(r"%(\d+)\$", token)
+        if indexed:
+            return f"%{indexed.group(1)}$s"
+        sequential += 1
+        return f"%{sequential}$s"
+
+    return re.sub(
+        rf"{KOTLIN_PLACEHOLDER.pattern}|{ANDROID_PLACEHOLDER.pattern}",
+        replace,
+        value,
+    )
+
+
+def _template_regex(source: str) -> str:
+    return "^" + "(.*?)".join(re.escape(part) for part in source.split("${}")) + "$"
+
+
 def _kotlin_string(value: str) -> str:
     return (
         value.replace("\\", "\\\\")
+        .replace("$", "\\$")
         .replace('"', '\\"')
         .replace("\n", "\\n")
         .replace("\r", "\\r")
     )
 
 
-def _ui_assets(rows: list[dict[str, object]]) -> tuple[str, str, str, dict[str, str]]:
+def _ui_assets(
+    rows: list[dict[str, object]],
+    metadata_rows: list[dict[str, object]],
+    baseline_rows: list[dict[str, str]],
+) -> tuple[str, str, str, dict[str, str], list[tuple[str, str]], dict[str, int]]:
     android_rows = [row for row in rows if _text(row.get("sourceType")) == "ANDROID_RESOURCE"]
     generated: dict[tuple[str, str], str] = {}
     for row in rows:
         if _text(row.get("sourceType")) == "ANDROID_RESOURCE":
+            continue
+        if _text(row.get("sourceKeyOrContext")) in CONTEXT_ONLY_APPROVAL_KEYS:
             continue
         korean = _text(row.get("koreanSource"))
         english = _text(row.get("englishTarget"))
@@ -176,6 +235,91 @@ def _ui_assets(rows: list[dict[str, object]]) -> tuple[str, str, str, dict[str, 
                 (korean, english),
                 _resource_key("loc_ui", korean, english),
             )
+
+    workbook_korean = {
+        _text(row.get("koreanSource"))
+        for row in rows
+        if _text(row.get("koreanSource"))
+    }
+    metadata_by_korean: dict[str, set[str]] = defaultdict(set)
+    for row in metadata_rows:
+        korean = _text(row.get("koreanDisplay"))
+        english = _text(row.get("englishDisplay"))
+        if korean and english:
+            metadata_by_korean[korean].add(english)
+    metadata_exact = {
+        korean: next(iter(english_values))
+        for korean, english_values in metadata_by_korean.items()
+        if korean not in workbook_korean and len(english_values) == 1
+    }
+    for korean, english in metadata_exact.items():
+        generated.setdefault(
+            (korean, english),
+            _resource_key("loc_metadata", korean, english),
+        )
+
+    baseline_exact: dict[str, str] = {}
+    for row in baseline_rows:
+        korean = row["korean"].strip()
+        english = row["english"].strip()
+        if row["provenance"] != "CODEX_GENERATED_ENGLISH":
+            raise ValueError(f"Invalid generated-English provenance: {row['provenance']}")
+        if not korean or not english:
+            raise ValueError("Generated-English rows must not be blank")
+        approved_targets = {
+            approved_english
+            for approved_korean, approved_english in generated
+            if approved_korean == korean
+        }
+        if len(approved_targets) > 1 and english in approved_targets:
+            generated = {
+                pair: key
+                for pair, key in generated.items()
+                if pair[0] != korean or pair[1] == english
+            }
+        elif approved_targets or korean in metadata_exact:
+            continue
+        previous = baseline_exact.setdefault(korean, english)
+        if previous != english:
+            raise ValueError(f"Conflicting generated English for: {korean}")
+        generated.setdefault(
+            (korean, english),
+            _resource_key("loc_baseline", korean, english),
+        )
+
+    pattern_candidates: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        if _text(row.get("sourceType")) == "ANDROID_RESOURCE":
+            continue
+        if _text(row.get("sourceKeyOrContext")) in CONTEXT_ONLY_APPROVAL_KEYS:
+            continue
+        korean = _text(row.get("koreanSource"))
+        english = _text(row.get("englishTarget"))
+        source_template = _source_template(korean)
+        if korean and english and "${}" in source_template:
+            pattern_candidates[source_template].add(_english_resource_template(english))
+
+    baseline_patterns = _csv_rows(DYNAMIC_BASELINE_EN)
+    for row in baseline_patterns:
+        source_template = row["koreanTemplate"].strip()
+        english_template = row["englishTemplate"].strip()
+        if row["provenance"] != "CODEX_GENERATED_ENGLISH":
+            raise ValueError(f"Invalid dynamic-English provenance: {row['provenance']}")
+        if not source_template or not english_template or "${}" not in source_template:
+            raise ValueError("Dynamic-English rows require a source template and placeholders")
+        if source_template not in pattern_candidates:
+            pattern_candidates[source_template].add(english_template)
+
+    patterns: list[tuple[str, str]] = []
+    for source_template, english_templates in pattern_candidates.items():
+        if len(english_templates) != 1:
+            continue
+        english_template = next(iter(english_templates))
+        resource_key = generated.setdefault(
+            (_resource_template(source_template), english_template),
+            _resource_key("loc_ui_pattern", source_template, english_template),
+        )
+        patterns.append((_template_regex(source_template), resource_key))
 
     english_by_korean: dict[str, set[str]] = defaultdict(set)
     for korean, english in generated:
@@ -187,6 +331,14 @@ def _ui_assets(rows: list[dict[str, object]]) -> tuple[str, str, str, dict[str, 
         and not ANDROID_PLACEHOLDER.search(korean)
         and not KOTLIN_PLACEHOLDER.search(korean)
     }
+    metadata_exact_count = sum(korean in exact for korean in metadata_exact)
+    baseline_exact_count = sum(korean in exact for korean in baseline_exact)
+    counts = {
+        "workbookExact": len(exact) - metadata_exact_count - baseline_exact_count,
+        "metadataExact": metadata_exact_count,
+        "codexGeneratedExact": baseline_exact_count,
+    }
+    patterns.sort(key=lambda entry: (-len(entry[0]), entry[0]))
     return (
         _xml_strings([(key, pair[0]) for pair, key in generated.items()]),
         _xml_strings([(key, pair[1]) for pair, key in generated.items()]),
@@ -197,6 +349,8 @@ def _ui_assets(rows: list[dict[str, object]]) -> tuple[str, str, str, dict[str, 
             ]
         ),
         exact,
+        patterns,
+        counts,
     )
 
 
@@ -248,6 +402,7 @@ def _tissue_assets(rows: list[dict[str, object]]) -> tuple[str, str, dict[str, t
 
 def _generated_kotlin(
     exact_ui: dict[str, str],
+    ui_patterns: list[tuple[str, str]],
     exercise_keys: dict[str, str],
     tissue_keys: dict[str, tuple[str, str, str, str]],
 ) -> str:
@@ -264,12 +419,22 @@ def _generated_kotlin(
         "    @StringRes val contexts: Int",
         ")",
         "",
+        "internal data class UiTextPattern(",
+        "    val regex: Regex,",
+        "    @StringRes val text: Int",
+        ")",
+        "",
         "internal object GeneratedLocalizationCatalogue {",
         "    val exactUiTextIds: Map<String, Int> = mapOf(",
     ]
     lines.extend(
         f'        "{_kotlin_string(source)}" to R.string.{resource},'
         for source, resource in sorted(exact_ui.items())
+    )
+    lines.extend(["    )", "", "    val uiTextPatterns: List<UiTextPattern> = listOf("])
+    lines.extend(
+        f'        UiTextPattern(Regex("{_kotlin_string(regex)}"), R.string.{resource}),'
+        for regex, resource in ui_patterns
     )
     lines.extend(["    )", "", "    val exerciseNameIds: Map<String, Int> = mapOf("])
     lines.extend(
@@ -293,6 +458,7 @@ def _artifacts() -> dict[Path, str]:
     metadata = _xlsx_rows(AUTHORITY, "04_METADATA_DICTIONARY")
     tissues = _xlsx_rows(AUTHORITY, "05_TISSUE_EDU_EN")
     baseline = _xlsx_rows(AUTHORITY, "10_CURRENT_BASELINE_APPROVAL")
+    baseline_generated = _csv_rows(BASELINE_GENERATED_EN)
     if len(ui) != 612 or len(exercises) != 257 or len(metadata) != 1834 or len(tissues) != 92:
         raise ValueError("Localization authority row counts do not match the approved baseline")
     if any(_text(row.get("authorityStatus")) != "APPROVED" for row in ui + exercises + tissues):
@@ -305,7 +471,11 @@ def _artifacts() -> dict[Path, str]:
     if check_required != "0":
         raise ValueError("Current-baseline CHECK_REQUIRED is not zero")
 
-    ui_base, ui_en, strings_en, exact_ui = _ui_assets(ui)
+    ui_base, ui_en, strings_en, exact_ui, ui_patterns, exact_counts = _ui_assets(
+        ui,
+        metadata,
+        baseline_generated,
+    )
     exercise_base, exercise_en, exercise_keys = _exercise_assets(exercises)
     tissue_base, tissue_en, tissue_keys = _tissue_assets(tissues)
     manifest = {
@@ -318,6 +488,10 @@ def _artifacts() -> dict[Path, str]:
         "metadataAuthoritativeRows": len(metadata),
         "tissueApprovedRows": len(tissues),
         "exactUiRuntimeEntries": len(exact_ui),
+        "workbookExactUiRuntimeEntries": exact_counts["workbookExact"],
+        "metadataExactUiRuntimeEntries": exact_counts["metadataExact"],
+        "codexGeneratedEnglishEntries": exact_counts["codexGeneratedExact"],
+        "dynamicUiRuntimeEntries": len(ui_patterns),
         "provenance": "LOC-AUTH-2026-08-09-v2-FULL-APPROVED",
     }
     return {
@@ -328,7 +502,7 @@ def _artifacts() -> dict[Path, str]:
         OUTPUTS["exercise_en"]: exercise_en,
         OUTPUTS["tissue_base"]: tissue_base,
         OUTPUTS["tissue_en"]: tissue_en,
-        OUTPUTS["kotlin"]: _generated_kotlin(exact_ui, exercise_keys, tissue_keys),
+        OUTPUTS["kotlin"]: _generated_kotlin(exact_ui, ui_patterns, exercise_keys, tissue_keys),
         OUTPUTS["manifest"]: json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
     }
 

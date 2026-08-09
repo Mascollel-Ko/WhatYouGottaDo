@@ -76,8 +76,7 @@ internal class PerformanceTrendSummaryService(
                     buildString {
                         failedEvent?.sessionDate?.let { appendLine("실패한 운동일: $it") }
                         appendLine(
-                            "오류 유형: " +
-                                (failedEvent?.errorCode ?: currentRevision.errorCode ?: "REBUILD_FAILED")
+                            "오류 유형: ${failedEvent?.errorCode ?: currentRevision.errorCode ?: "REBUILD_FAILED"}"
                         )
                         append(
                             failedEvent?.errorMessage

@@ -1,242 +1,258 @@
 stableKey,korean,english,source,status
-band_lift,밴드 리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-band_pallof_press,밴드 팔로프 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-band_woodchop,밴드 우드찹,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_back_squat,스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_bench_press,벤치프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_deadlift,데드리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_reverse_curl,바벨 리버스 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_reverse_wrist_curl,바벨 리버스 리스트 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-barbell_romanian_deadlift,루마니안 바벨 데드리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_hip_adduction,케이블 힙 어덕션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_lift,케이블 리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_pallof_press,케이블 팔로프 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_rear_delt_fly,케이블 리어델트 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-cable_woodchop,케이블 우드찹,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-chest_supported_row_machine,체스트 서포티드 로우 머신,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_farmer_carry,덤벨 파머스 캐리,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_goblet_squat,덤벨 고블릿 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_lying_triceps_extension,덤벨 라잉 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_overhead_triceps_extension,덤벨 오버헤드 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_preacher_curl,덤벨 프리처 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_rear_delt_fly,덤벨 리어델트 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_reverse_wrist_curl,덤벨 리버스 리스트 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_spider_curl,덤벨 스파이더 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-dumbbell_woodchop,덤벨 우드찹,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1052e9fa,스미스 머신 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_149730de,발목/고관절 가동성,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_16b298db,미니밴드 사이드워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1a4858d7,농구,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1a4bbdcf,축구,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1c7f2342,랜덤 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1cf51b6b,노르딕 햄스트링 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_1dbee10e,머신 체스트프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_2055b629,애질리티 래더,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_216351a1,가벼운 콕줍기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_27b3deb5,클로즈그립 벤치프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_281347da,덤벨 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_2822ec2e,레그 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_282a9d87,링 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_28347c1f,버드독,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_284ecca6,슈퍼맨,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_28902b13,푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_2892da5a,해머 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_2a826c82,할로우 바디 홀드,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_2f3b56d0,테니스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_30a0e9aa,원암 덤벨 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_314df428,원레그 홉 투 스틱,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_32219f7a,오버헤드 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_32eb8457,원암 랫풀다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_33841b88,6코너 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_33d2da8e,원암 머신 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_34e7d21,래터럴 바운드 투 스틱,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_377448a9,스플릿 스텝 후 좌우 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_389920ab,글루트 브릿지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_389e0556,원암 덤벨 벤치프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_3a7d3eda,덤벨 벤치프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_3c3692aa,케이블 원암 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_3caa236b,파이크 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_3d5719de,원암 케이블 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_3f184ef9,버피,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_40fa57be,원암 케이블 하이 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_421ba24b,좌우 랜덤 콕줍기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_4255e429,앞뒤 랜덤 콕줍기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_442617f6,원암 케이블 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_462c760e,체스트 서포티드 원암 머신 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_4773b6ea,린단 참고 트랙 스프린트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_4aa3725a,머신 숄더프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_4c76dbb2,케이블 풀스루,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_4c779df2,케이블 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_5004ca76,린단 참고 페이스 체인지 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_5c8751d2,시티드 카프 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_5ca7133f,원레그 카프 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_6232f4bc,박스 스텝업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_64422511,랜덤 방향전환 드릴,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_644e0f9d,V업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_6463edad,딥스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_64644b5e,런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_64661229,월싯,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_6466fe77,친업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_681d9ed2,러닝,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_681eed4a,수영,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_69a56484,래터럴 스텝다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_6a966452,체스트 서포티드 원암 덤벨 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_704cbf1a,덤벨 스텝업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_708e64ce,덤벨 풀오버,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_70f19bf,리닝 래터럴 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_721f7b5b,힙 쓰러스트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_728da646,힙 어브덕션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_72f11dc5,덤벨 리스트 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_73b0b63f,아처 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_7404067c,케틀벨 스윙,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_74c2d13b,계단 오르기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_752b45ae,멀티셔틀 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_767e188e,아놀드 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_7814843a,원암 덤벨 숄더프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_79f3bdbe,덤벨 숄더프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_7deabeba,리어델트 케이블 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_85b2ac56,원암 덤벨 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_85f12271,원레그 박스 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_86323ed6,원암 해머 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_8633d8db,EZ바 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_8824026f,원레그 레그 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_8a3800f1,리버스 노르딕 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_8e4bf08e,Yates Row,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_8e69fc74,스플릿 스텝 리액션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_91b749b3,플랫 덤벨 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_91d8430b,30초 반복 스매시 테스트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_91f6958d,터키시 겟업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_93538692,덤벨 래터럴 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_95028bfe,덤벨 리스트 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_9b132c23,사이드 스텝 후 정지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_9bd6dddb,줄넘기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_9f283612,원암 인클라인 덤벨 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a091b9fe,원레그 레그 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a12de111,A스킵,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a12de4d2,B스킵,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a345e30b,캡틴체어 레그 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a3ddd8ac,라인 홉,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a4040be3,셔틀런,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a412dd45,앙클링,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a4350c0f,콘 드릴,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a44ae2ca,플랭크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a60496be,원암 리어델트 케이블 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a611010d,코사크 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a61f1e96,인클라인 덤벨 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a61f307a,인클라인 덤벨 플라이,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a76f20b6,시티드 원암 케이블 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a8385c4a,코펜하겐 플랭크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_a9b52886,마운틴 클라이머,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_ab468462,레그 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_ab918e2b,실내 자전거,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_aca9d312,러닝 풋살,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_ae9ecdbc,배드민턴,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b076570e,원암 케이블 래터럴 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b3f447be,행잉 레그 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b4b198de,래터럴 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b59bed7d,스탠딩 레그 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b69ab702,크로스바디 해머 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b76d3f92,케이블 래터럴 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_b78a8f95,레그 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_badminton_lesson,배드민턴 레슨,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_bc84eb7f,6방향 랜덤 콕줍기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c1a81cb2,로프 해머 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c365e5e2,원암 스트레이트암 풀다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c4535de3,스캡 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c4ea0a2a,스킵 바운드,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c5043892,프론트 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c536edc2,원암 케이블 숄더프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c5c2fdef,스트라이드,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c5f4c242,랜덤 비프 풋워크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c62c0716,컨센트레이션 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c6d9efef,스플릿 스텝,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c7977dfd,6코너 풋워크 최대반복 테스트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_c8bcf3ce,리버스 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_ca5cce66,스트레이트암 풀다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_cb3c4dc2,맨몸 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d5048362,인클라인 덤벨 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d5bdffe1,데드버그,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d60745b4,원레그 레그 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d6726746,드롭 점프,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d67e5761,피스톨 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d7c90536,로잉머신,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_d9e141e4,박스 점프,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_da56a4fe,덤벨 킥백,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_dc9e5953,랫풀다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_dd16e07a,스트레칭,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_de46b7f6,바벨 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_debf6a8b,다이아몬드 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_deca2b61,벤치 딥스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_df966b45,점프 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e0b1e364,원암 덤벨 RDL,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e1894690,스캡 풀업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e2efd0fe,불가리안 스플릿 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e3715c0b,워킹 런지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e41e8dcf,중량 친업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e41f4c2b,중량 풀업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e465d1e9,포고 점프,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e4f911bb,네거티브 풀업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e709eeda,케이블 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e8ff8cfa,밴드 외회전,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_e9e97659,핵 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_ee378da7,스케이터 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f1d31d3d,원레그 핵 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f2a79d37,스플릿 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f332aeab,월 드라이브,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f459ad2a,메도우즈 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f6703b06,덤벨 프로네이션/수피네이션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f6d43398,사이드 플랭크,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_f97a05ab,월 슬라이드,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fa2e73b3,핸드스탠드 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fa31f7a6,케이블 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fa3416f6,스미스 머신 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fa34ddfe,케이블 킥백,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fa570291,트라이셉스 푸시다운,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_faae2044,인터벌 러닝,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fb67af37,디클라인 푸시업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ez_bar_lying_triceps_extension,EZ바 라잉 트라이셉스 익스텐션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ez_bar_preacher_curl,EZ바 프리처 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ez_bar_reverse_curl,EZ바 리버스 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-ez_bar_spider_curl,EZ바 스파이더 컬,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-face_pull,페이스풀,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-hip_adduction_machine,힙 어덕션 머신,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-kettlebell_farmer_carry,케틀벨 파머스 캐리,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-kettlebell_halo,케틀벨 헤일로,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-landmine_anti_rotation,랜드마인 안티로테이션,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-landmine_rotation,랜드마인 좌우 회전,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-lateral_bound_continuous,래터럴 바운드,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-med_ball_chest_pass,메디신볼 체스트 패스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-med_ball_rotational_slam,메디신볼 회전 아래로 슬램,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-pull_up,풀업,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-single_leg_hip_bridge,원레그 힙 브릿지,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-standing_calf_raise_machine,스탠딩 카프 레이즈 머신,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-vipr_chop,바이퍼 회전 아래로,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-vipr_rotational_lift,바이퍼 회전 위로,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
-vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,,app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv,MISSING_APPROVED_ENGLISH_NAME
+ex_ac7df636,고블릿 스쿼트,Goblet Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d20b7487,라잉 트라이셉스 익스텐션,Lying Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8e18b02a,리버스 리스트 컬,Reverse Wrist Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_dd2f732e,리버스 컬,Reverse Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_7176cbee,리어델트 플라이,Rear Delt Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_bd072cd,스탠딩 카프 레이즈,Standing Calf Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_516f4456,스파이더 컬,Spider Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a9e8859c,오버헤드 트라이셉스 익스텐션,Overhead Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+single_leg_rdl,원레그 루마니안 데드리프트,Single-Leg Romanian Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d9084b5e,원암 인버티드 로우,Single-Arm Inverted Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e159d15a,인버티드 로우,Inverted Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8e51640a,체스트 서포티드 로우,Chest-Supported Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a1fc4533,파머스 캐리,Farmer's Carry,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_99728d25,팔로프 프레스,Pallof Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e994008a,프리처 컬,Preacher Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_eaea872c,힙 어덕션,Hip Adduction,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_91d8430b,30초 반복 스매시 테스트,30-Second Repeated Smash Test,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_bc84eb7f,6방향 랜덤 콕줍기,6-Direction Random Shuttle Pickup,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_33841b88,6코너 풋워크,6-Corner Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c7977dfd,6코너 풋워크 최대반복 테스트,6-Corner Footwork Max-Rep Test,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a12de111,A스킵,A-Skip,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a12de4d2,B스킵,B-Skip,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ez_bar_lying_triceps_extension,EZ바 라잉 트라이셉스 익스텐션,EZ-Bar Lying Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ez_bar_reverse_curl,EZ바 리버스 컬,EZ-Bar Reverse Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ez_bar_spider_curl,EZ바 스파이더 컬,EZ-Bar Spider Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8633d8db,EZ바 컬,EZ-Bar Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ez_bar_preacher_curl,EZ바 프리처 컬,EZ-Bar Preacher Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_644e0f9d,V업,V-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8e4bf08e,Yates Row,Yates Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_216351a1,가벼운 콕줍기,Light Shuttle Pickup,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_74c2d13b,계단 오르기,Stair Climbing,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_389920ab,글루트 브릿지,Glute Bridge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e4f911bb,네거티브 풀업,Negative Pull-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1cf51b6b,노르딕 햄스트링 컬,Nordic Hamstring Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1a4858d7,농구,Basketball,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_debf6a8b,다이아몬드 푸시업,Diamond Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_goblet_squat,덤벨 고블릿 스쿼트,Dumbbell Goblet Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_lying_triceps_extension,덤벨 라잉 트라이셉스 익스텐션,Dumbbell Lying Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_93538692,덤벨 래터럴 레이즈,Dumbbell Lateral Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_reverse_wrist_curl,덤벨 리버스 리스트 컬,Dumbbell Reverse Wrist Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_72f11dc5,덤벨 리스트 익스텐션,Dumbbell Wrist Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_95028bfe,덤벨 리스트 컬,Dumbbell Wrist Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_rear_delt_fly,덤벨 리어델트 플라이,Dumbbell Rear Delt Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_3a7d3eda,덤벨 벤치프레스,Dumbbell Bench Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_79f3bdbe,덤벨 숄더프레스,Dumbbell Shoulder Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+standing_dumbbell_calf_raise,덤벨 스탠딩 카프 레이즈,Standing Dumbbell Calf Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_704cbf1a,덤벨 스텝업,Dumbbell Step-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_spider_curl,덤벨 스파이더 컬,Dumbbell Spider Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_overhead_triceps_extension,덤벨 오버헤드 트라이셉스 익스텐션,Dumbbell Overhead Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_woodchop,덤벨 우드찹,Dumbbell Woodchop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,Dumbbell Single-Leg Romanian Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_chest_supported_row,덤벨 체스트 서포티드 로우,Dumbbell Chest-Supported Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_281347da,덤벨 컬,Dumbbell Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_da56a4fe,덤벨 킥백,Dumbbell Kickback,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_farmer_carry,덤벨 파머스 캐리,Dumbbell Farmer's Carry,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_708e64ce,덤벨 풀오버,Dumbbell Pullover,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f6703b06,덤벨 프로네이션/수피네이션,Dumbbell Pronation / Supination,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_preacher_curl,덤벨 프리처 컬,Dumbbell Preacher Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_deadlift,데드리프트,Barbell Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d5bdffe1,데드버그,Dead Bug,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d6726746,드롭 점프,Drop Jump,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_bb4b4276,등받이 없는 덤벨 시티드 숄더프레스,Unsupported Seated Dumbbell Shoulder Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fb67af37,디클라인 푸시업,Decline Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_6463edad,딥스,Dips,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a3ddd8ac,라인 홉,Line Hop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b4b198de,래터럴 런지,Lateral Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+lateral_bound_continuous,래터럴 바운드,Lateral Bound,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_34e7d21,래터럴 바운드 투 스틱,Lateral Bound to Stick,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_69a56484,래터럴 스텝다운,Lateral Step-Down,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_64422511,랜덤 방향전환 드릴,Random Change-of-Direction Drill,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c5f4c242,랜덤 비프 풋워크,Random Beep Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1c7f2342,랜덤 풋워크,Random Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+landmine_anti_rotation,랜드마인 안티로테이션,Landmine Anti-Rotation,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+landmine_rotation,랜드마인 좌우 회전,Landmine Side-to-Side Rotation,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_dc9e5953,랫풀다운,Lat Pulldown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_681d9ed2,러닝,Running,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_aca9d312,러닝 풋살,Running Futsal,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_64644b5e,런지,Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b78a8f95,레그 익스텐션,Leg Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_2822ec2e,레그 컬,Leg Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_ab468462,레그 프레스,Leg Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d7c90536,로잉머신,Rowing Machine,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c1a81cb2,로프 해머 컬,Rope Hammer Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+dumbbell_romanian_deadlift,루마니안 덤벨 데드리프트,Dumbbell Romanian Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_romanian_deadlift,루마니안 바벨 데드리프트,Barbell Romanian Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_70f19bf,리닝 래터럴 레이즈,Leaning Lateral Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8a3800f1,리버스 노르딕 컬,Reverse Nordic Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c8bcf3ce,리버스 런지,Reverse Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_7deabeba,리어델트 케이블 플라이,Rear Delt Cable Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_4773b6ea,린단 참고 트랙 스프린트,Lin Dan-Inspired Track Sprint,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_5004ca76,린단 참고 페이스 체인지 풋워크,Lin Dan-Inspired Pace-Change Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_282a9d87,링 로우,Ring Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a9b52886,마운틴 클라이머,Mountain Climber,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_cb3c4dc2,맨몸 스쿼트,Bodyweight Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,Bodyweight Standing Calf Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_4aa3725a,머신 숄더프레스,Machine Shoulder Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1dbee10e,머신 체스트프레스,Machine Chest Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_752b45ae,멀티셔틀 풋워크,Multi-Shuttle Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f459ad2a,메도우즈 로우,Meadows Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+medicine_ball_three_step_acceleration_throw,메디신볼 3스텝 가속 던지기,Medicine Ball 3-Step Acceleration Throw,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지기,Medicine Ball 3-Step Deceleration Throw,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,Medicine Ball Rotational Scoop Toss,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,Medicine Ball Overhead Slam,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+med_ball_chest_pass,메디신볼 체스트 패스,Medicine Ball Chest Pass,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+med_ball_rotational_slam,메디신볼 회전 아래로 슬램,Medicine Ball Rotational Slam,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+medicine_ball_rotational_throw,메디신볼 회전 옆으로 던지기,Medicine Ball Rotational Side Throw,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_16b298db,미니밴드 사이드워크,Mini-Band Lateral Walk,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_de46b7f6,바벨 로우,Barbell Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_reverse_wrist_curl,바벨 리버스 리스트 컬,Barbell Reverse Wrist Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_reverse_curl,바벨 리버스 컬,Barbell Reverse Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,ViPR Rotational Press-Out,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,ViPR Step and Rotate,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+vipr_chop,바이퍼 회전 아래로,ViPR Rotational Chop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+vipr_rotational_lift,바이퍼 회전 위로,ViPR Rotational Lift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_6232f4bc,박스 스텝업,Box Step-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d9e141e4,박스 점프,Box Jump,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_149730de,발목/고관절 가동성,Ankle / Hip Mobility,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_ae9ecdbc,배드민턴,Badminton,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_badminton_lesson,배드민턴 레슨,Badminton Lesson,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+band_lift,밴드 리프트,Band Lift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e8ff8cfa,밴드 외회전,Band External Rotation,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+band_woodchop,밴드 우드찹,Band Woodchop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+band_pallof_press,밴드 팔로프 프레스,Band Pallof Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_28347c1f,버드독,Bird Dog,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_3f184ef9,버피,Burpee,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_deca2b61,벤치 딥스,Bench Dips,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_bench_press,벤치프레스,Bench Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e2efd0fe,불가리안 스플릿 스쿼트,Bulgarian Split Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_9b132c23,사이드 스텝 후 정지,Side Step to Stop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f6d43398,사이드 플랭크,Side Plank,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,Suspension Trainer Single-Arm Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+suspension_trainer_inverted_row,서스펜션 트레이너 인버티드 로우,Suspension Trainer Inverted Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a4040be3,셔틀런,Shuttle Run,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_681eed4a,수영,Swimming,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_284ecca6,슈퍼맨,Superman,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1052e9fa,스미스 머신 런지,Smith Machine Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fa3416f6,스미스 머신 스쿼트,Smith Machine Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c4535de3,스캡 푸시업,Scapular Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e1894690,스캡 풀업,Scapular Pull-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_ee378da7,스케이터 스쿼트,Skater Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+barbell_back_squat,스쿼트,Back Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c4ea0a2a,스킵 바운드,Skip Bound,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b59bed7d,스탠딩 레그 컬,Standing Leg Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+standing_calf_raise_machine,스탠딩 카프 레이즈 머신,Standing Calf Raise Machine,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c5c2fdef,스트라이드,Stride,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_ca5cce66,스트레이트암 풀다운,Straight-Arm Pulldown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_dd16e07a,스트레칭,Stretching,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f2a79d37,스플릿 스쿼트,Split Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c6d9efef,스플릿 스텝,Split Step,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8e69fc74,스플릿 스텝 리액션,Split-Step Reaction,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_377448a9,스플릿 스텝 후 좌우 런지,Split Step to Left/Right Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a76f20b6,시티드 원암 케이블 로우,Seated Single-Arm Cable Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_5c8751d2,시티드 카프 레이즈,Seated Calf Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_ab918e2b,실내 자전거,Stationary Bike,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_767e188e,아놀드 프레스,Arnold Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_73b0b63f,아처 푸시업,Archer Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c1bf2aa8,안세영 참고 고강도 랠리 풋워크,An Se-young-Inspired High-Intensity Rally Footwork,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a412dd45,앙클링,Ankling,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_4255e429,앞뒤 랜덤 콕줍기,Random Front-Back Shuttle Pickup,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_2055b629,애질리티 래더,Agility Ladder,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_32219f7a,오버헤드 프레스,Overhead Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e3715c0b,워킹 런지,Walking Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d60745b4,원레그 레그 익스텐션,Single-Leg Leg Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_8824026f,원레그 레그 컬,Single-Leg Leg Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a091b9fe,원레그 레그 프레스,Single-Leg Leg Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_85f12271,원레그 박스 스쿼트,Single-Leg Box Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_5ca7133f,원레그 카프 레이즈,Single-Leg Calf Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f1d31d3d,원레그 핵 스쿼트,Single-Leg Hack Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_314df428,원레그 홉 투 스틱,Single-Leg Hop to Stick,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+single_leg_hip_bridge,원레그 힙 브릿지,Single-Leg Hip Bridge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e0b1e364,원암 덤벨 RDL,Single-Arm Dumbbell RDL,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_30a0e9aa,원암 덤벨 로우,Single-Arm Dumbbell Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_389e0556,원암 덤벨 벤치프레스,Single-Arm Dumbbell Bench Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_7814843a,원암 덤벨 숄더프레스,Single-Arm Dumbbell Shoulder Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fdbdf454,원암 덤벨 오버헤드 트라이셉스 익스텐션,Single-Arm Dumbbell Overhead Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_85b2ac56,원암 덤벨 컬,Single-Arm Dumbbell Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_32eb8457,원암 랫풀다운,Single-Arm Lat Pulldown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a60496be,원암 리어델트 케이블 플라이,Single-Arm Rear Delt Cable Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_33d2da8e,원암 머신 로우,Single-Arm Machine Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c365e5e2,원암 스트레이트암 풀다운,Single-Arm Straight-Arm Pulldown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_9f283612,원암 인클라인 덤벨 프레스,Single-Arm Incline Dumbbell Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b076570e,원암 케이블 래터럴 레이즈,Single-Arm Cable Lateral Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c536edc2,원암 케이블 숄더프레스,Single-Arm Cable Shoulder Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_eb636bac,원암 케이블 오버헤드 트라이셉스 익스텐션,Single-Arm Cable Overhead Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_3d5719de,원암 케이블 컬,Single-Arm Cable Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_5322f2d1,원암 케이블 트라이셉스 푸시다운,Single-Arm Cable Triceps Pushdown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_442617f6,원암 케이블 플라이,Single-Arm Cable Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_40fa57be,원암 케이블 하이 로우,Single-Arm Cable High Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_86323ed6,원암 해머 컬,Single-Arm Hammer Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f332aeab,월 드라이브,Wall Drive,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_f97a05ab,월 슬라이드,Wall Slide,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_64661229,월싯,Wall Sit,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d5048362,인클라인 덤벨 컬,Incline Dumbbell Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a61f1e96,인클라인 덤벨 프레스,Incline Dumbbell Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a61f307a,인클라인 덤벨 플라이,Incline Dumbbell Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_faae2044,인터벌 러닝,Interval Running,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_df966b45,점프 런지,Jump Lunge,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_421ba24b,좌우 랜덤 콕줍기,Random Lateral Shuttle Pickup,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_9bd6dddb,줄넘기,Jump Rope,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e41e8dcf,중량 친업,Weighted Chin-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e41f4c2b,중량 풀업,Weighted Pull-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,Gymnastic Ring Single-Arm Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+gymnastic_ring_inverted_row,짐내스틱 링 인버티드 로우,Gymnastic Ring Inverted Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+chest_supported_row_machine,체스트 서포티드 로우 머신,Chest-Supported Row Machine,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,Chest-Supported Single-Arm Dumbbell Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_462c760e,체스트 서포티드 원암 머신 로우,Chest-Supported Single-Arm Machine Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_1a4bbdcf,축구,Soccer,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_6466fe77,친업,Chin-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a345e30b,캡틴체어 레그 레이즈,Captain's Chair Leg Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c62c0716,컨센트레이션 컬,Concentration Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b76d3f92,케이블 래터럴 레이즈,Cable Lateral Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fa31f7a6,케이블 로우,Cable Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_rear_delt_fly,케이블 리어델트 플라이,Cable Rear Delt Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_lift,케이블 리프트,Cable Lift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_overhead_triceps_extension,케이블 오버헤드 트라이셉스 익스텐션,Cable Overhead Triceps Extension,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_woodchop,케이블 우드찹,Cable Woodchop,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_3c3692aa,케이블 원암 로우,Single-Arm Cable Row,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e709eeda,케이블 컬,Cable Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fa34ddfe,케이블 킥백,Cable Kickback,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_pallof_press,케이블 팔로프 프레스,Cable Pallof Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_4c76dbb2,케이블 풀스루,Cable Pull-Through,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_4c779df2,케이블 플라이,Cable Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+cable_hip_adduction,케이블 힙 어덕션,Cable Hip Adduction,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+kettlebell_goblet_squat,케틀벨 고블릿 스쿼트,Kettlebell Goblet Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_7404067c,케틀벨 스윙,Kettlebell Swing,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,Kettlebell Single-Leg Romanian Deadlift,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+kettlebell_farmer_carry,케틀벨 파머스 캐리,Kettlebell Farmer's Carry,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+kettlebell_halo,케틀벨 헤일로,Kettlebell Halo,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a611010d,코사크 스쿼트,Cossack Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a8385c4a,코펜하겐 플랭크,Copenhagen Plank,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a4350c0f,콘 드릴,Cone Drill,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b69ab702,크로스바디 해머 컬,Cross-Body Hammer Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_27b3deb5,클로즈그립 벤치프레스,Close-Grip Bench Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_91f6958d,터키시 겟업,Turkish Get-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_2f3b56d0,테니스,Tennis,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fa570291,트라이셉스 푸시다운,Triceps Pushdown,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_3caa236b,파이크 푸시업,Pike Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+face_pull,페이스풀,Face Pull,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e465d1e9,포고 점프,Pogo Jump,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_28902b13,푸시업,Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+pull_up,풀업,Pull-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_c5043892,프론트 스쿼트,Front Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,Front-Foot-Elevated Split Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_91b749b3,플랫 덤벨 플라이,Flat Dumbbell Fly,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_a44ae2ca,플랭크,Plank,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,Plate Rotational Press-Out,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_d67e5761,피스톨 스쿼트,Pistol Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+half_kneeling_single_arm_dumbbell_press,하프 닐링 원암 덤벨 프레스,Half-Kneeling Single-Arm Dumbbell Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+half_kneeling_single_arm_kettlebell_press,하프 닐링 원암 케틀벨 프레스,Half-Kneeling Single-Arm Kettlebell Press,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_2a826c82,할로우 바디 홀드,Hollow-Body Hold,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_2892da5a,해머 컬,Hammer Curl,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_e9e97659,핵 스쿼트,Hack Squat,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_fa2e73b3,핸드스탠드 푸시업,Handstand Push-Up,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_b3f447be,행잉 레그 레이즈,Hanging Leg Raise,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_721f7b5b,힙 쓰러스트,Hip Thrust,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+hip_adduction_machine,힙 어덕션 머신,Hip Adduction Machine,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY
+ex_728da646,힙 어브덕션,Hip Abduction,docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx,LOCALIZED_BY_STABLE_KEY

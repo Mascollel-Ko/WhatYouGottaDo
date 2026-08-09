@@ -46,9 +46,9 @@ object MuscleBucketSelection {
             .map { it.label }
         if (labels.isEmpty()) return "기본 근육군 선택"
         return if (labels.size <= 3) {
-            labels.joinToString(", ") + " 선택됨"
+            "${labels.joinToString(", ")} 선택됨"
         } else {
-            labels.take(3).joinToString(", ") + " 외 ${labels.size - 3}개 선택됨"
+            "${labels.take(3).joinToString(", ")} 외 ${labels.size - 3}개 선택됨"
         }
     }
 }

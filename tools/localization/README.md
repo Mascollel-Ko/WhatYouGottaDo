@@ -9,9 +9,11 @@ python -m unittest discover -s tools/localization/tests
 ```
 
 The audit inventories default and English Android resources, Korean string
-literals in production Kotlin, and active built-in exercise names. It does not
-invent translations. `MISSING_APPROVED_ENGLISH` and
-`MISSING_APPROVED_ENGLISH_NAME` are Translation Gate inputs.
+literals in production Kotlin, and all current/history canonical exercise
+names. The approved v2 workbook, metadata catalogue, exact resources, dynamic
+templates, and checked-in `CODEX_GENERATED_ENGLISH` baseline rows are accepted
+presentation routes. The completion gate is zero unexplained Korean text in
+English-mode production presentation, not the superseded per-row approval gate.
 
 The Kotlin scan intentionally gates clear UI/accessibility literals while
 retaining explicit diagnostic, log, canonical-data, and identifier

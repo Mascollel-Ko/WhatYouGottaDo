@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -304,7 +305,7 @@ internal fun WorkoutSetRow(
                     CompactNumberField(
                         modifier = Modifier.width(62.dp),
                         value = sportHoursText,
-                        suffix = "시간",
+                        suffix = stringResource(R.string.sleep_hours_unit),
                         keyboardType = KeyboardType.Number,
                         onValueChange = {
                             if (it.isUnsignedInt()) {

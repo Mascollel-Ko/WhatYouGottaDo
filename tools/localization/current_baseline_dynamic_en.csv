@@ -1,0 +1,258 @@
+koreanTemplate,englishTemplate,provenance,sourcePath
+${}년 ${}월 ${}일 ${}요일,"%2$s %3$s, %1$s (%4$s)",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}: ${} 외 ${}개,%1$s: %2$s and %3$s more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+"${} 완료: profile ${}, daily ${}, check-in ${}, entry ${}, set ${}, program ${}, program item ${}, program item set ${}, program tombstone ${}, skip ${}","%1$s complete: profile %2$s, daily %3$s, check-in %4$s, entry %5$s, set %6$s, program %7$s, program item %8$s, program item set %9$s, program tombstone %10$s, skip %11$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt
+${} 선택됨,%1$s selected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+진단 코드: ${},Diagnostic code: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+이전 중앙값 대비 현재 추정 범위 ${},Current estimate range versus the previous median: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+관련 세션 ${} · 직접 1RM ${} · RPE 확률 관측 ${} · 강한 nRM ${} · 프록시 혁신 ${} · 실패 ${},Relevant sessions %1$s · direct 1RM %2$s · RPE likelihood observations %3$s · strong nRM %4$s · proxy innovations %5$s · failures %6$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+성장률 ${} · 이전 ${} · 현재 ${},Growth %1$s · previous %2$s · current %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${}주 ${}일 예상 ${}분이 시간 예산 ${}분을 초과합니다.,Week %1$s day %2$s estimated duration of %3$s min exceeds the %4$s min time budget.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+"기록 백업 완료: profile ${}, daily ${}, check-in ${}, entry ${}, set ${}, program ${}, program item ${}, program item set ${}, program tombstone ${}, skip ${}","Backup complete: profile %1$s, daily %2$s, check-in %3$s, entry %4$s, set %5$s, program %6$s, program item %7$s, program item set %8$s, program tombstone %9$s, skip %10$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt
+"기록 복원 완료: profile ${}, daily ${}, check-in ${}, entry ${}, set ${}, program ${}, program item ${}, program item set ${}, program tombstone ${}, skip ${}","Restore complete: profile %1$s, daily %2$s, check-in %3$s, entry %4$s, set %5$s, program %6$s, program item %7$s, program item set %8$s, program tombstone %9$s, skip %10$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt
+${}년 ${}월 ${}주,Month %2$s · Week %3$s · %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+"${}월
+${}주","Month %1$s
+Week %2$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+외 ${}개 선택됨,%1$s more selected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleBucketSelection.kt
+외 ${}개,%1$s more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+관련 세션 ${} · 직접 1RM ${} · ,Relevant sessions %1$s · direct 1RM %2$s · ,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+RPE 확률 관측 ${} · 강한 nRM ${} · ,RPE likelihood observations %1$s · strong nRM %2$s · ,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+성장률 ${} · 이전 ${} · ,Growth %1$s · previous %2$s · ,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+"\n진단 코드: ${}","\nDiagnostic code: %1$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${}주 ${}일 예상 ${}분이 ,Week %1$s day %2$s estimated duration of %3$s min ,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+"${} 완료: profile ${}, daily ${}, check-in ${}, ","%1$s complete: profile %2$s, daily %3$s, check-in %4$s, ",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt
+${} ${} 끝 날짜 선택,%1$s %2$s Select end date,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${} ${} 대상 날짜 선택,%1$s %2$s Select target date,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${} ${}세트 준비,%1$s %2$s set ready,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt
+${} 28일,%1$s 28th,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferChartDataBuilder.kt
+${} 7일,%1$s 7 days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferChartDataBuilder.kt
+${} 80% 범위,%1$s 80% range,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${} anchor가 최소 2주 연속 노출되지 않아 진행성 추적이 어렵습니다.,"The %1$s anchor has not been exposed for at least two consecutive weeks, making it difficult to track progress.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${} movement family가 ${}개로 제한적입니다.,%1$s movement family is limited to %2$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${} strength progression group가 ${}개로 제한적입니다.,%1$s strength progression group is limited to %2$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${} · 신뢰도 ${},%1$s · Reliability %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+${} 고강도,%1$s High Strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
+${} 고강도 운동,%1$s High-intensity exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/PainGateEvaluator.kt
+"${} 관련 피로가 많이 누적되었고, ${} 전이축도 주의 수준입니다.","A lot of fatigue related to %1$s has accumulated, and the %2$s transition axis is also at a caution level.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachAnalysisInsightBuilder.kt
+"${} 관련 피로가 많이 누적되었으며, ${} 자극은 부족합니다.","%1$s-related fatigue has accumulated a lot, and %2$s stimulation is lacking.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachAnalysisInsightBuilder.kt
+${} 기록 프로그램,%1$s recording program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt
+${} 남음 · ${},%1$s remaining · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RestTimerNotifier.kt
+${} 다음 세트를 준비하세요.,%1$s Get ready for the next set.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RestTimerNotifier.kt
+${} 배드민턴 전이 중복군이 ${}개뿐입니다.,There are only %2$s overlapping groups of %1$s badminton transitions.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${} 부담을 먼저 확인하세요.,%1$s Check the burden first.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
+${} 부담이 약간 높습니다.,%1$s The burden is slightly high.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayReadinessSentenceBuilder.kt
+${} 부담이 평소보다 높습니다.,%1$s The burden is higher than usual.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayReadinessSentenceBuilder.kt
+${} 부터 프로그램으로 저장할 마지막 날짜 선택,Select the last date to be saved as a program starting from %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${} 비중과 관련 피로가 함께 높게 잡힙니다.,%1$s specific gravity and related fatigue are both set high.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzer.kt
+${} 사후분포 중앙값,%1$s median posterior distribution,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${} 실제와 추정,%1$s Actual and estimated,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+${} 예상 대비 수행,%1$s Performs against expectations,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+"${} 완료: profile ${}, daily ${}, check-in ${},","%1$s completed: profile %2$s, daily %3$s, check-in %4$s,",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt
+${} 외 ${}개,%1$s and %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/ui/FatigueSourceMultiSelect.kt
+${} 외 ${}개 선택됨,%1$s and %2$s selected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+${} 적용,Apply %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+${} 주간 운동량 지수,%1$s Weekly Exercise Index,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+${} 주간 최근 3일 누적 운동량 지수,%1$s Weekly cumulative exercise index for the last 3 days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+${} 주간 최근 7일 누적 운동량 지수,%1$s Weekly cumulative exercise index for the last 7 days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+${} 직접 세션 관측,%1$s Direct session observation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${} 총부하,%1$s total load,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+${} 피로도가 높습니다. 스트레스를 줄이면 좋습니다.,%1$s Fatigue is high. It's good for reducing stress.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt
+${} 피로도가 높습니다. 주의하세요.,%1$s Fatigue is high. Be careful.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt
+"${}, ${}, ${}에서 ${}","%1$s, %2$s, %3$s to %4$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt
+${}-${}주,Week %1$s-%2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 ${} 누적 ${}가 높습니다.,%1$s-%2$s shares %3$s cumulative %4$s is high.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 견갑 안정성 노출의 과반이 저부하 rehab activation입니다.,%1$s-%2$s The majority of shoulder stability exposures are low-load rehab activation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 관절/건/충격 누적 ${}가 관리 기준 ${}를 초과합니다.,%1$s-%2$s Primary joint/tendon/impact accumulation %3$s exceeds control criteria %4$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 미노출 패턴: ${},%1$s-%2$s Week Unexposed Pattern: %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 신경계 누적 ${}가 관리 기준 ${}를 초과합니다.,%1$s-%2$smain nervous system cumulative %3$s exceeds control criteria %4$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}-${}주 정상 세션의 rehab-like activation 비율이 15%를 초과합니다.,%1$s-%2$s The rehab-like activation rate for normal sessions exceeds 15%.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}~${} ${} 붙여넣을 시작 날짜 선택,%1$s~%2$s %3$s Select start date to paste,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${}년,Year %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}년 ${}월,Month %2$sYear %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${}년 ${}월 ${}일,%1$sYear %2$sMonth %3$sDay,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}단계,%1$sstep,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
+${}부터 삭제할 끝 날짜 선택,Select the end date for deletion starting from %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${}분,%1$s minutes,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+${}분 ${}초,%1$s minutes %2$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+${}분 이상 배드민턴 뒤 다음날 피로/불편감 입력이 높았던 기록이 있습니다. 같은 패턴을 단정하지 않고 다음날 강도를 보수적으로 봅니다.,There is a record of high levels of fatigue/discomfort the next day after playing badminton for more than %1$s minutes. We do not assume the same pattern and take a conservative look at the next day's intensity.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzer.kt
+${}세트 · ${}${},%1$s set · %2$s%3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+${}세트 · ${}초,%1$s set · %2$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramPrescriptionPolicy.kt
+${}시간 ${}분,%1$s hours %2$s minutes,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/SportDurationInput.kt
+${}예정,%1$sscheduled,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+${}와 ${}는 같은 주에 함께 움직이는 경향을 보입니다. ${} ${},%1$s and %2$s tend to move together in the same week. %3$s %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/ScatterRelationshipAnalyzer.kt
+${}월 ${}일,%1$s month %2$s day,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}월 ${}일 ${}요일,%1$sMonth %2$sDay %3$sDay,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}월 ${}주,%1$s Month %2$s Week,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
+${}은 직접 스포츠 세션이므로 프로그램 운동으로 선택할 수 없습니다.,%1$s is a direct sports session and cannot be selected as a program exercise.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+"${}의 최근 RPE 평균 ${}, 이전 비슷한 세트 ${}입니다. 오늘은 같은 무게라도 체감 강도를 확인하며 조절합니다.","The recent RPE average of %1$s is %2$s, the previous similar set is %3$s. Today, even if the weight is the same, I check the perceived strength and adjust it.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/RpeAutoregulationAnalyzer.kt
+${}일/주,%1$sdays/week,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanProgramSections.kt
+${}주,%1$s shares,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+${}주 ${} family 노출이 ${}회로 편중되었습니다.,Exposure to %1$s stock %2$s family was concentrated in %3$s circuit.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${} 중복군 노출이 ${}회입니다.,%1$s week %2$s overlapping group exposure is %3$s times.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${}:${} 프로그램,%1$s Week %2$s:%3$s Program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilder.kt
+${}주 ${}일 rehab-like activation이 메인 위치를 차지합니다.,Week %1$s day %2$s rehab-like activation occupies the main position.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${}일 strength/transfer 세션의 절반 이상이 rehab-like activation입니다.,More than half of strength/transfer sessions on %2$s week %1$s are rehab-like activations.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${}일 세션이 운동 7개를 초과합니다.,%1$s Day %2$s Sessions exceed 7 workouts.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${}일 예상 ${}분이,Week %1$s expected to be %2$s minute %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 ${}일 정상 세션에 rehab-like activation이 ${}개 포함되었습니다.,A normal session on %2$s days of week %1$s included %3$s rehab-like activations.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 hard day ${}일이 허용 상한 ${}일을 초과합니다.,Week %1$s hard day %2$s days exceed the upper allowable limit of %3$s days.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주 후,%1$s weeks later,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+"${}주 후: ${} (80% ${}~${}, n=${})","After week %1$s: %2$s (80% %3$s~%4$s, n=%5$s)",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+${}주의 hard day 3일은 HIGH/INTENSIFY와 후속 저부하 주 조건을 충족하지 않습니다.,Three hard days in week %1$s do not meet the HIGH/INTENSIFY and subsequent low load week conditions.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+${}주차 ${},%1$sParking %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+${}초,%1$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+${}회,%1$s times,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+${}회 · ${} km/h,%1$s times %2$s km/h,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt
+80% 범위 ${},80% range %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+80% 예상 범위 ${}~${},80% expected range %1$s~%2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+Cholesky 순서: ${},Cholesky order: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+RIR 정책 ${},RIR Policy %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+RPE 확률 관측 ${} · 강한 nRM ${} ·,RPE probability observation %1$s · strong nRM %2$s ·,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+grid 진단 ${} · 지원 범위 밖 반복 ${},grid diagnosis %1$s · repetition out of support range %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+local 운동 상태 ${} · 적용 proxy 전이 ${},local movement state %1$s · application proxy transition %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+target-specific proxy 위반 ${},target-specific proxy violation %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+· 휴식 ${}초,· Rest %1$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+계획 ${}세트,Plan %1$sset,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt
+계획 피로도 참고: ${} · 볼륨 ${} · RPE 상한 ${}. RED 전에는 메인 운동을 줄이지 않고 계획합니다.,"Plan fatigue note: %1$s · Volume %2$s · RPE upper limit %3$s. Before RED, plan your main workout without reducing it.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilder.kt
+계획피로조정:${},Planned fatigue adjustment:%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramSelectionReasonFormatter.kt
+곡선 ${} · 매칭 ${},Curve %1$s · Matching %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+곡선 ${} · 매칭 ${} · 보정 ${},Curve %1$s · Matching %2$s · Correction %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+곡선 경계 ${},Curve boundary %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+곡선 보정 ${} · 최근 처리 ${},Curve Correction %1$s · Recent Processing %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+공적분: ${} (legacy score=${}),Cointegration: %1$s (legacy score=%2$s),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+관련 세션 ${} · 직접 1RM ${} ·,Related Sessions %1$s · Direct 1RM %2$s ·,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+관측 ${} · ${},Observation %1$s · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+근거 ${} · 세트 ${} · 지문 ${},Grounds %1$s · Set %2$s · Fingerprint %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+기간: ${} ~ ${},Period: %1$s ~ %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기간: ${} ~ ${} (${}일),Period: %1$s ~ %2$s (%3$s days),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+기록 백업 실패: ${},Record backup failed: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+기본 휴식 ${}초,Base rest %1$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordSetRow.kt
+기존 계획: ${}개,Original plan: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기존 세트 ${}개,Existing set %1$s pieces,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+기존 운동 ${}개,Existing exercises %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+기준: ${}세트 · ${}회 · ${}kg · RPE ${} · ${},Standard: %1$s set · %2$s times · %3$skg · RPE %4$s · %5$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt
+노력도 보정 수행치 ${},Effort correction performance %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+당시 체중 ${} · 당시 추가중량 ${} · 당시 총부하 ${},Weight at the time %1$s · Additional weight at the time %2$s · Total load at the time %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+대상 날짜 ${}일,Target date %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+대상 키 ${},Target key %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+동작:${},Operation:%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramSelectionReasonFormatter.kt
+모델 ${} · 곡선 ${},Model %1$s · Curve %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+모델 ${} · 지문 ${},Model %1$s · Fingerprint %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+모델 경계 ${},Model boundary %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+몸무게 ${}kg,Weight %1$skg,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+반응 Y: ${},Response Y: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+백업 복원 ${},Backup Restore %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+변환: ${},Convert: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+보존되는 완료 세트: ${}세트,Complete set preserved: Set %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+부트스트랩 ${},Bootstrap %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+분산 배수 ${} · 개인 보정 ${},Dispersion multiplier %1$s · Personal correction %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+분석 기간: ${} · 정렬 관측치: ${},Analysis period: %1$s · Sorted observations: %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+불러온 운동: ${},Loaded exercise: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt
+불편감 ${},Discomfort %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+빈 kg에 ${}kg 적용,Apply %1$skg to empty kg,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt
+빈 세트에도 ${}kg 적용?,Does %1$skg apply to empty sets as well?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordEntryCard.kt
+사용 모델: ${},Used model: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+상태 지문 ${} · 스키마 ${},State Fingerprint %1$s · Schema %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+상태: ${},Status: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+새 계획: ${}개,New Plan: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+선택 기간 기여 ${}%,Select period contribution %1$s%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/ui/FatigueSourceMultiSelect.kt
+선택 모델 ${},Select model %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+선택 통제 변수: ${},Select control variable: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+성장률 ${} · 이전 ${} ·,Growth rate %1$s · Previous %2$s ·,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 innovation ${},Session innovation %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 likelihood ${},Session likelihood %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 전 local prior ${},Before session local prior %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 전 예상 ${},Pre-session forecast %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+세션 전 추정 ${} · 80% ${},Pre-session estimate %1$s · 80% %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 후 local posterior ${},After session local posterior %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세션 후 추정 ${} · 80% ${},Post-session estimate %1$s 80% %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+세트 간 휴식 ${}초,Rest between sets %1$s seconds,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanProgramSections.kt
+수면 ${}시간,Sleep %1$shours,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+수면시간이 ${}시간으로 입력되었습니다.,Sleep time was entered as %1$s hours.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
+수치 진단 ${},Numerical diagnosis %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+수치 진단: ${},Numerical diagnosis: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+시간 예산 ${}분을 초과합니다.,Time budget %1$s minutes exceeded.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramBuilderValidation.kt
+시작: ${},Start: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+신뢰도 ${},Reliability %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt
+실제 e1RM ${},Actual e1RM %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+실패한 운동일: ${},Failed workout day: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/PerformanceTrendSummaryService.kt
+역할:${},Role:%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramSelectionReasonFormatter.kt
+예상 대비 ${},%1$s compared to expected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+예시 운동: ${},Example exercise: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+예측분포 내 위치 ${},Position in prediction distribution %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+예측분포 내 위치 ${}%,Position within prediction distribution %1$s%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+오늘 불편감이 ${}/5로 입력되었습니다.,Today's discomfort was entered as %1$s/5.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
+오늘 전신 피로가 ${}/5로 입력되었습니다.,Total body fatigue today was entered as %1$s/5.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
+오늘 집중력/의욕이 ${}/5로 입력되었습니다.,Today's concentration/motivation was entered as %1$s/5.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
+오늘 하체 피로가 ${}/5로 입력되었습니다.,Today’s lower body fatigue was entered as %1$s/5.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachCheckInInterpreter.kt
+오류 유형: ${},Error Type: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/StrengthPosteriorUpdateService.kt
+완료 ${}세트 · 계획 ${}세트,Completed %1$s set · Planned %2$s set,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+완료 세트 ${}개,Complete set %1$s pieces,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+완료 세트 ${}개가 포함되어 있습니다.,Includes %1$s complete set.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+완료: ${},Completed: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+외 ${}개,and %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+외 ${}개 선택됨,Other %1$s selected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleBucketSelection.kt
+외생 통제 Z: ${},Exogenous control Z: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+요청 horizon: ${}주 · 실제 horizon: ${}주,Request horizon: %1$s weeks Actual horizon: %2$s weeks,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+운동 ${}개 · 세트 ${}개,Exercise %1$s pieces · Set %2$s pieces,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+"운동 ${}개, 세트 ${}개","Exercises %1$s, sets %2$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+"운동 ${}개, 세트 ${}개가 삭제됩니다.",%1$s exercises and %2$s sets will be deleted.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+응답 변수 Y: ${},Response variable Y: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+이벤트 원장 전체 ${} · 대기 ${} · 실패 ${},Event Ledger Full %1$s · Standby %2$s · Failed %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+이전 revision ${} · 재빌드 출처 ${},Previous revision %1$s · Rebuild source %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+이전 사후분포 중앙값 ${},Previous posterior median %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+자동 보정 변수: ${},Auto-calibration variable: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+자동 포함 내생변수: ${},Automatically included endogenous variables: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+작업 ID: ${},Job ID: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+작업: ${},Task: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+적용 예정: ${},To be applied: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordBulkEditDialog.kt
+전신 ${},Whole body %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+전이:${},Transition:%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramSelectionReasonFormatter.kt
+주간 ${} 운동량,Weekly %1$s training volume,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+주간 ${} 최근 3일 운동량,Weekly %1$s Training volume for the last 3 days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+주간 ${} 최근 7일 운동량,Weekly %1$s Training volume in the last 7 days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+중앙값 변화 ${} · 구간 폭 변화 ${},Median change %1$s · Interval width change %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+직접 ${} · 프록시 ${},Direct %1$s · Proxy %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+직접 ${} · 프록시 ${} · 관련 운동 ${},Direct %1$s · Proxy %2$s · Related Exercises %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+직접 ${}회 · 프록시 ${}회 · 관련 운동 ${}개,Direct %1$s times · Proxy %2$s times · %3$s related exercises,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+진단 보고서 저장 실패: ${},Failed to save diagnostic report: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+진단 코드: ${},Diagnostic Code: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+집중/의욕 ${},Focus/Motivation %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+체중 출처 ${},Weight source: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+최고 ${} · Top3 ${} · ${}회,Top %1$s · Top 3 %2$s · %3$s times,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordMetricsCards.kt
+최근 ${} 추정 신호,Recent %1$s estimated signal,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+최근 ${}일 ${} 자극이 부족합니다.,Recently %1$s days %2$s lack of stimulation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzer.kt
+최근 ${}일 기록이 없습니다.,There are no recent records for %1$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzer.kt
+최근 ${}일 동안 ${} 부하에 많이 기여한 기록입니다.,This is a record of contributing a lot to %2$s load in the recent %1$s days.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzer.kt
+최근 ${}일 비중이 낮습니다.,"Recently, the proportion of %1$s days has been low.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzer.kt
+"최근 3일 평균 ${}시간, 기준 ${}시간입니다. 오늘 강도 해석을 보수적으로 적용합니다.","This is the average %1$s time for the last three days, and the standard %2$s time. Today we apply the intensity analysis conservatively.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/SleepRecoverySignalAnalyzer.kt
+최근 3일 평균 ${}시간입니다. 고강도 훈련 판단에는 여유를 둡니다.,This is the average %1$s time for the last three days. Take some time to judge high-intensity training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/SleepRecoverySignalAnalyzer.kt
+최근 3일 평균 ${}시간입니다. 수면만으로 강한 조절 신호를 만들지는 않습니다.,This is the average %1$s time for the last three days. Sleep alone does not create strong regulatory signals.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/SleepRecoverySignalAnalyzer.kt
+최근 3일 평균 ${}시간입니다. 피로 신호를 조금 더 보수적으로 봅니다.,This is the average %1$s time for the last three days. We take a slightly more conservative look at fatigue signals.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/SleepRecoverySignalAnalyzer.kt
+"최근 7일은 ${} 자극이 많고, ${} 자극은 상대적으로 적습니다.","In the last 7 days, there is a lot of %1$s stimulation, and there is relatively little %2$s stimulation.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt
+최근 7일은 ${} 자극이 많습니다.,The last 7 days have been very stimulating %1$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt
+최근 성장률 ${},Recent growth rate %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+최근 이벤트 지문 ${},Recent event fingerprint %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+최근 직접 1RM ${} · ${},Recent direct 1RM %1$s · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+최근 직접 기록 ${},Recent Direct Record %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
+최근 피로 상승은 ${} 기록과 ${} 부담이 함께 누적된 영향일 가능성이 큽니다.,The recent increase in fatigue is likely the cumulative effect of the %1$s record and the %2$s burden.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CoachFatigueCauseAnalyzer.kt
+"축별 상태: 매우 높음(${}), 높음(${}), 보통(${}), 낮음(${})","Status by axis: Very High (%1$s), High (%2$s), Normal (%3$s), Low (%4$s)",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt
+컨디션 · ${},Condition · %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordScreen.kt
+파일: ${},File: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+판단: ${} 피로도를 조절하면 좋습니다.,Judgment: %1$s It is good to control fatigue.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt
+프록시 전이 제외 · ${},Excluding proxy transitions %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+프록시 혁신 ${} · 실패 ${},Proxy Innovation %1$s · Failure %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+하체 ${},Lower body %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
+현재 ${},Currently %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+현재 근력 분석을 재계산하지 못했습니다.${},Failed to recalculate current strength analysis.%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+현재 단계: ${},Current stage: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+현재 데이터가 있는 지표 ${}개,%1$s indicators with current data,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+현재 사후분포 중앙값 ${},Current posterior median %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+현재 상태: ${} · ${},Current status: %1$s · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt
+현재 체중 기준 추가중량 ${},Additional weight based on current weight %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+"확인 세트 ${}개, 미확인 세트 ${}개","%1$s confirmed sets, %2$s unconfirmed sets",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt
+활성 revision ${} · RIR 정책 ${},Active revision %1$s · RIR policy %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+활성 revision ${} · 상태 ${},Active revision %1$s · Status %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
+휴${},Huh%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordSetRow.kt
+휴식 ${},Rest %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt

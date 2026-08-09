@@ -21,6 +21,8 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertEqual(1834, manifest["metadataAuthoritativeRows"])
         self.assertEqual(92, manifest["tissueApprovedRows"])
         self.assertEqual(0, manifest["currentBaselineCheckRequired"])
+        self.assertGreater(manifest["codexGeneratedEnglishEntries"], 1_000)
+        self.assertGreater(manifest["dynamicUiRuntimeEntries"], 200)
         self.assertEqual(
             "0CA2D8D01B603499D8509CC6E6E00BA027818B1F693D4B2978BF642C0F7DFE3A",
             manifest["authoritySha256"],
@@ -34,6 +36,8 @@ class LocalizationAuthorityTest(unittest.TestCase):
         english_exercises = first[authority.OUTPUTS["exercise_en"]]
         self.assertIn("Barbell Deadlift", english_exercises)
         self.assertNotIn("Conventional Deadlift", english_exercises)
+        english_ui = first[authority.OUTPUTS["ui_en"]]
+        self.assertIn("It will be displayed as your exercise records accumulate.", english_ui)
         self.assertEqual(
             hashlib.sha256(first[authority.OUTPUTS["kotlin"]].encode()).hexdigest(),
             hashlib.sha256(second[authority.OUTPUTS["kotlin"]].encode()).hexdigest(),

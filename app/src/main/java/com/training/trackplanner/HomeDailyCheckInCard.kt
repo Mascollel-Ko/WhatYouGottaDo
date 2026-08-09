@@ -1,5 +1,8 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.localization.localizedUiText
+
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +26,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.DailyCheckIn
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 internal fun HomeDailyCheckInCard(
@@ -79,6 +85,7 @@ internal fun DailyConditionEditorDialog(
     onDismiss: () -> Unit,
     onSave: (DailyCheckIn) -> Unit
 ) {
+    val context = LocalContext.current
     var sleepHours by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
         mutableStateOf(checkIn?.sleepHours?.let(::formatConditionNumber).orEmpty())
     }
@@ -105,7 +112,7 @@ internal fun DailyConditionEditorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(dailyConditionEditorTitle(targetDate)) },
+        title = { Text(dailyConditionEditorTitle(context, targetDate)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -120,7 +127,7 @@ internal fun DailyConditionEditorDialog(
                     onValueChange = { sleepHours = it },
                     modifier = Modifier.width(150.dp),
                     label = { Text("수면시간") },
-                    suffix = { Text("시간") },
+                    suffix = { Text(stringResource(R.string.sleep_hours_unit)) },
                     singleLine = true,
                     isError = !sleepValid,
                     supportingText = {
@@ -128,12 +135,13 @@ internal fun DailyConditionEditorDialog(
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
+                val bodyWeightDescription = localizedUiText("몸무게(kg)")
                 OutlinedTextField(
                     value = bodyWeightKg,
                     onValueChange = { bodyWeightKg = it },
                     modifier = Modifier
                         .width(150.dp)
-                        .semantics { contentDescription = "몸무게(kg)" },
+                        .semantics { contentDescription = bodyWeightDescription },
                     label = { Text("몸무게") },
                     suffix = { Text("kg") },
                     singleLine = true,
@@ -202,13 +210,18 @@ internal fun DailyCheckIn.compactSummary(): String = buildList {
 }.joinToString(" · ").ifBlank { "입력값 없음" }
 
 internal fun dailyConditionEditorTitle(
+    context: Context,
     targetDate: LocalDate,
     today: LocalDate = LocalDate.now()
 ): String =
     if (targetDate == today) {
-        "오늘 컨디션 입력"
+        context.getString(R.string.daily_check_in_today_title)
     } else {
-        "${targetDate.monthValue}월 ${targetDate.dayOfMonth}일 컨디션 입력"
+        val locale = context.resources.configuration.locales[0]
+        val date = targetDate.format(
+            DateTimeFormatter.ofPattern(context.getString(R.string.localized_date_pattern), locale)
+        )
+        context.getString(R.string.daily_check_in_date_title, date)
     }
 
 internal fun parseDailyConditionNumber(value: String): Double? =

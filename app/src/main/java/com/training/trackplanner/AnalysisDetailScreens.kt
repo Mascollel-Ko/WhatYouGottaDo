@@ -49,6 +49,7 @@ import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
+import com.training.trackplanner.localization.localizedUiText
 
 @Composable
 internal fun FatigueAndConditionAnalysisContent(
@@ -498,11 +499,12 @@ private fun defaultBadmintonMethodKeys(
         .ifEmpty { available.take(1) }
 }
 
+@Composable
 private fun badmintonMethodSelectionSummary(keys: Collection<String>): String {
-    val labels = keys.map(BadmintonTrainingMethodLabels::label)
+    val labels = keys.map { key -> localizedUiText(BadmintonTrainingMethodLabels.label(key)) }
     return when {
         labels.isEmpty() -> "전이 목적 선택"
-        labels.size <= 3 -> labels.joinToString(", ") + " 선택됨"
+        labels.size <= 3 -> "${labels.joinToString(", ")} 선택됨"
         else -> "${labels.take(2).joinToString(", ")} 외 ${labels.size - 2}개 선택됨"
     }
 }

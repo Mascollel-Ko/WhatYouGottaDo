@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.training.trackplanner.localization.localizedUiText
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -185,16 +186,17 @@ internal fun AppBottomNavigation(
         tonalElevation = 0.dp
     ) {
         AppTab.entries.forEach { tab ->
+            val localizedLabel = localizedUiText(tab.label)
             NavigationBarItem(
                 selected = selectedTab == tab,
                 onClick = { onTabSelected(tab) },
                 icon = {
                     Icon(
                         imageVector = tab.icon,
-                        contentDescription = tab.label
+                        contentDescription = localizedLabel
                     )
                 },
-                label = { Text(tab.label) },
+                label = { Text(localizedLabel) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.primary,
                     selectedTextColor = MaterialTheme.colorScheme.onSurface,

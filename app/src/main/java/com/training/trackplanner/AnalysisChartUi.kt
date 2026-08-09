@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -21,6 +22,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +39,7 @@ import com.training.trackplanner.analysis.trends.ChartType
 import com.training.trackplanner.analysis.trends.DetailChartMode
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
+import com.training.trackplanner.localization.LocalizedPresentation
 import java.util.Locale
 import java.time.LocalDate
 import kotlin.math.abs
@@ -85,7 +89,7 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     val max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
     val domain = AnalysisChartTemporalPolicy.domain(spec)
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
-    val accessibility = analysisChartContentDescription(spec)
+    val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
         modifier = Modifier.semantics(mergeDescendants = true) {
             contentDescription = accessibility
@@ -207,9 +211,10 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
     val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
     val domain = AnalysisChartTemporalPolicy.domain(spec)
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
+    val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
         modifier = Modifier.semantics(mergeDescendants = true) {
-            contentDescription = analysisChartContentDescription(spec)
+            contentDescription = accessibility
         },
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -312,39 +317,62 @@ internal fun analysisChartPeriodLabel(spec: ChartSpec): String? =
         AnalysisChartTemporalPolicy.periodLabel(AnalysisChartTemporalPolicy.domain(spec), granularity)
     }
 
-internal fun analysisChartContentDescription(spec: ChartSpec): String {
-    val granularity = spec.timeGranularity ?: return spec.title
+@Composable
+private fun localizedAnalysisChartContentDescription(spec: ChartSpec): String {
+    val context = LocalContext.current
+    val locale = LocalConfiguration.current.locales[0].toLanguageTag()
+    return remember(spec, locale) {
+        analysisChartContentDescription(
+            spec = spec,
+            localize = { source -> LocalizedPresentation.uiText(context, source) },
+            range = { lower, upper -> context.getString(R.string.chart_accessibility_range, lower, upper) }
+        )
+    }
+}
+
+internal fun analysisChartContentDescription(
+    spec: ChartSpec,
+    localize: (String) -> String = { it },
+    range: (String, String) -> String = { lower, upper -> "$lower–$upper" }
+): String {
+    val granularity = spec.timeGranularity ?: return localize(spec.title)
     val domain = AnalysisChartTemporalPolicy.domain(spec)
     val lineDescriptions = spec.lineSeries.flatMap { series ->
         series.points.mapNotNull { point ->
             val value = point.value?.takeIf(Double::isFinite) ?: return@mapNotNull null
-            val date = AnalysisChartTemporalPolicy.detailLabel(point.weekStart, granularity, domain)
-            "$date, ${series.label} ${formatChartAccessibilityValue(value, spec.valueUnit)}"
+            val date = localize(AnalysisChartTemporalPolicy.detailLabel(point.weekStart, granularity, domain))
+            "$date, ${localize(series.label)} ${formatChartAccessibilityValue(value, spec.valueUnit, localize)}"
         }
     }
     val stackedDescriptions = spec.stackedBars.flatMap { group ->
         val weekStart = group.weekStart ?: return@flatMap emptyList()
-        val date = AnalysisChartTemporalPolicy.detailLabel(weekStart, granularity, domain)
+        val date = localize(AnalysisChartTemporalPolicy.detailLabel(weekStart, granularity, domain))
         group.segments.map { segment ->
-            "$date, ${segment.label} ${formatChartAccessibilityValue(segment.value, spec.valueUnit)}"
+            "$date, ${localize(segment.label)} ${formatChartAccessibilityValue(segment.value, spec.valueUnit, localize)}"
         }
     }
     val intervalDescriptions = (spec.intervalBands + listOfNotNull(spec.intervalBand)).flatMap { band ->
         band.points.map { point ->
-            val date = AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain)
-            "$date, ${band.label}, ${formatChartAccessibilityValue(point.lower, spec.valueUnit)}에서 ${formatChartAccessibilityValue(point.upper, spec.valueUnit)}"
+            val date = localize(AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain))
+            val lower = formatChartAccessibilityValue(point.lower, spec.valueUnit, localize)
+            val upper = formatChartAccessibilityValue(point.upper, spec.valueUnit, localize)
+            "$date, ${localize(band.label)}, ${range(lower, upper)}"
         }
     }
-    return (listOf(spec.title) + lineDescriptions + intervalDescriptions + stackedDescriptions).joinToString(". ")
+    return (listOf(localize(spec.title)) + lineDescriptions + intervalDescriptions + stackedDescriptions).joinToString(". ")
 }
 
-private fun formatChartAccessibilityValue(value: Double, unit: String?): String {
+private fun formatChartAccessibilityValue(
+    value: Double,
+    unit: String?,
+    localize: (String) -> String = { it }
+): String {
     val rendered = if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
     val spokenUnit = when (unit) {
-        "kg" -> "킬로그램"
-        "%" -> "퍼센트"
+        "kg" -> localize("킬로그램")
+        "%" -> localize("퍼센트")
         null, "" -> ""
-        else -> unit
+        else -> localize(unit)
     }
     return "$rendered$spokenUnit"
 }

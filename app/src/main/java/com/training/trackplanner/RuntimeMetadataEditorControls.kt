@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.localization.localizedUiText
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -152,11 +154,12 @@ private fun MetadataSelectorSurface(
     summary: String,
     onClick: () -> Unit
 ) {
+    val localizedDescription = "${localizedUiText(label)}, ${localizedUiText(summary)}"
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .sizeIn(minHeight = 64.dp)
-            .semantics { contentDescription = "$label, $summary" },
+            .semantics { contentDescription = localizedDescription },
         shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         onClick = onClick
@@ -265,6 +268,7 @@ internal fun MetadataEditorSection(
     content: @Composable () -> Unit
 ) {
     var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    val localizedTitle = localizedUiText(title)
     val expansionLabel = if (expanded) {
         stringResource(R.string.metadata_collapse)
     } else {
@@ -275,7 +279,7 @@ internal fun MetadataEditorSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics {
-                    contentDescription = "$title, $expansionLabel"
+                    contentDescription = "$localizedTitle, $expansionLabel"
                 },
             onClick = { expanded = !expanded }
         ) {

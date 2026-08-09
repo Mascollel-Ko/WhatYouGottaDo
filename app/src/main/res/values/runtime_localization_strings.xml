@@ -2,4 +2,21 @@
 <resources>
     <string name="exercise_info_content_description">%1$s 운동 정보</string>
     <string name="record_delete_exercise_confirmation">%1$s을(를) 선택한 날짜 기록에서 삭제할까요? 세트 기록도 함께 삭제됩니다.</string>
+    <string name="daily_check_in_today_title">오늘 컨디션 입력</string>
+    <string name="daily_check_in_date_title">%1$s 컨디션 입력</string>
+    <string name="localized_date_pattern">yyyy년 M월 d일</string>
+    <plurals name="set_count">
+        <item quantity="other">%1$d세트</item>
+    </plurals>
+    <string name="set_ordinal">%1$d세트</string>
+    <string name="sleep_hours_unit">시간</string>
+    <string name="duration_label">시간</string>
+    <plurals name="repetition_count">
+        <item quantity="other">%1$d회</item>
+    </plurals>
+    <string name="seconds_short">%1$d초</string>
+    <string name="rest_seconds_suffix"> · 휴식 %1$d초</string>
+    <string name="inter_set_rest">세트 간 휴식 %1$d초</string>
+    <string name="prescription_none">처방 없음</string>
+    <string name="chart_accessibility_range">%1$s에서 %2$s</string>
 </resources>

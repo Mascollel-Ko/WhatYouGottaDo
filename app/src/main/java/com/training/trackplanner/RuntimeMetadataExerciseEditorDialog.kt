@@ -20,6 +20,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -337,7 +338,10 @@ internal fun ExerciseMetadataCopyDialog(
                                 onClick = { onSelect(source) }
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(localizedExerciseName(source.exercise), style = MaterialTheme.typography.bodyMedium)
+                                    MaterialText(
+                                        localizedExerciseName(source.exercise),
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
                                     Text(
                                         listOf(
                                             translator.translate("exercise.category", source.exercise.category),

@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +28,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
@@ -242,7 +245,7 @@ private fun ProgramDraftItemRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(displayName, fontWeight = FontWeight.SemiBold)
+                MaterialText(displayName, fontWeight = FontWeight.SemiBold)
                 programSetSummaryLines(item).forEach { line ->
                     Text(
                         line,
@@ -271,7 +274,7 @@ private fun ProgramDraftItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(displayName) },
+        title = { MaterialText(displayName) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 sets.forEachIndexed { index, set ->
@@ -290,7 +293,7 @@ private fun ProgramDraftItemDialog(
                         )
                         ProgramNumberField(
                             Modifier.weight(1f),
-                            "시간",
+                            stringResource(R.string.duration_label),
                             set.seconds.toString(),
                             onChange = { value ->
                                 sets = sets.updated(
@@ -368,21 +371,30 @@ private fun List<ProgramSetPrescription>.updated(
 ): List<ProgramSetPrescription> =
     mapIndexed { current, existing -> if (current == index) value else existing }
 
+@Composable
 private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
     val sets = ProgramSetPrescriptionResolver.resolve(item)
-    val rest = item.restSeconds.takeIf { it > 0 }?.let { " · 휴식 ${it}초" }.orEmpty()
+    val rest = item.restSeconds.takeIf { it > 0 }
+        ?.let { stringResource(R.string.rest_seconds_suffix, it) }
+        .orEmpty()
     if (sets.map { Triple(it.reps, it.weightKg, it.seconds) }.distinct().size == 1) {
-        return listOf("${sets.size}세트 · ${sets.first().displayText()}$rest")
+        return listOf(
+            "${pluralStringResource(R.plurals.set_count, sets.size, sets.size)} · " +
+                "${sets.first().displayText()}$rest"
+        )
     }
-    return sets.map { set -> "${set.setIndex}세트 · ${set.displayText()}$rest" }
+    return sets.map { set ->
+        "${stringResource(R.string.set_ordinal, set.setIndex)} · ${set.displayText()}$rest"
+    }
 }
 
+@Composable
 private fun ProgramSetPrescription.displayText(): String =
     buildList {
-        if (reps > 0) add("${reps}회")
+        if (reps > 0) add(pluralStringResource(R.plurals.repetition_count, reps, reps))
         if (weightKg > 0.0) add("${formatDecimal(weightKg)}kg")
-        if (seconds > 0) add("${seconds}초")
-    }.ifEmpty { listOf("처방 없음") }.joinToString(" · ")
+        if (seconds > 0) add(stringResource(R.string.seconds_short, seconds))
+    }.ifEmpty { listOf(stringResource(R.string.prescription_none)) }.joinToString(" · ")
 
 private fun draftItemForExercise(
     exercise: Exercise,

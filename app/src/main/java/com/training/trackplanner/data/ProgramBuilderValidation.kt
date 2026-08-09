@@ -39,8 +39,7 @@ internal object ProgramBuilderValidator {
                 issues += issue(
                     "SESSION_TIME_BUDGET",
                     ProgramValidationSeverity.HARD,
-                    "${key.first}주 ${key.second}일 예상 ${estimatedSeconds / 60}분이 " +
-                        "시간 예산 ${result.request.dailyAvailableMinutes}분을 초과합니다."
+                    "${key.first}주 ${key.second}일 예상 ${estimatedSeconds / 60}분이 시간 예산 ${result.request.dailyAvailableMinutes}분을 초과합니다."
                 )
             }
         }

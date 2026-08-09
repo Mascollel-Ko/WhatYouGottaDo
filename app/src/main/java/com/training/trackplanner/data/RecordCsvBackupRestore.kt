@@ -30,10 +30,7 @@ data class RecordCsvTransferResult(
     val warningCount: Int = 0
 ) {
     fun summaryText(action: String): String =
-        "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, " +
-            "entry $entryCount, set $setCount, program $programCount, program item $programItemCount, " +
-            "program item set $programItemSetCount, program tombstone $programTombstoneCount, " +
-            "skip $skippedDuplicateCount"
+        "$action 완료: profile $profileCount, daily $dailyMetricCount, check-in $dailyCheckInCount, entry $entryCount, set $setCount, program $programCount, program item $programItemCount, program item set $programItemSetCount, program tombstone $programTombstoneCount, skip $skippedDuplicateCount"
 }
 
 sealed class RecordCsvImportData {

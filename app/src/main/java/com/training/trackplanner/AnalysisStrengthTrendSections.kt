@@ -43,6 +43,7 @@ import com.training.trackplanner.analysis.trends.TrendChartRange
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
+import com.training.trackplanner.localization.localizedUiText
 
 @Composable
 internal fun MuscleLoadShareCard(summary: PerformanceTrendSummary) {
@@ -78,7 +79,7 @@ internal fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
             ) {
                 Text(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp),
-                    text = MuscleBucketSelection.summary(selected, available),
+                    text = localizedMuscleBucketSummary(selected, available),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -164,7 +165,7 @@ private fun MuscleBucketPickerDialog(
                         }
                     }
                 }
-                Text(MuscleBucketSelection.summary(draft, available), style = MaterialTheme.typography.labelMedium)
+                Text(localizedMuscleBucketSummary(draft, available), style = MaterialTheme.typography.labelMedium)
                 if (draft.isEmpty()) {
                     Text("최소 1개 이상 선택하세요.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 }
@@ -322,6 +323,21 @@ private fun latestMuscleShare(summary: PerformanceTrendSummary): List<BarItem> {
     if (total <= 0.0) return emptyList()
     return raw.sortedByDescending { (_, value) -> value }
         .map { (label, value) -> BarItem(label, value / total * 100.0) }
+}
+
+@Composable
+private fun localizedMuscleBucketSummary(
+    metrics: Collection<TrendMetricId>,
+    available: List<StrengthAndMuscleMetricSeriesBuilder.MuscleBucket>
+): String {
+    val labels = available
+        .filter { bucket -> bucket.dailyMetric in metrics }
+        .map { bucket -> localizedUiText(bucket.label) }
+    return when {
+        labels.isEmpty() -> localizedUiText("기본 근육군 선택")
+        labels.size <= 3 -> localizedUiText("${labels.joinToString(", ")} 선택됨")
+        else -> localizedUiText("${labels.take(3).joinToString(", ")} 외 ${labels.size - 3}개 선택됨")
+    }
 }
 
 private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetrics: List<TrendMetricId>): ChartSpec {
