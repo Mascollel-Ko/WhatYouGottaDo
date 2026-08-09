@@ -93,6 +93,10 @@ DISPLAY_CSV_HEADERS = [
     "englishLabel", "englishSearchAliases", "allowedLatinTokens",
     "displayScope", "reviewStatus",
 ]
+EXTERNALLY_MANAGED_RUNTIME_ARTIFACTS = {
+    "metadata_field_display_contract.json",
+    "metadata_revision_manifest.json",
+}
 
 
 def runtime_rows(workbook) -> list[dict[str, str]]:
@@ -254,6 +258,10 @@ def main() -> None:
             generated_resources = temporary / "res"
             generated_manifest = temporary / "metadata_display_resource_manifest.json"
             export(args.workbook, generated, generated_resources, generated_manifest)
+            for name in EXTERNALLY_MANAGED_RUNTIME_ARTIFACTS:
+                source = args.output / name
+                if source.exists():
+                    shutil.copy2(source, generated / name)
             compare_directories(generated, args.output)
             for relative in ("values/metadata_display_catalog.xml", "values-en/metadata_display_catalog.xml"):
                 if not filecmp.cmp(generated_resources / relative, DEFAULT_RESOURCE_ROOT / relative, shallow=False):
@@ -262,12 +270,19 @@ def main() -> None:
                 raise ValueError("Generated display resource manifest is stale")
         print("Canonical metadata assets are deterministic and current.")
     else:
+        preserved = {
+            name: (args.output / name).read_bytes()
+            for name in EXTERNALLY_MANAGED_RUNTIME_ARTIFACTS
+            if (args.output / name).exists()
+        }
         with tempfile.TemporaryDirectory() as directory:
             generated = Path(directory) / "canonical_v1"
             manifest = export(args.workbook, generated)
             if args.output.exists():
                 shutil.rmtree(args.output)
             shutil.copytree(generated, args.output)
+        for name, content in preserved.items():
+            (args.output / name).write_bytes(content)
         print(f"Exported {len(manifest['files'])} canonical metadata files to {args.output}")
 
 

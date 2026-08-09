@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.6.0 |
+| Protocol version | 1.7.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23 |
-| Last audited commit | 233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25 |
+| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
 ## v0.5.0.23 Korean metadata display authority
@@ -157,10 +157,22 @@ asset과 non-persisted projection을 사용해 Room/backup 변경 없이 rollbac
 - Contract status: `ACTIVE`
 - Runtime implementation: `PARTIALLY_IMPLEMENTED`
 - Production cutover: 수행하지 않음
-- Room: 26, 변경 없음
-- Backup format: 9, 변경 없음
-- Restore CSV schema: 8, 변경 없음
+- Room: 29
+- Backup format: 12
+- Restore CSV schema: 11
 - Program backup schema: 2, 변경 없음
+
+### 15.3 Explicit metadata ownership overlay
+
+The analysis contract consumes effective current metadata: current semantic
+canonical seed plus explicit user override rows. It does not treat stale
+persisted seed/runtime/relation rows as user authority. User-state fields are
+independent and do not enter analysis metadata. Display revision changes do not
+trigger semantic reconciliation.
+
+This overlay changes ownership and portability boundaries only. It does not
+change analysis formulas, coefficients, eligibility, tissue calculations, OFI,
+strength posterior mathematics, or ProgramBuilder behavior.
 
 ### 15.1 Phase 0/1 shadow와 v2.2 target
 

@@ -3,11 +3,11 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24 |
-| Last audited commit | 7fb03e06408091a00b68b2f1aea4026bb198f1df |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25 |
+| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -264,6 +264,54 @@ stable legacy fallback and emit a compatibility warning. Preflight validates
 identity contradictions and the program graph before the single restore
 transaction, so a failed plan writes nothing.
 
+### Format 12 explicit authority and selectable restore
+
+App v0.5.0.25 uses backup format 12, restore schema 11, and Room schema 29.
+Current built-ins resolve as current semantic seed plus explicit user override
+rows plus independent `isActive`, `archivedAt`, and `needsReview` state. A
+persisted value difference, old snapshot, runtime row, or relation row never
+creates override authority. A represented stableKey with zero override rows is
+different from a stableKey not represented by the backup.
+
+Restore asks exactly two new questions: overlapping workout days are either
+replaced or appended, then the projected active exercise list is either
+preserved or replaced by represented backup user state. Zero workout overlap
+resolves internally to append and skips the first question. Programs, profile,
+daily metrics, check-ins, and other domains retain their existing non-selectable
+semantics.
+
+All parsing, capability checks, conflict analysis, both choices, reference
+projection, and final impact confirmation occur before Room mutation. The
+target fingerprint is recalculated at transaction start. A mismatch or any
+restore failure leaves the user-domain transaction unchanged.
+
+The restore dialog never renders parser, identity, or transaction diagnostics
+as user prose. Malformed input maps to the localized malformed-backup message;
+the transaction-start fingerprint mismatch uses the dedicated
+`RESTORE_PREFLIGHT_STALE` diagnostic code and localized stale-preflight message.
+The detailed transfer report retains the internal diagnostic code for support.
+Final confirmation separately discloses metadata reset, retained references,
+same-source divergence, custom-definition replacement, and out-of-scope
+cross-day preservation without adding another selectable domain.
+
+Workout source identity is immutable and unique at persistence boundaries.
+Same-source divergent content is retained for append, replaced only when its
+current date is inside the chosen replace scope, and left untouched when it is
+outside that scope. Backup-scoped numeric IDs may map graph edges but never
+become target identity. Parent-linked smash rows follow replaced workout
+entries; independent same-date smash rows remain.
+
+Target-only custom and catalogue-missing definitions are never physically
+deleted. Apply-backup-list may deactivate them, but every surviving workout or
+saved-program reference remains resolvable. Current canonical exercises omitted
+from the backup keep current user state and explicit overrides. Same custom
+stableKey means one custom identity and the represented backup definition wins.
+
+No `app_meta` key is currently portable user state. Every known key and the
+unknown-key default are target-local infrastructure. The deterministic inventory
+is `docs/generated/app_meta_portability_classification.csv`; source lineage and
+metadata reconciliation markers are never overwritten from a backup.
+
 ## 16. 구현 위치
 
 - `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt`
@@ -271,6 +319,8 @@ transaction, so a failed plan writes nothing.
 - `app/src/main/java/com/training/trackplanner/data/BackupSourceIdentityMigration.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupExportService.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt`
+- `app/src/main/java/com/training/trackplanner/data/SafeBackupRestore.kt`
+- `app/src/main/java/com/training/trackplanner/data/BackupAppMetaPolicy.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupPreflightValidator.kt`
 - `app/src/main/java/com/training/trackplanner/data/BackupRestoreCanonicalizer.kt`
 - `app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt`
@@ -298,12 +348,17 @@ transaction, so a failed plan writes nothing.
 - `SelfContainedExerciseBackupRestoreTest`: current/unknown/custom/history-only
   identity, explicit-empty, relation replacement, reopen/re-export, source-ID
   idempotence, duplicate preservation, and preflight rollback
+- `RecordCsvBackupRestoreFormat12Test`: required capability, explicit user state,
+  represented-zero overrides, deterministic counts and hash
+- `SafeBackupRestoreTest`: both 2x2 restore choices, cross-day source identity,
+  numeric parent remapping, target-only exercise retention, fingerprint and rollback
+- `BackupRestoreDialogUiTest`: exactly two choice stages and final disclosure
 
 ## 18. 권위 자산
 
 - `app/src/main/assets/training_settings_seed.csv`: built-in program
   `program_key`와 seed graph
-- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`, `28.json`: migration boundary
+- Room exported schema `23.json`, `24.json`, `25.json`, `26.json`, `27.json`, `28.json`, `29.json`: migration boundary
 - `app/src/main/assets/exercise_legacy_import_map.csv`: legacy importer 전용 exact mapping
 - `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`: bundled
   identity and metadata authoring authority
@@ -323,6 +378,10 @@ transaction, so a failed plan writes nothing.
 
 ## 20. 변경 이력
 
+- `1.5.0`: backup format 12 and restore schema 11 add explicit metadata
+  overrides, represented user state, immutable source conflict handling,
+  projected reference retention, two restore choices, final confirmation,
+  transaction-start fingerprint validation, and target-local app_meta policy.
 - `1.4.0`: backup format 11 and restore schema 10 add typed, explicit-empty
   exercise metadata snapshots. Unknown stableKeys restore as inactive history,
   current built-ins retain current canonical names, relation domains replace

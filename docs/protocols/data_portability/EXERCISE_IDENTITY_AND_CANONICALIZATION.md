@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24 |
-| Last audited commit | 7fb03e06408091a00b68b2f1aea4026bb198f1df |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25 |
+| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
@@ -177,8 +177,27 @@ before the restore transaction. Referenced identities without a full exercise
 row receive a minimal inactive historical stub rather than being silently
 dropped.
 
+## 19.3 Explicit ownership and display-name boundary
+
+For a current built-in, effective metadata is the current semantic canonical
+seed plus explicit field-level user override rows. `isActive`, `archivedAt`, and
+`needsReview` remain independent user state. Stale persisted seed/runtime/relation
+values are never inferred as user intent. Custom and catalogue-missing exercises
+retain complete snapshots under exact stableKey identity.
+
+`Exercise.name` remains a seed-owned materialized compatibility field for
+current built-ins. It is not identity and is not user-overridable. Localized
+display names belong in `ExerciseNameCatalogue` and affect only display revision.
+The static production UI audit found five direct render expressions in two
+files: three in `CommonUi.kt` and two in
+`RuntimeMetadataExerciseEditorDialog.kt`. These compatibility paths are tracked
+for future display-catalogue routing; no localization rename is persisted here.
+
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-09): defined current seed plus explicit override ownership,
+  independent user state, catalogue-missing reference retention, and the
+  seed-owned `Exercise.name` display boundary.
 - `1.2.0` (2026-08-06): defined self-contained backup identity semantics.
   Current built-ins keep current canonical names, missing-catalog stableKeys
   remain inactive history, custom identities restore exactly, and the current

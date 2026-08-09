@@ -12,3 +12,8 @@ python -m unittest discover -s tools/metadata_authority/tests
 The exporter uses UTF-8, LF newlines, stable row ordering, stable JSON key ordering, and no current timestamps. `--check` regenerates into a temporary directory and compares every byte.
 
 Edit the checked-in workbook, run the validator and exporter, review the generated diff, then run tests. Commit the workbook and generated assets together; never hand-edit generated CSV or JSON files.
+
+`metadata_field_display_contract.json` and `metadata_revision_manifest.json`
+share the runtime asset directory but are generated from the Kotlin field
+registry by `ExerciseMetadataFieldRegistryContractTest`. The workbook exporter
+preserves these files and delegates their stale check to that test.

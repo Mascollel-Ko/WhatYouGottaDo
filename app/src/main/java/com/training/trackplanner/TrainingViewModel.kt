@@ -24,6 +24,9 @@ import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.AnalysisStats
+import com.training.trackplanner.data.DataTransferDiagnosticCodes
+import com.training.trackplanner.data.DataTransferFailure
+import com.training.trackplanner.data.DataTransferFormatException
 import com.training.trackplanner.data.CalendarConflictMode
 import com.training.trackplanner.data.CalendarConflictSummary
 import com.training.trackplanner.data.DailyCheckIn
@@ -640,10 +643,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             }.onSuccess { preparation ->
                 _backupRestoreUiState.value = preparation.initialUiState()
             }.onFailure { error ->
-                _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
-                _backupRestoreUiState.value = BackupRestoreUiState.Failed(
-                    error.message ?: "복원 사전검사에 실패했습니다."
-                )
+                val reason = error.toBackupRestoreFailureReason()
+                _recordTransferMessage.value = restoreFailureText(reason)
+                _backupRestoreUiState.value = BackupRestoreUiState.Failed(reason)
             }
         }
     }
@@ -665,9 +667,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     )
                 }
                 .onFailure { error ->
-                    _backupRestoreUiState.value = BackupRestoreUiState.Failed(
-                        error.message ?: "복원 계획을 만들지 못했습니다."
-                    )
+                    val reason = error.toBackupRestoreFailureReason()
+                    _recordTransferMessage.value = restoreFailureText(reason)
+                    _backupRestoreUiState.value = BackupRestoreUiState.Failed(reason)
                 }
         }
     }
@@ -698,10 +700,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 _backupRestoreUiState.value = BackupRestoreUiState.Idle
                 refreshAnalysisSummaries()
             }.onFailure { error ->
-                _recordTransferMessage.value = "기록 복원 실패: ${error.message ?: "알 수 없는 오류"}"
-                _backupRestoreUiState.value = BackupRestoreUiState.Failed(
-                    error.message ?: "복원에 실패했습니다."
-                )
+                val reason = error.toBackupRestoreFailureReason()
+                _recordTransferMessage.value = restoreFailureText(reason)
+                _backupRestoreUiState.value = BackupRestoreUiState.Failed(reason)
             }
         }
     }
@@ -710,6 +711,29 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         repository.cancelPendingRecordsRestore()
         _backupRestoreUiState.value = BackupRestoreUiState.Idle
     }
+
+    private fun Throwable.toBackupRestoreFailureReason(): BackupRestoreFailureReason =
+        if (generateSequence(this) { it.cause }.any { it.isStaleRestorePreflight() }) {
+            BackupRestoreFailureReason.STALE_PREFLIGHT
+        } else {
+            BackupRestoreFailureReason.MALFORMED_BACKUP
+        }
+
+    private fun Throwable.isStaleRestorePreflight(): Boolean = when (this) {
+        is DataTransferFormatException -> diagnosticCode == DataTransferDiagnosticCodes.RESTORE_PREFLIGHT_STALE
+        is DataTransferFailure -> report.errors.any {
+            it.code == DataTransferDiagnosticCodes.RESTORE_PREFLIGHT_STALE
+        }
+        else -> false
+    }
+
+    private fun restoreFailureText(reason: BackupRestoreFailureReason): String =
+        getApplication<Application>().getString(
+            when (reason) {
+                BackupRestoreFailureReason.MALFORMED_BACKUP -> R.string.restore_malformed_backup
+                BackupRestoreFailureReason.STALE_PREFLIGHT -> R.string.restore_stale_preflight
+            }
+        )
 
     fun saveLatestDataTransferReport(uri: Uri) {
         val report = _dataTransferReport.value ?: return

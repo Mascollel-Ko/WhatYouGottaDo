@@ -545,3 +545,17 @@ stableKey, uses only explicit reviewed legacy mappings for old identities, and
 does not infer an unknown exercise from name, equipment, category, or current
 catalog membership. An unknown referenced stableKey is retained as inactive
 history or as a minimal historical stub instead of being guessed or dropped.
+
+## Explicit override and format-12 boundary (v0.5.0.25)
+
+Current built-in override authority now requires an explicit
+`exercise_metadata_user_overrides` row validated by the authoritative field
+registry. No value, language, snapshot, runtime-row, relation-row, revision, or
+`safeForSeedMutation` difference is interpreted as user intent. Unknown
+persisted field keys must resolve through a registered alias or fail preflight.
+
+Format 12 declares `EXPLICIT_METADATA_USER_OVERRIDES_V1`, serializes explicit
+overrides and independent exercise user state, and distinguishes represented
+zero overrides from an exercise omitted by the backup. Legacy formats remain
+compatible but cannot manufacture explicit overrides. Exercise identity remains
+exact stableKey and numeric backup IDs are graph-local only.

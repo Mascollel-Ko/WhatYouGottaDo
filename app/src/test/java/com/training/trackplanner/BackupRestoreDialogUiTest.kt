@@ -78,8 +78,45 @@ class BackupRestoreDialogUiTest {
         )
         compose.onNodeWithText(warning).assertIsDisplayed()
         compose.onAllNodesWithText(
-            context.getString(R.string.restore_final_metadata_overrides_removed, 0)
+            context.getString(R.string.restore_metadata_reset_warning, 0)
         ).assertCountEquals(0)
+    }
+
+    @Test
+    fun finalConfirmationDisclosesMetadataResetAndSameSourceDivergence() {
+        val impact = BackupRestoreImpact(
+            currentMetadataOverrideFieldsThatWouldBeRemovedCount = 3,
+            sameSourceIdentityDifferentContentCount = 2
+        )
+        content(
+            BackupRestoreUiState.Confirm(
+                WorkoutRestoreMode.REPLACE_OVERLAPPING_DATES,
+                ExerciseListRestoreMode.APPLY_BACKUP_ACTIVE_EXERCISE_LIST,
+                impact
+            )
+        )
+
+        compose.onNodeWithText(
+            context.getString(R.string.restore_metadata_reset_warning, 3)
+        ).assertIsDisplayed()
+        compose.onNodeWithText(
+            context.getString(R.string.restore_same_source_divergence_note, 2)
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun malformedRestoreFailureUsesLocalizedMessageInsteadOfInternalDiagnostics() {
+        content(BackupRestoreUiState.Failed(BackupRestoreFailureReason.MALFORMED_BACKUP))
+        compose.onNodeWithText(context.getString(R.string.restore_malformed_backup)).assertIsDisplayed()
+        compose.onAllNodesWithText(
+            "Backup contains contradictory workout rows for one immutable source identity."
+        ).assertCountEquals(0)
+    }
+
+    @Test
+    fun stalePreflightFailureUsesLocalizedMessage() {
+        content(BackupRestoreUiState.Failed(BackupRestoreFailureReason.STALE_PREFLIGHT))
+        compose.onNodeWithText(context.getString(R.string.restore_stale_preflight)).assertIsDisplayed()
     }
 
     private fun customReplacementImpact() = BackupRestoreImpact(

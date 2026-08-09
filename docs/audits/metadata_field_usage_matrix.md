@@ -145,3 +145,22 @@ rather than replacing it with seed values. Restore replaces represented
 editable scalars and normalized relation domains exactly, distinguishes missing
 from explicit empty, and rebuilds derived analysis values instead of persisting
 them as authority.
+
+## Explicit ownership overlay (v0.5.0.25)
+
+The same 109-field registry now separates 1 `IDENTITY_STABLE`, 4
+`CURRENT_CANONICAL_NAME`, 93 `USER_OVERRIDE_ELIGIBLE`, 3 `USER_STATE`, 3
+`CURRENT_CANONICAL_SYSTEM_VALUE`, 4 `DERIVED_REBUILD`, and 1
+`FULL_SNAPSHOT_FOR_CUSTOM_OR_CATALOGUE_MISSING` field. Eighty-seven fields are
+editor-writable. The generated exact contract is
+`docs/generated/metadata_field_display_contract.csv`.
+
+Current built-ins resolve current seed plus explicit override rows. Override
+intent is not inferred from differences. Independent user state is serialized
+separately in format 12. Custom/catalogue-missing rows use complete snapshots.
+Semantic and display revision projections are disjoint and deterministic.
+
+Production UI still contains five direct `Exercise.name` render expressions in
+two files: `CommonUi.kt` (three) and
+`RuntimeMetadataExerciseEditorDialog.kt` (two). They are compatibility paths,
+not identity or override paths.

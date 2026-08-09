@@ -57,12 +57,17 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-SCORING` | 운동 선택과 우선순위 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/EXERCISE_SELECTION_AND_SCORING.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-CONSTRAINTS` | 대체와 제약 규칙 | `1.0.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.0` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](program_builder/REPLACEMENT_AND_CONSTRAINT_RULES.md) |
 | `PROGRAM_BUILDER` | `PROGRAM-BUILDER-EVALUATION` | 프로그램 평가 계약 | `1.0.1` | `DRAFT` | `SPECIFICATION_ONLY` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `—` | `2369d91aaa80351193b20ccc2714d2be11edd3a2` | [문서](program_builder/PROGRAM_EVALUATION.md) |
-| `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; workbook authority `v0.5.0.22`; self-contained restore `v0.5.0.24` | `7fb03e06408091a00b68b2f1aea4026bb198f1df` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
-| `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.4.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22`; metadata snapshot `v0.5.0.24` | `7fb03e06408091a00b68b2f1aea4026bb198f1df` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
-| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.5.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; bundled authority `v0.5.0.22` | `233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
+| `DATA_PORTABILITY` | `DATA-EXERCISE-IDENTITY` | 운동 identity와 정본화 | `1.3.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.6`; workbook authority `v0.5.0.22`; self-contained restore `v0.5.0.24`; explicit ownership `v0.5.0.25` | `b44088c2a32d7222d97e5a213a2efea02d250f10` | [문서](data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md) |
+| `DATA_PORTABILITY` | `DATA-BACKUP-RESTORE` | 백업과 복원 | `1.5.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.5`; canonical authority compatibility `v0.5.0.22`; metadata snapshot `v0.5.0.24`; selectable safe restore `v0.5.0.25` | `b44088c2a32d7222d97e5a213a2efea02d250f10` | [문서](data_portability/BACKUP_AND_RESTORE.md) |
+| `DATA_PORTABILITY` | `DATA-METADATA-ANALYSIS-CONTRACT` | 메타데이터 분석 계약 | `1.7.0` | `ACTIVE` | `PARTIALLY_IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.5.0.16` shadow baseline; bundled authority `v0.5.0.22`; explicit ownership `v0.5.0.25` | `b44088c2a32d7222d97e5a213a2efea02d250f10` | [문서](data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md) |
 | `UI_PRESENTATION` | `UI-QUIET-PRESENTATION` | 조용한 UI 표시 원칙 | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.5.0.0`; metadata/program results `v0.5.0.14` | `8f78c99b11af14c2715a36532d83256e7ebfe4bf` | [문서](presentation/QUIET_UI_PRESENTATION.md) |
 
 ## Reading and publishing
+
+- v0.5.0.25 separates current canonical metadata from explicit user override
+  rows and independent user state. Backup format 12 provides two restore choices,
+  preserves references and local lineage, and applies only after final
+  confirmation plus transaction-start fingerprint validation.
 
 - v0.5.0.24 adds a self-contained exercise metadata backup contract. Backup
   format 11 writes typed metadata snapshots with explicit-empty semantics;

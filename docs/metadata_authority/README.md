@@ -93,9 +93,27 @@ exact stableKey joins. `SeedData` delegates production bootstrap to it.
 `ExerciseMetadataMapper` remains only for explicit legacy/import compatibility
 and parity tests; it is not a bundled metadata fallback.
 
-Canonical scientific relations and canonical stableKey lineage are protected
-from ordinary runtime overrides. Custom exercises and user-authored fields
-continue to use the existing persistence path.
+For current built-ins, the current semantic canonical seed remains authority.
+Only rows in `exercise_metadata_user_overrides` establish field-level user
+intent. A stale seed, runtime row, relation row, backup snapshot, language
+difference, or value difference never implies an override. The field registry
+is shared by editor dirty tracking, validation, resolution, reconciliation,
+backup, restore, and semantic/display revision projection.
+
+`isActive`, `archivedAt`, and `needsReview` are independent user state, not
+metadata overrides. Custom exercises and catalogue-missing definitions are
+complete user-owned snapshots under exact stableKey identity. Explicit-empty
+is stored separately from absence; an override remains even if a later seed
+converges to the same value, until the user resets it.
+
+Canonical scientific relations and canonical stableKey lineage remain
+protected. Current built-in `Exercise.name` is seed-owned compatibility data;
+localized names belong only in `ExerciseNameCatalogue` and never become
+identity or persisted metadata overrides.
+
+Runtime revision ownership is split: semantic canonical metadata and semantic
+field projection determine reconciliation, while display routing and localized
+labels determine only `metadataDisplayDictionaryRevision`.
 
 ## Rollback
 

@@ -55,13 +55,18 @@ internal class BackupRestoreImportService(
         var posteriorCounts = PosteriorRestoreCounts()
         var skipped = 0
         db.withTransaction {
-            require(
+            if (
                 restorePlanner.currentFingerprint(
                     backupHash = plan.prepared.backupContentSha256,
                     workoutMode = plan.workoutMode,
                     exerciseMode = plan.exerciseMode
-                ) == plan.contentFingerprint
-            ) { "Restore preflight is stale because the target data changed. Please review the backup again." }
+                ) != plan.contentFingerprint
+            ) {
+                throw DataTransferFormatException(
+                    DataTransferDiagnosticCodes.RESTORE_PREFLIGHT_STALE,
+                    "Restore preflight fingerprint no longer matches the target database."
+                )
+            }
             val seedByStableKey = seedExercisesByStableKey()
             val isFormat12 = (data.manifest?.formatVersion ?: 0) >= 12
             val runtimeMetadataByKey = data.runtimeMetadataRows.associateBy(RuntimeExerciseMetadata::stableKey)
@@ -856,6 +861,7 @@ internal class BackupRestoreImportService(
     )
 
 }
+
 
 private data class ProgramRestoreCounts(
     val programs: Int,

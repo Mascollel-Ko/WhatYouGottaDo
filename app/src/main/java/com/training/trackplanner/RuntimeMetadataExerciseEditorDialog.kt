@@ -96,7 +96,7 @@ internal fun RuntimeMetadataExerciseEditorDialog(
                                 value = exercise.name,
                                 onValueChange = { exercise = exercise.copy(name = it) },
                                 label = { Text("운동 이름") },
-                                enabled = exercise.isCustom,
+                                enabled = exercise.isCustom || exercise.stableKey.isBlank(),
                                 singleLine = true
                             )
                             OutlinedTextField(

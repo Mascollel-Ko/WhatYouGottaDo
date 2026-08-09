@@ -319,7 +319,7 @@ internal fun BackupRestoreDialogHost(
                     if (state.impact.currentMetadataOverrideFieldsThatWouldBeRemovedCount > 0) {
                         Text(
                             stringResource(
-                                R.string.restore_final_metadata_overrides_removed,
+                                R.string.restore_metadata_reset_warning,
                                 state.impact.currentMetadataOverrideFieldsThatWouldBeRemovedCount
                             )
                         )
@@ -340,6 +340,14 @@ internal fun BackupRestoreDialogHost(
                             )
                         )
                     }
+                    if (state.impact.sameSourceIdentityDifferentContentCount > 0) {
+                        Text(
+                            stringResource(
+                                R.string.restore_same_source_divergence_note,
+                                state.impact.sameSourceIdentityDifferentContentCount
+                            )
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -357,7 +365,16 @@ internal fun BackupRestoreDialogHost(
         is BackupRestoreUiState.Failed -> AlertDialog(
             onDismissRequest = onCancel,
             title = { Text(stringResource(R.string.restore_failed_title)) },
-            text = { Text(state.message) },
+            text = {
+                Text(
+                    stringResource(
+                        when (state.reason) {
+                            BackupRestoreFailureReason.MALFORMED_BACKUP -> R.string.restore_malformed_backup
+                            BackupRestoreFailureReason.STALE_PREFLIGHT -> R.string.restore_stale_preflight
+                        }
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.restore_close)) }
             }

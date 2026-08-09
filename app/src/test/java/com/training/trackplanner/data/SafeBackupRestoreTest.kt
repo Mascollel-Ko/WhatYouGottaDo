@@ -443,7 +443,12 @@ class SafeBackupRestoreTest {
         val changedSet = target.workoutDao().allSets().first().copy(reps = 99)
         target.workoutDao().updateSet(changedSet)
 
-        assertTrue(runCatching { repository.confirmRecordsRestore() }.isFailure)
+        val failure = runCatching { repository.confirmRecordsRestore() }.exceptionOrNull()
+        assertTrue(
+            failure is DataTransferFailure && failure.report.errors.any {
+                it.code == DataTransferDiagnosticCodes.RESTORE_PREFLIGHT_STALE
+            }
+        )
         assertEquals(99, target.workoutDao().findSetById(changedSet.id)!!.reps)
         assertTrue(target.workoutDao().allEntries().none { it.date == DATE_D })
         assertEquals("Target shared custom", target.exerciseDao().findByStableKey(SHARED_CUSTOM_KEY)!!.name)

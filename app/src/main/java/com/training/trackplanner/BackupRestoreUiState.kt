@@ -19,7 +19,12 @@ sealed interface BackupRestoreUiState {
         val impact: BackupRestoreImpact
     ) : BackupRestoreUiState
     data object Restoring : BackupRestoreUiState
-    data class Failed(val message: String) : BackupRestoreUiState
+    data class Failed(val reason: BackupRestoreFailureReason) : BackupRestoreUiState
+}
+
+enum class BackupRestoreFailureReason {
+    MALFORMED_BACKUP,
+    STALE_PREFLIGHT
 }
 
 internal fun BackupRestorePreparation.initialUiState(): BackupRestoreUiState =

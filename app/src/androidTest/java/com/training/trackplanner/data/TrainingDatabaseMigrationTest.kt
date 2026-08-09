@@ -246,7 +246,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO training_program_items (
-                    programId, weekNumber, dayOfWeek, orderIndex, exerciseStableKey, exerciseName,
+                    programId, weekNumber, dayOfWeek, orderIndex, exerciseId, exerciseName,
                     category, restSeconds, prescription, setCount, reps, weightKg, seconds
                 ) VALUES (1, 1, 1, 1, 1, 'Legacy', 'Strength', 60, 'legacy', 3, 8, 40.0, 0)
                 """.trimIndent()
@@ -271,7 +271,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO workout_entries (
-                    id, date, exerciseStableKey, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
                     createdAt, completedAt, displayOrder, firstConfirmedAt
                 ) VALUES (
                     1, '2026-07-13', 1, 'Legacy', 'Strength', 60, '', NULL, NULL,
@@ -391,7 +391,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO workout_entries (
-                    id, date, exerciseStableKey, exerciseName, category, restSeconds, notes, rpe, maxReps,
+                    id, date, exerciseId, exerciseName, category, restSeconds, notes, rpe, maxReps,
                     createdAt, completedAt, displayOrder, firstConfirmedAt, performedAt
                 ) VALUES (
                     7, '2026-07-20', 9, 'Migration fixture', 'Strength', 90, 'keep me', 9.0, 5,
@@ -543,7 +543,7 @@ class TrainingDatabaseMigrationTest {
             database.execSQL(
                 """
                 INSERT INTO training_program_items (
-                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseStableKey,
+                    id, programId, weekNumber, dayOfWeek, orderIndex, exerciseId,
                     exerciseName, category, restSeconds, prescription, setCount,
                     reps, weightKg, seconds, trainingSlot, dayIntensity, weightSource
                 ) VALUES

@@ -453,14 +453,26 @@ class TrainingRepository(
         uri: Uri,
         onReportChanged: (DataTransferReport) -> Unit = {}
     ): RecordCsvTransferResult = withContext(Dispatchers.IO) {
+        val text = context.contentResolver.openInputStream(uri)
+            ?.bufferedReader(Charsets.UTF_8)
+            ?.use { it.readText() }
+            ?: throw DataTransferFormatException(
+                DataTransferDiagnosticCodes.RESTORE_MANIFEST_INVALID,
+                "The restore file is empty or unavailable."
+            )
         val service = backupImportService()
-        val prepared = service.prepare(context, uri)
-        val plan = service.plan(
-            prepared,
-            WorkoutRestoreMode.APPEND_TO_CURRENT,
-            ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES
-        )
-        service.execute(prepared, plan, onReportChanged)
+        when (RecordCsvBackupRestore.parse(text)) {
+            is RecordCsvImportData.DailyTimeseries -> service.import(context, uri, onReportChanged)
+            is RecordCsvImportData.Restore -> {
+                val prepared = service.prepare(context, uri)
+                val plan = service.plan(
+                    prepared,
+                    WorkoutRestoreMode.APPEND_TO_CURRENT,
+                    ExerciseListRestoreMode.PRESERVE_CURRENT_ACTIVE_EXERCISES
+                )
+                service.execute(prepared, plan, onReportChanged)
+            }
+        }
     }
 
     suspend fun prepareRecordsRestore(uri: Uri): BackupRestorePreparation = withContext(Dispatchers.IO) {

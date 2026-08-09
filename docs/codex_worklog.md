@@ -4761,3 +4761,100 @@ Verification
 - Debug APK: 47,766,440 bytes; SHA-256
   `A70C0E1E7276E98208F62E01FB42ECC5D0E4943EC5FD018488DFC8D210F5A366`.
 - Commit, main integration, push, and remote verification: pending final closeout.
+
+## 2026-08-09 - v0.5.0.25 explicit metadata overrides and safe restore
+
+### Baseline and audit
+
+- Started from `6e6f9fbedd1c121398afd3a92c9dd7217b6d4a6a` on the dedicated
+  `codex/explicit-metadata-overrides-and-safe-restore` branch.
+- Baseline was app 0.5.0.24 / 500024, Room 28, backup format 11, and restore
+  schema 10. The audit is recorded in
+  `docs/audits/explicit_metadata_override_and_safe_restore_baseline.md`.
+- The audit covered metadata writes/restores, identity paths, numeric IDs,
+  WorkoutEntry dependents, backup domains, `backupSourceId`, and `app_meta`.
+- Six pre-existing modified `outputs/*` files were hash-recorded, preserved,
+  and excluded from path-specific staging.
+
+### Phase A - field and revision contracts
+
+- Commit `8e63aa9` added the authoritative 109-field registry, display routing,
+  deterministic CSV/JSON contracts, separate semantic/display projections,
+  and a deterministic revision manifest.
+- Current projection revisions are semantic
+  `3d2b2c343f82463d00bf5d453e019526924e296402ce0e6f731a3cf3379b966d`
+  and display
+  `c9644919ecfdc6ff0a4dfcff3c59e7aaad2c39bd00226e7da8c91000684e2b4f`.
+
+### Phase B - explicit authority and effective state
+
+- Commit `518f184` added `exercise_metadata_user_overrides`, DAO/index/FK
+  contracts, Room 28 -> 29 migration, semantic-revision reconciliation,
+  explicit-empty persistence, dirty-field editor writes, and reset behavior.
+- Current built-ins now resolve from current canonical seed plus explicit user
+  overrides plus independent user state. Old runtime/snapshot differences do
+  not create override authority.
+- Workout source lineage and immutable source IDs are generated and enforced at
+  persistence boundaries without changing workout semantics.
+
+### Phase C - format 12 safe selectable restore
+
+- Commit `b44088c` added backup format 12 / restore schema 11 capability and
+  complete represented user-state and explicit-override rows.
+- Restore asks exactly two new questions: workout overlap mode, then projected
+  active exercise-list mode. The final dialog is confirmation, not another
+  selectable restore domain.
+- Preflight, reference projection, graph mapping, and fingerprint calculation
+  are read-only. The fingerprint is revalidated at transaction start; failures
+  roll back all user-domain writes.
+- Backup-scoped numeric IDs only resolve graph edges. Parent-linked smash rows
+  follow replaced workouts while independent same-date records remain.
+
+### Phase D - release closeout
+
+- Version is 0.5.0.25 / 500025. The generated
+  `app_meta_portability_classification.csv` classifies 13 exact/pattern/default
+  entries as `LOCAL_INFRASTRUCTURE_STATE`; no current `app_meta` key is portable
+  user state.
+- Canonical protocols, field/parsing audits, metadata authority README, protocol
+  registry, and release notes were updated without changing calculations.
+- Raw parser/identity exception messages are no longer rendered in the restore
+  dialog. Malformed input and stale preflight use Android resources; stale
+  fingerprint failure carries `RESTORE_PREFLIGHT_STALE` in the internal report.
+- Final confirmation uses resource-backed metadata-reset, retained-reference,
+  custom-definition, same-source divergence, and out-of-scope notes.
+- Static production UI audit found five direct `Exercise.name` rendering
+  expressions: three in `CommonUi.kt` and two in
+  `RuntimeMetadataExerciseEditorDialog.kt`; all are intentional exercise names,
+  not metadata code labels.
+
+### Verification status
+
+- Generated registry artifacts regenerated deterministically; stale check passed.
+- `SafeBackupRestoreTest`: 12 passed.
+- `BackupRestoreDialogUiTest`: 6 passed.
+- `BackupAppMetaPolicyTest`: 2 passed.
+- Focused Phase C backup selection: 58 passed before the Phase C checkpoint.
+- Full `:app:testDebugUnitTest`: 1,193 passed, zero failures.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- The first connected run exposed four pre-existing migration fixture defects:
+  Room 17/18/21/23 fixtures named the future `exerciseStableKey` column even
+  though those historical schemas store numeric `exerciseId`. Only those test
+  fixtures were corrected; no production migration changed.
+- Final `connectedDebugAndroidTest`: passed on the Pixel 8 AVD. The connected
+  XML reported 25 tests, one skipped, zero failures, and zero errors.
+- Metadata-authority workbook validation and deterministic export/stale checks:
+  passed. Python metadata-authority suite: 6 passed.
+- Protocol validation: 8 families and 33 protocols passed.
+- Field-display CSV SHA-256:
+  `A930E68D631A5B161188228E4F447B48516641B5F62BB92915DF4270BA4BDCD9`.
+- Field-display Android asset SHA-256:
+  `FC6F86C067EDA052173A72B1F9D7005128441872B8E861713A215740478645C6`.
+- Revision manifest SHA-256:
+  `0CDBDA0D3AAE1C7CFC0939C2D3E6882CEDA23BC40E8E840293A8F0F91B99994C`.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, 47,912,689 bytes,
+  SHA-256
+  `8DD208E1149F7FBB359B482B10D0FB3E63FDD87A6003D7E9E108D2AF17B3841C`.
+- Phase D checkpoint, main fast-forward integration, and main push remain the
+  final Git steps. No release tag is required by this task.
