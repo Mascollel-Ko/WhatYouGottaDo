@@ -44,15 +44,15 @@ internal fun MetadataSingleSelectField(
     label: String,
     value: String,
     options: List<String>,
-    field: MetadataDisplayField? = null,
+    fieldKey: String,
     onValueChange: (String) -> Unit
 ) {
-    val catalogue = rememberMetadataDisplayCatalogue()
-    val displayOptions = remember(catalogue, field, options, value) {
-        displayOptions(catalogue, field, options + value)
+    val translator = rememberMetadataTranslator()
+    val displayOptions = remember(translator, fieldKey, options, value) {
+        translator.options(fieldKey, options + value)
     }
     val selected = displayOptions.firstOrNull { option -> option.code == value }
-        ?: displayOption(catalogue, field, value)
+        ?: translator.option(fieldKey, value)
     var open by remember { mutableStateOf(false) }
 
     MetadataSelectorSurface(
@@ -81,12 +81,12 @@ internal fun MetadataMultiSelectField(
     label: String,
     selected: List<String>,
     options: List<String>,
-    field: MetadataDisplayField? = null,
+    fieldKey: String,
     onValueChange: (List<String>) -> Unit
 ) {
-    val catalogue = rememberMetadataDisplayCatalogue()
-    val displayOptions = remember(catalogue, field, options, selected) {
-        displayOptions(catalogue, field, options + selected)
+    val translator = rememberMetadataTranslator()
+    val displayOptions = remember(translator, fieldKey, options, selected) {
+        translator.options(fieldKey, options + selected)
     }
     val selectedOptions = displayOptions.filter { option -> option.code in selected }
     var open by remember { mutableStateOf(false) }
@@ -305,41 +305,5 @@ internal fun rememberMetadataTranslator(): MetadataTranslator {
     val locale = context.resources.configuration.locales[0]
     return remember(locale) { MetadataTranslator.from(context) }
 }
-
-private fun displayOptions(
-    catalogue: MetadataDisplayCatalogue,
-    field: MetadataDisplayField?,
-    codes: Collection<String>
-): List<MetadataDisplayOption> =
-    if (field == null) {
-        codes
-            .filter(String::isNotBlank)
-            .distinct()
-            .map { value ->
-                MetadataDisplayOption(
-                    code = value,
-                    label = value,
-                    searchAliases = listOf(value)
-                )
-            }
-            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, MetadataDisplayOption::label))
-    } else {
-        catalogue.options(field, codes)
-    }
-
-private fun displayOption(
-    catalogue: MetadataDisplayCatalogue,
-    field: MetadataDisplayField?,
-    code: String
-): MetadataDisplayOption =
-    if (field == null) {
-        MetadataDisplayOption(
-            code = code,
-            label = code,
-            searchAliases = listOf(code)
-        )
-    } else {
-        catalogue.option(field, code)
-    }
 
 private const val MAX_PREVIEW_CHIPS = 3

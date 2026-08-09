@@ -44,7 +44,7 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     var detailCandidate by remember { mutableStateOf<Exercise?>(null) }
     var editorData by remember { mutableStateOf<ExerciseRuntimeMetadataEditorData?>(null) }
     var managementMessage by rememberSaveable { mutableStateOf<String?>(null) }
-    val displayCatalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
 
     LaunchedEffect(exercises.map(Exercise::stableKey)) {
         if (exercises.isNotEmpty()) viewModel.refreshExerciseRuntimeMetadata()
@@ -56,11 +56,11 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val categories = remember(visibleExercises) {
         listOf("전체") + visibleExercises.map { it.category }.distinct()
     }
-    val broadAndSearchFiltered = remember(visibleExercises, query, selectedCategory, displayCatalogue) {
+    val broadAndSearchFiltered = remember(visibleExercises, query, selectedCategory, translator) {
         visibleExercises.filter { exercise ->
             val categoryMatches = selectedCategory == "전체" || exercise.category == selectedCategory
             val queryMatches = ExerciseSubcategoryMapper.matchesSearch(exercise, query) ||
-                exercise.matchesMetadataQuery(query, displayCatalogue)
+                exercise.matchesMetadataQuery(query, translator)
             categoryMatches && queryMatches
         }
     }
@@ -196,10 +196,9 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                             },
                             label = {
                                 Text(
-                                    if (category == "전체") category else displayCatalogue.label(
-                                        MetadataDisplayField.EXERCISE_CATEGORY,
-                                        category
-                                    )
+                                    if (category == "전체") category else {
+                                        translator.translate("exercise.category", category).orEmpty()
+                                    }
                                 )
                             }
                         )

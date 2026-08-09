@@ -94,7 +94,7 @@ class MetadataPresentationUiTest {
                 label = "프로그램 사용 여부",
                 value = "ANALYSIS_ONLY",
                 options = listOf("PROGRAM_SELECTABLE", "ANALYSIS_ONLY"),
-                field = MetadataDisplayField.PLANNING_ELIGIBILITY,
+                fieldKey = "runtime.planningEligibility",
                 onValueChange = { saved = it }
             )
             MetadataMultiSelectField(
@@ -111,7 +111,7 @@ class MetadataPresentationUiTest {
                     "HYPERTROPHY_VOLUME",
                     "BADMINTON_TRANSFER"
                 ),
-                field = MetadataDisplayField.ANALYSIS_ELIGIBILITY,
+                fieldKey = "runtime.analysisEligibility",
                 onValueChange = {}
             )
         }
@@ -148,6 +148,10 @@ class MetadataPresentationUiTest {
         }
 
         compose.onNodeWithText("주요 동작").assertExists()
+        listOf("힌지", "높음", "양측").forEach { localizedValue ->
+            compose.onNode(hasScrollAction()).performScrollToNode(hasText(localizedValue))
+            compose.onNodeWithText(localizedValue).assertIsDisplayed()
+        }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("사용 근육과 장비"))
         compose.onNodeWithText("사용 근육과 장비").assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("프로그램 활용"))
@@ -158,6 +162,47 @@ class MetadataPresentationUiTest {
         compose.onNodeWithText("고중량 축성 하체 스트레스").assertExists()
         compose.onAllNodes(hasText("UPPER_PUSH_SUPPORT", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("VERY_LONG", substring = true)).assertCountEquals(0)
+        listOf("HINGE", "HIGH", "BILATERAL").forEach { rawCode ->
+            compose.onAllNodes(hasText(rawCode, substring = true)).assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun tokenSetEditorReturnsCanonicalCodes() {
+        var saved = emptyList<String>()
+        sizedContent {
+            MetadataMultiSelectField(
+                label = "분석 대상",
+                selected = emptyList(),
+                options = listOf("FATIGUE", "STRENGTH_PROGRESS"),
+                fieldKey = "runtime.analysisEligibility",
+                onValueChange = { saved = it }
+            )
+        }
+
+        compose.onNodeWithText("선택 안 함").performClick()
+        compose.onNodeWithText("피로도").performClick()
+        compose.onNodeWithText("근력 진행").performClick()
+        compose.onNodeWithText("적용").performClick()
+
+        assertEquals(setOf("FATIGUE", "STRENGTH_PROGRESS"), saved.toSet())
+    }
+
+    @Test
+    fun hybridCategoryShowsBuiltInAndPreservesCustomText() {
+        val builtIn = exercise().copy(category = "근력운동")
+        val custom = exercise().copy(
+            stableKey = "fixture_custom",
+            name = "사용자 운동",
+            category = "내 커스텀 폭발력 운동"
+        )
+        sizedContent {
+            ExerciseListItem(exercise = builtIn, selected = false)
+            ExerciseListItem(exercise = custom, selected = false)
+        }
+
+        compose.onNodeWithText("근력운동", substring = true).assertExists()
+        compose.onNodeWithText("내 커스텀 폭발력 운동", substring = true).assertExists()
     }
 
     @Test
@@ -246,7 +291,7 @@ class MetadataPresentationUiTest {
             stableKey = "fixture_press",
             name = "인클라인 덤벨 프레스",
             category = "근력",
-            movementPattern = "PUSH_HORIZONTAL",
+            movementPattern = "HINGE",
             movementCategory = "STRENGTH",
             primaryMuscles = "대흉근",
             secondaryMuscles = "삼두근,전면 삼각근",
@@ -254,8 +299,8 @@ class MetadataPresentationUiTest {
             forceType = "PUSH",
             bodyRegion = "상체",
             laterality = "BILATERAL",
-            axialLoadLevel = "LOW",
-            metadataConfidence = "HIGH"
+            axialLoadLevel = "HIGH",
+            metadataConfidence = "MEDIUM"
         )
 
     private fun request(): ProgramSkeletonRequest =

@@ -35,7 +35,7 @@ internal fun ProgramDaySummarySection(
     onExerciseInfo: (String) -> Unit,
     availableExerciseKeys: Set<String>
 ) {
-    val displayCatalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -60,10 +60,7 @@ internal fun ProgramDaySummarySection(
                             Text(item.exerciseName, fontWeight = FontWeight.SemiBold)
                             item.category.takeIf(String::isNotBlank)?.let { category ->
                                 Text(
-                                    displayCatalogue.label(
-                                        MetadataDisplayField.EXERCISE_CATEGORY,
-                                        category
-                                    ),
+                                    translator.translate("exercise.category", category).orEmpty(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

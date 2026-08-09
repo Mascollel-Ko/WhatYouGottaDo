@@ -222,9 +222,9 @@ internal fun ExercisePickerDialog(
     onSelect: (Exercise) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    val catalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
     val filtered = exercises.filter { exercise ->
-        exercise.matchesMetadataQuery(query, catalogue)
+        exercise.matchesMetadataQuery(query, translator)
     }
 
     AlertDialog(
@@ -268,7 +268,7 @@ internal fun ExerciseListItem(
     onClick: (() -> Unit)? = null,
     onInfo: (() -> Unit)? = null
 ) {
-    val catalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
     val cardModifier = if (onClick != null) {
         Modifier
             .fillMaxWidth()
@@ -303,9 +303,10 @@ internal fun ExerciseListItem(
                 )
                 Text(
                     text = listOf(
-                        catalogue.label(MetadataDisplayField.EXERCISE_CATEGORY, exercise.category),
-                        catalogue.label(MetadataDisplayField.EXERCISE_MODE, exercise.mode)
+                        translator.translate("exercise.category", exercise.category),
+                        translator.translate("exercise.mode", exercise.mode)
                     )
+                        .filterNotNull()
                         .filter { it.isNotBlank() }
                         .joinToString(" / "),
                     style = MaterialTheme.typography.bodySmall,
@@ -324,7 +325,7 @@ internal fun ExerciseListItem(
 @Composable
 internal fun ExerciseDetailCard(exercise: Exercise) {
     val context = LocalContext.current
-    val catalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
     val bitmap = remember(exercise.imageAssetName) {
         runCatching {
             if (exercise.imageAssetName.isBlank()) {
@@ -377,10 +378,11 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
             )
             Text(
                 text = listOf(
-                    catalogue.label(MetadataDisplayField.EXERCISE_CATEGORY, exercise.category),
-                    catalogue.label(MetadataDisplayField.EXERCISE_DETAIL, exercise.detail1),
-                    catalogue.label(MetadataDisplayField.EXERCISE_DETAIL, exercise.detail2)
+                    translator.translate("exercise.category", exercise.category),
+                    translator.translate("exercise.detail1", exercise.detail1),
+                    translator.translate("exercise.detail2", exercise.detail2)
                 )
+                    .filterNotNull()
                     .filter { it.isNotBlank() }
                     .joinToString(" / "),
                 style = MaterialTheme.typography.bodyMedium,
@@ -393,7 +395,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                 )
             }
             Text(
-                text = "휴식 ${exercise.defaultRestSeconds}초",
+                text = "휴식 ${translator.translate("exercise.defaultRestSeconds", exercise.defaultRestSeconds.toString()).orEmpty()}",
                 style = MaterialTheme.typography.labelLarge
             )
         }
@@ -407,14 +409,14 @@ internal fun ExerciseInfoDialog(
     metadata: RuntimeExerciseMetadata? = null,
     onEditMetadata: (() -> Unit)? = null
 ) {
-    val catalogue = rememberMetadataDisplayCatalogue()
+    val translator = rememberMetadataTranslator()
     val displayExercise = metadata
         ?.exerciseName
         ?.takeIf { name -> name.isNotBlank() }
         ?.let { name -> exercise.copy(name = name) }
         ?: exercise
-    val sections = remember(displayExercise, metadata, catalogue) {
-        displayExercise.infoSections(metadata, catalogue)
+    val sections = remember(displayExercise, metadata, translator) {
+        displayExercise.infoSections(metadata, translator)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -478,7 +480,7 @@ private data class ExerciseInfoField(
 
 private fun Exercise.infoSections(
     metadata: RuntimeExerciseMetadata?,
-    catalogue: MetadataDisplayCatalogue
+    translator: MetadataTranslator
 ): List<ExerciseInfoSection> =
     listOf(
         ExerciseInfoSection(
@@ -486,28 +488,28 @@ private fun Exercise.infoSections(
             fields = listOf(
                 ExerciseInfoField(
                     "동작 패턴",
-                    catalogue.label(MetadataDisplayField.MOVEMENT_PATTERN, movementPattern)
+                    translator.translate("exercise.movementPattern", movementPattern).orEmpty()
                 ),
                 ExerciseInfoField(
                     "동작 분류",
-                    catalogue.label(MetadataDisplayField.MOVEMENT_CATEGORY, movementCategory)
+                    translator.translate("exercise.movementCategory", movementCategory).orEmpty()
                 ),
                 ExerciseInfoField(
                     "축성 부하",
-                    catalogue.label(MetadataDisplayField.AXIAL_LOAD, axialLoadLevel)
+                    translator.translate("exercise.axialLoadLevel", axialLoadLevel).orEmpty()
                 ),
                 ExerciseInfoField(
                     "좌우 사용",
-                    catalogue.label(MetadataDisplayField.LATERALITY, laterality)
+                    translator.translate("exercise.laterality", laterality).orEmpty()
                 )
             )
         ),
         ExerciseInfoSection(
             title = "사용 근육과 장비",
             fields = listOf(
-                ExerciseInfoField("주동근", primaryMuscles.localizedTokens(catalogue, MetadataDisplayField.MUSCLE)),
-                ExerciseInfoField("보조근", secondaryMuscles.localizedTokens(catalogue, MetadataDisplayField.MUSCLE)),
-                ExerciseInfoField("장비", equipment.ifBlank { equipmentTags }.localizedTokens(catalogue, MetadataDisplayField.EQUIPMENT))
+                ExerciseInfoField("주동근", primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles")),
+                ExerciseInfoField("보조근", secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles")),
+                ExerciseInfoField("장비", equipment.ifBlank { equipmentTags }.localizedTokens(translator, "exercise.equipment"))
             )
         ),
         ExerciseInfoSection(
@@ -515,14 +517,11 @@ private fun Exercise.infoSections(
             fields = listOf(
                 ExerciseInfoField(
                     "프로그램 역할",
-                    catalogue.label(
-                        MetadataDisplayField.PROGRAM_SLOT,
-                        metadata?.programSlot.orEmpty()
-                    )
+                    translator.translate("runtime.programSlot", metadata?.programSlot.orEmpty()).orEmpty()
                 ),
                 ExerciseInfoField(
                     "메타데이터 상태",
-                    catalogue.label(MetadataDisplayField.METADATA_CONFIDENCE, metadataConfidence)
+                    translator.translate("exercise.metadataConfidence", metadataConfidence).orEmpty()
                 )
             )
         ),
@@ -531,24 +530,24 @@ private fun Exercise.infoSections(
             fields = listOf(
                 ExerciseInfoField(
                     "주 스트레스",
-                    catalogue.label(
-                        MetadataDisplayField.PRIMARY_STRESS_PROFILE,
+                    translator.translate(
+                        "runtime.primaryStressProfile",
                         metadata?.primaryStressProfile.orEmpty()
-                    )
+                    ).orEmpty()
                 ),
                 ExerciseInfoField(
                     "근신경계 피로",
-                    catalogue.label(
-                        MetadataDisplayField.NEUROMUSCULAR_STRESS,
+                    translator.translate(
+                        "runtime.neuromuscularStressLevel",
                         metadata?.neuromuscularStressLevel.orEmpty()
-                    )
+                    ).orEmpty()
                 ),
                 ExerciseInfoField(
                     "회복 기간",
-                    catalogue.label(
-                        MetadataDisplayField.RECOVERY_DURATION,
+                    translator.translate(
+                        "runtime.recoveryDurationClass",
                         metadata?.recoveryDurationClass.orEmpty()
-                    )
+                    ).orEmpty()
                 )
             )
         ),
@@ -557,32 +556,25 @@ private fun Exercise.infoSections(
             fields = listOf(
                 ExerciseInfoField(
                     "전이 수준",
-                    catalogue.label(
-                        MetadataDisplayField.BADMINTON_TRANSFER_LEVEL,
+                    translator.translate(
+                        "runtime.badmintonTransferLevel",
                         metadata?.badmintonTransferLevel.orEmpty()
-                    )
+                    ).orEmpty()
                 ),
                 ExerciseInfoField(
                     "전이 목적",
                     metadata?.badmintonTransferType?.values
                         .orEmpty()
-                        .joinToString(" · ") { value ->
-                            catalogue.label(MetadataDisplayField.BADMINTON_TRANSFER_TYPE, value)
-                        }
+                        .let { values -> translator.translateTokens("runtime.badmintonTransferType", values) }
+                        .joinToString(" · ")
                 ),
                 ExerciseInfoField(
                     "직접 전이",
-                    sportTransferDirect.localizedTokens(
-                        catalogue,
-                        MetadataDisplayField.DIRECT_TRANSFER
-                    )
+                    sportTransferDirect.localizedTokens(translator, "exercise.sportTransferDirect")
                 ),
                 ExerciseInfoField(
                     "보조 전이",
-                    sportTransferSupportive.localizedTokens(
-                        catalogue,
-                        MetadataDisplayField.SUPPORTIVE_TRANSFER
-                    )
+                    sportTransferSupportive.localizedTokens(translator, "exercise.sportTransferSupportive")
                 )
             )
         )
@@ -592,29 +584,26 @@ private fun Exercise.infoSections(
     }
 
 private fun String.localizedTokens(
-    catalogue: MetadataDisplayCatalogue,
-    field: MetadataDisplayField
+    translator: MetadataTranslator,
+    fieldKey: String
 ): String =
-    split(',', '|', '/', ';')
-        .map(String::trim)
-        .filter(String::isNotBlank)
-        .joinToString(" · ") { value -> catalogue.label(field, value) }
+    translator.translateTokens(fieldKey, split(',', '|', '/', ';')).joinToString(" · ")
 
 internal fun Exercise.matchesMetadataQuery(
     query: String,
-    catalogue: MetadataDisplayCatalogue
+    translator: MetadataTranslator
 ): Boolean {
     val normalized = query.trim()
     if (normalized.isEmpty() || name.contains(normalized, ignoreCase = true)) return true
     return listOf(
-        catalogue.option(MetadataDisplayField.EXERCISE_CATEGORY, category),
-        catalogue.option(MetadataDisplayField.EXERCISE_MODE, mode)
+        translator.option("exercise.category", category),
+        translator.option("exercise.mode", mode)
     ).plus(
-        primaryMuscles.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.MUSCLE, it.trim()) }
+        primaryMuscles.split(',', '|', '/', ';').map { translator.option("exercise.primaryMuscles", it.trim()) }
     ).plus(
-        secondaryMuscles.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.MUSCLE, it.trim()) }
+        secondaryMuscles.split(',', '|', '/', ';').map { translator.option("exercise.secondaryMuscles", it.trim()) }
     ).plus(
-        equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';').map { catalogue.option(MetadataDisplayField.EQUIPMENT, it.trim()) }
+        equipment.ifBlank { equipmentTags }.split(',', '|', '/', ';').map { translator.option("exercise.equipment", it.trim()) }
     ).any { option -> option.matches(normalized) }
 }
 
