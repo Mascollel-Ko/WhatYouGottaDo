@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -45,6 +47,9 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,6 +61,8 @@ import com.training.trackplanner.data.DataTransferReport
 import com.training.trackplanner.data.DataTransferStatus
 import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.WorkoutRestoreMode
+import com.training.trackplanner.localization.AppLanguage
+import com.training.trackplanner.localization.AppLanguageRegistry
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -96,11 +103,14 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = "오늘 무엇을 할까요?",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "오늘 무엇을 할까요?",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                AppLanguageSelector()
+            }
         }
         item {
             CompactHomeActionGroup(
@@ -174,6 +184,49 @@ internal fun HomeScreen(
         onBackToExercise = viewModel::backToExerciseRestoreMode,
         onCancel = viewModel::cancelPreparedRecordsRestore
     )
+}
+
+@Composable
+internal fun AppLanguageSelector() {
+    val configuration = LocalConfiguration.current
+    val effectiveLanguage = AppLanguageRegistry.effectiveLanguage(configuration)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End)
+    ) {
+        AppLanguage.entries.forEach { language ->
+            val selected = language == effectiveLanguage
+            val label = stringResource(
+                if (language == AppLanguage.KOREAN) R.string.language_korean
+                else R.string.language_english
+            )
+            val description = stringResource(
+                if (language == AppLanguage.KOREAN) R.string.language_korean_description
+                else R.string.language_english_description
+            )
+            if (selected) {
+                Button(
+                    onClick = { AppLanguageRegistry.select(language) },
+                    modifier = Modifier
+                        .height(36.dp)
+                        .semantics { contentDescription = description },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelMedium)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = { AppLanguageRegistry.select(language) },
+                    modifier = Modifier
+                        .height(36.dp)
+                        .semantics { contentDescription = description },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+                ) {
+                    Text(label, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
 }
 
 @Composable

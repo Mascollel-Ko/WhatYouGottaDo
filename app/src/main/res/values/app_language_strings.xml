@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="language_korean" translatable="false">한국어</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_korean_description">한국어로 표시</string>
+    <string name="language_english_description">영어로 표시</string>
+</resources>
