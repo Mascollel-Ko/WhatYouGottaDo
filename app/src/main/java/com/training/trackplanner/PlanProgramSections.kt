@@ -15,9 +15,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.ProgramSetPrescription
@@ -25,6 +25,7 @@ import com.training.trackplanner.data.ProgramSetPrescriptionResolver
 import com.training.trackplanner.data.TrainingProgram
 import com.training.trackplanner.data.TrainingProgramItem
 import com.training.trackplanner.data.TrainingProgramItemSet
+import com.training.trackplanner.localization.localizedExerciseName
 
 @Composable
 internal fun ProgramDaySummarySection(
@@ -46,6 +47,7 @@ internal fun ProgramDaySummarySection(
             fontWeight = FontWeight.Bold
         )
         items.forEach { item ->
+            val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
@@ -57,7 +59,7 @@ internal fun ProgramDaySummarySection(
                 ) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(item.exerciseName, fontWeight = FontWeight.SemiBold)
+                            Text(displayName, fontWeight = FontWeight.SemiBold)
                             item.category.takeIf(String::isNotBlank)?.let { category ->
                                 Text(
                                     translator.translate("exercise.category", category).orEmpty(),
@@ -70,7 +72,10 @@ internal fun ProgramDaySummarySection(
                             IconButton(onClick = { onExerciseInfo(item.exerciseStableKey) }) {
                                 Icon(
                                     imageVector = Icons.Default.Info,
-                                    contentDescription = "${item.exerciseName} 운동 정보"
+                                    contentDescription = stringResource(
+                                        R.string.exercise_info_content_description,
+                                        displayName
+                                    )
                                 )
                             }
                         }

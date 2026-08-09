@@ -48,7 +48,7 @@ import org.robolectric.annotation.Config
 import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "ko")
 class ConnectiveTissueAnalysisUiTest {
     @get:Rule
     val compose = createComposeRule()

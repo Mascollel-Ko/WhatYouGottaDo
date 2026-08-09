@@ -18,7 +18,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +40,7 @@ import com.training.trackplanner.data.deleteDraftItem
 import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
+import com.training.trackplanner.localization.localizedExerciseName
 
 @Composable
 internal fun ProgramSkeletonPreview(
@@ -231,6 +231,7 @@ private fun ProgramDraftItemRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -241,7 +242,7 @@ private fun ProgramDraftItemRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(item.exerciseName, fontWeight = FontWeight.SemiBold)
+                Text(displayName, fontWeight = FontWeight.SemiBold)
                 programSetSummaryLines(item).forEach { line ->
                     Text(
                         line,
@@ -262,6 +263,7 @@ private fun ProgramDraftItemDialog(
     onDismiss: () -> Unit,
     onSave: (ProgramSkeletonItem) -> Unit
 ) {
+    val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
     var sets by remember(item.localId) {
         mutableStateOf(ProgramSetPrescriptionResolver.resolve(item))
     }
@@ -269,7 +271,7 @@ private fun ProgramDraftItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(item.exerciseName) },
+        title = { Text(displayName) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 sets.forEachIndexed { index, set ->

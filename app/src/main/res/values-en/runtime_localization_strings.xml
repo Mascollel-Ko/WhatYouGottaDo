@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exercise_info_content_description">Exercise information for %1$s</string>
+    <string name="record_delete_exercise_confirmation">Delete %1$s from the selected date? Its set records will also be deleted.</string>
+</resources>

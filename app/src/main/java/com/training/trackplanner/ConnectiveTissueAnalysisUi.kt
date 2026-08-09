@@ -16,7 +16,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +33,9 @@ import com.training.trackplanner.analysis.tissue.TissueBaselineProvenanceUi
 import com.training.trackplanner.analysis.tissue.TissueCanonicalStatus
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.analysis.tissue.TissueEducationalInfo
+import com.training.trackplanner.analysis.tissue.TissueExerciseContribution
+import com.training.trackplanner.localization.localizedExerciseName
+import com.training.trackplanner.localization.localizedTissueEducation
 
 @Composable
 internal fun ConnectiveTissueSummaryCard(
@@ -58,8 +60,8 @@ internal fun ConnectiveTissueSummaryCard(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            ui.topAreas?.let {
-                Text(stringResource(R.string.tissue_analysis_top_areas, it), style = MaterialTheme.typography.bodySmall)
+            localizedTissueNames(ui.topAreas).takeIf(String::isNotBlank)?.let { names ->
+                Text(stringResource(R.string.tissue_analysis_top_areas, names), style = MaterialTheme.typography.bodySmall)
             }
             TextButton(onClick = onClick) {
                 Text(stringResource(R.string.tissue_analysis_action))
@@ -75,7 +77,6 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
         return
     }
     val ui = TissueAnalysisUiMapper.map(state)
-    val displayCatalogue = rememberMetadataDisplayCatalogue()
     var expandedJoint by rememberSaveable { mutableStateOf<String?>(null) }
     var showAllJoints by rememberSaveable { mutableStateOf(false) }
     var selectedInfoKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -90,7 +91,9 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                 Text(
                     stringResource(
                         R.string.tissue_analysis_top_areas,
-                        ui.topAreas ?: stringResource(R.string.tissue_analysis_no_area)
+                        localizedTissueNames(ui.topAreas).ifBlank {
+                            stringResource(R.string.tissue_analysis_no_area)
+                        }
                     ),
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -102,7 +105,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
             }
         }
         ui.visibleJoints(showAllJoints).forEach { joint ->
-            val jointName = displayCatalogue.label(MetadataDisplayField.JOINT_COMPLEX, joint.displayCode)
+            val jointName = localizedTissueEducation(joint.info).name
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
@@ -135,14 +138,17 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                         stringResource(
                             R.string.tissue_analysis_high_children,
                             joint.highChildCount,
-                            joint.highestChild ?: stringResource(R.string.tissue_analysis_observing)
+                            joint.highestChild?.let { localizedTissueEducation(it).name }
+                                ?: stringResource(R.string.tissue_analysis_observing)
                         ),
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
                         stringResource(
                             R.string.tissue_analysis_primary_contributors,
-                            joint.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                            localizedContributorNames(joint.contributors).ifBlank {
+                                stringResource(R.string.tissue_analysis_no_contributor)
+                            }
                         ),
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -163,7 +169,7 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                     }
                     if (expandedJoint == joint.key) {
                         joint.children.forEachIndexed { index, child ->
-                            val childName = child.name
+                            val childName = localizedTissueEducation(child.info).name
                             if (index > 0) {
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp))
                             }
@@ -200,7 +206,9 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
                                 Text(
                                     stringResource(
                                         R.string.tissue_analysis_contributing_exercises,
-                                        child.contributors ?: stringResource(R.string.tissue_analysis_no_contributor)
+                                        localizedContributorNames(child.contributors).ifBlank {
+                                            stringResource(R.string.tissue_analysis_no_contributor)
+                                        }
                                     ),
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -247,22 +255,23 @@ private fun TissueEducationalInfoDialog(
     info: TissueEducationalInfo,
     onDismiss: () -> Unit
 ) {
+    val localized = localizedTissueEducation(info)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(info.displayNameKo) },
+        title = { Text(localized.name) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                TissueInfoField(stringResource(R.string.tissue_info_label_location), info.anatomicalLocationKo)
+                TissueInfoField(stringResource(R.string.tissue_info_label_location), localized.location)
                 TissueInfoField(
                     stringResource(R.string.tissue_info_label_functions),
-                    info.primaryFunctionsKo.joinToString(" ")
+                    localized.functions
                 )
                 TissueInfoField(
                     stringResource(R.string.tissue_info_label_contexts),
-                    info.commonLoadContextsKo.joinToString(" ")
+                    localized.contexts
                 )
                 Text(
                     stringResource(R.string.tissue_info_disclaimer),
@@ -277,6 +286,22 @@ private fun TissueEducationalInfoDialog(
             }
         }
     )
+}
+
+@Composable
+private fun localizedTissueNames(values: List<TissueEducationalInfo>): String {
+    val names = ArrayList<String>(values.size)
+    for (info in values) names += localizedTissueEducation(info).name
+    return names.joinToString()
+}
+
+@Composable
+private fun localizedContributorNames(values: List<TissueExerciseContribution>): String {
+    val names = ArrayList<String>(values.size)
+    for (contributor in values) {
+        names += localizedExerciseName(contributor.exerciseStableKey, contributor.exerciseName)
+    }
+    return names.joinToString()
 }
 
 @Composable

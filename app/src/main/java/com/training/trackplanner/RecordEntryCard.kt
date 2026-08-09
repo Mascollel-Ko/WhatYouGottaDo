@@ -1,4 +1,4 @@
-﻿package com.training.trackplanner
+package com.training.trackplanner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +17,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -37,6 +37,7 @@ import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.resolvedActivityKind
+import com.training.trackplanner.localization.localizedExerciseName
 
 
 @Composable
@@ -63,6 +64,7 @@ internal fun WorkoutEntryCard(
     var showDeleteEntryDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showExerciseInfo by rememberSaveable(entry.id) { mutableStateOf(false) }
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
+    val exerciseDisplayName = localizedExerciseName(entry.exerciseStableKey, entry.exerciseName)
 
     if (showExerciseInfo && exercise != null) {
         ExerciseInfoDialog(
@@ -85,7 +87,14 @@ internal fun WorkoutEntryCard(
         AlertDialog(
             onDismissRequest = { showDeleteEntryDialog = false },
             title = { Text("운동 삭제") },
-            text = { Text("${entry.exerciseName}을(를) 선택한 날짜 기록에서 삭제할까요? 세트 기록도 함께 삭제됩니다.") },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.record_delete_exercise_confirmation,
+                        exerciseDisplayName
+                    )
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -120,7 +129,7 @@ internal fun WorkoutEntryCard(
             ) {
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = entry.exerciseName,
+                    text = exerciseDisplayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 2

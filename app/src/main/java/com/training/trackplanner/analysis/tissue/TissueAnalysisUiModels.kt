@@ -7,7 +7,7 @@ data class TissueAnalysisChildUi(
     val info: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
     val recoveryRange: String,
-    val contributors: String?
+    val contributors: List<TissueExerciseContribution>
 )
 
 data class TissueAnalysisJointUi(
@@ -17,8 +17,8 @@ data class TissueAnalysisJointUi(
     val info: TissueEducationalInfo,
     val status: TissueCanonicalStatus,
     val highChildCount: Int,
-    val highestChild: String?,
-    val contributors: String?,
+    val highestChild: TissueEducationalInfo?,
+    val contributors: List<TissueExerciseContribution>,
     val children: List<TissueAnalysisChildUi>
 )
 
@@ -28,7 +28,7 @@ data class TissueBaselineProvenanceUi(
 
 data class TissueAnalysisUiState(
     val status: TissueCanonicalStatus,
-    val topAreas: String?,
+    val topAreas: List<TissueEducationalInfo>,
     val joints: List<TissueAnalysisJointUi>,
     val provenance: TissueBaselineProvenanceUi
 ) {
@@ -43,7 +43,7 @@ data class TissueAnalysisUiState(
 
 data class TissueSummaryNavigationUi(
     val status: TissueCanonicalStatus?,
-    val topAreas: String?
+    val topAreas: List<TissueEducationalInfo>
 )
 
 object TissueAnalysisUiMapper {
@@ -51,15 +51,15 @@ object TissueAnalysisUiMapper {
         return TissueSummaryNavigationUi(
             status = state?.ofiSummary?.status,
             topAreas = state?.ofiSummary?.topJointComplexes
-                ?.joinToString { it.nameKo }
-                ?.takeIf { it.isNotBlank() }
+                ?.map(TissueJointComplexSummary::educationalInfo)
+                .orEmpty()
         )
     }
 
     fun map(state: TissueCurrentState): TissueAnalysisUiState =
         TissueAnalysisUiState(
             status = state.ofiSummary.status,
-            topAreas = state.ofiSummary.topJointComplexes.joinToString { it.nameKo }.takeIf { it.isNotBlank() },
+            topAreas = state.ofiSummary.topJointComplexes.map(TissueJointComplexSummary::educationalInfo),
             joints = state.jointComplexes.map { joint ->
                 TissueAnalysisJointUi(
                     key = joint.jointComplexStableKey,
@@ -68,8 +68,8 @@ object TissueAnalysisUiMapper {
                     info = joint.educationalInfo,
                     status = joint.status,
                     highChildCount = joint.highOrVeryHighChildCount,
-                    highestChild = joint.highestChild?.loadUnitName?.takeIf { it.isNotBlank() },
-                    contributors = joint.contributors.joinToString { it.exerciseName }.takeIf { it.isNotBlank() },
+                    highestChild = joint.highestChild?.educationalInfo,
+                    contributors = joint.contributors,
                     children = joint.childStates.map { child ->
                         TissueAnalysisChildUi(
                             key = "${child.key.loadUnitStableKey}|${child.key.loadDimension}",
@@ -78,8 +78,7 @@ object TissueAnalysisUiMapper {
                             info = child.educationalInfo,
                             status = child.status,
                             recoveryRange = range(child.rawResidual),
-                            contributors = child.contributors.joinToString { it.exerciseName }
-                                .takeIf { it.isNotBlank() }
+                            contributors = child.contributors
                         )
                     }
                 )

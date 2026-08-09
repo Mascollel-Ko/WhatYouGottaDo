@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exercise_info_content_description">%1$s 운동 정보</string>
+    <string name="record_delete_exercise_confirmation">%1$s을(를) 선택한 날짜 기록에서 삭제할까요? 세트 기록도 함께 삭제됩니다.</string>
+</resources>

@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
+import com.training.trackplanner.localization.localizedExerciseName
 import java.time.LocalDate
 import java.util.Locale
 
@@ -269,6 +269,7 @@ internal fun ExerciseListItem(
     onInfo: (() -> Unit)? = null
 ) {
     val translator = rememberMetadataTranslator()
+    val displayName = localizedExerciseName(exercise)
     val cardModifier = if (onClick != null) {
         Modifier
             .fillMaxWidth()
@@ -297,7 +298,7 @@ internal fun ExerciseListItem(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = exercise.name,
+                    text = displayName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -326,6 +327,7 @@ internal fun ExerciseListItem(
 internal fun ExerciseDetailCard(exercise: Exercise) {
     val context = LocalContext.current
     val translator = rememberMetadataTranslator()
+    val displayName = localizedExerciseName(exercise)
     val bitmap = remember(exercise.imageAssetName) {
         runCatching {
             if (exercise.imageAssetName.isBlank()) {
@@ -348,7 +350,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
             if (bitmap != null) {
                 Image(
                     bitmap = bitmap.asImageBitmap(),
-                    contentDescription = exercise.name,
+                    contentDescription = displayName,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp),
@@ -372,7 +374,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                 }
             }
             Text(
-                text = exercise.name,
+                text = displayName,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )

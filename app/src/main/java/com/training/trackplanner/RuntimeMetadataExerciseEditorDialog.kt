@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,6 +39,7 @@ import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.MovementCategory
 import com.training.trackplanner.data.MovementPattern
 import com.training.trackplanner.data.copyEditableMetadataFrom
+import com.training.trackplanner.localization.localizedExerciseName
 
 @Composable
 internal fun RuntimeMetadataExerciseEditorDialog(
@@ -337,7 +337,7 @@ internal fun ExerciseMetadataCopyDialog(
                                 onClick = { onSelect(source) }
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    Text(source.exercise.name, style = MaterialTheme.typography.bodyMedium)
+                                    Text(localizedExerciseName(source.exercise), style = MaterialTheme.typography.bodyMedium)
                                     Text(
                                         listOf(
                                             translator.translate("exercise.category", source.exercise.category),
