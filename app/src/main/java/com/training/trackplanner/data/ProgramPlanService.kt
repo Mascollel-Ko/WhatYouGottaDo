@@ -23,7 +23,8 @@ internal class ProgramPlanService(
     private val workoutDao: WorkoutDao,
     private val programDao: ProgramDao,
     private val prescriptionNoteFormatter: (String) -> String,
-    private val builtInProgramKeys: () -> Set<String>
+    private val builtInProgramKeys: () -> Set<String>,
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
 ) {
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
 
@@ -192,7 +193,8 @@ internal class ProgramPlanService(
                         restSeconds = item.restSeconds,
                         notes = prescriptionNoteFormatter(item.prescription),
                         createdAt = now + index,
-                        displayOrder = index + 1
+                        displayOrder = index + 1,
+                        backupSourceId = workoutSourceIdentityProvider?.newWorkoutSourceId()
                     )
                 )
                 ProgramSetPrescriptionResolver.resolve(item, storedSets).forEach { set ->

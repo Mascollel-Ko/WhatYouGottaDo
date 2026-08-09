@@ -118,6 +118,7 @@ class TrainingRepository(
     private val dataTransferReportStore = DataTransferReportStore(appMetaDao)
     private val initialUserProfileDao = db.initialUserProfileDao()
     private val runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao()
+    private val exerciseMetadataUserOverrideDao = db.exerciseMetadataUserOverrideDao()
     private val exerciseRoleRelationDao = db.exerciseRoleRelationDao()
     private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalMetadataRepository = CanonicalExerciseMetadataRepositoryProvider.get(context)
@@ -127,6 +128,22 @@ class TrainingRepository(
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
     private val repetitionCurveRegistry = RepetitionCurveRegistry.fromContext(context)
     private val rpeRirPolicy = RpeRirPolicy.fromContext(context)
+    private val workoutSourceIdentityProvider = WorkoutSourceIdentityProvider(
+        db = db,
+        appMetaDao = appMetaDao,
+        workoutDao = workoutDao
+    )
+    private val exerciseMetadataReconciliationService = ExerciseMetadataReconciliationService(
+        context = context,
+        db = db,
+        exerciseDao = exerciseDao,
+        runtimeMetadataDao = runtimeExerciseMetadataDao,
+        relationDao = exerciseRoleRelationDao,
+        overrideDao = exerciseMetadataUserOverrideDao,
+        appMetaDao = appMetaDao,
+        canonicalRepository = canonicalMetadataRepository,
+        seedExercisesByStableKey = ::seedExercisesByStableKey
+    )
     private val strengthPosteriorEventProcessor = StrengthPosteriorEventProcessor(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -157,8 +174,14 @@ class TrainingRepository(
         workoutDao = workoutDao,
         programDao = programDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
-        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
-        seedExercisesByStableKey = ::seedExercisesByStableKey
+        exerciseRoleRelationDao = exerciseRoleRelationDao,
+        overrideDao = exerciseMetadataUserOverrideDao,
+        canonicalMetadataRepository = canonicalMetadataRepository,
+        seedExercisesByStableKey = ::seedExercisesByStableKey,
+        semanticRevision = {
+            ExerciseMetadataRevisionPolicy.project(context, canonicalMetadataRepository)
+                .semanticCanonicalMetadataRevision
+        }
     )
     private val backupRestoreImportService = BackupRestoreImportService(
         db = db,
@@ -173,6 +196,7 @@ class TrainingRepository(
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         appMetaDao = appMetaDao,
+        workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
@@ -215,12 +239,14 @@ class TrainingRepository(
     private val calendarRecordService = CalendarRecordService(
         db = db,
         workoutDao = workoutDao,
+        workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator
     )
     private val recordMutationService = RecordMutationService(
         db = db,
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator
     )
     private val programPlanService = ProgramPlanService(
@@ -228,6 +254,7 @@ class TrainingRepository(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         programDao = programDao,
+        workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         prescriptionNoteFormatter = ::noteFromPrescription,
         builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )
@@ -448,6 +475,7 @@ class TrainingRepository(
     suspend fun seedIfNeeded() = withContext(Dispatchers.IO) {
         val exerciseSeedVersion = appMetaDao.intValue(META_EXERCISE_SEED_VERSION)
         val programSeedVersion = appMetaDao.intValue(META_PROGRAM_SEED_VERSION)
+        val semanticRevision = exerciseMetadataReconciliationService.markRequiredIfNeeded()
 
         if (exerciseSeedVersion < EXERCISE_SEED_VERSION || exerciseDao.countExercises() == 0) {
             upsertSeedExercises()
@@ -459,6 +487,8 @@ class TrainingRepository(
                 )
             )
         }
+        exerciseMetadataReconciliationService.reconcileIfRequired(semanticRevision)
+        workoutSourceIdentityProvider.backfillMissingWorkoutSourceIds()
         repairCustomExerciseStableKeys()
         refreshExerciseAnalysisMetadata()
         repairLegacyProgramStableKeys()
@@ -480,9 +510,6 @@ class TrainingRepository(
     }
 
     private suspend fun upsertSeedExercises() {
-        val runtimeOverrideKeys = runtimeExerciseMetadataDao.all()
-            .map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
-            .let(ExerciseMetadataOverrideBackupMapper::overrideKeys)
         SeedData.exactExerciseMetadataByStableKey(context).values.forEach { seed ->
             val historyOnly = canonicalMetadataRepository.identity(seed.stableKey)?.historyOnly == true
             val existing = exerciseDao.findByStableKey(seed.stableKey)
@@ -492,8 +519,6 @@ class TrainingRepository(
                 ExerciseStableKeyPolicy.mergeSeed(existing, seed)?.let { merged ->
                     exerciseDao.updateExercise(merged.copy(isActive = false))
                 }
-            } else if (ExerciseMetadataOverrideBackupMapper.hasOverride(existing.stableKey, runtimeOverrideKeys)) {
-                return@forEach
             } else {
                 ExerciseStableKeyPolicy.mergeSeed(existing, seed)?.let { merged ->
                     exerciseDao.updateExercise(merged)
@@ -507,27 +532,13 @@ class TrainingRepository(
         exerciseRoleRelationAssetLoader.load(stableKeys)
         val trainingRoles = exerciseRoleRelationAssetLoader.trainingRelations()
         val slotCapabilities = exerciseRoleRelationAssetLoader.programSlotCapabilityRelations()
-        val backupTrainingRoleKeys = exerciseRoleRelationDao.allTrainingRoles()
-            .filter { it.provenance == "BACKUP_RESTORE" }
-            .mapTo(mutableSetOf(), ExerciseTrainingRoleRelation::exerciseStableKey)
-        val backupCapabilityKeys = exerciseRoleRelationDao.allProgramSlotCapabilities()
-            .filter { it.provenance == "BACKUP_RESTORE" }
-            .mapTo(mutableSetOf(), ExerciseProgramSlotCapabilityRelation::exerciseStableKey)
         db.withTransaction {
             canonicalMetadataRepository.identities().forEach { identity ->
-                if (identity.stableKey !in backupTrainingRoleKeys) {
-                    exerciseRoleRelationDao.deleteTrainingRoles(identity.stableKey)
-                }
-                if (identity.stableKey !in backupCapabilityKeys) {
-                    exerciseRoleRelationDao.deleteProgramSlotCapabilities(identity.stableKey)
-                }
+                exerciseRoleRelationDao.deleteTrainingRoles(identity.stableKey)
+                exerciseRoleRelationDao.deleteProgramSlotCapabilities(identity.stableKey)
             }
-            exerciseRoleRelationDao.upsertTrainingRoles(
-                trainingRoles.filter { it.exerciseStableKey !in backupTrainingRoleKeys }
-            )
-            exerciseRoleRelationDao.upsertProgramSlotCapabilities(
-                slotCapabilities.filter { it.exerciseStableKey !in backupCapabilityKeys }
-            )
+            exerciseRoleRelationDao.upsertTrainingRoles(trainingRoles)
+            exerciseRoleRelationDao.upsertProgramSlotCapabilities(slotCapabilities)
         }
     }
 

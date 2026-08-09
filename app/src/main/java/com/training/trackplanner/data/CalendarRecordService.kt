@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter
 internal class CalendarRecordService(
     private val db: TrainingDatabase,
     private val workoutDao: WorkoutDao,
-    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null
+    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null,
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
 ) {
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
         if (dates.isEmpty()) {
@@ -81,7 +82,8 @@ internal class CalendarRecordService(
                 sourceEntries = sourceEntries,
                 targetDate = targetDate,
                 keepConfirmed = keepConfirmed,
-                baseCreatedAt = nextCreatedAt()
+                baseCreatedAt = nextCreatedAt(),
+                preserveSourceIdentity = false
             )
         }
     }
@@ -99,14 +101,17 @@ internal class CalendarRecordService(
                 workoutDao.deleteSetsOnDates(listOf(targetDate))
                 workoutDao.deleteEntriesOnDates(listOf(targetDate))
             }
+            // A move retains source identity. Remove the source row first so the
+            // unique backupSourceId can be reused by its replacement in this transaction.
+            workoutDao.deleteSetsOnDates(listOf(sourceDate))
+            workoutDao.deleteEntriesOnDates(listOf(sourceDate))
             copyEntriesToDate(
                 sourceEntries = sourceEntries,
                 targetDate = targetDate,
                 keepConfirmed = true,
-                baseCreatedAt = nextCreatedAt()
+                baseCreatedAt = nextCreatedAt(),
+                preserveSourceIdentity = true
             )
-            workoutDao.deleteSetsOnDates(listOf(sourceDate))
-            workoutDao.deleteEntriesOnDates(listOf(sourceDate))
         }
     }
 
@@ -137,7 +142,8 @@ internal class CalendarRecordService(
                         sourceEntries = entries,
                         targetDate = targetDates[index],
                         keepConfirmed = keepConfirmed,
-                        baseCreatedAt = createdAt
+                        baseCreatedAt = createdAt,
+                        preserveSourceIdentity = false
                     )
                     createdAt += entries.size
                 }
@@ -149,7 +155,8 @@ internal class CalendarRecordService(
         sourceEntries: List<WorkoutEntryWithSets>,
         targetDate: String,
         keepConfirmed: Boolean,
-        baseCreatedAt: Long
+        baseCreatedAt: Long,
+        preserveSourceIdentity: Boolean
     ) {
         sourceEntries.forEachIndexed { entryIndex, entryWithSets ->
             val confirmedCount = entryWithSets.sets.count { it.confirmed }
@@ -165,7 +172,13 @@ internal class CalendarRecordService(
                     } else {
                         null
                     },
-                    performedAt = null
+                    performedAt = null,
+                    backupSourceId = if (preserveSourceIdentity) {
+                        workoutSourceIdentityProvider?.sourceIdForImport(entryWithSets.entry.backupSourceId)
+                            ?: entryWithSets.entry.backupSourceId
+                    } else {
+                        workoutSourceIdentityProvider?.newWorkoutSourceId()
+                    }
                 )
             )
             entryWithSets.sets.sortedBy { it.setIndex }.forEach { sourceSet ->

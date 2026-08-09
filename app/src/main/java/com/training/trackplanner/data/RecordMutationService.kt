@@ -6,7 +6,8 @@ internal class RecordMutationService(
     private val db: TrainingDatabase,
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
-    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null
+    private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null,
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
 ) {
     suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long {
         val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return 0L
@@ -27,7 +28,8 @@ internal class RecordMutationService(
                     exerciseName = exercise.name,
                     category = exercise.category,
                     restSeconds = exercise.defaultRestSeconds,
-                    displayOrder = beforeInsert.size + 1
+                    displayOrder = beforeInsert.size + 1,
+                    backupSourceId = workoutSourceIdentityProvider?.newWorkoutSourceId()
                 )
             )
             val initialSet = defaultSet(entryId, 1, exercise).let { default ->
@@ -48,9 +50,16 @@ internal class RecordMutationService(
     }
 
     suspend fun updateWorkoutEntry(entry: WorkoutEntry) {
-        val previousDate = workoutDao.findEntryById(entry.id)?.date ?: entry.date
+        val existing = workoutDao.findEntryById(entry.id)
+        val previousDate = existing?.date ?: entry.date
         mutateDates(setOf(previousDate, entry.date)) {
-            workoutDao.updateEntry(entry)
+            workoutDao.updateEntry(
+                entry.copy(
+                    backupSourceId = existing?.backupSourceId
+                        ?: workoutSourceIdentityProvider?.sourceIdForImport(entry.backupSourceId)
+                        ?: entry.backupSourceId
+                )
+            )
             refreshEntryCompletion(entry.id)
         }
     }

@@ -314,9 +314,12 @@ internal object ExerciseMetadataFieldPolicyRegistry {
             require(definition.fieldScope == row.fieldScope) { "Exercise metadata field scope mismatch: ${row.fieldKey}" }
             require(definition.valueEncoding == row.valueEncoding) { "Exercise metadata encoding mismatch: ${row.fieldKey}" }
             require(row.isExplicitEmpty == row.value.isEmpty()) { "Exercise metadata empty marker mismatch: ${row.fieldKey}" }
-            normalize(row.value, row.valueEncoding)
+            canonicalize(row.value, row.valueEncoding)
         }
     }
+
+    fun canonicalize(value: String, encoding: ExerciseMetadataValueEncoding): String =
+        normalize(value, encoding)
 
     fun hasBackupOwnedFields(): Boolean = fields.any { it.policy == ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE }
 
@@ -533,14 +536,59 @@ private val EDITOR_WRITABLE_FIELDS = setOf(
     "exercise.category",
     "exercise.description",
     "exercise.defaultRestSeconds",
+    "exercise.familyId",
+    "exercise.familyName",
+    "exercise.familyRole",
+    "exercise.familyE1rmMultiplier",
     "exercise.primaryMuscles",
     "exercise.secondaryMuscles",
     "exercise.equipment",
     "exercise.equipmentTags",
     "exercise.movementPattern",
     "exercise.movementCategory",
+    "exercise.compoundType",
     "exercise.forceType",
     "exercise.bodyRegion",
+    "exercise.plane",
+    "exercise.laterality",
+    "exercise.axialLoadLevel",
+    "exercise.stabilityRoles",
+    "exercise.sportTransferDirect",
+    "exercise.sportTransferSupportive",
+    "exercise.badmintonTransferRoles",
+    "exercise.fatigueCategories",
+    "exercise.adaptiveBaselineGroups",
+    "exercise.accessoryRoles",
+    "exercise.loadProfile",
+    "exercise.recoveryDecayProfile",
+    "exercise.systemicLoadWeight",
+    "exercise.neuralHeavyWeight",
+    "exercise.neuralSpeedWeight",
+    "exercise.localLoadWeight",
+    "exercise.decelerationWeight",
+    "exercise.elasticSscWeight",
+    "exercise.rotationPowerWeight",
+    "exercise.antiRotationWeight",
+    "exercise.overheadSwingWeight",
+    "exercise.gripLoadWeight",
+    "exercise.progressMetricType",
+    "exercise.strengthProgressionGroup",
+    "exercise.hypertrophyVolumeGroup",
+    "exercise.mainLiftGroup",
+    "exercise.accessoryContributionGroup",
+    "exercise.estimated1RmEligible",
+    "exercise.volumeLoadEligible",
+    "exercise.badmintonTransferStrength",
+    "exercise.courtMovementTypes",
+    "exercise.badmintonSkillTargets",
+    "exercise.jointStressTags",
+    "exercise.stabilityDemandLevel",
+    "exercise.mobilityDemandLevel",
+    "exercise.balanceContributionTags",
+    "exercise.analysisEligibility",
+    "exercise.activityKind",
+    "exercise.planningEligibility",
+    "exercise.metadataConfidence",
     "runtime.activityKind",
     "runtime.planningEligibility",
     "runtime.movementFamily",

@@ -18,6 +18,7 @@ internal class BackupRestoreImportService(
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val appMetaDao: AppMetaDao,
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
@@ -218,7 +219,7 @@ internal class BackupRestoreImportService(
                             displayOrder = first.entryDisplayOrder ?: first.entryOrder,
                             firstConfirmedAt = first.entryFirstConfirmedAt,
                             performedAt = first.entryPerformedAt,
-                            backupSourceId = first.entrySourceId
+                            backupSourceId = workoutSourceIdentityProvider.sourceIdForImport(first.entrySourceId)
                         )
                     )
                     importedSets.forEachIndexed { index, row ->

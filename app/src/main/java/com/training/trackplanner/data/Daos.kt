@@ -250,8 +250,14 @@ interface WorkoutDao {
 
     suspend fun insertEntry(entry: WorkoutEntry): Long {
         require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
+        require(entry.backupSourceId == null || entry.backupSourceId.isNotBlank()) {
+            "Workout backupSourceId must be null or nonblank."
+        }
         return insertEntryUnchecked(entry)
     }
+
+    @Query("SELECT * FROM workout_entries WHERE backupSourceId IS NULL ORDER BY id")
+    suspend fun entriesMissingBackupSourceId(): List<WorkoutEntry>
 
     @Query("SELECT * FROM workout_entries WHERE id = :entryId LIMIT 1")
     suspend fun findEntryById(entryId: Long): WorkoutEntry?
@@ -264,6 +270,9 @@ interface WorkoutDao {
 
     suspend fun updateEntry(entry: WorkoutEntry) {
         require(entry.exerciseStableKey.isNotBlank()) { "Workout exerciseStableKey must not be blank." }
+        require(entry.backupSourceId == null || entry.backupSourceId.isNotBlank()) {
+            "Workout backupSourceId must be null or nonblank."
+        }
         updateEntryUnchecked(entry)
     }
 

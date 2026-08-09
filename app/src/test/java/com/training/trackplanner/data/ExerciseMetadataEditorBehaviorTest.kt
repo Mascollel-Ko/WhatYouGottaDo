@@ -171,12 +171,19 @@ class ExerciseMetadataEditorBehaviorTest {
 
         val result = repository.resetExerciseMetadataOverride(seed.stableKey)
         val restored = db.exerciseDao().findByStableKey(seed.stableKey)!!
+        val restoredMetadata = db.runtimeExerciseMetadataDao()
+            .findByStableKey(seed.stableKey)!!
+            .toRuntimeMetadata()
 
         assertTrue(result)
-        assertNull(db.runtimeExerciseMetadataDao().findByStableKey(seed.stableKey))
+        assertEquals(
+            CanonicalExerciseMetadataRepositoryProvider.get(context)
+                .runtimeMetadataCatalog()
+                .resolve(seed),
+            restoredMetadata
+        )
         assertEquals(seed.name, restored.name)
         assertEquals(seed.category, restored.category)
-        assertEquals(seed.stableKey, restored.stableKey)
         assertEquals(seed.stableKey, restored.stableKey)
         assertFalse(restored.isActive)
         assertEquals(42L, restored.archivedAt)

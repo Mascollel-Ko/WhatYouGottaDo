@@ -814,6 +814,95 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate28To29AddsExplicitOverrideTableWithoutInferringLegacyOverrides() {
+        helper.createDatabase(TEST_DB_28_29, 28).use { database ->
+            insertRowWithDefaults(
+                database,
+                "exercises",
+                mapOf(
+                    "stableKey" to "migration.exercise",
+                    "name" to "Migration exercise",
+                    "category" to "Strength"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "runtime_exercise_metadata",
+                mapOf(
+                    "stableKey" to "migration.exercise",
+                    "exerciseName" to "Migration exercise",
+                    "programSlot" to "LEGACY_MATERIALIZED_SLOT"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "workout_entries",
+                mapOf(
+                    "id" to 41,
+                    "date" to "2026-08-08",
+                    "exerciseStableKey" to "migration.exercise",
+                    "exerciseName" to "Migration exercise",
+                    "category" to "Strength",
+                    "backupSourceId" to "migration-source:workout_entry:41"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "workout_sets",
+                mapOf("id" to 42, "entryId" to 41, "setIndex" to 1)
+            )
+            insertRowWithDefaults(
+                database,
+                "training_programs",
+                mapOf(
+                    "id" to 43,
+                    "stableKey" to "migration.program",
+                    "name" to "Migration program"
+                )
+            )
+            insertRowWithDefaults(
+                database,
+                "training_program_items",
+                mapOf(
+                    "id" to 44,
+                    "programId" to 43,
+                    "weekNumber" to 1,
+                    "dayOfWeek" to 1,
+                    "orderIndex" to 1,
+                    "exerciseStableKey" to "migration.exercise",
+                    "exerciseName" to "Migration exercise",
+                    "category" to "Strength"
+                )
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB_28_29, 29, true, MIGRATION_28_29).use { database ->
+            check(database.count("exercises") == 1)
+            check(database.count("runtime_exercise_metadata") == 1)
+            check(database.count("workout_entries") == 1)
+            check(database.count("workout_sets") == 1)
+            check(database.count("training_programs") == 1)
+            check(database.count("training_program_items") == 1)
+            check(database.count("exercise_metadata_user_overrides") == 0)
+            check(
+                database.foreignKeyTarget("exercise_metadata_user_overrides", "stableKey") == "exercises"
+            )
+            database.query("PRAGMA index_list(`exercise_metadata_user_overrides`)").use { cursor ->
+                val nameIndex = cursor.getColumnIndexOrThrow("name")
+                val indexes = buildSet {
+                    while (cursor.moveToNext()) add(cursor.getString(nameIndex))
+                }
+                check("index_exercise_metadata_user_overrides_stableKey" in indexes)
+            }
+            check(
+                database.singleString(
+                    "SELECT programSlot FROM runtime_exercise_metadata WHERE stableKey = 'migration.exercise'"
+                ) == "LEGACY_MATERIALIZED_SLOT"
+            )
+        }
+    }
+
     private fun SupportSQLiteDatabase.foreignKeyTarget(table: String, column: String): String? =
         query("PRAGMA foreign_key_list(`$table`)").use { cursor ->
             val tableIndex = cursor.getColumnIndexOrThrow("table")
@@ -907,6 +996,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_25_26 = "training-migration-25-26-test"
         const val TEST_DB_26_27 = "training-migration-26-27-test"
         const val TEST_DB_27_28 = "training-migration-27-28-test"
+        const val TEST_DB_28_29 = "training-migration-28-29-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

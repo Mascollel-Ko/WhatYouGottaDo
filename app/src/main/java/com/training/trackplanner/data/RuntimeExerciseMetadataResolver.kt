@@ -369,7 +369,9 @@ data class ExerciseRuntimeMetadataEditorData(
     val exercise: Exercise,
     val metadata: RuntimeExerciseMetadata,
     val options: RuntimeMetadataEditorOptions,
-    val copySources: List<ExerciseMetadataCopySource> = emptyList()
+    val copySources: List<ExerciseMetadataCopySource> = emptyList(),
+    val originalExercise: Exercise = exercise,
+    val originalMetadata: RuntimeExerciseMetadata = metadata
 )
 
 data class ExerciseMetadataCopySource(

@@ -24,6 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         AppMeta::class,
         InitialUserProfile::class,
         RuntimeExerciseMetadataEntity::class,
+        ExerciseMetadataUserOverrideEntity::class,
         ExerciseTrainingRoleRelation::class,
         ExerciseProgramSlotCapabilityRelation::class,
         StrengthPosteriorEventEntity::class,
@@ -36,7 +37,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StrengthExercisePerformanceHistoryEntity::class,
         StrengthProxyTransferHistoryEntity::class
     ],
-    version = 28,
+    version = 29,
     exportSchema = true
 )
 @TypeConverters(RuntimeMetadataTypeConverters::class)
@@ -51,6 +52,7 @@ abstract class TrainingDatabase : RoomDatabase() {
     abstract fun appMetaDao(): AppMetaDao
     abstract fun initialUserProfileDao(): InitialUserProfileDao
     abstract fun runtimeExerciseMetadataDao(): RuntimeExerciseMetadataDao
+    abstract fun exerciseMetadataUserOverrideDao(): ExerciseMetadataUserOverrideDao
     abstract fun exerciseRoleRelationDao(): ExerciseRoleRelationDao
     abstract fun strengthPosteriorDao(): StrengthPosteriorDao
 
@@ -841,7 +843,8 @@ abstract class TrainingDatabase : RoomDatabase() {
                         MIGRATION_24_25,
                         MIGRATION_25_26,
                         MIGRATION_26_27,
-                        MIGRATION_27_28
+                        MIGRATION_27_28,
+                        MIGRATION_28_29
                     )
                     .build()
                     .also { instance = it }
