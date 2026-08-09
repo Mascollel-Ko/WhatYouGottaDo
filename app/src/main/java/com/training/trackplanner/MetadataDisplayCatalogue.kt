@@ -103,9 +103,14 @@ internal class MetadataDisplayCatalogue private constructor(
     fun label(field: MetadataDisplayField, canonicalCode: String): String {
         val code = canonicalCode.trim()
         if (code.isEmpty()) return ""
-        val key = MetadataKey(field, canonicalCodeForLookup(field, code))
-        return localized[key]
+        return registeredLabel(field, code)
             ?: if (code.contains(KOREAN_TEXT)) code else unknownValueLabel(code)
+    }
+
+    fun registeredLabel(field: MetadataDisplayField, canonicalCode: String): String? {
+        val code = canonicalCode.trim()
+        if (code.isEmpty()) return null
+        return localized[MetadataKey(field, canonicalCodeForLookup(field, code))]
     }
 
     fun option(field: MetadataDisplayField, canonicalCode: String): MetadataDisplayOption {
@@ -177,8 +182,8 @@ internal class MetadataDisplayCatalogue private constructor(
                 englishAliases = parseAliases(
                     englishResources.getStringArray(R.array.metadata_display_alias_entries)
                 ),
-                unknownValueLabel = { code ->
-                    localizedResources.getString(R.string.metadata_unknown_value, code)
+                unknownValueLabel = {
+                    localizedResources.getString(R.string.metadata_unknown_value)
                 }
             )
         }

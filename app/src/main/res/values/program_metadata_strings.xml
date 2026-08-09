@@ -15,7 +15,10 @@
     <string name="program_notice_info_description">구성 정보</string>
     <string name="program_notice_warning_description">확인 필요</string>
     <string name="metadata_not_selected">선택 안 함</string>
-    <string name="metadata_unknown_value">등록되지 않은 값 · %1$s</string>
+    <string name="metadata_unknown_value">등록되지 않은 값</string>
+    <string name="metadata_boolean_true">예</string>
+    <string name="metadata_boolean_false">아니요</string>
+    <string name="metadata_duration_seconds">%1$s초</string>
     <string name="metadata_search">검색</string>
     <string name="metadata_clear_all">모두 해제</string>
     <string name="metadata_apply">적용</string>

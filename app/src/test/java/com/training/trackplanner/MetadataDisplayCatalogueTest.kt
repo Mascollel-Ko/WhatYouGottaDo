@@ -142,7 +142,7 @@ class MetadataDisplayCatalogueTest {
         )
         val unknown = korean.option(MetadataDisplayField.PROGRAM_SLOT, "FUTURE_SLOT_CODE")
         assertEquals("FUTURE_SLOT_CODE", unknown.code)
-        assertEquals("등록되지 않은 값 · FUTURE_SLOT_CODE", unknown.label)
+        assertEquals("등록되지 않은 값", unknown.label)
         assertTrue(unknown.matches("FUTURE_SLOT_CODE"))
     }
 

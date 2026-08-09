@@ -16,7 +16,10 @@
     <string name="program_notice_info_description">Program information</string>
     <string name="program_notice_warning_description">Needs attention</string>
     <string name="metadata_not_selected">Not selected</string>
-    <string name="metadata_unknown_value">Unregistered value · %1$s</string>
+    <string name="metadata_unknown_value">Unregistered value</string>
+    <string name="metadata_boolean_true">Yes</string>
+    <string name="metadata_boolean_false">No</string>
+    <string name="metadata_duration_seconds">%1$s sec</string>
     <string name="metadata_search">Search</string>
     <string name="metadata_clear_all">Clear all</string>
     <string name="metadata_apply">Apply</string>

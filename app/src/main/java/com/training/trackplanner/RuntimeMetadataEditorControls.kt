@@ -299,6 +299,13 @@ internal fun rememberMetadataDisplayCatalogue(): MetadataDisplayCatalogue {
     return remember(locale) { MetadataDisplayCatalogue.from(context) }
 }
 
+@Composable
+internal fun rememberMetadataTranslator(): MetadataTranslator {
+    val context = LocalContext.current
+    val locale = context.resources.configuration.locales[0]
+    return remember(locale) { MetadataTranslator.from(context) }
+}
+
 private fun displayOptions(
     catalogue: MetadataDisplayCatalogue,
     field: MetadataDisplayField?,
