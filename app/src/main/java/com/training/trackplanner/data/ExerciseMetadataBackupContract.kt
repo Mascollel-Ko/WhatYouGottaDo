@@ -3,9 +3,11 @@ package com.training.trackplanner.data
 enum class ExerciseMetadataFieldPolicy {
     IDENTITY_STABLE,
     CURRENT_CANONICAL_NAME,
-    BACKUP_SNAPSHOT_WINS,
+    USER_OVERRIDE_ELIGIBLE,
+    USER_STATE,
     CURRENT_CANONICAL_SYSTEM_VALUE,
-    DERIVED_REBUILD
+    DERIVED_REBUILD,
+    FULL_SNAPSHOT_FOR_CUSTOM_OR_CATALOGUE_MISSING
 }
 
 enum class ExerciseMetadataFieldScope {
@@ -24,6 +26,34 @@ enum class ExerciseMetadataValueEncoding {
     LONG,
     DOUBLE,
     TOKEN_SET
+}
+
+enum class ExerciseMetadataValueKind {
+    CANONICAL_TOKEN,
+    CANONICAL_TOKEN_SET,
+    FREE_TEXT,
+    INTEGER,
+    DECIMAL,
+    BOOLEAN,
+    DURATION,
+    EXERCISE_REFERENCE,
+    INTERNAL_IDENTIFIER
+}
+
+enum class ExerciseMetadataLocalizationMode {
+    METADATA_DISPLAY_CATALOGUE,
+    EXERCISE_NAME_CATALOGUE,
+    ANDROID_STRING_RESOURCE,
+    LOCALE_FORMATTER,
+    USER_TEXT_PASSTHROUGH,
+    NEVER_DISPLAY
+}
+
+enum class ExerciseMetadataDisplayDisposition {
+    PRODUCTION_UI,
+    ADVANCED_EDITOR,
+    INTERNAL_ADMIN,
+    NON_DISPLAY_IDENTIFIER
 }
 
 data class ExerciseMetadataSnapshotRow(
@@ -53,7 +83,18 @@ internal data class ExerciseMetadataFieldDefinition(
     val policy: ExerciseMetadataFieldPolicy,
     val valueEncoding: ExerciseMetadataValueEncoding,
     val read: ((ExerciseMetadataSnapshotSource) -> String)? = null,
-    val write: ((ExerciseMetadataRestoreTarget, String) -> Unit)? = null
+    val write: ((ExerciseMetadataRestoreTarget, String) -> Unit)? = null,
+    val valueKind: ExerciseMetadataValueKind = valueKindFor(fieldKey, valueEncoding),
+    val displayDomain: String = displayDomainFor(fieldKey),
+    val localizationMode: ExerciseMetadataLocalizationMode = localizationModeFor(fieldKey),
+    val displayDisposition: ExerciseMetadataDisplayDisposition = displayDispositionFor(fieldKey),
+    val allowsUserFreeText: Boolean = fieldKey in FREE_TEXT_FIELDS,
+    val supportsExplicitEmpty: Boolean = policy == ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE &&
+        valueEncoding in setOf(ExerciseMetadataValueEncoding.STRING, ExerciseMetadataValueEncoding.TOKEN_SET),
+    val preservesTokenOrder: Boolean = false,
+    val editorWritable: Boolean = fieldKey in EDITOR_WRITABLE_FIELDS,
+    val sourceCodeOwner: String = sourceOwnerFor(fieldScope),
+    val semanticNormalizerSchemaVersion: Int = 1
 )
 
 internal object ExerciseMetadataFieldPolicyRegistry {
@@ -66,7 +107,7 @@ internal object ExerciseMetadataFieldPolicyRegistry {
                 require(target.exercise.stableKey == value) { "Exercise stableKey cannot change during restore." }
             }
         )
-        identity(
+        fullSnapshot(
             "identity.isCustom",
             ExerciseMetadataFieldScope.EXERCISE,
             ExerciseMetadataValueEncoding.BOOLEAN,
@@ -140,9 +181,9 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         exerciseString("exercise.planningEligibility", { it.planningEligibility }) { target, value -> target.copy(planningEligibility = value) }
         exerciseString("exercise.metadataConfidence", { it.metadataConfidence }) { target, value -> target.copy(metadataConfidence = value) }
         exerciseString("exercise.imageAssetName", { it.imageAssetName }) { target, value -> target.copy(imageAssetName = value) }
-        exerciseBoolean("exercise.isActive", { it.isActive }) { target, value -> target.copy(isActive = value) }
-        exerciseLong("exercise.archivedAt", { it.archivedAt }) { target, value -> target.copy(archivedAt = value) }
-        exerciseBoolean("exercise.needsReview", { it.needsReview }) { target, value -> target.copy(needsReview = value) }
+        userStateBoolean("exercise.isActive", { it.isActive }) { target, value -> target.copy(isActive = value) }
+        userStateLong("exercise.archivedAt", { it.archivedAt }) { target, value -> target.copy(archivedAt = value) }
+        userStateBoolean("exercise.needsReview", { it.needsReview }) { target, value -> target.copy(needsReview = value) }
 
         canonicalName(
             "runtime.exerciseName",
@@ -166,7 +207,7 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         runtimeTokens("runtime.jointImpactStressTags", { it.jointImpactStressTags }) { target, value -> target.copy(jointImpactStressTags = value) }
         runtimeTokens("runtime.cognitiveStressTags", { it.cognitiveStressTags }) { target, value -> target.copy(cognitiveStressTags = value) }
         runtimeTokens("runtime.sportContextTags", { it.sportContextTags }) { target, value -> target.copy(sportContextTags = value) }
-        systemRuntimeString("runtime.recoveryDecayProfile", { it.recoveryDecayProfile }) { target, value -> target.copy(recoveryDecayProfile = value) }
+        runtimeString("runtime.recoveryDecayProfile", { it.recoveryDecayProfile }) { target, value -> target.copy(recoveryDecayProfile = value) }
         runtimeString("runtime.stressMagnitudeHint", { it.stressMagnitudeHint }) { target, value -> target.copy(stressMagnitudeHint = value) }
         runtimeString("runtime.badmintonTransferLevel", { it.badmintonTransferLevel }) { target, value -> target.copy(badmintonTransferLevel = value) }
         runtimeTokens("runtime.badmintonTransferType", { it.badmintonTransferType }) { target, value -> target.copy(badmintonTransferType = value) }
@@ -277,7 +318,36 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         }
     }
 
-    fun hasBackupOwnedFields(): Boolean = fields.any { it.policy == ExerciseMetadataFieldPolicy.BACKUP_SNAPSHOT_WINS }
+    fun hasBackupOwnedFields(): Boolean = fields.any { it.policy == ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE }
+
+    fun editorWritableDefinitions(): List<ExerciseMetadataFieldDefinition> =
+        fields.filter { it.editorWritable }
+
+    fun semanticProjection(): String = fields.sortedWith(fieldOrder).joinToString("\n") { field ->
+        listOf(
+            field.fieldScope.name,
+            field.fieldKey,
+            field.policy.name,
+            field.valueEncoding.name,
+            field.valueKind.name,
+            field.allowsUserFreeText,
+            field.supportsExplicitEmpty,
+            field.preservesTokenOrder,
+            field.editorWritable,
+            field.semanticNormalizerSchemaVersion
+        ).joinToString("|")
+    }
+
+    fun displayProjection(): String = fields.sortedWith(fieldOrder).joinToString("\n") { field ->
+        listOf(
+            field.fieldScope.name,
+            field.fieldKey,
+            field.valueKind.name,
+            field.displayDomain,
+            field.localizationMode.name,
+            field.displayDisposition.name
+        ).joinToString("|")
+    }
 
     private fun MutableList<ExerciseMetadataFieldDefinition>.identity(
         key: String,
@@ -286,6 +356,23 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         read: (ExerciseMetadataSnapshotSource) -> String,
         write: ((ExerciseMetadataRestoreTarget, String) -> Unit)? = null
     ) = add(ExerciseMetadataFieldDefinition(key, scope, ExerciseMetadataFieldPolicy.IDENTITY_STABLE, encoding, read, write))
+
+    private fun MutableList<ExerciseMetadataFieldDefinition>.fullSnapshot(
+        key: String,
+        scope: ExerciseMetadataFieldScope,
+        encoding: ExerciseMetadataValueEncoding,
+        read: (ExerciseMetadataSnapshotSource) -> String,
+        write: ((ExerciseMetadataRestoreTarget, String) -> Unit)? = null
+    ) = add(
+        ExerciseMetadataFieldDefinition(
+            key,
+            scope,
+            ExerciseMetadataFieldPolicy.FULL_SNAPSHOT_FOR_CUSTOM_OR_CATALOGUE_MISSING,
+            encoding,
+            read,
+            write
+        )
+    )
 
     private fun MutableList<ExerciseMetadataFieldDefinition>.canonicalName(
         key: String,
@@ -333,6 +420,43 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         write: (Exercise, Double) -> Exercise
     ) = backup(key, ExerciseMetadataFieldScope.EXERCISE, ExerciseMetadataValueEncoding.DOUBLE, { read(it.exercise).toString() }) { target, value -> target.exercise = write(target.exercise, value.toDoubleOrNull()?.takeIf(Double::isFinite) ?: error("Invalid double metadata: $key")) }
 
+    private fun MutableList<ExerciseMetadataFieldDefinition>.userStateBoolean(
+        key: String,
+        read: (Exercise) -> Boolean,
+        write: (Exercise, Boolean) -> Exercise
+    ) = add(
+        ExerciseMetadataFieldDefinition(
+            key,
+            ExerciseMetadataFieldScope.EXERCISE,
+            ExerciseMetadataFieldPolicy.USER_STATE,
+            ExerciseMetadataValueEncoding.BOOLEAN,
+            { read(it.exercise).toString() },
+            { target, value -> target.exercise = write(target.exercise, value.requiredBoolean(key)) }
+        )
+    )
+
+    private fun MutableList<ExerciseMetadataFieldDefinition>.userStateLong(
+        key: String,
+        read: (Exercise) -> Long?,
+        write: (Exercise, Long?) -> Exercise
+    ) = add(
+        ExerciseMetadataFieldDefinition(
+            key,
+            ExerciseMetadataFieldScope.EXERCISE,
+            ExerciseMetadataFieldPolicy.USER_STATE,
+            ExerciseMetadataValueEncoding.LONG,
+            { read(it.exercise)?.toString().orEmpty() },
+            { target, value ->
+                target.exercise = write(
+                    target.exercise,
+                    value.takeIf(String::isNotEmpty)?.toLongOrNull()
+                        ?: value.takeIf(String::isEmpty)?.let { null }
+                        ?: error("Invalid long metadata: $key")
+                )
+            }
+        )
+    )
+
     private fun MutableList<ExerciseMetadataFieldDefinition>.runtimeString(
         key: String,
         read: (RuntimeExerciseMetadata) -> String,
@@ -358,7 +482,7 @@ internal object ExerciseMetadataFieldPolicyRegistry {
         encoding: ExerciseMetadataValueEncoding,
         read: (ExerciseMetadataSnapshotSource) -> String,
         write: ((ExerciseMetadataRestoreTarget, String) -> Unit)?
-    ) = add(ExerciseMetadataFieldDefinition(key, scope, ExerciseMetadataFieldPolicy.BACKUP_SNAPSHOT_WINS, encoding, read, write))
+    ) = add(ExerciseMetadataFieldDefinition(key, scope, ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE, encoding, read, write))
 
     private fun MutableList<ExerciseMetadataFieldDefinition>.system(key: String, scope: ExerciseMetadataFieldScope) =
         add(ExerciseMetadataFieldDefinition(key, scope, ExerciseMetadataFieldPolicy.CURRENT_CANONICAL_SYSTEM_VALUE, ExerciseMetadataValueEncoding.STRING))
@@ -394,6 +518,113 @@ internal object ExerciseMetadataFieldPolicyRegistry {
             .sorted()
             .joinToString("|")
     }
+
+    private val fieldOrder = compareBy<ExerciseMetadataFieldDefinition>({ it.fieldScope.name }, { it.fieldKey })
+}
+
+private val FREE_TEXT_FIELDS = setOf(
+    "exercise.category",
+    "exercise.detail1",
+    "exercise.detail2",
+    "exercise.description"
+)
+
+private val EDITOR_WRITABLE_FIELDS = setOf(
+    "exercise.category",
+    "exercise.description",
+    "exercise.defaultRestSeconds",
+    "exercise.primaryMuscles",
+    "exercise.secondaryMuscles",
+    "exercise.equipment",
+    "exercise.equipmentTags",
+    "exercise.movementPattern",
+    "exercise.movementCategory",
+    "exercise.forceType",
+    "exercise.bodyRegion",
+    "runtime.activityKind",
+    "runtime.planningEligibility",
+    "runtime.movementFamily",
+    "runtime.movementSubtype",
+    "runtime.programSlot",
+    "runtime.redundancyGroup",
+    "runtime.progressMetricType",
+    "runtime.strengthProgressionGroup",
+    "runtime.analysisEligibility",
+    "runtime.primaryStressProfile",
+    "runtime.secondaryStressTags",
+    "runtime.tendonStressTags",
+    "runtime.ligamentJointStabilityStressTags",
+    "runtime.jointImpactStressTags",
+    "runtime.cognitiveStressTags",
+    "runtime.sportContextTags",
+    "runtime.recoveryDecayProfile",
+    "runtime.stressMagnitudeHint",
+    "runtime.badmintonTransferLevel",
+    "runtime.badmintonTransferType",
+    "runtime.badmintonSkillTargets",
+    "runtime.badmintonPhysicalQualities",
+    "runtime.transferConfidence",
+    "runtime.sourceConfidenceLevel",
+    "runtime.finalSourceStatus",
+    "runtime.neuromuscularStressLevel",
+    "runtime.systemicMuscularStressLevel",
+    "runtime.localMuscularStressLevel",
+    "runtime.jointTendonImpactStressLevel",
+    "runtime.movementFocusDemandLevel",
+    "runtime.recoveryDurationClass"
+)
+
+private fun valueKindFor(
+    fieldKey: String,
+    encoding: ExerciseMetadataValueEncoding
+): ExerciseMetadataValueKind = when {
+    fieldKey == "identity.stableKey" -> ExerciseMetadataValueKind.INTERNAL_IDENTIFIER
+    fieldKey.endsWith("exerciseName") || fieldKey == "exercise.name" -> ExerciseMetadataValueKind.EXERCISE_REFERENCE
+    fieldKey in FREE_TEXT_FIELDS -> ExerciseMetadataValueKind.FREE_TEXT
+    encoding == ExerciseMetadataValueEncoding.TOKEN_SET -> ExerciseMetadataValueKind.CANONICAL_TOKEN_SET
+    encoding == ExerciseMetadataValueEncoding.BOOLEAN -> ExerciseMetadataValueKind.BOOLEAN
+    encoding == ExerciseMetadataValueEncoding.INTEGER || encoding == ExerciseMetadataValueEncoding.LONG ->
+        if (fieldKey.contains("Rest") || fieldKey.contains("archivedAt")) ExerciseMetadataValueKind.DURATION
+        else ExerciseMetadataValueKind.INTEGER
+    encoding == ExerciseMetadataValueEncoding.DOUBLE -> ExerciseMetadataValueKind.DECIMAL
+    else -> ExerciseMetadataValueKind.CANONICAL_TOKEN
+}
+
+private fun displayDomainFor(fieldKey: String): String = when {
+    fieldKey.contains("Muscle", ignoreCase = true) -> "MUSCLE"
+    fieldKey.contains("equipment", ignoreCase = true) -> "EQUIPMENT"
+    fieldKey.contains("movementPattern", ignoreCase = true) -> "MOVEMENT_PATTERN"
+    fieldKey.contains("movementCategory", ignoreCase = true) -> "MOVEMENT_CATEGORY"
+    fieldKey.startsWith("runtime.") -> fieldKey.removePrefix("runtime.")
+    fieldKey.startsWith("relation.") -> fieldKey.removePrefix("relation.")
+    else -> fieldKey
+}
+
+private fun localizationModeFor(fieldKey: String): ExerciseMetadataLocalizationMode = when {
+    fieldKey == "exercise.name" || fieldKey.endsWith("exerciseName") ->
+        ExerciseMetadataLocalizationMode.EXERCISE_NAME_CATALOGUE
+    fieldKey in FREE_TEXT_FIELDS -> ExerciseMetadataLocalizationMode.USER_TEXT_PASSTHROUGH
+    fieldKey.startsWith("derived.") || fieldKey == "identity.stableKey" ->
+        ExerciseMetadataLocalizationMode.NEVER_DISPLAY
+    else -> ExerciseMetadataLocalizationMode.METADATA_DISPLAY_CATALOGUE
+}
+
+private fun displayDispositionFor(fieldKey: String): ExerciseMetadataDisplayDisposition = when {
+    fieldKey == "identity.stableKey" || fieldKey.startsWith("derived.") ->
+        ExerciseMetadataDisplayDisposition.NON_DISPLAY_IDENTIFIER
+    fieldKey in EDITOR_WRITABLE_FIELDS -> ExerciseMetadataDisplayDisposition.ADVANCED_EDITOR
+    fieldKey.startsWith("identity.") || fieldKey.startsWith("relation.") ->
+        ExerciseMetadataDisplayDisposition.INTERNAL_ADMIN
+    else -> ExerciseMetadataDisplayDisposition.PRODUCTION_UI
+}
+
+private fun sourceOwnerFor(scope: ExerciseMetadataFieldScope): String = when (scope) {
+    ExerciseMetadataFieldScope.EXERCISE -> "Exercise"
+    ExerciseMetadataFieldScope.RUNTIME_METADATA -> "RuntimeExerciseMetadata"
+    ExerciseMetadataFieldScope.TRAINING_ROLE_RELATION -> "ExerciseTrainingRoleRelation"
+    ExerciseMetadataFieldScope.PROGRAM_SLOT_CAPABILITY_RELATION -> "ExerciseProgramSlotCapabilityRelation"
+    ExerciseMetadataFieldScope.DENORMALIZED_REFERENCE -> "BackupRestoreImportService"
+    ExerciseMetadataFieldScope.DERIVED_ANALYSIS -> "AnalysisRebuild"
 }
 
 private fun String.requiredBoolean(field: String): Boolean = when (this) {

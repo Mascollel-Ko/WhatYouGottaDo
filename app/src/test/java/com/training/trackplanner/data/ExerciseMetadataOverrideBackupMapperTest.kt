@@ -9,11 +9,13 @@ class ExerciseMetadataOverrideBackupMapperTest {
     fun fieldPolicyRegistryHasOneAuthoritativeClassificationPerField() {
         assertEquals(
             mapOf(
-                ExerciseMetadataFieldPolicy.IDENTITY_STABLE to 2,
+                ExerciseMetadataFieldPolicy.IDENTITY_STABLE to 1,
                 ExerciseMetadataFieldPolicy.CURRENT_CANONICAL_NAME to 4,
-                ExerciseMetadataFieldPolicy.BACKUP_SNAPSHOT_WINS to 95,
-                ExerciseMetadataFieldPolicy.CURRENT_CANONICAL_SYSTEM_VALUE to 4,
-                ExerciseMetadataFieldPolicy.DERIVED_REBUILD to 4
+                ExerciseMetadataFieldPolicy.USER_OVERRIDE_ELIGIBLE to 93,
+                ExerciseMetadataFieldPolicy.USER_STATE to 3,
+                ExerciseMetadataFieldPolicy.CURRENT_CANONICAL_SYSTEM_VALUE to 3,
+                ExerciseMetadataFieldPolicy.DERIVED_REBUILD to 4,
+                ExerciseMetadataFieldPolicy.FULL_SNAPSHOT_FOR_CUSTOM_OR_CATALOGUE_MISSING to 1
             ),
             ExerciseMetadataFieldPolicyRegistry.policyCounts()
         )
