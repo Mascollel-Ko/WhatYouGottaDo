@@ -128,6 +128,5 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 - 일반 사용자는 각 문서의 `일반 사용자용 요약`, `출력과 UI 해석`, `알려진 한계`를 먼저 읽을 수 있습니다.
 - 개발자는 계산 계약과 source/test/asset anchor를 함께 확인해야 합니다.
 - 변경은 [`CONTRIBUTING_PROTOCOLS.md`](CONTRIBUTING_PROTOCOLS.md)와 [`PROTOCOL_CHANGE_POLICY.md`](PROTOCOL_CHANGE_POLICY.md)를 따릅니다.
-- 기존 문서 분류는 [`LEGACY_DOCUMENT_MAP.md`](LEGACY_DOCUMENT_MAP.md)에 보존합니다.
 - canonical Markdown은 향후 GitHub Pages, 앱의 `계산 방식` 화면, public review와 issue/PR contribution에 재사용할 수 있습니다.
 - 별도 배포를 만들더라도 이 Markdown repository가 source of truth입니다.

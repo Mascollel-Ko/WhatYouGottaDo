@@ -4932,3 +4932,17 @@ Verification
   `ead6817b83d802766d328d2b8e20eb284820146d81354b5d24718d6a077a4d42`.
 - Final Phase D commit, main integration, tag, push, and CI confirmation remain
   the release Git steps.
+
+## 2026-08-09 - Local outdated-document cleanup
+
+- Started from `5eecdac1d3dc87fe5a8982221b891345a8794710` on
+  `codex/remove-outdated-documents` after stopping the localization task.
+- Removed 225 tracked Markdown documents that were historical release notes,
+  superseded designs, handoffs, phase notes, or unused generated reports.
+- Preserved the canonical protocol library, current metadata authority,
+  current-version release/audit material, current contract-test inputs, and
+  every supporting document registered by the current protocol registry.
+- Removed the stale legacy-document inventory and its index link. Historical
+  files remain recoverable from Git history.
+- Protocol validation passed for 8 families and 33 protocols; no application,
+  Room, asset, test, or version files changed.

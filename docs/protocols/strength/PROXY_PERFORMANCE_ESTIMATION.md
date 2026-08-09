@@ -279,8 +279,7 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 - [`BODYWEIGHT_EFFECTIVE_LOAD.md`](BODYWEIGHT_EFFECTIVE_LOAD.md)
 - [`docs/bayesian_time_series_lab_architecture.md`](../../bayesian_time_series_lab_architecture.md)
 - [`docs/protocols/README.md`](../README.md)
-- [`docs/v0.5.0.3_release_notes.md`](../../v0.5.0.3_release_notes.md)
-- [`docs/v0.5.0.4_release_notes.md`](../../v0.5.0.4_release_notes.md)
+- Historical `v0.5.0.3` and `v0.5.0.4` release notes are available from Git history.
 
 ## 20. 변경 이력
 
