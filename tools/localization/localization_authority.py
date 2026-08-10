@@ -146,15 +146,20 @@ def _resource_key(prefix: str, *parts: str) -> str:
     return f"{prefix}_{digest}"
 
 
-def _android_text(value: str) -> str:
+def _android_text(value: str, escape_literal_percent: bool = True) -> str:
     pieces: list[str] = []
     cursor = 0
     for match in ANDROID_PLACEHOLDER.finditer(value):
-        prefix = value[cursor : match.start()].replace("%", "%%")
+        prefix = value[cursor : match.start()]
+        if escape_literal_percent:
+            prefix = prefix.replace("%", "%%")
         pieces.append(prefix)
         pieces.append(match.group(0))
         cursor = match.end()
-    pieces.append(value[cursor:].replace("%", "%%"))
+    suffix = value[cursor:]
+    if escape_literal_percent:
+        suffix = suffix.replace("%", "%%")
+    pieces.append(suffix)
     normalized = "".join(pieces).replace("\\", "\\\\").replace("'", "\\'")
     return escape(normalized, {"\"": "&quot;"})
 
@@ -162,7 +167,12 @@ def _android_text(value: str) -> str:
 def _xml_strings(entries: list[tuple[str, str]]) -> str:
     lines = ['<?xml version="1.0" encoding="utf-8"?>', "<resources>"]
     for key, value in sorted(entries):
-        lines.append(f'    <string name="{key}">{_android_text(value)}</string>')
+        has_format_argument = ANDROID_PLACEHOLDER.search(value) is not None
+        formatted = ' formatted="false"' if "%" in value and not has_format_argument else ""
+        lines.append(
+            f'    <string name="{key}"{formatted}>'
+            f'{_android_text(value, escape_literal_percent=has_format_argument)}</string>'
+        )
     lines.append("</resources>")
     return "\n".join(lines) + "\n"
 

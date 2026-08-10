@@ -271,7 +271,7 @@
     <string name="loc_baseline_3e1146f68c1d">hiding</string>
     <string name="loc_baseline_3e18ed7e0871">total stress magnitude</string>
     <string name="loc_baseline_3e63d83c5134">Forearm/Grip</string>
-    <string name="loc_baseline_3e83810dcad7">The 80%% interval is an exploratory approximation interval that reflects the residual variance. Values ​​are based on standardized change, and if the sample is small, refer only to the direction.</string>
+    <string name="loc_baseline_3e83810dcad7" formatted="false">The 80% interval is an exploratory approximation interval that reflects the residual variance. Values ​​are based on standardized change, and if the sample is small, refer only to the direction.</string>
     <string name="loc_baseline_3ea504bf348d">csv restoration exercise</string>
     <string name="loc_baseline_3f020f3bc7f4">See reactions after 90+ minutes of court time</string>
     <string name="loc_baseline_3f0226f846c1">There are still insufficient records needed to analyze the cause.</string>
@@ -346,7 +346,7 @@
     <string name="loc_baseline_514992bd220e">As check-in records are accumulated, recovery/condition indicators can also be compared in the laboratory.</string>
     <string name="loc_baseline_51b8c89ae8f9">Fatigue/Recovery</string>
     <string name="loc_baseline_51d57c6047f9">Exploratory lag analysis result</string>
-    <string name="loc_baseline_5241d729bb14">80%% estimated range</string>
+    <string name="loc_baseline_5241d729bb14" formatted="false">80% estimated range</string>
     <string name="loc_baseline_528fb3e67961">high speed footwork</string>
     <string name="loc_baseline_52b1c2cdd0f9">Plans from tomorrow do not significantly conflict with the current state</string>
     <string name="loc_baseline_53094a76aa6a">Weekly court training volume</string>
@@ -445,7 +445,7 @@
     <string name="loc_baseline_68106876f1f0">Landmine Rotation</string>
     <string name="loc_baseline_6826c6cd461c">Weekly Smash Speed ​​Records</string>
     <string name="loc_baseline_682c561bf4f5">next month</string>
-    <string name="loc_baseline_68d2eafed370">The 80%% uncertainty interval is an exploratory approximation and does not establish causality.</string>
+    <string name="loc_baseline_68d2eafed370" formatted="false">The 80% uncertainty interval is an exploratory approximation and does not establish causality.</string>
     <string name="loc_baseline_68f16e2e18e5">Muscles and equipment used</string>
     <string name="loc_baseline_6932505aa01d">Weekly forearm/grip training volume in last 7 days</string>
     <string name="loc_baseline_69dfe37c948d">Badminton weight support 4 weeks</string>
@@ -584,7 +584,7 @@
     <string name="loc_baseline_8a8f0d5d76f0">For fatigue and discomfort, 1 is low and 5 is high. For concentration/motivation, 5 is good.</string>
     <string name="loc_baseline_8a92d9e3ebf8">There is a lot of pressure right now.</string>
     <string name="loc_baseline_8b3566cf00ad">less than 1 week</string>
-    <string name="loc_baseline_8b5494447580">Solid line: Median posterior distribution · Shaded: 80%% range · ○: Direct session observation based on RPE/RIR</string>
+    <string name="loc_baseline_8b5494447580" formatted="false">Solid line: Median posterior distribution · Shaded: 80% range · ○: Direct session observation based on RPE/RIR</string>
     <string name="loc_baseline_8b5d2ab8bde9">elbow</string>
     <string name="loc_baseline_8b785047cbf9">There is no input of discomfort.</string>
     <string name="loc_baseline_8b9c97455202">time correction</string>

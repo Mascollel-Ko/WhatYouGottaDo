@@ -1,11 +1,17 @@
 package com.training.trackplanner
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
@@ -41,6 +47,7 @@ import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.time.LocalDate
+import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -128,7 +135,6 @@ class AnalysisTimeSeriesUiTest {
         compose.onNodeWithText("탐색적 시차 분석 결과").assertIsDisplayed()
         compose.onNodeWithText("실행 분석: 탐색적 국소 투영 호환 모형").assertIsDisplayed()
         compose.onNodeWithText("요청 horizon: 2주 · 실제 horizon: 2주").assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("80% 불확실성 구간은", substring = true))
         compose.onNodeWithText("80% 불확실성 구간은", substring = true).assertExists()
         compose.onNodeWithText("Bayesian 시계열 분석 결과").assertDoesNotExist()
     }
@@ -187,20 +193,27 @@ class AnalysisTimeSeriesUiTest {
     ) {
         compose.setContent {
             val currentDensity = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(currentDensity.density, fontScale)) {
+            val baseContext = LocalContext.current
+            val koreanConfiguration = remember {
+                Configuration(baseContext.resources.configuration).apply { setLocale(Locale.KOREAN) }
+            }
+            val koreanContext = remember { baseContext.createConfigurationContext(koreanConfiguration) }
+            CompositionLocalProvider(
+                LocalContext provides koreanContext,
+                LocalConfiguration provides koreanConfiguration,
+                LocalDensity provides Density(currentDensity.density, fontScale)
+            ) {
                 TrainingTrackPlannerTheme(darkTheme = darkTheme) {
                     Box(Modifier.width(360.dp).height(720.dp)) {
-                        LazyColumn {
-                            item {
-                                LaggedTimeSeriesAnalysisContent(
-                                    summary = summary(),
-                                    executionState = stateProvider(),
-                                    onRequestChanged = {},
-                                    onAnalyze = onAnalyze,
-                                    onRetry = onRetry,
-                                    onCancel = {}
-                                )
-                            }
+                        Column(Modifier.verticalScroll(rememberScrollState())) {
+                            LaggedTimeSeriesAnalysisContent(
+                                summary = summary(),
+                                executionState = stateProvider(),
+                                onRequestChanged = {},
+                                onAnalyze = onAnalyze,
+                                onRetry = onRetry,
+                                onCancel = {}
+                            )
                         }
                     }
                 }

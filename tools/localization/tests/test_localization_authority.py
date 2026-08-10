@@ -60,6 +60,14 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertGreater(kotlin.count("private fun exactUiTextIdsChunk"), 1)
         self.assertIn("putAll(exactUiTextIdsChunk0())", kotlin)
 
+    def test_static_percent_is_literal_while_formatted_percent_is_escaped(self):
+        xml = authority._xml_strings(
+            [("static", "80% range"), ("dynamic", "80% %1$s")]
+        )
+
+        self.assertIn('<string name="static" formatted="false">80% range</string>', xml)
+        self.assertIn('<string name="dynamic">80%% %1$s</string>', xml)
+
 
 if __name__ == "__main__":
     unittest.main()
