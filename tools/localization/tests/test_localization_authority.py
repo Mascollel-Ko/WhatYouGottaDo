@@ -53,6 +53,13 @@ class LocalizationAuthorityTest(unittest.TestCase):
             hashlib.sha256(second[authority.OUTPUTS["kotlin"]].encode()).hexdigest(),
         )
 
+    def test_exact_runtime_catalogue_is_split_into_bounded_initializer_chunks(self):
+        kotlin = authority._artifacts()[authority.OUTPUTS["kotlin"]]
+
+        self.assertIn("val exactUiTextIds: Map<String, Int> = buildMap {", kotlin)
+        self.assertGreater(kotlin.count("private fun exactUiTextIdsChunk"), 1)
+        self.assertIn("putAll(exactUiTextIdsChunk0())", kotlin)
+
 
 if __name__ == "__main__":
     unittest.main()

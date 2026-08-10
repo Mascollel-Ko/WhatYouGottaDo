@@ -466,6 +466,8 @@ def _generated_kotlin(
     program_name_keys: dict[str, str],
     tissue_keys: dict[str, tuple[str, str, str, str]],
 ) -> str:
+    exact_ui_entries = sorted(exact_ui.items())
+    exact_ui_chunks = [exact_ui_entries[index:index + 400] for index in range(0, len(exact_ui_entries), 400)]
     lines = [
         "package com.training.trackplanner.localization",
         "",
@@ -485,13 +487,18 @@ def _generated_kotlin(
         ")",
         "",
         "internal object GeneratedLocalizationCatalogue {",
-        "    val exactUiTextIds: Map<String, Int> = mapOf(",
+        "    val exactUiTextIds: Map<String, Int> = buildMap {",
     ]
-    lines.extend(
-        f'        "{_kotlin_string(source)}" to R.string.{resource},'
-        for source, resource in sorted(exact_ui.items())
-    )
-    lines.extend(["    )", "", "    val uiTextPatterns: List<UiTextPattern> = listOf("])
+    lines.extend(f"        putAll(exactUiTextIdsChunk{index}())" for index in range(len(exact_ui_chunks)))
+    lines.extend(["    }", ""])
+    for index, chunk in enumerate(exact_ui_chunks):
+        lines.append(f"    private fun exactUiTextIdsChunk{index}(): Map<String, Int> = mapOf(")
+        lines.extend(
+            f'        "{_kotlin_string(source)}" to R.string.{resource},'
+            for source, resource in chunk
+        )
+        lines.extend(["    )", ""])
+    lines.append("    val uiTextPatterns: List<UiTextPattern> = listOf(")
     lines.extend(
         f'        UiTextPattern(Regex("{_kotlin_string(regex)}"), R.string.{resource}),'
         for regex, resource in ui_patterns

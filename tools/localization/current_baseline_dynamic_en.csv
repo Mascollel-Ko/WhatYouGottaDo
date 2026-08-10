@@ -256,3 +256,16 @@ target-specific proxy 위반 ${},target-specific proxy violation %1$s,CODEX_GENE
 활성 revision ${} · 상태 ${},Active revision %1$s · Status %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 휴${},Huh%1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RecordSetRow.kt
 휴식 ${},Rest %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+사용 가능한 기간: ${}~${},Available period: %1$s to %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+정렬된 주간 기록: ${}주 · 변환 후 공통 사용 가능: ${}주,Aligned weekly records: %1$s weeks · Common usable after transformation: %2$s weeks,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+요청 기간 추정 행: ${}개 · 현재 조합 최소: ${}개,Estimation rows for requested horizon: %1$s · Minimum for current combination: %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+실행 분석: ${},Executed analysis: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+변환 후 공통 주간: ${}주 · 실제 추정 관측치: ${}개,Common weeks after transformation: %1$s · Actual estimation observations: %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+시차 가중치: ${},Lag weights: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 공적분 진단: ${},Exploratory cointegration diagnostic: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+${} 주간 기록이 없어 분석을 시작할 수 없습니다.,Analysis cannot start because %1$s has no weekly records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+변환 후 공통으로 사용할 수 있는 기록은 ${}주이며 최소 ${}주가 필요합니다.,There are %1$s common usable weeks after transformation; at least %2$s are required.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+시차와 반응 기간을 적용한 추정 행은 ${}개이며 현재 조합에는 최소 ${}개가 필요합니다.,There are %1$s estimation rows after applying the lag and response horizon; the current combination requires at least %2$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+중간 결측 ${}주는 채우지 않으며 실제 추정 행에서 제외합니다.,%1$s internally missing weeks are not filled and are excluded from the actual estimation rows.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+요청한 ${}주 중 현재 자료로는 최대 ${}주까지 추정할 수 있습니다.,Of the requested %1$s weeks the current data support estimation through at most %2$s weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+변환 후 사용할 수 있는 기록 ${}주로는 분석을 완료할 수 없습니다.,The analysis cannot be completed with %1$s usable weeks after transformation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt

@@ -1042,3 +1042,46 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 휴식시간은 0~3600초로 입력하세요.,Enter the rest time between 0 and 3600 seconds.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 흉근,pecs,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 힘/부하 유형,Force/Load Type,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+탐색적 시차 분석,Exploratory lag analysis,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+이 분석은 기록의 탐색적 시차 패턴을 보여 주며 인과관계나 완성된 엄격 Bayesian posterior를 뜻하지 않습니다.,This analysis shows exploratory lag patterns in your records; it does not establish causality or represent a completed strict Bayesian posterior.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+분석 가능 여부를 확인하는 중입니다.,Checking whether the analysis is available.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 분석을 실행하고 있습니다.,Running the exploratory analysis.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+분석할 수 없습니다,Analysis unavailable,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+진단 접기,Hide diagnostics,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+진단 세부정보,Diagnostic details,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+분석 실행 오류,Analysis execution error,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+예상치 못한 내부 오류로 분석을 완료하지 못했습니다.,The analysis could not be completed because of an unexpected internal error.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 시차 분석 결과,Exploratory lag analysis result,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 주간 기록에서 탐색적 시차 반응을 계산했습니다.,Exploratory lag responses were calculated from the selected weekly records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+80% 불확실성 구간은 탐색적 근사이며 인과관계를 확정하지 않습니다.,The 80% uncertainty interval is an exploratory approximation and does not establish causality.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 국소 투영 호환 모형,Exploratory local-projection compatibility model,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 VAR 호환 모형,Exploratory VAR compatibility model,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 VECM 호환 모형,Exploratory VECM compatibility model,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+주간 기록을 정렬하는 중입니다.,Aligning weekly records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+지표의 결측과 변환 가능성을 확인하는 중입니다.,Checking metric gaps and transformation availability.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+분석에 사용할 지표 조합을 확인하는 중입니다.,Checking the metric combination for analysis.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+탐색적 시차 모형을 맞추는 중입니다.,Fitting the exploratory lag model.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+표준화 충격을 확인하는 중입니다.,Identifying the standardized shock.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+반응 경로와 불확실성 구간을 계산하는 중입니다.,Calculating response paths and uncertainty intervals.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+결과를 정리하는 중입니다.,Finalizing the result.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+반응 확인 기간은 1~8주에서 선택해야 합니다.,Select a response horizon from 1 to 8 weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+응답 변수 Y를 하나 이상 선택해 주세요.,Select at least one response variable Y.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택 지표,selected metric,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 지표에 공통으로 정렬할 수 있는 주간 기록이 없습니다.,The selected metrics have no weekly records that can be aligned in common.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 지표 중 현재 분석 경로에서 안전하게 변환할 수 없는 지표가 있습니다.,At least one selected metric cannot be transformed safely by the current analysis route.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 충격 또는 응답 지표의 변화가 부족해 안정적인 시차 반응을 계산할 수 없습니다.,The selected shock or response metric does not vary enough to calculate a stable lag response.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 분석 조건이 유효하지 않습니다.,The selected analysis conditions are invalid.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 지표를 같은 주간 달력에서 정렬할 수 없습니다.,The selected metrics cannot be aligned on the same weekly calendar.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+"필수 X, Y 또는 Z 지표를 준비할 수 없습니다.","A required X, Y, or Z metric could not be prepared.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+필수 지표를 현재 탐색 모형에 맞게 안전하게 준비할 수 없습니다.,A required metric cannot be prepared safely for the current exploratory model.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+시차와 반응 기간을 적용한 추정 행이 최소 조건에 미치지 못했습니다.,The estimation rows remaining after lag and horizon requirements are below the minimum.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+자동 지표 확인 뒤 남은 공통 표본이 부족합니다.,Too few common observations remain after automatic metric screening.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 자료의 변화나 수치 안정성이 충분하지 않습니다.,The selected data do not have enough variation or numerical stability.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+충격 확인에 필요한 탐색 모형을 안정적으로 맞추지 못했습니다.,The exploratory model required for shock identification could not be fitted stably.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 X에서 안정적인 표준화 충격을 확인하지 못했습니다.,A stable standardized shock could not be identified from the selected X.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 Y의 시차 반응을 모든 기간에서 계산하지 못했습니다.,The lag response for the selected Y could not be calculated at every horizon.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+현재 자료에서는 통과한 탐색 모형이 없습니다.,No exploratory model passed with the current data.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+선택한 지표의 주간 기록을 더 쌓은 뒤 다시 확인해 주세요.,Collect more weekly records for the selected metrics and check again.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+통제 변수를 줄이거나 반응 확인 기간을 줄이면 가능한 행이 늘어날 수 있습니다.,Removing controls or reducing the response horizon may increase the available rows.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+기록이 있는 지표를 선택하거나 해당 지표 기록을 더 쌓아 주세요.,Select a metric with records or collect more records for that metric.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+변수 조합을 줄여 다시 시도하거나 기록을 더 쌓아 주세요.,Try again with fewer variables or collect more records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
