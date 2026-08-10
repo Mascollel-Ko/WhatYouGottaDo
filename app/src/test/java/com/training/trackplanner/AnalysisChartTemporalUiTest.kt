@@ -84,6 +84,31 @@ class AnalysisChartTemporalUiTest {
     }
 
     @Test
+    fun visualTickThinningDoesNotChangePlottedPointOrAccessibilityCounts() {
+        val dates = (0L..19L).map { LocalDate.of(2026, 6, 1).plusWeeks(it) }
+        val points = dates.mapIndexed { index, date -> TrendDataPoint(date, 100.0 + index) }
+        val spec = ChartSpec(
+            type = ChartType.LINE,
+            title = "메인 운동 e1RM",
+            lineSeries = listOf(ChartSeries("스쿼트 e1RM", points)),
+            timeGranularity = ChartTimeGranularity.WEEKLY,
+            xDomain = dates
+        )
+        val labels = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            dates,
+            ChartTimeGranularity.WEEKLY,
+            labelWidths = List(dates.size) { 64 },
+            availableWidth = 320,
+            minimumGap = 4
+        )
+
+        assertTrue(labels.size < dates.size)
+        assertEquals(20, spec.lineSeries.single().points.size)
+        assertEquals(20, AnalysisChartTemporalPolicy.domain(spec).size)
+        assertEquals(20, analysisChartContentDescription(spec).split("스쿼트 e1RM").size - 1)
+    }
+
+    @Test
     fun matchingStrengthWeeksResolveToMatchingLabels() {
         val domain = AnalysisChartTemporalPolicy.weeklyDomain(
             listOf(LocalDate.of(2026, 6, 29), LocalDate.of(2026, 7, 13))

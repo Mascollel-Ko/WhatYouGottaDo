@@ -264,11 +264,9 @@ private fun AnalysisTimeAxisLabels(
     granularity: ChartTimeGranularity
 ) {
     if (domain.isEmpty()) return
-    val visible = AnalysisChartTemporalPolicy.axisLabelDates(domain, granularity)
-    val dates = domain.filter { it in visible }
     Layout(
         content = {
-            dates.forEach { date ->
+            domain.forEach { date ->
                 Text(
                     text = AnalysisChartTemporalPolicy.compactAxisLabel(
                         date = date,
@@ -278,27 +276,34 @@ private fun AnalysisTimeAxisLabels(
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = TextAlign.Center,
-                    maxLines = 2
+                    maxLines = 1,
+                    softWrap = false
                 )
             }
         },
         modifier = Modifier.fillMaxWidth()
     ) { measurables, constraints ->
-        val maxLabelWidth = 72.dp.roundToPx()
         val placeables = measurables.map { measurable ->
             measurable.measure(
                 Constraints(
                     minWidth = 0,
-                    maxWidth = maxLabelWidth,
+                    maxWidth = constraints.maxWidth,
                     minHeight = 0,
                     maxHeight = constraints.maxHeight
                 )
             )
         }
-        val height = placeables.maxOfOrNull { it.height } ?: 0
+        val visibleIndices = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            domain = domain,
+            granularity = granularity,
+            labelWidths = placeables.map { it.width },
+            availableWidth = constraints.maxWidth,
+            minimumGap = 4.dp.roundToPx()
+        )
+        val height = visibleIndices.maxOfOrNull { placeables[it].height } ?: 0
         layout(constraints.maxWidth, height) {
-            placeables.forEachIndexed { index, placeable ->
-                val domainIndex = domain.indexOf(dates[index])
+            visibleIndices.forEach { domainIndex ->
+                val placeable = placeables[domainIndex]
                 val center = if (domain.size <= 1) {
                     constraints.maxWidth / 2
                 } else {

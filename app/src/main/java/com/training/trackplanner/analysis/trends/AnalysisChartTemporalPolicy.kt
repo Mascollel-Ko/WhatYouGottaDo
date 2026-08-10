@@ -69,30 +69,44 @@ object AnalysisChartTemporalPolicy {
         }
     }
 
-    fun axisLabelDates(
+    fun visibleAxisLabelIndices(
         domain: List<LocalDate>,
         granularity: ChartTimeGranularity,
-        maxLabels: Int = 8
-    ): Set<LocalDate> {
+        labelWidths: List<Int>,
+        availableWidth: Int,
+        minimumGap: Int = 0
+    ): List<Int> {
         val dates = domain.distinct().sorted()
-        if (dates.size <= maxLabels) return dates.toSet()
-        val selected = linkedSetOf(dates.first(), dates.last())
-        dates.zipWithNext().forEach { (previous, current) ->
-            val monthChanged = when (granularity) {
-                ChartTimeGranularity.DAILY -> YearMonth.from(previous) != YearMonth.from(current)
-                ChartTimeGranularity.WEEKLY ->
-                    owningMonth(previous) != owningMonth(current)
-            }
-            if (monthChanged) selected += current
-        }
-        val targetCount = maxOf(maxLabels, selected.size)
-        if (targetCount > 1) {
-            repeat(targetCount) { index ->
-                val position = index * (dates.lastIndex.toDouble() / (targetCount - 1))
-                selected += dates[position.toInt().coerceIn(dates.indices)]
+        if (dates.isEmpty() || availableWidth <= 0 || labelWidths.size != dates.size) return emptyList()
+        val monthBoundaries = dates.indices.drop(1).filter { index ->
+            when (granularity) {
+                ChartTimeGranularity.DAILY -> YearMonth.from(dates[index - 1]) != YearMonth.from(dates[index])
+                ChartTimeGranularity.WEEKLY -> owningMonth(dates[index - 1]) != owningMonth(dates[index])
             }
         }
-        return selected
+
+        for (stride in 1..dates.size) {
+            val selected = buildList {
+                add(0)
+                var index = stride
+                while (index < dates.lastIndex) {
+                    add(index)
+                    index += stride
+                }
+                if (dates.lastIndex > 0) add(dates.lastIndex)
+            }.distinct().sorted()
+            if (!labelsFit(selected, labelWidths, availableWidth, minimumGap)) continue
+
+            val preferred = selected.toMutableList()
+            monthBoundaries.forEach { boundary ->
+                val expanded = (preferred + boundary).distinct().sorted()
+                if (labelsFit(expanded, labelWidths, availableWidth, minimumGap)) {
+                    preferred += boundary
+                }
+            }
+            return preferred.distinct().sorted()
+        }
+        return listOf(0)
     }
 
     fun compactAxisLabel(
@@ -103,12 +117,9 @@ object AnalysisChartTemporalPolicy {
     ): String = when (granularity) {
         ChartTimeGranularity.DAILY -> buildString {
             append("${date.monthValue}/${date.dayOfMonth}")
-            if (includeWeekday) append("\n${weekday(date.dayOfWeek)}")
+            if (includeWeekday) append(" ${weekday(date.dayOfWeek)}")
         }
-        ChartTimeGranularity.WEEKLY -> {
-            val label = weekLabel(date, includeYear = spansOwningYears(domain)).compactLabel
-            label.substringBeforeLast(" ") + "\n" + label.substringAfterLast(" ")
-        }
+        ChartTimeGranularity.WEEKLY -> weekLabel(date, includeYear = spansOwningYears(domain)).compactLabel
     }
 
     fun detailLabel(
@@ -162,6 +173,28 @@ object AnalysisChartTemporalPolicy {
 
     private fun spansCalendarYears(domain: List<LocalDate>): Boolean =
         domain.map(LocalDate::getYear).distinct().size > 1
+
+    private fun labelsFit(
+        indices: List<Int>,
+        widths: List<Int>,
+        availableWidth: Int,
+        minimumGap: Int
+    ): Boolean {
+        if (indices.isEmpty()) return true
+        var previousRight = Int.MIN_VALUE
+        indices.forEach { index ->
+            val width = widths[index].coerceAtMost(availableWidth)
+            val center = if (widths.lastIndex <= 0) {
+                availableWidth / 2
+            } else {
+                availableWidth * index / widths.lastIndex
+            }
+            val left = (center - width / 2).coerceIn(0, (availableWidth - width).coerceAtLeast(0))
+            if (previousRight != Int.MIN_VALUE && left < previousRight + minimumGap) return false
+            previousRight = left + width
+        }
+        return true
+    }
 
     private fun weekday(dayOfWeek: DayOfWeek): String = when (dayOfWeek) {
         DayOfWeek.MONDAY -> "월"

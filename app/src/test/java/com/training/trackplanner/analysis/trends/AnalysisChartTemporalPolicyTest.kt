@@ -3,7 +3,6 @@ package com.training.trackplanner.analysis.trends
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -56,7 +55,7 @@ class AnalysisChartTemporalPolicyTest {
         val domain = listOf(LocalDate.of(2026, 12, 28), LocalDate.of(2027, 1, 4))
 
         assertEquals(
-            "2026년 12월\n5주",
+            "2026년 12월 5주",
             AnalysisChartTemporalPolicy.compactAxisLabel(
                 domain.first(),
                 ChartTimeGranularity.WEEKLY,
@@ -64,7 +63,7 @@ class AnalysisChartTemporalPolicyTest {
             )
         )
         assertEquals(
-            "2027년 1월\n1주",
+            "2027년 1월 1주",
             AnalysisChartTemporalPolicy.compactAxisLabel(
                 domain.last(),
                 ChartTimeGranularity.WEEKLY,
@@ -92,27 +91,67 @@ class AnalysisChartTemporalPolicyTest {
     }
 
     @Test
-    fun weeklyDensityShowsAllThroughEightAndKeepsBoundariesAfterEight() {
-        val eight = (0L..7L).map { LocalDate.of(2026, 6, 29).plusWeeks(it) }
-        assertEquals(eight.toSet(), AnalysisChartTemporalPolicy.axisLabelDates(eight, ChartTimeGranularity.WEEKLY))
+    fun weeklyDensityUsesActualWidthAndShowsEveryTickWhenTheyFit() {
+        val dates = (0L..8L).map { LocalDate.of(2026, 6, 29).plusWeeks(it) }
 
-        val twelve = (0L..11L).map { LocalDate.of(2026, 6, 29).plusWeeks(it) }
-        val selected = AnalysisChartTemporalPolicy.axisLabelDates(twelve, ChartTimeGranularity.WEEKLY)
-        assertTrue(twelve.first() in selected)
-        assertTrue(twelve.last() in selected)
-        assertTrue(LocalDate.of(2026, 8, 3) in selected)
-        assertFalse(selected.size == twelve.size)
-        assertEquals(12, AnalysisChartTemporalPolicy.weeklyDomain(twelve).size)
+        val selected = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            dates,
+            ChartTimeGranularity.WEEKLY,
+            labelWidths = List(dates.size) { 48 },
+            availableWidth = 640,
+            minimumGap = 4
+        )
+
+        assertEquals(dates.indices.toList(), selected)
+        assertEquals(dates.size, AnalysisChartTemporalPolicy.weeklyDomain(dates).size)
     }
 
     @Test
-    fun dailyDensityKeepsFirstLastAndMonthChangeWithoutDroppingDomainPoints() {
-        val dates = (0L..39L).map { LocalDate.of(2026, 6, 20).plusDays(it) }
-        val selected = AnalysisChartTemporalPolicy.axisLabelDates(dates, ChartTimeGranularity.DAILY)
+    fun weeklyDensityFirstFallsBackToTwoWeekStrideWhenThatFits() {
+        val dates = (0L..8L).map { LocalDate.of(2026, 6, 29).plusWeeks(it) }
 
-        assertTrue(dates.first() in selected)
-        assertTrue(dates.last() in selected)
-        assertTrue(LocalDate.of(2026, 7, 1) in selected)
+        val selected = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            dates,
+            ChartTimeGranularity.WEEKLY,
+            labelWidths = List(dates.size) { 48 },
+            availableWidth = 320,
+            minimumGap = 4
+        )
+
+        assertEquals(listOf(0, 2, 4, 6, 8), selected)
+    }
+
+    @Test
+    fun largeWeeklyLabelsIncreaseStrideAgainUntilTheyFit() {
+        val dates = (0L..8L).map { LocalDate.of(2026, 6, 29).plusWeeks(it) }
+
+        val selected = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            dates,
+            ChartTimeGranularity.WEEKLY,
+            labelWidths = List(dates.size) { 80 },
+            availableWidth = 320,
+            minimumGap = 6
+        )
+
+        assertTrue(selected.size < 5)
+        assertEquals(0, selected.first())
+        assertEquals(dates.lastIndex, selected.last())
+    }
+
+    @Test
+    fun dailyDensityThinsOnlyLabelsWithoutDroppingDomainDates() {
+        val dates = (0L..39L).map { LocalDate.of(2026, 6, 20).plusDays(it) }
+        val selected = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
+            dates,
+            ChartTimeGranularity.DAILY,
+            labelWidths = List(dates.size) { 36 },
+            availableWidth = 320,
+            minimumGap = 4
+        )
+
+        assertEquals(0, selected.first())
+        assertEquals(dates.lastIndex, selected.last())
+        assertTrue(selected.size < dates.size)
         assertEquals(40, AnalysisChartTemporalPolicy.dailyDomain(dates).size)
     }
 }
