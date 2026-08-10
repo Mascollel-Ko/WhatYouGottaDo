@@ -5106,6 +5106,9 @@ Verification
 - `5f2540d`: localized all new states, regenerated canonical localization
   artifacts, and chunked the generated exact-text map to avoid the JVM
   initializer size limit while preserving one runtime lookup map.
+- `48e74d4`: corrected static percentage resource generation so literal `80%`
+  does not render as `80%%`, while formatted dynamic percentages keep their
+  required escaping. The UI harness now fixes its locale and scroll context.
 
 ### Preserved scientific and persistence boundaries
 
@@ -5127,9 +5130,17 @@ Verification
 - `AnalysisTimeSeriesUiTest`: 7 tests passed for blocked, running, request click,
   success, unavailable, failure/retry, large text, and dark theme.
 - Time-series numeric source scanner passed.
-- Localization Python authority/audit suite: 6 tests passed; unexplained English
+- Localization Python authority/audit suite: 7 tests passed; unexplained English
   and production leaks are both zero.
 - Focused Kotlin localization tests and `:app:compileDebugKotlin` passed.
-- Full unit, Android-test compile, assemble, protocol validation, final push,
-  release tag, and CI confirmation are pending final release verification.
+- Focused `*TimeSeries*`: 93 tests, zero failures. Focused `*Analysis*Ui*`: 34
+  tests, zero failures.
+- Full `:app:testDebugUnitTest`: 1,241 tests, zero failures and zero skipped.
+- `:app:compileDebugAndroidTestKotlin` and `:app:assembleDebug` passed.
+- Protocol validation passed for 8 families and 34 protocols.
+- No connected device/emulator was available, so connected instrumentation was
+  not run. JVM Compose UI coverage passed.
+- Debug APK: 51,383,446 bytes, SHA-256
+  `6FA80D0E1A319FE05709BDAECEF0EB765B16BE452FB8CF1AA1A7835119D1EC38`.
+- Final push, release tag, and CI confirmation are pending the release commit.
 - Untracked `app/outputs/` remains untouched and excluded from every commit.
