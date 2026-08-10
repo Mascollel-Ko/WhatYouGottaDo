@@ -15,6 +15,11 @@ import com.training.trackplanner.analysis.coach.RpeAutoregulationSignal
 import com.training.trackplanner.analysis.coach.SleepRecoveryMessageCode
 import com.training.trackplanner.analysis.coach.SleepRecoverySignal
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.DataTransferOperation
+import com.training.trackplanner.data.DataTransferReport
+import com.training.trackplanner.data.DataTransferStage
+import com.training.trackplanner.data.DataTransferStages
+import com.training.trackplanner.data.DataTransferStatus
 import com.training.trackplanner.data.TrainingProgram
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -127,6 +132,71 @@ class LocalizedPresentationTest {
             "Currently RPE: 8.5",
             LocalizedPresentation.uiText(english, "현재 RPE: 8.5")
         )
+    }
+
+    @Test
+    fun compactRecordUnitsUseReviewedEnglishInsteadOfMalformedMachineTranslations() {
+        val english = context(Locale.ENGLISH)
+
+        assertEquals("sec", LocalizedPresentation.uiText(english, "초"))
+        assertEquals("Rest 120", LocalizedPresentation.uiText(english, "휴120"))
+        assertFalse(LocalizedPresentation.uiText(english, "0초").contains("candle"))
+        assertFalse(LocalizedPresentation.uiText(english, "휴120").contains("Huh"))
+    }
+
+    @Test
+    fun dynamicUiTextLocalizesApprovedSemanticArgumentsButPreservesUserText() {
+        val english = context(Locale.ENGLISH)
+
+        assertEquals(
+            "Current status: 8 · low fatigue",
+            LocalizedPresentation.uiText(english, "현재 상태: 8 · 피로도 낮음")
+        )
+        assertEquals(
+            "Projected fatigue after completion: 42 · Expected fatigue is moderate",
+            LocalizedPresentation.uiText(english, "끝나면 예상 피로도: 42 · 예상 피로도 보통")
+        )
+        assertEquals(
+            "Condition · No input",
+            LocalizedPresentation.uiText(english, "컨디션 · 입력값 없음")
+        )
+        assertEquals(
+            "High-speed, reaction Fatigue is high. Be careful.",
+            LocalizedPresentation.uiText(english, "고속, 반응 피로도가 높습니다. 주의하세요.")
+        )
+        assertEquals(
+            "Condition · 사용자가 적은 말",
+            LocalizedPresentation.uiText(english, "컨디션 · 사용자가 적은 말")
+        )
+    }
+
+    @Test
+    fun operationReportLocalizesUserFacingHeadingsAndStagesWithoutChangingDiagnostics() {
+        val english = context(Locale.ENGLISH)
+        val report = DataTransferReport(
+            operationId = "fixture-operation",
+            operation = DataTransferOperation.RESTORE,
+            status = DataTransferStatus.WARNING,
+            startedAt = 10L,
+            completedAt = 20L,
+            fileDisplayName = "records.csv",
+            currentStage = DataTransferStages.POSTRESTORE_VALIDATION,
+            stages = listOf(DataTransferStage(DataTransferStages.READING, 10L, 12L)),
+            entityCounts = mapOf("workoutEntries" to 7)
+        )
+
+        val text = LocalizedPresentation.dataTransferReportText(english, report)
+
+        listOf(
+            "Task: Restore records",
+            "Status: Warning",
+            "Current stage: Post-restore validation",
+            "[Stages]",
+            "Reading file",
+            "[Counts]",
+            "workoutEntries: 7"
+        ).forEach { expected -> assertTrue("missing $expected in $text", expected in text) }
+        assertFalse(text.contains(Regex("[가-힣]")))
     }
 
     @Test

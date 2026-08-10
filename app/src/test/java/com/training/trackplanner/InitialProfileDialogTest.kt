@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import org.junit.Assert.assertEquals
@@ -53,5 +54,20 @@ class InitialProfileDialogTest {
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("평소 운동 강도"))
         compose.onNodeWithText("보통").assertIsSelected()
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun englishProfileLocalizesStaticOptionsAndPreservesUserFreeText() {
+        compose.setContent {
+            TrainingTrackPlannerTheme {
+                InitialProfileDialog(null, onDismiss = {}, onSave = {})
+            }
+        }
+
+        compose.onNodeWithText("Initial profile").assertExists()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Other notes"))
+        compose.onNodeWithText("Other notes").performTextInput("사용자 메모")
+        compose.onNodeWithText("사용자 메모").assertExists()
     }
 }

@@ -70,6 +70,7 @@
     <string name="loc_baseline_0cb7fa5a63cf">This is a small sample result. Scatterplots and correlation coefficients are for reference only.</string>
     <string name="loc_baseline_0cb8c80f5761">Weekly anti-rotation/rotation core training volume in the last 7 days</string>
     <string name="loc_baseline_0cfca26e31f2">full body strain</string>
+    <string name="loc_baseline_0d4f5328ad46">Failed</string>
     <string name="loc_baseline_0d66c478d7b3">Weekly triceps training volume for the last 3 days</string>
     <string name="loc_baseline_0e4433d30664">Although the sample is relatively stable, it does not prove causality or effect.</string>
     <string name="loc_baseline_0eb2e12520be">direct transfer</string>
@@ -122,6 +123,7 @@
     <string name="loc_baseline_1a27358ea7a3">We are calculating badminton training volume trends.</string>
     <string name="loc_baseline_1a5c9d0c476f">main goal</string>
     <string name="loc_baseline_1a72cb6350bf">very tired</string>
+    <string name="loc_baseline_1a7fadc9293f">sec</string>
     <string name="loc_baseline_1a842bb74872">Save the recording period as a program</string>
     <string name="loc_baseline_1aa3a0092113">thigh work</string>
     <string name="loc_baseline_1aa50590ed1e">Direct badminton training amount</string>
@@ -280,6 +282,7 @@
     <string name="loc_baseline_402647ff8dd1">Modify number of times</string>
     <string name="loc_baseline_406963555ca6">Weekly calf training volume in the last 7 days</string>
     <string name="loc_baseline_4092315c85ef">No search results.</string>
+    <string name="loc_baseline_410b08805b12">Unhide</string>
     <string name="loc_baseline_415b09dd3dd4">Enter sleep deprivation/recovery</string>
     <string name="loc_baseline_415c678e0f84">Romanian</string>
     <string name="loc_baseline_417307eba915">3 sets x 3-5 reps · RPE 7.5-8.5</string>
@@ -637,7 +640,6 @@
     <string name="loc_baseline_99b1fb48b807">Edit</string>
     <string name="loc_baseline_99e6c13d1354">Fatigue contribution trend</string>
     <string name="loc_baseline_9ad2ff92bc5c">Bulk Edit</string>
-    <string name="loc_baseline_9b313ca9b63c">candle</string>
     <string name="loc_baseline_9b6d5ddee178">Description/Notes</string>
     <string name="loc_baseline_9ba0f9edf9c4">Reduce high-intensity exercise due to discomfort input.</string>
     <string name="loc_baseline_9c2804cdbe30">reset</string>
@@ -830,6 +832,7 @@
     <string name="loc_baseline_c444d8af8266">female</string>
     <string name="loc_baseline_c46f97a10fdb">Set RPE</string>
     <string name="loc_baseline_c48303d5dbf6">Analysis</string>
+    <string name="loc_baseline_c4bc8695976a">Heavy deadlift</string>
     <string name="loc_baseline_c4dfd12384e8">muscular nervous system</string>
     <string name="loc_baseline_c50900354985">Hide diagnostics</string>
     <string name="loc_baseline_c5549487d67f">It is not a definitive causal relationship, but an exploratory pattern based on weekly records.</string>
@@ -884,8 +887,6 @@
     <string name="loc_baseline_d31ee5be8caa">rest -</string>
     <string name="loc_baseline_d32675bb8ea8">Performed within expectations.</string>
     <string name="loc_baseline_d32b67b61518">Weekly adductor/abductor training volume in the last 7 days</string>
-    <string name="loc_baseline_d367d58a0d42">Heavy
-deadlift</string>
     <string name="loc_baseline_d3c717733188">When it\'s over, your expected fatigue will increase. Check whether recovery is incomplete or not in the next day\'s flow.</string>
     <string name="loc_baseline_d3cf16afdf0f">Fatigue is also normal</string>
     <string name="loc_baseline_d43dc5ebd3bf">The growth rate shading is a range of current estimates relative to the previous median, not the exact posterior distribution of growth rates.</string>
@@ -934,6 +935,7 @@ deadlift</string>
     <string name="loc_baseline_de5c4fd42d3f">Acceleration/First Step</string>
     <string name="loc_baseline_deb2214d8958">secondary stress</string>
     <string name="loc_baseline_dee382112efe">analysis target</string>
+    <string name="loc_baseline_deffe1d8cf87">Warning</string>
     <string name="loc_baseline_e02b800dd2e6">the next day</string>
     <string name="loc_baseline_e049d0c7c548">Cancel</string>
     <string name="loc_baseline_e0c8410a8ec1">Leave more room for recovery today.</string>
@@ -982,6 +984,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_eb00476200ad">RIR Policy ${summary.rirPolicyVersion ?:</string>
     <string name="loc_baseline_eb24d2ff9f81">very light</string>
     <string name="loc_baseline_eb3cc90cdf41">Adjust the intensity a little today.</string>
+    <string name="loc_baseline_eba535d029ae">Success</string>
     <string name="loc_baseline_ebba64d68bc3">This is the badminton transfer purpose identified in the existing metadata.</string>
     <string name="loc_baseline_ebc876b5064b">A stable dynamic response cannot be estimated from current data. Please accumulate more records or reduce variables.</string>
     <string name="loc_baseline_ebca623ef022">Create rotation</string>
@@ -2953,6 +2956,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_471cb15cb069">Week %1$s hard day %2$s days exceed the upper allowable limit of %3$s days.</string>
     <string name="loc_ui_pattern_47998e7004b7">Response variable Y: %1$s</string>
     <string name="loc_ui_pattern_47d095462538">Week %1$s day %2$s rehab-like activation occupies the main position.</string>
+    <string name="loc_ui_pattern_47e5e0c6e9d1">Rest %1$s</string>
     <string name="loc_ui_pattern_4a4cdcc88a3d">%1$s Month %2$s Week</string>
     <string name="loc_ui_pattern_4cbbdd01cabe">Model %1$s · Curve %2$s</string>
     <string name="loc_ui_pattern_4d111f456227">Rest %1$s</string>
@@ -3091,7 +3095,6 @@ Week %2$s</string>
     <string name="loc_ui_pattern_c958f97424fd">There are no recent records for %1$s.</string>
     <string name="loc_ui_pattern_c9d27f60a8a2">Exercises %1$s, sets %2$s</string>
     <string name="loc_ui_pattern_cbad4014a900">Observation %1$s · %2$s</string>
-    <string name="loc_ui_pattern_cc81ec44d35b">Huh%1$s</string>
     <string name="loc_ui_pattern_cefe97900d05">%1$s more</string>
     <string name="loc_ui_pattern_cf2efb5ae88e">Role:%1$s</string>
     <string name="loc_ui_pattern_cffd799e2b2d">Previous revision %1$s · Rebuild source %2$s</string>

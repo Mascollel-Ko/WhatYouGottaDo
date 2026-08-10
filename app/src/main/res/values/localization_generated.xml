@@ -70,6 +70,7 @@
     <string name="loc_baseline_0cb7fa5a63cf">소표본 결과입니다. 산점도와 상관계수는 참고용입니다.</string>
     <string name="loc_baseline_0cb8c80f5761">주간 항회전/회전코어 최근 7일 운동량</string>
     <string name="loc_baseline_0cfca26e31f2">전신 부담</string>
+    <string name="loc_baseline_0d4f5328ad46">실패</string>
     <string name="loc_baseline_0d66c478d7b3">주간 삼두 최근 3일 운동량</string>
     <string name="loc_baseline_0e4433d30664">표본은 비교적 안정적이지만 인과관계나 효과를 증명하지 않습니다.</string>
     <string name="loc_baseline_0eb2e12520be">직접 전이</string>
@@ -122,6 +123,7 @@
     <string name="loc_baseline_1a27358ea7a3">배드민턴 훈련량 추세를 계산하고 있습니다.</string>
     <string name="loc_baseline_1a5c9d0c476f">주요 목표</string>
     <string name="loc_baseline_1a72cb6350bf">매우 피곤함</string>
+    <string name="loc_baseline_1a7fadc9293f">초</string>
     <string name="loc_baseline_1a842bb74872">기록 기간을 프로그램으로 저장</string>
     <string name="loc_baseline_1aa3a0092113">대퇴근</string>
     <string name="loc_baseline_1aa50590ed1e">직접 배드민턴 훈련량</string>
@@ -280,6 +282,7 @@
     <string name="loc_baseline_402647ff8dd1">횟수 수정</string>
     <string name="loc_baseline_406963555ca6">주간 종아리 최근 7일 운동량</string>
     <string name="loc_baseline_4092315c85ef">검색 결과가 없습니다.</string>
+    <string name="loc_baseline_410b08805b12">숨김 해제</string>
     <string name="loc_baseline_415b09dd3dd4">수면 부족 / 회복 입력</string>
     <string name="loc_baseline_415c678e0f84">루마니안</string>
     <string name="loc_baseline_417307eba915">3세트 x 3-5회 · RPE 7.5-8.5</string>
@@ -637,7 +640,6 @@
     <string name="loc_baseline_99b1fb48b807">수정</string>
     <string name="loc_baseline_99e6c13d1354">피로 기여도 추이</string>
     <string name="loc_baseline_9ad2ff92bc5c">일괄 편집</string>
-    <string name="loc_baseline_9b313ca9b63c">초</string>
     <string name="loc_baseline_9b6d5ddee178">설명/메모</string>
     <string name="loc_baseline_9ba0f9edf9c4">불편감 입력이 있어 고강도 운동을 줄입니다.</string>
     <string name="loc_baseline_9c2804cdbe30">초기화</string>
@@ -830,6 +832,7 @@
     <string name="loc_baseline_c444d8af8266">여성</string>
     <string name="loc_baseline_c46f97a10fdb">세트 RPE</string>
     <string name="loc_baseline_c48303d5dbf6">분석</string>
+    <string name="loc_baseline_c4bc8695976a">무거운 데드리프트</string>
     <string name="loc_baseline_c4dfd12384e8">근신경계</string>
     <string name="loc_baseline_c50900354985">진단 접기</string>
     <string name="loc_baseline_c5549487d67f">인과관계 확정이 아니라 주간 기록 기반의 탐색적 패턴입니다.</string>
@@ -884,8 +887,6 @@
     <string name="loc_baseline_d31ee5be8caa">휴식 -</string>
     <string name="loc_baseline_d32675bb8ea8">예상 범위 안에서 수행했습니다.</string>
     <string name="loc_baseline_d32b67b61518">주간 내전근/외전근 최근 7일 운동량</string>
-    <string name="loc_baseline_d367d58a0d42">무거운
-데드리프트</string>
     <string name="loc_baseline_d3c717733188">끝나면 예상 피로도 상승입니다. 회복 미완료 여부는 다음 날 흐름에서 확인합니다.</string>
     <string name="loc_baseline_d3cf16afdf0f">피로도 보통</string>
     <string name="loc_baseline_d43dc5ebd3bf">성장률 음영은 이전 중앙값 대비 현재 추정 범위이며 정확한 성장률 사후분포가 아닙니다.</string>
@@ -934,6 +935,7 @@
     <string name="loc_baseline_de5c4fd42d3f">가속/첫 스텝</string>
     <string name="loc_baseline_deb2214d8958">보조 스트레스</string>
     <string name="loc_baseline_dee382112efe">분석 대상</string>
+    <string name="loc_baseline_deffe1d8cf87">경고</string>
     <string name="loc_baseline_e02b800dd2e6">다음날</string>
     <string name="loc_baseline_e049d0c7c548">취소</string>
     <string name="loc_baseline_e0c8410a8ec1">오늘은 회복 여지를 더 남기세요.</string>
@@ -982,6 +984,7 @@
     <string name="loc_baseline_eb00476200ad">RIR 정책 ${summary.rirPolicyVersion ?:</string>
     <string name="loc_baseline_eb24d2ff9f81">매우 가벼움</string>
     <string name="loc_baseline_eb3cc90cdf41">오늘은 강도를 조금 조절하세요.</string>
+    <string name="loc_baseline_eba535d029ae">성공</string>
     <string name="loc_baseline_ebba64d68bc3">기존 메타데이터에서 확인된 배드민턴 전이 목적입니다.</string>
     <string name="loc_baseline_ebc876b5064b">현재 자료로는 안정적인 동적 반응을 추정할 수 없습니다. 기록을 더 쌓거나 변수를 줄여 주세요.</string>
     <string name="loc_baseline_ebca623ef022">회전 생성</string>
@@ -2953,6 +2956,7 @@
     <string name="loc_ui_pattern_471cb15cb069">%1$s주 hard day %2$s일이 허용 상한 %3$s일을 초과합니다.</string>
     <string name="loc_ui_pattern_47998e7004b7">응답 변수 Y: %1$s</string>
     <string name="loc_ui_pattern_47d095462538">%1$s주 %2$s일 rehab-like activation이 메인 위치를 차지합니다.</string>
+    <string name="loc_ui_pattern_47e5e0c6e9d1">휴%1$s</string>
     <string name="loc_ui_pattern_4a4cdcc88a3d">%1$s월 %2$s주</string>
     <string name="loc_ui_pattern_4cbbdd01cabe">모델 %1$s · 곡선 %2$s</string>
     <string name="loc_ui_pattern_4d111f456227">휴식 %1$s</string>
@@ -3091,7 +3095,6 @@
     <string name="loc_ui_pattern_c958f97424fd">최근 %1$s일 기록이 없습니다.</string>
     <string name="loc_ui_pattern_c9d27f60a8a2">운동 %1$s개, 세트 %2$s개</string>
     <string name="loc_ui_pattern_cbad4014a900">관측 %1$s · %2$s</string>
-    <string name="loc_ui_pattern_cc81ec44d35b">휴%1$s</string>
     <string name="loc_ui_pattern_cefe97900d05">외 %1$s개</string>
     <string name="loc_ui_pattern_cf2efb5ae88e">역할:%1$s</string>
     <string name="loc_ui_pattern_cffd799e2b2d">이전 revision %1$s · 재빌드 출처 %2$s</string>

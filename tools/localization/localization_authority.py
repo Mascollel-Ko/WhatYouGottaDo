@@ -179,7 +179,13 @@ def _xml_strings(entries: list[tuple[str, str]]) -> str:
 
 def _csv_rows(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
+        return [
+            {
+                key: value.replace("\r\n", "\n").replace("\r", "\n")
+                for key, value in row.items()
+            }
+            for row in csv.DictReader(handle)
+        ]
 
 
 def _source_template(value: str) -> str:

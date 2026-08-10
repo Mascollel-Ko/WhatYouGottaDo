@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -62,6 +63,7 @@ import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.WorkoutRestoreMode
 import com.training.trackplanner.localization.AppLanguage
 import com.training.trackplanner.localization.AppLanguageRegistry
+import com.training.trackplanner.localization.LocalizedPresentation
 import com.training.trackplanner.localization.localizedUiText
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -527,7 +529,7 @@ private fun CompactHomeActionButton(
 }
 
 @Composable
-private fun TodaySummaryCard(summary: HomeTodaySummaryState) {
+internal fun TodaySummaryCard(summary: HomeTodaySummaryState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -767,7 +769,7 @@ private fun RecordManagementCard(
 }
 
 @Composable
-private fun DataTransferReportDialog(
+internal fun DataTransferReportDialog(
     report: DataTransferReport,
     onDismiss: () -> Unit,
     onSave: () -> Unit
@@ -781,7 +783,7 @@ private fun DataTransferReportDialog(
                 modifier = Modifier
                     .heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState()),
-                text = report.detailText(),
+                text = LocalizedPresentation.dataTransferReportText(LocalContext.current, report),
                 style = MaterialTheme.typography.bodySmall
             )
         },

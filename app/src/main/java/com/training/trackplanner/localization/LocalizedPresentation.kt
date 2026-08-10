@@ -15,6 +15,9 @@ import com.training.trackplanner.analysis.coach.SleepRecoveryMessageCode
 import com.training.trackplanner.analysis.coach.SleepRecoverySignal
 import com.training.trackplanner.analysis.coach.formatOneDecimal
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.DataTransferOperation
+import com.training.trackplanner.data.DataTransferReport
+import com.training.trackplanner.data.DataTransferStatus
 import com.training.trackplanner.data.TrainingProgram
 import java.time.DateTimeException
 import java.time.DayOfWeek
@@ -31,10 +34,61 @@ internal object LocalizedPresentation {
             ?: localizedDateText(context, source)
             ?: GeneratedLocalizationCatalogue.uiTextPatterns.firstNotNullOfOrNull { pattern ->
                 pattern.regex.matchEntire(source)?.let { match ->
-                    context.getString(pattern.text, *match.groupValues.drop(1).toTypedArray())
+                    context.getString(
+                        pattern.text,
+                        *match.groupValues.drop(1)
+                            .map { value -> localizedRuntimeArgument(context, value) }
+                            .toTypedArray()
+                    )
                 }
             }
             ?: source
+
+    fun dataTransferReportText(context: Context, report: DataTransferReport): String = buildString {
+        val operation = uiText(
+            context,
+            if (report.operation == DataTransferOperation.BACKUP) "기록 백업" else "기록 복원"
+        )
+        val status = uiText(
+            context,
+            when (report.status) {
+                DataTransferStatus.RUNNING -> "진행 중"
+                DataTransferStatus.SUCCESS -> "성공"
+                DataTransferStatus.WARNING -> "경고"
+                DataTransferStatus.FAILURE -> "실패"
+            }
+        )
+        appendLine(uiText(context, "작업: $operation"))
+        appendLine(uiText(context, "상태: $status"))
+        appendLine(uiText(context, "작업 ID: ${report.operationId}"))
+        appendLine(uiText(context, "파일: ${report.fileDisplayName.ifBlank { "(알 수 없음)" }}"))
+        appendLine(uiText(context, "시작: ${report.startedAt}"))
+        appendLine(uiText(context, "완료: ${report.completedAt ?: "-"}"))
+        appendLine(uiText(context, "현재 단계: ${uiText(context, report.currentStage)}"))
+        if (report.stages.isNotEmpty()) {
+            appendLine()
+            appendLine(uiText(context, "[단계]"))
+            report.stages.forEach { stage ->
+                val completed = stage.completedAt?.toString() ?: uiText(context, "진행 중")
+                appendLine("- ${uiText(context, stage.name)}: ${stage.startedAt} ~ $completed")
+            }
+        }
+        if (report.entityCounts.isNotEmpty()) {
+            appendLine()
+            appendLine(uiText(context, "[개수]"))
+            report.entityCounts.toSortedMap().forEach { (key, value) -> appendLine("- $key: $value") }
+        }
+        if (report.warnings.isNotEmpty()) {
+            appendLine()
+            appendLine(uiText(context, "[경고]"))
+            report.warnings.forEach { diagnostic -> appendLine("- ${diagnostic.code}") }
+        }
+        if (report.errors.isNotEmpty()) {
+            appendLine()
+            appendLine(uiText(context, "[오류]"))
+            report.errors.forEach { diagnostic -> appendLine("- ${diagnostic.code}") }
+        }
+    }.trimEnd()
 
     fun exerciseName(context: Context, stableKey: String, storedName: String): String =
         GeneratedLocalizationCatalogue.exerciseNameIds[stableKey]
@@ -201,6 +255,19 @@ internal object LocalizedPresentation {
         } catch (_: DateTimeException) {
             null
         }
+    }
+
+    private fun localizedRuntimeArgument(context: Context, source: String): String {
+        fun atomic(value: String): String =
+            GeneratedLocalizationCatalogue.exactUiTextIds[value]
+                ?.let(context::getString)
+                ?: localizedDateText(context, value)
+                ?: value
+
+        val direct = atomic(source)
+        if (direct != source) return direct
+        if (", " !in source) return source
+        return source.split(", ").joinToString(", ", transform = ::atomic)
     }
 
     private fun monthLabel(year: Int?, month: Int, locale: Locale): String {

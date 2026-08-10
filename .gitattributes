@@ -12,3 +12,4 @@ app/src/main/res/values/metadata_display_catalog.xml text eol=lf
 app/src/main/res/values-en/metadata_display_catalog.xml text eol=lf
 docs/metadata_authority/metadata_display_inventory.csv text eol=lf
 docs/metadata_authority/metadata_display_resource_manifest.json text eol=lf
+docs/generated/metadata_field_display_contract.csv text eol=lf

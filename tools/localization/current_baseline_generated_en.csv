@@ -20,9 +20,7 @@ You can leave this screen open while it runs.",CODEX_GENERATED_ENGLISH,app/src/m
 ","Current status
 ",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeScreen.kt
 현재 상태: ,Current status: ,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeScreen.kt
-"무거운
-데드리프트","Heavy
-deadlift",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
+무거운 데드리프트,Heavy deadlift,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 ) { it.label }} 자극이 부족합니다.,) { it.label }} Lack of stimulation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 )} 부담이 함께 누적된 영향일 가능성이 큽니다.,)} It is most likely a cumulative effect of the burden.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 )} 부하에 많이 기여한 기록입니다.,)} This is a record that contributed a lot to the load.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -513,6 +511,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 수행능력 레벨 비교,Performance level comparison,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 숨김,hiding,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
 숨김 보기,Hidden view,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
+숨김 해제,Unhide,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
 스매시 Top3 평균 속도,Smash Top 3 Average Speed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 스매시 속도,smash speed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisLabModels.kt
 스매시 속도 시도 수,Smash Speed ​​Attempts,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
@@ -832,7 +831,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 체크인 지표 고도화,Enhancing check-in indicators,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 체크인에 기록한 주간 평균 수면시간,Average weekly sleep time recorded at check-in,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 체형,form,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
-초,candle,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
+초,sec,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 초기 프로필과 최근 기록을 함께 반영했습니다.,It reflects both initial profiles and recent records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/InitialAdaptationProfile.kt
 초기 프로필과 최근 기록을 함께 보면 조절이 낫습니다.,Adjustment is better when you look at your initial profile and recent history together.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/InitialProfileReadinessAdjuster.kt
 초기 프로필상 현재 부하를 소화할 여지가 있습니다.,"Based on the initial profile, there is room to absorb the current load.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/InitialProfileReadinessAdjuster.kt
@@ -1085,3 +1084,26 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 통제 변수를 줄이거나 반응 확인 기간을 줄이면 가능한 행이 늘어날 수 있습니다.,Removing controls or reducing the response horizon may increase the available rows.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 기록이 있는 지표를 선택하거나 해당 지표 기록을 더 쌓아 주세요.,Select a metric with records or collect more records for that metric.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 변수 조합을 줄여 다시 시도하거나 기록을 더 쌓아 주세요.,Try again with fewer variables or collect more records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
+기록 백업,Record backup,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+기록 복원,Record restore,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+진행 중,In progress,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+성공,Success,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+경고,Warning,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+실패,Failed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+작업 시작,Operation started,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+데이터 불러오기,Loading data,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+무결성 사전검사,Integrity preflight,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+백업 직렬화,Serializing backup,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+파일 쓰기,Writing file,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+작성 결과 재검증,Validating written file,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+파일 읽기,Reading file,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+형식 및 무결성 검사,Format and integrity check,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+복원 계획 생성,Creating restore plan,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+트랜잭션 복원,Transactional restore,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+복원 결과 검증,Validating restored data,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+완료,Completed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+[단계],[Stages],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+[개수],[Counts],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+[경고],[Warnings],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+[오류],[Errors],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+(알 수 없음),(Unknown),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt

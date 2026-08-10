@@ -1,6 +1,7 @@
 import hashlib
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -67,6 +68,16 @@ class LocalizationAuthorityTest(unittest.TestCase):
 
         self.assertIn('<string name="static" formatted="false">80% range</string>', xml)
         self.assertIn('<string name="dynamic">80%% %1$s</string>', xml)
+
+    def test_csv_rows_normalizes_embedded_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.csv"
+            path.write_bytes(b'korean,english\r\n"first\r\nsecond","one\r\ntwo"\r\n')
+
+            self.assertEqual(
+                [{"korean": "first\nsecond", "english": "one\ntwo"}],
+                authority._csv_rows(path),
+            )
 
 
 if __name__ == "__main__":
