@@ -14,6 +14,23 @@ internal enum class BayesianTimeSeriesModel {
     UNAVAILABLE
 }
 
+internal enum class TimeSeriesUnavailableReason {
+    INVALID_REQUEST,
+    NO_ALIGNED_DATA,
+    INSUFFICIENT_USABLE_HISTORY,
+    REQUIRED_SERIES_UNAVAILABLE,
+    TRANSFORMATION_UNAVAILABLE,
+    INCONCLUSIVE_REQUIRED_SERIES,
+    INSUFFICIENT_ROWS_AFTER_LAG_HORIZON,
+    AUTOMATIC_SELECTION_LEFT_INSUFFICIENT_SAMPLE,
+    NUMERICAL_INSTABILITY,
+    BVAR_FIT_FAILED,
+    SHOCK_IDENTIFICATION_FAILED,
+    LOCAL_PROJECTION_FAILED,
+    ALL_ESTIMATORS_FAILED,
+    UNEXPECTED_INTERNAL_ERROR
+}
+
 internal enum class IntegrationOrder {
     I0,
     I1,
@@ -931,5 +948,6 @@ internal data class BayesianTimeSeriesResult(
     val transformations: Map<TrendMetricId, String>,
     val confidence: AnalysisConfidence,
     val warnings: List<String>,
-    val summary: String
+    val summary: String,
+    val unavailableReason: TimeSeriesUnavailableReason? = null
 )

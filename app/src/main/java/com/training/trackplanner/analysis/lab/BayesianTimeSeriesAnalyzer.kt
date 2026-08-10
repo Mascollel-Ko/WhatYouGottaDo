@@ -13,40 +13,45 @@ internal class LegacyTimeSeriesAnalyzer(
 ) {
     fun analyze(
         request: TimeSeriesAnalysisRequest,
-        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
+        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>,
+        onStage: (TimeSeriesExecutionStage) -> Unit = {}
     ): BayesianTimeSeriesResult {
-        val warnings = mutableListOf("Legacy compatibility analysis; exploratory only and not a completed strict Bayesian result.")
+        onStage(TimeSeriesExecutionStage.PREPARING_DATA)
+        val warnings = mutableListOf("Exploratory compatibility analysis; not causal proof or a completed strict Bayesian posterior.")
         if (request.requestedHorizon < MIN_HORIZON || request.requestedHorizon > MAX_HORIZON) {
-            return unavailable(request, warnings + "Requested horizon must be between $MIN_HORIZON and $MAX_HORIZON.")
+            return unavailable(request, TimeSeriesUnavailableReason.INVALID_REQUEST, warnings + "Requested horizon must be between $MIN_HORIZON and $MAX_HORIZON.")
         }
         val requestedHorizon = request.requestedHorizon
         val yMetrics = request.yMetrics.distinct().filter { it != request.xMetric }
-        if (yMetrics.isEmpty()) return unavailable(request, warnings + "Select at least one response Y.")
+        if (yMetrics.isEmpty()) return unavailable(request, TimeSeriesUnavailableReason.REQUIRED_SERIES_UNAVAILABLE, warnings + "Select at least one response Y.")
         val controls = request.controls.distinct().filter { it != request.xMetric && it !in yMetrics }
         val required = listOf(request.xMetric) + yMetrics + controls
         val rawBaseAlignment = alignmentService.align(required, metricSeries)
-            ?: return unavailable(request, warnings + "Selected series have no aligned weekly observations.")
+            ?: return unavailable(request, TimeSeriesUnavailableReason.NO_ALIGNED_DATA, warnings + "Selected series have no aligned weekly observations.")
+        onStage(TimeSeriesExecutionStage.CHECKING_SERIES)
         val levelCatalogAlignment = alignmentService.align(AnalysisMetricRegistry.descriptors.map { it.id }, metricSeries)
             ?.let { alignmentService.restrictToWeeks(it, rawBaseAlignment.weeks) }
-            ?: return unavailable(request, warnings + "Selected series cannot be prepared on one canonical weekly calendar.", rawBaseAlignment)
+            ?: return unavailable(request, TimeSeriesUnavailableReason.REQUIRED_SERIES_UNAVAILABLE, warnings + "Selected series cannot be prepared on one canonical weekly calendar.", rawBaseAlignment)
         val transformationPlan = alignmentService.transformationPlan(levelCatalogAlignment, required.toSet())
         val requiredDiagnostics = required.mapNotNull { transformationPlan.diagnostics[it] }
         if (requiredDiagnostics.any { it.levelOrder == IntegrationOrder.I2_OR_HIGHER }) {
             return unavailable(
                 request,
+                TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE,
                 warnings + "A required X/Y/Z series is I(2) or higher and cannot enter the Bayesian IRF system.",
                 rawBaseAlignment,
                 requiredDiagnostics
             )
         }
         val preparedCatalog = alignmentService.preparedCandidateCatalog(levelCatalogAlignment, transformationPlan)?.preparedSeriesByMetric
-            ?: return unavailable(request, warnings + "TRANSFORMATION_PLAN_UNAVAILABLE: no transformed prepared catalog could be created.", rawBaseAlignment, requiredDiagnostics)
+            ?: return unavailable(request, TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE, warnings + "TRANSFORMATION_PLAN_UNAVAILABLE: no transformed prepared catalog could be created.", rawBaseAlignment, requiredDiagnostics)
         val baseAlignment = alignmentService.alignmentFromPrepared(required, preparedCatalog)
-            ?: return unavailable(request, warnings + "Selected transformed prepared series cannot be aligned on one weekly calendar.", rawBaseAlignment, requiredDiagnostics)
+            ?: return unavailable(request, TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE, warnings + "Selected transformed prepared series cannot be aligned on one weekly calendar.", rawBaseAlignment, requiredDiagnostics)
         if (baseAlignment.weeks.size < MIN_OBSERVATIONS) {
-            return unavailable(request, warnings + "At least 24 transformed aligned weekly observations are required.", baseAlignment, requiredDiagnostics)
+            return unavailable(request, TimeSeriesUnavailableReason.INSUFFICIENT_USABLE_HISTORY, warnings + "At least 24 transformed aligned weekly observations are required.", baseAlignment, requiredDiagnostics)
         }
 
+        onStage(TimeSeriesExecutionStage.SELECTING_MODEL_INPUTS)
         val automaticSelection = endogenousVariableSelector.select(
             xMetric = request.xMetric,
             yMetrics = yMetrics,
@@ -57,17 +62,18 @@ internal class LegacyTimeSeriesAnalyzer(
         )
         val system = choleskyShockIdentifier.canonicalOrder(listOf(request.xMetric) + yMetrics + automaticSelection.metrics)
         val levelAlignment = alignmentService.alignmentFromPrepared(system + controls, levelCatalogAlignment.preparedSeries)
-            ?: return unavailable(request, warnings + "The selected system cannot be aligned without filling missing values.", baseAlignment)
+            ?: return unavailable(request, TimeSeriesUnavailableReason.REQUIRED_SERIES_UNAVAILABLE, warnings + "The selected system cannot be aligned without filling missing values.", baseAlignment)
         val stationaryAlignment = alignmentService.alignmentFromPrepared(system + controls, preparedCatalog)
-            ?: return unavailable(request, warnings + "TRANSFORMATION_MISMATCH: selected system is missing transformed prepared series.", baseAlignment, requiredDiagnostics)
+            ?: return unavailable(request, TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE, warnings + "TRANSFORMATION_MISMATCH: selected system is missing transformed prepared series.", baseAlignment, requiredDiagnostics)
         if (stationaryAlignment.weeks.size < MIN_OBSERVATIONS) {
-            return unavailable(request, warnings + "Aligned transformed data are insufficient after automatic-variable screening.", stationaryAlignment, requiredDiagnostics)
+            return unavailable(request, TimeSeriesUnavailableReason.AUTOMATIC_SELECTION_LEFT_INSUFFICIENT_SAMPLE, warnings + "Aligned transformed data are insufficient after automatic-variable screening.", stationaryAlignment, requiredDiagnostics)
         }
         val diagnostics = system.mapNotNull { metric -> transformationPlan.diagnostics[metric] }
         val mandatoryDiagnostics = diagnostics.filter { it.metric == request.xMetric || it.metric in yMetrics }
         if (mandatoryDiagnostics.any { it.levelOrder == IntegrationOrder.I2_OR_HIGHER }) {
             return unavailable(
                 request,
+                TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE,
                 warnings + "A required X/Y series is I(2) or higher and cannot enter the Bayesian IRF system.",
                 levelAlignment,
                 diagnostics,
@@ -75,6 +81,7 @@ internal class LegacyTimeSeriesAnalyzer(
             )
         }
 
+        onStage(TimeSeriesExecutionStage.FITTING_MODEL)
         val cointegration = cointegrationAnalyzer.analyze(system, levelAlignment, diagnostics)
         val transformations = (system + controls).distinct().associateWith { metric ->
             transformationPlan.plansByMetric[metric]?.transformation?.id.orEmpty()
@@ -82,7 +89,8 @@ internal class LegacyTimeSeriesAnalyzer(
         val lagAndHorizon = selectLagAndHorizon(requestedHorizon, request.xMetric, yMetrics, system, controls, stationaryAlignment)
             ?: return unavailable(
                 request,
-                warnings + "No horizon from h=1 satisfies the Bayesian posterior sample-size conditions.",
+                TimeSeriesUnavailableReason.INSUFFICIENT_ROWS_AFTER_LAG_HORIZON,
+                warnings + "No horizon from h=1 satisfies the exploratory model sample-size conditions.",
                 stationaryAlignment,
                 diagnostics,
                 cointegration = cointegration,
@@ -129,7 +137,7 @@ internal class LegacyTimeSeriesAnalyzer(
                     ),
                     transformations = system.associateWith { "level (VECM long-run system)" },
                     warnings = warnings,
-                    summary = "Bayesian VECM was selected because the I(1) system has supported cointegration."
+                    summary = "An exploratory VECM compatibility estimate was selected for the supported I(1) system."
                 )
             }
             warnings += "Cointegration was supported, but the Bayesian VECM numerical diagnostic failed; differenced Bayesian local projection is shown instead."
@@ -137,10 +145,12 @@ internal class LegacyTimeSeriesAnalyzer(
             warnings += cointegration.message
         }
 
+        onStage(TimeSeriesExecutionStage.IDENTIFYING_SHOCK)
         val referenceLag = lagPosterior.selectedLag ?: lagPosterior.probabilities.maxBy { it.value }.key
         val systemFit = BayesianVarEstimator().fitSystem(stationaryAlignment, system, controls, referenceLag, includeErrorCorrection = false)
             ?: return unavailable(
                 request,
+                TimeSeriesUnavailableReason.BVAR_FIT_FAILED,
                 warnings + "The reduced-form Bayesian system was not stable enough to identify a structural shock.",
                 stationaryAlignment,
                 diagnostics,
@@ -152,6 +162,7 @@ internal class LegacyTimeSeriesAnalyzer(
         val structuralShock = choleskyShockIdentifier.structuralShockSeries(systemFit, system, request.xMetric)
             ?: return unavailable(
                 request,
+                TimeSeriesUnavailableReason.SHOCK_IDENTIFICATION_FAILED,
                 warnings + "Cholesky shock identification failed; no IRF was generated.",
                 stationaryAlignment,
                 diagnostics,
@@ -163,6 +174,7 @@ internal class LegacyTimeSeriesAnalyzer(
         if (!choleskyShockIdentifier.posteriorPredictivePass(systemFit)) {
             warnings += "The Bayesian reduced-form posterior predictive coverage is weak; interpret the response cautiously."
         }
+        onStage(TimeSeriesExecutionStage.BUILDING_RESPONSE)
         val localResponses = localProjectionResponses(
             request.xMetric,
             yMetrics,
@@ -188,7 +200,7 @@ internal class LegacyTimeSeriesAnalyzer(
                 sensitivity = dynamicSensitivity(stationaryAlignment, system, controls, usedHorizon, request.xMetric, yMetrics, lagPosterior, useVecm = false),
                 transformations = transformations,
                 warnings = warnings,
-                summary = "Bayesian local projections estimate each selected response at h=0 through h=$usedHorizon using a Cholesky-identified one-standard-deviation shock."
+                summary = "Exploratory local projections estimate each selected response at h=0 through h=$usedHorizon using a Cholesky-identified standardized shock."
             )
         }
         val bvar = BayesianVarEstimator().estimate(stationaryAlignment, system, controls, referenceLag, usedHorizon, request.xMetric)
@@ -208,11 +220,12 @@ internal class LegacyTimeSeriesAnalyzer(
                 sensitivity = dynamicSensitivity(stationaryAlignment, system, controls, usedHorizon, request.xMetric, yMetrics, lagPosterior, useVecm = false),
                 transformations = transformations,
                 warnings = warnings,
-                summary = "Bayesian VAR fallback is shown because local projection diagnostics were not sufficient."
+                summary = "An exploratory VAR compatibility fallback is shown because local projection diagnostics were not sufficient."
             )
         }
         return unavailable(
             request,
+            TimeSeriesUnavailableReason.ALL_ESTIMATORS_FAILED,
             warnings + "Bayesian local projection and BVAR diagnostics both failed.",
             stationaryAlignment,
             diagnostics,
@@ -366,6 +379,7 @@ internal class LegacyTimeSeriesAnalyzer(
 
     private fun unavailable(
         request: TimeSeriesAnalysisRequest,
+        reason: TimeSeriesUnavailableReason,
         warnings: List<String>,
         alignment: TimeSeriesAlignment? = null,
         diagnostics: List<IntegrationDiagnostic> = emptyList(),
@@ -389,7 +403,8 @@ internal class LegacyTimeSeriesAnalyzer(
         transformations = transformations,
         confidence = AnalysisConfidence.LOW,
         warnings = warnings.distinct(),
-        summary = warnings.last()
+        summary = warnings.last(),
+        unavailableReason = reason
     )
 
     private fun confidence(responses: List<BayesianResponseIrf>): AnalysisConfidence {
