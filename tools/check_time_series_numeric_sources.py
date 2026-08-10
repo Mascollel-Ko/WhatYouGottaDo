@@ -21,6 +21,10 @@ SUPPORT = TARGET / "BayesianTimeSeriesSupport.kt"
 ANALYZER = TARGET / "BayesianTimeSeriesAnalyzer.kt"
 LP = TARGET / "BayesianLocalProjectionEstimator.kt"
 DYNAMIC = TARGET / "BayesianDynamicEstimators.kt"
+ANALYSIS_UI = (
+    ROOT / "app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt",
+    ROOT / "app/src/main/java/com/training/trackplanner/AnalysisScreen.kt",
+)
 
 FORBIDDEN = [
     re.compile(r"MatrixUtils\.inverse"),
@@ -57,6 +61,26 @@ WRAPPER_ONLY = [
 
 def main() -> int:
     violations: list[str] = []
+    ui_forbidden_symbols = (
+        "LegacyTimeSeriesAnalyzer",
+        "BayesianTimeSeriesAnalyzer",
+        "BayesianLocalProjectionEstimator",
+        "BayesianVarEstimator",
+        "BayesianVecmEstimator",
+        "TimeSeriesAlignmentService",
+        "StrictTimeSeriesPreparationPipeline",
+        "PreparedAnalysisContext",
+    )
+    for path in ANALYSIS_UI:
+        text = path.read_text(encoding="utf-8")
+        for symbol in ui_forbidden_symbols:
+            if symbol in text:
+                violations.append(f"{path.relative_to(ROOT)}: Compose analysis UI references heavy time-series authority {symbol}")
+        if "GlobalScope" in text or re.search(r"\bThread\s*\(", text):
+            violations.append(f"{path.relative_to(ROOT)}: Compose analysis UI owns unmanaged concurrency")
+        if re.search(r"onClick\s*=\s*\{[^\r\n}]*\b\w+\.analyze\s*\(", text):
+            violations.append(f"{path.relative_to(ROOT)}: Compose onClick executes a statistical analyzer directly")
+
     wrapper_text = WRAPPER.read_text(encoding="utf-8")
     strict_start = wrapper_text.find("fun strictCholesky")
     regularized_start = wrapper_text.find("fun regularizedCholesky")
@@ -220,8 +244,8 @@ def main() -> int:
 
     if "internal class LegacyTimeSeriesAnalyzer" not in analyzer_text:
         violations.append("BayesianTimeSeriesAnalyzer.kt: app-visible compatibility analyzer must be explicitly legacy")
-    if "Legacy compatibility analysis" not in analyzer_text:
-        violations.append("BayesianTimeSeriesAnalyzer.kt: legacy result must be labeled as compatibility output")
+    if "Exploratory compatibility analysis" not in analyzer_text:
+        violations.append("BayesianTimeSeriesAnalyzer.kt: app-visible legacy result must be labeled as exploratory compatibility output")
 
     for path in TARGET.rglob("*.kt"):
         text = path.read_text(encoding="utf-8")
