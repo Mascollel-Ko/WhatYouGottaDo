@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27 |
-| Last audited commit | ed3b265bd6128099526f6737e590f15b294e126b |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27; adaptive compact controls and temporal axes from v0.5.0.30 |
+| Last audited commit | 45fc91f |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 
 ## Canonical metadata display language (v0.5.0.23, routing v0.5.0.26)
@@ -112,9 +112,10 @@ OFI 기본 요약은 overall 상태 다음에 canonical 다섯 축을
 
 ## 10. 예외 및 fallback
 
-긴 라벨이나 큰 글꼴은 글자를 줄이지 않고 wrapping 또는 기존 scroll
-container로 처리합니다. 아이콘을 표시할 수 없어도 active-locale 탭 라벨과
-content description이 의미를 유지합니다.
+긴 라벨이나 큰 글꼴은 글자를 내부에서 세로 조각으로 나누지 않습니다.
+compact chip/button group은 whole-control wrapping으로 다음 행에 배치하고,
+일반 문단과 설명은 자연스럽게 줄바꿈합니다. 아이콘을 표시할 수 없어도
+active-locale 탭 라벨과 content description이 의미를 유지합니다.
 
 ## 11. 개인화 또는 보정
 
@@ -145,6 +146,14 @@ Material platform 관례에 근거합니다.
   표시합니다. 선택된 값은 editor에서 ellipsis로 숨기지 않습니다.
 - 사용자 화면은 diagnostic, enum, uppercase snake-case code를 직접
   표시하지 않습니다.
+- localized compact control은 가능한 한 한 줄 라벨을 유지하며, 공간이
+  부족하면 단어가 아니라 control 전체를 다음 행으로 이동합니다.
+- temporal chart는 실제 plot 폭, locale, text style, density와 font scale로
+  측정한 label bounds에 따라 visual tick만 줄입니다. Plot point/bar와 실제
+  date domain, accessibility description은 절대 downsample하지 않습니다.
+- 넓은 chart는 모든 tick을 표시하고, 충돌 시 stride 2부터 시작해 필요한
+  만큼만 증가합니다. 첫/마지막과 month boundary는 충돌하지 않을 때만
+  보존합니다.
 
 ## 14. 알려진 한계
 
@@ -163,6 +172,8 @@ Material platform 관례에 근거합니다.
 - 큰 글꼴과 dark theme focused Compose 검증: 구현됨
 - 320dp 폭과 1.5 font scale metadata/program-result 검증: 구현됨
 - grouped exercise information과 field-style metadata selector: 구현됨
+- 320/360/411dp와 large-font whole-control wrapping: 구현됨
+- measured-width daily/weekly visual tick density with full data retention: 구현됨
 
 ## 16. 구현 위치
 
@@ -179,6 +190,11 @@ Material platform 관례에 근거합니다.
 - `app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt`
 - `app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt`
 - `app/src/main/java/com/training/trackplanner/PlanScreen.kt`
+- `app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt`
+- `app/src/main/java/com/training/trackplanner/ExerciseScreen.kt`
+- `app/src/main/java/com/training/trackplanner/RecordDateSection.kt`
+- `app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`
+- `app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`
 - `app/src/main/java/com/training/trackplanner/ui/theme/Theme.kt`
 
 ## 17. 검증 테스트
@@ -192,6 +208,9 @@ Material platform 관례에 근거합니다.
 - `app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`
 - `app/src/test/java/com/training/trackplanner/MetadataTranslatorTest.kt`
 - `app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt`
+- `app/src/test/java/com/training/trackplanner/AdaptiveControlLayoutTest.kt`
+- `app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`
 
 ## 18. 권위 자산
 
@@ -207,9 +226,13 @@ Material platform 관례에 근거합니다.
 - [v0.5.0.14 릴리스 노트](../../v0.5.0.14_release_notes.md)
 - [한국어/영어 localization 계약](LOCALIZATION.md)
 - [v0.5.0.27 릴리스 노트](../../v0.5.0.27_release_notes.md)
+- [v0.5.0.30 릴리스 노트](../../v0.5.0.30_release_notes.md)
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-11): compact controls now wrap as whole items on narrow
+  screens, and temporal chart labels use measured-width tick thinning while
+  retaining every plotted and accessible data value.
 - `1.4.0` (2026-08-10): approved Korean/English runtime localization,
   active-locale accessibility/date presentation, and the compact Home locale
   selector were added without changing identity or calculations.

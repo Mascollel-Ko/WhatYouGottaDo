@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-LOCALIZATION |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.27; correctness hardening from v0.5.0.28 |
-| Last audited commit | 793b2d7824260930866ecab05069b4d6b559d869 |
+| Implemented from app version | v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30 |
+| Last audited commit | ee62896 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | v0.5.0.26 translation-gate audit policy |
 
@@ -81,6 +81,13 @@ content remain verbatim. Metadata keeps `MetadataDisplayCatalogue` and
 `MetadataTranslator`; tissue education keeps its existing stable identity
 overlay.
 
+Dynamic presentation templates localize approved semantic arguments before
+formatting the outer sentence. This prevents an English prefix from being
+combined with Korean fatigue levels, axis labels, metadata values, operation
+statuses, or transfer stages. Values that do not resolve through an approved
+presentation catalogue remain unchanged so user-authored text is not
+translated.
+
 ## 10. 예외 및 fallback
 
 지원하지 않는 단일 locale는 Korean base resource로 fallback합니다. Missing
@@ -125,6 +132,8 @@ Connected cold-launch 검증은 Android emulator가 있을 때만 실행할 수
 - 257 stable-key exercise names: implemented
 - 1,834 metadata rows and 92 tissue education entities: implemented
 - deterministic parity/placeholder/Korean-leak gates: implemented
+- runtime-composed semantic argument localization and operation report labels: implemented
+- English runtime Hangul gate for Home, fatigue, exercise metadata, profile and transfer details: implemented
 
 ## 16. 구현 위치
 
@@ -144,6 +153,7 @@ Connected cold-launch 검증은 Android emulator가 있을 때만 실행할 수
 - `app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationUiTest.kt`
 - `tools/localization/tests/test_localization_authority.py`
 - `tools/localization/tests/test_localization_audit.py`
+- `app/src/test/java/com/training/trackplanner/AdaptiveControlLayoutTest.kt`
 
 ## 18. 권위 자산
 
@@ -161,6 +171,7 @@ hand-maintained authority가 아닙니다.
 - [Localization authority README](../../metadata_authority/README.md)
 - [v0.5.0.27 release notes](../../v0.5.0.27_release_notes.md)
 - [v0.5.0.28 release notes](../../v0.5.0.28_release_notes.md)
+- [v0.5.0.30 release notes](../../v0.5.0.30_release_notes.md)
 
 ## v0.5.0.28 production presentation routing
 
@@ -213,6 +224,10 @@ and are classified separately by the audit.
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-11): dynamic semantic arguments, data-transfer stages,
+  compact record units and management actions were corrected at the approved
+  presentation boundary. Cross-platform authority generation and runtime
+  English Hangul regression gates were strengthened.
 - `1.1.0` (2026-08-10): stable-identity built-in prose, semantic calendar and
   coaching output, approved statistical/fatigue wording, adaptive selector
   layout, and runtime-origin leak auditing were added.

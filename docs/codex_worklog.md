@@ -5144,3 +5144,47 @@ Verification
   `6FA80D0E1A319FE05709BDAECEF0EB765B16BE452FB8CF1AA1A7835119D1EC38`.
 - Final push, release tag, and CI confirmation are pending the release commit.
 - Untracked `app/outputs/` remains untouched and excluded from every commit.
+
+## 2026-08-11 - v0.5.0.30 adaptive UI and English runtime localization hotfix
+
+### Baseline and scope
+
+- Started from latest `origin/main` / v0.5.0.29 at
+  `705a37e625e86219e98ae7fcac82ee109b2dd6a6` on
+  `codex/adaptive-ui-and-english-localization-hotfix`.
+- Verified all seven v0.5.0.29 time-series commits in ancestry and preserved the
+  ViewModel/coordinator/background-service execution boundary.
+- Kept Room 29, backup format 12, restore schema 11, both metadata revisions,
+  strict PHASE A/future PHASE B-E, and all scientific calculations unchanged.
+
+### Commits and implementation
+
+- `8ba392d` `fix(ui): wrap localized controls adaptively`: replaced fixed
+  profile, exercise and record control rows with whole-item wrapping and added
+  narrow/large-font Compose bounds coverage.
+- `45fc91f` `fix(charts): thin temporal labels by measured width`: measured
+  actual labels and thinned only visual ticks; all points, bars, dates, gaps and
+  accessibility descriptions remain complete.
+- `ee62896` `fix(localization): close remaining English runtime leaks`:
+  localized nested semantic values and operation stages, corrected `초` and
+  `휴${}` authority translations, added `Unhide`, regenerated canonical
+  outputs, and restored cross-platform deterministic line endings.
+- Release closeout updates protocol versions, app identity and this worklog.
+
+### Validation
+
+- Focused adaptive, temporal, localization, TimeSeries and Analysis UI suites:
+  passed.
+- Localization authority generation/stale checks and audit: passed; zero
+  unexplained production and English-mode Hangul leaks; 8 Python tests passed.
+- Full `:app:testDebugUnitTest`: 1,255 tests passed.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- `:app:connectedDebugAndroidTest`: passed on `emulator-5554`,
+  `Medium_Phone(AVD)` Android 17, with one environment-gated migration skip and
+  zero failures.
+- Protocol validation passed for 8 families and 34 protocols; the time-series
+  numeric source boundary scan passed.
+- Final debug APK is 51,385,174 bytes with SHA-256
+  `A3AD8183222E8B35321BDBDB12265A530374BE498DECB3DC22631A9F28A1972E`.
+- `app/outputs/` was not staged, modified, or committed.
