@@ -19,6 +19,9 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
+import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisCoordinator
+import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisRequest
+import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisUiState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
@@ -128,6 +131,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _performanceTrendSummary = MutableStateFlow<PerformanceTrendSummary?>(null)
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
+
+    private val timeSeriesAnalysisCoordinator = TimeSeriesAnalysisCoordinator(viewModelScope)
+    internal val timeSeriesAnalysisState: StateFlow<TimeSeriesAnalysisUiState> = timeSeriesAnalysisCoordinator.state
 
     private val _strengthAnalysisRebuildRunning = MutableStateFlow(false)
     val strengthAnalysisRebuildRunning: StateFlow<Boolean> = _strengthAnalysisRebuildRunning.asStateFlow()
@@ -575,6 +581,25 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             refreshAnalysisSummaries()
         }
+    }
+
+    internal fun prepareTimeSeriesAnalysis(request: TimeSeriesAnalysisRequest) {
+        timeSeriesAnalysisCoordinator.updateRequest(
+            request,
+            _performanceTrendSummary.value?.metricSeries.orEmpty()
+        )
+    }
+
+    internal fun runTimeSeriesAnalysis(request: TimeSeriesAnalysisRequest) {
+        timeSeriesAnalysisCoordinator.analyze(request)
+    }
+
+    internal fun retryTimeSeriesAnalysis() {
+        timeSeriesAnalysisCoordinator.retry()
+    }
+
+    internal fun cancelTimeSeriesAnalysis() {
+        timeSeriesAnalysisCoordinator.cancel()
     }
 
     fun retryStrengthAnalysisFromRawHistory() {

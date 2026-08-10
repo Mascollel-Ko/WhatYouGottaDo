@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -34,12 +37,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.AnalysisMetricDescriptor
 import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
-import com.training.trackplanner.analysis.lab.LegacyTimeSeriesAnalyzer
 import com.training.trackplanner.analysis.lab.BayesianTimeSeriesModel
 import com.training.trackplanner.analysis.lab.BayesianTimeSeriesResult
 import com.training.trackplanner.analysis.lab.LaggedTimeSeriesAnalyzer
 import com.training.trackplanner.analysis.lab.LaggedTimeSeriesResult
 import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisRequest
+import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisUiState
+import com.training.trackplanner.analysis.lab.TimeSeriesExecutionStage
+import com.training.trackplanner.analysis.lab.TimeSeriesPreflight
+import com.training.trackplanner.analysis.lab.TimeSeriesPreflightBlocker
+import com.training.trackplanner.analysis.lab.TimeSeriesPreflightBlockerCode
+import com.training.trackplanner.analysis.lab.TimeSeriesPreflightWarning
+import com.training.trackplanner.analysis.lab.TimeSeriesPreflightWarningCode
+import com.training.trackplanner.analysis.lab.TimeSeriesUnavailableReason
 import com.training.trackplanner.analysis.lab.displayLabelKo
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -171,7 +181,14 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
 }
 
 @Composable
-internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
+internal fun LaggedTimeSeriesAnalysisContent(
+    summary: PerformanceTrendSummary,
+    executionState: TimeSeriesAnalysisUiState,
+    onRequestChanged: (TimeSeriesAnalysisRequest) -> Unit,
+    onAnalyze: (TimeSeriesAnalysisRequest) -> Unit,
+    onRetry: () -> Unit,
+    onCancel: () -> Unit
+) {
     val xMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesXMetrics(summary.metricSeries) }
     val responseMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesYMetrics(summary.metricSeries) }
     val controlMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesControlMetrics(summary.metricSeries) }
@@ -183,31 +200,37 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
     var horizon by rememberSaveable { mutableStateOf(2) }
     var showYPicker by rememberSaveable { mutableStateOf(false) }
     var showControlPicker by rememberSaveable { mutableStateOf(false) }
-    var result by remember { mutableStateOf<BayesianTimeSeriesResult?>(null) }
+    val running = executionState is TimeSeriesAnalysisUiState.Running
+    val request = TimeSeriesAnalysisRequest(xMetric, selectedY.toList(), controls.toList(), horizon)
     LaunchedEffect(xMetrics, responseMetrics, controlMetrics) {
         if (xMetric !in xMetrics.map { it.id }) xMetric = defaultX
         selectedY.removeAll { it == xMetric || it !in responseMetrics.map { item -> item.id } }
         if (selectedY.isEmpty()) responseMetrics.firstOrNull { it.id != xMetric }?.let { selectedY.add(it.id) }
         controls.removeAll { it == xMetric || it in selectedY || it !in controlMetrics.map { item -> item.id } }
     }
+    LaunchedEffect(request, summary.metricSeries) {
+        onRequestChanged(request)
+    }
+    DisposableEffect(Unit) {
+        onDispose(onCancel)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         LabLaggedIntroCard()
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Bayesian 시계열 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("탐색적 시차 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 if (xMetrics.isEmpty() || responseMetrics.isEmpty()) {
                     InfoCard("시계열 분석에 사용할 수 있는 주간 지표가 부족합니다.")
                     return@Column
                 }
-                MetricAxisDropdown("충격 변수 X", xMetric, xMetrics) {
+                MetricAxisDropdown("충격 변수 X", xMetric, xMetrics, enabled = !running) {
                     xMetric = it
                     selectedY.removeAll { metric -> metric == it }
                     if (selectedY.isEmpty()) responseMetrics.firstOrNull { item -> item.id != it }?.let { item -> selectedY.add(item.id) }
                     controls.removeAll { metric -> metric == it || metric in selectedY }
-                    result = null
                 }
                 Surface(
-                    modifier = Modifier.fillMaxWidth().clickable { showYPicker = true },
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = !running) { showYPicker = true },
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
@@ -219,7 +242,7 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
                     )
                 }
                 Surface(
-                    modifier = Modifier.fillMaxWidth().clickable { showControlPicker = true },
+                    modifier = Modifier.fillMaxWidth().clickable(enabled = !running) { showControlPicker = true },
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
@@ -233,29 +256,36 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("반응 확인 기간", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { horizon = (horizon - 1).coerceAtLeast(1) }, enabled = horizon > 1) { Text("-") }
+                        TextButton(onClick = { horizon = (horizon - 1).coerceAtLeast(1) }, enabled = !running && horizon > 1) { Text("-") }
                         Text("${horizon}주", modifier = Modifier.padding(top = 12.dp), style = MaterialTheme.typography.labelLarge)
-                        TextButton(onClick = { horizon = (horizon + 1).coerceAtMost(8) }, enabled = horizon < 8) { Text("+") }
+                        TextButton(onClick = { horizon = (horizon + 1).coerceAtMost(8) }, enabled = !running && horizon < 8) { Text("+") }
                     }
                 }
+                TimeSeriesPreflightContent(executionState)
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = selectedY.isNotEmpty(),
-                    onClick = {
-                        result = LegacyTimeSeriesAnalyzer().analyze(
-                            TimeSeriesAnalysisRequest(xMetric, selectedY.toList(), controls.toList(), horizon),
-                            summary.metricSeries
-                        )
-                    }
+                    enabled = selectedY.isNotEmpty() &&
+                        (executionState as? TimeSeriesAnalysisUiState.PreflightReady)?.preflight?.canAnalyze == true,
+                    onClick = { onAnalyze(request) }
                 ) { Text("분석하기") }
                 Text(
-                    "기본 horizon은 2주이며 1~8주에서 선택할 수 있습니다. 자료가 부족하면 가능한 기간으로 자동 축소합니다.",
+                    "이 분석은 기록의 탐색적 시차 패턴을 보여 주며 인과관계나 완성된 엄격 Bayesian posterior를 뜻하지 않습니다.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        result?.let { analysis -> BayesianResultCard(analysis) }
+        when (executionState) {
+            is TimeSeriesAnalysisUiState.Running -> TimeSeriesRunningCard(executionState.stage)
+            is TimeSeriesAnalysisUiState.Success -> ExploratoryTimeSeriesResultCard(
+                executionState.result,
+                executionState.preflight
+            )
+            is TimeSeriesAnalysisUiState.Unavailable -> TimeSeriesUnavailableCard(executionState)
+            is TimeSeriesAnalysisUiState.Failed -> TimeSeriesFailureCard(executionState, onRetry)
+            TimeSeriesAnalysisUiState.Idle,
+            is TimeSeriesAnalysisUiState.PreflightReady -> Unit
+        }
     }
     if (showYPicker) {
         MetricMultiSelectDialog(
@@ -268,7 +298,6 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
                     selectedY.clear()
                     selectedY.addAll(selected)
                     controls.removeAll { it in selectedY }
-                    result = null
                 }
                 showYPicker = false
             }
@@ -283,10 +312,104 @@ internal fun LaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSummary) {
             onApply = { selected ->
                 controls.clear()
                 controls.addAll(selected)
-                result = null
                 showControlPicker = false
             }
         )
+    }
+}
+
+@Composable
+private fun TimeSeriesPreflightContent(state: TimeSeriesAnalysisUiState) {
+    val preflight = when (state) {
+        is TimeSeriesAnalysisUiState.PreflightReady -> state.preflight
+        is TimeSeriesAnalysisUiState.Running -> state.preflight
+        is TimeSeriesAnalysisUiState.Success -> state.preflight
+        is TimeSeriesAnalysisUiState.Unavailable -> state.preflight
+        is TimeSeriesAnalysisUiState.Failed -> state.preflight
+        TimeSeriesAnalysisUiState.Idle -> null
+    }
+    if (preflight == null) {
+        Text("분석 가능 여부를 확인하는 중입니다.", style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    preflight.availableFrom?.let { start ->
+        preflight.availableUntil?.let { end ->
+            Text("사용 가능한 기간: $start~$end", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+    Text(
+        "정렬된 주간 기록: ${preflight.alignedWeeks}주 · 변환 후 공통 사용 가능: ${preflight.transformedUsableWeeks}주",
+        style = MaterialTheme.typography.labelSmall
+    )
+    Text(
+        "요청 기간 추정 행: ${preflight.requestedEstimatorRows}개 · 현재 조합 최소: ${preflight.requiredMinimumRows}개",
+        style = MaterialTheme.typography.labelSmall
+    )
+    preflight.blockers.forEach { blocker ->
+        Text(
+            preflightBlockerMessage(blocker),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+    preflight.warnings.forEach { warning ->
+        Text(
+            preflightWarningMessage(warning),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun TimeSeriesRunningCard(stage: TimeSeriesExecutionStage) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("탐색적 분석을 실행하고 있습니다.", fontWeight = FontWeight.SemiBold)
+                Text(timeSeriesStageLabel(stage), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeSeriesUnavailableCard(state: TimeSeriesAnalysisUiState.Unavailable) {
+    var showDiagnostics by rememberSaveable { mutableStateOf(false) }
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("분석할 수 없습니다", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(timeSeriesUnavailableMessage(state.reason, state.preflight), color = MaterialTheme.colorScheme.error)
+            Text(timeSeriesNextStep(state.reason), style = MaterialTheme.typography.bodySmall)
+            val diagnostics = state.result?.warnings.orEmpty()
+            if (diagnostics.isNotEmpty()) {
+                TextButton(onClick = { showDiagnostics = !showDiagnostics }) {
+                    Text(if (showDiagnostics) "진단 접기" else "진단 세부정보")
+                }
+                if (showDiagnostics) {
+                    diagnostics.forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimeSeriesFailureCard(
+    state: TimeSeriesAnalysisUiState.Failed,
+    onRetry: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("분석 실행 오류", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("예상치 못한 내부 오류로 분석을 완료하지 못했습니다.", color = MaterialTheme.colorScheme.error)
+            Text("진단 코드: ${state.diagnosticId}", style = MaterialTheme.typography.labelSmall)
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
+        }
     }
 }
 
@@ -306,20 +429,29 @@ private fun LabLaggedIntroCard() {
 }
 
 @Composable
-private fun BayesianResultCard(result: BayesianTimeSeriesResult) {
+private fun ExploratoryTimeSeriesResultCard(
+    result: BayesianTimeSeriesResult,
+    preflight: TimeSeriesPreflight
+) {
+    var showDiagnostics by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Bayesian 시계열 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(result.summary, style = MaterialTheme.typography.bodyMedium)
-            Text("사용 모델: ${bayesianModelLabel(result.model)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            Text("탐색적 시차 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("선택한 주간 기록에서 탐색적 시차 반응을 계산했습니다.", style = MaterialTheme.typography.bodyMedium)
+            Text("실행 분석: ${exploratoryModelLabel(result.model)}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
             Text("요청 horizon: ${result.request.requestedHorizon}주 · 실제 horizon: ${result.usedHorizon}주", style = MaterialTheme.typography.labelSmall)
+            val estimationObservations = result.responses.flatMap { it.points }.minOfOrNull { it.observations } ?: 0
+            Text(
+                "변환 후 공통 주간: ${preflight.transformedUsableWeeks}주 · 실제 추정 관측치: ${estimationObservations}개",
+                style = MaterialTheme.typography.labelSmall
+            )
             result.lagPosterior?.let { posterior ->
                 val labels = posterior.probabilities.entries.sortedBy { it.key }.joinToString(", ") { (lag, probability) -> "p=$lag ${formatAnalysisValue(probability)}" }
-                Text("Bayesian lag posterior: $labels", style = MaterialTheme.typography.labelSmall)
+                Text("시차 가중치: $labels", style = MaterialTheme.typography.labelSmall)
             }
             result.cointegration?.let { diagnostic ->
                 Text(
-                    "공적분: ${diagnostic.message} (legacy score=${formatAnalysisValue(diagnostic.legacyHeuristicScore)})",
+                    "탐색적 공적분 진단: ${diagnostic.message}",
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -371,20 +503,92 @@ private fun BayesianResultCard(result: BayesianTimeSeriesResult) {
                     }
                 }
             }
-            Text("credible interval은 posterior 불확실성을 반영하며 인과관계를 확정하지 않습니다.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            result.automaticSelectionDiagnostics.take(4).forEach { diagnostic ->
-                Text(diagnostic, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("80% 불확실성 구간은 탐색적 근사이며 인과관계를 확정하지 않습니다.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val diagnostics = result.automaticSelectionDiagnostics.take(4) + result.warnings
+            if (diagnostics.isNotEmpty()) {
+                TextButton(onClick = { showDiagnostics = !showDiagnostics }) {
+                    Text(if (showDiagnostics) "진단 접기" else "진단 세부정보")
+                }
+                if (showDiagnostics) {
+                    diagnostics.forEach { diagnostic ->
+                        Text(diagnostic, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
-            result.warnings.forEach { warning -> Text(warning, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }
 
-private fun bayesianModelLabel(model: BayesianTimeSeriesModel): String = when (model) {
-    BayesianTimeSeriesModel.BAYESIAN_LOCAL_PROJECTION -> "Bayesian Local Projection"
-    BayesianTimeSeriesModel.BAYESIAN_VAR -> "Bayesian VAR"
-    BayesianTimeSeriesModel.BAYESIAN_VECM -> "Bayesian VECM"
+private fun exploratoryModelLabel(model: BayesianTimeSeriesModel): String = when (model) {
+    BayesianTimeSeriesModel.BAYESIAN_LOCAL_PROJECTION -> "탐색적 국소 투영 호환 모형"
+    BayesianTimeSeriesModel.BAYESIAN_VAR -> "탐색적 VAR 호환 모형"
+    BayesianTimeSeriesModel.BAYESIAN_VECM -> "탐색적 VECM 호환 모형"
     BayesianTimeSeriesModel.UNAVAILABLE -> "추정 불가"
+}
+
+private fun timeSeriesStageLabel(stage: TimeSeriesExecutionStage): String = when (stage) {
+    TimeSeriesExecutionStage.PREPARING_DATA -> "주간 기록을 정렬하는 중입니다."
+    TimeSeriesExecutionStage.CHECKING_SERIES -> "지표의 결측과 변환 가능성을 확인하는 중입니다."
+    TimeSeriesExecutionStage.SELECTING_MODEL_INPUTS -> "분석에 사용할 지표 조합을 확인하는 중입니다."
+    TimeSeriesExecutionStage.FITTING_MODEL -> "탐색적 시차 모형을 맞추는 중입니다."
+    TimeSeriesExecutionStage.IDENTIFYING_SHOCK -> "표준화 충격을 확인하는 중입니다."
+    TimeSeriesExecutionStage.BUILDING_RESPONSE -> "반응 경로와 불확실성 구간을 계산하는 중입니다."
+    TimeSeriesExecutionStage.FINALIZING -> "결과를 정리하는 중입니다."
+}
+
+private fun preflightBlockerMessage(blocker: TimeSeriesPreflightBlocker): String = when (blocker.code) {
+    TimeSeriesPreflightBlockerCode.INVALID_HORIZON -> "반응 확인 기간은 1~8주에서 선택해야 합니다."
+    TimeSeriesPreflightBlockerCode.RESPONSE_REQUIRED -> "응답 변수 Y를 하나 이상 선택해 주세요."
+    TimeSeriesPreflightBlockerCode.REQUIRED_SERIES_UNAVAILABLE -> {
+        val name = blocker.metric?.let { AnalysisMetricRegistry.descriptor(it)?.displayName ?: it.name } ?: "선택 지표"
+        "$name 주간 기록이 없어 분석을 시작할 수 없습니다."
+    }
+    TimeSeriesPreflightBlockerCode.NO_ALIGNED_DATA -> "선택한 지표에 공통으로 정렬할 수 있는 주간 기록이 없습니다."
+    TimeSeriesPreflightBlockerCode.TRANSFORMATION_UNAVAILABLE -> "선택한 지표 중 현재 분석 경로에서 안전하게 변환할 수 없는 지표가 있습니다."
+    TimeSeriesPreflightBlockerCode.INSUFFICIENT_USABLE_HISTORY ->
+        "변환 후 공통으로 사용할 수 있는 기록은 ${blocker.observed ?: 0}주이며 최소 ${blocker.required ?: 0}주가 필요합니다."
+    TimeSeriesPreflightBlockerCode.INSUFFICIENT_ROWS_AFTER_LAG_HORIZON ->
+        "시차와 반응 기간을 적용한 추정 행은 ${blocker.observed ?: 0}개이며 현재 조합에는 최소 ${blocker.required ?: 0}개가 필요합니다."
+    TimeSeriesPreflightBlockerCode.INSUFFICIENT_VARIATION -> "선택한 충격 또는 응답 지표의 변화가 부족해 안정적인 시차 반응을 계산할 수 없습니다."
+}
+
+private fun preflightWarningMessage(warning: TimeSeriesPreflightWarning): String = when (warning.code) {
+    TimeSeriesPreflightWarningCode.INTERNAL_GAPS_REDUCE_ROWS ->
+        "중간 결측 ${warning.observed ?: 0}주는 채우지 않으며 실제 추정 행에서 제외합니다."
+    TimeSeriesPreflightWarningCode.REQUESTED_HORIZON_WILL_BE_REDUCED ->
+        "요청한 ${warning.requestedHorizon ?: 0}주 중 현재 자료로는 최대 ${warning.feasibleHorizon ?: 0}주까지 추정할 수 있습니다."
+}
+
+private fun timeSeriesUnavailableMessage(
+    reason: TimeSeriesUnavailableReason,
+    preflight: TimeSeriesPreflight
+): String = when (reason) {
+    TimeSeriesUnavailableReason.INVALID_REQUEST -> "선택한 분석 조건이 유효하지 않습니다."
+    TimeSeriesUnavailableReason.NO_ALIGNED_DATA -> "선택한 지표를 같은 주간 달력에서 정렬할 수 없습니다."
+    TimeSeriesUnavailableReason.INSUFFICIENT_USABLE_HISTORY ->
+        "변환 후 사용할 수 있는 기록 ${preflight.transformedUsableWeeks}주로는 분석을 완료할 수 없습니다."
+    TimeSeriesUnavailableReason.REQUIRED_SERIES_UNAVAILABLE -> "필수 X, Y 또는 Z 지표를 준비할 수 없습니다."
+    TimeSeriesUnavailableReason.TRANSFORMATION_UNAVAILABLE,
+    TimeSeriesUnavailableReason.INCONCLUSIVE_REQUIRED_SERIES -> "필수 지표를 현재 탐색 모형에 맞게 안전하게 준비할 수 없습니다."
+    TimeSeriesUnavailableReason.INSUFFICIENT_ROWS_AFTER_LAG_HORIZON ->
+        "시차와 반응 기간을 적용한 추정 행이 최소 조건에 미치지 못했습니다."
+    TimeSeriesUnavailableReason.AUTOMATIC_SELECTION_LEFT_INSUFFICIENT_SAMPLE ->
+        "자동 지표 확인 뒤 남은 공통 표본이 부족합니다."
+    TimeSeriesUnavailableReason.NUMERICAL_INSTABILITY -> "선택한 자료의 변화나 수치 안정성이 충분하지 않습니다."
+    TimeSeriesUnavailableReason.BVAR_FIT_FAILED -> "충격 확인에 필요한 탐색 모형을 안정적으로 맞추지 못했습니다."
+    TimeSeriesUnavailableReason.SHOCK_IDENTIFICATION_FAILED -> "선택한 X에서 안정적인 표준화 충격을 확인하지 못했습니다."
+    TimeSeriesUnavailableReason.LOCAL_PROJECTION_FAILED -> "선택한 Y의 시차 반응을 모든 기간에서 계산하지 못했습니다."
+    TimeSeriesUnavailableReason.ALL_ESTIMATORS_FAILED -> "현재 자료에서는 통과한 탐색 모형이 없습니다."
+    TimeSeriesUnavailableReason.UNEXPECTED_INTERNAL_ERROR -> "예상치 못한 내부 오류로 분석을 완료하지 못했습니다."
+}
+
+private fun timeSeriesNextStep(reason: TimeSeriesUnavailableReason): String = when (reason) {
+    TimeSeriesUnavailableReason.INSUFFICIENT_USABLE_HISTORY,
+    TimeSeriesUnavailableReason.NO_ALIGNED_DATA -> "선택한 지표의 주간 기록을 더 쌓은 뒤 다시 확인해 주세요."
+    TimeSeriesUnavailableReason.INSUFFICIENT_ROWS_AFTER_LAG_HORIZON,
+    TimeSeriesUnavailableReason.AUTOMATIC_SELECTION_LEFT_INSUFFICIENT_SAMPLE -> "통제 변수를 줄이거나 반응 확인 기간을 줄이면 가능한 행이 늘어날 수 있습니다."
+    TimeSeriesUnavailableReason.REQUIRED_SERIES_UNAVAILABLE -> "기록이 있는 지표를 선택하거나 해당 지표 기록을 더 쌓아 주세요."
+    else -> "변수 조합을 줄여 다시 시도하거나 기록을 더 쌓아 주세요."
 }
 
 @Composable
@@ -517,6 +721,7 @@ private fun MetricAxisDropdown(
     label: String,
     selected: TrendMetricId,
     metrics: List<AnalysisMetricDescriptor>,
+    enabled: Boolean = true,
     onSelect: (TrendMetricId) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -524,10 +729,10 @@ private fun MetricAxisDropdown(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
         Box {
-            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { expanded = true }) {
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { expanded = true }, enabled = enabled) {
                 Text(selectedDescriptor?.displayName ?: "지표 선택")
             }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
                 metrics.forEach { descriptor ->
                     DropdownMenuItem(
                         text = {
