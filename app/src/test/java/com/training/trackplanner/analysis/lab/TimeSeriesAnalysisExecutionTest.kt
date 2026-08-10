@@ -34,15 +34,21 @@ class TimeSeriesAnalysisExecutionTest {
     @Test
     fun coordinatorTransitionsIdleRunningSuccess() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val started = CountDownLatch(1)
+        val release = CountDownLatch(1)
         val coordinator = TimeSeriesAnalysisCoordinator(scope, fakeService { req, _, stage ->
             stage(TimeSeriesExecutionStage.BUILDING_RESPONSE)
+            started.countDown()
+            release.await(2, TimeUnit.SECONDS)
             success(req)
         })
 
         coordinator.updateRequest(request, series)
         coordinator.state.awaitPreflight()
         coordinator.analyze(request)
+        assertTrue(started.await(1, TimeUnit.SECONDS))
         assertTrue(coordinator.state.value is TimeSeriesAnalysisUiState.Running)
+        release.countDown()
         val completed = coordinator.state.awaitSuccess()
 
         assertEquals(request, completed.request)
