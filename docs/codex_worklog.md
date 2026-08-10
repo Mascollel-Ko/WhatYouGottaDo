@@ -5074,3 +5074,62 @@ Verification
 - Debug APK: 51,303,390 bytes, SHA-256
   `12D8B8E632659F024431659647C0EF81504C9BCDEECF1CE9D34214CEF17EC6A9`.
 - Main push, `v0.5.0.28` tag, and CI confirmation remain the release Git steps.
+
+## 2026-08-10 - v0.5.0.29 time-series execution correction
+
+### Baseline and audit
+
+- Started from latest `origin/main` and `v0.5.0.28` at
+  `06658924c1324323afdd0aaad603f019e8f81193`.
+- Baseline identity: version `0.5.0.28` / `500028`, Room 29, backup format 12,
+  restore schema 11, protocol registry 8 families / 34 protocols.
+- The visible call graph was `AnalysisScreen -> LAGGED_LAB ->
+  LaggedTimeSeriesAnalysisContent -> Compose onClick ->
+  LegacyTimeSeriesAnalyzer -> alignment -> automatic variable selection ->
+  lag/horizon selection -> compatibility estimator/shock -> result`.
+- The analyzer ran synchronously on the Compose/main thread. There was no job
+  owner, background dispatcher, cancellation, stale token, running state, or
+  typed separation between statistical unavailability and runtime failure.
+- Strict PHASE A was not consumed by the visible route. PHASE B-E remain future
+  contracts; no strict estimator was implemented or weakened in this release.
+
+### Implementation commits
+
+- `13c30fd`: added typed preflight, execution states, failure taxonomy,
+  background service, one-job coordinator, cancellation, duplicate suppression,
+  stale-result protection, and deterministic performance diagnostics.
+- `af43ab2`: moved visible execution ownership to `TrainingViewModel` and made
+  Compose render preflight/running/success/unavailable/failed states. User copy
+  now says `탐색적 시차 분석` and does not claim causal or strict Bayesian output.
+- `e252f50`: added Compose lifecycle regression tests and source guards against
+  heavy time-series execution or unmanaged concurrency in analysis UI files.
+- `5f2540d`: localized all new states, regenerated canonical localization
+  artifacts, and chunked the generated exact-text map to avoid the JVM
+  initializer size limit while preserving one runtime lookup map.
+
+### Preserved scientific and persistence boundaries
+
+- No missing week is filled and no missing value becomes zero.
+- Compatibility transformation, estimator, lag/horizon, shock, and numeric
+  outputs remain governed by the existing implementation and golden tests.
+- Strict PHASE A keeps its 32-week contiguous diagnostic, fail-closed required
+  series policy, lifecycle identity, row planning, scaling, and response-scale
+  contracts. There is no strict-to-legacy fallback.
+- Room 29, backup format 12, restore schema 11, metadata, fatigue, ProgramBuilder,
+  tissue, strength posterior, stable keys, and user data are unchanged.
+
+### Verification to date
+
+- First Gradle command: `gradlew.bat --version`, Gradle 9.3.0 / Android Studio
+  JBR 21.0.10.
+- Focused time-series suite: 93 tests, zero failures, including strict PHASE A,
+  legacy numeric regression, preflight, coordinator, stale/cancellation, and UI.
+- `AnalysisTimeSeriesUiTest`: 7 tests passed for blocked, running, request click,
+  success, unavailable, failure/retry, large text, and dark theme.
+- Time-series numeric source scanner passed.
+- Localization Python authority/audit suite: 6 tests passed; unexplained English
+  and production leaks are both zero.
+- Focused Kotlin localization tests and `:app:compileDebugKotlin` passed.
+- Full unit, Android-test compile, assemble, protocol validation, final push,
+  release tag, and CI confirmation are pending final release verification.
+- Untracked `app/outputs/` remains untouched and excluded from every commit.

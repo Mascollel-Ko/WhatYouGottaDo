@@ -29,18 +29,75 @@ RawTimeSeriesInput
 
 No stage may recreate an earlier stage. Raw observations terminate in `StrictTimeSeriesIngestion.kt`; all later functions accept stage-specific prepared types.
 
-## Legacy Pipeline Graph
+## App-Visible Exploratory Compatibility Graph
 
 ```text
-AnalysisLabUi / LaggedTimeSeriesAnalyzer compatibility facade
+AnalysisScreen / AnalysisLabUi
+  -> TrainingViewModel
+  -> TimeSeriesAnalysisCoordinator
+  -> TimeSeriesAnalysisService (Dispatchers.Default)
   -> LegacyTimeSeriesAnalyzer
   -> TimeSeriesAlignmentService
   -> EndogenousVariableSelector
   -> legacy LP / BVAR / VECM / cointegration compatibility helpers
-  -> BayesianTimeSeriesResult (legacy compatibility result)
+  -> BayesianTimeSeriesResult (exploratory compatibility result)
+  -> typed Success / Unavailable / Failed state
+  -> AnalysisLabUi rendering
 ```
 
 The legacy graph may remain app-visible while PHASE B-E are incomplete. It cannot construct strict internal types, influence strict preparation readiness, or label its output as strict preparation or a completed strict Bayesian posterior.
+
+Compose submits an immutable request and renders state. It does not construct an
+analyzer, align observations, transform series, choose variables, fit a model,
+or identify a shock. The app-visible label is `탐색적 시차 분석`; ordinary UI
+does not call this a completed strict Bayesian analysis.
+
+## App-Visible Execution Contract
+
+`TimeSeriesAnalysisCoordinator` is the single active-job owner. It exposes
+`Idle`, `PreflightReady`, `Running`, `Success`, `Unavailable`, and `Failed`.
+`Running` reports truthful named stages rather than fabricated percentages.
+
+- CPU-heavy compatibility analysis runs through `TimeSeriesAnalysisService` on
+  `Dispatchers.Default`.
+- one request token identifies each run; an older completion cannot overwrite a
+  newer request;
+- duplicate execution of an identical running request is ignored;
+- changing X, Y, Z, or horizon invalidates the prior result and cancels the
+  active job;
+- leaving the screen cancels the owned job;
+- `CancellationException` is rethrown and never converted to `Failed`;
+- expected statistical inability is a typed `Unavailable` reason;
+- unexpected runtime failure is a safe `Failed` state with a diagnostic ID.
+
+## Exploratory Preflight Contract
+
+Preflight reuses `TimeSeriesAlignmentService` and the existing compatibility
+transformation semantics. It does not call strict PHASE A or recreate a second
+strict preparation authority. For X, all selected Y values, all selected Z
+values, and the requested horizon it reports:
+
+- available calendar range and aligned weeks;
+- transformed common usable weeks without filling missing weeks;
+- exact requested estimator rows after lag and horizon requirements;
+- the model-size-dependent minimum `max(24, 4 * (2 + K + Z))` used by the
+  current compatibility route;
+- maximum feasible horizon, blockers, and warnings;
+- missing metrics, unavailable/inconclusive transformations, internal gaps,
+  and insufficient variation.
+
+Analyze is disabled when preflight proves the request cannot be attempted.
+Preflight readiness is not a promise of estimator success; later numerical or
+model-fit unavailability remains explicit.
+
+## Performance Diagnostic Contract
+
+Each request records stage durations and a deterministic conceptual fit bound
+across candidate count, response count, rolling origins, lag candidates,
+horizons, and model fits. This diagnostic is for tests and developer analysis;
+it is not a brittle wall-clock acceptance threshold and is not displayed as a
+user progress percentage. Immutable prepared inputs are reused only within one
+request, so user data cannot be served from a stale global cache.
 
 ## Package Dependency Rules
 
@@ -258,6 +315,10 @@ Static and focused tests reject:
 - response-scale decisions in UI;
 - statistically ranked optional variables in PHASE A;
 - public fingerprint injection or stale-copy identity;
+- heavy time-series analyzer, alignment, strict preparation, or estimator
+  authority referenced from app-visible Compose files;
+- unmanaged `GlobalScope` or direct thread creation in the analysis UI;
+- compatibility output labeled as a completed strict Bayesian result;
 - legacy results labeled as strict preparation.
 
 ## File Responsibility Map

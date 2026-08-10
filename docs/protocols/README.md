@@ -111,6 +111,7 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 - v0.4.2.16부터 분석 주간 차트는 Monday-Sunday, Thursday month ownership, 월별 chronological ordinal을 한 shared authority로 사용하며 e1RM은 모든 표시 운동의 union domain을 보존합니다.
 - v0.5.0.0부터 주요 화면은 한 섹션당 하나의 의미 있는 surface, 중립 배경, restrained state emphasis와 canonical 다섯 행 OFI 요약을 사용합니다. 이 릴리스에는 bitmap이나 장식 illustration을 추가하지 않습니다.
 - v0.5.0.1부터 벤치프레스, 스쿼트, 데드리프트의 관련 운동 수행은 실제 e1RM과 분리된 실험적 proxy posterior로만 표시합니다. posterior는 `metricSeries`, legacy 시계열 분석 또는 strict BVAR/BLP 준비 입력에 들어가지 않습니다.
+- v0.5.0.29부터 앱에 보이는 시계열 기능은 `탐색적 시차 분석`으로 명시하고, Compose가 아닌 ViewModel/coordinator/service가 preflight와 background 실행을 소유합니다. strict PHASE A의 32주·lifecycle·변환 경계는 유지하며 PHASE B-E는 여전히 future contract입니다.
 - v0.5.0.5부터 새 기록 백업은 현재 program graph와 built-in 삭제 tombstone을 authoritative snapshot으로 포함합니다. Marker 없는 legacy 파일은 현재 program state를 변경하지 않습니다.
 - v0.5.0.6부터 exercise stableKey가 유일한 운동 identity입니다. Room 25,
   backup format 8, 224개 canonical catalog와 import-only legacy mapping이 같은
