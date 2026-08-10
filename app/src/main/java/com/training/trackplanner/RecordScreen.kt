@@ -10,6 +10,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -204,6 +206,7 @@ internal fun RecordScreen(
 
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun RecordDailyConditionCard(
     date: String,
     viewModel: TrainingViewModel,
@@ -222,21 +225,25 @@ private fun RecordDailyConditionCard(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 OutlinedButton(
-                    modifier = Modifier.weight(1f),
                     onClick = { showEditor = true }
                 ) {
                     Text(
                         checkIn?.compactSummary()?.let { summary -> "컨디션 · $summary" }
-                            ?: "컨디션 입력"
+                            ?: "컨디션 입력",
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
                 Button(
-                    modifier = Modifier.weight(1f),
                     onClick = onAddExercise
                 ) {
-                    Text("운동 추가")
+                    Text("운동 추가", maxLines = 1, softWrap = false)
                 }
             }
         }

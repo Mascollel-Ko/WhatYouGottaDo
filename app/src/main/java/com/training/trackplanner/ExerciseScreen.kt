@@ -1,15 +1,15 @@
 package com.training.trackplanner
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -31,6 +31,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun ExerciseScreen(viewModel: TrainingViewModel) {
     val exercises by viewModel.exercises.collectAsState()
     val runtimeMetadataById by viewModel.exerciseRuntimeMetadata.collectAsState()
@@ -182,27 +183,14 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categories.forEach { category ->
-                        FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = {
-                                selectedCategory = category
-                                selectedSubcategoryKey = null
-                            },
-                            label = {
-                                Text(
-                                    if (category == "전체") category else {
-                                        translator.translate("exercise.category", category).orEmpty()
-                                    }
-                                )
-                            }
-                        )
+                ExerciseCategoryFilterControls(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onSelect = { category ->
+                        selectedCategory = category
+                        selectedSubcategoryKey = null
                     }
-                }
+                )
                 if (selectedSubcategory != null) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -217,21 +205,13 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.loadExerciseEditor(null) { editorData = it } }) {
-                        Text("운동 추가")
-                    }
-                    OutlinedButton(onClick = { manageMode = !manageMode }) {
-                        Text(if (manageMode) "관리 종료" else "운동 목록 관리")
-                    }
-                    if (manageMode) {
-                        FilterChip(
-                            selected = showHidden,
-                            onClick = { showHidden = !showHidden },
-                            label = { Text("숨김 보기") }
-                        )
-                    }
-                }
+                ExerciseManagementControls(
+                    manageMode = manageMode,
+                    showHidden = showHidden,
+                    onAdd = { viewModel.loadExerciseEditor(null) { editorData = it } },
+                    onToggleManage = { manageMode = !manageMode },
+                    onToggleHidden = { showHidden = !showHidden }
+                )
                 managementMessage?.let { message -> Text(message) }
             }
         }
@@ -258,7 +238,11 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                     onInfo = { detailCandidate = exercise }
                 )
                 if (manageMode) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Button(
                             onClick = {
                                 viewModel.setExerciseActive(exercise.stableKey, !exercise.isActive)
@@ -269,19 +253,84 @@ internal fun ExerciseScreen(viewModel: TrainingViewModel) {
                                 }
                             }
                         ) {
-                            Text(if (exercise.isActive) "숨김" else "숨김 해제")
+                            Text(if (exercise.isActive) "숨김" else "숨김 해제", maxLines = 1, softWrap = false)
                         }
                         OutlinedButton(onClick = { deleteCandidate = exercise }) {
-                            Text("삭제")
+                            Text("삭제", maxLines = 1, softWrap = false)
                         }
                         OutlinedButton(
                             onClick = { viewModel.loadExerciseEditor(exercise.stableKey) { editorData = it } }
                         ) {
-                            Text("수정")
+                            Text("수정", maxLines = 1, softWrap = false)
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+internal fun ExerciseCategoryFilterControls(
+    categories: List<String>,
+    selectedCategory: String,
+    onSelect: (String) -> Unit
+) {
+    val translator = rememberMetadataTranslator()
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        categories.forEach { category ->
+            FilterChip(
+                selected = selectedCategory == category,
+                onClick = { onSelect(category) },
+                label = {
+                    Text(
+                        text = if (category == "전체") category else {
+                            translator.translate("exercise.category", category).orEmpty()
+                        },
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            )
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalLayoutApi::class)
+internal fun ExerciseManagementControls(
+    manageMode: Boolean,
+    showHidden: Boolean,
+    onAdd: () -> Unit,
+    onToggleManage: () -> Unit,
+    onToggleHidden: () -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Button(onClick = onAdd) {
+            Text("운동 추가", maxLines = 1, softWrap = false)
+        }
+        OutlinedButton(onClick = onToggleManage) {
+            Text(
+                if (manageMode) "관리 종료" else "운동 목록 관리",
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+        if (manageMode) {
+            FilterChip(
+                selected = showHidden,
+                onClick = onToggleHidden,
+                label = { Text("숨김 보기", maxLines = 1, softWrap = false) }
+            )
         }
     }
 }

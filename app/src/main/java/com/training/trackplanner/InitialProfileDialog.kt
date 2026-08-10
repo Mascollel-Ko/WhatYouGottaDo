@@ -2,6 +2,8 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -160,9 +162,9 @@ internal fun InitialProfileDialog(
                     MultiChoice("통증/주의 부위", painOptions, painTags) { painTags = it }
                 }
                 item {
-                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags, rowKeys = avoidOptionRows) { avoidTags = it }
+                    MultiChoice("피하고 싶은 움직임", avoidOptions, avoidTags) { avoidTags = it }
                 }
-                item { SingleChoice("주요 목표", goalOptions, goal, itemsPerRow = 2) { goal = it } }
+                item { SingleChoice("주요 목표", goalOptions, goal) { goal = it } }
                 item {
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
@@ -251,11 +253,11 @@ internal fun InitialProfileDialog(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun SingleChoice(
     title: String,
     options: List<ProfileOption>,
     selected: String,
-    itemsPerRow: Int = 3,
     onSelect: (String) -> Unit
 ) {
     Column(
@@ -263,30 +265,28 @@ private fun SingleChoice(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(title)
-        options.filter { it.label.isNotBlank() }.chunked(itemsPerRow).forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                row.forEach { option ->
-                    FilterChip(
-                        selected = selected == option.key,
-                        onClick = { onSelect(option.key) },
-                        label = { Text(option.label) }
-                    )
-                }
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            options.filter { it.label.isNotBlank() }.forEach { option ->
+                FilterChip(
+                    selected = selected == option.key,
+                    onClick = { onSelect(option.key) },
+                    label = { Text(option.label, maxLines = 1, softWrap = false) }
+                )
             }
         }
     }
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun MultiChoice(
     title: String,
     options: List<ProfileOption>,
     selected: Set<String>,
-    itemsPerRow: Int = 3,
-    rowKeys: List<List<String>>? = null,
     onChange: (Set<String>) -> Unit
 ) {
     Column(
@@ -294,24 +294,19 @@ private fun MultiChoice(
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(title)
-        val visibleOptions = options.filter { it.label.isNotBlank() }
-        val rows = rowKeys?.mapNotNull { keys ->
-            keys.mapNotNull { key -> visibleOptions.firstOrNull { it.key == key } }.takeIf { it.isNotEmpty() }
-        } ?: visibleOptions.chunked(itemsPerRow)
-        rows.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                row.forEach { option ->
-                    FilterChip(
-                        selected = option.key in selected,
-                        onClick = {
-                            onChange(toggleTag(selected, option.key))
-                        },
-                        label = { Text(option.label) }
-                    )
-                }
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            options.filter { it.label.isNotBlank() }.forEach { option ->
+                FilterChip(
+                    selected = option.key in selected,
+                    onClick = {
+                        onChange(toggleTag(selected, option.key))
+                    },
+                    label = { Text(option.label, maxLines = 1, softWrap = false) }
+                )
             }
         }
     }
@@ -477,7 +472,7 @@ private val painOptions = listOf(
 private val avoidOptions = listOf(
     ProfileOption("NONE", "없음"),
     ProfileOption("HEAVY_SQUAT", "무거운 스쿼트"),
-    ProfileOption("HEAVY_DEADLIFT", "무거운\n데드리프트"),
+    ProfileOption("HEAVY_DEADLIFT", "무거운 데드리프트"),
     ProfileOption("BENCH_OR_PUSH", "벤치/상체 푸시"),
     ProfileOption("OVERHEAD_PRESS", "오버헤드 프레스"),
     ProfileOption("JUMP_LANDING", "점프/착지"),
@@ -486,17 +481,6 @@ private val avoidOptions = listOf(
     ProfileOption("LONG_BADMINTON", "장시간 배드민턴"),
     ProfileOption("HIGH_INTENSITY_INTERVAL", "고강도 인터벌"),
     ProfileOption("OTHER", "기타")
-)
-private val avoidOptionRows = listOf(
-    listOf("NONE"),
-    listOf("HEAVY_SQUAT"),
-    listOf("HEAVY_DEADLIFT"),
-    listOf("BENCH_OR_PUSH"),
-    listOf("OVERHEAD_PRESS"),
-    listOf("JUMP_LANDING", "LUNGE_DECELERATION"),
-    listOf("ROTATION", "HIGH_INTENSITY_INTERVAL"),
-    listOf("LONG_BADMINTON"),
-    listOf("OTHER")
 )
 private val goalOptions = listOf(
     ProfileOption("BADMINTON_PERFORMANCE", "배드민턴 경기력"),

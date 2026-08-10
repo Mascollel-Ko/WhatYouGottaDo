@@ -14,7 +14,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,8 +38,17 @@ internal fun RecordDateSwitcher(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = date.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.Center
+            )
             Row(
-                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 OutlinedButton(
@@ -48,23 +56,14 @@ internal fun RecordDateSwitcher(
                     modifier = dateButtonModifier.weight(1f),
                     contentPadding = dateButtonPadding
                 ) {
-                    Text("이전날")
+                    Text("이전날", maxLines = 1, softWrap = false)
                 }
-                Text(
-                    modifier = Modifier.weight(1f),
-                    text = date.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    softWrap = false,
-                    textAlign = TextAlign.Center
-                )
                 OutlinedButton(
                     onClick = onNext,
                     modifier = dateButtonModifier.weight(1f),
                     contentPadding = dateButtonPadding
                 ) {
-                    Text("다음날")
+                    Text("다음날", maxLines = 1, softWrap = false)
                 }
             }
             OutlinedButton(
@@ -72,7 +71,7 @@ internal fun RecordDateSwitcher(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = dateButtonPadding
             ) {
-                Text("달력")
+                Text("달력", maxLines = 1, softWrap = false)
             }
         }
     }
