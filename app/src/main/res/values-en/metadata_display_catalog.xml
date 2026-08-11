@@ -779,9 +779,13 @@
         <item>MOVEMENT_FOCUS_DEMAND|LOW|Low</item>
         <item>MOVEMENT_FOCUS_DEMAND|MODERATE|Moderate</item>
         <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|Very high</item>
+        <item>MOVEMENT_PATTERN|ANTI_EXTENSION|Anti-extension</item>
+        <item>MOVEMENT_PATTERN|ANTI_LATERAL_FLEXION|Anti-lateral flexion</item>
         <item>MOVEMENT_PATTERN|ANTI_ROTATION|Anti rotation</item>
+        <item>MOVEMENT_PATTERN|AXIAL_BRACING|Axial bracing</item>
         <item>MOVEMENT_PATTERN|BOUND|Bound</item>
         <item>MOVEMENT_PATTERN|CARRY|Carry</item>
+        <item>MOVEMENT_PATTERN|DYNAMIC_TRUNK_STABILIZATION|Dynamic trunk stabilization</item>
         <item>MOVEMENT_PATTERN|FOOTWORK|Footwork</item>
         <item>MOVEMENT_PATTERN|GAIT|Gait</item>
         <item>MOVEMENT_PATTERN|HINGE|Hinge</item>
@@ -2600,9 +2604,13 @@
         <item>MOVEMENT_FOCUS_DEMAND|LOW|Low|LOW</item>
         <item>MOVEMENT_FOCUS_DEMAND|MODERATE|Moderate|MODERATE</item>
         <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|Very high|VERY HIGH</item>
+        <item>MOVEMENT_PATTERN|ANTI_EXTENSION|Anti-extension|extension resistance|trunk anti-extension</item>
+        <item>MOVEMENT_PATTERN|ANTI_LATERAL_FLEXION|Anti-lateral flexion|lateral stability|side-bending resistance</item>
         <item>MOVEMENT_PATTERN|ANTI_ROTATION|Anti rotation|ANTI ROTATION</item>
+        <item>MOVEMENT_PATTERN|AXIAL_BRACING|Axial bracing|trunk bracing|loaded bracing</item>
         <item>MOVEMENT_PATTERN|BOUND|Bound|BOUND</item>
         <item>MOVEMENT_PATTERN|CARRY|Carry|CARRY</item>
+        <item>MOVEMENT_PATTERN|DYNAMIC_TRUNK_STABILIZATION|Dynamic trunk stabilization|dynamic core stability|trunk control</item>
         <item>MOVEMENT_PATTERN|FOOTWORK|Footwork|FOOTWORK</item>
         <item>MOVEMENT_PATTERN|GAIT|Gait|GAIT</item>
         <item>MOVEMENT_PATTERN|HINGE|Hinge|HINGE</item>

@@ -1,11 +1,11 @@
 {
-  "authorityWorkbookSha256": "d5f1afb383506cdf6d2f8021002cd468eb122973e46bdc4f1e8837e0086cfbe0",
+  "authorityWorkbookSha256": "c60d7e305e1991a914a93328c6760eefb84ee0b77f8a91a5dd1f7f2e549101e7",
   "counts": {
     "bootstrapRows": 257,
-    "displayRows": 1819,
+    "displayRows": 1823,
     "historyOnlyIdentityRows": 16,
     "identityRows": 257,
-    "productionDisplayRows": 1683,
+    "productionDisplayRows": 1687,
     "programSlotRows": 31,
     "selectableIdentityRows": 241,
     "timingRows": 241,
@@ -77,7 +77,7 @@
       ],
       "rowCount": 257,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "0c3c7d1449332de39ecd52d9b8635e05bea5dbb9a749da12a7b61cdbb4421b7a"
+      "sha256": "e790eae55f94e2ea9644078114315b1febf2d7b2eb1c0f602232f1a42bd26eb4"
     },
     {
       "path": "metadata_display_labels_ko.csv",
@@ -85,18 +85,18 @@
         "displayField",
         "canonicalCode"
       ],
-      "rowCount": 1819,
+      "rowCount": 1823,
       "scope": "PRESENTATION_AND_SEARCH",
-      "sha256": "73231dac3463d68d9a9a7be6fb1d86a6be952a74f112bf0d88f1bf68d6c1cc5b"
+      "sha256": "92a98044917aa85a1ca385024d71525f7f866f0e146129239d9e16ac6be6764b"
     },
     {
       "path": "movement_relations.csv",
       "primaryKey": [
         "relationId"
       ],
-      "rowCount": 2240,
+      "rowCount": 2253,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "1c4feabd677ddee3bd01d32f7f2553ccfe257f3111c17dd85c8a1d88f66f657d"
+      "sha256": "858219fdc1bb577249565af15a5bcaf93c94a8259bd7450876735b70f07e2709"
     },
     {
       "path": "muscle_relations.csv",

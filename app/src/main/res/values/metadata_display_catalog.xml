@@ -779,9 +779,13 @@
         <item>MOVEMENT_FOCUS_DEMAND|LOW|낮음</item>
         <item>MOVEMENT_FOCUS_DEMAND|MODERATE|보통</item>
         <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|매우 높음</item>
+        <item>MOVEMENT_PATTERN|ANTI_EXTENSION|신전 저항</item>
+        <item>MOVEMENT_PATTERN|ANTI_LATERAL_FLEXION|측굴 저항</item>
         <item>MOVEMENT_PATTERN|ANTI_ROTATION|항 회전</item>
+        <item>MOVEMENT_PATTERN|AXIAL_BRACING|축성 브레이싱</item>
         <item>MOVEMENT_PATTERN|BOUND|바운드</item>
         <item>MOVEMENT_PATTERN|CARRY|캐리</item>
+        <item>MOVEMENT_PATTERN|DYNAMIC_TRUNK_STABILIZATION|동적 몸통 안정화</item>
         <item>MOVEMENT_PATTERN|FOOTWORK|풋워크</item>
         <item>MOVEMENT_PATTERN|GAIT|보행</item>
         <item>MOVEMENT_PATTERN|HINGE|힌지</item>
@@ -2600,9 +2604,13 @@
         <item>MOVEMENT_FOCUS_DEMAND|LOW|낮음</item>
         <item>MOVEMENT_FOCUS_DEMAND|MODERATE|보통</item>
         <item>MOVEMENT_FOCUS_DEMAND|VERY_HIGH|매우 높음</item>
+        <item>MOVEMENT_PATTERN|ANTI_EXTENSION|신전 저항|몸통 신전 저항|허리 신전 저항|몸통 고정</item>
+        <item>MOVEMENT_PATTERN|ANTI_LATERAL_FLEXION|측굴 저항|몸통 측굴 저항|측면 안정성|옆굽힘 저항</item>
         <item>MOVEMENT_PATTERN|ANTI_ROTATION|항 회전</item>
+        <item>MOVEMENT_PATTERN|AXIAL_BRACING|축성 브레이싱|축성 고정|몸통 고정|브레이싱</item>
         <item>MOVEMENT_PATTERN|BOUND|바운드</item>
         <item>MOVEMENT_PATTERN|CARRY|캐리</item>
+        <item>MOVEMENT_PATTERN|DYNAMIC_TRUNK_STABILIZATION|동적 몸통 안정화|동적 코어 안정성|몸통 제어</item>
         <item>MOVEMENT_PATTERN|FOOTWORK|풋워크</item>
         <item>MOVEMENT_PATTERN|GAIT|보행</item>
         <item>MOVEMENT_PATTERN|HINGE|힌지</item>

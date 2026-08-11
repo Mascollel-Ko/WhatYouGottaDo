@@ -777,9 +777,13 @@ MOVEMENT_FOCUS_DEMAND,HIGH,높음,높음,,높음 항목을 나타내는 앱 표�
 MOVEMENT_FOCUS_DEMAND,LOW,낮음,낮음,,낮음 항목을 나타내는 앱 표시 용어입니다.,,Low,LOW,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_FOCUS_DEMAND,MODERATE,보통,보통,,보통 항목을 나타내는 앱 표시 용어입니다.,,Moderate,MODERATE,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_FOCUS_DEMAND,VERY_HIGH,매우 높음,매우 높음,,매우 높음 항목을 나타내는 앱 표시 용어입니다.,,Very high,VERY HIGH,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_PATTERN,ANTI_EXTENSION,신전 저항,신전 저항,몸통 신전 저항,허리와 몸통이 과도하게 펴지는 힘에 저항하는 요구.,허리 신전 저항|몸통 고정,Anti-extension,extension resistance|trunk anti-extension,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_PATTERN,ANTI_LATERAL_FLEXION,측굴 저항,측굴 저항,몸통 측굴 저항,몸통이 옆으로 기울어지는 힘에 저항하는 요구.,측면 안정성|옆굽힘 저항,Anti-lateral flexion,lateral stability|side-bending resistance,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,ANTI_ROTATION,항 회전,항 회전,,항 회전 항목을 나타내는 앱 표시 용어입니다.,,Anti rotation,ANTI ROTATION,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_PATTERN,AXIAL_BRACING,축성 브레이싱,축성 브레이싱,축성 브레이싱,외부 하중 아래에서 몸통을 단단히 고정해 힘을 전달하는 요구.,축성 고정|몸통 고정|브레이싱,Axial bracing,trunk bracing|loaded bracing,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,BOUND,바운드,바운드,,바운드 항목을 나타내는 앱 표시 용어입니다.,,Bound,BOUND,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,CARRY,캐리,캐리,,캐리 항목을 나타내는 앱 표시 용어입니다.,,Carry,CARRY,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_PATTERN,DYNAMIC_TRUNK_STABILIZATION,동적 몸통 안정화,동적 몸통 안정화,동적 몸통 안정화,팔다리가 움직이는 동안 몸통 정렬과 제어를 유지하는 요구.,동적 코어 안정성|몸통 제어,Dynamic trunk stabilization,dynamic core stability|trunk control,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,FOOTWORK,풋워크,풋워크,,풋워크 항목을 나타내는 앱 표시 용어입니다.,,Footwork,FOOTWORK,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,GAIT,보행,보행,,보행 항목을 나타내는 앱 표시 용어입니다.,,Gait,GAIT,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_PATTERN,HINGE,힌지,힌지,,힌지 항목을 나타내는 앱 표시 용어입니다.,,Hinge,HINGE,,PRODUCTION,APPROVED_RESEARCHED
