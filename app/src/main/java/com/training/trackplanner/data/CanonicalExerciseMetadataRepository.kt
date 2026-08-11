@@ -243,7 +243,10 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
     fun tissueRepository(): TissueRcvAssetRepository = TissueRcvAssetRepository.fromAssets(context)
 
     fun runtimeMetadataCatalog(): RuntimeExerciseMetadataCatalog =
-        RuntimeExerciseMetadataCatalog.of(runtimeMetadata)
+        RuntimeExerciseMetadataCatalog.of(
+            runtimeMetadata,
+            canonicalBadmintonAuthorityKeys = identitiesByStableKey.keys
+        )
 
     fun exercises(includeHistory: Boolean = false): List<Exercise> =
         identitiesByStableKey.values

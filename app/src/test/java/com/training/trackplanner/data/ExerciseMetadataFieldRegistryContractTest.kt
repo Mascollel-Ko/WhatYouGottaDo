@@ -128,7 +128,7 @@ class ExerciseMetadataFieldRegistryContractTest {
             revisions.semanticCanonicalMetadataRevision
         )
         assertEquals(
-            "f7248bd18f29a504cb44fada456f33481a5b1228942f0915d6a6043b846ab915",
+            "d2eb2865aa3c4ddaa1b2c71bc49d07b63278c2257df77b415cd2bb0ae5c9f305",
             revisions.metadataDisplayDictionaryRevision
         )
         assertTrue(

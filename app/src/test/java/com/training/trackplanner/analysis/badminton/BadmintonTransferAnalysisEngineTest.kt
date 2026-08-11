@@ -8,6 +8,7 @@ import com.training.trackplanner.analysis.readiness.FatigueLevel
 import com.training.trackplanner.analysis.readiness.ReadinessStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.WorkoutEntry
@@ -232,7 +233,9 @@ class BadmintonTransferAnalysisEngineTest {
         val runtimeOverride = RuntimeExerciseMetadataDefaults.forExercise(exercise).copy(
             movementFamily = "FOOTWORK",
             movementSubtype = "SKILL_DRILL",
-            badmintonTransferLevel = "SUPPORTIVE"
+            badmintonTransferLevel = "SUPPORTIVE",
+            badmintonTransferType = MetadataTokenField.parse("FOOTWORK_DIRECT"),
+            badmintonPhysicalQualities = MetadataTokenField.parse("REACTIVE_AGILITY")
         )
 
         val summary = BadmintonTransferAnalysisEngine(

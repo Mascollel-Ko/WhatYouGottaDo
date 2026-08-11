@@ -72,7 +72,7 @@ class CanonicalExerciseMetadataRepositoryTest {
 
     @Test
     fun canonicalRepositoryExposesEveryProductionMetadataDomain() {
-        assertEquals(2240, repository.movementRelations().size)
+        assertEquals(2253, repository.movementRelations().size)
         assertEquals(797, repository.muscleRelations().size)
         assertEquals(3913, repository.ofiRelations().size)
         assertEquals(241, repository.recoveryProfiles().size)
@@ -80,6 +80,29 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertEquals(194, repository.progressionRelations().size)
         assertEquals(17, repository.strengthProxyRelations().size)
         assertEquals(3224, repository.tissueRepository().catalog.authorityRows.size)
+    }
+
+    @Test
+    fun trunkControlRelationsAreDecomposedWithoutCollapsingRotationOrBracing() {
+        val patterns = repository.movementRelations()
+            .filter { it.relationType == "MOVEMENT_PATTERN" }
+            .groupBy { it.exerciseStableKey }
+            .mapValues { (_, rows) -> rows.mapTo(mutableSetOf()) { it.relationValue } }
+
+        assertTrue(patterns.values.none { "TRUNK_BRACE" in it })
+        assertTrue("AXIAL_BRACING" in patterns.getValue("barbell_back_squat"))
+        assertTrue("AXIAL_BRACING" in patterns.getValue("barbell_deadlift"))
+        assertTrue("AXIAL_BRACING" in patterns.getValue("dumbbell_farmer_carry"))
+        assertTrue("ANTI_ROTATION" in patterns.getValue("band_pallof_press"))
+        assertTrue("ANTI_ROTATION" in patterns.getValue("landmine_anti_rotation"))
+        assertTrue("ANTI_LATERAL_FLEXION" in patterns.getValue("ex_f6d43398"))
+        assertTrue("ANTI_EXTENSION" in patterns.getValue("ex_a44ae2ca"))
+        assertEquals(
+            setOf("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"),
+            patterns.getValue("ex_d5bdffe1")
+        )
+        assertTrue("TRUNK_ROTATION" in patterns.getValue("band_lift"))
+        assertFalse("ANTI_ROTATION" in patterns.getValue("barbell_back_squat"))
     }
 
     @Test

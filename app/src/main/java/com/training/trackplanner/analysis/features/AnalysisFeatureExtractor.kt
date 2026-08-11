@@ -8,16 +8,25 @@ import com.training.trackplanner.data.WorkoutSet
 object AnalysisFeatureExtractor {
     fun fromExercise(
         exercise: Exercise,
-        runtimeMetadata: RuntimeExerciseMetadata? = null
+        runtimeMetadata: RuntimeExerciseMetadata? = null,
+        canonicalBadmintonAuthority: Boolean = false
     ): AnalysisExerciseFeatures =
-        ExerciseAnalysisMapper.fromExercise(exercise, runtimeMetadata)
+        ExerciseAnalysisMapper.fromExercise(exercise, runtimeMetadata, canonicalBadmintonAuthority)
 
     fun fromRecord(
         exercise: Exercise,
         entry: WorkoutEntry?,
         sets: List<WorkoutSet>,
         runtimeMetadata: RuntimeExerciseMetadata? = null,
-        bodyWeightKg: Double? = null
+        bodyWeightKg: Double? = null,
+        canonicalBadmintonAuthority: Boolean = false
     ): AnalysisExerciseFeatures =
-        ExerciseAnalysisMapper.fromRecord(exercise, entry, sets, runtimeMetadata, bodyWeightKg)
+        ExerciseAnalysisMapper.fromRecord(
+            exercise,
+            entry,
+            sets,
+            runtimeMetadata,
+            bodyWeightKg,
+            canonicalBadmintonAuthority
+        )
 }

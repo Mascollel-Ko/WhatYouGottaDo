@@ -87,19 +87,22 @@ data class AnalysisExerciseFeatures(
     val badmintonPhysicalQualities: Set<String> = emptySet(),
     val transferConfidence: String = "",
     val sourceConfidenceLevel: String = "",
-    val finalSourceStatus: String = ""
+    val finalSourceStatus: String = "",
+    val canonicalBadmintonAuthority: Boolean = false
 )
 
 object ExerciseAnalysisMapper {
     fun fromExercise(
         exercise: Exercise,
-        runtimeMetadata: RuntimeExerciseMetadata? = null
+        runtimeMetadata: RuntimeExerciseMetadata? = null,
+        canonicalBadmintonAuthority: Boolean = false
     ): AnalysisExerciseFeatures =
         fromRecord(
             exercise = exercise,
             entry = null,
             sets = emptyList(),
-            runtimeMetadata = runtimeMetadata
+            runtimeMetadata = runtimeMetadata,
+            canonicalBadmintonAuthority = canonicalBadmintonAuthority
         )
 
     fun fromRecord(
@@ -107,7 +110,8 @@ object ExerciseAnalysisMapper {
         entry: WorkoutEntry?,
         sets: List<WorkoutSet>,
         runtimeMetadata: RuntimeExerciseMetadata? = null,
-        bodyWeightKg: Double? = null
+        bodyWeightKg: Double? = null,
+        canonicalBadmintonAuthority: Boolean = false
     ): AnalysisExerciseFeatures {
         val completedSets = sets.filter { set -> set.confirmed }
         val rpeValues = completedSets.mapNotNull { set -> set.rpe }
@@ -266,7 +270,8 @@ object ExerciseAnalysisMapper {
             badmintonPhysicalQualities = runtimeMetadata?.badmintonPhysicalQualities?.values?.toSet().orEmpty(),
             transferConfidence = runtimeMetadata?.transferConfidence.orEmpty(),
             sourceConfidenceLevel = runtimeMetadata?.sourceConfidenceLevel.orEmpty(),
-            finalSourceStatus = runtimeMetadata?.finalSourceStatus.orEmpty()
+            finalSourceStatus = runtimeMetadata?.finalSourceStatus.orEmpty(),
+            canonicalBadmintonAuthority = canonicalBadmintonAuthority
         )
     }
 

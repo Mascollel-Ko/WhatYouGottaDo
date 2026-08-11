@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.badminton
 
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
+import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
 
 internal object BadmintonTransferMetadataMapper {
     fun transferType(features: AnalysisExerciseFeatures): BadmintonTransferType =
@@ -18,7 +19,14 @@ internal object BadmintonTransferMetadataMapper {
             }
         }
 
-    fun transferAxes(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> {
+    fun transferAxes(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> =
+        if (features.hasCanonicalBadmintonAuthority()) {
+            canonicalTransferAxes(features)
+        } else {
+            legacyTransferAxesForAudit(features)
+        }
+
+    internal fun legacyTransferAxesForAudit(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> {
         val axes = linkedSetOf<BadmintonTransferAxis>()
         val skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets
         val transferTokens = features.badmintonTransferRoles +
@@ -133,6 +141,91 @@ internal object BadmintonTransferMetadataMapper {
         return axes
     }
 
+    private fun canonicalTransferAxes(features: AnalysisExerciseFeatures): Set<BadmintonTransferAxis> {
+        val axes = linkedSetOf<BadmintonTransferAxis>()
+        val types = features.canonicalBadmintonTransferTypes
+        val targets = features.canonicalBadmintonSkillTargets
+        val qualities = features.badmintonPhysicalQualities
+
+        if (
+            types.any { it in DECELERATION_TYPES } ||
+            targets.any { it in DECELERATION_TARGETS } ||
+            qualities.any { it in DECELERATION_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.DECELERATION_LANDING
+        }
+        if (
+            types.any { it in UNILATERAL_TYPES } ||
+            targets.any { it in UNILATERAL_TARGETS } ||
+            qualities.any { it in UNILATERAL_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.UNILATERAL_STABILITY
+        }
+        if (
+            types.any { it in LATERAL_TYPES } ||
+            targets.any { it in LATERAL_TARGETS } ||
+            qualities.any { it in LATERAL_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.LATERAL_MOVEMENT
+        }
+        if (
+            types.any { it in ROTATION_TYPES } ||
+            targets.any { it in ROTATION_TARGETS } ||
+            qualities.any { it in ROTATION_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.ROTATION_CONTROL
+        }
+        if (
+            types.any { it in RACKET_TYPES } ||
+            targets.any { it in RACKET_TARGETS } ||
+            qualities.any { it in RACKET_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.RACKET_SUPPORT
+        }
+        if (
+            types.any { it in CONDITIONING_TYPES } ||
+            targets.any { it in CONDITIONING_TARGETS } ||
+            qualities.any { it in CONDITIONING_QUALITIES }
+        ) {
+            axes += BadmintonTransferAxis.AEROBIC_FOOTWORK
+        }
+        if (types.any { it in LOW_FATIGUE_SUPPORT_TYPES }) {
+            axes += BadmintonTransferAxis.LOW_FATIGUE_CONTROL
+        }
+        return axes
+    }
+
+    private fun AnalysisExerciseFeatures.hasCanonicalBadmintonAuthority(): Boolean =
+        canonicalBadmintonAuthority ||
+            canonicalBadmintonTransferTypes.any { it in CANONICAL_TRANSFER_TYPES } ||
+            canonicalBadmintonSkillTargets.any { it in CANONICAL_SKILL_TARGETS } ||
+            badmintonPhysicalQualities.any { it in CANONICAL_PHYSICAL_QUALITIES }
+
+    fun objectiveKeys(features: AnalysisExerciseFeatures): Set<String> =
+        if (features.hasCanonicalBadmintonAuthority()) {
+            BadmintonTrainingMethodLabels.keysFrom(
+                courtMovementTypes = features.badmintonPhysicalQualities,
+                transferRoles = features.canonicalBadmintonTransferTypes,
+                skillTargets = features.canonicalBadmintonSkillTargets,
+                includeAntiRotation = features.hasExplicitCanonicalAntiRotationObjective()
+            )
+        } else {
+            BadmintonTrainingMethodLabels.keysFrom(
+                courtMovementTypes = features.courtMovementTypes,
+                transferRoles = features.badmintonTransferRoles,
+                skillTargets = features.badmintonSkillTargets + features.canonicalBadmintonSkillTargets,
+                includeAntiRotation = features.exerciseStableKey in LEGACY_EXPLICIT_ANTI_ROTATION_OBJECTIVE_KEYS
+            )
+        }
+
+    private fun AnalysisExerciseFeatures.hasExplicitCanonicalAntiRotationObjective(): Boolean =
+        exerciseStableKey in LEGACY_EXPLICIT_ANTI_ROTATION_OBJECTIVE_KEYS &&
+            (
+                canonicalBadmintonTransferTypes.any { it in ROTATION_TYPES } ||
+                    canonicalBadmintonSkillTargets.any { it == "ANTI_ROTATION_STABILITY" } ||
+                    badmintonPhysicalQualities.any { it == "ANTI_ROTATION_STABILITY" }
+                )
+
     fun fatigueCost(features: AnalysisExerciseFeatures): BadmintonTransferFatigueCost {
         val loadSignal = listOf(
             features.systemicLoadWeight,
@@ -153,5 +246,107 @@ internal object BadmintonTransferMetadataMapper {
             else -> BadmintonTransferFatigueCost.LOW
         }
     }
+
+    private val DECELERATION_TYPES = emptySet<String>()
+    private val DECELERATION_TARGETS = setOf(
+        "DECELERATION_CONTROL",
+        "JUMP_LANDING_CONTROL"
+    )
+    private val DECELERATION_QUALITIES = setOf("DECELERATION")
+    private val UNILATERAL_TYPES = emptySet<String>()
+    private val UNILATERAL_TARGETS = setOf("FRONT_COURT_LUNGE", "LATERAL_LUNGE")
+    private val UNILATERAL_QUALITIES = emptySet<String>()
+    private val LATERAL_TYPES = setOf("FOOTWORK_DIRECT")
+    private val LATERAL_TARGETS = emptySet<String>()
+    private val LATERAL_QUALITIES = emptySet<String>()
+    private val ROTATION_TYPES = setOf("ROTATION_POWER_SUPPORTIVE", "ANTI_ROTATION_STABILITY_SUPPORTIVE")
+    private val ROTATION_TARGETS = setOf("ROTATION_SEQUENCING", "ANTI_ROTATION_STABILITY")
+    private val ROTATION_QUALITIES = setOf(
+        "ROTATIONAL_CONTROL",
+        "ROTATIONAL_POWER",
+        "ROTATIONAL_STRENGTH",
+        "ANTI_ROTATION_STABILITY"
+    )
+    private val RACKET_TYPES = emptySet<String>()
+    private val RACKET_TARGETS = setOf(
+        "OVERHEAD_CLEAR",
+        "OVERHEAD_POWER",
+        "SMASH",
+        "DRIVE",
+        "GRIP_ENDURANCE",
+        "SHOULDER_DURABILITY"
+    )
+    private val RACKET_QUALITIES = emptySet<String>()
+    private val CONDITIONING_TYPES = emptySet<String>()
+    private val CONDITIONING_TARGETS = emptySet<String>()
+    private val CONDITIONING_QUALITIES = emptySet<String>()
+    private val LOW_FATIGUE_SUPPORT_TYPES = setOf("CORE_STABILITY_SUPPORTIVE")
+    private val LEGACY_EXPLICIT_ANTI_ROTATION_OBJECTIVE_KEYS = setOf("landmine_anti_rotation")
+
+    private val CANONICAL_TRANSFER_TYPES = setOf(
+        "ANKLE_CALF_SSC_SUPPORTIVE",
+        "ANTI_ROTATION_STABILITY_SUPPORTIVE",
+        "CHANGE_OF_DIRECTION_DIRECT",
+        "CORE_STABILITY_SUPPORTIVE",
+        "FOOTWORK_DIRECT",
+        "GENERAL_CONDITIONING_SUPPORTIVE",
+        "GENERAL_POWER_SUPPORTIVE",
+        "GENERAL_STRENGTH_SUPPORTIVE",
+        "GRIP_WRIST_SUPPORTIVE",
+        "LOWER_BODY_SUPPORTIVE",
+        "LUNGE_REACH_DIRECT",
+        "OVERHEAD_HITTING_DIRECT",
+        "OVERHEAD_POWER_SUPPORTIVE",
+        "RALLY_CONDITIONING_DIRECT",
+        "REACTION_DECISION_DIRECT",
+        "ROTATION_POWER_SUPPORTIVE",
+        "SHOULDER_CARE_SUPPORTIVE",
+        "SHOULDER_SCAPULAR_SUPPORTIVE"
+    )
+    private val CANONICAL_SKILL_TARGETS = setOf(
+        "ANTI_ROTATION_STABILITY",
+        "CHANGE_OF_DIRECTION",
+        "DECELERATION_CONTROL",
+        "DEFENSIVE_COVERAGE",
+        "DRIVE",
+        "FIRST_STEP",
+        "FRONT_COURT_LUNGE",
+        "LATERAL_LUNGE",
+        "LATERAL_MOVEMENT",
+        "MULTI_SHUTTLE_ENDURANCE",
+        "NET_PLAY",
+        "OVERHEAD_CLEAR",
+        "OVERHEAD_POWER",
+        "RALLY_TOLERANCE",
+        "ROTATION_SEQUENCING",
+        "SHOULDER_DURABILITY",
+        "SMASH",
+        "SPLIT_STEP"
+    )
+    private val CANONICAL_PHYSICAL_QUALITIES = setOf(
+        "ACCELERATION",
+        "AEROBIC_BASE",
+        "ANAEROBIC_REPEATABILITY",
+        "ANKLE_STIFFNESS",
+        "ANTI_ROTATION_STABILITY",
+        "CALF_ELASTICITY",
+        "CORE_BRACING",
+        "DECELERATION",
+        "FRONTAL_PLANE_CONTROL",
+        "GRIP_ENDURANCE",
+        "HIP_CONTROL",
+        "HIP_KNEE_EXTENSION_STRENGTH",
+        "LOWER_BODY_FORCE",
+        "POSTERIOR_CHAIN",
+        "REACTIVE_AGILITY",
+        "ROTATIONAL_CONTROL",
+        "ROTATIONAL_POWER",
+        "ROTATIONAL_STRENGTH",
+        "ROTATOR_CUFF_CONTROL",
+        "SCAPULAR_CONTROL",
+        "SHOULDER_DURABILITY",
+        "SINGLE_LEG_STABILITY",
+        "UPPER_BODY_EXPLOSIVE_POWER"
+    )
 
 }

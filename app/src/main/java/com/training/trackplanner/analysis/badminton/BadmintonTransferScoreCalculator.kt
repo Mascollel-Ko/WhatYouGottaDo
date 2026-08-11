@@ -76,7 +76,8 @@ class BadmintonTransferScoreCalculator(
             exercise,
             record.entry,
             record.sets,
-            runtimeMetadataCatalog.resolve(exercise)
+            runtimeMetadataCatalog.resolve(exercise),
+            canonicalBadmintonAuthority = runtimeMetadataCatalog.hasCanonicalBadmintonAuthority(exercise.stableKey)
         )
         val rawTransferType = BadmintonTransferMetadataMapper.transferType(features)
         val transferWeight = BadmintonTransferConstants.transferWeight(rawTransferType)

@@ -93,7 +93,12 @@ class RuntimeExerciseMetadataResolver(
     }
 
     fun catalog(exercises: Collection<Exercise>): RuntimeExerciseMetadataCatalog =
-        RuntimeExerciseMetadataCatalog.of(exercises.map(::resolve))
+        RuntimeExerciseMetadataCatalog.of(
+            metadata = exercises.map(::resolve),
+            canonicalBadmintonAuthorityKeys = exercises
+                .map(Exercise::stableKey)
+                .filter(canonicalCatalog::hasCanonicalBadmintonAuthority)
+        )
 }
 
 private fun String.ifSet(): String? =

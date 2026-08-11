@@ -361,7 +361,7 @@ class PerformanceTrendEngineTest {
         val exercise = antiRotationSupportExercise(
             id = 32,
             name = "Pallof press fixture",
-            stableKey = "pallof_press_fixture"
+            stableKey = "landmine_anti_rotation"
         )
         val summary = PerformanceTrendEngine().analyze(
             today = today,
@@ -619,7 +619,12 @@ class PerformanceTrendEngineTest {
         )
 
     private fun canonicalRuntimeCatalog(): RuntimeExerciseMetadataCatalog =
-        RuntimeExerciseMetadataCatalog.of(canonicalRows())
+        canonicalRows().let { rows ->
+            RuntimeExerciseMetadataCatalog.of(
+                metadata = rows,
+                canonicalBadmintonAuthorityKeys = rows.map { it.stableKey }
+            )
+        }
 
     private fun canonicalExercise(
         id: Long,

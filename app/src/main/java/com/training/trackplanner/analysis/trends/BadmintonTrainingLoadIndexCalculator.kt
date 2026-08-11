@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.badminton.BadmintonTransferMetadataMapper
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
@@ -210,7 +211,8 @@ class BadmintonTrainingLoadIndexCalculator(
             exercise,
             record.entry,
             record.sets,
-            runtimeMetadataCatalog.resolve(exercise)
+            runtimeMetadataCatalog.resolve(exercise),
+            canonicalBadmintonAuthority = runtimeMetadataCatalog.hasCanonicalBadmintonAuthority(exercise.stableKey)
         )
     }
 
@@ -245,35 +247,7 @@ class BadmintonTrainingLoadIndexCalculator(
     }
 
     private fun AnalysisExerciseFeatures.transferObjectiveKeys(): Set<String> =
-        BadmintonTrainingMethodLabels.keysFrom(
-            courtMovementTypes = courtMovementTypes,
-            transferRoles = badmintonTransferRoles,
-            skillTargets = badmintonSkillTargets + canonicalBadmintonSkillTargets,
-            includeAntiRotation = hasExplicitAntiRotationTransferObjective()
-        )
-
-    private fun AnalysisExerciseFeatures.hasExplicitAntiRotationTransferObjective(): Boolean {
-        val text = listOf(exerciseName, stableKey, movementSubtype, programSlot, redundancyGroup)
-            .joinToString(" ")
-            .uppercase()
-        val explicitNames = listOf(
-            "PALLOF",
-            "SUITCASE",
-            "LANDMINE_ANTI_ROTATION",
-            "ANTI_ROTATION_PRESS",
-            "ANTI_ROTATION_HOLD",
-            "항회전",
-            "회전저항",
-            "팔로프",
-            "수트케이스"
-        )
-        val standingOneArmCableRow =
-            ("ONE_ARM" in text || "원암" in text) &&
-                ("CABLE" in text || "케이블" in text) &&
-                ("ROW" in text || "로우" in text) &&
-                ("STANDING" in text || "서서" in text)
-        return explicitNames.any { token -> token in text } || standingOneArmCableRow
-    }
+        BadmintonTransferMetadataMapper.objectiveKeys(this)
 
     private fun WorkoutEntryWithSets.durationMinutes(): Double =
         sets.filter { set -> set.confirmed }.sumOf { set -> set.seconds } / 60.0

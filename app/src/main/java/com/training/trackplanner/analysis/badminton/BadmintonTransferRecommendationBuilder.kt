@@ -103,7 +103,8 @@ class BadmintonTransferRecommendationBuilder(
         exercises.filter { exercise -> exercise.isActive }.mapNotNull { exercise ->
             val features = AnalysisFeatureExtractor.fromExercise(
                 exercise,
-                runtimeMetadataCatalog.resolve(exercise)
+                runtimeMetadataCatalog.resolve(exercise),
+                canonicalBadmintonAuthority = runtimeMetadataCatalog.hasCanonicalBadmintonAuthority(exercise.stableKey)
             )
             val axes = BadmintonTransferMetadataMapper.transferAxes(features)
             if (axis !in axes) return@mapNotNull null

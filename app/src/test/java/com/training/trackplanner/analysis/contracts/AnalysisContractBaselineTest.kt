@@ -253,7 +253,7 @@ class AnalysisContractBaselineTest {
         val contribution = fatigue.recordContributions.single()
         val muscle = MuscleLoadInputBuilder.contributions(exercise, entry, metadata)
         val badmintonType = BadmintonTransferMetadataMapper.transferType(features)
-        val badmintonAxes = BadmintonTransferMetadataMapper.transferAxes(features)
+        val badmintonAxes = BadmintonTransferMetadataMapper.legacyTransferAxesForAudit(features)
         val badmintonFatigue = BadmintonTransferMetadataMapper.fatigueCost(features)
         val rows = mutableListOf<List<String>>()
 

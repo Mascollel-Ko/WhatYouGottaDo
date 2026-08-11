@@ -103,11 +103,14 @@ data class RuntimeExerciseMetadata(
 }
 
 class RuntimeExerciseMetadataCatalog private constructor(
-    metadata: Collection<RuntimeExerciseMetadata>
+    metadata: Collection<RuntimeExerciseMetadata>,
+    canonicalBadmintonAuthorityKeys: Collection<String>
 ) {
     private val byStableKey = metadata
         .filter { it.stableKey.isNotBlank() }
         .associateBy { it.stableKey.catalogLookupKey() }
+    private val canonicalBadmintonAuthorityKeys = canonicalBadmintonAuthorityKeys
+        .mapTo(mutableSetOf()) { it.catalogLookupKey() }
     val size: Int
         get() = byStableKey.size
 
@@ -119,11 +122,17 @@ class RuntimeExerciseMetadataCatalog private constructor(
     fun resolve(exercise: Exercise): RuntimeExerciseMetadata? =
         resolveByStableKey(exercise.stableKey)
 
-    companion object {
-        val EMPTY = RuntimeExerciseMetadataCatalog(emptyList())
+    fun hasCanonicalBadmintonAuthority(stableKey: String): Boolean =
+        stableKey.catalogLookupKey() in canonicalBadmintonAuthorityKeys
 
-        fun of(metadata: Collection<RuntimeExerciseMetadata>): RuntimeExerciseMetadataCatalog =
-            RuntimeExerciseMetadataCatalog(metadata)
+    companion object {
+        val EMPTY = RuntimeExerciseMetadataCatalog(emptyList(), emptySet())
+
+        fun of(
+            metadata: Collection<RuntimeExerciseMetadata>,
+            canonicalBadmintonAuthorityKeys: Collection<String> = emptySet()
+        ): RuntimeExerciseMetadataCatalog =
+            RuntimeExerciseMetadataCatalog(metadata, canonicalBadmintonAuthorityKeys)
     }
 }
 
