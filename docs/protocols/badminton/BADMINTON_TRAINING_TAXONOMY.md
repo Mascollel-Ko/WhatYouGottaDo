@@ -3,12 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32 |
 | Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
+
+## v0.5.0.32 explicit transfer authority
+
+Badminton meaning is owned by badminton-specific transfer level/type, skill
+target, physical-quality, and provenance relations. Intrinsic movement plane,
+laterality, muscle participation, fatigue category, or generic training role
+cannot independently classify an exercise as badminton transfer.
+
+Historical force tokens remain accepted compatibility inputs where supported,
+but they are not permanent downstream badminton authority. Canonical
+`TRUNK_ROTATION`, `AXIAL_BRACING`, and `ANTI_ROTATION` remain intrinsic and
+distinct. Badminton `ROTATION_POWER` and `ANTI_ROTATION_STABILITY` remain
+separate sport-specific meanings.
 | Supersedes | — |
 
 `1.1.0`은 현재 동작과 artifact-only identity/taxonomy 정본화의 경계를 함께 기록합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.

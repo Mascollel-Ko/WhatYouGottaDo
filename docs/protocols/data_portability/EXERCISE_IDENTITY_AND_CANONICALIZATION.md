@@ -3,12 +3,21 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32 |
 | Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.32 relation normalization boundary
+
+Movement/trunk-control normalization changes relations, not exercise identity.
+All 241 selectable and 16 history-only stableKeys remain unchanged. No Room
+schema, backup schema, stableKey migration, historical workout rewrite, or
+user-created exercise rewrite is introduced. The authority workbook remains
+the source; generated canonical CSV and localized display resources are checked
+projections of that workbook.
 | Supersedes | 없음 |
 
 ## 1. 일반 사용자용 요약

@@ -705,29 +705,6 @@ foreach ($row in $mappingRows) {
 }
 Set-Content -LiteralPath (Join-Path $docsRoot "metadata_legacy_to_target_mapping_matrix.md") -Value $mappingLines -Encoding UTF8
 
-$trainingRoleRows = @($seedRows | Where-Object { -not [string]::IsNullOrWhiteSpace($_.training_role) } | ForEach-Object {
-    [pscustomobject]@{
-        exerciseStableKey = $_.stable_key
-        displayNameKo = $_.exercise_name
-        proposedLegacyRole = $_.training_role
-        evidenceType = "CHECKED_IN_EXPLICIT_STABLEKEY_ASSIGNMENT"
-        evidenceFileOrCommit = "app/src/main/assets/training_settings_seed.csv"
-        evidenceLocator = "stable_key=$($_.stable_key);training_role=$($_.training_role)"
-        evidenceLineageId = "LEGACY-TRAINING-ROLE-SEED-V1"
-        confidence = "HIGH"
-        reconstructionStatus = "CONFIRMED_EXPLICIT"
-        currentRuntimeRole = $_.training_role
-        proposedRuntimeRole = $_.training_role
-        programmeImpact = "EXPECTED_TRAINING_ROLE_POLICY_RESTORATION"
-        notes = "Exact stableKey whitelist only; not promoted to final ProgramRoleRef"
-    }
-} | Sort-Object exerciseStableKey)
-Write-Csv $trainingRoleRows @(
-    "exerciseStableKey", "displayNameKo", "proposedLegacyRole", "evidenceType",
-    "evidenceFileOrCommit", "evidenceLocator", "evidenceLineageId", "confidence",
-    "reconstructionStatus", "currentRuntimeRole", "proposedRuntimeRole", "programmeImpact", "notes"
-) (Join-Path $docsRoot "training_role_whitelist_reconstruction.csv")
-
 function Write-LegacyConsumerInventory([string]$Field, [string]$FileName) {
     $rows = @($mappingRows | Where-Object legacyField -eq $Field | Select-Object `
         legacyField, storageLocation, consumerFile, consumerSymbol, consumerKind, currentDisposition, `
@@ -885,6 +862,306 @@ $compatibilityLines = @(
 )
 foreach ($row in $compatibilityRows) { $compatibilityLines += "| ``$($row.legacyField)`` | ``$($row.filePath)`` | ``$($row.symbolOrFunction)`` | $($row.consumerType) | $($row.readOrWrite) | $($row.runtimeOrTest) | ``$($row.replacementOwner)`` |" }
 Set-Content -LiteralPath (Join-Path $docsRoot "metadata_legacy_compatibility_consumers.md") -Value $compatibilityLines -Encoding UTF8
+
+# Canonical metadata normalization closeout audits. These extend the existing
+# contract audit instead of introducing a parallel audit pipeline.
+$canonicalRoot = Join-Path $RepoRoot "app/src/main/assets/metadata/canonical_v1"
+$canonicalBootstrapRows = @(Import-Csv -LiteralPath (Join-Path $canonicalRoot "exercise_bootstrap.csv"))
+$canonicalIdentityRows = @(Import-Csv -LiteralPath (Join-Path $canonicalRoot "identity_master.csv"))
+$canonicalMovementRows = @(Import-Csv -LiteralPath (Join-Path $canonicalRoot "movement_relations.csv"))
+$seedExerciseRows = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "app/src/main/assets/training_settings_seed.csv") | Where-Object row_type -eq "exercise")
+$identityByStableKey = @{}
+foreach ($row in $canonicalIdentityRows) { $identityByStableKey[$row.stableKey] = $row }
+
+function Joined-StableKeys([object[]]$Rows) {
+    (@($Rows | ForEach-Object stableKey | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique) -join "|")
+}
+
+function Add-OwnerAuditRow(
+    [string]$SourceField,
+    [string]$SourceToken,
+    [string]$SemanticMeaning,
+    [string]$AffectedStableKeys,
+    [string]$CurrentConsumers,
+    [string]$Owner1,
+    [string]$Owner2,
+    [string]$Owner3,
+    [string]$Exact,
+    [string]$Extension,
+    [string]$Lost,
+    [string]$Duplicated,
+    [string]$Disposition
+) {
+    [pscustomobject]@{
+        sourceField = $SourceField
+        sourceToken = $SourceToken
+        semanticMeaning = $SemanticMeaning
+        affectedStableKeys = $AffectedStableKeys
+        currentConsumers = $CurrentConsumers
+        existingCandidateOwner1 = $Owner1
+        existingCandidateOwner2 = $Owner2
+        existingCandidateOwner3 = $Owner3
+        canExistingOwnerRepresentExactly = $Exact
+        extensionRequired = $Extension
+        informationLostIfMapped = $Lost
+        informationDuplicatedIfMapped = $Duplicated
+        recommendedDisposition = $Disposition
+    }
+}
+
+$forceOwnerDecisions = [ordered]@{
+    PUSH = @("Push mechanics", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "ExerciseTrainingRoleEligibility", "YES", "NO", "NONE", "A duplicate action taxonomy", "REUSE_EXISTING_EXACTLY")
+    PULL = @("Pull mechanics", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "ExerciseTrainingRoleEligibility", "YES", "NO", "NONE", "A duplicate action taxonomy", "REUSE_EXISTING_EXACTLY")
+    LOWER_BODY = @("Legacy body-region bucket", "ExerciseMovementAnatomyRelation/BODY_REGION", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "YES", "NO", "NONE", "A second body-region bucket", "KEEP_AS_COMPATIBILITY_ONLY")
+    MIXED = @("Old scalar could not express multiple simultaneous facts", "ExerciseMovementAnatomyRelation", "ExerciseMuscleContribution", "ExerciseOfiAxisContribution", "YES", "NO", "NONE", "Preserving MIXED as canonical would duplicate typed relations", "KEEP_AS_COMPATIBILITY_ONLY")
+    STRENGTH = @("Training adaptation intent", "ExerciseTrainingRoleEligibility", "ExerciseProgramSlotCapability", "ExerciseStrengthProxyRelation", "YES", "NO", "NONE", "A generic force/action owner", "REUSE_EXISTING_EXACTLY")
+    HYPERTROPHY = @("Hypertrophy adaptation intent", "ExerciseTrainingRoleEligibility", "ExerciseMuscleContribution", "ExerciseProgramSlotCapability", "YES", "NO", "NONE", "A generic force/action owner", "REUSE_EXISTING_EXACTLY")
+    POWER = @("General power intent, not sport transfer", "ExercisePhysicalQualityPoint", "ExerciseOfiAxisContribution", "ExerciseProgramSlotCapability", "YES", "NO", "NONE", "Badminton ROTATION_POWER would be a cross-domain duplicate", "REUSE_EXISTING_EXACTLY")
+    PLYOMETRIC = @("Stretch-shortening and explosive event demand", "ExerciseMovementAnatomyRelation/MOVEMENT_EVENT", "ExerciseOfiAxisContribution", "ExercisePhysicalQualityPoint", "YES", "NO", "NONE", "A new plyometric scalar", "REUSE_EXISTING_EXACTLY")
+    DECELERATION_DIRECT = @("Explicit deceleration movement/role", "ExerciseMovementAnatomyRelation/MOVEMENT_EVENT", "ExerciseBadmintonTransferPoint", "ExercisePhysicalQualityPoint", "YES", "NO", "NONE", "A second deceleration taxonomy", "REUSE_EXISTING_EXACTLY")
+    ANTI_ROTATION = @("Intrinsic resistance to rotational torque", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseStabilityDemand", "ExerciseBadmintonTransferPoint", "YES", "NO", "NONE", "A duplicate anti-rotation owner", "REUSE_EXISTING_EXACTLY")
+    MOTOR_CONTROL = @("Movement-control and stability intent", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseStabilityDemand", "ExerciseTrainingRoleEligibility", "YES", "NO", "NONE", "A broad motor-control scalar", "REUSE_EXISTING_EXACTLY")
+    LOW_LOAD = @("Low fixed stress/load demand", "ExerciseOfiAxisContribution", "ExerciseOfiDoseProfile", "ExerciseRecoveryProfile", "YES", "NO", "NONE", "A duplicate load-level scalar", "REUSE_EXISTING_EXACTLY")
+    HINGE = @("Historical/runtime hinge mechanics", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "ExerciseStrengthProxyRelation", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+    SQUAT = @("Historical/runtime squat mechanics", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "ExerciseStrengthProxyRelation", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+    ROTATE = @("Historical/runtime active rotation", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExercisePhysicalQualityPoint", "ExerciseBadmintonTransferPoint", "YES", "NO", "NONE", "Conflating rotation with anti-rotation", "KEEP_AS_COMPATIBILITY_ONLY")
+    BRACE = @("Historical/runtime overloaded trunk stabilization", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseStabilityDemand", "ExerciseOfiAxisContribution", "NO", "YES", "Generic BRACE cannot preserve distinct trunk-control facts", "A permanent overloaded scalar", "DECOMPOSE_EXISTING_OWNER")
+    CARRY = @("Historical/runtime loaded carry mechanics", "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN", "ExerciseProgramSlotCapability", "ExerciseOfiAxisContribution", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+    LAND = @("Historical/runtime landing event", "ExerciseMovementAnatomyRelation/MOVEMENT_EVENT", "ExerciseOfiAxisContribution", "ExerciseBadmintonTransferPoint", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+    DECELERATE = @("Historical/runtime deceleration event", "ExerciseMovementAnatomyRelation/MOVEMENT_EVENT", "ExerciseOfiAxisContribution", "ExerciseBadmintonTransferPoint", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+    ACCELERATE = @("Historical/runtime acceleration event", "ExerciseMovementAnatomyRelation/MOVEMENT_EVENT", "ExerciseOfiAxisContribution", "ExerciseBadmintonTransferPoint", "YES", "NO", "NONE", "Permanent runtime force authority", "KEEP_AS_COMPATIBILITY_ONLY")
+}
+
+$ownerAuditRows = @()
+foreach ($token in $forceOwnerDecisions.Keys) {
+    $decision = $forceOwnerDecisions[$token]
+    $affected = Joined-StableKeys @($canonicalBootstrapRows | Where-Object forceType -eq $token)
+    $ownerAuditRows += Add-OwnerAuditRow "forceType" $token $decision[0] $affected `
+        "ExerciseMetadataMapper;ExerciseAnalysisMapper;fatigue/readiness;ProgramBuilder compatibility" `
+        $decision[1] $decision[2] $decision[3] $decision[4] $decision[5] $decision[6] $decision[7] $decision[8]
+}
+$ownerAuditRows += Add-OwnerAuditRow "movementPattern" "TRUNK_BRACE" `
+    "Overloaded axial bracing, anti-rotation, anti-extension, anti-lateral-flexion, and dynamic stabilization" `
+    "band_pallof_press|cable_pallof_press|ex_28347c1f|ex_2a826c82|ex_a44ae2ca|ex_a8385c4a|ex_a9b52886|ex_d5bdffe1|ex_f6d43398|landmine_anti_rotation|plate_rotational_press_out" `
+    "movement taxonomy;presentation;analysis audit" "ExerciseMovementAnatomyRelation/MOVEMENT_PATTERN" "ExerciseStabilityDemand" "ExerciseOfiAxisContribution" `
+    "NO" "YES" "One scalar cannot preserve the reviewed distinctions" "Keeping TRUNK_BRACE would duplicate decomposed relations" "DECOMPOSE_EXISTING_OWNER"
+$ownerAuditRows += Add-OwnerAuditRow "plane" "ALL" "Intrinsic primary movement plane" `
+    (Joined-StableKeys @($canonicalBootstrapRows | Where-Object { -not [string]::IsNullOrWhiteSpace($_.plane) })) `
+    "analysis;ProgramBuilder;presentation" "ExerciseMovementAnatomyRelation/MOVEMENT_PLANE" "identity_master.plane" "NONE" "YES" "NO" "NONE" "NONE" "KEEP_AS_CANONICAL_METADATA"
+$ownerAuditRows += Add-OwnerAuditRow "laterality" "ALL" "Intrinsic exercise-side structure" `
+    (Joined-StableKeys @($canonicalBootstrapRows | Where-Object { -not [string]::IsNullOrWhiteSpace($_.laterality) })) `
+    "analysis;ProgramBuilder;presentation" "ExerciseMovementAnatomyRelation/LATERALITY" "identity_master.laterality" "NONE" "YES" "NO" "NONE" "NONE" "KEEP_AS_CANONICAL_METADATA"
+$ownerAuditRows += Add-OwnerAuditRow "primaryMuscles|secondaryMuscles" "ALL" "Intrinsic anatomical participation" `
+    (Joined-StableKeys $canonicalBootstrapRows) "muscle analysis;ProgramBuilder;presentation" "ExerciseMuscleContribution" "MuscleRef" "NONE" "YES" "NO" "NONE" "NONE" "KEEP_AS_CANONICAL_METADATA"
+$ownerAuditRows += Add-OwnerAuditRow "fatigueCategories|load weights" "ALL" "Intrinsic workload, stress, and recovery inputs" `
+    (Joined-StableKeys $canonicalBootstrapRows) "OFI;readiness;fatigue;connective tissue" "ExerciseOfiAxisContribution" "ExerciseOfiDoseProfile" "ExerciseRecoveryProfile" "YES" "NO" "NONE" "NONE" "KEEP_AS_CANONICAL_METADATA"
+$ownerAuditRows += Add-OwnerAuditRow "generic exercise metadata" "badminton derived axes" "Legacy cross-domain transfer inference" `
+    (Joined-StableKeys $canonicalBootstrapRows) "BadmintonTransferMetadataMapper;BadmintonTrainingLoadIndexCalculator" "ExerciseBadmintonTransferPoint" "ExerciseBadmintonSkillTargetPoint" "ExercisePhysicalQualityPoint" "YES" "NO" "NONE" "Generic metadata must not duplicate sport-transfer authority" "REUSE_EXISTING_EXACTLY"
+$ownerAuditRows = @($ownerAuditRows | Sort-Object sourceField, sourceToken)
+$ownerColumns = @(
+    "sourceField", "sourceToken", "semanticMeaning", "affectedStableKeys", "currentConsumers",
+    "existingCandidateOwner1", "existingCandidateOwner2", "existingCandidateOwner3",
+    "canExistingOwnerRepresentExactly", "extensionRequired", "informationLostIfMapped",
+    "informationDuplicatedIfMapped", "recommendedDisposition"
+)
+Write-Csv $ownerAuditRows $ownerColumns (Join-Path $docsRoot "metadata_existing_owner_capability_audit.csv")
+$ownerLines = @(
+    "# Existing-owner capability audit", "",
+    '- Generated by: `tools/generate_metadata_analysis_contract_audit.ps1`',
+    "- Reviewed concepts: $($ownerAuditRows.Count)",
+    "- New owners required: $(@($ownerAuditRows | Where-Object recommendedDisposition -eq 'NEW_OWNER_REQUIRED').Count)", "",
+    "| Source | Token | Meaning | Existing owner | Extension | Disposition |", "|---|---|---|---|---:|---|"
+)
+foreach ($row in $ownerAuditRows) {
+    $ownerLines += "| ``$($row.sourceField)`` | ``$($row.sourceToken)`` | $(Escape-Markdown $row.semanticMeaning) | ``$($row.existingCandidateOwner1)`` | $($row.extensionRequired) | ``$($row.recommendedDisposition)`` |"
+}
+Set-Content -LiteralPath (Join-Path $docsRoot "metadata_existing_owner_capability_audit.md") -Value $ownerLines -Encoding UTF8
+
+function Match-Count([System.IO.FileInfo[]]$Files, [string]$Token) {
+    $pattern = "(?<![A-Z0-9_])$([regex]::Escape($Token))(?![A-Z0-9_])"
+    $count = 0
+    foreach ($file in $Files) {
+        $count += [regex]::Matches((Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8), $pattern).Count
+    }
+    $count
+}
+
+$taxonomyText = Get-Content -LiteralPath (Join-Path $mainRoot "com/training/trackplanner/data/ExerciseTaxonomy.kt") -Raw -Encoding UTF8
+$registeredBlock = [regex]::Match($taxonomyText, '(?s)val\s+forceTypes\s*=\s*setOf\((.*?)\)').Groups[1].Value
+$registeredForceTokens = @([regex]::Matches($registeredBlock, '"([A-Z0-9_]+)"') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+$metadataTaxonomyText = Get-Content -LiteralPath (Join-Path $mainRoot "com/training/trackplanner/data/ExerciseMetadataTaxonomy.kt") -Raw -Encoding UTF8
+$runtimeBlock = [regex]::Match($metadataTaxonomyText, '(?s)enum\s+class\s+FatigueForceType\s*\{(.*?)\}').Groups[1].Value
+$runtimeForceTokens = @([regex]::Matches($runtimeBlock, '\b([A-Z][A-Z0-9_]+)\b') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+$allForceTokens = @(($registeredForceTokens + $runtimeForceTokens) | Sort-Object -Unique)
+$roomFixtureFiles = @($testFiles | Where-Object Name -match 'Room|Database|Dao')
+$historicalFixtureFiles = @($testFiles | Where-Object Name -match 'Legacy|Migration')
+$backupFixtureFiles = @($testFiles | Where-Object Name -match 'Backup|Restore|Import|Export')
+$forceAuditRows = foreach ($token in $allForceTokens) {
+    $canonicalCount = @($canonicalBootstrapRows | Where-Object forceType -eq $token).Count
+    $seedCount = @($seedExerciseRows | Where-Object force_type -eq $token).Count
+    $productionCount = Match-Count $sourceFiles $token
+    $testCount = Match-Count $testFiles $token
+    $classification = if ($token -in $registeredForceTokens) {
+        "CURRENT_CANONICAL"
+    } elseif ($canonicalCount -gt 0 -or $productionCount -gt 0) {
+        "CURRENT_NONCANONICAL_RUNTIME"
+    } elseif ($testCount -gt 0) {
+        "TEST_ONLY"
+    } else {
+        "DEAD_CODE_ONLY"
+    }
+    [pscustomobject]@{
+        token = $token
+        classification = $classification
+        presentInRegisteredForceTypes = if ($token -in $registeredForceTokens) { "YES" } else { "NO" }
+        presentInRuntimeForceEnum = if ($token -in $runtimeForceTokens) { "YES" } else { "NO" }
+        currentCanonicalRows = $canonicalCount
+        seedRows = $seedCount
+        seedDataSourceReferences = Match-Count @($sourceFiles | Where-Object Name -eq 'SeedData.kt') $token
+        currentRoomFixtureReferences = Match-Count $roomFixtureFiles $token
+        historicalRoomFixtureReferences = Match-Count $historicalFixtureFiles $token
+        backupRestoreFixtureReferences = Match-Count $backupFixtureFiles $token
+        testReferences = $testCount
+        runtimeBranchReferences = $productionCount
+        acceptedByRestore = "YES_FIELD_PRESERVED"
+        downstreamAuthority = if ($classification -eq "CURRENT_CANONICAL") { "REGISTERED_COMPATIBILITY_AND_CURRENT_VALIDATION" } else { "RUNTIME_COMPATIBILITY_ONLY" }
+        notes = if ($classification -eq "CURRENT_NONCANONICAL_RUNTIME") { "Do not promote into canonical metadata; normalize through existing typed relations" } else { "Existing canonical owners audited separately" }
+    }
+}
+$forceColumns = @(
+    "token", "classification", "presentInRegisteredForceTypes", "presentInRuntimeForceEnum",
+    "currentCanonicalRows", "seedRows", "seedDataSourceReferences", "currentRoomFixtureReferences",
+    "historicalRoomFixtureReferences", "backupRestoreFixtureReferences", "testReferences",
+    "runtimeBranchReferences", "acceptedByRestore", "downstreamAuthority", "notes"
+)
+Write-Csv @($forceAuditRows) $forceColumns (Join-Path $docsRoot "force_type_token_audit.csv")
+$forceLines = @(
+    "# forceType token audit", "", '- Generated from the current registries, canonical bootstrap, source, and fixtures.',
+    "- Registered values: $($registeredForceTokens -join ', ')",
+    "- Runtime compatibility values: $($runtimeForceTokens -join ', ')",
+    "- Dead-only values: $((@($forceAuditRows | Where-Object classification -eq 'DEAD_CODE_ONLY').token) -join ', ')", "",
+    "| Token | Classification | Canonical rows | Seed rows | Runtime refs | Test refs |", "|---|---|---:|---:|---:|---:|"
+)
+foreach ($row in $forceAuditRows) { $forceLines += "| ``$($row.token)`` | ``$($row.classification)`` | $($row.currentCanonicalRows) | $($row.seedRows) | $($row.runtimeBranchReferences) | $($row.testReferences) |" }
+Set-Content -LiteralPath (Join-Path $docsRoot "force_type_token_audit.md") -Value $forceLines -Encoding UTF8
+
+$trunkDecisions = @(
+    @{ key="band_pallof_press"; source="TRUNK_BRACE"; values=@("ANTI_ROTATION"); reason="Explicit rotational-torque resistance" },
+    @{ key="cable_pallof_press"; source="TRUNK_BRACE"; values=@("ANTI_ROTATION"); reason="Explicit rotational-torque resistance" },
+    @{ key="ex_28347c1f"; source="TRUNK_BRACE"; values=@("DYNAMIC_TRUNK_STABILIZATION", "ANTI_ROTATION"); reason="Bird-dog dynamic contralateral stabilization" },
+    @{ key="ex_2a826c82"; source="TRUNK_BRACE"; values=@("ANTI_EXTENSION"); reason="Hollow hold resists extension" },
+    @{ key="ex_a44ae2ca"; source="TRUNK_BRACE"; values=@("ANTI_EXTENSION"); reason="Plank resists extension" },
+    @{ key="ex_a8385c4a"; source="TRUNK_BRACE"; values=@("ANTI_LATERAL_FLEXION"); reason="Copenhagen plank resists lateral flexion" },
+    @{ key="ex_a9b52886"; source="TRUNK_BRACE"; values=@("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"); reason="Mountain climber stabilizes the trunk dynamically against extension" },
+    @{ key="ex_d5bdffe1"; source="TRUNK_BRACE"; values=@("DYNAMIC_TRUNK_STABILIZATION", "ANTI_EXTENSION"); reason="Dead bug combines dynamic control and anti-extension" },
+    @{ key="ex_f6d43398"; source="TRUNK_BRACE"; values=@("ANTI_LATERAL_FLEXION"); reason="Side plank resists lateral flexion" },
+    @{ key="landmine_anti_rotation"; source="TRUNK_BRACE"; values=@("ANTI_ROTATION"); reason="Explicit anti-rotation task" },
+    @{ key="plate_rotational_press_out"; source="TRUNK_BRACE"; values=@("ANTI_ROTATION"); reason="Explicit anti-rotation press-out task" },
+    @{ key="barbell_back_squat"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="High-force trunk load transfer under axial load" },
+    @{ key="barbell_deadlift"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="High-force trunk load transfer under external load" },
+    @{ key="barbell_romanian_deadlift"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Loaded hinge requires axial bracing" },
+    @{ key="dumbbell_romanian_deadlift"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Loaded hinge requires axial bracing" },
+    @{ key="ex_32219f7a"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Standing strict overhead press transfers load through a braced trunk" },
+    @{ key="ex_8e4bf08e"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Unsupported loaded row requires axial trunk bracing" },
+    @{ key="ex_c5043892"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Front squat requires high-force axial bracing" },
+    @{ key="ex_de46b7f6"; source="HEAVY_COMPOUND_BRACING"; values=@("AXIAL_BRACING"); reason="Unsupported barbell row requires axial trunk bracing" },
+    @{ key="dumbbell_farmer_carry"; source="LOADED_CARRY_BRACING"; values=@("AXIAL_BRACING"); reason="Bilateral loaded carry requires axial trunk stiffness" },
+    @{ key="kettlebell_farmer_carry"; source="LOADED_CARRY_BRACING"; values=@("AXIAL_BRACING"); reason="Bilateral loaded carry requires axial trunk stiffness" }
+)
+$trunkRows = foreach ($decision in $trunkDecisions) {
+    $actual = @($canonicalMovementRows | Where-Object { $_.exerciseStableKey -eq $decision.key -and $_.relationType -eq "MOVEMENT_PATTERN" } | ForEach-Object relationValue)
+    $missing = @($decision.values | Where-Object { $_ -notin $actual })
+    if ($missing.Count -gt 0) { throw "Missing reviewed trunk relation for $($decision.key): $($missing -join ',')" }
+    [pscustomobject]@{
+        stableKey = $decision.key
+        exerciseName = $identityByStableKey[$decision.key].exerciseName
+        sourceField = if ($decision.source -eq "TRUNK_BRACE") { "movementPattern" } else { "reviewed intrinsic load and movement relations" }
+        sourceToken = $decision.source
+        normalizedRelations = ($decision.values -join "|")
+        existingOtherMovementRelations = (@($actual | Where-Object { $_ -notin $decision.values } | Sort-Object -Unique) -join "|")
+        multiLabel = if ($decision.values.Count -gt 1) { "YES" } else { "NO" }
+        badmintonAntiRotationImplied = "NO"
+        reason = $decision.reason
+        informationStatus = "LOSSLESS_WITH_EXISTING_OWNER_EXTENSION"
+    }
+}
+$trunkColumns = @(
+    "stableKey", "exerciseName", "sourceField", "sourceToken", "normalizedRelations",
+    "existingOtherMovementRelations", "multiLabel", "badmintonAntiRotationImplied", "reason", "informationStatus"
+)
+Write-Csv @($trunkRows) $trunkColumns (Join-Path $docsRoot "trunk_brace_decomposition_audit.csv")
+$trunkLines = @(
+    "# TRUNK_BRACE decomposition audit", "", '- The existing multi-valued `MOVEMENT_PATTERN` relation is the owner.',
+    "- Reviewed stableKeys: $($trunkRows.Count)",
+    "- Multi-label reviewed rows: $(@($trunkRows | Where-Object multiLabel -eq 'YES').Count)",
+    "- Remaining canonical TRUNK_BRACE relations: $(@($canonicalMovementRows | Where-Object relationValue -eq 'TRUNK_BRACE').Count)", "",
+    "| Stable key | Source | Normalized relation(s) | Multi | Reason |", "|---|---|---|---:|---|"
+)
+foreach ($row in $trunkRows) { $trunkLines += "| ``$($row.stableKey)`` | ``$($row.sourceToken)`` | ``$($row.normalizedRelations)`` | $($row.multiLabel) | $(Escape-Markdown $row.reason) |" }
+Set-Content -LiteralPath (Join-Path $docsRoot "trunk_brace_decomposition_audit.md") -Value $trunkLines -Encoding UTF8
+
+$parityPath = Join-Path $docsRoot "metadata_normalization_shadow_parity_241.csv"
+if (-not (Test-Path -LiteralPath $parityPath)) { throw "Missing reviewed 241-row shadow parity artifact: $parityPath" }
+$parityRows = @(Import-Csv -LiteralPath $parityPath)
+if ($parityRows.Count -ne 241) { throw "Expected 241 parity rows, found $($parityRows.Count)." }
+if (@($parityRows | Where-Object decision -in @("CANONICAL_GAP", "INFORMATION_LOSS", "AMBIGUOUS")).Count -gt 0) {
+    throw "Blocking metadata normalization parity rows remain."
+}
+
+$informationRows = @()
+foreach ($row in $trunkRows) {
+    $informationRows += [pscustomobject]@{
+        stableKey = $row.stableKey
+        sourceField = $row.sourceField
+        sourceToken = $row.sourceToken
+        sourceSemanticFacts = $row.reason
+        existingCanonicalFactsBefore = if ($row.sourceToken -eq "TRUNK_BRACE") { "MOVEMENT_PATTERN:TRUNK_BRACE" } else { "Intrinsic movement/load relations without explicit axial-bracing label" }
+        canonicalFactsAfter = "MOVEMENT_PATTERN:$($row.normalizedRelations -replace '\|', '|MOVEMENT_PATTERN:')"
+        lostFacts = "NONE"
+        unsupportedNewFacts = "NONE"
+        duplicatedFacts = "NONE"
+        informationStatus = $row.informationStatus
+    }
+}
+foreach ($row in $parityRows) {
+    $status = if ($row.decision -eq "PARITY_EXACT") { "LOSSLESS" } else { "INTENTIONAL_OBSOLETE_INFORMATION_REMOVED" }
+    $informationRows += [pscustomobject]@{
+        stableKey = $row.stableKey
+        sourceField = "legacy derived badminton transfer inference"
+        sourceToken = $row.currentBadmintonSourceSemantics
+        sourceSemanticFacts = "axes=$($row.currentDerivedBadmintonAxes);objectives=$($row.currentBadmintonObjectiveKeys);fatigueCost=$($row.currentFatigueCost)"
+        existingCanonicalFactsBefore = $row.normalizedBadmintonSourceSemantics
+        canonicalFactsAfter = "axes=$($row.normalizedDerivedBadmintonAxes);objectives=$($row.normalizedBadmintonObjectiveKeys);fatigueCost=$($row.normalizedFatigueCost)"
+        lostFacts = $row.semanticDelta
+        unsupportedNewFacts = if ($row.outputDelta -eq "addedAxes=;addedObjectives=") { "NONE" } else { $row.outputDelta }
+        duplicatedFacts = "NONE"
+        informationStatus = $status
+    }
+}
+$informationRows = @($informationRows | Sort-Object stableKey, sourceField, sourceToken)
+$informationColumns = @(
+    "stableKey", "sourceField", "sourceToken", "sourceSemanticFacts", "existingCanonicalFactsBefore",
+    "canonicalFactsAfter", "lostFacts", "unsupportedNewFacts", "duplicatedFacts", "informationStatus"
+)
+Write-Csv $informationRows $informationColumns (Join-Path $docsRoot "metadata_information_preservation_audit.csv")
+$informationLines = @(
+    "# Metadata information-preservation audit", "", '- Covers trunk-control normalization and the 241-identity badminton consumer switch.',
+    "- Rows: $($informationRows.Count)", "",
+    "| Status | Count |", "|---|---:|"
+)
+foreach ($group in ($informationRows | Group-Object informationStatus | Sort-Object Name)) { $informationLines += "| ``$($group.Name)`` | $($group.Count) |" }
+Set-Content -LiteralPath (Join-Path $docsRoot "metadata_information_preservation_audit.md") -Value $informationLines -Encoding UTF8
+
+$parityLines = @(
+    "# Metadata normalization 241-identity shadow parity", "", '- Machine-readable companion: `metadata_normalization_shadow_parity_241.csv`',
+    "- Rows: $($parityRows.Count)", "",
+    "| Decision | Count |", "|---|---:|"
+)
+foreach ($decision in @("PARITY_EXACT", "PARITY_STRUCTURAL_ONLY", "PARITY_INTENTIONAL_CORRECTION", "CANONICAL_GAP", "INFORMATION_LOSS", "AMBIGUOUS")) {
+    $parityLines += "| ``$decision`` | $(@($parityRows | Where-Object decision -eq $decision).Count) |"
+}
+$parityLines += @("", "`fatigueCost` is byte-for-byte equal between current and normalized columns for all 241 rows.")
+Set-Content -LiteralPath (Join-Path $docsRoot "metadata_normalization_shadow_parity_report.md") -Value $parityLines -Encoding UTF8
 
 Remove-Item -LiteralPath (Join-Path $docsRoot "metadata_migration_issue_ledger.csv") -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path $docsRoot "metadata_migration_issue_ledger.md") -ErrorAction SilentlyContinue

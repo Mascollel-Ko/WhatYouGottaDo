@@ -3,12 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32 |
 | Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
+
+## v0.5.0.32 canonical source boundary
+
+Visible transfer axes are derived from explicit canonical badminton transfer
+types, skill targets, and physical qualities. Generic `FRONTAL` plane,
+unilateral structure, shoulder/forearm/back muscle participation, fatigue/load
+tags, conditioning role, and generic bracing are not transfer evidence.
+Explicit deceleration/landing, footwork/lateral, lunge, rotation, racket, and
+anti-rotation relations continue to produce their reviewed axis or objective.
+
+`fatigueCost` remains a separate runtime derivation and retains its original
+load inputs and thresholds. The 241-identity audit confirms exact before/after
+fatigue cost as well as unchanged OFI, program, and strength classifications.
 | Supersedes | — |
 
 `1.1.0`은 현재 동작과 artifact-only stableKey 정본화의 경계를 함께 기록합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.

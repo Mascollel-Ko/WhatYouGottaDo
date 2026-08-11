@@ -3,12 +3,34 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.8.0 |
+| Protocol version | 1.9.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32 |
 | Last audited commit | 28f40346492d1f7df9e593214a3b806295f27222 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.32 canonical normalization
+
+The canonical authority continues to use existing multi-valued relation
+owners. No Room field, backup field, or parallel ontology was added.
+`MOVEMENT_PATTERN:TRUNK_BRACE` was decomposed into independently reviewable
+`AXIAL_BRACING`, `ANTI_ROTATION`, `ANTI_LATERAL_FLEXION`, `ANTI_EXTENSION`,
+and `DYNAMIC_TRUNK_STABILIZATION` values. Active `TRUNK_ROTATION` remains a
+separate movement relation. Multiple relations may coexist for one stableKey.
+
+Intrinsic `plane`, `laterality`, muscle, and fatigue/load metadata remain
+canonical facts for their legitimate consumers. They no longer independently
+create badminton-transfer axes when canonical badminton authority is present.
+Badminton transfer uses transfer level/type, skill target, and physical-quality
+relations. Intrinsic anti-rotation does not automatically become badminton
+`ANTI_ROTATION_STABILITY`; that requires an explicit badminton relation.
+
+The reviewed shadow artifact covers all 241 selectable identities. It records
+five exact rows and 236 intentional removals of obsolete generic-to-badminton
+inference, with zero canonical gaps, information loss, semantic expansion, or
+ambiguity. `fatigueCost`, OFI signals, ProgramBuilder classification, and
+strength classification are unchanged on every row.
 
 ## v0.5.0.23 Korean metadata display authority
 
@@ -123,8 +145,13 @@ reviewed authority에 남고 이 baseline에는 exact capability만 기록합니
 - Legacy `trainingRole` is no longer a production metadata field. Intrinsic
   meaning is represented by typed `TrainingRole` relations and placement is
   represented independently by typed `ProgramSlotCapability` relations.
-- The approved 26 exact stableKeys migrate mechanically to
-  `ProgramSlotCapability`; unlisted exercises receive no manufactured relation.
+- Legacy `trainingRole` whitelist rows are no longer current production input.
+  Canonical `training_roles.csv` and `program_slot_capabilities.csv` are the
+  independent exact relation owners; unlisted exercises receive no relation.
+- `training_role_whitelist_reconstruction.csv` remains a frozen 26-row
+  historical compatibility baseline. Audit regeneration reads and validates
+  it but must not rewrite it from the current seed, which no longer stores the
+  legacy field.
 - Program placement capability is not an analysis input. Existing Phase 0/1
   `programSlotCapabilities` contract rows remain a separate shadow-contract
   namespace and do not consume the new Room relation.
@@ -274,10 +301,19 @@ golden을 검증합니다.
 - `docs/audits/metadata_inference_stablekey_impact.md`
 - `docs/audits/confirmed_metadata_errors.md`
 - `docs/audits/metadata_analysis_contract_parity_report.md`
+- `docs/audits/metadata_existing_owner_capability_audit.md`
+- `docs/audits/force_type_token_audit.md`
+- `docs/audits/trunk_brace_decomposition_audit.md`
+- `docs/audits/metadata_information_preservation_audit.md`
+- `docs/audits/metadata_normalization_shadow_parity_report.md`
 - `docs/v0.5.0.18_release_notes.md`
 
 ## 20. 변경 이력
 
+- `1.9.0` (2026-08-12): reused the existing canonical relation owners,
+  decomposed the overloaded trunk-bracing bucket, switched canonical
+  badminton transfer to explicit sport-specific authority, and added
+  deterministic 241-identity information-preservation gates.
 - `1.8.0` (2026-08-09): authoritative fieldKey display routing, typed and
   hybrid presentation policies, zero-gap Korean production coverage, and
   deterministic routing validation were connected without changing semantic

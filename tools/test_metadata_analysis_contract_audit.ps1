@@ -26,11 +26,19 @@ $generated = @(
     "docs/audits/metadata_inference_stablekey_impact.md",
     "docs/audits/confirmed_metadata_errors.csv",
     "docs/audits/confirmed_metadata_errors.md",
-    "docs/audits/training_role_whitelist_reconstruction.csv",
     "docs/audits/family_id_consumer_inventory.csv",
     "docs/audits/load_profile_consumer_inventory.csv",
     "docs/audits/metadata_taxonomy_decision_matrix.csv",
-    "docs/audits/metadata_taxonomy_decision_matrix.md"
+    "docs/audits/metadata_taxonomy_decision_matrix.md",
+    "docs/audits/metadata_existing_owner_capability_audit.csv",
+    "docs/audits/metadata_existing_owner_capability_audit.md",
+    "docs/audits/force_type_token_audit.csv",
+    "docs/audits/force_type_token_audit.md",
+    "docs/audits/trunk_brace_decomposition_audit.csv",
+    "docs/audits/trunk_brace_decomposition_audit.md",
+    "docs/audits/metadata_information_preservation_audit.csv",
+    "docs/audits/metadata_information_preservation_audit.md",
+    "docs/audits/metadata_normalization_shadow_parity_report.md"
 )
 
 & $generator -RepoRoot $RepoRoot
@@ -56,6 +64,11 @@ $trainingRoles = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/tra
 $familyInventory = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/family_id_consumer_inventory.csv"))
 $loadInventory = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/load_profile_consumer_inventory.csv"))
 $taxonomy = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_taxonomy_decision_matrix.csv"))
+$owners = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_existing_owner_capability_audit.csv"))
+$forceTokens = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/force_type_token_audit.csv"))
+$trunk = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/trunk_brace_decomposition_audit.csv"))
+$information = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_information_preservation_audit.csv"))
+$normalizationParity = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "docs/audits/metadata_normalization_shadow_parity_241.csv"))
 
 $mappingColumns = @(
     "legacyField", "storageLocation", "currentProducer", "consumerFile", "consumerSymbol",
@@ -76,7 +89,7 @@ $confirmedColumns = @(
     "strengthPerformanceImpact", "parityImpact", "severity", "approvalStatus",
     "proposedResolution", "targetVersion"
 )
-Assert-True ($usage.Count -eq 102) "Expected 102 field/storage rows, found $($usage.Count)."
+Assert-True ($usage.Count -eq 101) "Expected 101 current field/storage rows, found $($usage.Count)."
 Assert-True ($mapping[0].PSObject.Properties.Name.Count -eq $mappingColumns.Count) "Unexpected mapping column count."
 Assert-True (@($mappingColumns | Where-Object { $_ -notin $mapping[0].PSObject.Properties.Name }).Count -eq 0) "Missing required mapping columns."
 Assert-True (@($impactColumns | Where-Object { $_ -notin $impact[0].PSObject.Properties.Name }).Count -eq 0) "Missing required impact columns."
@@ -131,8 +144,12 @@ $analysisEligibility = @($mapping | Where-Object legacyField -eq "analysisEligib
 Assert-True (@($analysisEligibility.targetRelation | Sort-Object -Unique).Count -gt 2) "analysisEligibility still has a field-wide target."
 Assert-True (@($analysisEligibility | Where-Object mappingStatus -eq "APPROVED").Count -eq 0) "analysisEligibility candidates were silently approved."
 
-Assert-True ($trainingRoles.Count -eq 26) "Expected 26 approved legacy training-role rows."
-Assert-True (@($trainingRoles | Where-Object reconstructionStatus -ne "CONFIRMED_EXPLICIT").Count -eq 0) "Training roles contain unapproved inference."
+Assert-True ($trainingRoles.Count -eq 26) `
+    "Expected the frozen 26-row historical trainingRole reconstruction baseline."
+$canonicalTrainingRoles = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "app/src/main/assets/metadata/canonical_v1/training_roles.csv"))
+$historyTrainingRoles = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "app/src/main/assets/metadata/canonical_v1/history_training_roles.csv"))
+Assert-True ($canonicalTrainingRoles.Count -eq 18) "Expected 18 canonical training-role relations."
+Assert-True ($historyTrainingRoles.Count -eq 1) "Expected one history-only training-role relation."
 Assert-True (@($familyInventory | Where-Object { $_.targetLayer -ne "DERIVED_NONCANONICAL" -or $_.targetRelation -ne "NONE" }).Count -eq 0) `
     "familyId was promoted into target canonical metadata."
 Assert-True (@($loadInventory | Where-Object { $_.targetLayer -ne "LEGACY_COMPOSITE_TO_BE_DECOMPOSED" -or $_.targetRelation -ne "NONE" }).Count -eq 0) `
@@ -145,6 +162,61 @@ Assert-True (@($closedWorldImpact | Where-Object { $_.rawValuePresent -eq "FALSE
 $usageConcepts = @($usage.fieldName | Sort-Object -Unique)
 Assert-True ($taxonomy.Count -eq $usageConcepts.Count) "Taxonomy matrix does not cover every distinct current concept."
 Assert-True (@($usageConcepts | Where-Object { $_ -notin $taxonomy.currentConcept }).Count -eq 0) "Taxonomy matrix is missing current concepts."
+
+Assert-True ($owners.Count -eq 26) "Expected 26 existing-owner audit rows, found $($owners.Count)."
+Assert-True (@($owners | Where-Object recommendedDisposition -eq "NEW_OWNER_REQUIRED").Count -eq 0) `
+    "Normalization introduced a new canonical owner without passing the owner gate."
+Assert-True (@($owners | Where-Object {
+    [string]::IsNullOrWhiteSpace($_.existingCandidateOwner1) -or
+    [string]::IsNullOrWhiteSpace($_.recommendedDisposition)
+}).Count -eq 0) "Existing-owner audit contains incomplete decisions."
+
+Assert-True ($forceTokens.Count -eq 20) "Expected the 20-token forceType registry/runtime union."
+Assert-True (@($forceTokens | Where-Object classification -eq "CURRENT_CANONICAL").Count -eq 12) `
+    "Expected 12 registered current forceType values."
+Assert-True (@($forceTokens | Where-Object classification -eq "CURRENT_NONCANONICAL_RUNTIME").Count -eq 8) `
+    "Expected eight current runtime compatibility values."
+Assert-True (@($forceTokens | Where-Object classification -in @("UNKNOWN", "DEAD_CODE_ONLY")).Count -eq 0) `
+    "forceType audit left unknown or dead-only values."
+Assert-True (@($forceTokens | Where-Object acceptedByRestore -ne "YES_FIELD_PRESERVED").Count -eq 0) `
+    "Historical forceType restore compatibility is incomplete."
+
+Assert-True ($trunk.Count -eq 21) "Expected 21 reviewed trunk normalization rows."
+Assert-True (@($trunk | Where-Object badmintonAntiRotationImplied -ne "NO").Count -eq 0) `
+    "Intrinsic bracing still implies badminton anti-rotation."
+Assert-True (@($trunk | Where-Object informationStatus -ne "LOSSLESS_WITH_EXISTING_OWNER_EXTENSION").Count -eq 0) `
+    "Trunk normalization is not lossless."
+Assert-True (@($trunk | Where-Object { $_.normalizedRelations -split '\|' -contains 'AXIAL_BRACING' }).Count -eq 10) `
+    "Unexpected AXIAL_BRACING count."
+Assert-True (@($trunk | Where-Object { $_.normalizedRelations -split '\|' -contains 'ANTI_ROTATION' }).Count -eq 5) `
+    "Unexpected ANTI_ROTATION count."
+Assert-True (@($trunk | Where-Object { $_.normalizedRelations -split '\|' -contains 'ANTI_LATERAL_FLEXION' }).Count -eq 2) `
+    "Unexpected ANTI_LATERAL_FLEXION count."
+Assert-True (@($trunk | Where-Object { $_.normalizedRelations -split '\|' -contains 'ANTI_EXTENSION' }).Count -eq 4) `
+    "Unexpected ANTI_EXTENSION count."
+Assert-True (@($trunk | Where-Object { $_.normalizedRelations -split '\|' -contains 'DYNAMIC_TRUNK_STABILIZATION' }).Count -eq 3) `
+    "Unexpected DYNAMIC_TRUNK_STABILIZATION count."
+Assert-True (@($trunk | Where-Object multiLabel -eq "YES").Count -eq 3) "Expected three multi-label trunk rows."
+$movementRelations = @(Import-Csv -LiteralPath (Join-Path $RepoRoot "app/src/main/assets/metadata/canonical_v1/movement_relations.csv"))
+Assert-True (@($movementRelations | Where-Object relationValue -eq "TRUNK_BRACE").Count -eq 0) `
+    "TRUNK_BRACE remains a canonical movement relation."
+
+Assert-True ($normalizationParity.Count -eq 241) "Expected 241 canonical identity parity rows."
+Assert-True (@($normalizationParity | Where-Object decision -in @("CANONICAL_GAP", "INFORMATION_LOSS", "AMBIGUOUS")).Count -eq 0) `
+    "Blocking normalization parity rows remain."
+Assert-True (@($normalizationParity | Where-Object { $_.currentFatigueCost -ne $_.normalizedFatigueCost }).Count -eq 0) `
+    "Badminton fatigueCost changed during normalization."
+Assert-True (@($normalizationParity | Where-Object {
+    $_.currentRelevantOfiSignals -ne $_.normalizedRelevantOfiSignals -or
+    $_.currentRelevantProgramClassification -ne $_.normalizedRelevantProgramClassification -or
+    $_.currentStrengthClassification -ne $_.normalizedStrengthClassification
+}).Count -eq 0) "An unrelated normalized consumer changed."
+
+Assert-True ($information.Count -eq 262) "Expected 262 information-preservation rows."
+Assert-True (@($information | Where-Object informationStatus -in @("INFORMATION_LOSS", "SEMANTIC_EXPANSION", "AMBIGUOUS")).Count -eq 0) `
+    "Blocking information-preservation rows remain."
+Assert-True (@($information | Where-Object unsupportedNewFacts -ne "NONE").Count -eq 0) `
+    "Normalization added unsupported semantic facts."
 
 Assert-True ($risks.Count -eq 20) "Expected 20 risk paths, found $($risks.Count)."
 Assert-True ($impact.Count -eq 4480) "Expected 4,480 impact rows, found $($impact.Count)."

@@ -2144,3 +2144,36 @@ exercise names, notes, descriptions, and program names bypass this registry.
 
 The primary label for `ESTIMATED_1RM` is the product-owner-approved exact text
 `e1RM`. It does not modify the underlying strength calculation.
+
+## 22. v2.5 canonical normalization closeout
+
+This section supersedes the older v2.3 transitional statements about a legacy
+`trainingRole` whitelist. `Exercise.trainingRole` and the seed
+`training_role` column are no longer production metadata. Exact canonical
+`training_roles.csv` and `program_slot_capabilities.csv` relations own those
+independent meanings.
+
+The existing canonical movement relation was extended rather than replaced.
+The overloaded `TRUNK_BRACE` source bucket is fully decomposed into reviewed,
+multi-valued `AXIAL_BRACING`, `ANTI_ROTATION`, `ANTI_LATERAL_FLEXION`,
+`ANTI_EXTENSION`, and `DYNAMIC_TRUNK_STABILIZATION` relations. Active
+`TRUNK_ROTATION` remains distinct. No `forceTypeV2`, Room field, backup field,
+or duplicate ontology was created.
+
+`plane`, `laterality`, muscle contribution, and fatigue/load metadata remain
+legitimate intrinsic metadata. Their unsupported use as independent badminton
+transfer evidence is removed for canonical identities. Canonical badminton
+transfer level/type, skill target, and physical-quality relations are the
+sport-specific authority. The reviewed 241-row shadow artifact records 5 exact
+rows and 236 intentional obsolete-inference removals, with zero canonical gap,
+information loss, semantic expansion, or ambiguity. Fatigue cost, OFI,
+ProgramBuilder, and strength classification remain identical on all rows.
+
+Canonical authority and audit artifacts:
+
+- `docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx`
+- `docs/audits/metadata_existing_owner_capability_audit.csv`
+- `docs/audits/force_type_token_audit.csv`
+- `docs/audits/trunk_brace_decomposition_audit.csv`
+- `docs/audits/metadata_information_preservation_audit.csv`
+- `docs/audits/metadata_normalization_shadow_parity_241.csv`

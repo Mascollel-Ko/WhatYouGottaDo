@@ -5225,3 +5225,87 @@ Verification
 - Room 29, backup format 12, restore schema 11, scientific calculations,
   ProgramBuilder, metadata identity, and user data remain unchanged.
 - `app/outputs/` was not staged, modified, or committed.
+
+## 2026-08-12 - v0.5.0.32 canonical metadata normalization
+
+### Baseline and scope
+
+- Started from latest `origin/main` at
+  `8c9849ee49b89692fa79929aee4d7572f72a7512`, version
+  `0.5.0.31 / 500031`.
+- Baseline contracts were Room 29, backup format 12, restore schema 11 and
+  program backup 2.
+- Audited 257 identities: 241 selectable canonical identities and 16
+  history-only identities.
+- Reused the existing metadata authority workbook, canonical relation model,
+  analysis-contract audit pipeline and protocol registry. No duplicate owner,
+  Room field, backup field or replacement scalar taxonomy was introduced.
+
+### Existing-owner and forceType audit
+
+- The existing-owner audit classified 26 reviewed concepts:
+  `REUSE_EXISTING_EXACTLY` 11, `KEEP_AS_COMPATIBILITY_ONLY` 9,
+  `KEEP_AS_CANONICAL_METADATA` 4 and `DECOMPOSE_EXISTING_OWNER` 2.
+  `NEW_OWNER_REQUIRED` is zero.
+- The complete 20-token forceType union contains 12 current canonical tokens
+  (`PUSH`, `PULL`, `LOWER_BODY`, `MIXED`, `STRENGTH`, `HYPERTROPHY`, `POWER`,
+  `PLYOMETRIC`, `DECELERATION_DIRECT`, `ANTI_ROTATION`, `MOTOR_CONTROL`,
+  `LOW_LOAD`) and 8 current noncanonical runtime compatibility tokens
+  (`ACCELERATE`, `BRACE`, `CARRY`, `DECELERATE`, `HINGE`, `LAND`, `ROTATE`,
+  `SQUAT`). Dead/unknown tokens are zero.
+- Plane, laterality, muscle relations and fatigue/load metadata remain valid
+  intrinsic facts. They no longer independently create canonical badminton
+  transfer meaning.
+
+### Canonical normalization
+
+- Decomposed all 11 former `TRUNK_BRACE` relations. Final relation counts are
+  `AXIAL_BRACING` 10, `ANTI_ROTATION` 5, `ANTI_LATERAL_FLEXION` 2,
+  `ANTI_EXTENSION` 4 and `DYNAMIC_TRUNK_STABILIZATION` 3; three reviewed
+  exercises carry multiple trunk-control relations and canonical
+  `TRUNK_BRACE` is zero.
+- Canonical badminton transfer now derives only from explicit badminton
+  type/target/physical-quality authority. Generic plane, laterality, muscle,
+  fatigue and broad role/category inference was removed from the canonical
+  path and retained only in the isolated historical/user-created audit path.
+- `TRUNK_ROTATION`, `AXIAL_BRACING` and `ANTI_ROTATION` remain separate.
+  Intrinsic anti-rotation is not sufficient by itself to create badminton
+  anti-rotation transfer.
+- Badminton `fatigueCost`, OFI, readiness, fatigue, connective tissue,
+  ProgramBuilder, strength analysis, CRUD, stableKeys, Room and backup/restore
+  contracts are unchanged.
+
+### Audit and parity results
+
+- Information preservation, 262 rows: `LOSSLESS` 5,
+  `LOSSLESS_WITH_EXISTING_OWNER_EXTENSION` 21,
+  `INTENTIONAL_OBSOLETE_INFORMATION_REMOVED` 236, `INFORMATION_LOSS` 0,
+  `SEMANTIC_EXPANSION` 0 and `AMBIGUOUS` 0.
+- Shadow parity, 241 rows: `PARITY_EXACT` 5,
+  `PARITY_INTENTIONAL_CORRECTION` 236, `PARITY_STRUCTURAL_ONLY` 0,
+  `CANONICAL_GAP` 0, `INFORMATION_LOSS` 0 and `AMBIGUOUS` 0.
+- Every parity row preserves fatigue cost, OFI signals, ProgramBuilder
+  classification and strength-analysis classification.
+- Regenerated existing canonical authority exports, localization display
+  resources, metadata field/compatibility audits and protocol indexes.
+
+### Validation
+
+- Metadata analysis-contract generation and deterministic two-run gate:
+  passed with 101 fields, 4,494 mappings, 20 risk paths, 4,480 impact rows and
+  zero confirmed errors.
+- Initial focused canonical authority, badminton and analysis-contract group:
+  23 tests passed. Focused `PerformanceTrendEngineTest` and
+  `ExerciseRoleRelationsTest` also passed after the canonical/compatibility
+  source boundary and frozen historical role baseline were verified.
+- Full `:app:testDebugUnitTest`: 1,263 tests passed with zero failures or
+  skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` and
+  `:app:assembleDebug`: passed.
+- Debug APK: 51,392,214 bytes, SHA-256
+  `4F4D05149E90408F894F2401301AB041C3235A03DA197B40B3DC0416767F15B7`.
+- Protocol registry JSON and every registered repository path passed a local
+  Node integrity check. The exact Python protocol validator is delegated to
+  GitHub Actions because this Windows workspace has no usable Python runtime.
+- `app/outputs/` and the pre-existing dirty files in the original worktree were
+  not modified or staged.

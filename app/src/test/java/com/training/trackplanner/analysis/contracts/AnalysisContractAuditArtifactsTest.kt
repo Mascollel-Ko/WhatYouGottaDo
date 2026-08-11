@@ -12,15 +12,13 @@ class AnalysisContractAuditArtifactsTest {
     @Test
     fun phase2A1ApprovedSemanticBoundariesRemainExplicit() {
         val usage = csv("docs/audits/metadata_field_usage_matrix.csv").associateBy { it["fieldName"] }
-        assertEquals("EXACT_LEGACY_STABLEKEY_WHITELIST", usage.getValue("trainingRole")["currentDisposition"])
+        assertFalse("trainingRole" in usage)
         assertEquals("DERIVED_NONCANONICAL", usage.getValue("familyId")["currentDisposition"])
         assertEquals("LEGACY_COMPOSITE_TO_BE_DECOMPOSED", usage.getValue("loadProfile")["currentDisposition"])
         assertEquals("CLOSED_WORLD_EXPLICIT_WHITELIST", usage.getValue("sportTransferDirect")["currentDisposition"])
 
         val mappings = csv("docs/audits/metadata_legacy_to_target_mapping_matrix.csv")
-        assertTrue(mappings.filter { it["legacyField"] == "trainingRole" }.all {
-            it["targetRelation"] == "NONE" && it["conversionMode"] == "EXACT_STABLEKEY_WHITELIST_ONLY"
-        })
+        assertFalse(mappings.any { it["legacyField"] == "trainingRole" })
         assertTrue(mappings.filter { it["legacyField"] == "familyId" }.all {
             it["targetRelation"] == "NONE" && it["conversionMode"] == "DO_NOT_MIGRATE_AS_CANONICAL"
         })
@@ -108,7 +106,7 @@ class AnalysisContractAuditArtifactsTest {
         val usage = csv("docs/audits/metadata_field_usage_matrix.csv")
         val mappings = csv("docs/audits/metadata_legacy_to_target_mapping_matrix.csv")
 
-        assertEquals(102, usage.size)
+        assertEquals(101, usage.size)
         usage.forEach { field ->
             assertTrue(mappings.any {
                 it["legacyField"] == field["fieldName"] && it["storageLocation"] == field["storageLocation"]
@@ -218,6 +216,57 @@ class AnalysisContractAuditArtifactsTest {
     }
 
     @Test
+    fun canonicalNormalizationReusesOwnersAndPreservesSwitchedConsumers() {
+        val owners = csv("docs/audits/metadata_existing_owner_capability_audit.csv")
+        assertEquals(26, owners.size)
+        assertFalse(owners.any { it["recommendedDisposition"] == "NEW_OWNER_REQUIRED" })
+        assertTrue(owners.all {
+            it["existingCandidateOwner1"].orEmpty().isNotBlank() &&
+                it["recommendedDisposition"].orEmpty().isNotBlank()
+        })
+
+        val forceTokens = csv("docs/audits/force_type_token_audit.csv")
+        assertEquals(20, forceTokens.size)
+        assertEquals(12, forceTokens.count { it["classification"] == "CURRENT_CANONICAL" })
+        assertEquals(8, forceTokens.count { it["classification"] == "CURRENT_NONCANONICAL_RUNTIME" })
+        assertFalse(forceTokens.any { it["classification"] in setOf("UNKNOWN", "DEAD_CODE_ONLY") })
+        assertTrue(forceTokens.all { it["acceptedByRestore"] == "YES_FIELD_PRESERVED" })
+
+        val trunk = csv("docs/audits/trunk_brace_decomposition_audit.csv")
+        assertEquals(21, trunk.size)
+        assertEquals(10, trunk.count { "AXIAL_BRACING" in it["normalizedRelations"].tokens() })
+        assertEquals(5, trunk.count { "ANTI_ROTATION" in it["normalizedRelations"].tokens() })
+        assertEquals(2, trunk.count { "ANTI_LATERAL_FLEXION" in it["normalizedRelations"].tokens() })
+        assertEquals(4, trunk.count { "ANTI_EXTENSION" in it["normalizedRelations"].tokens() })
+        assertEquals(3, trunk.count { "DYNAMIC_TRUNK_STABILIZATION" in it["normalizedRelations"].tokens() })
+        assertEquals(3, trunk.count { it["multiLabel"] == "YES" })
+        assertTrue(trunk.all {
+            it["badmintonAntiRotationImplied"] == "NO" &&
+                it["informationStatus"] == "LOSSLESS_WITH_EXISTING_OWNER_EXTENSION"
+        })
+        assertFalse(csv("app/src/main/assets/metadata/canonical_v1/movement_relations.csv").any {
+            it["relationValue"] == "TRUNK_BRACE"
+        })
+
+        val parity = csv("docs/audits/metadata_normalization_shadow_parity_241.csv")
+        assertEquals(241, parity.size)
+        assertFalse(parity.any { it["decision"] in setOf("CANONICAL_GAP", "INFORMATION_LOSS", "AMBIGUOUS") })
+        assertTrue(parity.all { it["currentFatigueCost"] == it["normalizedFatigueCost"] })
+        assertTrue(parity.all {
+            it["currentRelevantOfiSignals"] == it["normalizedRelevantOfiSignals"] &&
+                it["currentRelevantProgramClassification"] == it["normalizedRelevantProgramClassification"] &&
+                it["currentStrengthClassification"] == it["normalizedStrengthClassification"]
+        })
+
+        val information = csv("docs/audits/metadata_information_preservation_audit.csv")
+        assertEquals(262, information.size)
+        assertFalse(information.any {
+            it["informationStatus"] in setOf("INFORMATION_LOSS", "SEMANTIC_EXPANSION", "AMBIGUOUS")
+        })
+        assertTrue(information.all { it["unsupportedNewFacts"] == "NONE" })
+    }
+
+    @Test
     fun reviewedTargetNeverPromotesHeuristicCurrentBehavior() {
         val design = repoFile("docs/metadata_analysis_contract_and_migration_plan_ko.md").readText()
         val protocol = repoFile("docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md").readText()
@@ -237,6 +286,8 @@ class AnalysisContractAuditArtifactsTest {
             header.indices.associate { index -> header[index] to values.getOrElse(index) { "" } }
         }
     }
+
+    private fun String?.tokens(): Set<String> = orEmpty().split('|').filter(String::isNotBlank).toSet()
 
     private fun repoRoot(): File {
         val current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile

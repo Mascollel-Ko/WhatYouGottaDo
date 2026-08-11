@@ -3,12 +3,28 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-TAXONOMY |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.3.5.0 |
+| Implemented from app version | v0.3.5.0; canonical trunk-control normalization from v0.5.0.32 |
 | Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
+
+## v0.5.0.32 canonical movement and trunk-control relations
+
+Movement mechanics are owned by the multi-valued canonical movement relation,
+not by a replacement `forceTypeV2` scalar. Push, pull, squat, hinge, carry,
+active trunk rotation, and movement events remain separate from training intent.
+
+Strength-oriented high-force trunk stiffening is `AXIAL_BRACING`. Active
+rotation is `TRUNK_ROTATION`. Resistance to rotational torque is
+`ANTI_ROTATION`. `ANTI_LATERAL_FLEXION`, `ANTI_EXTENSION`, and
+`DYNAMIC_TRUNK_STABILIZATION` are independent values where the reviewed
+exercise requires them. These relations may coexist and do not by themselves
+grant badminton-transfer authority.
+
+The old runtime `BRACE`, `ROTATE`, `LAND`, and `DECELERATE` values remain
+compatibility inputs only. Their typed canonical relations own current meaning.
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.

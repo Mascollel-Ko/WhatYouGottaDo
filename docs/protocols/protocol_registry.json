@@ -1,6 +1,6 @@
 {
-  "registryVersion": "1.0.0",
-  "lastUpdated": "2026-08-10",
+  "registryVersion": "1.1.0",
+  "lastUpdated": "2026-08-12",
   "families": [
     {
       "familyId": "OFI",
@@ -835,7 +835,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 훈련 taxonomy",
       "titleEn": "Badminton Training Taxonomy",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -844,29 +844,36 @@
         "RESEARCH_TRANSFER"
       ],
       "canonicalDocument": "badminton/BADMINTON_TRAINING_TAXONOMY.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; stableKey/taxonomy closeout ARTIFACT_ONLY from 2026-08-04",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; stableKey/taxonomy closeout ARTIFACT_ONLY from 2026-08-04; explicit canonical transfer authority from v0.5.0.32",
       "lastAuditedCommit": "86c56ca4f74c02f4d1da48b4dd985106642ae42b",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/CanonicalBadmintonTransferAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
         "app/src/main/assets/training_settings_seed.csv",
+        "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
+        "app/src/main/assets/metadata/canonical_v1/badminton_relations.csv",
         "outputs/badminton_transfer_closeout/badminton_transfer_canonical_registry_v1.csv",
         "outputs/badminton_transfer_closeout/badminton_transfer_stablekey_migration_v1.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_method_reviews/3.3_badminton_transfer_review_template.md",
         "outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md",
-        "outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md"
+        "outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md",
+        "docs/audits/metadata_normalization_shadow_parity_report.md",
+        "docs/v0.5.0.32_release_notes.md"
       ],
       "knownGaps": [
         "모든 훈련 record가 strokes, contacts 또는 sensor-level dose를 제공하지는 않습니다.",
@@ -928,7 +935,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 전이 분류",
       "titleEn": "Badminton Transfer Categories",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -937,7 +944,7 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "badminton/BADMINTON_TRANSFER_CATEGORIES.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; chart dates from v0.4.2.16; identity/relation closeout ARTIFACT_ONLY from 2026-08-04",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; chart dates from v0.4.2.16; identity/relation closeout ARTIFACT_ONLY from 2026-08-04; explicit canonical transfer authority from v0.5.0.32",
       "lastAuditedCommit": "86c56ca4f74c02f4d1da48b4dd985106642ae42b",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt",
@@ -953,10 +960,14 @@
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/CanonicalBadmintonTransferAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
+        "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
+        "app/src/main/assets/metadata/canonical_v1/badminton_relations.csv",
         "outputs/badminton_transfer_closeout/badminton_transfer_canonical_registry_v1.csv",
         "outputs/badminton_transfer_closeout/badminton_transfer_inheritance_review_v1.csv",
         "outputs/badminton_transfer_closeout/badminton_transfer_validation_v1.csv"
@@ -966,11 +977,14 @@
         "docs/v0.4.2.16_release_notes.md",
         "outputs/badminton_transfer_closeout/badminton_transfer_relation_normalization_v1.md",
         "outputs/badminton_transfer_closeout/badminton_transfer_legacy_dependency_audit_v1.csv",
-        "outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md"
+        "outputs/badminton_transfer_closeout/badminton_transfer_closeout_v1.md",
+        "docs/audits/metadata_normalization_shadow_parity_241.csv",
+        "docs/audits/metadata_information_preservation_audit.md",
+        "docs/v0.5.0.32_release_notes.md"
       ],
       "knownGaps": [
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다.",
-        "Legacy movement/fatigue/muscle compatibility inputs cannot all be replaced losslessly and remain REVIEW_REQUIRED for a future runtime parity phase.",
+        "Historical and user-created rows without canonical badminton authority retain the isolated compatibility interpretation until an ingestion-boundary migration is separately approved.",
         "Canonical code inventory는 완료됐지만 승인된 한국어 정의와 전체 localization은 REVIEW_REQUIRED입니다."
       ],
       "supersedes": [
@@ -1022,7 +1036,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 taxonomy",
       "titleEn": "Strength Training Taxonomy",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1031,23 +1045,29 @@
         "RESEARCH_TRANSFER"
       ],
       "canonicalDocument": "strength/STRENGTH_TRAINING_TAXONOMY.md",
-      "implementedFromAppVersion": "v0.3.5.0",
+      "implementedFromAppVersion": "v0.3.5.0; canonical trunk-control normalization from v0.5.0.32",
       "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ExerciseTaxonomy.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataTaxonomy.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/features/ExerciseAnalysisMapper.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/features/ExerciseAnalysisMapper.kt",
+        "app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ExerciseSeedMetadataPolicyTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/RuntimeExerciseMetadataResolverTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepositoryTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv",
-        "app/src/main/assets/training_settings_seed.csv"
+        "app/src/main/assets/training_settings_seed.csv",
+        "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx",
+        "app/src/main/assets/metadata/canonical_v1/movement_relations.csv"
       ],
       "supportingDocuments": [
-        "docs/exercise_metadata_reclassification_plan_v0.3.5.0.md"
+        "docs/exercise_metadata_reclassification_plan_v0.3.5.0.md",
+        "docs/audits/trunk_brace_decomposition_audit.md",
+        "docs/v0.5.0.32_release_notes.md"
       ],
       "knownGaps": [
         "legacy family/name compatibility 입력이 남아 있지만 stable-key metadata가 우선입니다."
@@ -1520,7 +1540,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "메타데이터 분석 계약",
       "titleEn": "Metadata Analysis Contract",
-      "currentVersion": "1.8.0",
+      "currentVersion": "1.9.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1528,7 +1548,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md",
-      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26",
+      "implementedFromAppVersion": "v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32",
       "lastAuditedCommit": "28f40346492d1f7df9e593214a3b806295f27222",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/contracts/AnalysisContractModels.kt",
@@ -1548,7 +1568,9 @@
         "tools/metadata_authority/metadata_display_routing_audit.py",
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataUserOverride.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataEffectiveStateResolver.kt",
-        "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataReconciliationService.kt"
+        "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataReconciliationService.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractBaselineTest.kt",
@@ -1561,7 +1583,9 @@
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
         "tools/metadata_authority/tests/test_metadata_authority.py",
         "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataExplicitOverrideTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractAuditArtifactsTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/analysis_contract_baseline_v1.csv",
@@ -1575,7 +1599,9 @@
         "app/src/main/res/values-en/metadata_display_catalog.xml",
         "docs/metadata_authority/metadata_display_resource_manifest.json",
         "docs/generated/metadata_field_display_contract.csv",
-        "docs/generated/metadata_display_coverage_audit.csv"
+        "docs/generated/metadata_display_coverage_audit.csv",
+        "app/src/main/assets/metadata/canonical_v1/movement_relations.csv",
+        "docs/audits/metadata_normalization_shadow_parity_241.csv"
       ],
       "supportingDocuments": [
         "docs/metadata_analysis_contract_and_migration_plan_ko.md",
@@ -1602,7 +1628,13 @@
         "docs/v0.5.0.23_release_notes.md",
         "docs/v0.5.0.25_release_notes.md",
         "docs/audits/v0.5.0.26_metadata_display_routing_audit.md",
-        "docs/v0.5.0.26_release_notes.md"
+        "docs/v0.5.0.26_release_notes.md",
+        "docs/audits/metadata_existing_owner_capability_audit.md",
+        "docs/audits/force_type_token_audit.md",
+        "docs/audits/trunk_brace_decomposition_audit.md",
+        "docs/audits/metadata_information_preservation_audit.md",
+        "docs/audits/metadata_normalization_shadow_parity_report.md",
+        "docs/v0.5.0.32_release_notes.md"
       ],
       "knownGaps": [
         "관계 정확성 전체 판정은 NOT_ADJUDICATED이며 deferred/research rows는 production asset으로 승격되지 않습니다.",
@@ -1622,7 +1654,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "운동 identity와 정본화",
       "titleEn": "Exercise Identity and Canonicalization",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1630,7 +1662,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25",
+      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32",
       "lastAuditedCommit": "b44088c2a32d7222d97e5a213a2efea02d250f10",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/Entities.kt",
