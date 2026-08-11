@@ -53,7 +53,9 @@ class LocalizedPresentationUiTest {
                         Exercise(
                             stableKey = "barbell_deadlift",
                             name = "데드리프트",
-                            category = "근력운동"
+                            category = "근력운동",
+                            mode = "바벨, 무게*횟수",
+                            equipment = "BARBELL"
                         ),
                         selected = false
                     )
@@ -71,8 +73,12 @@ class LocalizedPresentationUiTest {
         }
 
         compose.onNodeWithText("Barbell Deadlift").assertIsDisplayed()
+        compose.onNodeWithText("Strength training / Barbell / Weight × reps").assertIsDisplayed()
         compose.onNodeWithText("삭제").assertIsDisplayed()
         compose.onNodeWithText("Delete").assertIsNotDisplayed()
+        listOf("근력운동", "무게*횟수").forEach { source ->
+            compose.onAllNodesWithText(source, substring = true).assertCountEquals(0)
+        }
     }
 
     @Test
@@ -230,6 +236,8 @@ class LocalizedPresentationUiTest {
             stableKey = "ex_8633d8db",
             name = "EZ바 컬",
             category = "근력운동",
+            detail1 = "상완요골근/전완근",
+            detail2 = "이두근",
             movementPattern = "HINGE",
             movementCategory = "STRENGTH",
             primaryMuscles = "LAT",
@@ -249,8 +257,12 @@ class LocalizedPresentationUiTest {
         }
 
         compose.onNodeWithText("EZ-Bar Curl").assertIsDisplayed()
+        compose.onNodeWithText("Strength training / Lat / Triceps").assertExists()
         listOf("LAT", "TRICEPS", "DUMBBELL", "근력운동", "덤벨", "광배근")
             .forEach { compose.onAllNodesWithText(it).assertCountEquals(0) }
+        listOf("상완요골근", "전완근", "이두근").forEach { source ->
+            compose.onAllNodesWithText(source, substring = true).assertCountEquals(0)
+        }
     }
 
     @Test

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exercise_recording_weight_and_reps">중량 × 반복</string>
+    <string name="exercise_recording_loaded_distance_or_time">중량 거리 또는 시간</string>
+    <string name="exercise_recording_distance_or_reps">거리 또는 반복</string>
+    <string name="exercise_recording_time_or_distance">시간 또는 거리</string>
+    <string name="exercise_recording_time_or_reps">시간 또는 반복</string>
+    <string name="exercise_recording_distance">거리</string>
+    <string name="exercise_recording_time">시간</string>
+    <string name="exercise_recording_reps">반복</string>
+    <string name="exercise_recording_exercise_specific">운동별 기록</string>
+</resources>

@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.localization.localizedUiText
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
@@ -414,7 +415,7 @@ private fun RecoverySlider(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text("$title ${value.roundToInt().coerceIn(1, 5)}")
+        Text("${localizedUiText(title)} ${value.roundToInt().coerceIn(1, 5)}")
         Slider(
             value = value.coerceIn(1f, 5f),
             onValueChange = { next -> onValueChange(next.coerceIn(1f, 5f)) },

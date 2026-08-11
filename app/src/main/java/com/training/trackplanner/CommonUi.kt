@@ -36,7 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedExerciseDescription
+import com.training.trackplanner.localization.localizedUiText
 import java.time.LocalDate
 import java.util.Locale
 
@@ -272,6 +275,22 @@ internal fun ExerciseListItem(
 ) {
     val translator = rememberMetadataTranslator()
     val displayName = localizedExerciseName(exercise)
+    val isEnglish = LocalConfiguration.current.locales[0].language == Locale.ENGLISH.language
+    val summary = if (isEnglish && !exercise.isCustom) {
+        listOf(
+            localizedUiText(translator.translate("exercise.category", exercise.category).orEmpty()),
+            translator.translate(
+                "exercise.equipment",
+                exercise.equipment.ifBlank { exercise.equipmentTags }
+            ).orEmpty(),
+            exercise.localizedRecordingMethod()
+        )
+    } else {
+        listOf(
+            translator.translate("exercise.category", exercise.category).orEmpty(),
+            translator.translate("exercise.mode", exercise.mode).orEmpty()
+        )
+    }.filter(String::isNotBlank).joinToString(" / ")
     val cardModifier = if (onClick != null) {
         Modifier
             .fillMaxWidth()
@@ -305,13 +324,7 @@ internal fun ExerciseListItem(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = listOf(
-                        translator.translate("exercise.category", exercise.category),
-                        translator.translate("exercise.mode", exercise.mode)
-                    )
-                        .filterNotNull()
-                        .filter { it.isNotBlank() }
-                        .joinToString(" / "),
+                    text = summary,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -331,6 +344,20 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
     val translator = rememberMetadataTranslator()
     val displayName = localizedExerciseName(exercise)
     val displayDescription = localizedExerciseDescription(exercise)
+    val isEnglish = LocalConfiguration.current.locales[0].language == Locale.ENGLISH.language
+    val summary = if (isEnglish && !exercise.isCustom) {
+        listOf(
+            localizedUiText(translator.translate("exercise.category", exercise.category).orEmpty()),
+            exercise.primaryMuscles.localizedTokens(translator, "exercise.primaryMuscles"),
+            exercise.secondaryMuscles.localizedTokens(translator, "exercise.secondaryMuscles")
+        )
+    } else {
+        listOf(
+            translator.translate("exercise.category", exercise.category).orEmpty(),
+            translator.translate("exercise.detail1", exercise.detail1).orEmpty(),
+            translator.translate("exercise.detail2", exercise.detail2).orEmpty()
+        )
+    }.filter(String::isNotBlank).joinToString(" / ")
     val bitmap = remember(exercise.imageAssetName) {
         runCatching {
             if (exercise.imageAssetName.isBlank()) {
@@ -382,14 +409,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = listOf(
-                    translator.translate("exercise.category", exercise.category),
-                    translator.translate("exercise.detail1", exercise.detail1),
-                    translator.translate("exercise.detail2", exercise.detail2)
-                )
-                    .filterNotNull()
-                    .filter { it.isNotBlank() }
-                    .joinToString(" / "),
+                text = summary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -593,6 +613,28 @@ private fun String.localizedTokens(
     fieldKey: String
 ): String =
     translator.translateTokens(fieldKey, split(',', '|', '/', ';')).joinToString(" · ")
+
+@Composable
+private fun Exercise.localizedRecordingMethod(): String {
+    val label = when {
+        (mode.contains("무게") || mode.contains("중량")) &&
+            (mode.contains("거리") || mode.contains("시간")) ->
+            R.string.exercise_recording_loaded_distance_or_time
+        mode.contains("거리") && (mode.contains("횟수") || mode.contains("반복")) ->
+            R.string.exercise_recording_distance_or_reps
+        mode.contains("시간") && mode.contains("거리") ->
+            R.string.exercise_recording_time_or_distance
+        mode.contains("시간") && (mode.contains("횟수") || mode.contains("반복")) ->
+            R.string.exercise_recording_time_or_reps
+        mode.contains("무게") || mode.contains("중량") || category == "근력운동" ->
+            R.string.exercise_recording_weight_and_reps
+        mode.contains("거리") -> R.string.exercise_recording_distance
+        mode.contains("시간") -> R.string.exercise_recording_time
+        mode.contains("횟수") || mode.contains("반복") -> R.string.exercise_recording_reps
+        else -> R.string.exercise_recording_exercise_specific
+    }
+    return stringResource(label)
+}
 
 internal fun Exercise.matchesMetadataQuery(
     query: String,

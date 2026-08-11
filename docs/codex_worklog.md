@@ -5188,3 +5188,40 @@ Verification
 - Final debug APK is 51,385,174 bytes with SHA-256
   `A3AD8183222E8B35321BDBDB12265A530374BE498DECB3DC22631A9F28A1972E`.
 - `app/outputs/` was not staged, modified, or committed.
+
+## 2026-08-11 - v0.5.0.31 English exercise and profile label hotfix
+
+### Baseline and cause
+
+- Started from latest `origin/main` at
+  `2b0b183e2a1ac11015e3d566a1018620de90f623`, version `0.5.0.30 / 500030`.
+- English exercise cards still rendered Korean legacy `category/detail/mode`
+  values, and initial-profile slider titles were localized only after a number
+  had been appended, so exact approved translations could not match.
+
+### Changes
+
+- Built-in exercise-list summaries use the localized canonical category,
+  equipment, and a display-only recording-method label derived without
+  changing stored mode data.
+- Built-in exercise-detail summaries use localized canonical primary and
+  secondary muscle codes.
+- Custom exercise free text and Korean presentation remain unchanged.
+- Recovery slider titles are localized before the current numeric value is
+  appended.
+- App identity moved to `0.5.0.31 / 500031`.
+
+### Validation
+
+- Focused `LocalizedPresentationUiTest` and `InitialProfileDialogTest`: passed.
+- Focused `AnalysisContractAuditArtifactsTest`: passed after confirming the UI
+  does not add a consumer of compatibility-only `progressMetricType`.
+- `:app:compileDebugKotlin`: passed.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- Full `:app:testDebugUnitTest`: 1,255 tests passed with zero failures.
+- `:app:assembleDebug`: passed.
+- Debug APK: 51,389,238 bytes, SHA-256
+  `FDAA7D5E6D2FF49B277C812B38DAAB319A4F90CB231183C2D105D0ECB7EA02A8`.
+- Room 29, backup format 12, restore schema 11, scientific calculations,
+  ProgramBuilder, metadata identity, and user data remain unchanged.
+- `app/outputs/` was not staged, modified, or committed.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exercise_recording_weight_and_reps">Weight × reps</string>
+    <string name="exercise_recording_loaded_distance_or_time">Loaded distance or time</string>
+    <string name="exercise_recording_distance_or_reps">Distance or reps</string>
+    <string name="exercise_recording_time_or_distance">Time or distance</string>
+    <string name="exercise_recording_time_or_reps">Time or reps</string>
+    <string name="exercise_recording_distance">Distance</string>
+    <string name="exercise_recording_time">Time</string>
+    <string name="exercise_recording_reps">Reps</string>
+    <string name="exercise_recording_exercise_specific">Exercise-specific</string>
+</resources>

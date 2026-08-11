@@ -66,7 +66,18 @@ class InitialProfileDialogTest {
         }
 
         compose.onNodeWithText("Initial profile").assertExists()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Other notes"))
+        val scroll = compose.onNode(hasScrollAction())
+        listOf(
+            "sleep quality 3",
+            "Current fatigue 3",
+            "myalgia 3",
+            "stress 3",
+            "condition 3"
+        ).forEach { label ->
+            scroll.performScrollToNode(hasText(label))
+            compose.onNodeWithText(label).assertExists()
+        }
+        scroll.performScrollToNode(hasText("Other notes"))
         compose.onNodeWithText("Other notes").performTextInput("사용자 메모")
         compose.onNodeWithText("사용자 메모").assertExists()
     }
