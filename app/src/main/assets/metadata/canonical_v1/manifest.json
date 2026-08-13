@@ -13,6 +13,15 @@
   },
   "files": [
     {
+      "path": "badminton_objective_relations.csv",
+      "primaryKey": [
+        "relationId"
+      ],
+      "rowCount": 278,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "75a996da3d545f5c5c4c2039ba7366ae3c8db3bc220d7fdec2112bd93b0f17d4"
+    },
+    {
       "path": "badminton_relations.csv",
       "primaryKey": [
         "relationKey"
@@ -20,6 +29,15 @@
       "rowCount": 1865,
       "scope": "PRODUCTION_ACTIVE",
       "sha256": "e9d22c985b6985e7e210cd6a0b16d3864ba4611af07912273e75ab153cd42d2b"
+    },
+    {
+      "path": "core_relations.csv",
+      "primaryKey": [
+        "relationId"
+      ],
+      "rowCount": 272,
+      "scope": "PRODUCTION_ACTIVE",
+      "sha256": "cc82347feef75a3d27de0802856111f80bc96a0ba91552ebb5178786bf617489"
     },
     {
       "path": "equipment_relations.csv",

@@ -20,6 +20,11 @@ from validate_authority_workbook import validate  # noqa: E402
 from metadata_display_routing_audit import collect as collect_display_routing  # noqa: E402
 from metadata_display_routing_audit import render as render_display_routing  # noqa: E402
 from metadata_display_routing_audit import validate as validate_display_routing  # noqa: E402
+from analysis_cutover_authority import (  # noqa: E402
+    CORE_APPROVED_SHA256,
+    CORE_APPROVED_SOURCE,
+    build_analysis_assets,
+)
 
 
 WORKBOOK = REPO / "docs/metadata_authority/WhatYouGottaDo_metadata_authority_v1.xlsx"
@@ -49,8 +54,8 @@ class MetadataAuthorityTest(unittest.TestCase):
         self.assertEqual(16, counts["historyOnlyIdentityRows"])
         self.assertEqual(241, counts["timingRows"])
         self.assertEqual(257, counts["bootstrapRows"])
-        self.assertEqual(1819, counts["displayRows"])
-        self.assertEqual(1683, counts["productionDisplayRows"])
+        self.assertEqual(1823, counts["displayRows"])
+        self.assertEqual(1687, counts["productionDisplayRows"])
         workbook = load_workbook(WORKBOOK, read_only=True)
         self.assertEqual(DISPLAY_HEADERS, [str(cell.value or "").strip() for cell in workbook[DISPLAY_SHEET][1]])
 
@@ -116,6 +121,18 @@ class MetadataAuthorityTest(unittest.TestCase):
             with path.open(encoding="utf-8-sig", newline="") as source:
                 self.assertEqual(entry["rowCount"], sum(1 for _ in csv.DictReader(source)))
 
+    def test_approved_core_and_badminton_objective_cutover_assets_are_exact(self):
+        self.assertEqual(CORE_APPROVED_SHA256, hashlib.sha256(CORE_APPROVED_SOURCE.read_bytes()).hexdigest())
+        with (ASSETS / "badminton_relations.csv").open(encoding="utf-8-sig", newline="") as source:
+            badminton_rows = list(csv.DictReader(source))
+        core, objectives, rotation_audit = build_analysis_assets(badminton_rows)
+        self.assertEqual(272, len(core))
+        self.assertEqual(278, len(objectives))
+        self.assertEqual(19, len(rotation_audit))
+        self.assertEqual(2, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
+        self.assertEqual(15, sum(row["coreDirectTarget"] == "ROTATION_GENERATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
+        self.assertNotIn("ROTATION_POWER", {row["objectiveId"] for row in objectives})
+
     def test_display_resources_parse_and_have_consistent_locale_keys(self):
         def resource_keys(path: Path) -> set[str]:
             root = ET.parse(path).getroot()
@@ -125,13 +142,13 @@ class MetadataAuthorityTest(unittest.TestCase):
         korean = resource_keys(RESOURCES / "values/metadata_display_catalog.xml")
         english = resource_keys(RESOURCES / "values-en/metadata_display_catalog.xml")
         self.assertEqual(korean, english)
-        self.assertEqual(1819, len(korean))
+        self.assertEqual(1823, len(korean))
 
     def test_display_routing_audit_is_current_and_complete(self):
         metrics = collect_display_routing(REPO)
         validate_display_routing(metrics)
-        self.assertEqual(1683, metrics["reachableProductionPairCount"])
-        self.assertEqual(1683, metrics["translatedReachableProductionPairCount"])
+        self.assertEqual(1687, metrics["reachableProductionPairCount"])
+        self.assertEqual(1687, metrics["translatedReachableProductionPairCount"])
         self.assertEqual(136, metrics["expectedCompatibilityOnlyPairCount"])
         self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
         self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])

@@ -27,6 +27,11 @@ from authority_common import (
     write_json,
 )
 from validate_authority_workbook import validate
+from analysis_cutover_authority import (
+    BADMINTON_OBJECTIVE_HEADERS,
+    CORE_HEADERS,
+    build_analysis_assets,
+)
 
 
 RUNTIME_HEADERS = [
@@ -222,6 +227,23 @@ def export(
         rows = [row for row in sheet_rows(workbook, sheet_name) if row.get("exerciseStableKey", row.get("targetAnchorStableKey", "")) in active_keys or sheet_name == "17_STRENGTH_PROXY"]
         headers = list(rows[0]) if rows else [str(cell.value or "") for cell in workbook[sheet_name][1]]
         emit(file_name, headers, sorted(rows, key=lambda row: tuple(row.get(key, "") for key in primary_key)), primary_key, PRODUCTION_ACTIVE)
+
+    badminton_rows = sheet_rows(workbook, "14_BADMINTON_REL")
+    core_relations, objective_relations, _ = build_analysis_assets(badminton_rows)
+    emit(
+        "core_relations.csv",
+        CORE_HEADERS,
+        core_relations,
+        ["relationId"],
+        PRODUCTION_ACTIVE,
+    )
+    emit(
+        "badminton_objective_relations.csv",
+        BADMINTON_OBJECTIVE_HEADERS,
+        objective_relations,
+        ["relationId"],
+        PRODUCTION_ACTIVE,
+    )
 
     manifest = {
         "schemaVersion": 1,

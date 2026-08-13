@@ -1,6 +1,14 @@
 package com.training.trackplanner.data
 
 import android.content.Context
+import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreProfile
+import com.training.trackplanner.analysis.core.CoreClass
+import com.training.trackplanner.analysis.core.CoreDirectTarget
 import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
 import org.json.JSONObject
 import java.security.MessageDigest
@@ -206,6 +214,45 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         valueField = "relationValue"
     )
 
+    fun coreCatalog(): CanonicalCoreCatalog {
+        val rows = parseVerifiedCsv("core_relations.csv")
+        require(rows.size == 272)
+        val grouped = rows.groupBy { it.required("exerciseStableKey").normalizedCanonicalKey() }
+        val selectableKeys = selectableIdentities().mapTo(mutableSetOf(), CanonicalExerciseIdentity::stableKey)
+        require(grouped.keys == selectableKeys) { "Core authority must exactly cover selectable identities." }
+        val profiles = grouped.map { (stableKey, relations) ->
+            val classRows = relations.filter { it.required("relationType") == "CORE_CLASS" }
+            val targetRows = relations.filter { it.required("relationType") == "DIRECT_TARGET" }
+            require(classRows.size == 1) { "Expected one CoreClass for $stableKey" }
+            val coreClass = CoreClass.valueOf(classRows.single().required("relationValue"))
+            require((coreClass == CoreClass.DIRECT) == (targetRows.size == 1)) {
+                "DIRECT core target invariant failed for $stableKey"
+            }
+            CanonicalCoreProfile(
+                exerciseStableKey = stableKey,
+                coreClass = coreClass,
+                directTarget = targetRows.singleOrNull()?.required("relationValue")?.let(CoreDirectTarget::valueOf)
+            )
+        }
+        return CanonicalCoreCatalog.of(profiles, historyCoreSourceMap(profiles))
+    }
+
+    fun badmintonObjectiveCatalog(): CanonicalBadmintonObjectiveCatalog {
+        val relations = parseVerifiedCsv("badminton_objective_relations.csv").map { fields ->
+            CanonicalBadmintonObjectiveRelation(
+                relationId = fields.required("relationId"),
+                exerciseStableKey = fields.requiredSelectableStableKey(),
+                objective = BadmintonObjective.fromCanonicalOrAlias(fields.required("objectiveId")),
+                transferLevel = BadmintonObjectiveTransferLevel.valueOf(fields.required("transferLevel")),
+                provenance = fields.required("provenance"),
+                evidenceRelationKeys = fields.required("evidenceRelationKeys").split('|').filter(String::isNotBlank).toSet(),
+                reviewReason = fields.required("reviewReason")
+            )
+        }
+        require(relations.none { it.objective.name == "ROTATION_POWER" })
+        return CanonicalBadmintonObjectiveCatalog.of(relations, historyBadmintonSourceMap(relations))
+    }
+
     fun progressionRelations(): List<CanonicalMetadataRelation> = canonicalRelations(
         assetName = "progression_relations.csv",
         domain = CanonicalRelationDomain.PROGRESSION,
@@ -395,6 +442,38 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
             "Production relation references a non-selectable or missing identity."
         }
     }
+
+    private fun historyCoreSourceMap(profiles: List<CanonicalCoreProfile>): Map<String, String> {
+        val profileByKey = profiles.associateBy(CanonicalCoreProfile::exerciseStableKey)
+        return compatibleHistorySources { stableKey ->
+            profileByKey[stableKey]?.let { it.coreClass to it.directTarget }
+        }
+    }
+
+    private fun historyBadmintonSourceMap(
+        relations: List<CanonicalBadmintonObjectiveRelation>
+    ): Map<String, String> {
+        val signatureByKey = relations.groupBy(CanonicalBadmintonObjectiveRelation::exerciseStableKey)
+            .mapValues { (_, rows) -> rows.map { it.objective to it.transferLevel }.toSet() }
+        return compatibleHistorySources { stableKey -> signatureByKey[stableKey].orEmpty() }
+    }
+
+    private fun <T> compatibleHistorySources(signature: (String) -> T?): Map<String, String> =
+        identitiesByStableKey.values
+            .filter(CanonicalExerciseIdentity::historyOnly)
+            .mapNotNull { history ->
+                val descendants = identitiesByStableKey.values
+                    .filter { identity -> identity.selectable && identity.sourceStableKey == history.stableKey }
+                val commonSignature = descendants.map { identity -> signature(identity.stableKey) }
+                    .distinct()
+                    .singleOrNull()
+                if (descendants.isEmpty() || commonSignature == null) {
+                    null
+                } else {
+                    history.stableKey to descendants.minOf(CanonicalExerciseIdentity::stableKey)
+                }
+            }
+            .toMap()
 
     private fun canonicalRelations(
         assetName: String,
