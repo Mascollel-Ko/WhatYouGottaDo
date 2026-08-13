@@ -42,6 +42,7 @@ import com.training.trackplanner.analysis.trends.RepRangeWeekShare
 import com.training.trackplanner.analysis.trends.TrendChartRange
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.trends.StackedAreaLayer
 import com.training.trackplanner.analysis.trends.label
 import com.training.trackplanner.localization.localizedUiText
 
@@ -60,7 +61,7 @@ internal fun MuscleLoadShareCard(summary: PerformanceTrendSummary) {
 
 @Composable
 internal fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
-    val buckets = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().toList()
+    val buckets = nonCoreMuscleBuckets()
     val available = buckets.filter { bucket -> summary.metricSeries[bucket.dailyMetric].orEmpty().any { it.value != null } }
     val defaults = MuscleBucketSelection.defaultMetrics(available, summary.metricSeries)
     val selected = remember { mutableStateListOf<TrendMetricId>().apply { addAll(defaults) } }
@@ -108,6 +109,63 @@ internal fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
             }
         )
     }
+}
+
+@Composable
+internal fun CoreStimulusCard(summary: PerformanceTrendSummary) {
+    val core = summary.coreStimulus
+    AnalysisSectionChart(
+        title = localizedUiText("누적 코어 훈련 자극"),
+        spec = coreStimulusChartSpec(core),
+        note = localizedUiText("직접 자극은 코어 기능 자체가 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 누적된 코어 요구입니다."),
+        footer = {
+            val share = core.indirectShare?.times(100.0)
+            Text(
+                text = if (share == null) {
+                    localizedUiText(
+                        "전체 ${formatAnalysisValue(core.cumulativeTotal)} · 직접 ${formatAnalysisValue(core.cumulativeDirect)} · 간접 ${formatAnalysisValue(core.cumulativeIndirect)}"
+                    )
+                } else {
+                    localizedUiText(
+                        "전체 ${formatAnalysisValue(core.cumulativeTotal)} · 직접 ${formatAnalysisValue(core.cumulativeDirect)} · 간접 ${formatAnalysisValue(core.cumulativeIndirect)} · 간접 비중 ${formatAnalysisValue(share)}%"
+                    )
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    )
+}
+
+internal fun coreStimulusChartSpec(core: com.training.trackplanner.analysis.core.CoreStimulusSummary): ChartSpec {
+    val points = core.cumulative
+    return ChartSpec(
+        type = ChartType.STACKED_AREA,
+        title = "누적 코어 훈련 자극",
+        stackedAreaLayers = listOf(
+            StackedAreaLayer(
+                label = "간접 코어 자극",
+                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeIndirect) },
+                seriesKey = "CORE_INDIRECT"
+            ),
+            StackedAreaLayer(
+                label = "직접 코어 자극",
+                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeDirect) },
+                seriesKey = "CORE_DIRECT"
+            )
+        ),
+        lineSeries = listOf(
+            ChartSeries(
+                label = "전체 코어 자극",
+                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeTotal) },
+                seriesKey = "CORE_TOTAL"
+            )
+        ),
+        yMin = 0.0,
+        timeGranularity = ChartTimeGranularity.DAILY,
+        xDomain = points.map { it.date },
+        valueUnit = "세트 자극 단위"
+    )
 }
 
 @Composable
@@ -315,7 +373,7 @@ internal fun ChartSeriesLegend(
 }
 
 private fun latestMuscleShare(summary: PerformanceTrendSummary): List<BarItem> {
-    val raw = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().mapNotNull { bucket ->
+    val raw = nonCoreMuscleBuckets().mapNotNull { bucket ->
         val value = summary.metricSeries[bucket.dailyMetric].orEmpty().lastOrNull { it.value != null }?.value ?: return@mapNotNull null
         bucket.label to value
     }
@@ -341,7 +399,7 @@ private fun localizedMuscleBucketSummary(
 }
 
 private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetrics: List<TrendMetricId>): ChartSpec {
-    val buckets = StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values()
+    val buckets = nonCoreMuscleBuckets()
     val weekStarts = buckets.flatMap { bucket -> summary.metricSeries[bucket.dailyMetric].orEmpty().map { it.weekStart } }
         .distinct()
         .sorted()
@@ -373,6 +431,15 @@ private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetri
         valueUnit = "%"
     )
 }
+
+private fun nonCoreMuscleBuckets(): List<StrengthAndMuscleMetricSeriesBuilder.MuscleBucket> =
+    StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().filterNot { bucket ->
+        bucket in setOf(
+            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.ANTERIOR_CORE,
+            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.LATERAL_CORE,
+            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.ROTATION_CORE
+        )
+    }
 
 private fun latestRepRangeShare(weeks: List<RepRangeWeekShare>): List<BarItem> {
     val latest = weeks.lastOrNull { week -> week.confirmedSetCount > 0 } ?: return emptyList()

@@ -1,30 +1,40 @@
 package com.training.trackplanner.analysis.trends
 
 object BadmintonTrainingMethodLabels {
-    fun label(key: String): String = when (key.uppercase()) {
+    fun canonicalObjectiveKey(key: String): String? = when (key.uppercase()) {
+        "ROTATION_POWER", "ROTATION", "ROTATIONAL_POWER", "ROTATION_SEQUENCING" -> "ROTATION_GENERATION"
+        "FIRST_STEP" -> "ACCELERATION"
+        "REACTION_RANDOM" -> "REACTION"
+        "FRONT_LUNGE" -> "LUNGE_REACH"
+        "GENERAL_CONDITIONING" -> "CONDITIONING"
+        "ANTI_ROTATION_STABILITY" -> "ANTI_ROTATION"
+        else -> key.uppercase().takeIf { it in BadmintonTrainingMethodSeries.objectiveKeys }
+    }
+
+    fun label(key: String): String = when (canonicalObjectiveKey(key)) {
         "FOOTWORK" -> "풋워크"
-        "REACTION", "REACTION_RANDOM" -> "리액션"
+        "REACTION" -> "리액션"
         "JUMP_LANDING" -> "점프/착지"
-        "LUNGE_REACH", "FRONT_LUNGE" -> "런지/리치"
-        "ACCELERATION", "FIRST_STEP" -> "가속/첫 스텝"
+        "LUNGE_REACH" -> "런지/리치"
+        "ACCELERATION" -> "가속/첫 스텝"
         "DECELERATION" -> "감속"
-        "ROTATION", "ROTATION_POWER" -> "회전 생성"
-        "ANTI_ROTATION", "ANTI_ROTATION_STABILITY" -> "항회전/몸통제어"
-        "CONDITIONING", "GENERAL_CONDITIONING" -> "컨디셔닝"
+        "ROTATION_GENERATION" -> "회전 생성"
+        "ANTI_ROTATION" -> "항회전/몸통제어"
+        "CONDITIONING" -> "컨디셔닝"
         else -> "기타"
     }
 
-    fun description(key: String): String = when (key.uppercase()) {
+    fun description(key: String): String = when (canonicalObjectiveKey(key)) {
         "FOOTWORK" -> "코트 이동, 스텝, 위치 회복을 직접 보강하는 전이 목적입니다."
         "REACTION" -> "신호나 상황 변화에 맞춰 빠르게 판단하고 반응하는 전이 목적입니다."
         "DECELERATION" -> "멈춤, 착지, 방향전환 직전의 감속 능력을 보강하는 훈련입니다."
-        "ACCELERATION", "FIRST_STEP" -> "첫 스텝과 짧은 거리 가속을 보강하는 훈련입니다."
+        "ACCELERATION" -> "첫 스텝과 짧은 거리 가속을 보강하는 훈련입니다."
         "JUMP_LANDING" -> "점프와 착지 제어를 보강하는 훈련입니다."
         "LUNGE_REACH" -> "런지, 리치, 넓은 보폭에서 자세를 유지하는 전이 목적입니다."
-        "ROTATION_POWER" -> "스매시, 클리어, 드라이브처럼 하체-몸통-어깨로 힘을 전달하는 전이 목적입니다."
-        "ANTI_ROTATION" -> "리치, 런지, 방향전환 중 몸통이 무너지지 않게 버티는 전이 목적입니다."
-        "CONDITIONING" -> "배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 전이 목적입니다."
-        else -> "기존 메타데이터에서 확인된 배드민턴 전이 목적입니다."
+        "ROTATION_GENERATION" -> "스매시처럼 하체와 몸통을 거쳐 회전 힘을 만들어 내는 훈련 목적입니다."
+        "ANTI_ROTATION" -> "리치, 런지, 방향전환 중 몸통이 무너지지 않게 버티는 훈련 목적입니다."
+        "CONDITIONING" -> "배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 훈련 목적입니다."
+        else -> "명시적 canonical 관계에서 확인된 배드민턴 전이 목적입니다."
     }
 
     fun keysFrom(
@@ -49,7 +59,7 @@ object BadmintonTrainingMethodLabels {
         "REACTION", "REACTION_RANDOM" -> setOf("REACTION")
         "CONDITIONING" -> setOf("CONDITIONING")
         "ANTI_ROTATION", "ANTI_ROTATION_STABILITY" -> setOf("ANTI_ROTATION")
-        "ROTATION", "ROTATION_POWER", "ROTATION_SEQUENCING", "ROTATIONAL_POWER" -> setOf("ROTATION_POWER")
+        "ROTATION", "ROTATION_POWER", "ROTATION_SEQUENCING", "ROTATIONAL_POWER" -> setOf("ROTATION_GENERATION")
         else -> emptySet()
     }
 }

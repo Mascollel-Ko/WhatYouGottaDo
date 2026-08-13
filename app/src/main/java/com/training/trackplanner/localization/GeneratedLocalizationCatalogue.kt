@@ -189,6 +189,7 @@ internal object GeneratedLocalizationCatalogue {
         "가져오기 규칙" to R.string.loc_metadata_70d2e4dcca31,
         "각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다." to R.string.loc_baseline_cf8b14d886c0,
         "간단히" to R.string.loc_baseline_11da17a5d736,
+        "간접 코어 자극" to R.string.loc_baseline_47520a0a651f,
         "감속" to R.string.loc_ui_455795245da4,
         "감속 보조" to R.string.loc_metadata_7cb970a63dae,
         "감속 부하" to R.string.loc_metadata_e319385c1110,
@@ -220,6 +221,7 @@ internal object GeneratedLocalizationCatalogue {
         "개인 기준선은 최근 기록으로 재계산됩니다." to R.string.loc_baseline_4d65a787ca20,
         "개인화 기준선" to R.string.loc_baseline_ec16394edc2f,
         "객관적 운동 부하는 평소 수준이지만, 오늘 전신 피로 입력이 높아 회복 상태를 주의로 봅니다." to R.string.loc_baseline_27d6266d5c33,
+        "거리" to R.string.loc_baseline_049fabac1dca,
         "거리 또는 시간" to R.string.loc_metadata_64bb41c877b9,
         "거리 또는 시간 부하" to R.string.loc_metadata_a1489c553b86,
         "거리·시간" to R.string.loc_metadata_148e756248ca,
@@ -426,11 +428,11 @@ internal object GeneratedLocalizationCatalogue {
         "근거" to R.string.loc_metadata_c4c9cf68a863,
         "근거 강도" to R.string.loc_metadata_5430997e7af1,
         "근거 등급" to R.string.loc_metadata_650cafc0123c,
-        "근거 비고" to R.string.loc_metadata_316ce847aa12,
-        "근거 상태" to R.string.loc_baseline_a470de44cb81,
     )
 
     private fun exactUiTextIdsChunk1(): Map<String, Int> = mapOf(
+        "근거 비고" to R.string.loc_metadata_316ce847aa12,
+        "근거 상태" to R.string.loc_baseline_a470de44cb81,
         "근거 수용" to R.string.loc_metadata_accd7bc37713,
         "근거 신뢰도" to R.string.loc_baseline_259b1455ff75,
         "근거 위치" to R.string.loc_metadata_c1cf60f9637d,
@@ -688,6 +690,7 @@ internal object GeneratedLocalizationCatalogue {
         "누적 kg" to R.string.loc_baseline_14a575e8650a,
         "누적 부담 추세를 계산하고 있습니다." to R.string.loc_baseline_dbbc0fd85df5,
         "누적 부담 흐름" to R.string.loc_baseline_fb9aba22eb37,
+        "누적 코어 훈련 자극" to R.string.loc_baseline_f98004da5b18,
         "누적 횟수" to R.string.loc_baseline_6b4ba9e2d08c,
         "다방향" to R.string.loc_metadata_5235e5838387,
         "다방향 이동" to R.string.loc_metadata_aa7eda55544a,
@@ -828,12 +831,12 @@ internal object GeneratedLocalizationCatalogue {
         "래터럴 바운드" to R.string.loc_metadata_346a72dd0f61,
         "래터럴 바운드 투 스틱" to R.string.loc_metadata_04e2482cb8ae,
         "래터럴 스텝다운" to R.string.loc_metadata_83ee2f7cd0df,
-        "랜덤 방향전환 드릴" to R.string.loc_ui_15988130cf54,
-        "랜덤 비프 풋워크" to R.string.loc_metadata_c5e5340b4f2e,
-        "랜덤 풋워크" to R.string.loc_metadata_5f48e632ba11,
     )
 
     private fun exactUiTextIdsChunk2(): Map<String, Int> = mapOf(
+        "랜덤 방향전환 드릴" to R.string.loc_ui_15988130cf54,
+        "랜덤 비프 풋워크" to R.string.loc_metadata_c5e5340b4f2e,
+        "랜덤 풋워크" to R.string.loc_metadata_5f48e632ba11,
         "랜드마인" to R.string.loc_metadata_da5941bf80c8,
         "랜드마인 레버" to R.string.loc_metadata_e5702e629556,
         "랜드마인 로테이션" to R.string.loc_baseline_68106876f1f0,
@@ -892,6 +895,7 @@ internal object GeneratedLocalizationCatalogue {
         "리어델트 케이블 플라이" to R.string.loc_metadata_f678a5cd9e4c,
         "리어델트 플라이" to R.string.loc_metadata_4bcb3f00fb60,
         "리치, 런지, 방향전환 중 몸통이 무너지지 않게 버티는 전이 목적입니다." to R.string.loc_baseline_6e461cad5ecd,
+        "리치, 런지, 방향전환 중 몸통이 무너지지 않게 버티는 훈련 목적입니다." to R.string.loc_baseline_6bddfddbcc3c,
         "린단 참고 트랙 스프린트" to R.string.loc_metadata_0b1f044be0cb,
         "린단 참고 페이스 체인지 풋워크" to R.string.loc_metadata_64918bb1ee3b,
         "릴리스" to R.string.loc_metadata_c42c2d1f44f6,
@@ -948,6 +952,7 @@ internal object GeneratedLocalizationCatalogue {
         "메타데이터 출처 stableKey" to R.string.loc_metadata_f5188eb7855f,
         "메타데이터를 되돌리지 못했습니다." to R.string.loc_baseline_0525d997618c,
         "면" to R.string.loc_metadata_5bbde750be50,
+        "명시적 canonical 관계에서 확인된 배드민턴 전이 목적입니다." to R.string.loc_baseline_e631f5195c59,
         "모두 필수" to R.string.loc_metadata_2de692d22af7,
         "모두 해제" to R.string.loc_baseline_5dcb72e8dce2,
         "모든 피로도가 양호합니다. 힘차게 운동!" to R.string.loc_baseline_3ce28e20c77c,
@@ -970,6 +975,7 @@ internal object GeneratedLocalizationCatalogue {
         "무거운 스쿼트" to R.string.loc_baseline_80b25ada6260,
         "무거운 힘, 전신, 특정 근육, 빠른 동작, 반응성 동작의 피로를 따로 봅니다." to R.string.loc_ui_9f0700306df3,
         "무거운 힘, 전신, 특정 근육, 빠른 동작, 반응성 동작의 피로를 서로 다른 축으로 확인합니다." to R.string.loc_ui_4b59030316ad,
+        "무게" to R.string.loc_baseline_f4fc1e6c82b6,
         "무결성 사전검사" to R.string.loc_ui_3669ef5644b5,
         "무릎" to R.string.loc_baseline_80d4bce53edc,
         "무릎 관절 스트레스" to R.string.loc_metadata_7c65e3e30351,
@@ -1134,6 +1140,7 @@ internal object GeneratedLocalizationCatalogue {
         "배드민턴 훈련량은 셔틀 플레이 시간, 풋워크/반응, 보조훈련량을 합친 흐름입니다." to R.string.loc_ui_67fa0497594c,
         "배드민턴 훈련에서 발생한 주간 피로 부담" to R.string.loc_baseline_c3e5e48155a5,
         "배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 전이 목적입니다." to R.string.loc_baseline_f264862fa257,
+        "배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 훈련 목적입니다." to R.string.loc_baseline_a9d16089f1a4,
         "배드민턴 훈련을 분석합니다" to R.string.loc_ui_b41932cc2361,
         "백 스쿼트" to R.string.loc_metadata_308d74a8e213,
         "백업 내용을 확인하고 있습니다. 잠시만 기다려 주세요." to R.string.loc_ui_b2077d75fadc,
@@ -1227,6 +1234,9 @@ internal object GeneratedLocalizationCatalogue {
         "부하 회전 운동사슬" to R.string.loc_metadata_82fcb4c8343f,
         "분" to R.string.loc_baseline_7949e17a8353,
         "분석" to R.string.loc_baseline_c48303d5dbf6,
+    )
+
+    private fun exactUiTextIdsChunk3(): Map<String, Int> = mapOf(
         "분석 가능 여부를 확인하는 중입니다." to R.string.loc_baseline_b548162f6711,
         "분석 가능한 주간 데이터가 부족합니다. 최소 8~12주 이상의 기록이 필요합니다." to R.string.loc_baseline_58a7fd0d053e,
         "분석 결과 읽는 법" to R.string.loc_ui_57c873f9b38a,
@@ -1234,9 +1244,6 @@ internal object GeneratedLocalizationCatalogue {
         "분석 결과는 절대적인 건강 판정이 아니라, 내 운동 기록에서 피로와 부하의 흐름을 확인하기 위한 정보입니다." to R.string.loc_ui_a4d997662ec0,
         "분석 단위" to R.string.loc_baseline_057780cd820e,
         "분석 대상" to R.string.loc_baseline_dee382112efe,
-    )
-
-    private fun exactUiTextIdsChunk3(): Map<String, Int> = mapOf(
         "분석 모듈" to R.string.loc_metadata_47b79fd934b7,
         "분석 실행 오류" to R.string.loc_baseline_aa0591296fa1,
         "분석 적격성" to R.string.loc_metadata_d9c857569244,
@@ -1380,6 +1387,7 @@ internal object GeneratedLocalizationCatalogue {
         "세트 RPE" to R.string.loc_baseline_c46f97a10fdb,
         "세트 사이 휴식 종료를 알려줍니다." to R.string.loc_baseline_d47e323a8001,
         "세트 입력과 확인을 우선합니다. 확인한 세트만 실제 수행 기록입니다." to R.string.loc_baseline_7f43a817a3d0,
+        "세트 자극 단위" to R.string.loc_baseline_fcb167566657,
         "세트 추가" to R.string.loc_ui_399d97b4d8ee,
         "세트+" to R.string.loc_baseline_c0337f56390d,
         "세트가 없는 운동 기록은 현재 백업 형식으로 보존할 수 없습니다." to R.string.loc_ui_8e7dd03f0b61,
@@ -1455,6 +1463,7 @@ internal object GeneratedLocalizationCatalogue {
         "스매시 최고 속도" to R.string.loc_baseline_dad1d49f7836,
         "스매시 평균 속도" to R.string.loc_baseline_c7e9a967acfe,
         "스매시, 클리어, 드라이브처럼 하체-몸통-어깨로 힘을 전달하는 전이 목적입니다." to R.string.loc_baseline_9c4907d12724,
+        "스매시처럼 하체와 몸통을 거쳐 회전 힘을 만들어 내는 훈련 목적입니다." to R.string.loc_baseline_e8c12c0b8200,
         "스미스" to R.string.loc_baseline_553a3b662d96,
         "스미스 머신" to R.string.loc_metadata_caabcebd7f2e,
         "스미스 머신 런지" to R.string.loc_metadata_afc9c94b572e,
@@ -1628,6 +1637,9 @@ internal object GeneratedLocalizationCatalogue {
         "어깨 프리햅" to R.string.loc_metadata_760af251841c,
         "어깨 회전 부하" to R.string.loc_metadata_14efd15d50b4,
         "어깨·견갑 보조" to R.string.loc_metadata_c84f51378bb1,
+    )
+
+    private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
         "어깨·견갑 안정성 스트레스" to R.string.loc_metadata_db9739ccb173,
         "어시스트" to R.string.loc_baseline_369a018f920a,
         "없음" to R.string.loc_baseline_195b6e3cd1fa,
@@ -1637,9 +1649,6 @@ internal object GeneratedLocalizationCatalogue {
         "여러 지표를 반복 비교하면 우연히 관계처럼 보일 수 있습니다." to R.string.loc_baseline_92435328617d,
         "여성" to R.string.loc_baseline_c444d8af8266,
         "여유 부하" to R.string.loc_baseline_4cd03b3afd0b,
-    )
-
-    private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
         "역할" to R.string.loc_metadata_8d656d66be92,
         "연결된 확인 이슈 ID" to R.string.loc_metadata_a38b3888cc6a,
         "연결조직" to R.string.loc_ui_243e01d56d20,
@@ -2023,6 +2032,7 @@ internal object GeneratedLocalizationCatalogue {
         "전체 선택" to R.string.loc_baseline_9e9b24777593,
         "전체 스트레스 크기" to R.string.loc_baseline_3e18ed7e0871,
         "전체 운동량" to R.string.loc_baseline_d0d24860d9f0,
+        "전체 코어 자극" to R.string.loc_baseline_a8f8df0e19c0,
         "전체 피로 상태" to R.string.loc_ui_be9729c277c2,
         "전체 피로 상태 계산" to R.string.loc_ui_3b72f2c1f89e,
         "전체 해제" to R.string.loc_ui_b949d4130ba9,
@@ -2030,6 +2040,9 @@ internal object GeneratedLocalizationCatalogue {
         "절대" to R.string.loc_baseline_fc1b287d1270,
         "점수 상태" to R.string.loc_metadata_73dabe5b626c,
         "점수가 높을 때" to R.string.loc_ui_d04ddeb51ae9,
+    )
+
+    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "점수는 진단이 아닙니다" to R.string.loc_ui_b3f60e67aa87,
         "점수버전" to R.string.loc_baseline_6790b535e2af,
         "점프 런지" to R.string.loc_metadata_f6baece0e424,
@@ -2040,9 +2053,6 @@ internal object GeneratedLocalizationCatalogue {
         "점프/착지" to R.string.loc_baseline_2b3f726b4be6,
         "점프와 착지 제어를 보강하는 훈련입니다." to R.string.loc_baseline_005b130a0815,
         "접기" to R.string.loc_ui_564632f55046,
-    )
-
-    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "정본" to R.string.loc_metadata_73d5e3ec1767,
         "정본 누락 건수" to R.string.loc_metadata_a0065de8112a,
         "정본 활성" to R.string.loc_metadata_917ba8750c81,
@@ -2200,8 +2210,10 @@ internal object GeneratedLocalizationCatalogue {
         "직접 생체역학 비교" to R.string.loc_metadata_5246e5980efd,
         "직접 수행 기록이 아직 없습니다." to R.string.loc_baseline_27fdc64abeea,
         "직접 입력" to R.string.loc_baseline_058fc697ee8c,
+        "직접 자극은 코어 기능 자체가 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 누적된 코어 요구입니다." to R.string.loc_baseline_b7edad12c9f4,
         "직접 전이" to R.string.loc_baseline_0eb2e12520be,
         "직접 출처" to R.string.loc_metadata_05578f46d8cd,
+        "직접 코어 자극" to R.string.loc_baseline_f4634c55dcdd,
         "진단 보고서 저장 실패: \${error.message ?:" to R.string.loc_baseline_23f068d578eb,
         "진단 보고서 파일로 저장" to R.string.loc_ui_7b37e52e3691,
         "진단 세부정보" to R.string.loc_baseline_e8895397ff4f,
@@ -2431,6 +2443,9 @@ internal object GeneratedLocalizationCatalogue {
         "탐색적 VAR 호환 모형" to R.string.loc_baseline_59bb822c98ac,
         "탐색적 VECM 호환 모형" to R.string.loc_baseline_c78b973f0698,
         "탐색적 국소 투영 호환 모형" to R.string.loc_baseline_2543382ac70e,
+    )
+
+    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "탐색적 분석을 실행하고 있습니다." to R.string.loc_baseline_1ba9528d7b92,
         "탐색적 시차 모형을 맞추는 중입니다." to R.string.loc_baseline_9006bd407eb0,
         "탐색적 시차 분석" to R.string.loc_baseline_08716c618ee9,
@@ -2443,9 +2458,6 @@ internal object GeneratedLocalizationCatalogue {
         "테니스 라켓" to R.string.loc_metadata_72f305c8a0fc,
         "테니스공" to R.string.loc_metadata_d5561e7ae1b4,
         "테스트 지표" to R.string.loc_metadata_798f4e4257b0,
-    )
-
-    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "토" to R.string.loc_baseline_e981df3c1383,
         "통제 변수 선택" to R.string.loc_baseline_9dc16d7bab4c,
         "통제 변수 없음" to R.string.loc_baseline_80323b70f0a3,
@@ -2797,7 +2809,7 @@ internal object GeneratedLocalizationCatalogue {
         "회전 근력" to R.string.loc_metadata_12923aba1346,
         "회전 던지기" to R.string.loc_metadata_e4403cac9aeb,
         "회전 동작" to R.string.loc_baseline_d79cef083c7a,
-        "회전 생성" to R.string.loc_baseline_ebca623ef022,
+        "회전 생성" to R.string.loc_baseline_b36770da23ab,
         "회전 순서화" to R.string.loc_metadata_85e4bcfef7fa,
         "회전 슬램" to R.string.loc_metadata_06dff392ff18,
         "회전 운동사슬" to R.string.loc_metadata_0bd5b218bac3,
@@ -2834,6 +2846,9 @@ internal object GeneratedLocalizationCatalogue {
         "후면 운동사슬·척추기립근" to R.string.loc_metadata_80ef435978af,
         "후면사슬" to R.string.loc_baseline_f1caae60a086,
         "후면사슬/척추기립근" to R.string.loc_baseline_395d37cf223a,
+    )
+
+    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "후보 주" to R.string.loc_baseline_9ea562bf0f99,
         "훈련 분산" to R.string.loc_ui_f329a64b0f5e,
         "훈련 분포 요약" to R.string.loc_ui_3fb589e7b256,
@@ -2846,9 +2861,6 @@ internal object GeneratedLocalizationCatalogue {
         "휴식 +" to R.string.loc_baseline_968b667405de,
         "휴식 -" to R.string.loc_baseline_d31ee5be8caa,
         "휴식 설정" to R.string.loc_baseline_5567fb42566a,
-    )
-
-    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "휴식 종료" to R.string.loc_baseline_0902b89f1fbd,
         "휴식 중" to R.string.loc_baseline_4a34bbeea5a6,
         "휴식시간은 0~3600초로 입력하세요." to R.string.loc_baseline_bdb663dace42,
@@ -2900,6 +2912,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^3일\\ 평균은\\ (.*?)시간입니다\\.\\ 수면만으로\\ 강한\\ 훈련\\ 조절\\ 신호를\\ 내지는\\ 않습니다\\.\$"), R.string.loc_ui_c6f0e6939f4e),
         UiTextPattern(Regex("^최근\\ 3일\\ 평균\\ (.*?)시간입니다\\.\\ 수면만으로\\ 강한\\ 조절\\ 신호를\\ 만들지는\\ 않습니다\\.\$"), R.string.loc_ui_pattern_932c8d968e25),
         UiTextPattern(Regex("^교체\\ 범위\\ 밖의\\ 같은\\ source\\ 기록\\ 차이\\ (.*?)개는\\ 현재\\ 상태로\\ 보존됩니다\\.\$"), R.string.loc_ui_pattern_a6ad4ce96d34),
+        UiTextPattern(Regex("^전체\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\\ ·\\ 간접\\ 비중\\ (.*?)%\$"), R.string.loc_ui_pattern_454f3c3091e8),
         UiTextPattern(Regex("^(.*?)\\ anchor가\\ 최소\\ 2주\\ 연속\\ 노출되지\\ 않아\\ 진행성\\ 추적이\\ 어렵습니다\\.\$"), R.string.loc_ui_pattern_6dd02358a0f4),
         UiTextPattern(Regex("^(.*?)\\ strength\\ progression\\ group가\\ (.*?)개로\\ 제한적입니다\\.\$"), R.string.loc_ui_pattern_82de5ae10593),
         UiTextPattern(Regex("^(.*?)\\-(.*?)주\\ 신경계\\ 누적\\ (.*?)가\\ 관리\\ 기준\\ (.*?)를\\ 초과합니다\\.\$"), R.string.loc_ui_pattern_26bf9b3870f4),
@@ -2949,6 +2962,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^(.*?)주\\ (.*?)일\\ 세션이\\ 운동\\ 7개를\\ 초과합니다\\.\$"), R.string.loc_ui_pattern_5af3f05f94b3),
         UiTextPattern(Regex("^곡선\\ (.*?)\\ ·\\ 매칭\\ (.*?)\\ ·\\ 보정\\ (.*?)\$"), R.string.loc_ui_pattern_ad3cdc67684d),
         UiTextPattern(Regex("^근거\\ (.*?)\\ ·\\ 세트\\ (.*?)\\ ·\\ 지문\\ (.*?)\$"), R.string.loc_ui_pattern_20653fa1ad9b),
+        UiTextPattern(Regex("^전체\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\$"), R.string.loc_ui_pattern_51aacd182ca0),
         UiTextPattern(Regex("^(.*?)주\\ (.*?)\\ 중복군\\ 노출이\\ (.*?)회입니다\\.\$"), R.string.loc_ui_pattern_08fa89c45050),
         UiTextPattern(Regex("^공적분:\\ (.*?)\\ \\(legacy\\ score=(.*?)\\)\$"), R.string.loc_ui_pattern_f87e1b17832f),
         UiTextPattern(Regex("^최고\\ (.*?)\\ ·\\ Top3\\ (.*?)\\ ·\\ (.*?)회\$"), R.string.loc_ui_pattern_6d6fbbd1a419),

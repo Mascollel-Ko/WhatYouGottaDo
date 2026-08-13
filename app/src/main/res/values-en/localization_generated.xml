@@ -27,6 +27,7 @@
     <string name="loc_baseline_03d3389f78f9">There is an existing record on the target date.</string>
     <string name="loc_baseline_0421ca8fe2d0">progress indicators</string>
     <string name="loc_baseline_04480ef26254">Weekly Footwork and Reaction Training Volume</string>
+    <string name="loc_baseline_049fabac1dca">Distance</string>
     <string name="loc_baseline_04ce3b24dbb7">Recently, the proportion has accumulated to a high level.</string>
     <string name="loc_baseline_04d949c45772">Fatigue is being calculated.</string>
     <string name="loc_baseline_05109e00aba0">Additional kg of pull-ups</string>
@@ -312,6 +313,7 @@
     <string name="loc_baseline_46643091a362">residual fatigue</string>
     <string name="loc_baseline_4699ee2b11cf">There is no baseline set to copy.</string>
     <string name="loc_baseline_46eecc9c5db7">There are no existing records on the target date.</string>
+    <string name="loc_baseline_47520a0a651f">Indirect core stimulus</string>
     <string name="loc_baseline_476d7b372004">Recently, the strength index has also decreased.</string>
     <string name="loc_baseline_476fd8811a56">Weekly Smash Top Speed</string>
     <string name="loc_baseline_47b00dd40fcb">standing</string>
@@ -458,6 +460,7 @@
     <string name="loc_baseline_6abb1655db25">high intensity intervals</string>
     <string name="loc_baseline_6af20e73b13e">barbell reverse curl</string>
     <string name="loc_baseline_6b4ba9e2d08c">Cumulative count</string>
+    <string name="loc_baseline_6bddfddbcc3c">This training objective develops trunk resistance during reaches, lunges, and changes of direction.</string>
     <string name="loc_baseline_6c0b5d5c15a6">running race</string>
     <string name="loc_baseline_6c6412037efb">lack of sleep history</string>
     <string name="loc_baseline_6c794b7473d3">Change in fatigue index next week</string>
@@ -696,8 +699,10 @@
     <string name="loc_baseline_a89deeb8d0d8">Hide expected range</string>
     <string name="loc_baseline_a8b9d5789d75">No recent direct 1RM records</string>
     <string name="loc_baseline_a8e1e520d649">Growth rate compared to previous estimate</string>
+    <string name="loc_baseline_a8f8df0e19c0">Total core stimulus</string>
     <string name="loc_baseline_a972e38e79f6">Badminton Assistant 4 weeks</string>
     <string name="loc_baseline_a9a7a6d01e08">3 sets x 5 reps/side</string>
+    <string name="loc_baseline_a9d16089f1a4">This training objective supports repeat capacity and conditioning for badminton practice.</string>
     <string name="loc_baseline_aa0591296fa1">Analysis execution error</string>
     <string name="loc_baseline_aa2ee81983ea">Landmine Press</string>
     <string name="loc_baseline_aa3990056a28">When finished, the expected fatigue level is in the usual range.</string>
@@ -743,6 +748,7 @@
     <string name="loc_baseline_b3178e1d9a53">The calculator did not leave any additional error messages.</string>
     <string name="loc_baseline_b3243a4b5b83">success/failure</string>
     <string name="loc_baseline_b351ad157170">Recovery input doesn\'t have much of a bump.</string>
+    <string name="loc_baseline_b36770da23ab">Rotation generation</string>
     <string name="loc_baseline_b36d3fdcf991">Weekly posterior chain/erector spinae training volume in the last 7 days</string>
     <string name="loc_baseline_b3a8f61725a5">Pre-session expectations: Lack of direct documentation</string>
     <string name="loc_baseline_b3dd3e992b06">Fatigue is currently accumulated. It is best to avoid additional high-intensity exercise.</string>
@@ -761,6 +767,7 @@
     <string name="loc_baseline_b6cb4e8945dd">Full RPE</string>
     <string name="loc_baseline_b70de03dab8c">Saved exercise and runtime metadata.</string>
     <string name="loc_baseline_b78789f9f0f9">Upper body push with heavy shoulder burden</string>
+    <string name="loc_baseline_b7edad12c9f4">Direct stimulus comes from sets where core function is the training target; indirect stimulus is core demand accumulated during exercises with another primary purpose.</string>
     <string name="loc_baseline_b80bc4bc585b">Joo Dong-geun</string>
     <string name="loc_baseline_b8f155189f5d">Performance level comparison</string>
     <string name="loc_baseline_b913759947dd">3-4 sets x 8-15 reps</string>
@@ -959,6 +966,7 @@
     <string name="loc_baseline_e56b32ad1e40">Lower body fatigue input is high.</string>
     <string name="loc_baseline_e58c0922cc29">kilogram</string>
     <string name="loc_baseline_e62fcaf44583">Today, we will lower that area.</string>
+    <string name="loc_baseline_e631f5195c59">This badminton transfer objective is supported by an explicit canonical relation.</string>
     <string name="loc_baseline_e6d7ffc363f8">share press</string>
     <string name="loc_baseline_e6e2209ac758">badminton player</string>
     <string name="loc_baseline_e7353f0dc4d0">Day</string>
@@ -969,6 +977,7 @@
     <string name="loc_baseline_e855003a134a">Automatic Adjustments Variable: ${result.automaticAdjustments.joinToString(</string>
     <string name="loc_baseline_e87f2c22df6d">Adjust the intensity or repetition area.</string>
     <string name="loc_baseline_e8895397ff4f">Diagnostic details</string>
+    <string name="loc_baseline_e8c12c0b8200">This training objective develops rotational force through the lower body and trunk as used in a smash.</string>
     <string name="loc_baseline_e8d0687c01ab">Organization type</string>
     <string name="loc_baseline_e8d29276b380">Performed above expected range.</string>
     <string name="loc_baseline_e8d3eaddee3c">Technical practice</string>
@@ -987,7 +996,6 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_eba535d029ae">Success</string>
     <string name="loc_baseline_ebba64d68bc3">This is the badminton transfer purpose identified in the existing metadata.</string>
     <string name="loc_baseline_ebc876b5064b">A stable dynamic response cannot be estimated from current data. Please accumulate more records or reduce variables.</string>
-    <string name="loc_baseline_ebca623ef022">Create rotation</string>
     <string name="loc_baseline_ec16394edc2f">Personalization Baseline</string>
     <string name="loc_baseline_ec16bf0e7c0c">triangle</string>
     <string name="loc_baseline_ec74c692ac9f">Checking metric gaps and transformation availability.</string>
@@ -1019,11 +1027,13 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f359d6981986">joint protection curve</string>
     <string name="loc_baseline_f37f1b842724">Enter condition</string>
     <string name="loc_baseline_f417ce40a03c">Replaced with automatic outline</string>
+    <string name="loc_baseline_f4634c55dcdd">Direct core stimulus</string>
     <string name="loc_baseline_f48d82915c9c">This is the result of exploring patterns that move together during the same week.</string>
     <string name="loc_baseline_f4922b819c89">Apply to date</string>
     <string name="loc_baseline_f4a3b7a573f3">and</string>
     <string name="loc_baseline_f4ea7c08127e">speed</string>
     <string name="loc_baseline_f4f7ea5154ea">focus on movement</string>
+    <string name="loc_baseline_f4fc1e6c82b6">Weight</string>
     <string name="loc_baseline_f529cd91dab7">Do you want to delete the selected date range?</string>
     <string name="loc_baseline_f547e522a903">Weekly Chest Exercise Amount in Last 3 Days</string>
     <string name="loc_baseline_f5bc17133d0f">female</string>
@@ -1042,6 +1052,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f930629bd6d6">There are currently limiting signals, so prioritize recovery and load control.</string>
     <string name="loc_baseline_f94c1cc828ed">unknown movement</string>
     <string name="loc_baseline_f9575e964a77">Empty</string>
+    <string name="loc_baseline_f98004da5b18">Cumulative core training stimulus</string>
     <string name="loc_baseline_f9a47dfbf311">Weekly calf training volume for the last 3 days</string>
     <string name="loc_baseline_f9d7d63e8a1f">No RPE</string>
     <string name="loc_baseline_f9f88a6323af">previous day</string>
@@ -1066,6 +1077,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_fc9b3cd18b96">High load hinge</string>
     <string name="loc_baseline_fca5af159abb">Posterior median</string>
     <string name="loc_baseline_fcad0fa86b54">Basic classification</string>
+    <string name="loc_baseline_fcb167566657">Set stimulus units</string>
     <string name="loc_baseline_fcb8accc0587">Average of the last 28 days (7-day conversion)</string>
     <string name="loc_baseline_fcd77b384bf4">For types that have recently become stable, the baseline is set slightly higher.</string>
     <string name="loc_baseline_fd04a4bc49a7">badminton per week</string>
@@ -2947,6 +2959,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_4450ce9c47b9">Exercises in backup: %1$s · Metadata edits to be replaced: %2$s</string>
     <string name="loc_ui_pattern_44ae262e6ed9">%1$s Weekly cumulative exercise index for the last 7 days</string>
     <string name="loc_ui_pattern_450e06efcd42">%1$s: %2$s and %3$s more</string>
+    <string name="loc_ui_pattern_454f3c3091e8">Total %1$s · Direct %2$s · Indirect %3$s · Indirect share %4$s%%%%</string>
     <string name="loc_ui_pattern_45540f8f185b">%1$s set · %2$s%3$s</string>
     <string name="loc_ui_pattern_45feecd4a7b4">Growth %1$s · previous %2$s ·</string>
     <string name="loc_ui_pattern_46534a927262">Bootstrap %1$s</string>
@@ -2962,6 +2975,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_4d111f456227">Rest %1$s</string>
     <string name="loc_ui_pattern_514ac6d3c176">grid diagnosis %1$s · repetition out of support range %2$s</string>
     <string name="loc_ui_pattern_51742a06e213">80%% expected range %1$s~%2$s</string>
+    <string name="loc_ui_pattern_51aacd182ca0">Total %1$s · Direct %2$s · Indirect %3$s</string>
     <string name="loc_ui_pattern_546827d99394">Status by axis: Very High (%1$s), High (%2$s), Normal (%3$s), Low (%4$s)</string>
     <string name="loc_ui_pattern_5603721e441b">%1$s %2$s Select target date</string>
     <string name="loc_ui_pattern_560a66cbce16">Rest %1$s sec</string>

@@ -40,6 +40,7 @@ import com.training.trackplanner.analysis.trends.DetailChartMode
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.label
 import com.training.trackplanner.localization.LocalizedPresentation
+import com.training.trackplanner.localization.localizedUiText
 import java.util.Locale
 import java.time.LocalDate
 import kotlin.math.abs
@@ -54,7 +55,83 @@ internal fun AnalysisChartSpecView(spec: ChartSpec) {
             spec.slices.map { slice -> BarItem(slice.label, slice.value) }
         })
         ChartType.STACKED_BAR -> AnalysisStackedBarChart(spec = spec, modifier = Modifier.height(170.dp))
+        ChartType.STACKED_AREA -> AnalysisStackedAreaChart(spec = spec, modifier = Modifier.height(180.dp))
         ChartType.SCATTER -> AnalysisScatterChart(spec = spec, modifier = Modifier.height(170.dp))
+    }
+}
+
+@Composable
+private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modifier) {
+    val layers = spec.stackedAreaLayers
+    val domain = AnalysisChartTemporalPolicy.domain(spec)
+    if (layers.isEmpty() || domain.isEmpty()) {
+        InfoCard("기록 부족")
+        return
+    }
+    val valuesByLayer = layers.map { layer ->
+        layer.points.associate { point -> point.weekStart to (point.value?.takeIf(Double::isFinite) ?: 0.0) }
+    }
+    val maxTotal = domain.maxOf { date -> valuesByLayer.sumOf { values -> values[date] ?: 0.0 } }
+        .coerceAtLeast(1.0)
+    val colors = analysisChartPalette()
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+    val accessibility = localizedAnalysisChartContentDescription(spec)
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = accessibility },
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Canvas(modifier = modifier.fillMaxWidth()) {
+            repeat(3) { index ->
+                val y = size.height * (index + 1) / 4f
+                drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+            }
+            fun xAt(index: Int): Float =
+                if (domain.size <= 1) size.width / 2f else size.width * index / domain.lastIndex
+            fun yAt(value: Double): Float =
+                (size.height - size.height * (value / maxTotal).coerceIn(0.0, 1.0)).toFloat()
+
+            val lowerByDate = DoubleArray(domain.size)
+            layers.forEachIndexed { layerIndex, _ ->
+                val upperByDate = DoubleArray(domain.size) { index ->
+                    lowerByDate[index] + (valuesByLayer[layerIndex][domain[index]] ?: 0.0)
+                }
+                val area = Path()
+                domain.indices.forEach { index ->
+                    val x = xAt(index)
+                    val y = yAt(upperByDate[index])
+                    if (index == 0) area.moveTo(x, y) else area.lineTo(x, y)
+                }
+                domain.indices.reversed().forEach { index ->
+                    area.lineTo(xAt(index), yAt(lowerByDate[index]))
+                }
+                area.close()
+                val color = colors[layerIndex % colors.size]
+                drawPath(area, color.copy(alpha = 0.52f))
+                val boundary = Path()
+                domain.indices.forEach { index ->
+                    val x = xAt(index)
+                    val y = yAt(upperByDate[index])
+                    if (index == 0) boundary.moveTo(x, y) else boundary.lineTo(x, y)
+                }
+                drawPath(boundary, color, style = Stroke(width = 3f))
+                upperByDate.copyInto(lowerByDate)
+            }
+        }
+        spec.timeGranularity?.let { AnalysisTimeAxisLabels(domain, it) }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            layers.forEachIndexed { index, layer ->
+                Surface(shape = RoundedCornerShape(8.dp), color = colors[index % colors.size].copy(alpha = 0.22f)) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        text = localizedUiText(layer.label),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -251,7 +328,7 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                 val color = colorKeyByLabel[label]?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
                     ?: colors[colorIndex % colors.size]
                 Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.22f)) {
-                    Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = label, style = MaterialTheme.typography.labelSmall)
+                    Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = localizedUiText(label), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }
@@ -356,6 +433,13 @@ internal fun analysisChartContentDescription(
             "$date, ${localize(segment.label)} ${formatChartAccessibilityValue(segment.value, spec.valueUnit, localize)}"
         }
     }
+    val stackedAreaDescriptions = spec.stackedAreaLayers.flatMap { layer ->
+        layer.points.mapNotNull { point ->
+            val value = point.value?.takeIf(Double::isFinite) ?: return@mapNotNull null
+            val date = localize(AnalysisChartTemporalPolicy.detailLabel(point.weekStart, granularity, domain))
+            "$date, ${localize(layer.label)} ${formatChartAccessibilityValue(value, spec.valueUnit, localize)}"
+        }
+    }
     val intervalDescriptions = (spec.intervalBands + listOfNotNull(spec.intervalBand)).flatMap { band ->
         band.points.map { point ->
             val date = localize(AnalysisChartTemporalPolicy.detailLabel(point.date, granularity, domain))
@@ -364,7 +448,7 @@ internal fun analysisChartContentDescription(
             "$date, ${localize(band.label)}, ${range(lower, upper)}"
         }
     }
-    return (listOf(localize(spec.title)) + lineDescriptions + intervalDescriptions + stackedDescriptions).joinToString(". ")
+    return (listOf(localize(spec.title)) + lineDescriptions + intervalDescriptions + stackedDescriptions + stackedAreaDescriptions).joinToString(". ")
 }
 
 private fun formatChartAccessibilityValue(
@@ -422,14 +506,14 @@ private fun AnalysisBarList(items: List<BarItem>) {
     val max = items.maxOf { abs(it.value) }.coerceAtLeast(1.0)
     val colors = analysisChartPalette()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.take(6).forEachIndexed { index, item ->
+        items.forEachIndexed { index, item ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(item.label, style = MaterialTheme.typography.labelMedium)
+                    Text(localizedUiText(item.label), style = MaterialTheme.typography.labelMedium)
                     Text(formatAnalysisValue(item.value), style = MaterialTheme.typography.labelMedium)
                 }
                 Surface(
-                    modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat()).height(8.dp),
+                    modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.0, 1.0).toFloat()).height(8.dp),
                     shape = RoundedCornerShape(8.dp),
                     color = item.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
                         ?: colors[(item.colorIndex ?: index) % colors.size]

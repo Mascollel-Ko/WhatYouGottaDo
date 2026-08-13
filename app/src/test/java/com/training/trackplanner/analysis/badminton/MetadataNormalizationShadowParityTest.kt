@@ -36,7 +36,10 @@ class MetadataNormalizationShadowParityTest {
             val currentAxes = BadmintonTransferMetadataMapper.legacyTransferAxesForAudit(features).names()
             val normalizedAxes = BadmintonTransferMetadataMapper.transferAxes(features).names()
             val currentObjectives = legacyObjectiveKeys(exercise, features).sorted().joinToString("|")
-            val normalizedObjectives = BadmintonTransferMetadataMapper.objectiveKeys(features).sorted().joinToString("|")
+            val normalizedObjectives = BadmintonTransferMetadataMapper.objectiveKeys(features)
+                .map(::v050032ObjectiveToken)
+                .sorted()
+                .joinToString("|")
             val analysisEligibility = features.analysisEligibility.sorted().joinToString("|")
             val transferType = BadmintonTransferMetadataMapper.transferType(features).name
             val fatigueCost = BadmintonTransferMetadataMapper.fatigueCost(features).name
@@ -136,7 +139,12 @@ class MetadataNormalizationShadowParityTest {
             listOf("PALLOF", "SUITCASE", "LANDMINE_ANTI_ROTATION", "ANTI_ROTATION_PRESS", "ANTI_ROTATION_HOLD", "항회전", "회전저항", "팔로프", "수트케이스")
                 .any { it in text }
         }
-    )
+    ).map(::v050032ObjectiveToken).toSet()
+
+    // This frozen audit compares the v0.5.0.32 normalization artifact, whose
+    // reviewed rotation token predates the v0.5.0.33 canonical UI rename.
+    private fun v050032ObjectiveToken(value: String): String =
+        if (value == "ROTATION_GENERATION") "ROTATION_POWER" else value
 
     private fun Set<BadmintonTransferAxis>.names(): String = map { it.name }.sorted().joinToString("|")
 

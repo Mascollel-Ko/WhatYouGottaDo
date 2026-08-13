@@ -46,7 +46,7 @@ class BadmintonTransferColorPaletteTest {
                 courtRaw = 0.0,
                 footworkReactiveRaw = 0.0,
                 supportRaw = 0.0,
-                methodRaw = mapOf("FOOTWORK" to 10.0, "REACTION" to 6.0)
+                objectiveStimulus = mapOf("FOOTWORK" to 10.0, "REACTION" to 6.0)
             )
         )
         val recentSegments = BadmintonTrainingMethodSeries.recentComparisonGroups(points)

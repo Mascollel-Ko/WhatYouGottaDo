@@ -1018,7 +1018,7 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 회복성 운동,restorative exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayReadinessSentenceBuilder.kt
 회복을 우선하고 고강도 훈련을 피하세요.,Prioritize recovery and avoid high-intensity training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/fatigue/FatigueMath.kt
 회전 동작,rotation motion,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
-회전 생성,Create rotation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
+회전 생성,Rotation generation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
 회전근,rotator cuff,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 회전저항,rotation resistance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 회전코어,rotating core,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
@@ -1107,3 +1107,15 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 [경고],[Warnings],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
 [오류],[Errors],CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
 (알 수 없음),(Unknown),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/DataTransferReport.kt
+무게,Weight,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+거리,Distance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
+누적 코어 훈련 자극,Cumulative core training stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+직접 코어 자극,Direct core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+간접 코어 자극,Indirect core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+전체 코어 자극,Total core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+세트 자극 단위,Set stimulus units,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+"직접 자극은 코어 기능 자체가 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 누적된 코어 요구입니다.","Direct stimulus comes from sets where core function is the training target; indirect stimulus is core demand accumulated during exercises with another primary purpose.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+스매시처럼 하체와 몸통을 거쳐 회전 힘을 만들어 내는 훈련 목적입니다.,This training objective develops rotational force through the lower body and trunk as used in a smash.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
+"리치, 런지, 방향전환 중 몸통이 무너지지 않게 버티는 훈련 목적입니다.","This training objective develops trunk resistance during reaches, lunges, and changes of direction.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
+배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 훈련 목적입니다.,This training objective supports repeat capacity and conditioning for badminton practice.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
+명시적 canonical 관계에서 확인된 배드민턴 전이 목적입니다.,This badminton transfer objective is supported by an explicit canonical relation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt

@@ -188,7 +188,29 @@ class BadmintonTrainingMethodSeriesTest {
             )
         )
 
-        assertEquals(setOf("REACTION"), totals.keys)
+        assertEquals(BadmintonTrainingMethodSeries.objectiveKeys, totals.keys.toList())
+        assertEquals(12.0, totals.getValue("REACTION"), 0.001)
+        assertFalse("RACKET_SUPPORT" in totals)
+    }
+
+    @Test
+    fun objectiveBarsAlwaysShowAllNineIncludingZero() {
+        val bars = BadmintonTrainingMethodSeries.objectiveBars(
+            listOf(
+                BadmintonDailyLoadPoint(
+                    LocalDate.parse("2026-06-10"),
+                    0.0,
+                    0.0,
+                    0.0,
+                    mapOf("REACTION" to 12.0)
+                )
+            )
+        )
+
+        assertEquals(BadmintonTrainingMethodSeries.objectiveKeys.map(BadmintonTrainingMethodLabels::label), bars.map { it.label })
+        assertEquals(9, bars.size)
+        assertEquals(0.0, bars.first { it.colorKey == "ANTI_ROTATION" }.value, 0.0)
+        assertEquals(12.0, bars.first { it.colorKey == "REACTION" }.value, 0.0)
     }
 
     @Test

@@ -112,7 +112,7 @@ internal fun BadmintonTransferAnalysisContent(
     val methodTotals = performanceTrend
         ?.let { BadmintonTrainingMethodSeries.totals(it.badmintonDailyLoads) }
         .orEmpty()
-    val availableMethodKeys = methodTotals.keys.toList().ifEmpty { BadmintonTrainingMethodSeries.objectiveKeys }
+    val availableMethodKeys = BadmintonTrainingMethodSeries.objectiveKeys
     val defaultMethodKeys = defaultBadmintonMethodKeys(methodTotals, availableMethodKeys)
     var selectedMethodKeysText by rememberSaveable(availableMethodKeys.joinToString("|")) {
         mutableStateOf(defaultMethodKeys.joinToString("|"))
@@ -152,6 +152,7 @@ internal fun StrengthTrendAnalysisContent(
             rebuildRunning = rebuildRunning,
             onRetryRebuild = onRetryRebuild
         )
+        CoreStimulusCard(performanceTrend)
         MuscleLoadShareCard(performanceTrend)
         MuscleLoadShareTrendCard(performanceTrend)
         RepRangeShareCard(performanceTrend.repRangeWeeks)
@@ -189,13 +190,12 @@ private fun BadmintonTrainingLoadCharts(
     var showMethodPicker by rememberSaveable { mutableStateOf(false) }
     val methodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads)
     val selectedMethodSet = selectedMethodKeys.toSet()
-    val selectedMethodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads, selectedMethodSet)
-    val methodKeys = methodTotals.keys.toList()
-    var selectedMethod by rememberSaveable(methodTotals.keys.joinToString()) {
-        mutableStateOf(methodTotals.maxByOrNull { it.value }?.key.orEmpty())
+    val methodKeys = BadmintonTrainingMethodSeries.objectiveKeys
+    var selectedMethod by rememberSaveable(BadmintonTrainingMethodSeries.objectiveKeys.joinToString()) {
+        mutableStateOf(methodTotals.maxByOrNull { it.value }?.key ?: methodKeys.first())
     }
     if (selectedMethod !in methodKeys) {
-        selectedMethod = methodTotals.maxByOrNull { it.value }?.key.orEmpty()
+        selectedMethod = methodTotals.maxByOrNull { it.value }?.key ?: methodKeys.first()
     }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -207,7 +207,7 @@ private fun BadmintonTrainingLoadCharts(
                     onSelect = { index -> mode = BadmintonLoadMode.entries[index] }
                 )
                 if (mode == BadmintonLoadMode.METHOD) {
-                    if (methodTotals.isEmpty()) {
+                    if (methodTotals.values.none { it > 0.0 }) {
                         Text(
                             "전이 목적 메타데이터가 있는 기록이 부족합니다.",
                             style = MaterialTheme.typography.bodySmall,
@@ -215,7 +215,7 @@ private fun BadmintonTrainingLoadCharts(
                         )
                     } else {
                         AnalysisChipRow(
-                            labels = methodKeys.map(BadmintonTrainingMethodLabels::label),
+                            labels = methodKeys.map { key -> localizedUiText(BadmintonTrainingMethodLabels.label(key)) },
                             selected = methodKeys.indexOf(selectedMethod).coerceAtLeast(0),
                             onSelect = { index -> selectedMethod = methodKeys[index] }
                         )
@@ -278,7 +278,7 @@ private fun BadmintonTrainingLoadCharts(
                 note = "라켓 보조 같은 구 전이축이 아니라 풋워크, 가속, 감속, 리액션 등 전이 목적 기준으로 비교합니다."
             )
         }
-        if (selectedMethodTotals.isNotEmpty()) {
+        if (methodTotals.isNotEmpty()) {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
@@ -293,16 +293,7 @@ private fun BadmintonTrainingLoadCharts(
                         ChartSpec(
                             type = ChartType.HORIZONTAL_BAR,
                             title = "배드민턴 전이 목적별 자극량",
-                            bars = selectedMethodTotals.entries
-                                .sortedByDescending { it.value }
-                                .map { (key, value) ->
-                                    BarItem(
-                                        BadmintonTrainingMethodLabels.label(key),
-                                        value,
-                                        BadmintonTrainingMethodSeries.colorIndex(key),
-                                        key
-                                    )
-                                }
+                            bars = BadmintonTrainingMethodSeries.objectiveBars(summary.badmintonDailyLoads)
                         )
                     )
                     Text(
@@ -371,8 +362,8 @@ private fun BadmintonMethodDescriptionDialog(
             ) {
                 methodKeys.forEach { key ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(BadmintonTrainingMethodLabels.label(key), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                        Text(BadmintonTrainingMethodLabels.description(key), style = MaterialTheme.typography.bodySmall)
+                        Text(localizedUiText(BadmintonTrainingMethodLabels.label(key)), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text(localizedUiText(BadmintonTrainingMethodLabels.description(key)), style = MaterialTheme.typography.bodySmall)
                         val sample = examples[key].orEmpty().take(2)
                         Text(
                             text = if (sample.isEmpty()) "예시 운동: 기록 없음" else "예시 운동: ${sample.joinToString(", ")}",
@@ -471,7 +462,7 @@ private fun BadmintonMethodPickerDialog(
                             )
                             Text(
                                 modifier = Modifier.padding(top = 12.dp),
-                                text = BadmintonTrainingMethodLabels.label(key),
+                                text = localizedUiText(BadmintonTrainingMethodLabels.label(key)),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -539,7 +530,7 @@ private fun com.training.trackplanner.analysis.trends.BadmintonDailyLoadPoint.va
     BadmintonLoadMode.TOTAL -> totalRaw
     BadmintonLoadMode.DIRECT -> courtRaw + footworkReactiveRaw
     BadmintonLoadMode.TRANSFER -> supportRaw
-    BadmintonLoadMode.METHOD -> methodRaw[method] ?: 0.0
+    BadmintonLoadMode.METHOD -> objectiveStimulus[method] ?: 0.0
 }
 
 private fun weeklyBadmintonPoints(

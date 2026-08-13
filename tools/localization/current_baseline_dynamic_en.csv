@@ -270,3 +270,5 @@ ${} 주간 기록이 없어 분석을 시작할 수 없습니다.,Analysis canno
 요청한 ${}주 중 현재 자료로는 최대 ${}주까지 추정할 수 있습니다.,Of the requested %1$s weeks the current data support estimation through at most %2$s weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 변환 후 사용할 수 있는 기록 ${}주로는 분석을 완료할 수 없습니다.,The analysis cannot be completed with %1$s usable weeks after transformation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 끝나면 예상 피로도: ${} · ${},Projected fatigue after completion: %1$s · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt
+전체 ${} · 직접 ${} · 간접 ${},Total %1$s · Direct %2$s · Indirect %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+전체 ${} · 직접 ${} · 간접 ${} · 간접 비중 ${}%,Total %1$s · Direct %2$s · Indirect %3$s · Indirect share %4$s%%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
