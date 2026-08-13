@@ -3,12 +3,38 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 1.2.0 |
+| Protocol version | 2.0.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32 |
-| Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
+
+## v0.5.0.33 explicit objective stimulus cutover
+
+The canonical objectives are `ACCELERATION`, `DECELERATION`, `FOOTWORK`,
+`JUMP_LANDING`, `LUNGE_REACH`, `REACTION`, `CONDITIONING`,
+`ROTATION_GENERATION`, and `ANTI_ROTATION`. Relations are objective-specific
+and carry `DIRECT`, `SUPPORTIVE`, `GENERAL`, `LOW`, or `NONE` independently.
+The generated `badminton_objective_relations.csv` is the runtime authority.
+
+`ROTATION_GENERATION` replaces canonical `ROTATION_POWER`. Compatibility
+aliases are accepted only when explicit legacy badminton evidence supports
+rotation. `ANTI_ROTATION` is independent: axial bracing, CoreClass, or a core
+direct target never grants badminton authority. The machine-readable rotation
+audit records every reviewed creation and rejection.
+
+Badminton Objective Stimulus V2 uses one unit per confirmed set, the mild RPE
+modifier, and the objective's transfer coefficient: `DIRECT=1.00`,
+`SUPPORTIVE=0.60`, `GENERAL=0.25`, `LOW=0.10`, `NONE=0.00`. Kilograms,
+repetitions, and seconds are not multipliers. Multi-objective stimulus is
+intentionally overlapping and is not divided by objective count, so its sum is
+not total physical workload. All nine objectives remain present even at zero.
+
+Historical raw records are replayed through compatible canonical identity
+semantics without rewriting stored stableKeys. Objective UI consumers accept
+only `BADMINTON_OBJECTIVE_STIMULUS_V2`; there is no fallback to old derived
+values or mixed scale.
 
 ## v0.5.0.32 canonical source boundary
 
@@ -52,11 +78,11 @@ fatigue cost as well as unchanged OFI, program, and strength classifications.
 
 ## 7. 계산 또는 분류 계약
 
-transfer weight는 DIRECT 1.0, SUPPORTIVE 0.6, GENERAL_STRENGTH 0.25, LOW 0.1, NONE 0입니다. RPE factor는 6 이하 0.9, 8 미만 1.0, 9 미만 1.05, 10 미만 1.10, 그 외 1.15입니다. 최근 7일과 baseline 28일을 비교하고 contribution은 지정 axis에 균등 분배합니다.
+확인된 set마다 base unit 1.0에 mild RPE modifier와 해당 objective의 transfer coefficient를 곱합니다. 한 set이 여러 objective를 지원하면 각 objective에 독립적으로 전량 반영하며 균등 분할하지 않습니다.
 
 ## 8. 집계 방식
 
-FOOTWORK, REACTION, JUMP_LANDING, LUNGE_REACH, ACCELERATION, DECELERATION, ROTATION_POWER, ANTI_ROTATION, CONDITIONING axis별로 합산합니다. 중량 intensity는 `1 + averageWeight/100`을 1~2로 제한합니다.
+canonical 9 objective별 일간 자극을 합산하고 주간 표시로 집계합니다. objective availability는 값이 0이어도 유지합니다. 중량, 반복수, 초는 이 objective 자극의 multiplier가 아닙니다.
 
 ## 9. 출력과 UI 해석
 
@@ -66,7 +92,7 @@ v0.4.2.16부터 주별 전이 자극 차트는 주별 배드민턴 훈련량 차
 
 ## 10. 예외 및 fallback
 
-reps가 있으면 `reps * intensity * RPE`, 아니면 seconds가 있으면 `seconds/30 * RPE`, 둘 다 없으면 confirmed set count를 dose로 사용합니다.
+명시적 objective relation이 없으면 objective 자극은 0입니다. Generic badminton practice/session은 별도 practice-load 분석에는 남지만 9개 objective로 확산되지 않습니다. 이전 derived scale이나 이름 추측 fallback은 사용하지 않습니다.
 
 ## 11. 개인화 또는 보정
 

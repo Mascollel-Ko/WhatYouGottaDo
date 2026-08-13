@@ -3,13 +3,34 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.0.3 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 43f11ec |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+## v0.5.0.33 CoreStimulus V1
+
+CoreStimulus is a separate strength-analysis projection and does not change
+tonnage, e1RM, bodyweight effective load, or duration-hold calculations. Each
+confirmed set contributes one base unit multiplied only by its `CoreClass`
+coefficient and the shared mild RPE modifier.
+
+Class coefficients are `DIRECT=1.00`, `HIDDEN_HIGH=0.80`,
+`HIDDEN_MODERATE=0.40`, `HIDDEN_LOW=0.15`, and `NONE=0.00`. RPE modifiers are
+`<7=0.90`, `<8=1.00`, `<9=1.05`, `<10=1.10`, and `>=10=1.15`; unavailable or
+non-finite RPE uses `1.00`. Kilograms, effective kilograms, repetitions, and
+seconds are not multipliers. The `0.80/0.40/0.15` values are research-informed
+ordinal product-policy priors, not direct physiological or EMG effect-size
+estimates.
+
+Generic sport-practice records are excluded by structured `activityKind`.
+Historical compatible stableKeys are replayed from raw confirmed records
+without rewriting identity. The UI cumulatively stacks INDIRECT on the bottom
+and DIRECT on top; the upper boundary is TOTAL, and no-training dates carry the
+previous cumulative value forward.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 

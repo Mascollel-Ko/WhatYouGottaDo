@@ -3,13 +3,21 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-VOLUME |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 60e21c6b847f1dc2910ddbdc5ee2d4690631cb9e |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
+
+## v0.5.0.33 practice and objective boundary
+
+This protocol continues to answer how much badminton practice was recorded.
+Generic sessions and lessons remain valid duration/RPE practice load. They do
+not automatically populate the nine supporting-training objectives. Objective
+stimulus is owned separately by `BADMINTON-TRANSFER` and only explicit named
+canonical drills or supporting exercises with objective relations contribute.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 

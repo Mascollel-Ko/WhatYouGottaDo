@@ -3,12 +3,32 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 1.9.0 |
+| Protocol version | 2.0.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32 |
-| Last audited commit | 28f40346492d1f7df9e593214a3b806295f27222 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.33 analysis authority cutover
+
+The approved 241-row core review and generated canonical relation assets are
+now production inputs for CoreStimulus V1. Badminton supporting-training
+analysis consumes explicit objective-specific relations for exactly nine
+objectives through Badminton Objective Stimulus V2. Intrinsic mechanics,
+CoreClass, and CoreDirectTarget are not runtime badminton inference inputs.
+
+Both series are rebuilt directly from raw confirmed workout sets on analysis.
+Historical identities use the existing compatibility source only when the
+current canonical descendants share the same relevant semantic signature.
+Stored stableKeys and raw workout records are not rewritten. These projections
+have explicit logical calculation versions and no legacy-derived fallback;
+zero is a valid new-scale result and old/new scales are never blended.
+
+The cutover adds no Room column, backup field, or second identity owner. OFI,
+readiness, fatigue, connective tissue, ProgramBuilder, e1RM, tonnage,
+bodyweight load, duration-hold load, and non-core anatomical muscle analysis
+remain owned by their existing contracts.
 
 ## v0.5.0.32 canonical normalization
 

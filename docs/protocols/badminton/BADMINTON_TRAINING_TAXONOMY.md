@@ -3,12 +3,26 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32 |
-| Last audited commit | 86c56ca4f74c02f4d1da48b4dd985106642ae42b |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
+
+## v0.5.0.33 canonical objective set
+
+Supporting-training objectives are exactly `ACCELERATION`, `DECELERATION`,
+`FOOTWORK`, `JUMP_LANDING`, `LUNGE_REACH`, `REACTION`, `CONDITIONING`,
+`ROTATION_GENERATION`, and `ANTI_ROTATION`. `ROTATION_POWER` is accepted only
+as an explicit migration alias and is never emitted as a canonical runtime or
+UI key.
+
+Each relation owns `(exerciseStableKey, objective, transferLevel)`, so one
+exercise may be DIRECT for one objective and SUPPORTIVE or GENERAL for another.
+CoreClass, CoreDirectTarget, generic movement plane, muscles, laterality,
+bracing, or stability demand cannot create an objective at runtime. Rotation
+and anti-rotation additions require reviewed explicit badminton evidence.
 
 ## v0.5.0.32 explicit transfer authority
 

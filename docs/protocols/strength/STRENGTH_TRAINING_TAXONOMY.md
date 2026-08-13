@@ -3,12 +3,29 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-TAXONOMY |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.3.5.0; canonical trunk-control normalization from v0.5.0.32 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.3.5.0; canonical trunk-control normalization from v0.5.0.32; canonical CoreClass authority from v0.5.0.33 |
+| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
+
+## v0.5.0.33 canonical core interpretation
+
+`core_relations.csv` owns exactly one `CoreClass` for each of the 241
+selectable canonical identities: `DIRECT`, `HIDDEN_HIGH`,
+`HIDDEN_MODERATE`, `HIDDEN_LOW`, or `NONE`. `DIRECT` means that core function
+is an explicit training target and has one approved `CoreDirectTarget`.
+`HIDDEN_*` means that core demand is accumulated while the exercise's primary
+purpose is elsewhere; hidden demand is not allocated to a direct target.
+
+This relation family does not replace intrinsic movement mechanics in
+`movement_relations.csv`. For example, a squat can retain `AXIAL_BRACING`
+mechanics while its core-analysis class is `HIDDEN_HIGH`. Core relations also
+do not create badminton objectives. The approved source is
+`docs/metadata_authority/core_training_classification_review_2026-08-13.csv`;
+the runtime asset is a deterministic projection and may not semantically
+reclassify its rows.
 
 ## v0.5.0.32 canonical movement and trunk-control relations
 

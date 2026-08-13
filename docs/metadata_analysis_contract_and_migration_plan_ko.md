@@ -1,4 +1,4 @@
-# WhatYouGottaDo 운동 메타데이터 전략 v2.4
+# WhatYouGottaDo 운동 메타데이터 전략 v2.5
 
 ## 0. 문서 지위
 
@@ -7,7 +7,17 @@
 - 제외 대상: 운동 기록, 세트 입력값, 사용자 선택, 세션 목적, 프로그램의 실제 처방 결과, 분석 결과
 - 이전 문서 상태: v2.2를 대체한다.
 - v2.3 개정 사유: 승인된 legacy `trainingRole` stableKey whitelist를 복구하고, `familyId`·`loadProfile`·`sportTransferDirect`의 target 의미를 확정하며, production과 분리된 strength-proxy prior 및 Level-1 한국어 taxonomy 검토 초안을 추가한다.
+- v2.5 개정 사유: 승인된 241개 `CoreClass` 관계와 objective-specific 배드민턴 9목적 관계를 production 분석 권위로 전환하고, raw-history replay와 no-legacy-fallback 경계를 확정한다.
 - 핵심 식별자: `exerciseStableKey`
+
+## 0.1 v0.5.0.33 canonical analysis authority
+
+- `core_relations.csv`는 selectable 241개 identity의 단일 `CoreClass`와 DIRECT target을 소유한다.
+- `badminton_objective_relations.csv`는 `(stableKey, objective, transferLevel)` 관계를 소유하며 objective는 정확히 9개다.
+- CoreClass와 CoreDirectTarget은 intrinsic movement 관계를 대체하지 않으며 배드민턴 objective를 자동 생성하지 않는다.
+- CoreStimulus V1과 Badminton Objective Stimulus V2는 confirmed set 수와 mild RPE만 사용한다. kg, reps, seconds는 두 계산의 multiplier가 아니다.
+- historical identity는 기존 compatibility 관계로 의미만 resolve하며 raw record와 stableKey를 수정하지 않는다.
+- 새 계산 활성화 후 UI는 이전 core/objective derived value로 fallback하거나 scale을 혼합하지 않는다.
 
 ---
 

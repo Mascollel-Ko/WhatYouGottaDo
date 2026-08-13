@@ -5309,3 +5309,109 @@ Verification
   GitHub Actions because this Windows workspace has no usable Python runtime.
 - `app/outputs/` and the pre-existing dirty files in the original worktree were
   not modified or staged.
+
+## v0.5.0.33 canonical core and badminton objective cutover
+
+### Pre-implementation authority and consumer audit
+
+- Old core authority: `StrengthAndMuscleMetricSeriesBuilder` and
+  `MuscleLoadInputBuilder` projected functional core through the legacy
+  `ANTERIOR_CORE`, `LATERAL_CORE`, and `ROTATION_CORE` pseudo-buckets using
+  general strength/muscle dose inputs. These buckets were rendered in the
+  strength muscle-share cards and therefore competed with the requested
+  direct-versus-indirect core interpretation.
+- New core authority: the user-approved 241-row
+  `core_training_classification_review_2026-08-13.csv` (SHA-256
+  `3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954`)
+  will own exactly one `CoreClass` per selectable identity and one
+  `CoreDirectTarget` for each of the 31 `DIRECT` identities. A canonical
+  confirmed-set plus mild-RPE calculator will be the only functional core
+  analysis authority shown in the strength UI.
+- Old badminton-objective authority: `BadmintonTrainingLoadIndexCalculator`
+  built `methodRaw` from duration, repetitions, load-based dose, and
+  `BadmintonTransferMetadataMapper.objectiveKeys`; the UI then derived its
+  available objective set from positive totals and emitted the legacy
+  `ROTATION_POWER` key.
+- New badminton-objective authority: an explicit canonical
+  `stableKey + objective + transferLevel` relation asset will own the nine
+  objectives. A confirmed-set plus mild-RPE calculator will replace only the
+  objective `methodRaw` path and will emit `ROTATION_GENERATION`; the separate
+  court-volume, footwork/reactive, support-load, transfer recommendation, and
+  fatigue consumers remain on their existing authorities.
+- Affected consumers: canonical metadata repository/manifest, trend summary
+  engine, strength-analysis core card, chart model/renderer/accessibility,
+  badminton objective series/labels/picker/charts/examples, protocol registry,
+  and focused analysis tests.
+- Preserved consumers: non-core anatomical muscle analysis, legitimate
+  strength kg/repetition/tonnage/e1RM paths, badminton practice/court/support
+  volume, OFI, readiness, fatigue, connective tissue, ProgramBuilder,
+  exercise CRUD, Room, backup/restore, stableKeys, and raw workout history.
+- Forbidden inference paths: display-name parsing, generic muscle/plane/
+  laterality/stability facts, `CoreClass`, `CoreDirectTarget`, axial bracing,
+  or legacy derived values may not create runtime badminton objectives. A zero
+  result is authoritative and must never fall back to an old-scale value.
+
+### Implemented authority and runtime cutover
+
+- Copied the approved CSV byte-for-byte into
+  `docs/metadata_authority/core_training_classification_review_2026-08-13.csv`;
+  SHA-256 remains
+  `3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954`.
+- Generated `core_relations.csv` with 272 facts: 241 `CORE_CLASS` and 31
+  `DIRECT_TARGET`. Counts remain DIRECT 31, HIDDEN_HIGH 45,
+  HIDDEN_MODERATE 82, HIDDEN_LOW 55, and NONE 28.
+- Generated `badminton_objective_relations.csv` with 278 explicit
+  objective-level relations across 104 exercises. All nine canonical
+  objectives are present and each relation has its own transfer level.
+- Rotation audit reviewed 19 candidates: 15 ROTATION_GENERATION relations were
+  created. Of four approved core anti-rotation candidates, two explicit
+  badminton ANTI_ROTATION relations were created and two were rejected; the
+  final authority contains three ANTI_ROTATION relations including preserved
+  explicit source authority.
+- Added CoreStimulus V1 and Badminton Objective Stimulus V2. Both replay raw
+  confirmed sets with the shared mild RPE policy and do not use kg, reps, or
+  seconds as multipliers. Generic sport practice remains outside both
+  supporting-training projections.
+- Reused historical identity compatibility without rewriting stored keys. A
+  history-only key resolves only when all selectable descendants share the
+  same relevant semantic signature.
+- Replaced visible legacy functional-core pseudo-buckets with one cumulative
+  stacked-area CoreStimulus card: INDIRECT below DIRECT, with TOTAL as the top
+  boundary. Non-core anatomical muscle analysis remains unchanged.
+- Rewired the existing badminton analysis UI to the canonical nine-objective
+  result. All nine labels remain available at zero, ROTATION_GENERATION replaces
+  canonical ROTATION_POWER, colors remain distinct, and objective stimulus is
+  explained as overlapping rather than total workload.
+- Removed the old `methodRaw` model and runtime objective dependency on
+  `BadmintonTransferMetadataMapper`. There is no core-to-badminton inference or
+  old-scale fallback in the production trend path.
+
+### Preserved systems
+
+- No Room schema, backup payload, raw workout record, stableKey, exercise CRUD,
+  OFI, readiness, fatigue, connective-tissue, ProgramBuilder, e1RM, tonnage,
+  bodyweight effective-load, duration-hold, or practice-volume behavior was
+  changed.
+- The original dirty worktree and all user-owned `outputs/*` files remained
+  untouched; implementation used the isolated
+  `codex/core-objective-cutover-v050033` worktree.
+
+### Validation
+
+- Deterministic authority generation and audit check: passed. The checked
+  outputs retain 272 core facts and 278 badminton-objective relations, and the
+  approved source SHA-256 is unchanged.
+- Focused core stimulus, badminton objective, authority, trend, canonical
+  repository, color, label, and chart tests: passed.
+- Localization authority generation/check and its Python suite: passed (8
+  tests). Metadata authority generation/check and its Python suite: passed (9
+  tests). Protocol validation: passed (8 families, 34 protocols).
+- `:app:testDebugUnitTest`: passed 1,279 tests with 0 failures, 0 errors, and 0
+  skipped tests.
+- `:app:compileDebugKotlin`: passed.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed. The resulting `app-debug.apk` is 51,442,871
+  bytes (49.06 MiB), SHA-256
+  `1a4b965f0c62098d18308b54c8e509b11bced8a3a3e6338f6811d3f9daa942a2`.
+- Main push, annotated release tag, and GitHub Actions status are recorded in
+  the final task report after remote verification.
