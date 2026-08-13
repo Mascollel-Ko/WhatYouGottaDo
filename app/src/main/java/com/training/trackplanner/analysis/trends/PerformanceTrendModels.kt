@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.trends
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
+import com.training.trackplanner.analysis.core.CoreStimulusSummary
 import java.time.LocalDate
 
 enum class ChartType {
@@ -10,6 +11,7 @@ enum class ChartType {
     BAR,
     HORIZONTAL_BAR,
     STACKED_BAR,
+    STACKED_AREA,
     PIE,
     SCATTER
 }
@@ -154,6 +156,13 @@ data class ChartSeries(
     val connectAcrossDomainGaps: Boolean = false
 )
 
+data class StackedAreaLayer(
+    val label: String,
+    val points: List<TrendDataPoint>,
+    val seriesKey: String? = null,
+    val colorKey: String? = null
+)
+
 data class BarItem(
     val label: String,
     val value: Double,
@@ -191,6 +200,7 @@ data class ChartSpec(
     val lineSeries: List<ChartSeries> = emptyList(),
     val bars: List<BarItem> = emptyList(),
     val stackedBars: List<StackedBarGroup> = emptyList(),
+    val stackedAreaLayers: List<StackedAreaLayer> = emptyList(),
     val slices: List<PieSlice> = emptyList(),
     val scatterPoints: List<ScatterPoint> = emptyList(),
     val forecastRange: ForecastRange? = null,
@@ -270,7 +280,7 @@ data class BadmintonDailyLoadPoint(
     val courtRaw: Double,
     val footworkReactiveRaw: Double,
     val supportRaw: Double,
-    val methodRaw: Map<String, Double> = emptyMap()
+    val objectiveStimulus: Map<String, Double> = emptyMap()
 ) {
     val totalRaw: Double
         get() = courtRaw + footworkReactiveRaw + supportRaw
@@ -301,6 +311,7 @@ data class PerformanceTrendSummary(
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
     val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
     val exerciseDisplayNamesByStableKey: Map<String, String> = emptyMap(),
+    val coreStimulus: CoreStimulusSummary = CoreStimulusSummary.EMPTY,
     val proxyPerformanceSummary: ProxyPerformanceSummary? = null,
     val persistentStrengthPerformanceSummary: PersistentStrengthPerformanceSummary? = null
 )

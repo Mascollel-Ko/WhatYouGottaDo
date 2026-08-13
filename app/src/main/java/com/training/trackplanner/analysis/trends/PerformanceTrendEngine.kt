@@ -12,16 +12,21 @@ import com.training.trackplanner.analysis.readiness.StatisticalBaselineCalculato
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
+import com.training.trackplanner.analysis.core.CoreStimulusCalculator
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 class PerformanceTrendEngine(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+    private val canonicalCoreCatalog: CanonicalCoreCatalog = CanonicalCoreCatalog.EMPTY,
+    private val badmintonObjectiveCatalog: CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
     private val weeklyAggregator: WeeklyAnalysisAggregator = WeeklyAnalysisAggregator(),
     private val strengthCalculator: StrengthPerformanceIndexCalculator =
         StrengthPerformanceIndexCalculator(runtimeMetadataCatalog),
     private val badmintonCalculator: BadmintonTrainingLoadIndexCalculator =
-        BadmintonTrainingLoadIndexCalculator(runtimeMetadataCatalog),
+        BadmintonTrainingLoadIndexCalculator(runtimeMetadataCatalog, badmintonObjectiveCatalog),
     private val fatigueCalculator: FatigueCompositeIndexCalculator = FatigueCompositeIndexCalculator(),
     private val forecastCalculator: TrendForecastRangeCalculator = TrendForecastRangeCalculator(),
     private val chartSpecBuilder: PerformanceChartSpecBuilder = PerformanceChartSpecBuilder(),
@@ -41,6 +46,7 @@ class PerformanceTrendEngine(
         val badmintonWeeks = badmintonCalculator.calculate(weeks, exerciseMap)
         val badmintonDailyLoads = badmintonCalculator.dailyLoads(entriesWithSets, exerciseMap)
         val badmintonMethodExamples = badmintonCalculator.methodExamples(entriesWithSets, exerciseMap, exerciseDisplayNamesByStableKey)
+        val coreStimulus = CoreStimulusCalculator(canonicalCoreCatalog).calculate(entriesWithSets, exerciseMap)
         val fatigueWeeks = fatigueWeeks(today, weeks, entriesWithSets, exercises, dailyMetrics)
         val repRangeWeeks = repRangeWeeks(weeks)
         val metricSeries = metricSeries(strengthWeeks, badmintonWeeks, fatigueWeeks)
@@ -96,7 +102,8 @@ class PerformanceTrendEngine(
             repRangeWeeks = repRangeWeeks,
             metricSeries = metricSeries,
             badmintonMethodExamples = badmintonMethodExamples,
-            exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey
+            exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey,
+            coreStimulus = coreStimulus
         )
         return provisional.copy(
             dashboardChartSpecs = chartSpecBuilder.dashboardSpecs(provisional)

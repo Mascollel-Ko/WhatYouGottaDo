@@ -123,6 +123,8 @@ class TrainingRepository(
     private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalMetadataRepository = CanonicalExerciseMetadataRepositoryProvider.get(context)
     private val canonicalRuntimeMetadataCatalog = canonicalMetadataRepository.runtimeMetadataCatalog()
+    private val canonicalCoreCatalog = canonicalMetadataRepository.coreCatalog()
+    private val badmintonObjectiveCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
     private val exerciseRoleRelationAssetLoader = ExerciseRoleRelationAssetLoader(context)
     private val legacyExerciseImportMapper = LegacyExerciseImportMapper.fromAssets(context)
     private val strengthPerformanceRegistry = StrengthPerformanceRegistry.fromContext(context)
@@ -244,6 +246,8 @@ class TrainingRepository(
         smashSpeedDao = smashSpeedDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        canonicalCoreCatalog = canonicalCoreCatalog,
+        badmintonObjectiveCatalog = badmintonObjectiveCatalog,
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         appMetaDao = appMetaDao

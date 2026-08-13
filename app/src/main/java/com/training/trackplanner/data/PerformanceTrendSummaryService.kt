@@ -23,6 +23,10 @@ internal class PerformanceTrendSummaryService(
     private val smashSpeedDao: SmashSpeedDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalCoreCatalog: com.training.trackplanner.analysis.core.CanonicalCoreCatalog =
+        com.training.trackplanner.analysis.core.CanonicalCoreCatalog.EMPTY,
+    private val badmintonObjectiveCatalog: com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog =
+        com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog.EMPTY,
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
     private val appMetaDao: AppMetaDao
@@ -34,7 +38,11 @@ internal class PerformanceTrendSummaryService(
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
         val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-        val base = PerformanceTrendEngine(runtimeMetadataCatalog).analyze(
+        val base = PerformanceTrendEngine(
+            runtimeMetadataCatalog = runtimeMetadataCatalog,
+            canonicalCoreCatalog = canonicalCoreCatalog,
+            badmintonObjectiveCatalog = badmintonObjectiveCatalog
+        ).analyze(
             today = today,
             exercises = exercises,
             entriesWithSets = entries,

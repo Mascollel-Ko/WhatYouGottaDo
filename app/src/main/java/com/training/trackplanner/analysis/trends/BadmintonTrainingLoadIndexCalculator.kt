@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.trends
 
-import com.training.trackplanner.analysis.badminton.BadmintonTransferMetadataMapper
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCalculator
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
 import com.training.trackplanner.analysis.features.AnalysisExerciseFeatures
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
@@ -10,7 +11,10 @@ import com.training.trackplanner.data.WorkoutEntryWithSets
 import java.time.LocalDate
 
 class BadmintonTrainingLoadIndexCalculator(
-    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+    private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+    private val objectiveCatalog: CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.EMPTY,
+    private val objectiveStimulusCalculator: BadmintonObjectiveStimulusCalculator =
+        BadmintonObjectiveStimulusCalculator(objectiveCatalog)
 ) {
     fun calculate(
         weeks: List<WeeklyTrainingData>,
@@ -66,13 +70,14 @@ class BadmintonTrainingLoadIndexCalculator(
                 val court = records.courtVolumeRaw(exerciseMap)
                 val footwork = records.footworkReactiveRaw(exerciseMap)
                 val support = records.supportRaw(exerciseMap)
-                if (court + footwork + support <= 0.0) return@mapNotNull null
+                val objectives = objectiveStimulusCalculator.calculate(records, exerciseMap)
+                if (court + footwork + support <= 0.0 && objectives.values.none { it > 0.0 }) return@mapNotNull null
                 BadmintonDailyLoadPoint(
                     date = date,
                     courtRaw = court,
                     footworkReactiveRaw = footwork,
                     supportRaw = support,
-                    methodRaw = records.methodRaw(exerciseMap)
+                    objectiveStimulus = objectives
                 )
             }
             .sortedBy { point -> point.date }
@@ -87,12 +92,12 @@ class BadmintonTrainingLoadIndexCalculator(
             .filter { record -> record.sets.any { set -> set.confirmed } }
             .forEach { record ->
                 val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@forEach
-                val features = featuresFor(record, exerciseMap) ?: return@forEach
-                val dose = record.badmintonDose(features)
-                if (dose <= 0.0) return@forEach
+                if (exercise.activityKind == "SPORT_SESSION") return@forEach
+                if (record.sets.none { set -> set.confirmed }) return@forEach
                 val name = displayName(record, exercise, displayNamesByStableKey)
                 if (name.isBlank()) return@forEach
-                features.transferObjectiveKeys().forEach { key ->
+                objectiveCatalog.relations(record.entry.exerciseStableKey).forEach { relation ->
+                    val key = relation.objective.name
                     val list = examples.getOrPut(key) { mutableListOf() }
                     if (name !in list && list.size < 2) list += name
                 }
@@ -159,39 +164,6 @@ class BadmintonTrainingLoadIndexCalculator(
             record.entry.exerciseStableKey to dose
         }.filterValues { value -> value > 0.0 }
 
-    private fun List<WorkoutEntryWithSets>.methodRaw(
-        exerciseMap: Map<String, Exercise>
-    ): Map<String, Double> {
-        val totals = mutableMapOf<String, Double>()
-        forEach { record ->
-            val features = featuresFor(record, exerciseMap) ?: return@forEach
-            val dose = record.badmintonDose(features)
-            if (dose <= 0.0) return@forEach
-            val keys = features.transferObjectiveKeys()
-            if (keys.isEmpty()) return@forEach
-            // ponytail: multi-label transfer stimulus is intentionally duplicated per objective, not split 1/n.
-            keys.forEach { key -> totals[key] = (totals[key] ?: 0.0) + dose }
-        }
-        return totals
-    }
-
-    private fun WorkoutEntryWithSets.badmintonDose(features: AnalysisExerciseFeatures): Double = when {
-        features.isShuttlePlaySession() -> durationMinutes() * PerformanceTrendConstants.badmintonIntensityFactor(features.averageRpe)
-        features.isFootworkReactive() -> {
-            val dose = when {
-                durationMinutes() > 0.0 -> durationMinutes() *
-                    PerformanceTrendConstants.DRILL_DENSITY_FACTOR *
-                    features.reactiveWeight()
-                else -> completedReps().toDouble() * features.reactiveWeight()
-            }
-            if ("TEST_ONLY" in features.analysisEligibility) dose * 0.35 else dose
-        }
-        else -> {
-            val supportWeight = PerformanceTrendConstants.badmintonSupportWeight(features.badmintonTransferStrength)
-            if (supportWeight <= 0.0) 0.0 else baseDose() * supportWeight * features.supportCorrection()
-        }
-    }
-
     private fun displayName(
         record: WorkoutEntryWithSets,
         exercise: Exercise,
@@ -245,9 +217,6 @@ class BadmintonTrainingLoadIndexCalculator(
         if ("GRIP_FOREARM" in fatigueCategories) correction *= 1.05
         return correction
     }
-
-    private fun AnalysisExerciseFeatures.transferObjectiveKeys(): Set<String> =
-        BadmintonTransferMetadataMapper.objectiveKeys(this)
 
     private fun WorkoutEntryWithSets.durationMinutes(): Double =
         sets.filter { set -> set.confirmed }.sumOf { set -> set.seconds } / 60.0

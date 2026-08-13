@@ -1,6 +1,10 @@
 package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.features.AnalysisFeatureExtractor
+import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.readiness.BaselineTrend
 import com.training.trackplanner.analysis.readiness.FatigueCategoryKey
@@ -279,6 +283,9 @@ class PerformanceTrendEngineTest {
 
     @Test
     fun badmintonRankingChartUsesResolvedExerciseNameInsteadOfFallbackIdLabel() {
+        val engine = PerformanceTrendEngine(
+            badmintonObjectiveCatalog = objectiveCatalog("badminton_fixture_2", BadmintonObjective.FOOTWORK)
+        )
         val exercise = badmintonExercise(name = "운동" + "113")
         val entries = (0 until 2).map { index ->
             record(
@@ -289,7 +296,7 @@ class PerformanceTrendEngineTest {
             )
         }
 
-        val summary = PerformanceTrendEngine().analyze(
+        val summary = engine.analyze(
             today = today,
             exercises = listOf(exercise),
             entriesWithSets = entries,
@@ -311,7 +318,14 @@ class PerformanceTrendEngineTest {
     @Test
     fun badmintonDailyLoadsUseConfirmedSetsAndWeeklyPointsRemainWeekly() {
         val exercise = badmintonExercise()
-        val summary = PerformanceTrendEngine().analyze(
+        val summary = PerformanceTrendEngine(
+            badmintonObjectiveCatalog = objectiveCatalog(
+                exercise.stableKey,
+                BadmintonObjective.REACTION,
+                BadmintonObjective.DECELERATION,
+                BadmintonObjective.FOOTWORK
+            )
+        ).analyze(
             today = today,
             exercises = listOf(exercise),
             entriesWithSets = listOf(
@@ -328,11 +342,11 @@ class PerformanceTrendEngineTest {
         assertEquals(1, summary.badmintonDailyLoads.size)
         val daily = summary.badmintonDailyLoads.single()
         assertTrue(daily.totalRaw > 0.0)
-        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["REACTION"] ?: 0.0, 0.001)
-        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["DECELERATION"] ?: 0.0, 0.001)
-        assertEquals(daily.footworkReactiveRaw, daily.methodRaw["FOOTWORK"] ?: 0.0, 0.001)
-        assertFalse("role/body-part keys must not leak into transfer objective chart", "GRIP_FOREARM" in daily.methodRaw)
-        assertFalse("movement category must not leak into transfer objective chart", "REACTIVE" in daily.methodRaw)
+        assertEquals(1.0, daily.objectiveStimulus.getValue("REACTION"), 0.001)
+        assertEquals(1.0, daily.objectiveStimulus.getValue("DECELERATION"), 0.001)
+        assertEquals(1.0, daily.objectiveStimulus.getValue("FOOTWORK"), 0.001)
+        assertFalse("role/body-part keys must not leak into transfer objective chart", "GRIP_FOREARM" in daily.objectiveStimulus)
+        assertFalse("movement category must not leak into transfer objective chart", "REACTIVE" in daily.objectiveStimulus)
         assertTrue(summary.badmintonMethodExamples["REACTION"].orEmpty().contains(exercise.name))
         assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
     }
@@ -353,7 +367,7 @@ class PerformanceTrendEngineTest {
 
         val daily = summary.badmintonDailyLoads.single()
         assertTrue(daily.totalRaw > 0.0)
-        assertFalse("generic core/stability must not inflate anti-rotation transfer objective", "ANTI_ROTATION" in daily.methodRaw)
+        assertEquals(0.0, daily.objectiveStimulus.getValue("ANTI_ROTATION"), 0.001)
     }
 
     @Test
@@ -363,7 +377,9 @@ class PerformanceTrendEngineTest {
             name = "Pallof press fixture",
             stableKey = "landmine_anti_rotation"
         )
-        val summary = PerformanceTrendEngine().analyze(
+        val summary = PerformanceTrendEngine(
+            badmintonObjectiveCatalog = objectiveCatalog(exercise.stableKey, BadmintonObjective.ANTI_ROTATION)
+        ).analyze(
             today = today,
             exercises = listOf(exercise),
             entriesWithSets = listOf(record(exercise, today.minusDays(1), listOf(set(reps = 10, confirmed = true)))),
@@ -371,7 +387,7 @@ class PerformanceTrendEngineTest {
         )
 
         val daily = summary.badmintonDailyLoads.single()
-        assertTrue((daily.methodRaw["ANTI_ROTATION"] ?: 0.0) > 0.0)
+        assertTrue(daily.objectiveStimulus.getValue("ANTI_ROTATION") > 0.0)
     }
 
     @Test
@@ -547,6 +563,23 @@ class PerformanceTrendEngineTest {
             analysisEligibility = "FATIGUE|STRENGTH_PROGRESS|HYPERTROPHY_VOLUME|BALANCE",
             metadataConfidence = "HIGH"
         )
+
+    private fun objectiveCatalog(
+        stableKey: String,
+        vararg objectives: BadmintonObjective
+    ): CanonicalBadmintonObjectiveCatalog = CanonicalBadmintonObjectiveCatalog.of(
+        objectives.mapIndexed { index, objective ->
+            CanonicalBadmintonObjectiveRelation(
+                relationId = "fixture_$index",
+                exerciseStableKey = stableKey,
+                objective = objective,
+                transferLevel = BadmintonObjectiveTransferLevel.DIRECT,
+                provenance = "TEST",
+                evidenceRelationKeys = setOf("TEST_$index"),
+                reviewReason = "Test fixture"
+            )
+        }
+    )
 
     private fun badmintonExercise(id: Long = 2, name: String = "Badminton fixture"): Exercise =
         Exercise(
