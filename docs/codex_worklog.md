@@ -5413,5 +5413,10 @@ Verification
 - `:app:assembleDebug`: passed. The resulting `app-debug.apk` is 51,442,871
   bytes (49.06 MiB), SHA-256
   `1a4b965f0c62098d18308b54c8e509b11bced8a3a3e6338f6811d3f9daa942a2`.
+- The first Linux CI run exposed Git LF normalization of the approved source
+  CSV: Windows retained its reviewed BOM/CRLF bytes, while the Linux checkout
+  did not. The file now has a narrow `-text` rule in `.gitattributes`, so every
+  checkout preserves the approved SHA-256 without weakening the byte-identity
+  regression.
 - Main push, annotated release tag, and GitHub Actions status are recorded in
   the final task report after remote verification.
