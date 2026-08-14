@@ -2150,6 +2150,7 @@ internal object GeneratedLocalizationCatalogue {
         "주당 운동일수" to R.string.loc_baseline_ce2c3ada2a16,
         "주동근" to R.string.loc_baseline_b80bc4bc585b,
         "주별 배드민턴 전이 자극량" to R.string.loc_baseline_349a8785d3ce,
+        "주별 코어 훈련 자극" to R.string.loc_baseline_885a79a8e5b5,
         "주별로 표시할 배드민턴 관련 훈련 기록이 없습니다." to R.string.loc_baseline_2f9f6bc89dd7,
         "주요" to R.string.loc_metadata_196db2960cc9,
         "주요 근력 운동" to R.string.loc_metadata_8dde07545928,
@@ -2210,6 +2211,7 @@ internal object GeneratedLocalizationCatalogue {
         "직접 생체역학 비교" to R.string.loc_metadata_5246e5980efd,
         "직접 수행 기록이 아직 없습니다." to R.string.loc_baseline_27fdc64abeea,
         "직접 입력" to R.string.loc_baseline_058fc697ee8c,
+        "직접 자극은 코어 기능 자체가 명시된 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 발생한 코어 요구입니다. 주별 값은 해당 주의 훈련 노출이며, 높은 간접 값은 복합 근력운동이 많아도 발생할 수 있습니다." to R.string.loc_baseline_22e6d9c6fb71,
         "직접 자극은 코어 기능 자체가 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 누적된 코어 요구입니다." to R.string.loc_baseline_b7edad12c9f4,
         "직접 전이" to R.string.loc_baseline_0eb2e12520be,
         "직접 출처" to R.string.loc_metadata_05578f46d8cd,
@@ -2441,11 +2443,11 @@ internal object GeneratedLocalizationCatalogue {
         "탄성 SSC 부하" to R.string.loc_metadata_4ae69f08c706,
         "탄성/점프" to R.string.loc_baseline_bb22e617ea3b,
         "탐색적 VAR 호환 모형" to R.string.loc_baseline_59bb822c98ac,
-        "탐색적 VECM 호환 모형" to R.string.loc_baseline_c78b973f0698,
-        "탐색적 국소 투영 호환 모형" to R.string.loc_baseline_2543382ac70e,
     )
 
     private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
+        "탐색적 VECM 호환 모형" to R.string.loc_baseline_c78b973f0698,
+        "탐색적 국소 투영 호환 모형" to R.string.loc_baseline_2543382ac70e,
         "탐색적 분석을 실행하고 있습니다." to R.string.loc_baseline_1ba9528d7b92,
         "탐색적 시차 모형을 맞추는 중입니다." to R.string.loc_baseline_9006bd407eb0,
         "탐색적 시차 분석" to R.string.loc_baseline_08716c618ee9,
@@ -2844,11 +2846,11 @@ internal object GeneratedLocalizationCatalogue {
         "후면 운동사슬 저부하 제어" to R.string.loc_metadata_9adc18356e0b,
         "후면 운동사슬 제어 보조" to R.string.loc_metadata_343081557f83,
         "후면 운동사슬·척추기립근" to R.string.loc_metadata_80ef435978af,
-        "후면사슬" to R.string.loc_baseline_f1caae60a086,
-        "후면사슬/척추기립근" to R.string.loc_baseline_395d37cf223a,
     )
 
     private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
+        "후면사슬" to R.string.loc_baseline_f1caae60a086,
+        "후면사슬/척추기립근" to R.string.loc_baseline_395d37cf223a,
         "후보 주" to R.string.loc_baseline_9ea562bf0f99,
         "훈련 분산" to R.string.loc_ui_f329a64b0f5e,
         "훈련 분포 요약" to R.string.loc_ui_3fb589e7b256,
@@ -2894,6 +2896,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^(.*?)주\\ (.*?)일\\ strength/transfer\\ 세션의\\ 절반\\ 이상이\\ rehab\\-like\\ activation입니다\\.\$"), R.string.loc_ui_pattern_b13d27c4c98e),
         UiTextPattern(Regex("^(.*?)주의\\ hard\\ day\\ 3일은\\ HIGH/INTENSIFY와\\ 후속\\ 저부하\\ 주\\ 조건을\\ 충족하지\\ 않습니다\\.\$"), R.string.loc_ui_pattern_fc90b4725ffe),
         UiTextPattern(Regex("^3일\\ 평균은\\ (.*?)시간이며\\ 기준선\\ (.*?)시간보다\\ 낮습니다\\.\\ 오늘\\ 강도는\\ 더\\ 보수적으로\\ 해석합니다\\.\$"), R.string.loc_ui_0d073c4bf56e),
+        UiTextPattern(Regex("^최신\\ 주\\ 합계\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\\ ·\\ 해당\\ 주\\ 간접\\ 비중\\ (.*?)%\$"), R.string.loc_ui_pattern_7005a199ef8d),
         UiTextPattern(Regex("^(.*?)주\\ (.*?)일\\ 정상\\ 세션에\\ rehab\\-like\\ activation이\\ (.*?)개\\ 포함되었습니다\\.\$"), R.string.loc_ui_pattern_8c9282b818aa),
         UiTextPattern(Regex("^(.*?)\\-(.*?)주\\ 정상\\ 세션의\\ rehab\\-like\\ activation\\ 비율이\\ 15%를\\ 초과합니다\\.\$"), R.string.loc_ui_pattern_d9a8facc7f13),
         UiTextPattern(Regex("^시차와\\ 반응\\ 기간을\\ 적용한\\ 추정\\ 행은\\ (.*?)개이며\\ 현재\\ 조합에는\\ 최소\\ (.*?)개가\\ 필요합니다\\.\$"), R.string.loc_ui_pattern_3d3eedc5aaa5),
@@ -2945,6 +2948,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^요청\\ horizon:\\ (.*?)주\\ ·\\ 실제\\ horizon:\\ (.*?)주\$"), R.string.loc_ui_pattern_d13e7d93263e),
         UiTextPattern(Regex("^직접\\ (.*?)회\\ ·\\ 프록시\\ (.*?)회\\ ·\\ 관련\\ 운동\\ (.*?)개\$"), R.string.loc_ui_pattern_eeeb2637ed27),
         UiTextPattern(Regex("^최근\\ (.*?)일\\ 동안\\ (.*?)\\ 부하에\\ 많이\\ 기여한\\ 기록입니다\\.\$"), R.string.loc_ui_pattern_735a597c1e37),
+        UiTextPattern(Regex("^최신\\ 주\\ 합계\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\$"), R.string.loc_ui_pattern_fb0b73ee172f),
         UiTextPattern(Regex("^(.*?)\\ movement\\ family가\\ (.*?)개로\\ 제한적입니다\\.\$"), R.string.loc_ui_pattern_5cbe8e392b8a),
         UiTextPattern(Regex("^직접\\ (.*?)\\ ·\\ 프록시\\ (.*?)\\ ·\\ 관련\\ 운동\\ (.*?)\$"), R.string.loc_ui_pattern_97f6e023c006),
         UiTextPattern(Regex("^현재\\ 메타데이터\\ 편집\\ (.*?)개가\\ 백업\\ 상태로\\ 초기화됩니다\\.\$"), R.string.loc_ui_pattern_a853cf96e496),

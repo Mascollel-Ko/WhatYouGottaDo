@@ -272,3 +272,5 @@ ${} 주간 기록이 없어 분석을 시작할 수 없습니다.,Analysis canno
 끝나면 예상 피로도: ${} · ${},Projected fatigue after completion: %1$s · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisCoachUi.kt
 전체 ${} · 직접 ${} · 간접 ${},Total %1$s · Direct %2$s · Indirect %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 전체 ${} · 직접 ${} · 간접 ${} · 간접 비중 ${}%,Total %1$s · Direct %2$s · Indirect %3$s · Indirect share %4$s%%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+최신 주 합계 ${} · 직접 ${} · 간접 ${},Latest week total %1$s · Direct %2$s · Indirect %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+최신 주 합계 ${} · 직접 ${} · 간접 ${} · 해당 주 간접 비중 ${}%,Latest week total %1$s · Direct %2$s · Indirect %3$s · This week's indirect share %4$s%%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt

@@ -162,6 +162,7 @@
     <string name="loc_baseline_226affe55b1f">스매시 속도</string>
     <string name="loc_baseline_228d96ded8be">국소 근육</string>
     <string name="loc_baseline_229dfbc9d893">주간 후면사슬/척추기립근 운동량</string>
+    <string name="loc_baseline_22e6d9c6fb71">직접 자극은 코어 기능 자체가 명시된 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 발생한 코어 요구입니다. 주별 값은 해당 주의 훈련 노출이며, 높은 간접 값은 복합 근력운동이 많아도 발생할 수 있습니다.</string>
     <string name="loc_baseline_23424c514003">평소 수면 h</string>
     <string name="loc_baseline_2349cf714163">체형</string>
     <string name="loc_baseline_2352240c787b">비틀림 부하를 제어</string>
@@ -581,6 +582,7 @@
     <string name="loc_baseline_88205de1e474">저장</string>
     <string name="loc_baseline_882a2a0b3488">시차와 반응 기간을 적용한 추정 행이 최소 조건에 미치지 못했습니다.</string>
     <string name="loc_baseline_883faea70e11">홉/바운드/점프</string>
+    <string name="loc_baseline_885a79a8e5b5">주별 코어 훈련 자극</string>
     <string name="loc_baseline_8876fee2ca1c">배드민턴 지원 목적의 주간 훈련량</string>
     <string name="loc_baseline_89cdcbf08abc">둔근/햄스트링</string>
     <string name="loc_baseline_89f1c21fd1c3">시차 분석 결과</string>
@@ -3008,6 +3010,7 @@
     <string name="loc_ui_pattern_6e600d0dcc03">전이:%1$s</string>
     <string name="loc_ui_pattern_6f539efe2360">RPE 확률 관측 %1$s · 강한 nRM %2$s ·</string>
     <string name="loc_ui_pattern_6fdff2935c5c">오류 유형: %1$s</string>
+    <string name="loc_ui_pattern_7005a199ef8d">최신 주 합계 %1$s · 직접 %2$s · 간접 %3$s · 해당 주 간접 비중 %4$s%%</string>
     <string name="loc_ui_pattern_703601d18a3b">%1$s의 최근 RPE 평균 %2$s, 이전 비슷한 세트 %3$s입니다. 오늘은 같은 무게라도 체감 강도를 확인하며 조절합니다.</string>
     <string name="loc_ui_pattern_70f3e221aad8">기록 백업 실패: %1$s</string>
     <string name="loc_ui_pattern_71155c83ee16">프록시 혁신 %1$s · 실패 %2$s</string>
@@ -3159,6 +3162,7 @@
     <string name="loc_ui_pattern_f41d249343f8">완료 %1$s세트 · 계획 %2$s세트</string>
     <string name="loc_ui_pattern_f71f3ef91e9c">현재 사후분포 중앙값 %1$s</string>
     <string name="loc_ui_pattern_f87e1b17832f">공적분: %1$s (legacy score=%2$s)</string>
+    <string name="loc_ui_pattern_fb0b73ee172f">최신 주 합계 %1$s · 직접 %2$s · 간접 %3$s</string>
     <string name="loc_ui_pattern_fb2e70f3ac43">대상 키 %1$s</string>
     <string name="loc_ui_pattern_fc222f502c81">%1$s 피로도가 높습니다. 주의하세요.</string>
     <string name="loc_ui_pattern_fc90b4725ffe">%1$s주의 hard day 3일은 HIGH/INTENSIFY와 후속 저부하 주 조건을 충족하지 않습니다.</string>

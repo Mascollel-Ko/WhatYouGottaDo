@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.AnalysisMetricRegistry
 import com.training.trackplanner.analysis.lab.MuscleBucketSelection
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
+import com.training.trackplanner.analysis.core.CoreStimulusWeeklySeries
 import com.training.trackplanner.analysis.trends.BarItem
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
@@ -114,20 +115,24 @@ internal fun MuscleLoadShareTrendCard(summary: PerformanceTrendSummary) {
 @Composable
 internal fun CoreStimulusCard(summary: PerformanceTrendSummary) {
     val core = summary.coreStimulus
+    val latestWeek = CoreStimulusWeeklySeries.aggregate(core.daily).lastOrNull()
+    val latestDirect = latestWeek?.direct ?: 0.0
+    val latestIndirect = latestWeek?.indirect ?: 0.0
+    val latestTotal = latestWeek?.total ?: 0.0
+    val latestIndirectShare = latestTotal.takeIf { it > 0.0 }?.let { latestIndirect / it * 100.0 }
     AnalysisSectionChart(
-        title = localizedUiText("누적 코어 훈련 자극"),
+        title = localizedUiText("주별 코어 훈련 자극"),
         spec = coreStimulusChartSpec(core),
-        note = localizedUiText("직접 자극은 코어 기능 자체가 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 누적된 코어 요구입니다."),
+        note = localizedUiText("직접 자극은 코어 기능 자체가 명시된 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 발생한 코어 요구입니다. 주별 값은 해당 주의 훈련 노출이며, 높은 간접 값은 복합 근력운동이 많아도 발생할 수 있습니다."),
         footer = {
-            val share = core.indirectShare?.times(100.0)
             Text(
-                text = if (share == null) {
+                text = if (latestIndirectShare == null) {
                     localizedUiText(
-                        "전체 ${formatAnalysisValue(core.cumulativeTotal)} · 직접 ${formatAnalysisValue(core.cumulativeDirect)} · 간접 ${formatAnalysisValue(core.cumulativeIndirect)}"
+                        "최신 주 합계 ${formatAnalysisValue(latestTotal)} · 직접 ${formatAnalysisValue(latestDirect)} · 간접 ${formatAnalysisValue(latestIndirect)}"
                     )
                 } else {
                     localizedUiText(
-                        "전체 ${formatAnalysisValue(core.cumulativeTotal)} · 직접 ${formatAnalysisValue(core.cumulativeDirect)} · 간접 ${formatAnalysisValue(core.cumulativeIndirect)} · 간접 비중 ${formatAnalysisValue(share)}%"
+                        "최신 주 합계 ${formatAnalysisValue(latestTotal)} · 직접 ${formatAnalysisValue(latestDirect)} · 간접 ${formatAnalysisValue(latestIndirect)} · 해당 주 간접 비중 ${formatAnalysisValue(latestIndirectShare)}%"
                     )
                 },
                 style = MaterialTheme.typography.bodySmall,
@@ -138,32 +143,32 @@ internal fun CoreStimulusCard(summary: PerformanceTrendSummary) {
 }
 
 internal fun coreStimulusChartSpec(core: com.training.trackplanner.analysis.core.CoreStimulusSummary): ChartSpec {
-    val points = core.cumulative
+    val points = CoreStimulusWeeklySeries.aggregate(core.daily)
     return ChartSpec(
         type = ChartType.STACKED_AREA,
-        title = "누적 코어 훈련 자극",
+        title = "주별 코어 훈련 자극",
         stackedAreaLayers = listOf(
             StackedAreaLayer(
                 label = "간접 코어 자극",
-                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeIndirect) },
+                points = points.map { point -> TrendDataPoint(point.weekStart, point.indirect) },
                 seriesKey = "CORE_INDIRECT"
             ),
             StackedAreaLayer(
                 label = "직접 코어 자극",
-                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeDirect) },
+                points = points.map { point -> TrendDataPoint(point.weekStart, point.direct) },
                 seriesKey = "CORE_DIRECT"
             )
         ),
         lineSeries = listOf(
             ChartSeries(
                 label = "전체 코어 자극",
-                points = points.map { point -> TrendDataPoint(point.date, point.cumulativeTotal) },
+                points = points.map { point -> TrendDataPoint(point.weekStart, point.total) },
                 seriesKey = "CORE_TOTAL"
             )
         ),
         yMin = 0.0,
-        timeGranularity = ChartTimeGranularity.DAILY,
-        xDomain = points.map { it.date },
+        timeGranularity = ChartTimeGranularity.WEEKLY,
+        xDomain = points.map { it.weekStart },
         valueUnit = "세트 자극 단위"
     )
 }

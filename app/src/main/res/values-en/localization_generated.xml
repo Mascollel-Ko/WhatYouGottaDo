@@ -162,6 +162,7 @@
     <string name="loc_baseline_226affe55b1f">smash speed</string>
     <string name="loc_baseline_228d96ded8be">local muscle</string>
     <string name="loc_baseline_229dfbc9d893">Weekly posterior chain/erector spinae exercise volume</string>
+    <string name="loc_baseline_22e6d9c6fb71">Direct stimulus comes from sets where core function itself is an explicit training target; indirect stimulus is core demand that occurs during exercises with another purpose. Weekly values are that week\'s training exposure, and high indirect values can also result from many compound strength exercises.</string>
     <string name="loc_baseline_23424c514003">usual sleep h</string>
     <string name="loc_baseline_2349cf714163">form</string>
     <string name="loc_baseline_2352240c787b">Control torsional load</string>
@@ -581,6 +582,7 @@
     <string name="loc_baseline_88205de1e474">save</string>
     <string name="loc_baseline_882a2a0b3488">The estimation rows remaining after lag and horizon requirements are below the minimum.</string>
     <string name="loc_baseline_883faea70e11">Hop/Bound/Jump</string>
+    <string name="loc_baseline_885a79a8e5b5">Weekly core training stimulus</string>
     <string name="loc_baseline_8876fee2ca1c">Weekly training volume for badminton support purposes</string>
     <string name="loc_baseline_89cdcbf08abc">Glute/Hamstrings</string>
     <string name="loc_baseline_89f1c21fd1c3">Lag analysis results</string>
@@ -3008,6 +3010,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_6e600d0dcc03">Transition:%1$s</string>
     <string name="loc_ui_pattern_6f539efe2360">RPE likelihood observations %1$s · strong nRM %2$s ·</string>
     <string name="loc_ui_pattern_6fdff2935c5c">Error Type: %1$s</string>
+    <string name="loc_ui_pattern_7005a199ef8d">Latest week total %1$s · Direct %2$s · Indirect %3$s · This week\'s indirect share %4$s%%%%</string>
     <string name="loc_ui_pattern_703601d18a3b">The recent RPE average of %1$s is %2$s, the previous similar set is %3$s. Today, even if the weight is the same, I check the perceived strength and adjust it.</string>
     <string name="loc_ui_pattern_70f3e221aad8">Record backup failed: %1$s</string>
     <string name="loc_ui_pattern_71155c83ee16">Proxy Innovation %1$s · Failure %2$s</string>
@@ -3159,6 +3162,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_f41d249343f8">Completed %1$s set · Planned %2$s set</string>
     <string name="loc_ui_pattern_f71f3ef91e9c">Current posterior median %1$s</string>
     <string name="loc_ui_pattern_f87e1b17832f">Cointegration: %1$s (legacy score=%2$s)</string>
+    <string name="loc_ui_pattern_fb0b73ee172f">Latest week total %1$s · Direct %2$s · Indirect %3$s</string>
     <string name="loc_ui_pattern_fb2e70f3ac43">Target key %1$s</string>
     <string name="loc_ui_pattern_fc222f502c81">%1$s Fatigue is high. Be careful.</string>
     <string name="loc_ui_pattern_fc90b4725ffe">Three hard days in week %1$s do not meet the HIGH/INTENSIFY and subsequent low load week conditions.</string>
