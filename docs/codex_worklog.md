@@ -5520,3 +5520,35 @@ Verification
   not scientifically revalidated, in this focused release.
 - Full unit, Android-test compilation, assemble, release validator, main push,
   tag push, and CI results are recorded after final verification.
+
+#### `95fdf20` - align objective authority relation count
+
+- The first full unit run executed 1,288 tests and found one stale contract
+  expectation in `CanonicalExerciseMetadataRepositoryTest`: it still expected
+  278 objective relations after the two reviewed Pallof rows raised the
+  deterministic authority to 280.
+- Updated only the test expectation. No production code or calculation changed.
+- The focused repository contract test passed after the correction.
+
+### Final local validation
+
+- `:app:testDebugUnitTest`: passed 1,288 tests with 0 failures, 0 errors, and 0
+  skipped tests.
+- `:app:compileDebugKotlin`: passed.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed. The resulting `app-debug.apk` is 51,445,703
+  bytes, SHA-256
+  `A32867A78AC2B11E7842A20973691787698A13850D449D51161999C9DEC7B0DE`.
+- Localization authority generation/check passed; its Python suite passed 8
+  tests. Metadata authority generation/check and deterministic canonical export
+  passed; its Python suite passed 9 tests.
+- Protocol validation passed for 8 families and 34 protocols.
+- Version prepared as `0.5.0.34 / 500034`.
+- Main push, annotated `v0.5.0.34` tag push, and GitHub Actions verification are
+  pending the final release commit.
+
+### Remaining review debt
+
+- Copenhagen plank (`ex_a8385c4a`) retains inherited DECELERATION/FOOTWORK
+  SUPPORTIVE relations. This focused release neither added ANTI_ROTATION nor
+  LUNGE_REACH and did not claim a new semantic review of those inherited rows.
