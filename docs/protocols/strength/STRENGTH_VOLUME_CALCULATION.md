@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33 |
-| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34 |
+| Last audited commit | 6498ab7 |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -28,9 +28,20 @@ estimates.
 
 Generic sport-practice records are excluded by structured `activityKind`.
 Historical compatible stableKeys are replayed from raw confirmed records
-without rewriting identity. The UI cumulatively stacks INDIRECT on the bottom
-and DIRECT on top; the upper boundary is TOTAL, and no-training dates carry the
-previous cumulative value forward.
+without rewriting identity.
+
+## v0.5.0.34 weekly core presentation
+
+The main strength-analysis core graph projects authoritative daily
+`DailyCoreStimulus` rows into canonical Monday-Sunday weeks. Each week sums
+DIRECT and INDIRECT independently, TOTAL is their exact sum, and missing weeks
+are zero rather than carry-forward. The graph remains a true stacked area with
+INDIRECT below DIRECT and TOTAL as the upper boundary. The footer describes the
+latest displayed week rather than lifetime cumulative values.
+
+This is a presentation projection only. CoreStimulus V1 arithmetic and version,
+its class/RPE coefficients, raw-record replay, and cumulative compatibility
+fields remain unchanged.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
@@ -110,6 +121,8 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
@@ -121,10 +134,13 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt)
 - [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt`](../../../app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt)
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv`](../../../app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv)
+- [`app/src/main/assets/metadata/canonical_v1/core_relations.csv`](../../../app/src/main/assets/metadata/canonical_v1/core_relations.csv)
 
 ## 19. 관련 문서
 

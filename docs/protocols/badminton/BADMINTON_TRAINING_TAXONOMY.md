@@ -3,12 +3,20 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33 |
-| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33; reviewed Pallof anti-rotation authority from v0.5.0.34 |
+| Last audited commit | 6498ab7 |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
+
+## v0.5.0.34 reviewed objective decisions
+
+Reviewed badminton objective decisions are independent authority inputs, not
+derivations from core metadata. The two Pallof variants add explicit
+`ANTI_ROTATION / SUPPORTIVE` relations while retaining their inherited
+`DECELERATION / SUPPORTIVE` and `FOOTWORK / SUPPORTIVE` relations. Copenhagen
+plank receives no anti-rotation or lunge/reach relation in this release.
 
 ## v0.5.0.33 canonical objective set
 

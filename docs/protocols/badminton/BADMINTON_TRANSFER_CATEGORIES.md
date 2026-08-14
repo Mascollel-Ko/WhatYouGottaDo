@@ -3,12 +3,33 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 2.0.0 |
+| Protocol version | 2.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33 |
-| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33; all-nine presentation and reviewed Pallof authority from v0.5.0.34 |
+| Last audited commit | 6498ab7 |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
+
+## v0.5.0.34 objective presentation and reviewed Pallof decision
+
+The default badminton analysis selection is the complete canonical nine-objective
+list in enum order. A manually chosen subset remains supported. Both recent
+7-day versus overlapping 28-day-normalized comparison and weekly charts retain
+selected zero-valued objectives as semantic legend and accessibility entries;
+zero remains numerically zero. The 7-day and 28-day windows, normalization,
+coefficients, and overlapping multi-objective accounting are unchanged.
+
+`band_pallof_press` and `cable_pallof_press` now have explicit
+`ANTI_ROTATION / SUPPORTIVE` product-owner decisions from
+`badminton_objective_review_decisions_2026-08-14.csv`. Their generated rows use
+`USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14`, a nonblank review reason, and
+no fabricated legacy evidence key. Existing inherited `DECELERATION` and
+`FOOTWORK` relations remain and were not revalidated in this focused decision.
+
+`ex_a8385c4a` (Copenhagen plank) retains its inherited `DECELERATION` and
+`FOOTWORK` supportive relations and gains neither `ANTI_ROTATION` nor
+`LUNGE_REACH`. Those inherited Copenhagen mappings remain a separate semantic
+review debt.
 
 ## v0.5.0.33 explicit objective stimulus cutover
 
@@ -121,9 +142,9 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferScoreCalculator.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt)
@@ -132,6 +153,10 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/BadmintonObjectiveSelectionStateTest.kt`](../../../app/src/test/java/com/training/trackplanner/BadmintonObjectiveSelectionStateTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
 - [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt)
@@ -139,7 +164,10 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 ## 18. 권위 자산
 
-- [`app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv`](../../../app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv)
+- [`app/src/main/assets/metadata/canonical_v1/badminton_objective_relations.csv`](../../../app/src/main/assets/metadata/canonical_v1/badminton_objective_relations.csv)
+- [`docs/metadata_authority/badminton_objective_review_decisions_2026-08-14.csv`](../../metadata_authority/badminton_objective_review_decisions_2026-08-14.csv)
+- [`docs/audits/core_badminton_rotation_objective_audit.csv`](../../audits/core_badminton_rotation_objective_audit.csv)
+- [`tools/metadata_authority/analysis_cutover_authority.py`](../../../tools/metadata_authority/analysis_cutover_authority.py)
 
 ## 19. 관련 문서
 
