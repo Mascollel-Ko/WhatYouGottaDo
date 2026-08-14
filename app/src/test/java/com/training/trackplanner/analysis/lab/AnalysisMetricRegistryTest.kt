@@ -38,6 +38,10 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.DEADLIFT_E1RM,
         TrendMetricId.STRENGTH_DELTA_NEXT,
         TrendMetricId.FATIGUE_DELTA_NEXT
+    ) + setOf(
+        TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY,
+        TrendMetricId.CORE_DIRECT_STIMULUS_WEEKLY,
+        TrendMetricId.CORE_INDIRECT_STIMULUS_WEEKLY
     ) + StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().flatMap { bucket ->
         listOf(bucket.dailyMetric, bucket.threeDayMetric, bucket.sevenDayMetric)
     }.toSet()
@@ -119,6 +123,20 @@ class AnalysisMetricRegistryTest {
     }
 
     @Test
+    fun coreStimulusMetricsAreNeutralInputsAndControlsNotOutcomes() {
+        val series = mapOf(
+            TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY to weeklyValues(8) { it.toDouble() + 1.0 }
+        )
+
+        val descriptor = AnalysisMetricRegistry.descriptor(TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY)
+        assertEquals(AnalysisMetricCategory.CORE_STIMULUS, descriptor?.category)
+        assertEquals(null, descriptor?.higherIsBetter)
+        assertTrue(TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY in AnalysisMetricRegistry.timeSeriesXMetrics(series).map { it.id })
+        assertTrue(TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY in AnalysisMetricRegistry.timeSeriesControlMetrics(series).map { it.id })
+        assertTrue(TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY !in AnalysisMetricRegistry.timeSeriesYMetrics(series).map { it.id })
+    }
+
+    @Test
     fun smashSpeedMetricsAreHigherIsBetterAndUseSpeedUnits() {
         assertEquals(true, AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.higherIsBetter)
         assertEquals("km/h", AnalysisMetricRegistry.descriptor(TrendMetricId.SMASH_SPEED_TOP3_AVG)?.unit)
@@ -136,6 +154,7 @@ class AnalysisMetricRegistryTest {
         assertEquals("회복/컨디션", AnalysisMetricCategory.RECOVERY.displayLabelKo())
         assertEquals("전체 운동량", AnalysisMetricCategory.VOLUME.displayLabelKo())
         assertEquals("근육군별 운동량", AnalysisMetricCategory.MUSCLE_LOAD.displayLabelKo())
+        assertEquals("코어 자극", AnalysisMetricCategory.CORE_STIMULUS.displayLabelKo())
         assertEquals("스매시 속도", AnalysisMetricCategory.SMASH_SPEED.displayLabelKo())
         assertEquals("파생 지표", AnalysisMetricCategory.DERIVED.displayLabelKo())
     }

@@ -11,7 +11,6 @@ object MuscleBucketSelection {
         QuickGroup("가슴", setOf(MuscleBucket.CHEST)),
         QuickGroup("어깨", setOf(MuscleBucket.SHOULDERS)),
         QuickGroup("팔", setOf(MuscleBucket.BICEPS, MuscleBucket.TRICEPS, MuscleBucket.FOREARM_GRIP)),
-        QuickGroup("복근/코어", setOf(MuscleBucket.ANTERIOR_CORE, MuscleBucket.LATERAL_CORE, MuscleBucket.ROTATION_CORE)),
         QuickGroup("등", setOf(MuscleBucket.BACK_LATS)),
         QuickGroup("하체", setOf(MuscleBucket.QUADS, MuscleBucket.HAMSTRINGS, MuscleBucket.GLUTES, MuscleBucket.ADDUCTOR_ABDUCTOR)),
         QuickGroup("둔근/햄스트링", setOf(MuscleBucket.GLUTES, MuscleBucket.HAMSTRINGS, MuscleBucket.POSTERIOR_CHAIN_ERECTORS)),

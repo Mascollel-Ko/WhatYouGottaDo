@@ -2,6 +2,7 @@ package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.lab.CheckInMetricSeriesBuilder
+import com.training.trackplanner.analysis.lab.CoreStimulusMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.SmashSpeedMetricSeriesBuilder
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
@@ -61,6 +62,7 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             dailyMetrics = dailyMetrics
         )
+        val coreStimulusSeries = CoreStimulusMetricSeriesBuilder.build(base.coreStimulus)
         val initialProfile = initialUserProfileDao.profile()
         val currentBodyWeightKg = dailyMetrics.asReversed().firstNotNullOfOrNull(DailyMetric::bodyWeightKg)
             ?: initialProfile?.bodyWeightKg
@@ -146,7 +148,7 @@ internal class PerformanceTrendSummaryService(
         val persistentStrengthMetricSeries = persistentStrengthPosteriorMetricSeries(persistentStrengthSummary)
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries +
-                strengthAndMuscleSeries + persistentStrengthMetricSeries,
+                strengthAndMuscleSeries + coreStimulusSeries + persistentStrengthMetricSeries,
             proxyPerformanceSummary = null,
             persistentStrengthPerformanceSummary = persistentStrengthSummary
         )

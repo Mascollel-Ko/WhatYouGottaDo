@@ -4,6 +4,7 @@ import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuild
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MuscleLoadInputBuilderTest {
@@ -24,5 +25,47 @@ class MuscleLoadInputBuilderTest {
 
         assertEquals(1.0, loads[MuscleBucket.QUADS] ?: 0.0, 0.001)
         assertEquals(0.5, loads[MuscleBucket.GLUTES] ?: 0.0, 0.001)
+    }
+
+    @Test
+    fun exerciseNamesCannotCreateFunctionalCoreMuscleBuckets() {
+        listOf("Pallof press", "Russian twist").forEachIndexed { index, name ->
+            val exercise = Exercise(
+                name = name,
+                category = "Strength",
+                stableKey = "name_only_$index"
+            )
+            val loads = MuscleLoadInputBuilder.contributions(
+                exercise,
+                WorkoutEntry(
+                    date = "2026-06-10",
+                    exerciseStableKey = exercise.stableKey,
+                    exerciseName = exercise.name,
+                    category = exercise.category
+                )
+            )
+
+            assertTrue(loads.isEmpty())
+        }
+    }
+
+    @Test
+    fun overheadPressFallbackKeepsOnlyAnatomicalShoulderAndTricepsLoads() {
+        val exercise = Exercise(
+            name = "Overhead press",
+            category = "Strength",
+            stableKey = "name_only_overhead_press"
+        )
+        val loads = MuscleLoadInputBuilder.contributions(
+            exercise,
+            WorkoutEntry(
+                date = "2026-06-10",
+                exerciseStableKey = exercise.stableKey,
+                exerciseName = exercise.name,
+                category = exercise.category
+            )
+        )
+
+        assertEquals(setOf(MuscleBucket.SHOULDERS, MuscleBucket.TRICEPS), loads.keys)
     }
 }

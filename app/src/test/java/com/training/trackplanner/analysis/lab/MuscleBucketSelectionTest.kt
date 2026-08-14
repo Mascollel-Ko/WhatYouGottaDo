@@ -29,11 +29,11 @@ class MuscleBucketSelectionTest {
 
     @Test
     fun filterMatchesKoreanLabelAndInternalKey() {
-        val buckets = listOf(MuscleBucket.CHEST, MuscleBucket.BACK_LATS, MuscleBucket.ROTATION_CORE)
+        val buckets = listOf(MuscleBucket.CHEST, MuscleBucket.BACK_LATS, MuscleBucket.SHOULDERS)
 
         assertEquals(listOf(MuscleBucket.CHEST), MuscleBucketSelection.filter(buckets, "가슴"))
         assertEquals(listOf(MuscleBucket.BACK_LATS), MuscleBucketSelection.filter(buckets, "BACK"))
-        assertEquals(listOf(MuscleBucket.ROTATION_CORE), MuscleBucketSelection.filter(buckets, "rotation"))
+        assertEquals(listOf(MuscleBucket.SHOULDERS), MuscleBucketSelection.filter(buckets, "shoulder"))
     }
 
     @Test

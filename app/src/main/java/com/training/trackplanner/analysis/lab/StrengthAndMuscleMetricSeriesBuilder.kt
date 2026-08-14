@@ -90,16 +90,12 @@ object StrengthAndMuscleMetricSeriesBuilder {
         )
         return when (policy) {
             DurationHoldPolicy.PLANK -> mapOf(
-                MuscleBucket.ANTERIOR_CORE to 0.65,
                 MuscleBucket.GLUTES to 0.15,
-                MuscleBucket.SHOULDERS to 0.10,
-                MuscleBucket.ROTATION_CORE to 0.10
+                MuscleBucket.SHOULDERS to 0.10
             )
             DurationHoldPolicy.SIDE_PLANK -> mapOf(
-                MuscleBucket.LATERAL_CORE to 0.55,
                 MuscleBucket.ADDUCTOR_ABDUCTOR to 0.25,
-                MuscleBucket.SHOULDERS to 0.10,
-                MuscleBucket.ANTERIOR_CORE to 0.10
+                MuscleBucket.SHOULDERS to 0.10
             )
             null -> null
         }
@@ -156,9 +152,6 @@ object StrengthAndMuscleMetricSeriesBuilder {
         SHOULDERS("어깨", TrendMetricId.MUSCLE_SHOULDERS_LOAD_DAILY, TrendMetricId.MUSCLE_SHOULDERS_LOAD_3D, TrendMetricId.MUSCLE_SHOULDERS_LOAD_7D),
         BICEPS("이두", TrendMetricId.MUSCLE_BICEPS_LOAD_DAILY, TrendMetricId.MUSCLE_BICEPS_LOAD_3D, TrendMetricId.MUSCLE_BICEPS_LOAD_7D),
         TRICEPS("삼두", TrendMetricId.MUSCLE_TRICEPS_LOAD_DAILY, TrendMetricId.MUSCLE_TRICEPS_LOAD_3D, TrendMetricId.MUSCLE_TRICEPS_LOAD_7D),
-        FOREARM_GRIP("전완/그립", TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_DAILY, TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_3D, TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_7D),
-        ANTERIOR_CORE("복근/전면코어", TrendMetricId.MUSCLE_ANTERIOR_CORE_LOAD_DAILY, TrendMetricId.MUSCLE_ANTERIOR_CORE_LOAD_3D, TrendMetricId.MUSCLE_ANTERIOR_CORE_LOAD_7D),
-        LATERAL_CORE("측면코어", TrendMetricId.MUSCLE_LATERAL_CORE_LOAD_DAILY, TrendMetricId.MUSCLE_LATERAL_CORE_LOAD_3D, TrendMetricId.MUSCLE_LATERAL_CORE_LOAD_7D),
-        ROTATION_CORE("항회전/회전코어", TrendMetricId.MUSCLE_ROTATION_CORE_LOAD_DAILY, TrendMetricId.MUSCLE_ROTATION_CORE_LOAD_3D, TrendMetricId.MUSCLE_ROTATION_CORE_LOAD_7D)
+        FOREARM_GRIP("전완/그립", TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_DAILY, TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_3D, TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_7D)
     }
 }

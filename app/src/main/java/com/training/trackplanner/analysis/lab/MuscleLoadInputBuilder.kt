@@ -78,9 +78,6 @@ internal object MuscleLoadInputBuilder {
         "BICEPS" -> MuscleBucket.BICEPS
         "TRICEPS" -> MuscleBucket.TRICEPS
         "FOREARM", "GRIP" -> MuscleBucket.FOREARM_GRIP
-        "CORE", "DEEP_CORE" -> MuscleBucket.ANTERIOR_CORE
-        "OBLIQUE" -> MuscleBucket.LATERAL_CORE
-        "ROTATION_CORE" -> MuscleBucket.ROTATION_CORE
         else -> null
     }
 
@@ -132,18 +129,8 @@ internal object MuscleLoadInputBuilder {
             ("overhead" in text || "shoulder_press" in text || "숄더" in text) && "press" in text ||
                 "오버헤드프레스" in text -> mapOf(
                     MuscleBucket.SHOULDERS to 1.0,
-                    MuscleBucket.TRICEPS to 0.5,
-                    MuscleBucket.ANTERIOR_CORE to 0.25
+                    MuscleBucket.TRICEPS to 0.5
                 )
-            "pallof" in text || "팔로프" in text || "anti_rotation" in text -> mapOf(
-                MuscleBucket.ROTATION_CORE to 1.0,
-                MuscleBucket.LATERAL_CORE to 0.5
-            )
-            "russian" in text || "트위스트" in text || "rotation_core" in text -> mapOf(
-                MuscleBucket.ROTATION_CORE to 1.0,
-                MuscleBucket.ANTERIOR_CORE to 0.5,
-                MuscleBucket.LATERAL_CORE to 0.5
-            )
             else -> emptyMap()
         }
     }

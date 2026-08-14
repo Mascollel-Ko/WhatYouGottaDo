@@ -5633,7 +5633,7 @@ cleanup.
 
 ### Phase A - legacy badminton runtime removal
 
-Commit: pending
+Commit: `e2fb51f`
 
 - Removed the production seven-axis analysis engine, score calculator,
   metadata mapper, conserved-share models, chart builder, recommendation
@@ -5665,3 +5665,36 @@ Validation:
 - The only remaining production `ROTATION_CONTROL` literals are in the
   ProgramBuilder string classifiers scheduled for the separate Phase C exact
   stable-key authority change; they are not current badminton analysis.
+
+### Phase B - legacy pseudo-core metric retirement
+
+Commit: pending
+
+- Removed the anterior-core, lateral-core, and rotation-core daily/3-day/7-day
+  metric IDs and their `MuscleBucket` values from the active Lab and muscle-load
+  runtime.
+- Removed pseudo-core inference from canonical muscle tokens and exercise-name
+  fallbacks, including Pallof, Russian-twist, and overhead-press guesses.
+  Legitimate anatomical muscle contributions remain unchanged.
+- Added neutral weekly CoreStimulus V1 Lab metrics for total, direct, and
+  indirect stimulus. `CoreStimulusMetricSeriesBuilder` delegates to
+  `CoreStimulusWeeklySeries.aggregate`, so the Lab and Strength UI use the same
+  dates and values.
+- Registered the new metrics as X variables and controls, not Y outcomes, with
+  no higher-is-better direction.
+- Added a test-only `LegacyMuscleLoadContractOracle` for the frozen v1 analysis
+  contract CSV. The historical pseudo-core rows remain provenance; no retired
+  pseudo-core authority was restored to production.
+
+Validation:
+
+- Focused CoreStimulus, Lab registry, muscle-series, input-builder, selection,
+  backup/restore, and frozen-contract tests: passed.
+- The first full unit run exposed only the expected frozen-contract parity
+  mismatch after production pseudo-core removal. Test-only historical parity
+  was isolated and the production implementation was left unchanged.
+- Final `:app:testDebugUnitTest`: passed 1,263 tests with 0 failures.
+- Production/test references to the nine retired `MUSCLE_*_CORE_LOAD_*` IDs:
+  zero.
+- Production/test references to the three retired `MuscleBucket` enum values:
+  zero.

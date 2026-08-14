@@ -11,6 +11,7 @@ enum class AnalysisMetricCategory {
     RECOVERY,
     VOLUME,
     MUSCLE_LOAD,
+    CORE_STIMULUS,
     SMASH_SPEED,
     DERIVED
 }
@@ -24,6 +25,7 @@ fun AnalysisMetricCategory.displayLabelKo(): String = when (this) {
     AnalysisMetricCategory.RECOVERY -> "회복/컨디션"
     AnalysisMetricCategory.VOLUME -> "전체 운동량"
     AnalysisMetricCategory.MUSCLE_LOAD -> "근육군별 운동량"
+    AnalysisMetricCategory.CORE_STIMULUS -> "코어 자극"
     AnalysisMetricCategory.SMASH_SPEED -> "스매시 속도"
     AnalysisMetricCategory.DERIVED -> "파생 지표"
 }

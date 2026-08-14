@@ -438,13 +438,7 @@ private fun muscleShareTrendSpec(summary: PerformanceTrendSummary, selectedMetri
 }
 
 private fun nonCoreMuscleBuckets(): List<StrengthAndMuscleMetricSeriesBuilder.MuscleBucket> =
-    StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().filterNot { bucket ->
-        bucket in setOf(
-            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.ANTERIOR_CORE,
-            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.LATERAL_CORE,
-            StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.ROTATION_CORE
-        )
-    }
+    StrengthAndMuscleMetricSeriesBuilder.MuscleBucket.values().toList()
 
 private fun latestRepRangeShare(weeks: List<RepRangeWeekShare>): List<BarItem> {
     val latest = weeks.lastOrNull { week -> week.confirmedSetCount > 0 } ?: return emptyList()

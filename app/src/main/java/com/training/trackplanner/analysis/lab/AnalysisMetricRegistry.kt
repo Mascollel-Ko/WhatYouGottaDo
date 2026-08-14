@@ -34,7 +34,7 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.DEADLIFT_E1RM, "데드리프트 posterior 중앙값", "해당 주 마지막 저장 시점의 데드리프트 수행능력 사후분포 중앙값", AnalysisMetricCategory.PERFORMANCE, true, "kg"),
         metric(TrendMetricId.STRENGTH_DELTA_NEXT, "다음 근력 변화", "다음 주 근력 지수의 변화량", AnalysisMetricCategory.DERIVED, null),
         metric(TrendMetricId.FATIGUE_DELTA_NEXT, "다음 피로 변화", "다음 주 피로 지수의 변화량", AnalysisMetricCategory.DERIVED, null)
-    ) + muscleLoadMetrics()
+    ) + coreStimulusMetrics() + muscleLoadMetrics()
 
     fun descriptor(id: TrendMetricId): AnalysisMetricDescriptor? =
         descriptors.firstOrNull { descriptor -> descriptor.id == id }
@@ -53,6 +53,7 @@ object AnalysisMetricRegistry {
                 AnalysisMetricCategory.TRANSFER,
                 AnalysisMetricCategory.VOLUME,
                 AnalysisMetricCategory.MUSCLE_LOAD,
+                AnalysisMetricCategory.CORE_STIMULUS,
                 AnalysisMetricCategory.FATIGUE,
                 AnalysisMetricCategory.RECOVERY,
                 AnalysisMetricCategory.STRENGTH
@@ -77,7 +78,8 @@ object AnalysisMetricRegistry {
                 AnalysisMetricCategory.VOLUME,
                 AnalysisMetricCategory.BADMINTON,
                 AnalysisMetricCategory.FATIGUE,
-                AnalysisMetricCategory.MUSCLE_LOAD
+                AnalysisMetricCategory.MUSCLE_LOAD,
+                AnalysisMetricCategory.CORE_STIMULUS
             )
         }
 
@@ -142,4 +144,31 @@ object AnalysisMetricRegistry {
                 )
             )
         }
+
+    private fun coreStimulusMetrics(): List<AnalysisMetricDescriptor> = listOf(
+        metric(
+            TrendMetricId.CORE_TOTAL_STIMULUS_WEEKLY,
+            "주간 코어 총 자극",
+            "CoreStimulus V1의 주간 직접 및 간접 자극 합계",
+            AnalysisMetricCategory.CORE_STIMULUS,
+            null,
+            "자극"
+        ),
+        metric(
+            TrendMetricId.CORE_DIRECT_STIMULUS_WEEKLY,
+            "주간 코어 직접 자극",
+            "CoreStimulus V1의 주간 직접 코어 자극",
+            AnalysisMetricCategory.CORE_STIMULUS,
+            null,
+            "자극"
+        ),
+        metric(
+            TrendMetricId.CORE_INDIRECT_STIMULUS_WEEKLY,
+            "주간 코어 간접 자극",
+            "CoreStimulus V1의 주간 간접 코어 자극",
+            AnalysisMetricCategory.CORE_STIMULUS,
+            null,
+            "자극"
+        )
+    )
 }

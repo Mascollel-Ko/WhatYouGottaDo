@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
-import com.training.trackplanner.analysis.lab.MuscleLoadInputBuilder
 import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.MetadataTokenField
@@ -249,7 +248,7 @@ class AnalysisContractBaselineTest {
             initialProfile = null
         )
         val contribution = fatigue.recordContributions.single()
-        val muscle = MuscleLoadInputBuilder.contributions(exercise, entry, metadata)
+        val muscle = LegacyMuscleLoadContractOracle.contributions(exercise, entry, metadata)
         val badmintonType = LegacyBadmintonContractOracle.transferType(features)
         val badmintonAxes = LegacyBadmintonContractOracle.axes(features)
         val badmintonFatigue = LegacyBadmintonContractOracle.fatigueCost(features)
@@ -365,10 +364,10 @@ class AnalysisContractBaselineTest {
         metadata.redundancyGroup.takeIf { it.isContractValue() }?.let { add("VARIANT_GROUP", it) }
         metadata.strengthProgressionGroup.takeIf { it.isContractValue() }?.let { add("PROGRESSION_GROUP", it) }
 
-        muscle.toSortedMap(compareBy(Enum<*>::name)).forEach { (bucket, coefficient) ->
+        muscle.toSortedMap().forEach { (bucket, coefficient) ->
             add(
                 "MUSCLE",
-                bucket.name,
+                bucket,
                 role = when {
                     coefficient >= 0.75 -> MuscleContributionRole.PRIMARY
                     coefficient >= 0.5 -> MuscleContributionRole.SECONDARY

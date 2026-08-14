@@ -119,14 +119,13 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
     }
 
     @Test
-    fun sidePlankDurationLoadContributesToLateralCoreAndHipStability() {
+    fun sidePlankDurationLoadPreservesAnatomicalHipAndShoulderContributions() {
         val sidePlank = exercise(1, "side plank", "side_plank")
         val series = build(
             listOf(record("2026-06-10", sidePlank, set(1, 0.0, 0, seconds = 30, rpe = 8.0))),
             listOf(sidePlank)
         )
 
-        assertEquals(18.975, series.value(TrendMetricId.MUSCLE_LATERAL_CORE_LOAD_DAILY, "2026-06-08"), 0.001)
         assertEquals(8.625, series.value(TrendMetricId.MUSCLE_ADDUCTOR_ABDUCTOR_LOAD_DAILY, "2026-06-08"), 0.001)
         assertEquals(3.45, series.value(TrendMetricId.MUSCLE_SHOULDERS_LOAD_DAILY, "2026-06-08"), 0.001)
     }
