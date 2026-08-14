@@ -50,6 +50,7 @@ import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.localization.localizedUiText
+import java.time.LocalDate
 
 @Composable
 internal fun FatigueAndConditionAnalysisContent(
@@ -109,18 +110,12 @@ internal fun BadmintonTransferAnalysisContent(
     badmintonTransfer: BadmintonTransferSummary?,
     performanceTrend: PerformanceTrendSummary?
 ) {
-    val methodTotals = performanceTrend
-        ?.let { BadmintonTrainingMethodSeries.totals(it.badmintonDailyLoads) }
-        .orEmpty()
     val availableMethodKeys = BadmintonTrainingMethodSeries.objectiveKeys
-    val defaultMethodKeys = defaultBadmintonMethodKeys(methodTotals, availableMethodKeys)
-    var selectedMethodKeysText by rememberSaveable(availableMethodKeys.joinToString("|")) {
-        mutableStateOf(defaultMethodKeys.joinToString("|"))
+    val defaultMethodKeys = defaultBadmintonMethodKeys(availableMethodKeys)
+    var selectedMethodKeysText by rememberSaveable {
+        mutableStateOf(encodeBadmintonMethodSelection(defaultMethodKeys))
     }
-    val selectedMethodKeys = selectedMethodKeysText
-        .split("|")
-        .filter { it in availableMethodKeys }
-        .ifEmpty { defaultMethodKeys }
+    val selectedMethodKeys = decodeBadmintonMethodSelection(selectedMethodKeysText, availableMethodKeys)
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         performanceTrend?.let { BadmintonTransferObjectiveSentenceCard(it, selectedMethodKeys.toSet()) }
             ?: InfoCard("배드민턴 전이 목적별 자극량을 계산하고 있습니다.")
@@ -129,7 +124,9 @@ internal fun BadmintonTransferAnalysisContent(
                 summary = it,
                 availableMethodKeys = availableMethodKeys,
                 selectedMethodKeys = selectedMethodKeys,
-                onSelectedMethodKeysChange = { keys -> selectedMethodKeysText = keys.joinToString("|") }
+                onSelectedMethodKeysChange = { keys ->
+                    selectedMethodKeysText = encodeBadmintonMethodSelection(keys)
+                }
             )
         }
             ?: InfoCard("배드민턴 훈련량 추세를 계산하고 있습니다.")
@@ -270,10 +267,9 @@ private fun BadmintonTrainingLoadCharts(
         if (comparisonGroups.isNotEmpty()) {
             AnalysisSectionChart(
                 title = "최근 7일 vs 28일 전이 목적 비교",
-                spec = ChartSpec(
-                    type = ChartType.STACKED_BAR,
+                spec = badmintonObjectiveStackedChartSpec(
                     title = "최근 7일 vs 28일 전이 목적 비교",
-                    stackedBars = comparisonGroups
+                    groups = comparisonGroups
                 ),
                 note = "라켓 보조 같은 구 전이축이 아니라 풋워크, 가속, 감속, 리액션 등 전이 목적 기준으로 비교합니다."
             )
@@ -305,10 +301,9 @@ private fun BadmintonTrainingLoadCharts(
             }
             AnalysisSectionChart(
                 title = "주별 배드민턴 전이 자극량",
-                spec = ChartSpec(
-                    type = ChartType.STACKED_BAR,
+                spec = badmintonObjectiveStackedChartSpec(
                     title = "주별 배드민턴 전이 자극량",
-                    stackedBars = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet),
+                    groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet),
                     timeGranularity = ChartTimeGranularity.WEEKLY,
                     xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonDailyLoads.map { it.date })
                 ),
@@ -328,7 +323,7 @@ private fun BadmintonTrainingLoadCharts(
             BadmintonMethodPickerDialog(
                 available = availableMethodKeys,
                 selected = selectedMethodKeys.toSet(),
-                defaults = defaultBadmintonMethodKeys(methodTotals, availableMethodKeys).toSet(),
+                defaults = defaultBadmintonMethodKeys(availableMethodKeys).toSet(),
                 onDismiss = { showMethodPicker = false },
                 onApply = { keys ->
                     onSelectedMethodKeysChange(keys)
@@ -423,12 +418,6 @@ private fun BadmintonMethodPickerDialog(
                     }) {
                         Text("전체 선택")
                     }
-                    TextButton(onClick = {
-                        draft.clear()
-                        draft.addAll(defaults.ifEmpty { available.take(1).toSet() })
-                    }) {
-                        Text("권장 선택")
-                    }
                 }
                 Text(badmintonMethodSelectionSummary(draft), style = MaterialTheme.typography.labelMedium)
                 if (draft.isEmpty()) {
@@ -476,19 +465,34 @@ private fun BadmintonMethodPickerDialog(
     )
 }
 
-private fun defaultBadmintonMethodKeys(
-    totals: Map<String, Double>,
-    available: List<String>
-): List<String> {
-    val fallback = listOf("FOOTWORK", "ACCELERATION", "REACTION", "DECELERATION")
-        .filter { it in available }
-    return totals.entries
-        .sortedByDescending { it.value }
-        .map { it.key }
-        .take(4)
-        .ifEmpty { fallback }
-        .ifEmpty { available.take(1) }
+private const val BADMINTON_METHOD_SELECTION_SCHEMA = "v2-all-nine"
+
+internal fun defaultBadmintonMethodKeys(available: List<String>): List<String> = available.distinct()
+
+internal fun encodeBadmintonMethodSelection(keys: Collection<String>): String =
+    "$BADMINTON_METHOD_SELECTION_SCHEMA:${keys.joinToString("|")}"
+
+internal fun decodeBadmintonMethodSelection(saved: String, available: List<String>): List<String> {
+    val default = defaultBadmintonMethodKeys(available)
+    if (!saved.startsWith("$BADMINTON_METHOD_SELECTION_SCHEMA:")) return default
+    val requested = saved.substringAfter(':').split('|').toSet()
+    return available.filter { it in requested }.ifEmpty { default }
 }
+
+internal fun badmintonObjectiveStackedChartSpec(
+    title: String,
+    groups: List<com.training.trackplanner.analysis.trends.StackedBarGroup>,
+    timeGranularity: ChartTimeGranularity? = null,
+    xDomain: List<LocalDate> = emptyList()
+): ChartSpec = ChartSpec(
+    type = ChartType.STACKED_BAR,
+    title = title,
+    stackedBars = groups,
+    timeGranularity = timeGranularity,
+    xDomain = xDomain,
+    preserveZeroStackedBarCategories = true,
+    wrapStackedBarLegend = true
+)
 
 @Composable
 private fun badmintonMethodSelectionSummary(keys: Collection<String>): String {

@@ -62,7 +62,6 @@ object BadmintonTrainingMethodSeries {
         val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today }, selectedKeys)
         val recent28 = totals(points.filter { it.date >= today.minusDays(27) && it.date <= today }, selectedKeys)
             .mapValues { (_, value) -> value / 28.0 * 7.0 }
-        if (recent7.values.none { it > 0.0 } && recent28.values.none { it > 0.0 }) return emptyList()
         return listOf(
             StackedBarGroup("최근 7일", recent7.toSegments()),
             StackedBarGroup("최근 28일 평균(7일 환산)", recent28.toSegments())
@@ -74,7 +73,10 @@ object BadmintonTrainingMethodSeries {
         return points.groupBy { point -> AnalysisChartTemporalPolicy.weekStart(point.date) }
             .toSortedMap()
             .mapNotNull { (week, rows) ->
-                val byKey = linkedMapOf<String, Double>()
+                val selectedObjectives = objectiveKeys.filter { key -> allowed == null || key in allowed }
+                val byKey = linkedMapOf<String, Double>().apply {
+                    selectedObjectives.forEach { key -> put(key, 0.0) }
+                }
                 rows.forEach { point ->
                     // Multi-label objective stimulus intentionally overlaps; it is never divided 1/n.
                     point.objectiveStimulus.forEach { (sourceKey, value) ->
@@ -84,9 +86,8 @@ object BadmintonTrainingMethodSeries {
                         }
                     }
                 }
-                val segments = objectiveKeys.mapNotNull { key ->
-                    val value = byKey[key]?.takeIf { it > 0.0 } ?: return@mapNotNull null
-                    StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key), key)
+                val segments = selectedObjectives.map { key ->
+                    StackedBarSegment(BadmintonTrainingMethodLabels.label(key), byKey.getValue(key), colorIndex(key), key)
                 }
                 segments.takeIf(List<StackedBarSegment>::isNotEmpty)?.let {
                     StackedBarGroup(
@@ -99,9 +100,8 @@ object BadmintonTrainingMethodSeries {
     }
 
     private fun Map<String, Double>.toSegments(): List<StackedBarSegment> =
-        objectiveKeys.mapNotNull { key ->
-            val value = get(key)?.takeIf { it > 0.0 } ?: return@mapNotNull null
-            StackedBarSegment(BadmintonTrainingMethodLabels.label(key), value, colorIndex(key), key)
+        objectiveKeys.filter { it in keys }.map { key ->
+            StackedBarSegment(BadmintonTrainingMethodLabels.label(key), getValue(key), colorIndex(key), key)
         }
 
     private fun List<String>.joinToLabelText(): String =

@@ -200,6 +200,8 @@ data class ChartSpec(
     val lineSeries: List<ChartSeries> = emptyList(),
     val bars: List<BarItem> = emptyList(),
     val stackedBars: List<StackedBarGroup> = emptyList(),
+    val preserveZeroStackedBarCategories: Boolean = false,
+    val wrapStackedBarLegend: Boolean = false,
     val stackedAreaLayers: List<StackedAreaLayer> = emptyList(),
     val slices: List<PieSlice> = emptyList(),
     val scatterPoints: List<ScatterPoint> = emptyList(),

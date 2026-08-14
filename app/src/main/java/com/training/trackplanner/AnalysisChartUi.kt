@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -269,8 +271,13 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifier) {
-    val groups = spec.stackedBars.filter { group -> group.segments.any { it.value > 0.0 } }
+    val groups = if (spec.preserveZeroStackedBarCategories) {
+        spec.stackedBars
+    } else {
+        spec.stackedBars.filter { group -> group.segments.any { it.value > 0.0 } }
+    }
     if (groups.isEmpty()) {
         InfoCard("주별로 표시할 배드민턴 관련 훈련 기록이 없습니다.")
         return
@@ -319,19 +326,67 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         spec.timeGranularity?.let { granularity ->
             AnalysisTimeAxisLabels(domain, granularity)
         }
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            labels.forEachIndexed { index, label ->
-                val colorIndex = colorIndexByLabel[label] ?: index
-                val color = colorKeyByLabel[label]?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
-                    ?: colors[colorIndex % colors.size]
-                Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.22f)) {
-                    Text(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp), text = localizedUiText(label), style = MaterialTheme.typography.labelSmall)
+        if (spec.wrapStackedBarLegend) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                labels.forEachIndexed { index, label ->
+                    AnalysisStackedBarLegendItem(
+                        label = label,
+                        color = stackedBarLegendColor(
+                            label = label,
+                            fallbackIndex = index,
+                            colorIndexByLabel = colorIndexByLabel,
+                            colorKeyByLabel = colorKeyByLabel,
+                            colors = colors
+                        )
+                    )
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                labels.forEachIndexed { index, label ->
+                    AnalysisStackedBarLegendItem(
+                        label = label,
+                        color = stackedBarLegendColor(
+                            label = label,
+                            fallbackIndex = index,
+                            colorIndexByLabel = colorIndexByLabel,
+                            colorKeyByLabel = colorKeyByLabel,
+                            colors = colors
+                        )
+                    )
                 }
             }
         }
+    }
+}
+
+private fun stackedBarLegendColor(
+    label: String,
+    fallbackIndex: Int,
+    colorIndexByLabel: Map<String, Int?>,
+    colorKeyByLabel: Map<String, String?>,
+    colors: List<Color>
+): Color {
+    val colorIndex = colorIndexByLabel[label] ?: fallbackIndex
+    return colorKeyByLabel[label]?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
+        ?: colors[colorIndex % colors.size]
+}
+
+@Composable
+private fun AnalysisStackedBarLegendItem(label: String, color: Color) {
+    Surface(shape = RoundedCornerShape(8.dp), color = color.copy(alpha = 0.22f)) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            text = localizedUiText(label),
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 }
 

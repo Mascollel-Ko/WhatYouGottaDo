@@ -27,8 +27,9 @@ class BadmintonTrainingMethodSeriesTest {
             ),
             groups.map { it.label }
         )
-        assertEquals(15.0, groups.first().segments.single().value, 0.001)
-        assertEquals(BadmintonTrainingMethodLabels.label("REACTION"), groups.last().segments.single().label)
+        assertEquals(9, groups.first().segments.size)
+        assertEquals(15.0, groups.first().segments.single { it.colorKey == "FOOTWORK" }.value, 0.001)
+        assertEquals(7.0, groups.last().segments.single { it.colorKey == "REACTION" }.value, 0.001)
     }
 
     @Test
@@ -116,9 +117,51 @@ class BadmintonTrainingMethodSeriesTest {
 
         val labels = selected.map(BadmintonTrainingMethodLabels::label).toSet()
         val segments = groups.flatMap { it.segments }
+        assertEquals(listOf(2, 2), groups.map { it.segments.size })
         assertTrue(segments.all { it.label in labels })
         assertTrue(segments.any { it.colorIndex == BadmintonTrainingMethodSeries.colorIndex("FOOTWORK") })
         assertTrue(segments.any { it.colorIndex == BadmintonTrainingMethodSeries.colorIndex("REACTION") })
+    }
+
+    @Test
+    fun recentComparisonKeepsAllNineIncludingZerosWithoutChangingWindowArithmetic() {
+        val today = LocalDate.parse("2026-06-28")
+        val groups = BadmintonTrainingMethodSeries.recentComparisonGroups(
+            points = listOf(
+                BadmintonDailyLoadPoint(today.minusDays(20), 0.0, 0.0, 0.0, mapOf("FOOTWORK" to 28.0)),
+                BadmintonDailyLoadPoint(today, 0.0, 0.0, 0.0, mapOf("REACTION" to 14.0))
+            )
+        )
+
+        assertEquals(listOf(9, 9), groups.map { it.segments.size })
+        assertEquals(
+            BadmintonTrainingMethodSeries.objectiveKeys,
+            groups.first().segments.mapNotNull { it.colorKey }
+        )
+        assertEquals(14.0, groups[0].segments.single { it.colorKey == "REACTION" }.value, 0.001)
+        assertEquals(0.0, groups[0].segments.single { it.colorKey == "FOOTWORK" }.value, 0.001)
+        assertEquals(3.5, groups[1].segments.single { it.colorKey == "REACTION" }.value, 0.001)
+        assertEquals(7.0, groups[1].segments.single { it.colorKey == "FOOTWORK" }.value, 0.001)
+        assertEquals(0.0, groups[1].segments.single { it.colorKey == "ANTI_ROTATION" }.value, 0.001)
+    }
+
+    @Test
+    fun weeklyStackedGroupsKeepAllNineIncludingZeroObjectives() {
+        val groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(
+            listOf(
+                BadmintonDailyLoadPoint(
+                    LocalDate.parse("2026-06-01"),
+                    0.0,
+                    0.0,
+                    0.0,
+                    mapOf("REACTION" to 12.0)
+                )
+            )
+        )
+
+        assertEquals(9, groups.single().segments.size)
+        assertEquals(12.0, groups.single().segments.single { it.colorKey == "REACTION" }.value, 0.001)
+        assertEquals(0.0, groups.single().segments.single { it.colorKey == "ANTI_ROTATION" }.value, 0.001)
     }
 
     @Test
