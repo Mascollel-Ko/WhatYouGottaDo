@@ -127,11 +127,22 @@ class MetadataAuthorityTest(unittest.TestCase):
             badminton_rows = list(csv.DictReader(source))
         core, objectives, rotation_audit = build_analysis_assets(badminton_rows)
         self.assertEqual(272, len(core))
-        self.assertEqual(278, len(objectives))
+        self.assertEqual(280, len(objectives))
         self.assertEqual(19, len(rotation_audit))
-        self.assertEqual(2, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
+        self.assertEqual(4, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
         self.assertEqual(15, sum(row["coreDirectTarget"] == "ROTATION_GENERATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
         self.assertNotIn("ROTATION_POWER", {row["objectiveId"] for row in objectives})
+        approved = [
+            row for row in objectives
+            if row["provenance"] == "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
+        ]
+        self.assertEqual(
+            {("band_pallof_press", "ANTI_ROTATION"), ("cable_pallof_press", "ANTI_ROTATION")},
+            {(row["exerciseStableKey"], row["objectiveId"]) for row in approved},
+        )
+        self.assertTrue(all(row["transferLevel"] == "SUPPORTIVE" for row in approved))
+        self.assertTrue(all(row["evidenceRelationKeys"] == "" for row in approved))
+        self.assertTrue(all(row["reviewStatus"] == "PASS" and row["reviewReason"] for row in approved))
 
     def test_display_resources_parse_and_have_consistent_locale_keys(self):
         def resource_keys(path: Path) -> set[str]:

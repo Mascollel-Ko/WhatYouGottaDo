@@ -12,6 +12,12 @@ CORE_APPROVED_SOURCE = (
     ROOT / "docs/metadata_authority/core_training_classification_review_2026-08-13.csv"
 )
 CORE_APPROVED_SHA256 = "3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954"
+BADMINTON_OBJECTIVE_REVIEW_SOURCE = (
+    ROOT / "docs/metadata_authority/badminton_objective_review_decisions_2026-08-14.csv"
+)
+USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE = (
+    "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
+)
 
 CORE_HEADERS = [
     "relationId",
@@ -183,6 +189,43 @@ def build_badminton_objective_relations(
                     "objective-specific cutover."
                 ),
             })
+
+    existing_pairs = {
+        (row["exerciseStableKey"], row["objectiveId"]) for row in generated
+    }
+    decisions = sorted(
+        read_csv(BADMINTON_OBJECTIVE_REVIEW_SOURCE),
+        key=lambda row: (row["exerciseStableKey"], row["objectiveId"]),
+    )
+    for decision in decisions:
+        stable_key = decision["exerciseStableKey"]
+        objective = decision["objectiveId"]
+        pair = (stable_key, objective)
+        if objective not in CANONICAL_OBJECTIVES:
+            raise ValueError(f"Unknown reviewed badminton objective: {objective}")
+        if decision["transferLevel"] not in {"DIRECT", "SUPPORTIVE", "GENERAL", "LOW"}:
+            raise ValueError(f"Invalid reviewed badminton transfer level: {pair}")
+        if decision["decisionStatus"] != "APPROVED":
+            raise ValueError(f"Reviewed badminton decision is not approved: {pair}")
+        if decision["provenance"] != USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE:
+            raise ValueError(f"Invalid reviewed badminton provenance: {pair}")
+        if decision["evidenceKind"] != "PRODUCT_OWNER_SEMANTIC_DECISION":
+            raise ValueError(f"Invalid reviewed badminton evidence kind: {pair}")
+        if not decision["reviewReason"]:
+            raise ValueError(f"Reviewed badminton decision lacks a reason: {pair}")
+        if pair in existing_pairs:
+            raise ValueError(f"Reviewed badminton decision duplicates inherited authority: {pair}")
+        generated.append({
+            "relationId": f"BADMINTON_OBJECTIVE_{len(generated) + 1:04d}",
+            "exerciseStableKey": stable_key,
+            "objectiveId": objective,
+            "transferLevel": decision["transferLevel"],
+            "provenance": decision["provenance"],
+            "evidenceRelationKeys": "",
+            "reviewStatus": "PASS",
+            "reviewReason": decision["reviewReason"],
+        })
+        existing_pairs.add(pair)
     return generated
 
 
@@ -202,6 +245,7 @@ def build_rotation_audit(
     for core in sorted(candidates, key=lambda row: (row["directTarget"], row["stableKey"])):
         pair = (core["stableKey"], core["directTarget"])
         relation = objective_by_pair.get(pair)
+        user_approved = relation and relation["provenance"] == USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE
         audit.append({
             "exerciseStableKey": core["stableKey"],
             "coreDirectTarget": core["directTarget"],
@@ -210,6 +254,8 @@ def build_rotation_audit(
             "transferLevel": relation["transferLevel"] if relation else "NONE",
             "evidenceRelationKeys": relation["evidenceRelationKeys"] if relation else "",
             "reason": (
+                "An explicit reviewed product-owner decision approves this badminton objective."
+                if user_approved else
                 "Existing explicit canonical badminton evidence supports this objective."
                 if relation else
                 "Core classification alone is not badminton-transfer evidence; no explicit "

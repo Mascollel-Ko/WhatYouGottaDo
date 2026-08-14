@@ -2,6 +2,9 @@ package com.training.trackplanner.analysis.badminton
 
 import java.util.Locale
 
+const val USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE =
+    "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
+
 enum class BadmintonObjective {
     ACCELERATION,
     DECELERATION,
@@ -60,6 +63,17 @@ class CanonicalBadmintonObjectiveCatalog private constructor(
             relations: Collection<CanonicalBadmintonObjectiveRelation>,
             historySourceByStableKey: Map<String, String> = emptyMap()
         ): CanonicalBadmintonObjectiveCatalog {
+            relations.forEach { relation ->
+                require(relation.reviewReason.isNotBlank()) {
+                    "Canonical badminton objective relation requires a review reason."
+                }
+                require(
+                    relation.evidenceRelationKeys.isNotEmpty() ||
+                        relation.provenance == USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE
+                ) {
+                    "Only explicit user-approved badminton objectives may omit evidence relation keys."
+                }
+            }
             require(relations.distinctBy { it.relationId }.size == relations.size) {
                 "Duplicate canonical badminton objective relation ID."
             }

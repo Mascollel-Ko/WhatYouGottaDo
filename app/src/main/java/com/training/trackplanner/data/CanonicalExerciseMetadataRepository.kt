@@ -5,6 +5,7 @@ import com.training.trackplanner.analysis.badminton.BadmintonObjective
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
+import com.training.trackplanner.analysis.badminton.USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.core.CanonicalCoreProfile
 import com.training.trackplanner.analysis.core.CoreClass
@@ -239,14 +240,28 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
 
     fun badmintonObjectiveCatalog(): CanonicalBadmintonObjectiveCatalog {
         val relations = parseVerifiedCsv("badminton_objective_relations.csv").map { fields ->
+            val provenance = fields.required("provenance")
+            val reviewReason = fields.required("reviewReason")
+            val reviewStatus = fields.required("reviewStatus")
+            val evidenceRelationKeys = fields["evidenceRelationKeys"]
+                .orEmpty()
+                .split('|')
+                .filter(String::isNotBlank)
+                .toSet()
+            require(reviewStatus == "PASS") { "Badminton objective relation is not approved." }
+            if (evidenceRelationKeys.isEmpty()) {
+                require(provenance == USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE) {
+                    "Only explicit user-approved badminton objectives may omit evidence relation keys."
+                }
+            }
             CanonicalBadmintonObjectiveRelation(
                 relationId = fields.required("relationId"),
                 exerciseStableKey = fields.requiredSelectableStableKey(),
                 objective = BadmintonObjective.fromCanonicalOrAlias(fields.required("objectiveId")),
                 transferLevel = BadmintonObjectiveTransferLevel.valueOf(fields.required("transferLevel")),
-                provenance = fields.required("provenance"),
-                evidenceRelationKeys = fields.required("evidenceRelationKeys").split('|').filter(String::isNotBlank).toSet(),
-                reviewReason = fields.required("reviewReason")
+                provenance = provenance,
+                evidenceRelationKeys = evidenceRelationKeys,
+                reviewReason = reviewReason
             )
         }
         require(relations.none { it.objective.name == "ROTATION_POWER" })

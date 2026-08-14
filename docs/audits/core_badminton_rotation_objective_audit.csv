@@ -1,6 +1,6 @@
 exerciseStableKey,coreDirectTarget,decision,objectiveId,transferLevel,evidenceRelationKeys,reason
-band_pallof_press,ANTI_ROTATION,NO_OBJECTIVE_RELATION,,NONE,,Core classification alone is not badminton-transfer evidence; no explicit canonical badminton relation supports this objective.
-cable_pallof_press,ANTI_ROTATION,NO_OBJECTIVE_RELATION,,NONE,,Core classification alone is not badminton-transfer evidence; no explicit canonical badminton relation supports this objective.
+band_pallof_press,ANTI_ROTATION,CREATE_EXPLICIT_OBJECTIVE,ANTI_ROTATION,SUPPORTIVE,,An explicit reviewed product-owner decision approves this badminton objective.
+cable_pallof_press,ANTI_ROTATION,CREATE_EXPLICIT_OBJECTIVE,ANTI_ROTATION,SUPPORTIVE,,An explicit reviewed product-owner decision approves this badminton objective.
 landmine_anti_rotation,ANTI_ROTATION,CREATE_EXPLICIT_OBJECTIVE,ANTI_ROTATION,SUPPORTIVE,BADMINTON_01690|BADMINTON_01691|BADMINTON_01692,Existing explicit canonical badminton evidence supports this objective.
 plate_rotational_press_out,ANTI_ROTATION,CREATE_EXPLICIT_OBJECTIVE,ANTI_ROTATION,SUPPORTIVE,BADMINTON_01785|BADMINTON_01786|BADMINTON_01787,Existing explicit canonical badminton evidence supports this objective.
 band_lift,ROTATION_GENERATION,CREATE_EXPLICIT_OBJECTIVE,ROTATION_GENERATION,SUPPORTIVE,BADMINTON_00002|BADMINTON_00003,Existing explicit canonical badminton evidence supports this objective.

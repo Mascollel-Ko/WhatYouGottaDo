@@ -58,12 +58,26 @@ class CanonicalAnalysisAuthorityTest {
     fun badmintonObjectiveAuthorityIsExplicitNineAxisAndObjectiveSpecific() {
         val relations = repository.badmintonObjectiveCatalog().allRelations()
 
-        assertEquals(278, relations.size)
+        assertEquals(280, relations.size)
         assertEquals(BadmintonObjective.entries.toSet(), relations.mapTo(mutableSetOf()) { it.objective })
         assertFalse(relations.any { it.objective.name == "ROTATION_POWER" })
-        assertTrue(relations.all { it.evidenceRelationKeys.isNotEmpty() })
+        val userApproved = relations.filter {
+            it.provenance == "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
+        }
+        assertEquals(2, userApproved.size)
+        assertTrue(userApproved.all { it.evidenceRelationKeys.isEmpty() && it.reviewReason.isNotBlank() })
+        assertTrue(
+            relations.filterNot { it in userApproved }.all { it.evidenceRelationKeys.isNotEmpty() }
+        )
         assertTrue(relations.any { it.exerciseStableKey == "landmine_anti_rotation" && it.objective == BadmintonObjective.ANTI_ROTATION })
-        assertFalse(relations.any { it.exerciseStableKey == "band_pallof_press" && it.objective == BadmintonObjective.ANTI_ROTATION })
+        listOf("band_pallof_press", "cable_pallof_press").forEach { stableKey ->
+            val objectives = relations.filter { it.exerciseStableKey == stableKey }.mapTo(mutableSetOf()) { it.objective }
+            assertTrue(BadmintonObjective.ANTI_ROTATION in objectives)
+            assertTrue(BadmintonObjective.DECELERATION in objectives)
+            assertTrue(BadmintonObjective.FOOTWORK in objectives)
+        }
+        val copenhagen = relations.filter { it.exerciseStableKey == "ex_a8385c4a" }.mapTo(mutableSetOf()) { it.objective }
+        assertEquals(setOf(BadmintonObjective.DECELERATION, BadmintonObjective.FOOTWORK), copenhagen)
     }
 
     @Test
