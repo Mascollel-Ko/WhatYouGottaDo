@@ -5,14 +5,11 @@ import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
-import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
-import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.engine.AnalysisEngineV3
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
-import com.training.trackplanner.analysis.fatigue.DailyFatigueState
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
@@ -390,18 +387,6 @@ class TrainingRepository(
 
     suspend fun connectiveTissueState(): TissueCurrentState = withContext(Dispatchers.IO) {
         connectiveTissueAnalysisService.build()
-    }
-
-    suspend fun badmintonTransferSummary(
-        readinessSummary: TodayReadinessSummary? = null
-    ): BadmintonTransferSummary = withContext(Dispatchers.IO) {
-        analysisSummaryService.badmintonTransferSummary(readinessSummary)
-    }
-
-    suspend fun badmintonTransferCoverageSummary(
-        latestFatigueState: DailyFatigueState?
-    ): BadmintonTransferCoverageSummary = withContext(Dispatchers.IO) {
-        analysisSummaryService.badmintonTransferCoverageSummary(latestFatigueState)
     }
 
     suspend fun coachingSignalsSummary(

@@ -1,14 +1,8 @@
 package com.training.trackplanner.data
 
-import com.training.trackplanner.analysis.badminton.BadmintonTransferAnalysisEngine
-import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
-import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageAnalyzer
-import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
-import com.training.trackplanner.analysis.fatigue.DailyFatigueState
-import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -61,35 +55,6 @@ internal class AnalysisSummaryService(
             result.state.date.format(DateTimeFormatter.ISO_LOCAL_DATE) to
                 result.state.overallFatigueIndex
         }
-    }
-
-    suspend fun badmintonTransferSummary(
-        readinessSummary: TodayReadinessSummary? = null
-    ): BadmintonTransferSummary {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        return BadmintonTransferAnalysisEngine(runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = workoutDao.entriesWithSetsUntil(todayString),
-            readinessSummary = readinessSummary
-        )
-    }
-
-    suspend fun badmintonTransferCoverageSummary(
-        latestFatigueState: DailyFatigueState?
-    ): BadmintonTransferCoverageSummary {
-        val today = SystemAnalysisDateProvider().today()
-        val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val exercises = exerciseDao.allExercises()
-        val entries = workoutDao.entriesWithSetsUntil(todayString)
-        return BadmintonTransferCoverageAnalyzer(resolvedRuntimeMetadataCatalog(exercises)).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = entries,
-            latestFatigueState = latestFatigueState
-        )
     }
 
     private suspend fun resolvedRuntimeMetadataCatalog(

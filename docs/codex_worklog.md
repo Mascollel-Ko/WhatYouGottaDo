@@ -5552,3 +5552,116 @@ Verification
 - Copenhagen plank (`ex_a8385c4a`) retains inherited DECELERATION/FOOTWORK
   SUPPORTIVE relations. This focused release neither added ANTI_ROTATION nor
   LUNGE_REACH and did not claim a new semantic review of those inherited rows.
+
+## 2026-08-15 - v0.5.0.35 legacy authority cleanup audit
+
+Baseline: `8e5fcfd213fb7374647b4edcd91a999806492c67` (`origin/main`, v0.5.0.34).
+
+This audit was completed before semantic implementation. It classifies the
+overlapping authorities that must be removed or retained during the focused
+cleanup.
+
+### ACTIVE_RUNTIME_AUTHORITY
+
+- The legacy badminton seven-axis chain is still callable through
+  `AnalysisSummaryService`, `TrainingRepository`, `TrainingViewModel`, and the
+  coach analysis UI. It owns `BadmintonTransferAxis`, the old score/analysis
+  engine, coverage analyzer, recommendations, chart models, and coach transfer
+  state. This chain is obsolete runtime authority and will be removed rather
+  than translated into the canonical nine badminton objectives.
+- The Lab registry and strength/muscle series still publish nine pseudo-core
+  metric IDs for anterior, lateral, and rotation core daily/3-day/7-day loads.
+  `MuscleLoadInputBuilder` and duration-hold fallbacks can still manufacture
+  those buckets. These are obsolete analysis authority and will be replaced by
+  projections of the existing CoreStimulus V1 result.
+- Advanced ProgramBuilder candidate machinery can classify and rank broad
+  metadata-derived candidates. Exact `ProgramRuleTables` stable keys are the
+  approved public candidate authority, so a typed gate must precede advanced
+  inventory, scoring, reranking, and beam selection.
+
+### ACTIVE_COMPATIBILITY_ONLY
+
+- Historical badminton metadata fields remain inputs to valid fatigue,
+  readiness, backup, and compatibility contracts. Removing the old seven-axis
+  summary does not authorize deleting those fields.
+- Core cumulative compatibility fields and stored canonical metadata remain
+  intact. The cleanup changes Lab projection ownership, not persisted records
+  or replay compatibility.
+
+### DEAD_RUNTIME
+
+- `BadmintonTransferAnalysisContent` receives legacy summary/coach parameters
+  that it does not render; the current screen already renders canonical V2
+  series. These unused parameters and their state plumbing can be removed.
+- The legacy coach transfer wrapper/cards have no active call site. Shared
+  fatigue and check-in coach components in the same file remain valid and must
+  be preserved.
+
+### HISTORICAL_AUDIT_PROVENANCE
+
+- Committed badminton relation CSVs, normalization reports, frozen contract
+  artifacts, and documents that explicitly describe the retired seven-axis
+  history remain provenance. They are not runtime authority and must not be
+  rewritten as canonical nine-objective calculations.
+- Test-only historical oracles may remain only where needed to verify frozen
+  audit artifacts; production seven-axis classes must not remain to support
+  them.
+
+### KEEP_FOR_OTHER_VALID_DOMAIN
+
+- `PerformanceTrendSummary.badmintonDailyLoads`, Badminton Objective Stimulus
+  V2, its nine-objective authority, and V2 chart colors remain canonical.
+- Generic runtime metadata used by fatigue/readiness and legitimate anatomical
+  muscle analysis remain valid. Removing functional pseudo-core buckets must
+  not remove ordinary anatomical muscle ownership.
+- CoreStimulus V1 calculator, coefficients, daily values, weekly UI projection,
+  and calculation version remain unchanged. Lab must project the same weekly
+  values through three neutral metrics: total, direct, and indirect.
+- `ProgramRuleTables` remains the single product-approved ProgramBuilder
+  candidate list. The new typed authority view must derive from it and must not
+  introduce a second stable-key list.
+
+### Planned semantic phases
+
+1. Remove the legacy badminton seven-axis runtime, coverage, recommendation,
+   state, and UI paths while preserving canonical V2 behavior.
+2. Remove pseudo-functional core muscle metrics and publish CoreStimulus V1
+   weekly total/direct/indirect in Lab from the same aggregation used by the
+   Strength UI.
+3. Enforce exact stable-key ProgramBuilder eligibility through a typed view of
+   `ProgramRuleTables`, with public auto-builder output parity.
+
+### Phase A - legacy badminton runtime removal
+
+Commit: pending
+
+- Removed the production seven-axis analysis engine, score calculator,
+  metadata mapper, conserved-share models, chart builder, recommendation
+  builder, constants, and coach coverage analyzer.
+- Removed the old summary/coverage facade from `AnalysisSummaryService` and
+  `TrainingRepository`, then removed ViewModel state and refresh calls that
+  computed those summaries during normal analysis refresh.
+- Removed stale seven-axis coverage/recommendation cards and unused summary
+  parameters. The current badminton screen continues to consume only
+  `PerformanceTrendSummary.badmintonDailyLoads` and Badminton Objective
+  Stimulus V2.
+- Retained the canonical nine-objective palette and removed only legacy
+  seven-axis/type color entries. Retained a test-only frozen contract oracle so
+  the immutable v1 analysis-contract CSV remains historical provenance without
+  keeping a production legacy mapper.
+- Removed tests that asserted the retired runtime behavior. Canonical
+  nine-objective authority, stimulus, chart-series, color, fatigue/calendar,
+  and frozen contract tests remain active.
+- Updated the metadata compatibility consumer inventory after the deleted
+  legacy engine test ceased to be a Kotlin consumer.
+
+Validation:
+
+- Focused V2/summary/contract test set: passed.
+- `AnalysisContractAuditArtifactsTest`: passed after inventory correction.
+- `:app:testDebugUnitTest`: passed 1,259 tests with 0 failures.
+- Production references to `BadmintonTransferScoreCalculator`,
+  `BadmintonTransferCoverageAnalyzer`, and `BadmintonTransferAxis`: zero.
+- The only remaining production `ROTATION_CONTROL` literals are in the
+  ProgramBuilder string classifiers scheduled for the separate Phase C exact
+  stable-key authority change; they are not current badminton analysis.

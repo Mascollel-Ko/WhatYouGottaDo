@@ -37,7 +37,6 @@ import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.ui.FatigueAnalysisSection
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
-import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodLabels
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodSeries
 import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
@@ -106,8 +105,6 @@ internal fun FatigueAndConditionAnalysisContent(
 
 @Composable
 internal fun BadmintonTransferAnalysisContent(
-    coachInsight: CoachAnalysisInsightSummary,
-    badmintonTransfer: BadmintonTransferSummary?,
     performanceTrend: PerformanceTrendSummary?
 ) {
     val availableMethodKeys = BadmintonTrainingMethodSeries.objectiveKeys

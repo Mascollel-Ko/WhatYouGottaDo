@@ -1,7 +1,5 @@
 package com.training.trackplanner.analysis.coach
 
-import com.training.trackplanner.analysis.badminton.BadmintonTransferAxis
-
 enum class CoachFatigueCauseType {
     EXERCISE,
     MOVEMENT_AXIS,
@@ -38,55 +36,14 @@ data class CoachFatigueCauseSummary(
     }
 }
 
-enum class TransferAxisStatusType {
-    MISSING,
-    LOW,
-    BALANCED,
-    HIGH,
-    OVERLOADED
-}
-
-data class BadmintonTransferAxisStatus(
-    val axis: BadmintonTransferAxis,
-    val label: String,
-    val status: TransferAxisStatusType,
-    val recentShare: Double,
-    val baselineShare: Double?,
-    val detail: String
-)
-
-data class BadmintonTransferCoverageSummary(
-    val recentWindowDays: Int,
-    val baselineWindowDays: Int,
-    val statuses: List<BadmintonTransferAxisStatus>,
-    val lowAxes: List<BadmintonTransferAxisStatus>,
-    val cautionAxes: List<BadmintonTransferAxisStatus>,
-    val headline: String,
-    val isDataSufficient: Boolean
-) {
-    companion object {
-        fun insufficient() = BadmintonTransferCoverageSummary(
-            recentWindowDays = 14,
-            baselineWindowDays = 28,
-            statuses = emptyList(),
-            lowAxes = emptyList(),
-            cautionAxes = emptyList(),
-            headline = "아직 배드민턴 전이 축을 판단할 기록이 부족합니다.",
-            isDataSufficient = false
-        )
-    }
-}
-
 data class CoachAnalysisInsightSummary(
     val fatigueCauses: CoachFatigueCauseSummary,
-    val transferCoverage: BadmintonTransferCoverageSummary,
     val combinedHeadline: String?,
     val checkInGuidance: List<String> = emptyList()
 ) {
     companion object {
         fun empty() = CoachAnalysisInsightSummary(
             fatigueCauses = CoachFatigueCauseSummary.insufficient(),
-            transferCoverage = BadmintonTransferCoverageSummary.insufficient(),
             combinedHeadline = null,
             checkInGuidance = emptyList()
         )

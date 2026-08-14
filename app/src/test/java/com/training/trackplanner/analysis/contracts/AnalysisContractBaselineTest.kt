@@ -2,8 +2,6 @@ package com.training.trackplanner.analysis.contracts
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.training.trackplanner.analysis.badminton.BadmintonTransferMetadataMapper
-import com.training.trackplanner.analysis.badminton.BadmintonTransferType
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.lab.MuscleLoadInputBuilder
@@ -252,9 +250,9 @@ class AnalysisContractBaselineTest {
         )
         val contribution = fatigue.recordContributions.single()
         val muscle = MuscleLoadInputBuilder.contributions(exercise, entry, metadata)
-        val badmintonType = BadmintonTransferMetadataMapper.transferType(features)
-        val badmintonAxes = BadmintonTransferMetadataMapper.legacyTransferAxesForAudit(features)
-        val badmintonFatigue = BadmintonTransferMetadataMapper.fatigueCost(features)
+        val badmintonType = LegacyBadmintonContractOracle.transferType(features)
+        val badmintonAxes = LegacyBadmintonContractOracle.axes(features)
+        val badmintonFatigue = LegacyBadmintonContractOracle.fatigueCost(features)
         val rows = mutableListOf<List<String>>()
 
         fun add(
@@ -298,7 +296,7 @@ class AnalysisContractBaselineTest {
         add(
             "CAPABILITY",
             "BADMINTON_TRANSFER",
-            status = if (badmintonType == BadmintonTransferType.NONE && badmintonAxes.isEmpty()) {
+            status = if (badmintonType == LegacyBadmintonTransferType.NONE && badmintonAxes.isEmpty()) {
                 AnalysisCapabilityStatus.DISABLED.name
             } else {
                 AnalysisCapabilityStatus.ENABLED.name
@@ -397,12 +395,12 @@ class AnalysisContractBaselineTest {
         return rows
     }
 
-    private fun BadmintonTransferType.toContractLevel(): ContractBadmintonTransferLevel = when (this) {
-        BadmintonTransferType.DIRECT -> ContractBadmintonTransferLevel.DIRECT
-        BadmintonTransferType.SUPPORTIVE -> ContractBadmintonTransferLevel.SUPPORTIVE
-        BadmintonTransferType.GENERAL_STRENGTH -> ContractBadmintonTransferLevel.GENERAL
-        BadmintonTransferType.LOW -> ContractBadmintonTransferLevel.LOW
-        BadmintonTransferType.NONE -> ContractBadmintonTransferLevel.NONE
+    private fun LegacyBadmintonTransferType.toContractLevel(): ContractBadmintonTransferLevel = when (this) {
+        LegacyBadmintonTransferType.DIRECT -> ContractBadmintonTransferLevel.DIRECT
+        LegacyBadmintonTransferType.SUPPORTIVE -> ContractBadmintonTransferLevel.SUPPORTIVE
+        LegacyBadmintonTransferType.GENERAL_STRENGTH -> ContractBadmintonTransferLevel.GENERAL
+        LegacyBadmintonTransferType.LOW -> ContractBadmintonTransferLevel.LOW
+        LegacyBadmintonTransferType.NONE -> ContractBadmintonTransferLevel.NONE
     }
 
     private fun String.contractTokens(): List<String> =

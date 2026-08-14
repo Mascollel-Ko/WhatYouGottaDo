@@ -3,7 +3,6 @@ package com.training.trackplanner.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.training.trackplanner.analysis.badminton.BadmintonTransferAxis
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -58,108 +57,18 @@ class AnalysisSummaryServiceTest {
     }
 
     @Test
-    fun badmintonTransferSummaryUsesWindowedConfirmedTransferRecords() = runBlocking {
-        val db = newDatabase()
-        val service = service(db)
-        val today = LocalDate.now()
-        val exerciseStableKey = insertBadmintonExercise(db, "analysis.badminton", "Footwork drill")
-        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseStableKey, "Footwork drill", confirmed = true)
-        insertEntryWithSet(db, today.minusDays(35).toString(), exerciseStableKey, "Footwork drill", confirmed = true)
-
-        val summary = service.badmintonTransferSummary()
-
-        assertEquals(1, summary.metrics.topTransferExercises7d.size)
-        assertTrue(summary.metrics.totalTransferStimulus7d > 0.0)
-        assertEquals(
-            summary.metrics.totalTransferStimulus7d,
-            summary.metrics.totalTransferStimulus28d,
-            0.001
-        )
-        assertTrue((summary.metrics.axisShare7d[BadmintonTransferAxis.LATERAL_MOVEMENT] ?: 0.0) > 0.0)
-    }
-
-    @Test
-    fun badmintonTransferCoverageSummaryReturnsNormalPathForTransferRecords() = runBlocking {
-        val db = newDatabase()
-        val service = service(db)
-        val today = LocalDate.now()
-        val exerciseStableKey = insertBadmintonExercise(db, "analysis.coverage", "Coverage drill")
-        insertEntryWithSet(db, today.minusDays(1).toString(), exerciseStableKey, "Coverage drill", confirmed = true)
-
-        val summary = service.badmintonTransferCoverageSummary(latestFatigueState = null)
-
-        assertTrue(summary.isDataSufficient)
-        assertEquals(14, summary.recentWindowDays)
-        assertEquals(28, summary.baselineWindowDays)
-        assertTrue(summary.statuses.any { it.axis == BadmintonTransferAxis.LATERAL_MOVEMENT })
-    }
-
-    @Test
-    fun persistedRuntimeMetadataOverrideEnablesBadmintonTransferSummary() = runBlocking {
-        val db = newDatabase()
-        val service = service(db)
-        val today = LocalDate.now()
-        val stableKey = "analysis.override"
-        db.exerciseDao().insertExercise(
-            Exercise(
-                name = "Override source",
-                category = "Strength",
-                stableKey = stableKey,
-                analysisEligibility = "",
-                badmintonTransferStrength = "",
-                badmintonTransferRoles = "",
-                courtMovementTypes = ""
-            )
-        )
-        db.runtimeExerciseMetadataDao().upsert(
-            RuntimeExerciseMetadataDefaults.forIdentity(stableKey, "Override source")
-                .copy(
-                    analysisEligibility = MetadataTokenField.parse("BADMINTON_TRANSFER|FATIGUE"),
-                    movementFamily = "FOOTWORK",
-                    movementSubtype = "SKILL_DRILL",
-                    badmintonTransferLevel = "DIRECT",
-                    badmintonTransferType = MetadataTokenField.parse("FOOTWORK|ACCELERATION"),
-                    badmintonPhysicalQualities = MetadataTokenField.parse("FIRST_STEP|LATERAL_MOVE"),
-                    badmintonSkillTargets = MetadataTokenField.parse("FOOTWORK_SPEED"),
-                    neuromuscularStressLevel = "MODERATE",
-                    systemicMuscularStressLevel = "LOW",
-                    localMuscularStressLevel = "LOW",
-                    jointTendonImpactStressLevel = "LOW",
-                    movementFocusDemandLevel = "MODERATE",
-                    recoveryDurationClass = "SHORT"
-                )
-                .toEntity()
-        )
-        insertEntryWithSet(db, today.minusDays(1).toString(), stableKey, "Override source", confirmed = true)
-
-        val summary = service.badmintonTransferSummary()
-        val coverage = service.badmintonTransferCoverageSummary(latestFatigueState = null)
-
-        assertTrue(summary.metrics.totalTransferStimulus7d > 0.0)
-        assertTrue((summary.metrics.axisShare7d[BadmintonTransferAxis.LATERAL_MOVEMENT] ?: 0.0) > 0.0)
-        assertTrue(coverage.isDataSufficient)
-    }
-
-    @Test
     fun analysisSummariesIgnoreFutureAndOutOfWindowRecords() = runBlocking {
         val db = newDatabase()
         val service = service(db)
         val today = LocalDate.now()
-        val exerciseStableKey = insertBadmintonExercise(db, "analysis.window", "Window drill")
-        insertEntryWithSet(db, today.minusDays(2).toString(), exerciseStableKey, "Window drill", confirmed = true)
-        insertEntryWithSet(db, today.plusDays(1).toString(), exerciseStableKey, "Window drill", confirmed = true)
-        insertEntryWithSet(db, today.minusDays(40).toString(), exerciseStableKey, "Window drill", confirmed = true)
+        val exerciseStableKey = insertFatigueExercise(db, "analysis.window", "Window lift")
+        insertEntryWithSet(db, today.minusDays(2).toString(), exerciseStableKey, "Window lift", confirmed = true)
+        insertEntryWithSet(db, today.plusDays(1).toString(), exerciseStableKey, "Window lift", confirmed = true)
+        insertEntryWithSet(db, today.minusDays(40).toString(), exerciseStableKey, "Window lift", confirmed = true)
 
         val fatigueHistory = service.fatigueAnalysisHistory(days = 3)
-        val transferSummary = service.badmintonTransferSummary()
 
         assertEquals(listOf(today.minusDays(2), today.minusDays(1), today), fatigueHistory.map { it.state.date })
-        assertEquals(1, transferSummary.metrics.topTransferExercises7d.size)
-        assertEquals(
-            transferSummary.metrics.totalTransferStimulus7d,
-            transferSummary.metrics.totalTransferStimulus28d,
-            0.001
-        )
     }
 
     @Test
@@ -264,33 +173,6 @@ class AnalysisSummaryServiceTest {
             )
         )
         val exerciseStableKey = stableKey
-        return stableKey
-    }
-
-    private suspend fun insertBadmintonExercise(
-        db: TrainingDatabase,
-        stableKey: String,
-        name: String
-    ): String {
-        db.exerciseDao().insertExercise(
-            Exercise(
-                name = name,
-                category = "Badminton",
-                stableKey = stableKey,
-                analysisEligibility = "BADMINTON_TRANSFER|FATIGUE",
-                movementPattern = "FOOTWORK",
-                movementCategory = "SKILL_DRILL",
-                badmintonTransferStrength = "DIRECT",
-                badmintonTransferRoles = "FOOTWORK|ACCELERATION",
-                courtMovementTypes = "FIRST_STEP|LATERAL_MOVE",
-                badmintonSkillTargets = "FOOTWORK_SPEED",
-                systemicLoadWeight = 0.3,
-                neuralSpeedWeight = 0.5,
-                localLoadWeight = 0.2,
-                stabilityDemandLevel = "MODERATE",
-                recoveryDecayProfile = "SHORT"
-            )
-        )
         return stableKey
     }
 

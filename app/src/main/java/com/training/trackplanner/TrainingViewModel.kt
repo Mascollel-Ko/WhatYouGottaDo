@@ -4,8 +4,6 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
-import com.training.trackplanner.analysis.coach.BadmintonTransferCoverageSummary
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightBuilder
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
 import com.training.trackplanner.analysis.coach.CoachCheckInInterpreter
@@ -141,12 +139,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private val _connectiveTissueState = MutableStateFlow<TissueCurrentState?>(null)
     val connectiveTissueState: StateFlow<TissueCurrentState?> = _connectiveTissueState.asStateFlow()
 
-    private val _badmintonTransferSummary = MutableStateFlow<BadmintonTransferSummary?>(null)
-    val badmintonTransferSummary: StateFlow<BadmintonTransferSummary?> =
-        _badmintonTransferSummary.asStateFlow()
-
     private var coachFatigueCauses = CoachFatigueCauseSummary.insufficient()
-    private var coachTransferCoverage = BadmintonTransferCoverageSummary.insufficient()
     private var coachCheckInGuidance: List<String> = emptyList()
     private val _coachAnalysisInsight = MutableStateFlow(CoachAnalysisInsightSummary.empty())
     val coachAnalysisInsight: StateFlow<CoachAnalysisInsightSummary> =
@@ -614,12 +607,6 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun refreshBadmintonTransfer() {
-        viewModelScope.launch {
-            refreshAnalysisSummaries()
-        }
-    }
-
     fun selectFatigueAnalysisPeriod(period: FatigueAnalysisPeriod) {
         rebuildFatigueAnalysis(period = period)
     }
@@ -813,23 +800,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             _homeTodaySummary.value = summary
             rebuildFatigueAnalysis()
         }
-        val readinessSummary = phaseStatus?.current ?: runCatching {
+        phaseStatus?.current ?: runCatching {
             repository.todayReadinessSummary()
         }.onSuccess { summary ->
             _todayReadinessSummary.value = summary
             rebuildFatigueAnalysis()
         }.getOrNull()
-        runCatching {
-            repository.badmintonTransferSummary(readinessSummary)
-        }.onSuccess { summary ->
-            _badmintonTransferSummary.value = summary
-        }
-        runCatching {
-            repository.badmintonTransferCoverageSummary(fatigueAnalysisHistory.lastOrNull()?.state)
-        }.onSuccess { summary ->
-            coachTransferCoverage = summary
-            rebuildCoachAnalysisInsight()
-        }
         runCatching {
             repository.performanceTrendSummary()
         }.onSuccess { summary ->
@@ -867,7 +843,6 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     private fun rebuildCoachAnalysisInsight() {
         _coachAnalysisInsight.value = CoachAnalysisInsightBuilder.combine(
             fatigue = coachFatigueCauses,
-            transfer = coachTransferCoverage,
             checkInGuidance = coachCheckInGuidance
         )
     }

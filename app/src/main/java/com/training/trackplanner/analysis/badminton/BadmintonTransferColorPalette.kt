@@ -10,18 +10,7 @@ internal object BadmintonTransferColorPalette {
         "REACTION" to 0xFF4E79A7L,
         "CONDITIONING" to 0xFF6D4C41L,
         "ROTATION_GENERATION" to 0xFFB07AA1L,
-        "ANTI_ROTATION" to 0xFF5E60CEL,
-        "DECELERATION_LANDING" to 0xFFF28E2BL,
-        "UNILATERAL_STABILITY" to 0xFF2A9D8FL,
-        "LATERAL_MOVEMENT" to 0xFFB7791FL,
-        "ROTATION_CONTROL" to 0xFF5E60CEL,
-        "RACKET_SUPPORT" to 0xFF4E79A7L,
-        "AEROBIC_FOOTWORK" to 0xFF59A14FL,
-        "LOW_FATIGUE_CONTROL" to 0xFF6D4C41L,
-        "DIRECT" to 0xFF4E79A7L,
-        "SUPPORTIVE" to 0xFF2A9D8FL,
-        "GENERAL_STRENGTH" to 0xFFB7791FL,
-        "LOW" to 0xFF6D4C41L
+        "ANTI_ROTATION" to 0xFF5E60CEL
     )
 
     private val aliases = mapOf(

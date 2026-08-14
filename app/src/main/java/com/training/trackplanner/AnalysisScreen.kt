@@ -28,7 +28,6 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val readiness by viewModel.todayReadinessSummary.collectAsState()
     val todayStatus by viewModel.phaseAwareTodayStatus.collectAsState()
     val fatigueAnalysis by viewModel.fatigueAnalysisState.collectAsState()
-    val badmintonTransfer by viewModel.badmintonTransferSummary.collectAsState()
     val coachInsight by viewModel.coachAnalysisInsight.collectAsState()
     val coachingSignals by viewModel.coachingSignalsSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
@@ -81,8 +80,6 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                         onContributionSourcesApply = viewModel::selectFatigueContributionSources
                     )
                     AnalysisDestination.BADMINTON -> BadmintonTransferAnalysisContent(
-                        coachInsight = coachInsight,
-                        badmintonTransfer = badmintonTransfer,
                         performanceTrend = performanceTrend
                     )
                     AnalysisDestination.STRENGTH -> StrengthTrendAnalysisContent(

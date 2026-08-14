@@ -15,7 +15,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,15 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.training.trackplanner.analysis.badminton.BadmintonTransferBarItem
-import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
-import com.training.trackplanner.analysis.badminton.BadmintonTransferDetailChartMode
-import com.training.trackplanner.analysis.badminton.BadmintonTransferSummary
-import com.training.trackplanner.analysis.coach.BadmintonTransferAxisStatus
 import com.training.trackplanner.analysis.coach.CoachAnalysisInsightSummary
 import com.training.trackplanner.analysis.coach.CoachFatigueCauseSummary
 import com.training.trackplanner.analysis.coach.CoachingSignalSeverity
@@ -61,7 +54,6 @@ import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.data.AnalysisStats
 import com.training.trackplanner.localization.LocalizedPresentation
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -70,7 +62,6 @@ internal fun CoachAnalysisContent(
     readiness: TodayReadinessSummary?,
     todayStatus: PhaseAwareTodayStatus?,
     fatigueAnalysis: FatigueAnalysisUiState,
-    badmintonTransfer: BadmintonTransferSummary?,
     coachInsight: CoachAnalysisInsightSummary,
     coachingSignals: CoachingSignalsSummary,
     performanceTrend: PerformanceTrendSummary?,
@@ -93,7 +84,6 @@ internal fun CoachAnalysisContent(
             summary = coachInsight.fatigueCauses,
             bodyPartPressures = readiness?.fatiguePresentation?.highBodyParts.orEmpty()
         )
-        BadmintonTransferCoverageCard(coachInsight)
         RecognitionSignalsCard(coachingSignals)
         FatigueAnalysisSection(
             state = fatigueAnalysis,
@@ -103,8 +93,6 @@ internal fun CoachAnalysisContent(
             onContributionGroupingChange = onContributionGroupingChange,
             onContributionSourcesApply = onContributionSourcesApply
         )
-        badmintonTransfer?.let { BadmintonTransferCard(it) }
-            ?: InfoCard("배드민턴 전이 분석을 계산하고 있습니다.")
         performanceTrend?.let { PerformanceTrendCard(it) }
             ?: InfoCard("성과 추세를 계산하고 있습니다.")
         if (stats.confirmedSetCount == 0) {
@@ -295,42 +283,6 @@ private fun RecognitionSignalDetail(label: String, severity: CoachingSignalSever
 }
 
 @Composable
-private fun BadmintonTransferCoverageCard(insight: CoachAnalysisInsightSummary) {
-    val summary = insight.transferCoverage
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("배드민턴 전이 점검", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text(summary.headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-            if (!summary.isDataSufficient) return@Column
-            if (summary.lowAxes.isNotEmpty()) {
-                Text("부족축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                summary.lowAxes.take(4).forEach { TransferAxisRow(it) }
-            }
-            if (summary.cautionAxes.isNotEmpty()) {
-                Text("과잉·주의축", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error)
-                summary.cautionAxes.take(3).forEach { TransferAxisRow(it) }
-            }
-            if (summary.lowAxes.isEmpty() && summary.cautionAxes.isEmpty()) {
-                Text("최근 전이 축은 대체로 균형적입니다.", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-@Composable
-internal fun TransferAxisRow(axis: BadmintonTransferAxisStatus) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp)
-    ) {
-        Text(axis.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-        Text(axis.detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
 internal fun CurrentFatigueStatusCard(
     state: DailyFatigueState,
     projectedOfi: Int? = null
@@ -399,48 +351,6 @@ private fun FatigueAxisSummaryRow(axis: TodayFatigueAxisState) {
             color = if (caution) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (caution) FontWeight.SemiBold else FontWeight.Normal
         )
-    }
-}
-
-@Composable
-internal fun BadmintonTransferCard(summary: BadmintonTransferSummary) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    var chartMode by rememberSaveable { mutableStateOf(BadmintonTransferDetailChartMode.AXIS_SHARE) }
-    val allowedChartModes = listOf(
-        BadmintonTransferDetailChartMode.AXIS_SHARE,
-        BadmintonTransferDetailChartMode.WINDOW_COMPARISON
-    )
-    val effectiveChartMode = chartMode.takeIf { it in allowedChartModes }
-        ?: BadmintonTransferDetailChartMode.AXIS_SHARE
-    BackHandler(enabled = expanded) { expanded = false }
-    val chartItems = when (effectiveChartMode) {
-        BadmintonTransferDetailChartMode.AXIS_SHARE -> summary.chartData.axisShareBars
-        BadmintonTransferDetailChartMode.TRANSFER_TYPE_SHARE -> summary.chartData.transferTypeShareBars
-        BadmintonTransferDetailChartMode.WINDOW_COMPARISON -> summary.chartData.windowComparisonBars
-        BadmintonTransferDetailChartMode.TOP_EXERCISES -> summary.chartData.topExerciseBars
-    }
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("배드민턴 전이 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                AnalysisConfidencePill(summary.confidence)
-            }
-            Text(summary.metrics.recommendationSentence, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "자세히 닫기" else "자세히 보기") }
-            if (expanded) {
-                Text(summary.metrics.detailInsightText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                AnalysisChipRow(
-                    labels = allowedChartModes.map { it.displayName },
-                    selected = allowedChartModes.indexOf(effectiveChartMode).coerceAtLeast(0),
-                    onSelect = { chartMode = allowedChartModes[it] }
-                )
-                TransferBarList(chartItems)
-                if (summary.metrics.recommendedExerciseCandidates.isNotEmpty()) {
-                    Text("추천축 후보 운동", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                    summary.metrics.recommendedExerciseCandidates.forEach { Text("- $it", style = MaterialTheme.typography.bodySmall) }
-                }
-            }
-        }
     }
 }
 
@@ -523,31 +433,6 @@ private fun PerformanceDetailSectionView(section: PerformanceDetailSection, summ
         }
         AnalysisChartSpecView(chartSpec)
         Text(section.shortInterpretation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun TransferBarList(items: List<BadmintonTransferBarItem>) {
-    if (items.isEmpty()) {
-        InfoCard("전이 자극 기록이 부족합니다.")
-        return
-    }
-    val max = items.maxOf { abs(it.value) }.coerceAtLeast(1.0)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items.forEach { item ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(item.label, style = MaterialTheme.typography.labelMedium)
-                    Text(item.valueLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                }
-                Surface(
-                    modifier = Modifier.fillMaxWidth((abs(item.value) / max).coerceIn(0.04, 1.0).toFloat()).height(8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = item.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
-                        ?: MaterialTheme.colorScheme.primary
-                ) {}
-            }
-        }
     }
 }
 
