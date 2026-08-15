@@ -178,7 +178,7 @@ class StrengthPerformanceLikelihoodTest {
     }
 
     @Test
-    fun `eligible squat metadata receives a conservative relevant-movement proxy`() {
+    fun `eligible metadata cannot create a strength proxy without an exact reviewed row`() {
         val squat = Exercise(
             name = "Front squat",
             category = "Strength",
@@ -188,11 +188,7 @@ class StrengthPerformanceLikelihoodTest {
             estimated1RmEligible = true
         )
 
-        val loading = registry.proxyLoadings(squat).single()
-        assertEquals(StrengthPerformanceRegistry.BACK_SQUAT, loading.targetKey)
-        assertEquals(StrengthProxyMode.LOCAL_INNOVATION_SHARED_ONLY, loading.proxyMode)
-        assertTrue(loading.loadingWeight in 0.0..1.0)
-        assertTrue(loading.factorLoadings.keys.none { it.value.startsWith("strength.factor.target.") })
+        assertTrue(registry.proxyLoadings(squat).isEmpty())
     }
 
     private fun session(

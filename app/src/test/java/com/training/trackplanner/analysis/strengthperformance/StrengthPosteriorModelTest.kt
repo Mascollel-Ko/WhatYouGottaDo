@@ -110,7 +110,7 @@ class StrengthPosteriorModelTest {
             val exercise = Exercise(
                 name = "Front squat",
                 category = "Strength",
-                stableKey = "front-squat",
+                stableKey = "ex_c5043892",
                 movementPattern = "KNEE_DOMINANT_LOWER",
                 strengthProgressionGroup = "FRONT_SQUAT",
                 estimated1RmEligible = true

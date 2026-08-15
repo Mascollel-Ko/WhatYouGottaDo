@@ -1,0 +1,37 @@
+stableKey,exerciseName,legacyInferredTarget,exactReviewedRow,postRemoval,class
+ex_1052e9fa,스미스 머신 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_28902b13,푸시업,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_30a0e9aa,원암 덤벨 로우,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_377448a9,스플릿 스텝 후 좌우 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_389920ab,글루트 브릿지,strength.conventional_deadlift,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_389e0556,원암 덤벨 벤치프레스,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_462c760e,체스트 서포티드 원암 머신 로우,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_4c76dbb2,케이블 풀스루,strength.conventional_deadlift,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_6232f4bc,박스 스텝업,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_64644b5e,런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_64661229,월싯,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_69a56484,래터럴 스텝다운,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_6a966452,체스트 서포티드 원암 덤벨 로우,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_704cbf1a,덤벨 스텝업,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_721f7b5b,힙 쓰러스트,strength.conventional_deadlift,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_73b0b63f,아처 푸시업,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_7ce96a7a,프론트풋 엘리베이티드 스플릿 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_85f12271,원레그 박스 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_9f283612,원암 인클라인 덤벨 프레스,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_a091b9fe,원레그 레그 프레스,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_a611010d,코사크 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_b4b198de,래터럴 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_c8bcf3ce,리버스 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_cb3c4dc2,맨몸 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_d67e5761,피스톨 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_debf6a8b,다이아몬드 푸시업,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_df966b45,점프 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_e0b1e364,원암 덤벨 RDL,strength.conventional_deadlift,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_e2efd0fe,불가리안 스플릿 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_e3715c0b,워킹 런지,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_e9e97659,핵 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_ee378da7,스케이터 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_f1d31d3d,원레그 핵 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_f2a79d37,스플릿 스쿼트,strength.back_squat,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+ex_fb67af37,디클라인 푸시업,strength.bench_press,NO,NO_PROXY,INVALID_INFERENCE_REMOVED
+single_leg_hip_bridge,원레그 힙 브릿지,strength.conventional_deadlift,NO,NO_PROXY,INVALID_INFERENCE_REMOVED

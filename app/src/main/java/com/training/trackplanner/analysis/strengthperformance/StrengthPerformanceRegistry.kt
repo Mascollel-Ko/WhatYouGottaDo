@@ -79,12 +79,9 @@ class StrengthPerformanceRegistry private constructor(
     fun proxyLoadings(exerciseStableKey: String): List<StrengthProxyLoadingSpec> =
         proxyRowsByExercise[exerciseStableKey].orEmpty()
 
-    /**
-     * Reviewed stable-key rows remain authoritative. Metadata only broadens the
-     * relevant-movement set when an eligible strength exercise has no row yet.
-     */
+    /** Exercise metadata cannot create a strength proxy relation. */
     fun proxyLoadings(exercise: Exercise): List<StrengthProxyLoadingSpec> =
-        proxyLoadings(exercise.stableKey).ifEmpty { metadataProxyLoadings(exercise) }
+        proxyLoadings(exercise.stableKey)
 
     fun loading(exerciseStableKey: String, targetKey: StrengthPerformanceTargetKey): StrengthProxyLoadingSpec? =
         proxyLoadings(exerciseStableKey).firstOrNull { loading -> loading.targetKey == targetKey }
@@ -93,87 +90,10 @@ class StrengthPerformanceRegistry private constructor(
         target.sharedFactorLoadings.keys + target.targetSpecificFactorKey
     }.distinct().sortedBy(StrengthFactorKey::value)
 
-    private fun metadataProxyLoadings(exercise: Exercise): List<StrengthProxyLoadingSpec> {
-        if (!exercise.estimated1RmEligible || exercise.needsReview) return emptyList()
-        val text = listOf(
-            exercise.familyId,
-            exercise.familyRole,
-            exercise.movementPattern,
-            exercise.movementCategory,
-            exercise.strengthProgressionGroup,
-            exercise.mainLiftGroup,
-            exercise.analysisEligibility,
-            exercise.equipment,
-            exercise.equipmentTags
-        ).joinToString("|").uppercase()
-        val machine = "MACHINE" in text || "LEG_PRESS" in text || "HACK_SQUAT" in text
-        fun row(
-            targetKey: StrengthPerformanceTargetKey,
-            weight: Double,
-            semantics: StrengthLoadSemantics,
-            vararg factors: Pair<String, Double>
-        ) = StrengthProxyLoadingSpec(
-            exerciseStableKey = exercise.stableKey,
-            targetKey = targetKey,
-            proxyMode = StrengthProxyMode.LOCAL_INNOVATION_SHARED_ONLY,
-            transferCoefficient = weight,
-            transferLogVariance = METADATA_PROXY_TRANSFER_VARIANCE,
-            factorLoadings = factors.associate { (key, value) -> StrengthFactorKey(key) to value },
-            loadSemantics = semantics,
-            minimumLocalHistoryCount = 2,
-            configVersion = METADATA_PROXY_CONFIG_VERSION,
-            rationale = "Reviewed metadata-family local innovation fallback",
-            sourceClass = "PRODUCT_POLICY",
-            reviewedStatus = "REVIEWED"
-        )
-        return when {
-            text.containsAny("SQUAT", "KNEE_DOMINANT", "LEG_PRESS", "LUNGE", "SPLIT_SQUAT", "STEP_UP") -> {
-                val isLunge = text.containsAny("LUNGE", "SPLIT_SQUAT", "STEP_UP")
-                listOf(row(
-                    BACK_SQUAT,
-                    if (isLunge) 0.28 else if (machine) 0.42 else 0.52,
-                    if (machine) StrengthLoadSemantics.MACHINE_STACK_LOAD else StrengthLoadSemantics.EXTERNAL_LOAD,
-                    "strength.factor.knee_extension" to if (isLunge) 0.80 else 0.92,
-                    "strength.factor.hip_extension_posterior_chain" to if (isLunge) 0.48 else 0.62,
-                    "strength.factor.trunk_bracing" to if (isLunge) 0.30 else 0.55
-                ))
-            }
-            text.containsAny("DEADLIFT", "HINGE", "ROMANIAN", "_RDL", "HIP_THRUST", "GLUTE_BRIDGE") -> listOf(row(
-                CONVENTIONAL_DEADLIFT,
-                if (text.containsAny("HIP_THRUST", "GLUTE_BRIDGE")) 0.30 else 0.50,
-                StrengthLoadSemantics.EXTERNAL_LOAD,
-                "strength.factor.knee_extension" to 0.18,
-                "strength.factor.hip_extension_posterior_chain" to 0.88,
-                "strength.factor.trunk_bracing" to 0.62
-            ))
-            text.containsAny("BENCH", "HORIZONTAL_PUSH", "CHEST_PRESS", "DUMBBELL_PRESS", "DIP") -> listOf(row(
-                BENCH_PRESS,
-                if (machine) 0.36 else 0.46,
-                if (machine) StrengthLoadSemantics.MACHINE_STACK_LOAD else StrengthLoadSemantics.EXTERNAL_LOAD,
-                "strength.factor.press_shared" to 0.78,
-                "strength.factor.horizontal_press" to 0.72,
-                "strength.factor.elbow_extension" to 0.42
-            ))
-            text.containsAny("VERTICAL_PULL", "PULL_UP", "CHIN_UP", "LAT_PULLDOWN") -> listOf(row(
-                WEIGHTED_PULL_UP,
-                if (machine) 0.40 else 0.50,
-                if (machine) StrengthLoadSemantics.MACHINE_STACK_LOAD else StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD,
-                "strength.factor.vertical_pull_shared" to 0.82,
-                "strength.factor.shoulder_adduction_extension" to 0.70,
-                "strength.factor.elbow_flexion" to 0.55,
-                "strength.factor.scapular_depression_control" to 0.48
-            ))
-            else -> emptyList()
-        }
-    }
-
-    private fun String.containsAny(vararg values: String): Boolean = values.any(::contains)
-
     companion object {
         const val TARGET_CONFIG_VERSION = "strength-target-registry-1.1.0"
         const val FACTOR_SCHEMA_VERSION = "strength-factor-schema-2.0.0"
         const val PROXY_CONFIG_VERSION = "strength-proxy-registry-2.0.0"
-        const val METADATA_PROXY_CONFIG_VERSION = "strength-proxy-metadata-2.0.0"
 
         val BENCH_PRESS = StrengthPerformanceTargetKey("strength.bench_press")
         val BACK_SQUAT = StrengthPerformanceTargetKey("strength.back_squat")
@@ -265,6 +185,5 @@ class StrengthPerformanceRegistry private constructor(
 
         private const val TARGET_FILE = "strength_target_registry_v1.csv"
         private const val PROXY_FILE = "strength_proxy_loadings_v1.csv"
-        private const val METADATA_PROXY_TRANSFER_VARIANCE = 0.12
     }
 }
