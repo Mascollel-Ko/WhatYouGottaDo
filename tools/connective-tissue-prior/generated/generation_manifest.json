@@ -1,12 +1,12 @@
 {
   "appReadyPath": "app/src/main/assets/metadata/tissue_load_v1/connective_tissue_prior_baselines_v1.json",
-  "appReadySha256": "0295fdfca16b7ea7461f86c700f65a64e798cb635eba423f6a960449fb3f8661",
+  "appReadySha256": "0096441bfd923a96949a2df1bdce0f63c7fed6d8c611a854e9df0983b9109725",
   "canonicalRegistryPath": "tools/connective-tissue-prior/generated/connective_tissue_prior_baselines.json",
-  "canonicalRegistrySha256": "0295fdfca16b7ea7461f86c700f65a64e798cb635eba423f6a960449fb3f8661",
-  "deterministicInputChecksum": "e7b81443afca39b0a55dda6b49a167fd34f0666305414a89b5d3bb0a59012b57",
-  "deterministicOutputChecksum": "1889f4d9b4076e35af87a9b5c7cfec067aac3d09a6692011ff2820bad3cf9164",
+  "canonicalRegistrySha256": "0096441bfd923a96949a2df1bdce0f63c7fed6d8c611a854e9df0983b9109725",
+  "deterministicInputChecksum": "a6a90344c1f3ad05500d2101fe7ce8f3ce78df7d328b14d422ceee013819b5ea",
+  "deterministicOutputChecksum": "a8b2c8fd6c50fd73111a6fca074521670089a0f2c578f39f397d5fe43f73f58e",
   "generatorVersion": "CT-PRIOR-GENERATOR-1.0.0",
-  "mappingDataFingerprint": "10bc3c81ddd1bcf4f9ab9649cc24198ed0feb06d9412ccfbc3d25941e41c2a4e",
-  "recoveryEngineFingerprint": "8ab9bc79ce452c6f80870cfb30973291bc85749e0d0538dacf4c6ccf9fbbbf6a",
+  "mappingDataFingerprint": "087e64ed5c0d38a799ac1fbe9ea260c5119220c4e962a9c547f913423abe1ab7",
+  "recoveryEngineFingerprint": "07a5da10fdd1a1e1069883f0e9da3f893edb4cdbb3317ce93629a1c1224a05dd",
   "schemaVersion": "1.0.0"
 }

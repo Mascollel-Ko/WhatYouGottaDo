@@ -341,39 +341,41 @@ internal class ConnectiveTissuePriorGenerator(private val root: Path) {
     ): Map<IntensityLevel, List<TissueExposureEvent>> =
         IntensityLevel.entries.associateWith { level ->
             val rpe = level.rpe * habitualBand.effortMultiplier
-            val records = catalog.exerciseStableKeys.sorted().mapIndexed { index, stableKey ->
-                val exercise = Exercise(
-                    name = catalog.exerciseNamesByStableKey.getValue(stableKey),
-                    category = "OFFLINE_PRIOR_FIXTURE",
-                    stableKey = stableKey
-                )
-                TissueWorkoutRecord(
-                    entry = WorkoutEntry(
-                        id = index + 1L,
-                        date = START_DATE.toString(),
-                        exerciseStableKey = exercise.stableKey,
-                        exerciseName = exercise.name,
-                        category = exercise.category,
-                        rpe = rpe,
-                        performedAt = START_DATE.atTime(scenarioCatalog.eventLocalHour, 0)
-                            .atZone(zoneId).toInstant().toEpochMilli()
-                    ),
-                    sets = listOf(
-                        WorkoutSet(
+            val records = priorSimulationExerciseStableKeys(catalog)
+                .sorted()
+                .mapIndexed { index, stableKey ->
+                    val exercise = Exercise(
+                        name = catalog.exerciseNamesByStableKey.getValue(stableKey),
+                        category = "OFFLINE_PRIOR_FIXTURE",
+                        stableKey = stableKey
+                    )
+                    TissueWorkoutRecord(
+                        entry = WorkoutEntry(
                             id = index + 1L,
-                            entryId = index + 1L,
-                            setIndex = 0,
-                            reps = 10,
-                            weightKg = 40.0,
-                            seconds = 60,
-                            confirmed = true,
-                            rpe = rpe
-                        )
-                    ),
-                    exercise = exercise,
-                    bodyWeightKg = bodyWeightKg
-                )
-            }
+                            date = START_DATE.toString(),
+                            exerciseStableKey = exercise.stableKey,
+                            exerciseName = exercise.name,
+                            category = exercise.category,
+                            rpe = rpe,
+                            performedAt = START_DATE.atTime(scenarioCatalog.eventLocalHour, 0)
+                                .atZone(zoneId).toInstant().toEpochMilli()
+                        ),
+                        sets = listOf(
+                            WorkoutSet(
+                                id = index + 1L,
+                                entryId = index + 1L,
+                                setIndex = 0,
+                                reps = 10,
+                                weightKg = 40.0,
+                                seconds = 60,
+                                confirmed = true,
+                                rpe = rpe
+                            )
+                        ),
+                        exercise = exercise,
+                        bodyWeightKg = bodyWeightKg
+                    )
+                }
             TissueRcvEventLedgerBuilder(catalog, zoneId).build(records).events
                 .filter { it.initialExposure > NUMERICAL_ZERO }
                 .sortedWith(compareBy({ it.exerciseStableKey }, { it.key.loadUnitStableKey }, { it.key.loadDimension }))
@@ -810,6 +812,13 @@ private data class ProfileRegistry(
             return result
         }
     }
+}
+
+internal fun priorSimulationExerciseStableKeys(catalog: TissueRcvCatalog): Set<String> {
+    val materializedEquipmentVariants = catalog.exerciseDoseProfiles.values
+        .filter { it.provenance == "MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT" }
+        .mapTo(mutableSetOf(), TissueExerciseDoseProfile::exerciseStableKey)
+    return catalog.exerciseStableKeys - materializedEquipmentVariants
 }
 
 private data class WeightedValue(val value: Double, val weight: Double)

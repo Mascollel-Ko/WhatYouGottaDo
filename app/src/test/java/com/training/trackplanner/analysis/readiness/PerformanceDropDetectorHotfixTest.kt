@@ -1,6 +1,9 @@
 package com.training.trackplanner.analysis.readiness
 
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.MetadataTokenField
+import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -21,7 +24,8 @@ class PerformanceDropDetectorHotfixTest {
                 record(date = today, reps = 6, weight = 94.0, rpe = 7.0)
             ),
             exerciseMap = mapOf(exercise.stableKey to exercise),
-            today = today
+            today = today,
+            runtimeMetadataCatalog = runtimeMetadataCatalog()
         )
 
         assertFalse(result.estimated1RmDrop)
@@ -38,7 +42,8 @@ class PerformanceDropDetectorHotfixTest {
                 record(date = today.minusDays(8), reps = 8, weight = 95.0, rpe = 7.0)
             ),
             exerciseMap = mapOf(exercise.stableKey to exercise),
-            today = today
+            today = today,
+            runtimeMetadataCatalog = runtimeMetadataCatalog()
         )
 
         assertTrue(result.sameLoadRpeIncrease)
@@ -95,5 +100,18 @@ class PerformanceDropDetectorHotfixTest {
             volumeLoadEligible = true,
             analysisEligibility = "FATIGUE|STRENGTH_PROGRESS",
             metadataConfidence = "HIGH"
+        )
+
+    private fun runtimeMetadataCatalog(): RuntimeExerciseMetadataCatalog =
+        RuntimeExerciseMetadataCatalog.of(
+            listOf(
+                RuntimeExerciseMetadataDefaults.forIdentity(exercise.stableKey, exercise.name).copy(
+                    activityKind = "EXERCISE",
+                    planningEligibility = "ANALYSIS_ONLY",
+                    progressMetricType = "ESTIMATED_1RM",
+                    strengthProgressionGroup = "SQUAT",
+                    analysisEligibility = MetadataTokenField.parse("FATIGUE|STRENGTH_PROGRESS")
+                )
+            )
         )
 }

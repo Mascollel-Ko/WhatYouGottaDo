@@ -30,6 +30,20 @@ class TissuePriorBaselineGenerationTest {
     }
 
     @Test
+    fun equipmentSplitVariantsDoNotReweightThePriorSimulationPopulation() {
+        val catalog = repository().catalog
+        val materializedVariants = catalog.exerciseDoseProfiles.values
+            .filter { it.provenance == "MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT" }
+            .mapTo(mutableSetOf(), TissueExerciseDoseProfile::exerciseStableKey)
+        val simulationKeys = priorSimulationExerciseStableKeys(catalog)
+
+        assertEquals(33, materializedVariants.size)
+        assertEquals(224, simulationKeys.size)
+        assertTrue(simulationKeys.intersect(materializedVariants).isEmpty())
+        assertEquals(catalog.exerciseStableKeys, simulationKeys + materializedVariants)
+    }
+
+    @Test
     fun everyGeneratedBucketHasFiniteStrictlyOrderedBoundaries() {
         val profiles = registry.getJSONArray("profiles").objects()
         assertEquals(registry.getInt("priorProfileCount"), profiles.size)

@@ -294,7 +294,7 @@ class StrengthPosteriorEventIntegrationTest {
                 db = db,
                 date = "2026-07-${(index + 1).toString().padStart(2, '0')}",
                 confirmed = listOf(true),
-                exercise = frontSquatExercise(index.toLong() + 1)
+                exercise = frontSquatExercise()
             )
         }
 
@@ -541,10 +541,10 @@ class StrengthPosteriorEventIntegrationTest {
         stableKey = "barbell_bench_press"
     )
 
-    private fun frontSquatExercise(id: Long): Exercise = Exercise(
+    private fun frontSquatExercise(): Exercise = Exercise(
         name = "Front squat",
         category = "Strength",
-        stableKey = "front-squat-$id",
+        stableKey = "ex_c5043892",
         movementPattern = "KNEE_DOMINANT_LOWER",
         strengthProgressionGroup = "FRONT_SQUAT",
         estimated1RmEligible = true

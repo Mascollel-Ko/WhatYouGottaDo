@@ -34,12 +34,12 @@ class LegacyExerciseImportMapperTest {
     }
 
     @Test
-    fun exactApprovedNameWorksOnlyWhenKeyIsBlank() {
+    fun approvedNameNeverGrantsCanonicalIdentityWithoutItsReviewedKey() {
         val mapping = mapper.mappings().first { it.importRule == "DIRECT" }
-        val resolved = resolve("", mapping.oldName)
+        val blankKey = resolve("", mapping.oldName)
         val unknownKey = resolve("unknown_old_key", mapping.oldName)
 
-        assertEquals(mapping.canonicalStableKey, (resolved as LegacyExerciseResolution.Resolved).canonicalStableKey)
+        assertTrue(blankKey is LegacyExerciseResolution.Rejected)
         assertTrue(unknownKey is LegacyExerciseResolution.Rejected)
     }
 

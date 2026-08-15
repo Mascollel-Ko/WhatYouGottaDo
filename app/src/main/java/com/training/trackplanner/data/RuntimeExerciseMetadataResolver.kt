@@ -214,7 +214,7 @@ data class RuntimeMetadataEditorOptions(
         private val levels = listOf("LOW", "MODERATE", "HIGH", "VERY_HIGH")
         private val durations = listOf("SHORT", "MEDIUM", "LONG", "VERY_LONG")
         private val defaultValuesByField = mapOf(
-            "activityKind" to listOf("UNKNOWN", "EXERCISE", "SPORT_SESSION"),
+            "activityKind" to listOf("EXERCISE", "SPORT_SESSION"),
             "planningEligibility" to listOf("PROGRAM_SELECTABLE", "FATIGUE_ONLY", "ANALYSIS_ONLY", "HIDDEN"),
             "movementFamily" to MovementPattern.entries.map { it.name } + ProgramSlotId.entries.map { it.name } + listOf("NOT_APPLICABLE"),
             "movementSubtype" to MovementPattern.entries.map { it.name } + listOf("NOT_APPLICABLE"),

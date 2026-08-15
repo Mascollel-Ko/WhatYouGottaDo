@@ -173,7 +173,23 @@ class AnalysisSummaryServiceTest {
                 volumeLoadEligible = true
             )
         )
-        val exerciseStableKey = stableKey
+        db.runtimeExerciseMetadataDao().upsert(
+            RuntimeExerciseMetadataDefaults.forIdentity(stableKey, name).copy(
+                activityKind = "EXERCISE",
+                planningEligibility = "ANALYSIS_ONLY",
+                movementFamily = "SQUAT",
+                movementSubtype = "LOWER_STRENGTH",
+                progressMetricType = "ESTIMATED_1RM",
+                strengthProgressionGroup = "SQUAT",
+                analysisEligibility = MetadataTokenField.parse("FATIGUE|STRENGTH_PROGRESS"),
+                primaryStressProfile = "HEAVY_AXIAL_LOWER_STRESS",
+                recoveryDecayProfile = "LONG",
+                neuromuscularStressLevel = "HIGH",
+                systemicMuscularStressLevel = "HIGH",
+                localMuscularStressLevel = "HIGH",
+                recoveryDurationClass = "LONG"
+            ).toEntity()
+        )
         return stableKey
     }
 
