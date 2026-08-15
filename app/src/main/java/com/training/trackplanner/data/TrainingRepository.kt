@@ -6,9 +6,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.room.withTransaction
 import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
-import com.training.trackplanner.analysis.core.AnalysisInputCollector
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
-import com.training.trackplanner.analysis.engine.AnalysisEngineV3
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
@@ -1234,27 +1232,6 @@ class TrainingRepository(
             ).joinToString(", ")
         )
 
-        runCatching {
-            val exercises = exerciseDao.allExercises()
-            AnalysisEngineV3(
-                inputCollector = AnalysisInputCollector(db, resolvedRuntimeMetadataCatalog(exercises)),
-                dateProvider = analysisDateProvider
-            ).analyze()
-        }.onSuccess { result ->
-            Log.d(
-                "AnalysisEngineV3",
-                listOf(
-                    "today=${result.today}",
-                    "weeklyLoad7=${result.commonLoadMetrics.weeklyLoad7}",
-                    "chronicLoad28=${result.commonLoadMetrics.chronicLoad28}",
-                    "plannedSessionsNext7=${result.commonPlanProjectionMetrics.plannedSessionsNext7}",
-                    "enabledMethodResults=${result.methodResults.size}",
-                    "warnings=${result.debugWarnings.joinToString("|")}"
-                ).joinToString(", ")
-            )
-        }.onFailure { error ->
-            Log.w("AnalysisEngineV3", "V3 debug summary failed.", error)
-        }
     }
 
     private suspend fun AppMetaDao.intValue(key: String): Int =
