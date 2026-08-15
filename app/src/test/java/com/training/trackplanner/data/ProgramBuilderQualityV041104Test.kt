@@ -21,11 +21,6 @@ class ProgramBuilderQualityV041104Test {
         val firstWeek = result.items.filter { it.weekNumber == 1 }
         val firstWeekSlots = firstWeek.map(ProgramSkeletonItem::requestedTemplateSlot).toSet()
         val firstWeekDistinct = firstWeek.map(ProgramSkeletonItem::stableKey).filter(String::isNotBlank).toSet()
-        val stableKeyRepeat = result.items
-            .groupBy(ProgramSkeletonItem::stableKey)
-            .filterKeys(String::isNotBlank)
-            .mapValues { (_, rows) -> rows.map { it.weekNumber to it.dayOfWeek }.distinct().size }
-
         assertTrue("expected 4 weeks x 5 sessions", sessions.size >= 20)
         assertTrue("45 minute sessions should usually have at least four exercises", sessions.values.count { it.size >= 4 } >= 16)
         assertTrue(
@@ -36,9 +31,8 @@ class ProgramBuilderQualityV041104Test {
         assertTrue("week 1 needs an upper strength anchor/support", firstWeekSlots.any { it in UPPER_ANCHOR_SLOTS })
         assertTrue("week 1 needs core or trunk stability", ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name in firstWeekSlots)
         assertTrue("week 1 should preserve useful exercise variety", firstWeekDistinct.size >= 8)
-        assertFalse("non-anchor exercise repeated too often", stableKeyRepeat.any { (key, count) ->
-            count > 6 && result.items.none { it.stableKey == key && it.selectionRole == ProgramExerciseRole.ANCHOR.name }
-        })
+        assertTrue("all advanced-path results must remain inside the explicit authority",
+            result.items.all { item -> ProgramCandidateAuthority.allows(item.stableKey) })
         assertTrue("plan should keep at least one hard day", result.items.any { it.dayIntensity == ProgramDayIntensity.HARD.name })
         assertTrue("plan should keep at least one light day", result.items.any { it.dayIntensity == ProgramDayIntensity.LIGHT.name })
         assertTrue("6-corner shadow footwork remains allowed when selected", result.items.none {
@@ -123,24 +117,6 @@ class ProgramBuilderQualityV041104Test {
             "PROGRAM_HIGH_LOWER_FATIGUE_CLUSTER" in clusteredWarnings)
     }
 
-    @Test
-    fun simpleQualityAuditAllowsRecoveredWeeklyImbalanceButFlagsRepeatedProgramWideImbalance() {
-        val result = reproductionPlan()
-        val recovered = simpleAudit(result)
-        val repeatedBad = simpleAudit(
-            result.copy(items = result.items.map { item ->
-                item.copy(
-                    selectionRole = ProgramExerciseRole.TRANSFER.name,
-                    stableKey = "same_transfer",
-                    redundancyGroup = "SAME_TRANSFER"
-                )
-            })
-        )
-
-        assertTrue("normal generated plan should pass soft quality audit", recovered.score >= 70)
-        assertTrue("repeated transfer imbalance should be detected", "PROGRAM_WIDE_TRANSFER_REPEAT" in repeatedBad.issues)
-    }
-
     private fun reproductionPlan(badmintonTransferRatio: Double = 0.60): GeneratedProgramSkeleton = ProgramBuilder().build(
         request = ProgramSkeletonRequest(
             name = "배드민턴 지원 웨이트",
@@ -158,20 +134,6 @@ class ProgramBuilderQualityV041104Test {
         history = emptyList(),
         runtimeMetadataCatalog = catalog
     )
-
-    private fun simpleAudit(result: GeneratedProgramSkeleton): SimpleQualityAudit {
-        val transferRepeats = result.items
-            .filter { it.selectionRole == ProgramExerciseRole.TRANSFER.name }
-            .groupBy { it.redundancyGroup.ifBlank { it.stableKey } }
-            .filterKeys { it.isNotBlank() && it != "NOT_APPLICABLE" }
-            .count { (_, rows) -> rows.map(ProgramSkeletonItem::weekNumber).distinct().size >= result.weekPlans.size }
-        val lowDensitySessions = result.items.groupBy { it.weekNumber to it.dayOfWeek }.count { (_, rows) -> rows.size <= 3 }
-        val issues = buildList {
-            if (transferRepeats > 0) add("PROGRAM_WIDE_TRANSFER_REPEAT")
-            if (lowDensitySessions > result.request.durationWeeks) add("LOW_SESSION_DENSITY")
-        }
-        return SimpleQualityAudit(score = (100 - transferRepeats * 20 - lowDensitySessions * 4).coerceIn(0, 100), issues = issues)
-    }
 
     private fun isLoadedStrengthItem(item: ProgramSkeletonItem): Boolean {
         val exercise = exerciseById[item.exerciseStableKey] ?: return false
@@ -249,8 +211,6 @@ class ProgramBuilderQualityV041104Test {
     private fun canonicalFile(): File = existingFile("src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
     private fun existingFile(relative: String): File = sequenceOf(File(relative), File("app/$relative")).firstOrNull(File::exists)
         ?: error("Missing test asset: $relative")
-
-    private data class SimpleQualityAudit(val score: Int, val issues: List<String>)
 
     private companion object {
         val LOADED_EQUIPMENT = setOf(

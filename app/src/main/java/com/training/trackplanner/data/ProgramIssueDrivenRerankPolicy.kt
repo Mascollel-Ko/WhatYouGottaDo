@@ -37,7 +37,7 @@ internal class ProgramIssueDrivenRerankPolicy(
         reservoir: ProgramCandidateReservoir
     ): ProgramRepairResult {
         val target = skeleton.items
-            .filter { corePatternPolicy.corePattern(it) == ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION }
+            .filter { corePatternPolicy.corePattern(it) != ProgramCorePattern.NONE }
             .groupBy { it.stableKey }
             .values
             .firstOrNull { it.size > 1 }

@@ -13,21 +13,23 @@ class ProgramBuilderSelectedMainSlotRepairTest {
     )
 
     @Test
-    fun selectedMainAndCaptainChairTargetsSurviveHardGatesInTheReservoir() {
+    fun selectedMainTargetsSurviveWhileUnapprovedCaptainChairStaysOutOfTheReservoir() {
         val inventory = ProgramCandidateInventory().collect(
             exercises = exercises,
             runtimeMetadataCatalog = catalog,
             availableEquipment = allEquipmentTokens()
         )
         val reservoirKeys = inventory.reservoir.candidates.map { it.exercise.stableKey }.toSet()
-        val expectedKeys = SELECTED_MAIN_KEYS + setOf("ex_a345e30b")
+        val expectedKeys = SELECTED_MAIN_KEYS
         val missingKeys = expectedKeys - reservoirKeys
 
         assertTrue("missing from reservoir after hard gates: $missingKeys", missingKeys.isEmpty())
+        assertTrue("unapproved captain-chair keys must stay out of the reservoir",
+            reservoirKeys.none(CAPTAIN_CHAIR_KEYS::contains))
     }
 
     @Test
-    fun scoreTraceShowsSelectedMainBoostAndCaptainChairPenaltyBeforeSelection() {
+    fun scoreTraceShowsSelectedMainBoostWithoutAdmittingCaptainChair() {
         val result = reproductionPlan()
         val traces = result.candidateTraces.flatMap(ProgramCandidateTrace::scoreAdjustments)
 
@@ -35,10 +37,8 @@ class ProgramBuilderSelectedMainSlotRepairTest {
             "selected main candidates should reach scoring trace",
             traces.any { it.stableKey in SELECTED_MAIN_KEYS && it.selectedMainBoostApplied }
         )
-        assertTrue(
-            "captain chair should be visible in scoring trace with its penalty",
-            traces.any { it.stableKey in CAPTAIN_CHAIR_KEYS && it.captainChairPenaltyApplied }
-        )
+        assertTrue("captain chair must be rejected before scoring",
+            traces.none { it.stableKey in CAPTAIN_CHAIR_KEYS })
     }
 
     @Test

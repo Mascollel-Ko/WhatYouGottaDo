@@ -20,7 +20,8 @@ internal class ProgramCandidateInventory(
         roleRelationCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
     ): ProgramCandidateInventoryResult {
         val active = exercises.filter(Exercise::isActive)
-        val hardEligible = active.map { exercise ->
+        val authorityApproved = active.filter { exercise -> ProgramCandidateAuthority.allows(exercise.stableKey) }
+        val hardEligible = authorityApproved.map { exercise ->
             val metadata = runtimeMetadataCatalog.resolve(exercise)
             ProgramCandidate(
                 exercise = exercise,

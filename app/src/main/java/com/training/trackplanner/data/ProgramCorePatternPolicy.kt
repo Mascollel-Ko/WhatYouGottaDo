@@ -1,6 +1,12 @@
 package com.training.trackplanner.data
 
 internal class ProgramCorePatternPolicy {
+    fun patternForStableKey(stableKey: String): ProgramCorePattern = when {
+        stableKey == DEAD_BUG_STABLE_KEY -> ProgramCorePattern.ANTI_EXTENSION
+        stableKey in ANTI_ROTATION_STABLE_KEYS -> ProgramCorePattern.ANTI_ROTATION
+        else -> ProgramCorePattern.NONE
+    }
+
     fun adjustment(
         candidate: ProgramCandidate,
         classification: ProgramCandidateClassification,
@@ -49,26 +55,17 @@ internal class ProgramCorePatternPolicy {
         }
     }
 
-    fun corePattern(item: ProgramSkeletonItem): ProgramCorePattern {
-        val text = listOf(item.exerciseName, item.stableKey, item.movementFamily, item.movementSubtype, item.redundancyGroup)
-            .joinToString("|")
-            .uppercase()
-        return when {
-            listOf("CAPTAIN", "LEG_RAISE", "HIP_FLEXOR", "CORE_FLEXION").any(text::contains) ->
-                ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION
-            "ANTI_ROTATION" in text || "PALLOF" in text -> ProgramCorePattern.ANTI_ROTATION
-            "ANTI_EXTENSION" in text || "DEAD_BUG" in text -> ProgramCorePattern.ANTI_EXTENSION
-            "SIDE_PLANK" in text || "LATERAL" in text -> ProgramCorePattern.LATERAL_STABILITY
-            "CARRY" in text || "FARMER" in text || "SUITCASE" in text -> ProgramCorePattern.CARRY
-            else -> ProgramCorePattern.NONE
-        }
-    }
+    fun corePattern(item: ProgramSkeletonItem): ProgramCorePattern = patternForStableKey(item.stableKey)
 
     private fun isCoreAccessoryOrFiller(item: ProgramSkeletonItem): Boolean =
         item.selectionRole in ACCESSORY_ROLE_NAMES ||
             corePattern(item) != ProgramCorePattern.NONE
 
     private companion object {
+        const val DEAD_BUG_STABLE_KEY = "ex_d5bdffe1"
+        val ANTI_ROTATION_STABLE_KEYS =
+            ProgramCandidateAuthority.badmintonAccessoryStableKeysByCategory
+                .getValue(ProgramBadmintonCategory.ANTI_ROTATION) - DEAD_BUG_STABLE_KEY
         val ACCESSORY_TIERS = setOf(
             ProgramCandidateTier.CORE_ACCESSORY_PREHAB,
             ProgramCandidateTier.FILLER

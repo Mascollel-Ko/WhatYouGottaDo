@@ -74,6 +74,9 @@ internal fun ProgramExerciseSpec.resolve(exercises: List<Exercise>): ResolvedPro
     val requestedKey = requireNotNull(stableKey.takeIf(String::isNotBlank)) {
         "Built-in program exercise '$displayName' must declare a canonical stableKey."
     }
+    require(ProgramCandidateAuthority.allows(requestedKey)) {
+        "Built-in program exercise '$displayName' is not in the explicit ProgramRuleTables candidate authority."
+    }
     val matched = requireNotNull(exercises.firstOrNull { it.stableKey == requestedKey }) {
         "Built-in program exercise '$displayName' cannot resolve stableKey '$requestedKey'."
     }

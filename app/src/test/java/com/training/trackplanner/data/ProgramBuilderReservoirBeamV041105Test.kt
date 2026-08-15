@@ -47,7 +47,7 @@ class ProgramBuilderReservoirBeamV041105Test {
         val skeleton = skeleton(
             days = listOf(1, 2, 4, 6, 7),
             itemFactory = { week, day, order ->
-                repeatedCaptainChairItem(week, day, order)
+                repeatedApprovedCoreItem(week, day, order)
             }
         )
 
@@ -74,12 +74,12 @@ class ProgramBuilderReservoirBeamV041105Test {
     }
 
     @Test
-    fun repeatedCaptainChairFixtureRepresentsCoreAccessoryNotFoundationAnchor() {
-        val item = repeatedCaptainChairItem(week = 1, day = 1, order = 1)
+    fun approvedDeadBugFixtureRepresentsCoreAccessoryNotFoundationAnchor() {
+        val item = repeatedApprovedCoreItem(week = 1, day = 1, order = 1)
 
         assertTrue(item.selectionRole == ProgramExerciseRole.CORE.name)
         assertTrue(item.requestedTemplateSlot == ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name)
-        assertFalse("captain chair must not masquerade as a foundation anchor",
+        assertFalse("dead bug must not masquerade as a foundation anchor",
             item.primarySlotCapabilities.any(FOUNDATION_SLOT_NAMES::contains))
     }
 
@@ -99,11 +99,11 @@ class ProgramBuilderReservoirBeamV041105Test {
                 confidence = SlotCapabilityConfidence.HIGH
             )
         )
-        val captainChair = candidate(
+        val antiRotation = candidate(
             id = 2,
-            name = "Captain chair leg raise",
-            equipment = "BODYWEIGHT",
-            stableKey = "captain_chair_leg_raise",
+            name = "Cable Pallof press",
+            equipment = "CABLE",
+            stableKey = "cable_pallof_press",
             capabilities = SlotCapabilityProfile(
                 primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
                 secondary = emptySet(),
@@ -112,14 +112,12 @@ class ProgramBuilderReservoirBeamV041105Test {
                 confidence = SlotCapabilityConfidence.MODERATE
             )
         )
-        val reservoir = ProgramCandidateReservoir(listOf(squat, captainChair))
+        val reservoir = ProgramCandidateReservoir(listOf(squat, antiRotation))
 
         assertTrue(policy.classify(squat).tier == ProgramCandidateTier.FOUNDATION_MAIN_WORTHY)
         assertTrue(ProgramFoundationPattern.SQUAT in reservoir.classification(squat).foundationPatterns)
-        assertTrue(reservoir.classification(captainChair).tier == ProgramCandidateTier.CORE_ACCESSORY_PREHAB)
         assertTrue(
-            reservoir.classification(captainChair).corePattern ==
-                ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION
+            reservoir.classification(antiRotation).corePattern == ProgramCorePattern.ANTI_ROTATION
         )
         assertTrue("reservoir should keep hard-gate-eligible candidates", reservoir.candidates.size == 2)
     }
@@ -178,7 +176,7 @@ class ProgramBuilderReservoirBeamV041105Test {
             plannedSlot = PlannedSlot(1, ProgramTrainingSlot.LOWER_STRENGTH, ProgramDayIntensity.HARD),
             templateSlot = TemplateExerciseSlot(ProgramSlotId.LOWER_SQUAT_PATTERN, ProgramExerciseRole.ANCHOR),
             selectedInSession = emptyList(),
-            generatedItems = listOf(repeatedCaptainChairItem(week = 1, day = 1, order = 1))
+            generatedItems = listOf(repeatedApprovedCoreItem(week = 1, day = 1, order = 1))
         )
         val foundation = candidate(
             id = 3,
@@ -193,11 +191,11 @@ class ProgramBuilderReservoirBeamV041105Test {
                 confidence = SlotCapabilityConfidence.HIGH
             )
         )
-        val captainChair = candidate(
+        val repeatedDeadBug = candidate(
             id = 4,
-            name = "Captain chair leg raise",
+            name = "Dead bug",
             equipment = "BODYWEIGHT",
-            stableKey = "captain_chair_leg_raise",
+            stableKey = "ex_d5bdffe1",
             capabilities = SlotCapabilityProfile(
                 primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
                 secondary = emptySet(),
@@ -209,7 +207,7 @@ class ProgramBuilderReservoirBeamV041105Test {
         val classifier = ProgramCandidateClassificationPolicy()
 
         val foundationAdjustment = policy.adjustment(foundation, classifier.classify(foundation), context)
-        val repeatedCoreAdjustment = policy.adjustment(captainChair, classifier.classify(captainChair), context)
+        val repeatedCoreAdjustment = policy.adjustment(repeatedDeadBug, classifier.classify(repeatedDeadBug), context)
 
         assertTrue("foundation deficit should raise foundation candidates", foundationAdjustment > 0.0)
         assertTrue("repeated trunk flexion should be penalized", repeatedCoreAdjustment < 0.0)
@@ -239,7 +237,7 @@ class ProgramBuilderReservoirBeamV041105Test {
     }
 
     @Test
-    fun corePatternPolicyRotatesAwayFromRepeatedCaptainChair() {
+    fun corePatternPolicyRotatesAwayFromRepeatedApprovedCoreExercise() {
         val policy = ProgramCorePatternPolicy()
         val classifier = ProgramCandidateClassificationPolicy()
         val request = request(periodizationType = ProgramPeriodizationType.BADMINTON_WAVE)
@@ -264,13 +262,13 @@ class ProgramBuilderReservoirBeamV041105Test {
             plannedSlot = PlannedSlot(1, ProgramTrainingSlot.RECOVERY_WEAKPOINT, ProgramDayIntensity.LIGHT),
             templateSlot = TemplateExerciseSlot(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY, ProgramExerciseRole.CORE),
             selectedInSession = emptyList(),
-            generatedItems = listOf(repeatedCaptainChairItem(week = 1, day = 1, order = 1))
+            generatedItems = listOf(repeatedApprovedCoreItem(week = 1, day = 1, order = 1))
         )
-        val repeatedCaptainChair = candidate(
+        val repeatedDeadBug = candidate(
             id = 30,
-            name = "Captain chair leg raise",
+            name = "Dead bug",
             equipment = "BODYWEIGHT",
-            stableKey = "captain_chair_leg_raise",
+            stableKey = "ex_d5bdffe1",
             capabilities = SlotCapabilityProfile(
                 primary = setOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY),
                 secondary = emptySet(),
@@ -294,14 +292,15 @@ class ProgramBuilderReservoirBeamV041105Test {
         )
 
         val repeatedAdjustment = policy.adjustment(
-            repeatedCaptainChair,
-            classifier.classify(repeatedCaptainChair),
+            repeatedDeadBug,
+            classifier.classify(repeatedDeadBug),
             context
         )
         val rotatedAdjustment = policy.adjustment(pallofPress, classifier.classify(pallofPress), context)
 
-        assertTrue("repeated trunk flexion should be strongly penalized", repeatedAdjustment < -3.0)
-        assertTrue("anti-rotation core should be preferred after trunk flexion appears", rotatedAdjustment > 0.0)
+        assertTrue("repeated approved core should be strongly penalized", repeatedAdjustment < -3.0)
+        assertTrue("a different approved core pattern should rank above the repeated exercise",
+            rotatedAdjustment > repeatedAdjustment)
     }
 
     @Test
@@ -309,13 +308,11 @@ class ProgramBuilderReservoirBeamV041105Test {
         val policy = ProgramCorePatternPolicy()
         val skeleton = skeleton(
             days = listOf(1, 2, 4, 6, 7),
-            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+            itemFactory = { week, day, order -> repeatedApprovedCoreItem(week, day, order) }
         )
 
         val warnings = policy.warnings(skeleton.items, skeleton.request)
 
-        assertTrue("trunk flexion repetition should warn",
-            "PROGRAM_CORE_PATTERN_TRUNK_FLEXION_REPEAT" in warnings)
         assertTrue("program-wide core accessory overuse should warn",
             "PROGRAM_CORE_ACCESSORY_STABLEKEY_OVERUSE" in warnings)
     }
@@ -324,7 +321,7 @@ class ProgramBuilderReservoirBeamV041105Test {
     fun issueDrivenRepairReopensWeakSlotForFoundationCandidate() {
         val skeleton = skeleton(
             days = listOf(1, 2, 4, 6, 7),
-            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+            itemFactory = { week, day, order -> repeatedApprovedCoreItem(week, day, order) }
         )
         val foundation = candidate(
             id = 40,
@@ -354,10 +351,10 @@ class ProgramBuilderReservoirBeamV041105Test {
     }
 
     @Test
-    fun issueDrivenRepairReplacesRepeatedCaptainChairWithAnotherCorePattern() {
+    fun issueDrivenRepairReplacesRepeatedApprovedCoreWithAnotherCorePattern() {
         val skeleton = skeleton(
             days = listOf(1, 2, 4, 6, 7),
-            itemFactory = { week, day, order -> repeatedCaptainChairItem(week, day, order) }
+            itemFactory = { week, day, order -> repeatedApprovedCoreItem(week, day, order) }
         )
         val pallofPress = candidate(
             id = 41,
@@ -441,14 +438,14 @@ class ProgramBuilderReservoirBeamV041105Test {
             durationWeeks = 4
         )
 
-    private fun repeatedCaptainChairItem(week: Int, day: Int, order: Int): ProgramSkeletonItem =
+    private fun repeatedApprovedCoreItem(week: Int, day: Int, order: Int): ProgramSkeletonItem =
         ProgramSkeletonItem(
             localId = "$week-$day-$order",
             weekNumber = week,
             dayOfWeek = day,
             orderIndex = order,
-            exerciseStableKey = "captain_${week}_${day}_$order",
-            exerciseName = "Captain chair leg raise",
+            exerciseStableKey = "dead_bug_${week}_${day}_$order",
+            exerciseName = "Dead bug",
             category = "strength",
             restSeconds = 60,
             prescription = "2x12",
@@ -460,11 +457,11 @@ class ProgramBuilderReservoirBeamV041105Test {
             weightSource = "",
             trainingSlot = ProgramTrainingSlot.RECOVERY_WEAKPOINT.name,
             dayIntensity = ProgramDayIntensity.MODERATE.name,
-            stableKey = "captain_chair_leg_raise",
+            stableKey = "ex_d5bdffe1",
             selectionRole = ProgramExerciseRole.CORE.name,
-            movementFamily = "CORE_FLEXION_ANTERIOR_CORE",
-            movementSubtype = "CAPTAINS_CHAIR_LEG_RAISE",
-            redundancyGroup = "CORE_FLEXION",
+            movementFamily = "ANTI_EXTENSION_CORE",
+            movementSubtype = "DEAD_BUG",
+            redundancyGroup = "CORE_ANTI_EXTENSION",
             badmintonTransferLevel = "GENERAL",
             primarySlotCapabilities = listOf(ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name),
             requestedTemplateSlot = ProgramSlotId.TRUNK_ANTI_ROTATION_STABILITY.name

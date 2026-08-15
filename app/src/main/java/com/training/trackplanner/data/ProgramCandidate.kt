@@ -62,7 +62,7 @@ internal data class ProgramCandidate(
     }.flatMap(::splitTokens).toSet()
 
     val isRecovery: Boolean = identityHas("RECOVERY", "PREHAB", "MOBILITY", "CONTROL")
-    val isCore: Boolean = identityHas("CORE", "ANTI_ROTATION", "ROTATION_CONTROL", "TRUNK")
+    val isCore: Boolean = identityHas("CORE", "ANTI_ROTATION", "TRUNK")
     val isScapularStabilityExposure: Boolean = identityHas(
         "SCAP",
         "ROTATOR_CUFF",

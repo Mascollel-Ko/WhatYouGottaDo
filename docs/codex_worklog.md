@@ -5668,7 +5668,7 @@ Validation:
 
 ### Phase B - legacy pseudo-core metric retirement
 
-Commit: pending
+Commit: `56df5ea`
 
 - Removed the anterior-core, lateral-core, and rotation-core daily/3-day/7-day
   metric IDs and their `MuscleBucket` values from the active Lab and muscle-load
@@ -5698,3 +5698,55 @@ Validation:
   zero.
 - Production/test references to the three retired `MuscleBucket` enum values:
   zero.
+
+### Phase C - explicit ProgramBuilder stable-key authority
+
+Commit: pending
+
+- Added `ProgramCandidateAuthority` as a typed view derived directly from the
+  existing `ProgramRuleTables` maps. It contains 59 distinct approved stable
+  keys; no second candidate list or metadata-derived expansion was added.
+- Added exact-key admission before advanced inventory metadata resolution and
+  added the same gate inside `ProgramCandidateReservoir`, so direct reservoir
+  construction cannot bypass candidate authority.
+- Added the exact authority check to `ProgramExerciseSpec.resolve`, preserving
+  the public `ProgramAutoBuilder` failure behavior for undeclared or missing
+  exercises.
+- Replaced core-pattern string parsing with an exact mapping restricted to
+  approved rule-table keys. Dead Bug maps to anti-extension, while the existing
+  approved anti-rotation category maps to anti-rotation. The mapping cannot
+  admit a new exercise.
+- Removed `ROTATION_CONTROL` from the advanced candidate's legacy core identity
+  tokens. Remaining movement/name classification runs only after exact-key
+  admission and cannot grant candidate eligibility.
+- Updated disconnected advanced-builder fixtures to use approved exact keys.
+  Expectations that required unapproved Captain Chair or arbitrary `fixture_*`
+  candidates were replaced with authority-bound contracts; no production
+  bypass was introduced for tests.
+- Added a deterministic public parity golden covering 192 combinations of
+  duration, weekly days, session minutes, and badminton ratio. Stable-key
+  sequence, placement, slot/role, prescription, sets, reps, seconds, and week
+  plan data match the pre-hardening public output in every scenario.
+
+Validation:
+
+- Focused ProgramBuilder, authority, and public parity suite: passed 82 tests
+  with 0 failures.
+- `ExerciseRoleRelationsTest`: passed after its inventory fixture was changed
+  from an unapproved synthetic key to an approved exact key.
+- Final `:app:testDebugUnitTest`: passed 1,266 tests with 0 failures.
+- Public parity matrix: passed 192 of 192 scenarios.
+- Approved ProgramBuilder candidate count: 59 before and after; no candidate
+  was added.
+- Production Kotlin references to `BadmintonTransferScoreCalculator`,
+  `BadmintonTransferCoverageAnalyzer`, legacy `ROTATION_CONTROL`, and retired
+  `MUSCLE_*_CORE_LOAD_*` IDs: zero.
+- Production ProgramBuilder source patterns that use `contains(...)` with
+  Pallof/core/carry/dead-bug/side-plank/anti-rotation to grant admission: zero.
+
+Remaining debt:
+
+- The advanced reservoir/beam/evaluation implementation remains disconnected
+  from the public generator path. It is retained for now because its models and
+  historical policy tests still document prior experiments, but both inventory
+  and reservoir boundaries now enforce the same exact-key authority.

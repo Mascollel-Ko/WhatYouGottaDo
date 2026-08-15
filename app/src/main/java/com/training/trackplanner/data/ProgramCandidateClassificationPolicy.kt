@@ -37,6 +37,8 @@ internal data class ProgramCandidateClassification(
 )
 
 internal class ProgramCandidateClassificationPolicy {
+    private val corePatternPolicy = ProgramCorePatternPolicy()
+
     fun classify(candidate: ProgramCandidate): ProgramCandidateClassification {
         val foundationPatterns = foundationPatterns(candidate)
         val corePattern = corePattern(candidate)
@@ -78,16 +80,8 @@ internal class ProgramCandidateClassificationPolicy {
         }
     }
 
-    private fun corePattern(candidate: ProgramCandidate): ProgramCorePattern {
-        if (candidate.hasText("CAPTAIN", "LEG_RAISE", "HIP_FLEXOR", "CORE_FLEXION", "HANGING_LEG")) {
-            return ProgramCorePattern.TRUNK_FLEXION_HIP_FLEXION
-        }
-        if (candidate.hasText("DEAD_BUG", "ANTI_EXTENSION")) return ProgramCorePattern.ANTI_EXTENSION
-        if (candidate.hasText("PALLOF", "ANTI_ROTATION", "ROTATION_CONTROL")) return ProgramCorePattern.ANTI_ROTATION
-        if (candidate.hasText("SIDE_PLANK", "LATERAL")) return ProgramCorePattern.LATERAL_STABILITY
-        if (candidate.hasText("CARRY", "FARMER", "SUITCASE")) return ProgramCorePattern.CARRY
-        return if (candidate.isCore) ProgramCorePattern.OTHER_CORE else ProgramCorePattern.NONE
-    }
+    private fun corePattern(candidate: ProgramCandidate): ProgramCorePattern =
+        corePatternPolicy.patternForStableKey(candidate.exercise.stableKey)
 
     private fun ProgramCandidate.hasText(vararg needles: String): Boolean {
         val text = listOf(

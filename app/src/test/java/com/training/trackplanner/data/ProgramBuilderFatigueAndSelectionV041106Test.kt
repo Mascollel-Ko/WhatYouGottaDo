@@ -155,27 +155,27 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
         val kept = Exercise(
             name = "Barbell squat",
             category = "strength",
-            stableKey = "barbell_squat",
+            stableKey = "barbell_back_squat",
             equipment = "BARBELL",
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val excluded = Exercise(
-            name = "Captain chair leg raise",
+            name = "Cable Pallof press",
             category = "strength",
-            stableKey = "captain_chair_leg_raise",
-            equipment = "BODYWEIGHT",
+            stableKey = "cable_pallof_press",
+            equipment = "CABLE",
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
 
         val result = ProgramCandidateInventory().collect(
             exercises = listOf(kept, excluded),
             runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
-            availableEquipment = setOf("BARBELL", "BODYWEIGHT"),
-            excludedExerciseStableKeys = setOf("captain_chair_leg_raise")
+            availableEquipment = setOf("BARBELL", "CABLE"),
+            excludedExerciseStableKeys = setOf("cable_pallof_press")
         )
 
-        assertTrue(result.candidates.any { it.exercise.stableKey == "barbell_squat" })
-        assertTrue(result.candidates.none { it.exercise.stableKey == "captain_chair_leg_raise" })
+        assertTrue(result.candidates.any { it.exercise.stableKey == "barbell_back_squat" })
+        assertTrue(result.candidates.none { it.exercise.stableKey == "cable_pallof_press" })
     }
 
     @Test
@@ -183,29 +183,29 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
         val equipmentMismatch = Exercise(
             name = "Barbell squat",
             category = "strength",
-            stableKey = "barbell_squat",
+            stableKey = "barbell_back_squat",
             equipment = "BARBELL",
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val nonProgramSelectable = Exercise(
-            name = "Accessory row",
+            name = "Face pull",
             category = "strength",
-            stableKey = "accessory_row",
-            equipment = "BODYWEIGHT",
+            stableKey = "face_pull",
+            equipment = "CABLE",
             planningEligibility = "LAB_ONLY"
         )
         val directSportSession = Exercise(
             name = "Badminton match",
             category = "sport",
-            stableKey = "badminton_match",
+            stableKey = "ex_33841b88",
             equipment = "BODYWEIGHT",
             activityKind = "SPORT_SESSION",
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
         val excluded = Exercise(
-            name = "Excluded push up",
+            name = "Excluded chest press",
             category = "strength",
-            stableKey = "excluded_push_up",
+            stableKey = "ex_28902b13",
             equipment = "BODYWEIGHT",
             planningEligibility = PlanningEligibility.PROGRAM_SELECTABLE.name
         )
@@ -214,14 +214,14 @@ class ProgramBuilderFatigueAndSelectionV041106Test {
             exercises = listOf(equipmentMismatch, nonProgramSelectable, directSportSession, excluded),
             runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
             availableEquipment = setOf("BODYWEIGHT"),
-            excludedExerciseStableKeys = setOf("excluded_push_up")
+            excludedExerciseStableKeys = setOf("ex_28902b13")
         )
 
         val stableKeys = result.candidates.map { it.exercise.stableKey }.toSet()
-        assertTrue("equipment mismatch is a soft scoring concern", "barbell_squat" in stableKeys)
-        assertTrue("non-program-selectable metadata is a soft scoring concern", "accessory_row" in stableKeys)
-        assertFalse("direct sport sessions remain hard-excluded unless explicitly preferred", "badminton_match" in stableKeys)
-        assertFalse("user excluded stable keys remain hard-excluded", "excluded_push_up" in stableKeys)
+        assertTrue("equipment mismatch is a soft scoring concern", "barbell_back_squat" in stableKeys)
+        assertTrue("non-program-selectable metadata is a soft scoring concern", "face_pull" in stableKeys)
+        assertFalse("direct sport sessions remain hard-excluded unless explicitly preferred", "ex_33841b88" in stableKeys)
+        assertFalse("user excluded stable keys remain hard-excluded", "ex_28902b13" in stableKeys)
     }
 
     @Test

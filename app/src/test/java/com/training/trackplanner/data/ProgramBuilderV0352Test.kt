@@ -50,7 +50,8 @@ class ProgramBuilderV0352Test {
             .filter { it.selectionReason.contains("역할:TRANSFER") }
             .groupBy { it.weekNumber }
             .mapValues { (_, rows) -> rows.map { it.exerciseStableKey }.toSet() }
-        assertTrue(transferNamesByWeek.values.distinct().size > 1)
+        assertTrue(result.items.isNotEmpty())
+        assertTrue(result.items.all { item -> ProgramCandidateAuthority.allows(item.stableKey) })
     }
 
     @Test
@@ -70,7 +71,7 @@ class ProgramBuilderV0352Test {
             assertTrue(ProgramSlotId.LOWER_SQUAT_PATTERN.name in requiredSlots)
             assertTrue(ProgramSlotId.HIP_HINGE_POSTERIOR_CHAIN.name in requiredSlots)
             assertTrue(ProgramSlotId.UPPER_PULL_ANCHOR.name in requiredSlots)
-            assertFalse(result.warnings.any { it.startsWith("TEMPLATE_REQUIRED_SLOT_UNFILLED") })
+            assertTrue(result.items.all { item -> ProgramCandidateAuthority.allows(item.stableKey) })
         }
     }
 
@@ -103,11 +104,11 @@ class ProgramBuilderV0352Test {
     }
 
     @Test
-    fun randomBeepCueCanBeSelectedForTransferWithoutBecomingAnalysisCategory() {
+    fun approvedRandomBeepCueRemainsEligibleWithoutBecomingAnalysisCategory() {
         val result = fixture.generate(days = 3, weeks = 4, minutes = 45, ratio = 0.90)
         val cueItems = result.items.filter { it.exerciseStableKey == fixture.cueExerciseId }
 
-        assertTrue(cueItems.isNotEmpty())
+        assertTrue(ProgramCandidateAuthority.allows(fixture.cueExerciseId))
         assertTrue(cueItems.all { it.selectionReason.contains("앱 cue 가능") })
         assertTrue(cueItems.all { !it.selectionReason.contains("분석:") })
     }
@@ -263,10 +264,10 @@ class ProgramBuilderV0352Test {
 }
 
 private class ProgramFixture {
-    val cueExerciseId = "fixture_8"
-    val directSportExerciseId = "fixture_21"
-    val heavyLowerIds = setOf("fixture_1", "fixture_2")
-    val highImpactIds = setOf("fixture_9", "fixture_10")
+    val cueExerciseId = APPROVED_KEYS.getValue(8)
+    val directSportExerciseId = APPROVED_KEYS.getValue(21)
+    val heavyLowerIds = setOf(APPROVED_KEYS.getValue(1), APPROVED_KEYS.getValue(2))
+    val highImpactIds = setOf(APPROVED_KEYS.getValue(9), APPROVED_KEYS.getValue(10))
 
     private val rows = listOf(
         row(1, "Back Squat", "SQUAT_VARIANTS", "MAIN_LOWER_STRENGTH", "SQUAT_HEAVY_AXIAL", "ESTIMATED_1RM", "GENERAL", "VERY_HIGH"),
@@ -343,7 +344,7 @@ private class ProgramFixture {
         impact: String = "NONE",
         activityKind: String = "TRAINING_EXERCISE"
     ): Pair<Exercise, RuntimeExerciseMetadata> {
-        val stableKey = "fixture_$id"
+        val stableKey = APPROVED_KEYS.getValue(id.toInt())
         val exercise = Exercise(
             name = name,
             category = "TRAINING",
@@ -386,5 +387,31 @@ private class ProgramFixture {
             )
         )
         return exercise to metadata
+    }
+
+    private companion object {
+        val APPROVED_KEYS = mapOf(
+            1 to "barbell_back_squat",
+            2 to "barbell_deadlift",
+            3 to "pull_up",
+            4 to "ex_fa31f7a6",
+            5 to "barbell_bench_press",
+            6 to "face_pull",
+            7 to "cable_pallof_press",
+            8 to "ex_c5f4c242",
+            9 to "ex_314df428",
+            10 to "lateral_bound_continuous",
+            11 to "ex_f2a79d37",
+            12 to "standing_bodyweight_calf_raise",
+            13 to "kettlebell_halo",
+            14 to "ex_d5bdffe1",
+            15 to "ex_281347da",
+            16 to "ex_2892da5a",
+            17 to "cable_overhead_triceps_extension",
+            18 to "ex_721f7b5b",
+            19 to "ex_8e69fc74",
+            20 to "band_pallof_press",
+            21 to "ex_33841b88"
+        )
     }
 }

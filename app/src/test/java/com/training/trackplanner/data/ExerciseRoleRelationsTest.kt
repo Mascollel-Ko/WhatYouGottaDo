@@ -55,7 +55,7 @@ class ExerciseRoleRelationsTest {
         val exercise = Exercise(
             name = "Isolation fixture",
             category = "strength",
-            stableKey = "role_namespace_fixture",
+            stableKey = "barbell_back_squat",
             movementPattern = "ISOLATION",
             movementCategory = "HYPERTROPHY",
             compoundType = "ISOLATION"
