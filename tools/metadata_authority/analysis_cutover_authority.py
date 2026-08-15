@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-from collections import defaultdict
 from pathlib import Path
 
 from authority_common import sha256, write_csv
@@ -12,9 +11,10 @@ CORE_APPROVED_SOURCE = (
     ROOT / "docs/metadata_authority/core_training_classification_review_2026-08-13.csv"
 )
 CORE_APPROVED_SHA256 = "3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954"
-BADMINTON_OBJECTIVE_REVIEW_SOURCE = (
-    ROOT / "docs/metadata_authority/badminton_objective_review_decisions_2026-08-14.csv"
+BADMINTON_OBJECTIVE_AUTHORITY_SOURCE = (
+    ROOT / "docs/metadata_authority/badminton_objective_relations_v2_authority.csv"
 )
+BADMINTON_OBJECTIVE_AUTHORITY_SHA256 = "bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56"
 USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE = (
     "USER_APPROVED_BADMINTON_OBJECTIVE_2026_08_14"
 )
@@ -60,54 +60,6 @@ CANONICAL_OBJECTIVES = (
     "ANTI_ROTATION",
 )
 
-# Every token below is an explicit fact in badminton_relations.csv. Broad
-# anatomy, plane, laterality, generic bracing, and core authority are
-# intentionally absent.
-EXPLICIT_OBJECTIVES = {
-    "TRANSFER_TYPE": {
-        "FOOTWORK_DIRECT": ("FOOTWORK",),
-        "REACTION_DECISION_DIRECT": ("REACTION",),
-        "CHANGE_OF_DIRECTION_DIRECT": ("DECELERATION", "FOOTWORK"),
-        "LUNGE_REACH_DIRECT": ("LUNGE_REACH",),
-        "GENERAL_CONDITIONING_SUPPORTIVE": ("CONDITIONING",),
-        "RALLY_CONDITIONING_DIRECT": ("CONDITIONING",),
-        "ROTATION_POWER_SUPPORTIVE": ("ROTATION_GENERATION",),
-        "ANTI_ROTATION_STABILITY_SUPPORTIVE": ("ANTI_ROTATION",),
-    },
-    "SKILL_TARGET": {
-        "FIRST_STEP": ("ACCELERATION",),
-        "CHANGE_OF_DIRECTION": ("DECELERATION", "FOOTWORK"),
-        "SPLIT_STEP": ("FOOTWORK",),
-        "LATERAL_MOVEMENT": ("FOOTWORK",),
-        "FRONT_COURT_LUNGE": ("LUNGE_REACH",),
-        "LATERAL_LUNGE": ("LUNGE_REACH",),
-        "RALLY_TOLERANCE": ("CONDITIONING",),
-        "MULTI_SHUTTLE_ENDURANCE": ("CONDITIONING",),
-        "ROTATION_SEQUENCING": ("ROTATION_GENERATION",),
-        "ANTI_ROTATION_STABILITY": ("ANTI_ROTATION",),
-    },
-    "PHYSICAL_QUALITY": {
-        "ACCELERATION": ("ACCELERATION",),
-        "DECELERATION": ("DECELERATION",),
-        "REACTIVE_AGILITY": ("REACTION",),
-        "ANAEROBIC_REPEATABILITY": ("CONDITIONING",),
-        "AEROBIC_BASE": ("CONDITIONING",),
-        "ROTATIONAL_POWER": ("ROTATION_GENERATION",),
-        "ROTATIONAL_STRENGTH": ("ROTATION_GENERATION",),
-        "ANTI_ROTATION_STABILITY": ("ANTI_ROTATION",),
-    },
-    "COURT_MOVEMENT": {
-        "FIRST_STEP": ("ACCELERATION",),
-        "DECELERATION": ("DECELERATION",),
-        "RECOVERY_STEP": ("FOOTWORK",),
-        "LATERAL_MOVE": ("FOOTWORK",),
-        "MULTI_DIRECTION": ("FOOTWORK",),
-        "JUMP_LANDING": ("JUMP_LANDING",),
-        "REACTION_RANDOM": ("REACTION",),
-    },
-}
-
-
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open(encoding="utf-8-sig", newline="") as source:
         return list(csv.DictReader(source))
@@ -149,84 +101,35 @@ def build_core_relations(core_rows: list[dict[str, str]]) -> list[dict[str, str]
     return relations
 
 
-def build_badminton_objective_relations(
-    badminton_rows: list[dict[str, str]],
-) -> list[dict[str, str]]:
-    by_key: dict[str, list[dict[str, str]]] = defaultdict(list)
-    for row in badminton_rows:
-        by_key[row["exerciseStableKey"]].append(row)
-
-    generated: list[dict[str, str]] = []
-    for stable_key, rows in sorted(by_key.items()):
-        level_rows = [row for row in rows if row["relationType"] == "TRANSFER_LEVEL"]
-        if len(level_rows) != 1:
-            raise ValueError(f"Expected one badminton transfer level for {stable_key}")
-        level = level_rows[0]["relationValue"]
-        if level == "NONE":
-            continue
-        evidence_by_objective: dict[str, set[str]] = defaultdict(set)
-        for row in rows:
-            objectives = EXPLICIT_OBJECTIVES.get(row["relationType"], {}).get(
-                row["relationValue"], ()
-            )
-            for objective in objectives:
-                evidence_by_objective[objective].add(row["relationKey"])
-        for objective in CANONICAL_OBJECTIVES:
-            evidence = sorted(evidence_by_objective.get(objective, ()))
-            if not evidence:
-                continue
-            generated.append({
-                "relationId": f"BADMINTON_OBJECTIVE_{len(generated) + 1:04d}",
-                "exerciseStableKey": stable_key,
-                "objectiveId": objective,
-                "transferLevel": level,
-                "provenance": "INHERITED_FROM_EXPLICIT_BADMINTON_RELATION_V1",
-                "evidenceRelationKeys": "|".join(evidence),
-                "reviewStatus": "PASS",
-                "reviewReason": (
-                    "Objective is supported by explicit canonical badminton relations; "
-                    "the prior exercise-wide transfer level is inherited for this initial "
-                    "objective-specific cutover."
-                ),
-            })
-
-    existing_pairs = {
-        (row["exerciseStableKey"], row["objectiveId"]) for row in generated
-    }
-    decisions = sorted(
-        read_csv(BADMINTON_OBJECTIVE_REVIEW_SOURCE),
-        key=lambda row: (row["exerciseStableKey"], row["objectiveId"]),
-    )
-    for decision in decisions:
-        stable_key = decision["exerciseStableKey"]
-        objective = decision["objectiveId"]
-        pair = (stable_key, objective)
-        if objective not in CANONICAL_OBJECTIVES:
-            raise ValueError(f"Unknown reviewed badminton objective: {objective}")
-        if decision["transferLevel"] not in {"DIRECT", "SUPPORTIVE", "GENERAL", "LOW"}:
-            raise ValueError(f"Invalid reviewed badminton transfer level: {pair}")
-        if decision["decisionStatus"] != "APPROVED":
-            raise ValueError(f"Reviewed badminton decision is not approved: {pair}")
-        if decision["provenance"] != USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE:
-            raise ValueError(f"Invalid reviewed badminton provenance: {pair}")
-        if decision["evidenceKind"] != "PRODUCT_OWNER_SEMANTIC_DECISION":
-            raise ValueError(f"Invalid reviewed badminton evidence kind: {pair}")
-        if not decision["reviewReason"]:
-            raise ValueError(f"Reviewed badminton decision lacks a reason: {pair}")
-        if pair in existing_pairs:
-            raise ValueError(f"Reviewed badminton decision duplicates inherited authority: {pair}")
-        generated.append({
-            "relationId": f"BADMINTON_OBJECTIVE_{len(generated) + 1:04d}",
-            "exerciseStableKey": stable_key,
-            "objectiveId": objective,
-            "transferLevel": decision["transferLevel"],
-            "provenance": decision["provenance"],
-            "evidenceRelationKeys": "",
-            "reviewStatus": "PASS",
-            "reviewReason": decision["reviewReason"],
-        })
-        existing_pairs.add(pair)
-    return generated
+def build_badminton_objective_relations() -> list[dict[str, str]]:
+    if sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE) != BADMINTON_OBJECTIVE_AUTHORITY_SHA256:
+        raise ValueError("Canonical badminton objective authority SHA-256 mismatch")
+    relations = read_csv(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE)
+    if len(relations) != 280:
+        raise ValueError(f"Canonical badminton objective relation count must be 280, found {len(relations)}")
+    if set(relations[0]) != set(BADMINTON_OBJECTIVE_HEADERS):
+        raise ValueError("Canonical badminton objective authority has an invalid schema")
+    if len({row["relationId"] for row in relations}) != len(relations):
+        raise ValueError("Duplicate canonical badminton objective relation ID")
+    pairs = {(row["exerciseStableKey"], row["objectiveId"]) for row in relations}
+    if len(pairs) != len(relations):
+        raise ValueError("Duplicate canonical badminton exercise/objective pair")
+    if {row["objectiveId"] for row in relations} != set(CANONICAL_OBJECTIVES):
+        raise ValueError("Canonical badminton objective set must contain exactly nine objectives")
+    for row in relations:
+        if row["transferLevel"] not in {"DIRECT", "SUPPORTIVE", "GENERAL", "LOW"}:
+            raise ValueError(f"Invalid badminton objective transfer level: {row['relationId']}")
+        if row["reviewStatus"] != "PASS" or not row["reviewReason"]:
+            raise ValueError(f"Unreviewed badminton objective relation: {row['relationId']}")
+        if row["provenance"] == USER_APPROVED_BADMINTON_OBJECTIVE_PROVENANCE:
+            if row["evidenceRelationKeys"]:
+                raise ValueError(f"Product decision unexpectedly contains inherited evidence: {row['relationId']}")
+        elif row["provenance"] == "INHERITED_FROM_EXPLICIT_BADMINTON_RELATION_V1":
+            if not row["evidenceRelationKeys"]:
+                raise ValueError(f"Inherited objective lacks frozen evidence lineage: {row['relationId']}")
+        else:
+            raise ValueError(f"Unknown badminton objective provenance: {row['relationId']}")
+    return relations
 
 
 def build_rotation_audit(
@@ -265,14 +168,12 @@ def build_rotation_audit(
     return audit
 
 
-def build_analysis_assets(
-    badminton_rows: list[dict[str, str]],
-) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
+def build_analysis_assets() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
     if sha256(CORE_APPROVED_SOURCE) != CORE_APPROVED_SHA256:
         raise ValueError("Approved core authority SHA-256 mismatch")
     core_rows = read_csv(CORE_APPROVED_SOURCE)
     core_relations = build_core_relations(core_rows)
-    objective_relations = build_badminton_objective_relations(badminton_rows)
+    objective_relations = build_badminton_objective_relations()
     rotation_audit = build_rotation_audit(core_rows, objective_relations)
     return core_relations, objective_relations, rotation_audit
 

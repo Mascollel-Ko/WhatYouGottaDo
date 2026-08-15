@@ -21,6 +21,8 @@ from metadata_display_routing_audit import collect as collect_display_routing  #
 from metadata_display_routing_audit import render as render_display_routing  # noqa: E402
 from metadata_display_routing_audit import validate as validate_display_routing  # noqa: E402
 from analysis_cutover_authority import (  # noqa: E402
+    BADMINTON_OBJECTIVE_AUTHORITY_SHA256,
+    BADMINTON_OBJECTIVE_AUTHORITY_SOURCE,
     CORE_APPROVED_SHA256,
     CORE_APPROVED_SOURCE,
     build_analysis_assets,
@@ -123,9 +125,11 @@ class MetadataAuthorityTest(unittest.TestCase):
 
     def test_approved_core_and_badminton_objective_cutover_assets_are_exact(self):
         self.assertEqual(CORE_APPROVED_SHA256, hashlib.sha256(CORE_APPROVED_SOURCE.read_bytes()).hexdigest())
-        with (ASSETS / "badminton_relations.csv").open(encoding="utf-8-sig", newline="") as source:
-            badminton_rows = list(csv.DictReader(source))
-        core, objectives, rotation_audit = build_analysis_assets(badminton_rows)
+        self.assertEqual(
+            BADMINTON_OBJECTIVE_AUTHORITY_SHA256,
+            hashlib.sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE.read_bytes()).hexdigest(),
+        )
+        core, objectives, rotation_audit = build_analysis_assets()
         self.assertEqual(272, len(core))
         self.assertEqual(280, len(objectives))
         self.assertEqual(19, len(rotation_audit))

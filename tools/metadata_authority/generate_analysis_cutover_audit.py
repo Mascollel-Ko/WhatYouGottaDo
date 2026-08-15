@@ -9,7 +9,6 @@ from analysis_cutover_authority import (
     CORE_HEADERS,
     ROTATION_AUDIT_HEADERS,
     build_analysis_assets,
-    read_csv,
 )
 from authority_common import write_csv
 
@@ -20,8 +19,7 @@ AUDIT = ROOT / "docs/audits/core_badminton_rotation_objective_audit.csv"
 
 
 def render(output: Path) -> tuple[Path, Path, Path]:
-    badminton = read_csv(ASSETS / "badminton_relations.csv")
-    core, objectives, audit = build_analysis_assets(badminton)
+    core, objectives, audit = build_analysis_assets()
     core_path = output / "core_relations.csv"
     objective_path = output / "badminton_objective_relations.csv"
     audit_path = output / "core_badminton_rotation_objective_audit.csv"

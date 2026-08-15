@@ -228,8 +228,7 @@ def export(
         headers = list(rows[0]) if rows else [str(cell.value or "") for cell in workbook[sheet_name][1]]
         emit(file_name, headers, sorted(rows, key=lambda row: tuple(row.get(key, "") for key in primary_key)), primary_key, PRODUCTION_ACTIVE)
 
-    badminton_rows = sheet_rows(workbook, "14_BADMINTON_REL")
-    core_relations, objective_relations, _ = build_analysis_assets(badminton_rows)
+    core_relations, objective_relations, _ = build_analysis_assets()
     emit(
         "core_relations.csv",
         CORE_HEADERS,
