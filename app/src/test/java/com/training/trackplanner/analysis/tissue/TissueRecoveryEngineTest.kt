@@ -177,8 +177,8 @@ class TissueRecoveryEngineTest {
 
     private fun recordFor(basis: String): TissueWorkoutRecord {
         val stableKey = when (basis) {
-            "BODYWEIGHT_REPETITION" -> "push_up"
-            "HOLD_TIME" -> "plank"
+            "BODYWEIGHT_REPETITION" -> "ex_28902b13"
+            "HOLD_TIME" -> "ex_a44ae2ca"
             else -> "fixture"
         }
         val exercise = Exercise(
@@ -191,7 +191,7 @@ class TissueRecoveryEngineTest {
             entry = WorkoutEntry(
                 id = 1,
                 date = "2026-07-13",
-                exerciseStableKey = "test_exercise_1",
+                exerciseStableKey = stableKey,
                 exerciseName = stableKey,
                 category = "fixture",
                 rpe = 7.0

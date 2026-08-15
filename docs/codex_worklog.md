@@ -5777,3 +5777,52 @@ Remaining debt:
   matches.
 - Six pre-existing untracked `outputs/*` files remained untouched and were not
   staged.
+
+## 2026-08-15 - v0.5.0.36 exercise-name semantic authority cleanup
+
+### Baseline and scope
+
+- Baseline: `46ae449c039fb989309cc3de2ba4dc3c6dfdb6a8` (`v0.5.0.35`).
+- Work branch: `codex/analysis-name-authority-v050036` in an isolated clean worktree.
+- The six pre-existing untracked `outputs/*` files in the prior worktree were preserved unchanged and excluded from every staging operation.
+- Goal: make exercise names presentation/search data only and make analysis semantics resolve through exact stableKey, typed authority, or explicit historical stableKey compatibility.
+
+### Commit 1 - exact load policies
+
+- Commit: `bb045da` (`refactor(analysis): replace name-derived load policies`).
+- Added `BodyweightLoadProfileAuthority` and `DurationHoldProfileAuthority`.
+- Removed name/family/movement/equipment/mode/category token inference from effective bodyweight and duration-hold policy selection.
+- Updated all known consumers to pass record stableKey directly and preserved supported coefficients.
+- Confirmed historical stableKey resolution can proceed without an Exercise DB row.
+- Focused bodyweight, duration, strength/muscle series, daily fatigue, and analysis-contract tests passed.
+
+### Commit 2 - muscle and identity fallbacks
+
+- Commit: `79998bf` (`refactor(analysis): remove name-derived muscle and identity fallbacks`).
+- Restricted anatomical muscle attribution to explicit canonical primary/secondary muscle metadata.
+- Replaced Coach fatigue and RPE name grouping with exact stableKey or deterministic record identity.
+- Removed exercise-name grouping from common strength volume.
+- Deleted the disconnected `analysis/proxyperformance` experiment and UI while preserving active `analysis/strengthperformance`, `StrengthPerformanceRegistry`, posterior persistence, and reviewed proxy assets.
+- No canonical built-in muscle metadata gap requiring repair was found. The old Hollow Body Hold row/back attribution was an invalid Korean substring match and was intentionally removed.
+- Focused muscle, series, coach, RPE, persistent-strength integration, and contract tests passed.
+
+### Commit 3 - guard and audit
+
+- Commit: `acf1d3f` (`test(analysis): enforce name-independent semantics`).
+- Added targeted source architecture guards, canonical rename invariance, adversarial fail-closed names, missing-Exercise-row stableKey coverage, and display-name search regression.
+- Re-ran the exact ProgramBuilder 59-key candidate authority regression and persistent strength integration coverage.
+- Added `docs/audits/v0.5.0.36_exercise_name_semantic_authority_audit.md`.
+- Added `docs/audits/v0.5.0.36_calculator_internal_metadata_semantic_parsing_debt.md` so explicit metadata parsing is not confused with forbidden exercise-name inference.
+- Focused suite passed after correcting one over-broad test assertion that treated an empty deleted-package directory as production code.
+
+### Release closeout
+
+- Version: `0.5.0.36 / 500036`.
+- Updated the existing bodyweight, duration-hold, strength volume, persistent strength posterior, exercise identity, protocol index, and machine registry documents.
+- Updated two tissue dose/recovery test fixtures from name-like `push_up` / `plank` identifiers to the exact canonical `ex_28902b13` / `ex_a44ae2ca` authority keys. Tissue production formulas, mappings, and numeric expectations remain unchanged.
+- Full `:app:testDebugUnitTest`: 1,250 passed, zero failures, errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and `:app:assembleDebug`: passed.
+- Debug APK: 51,285,704 bytes, SHA-256 `851F2B71F19FA0869BEB11D4ED577D572C0646270F68B829CFF2AA01FC5241B8`.
+- Metadata workbook validation, deterministic canonical export/cutover checks, metadata display routing, localization authority/audit, protocol registry validation, semantic source audit, and `git diff --check`: passed.
+- Release commit: final `chore(release): bump version to v0.5.0.36` commit containing this entry.
+- Main push, tag push, and CI result are recorded in the final task report.

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32 |
-| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32; analysis name boundary from v0.5.0.36 |
+| Last audited commit | acf1d3f |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 
 ## v0.5.0.32 relation normalization boundary
@@ -25,6 +25,11 @@ projections of that workbook.
 운동 이름을 바꾸거나 앱을 복원해도 같은 운동 기록이 이어지도록, 앱은
 `Exercise.stableKey` 하나만 운동 identity로 사용합니다. 이름은 표시용 정보이며
 identity가 아닙니다.
+
+분석에서도 같은 원칙을 적용합니다. 기록의 exact stableKey, typed canonical
+relation/profile, 명시적 historical stableKey compatibility만 의미 권한을 가집니다.
+Exercise 행이 사라졌어도 기록에 stableKey가 남아 있으면 해당 key로 해석하며,
+`exerciseName`은 identity 복구 fallback으로 사용하지 않습니다.
 
 ## 2. 목적
 
@@ -204,6 +209,7 @@ for future display-catalogue routing; no localization rename is persisted here.
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-15): exercise name을 analysis identity fallback으로 사용하지 않는 경계와 Exercise row 없이도 record stableKey를 먼저 해석하는 규칙을 명시했습니다.
 - `1.3.0` (2026-08-09): defined current seed plus explicit override ownership,
   independent user state, catalogue-missing reference retention, and the
   seed-owned `Exercise.name` display boundary.

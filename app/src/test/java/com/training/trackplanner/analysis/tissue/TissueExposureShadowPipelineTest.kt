@@ -16,11 +16,11 @@ class TissueExposureShadowPipelineTest {
     fun doseResolverUsesExistingBodyweightAndHoldAuthoritiesAndNeverInventsCounts() {
         val external = TissueDoseResolver.resolve(record(), TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS)
         val bodyweight = TissueDoseResolver.resolve(
-            record(stableKey = "push_up", weightKg = 0.0, bodyWeightKg = 80.0),
+            record(stableKey = "ex_28902b13", weightKg = 0.0, bodyWeightKg = 80.0),
             TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS
         )
         val hold = TissueDoseResolver.resolve(
-            record(stableKey = "plank", reps = 0, weightKg = 0.0, seconds = 30, setRpe = 8.0),
+            record(stableKey = "ex_a44ae2ca", reps = 0, weightKg = 0.0, seconds = 30, setRpe = 8.0),
             TissueDoseBasis.DURATION_HOLD
         )
         val missingCount = TissueDoseResolver.resolve(record(), TissueDoseBasis.LANDING_CONTACT_COUNT)

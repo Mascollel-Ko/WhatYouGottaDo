@@ -1091,7 +1091,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1100,12 +1100,15 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35",
-      "lastAuditedCommit": "56df5ea",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36",
+      "lastAuditedCommit": "79998bf",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldProfileAuthority.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/lab/MuscleLoadInputBuilder.kt",
         "app/src/main/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilder.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt",
@@ -1118,6 +1121,7 @@
         "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/lab/StrengthAndMuscleMetricSeriesBuilderTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
@@ -1133,7 +1137,9 @@
         "docs/analysis_algorithm_design.md",
         "docs/v0.4.2.16_release_notes.md",
         "docs/v0.5.0.33_release_notes.md",
-        "docs/v0.5.0.35_release_notes.md"
+        "docs/v0.5.0.35_release_notes.md",
+        "docs/v0.5.0.36_release_notes.md",
+        "docs/audits/v0.5.0.36_exercise_name_semantic_authority_audit.md"
       ],
       "knownGaps": [
         "이 volume 계약이 처음 도입된 정확한 app version은 추가 Git history 감사가 필요합니다.",
@@ -1147,7 +1153,7 @@
       "familyId": "STRENGTH",
       "titleKo": "지속형 근력 수행능력 사후분포",
       "titleEn": "Persistent Strength Performance Posterior",
-      "currentVersion": "3.1.0",
+      "currentVersion": "3.1.1",
       "status": "EXPERIMENTAL",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1157,8 +1163,8 @@
         "LOW_CONFIDENCE_PROXY"
       ],
       "canonicalDocument": "strength/PROXY_PERFORMANCE_ESTIMATION.md",
-      "implementedFromAppVersion": "v0.5.0.3; isolated prior preflight from v0.5.0.19; relation membership closeout ARTIFACT_ONLY",
-      "lastAuditedCommit": "86c56ca4f74c02f4d1da48b4dd985106642ae42b",
+      "implementedFromAppVersion": "v0.5.0.3; isolated prior preflight from v0.5.0.19; relation membership closeout ARTIFACT_ONLY; disconnected analysis/proxyperformance experiment retired in v0.5.0.36",
+      "lastAuditedCommit": "79998bf",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/curve/RepetitionCurves.kt",
@@ -1210,7 +1216,8 @@
         "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_target_refs_v1.csv",
         "app/src/main/assets/metadata/strength_proxy_prior_v1/strength_proxy_relations_v1.csv",
         "docs/audits/strength_proxy_prior_seed_report.md",
-        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_closeout_v1.md"
+        "outputs/strength_proxy_relation_closeout/strength_proxy_relation_closeout_v1.md",
+        "docs/v0.5.0.36_release_notes.md"
       ],
       "knownGaps": [
         "General-resistance curves for squat, deadlift and pull-up remain provisional rather than exercise-specific validated curves.",
@@ -1231,7 +1238,7 @@
       "familyId": "STRENGTH",
       "titleKo": "체중 운동 유효 부하",
       "titleEn": "Bodyweight Effective Load",
-      "currentVersion": "1.0.1",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1239,17 +1246,21 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "strength/BODYWEIGHT_EFFECTIVE_LOAD.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "43f11ec",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36",
+      "lastAuditedCommit": "bb045da",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt"
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/tissue_load_foundation_v1.md"
+        "docs/tissue_load_foundation_v1.md",
+        "docs/audits/v0.5.0.36_exercise_name_semantic_authority_audit.md",
+        "docs/v0.5.0.36_release_notes.md"
       ],
       "knownGaps": [
         "계수는 exercise-specific product heuristic이며 정확한 최초 app version은 추가 감사가 필요합니다.",
@@ -1263,7 +1274,7 @@
       "familyId": "STRENGTH",
       "titleKo": "시간 유지 운동 부하",
       "titleEn": "Duration Hold Load",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1271,17 +1282,21 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "strength/DURATION_HOLD_LOAD.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36",
+      "lastAuditedCommit": "bb045da",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldProfileAuthority.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt"
       ],
       "authorityAssets": [],
       "supportingDocuments": [
-        "docs/tissue_load_foundation_v1.md"
+        "docs/tissue_load_foundation_v1.md",
+        "docs/audits/v0.5.0.36_exercise_name_semantic_authority_audit.md",
+        "docs/v0.5.0.36_release_notes.md"
       ],
       "knownGaps": [
         "plank와 side-plank family만 명시 지원하며 정확한 최초 app version은 추가 감사가 필요합니다.",
@@ -1695,7 +1710,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "운동 identity와 정본화",
       "titleEn": "Exercise Identity and Canonicalization",
-      "currentVersion": "1.4.0",
+      "currentVersion": "1.5.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1703,8 +1718,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "data_portability/EXERCISE_IDENTITY_AND_CANONICALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32",
-      "lastAuditedCommit": "b44088c2a32d7222d97e5a213a2efea02d250f10",
+      "implementedFromAppVersion": "v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32; analysis name boundary from v0.5.0.36",
+      "lastAuditedCommit": "acf1d3f",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/Entities.kt",
         "app/src/main/java/com/training/trackplanner/data/Daos.kt",
@@ -1725,7 +1740,8 @@
         "app/src/androidTest/java/com/training/trackplanner/data/TrainingDatabaseMigrationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/SelfContainedExerciseBackupRestoreTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataExplicitOverrideTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/SafeBackupRestoreTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/SafeBackupRestoreTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
@@ -1745,7 +1761,9 @@
         "docs/v0.5.0.11_release_notes.md",
         "docs/v0.5.0.22_release_notes.md",
         "docs/v0.5.0.24_release_notes.md",
-        "docs/v0.5.0.25_release_notes.md"
+        "docs/v0.5.0.25_release_notes.md",
+        "docs/audits/v0.5.0.36_exercise_name_semantic_authority_audit.md",
+        "docs/v0.5.0.36_release_notes.md"
       ],
       "knownGaps": [
         "Unreviewed equipment-unspecified legacy split rows require explicit repair instead of an automatic guess.",

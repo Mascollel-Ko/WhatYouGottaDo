@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-DURATION-HOLD |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36 |
+| Last audited commit | bb045da |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -35,11 +35,18 @@ plank와 side-plank 계열은 confirmed seconds와 RPE를 hold load로 변환합
 
 ## 6. 입력 데이터
 
-확인된 기록과 effective runtime metadata를 사용합니다. 입력이 protocol별로 제한될 때는 아래 계산 계약과 authority asset이 그 범위를 결정합니다.
+확인된 기록의 `exerciseStableKey`, seconds와 RPE를 사용합니다. 표시 이름과 운동 metadata text는 policy 선택 입력이 아닙니다.
 
 ## 7. 계산 또는 분류 계약
 
 `seconds * RPE multiplier * coefficient`를 사용합니다. plank와 side plank coefficient는 1.0이고 RPE multiplier는 null 1.0, 6 이하 0.85, 8 미만 1.0, 9 미만 1.15, 10 미만 1.30, 10 이상 1.45입니다.
+
+| Policy | Coefficient | Exact stableKeys |
+|---|---:|---|
+| `PLANK` | 1.0 | `ex_a44ae2ca`, `ex_a8385c4a` |
+| `SIDE_PLANK` | 1.0 | `ex_f6d43398` |
+
+`ex_a8385c4a` Copenhagen hold는 기존 runtime 수치 parity를 위해 명시적으로 `PLANK` policy를 사용합니다.
 
 ## 8. 집계 방식
 
@@ -51,7 +58,7 @@ plank와 side-plank 계열은 confirmed seconds와 RPE를 hold load로 변환합
 
 ## 10. 예외 및 fallback
 
-seconds가 0 이하이거나 plank policy와 맞지 않으면 null입니다. duration을 reps로 임의 변환하지 않습니다.
+seconds가 0 이하이거나 exact stableKey policy가 없으면 null입니다. 이름이 plank처럼 보여도 policy를 추정하지 않으며 duration을 reps로 임의 변환하지 않습니다. historical record의 exact stableKey는 Exercise DB row 없이도 해석합니다.
 
 ## 11. 개인화 또는 보정
 
@@ -81,6 +88,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 16. 구현 위치
 
 - [`app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldProfileAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldProfileAuthority.kt)
 
 ## 17. 검증 테스트
 
@@ -88,7 +96,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 18. 권위 자산
 
-- 별도 authority asset 없이 source와 tests가 계약을 고정합니다.
+- `DurationHoldProfileAuthority`의 exact stableKey map과 parity tests가 authority를 고정합니다.
 
 ## 19. 관련 문서
 
@@ -97,4 +105,5 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): 이름·movement·equipment token heuristic을 제거하고 plank, Copenhagen hold, side plank의 exact stableKey authority로 전환했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

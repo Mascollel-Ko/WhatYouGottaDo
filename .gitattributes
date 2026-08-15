@@ -13,6 +13,10 @@ app/src/main/res/values-en/metadata_display_catalog.xml text eol=lf
 docs/metadata_authority/metadata_display_inventory.csv text eol=lf
 docs/metadata_authority/metadata_display_resource_manifest.json text eol=lf
 docs/generated/metadata_field_display_contract.csv text eol=lf
+docs/audits/core_badminton_rotation_objective_audit.csv text eol=lf
+docs/generated/ui_localization_inventory.csv text eol=lf
+docs/generated/exercise_name_localization_inventory.csv text eol=lf
+docs/generated/localization_coverage_summary.csv text eol=lf
 
 # Preserve the product-owner-approved core review byte-for-byte (BOM + CRLF).
 # Treat it as an opaque reviewed artifact so whitespace checks do not rewrite it.

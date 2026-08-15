@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-BODYWEIGHT-LOAD |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT |
-| Last audited commit | 43f11ec |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36 |
+| Last audited commit | bb045da |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -35,11 +35,21 @@
 
 ## 6. 입력 데이터
 
-확인된 기록과 effective runtime metadata를 사용합니다. 입력이 protocol별로 제한될 때는 아래 계산 계약과 authority asset이 그 범위를 결정합니다.
+확인된 기록의 `exerciseStableKey`, reps, external weight와 해당 날짜의 body weight를 사용합니다. 표시 이름과 runtime metadata text는 profile 선택 입력이 아닙니다.
 
 ## 7. 계산 또는 분류 계약
 
-pull-up/chin-up/dip은 `(bodyweight + added) * reps`, assisted pull-up은 `max(bodyweight - assist, 0) * reps`, inverted row는 `(0.60 * bodyweight + added) * reps`입니다. push-up 계수는 기본 0.65, decline 0.80, pike 0.70, incline 0.55이고 added weight에는 0.70을 적용합니다.
+`BodyweightLoadProfileAuthority`가 exact stableKey로 선택한 profile만 사용합니다. 현재 구현된 profile은 다음과 같습니다.
+
+| Profile | Formula | Exact stableKeys |
+|---|---|---|
+| Bodyweight plus added | `(bodyweight + added) * reps` | `pull_up`, `ex_6466fe77`, `ex_6463edad`, `ex_deca2b61`, `ex_e1894690`, `ex_e41e8dcf`, `ex_e41f4c2b`, `ex_e4f911bb` |
+| Inverted row | `(0.60 * bodyweight + added) * reps` | `ex_d9084b5e`, `ex_e159d15a`, `gymnastic_ring_inverted_row`, `suspension_trainer_inverted_row` |
+| Push-up | `(0.65 * bodyweight + 0.70 * added) * reps` | `ex_28902b13`, `ex_73b0b63f`, `ex_c4535de3`, `ex_debf6a8b`, `ex_fa2e73b3` |
+| Pike push-up | `(0.70 * bodyweight + 0.70 * added) * reps` | `ex_3caa236b` |
+| Decline push-up | `(0.80 * bodyweight + 0.70 * added) * reps` | `ex_fb67af37` |
+
+Assisted pull-up과 incline push-up 계산 형태는 과거 heuristic 문서에 있었지만, 현재 검증된 exact stableKey profile이 없습니다. 따라서 v0.5.0.36 runtime은 이름으로 이를 추정하지 않습니다.
 
 지속형 중량 풀업 수행능력 model은 volume 계수를 재사용하지 않고 `bodyweight + added weight`의 총부하를 target state로 사용합니다. assisted pull-up은 `bodyweight - assistance`로 resolve하지만 direct anchor가 아닙니다. 이 total-load contract는 volume 계산식과 모순되지 않으나 서로 다른 output을 소유합니다.
 
@@ -53,7 +63,7 @@ pull-up/chin-up/dip은 `(bodyweight + added) * reps`, assisted pull-up은 `max(b
 
 ## 10. 예외 및 fallback
 
-reps가 0 이하이거나 body weight/profile이 없으면 null을 반환하고 caller가 raw external-load volume으로 돌아갑니다. generic row나 관련 없는 calisthenics에는 계수를 추정 적용하지 않습니다.
+reps가 0 이하이거나 body weight/profile이 없으면 null을 반환하고 caller가 raw external-load volume으로 돌아갑니다. exact profile이 없는 stableKey는 이름이 push-up/pull-up처럼 보여도 계수를 얻지 못합니다. historical record에 exact stableKey가 있으면 Exercise DB row가 없어도 profile을 해석합니다.
 
 ## 11. 개인화 또는 보정
 
@@ -83,6 +93,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 16. 구현 위치
 
 - [`app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt)
 
 ## 17. 검증 테스트
 
@@ -90,7 +101,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 18. 권위 자산
 
-- 별도 authority asset 없이 source와 tests가 계약을 고정합니다.
+- `BodyweightLoadProfileAuthority`의 exact stableKey map과 parity tests가 authority를 고정합니다.
 
 ## 19. 관련 문서
 
@@ -99,5 +110,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): 이름·family·movement·equipment token heuristic을 제거하고 19개 검증 stableKey의 explicit profile authority로 전환했습니다. 지원 key의 수치는 보존하고 미등록 이름은 fail closed 처리합니다.
 - `1.0.1` (2026-07-23): 중량 풀업 posterior의 총부하, 체중 출처 우선순위, 당시 bodyweight snapshot과 assisted pull-up 비-direct 경계를 명시했습니다. 기존 volume 계수는 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
