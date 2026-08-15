@@ -43,6 +43,14 @@ class ExerciseSubcategoryMapperTest {
     }
 
     @Test
+    fun displayNameRemainsAValidSearchField() {
+        val exercise = exercise(4, "Renamed Cable Row", "Strength")
+
+        assertTrue(ExerciseSubcategoryMapper.matchesSearch(exercise, "cable row"))
+        assertFalse(ExerciseSubcategoryMapper.matchesSearch(exercise, "bench press"))
+    }
+
+    @Test
     fun insufficientStructuredMetadataFallsBackToOther() {
         val exercise = exercise(3, "Custom", "기능성운동")
 

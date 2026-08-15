@@ -48,4 +48,33 @@ class MuscleLoadInputBuilderTest {
 
         assertTrue(loads.isEmpty())
     }
+
+    @Test
+    fun displayNameChangesDoNotAlterExplicitMuscleAttribution() {
+        val original = Exercise(
+            name = "Bench Press",
+            category = "Strength",
+            stableKey = "canonical_press",
+            primaryMuscles = "CHEST",
+            secondaryMuscles = "TRICEPS"
+        )
+
+        assertEquals(
+            MuscleLoadInputBuilder.contributions(original),
+            MuscleLoadInputBuilder.contributions(original.copy(name = "nonsense display label"))
+        )
+    }
+
+    @Test
+    fun adversarialNamesFailClosedWithoutExplicitMuscleMetadata() {
+        listOf("Bench Press", "Row", "Pull Up").forEachIndexed { index, name ->
+            val exercise = Exercise(
+                name = name,
+                category = "Strength",
+                stableKey = "unknown_$index"
+            )
+
+            assertTrue(MuscleLoadInputBuilder.contributions(exercise).isEmpty())
+        }
+    }
 }

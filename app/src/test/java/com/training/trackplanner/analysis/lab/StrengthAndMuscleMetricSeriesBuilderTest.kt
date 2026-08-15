@@ -134,6 +134,24 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
         assertEquals(3.45, series.value(TrendMetricId.MUSCLE_SHOULDERS_LOAD_DAILY, "2026-06-08"), 0.001)
     }
 
+    @Test
+    fun historicalDurationStableKeyResolvesWithoutExerciseRow() {
+        val historicalEntry = WorkoutEntryWithSets(
+            entry = WorkoutEntry(
+                date = "2026-06-10",
+                exerciseStableKey = "ex_f6d43398",
+                exerciseName = "renamed historical hold",
+                category = "Strength"
+            ),
+            sets = listOf(set(1, 0.0, 0, seconds = 30, rpe = 8.0))
+        )
+
+        val series = build(listOf(historicalEntry), exercises = emptyList())
+
+        assertEquals(8.625, series.value(TrendMetricId.MUSCLE_ADDUCTOR_ABDUCTOR_LOAD_DAILY, "2026-06-08"), 0.001)
+        assertEquals(3.45, series.value(TrendMetricId.MUSCLE_SHOULDERS_LOAD_DAILY, "2026-06-08"), 0.001)
+    }
+
     private fun build(
         records: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>
