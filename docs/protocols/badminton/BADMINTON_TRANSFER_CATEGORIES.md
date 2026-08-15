@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 2.1.0 |
+| Protocol version | 2.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33; all-nine presentation and reviewed Pallof authority from v0.5.0.34 |
-| Last audited commit | 6498ab7 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35 |
+| Last audited commit | e2fb51f |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
 
 ## v0.5.0.34 objective presentation and reviewed Pallof decision
@@ -30,6 +30,14 @@ no fabricated legacy evidence key. Existing inherited `DECELERATION` and
 `FOOTWORK` supportive relations and gains neither `ANTI_ROTATION` nor
 `LUNGE_REACH`. Those inherited Copenhagen mappings remain a separate semantic
 review debt.
+
+## v0.5.0.35 legacy seven-axis retirement
+
+The historical seven-axis score, coverage summary, coach recommendation, state,
+and UI paths were removed. The canonical nine-objective V2 calculator and its
+reviewed relations are unchanged and are now the only runtime transfer-analysis
+authority. The old share-based coverage calculation was not projected onto the
+nine objectives because objective stimulus intentionally overlaps.
 
 ## v0.5.0.33 explicit objective stimulus cutover
 
@@ -159,8 +167,6 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 - [`app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
 - [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt)
 
 ## 18. 권위 자산
 
@@ -179,19 +185,22 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `2.2.0` (2026-08-15): legacy seven-axis runtime/coverage/recommendation authority를 제거하고 nine-objective V2를 sole runtime authority로 고정했습니다.
 - `1.1.0` (2026-08-04): 최신 241-row identity에 source metadata를 정합하고 source/runtime/display axis 층을 명시했습니다. runtime 계산은 변경하지 않았습니다.
 - `1.0.1` (2026-07-19): v0.4.2.16에서 주별 훈련량과 전이 자극이 동일한 월-주차 표시 권한을 사용하도록 문서화했습니다. 전이 계산과 색상은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
 
-## 21. source metadata와 runtime-derived axis의 경계
+## 21. source metadata와 retired seven-axis의 경계
 
 배드민턴 전이는 다음 세 층을 구분합니다.
 
-1. exercise-level source metadata: `badmintonTransferLevel`, transfer type code, skill target code, physical quality code, court movement type code, confidence, provenance
-2. current runtime mapper: `BadmintonTransferMetadataMapper`가 effective metadata와 기존 compatibility field를 함께 읽는 구현 층
-3. derived analysis/display axis: `DECELERATION_LANDING`, `UNILATERAL_STABILITY`, `LATERAL_MOVEMENT`, `ROTATION_CONTROL`, `RACKET_SUPPORT`, `AEROBIC_FOOTWORK`, `LOW_FATIGUE_CONTROL`
+1. canonical runtime authority: explicit nine-objective relations and their per-objective transfer levels
+2. practice-load authority: badminton session duration/RPE classification, independent from objective stimulus
+3. historical-only layer: the removed mapper and seven derived display axes retained only in Git history and audit artifacts
 
-세 번째 층은 첫 번째 층을 대체하는 source taxonomy가 아닙니다. source의 `DIRECT`, `SUPPORTIVE`, `GENERAL`, `NONE`은 유지하며 runtime `LOW`는 metadata가 일부 존재할 때 사용하는 fallback으로만 남습니다.
+The historical layer is not a fallback. Runtime code does not derive or display
+the seven retired axes, and it does not convert their old coverage shares into
+the overlapping nine-objective V2 scale.
 
 ## 22. artifact-only identity closeout
 

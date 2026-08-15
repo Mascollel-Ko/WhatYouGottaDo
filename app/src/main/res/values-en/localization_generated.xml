@@ -25,6 +25,7 @@
     <string name="loc_baseline_03621c8c757a">restorative exercise</string>
     <string name="loc_baseline_03735f21f6c2">Deadlift/RDL series</string>
     <string name="loc_baseline_03d3389f78f9">There is an existing record on the target date.</string>
+    <string name="loc_baseline_04074fbebc7d">Weekly sum of direct and indirect CoreStimulus V1</string>
     <string name="loc_baseline_0421ca8fe2d0">progress indicators</string>
     <string name="loc_baseline_04480ef26254">Weekly Footwork and Reaction Training Volume</string>
     <string name="loc_baseline_049fabac1dca">Distance</string>
@@ -255,6 +256,7 @@
     <string name="loc_baseline_3aad9f883a77">weekly glute workouts</string>
     <string name="loc_baseline_3abd920a5c4f">Recent major innovations</string>
     <string name="loc_baseline_3ac2cbf93032">The sample is small so please use it for reference only.</string>
+    <string name="loc_baseline_3b1793e9505f">Weekly indirect CoreStimulus V1</string>
     <string name="loc_baseline_3b229352a2c2">5. Badminton transfer</string>
     <string name="loc_baseline_3b285eefdf4b">gender</string>
     <string name="loc_baseline_3b37a8207789">Joint complex name</string>
@@ -266,6 +268,7 @@
     <string name="loc_baseline_3ce28397c5ca">Weekly Average Whole Body Fatigue Check-in</string>
     <string name="loc_baseline_3ce28e20c77c">All fatigue levels are good. Exercise vigorously!</string>
     <string name="loc_baseline_3d1516250dd8">Strength Average RPE</string>
+    <string name="loc_baseline_3d5c7565cba7">Weekly direct core stimulus</string>
     <string name="loc_baseline_3d684b0f9ef2">12 weeks</string>
     <string name="loc_baseline_3d7ec25da9b2">kg setting</string>
     <string name="loc_baseline_3d838eca8484">Recovery/Injury Prevention</string>
@@ -490,6 +493,7 @@
     <string name="loc_baseline_708780296a98">Other notes</string>
     <string name="loc_baseline_7093d64e6f7c">Busy/Schedule</string>
     <string name="loc_baseline_70ee58bf235f">Dumbbell pronation/supination</string>
+    <string name="loc_baseline_7118e58eb9ba">Stimulus</string>
     <string name="loc_baseline_713e6abe13ed">Exogenous Control Z Selection</string>
     <string name="loc_baseline_714682771273">M0 · Based on previous value</string>
     <string name="loc_baseline_71bf9e7f26c5">Delete</string>
@@ -564,6 +568,7 @@
     <string name="loc_baseline_828819cf4506">Weekly back/lat training volume</string>
     <string name="loc_baseline_82962011b0f2">main stress</string>
     <string name="loc_baseline_82d6a8b37809">tennis match</string>
+    <string name="loc_baseline_83061a2a899c">Weekly indirect core stimulus</string>
     <string name="loc_baseline_83061a6627c3">Repeated comparisons may include chance correlations. Do not use the results as the sole basis for training prescriptions.</string>
     <string name="loc_baseline_837de53d5d57">The number of repetitions of the same weight was reduced.</string>
     <string name="loc_baseline_8434ee57d7b8">The current burden is high.</string>
@@ -828,6 +833,7 @@
     <string name="loc_baseline_c1aedab5ea9b">We are conservative in our interpretation of recovery after long court times due to low recent sleep input.</string>
     <string name="loc_baseline_c1cbaea3132b">Although the sample is relatively stable, it does not imply causality.</string>
     <string name="loc_baseline_c1e867c766b8">thighs</string>
+    <string name="loc_baseline_c21c0c139de7">Weekly total core stimulus</string>
     <string name="loc_baseline_c21e2526123c">Redundancy Suppression Group</string>
     <string name="loc_baseline_c2249e79384a">kettlebell press</string>
     <string name="loc_baseline_c22f587c8057">The purpose of transition is to quickly judge and react to changes in signals or situations.</string>
@@ -880,6 +886,7 @@
     <string name="loc_baseline_ce1c4a7c4fd4">Analysis unavailable</string>
     <string name="loc_baseline_ce2c3ada2a16">Number of exercise days per week</string>
     <string name="loc_baseline_cebdc19133eb">Based on today\'s recorded exercise, fatigue is not excessive.</string>
+    <string name="loc_baseline_cf4cebdccbbb">Weekly direct CoreStimulus V1</string>
     <string name="loc_baseline_cf4e843c7151">adjustment</string>
     <string name="loc_baseline_cf8b14d886c0">It shows which badminton transfer purpose stimuli were most prevalent in each state. One exercise can serve multiple transfer purposes simultaneously, so the amount of stimulation is reflected redundantly. This is a weekly tally, not monthly.</string>
     <string name="loc_baseline_d0096a1feab6">Landmine Anti-Rotation</string>
@@ -1092,6 +1099,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_fe16a6b54cf9">default</string>
     <string name="loc_baseline_fe92ef146d57">Back/lats</string>
     <string name="loc_baseline_fee35c15fb9c">There is insufficient record of badminton transfer purpose for the last 7 days.</string>
+    <string name="loc_baseline_feee52bbd9d2">Core stimulus</string>
     <string name="loc_metadata_002a94328681">Box step</string>
     <string name="loc_metadata_005723b1b558">U06</string>
     <string name="loc_metadata_008525e0ccad">Evidence source</string>

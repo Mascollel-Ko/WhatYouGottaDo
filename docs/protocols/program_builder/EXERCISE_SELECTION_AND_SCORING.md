@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-SCORING |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.4.2.0 |
-| Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
+| Implemented from app version | v0.4.2.0; exact stableKey candidate authority from v0.5.0.35 |
+| Last audited commit | ce93b32 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -40,6 +40,13 @@
 ## 7. 계산 또는 분류 계약
 
 선택 comparator는 exercise 사용 횟수 오름차순, group 사용 횟수 오름차순, table order 순입니다. exact stable key/name rule과 narrow selected-main rule을 사용하며 inactive `ProgramScoringPolicy`의 점수를 공개 runtime이라고 설명하지 않습니다.
+
+Candidate eligibility is not a score. `ProgramCandidateAuthority` is a typed,
+read-only projection of the exact stableKeys declared by `ProgramRuleTables`.
+Only those keys can enter public selection or the disconnected advanced
+inventory/reservoir/spec path. Metadata, role, movement, core, and display-name
+classification may rank an admitted candidate but can never grant admission.
+Adding a future candidate therefore requires an explicit rule-table change.
 
 ## 8. 집계 방식
 
@@ -83,6 +90,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt)
 
@@ -90,6 +99,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt)
 
 ## 18. 권위 자산
 
@@ -103,4 +114,5 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): hard candidate admission을 ProgramRuleTables exact stableKey authority로 분리하고 metadata/name matching은 admitted-candidate ranking으로만 제한했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

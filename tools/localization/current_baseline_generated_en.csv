@@ -1121,3 +1121,11 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 명시적 canonical 관계에서 확인된 배드민턴 전이 목적입니다.,This badminton transfer objective is supported by an explicit canonical relation.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
 주별 코어 훈련 자극,Weekly core training stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 "직접 자극은 코어 기능 자체가 명시된 훈련 목표인 세트이고, 간접 자극은 다른 목적 운동에서 함께 발생한 코어 요구입니다. 주별 값은 해당 주의 훈련 노출이며, 높은 간접 값은 복합 근력운동이 많아도 발생할 수 있습니다.","Direct stimulus comes from sets where core function itself is an explicit training target; indirect stimulus is core demand that occurs during exercises with another purpose. Weekly values are that week's training exposure, and high indirect values can also result from many compound strength exercises.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+코어 자극,Core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisLabModels.kt
+주간 코어 총 자극,Weekly total core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+CoreStimulus V1의 주간 직접 및 간접 자극 합계,Weekly sum of direct and indirect CoreStimulus V1,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+자극,Stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+주간 코어 직접 자극,Weekly direct core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+CoreStimulus V1의 주간 직접 코어 자극,Weekly direct CoreStimulus V1,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+주간 코어 간접 자극,Weekly indirect core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+CoreStimulus V1의 주간 간접 코어 자극,Weekly indirect CoreStimulus V1,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt

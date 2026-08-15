@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-VOLUME |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33 |
-| Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35 |
+| Last audited commit | e2fb51f |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -18,6 +18,12 @@ Generic sessions and lessons remain valid duration/RPE practice load. They do
 not automatically populate the nine supporting-training objectives. Objective
 stimulus is owned separately by `BADMINTON-TRANSFER` and only explicit named
 canonical drills or supporting exercises with objective relations contribute.
+
+## v0.5.0.35 legacy transfer boundary cleanup
+
+The old seven-axis transfer calculator and coverage/recommendation paths were
+removed. This does not change badminton practice duration/RPE load or the
+canonical nine-objective stimulus calculation.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
@@ -93,8 +99,6 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
@@ -103,8 +107,6 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
 - [`app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt)
 
 ## 18. 권위 자산
 
@@ -117,5 +119,6 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-15): badminton practice volume을 유지하면서 retired seven-axis runtime 앵커를 제거했습니다.
 - `1.0.1` (2026-07-19): v0.4.2.16의 공통 Monday-Sunday 월-주차 라벨, 정확한 기간 및 접근성 표시 계약을 추가했습니다. 훈련량 계산은 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

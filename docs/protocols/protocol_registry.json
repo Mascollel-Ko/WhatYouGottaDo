@@ -835,7 +835,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 훈련 taxonomy",
       "titleEn": "Badminton Training Taxonomy",
-      "currentVersion": "1.4.0",
+      "currentVersion": "1.5.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -844,22 +844,18 @@
         "RESEARCH_TRANSFER"
       ],
       "canonicalDocument": "badminton/BADMINTON_TRAINING_TAXONOMY.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; stableKey/taxonomy closeout ARTIFACT_ONLY from 2026-08-04; objective-specific authority from v0.5.0.33; reviewed Pallof anti-rotation authority from v0.5.0.34",
-      "lastAuditedCommit": "6498ab7",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; stableKey/taxonomy closeout ARTIFACT_ONLY from 2026-08-04; objective-specific authority from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35",
+      "lastAuditedCommit": "e2fb51f",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/CanonicalBadmintonTransferAuthorityTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt"
       ],
       "authorityAssets": [
@@ -879,7 +875,8 @@
         "docs/audits/metadata_normalization_shadow_parity_report.md",
         "docs/v0.5.0.32_release_notes.md",
         "docs/audits/core_badminton_rotation_objective_audit.csv",
-        "docs/v0.5.0.33_release_notes.md"
+        "docs/v0.5.0.33_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "모든 훈련 record가 strokes, contacts 또는 sensor-level dose를 제공하지는 않습니다.",
@@ -896,7 +893,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 훈련량 계산",
       "titleEn": "Badminton Training Volume",
-      "currentVersion": "1.1.0",
+      "currentVersion": "1.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -905,30 +902,27 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "badminton/BADMINTON_VOLUME_CALCULATION.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33",
-      "lastAuditedCommit": "532d2343cafd9e54924dc52350c6e108893b4b07",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35",
+      "lastAuditedCommit": "e2fb51f",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
-        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt"
+        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
       ],
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
-        "docs/v0.4.2.16_release_notes.md"
+        "docs/v0.4.2.16_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
@@ -941,7 +935,7 @@
       "familyId": "BADMINTON",
       "titleKo": "배드민턴 전이 분류",
       "titleEn": "Badminton Transfer Categories",
-      "currentVersion": "2.1.0",
+      "currentVersion": "2.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -950,8 +944,8 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "badminton/BADMINTON_TRANSFER_CATEGORIES.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; chart dates from v0.4.2.16; Badminton Objective Stimulus V2 from v0.5.0.33; all-nine presentation and reviewed Pallof authority from v0.5.0.34",
-      "lastAuditedCommit": "6498ab7",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; chart dates from v0.4.2.16; Badminton Objective Stimulus V2 from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35",
+      "lastAuditedCommit": "e2fb51f",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt",
         "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt",
@@ -965,10 +959,6 @@
         "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/CanonicalBadmintonTransferAuthorityTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt",
         "app/src/test/java/com/training/trackplanner/BadmintonObjectiveSelectionStateTest.kt",
@@ -994,7 +984,8 @@
         "docs/audits/metadata_information_preservation_audit.md",
         "docs/v0.5.0.32_release_notes.md",
         "docs/audits/core_badminton_rotation_objective_audit.csv",
-        "docs/v0.5.0.33_release_notes.md"
+        "docs/v0.5.0.33_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다.",
@@ -1100,7 +1091,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.2.0",
+      "currentVersion": "1.3.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1109,8 +1100,8 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34",
-      "lastAuditedCommit": "6498ab7",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35",
+      "lastAuditedCommit": "56df5ea",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
@@ -1120,7 +1111,8 @@
         "app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt",
         "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt",
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilder.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculatorTest.kt",
@@ -1131,7 +1123,8 @@
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt",
-        "app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt"
+        "app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilderTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/metadata/canonical_v1/core_relations.csv"
@@ -1139,7 +1132,8 @@
       "supportingDocuments": [
         "docs/analysis_algorithm_design.md",
         "docs/v0.4.2.16_release_notes.md",
-        "docs/v0.5.0.33_release_notes.md"
+        "docs/v0.5.0.33_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "이 volume 계약이 처음 도입된 정확한 app version은 추가 Git history 감사가 필요합니다.",
@@ -1346,7 +1340,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동 프로그램 생성 개요",
       "titleEn": "Automatic Program Builder Overview",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1354,12 +1348,15 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; typed user notices from v0.5.0.14",
-      "lastAuditedCommit": "8f78c99b11af14c2715a36532d83256e7ebfe4bf",
+      "implementedFromAppVersion": "v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; exact stableKey candidate authority from v0.5.0.35",
+      "lastAuditedCommit": "ce93b32",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
@@ -1372,6 +1369,8 @@
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt",
@@ -1385,7 +1384,8 @@
         "docs/v0.3.5.3_program_builder_architecture.md",
         "docs/v0.5.0.12_release_notes.md",
         "docs/v0.5.0.13_release_notes.md",
-        "docs/v0.5.0.14_release_notes.md"
+        "docs/v0.5.0.14_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
@@ -1448,7 +1448,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "운동 선택과 우선순위",
       "titleEn": "Exercise Selection and Scoring",
-      "currentVersion": "1.0.0",
+      "currentVersion": "1.1.0",
       "status": "ACTIVE",
       "implementationStatus": "PARTIALLY_IMPLEMENTED",
       "evidenceProfile": [
@@ -1456,25 +1456,30 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/EXERCISE_SELECTION_AND_SCORING.md",
-      "implementedFromAppVersion": "v0.4.2.0",
-      "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
+      "implementedFromAppVersion": "v0.4.2.0; exact stableKey candidate authority from v0.5.0.35",
+      "lastAuditedCommit": "ce93b32",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
-        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt"
+        "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv"
       ],
       "supportingDocuments": [
         "docs/v0.4.1.10.5_program_builder_reservoir_beam_worklog.md",
-        "docs/v0.4.2.0_release_notes.md"
+        "docs/v0.4.2.0_release_notes.md",
+        "docs/v0.5.0.35_release_notes.md"
       ],
       "knownGaps": [
         "공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.",
@@ -1595,7 +1600,6 @@
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataUserOverride.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataEffectiveStateResolver.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseMetadataReconciliationService.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt",
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreMetadataAuthority.kt",
         "app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt",
@@ -1615,7 +1619,6 @@
         "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataExplicitOverrideTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ExerciseMetadataFieldRegistryContractTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/contracts/AnalysisContractAuditArtifactsTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/badminton/MetadataNormalizationShadowParityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt"

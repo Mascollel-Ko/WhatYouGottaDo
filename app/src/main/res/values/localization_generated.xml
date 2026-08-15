@@ -25,6 +25,7 @@
     <string name="loc_baseline_03621c8c757a">회복성 운동</string>
     <string name="loc_baseline_03735f21f6c2">데드리프트/RDL 계열</string>
     <string name="loc_baseline_03d3389f78f9">대상 날짜에 기존 기록이 있습니다.</string>
+    <string name="loc_baseline_04074fbebc7d">CoreStimulus V1의 주간 직접 및 간접 자극 합계</string>
     <string name="loc_baseline_0421ca8fe2d0">진행 지표</string>
     <string name="loc_baseline_04480ef26254">주간 풋워크 및 반응 훈련량</string>
     <string name="loc_baseline_049fabac1dca">거리</string>
@@ -255,6 +256,7 @@
     <string name="loc_baseline_3aad9f883a77">주간 둔근 운동량</string>
     <string name="loc_baseline_3abd920a5c4f">최근 주요 innovation</string>
     <string name="loc_baseline_3ac2cbf93032">표본이 작아 참고용으로만 보세요.</string>
+    <string name="loc_baseline_3b1793e9505f">CoreStimulus V1의 주간 간접 코어 자극</string>
     <string name="loc_baseline_3b229352a2c2">5. 배드민턴 전이</string>
     <string name="loc_baseline_3b285eefdf4b">성별</string>
     <string name="loc_baseline_3b37a8207789">관절복합체명</string>
@@ -266,6 +268,7 @@
     <string name="loc_baseline_3ce28397c5ca">주간 평균 전신 피로 체크인</string>
     <string name="loc_baseline_3ce28e20c77c">모든 피로도가 양호합니다. 힘차게 운동!</string>
     <string name="loc_baseline_3d1516250dd8">근력 평균 RPE</string>
+    <string name="loc_baseline_3d5c7565cba7">주간 코어 직접 자극</string>
     <string name="loc_baseline_3d684b0f9ef2">12주</string>
     <string name="loc_baseline_3d7ec25da9b2">kg 설정</string>
     <string name="loc_baseline_3d838eca8484">회복/부상 방지</string>
@@ -490,6 +493,7 @@
     <string name="loc_baseline_708780296a98">기타 메모</string>
     <string name="loc_baseline_7093d64e6f7c">바쁨/일정</string>
     <string name="loc_baseline_70ee58bf235f">덤벨 프로네이션/수피네이션</string>
+    <string name="loc_baseline_7118e58eb9ba">자극</string>
     <string name="loc_baseline_713e6abe13ed">외생 통제 Z 선택</string>
     <string name="loc_baseline_714682771273">M0 · 직전값 기준</string>
     <string name="loc_baseline_71bf9e7f26c5">삭제</string>
@@ -564,6 +568,7 @@
     <string name="loc_baseline_828819cf4506">주간 등/광배 운동량</string>
     <string name="loc_baseline_82962011b0f2">주 스트레스</string>
     <string name="loc_baseline_82d6a8b37809">테니스 경기</string>
+    <string name="loc_baseline_83061a2a899c">주간 코어 간접 자극</string>
     <string name="loc_baseline_83061a6627c3">반복 비교에서는 우연 상관이 포함될 수 있습니다. 결과를 훈련 처방의 단독 근거로 사용하지 마세요.</string>
     <string name="loc_baseline_837de53d5d57">같은 중량 반복수가 줄었습니다.</string>
     <string name="loc_baseline_8434ee57d7b8">현재 부담이 높게 잡힙니다.</string>
@@ -828,6 +833,7 @@
     <string name="loc_baseline_c1aedab5ea9b">최근 수면 입력이 낮아 긴 코트 시간 뒤 회복 해석을 보수적으로 봅니다.</string>
     <string name="loc_baseline_c1cbaea3132b">표본은 비교적 안정적이지만 인과관계를 뜻하지 않습니다.</string>
     <string name="loc_baseline_c1e867c766b8">허벅지</string>
+    <string name="loc_baseline_c21c0c139de7">주간 코어 총 자극</string>
     <string name="loc_baseline_c21e2526123c">중복 억제 그룹</string>
     <string name="loc_baseline_c2249e79384a">케틀벨 프레스</string>
     <string name="loc_baseline_c22f587c8057">신호나 상황 변화에 맞춰 빠르게 판단하고 반응하는 전이 목적입니다.</string>
@@ -880,6 +886,7 @@
     <string name="loc_baseline_ce1c4a7c4fd4">분석할 수 없습니다</string>
     <string name="loc_baseline_ce2c3ada2a16">주당 운동일수</string>
     <string name="loc_baseline_cebdc19133eb">오늘 기록된 운동 기준으로는 피로가 과도하지 않습니다.</string>
+    <string name="loc_baseline_cf4cebdccbbb">CoreStimulus V1의 주간 직접 코어 자극</string>
     <string name="loc_baseline_cf4e843c7151">조절</string>
     <string name="loc_baseline_cf8b14d886c0">각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다.</string>
     <string name="loc_baseline_d0096a1feab6">랜드마인 안티로테이션</string>
@@ -1092,6 +1099,7 @@
     <string name="loc_baseline_fe16a6b54cf9">기본값</string>
     <string name="loc_baseline_fe92ef146d57">등/광배</string>
     <string name="loc_baseline_fee35c15fb9c">최근 7일 배드민턴 전이 목적 기록이 부족합니다.</string>
+    <string name="loc_baseline_feee52bbd9d2">코어 자극</string>
     <string name="loc_metadata_002a94328681">운동용 박스</string>
     <string name="loc_metadata_005723b1b558">근거 코드 U06</string>
     <string name="loc_metadata_008525e0ccad">근거 출처</string>

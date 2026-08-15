@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34 |
-| Last audited commit | 6498ab7 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35 |
+| Last audited commit | 56df5ea |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -42,6 +42,14 @@ latest displayed week rather than lifetime cumulative values.
 This is a presentation projection only. CoreStimulus V1 arithmetic and version,
 its class/RPE coefficients, raw-record replay, and cumulative compatibility
 fields remain unchanged.
+
+## v0.5.0.35 Analysis Lab core authority
+
+The old anterior, lateral, and rotation pseudo-core metric IDs and muscle-name
+fallback buckets were removed. Analysis Lab now exposes total, direct, and
+indirect weekly core stimulus through the same `CoreStimulusWeeklySeries`
+aggregation used by the canonical core presentation. This removes competing
+core authorities without changing CoreStimulus V1 arithmetic.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
@@ -123,6 +131,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeries.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt)
 - [`app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt`](../../../app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt)
 
@@ -136,6 +145,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusCalculatorTest.kt)
 - [`app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/core/CoreStimulusWeeklySeriesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/lab/CoreStimulusMetricSeriesBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt`](../../../app/src/test/java/com/training/trackplanner/CoreStimulusChartSpecTest.kt)
 
 ## 18. 권위 자산
@@ -150,6 +160,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-15): Analysis Lab의 legacy pseudo-core metric을 제거하고 CoreStimulus V1 total/direct/indirect weekly projection으로 통합했습니다.
 - `1.0.3` (2026-07-23): 기존 Epley series를 `기존 공식 환산값` 경계로 명시하고 event-driven nonlinear posterior가 volume/e1RM 관측을 변경하거나 소비하지 않는다고 갱신했습니다.
 - `1.0.2` (2026-07-23): canonical actual e1RM과 실험적 proxy posterior의 데이터·UI 경계를 명시했습니다. 기존 actual e1RM 및 volume 계산식은 변경하지 않았습니다.
 - `1.0.1` (2026-07-19): v0.4.2.16의 공통 주차 표시와 e1RM 다중 시리즈 union-domain/null-gap 계약을 추가했습니다. e1RM 및 volume 계산식은 변경하지 않았습니다.

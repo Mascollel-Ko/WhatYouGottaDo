@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; typed user notices from v0.5.0.14 |
-| Last audited commit | 8f78c99b11af14c2715a36532d83256e7ebfe4bf |
+| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; exact stableKey candidate authority from v0.5.0.35 |
+| Last audited commit | ce93b32 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -40,6 +40,12 @@
 ## 7. 계산 또는 분류 계약
 
 공개 경로는 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`입니다. 현재 UI 입력은 이름, 기간, 주당 운동일, 하루 시간, 배드민턴 비율이며 builder는 goal, equipment, 제외어, sport-strength, periodization과 preferred/excluded stable key를 현재 기본값으로 정규화합니다.
+
+Program candidate admission is exact stableKey authority. The typed
+`ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
+names, metadata labels, core tokens, or similarity cannot add an exercise.
+The approved set remains 59 keys. The disconnected advanced builder is guarded
+at inventory, reservoir, and exercise-spec boundaries by the same authority.
 
 저장 프로그램 적용은 생성이나 재평가가 아니라 exact materialization입니다.
 `TrainingViewModel → TrainingRepository → ProgramPlanService` 적용 경로는
@@ -122,6 +128,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
+- [`app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
@@ -135,6 +144,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt)
 - [`app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt)
 - [`app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
@@ -155,6 +166,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.4.0` (2026-08-15): ProgramRuleTables의 59 exact stableKey를 sole candidate authority로 고정하고 192-scenario public output parity를 추가했습니다.
 - `1.3.0` (2026-07-30): 내부 optimization action과 사용자 완료 문구를
   typed notice 및 locale resource 경계로 분리했습니다.
 - `1.2.0` (2026-07-30): 저장 프로그램 적용을 fatigue/readiness와 분리한

@@ -5701,7 +5701,7 @@ Validation:
 
 ### Phase C - explicit ProgramBuilder stable-key authority
 
-Commit: pending
+Commit: `ce93b32`
 
 - Added `ProgramCandidateAuthority` as a typed view derived directly from the
   existing `ProgramRuleTables` maps. It contains 59 distinct approved stable
@@ -5750,3 +5750,30 @@ Remaining debt:
   from the public generator path. It is retained for now because its models and
   historical policy tests still document prior experiments, but both inventory
   and reservoir boundaries now enforce the same exact-key authority.
+
+### Release closeout
+
+- Version: `0.5.0.35 / 500035`.
+- Canonical badminton taxonomy/volume/transfer, strength volume, ProgramBuilder
+  overview/scoring documents, protocol registry/index, and release notes were
+  updated to the implemented authority boundaries.
+- Deleted badminton and pseudo-core consumers were removed from generated
+  localization and analysis-cutover inventories through their deterministic
+  generators. Eight unique CoreStimulus Lab strings received exact English
+  translations; localization reports zero unexplained production leaks.
+- Protocol validator: passed, 8 families and 34 protocols.
+- Canonical metadata workbook validation and deterministic asset/cutover
+  checks: passed. Metadata authority tests: 9 passed.
+- Localization authority/audit determinism: passed. Localization tests: 8
+  passed.
+- Final `:app:testDebugUnitTest`: 1,266 passed, zero failures, errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Debug APK: 51,400,451 bytes, SHA-256
+  `654a066971018791f139a434f80f025eca23fb64d1729b1daaff27ca3673c332`.
+- `git diff --check`: passed.
+- Production source scan for retired badminton axes/calculators, legacy
+  pseudo-core metrics, and name/token-based ProgramBuilder admission: zero
+  matches.
+- Six pre-existing untracked `outputs/*` files remained untouched and were not
+  staged.

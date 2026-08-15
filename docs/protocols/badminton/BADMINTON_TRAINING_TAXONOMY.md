@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33; reviewed Pallof anti-rotation authority from v0.5.0.34 |
-| Last audited commit | 6498ab7 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35 |
+| Last audited commit | e2fb51f |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
 
 ## v0.5.0.34 reviewed objective decisions
@@ -17,6 +17,13 @@ derivations from core metadata. The two Pallof variants add explicit
 `ANTI_ROTATION / SUPPORTIVE` relations while retaining their inherited
 `DECELERATION / SUPPORTIVE` and `FOOTWORK / SUPPORTIVE` relations. Copenhagen
 plank receives no anti-rotation or lunge/reach relation in this release.
+
+## v0.5.0.35 canonical objective-only runtime
+
+The retired seven-axis transfer mapper, calculator, coverage summary, coach
+recommendation, state, and UI paths no longer participate in runtime analysis.
+Badminton Objective Stimulus V2 remains the sole supporting-training objective
+authority. Badminton practice volume remains a separate duration/RPE contract.
 
 ## v0.5.0.33 canonical objective set
 
@@ -117,14 +124,14 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngine.kt)
-- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferConstants.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonTransferAnalysisEngineTest.kt)
-- [`app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/coach/BadmintonTransferCoverageAnalyzerTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthorityTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt)
 
 ## 18. 권위 자산
 
@@ -140,6 +147,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-15): legacy seven-axis runtime authority를 제거하고 canonical nine-objective V2와 badminton practice volume의 분리 경계를 명시했습니다.
 - `1.1.0` (2026-08-04): latest canonical inventory, equipment split inheritance, legacy lineage, localization-readiness 경계를 문서화했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.
 
