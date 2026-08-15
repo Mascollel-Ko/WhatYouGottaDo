@@ -9,14 +9,16 @@ class RpeAutoregulationAnalyzer {
     fun analyze(
         today: LocalDate,
         entriesWithSets: List<WorkoutEntryWithSets>,
+        @Suppress("UNUSED_PARAMETER")
         exercises: List<Exercise>,
         sleepSignal: SleepRecoverySignal
     ): RpeAutoregulationSignal? {
-        val exerciseById = exercises.associateBy(Exercise::stableKey)
         val observations = entriesWithSets.flatMap { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@flatMap emptyList()
-            val exercise = exerciseById[record.entry.exerciseStableKey]
-            val key = exercise?.stableKey?.takeIf { it.isNotBlank() } ?: record.entry.exerciseName
+            val key = record.entry.exerciseStableKey.takeIf(String::isNotBlank)
+                ?: record.entry.backupSourceId?.takeIf(String::isNotBlank)?.let { "unresolved-backup:$it" }
+                ?: record.entry.id.takeIf { it > 0L }?.let { "unresolved-workout-entry:$it" }
+                ?: "unresolved:${record.entry.date}:${record.entry.displayOrder}:${record.entry.createdAt}"
             record.sets.filter { it.confirmed }.mapNotNull { set ->
                 val rpe = set.rpe ?: record.entry.rpe ?: return@mapNotNull null
                 RpeObservation(

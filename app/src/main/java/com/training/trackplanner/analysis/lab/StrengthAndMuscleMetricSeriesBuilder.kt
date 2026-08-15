@@ -18,6 +18,7 @@ object StrengthAndMuscleMetricSeriesBuilder {
     fun build(
         entriesWithSets: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>,
+        @Suppress("UNUSED_PARAMETER")
         runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
         dailyMetrics: List<DailyMetric> = emptyList()
     ): Map<TrendMetricId, List<TrendDataPoint>> {
@@ -28,7 +29,6 @@ object StrengthAndMuscleMetricSeriesBuilder {
         entriesWithSets.forEach { record ->
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull() ?: return@forEach
             val exercise = exercisesById[record.entry.exerciseStableKey]
-            val runtimeMetadata = exercise?.let(runtimeMetadataCatalog::resolve)
             val confirmedSets = record.sets.filter { set -> set.confirmed }
             if (confirmedSets.isEmpty()) return@forEach
             datesWithConfirmedSets += date
@@ -55,7 +55,7 @@ object StrengthAndMuscleMetricSeriesBuilder {
                     val load = if (durationHoldLoad != null) setLoad else setLoad * rpeWeight(rpe)
                     if (load > 0.0) {
                         val contributions = durationHoldContributions(record.entry.exerciseStableKey)
-                            ?: MuscleLoadInputBuilder.contributions(exercise, record.entry, runtimeMetadata)
+                            ?: MuscleLoadInputBuilder.contributions(exercise)
                         contributions.forEach { (bucket, weight) ->
                             dailyLoads.getValue(bucket).merge(date, load * weight, Double::plus)
                         }

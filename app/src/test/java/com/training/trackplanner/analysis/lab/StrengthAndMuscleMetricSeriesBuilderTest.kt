@@ -11,25 +11,29 @@ import org.junit.Test
 
 class StrengthAndMuscleMetricSeriesBuilderTest {
     @Test
-    fun squatMuscleLoadUsesFallbackContributionsAndRpe() {
-        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
+    fun squatMuscleLoadUsesCanonicalRelationsAndRpe() {
+        val squat = exercise(1, "renamed", "barbell_back_squat").copy(
+            primaryMuscles = "QUADRICEPS,HAMSTRING,GLUTE"
+        )
         val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5, rpe = 8.0))), listOf(squat))
 
         assertEquals(575.0, series.value(TrendMetricId.MUSCLE_QUADS_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(287.5, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(143.75, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(575.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertTrue(series[TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY].orEmpty().isEmpty())
     }
 
     @Test
-    fun deadliftMuscleLoadUsesFallbackContributionsAndRpe() {
-        val deadlift = exercise(1, "데드리프트", "conventional_deadlift")
+    fun deadliftMuscleLoadUsesCanonicalRelationsAndRpe() {
+        val deadlift = exercise(1, "renamed", "barbell_deadlift").copy(
+            primaryMuscles = "LAT,HAMSTRING,GLUTE,ERECTOR_SPINAE"
+        )
         val series = build(listOf(record("2026-06-10", deadlift, set(1, 160.0, 3, rpe = 9.0))), listOf(deadlift))
 
         assertEquals(624.0, series.value(TrendMetricId.MUSCLE_POSTERIOR_CHAIN_ERECTORS_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(468.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
-        assertEquals(156.0, series.value(TrendMetricId.MUSCLE_FOREARM_GRIP_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_GLUTES_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_HAMSTRINGS_LOAD_DAILY, "2026-06-08"), 0.01)
+        assertEquals(624.0, series.value(TrendMetricId.MUSCLE_BACK_LATS_LOAD_DAILY, "2026-06-08"), 0.01)
     }
 
     @Test
@@ -64,7 +68,7 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
     @Test
     fun muscleLoadAggregatesByWeekAndDoesNotCarryForwardMissingWeeks() {
-        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
+        val squat = exercise(1, "renamed", "barbell_back_squat").copy(primaryMuscles = "QUADRICEPS")
         val series = build(
             exercises = listOf(squat),
             records = listOf(
@@ -95,7 +99,7 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
     @Test
     fun labSelectorExposesWeeklyMuscleMetricsWithoutKeyMismatch() {
-        val squat = exercise(1, "바벨 백스쿼트", "barbell_back_squat")
+        val squat = exercise(1, "renamed", "barbell_back_squat").copy(primaryMuscles = "QUADRICEPS")
         val series = build(listOf(record("2026-06-10", squat, set(1, 100.0, 5))), listOf(squat))
 
         val available = AnalysisMetricRegistry.scatterMetrics(series).map { descriptor -> descriptor.id }

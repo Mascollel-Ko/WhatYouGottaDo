@@ -7,6 +7,7 @@ import com.training.trackplanner.data.WorkoutSet
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -51,6 +52,40 @@ class RpeAutoregulationAnalyzerTest {
         assertTrue(signal!!.sleepContext.orEmpty().contains("보수적으로"))
         assertTrue(!signal.detail.contains("때문"))
     }
+
+    @Test
+    fun unresolvedRecordsWithTheSameDisplayNameAreNotGrouped() {
+        val entries = listOf(
+            unresolvedRecord(1, today.minusDays(20), 7.0),
+            unresolvedRecord(2, today.minusDays(14), 7.2),
+            unresolvedRecord(3, today.minusDays(1), 8.6)
+        )
+
+        val signal = RpeAutoregulationAnalyzer().analyze(today, entries, emptyList(), neutralSleep)
+
+        assertNull(signal)
+    }
+
+    private fun unresolvedRecord(id: Long, date: LocalDate, rpe: Double): WorkoutEntryWithSets =
+        WorkoutEntryWithSets(
+            entry = WorkoutEntry(
+                id = id,
+                date = date.toString(),
+                exerciseStableKey = "",
+                exerciseName = "same label",
+                category = "strength"
+            ),
+            sets = listOf(
+                WorkoutSet(
+                    entryId = id,
+                    setIndex = 1,
+                    reps = 5,
+                    weightKg = 100.0,
+                    confirmed = true,
+                    rpe = rpe
+                )
+            )
+        )
 
     private fun record(date: LocalDate, rpe: Double): WorkoutEntryWithSets =
         WorkoutEntryWithSets(

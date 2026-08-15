@@ -234,7 +234,6 @@ class StrengthPosteriorEventIntegrationTest {
         val persistent = checkNotNull(summary.persistentStrengthPerformanceSummary)
         val bench = persistent.targets.single { target -> target.targetKey == StrengthPerformanceRegistry.BENCH_PRESS.value }
         assertTrue(bench.history.isNotEmpty())
-        assertEquals(null, summary.proxyPerformanceSummary)
     }
 
     @Test

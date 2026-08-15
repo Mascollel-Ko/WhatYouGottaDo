@@ -172,9 +172,15 @@ class DailyFatigueCalculator(
             redundancyGroup = metadata.redundancyGroup,
             movementFamily = metadata.movementFamily,
             programSlot = metadata.programSlot,
-            confidence = confidence
+            confidence = confidence,
+            recordIdentity = record.recordIdentity()
         )
     }
+
+    private fun WorkoutEntryWithSets.recordIdentity(): String =
+        entry.backupSourceId?.takeIf(String::isNotBlank)?.let { "backup:$it" }
+            ?: entry.id.takeIf { it > 0L }?.let { "workout-entry:$it" }
+            ?: "unpersisted:${entry.date}:${entry.displayOrder}:${entry.createdAt}"
 
     private fun calculateAxes(record: RecordContext, recordLoad: Double): FatigueAxisValues {
         val metadata = record.metadata

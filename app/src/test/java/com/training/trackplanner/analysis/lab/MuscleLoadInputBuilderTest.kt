@@ -2,7 +2,6 @@ package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.lab.StrengthAndMuscleMetricSeriesBuilder.MuscleBucket
 import com.training.trackplanner.data.Exercise
-import com.training.trackplanner.data.WorkoutEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,10 +17,7 @@ class MuscleLoadInputBuilderTest {
             secondaryMuscles = "둔근"
         )
 
-        val loads = MuscleLoadInputBuilder.contributions(
-            exercise = exercise,
-            entry = WorkoutEntry(date = "2026-06-10", exerciseStableKey = exercise.stableKey, exerciseName = exercise.name, category = exercise.category)
-        )
+        val loads = MuscleLoadInputBuilder.contributions(exercise)
 
         assertEquals(1.0, loads[MuscleBucket.QUADS] ?: 0.0, 0.001)
         assertEquals(0.5, loads[MuscleBucket.GLUTES] ?: 0.0, 0.001)
@@ -35,37 +31,21 @@ class MuscleLoadInputBuilderTest {
                 category = "Strength",
                 stableKey = "name_only_$index"
             )
-            val loads = MuscleLoadInputBuilder.contributions(
-                exercise,
-                WorkoutEntry(
-                    date = "2026-06-10",
-                    exerciseStableKey = exercise.stableKey,
-                    exerciseName = exercise.name,
-                    category = exercise.category
-                )
-            )
+            val loads = MuscleLoadInputBuilder.contributions(exercise)
 
             assertTrue(loads.isEmpty())
         }
     }
 
     @Test
-    fun overheadPressFallbackKeepsOnlyAnatomicalShoulderAndTricepsLoads() {
+    fun semanticLookingNameAndKeyCannotCreateMuscleAttribution() {
         val exercise = Exercise(
             name = "Overhead press",
             category = "Strength",
             stableKey = "name_only_overhead_press"
         )
-        val loads = MuscleLoadInputBuilder.contributions(
-            exercise,
-            WorkoutEntry(
-                date = "2026-06-10",
-                exerciseStableKey = exercise.stableKey,
-                exerciseName = exercise.name,
-                category = exercise.category
-            )
-        )
+        val loads = MuscleLoadInputBuilder.contributions(exercise)
 
-        assertEquals(setOf(MuscleBucket.SHOULDERS, MuscleBucket.TRICEPS), loads.keys)
+        assertTrue(loads.isEmpty())
     }
 }

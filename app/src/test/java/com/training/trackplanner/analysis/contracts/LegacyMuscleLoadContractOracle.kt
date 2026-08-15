@@ -1,6 +1,5 @@
 package com.training.trackplanner.analysis.contracts
 
-import com.training.trackplanner.analysis.lab.MuscleLoadInputBuilder
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.MuscleGroupKeyNormalizer
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -64,13 +63,13 @@ internal object LegacyMuscleLoadContractOracle {
             entry.exerciseName
         ).joinToString(" ").lowercase()
         return when {
-            MuscleLoadInputBuilder.isMainSquat(exercise, entry) -> mapOf(
+            isMainSquat(exercise, entry) -> mapOf(
                 "QUADS" to 1.0,
                 "GLUTES" to 0.5,
                 "HAMSTRINGS" to 0.25,
                 "POSTERIOR_CHAIN_ERECTORS" to 0.25
             )
-            MuscleLoadInputBuilder.isMainDeadlift(exercise, entry) -> mapOf(
+            isMainDeadlift(exercise, entry) -> mapOf(
                 "POSTERIOR_CHAIN_ERECTORS" to 1.0,
                 "GLUTES" to 0.75,
                 "HAMSTRINGS" to 0.75,
@@ -108,5 +107,27 @@ internal object LegacyMuscleLoadContractOracle {
             )
             else -> emptyMap()
         }
+    }
+
+    private fun isMainSquat(exercise: Exercise?, entry: WorkoutEntry): Boolean {
+        val key = exercise?.stableKey.orEmpty().lowercase()
+        if (key.isNotBlank()) {
+            return key in setOf("squat", "back_squat", "barbell_squat", "barbell_back_squat") ||
+                "back_squat" in key || "barbell_squat" in key
+        }
+        val name = entry.exerciseName.lowercase()
+        return ("squat" in name) &&
+            listOf("lunge", "leg press", "split", "bulgarian", "jump", "goblet", "front").none { it in name }
+    }
+
+    private fun isMainDeadlift(exercise: Exercise?, entry: WorkoutEntry): Boolean {
+        val key = exercise?.stableKey.orEmpty().lowercase()
+        if (key.isNotBlank()) {
+            return key in setOf("deadlift", "barbell_deadlift", "conventional_deadlift") ||
+                ("deadlift" in key && listOf("rdl", "romanian", "stiff", "good_morning", "swing").none { it in key })
+        }
+        val name = entry.exerciseName.lowercase()
+        return "deadlift" in name &&
+            listOf("rdl", "romanian", "stiff", "good morning", "swing").none { it in name }
     }
 }

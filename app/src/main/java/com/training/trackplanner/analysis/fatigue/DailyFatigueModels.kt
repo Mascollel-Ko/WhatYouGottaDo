@@ -65,7 +65,8 @@ data class RecordFatigueContribution(
     val redundancyGroup: String,
     val movementFamily: String,
     val programSlot: String,
-    val confidence: FatigueConfidence
+    val confidence: FatigueConfidence,
+    val recordIdentity: String = ""
 )
 
 data class GroupFatigueState(

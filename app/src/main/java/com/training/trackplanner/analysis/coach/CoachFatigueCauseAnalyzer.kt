@@ -21,8 +21,15 @@ class CoachFatigueCauseAnalyzer {
             .filter { result -> result.state.date in start..today }
             .flatMap { result -> result.recordContributions.asSequence() }
             .filter { contribution -> contribution.date in start..today }
-            .groupBy { contribution -> contribution.stableKey.ifBlank { contribution.exerciseName } }
-            .mapNotNull { (_, grouped) ->
+            .withIndex()
+            .groupBy { indexed ->
+                val contribution = indexed.value
+                contribution.stableKey.takeIf(String::isNotBlank)
+                    ?: contribution.recordIdentity.takeIf(String::isNotBlank)?.let { "unresolved:$it" }
+                    ?: "unresolved-contribution:${indexed.index}"
+            }
+            .mapNotNull { (_, indexed) ->
+                val grouped = indexed.map { it.value }
                 val axes = grouped.fold(FatigueAxisValues()) { total, contribution ->
                     val daysSince = ChronoUnit.DAYS.between(contribution.date, today).toInt()
                     val generalDecay = FatigueDecayModel.factor(contribution.recoveryDurationClass, daysSince)

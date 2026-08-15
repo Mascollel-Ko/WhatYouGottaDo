@@ -149,7 +149,6 @@ internal class PerformanceTrendSummaryService(
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries +
                 strengthAndMuscleSeries + coreStimulusSeries + persistentStrengthMetricSeries,
-            proxyPerformanceSummary = null,
             persistentStrengthPerformanceSummary = persistentStrengthSummary
         )
     }

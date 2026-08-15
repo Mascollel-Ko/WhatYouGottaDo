@@ -1,7 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
-import com.training.trackplanner.analysis.proxyperformance.ProxyPerformanceSummary
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.core.CoreStimulusSummary
 import java.time.LocalDate
@@ -308,7 +307,6 @@ data class PerformanceTrendSummary(
     val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
     val exerciseDisplayNamesByStableKey: Map<String, String> = emptyMap(),
     val coreStimulus: CoreStimulusSummary = CoreStimulusSummary.EMPTY,
-    val proxyPerformanceSummary: ProxyPerformanceSummary? = null,
     val persistentStrengthPerformanceSummary: PersistentStrengthPerformanceSummary? = null
 )
 

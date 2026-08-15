@@ -63,6 +63,19 @@ class CoachFatigueCauseAnalyzerTest {
     }
 
     @Test
+    fun unresolvedRecordsWithTheSameDisplayNameRemainSeparate() {
+        val summary = analyzer.analyze(
+            today,
+            listOf(
+                result(today, contribution("same label", 20.0, today, stableKey = "", recordIdentity = "entry-1")),
+                result(today, contribution("same label", 30.0, today, stableKey = "", recordIdentity = "entry-2"))
+            )
+        )
+
+        assertEquals(2, summary.axisExerciseCauses.size)
+    }
+
+    @Test
     fun interpretationUsesPossibilityLanguageInsteadOfCausalClaim() {
         val summary = analyzer.analyze(today, listOf(result(today, contribution("스쿼트", 30.0, today))))
 
@@ -96,7 +109,8 @@ class CoachFatigueCauseAnalyzerTest {
         value: Double,
         date: LocalDate,
         duration: String = "MEDIUM",
-        stableKey: String = name
+        stableKey: String = name,
+        recordIdentity: String = "fixture-${date.toEpochDay()}-$value"
     ) = RecordFatigueContribution(
         date = date,
         stableKey = stableKey,
@@ -115,7 +129,8 @@ class CoachFatigueCauseAnalyzerTest {
         redundancyGroup = "TEST",
         movementFamily = "TEST",
         programSlot = "TEST",
-        confidence = FatigueConfidence.MEDIUM
+        confidence = FatigueConfidence.MEDIUM,
+        recordIdentity = recordIdentity
     )
 
     private fun state(date: LocalDate) = DailyFatigueState(
