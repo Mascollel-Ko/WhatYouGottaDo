@@ -81,7 +81,7 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertEquals(280, repository.badmintonObjectiveCatalog().allRelations().size)
         assertEquals(194, repository.progressionRelations().size)
         assertEquals(17, repository.strengthProxyRelations().size)
-        assertEquals(3224, repository.tissueRepository().catalog.authorityRows.size)
+        assertEquals(3637, repository.tissueRepository().catalog.authorityRows.size)
     }
 
     @Test

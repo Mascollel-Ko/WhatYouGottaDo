@@ -39,6 +39,8 @@ object BodyweightLoadProfileAuthority {
         "ex_e159d15a" to invertedRow,
         "gymnastic_ring_inverted_row" to invertedRow,
         "suspension_trainer_inverted_row" to invertedRow,
+        "one_arm_gymnastic_ring_row" to invertedRow,
+        "one_arm_suspension_trainer_row" to invertedRow,
         "ex_28902b13" to defaultPushUp,
         "ex_73b0b63f" to defaultPushUp,
         "ex_c4535de3" to defaultPushUp,

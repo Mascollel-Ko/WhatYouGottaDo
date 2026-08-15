@@ -4,12 +4,17 @@ import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalcul
 import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
 
 object TissueDoseResolver {
-    fun resolve(record: TissueWorkoutRecord, basis: TissueDoseBasis): TissueDoseResolution {
+    fun resolve(
+        record: TissueWorkoutRecord,
+        basis: TissueDoseBasis,
+        exactProfile: TissueExerciseDoseProfile? = null
+    ): TissueDoseResolution {
         val sets = record.sets.filter { it.confirmed }
         if (sets.isEmpty()) return missing("No confirmed sets are available.")
         if (sets.any { it.reps < 0 || it.weightKg < 0.0 || it.seconds < 0 }) {
             return missing("Negative record inputs are invalid.")
         }
+        exactProfile?.let { return resolveExactProfile(record, sets, basis, it) }
         return when (basis) {
             TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS -> TissueDoseResolution(
                 resolvedDose = sets.sumOf { it.reps * it.weightKg },
@@ -24,6 +29,7 @@ object TissueDoseResolver {
                     status = TissueDoseResolutionStatus.DERIVED_FROM_CURRENT_RECORD
                 )
             }
+            TissueDoseBasis.LOAD_TIME -> missing("LOAD_TIME requires an exact reviewed exercise dose profile.")
             TissueDoseBasis.DURATION_HOLD -> {
                 val loads = sets.mapNotNull { set ->
                     DurationHoldLoadCalculator.holdLoad(record.exercise, set, record.entry.rpe)
@@ -54,6 +60,37 @@ object TissueDoseResolver {
             TissueDoseBasis.THROW_COUNT,
             TissueDoseBasis.STROKE_COUNT -> missing("${basis.name} is not recorded; no event count was invented.")
         }
+    }
+
+    private fun resolveExactProfile(
+        record: TissueWorkoutRecord,
+        sets: List<com.training.trackplanner.data.WorkoutSet>,
+        basis: TissueDoseBasis,
+        profile: TissueExerciseDoseProfile
+    ): TissueDoseResolution {
+        require(record.exercise.stableKey == profile.exerciseStableKey) {
+            "Tissue dose profile stable key does not match the workout record."
+        }
+        val expectedBasis = when (profile.doseKind) {
+            TissueExerciseDoseKind.WEIGHTED_REPETITION -> TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS
+            TissueExerciseDoseKind.BODYWEIGHT_REPETITION -> TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS
+            TissueExerciseDoseKind.LOAD_TIME -> TissueDoseBasis.LOAD_TIME
+        }
+        require(basis == expectedBasis) { "Tissue dose kind and requested basis disagree." }
+        val dose = when (profile.doseKind) {
+            TissueExerciseDoseKind.WEIGHTED_REPETITION -> sets.sumOf { it.weightKg * it.reps }
+            TissueExerciseDoseKind.BODYWEIGHT_REPETITION -> {
+                val bodyWeightKg = record.bodyWeightKg
+                    ?: return missing("Exact bodyweight tissue dose requires body weight.")
+                val bodyweightFactor = requireNotNull(profile.bodyweightFactor)
+                val addedLoadFactor = requireNotNull(profile.addedLoadFactor)
+                sets.sumOf { set ->
+                    (bodyWeightKg * bodyweightFactor + set.weightKg * addedLoadFactor) * set.reps
+                }
+            }
+            TissueExerciseDoseKind.LOAD_TIME -> sets.sumOf { it.weightKg * it.seconds }
+        }
+        return TissueDoseResolution(dose, TissueDoseResolutionStatus.DERIVED_FROM_CURRENT_RECORD)
     }
 
     private fun duration(seconds: List<Int>): TissueDoseResolution {

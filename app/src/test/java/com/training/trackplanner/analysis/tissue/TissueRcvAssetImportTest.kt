@@ -10,15 +10,16 @@ import org.junit.Test
 
 class TissueRcvAssetImportTest {
     @Test
-    fun importsReviewedRcvAll06AuthorityWithExactPhaseTwoCounts() {
+    fun importsReviewedRcvAuthorityWithApprovedEquipmentSplitCoverage() {
         val catalog = repository().catalog
 
-        assertEquals(224, catalog.exerciseStableKeys.size)
-        assertEquals(3224, catalog.authorityRows.size)
-        assertEquals(223, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
-        assertEquals(224, catalog.protocols.size)
+        assertEquals(257, catalog.exerciseStableKeys.size)
+        assertEquals(3637, catalog.authorityRows.size)
+        assertEquals(256, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
+        assertEquals(257, catalog.protocols.size)
         assertEquals(50, catalog.protocolClasses.size)
-        assertEquals(13, catalog.diProfiles.size)
+        assertEquals(14, catalog.diProfiles.size)
+        assertEquals(33, catalog.exerciseDoseProfiles.size)
         assertEquals(21, catalog.curves.size)
         assertEquals(114, catalog.curves.values.sumOf { it.knots.size })
         assertEquals(7, catalog.routing.size)
@@ -31,8 +32,8 @@ class TissueRcvAssetImportTest {
         val rows = repository().catalog.authorityRows
         val rowsByPair = rows.groupBy { it.exerciseStableKey to it.loadUnitStableKey }
 
-        assertEquals(3218, rowsByPair.size)
-        assertEquals(5, rowsByPair.count { it.value.size > 1 })
+        assertEquals(3627, rowsByPair.size)
+        assertEquals(7, rowsByPair.count { it.value.size > 1 })
         assertEquals(3, rowsByPair.maxOf { it.value.size })
     }
 
@@ -68,7 +69,7 @@ class TissueRcvAssetImportTest {
     fun generatedAssetHashesMatchTheCommittedDeterministicManifest() {
         val manifest = TissueMetadataParser.table(asset("tissue_rcv_asset_manifest_v1.csv"))
 
-        assertEquals(16, manifest.rows.size)
+        assertEquals(17, manifest.rows.size)
         manifest.rows.forEach { row ->
             val file = assetFile(row.getValue("assetName"))
             assertEquals(row.getValue("assetName"), row.getValue("assetSha256"), sha256(file))

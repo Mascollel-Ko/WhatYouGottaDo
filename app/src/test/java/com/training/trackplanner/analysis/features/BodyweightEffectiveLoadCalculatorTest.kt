@@ -24,6 +24,8 @@ class BodyweightEffectiveLoadCalculatorTest {
             "ex_e159d15a" to 580.0,
             "gymnastic_ring_inverted_row" to 580.0,
             "suspension_trainer_inverted_row" to 580.0,
+            "one_arm_gymnastic_ring_row" to 580.0,
+            "one_arm_suspension_trainer_row" to 580.0,
             "ex_28902b13" to 590.0,
             "ex_73b0b63f" to 590.0,
             "ex_c4535de3" to 590.0,

@@ -28,6 +28,7 @@ data class LegacyTissueTagMigration(
 enum class TissueDoseBasis {
     EXTERNAL_LOAD_REPETITIONS,
     EFFECTIVE_BODYWEIGHT_REPETITIONS,
+    LOAD_TIME,
     DURATION_HOLD,
     LOCOMOTION_DURATION,
     DISTANCE,

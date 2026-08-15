@@ -9,6 +9,7 @@ object TissueRcvAssetFiles {
     const val EXERCISE_PROTOCOLS = "tissue_rcv_exercise_protocols_v1.csv"
     const val PROTOCOL_CLASSES = "tissue_rcv_protocol_classes_v1.csv"
     const val DI_PROFILES = "tissue_rcv_di_profiles_v1.csv"
+    const val EXERCISE_DOSE_PROFILES = "tissue_rcv_exercise_dose_profiles_v1.csv"
     const val CURVE_KNOTS = "tissue_rcv_recovery_curve_knots_v1.csv"
     const val ROUTING = "tissue_rcv_recovery_routing_v1.csv"
     const val JOINT_COMPLEXES = "tissue_rcv_joint_complexes_v1.csv"
@@ -25,6 +26,7 @@ object TissueRcvAssetFiles {
         EXERCISE_PROTOCOLS,
         PROTOCOL_CLASSES,
         DI_PROFILES,
+        EXERCISE_DOSE_PROFILES,
         CURVE_KNOTS,
         ROUTING,
         JOINT_COMPLEXES,
@@ -126,6 +128,22 @@ class TissueRcvAssetRepository private constructor(
                     loadProfileRole = row.required("P 역할")
                 )
             }.associateBy(TissueRcvDiProfile::id)
+            val exerciseDoseProfileRows = table(TissueRcvAssetFiles.EXERCISE_DOSE_PROFILES).rows.map { row ->
+                TissueExerciseDoseProfile(
+                    exerciseStableKey = row.required("exerciseStableKey"),
+                    doseKind = enumValueOf(row.required("doseKind")),
+                    bodyweightFactor = row.optionalDouble("bodyweightFactor"),
+                    addedLoadFactor = row.optionalDouble("addedLoadFactor"),
+                    loadSemantics = row.required("loadSemantics"),
+                    compatibilityMode = row.required("compatibilityMode"),
+                    sourceStableKey = row.required("sourceStableKey"),
+                    provenance = row.required("provenance")
+                )
+            }
+            require(exerciseDoseProfileRows.map(TissueExerciseDoseProfile::exerciseStableKey).distinct().size ==
+                exerciseDoseProfileRows.size
+            ) { "Exercise dose profiles contain a duplicate stable key." }
+            val exerciseDoseProfiles = exerciseDoseProfileRows.associateBy(TissueExerciseDoseProfile::exerciseStableKey)
             val curveRows = table(TissueRcvAssetFiles.CURVE_KNOTS).rows
             val curves = curveRows.groupBy { it.required("curveId") }.mapValues { (id, rows) ->
                 val first = rows.first()
@@ -244,6 +262,7 @@ class TissueRcvAssetRepository private constructor(
                 protocols = protocols,
                 protocolClasses = protocolClasses,
                 diProfiles = diProfiles,
+                exerciseDoseProfiles = exerciseDoseProfiles,
                 curves = curves,
                 routing = routing,
                 jointComplexes = jointComplexes,
@@ -261,14 +280,23 @@ class TissueRcvAssetRepository private constructor(
 
 object TissueRcvAssetValidator {
     fun requireValid(catalog: TissueRcvCatalog) {
-        require(catalog.exerciseStableKeys.size == 224) { "Expected 224 exercise stable keys." }
-        require(catalog.authorityRows.size == 3224) { "Expected 3,224 authority score rows." }
-        require(catalog.authorityRows.map { it.exerciseStableKey }.toSet().size == 223) {
-            "Exactly one generic exercise must remain without an authority score."
+        val scoredExerciseKeys = catalog.authorityRows.map(TissueRcvAuthorityRow::exerciseStableKey).toSet()
+        require(catalog.exerciseStableKeys.size == 257) { "Expected 257 explicitly handled exercise stable keys." }
+        require(catalog.authorityRows.size == 3637) { "Expected 3,637 deterministic authority score rows." }
+        require(catalog.exerciseStableKeys - scoredExerciseKeys == setOf("ex_dd16e07a")) {
+            "Generic stretching must be the only explicitly handled exercise without a numeric score."
         }
-        require(catalog.protocols.size == 224) { "Expected 224 exercise protocol mappings." }
+        require(catalog.protocols.keys == catalog.exerciseStableKeys) {
+            "Protocol mappings must cover the handled exercise stable keys exactly."
+        }
+        require(catalog.exerciseDoseProfiles.size == 33) {
+            "Expected exact dose profiles for the 33 approved equipment-split targets."
+        }
+        require(catalog.exerciseDoseProfiles.keys.all { it in catalog.exerciseStableKeys }) {
+            "Exercise dose profile contains an unknown stable key."
+        }
         require(catalog.protocolClasses.size == 50) { "Expected 50 protocol classes." }
-        require(catalog.diProfiles.size == 13) { "Expected 13 D/I profiles." }
+        require(catalog.diProfiles.size == 14) { "Expected 14 D/I profiles." }
         require(catalog.curves.size == 21 && catalog.curves.values.sumOf { it.knots.size } == 114) {
             "Expected 21 curves and 114 knots."
         }
@@ -316,9 +344,6 @@ object TissueRcvAssetValidator {
             it.contains("LEFT", ignoreCase = true) || it.contains("RIGHT", ignoreCase = true)
         }) { "Educational metadata must remain unsided." }
         require(catalog.unresolvedExerciseCount == 1) { "Expected one unresolved generic exercise." }
-        require(catalog.protocols.keys == catalog.exerciseStableKeys) {
-            "Protocol mappings must cover the canonical exercise stable keys exactly."
-        }
         require(catalog.authorityRows.all { it.exerciseStableKey in catalog.exerciseStableKeys }) {
             "Authority score contains an unknown exercise stable key."
         }
@@ -334,6 +359,30 @@ object TissueRcvAssetValidator {
             require(protocol.functionalCurveId in catalog.curves)
             require(protocol.jointProtectionCurveId in catalog.curves)
             require(protocol.fastMechanicalCurveId in catalog.curves)
+        }
+        catalog.exerciseDoseProfiles.values.forEach { profile ->
+            val expectedBasis = when (profile.doseKind) {
+                TissueExerciseDoseKind.WEIGHTED_REPETITION -> "WEIGHTED_REPETITION"
+                TissueExerciseDoseKind.BODYWEIGHT_REPETITION -> "BODYWEIGHT_REPETITION"
+                TissueExerciseDoseKind.LOAD_TIME -> "LOAD_TIME"
+            }
+            val protocol = requireNotNull(catalog.protocols[profile.exerciseStableKey])
+            val authority = catalog.authorityRows.filter { it.exerciseStableKey == profile.exerciseStableKey }
+            require(authority.isNotEmpty() && authority.all { it.doseBasis == expectedBasis }) {
+                "Exercise dose profile and authority dose basis disagree for ${profile.exerciseStableKey}."
+            }
+            require(catalog.diProfiles.getValue(protocol.diProfileId).doseBasis == expectedBasis) {
+                "Exercise dose profile and D/I profile disagree for ${profile.exerciseStableKey}."
+            }
+            when (profile.doseKind) {
+                TissueExerciseDoseKind.BODYWEIGHT_REPETITION -> {
+                    require(profile.bodyweightFactor != null && profile.addedLoadFactor != null)
+                }
+                TissueExerciseDoseKind.WEIGHTED_REPETITION,
+                TissueExerciseDoseKind.LOAD_TIME -> {
+                    require(profile.bodyweightFactor == null && profile.addedLoadFactor == null)
+                }
+            }
         }
         catalog.protocolClasses.values.forEach { protocol ->
             require(protocol.diProfileId in catalog.diProfiles)

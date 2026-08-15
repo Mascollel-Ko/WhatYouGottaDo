@@ -131,10 +131,15 @@ class TissueRecoveryEngineTest {
 
     @Test
     fun allReviewedDiProfilesEitherResolveRecordedInputsOrFailClosedForGenericUnresolved() {
-        assertEquals(13, catalog.diProfiles.size)
+        assertEquals(14, catalog.diProfiles.size)
         catalog.diProfiles.values.forEach { profile ->
             val record = recordFor(profile.doseBasis)
-            val result = TissueRcvDoseResolver.resolve(record, profile.doseBasis)
+            val exactProfile = if (profile.doseBasis == "LOAD_TIME") {
+                catalog.exerciseDoseProfiles.getValue(record.exercise.stableKey)
+            } else {
+                null
+            }
+            val result = TissueRcvDoseResolver.resolve(record, profile.doseBasis, exactProfile)
             if (profile.doseBasis == "UNRESOLVED") {
                 assertNull(result.resolvedDose)
                 assertTrue(result.diagnostics.isNotEmpty())
@@ -179,6 +184,7 @@ class TissueRecoveryEngineTest {
         val stableKey = when (basis) {
             "BODYWEIGHT_REPETITION" -> "ex_28902b13"
             "HOLD_TIME" -> "ex_a44ae2ca"
+            "LOAD_TIME" -> "dumbbell_farmer_carry"
             else -> "fixture"
         }
         val exercise = Exercise(

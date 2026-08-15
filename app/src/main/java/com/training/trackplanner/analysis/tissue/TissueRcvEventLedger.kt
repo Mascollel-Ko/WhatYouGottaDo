@@ -3,11 +3,17 @@ package com.training.trackplanner.analysis.tissue
 import kotlin.math.ln
 
 object TissueRcvDoseResolver {
-    fun resolve(record: TissueWorkoutRecord, basis: String): TissueDoseResolution = when (basis) {
+    fun resolve(
+        record: TissueWorkoutRecord,
+        basis: String,
+        exactProfile: TissueExerciseDoseProfile? = null
+    ): TissueDoseResolution = when (basis) {
         "WEIGHTED_REPETITION" ->
-            TissueDoseResolver.resolve(record, TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS)
+            TissueDoseResolver.resolve(record, TissueDoseBasis.EXTERNAL_LOAD_REPETITIONS, exactProfile)
         "BODYWEIGHT_REPETITION" ->
-            TissueDoseResolver.resolve(record, TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS)
+            TissueDoseResolver.resolve(record, TissueDoseBasis.EFFECTIVE_BODYWEIGHT_REPETITIONS, exactProfile)
+        "LOAD_TIME" ->
+            TissueDoseResolver.resolve(record, TissueDoseBasis.LOAD_TIME, exactProfile)
         "DURATION_HOLD", "HOLD_TIME" ->
             TissueDoseResolver.resolve(record, TissueDoseBasis.DURATION_HOLD)
         "DURATION_SESSION", "CYCLIC_WORK", "DISTANCE_TIME", "LOADED_CARRY",
@@ -88,7 +94,13 @@ class TissueRcvEventLedgerBuilder(
         val authorityByStableKey = catalog.authorityRows.groupBy(TissueRcvAuthorityRow::exerciseStableKey)
         val rawDoseCache = mutableMapOf<Pair<Long, String>, TissueDoseResolution>()
         fun dose(record: TissueWorkoutRecord, basis: String): TissueDoseResolution =
-            rawDoseCache.getOrPut(record.entry.id to basis) { TissueRcvDoseResolver.resolve(record, basis) }
+            rawDoseCache.getOrPut(record.entry.id to basis) {
+                TissueRcvDoseResolver.resolve(
+                    record,
+                    basis,
+                    catalog.exerciseDoseProfiles[record.exercise.stableKey]
+                )
+            }
 
         val events = mutableListOf<TissueExposureEvent>()
         val diagnostics = mutableListOf<String>()

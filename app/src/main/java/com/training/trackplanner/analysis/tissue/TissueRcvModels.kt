@@ -61,6 +61,23 @@ data class TissueRcvDiProfile(
     val loadProfileRole: String
 )
 
+enum class TissueExerciseDoseKind {
+    WEIGHTED_REPETITION,
+    BODYWEIGHT_REPETITION,
+    LOAD_TIME
+}
+
+data class TissueExerciseDoseProfile(
+    val exerciseStableKey: String,
+    val doseKind: TissueExerciseDoseKind,
+    val bodyweightFactor: Double?,
+    val addedLoadFactor: Double?,
+    val loadSemantics: String,
+    val compatibilityMode: String,
+    val sourceStableKey: String,
+    val provenance: String
+)
+
 data class TissueRecoveryKnot(
     val elapsedHours: Double,
     val value: Double
@@ -128,6 +145,7 @@ data class TissueRcvCatalog(
     val protocols: Map<String, TissueRcvExerciseProtocol>,
     val protocolClasses: Map<String, TissueRcvProtocolClass>,
     val diProfiles: Map<String, TissueRcvDiProfile>,
+    val exerciseDoseProfiles: Map<String, TissueExerciseDoseProfile>,
     val curves: Map<String, TissueRecoveryCurve>,
     val routing: Map<String, TissueRecoveryRouting>,
     val jointComplexes: Map<String, TissueRcvJointComplex>,
