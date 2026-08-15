@@ -120,7 +120,7 @@ class StrengthAndMuscleMetricSeriesBuilderTest {
 
     @Test
     fun sidePlankDurationLoadPreservesAnatomicalHipAndShoulderContributions() {
-        val sidePlank = exercise(1, "side plank", "side_plank")
+        val sidePlank = exercise(1, "renamed side plank", "ex_f6d43398")
         val series = build(
             listOf(record("2026-06-10", sidePlank, set(1, 0.0, 0, seconds = 30, rpe = 8.0))),
             listOf(sidePlank)

@@ -189,13 +189,7 @@ class DailyAnalysisLoadAggregator {
         localLoad: Double
     ): Map<String, Double> {
         if (localLoad <= 0.0) return this
-        val policy = DurationHoldLoadCalculator.policyFor(
-            stableKey = features.stableKey,
-            displayName = features.exerciseName,
-            movementPattern = features.movementPattern,
-            movementCategory = features.movementCategory,
-            equipment = features.equipment.joinToString("|")
-        ) ?: return this
+        val policy = DurationHoldLoadCalculator.policyFor(features.stableKey) ?: return this
         val loads = mutableMapOf<String, Double>()
         when (policy) {
             DurationHoldPolicy.PLANK -> {

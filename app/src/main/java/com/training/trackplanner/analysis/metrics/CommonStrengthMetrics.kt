@@ -26,7 +26,7 @@ object CommonStrengthMetrics {
         val entries = input.completedEntriesUntilToday
         val totalVolumeLoad = entries.sumOf { entry -> entry.volumeLoad(input) }
         val volumeByExercise = entries
-            .groupBy { it.exerciseName }
+            .groupBy { it.exerciseStableKey }
             .mapValues { (_, groupedEntries) -> groupedEntries.sumOf { it.volumeLoad(input) } }
         val volumeByMovementPattern = entries.sumVolumeByMetadata(
             input = input,
@@ -146,34 +146,21 @@ object CommonStrengthMetrics {
     }
 
     private fun AnalysisEntry.volumeLoad(input: AnalysisInputSnapshot): Double {
-        val metadata = input.exerciseMetadataMap[exerciseStableKey]
         val bodyWeightKg = input.conditionRecordsUntilToday
             .filter { record -> record.date <= date }
             .maxByOrNull { record -> record.date }
             ?.bodyWeightKg
         return sets.sumOf { set ->
-            val corrected = metadata?.let { item ->
-                DurationHoldLoadCalculator.holdLoadOrNull(
-                    stableKey = item.stableKey,
-                    displayName = exerciseName,
-                    movementPattern = item.movementPattern,
-                    movementCategory = item.movementCategory,
-                    equipment = item.equipment.ifBlank { item.equipmentTags },
-                    category = item.category,
-                    seconds = set.seconds,
-                    rpe = set.rpe ?: rpe
-                ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
-                    stableKey = item.stableKey,
-                    displayName = exerciseName,
-                    movementPattern = item.movementPattern,
-                    movementCategory = item.movementCategory,
-                    equipment = item.equipment.ifBlank { item.equipmentTags },
-                    category = item.category,
-                    reps = set.reps,
-                    weightKg = set.weightKg,
-                    bodyWeightKg = bodyWeightKg
-                )
-            }
+            val corrected = DurationHoldLoadCalculator.holdLoadOrNull(
+                stableKey = exerciseStableKey,
+                seconds = set.seconds,
+                rpe = set.rpe ?: rpe
+            ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+                stableKey = exerciseStableKey,
+                reps = set.reps,
+                weightKg = set.weightKg,
+                bodyWeightKg = bodyWeightKg
+            )
             corrected ?: if (set.reps > 0 && set.weightKg > 0.0) set.reps * set.weightKg else 0.0
         }
     }

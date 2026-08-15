@@ -9,13 +9,13 @@ import org.junit.Test
 
 class DurationHoldLoadCalculatorTest {
     @Test
-    fun plankLoadScalesWithSecondsAndRpe() {
-        val plank = exercise("plank", "front_plank")
+    fun canonicalPlankLoadScalesWithSecondsAndRpe() {
+        val plank = exercise("arbitrary label", "ex_a44ae2ca")
 
-        val short = DurationHoldLoadCalculator.holdLoad(plank, set(seconds = 20, rpe = 7.0), null) ?: 0.0
-        val long = DurationHoldLoadCalculator.holdLoad(plank, set(seconds = 40, rpe = 7.0), null) ?: 0.0
-        val easy = DurationHoldLoadCalculator.holdLoad(plank, set(seconds = 40, rpe = 6.0), null) ?: 0.0
-        val hard = DurationHoldLoadCalculator.holdLoad(plank, set(seconds = 40, rpe = 8.0), null) ?: 0.0
+        val short = DurationHoldLoadCalculator.holdLoad(plank, set(20, 7.0), null) ?: 0.0
+        val long = DurationHoldLoadCalculator.holdLoad(plank, set(40, 7.0), null) ?: 0.0
+        val easy = DurationHoldLoadCalculator.holdLoad(plank, set(40, 6.0), null) ?: 0.0
+        val hard = DurationHoldLoadCalculator.holdLoad(plank, set(40, 8.0), null) ?: 0.0
 
         assertTrue(long > short)
         assertTrue(hard > easy)
@@ -25,50 +25,45 @@ class DurationHoldLoadCalculatorTest {
     }
 
     @Test
-    fun plankDurationDoesNotUseBodyweightVolumePath() {
-        val plank = exercise("plank", "front_plank")
-        val durationLoad = DurationHoldLoadCalculator.holdLoad(plank, set(seconds = 40, reps = 0), null) ?: 0.0
-
-        assertEquals(40.0, durationLoad, 0.001)
-        assertEquals(0.0, BodyweightEffectiveLoadCalculator.volumeLoad(plank, set(seconds = 40, reps = 10), 80.0), 0.001)
+    fun exactCanonicalPoliciesIncludeCopenhagenParity() {
+        assertEquals(
+            setOf("ex_a44ae2ca", "ex_a8385c4a", "ex_f6d43398"),
+            DurationHoldProfileAuthority.supportedStableKeys()
+        )
+        assertEquals(DurationHoldPolicy.PLANK, DurationHoldLoadCalculator.policyFor("ex_a44ae2ca"))
+        assertEquals(DurationHoldPolicy.PLANK, DurationHoldLoadCalculator.policyFor("ex_a8385c4a"))
+        assertEquals(DurationHoldPolicy.SIDE_PLANK, DurationHoldLoadCalculator.policyFor("ex_f6d43398"))
     }
 
     @Test
-    fun sidePlankUsesSeparateHoldPolicy() {
-        assertEquals(DurationHoldPolicy.SIDE_PLANK, DurationHoldLoadCalculator.policyFor("side_plank", "side plank"))
-        assertEquals(DurationHoldPolicy.PLANK, DurationHoldLoadCalculator.policyFor("front_plank", "plank"))
+    fun arbitraryNamesCannotGrantHoldSemantics() {
+        listOf("Side Plank", "Copenhagen Plank", "\uC0AC\uC774\uB4DC \uD50C\uB7AD\uD06C", "\uD50C\uB7AD\uD06C").forEach { name ->
+            assertNull(DurationHoldLoadCalculator.holdLoad(exercise(name, "unknown-$name"), set(40), null))
+        }
     }
 
     @Test
-    fun excludesDrillsAndNonHoldExercises() {
-        assertNull(DurationHoldLoadCalculator.policyFor("six_corner_shadow", "six corner shadow footwork"))
-        assertNull(DurationHoldLoadCalculator.policyFor("shuttle_beep", "shuttle beep drill"))
-        assertNull(DurationHoldLoadCalculator.policyFor("hanging_leg_raise", "hanging leg raise"))
-        assertNull(DurationHoldLoadCalculator.policyFor("captain_chair_leg_raise", "captain chair leg raise"))
-        assertNull(DurationHoldLoadCalculator.policyFor("walking_lunge", "walking lunge"))
-        assertNull(DurationHoldLoadCalculator.policyFor("standing_calf_raise", "standing calf raise"))
+    fun durationHoldDoesNotUseBodyweightVolumePath() {
+        val plank = exercise("renamed", "ex_a44ae2ca")
+        assertEquals(40.0, DurationHoldLoadCalculator.holdLoad(plank, set(40), null) ?: 0.0, 0.001)
+        assertEquals(0.0, BodyweightEffectiveLoadCalculator.volumeLoad(plank, set(40, reps = 10), 80.0), 0.001)
     }
 
     private fun exercise(name: String, stableKey: String): Exercise =
-        Exercise(
-            name = name,
-            category = "strength",
-            stableKey = stableKey
-        )
+        Exercise(name = name, category = "strength", stableKey = stableKey)
 
     private fun set(
         seconds: Int,
-        reps: Int = 0,
         rpe: Double? = null,
+        reps: Int = 0,
         weightKg: Double = 0.0
-    ): WorkoutSet =
-        WorkoutSet(
-            entryId = 1,
-            setIndex = 1,
-            reps = reps,
-            weightKg = weightKg,
-            seconds = seconds,
-            confirmed = true,
-            rpe = rpe
-        )
+    ): WorkoutSet = WorkoutSet(
+        entryId = 1,
+        setIndex = 1,
+        reps = reps,
+        weightKg = weightKg,
+        seconds = seconds,
+        confirmed = true,
+        rpe = rpe
+    )
 }

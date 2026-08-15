@@ -41,15 +41,20 @@ object StrengthAndMuscleMetricSeriesBuilder {
                         initialProfile = null
                     )
                     val rpe = set.rpe ?: record.entry.rpe
-                    val durationHoldLoad = exercise?.let { item ->
-                        DurationHoldLoadCalculator.holdLoad(item, set, rpe)
-                    }
-                    val setLoad = exercise?.let { item ->
-                        durationHoldLoad ?: BodyweightEffectiveLoadCalculator.volumeLoad(item, set, bodyWeight)
-                    } ?: set.weightKg * set.reps
+                    val durationHoldLoad = DurationHoldLoadCalculator.holdLoadOrNull(
+                        stableKey = record.entry.exerciseStableKey,
+                        seconds = set.seconds,
+                        rpe = rpe
+                    )
+                    val setLoad = durationHoldLoad ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+                        stableKey = record.entry.exerciseStableKey,
+                        reps = set.reps,
+                        weightKg = set.weightKg,
+                        bodyWeightKg = bodyWeight
+                    ) ?: set.weightKg * set.reps
                     val load = if (durationHoldLoad != null) setLoad else setLoad * rpeWeight(rpe)
                     if (load > 0.0) {
-                        val contributions = durationHoldContributions(exercise, record.entry)
+                        val contributions = durationHoldContributions(record.entry.exerciseStableKey)
                             ?: MuscleLoadInputBuilder.contributions(exercise, record.entry, runtimeMetadata)
                         contributions.forEach { (bucket, weight) ->
                             dailyLoads.getValue(bucket).merge(date, load * weight, Double::plus)
@@ -78,16 +83,8 @@ object StrengthAndMuscleMetricSeriesBuilder {
         return result
     }
 
-    private fun durationHoldContributions(exercise: Exercise?, entry: WorkoutEntry): Map<MuscleBucket, Double>? {
-        val policy = DurationHoldLoadCalculator.policyFor(
-            stableKey = exercise?.stableKey.orEmpty(),
-            displayName = exercise?.name ?: entry.exerciseName,
-            movementPattern = exercise?.movementPattern.orEmpty(),
-            movementCategory = exercise?.movementCategory.orEmpty(),
-            equipment = exercise?.equipment?.ifBlank { exercise.equipmentTags }.orEmpty(),
-            mode = exercise?.mode.orEmpty(),
-            category = exercise?.category ?: entry.category
-        )
+    private fun durationHoldContributions(stableKey: String): Map<MuscleBucket, Double>? {
+        val policy = DurationHoldLoadCalculator.policyFor(stableKey)
         return when (policy) {
             DurationHoldPolicy.PLANK -> mapOf(
                 MuscleBucket.GLUTES to 0.15,

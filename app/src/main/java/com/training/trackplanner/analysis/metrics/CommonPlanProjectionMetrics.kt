@@ -118,33 +118,20 @@ object CommonPlanProjectionMetrics {
         input: AnalysisInputSnapshot,
         entry: AnalysisEntry
     ): Double {
-        val metadata = input.exerciseMetadataMap[entry.exerciseStableKey]
         val bodyWeightKg = input.conditionRecordsUntilToday
             .filter { record -> record.date <= entry.date }
             .maxByOrNull { record -> record.date }
             ?.bodyWeightKg
-        return metadata?.let { item ->
-            DurationHoldLoadCalculator.holdLoadOrNull(
-                stableKey = item.stableKey,
-                displayName = entry.exerciseName,
-                movementPattern = item.movementPattern,
-                movementCategory = item.movementCategory,
-                equipment = item.equipment.ifBlank { item.equipmentTags },
-                category = item.category,
-                seconds = seconds,
-                rpe = rpe ?: entry.rpe
-            ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
-                stableKey = item.stableKey,
-                displayName = entry.exerciseName,
-                movementPattern = item.movementPattern,
-                movementCategory = item.movementCategory,
-                equipment = item.equipment.ifBlank { item.equipmentTags },
-                category = item.category,
-                reps = reps,
-                weightKg = weightKg,
-                bodyWeightKg = bodyWeightKg
-            )
-        } ?: if (reps > 0 && weightKg > 0.0) reps * weightKg else 0.0
+        return DurationHoldLoadCalculator.holdLoadOrNull(
+            stableKey = entry.exerciseStableKey,
+            seconds = seconds,
+            rpe = rpe ?: entry.rpe
+        ) ?: BodyweightEffectiveLoadCalculator.effectiveVolumeLoadOrNull(
+            stableKey = entry.exerciseStableKey,
+            reps = reps,
+            weightKg = weightKg,
+            bodyWeightKg = bodyWeightKg
+        ) ?: if (reps > 0 && weightKg > 0.0) reps * weightKg else 0.0
     }
 
     private fun String?.orUnknown(): String =
