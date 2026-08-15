@@ -137,7 +137,15 @@ The current Phase 2 analysis screen must remain simple statistics:
 
 Advanced algorithm work requires separate approval in a later phase.
 
-## Phase 3.0.0 V3 Foundation
+## Historical Phase 3.0.0 V3 Foundation (retired)
+
+This section records the former 3.0.0 design and is not current runtime
+authority. After `v0.5.0.37`, the V3 engine, universal input snapshot, Common
+metric candidates, disabled method registry, and sentence scaffolding were
+removed as a closed debug-only island. They had no UI, Analysis Lab,
+persistence, backup, migration, or historical-compatibility consumer. Current
+analysis responsibilities are owned by the domain protocols and implementation
+paths registered under `docs/protocols/`.
 
 Analysis Engine V3 is prepared as infrastructure only.
 

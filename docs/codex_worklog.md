@@ -5907,3 +5907,53 @@ Remaining debt:
 - Metadata workbook (257 total, 241 selectable, 16 history-only), deterministic export/cutover, display routing, tissue split, protocol registry (8 families, 34 protocols), localization authority/audit, metadata Python tests, and localization Python tests passed.
 - `git diff --check` passed. The original workspace and all `outputs/*` files remained untouched and excluded from staging.
 - Main push, `v0.5.0.37` tag push, and GitHub Actions results are recorded in the final task report after remote verification.
+
+## 2026-08-16 - replacement-first analysis retirement Phase 1
+
+### Baseline and scope
+
+- Baseline: `88e40145be8caefb35794b9ff11c48b97c53929d` (`v0.5.0.37`, `500037`).
+- Work branch: `codex/replacement-first-analysis-retirement`.
+- The worktree was clean before the task; `outputs/*` remained untouched and unstaged.
+- This run intentionally stopped at the coherent Phase 1 boundary. Later badminton, readiness/fatigue, strength, mapper, Room, and backup migrations were not started without verified replacements.
+
+### Capability audit and frozen semantics
+
+- Commit `f725d7f` (`test(audit): characterize legacy analysis capabilities`) added the A-R capability migration matrix and recorded row counts plus SHA-256 fingerprints for current core, badminton, movement, muscle, tissue, and strength-proxy authorities.
+- `CanonicalAnalysisAuthorityTest` confirmed the two explicit Pallof `ANTI_ROTATION / SUPPORTIVE` sentinels and the baseline Copenhagen plank objective relations.
+- No frozen exercise-level relation, coefficient, stableKey, canonical asset, Room schema, backup format, ProgramBuilder behavior, OFI calculation, tissue calculation, or persistent strength posterior changed.
+
+### Proven dead-island retirement
+
+- Commit `abe140a` (`refactor(analysis): retire dead v3 analysis island`) removed the debug-only `AnalysisEngineV3` dependency closure and the unreferenced `LegacyBadmintonContractOracle`.
+- The removed V3 result was never returned, persisted, exported, restored, displayed, or registered in Analysis Lab. Its only production entry was a debuggable startup summary, and its strength/taxonomy results were discarded.
+- `AnalysisDateProvider` was retained because current services still consume it.
+- Live `BadmintonTrainingLoadIndexCalculator`, `DailyAnalysisLoadAggregator`, `TodayReadinessEngine`, `StrengthPerformanceIndexCalculator`, and `ExerciseAnalysisMapper` paths were retained and classified as replacement-required or blocked.
+- Commit `fd3fe5a` (`test(architecture): prevent v3 analysis authority regression`) added a production-source architecture guard and verifies that the obsolete test oracle remains absent.
+
+### Documentation and generated audit closeout
+
+- Marked the old V3 design and full metadata audit references as historical rather than current runtime authority.
+- Updated `STRENGTH_VOLUME_CALCULATION` to `1.6.0`, removed the dead `CommonStrengthMetrics` source anchor, and synchronized the protocol registry.
+- Regenerated only the current `-CompatibilityOnly` inventory. It now contains 71 rows instead of 74 because the three deleted V3 `progressMetricType` references no longer exist.
+- Historical full-audit artifacts were not regenerated or rewritten; their audit evidence remains intact with explicit historical notices.
+
+### Validation
+
+- Focused `AnalysisContractAuditArtifactsTest`: passed.
+- Full `:app:testDebugUnitTest`: 1,121 tests across 203 suites; zero failures, errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, `:app:assembleDebug`, and `:app:validateConnectiveTissuePriorBaselines`: passed.
+- Protocol validator: passed, 8 families and 34 protocols.
+- Metadata authority workbook: valid with 257 identities (241 selectable, 16 history-only).
+- Deterministic canonical export: current.
+- Metadata authority Python tests: 9 passed.
+- Frozen semantic authority fingerprints: unchanged from the baseline snapshot.
+- Debug APK: 51,104,773 bytes; SHA-256 `A0BE28C011C060ABCF944DC897B29C2C1F3B91638EDD8D4B496EF096B7EB2BE0`.
+- Version remains `0.5.0.37 / 500037`; no release tag is created for this architecture-only phase.
+
+### Remaining replacement-first work
+
+- Phase 2 must first resolve the governed badminton practice-load contract before introducing a replacement owner or cutting over composite consumers.
+- Local body-part fatigue remains `BLOCKED` until an approved equivalent presentation calculation exists.
+- Strength efficiency remains `REPLACEMENT_REQUIRED`; no replacement formula was invented.
+- Exercise legacy columns, backup readers, and Room migrations remain compatibility boundaries until consumer-zero and information-preservation proof both pass.

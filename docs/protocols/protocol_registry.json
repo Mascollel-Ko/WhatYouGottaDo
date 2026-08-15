@@ -1093,7 +1093,7 @@
       "familyId": "STRENGTH",
       "titleKo": "근력훈련 volume 계산",
       "titleEn": "Strength Volume Calculation",
-      "currentVersion": "1.5.0",
+      "currentVersion": "1.6.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1102,10 +1102,9 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "strength/STRENGTH_VOLUME_CALCULATION.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36",
-      "lastAuditedCommit": "79998bf",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36; dead cumulative compatibility removed in v0.5.0.37; debug-only V3 Common metrics retired after v0.5.0.37",
+      "lastAuditedCommit": "fd3fe5a",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/analysis/metrics/CommonStrengthMetrics.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/BodyweightLoadProfileAuthority.kt",
         "app/src/main/java/com/training/trackplanner/analysis/features/DurationHoldLoadCalculator.kt",

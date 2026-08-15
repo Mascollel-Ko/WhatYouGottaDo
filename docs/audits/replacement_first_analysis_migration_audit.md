@@ -42,8 +42,8 @@ Sentinel verification on the baseline passed in `CanonicalAnalysisAuthorityTest`
 
 | Family | Legacy symbol or capability | Required now | Real consumers | Canonical replacement owner | Contract and status | Cutover / deletion gate |
 |---|---|---|---|---|---|---|
-| A | `AnalysisEngineV3`, `AnalysisDashboardV3Result`, `AnalysisInputCollector`, `AnalysisInputSnapshot`, `Common*Metrics`, disabled method registry, sentence scaffolding | No product, UI, Lab, persistence, or compatibility capability. A debuggable startup path computes a log-only summary; most outputs are discarded. | `TrainingRepository.logDebugSummary()` only; no UI/Lab/public repository/backup/Room consumer | None required | `DEAD_NO_CAPABILITY` | Remove the debug invocation and its closed dependency island; compile and architecture guard must pass. |
-| B | `LegacyBadmintonContractOracle` | No. It is an unreferenced test helper and is not an authority asset or compatibility parser. | Declaration only | None required | `DEAD_NO_CAPABILITY` | Remove after repository-wide reference proof. |
+| A | `AnalysisEngineV3`, `AnalysisDashboardV3Result`, `AnalysisInputCollector`, `AnalysisInputSnapshot`, `Common*Metrics`, disabled method registry, sentence scaffolding | No product, UI, Lab, persistence, or compatibility capability. A debuggable startup path computed a log-only summary; most outputs were discarded. | Formerly `TrainingRepository.logDebugSummary()` only; no UI/Lab/public repository/backup/Room consumer | None required | `DEAD_NO_CAPABILITY`, retired in `abe140a` | Debug invocation and closed dependency island removed; compile and architecture guard passed. |
+| B | `LegacyBadmintonContractOracle` | No. It was an unreferenced test helper and was not an authority asset or compatibility parser. | Declaration only | None required | `DEAD_NO_CAPABILITY`, retired in `abe140a` | Removed after repository-wide reference proof; architecture guard passed. |
 | C | `BadmintonTrainingLoadIndexCalculator` legacy court/footwork/support composite | Yes. Current practice-load trend, method examples, detail charts, and Lab series depend on it. | `PerformanceTrendEngine`, `PerformanceChartSpecBuilder`, analysis UI, Analysis Lab, tests | Separate `BadmintonPracticeLoad` owner plus existing `BadmintonObjectiveStimulusCalculator` | `REPLACEMENT_REQUIRED` | Audit governed practice formula, provide practice calculator, characterize, wire all consumers, then retire composite fields. |
 | D | Nine-objective badminton stimulus | Yes, current canonical capability. | Trend engine, badminton screens, canonical repository, tests | `BadmintonObjectiveStimulusCalculator` + `CanonicalBadmintonObjectiveCatalog` | `CURRENT_CANONICAL_AUTHORITY` | Preserve all 280 explicit relations and all nine objectives. No migration in this phase. |
 | E | `BADMINTON_TRAINING`, `COURT_VOLUME`, `FOOTWORK_REACTIVE`, `BADMINTON_SUPPORT`, `BadmintonWeekIndex` composite fields | Yes until semantically equivalent current metrics are registered and saved selector state is handled. | Analysis detail UI, Analysis Lab registry/pipeline, chart builders, trend tests | Explicit practice metric and objective-specific metrics, only where consumed | `REPLACEMENT_REQUIRED` | Never relabel an old metric ID. Add providers and selector fallback before removal. |
@@ -63,7 +63,7 @@ Sentinel verification on the baseline passed in `CanonicalAnalysisAuthorityTest`
 
 ## Current discrepancies and blockers
 
-- `STRENGTH_VOLUME_CALCULATION.md` and its registry entry still list `CommonStrengthMetrics` as a current implementation anchor, although that result is only created inside the log-only V3 island and is not consumed by the current strength UI or Lab. This is a documentation/runtime path mismatch and may be corrected mechanically when the island is retired; it is not an exercise-semantic decision.
+- The stale `CommonStrengthMetrics` implementation anchor in `STRENGTH_VOLUME_CALCULATION.md` and the protocol registry was removed with the Phase 1 documentation closeout. Current strength UI and Lab owners are unchanged.
 - The current badminton volume protocol explicitly points to `BadmintonTrainingLoadIndexCalculator`. Its practice formula must be audited before a replacement is introduced. Phase 2 is therefore not yet ready for deletion.
 - Local body-part fatigue still carries a user-facing capability without a proved canonical replacement. It remains `BLOCKED` rather than being zeroed or removed.
 - Strength efficiency has no identified approved canonical replacement. It remains `REPLACEMENT_REQUIRED`.
@@ -82,3 +82,22 @@ The V3 island is eligible for removal because:
 7. Frozen semantic assets are not inputs being rewritten by this deletion.
 
 Verification gates are the focused canonical-authority test, Kotlin compilation, the new retirement architecture guard, the full unit suite, Android-test compilation, and debug assembly.
+
+## Completed Phase 1 boundary
+
+- `f725d7f` created this capability matrix and froze canonical authority fingerprints before deletion.
+- `abe140a` removed only the proven `DEAD_NO_CAPABILITY` V3 island and the unreferenced legacy badminton test oracle.
+- `fd3fe5a` added an architecture guard preventing those retired runtime symbols from returning.
+- The current-code compatibility-only inventory was regenerated from 74 to 71 rows; the three removed rows were the deleted V3 `progressMetricType` references.
+- No replacement calculator was introduced because the retired island exposed no current capability.
+- Phases 2 and later were not started. Rows C through P remain live, compatibility-only, replacement-required, or blocked exactly as recorded in the matrix.
+
+Final Phase 1 verification passed on 2026-08-16:
+
+- focused `AnalysisContractAuditArtifactsTest` and canonical-authority coverage;
+- full `:app:testDebugUnitTest`;
+- `:app:compileDebugKotlin` and `:app:compileDebugAndroidTestKotlin`;
+- `:app:assembleDebug` and `:app:validateConnectiveTissuePriorBaselines`;
+- protocol registry validation, metadata authority workbook validation, deterministic canonical export, and metadata authority Python tests.
+
+The frozen authority files above retain their baseline row counts and SHA-256 fingerprints. No exercise-level semantic authority asset changed.
