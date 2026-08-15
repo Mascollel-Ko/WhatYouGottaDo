@@ -123,31 +123,23 @@ object ExerciseAnalysisMapper {
                     ?: BodyweightEffectiveLoadCalculator.volumeLoad(exercise, set, bodyWeightKg)
             }
         val totalSeconds = completedSets.sumOf { set -> set.seconds }
-        val progressMetricType = runtimeMetadata?.progressMetricType?.ifSet()
+        val progressMetricType = runtimeMetadata?.progressMetricType
             ?: exercise.progressMetricType.ifSet()
-            ?: if (exercise.estimated1RmEligible) "ESTIMATED_1RM"
-            else if (exercise.volumeLoadEligible) "VOLUME_LOAD"
-            else ""
-        val strengthProgressionGroup = runtimeMetadata?.strengthProgressionGroup?.ifSet()
-            ?: exercise.strengthProgressionGroup.ifSet()
-            ?: exercise.mainLiftGroup.ifSet()
-            ?: exercise.familyId.ifSet()
             ?: ""
-        val analysisEligibility = runtimeMetadata
-            ?.analysisEligibility
-            ?.values
-            ?.toSet()
-            ?.takeIf { values -> values.isNotEmpty() }
-            ?: exercise.derivedAnalysisEligibility()
+        val strengthProgressionGroup = runtimeMetadata?.strengthProgressionGroup
+            ?: exercise.strengthProgressionGroup.ifSet()
+            ?: ""
+        val analysisEligibility = runtimeMetadata?.analysisEligibility?.values?.toSet()
+            ?: exercise.analysisEligibility.splitTokens()
         val progressBehavior = com.training.trackplanner.data.ExerciseMetadataAdapter
             .progressMetricBehavior(progressMetricType)
-        val estimated1RmEligible = progressBehavior == com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM ||
-            exercise.estimated1RmEligible
+        val estimated1RmEligible =
+            progressBehavior == com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM
         val volumeLoadEligible = progressBehavior in setOf(
             com.training.trackplanner.data.ProgressMetricRuntimeBehavior.ESTIMATED_1RM,
             com.training.trackplanner.data.ProgressMetricRuntimeBehavior.LOAD_REPS,
             com.training.trackplanner.data.ProgressMetricRuntimeBehavior.VOLUME_LOAD
-        ) || exercise.volumeLoadEligible
+        )
         val estimated1Rm = if (estimated1RmEligible) {
             completedSets
                 .filter { set -> set.weightKg > 0.0 && set.reps in 1..12 }
@@ -155,23 +147,6 @@ object ExerciseAnalysisMapper {
         } else {
             null
         }
-        val runtimeStressTags = runtimeMetadata?.let { metadata ->
-            metadata.secondaryStressTags.values.toSet() +
-                metadata.tendonStressTags.values +
-                metadata.ligamentJointStabilityStressTags.values +
-                metadata.jointImpactStressTags.values +
-                metadata.cognitiveStressTags.values +
-                metadata.sportContextTags.values +
-                listOfNotNull(metadata.primaryStressProfile.ifSet())
-        }.orEmpty()
-        val runtimeJointStressTags = runtimeMetadata?.let { metadata ->
-            metadata.tendonStressTags.values.toSet() +
-                metadata.ligamentJointStabilityStressTags.values +
-                metadata.jointImpactStressTags.values
-        }.orEmpty()
-        val runtimeTransferTypes = runtimeMetadata?.badmintonTransferType?.values?.toSet().orEmpty()
-        val runtimePhysicalQualities = runtimeMetadata?.badmintonPhysicalQualities?.values?.toSet().orEmpty()
-
         return AnalysisExerciseFeatures(
             exerciseStableKey = exercise.stableKey,
             exerciseName = exercise.name,
@@ -181,8 +156,8 @@ object ExerciseAnalysisMapper {
                 ?: exercise.activityKind,
             metadataConfidence = exercise.metadataConfidence,
             analysisEligibility = analysisEligibility,
-            movementPattern = runtimeMetadata?.movementFamily?.ifSet() ?: exercise.movementPattern,
-            movementCategory = runtimeMetadata?.movementSubtype?.ifSet() ?: exercise.movementCategory,
+            movementPattern = runtimeMetadata?.movementFamily ?: exercise.movementPattern,
+            movementCategory = runtimeMetadata?.movementSubtype ?: exercise.movementCategory,
             primaryMuscles = exercise.primaryMuscles.splitTokens(),
             secondaryMuscles = exercise.secondaryMuscles.splitTokens(),
             equipment = exercise.equipment.ifBlank { exercise.equipmentTags }.splitTokens(),
@@ -191,8 +166,8 @@ object ExerciseAnalysisMapper {
             plane = exercise.plane,
             laterality = exercise.laterality,
             axialLoadLevel = exercise.axialLoadLevel,
-            supportsConditioningOrSkillAnalysis = exercise.supportsConditioningOrSkillAnalysis(),
-            supportsLowFatigueControlAnalysis = exercise.supportsLowFatigueControlAnalysis(),
+            supportsConditioningOrSkillAnalysis = false,
+            supportsLowFatigueControlAnalysis = false,
             systemicLoadWeight = exercise.systemicLoadWeight,
             neuralHeavyWeight = exercise.neuralHeavyWeight,
             neuralSpeedWeight = exercise.neuralSpeedWeight,
@@ -203,13 +178,9 @@ object ExerciseAnalysisMapper {
             antiRotationWeight = exercise.antiRotationWeight,
             overheadSwingWeight = exercise.overheadSwingWeight,
             gripLoadWeight = exercise.gripLoadWeight,
-            fatigueCategories = exercise.fatigueCategories.splitTokens() +
-                runtimeMetadata?.broadLegacyFatigueCategories().orEmpty() +
-                runtimeStressTags,
+            fatigueCategories = exercise.fatigueCategories.splitTokens(),
             adaptiveBaselineGroups = exercise.adaptiveBaselineGroups.splitTokens(),
-            recoveryDecayProfile = runtimeMetadata?.recoveryDecayProfile
-                ?.takeIf { it.isNotBlank() }
-                ?: exercise.recoveryDecayProfile,
+            recoveryDecayProfile = runtimeMetadata?.recoveryDecayProfile ?: exercise.recoveryDecayProfile,
             progressMetricType = progressMetricType,
             strengthProgressionGroup = strengthProgressionGroup,
             hypertrophyVolumeGroup = exercise.hypertrophyVolumeGroup,
@@ -217,17 +188,15 @@ object ExerciseAnalysisMapper {
             accessoryContributionGroup = exercise.accessoryContributionGroup,
             estimated1RmEligible = estimated1RmEligible,
             volumeLoadEligible = volumeLoadEligible,
-            badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens() + runtimeTransferTypes,
-            badmintonTransferStrength = runtimeMetadata?.badmintonTransferLevel
-                ?.takeIf { it.isNotBlank() }
-                ?: exercise.badmintonTransferStrength,
-            courtMovementTypes = exercise.courtMovementTypes.splitTokens() + runtimePhysicalQualities,
+            badmintonTransferRoles = exercise.badmintonTransferRoles.splitTokens(),
+            badmintonTransferStrength = runtimeMetadata?.badmintonTransferLevel ?: exercise.badmintonTransferStrength,
+            courtMovementTypes = exercise.courtMovementTypes.splitTokens(),
             badmintonSkillTargets = runtimeMetadata
                 ?.badmintonSkillTargets
                 ?.values
                 ?.toSet()
                 ?: exercise.badmintonSkillTargets.splitTokens(),
-            jointStressTags = exercise.jointStressTags.splitTokens() + runtimeJointStressTags,
+            jointStressTags = exercise.jointStressTags.splitTokens(),
             stabilityDemandLevel = exercise.stabilityDemandLevel,
             mobilityDemandLevel = exercise.mobilityDemandLevel,
             balanceContributionTags = exercise.balanceContributionTags.splitTokens(),
@@ -288,28 +257,4 @@ object ExerciseAnalysisMapper {
                 value.equals("NOT_APPLICABLE", ignoreCase = true)
         }
 
-    private fun Exercise.derivedAnalysisEligibility(): Set<String> =
-        analysisEligibility.splitTokens() +
-            listOfNotNull(
-                "STRENGTH_PROGRESS".takeIf { estimated1RmEligible },
-                "HYPERTROPHY_VOLUME".takeIf { volumeLoadEligible }
-            )
-
-    private fun Exercise.supportsConditioningOrSkillAnalysis(): Boolean = when {
-        movementCategory in setOf("PLYOMETRIC", "REACTIVE", "SPEED", "POWER", "PREHAB", "MOBILITY") ||
-            movementPattern in setOf("PREHAB", "MOBILITY") -> false
-        movementCategory == "CONDITIONING" || movementPattern == "LOCOMOTION" -> true
-        movementCategory == "SKILL_DRILL" || movementPattern == "FOOTWORK" -> true
-        else -> false
-    }
-
-    private fun Exercise.supportsLowFatigueControlAnalysis(): Boolean = when {
-        movementCategory in setOf("PLYOMETRIC", "REACTIVE", "SPEED", "POWER") -> false
-        movementCategory in setOf("PREHAB", "MOBILITY") || movementPattern in setOf("PREHAB", "MOBILITY") -> true
-        movementCategory == "CONDITIONING" || movementPattern == "LOCOMOTION" -> false
-        movementCategory == "SKILL_DRILL" || movementPattern == "FOOTWORK" -> false
-        movementCategory == "TEST" -> false
-        movementCategory in setOf("RECOVERY", "STABILITY") || movementPattern == "ANTI_ROTATION" -> true
-        else -> false
-    }
 }

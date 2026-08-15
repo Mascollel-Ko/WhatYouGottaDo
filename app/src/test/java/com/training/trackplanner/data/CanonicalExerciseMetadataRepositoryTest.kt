@@ -124,45 +124,4 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertEquals(canonical.recoveryDecayProfile, resolved.recoveryDecayProfile)
     }
 
-    @Test
-    fun legacyCurrentExerciseRowsMatchCanonicalBootstrapExceptHistoryGate() {
-        fun rows(asset: String) = context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { reader ->
-            val parsed = reader.lineSequence().filter(String::isNotBlank).map(SeedData::parseCsvLine).toList()
-            val header = parsed.first().map { it.removePrefix("\uFEFF") }
-            parsed.drop(1).map { values -> header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap() }
-        }
-        val images = rows("exercise_image_mapping.csv").associate { row ->
-            row.getValue("stable_key") to (row.getValue("image_asset_name") to (row.getValue("needs_review") == "1"))
-        }
-        val legacy = SeedData.exercisesFromParsedRows(rows("training_settings_seed.csv"))
-            .map { exercise ->
-                val image = images[exercise.stableKey]
-                if (image == null) exercise else exercise.copy(
-                    imageAssetName = image.first,
-                    needsReview = exercise.needsReview || image.second
-                )
-            }
-            .associateBy(Exercise::stableKey)
-        val canonical = repository.exercises(includeHistory = true).associateBy(Exercise::stableKey)
-        val getters = Exercise::class.java.methods.filter { method ->
-            method.parameterCount == 0 &&
-                (method.name.startsWith("get") || method.name.startsWith("is")) &&
-                method.name != "getClass"
-        }
-        val differences = legacy.flatMap { (stableKey, old) ->
-            val current = canonical[stableKey] ?: return@flatMap listOf("$stableKey missing")
-            val normalizedOld = if (repository.identity(stableKey)?.historyOnly == true) {
-                old.copy(planningEligibility = "HISTORY_ONLY", isActive = false)
-            } else {
-                old
-            }
-            getters.mapNotNull { method ->
-                val oldValue = method.invoke(normalizedOld)
-                val currentValue = method.invoke(current)
-                "$stableKey.${method.name}: $oldValue != $currentValue".takeIf { oldValue != currentValue }
-            }
-        }
-
-        assertTrue("Unexpected bootstrap parity differences:\n${differences.joinToString("\n")}", differences.isEmpty())
-    }
 }

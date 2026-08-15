@@ -298,6 +298,7 @@ enum class AnalysisEligibility {
 }
 
 enum class ActivityKind {
+    UNKNOWN,
     TRAINING_EXERCISE,
     SPORT_SESSION,
     MATCH_RECORD,
@@ -305,6 +306,7 @@ enum class ActivityKind {
 }
 
 enum class PlanningEligibility {
+    UNKNOWN,
     PROGRAM_SELECTABLE,
     FATIGUE_ONLY,
     ANALYSIS_ONLY,

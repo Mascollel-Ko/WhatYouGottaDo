@@ -95,6 +95,15 @@ data class CanonicalStrengthProxyRelation(
     val provenance: String
 )
 
+data class CanonicalOfiAxisProfile(
+    val exerciseStableKey: String,
+    val highForceNeural: Double,
+    val systemicMuscular: Double,
+    val localMuscular: Double,
+    val highSpeed: Double,
+    val reactive: Double
+)
+
 class CanonicalExerciseMetadataRepository(private val context: Context) {
     private val manifest = loadManifest()
     private val identitiesByStableKey: Map<String, CanonicalExerciseIdentity> =
@@ -206,6 +215,54 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         valueField = "relationId",
         coefficientField = "coefficient"
     )
+
+    fun ofiAxisProfiles(): Map<String, CanonicalOfiAxisProfile> {
+        val axisRows = ofiRelations().filter { relation -> relation.relationType == "OFI_AXIS" }
+        fun profile(stableKey: String, rows: List<CanonicalMetadataRelation>): CanonicalOfiAxisProfile {
+            val coefficients = rows.associate { relation ->
+                relation.relationValue to requireNotNull(relation.coefficient) {
+                    "OFI axis coefficient is missing for $stableKey/${relation.relationValue}."
+                }
+            }
+            require(coefficients.keys == CANONICAL_OFI_AXES) {
+                "Canonical OFI axes are incomplete for $stableKey: ${coefficients.keys.sorted()}"
+            }
+            return CanonicalOfiAxisProfile(
+                exerciseStableKey = stableKey,
+                highForceNeural = coefficients.getValue("HIGH_FORCE_NEURAL"),
+                systemicMuscular = coefficients.getValue("SYSTEMIC_MUSCULAR"),
+                localMuscular = coefficients.getValue("LOCAL_MUSCULAR"),
+                highSpeed = coefficients.getValue("HIGH_SPEED"),
+                reactive = coefficients.getValue("REACTIVE")
+            )
+        }
+
+        val profiles = axisRows.groupBy(CanonicalMetadataRelation::exerciseStableKey)
+            .mapValues { (stableKey, rows) -> profile(stableKey, rows) }
+            .toMutableMap()
+        identitiesByStableKey.keys.filterNot(profiles::containsKey).forEach { historyStableKey ->
+            val inherited = axisRows.filter { relation -> relation.sourceStableKey == historyStableKey }
+                .groupBy(CanonicalMetadataRelation::exerciseStableKey)
+                .map { (targetStableKey, rows) -> profile(targetStableKey, rows) }
+                .distinctBy { candidate ->
+                    listOf(
+                        candidate.highForceNeural,
+                        candidate.systemicMuscular,
+                        candidate.localMuscular,
+                        candidate.highSpeed,
+                        candidate.reactive
+                    )
+                }
+            require(inherited.size == 1) {
+                "History OFI inheritance is missing or inconsistent for $historyStableKey."
+            }
+            profiles[historyStableKey] = inherited.single().copy(exerciseStableKey = historyStableKey)
+        }
+        require(profiles.keys == identitiesByStableKey.keys) {
+            "Canonical OFI axis profiles must exactly cover canonical identities."
+        }
+        return profiles
+    }
 
     fun badmintonRelations(): List<CanonicalMetadataRelation> = canonicalRelations(
         assetName = "badminton_relations.csv",
@@ -583,6 +640,13 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         const val EXPECTED_HISTORY_ROWS = 16
         private const val SCHEMA_VERSION = 1
         private val IDENTITY_DECISION_TOKENS = setOf("KEEP_CANONICAL", "PROPOSED_USER_APPROVED")
+        private val CANONICAL_OFI_AXES = setOf(
+            "HIGH_FORCE_NEURAL",
+            "SYSTEMIC_MUSCULAR",
+            "LOCAL_MUSCULAR",
+            "HIGH_SPEED",
+            "REACTIVE"
+        )
     }
 }
 

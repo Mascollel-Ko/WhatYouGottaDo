@@ -224,13 +224,16 @@ internal object ExerciseMigrationKeyPolicy {
         "imported_래터럴_바운드" to "lateral_bound_continuous"
     )
     private val halfKneelingSplitKeys = setOf("ex_8380d7fe", "ex_8e1b313e", "ex_66e8c8c2")
-    private val reviewOnlyKeys = setOf(
-        "ex_e3487166",
+    private val legacyPlaceholderKeys = setOf(
         "imported_csv_복원_계획",
         "imported_csv_복원_근력운동",
         "imported_csv_복원_기능성운동",
         "imported_csv_복원_스포츠"
     )
+    private val reviewOnlyKeys = legacyPlaceholderKeys + "ex_e3487166"
+
+    fun isLegacyPlaceholderKey(stableKey: String): Boolean =
+        stableKey.trim().lowercase() in legacyPlaceholderKeys
 
     fun resolve(oldId: Long, oldStableKey: String, equipment: String, equipmentTags: String): MigrationKeyResolution {
         val key = oldStableKey.trim().lowercase()

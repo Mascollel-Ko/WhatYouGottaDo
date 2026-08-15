@@ -38,7 +38,7 @@ enum class ContributionGrouping(val groupType: String, val label: String) {
     REDUNDANCY_GROUP("redundancyGroup", "운동 역할"),
     MOVEMENT_FAMILY("movementFamily", "동작 계열"),
     PROGRAM_SLOT("programSlot", "프로그램 역할"),
-    EXERCISE_NAME("exerciseName", "운동명")
+    EXERCISE("exerciseStableKey", "운동명")
 }
 
 data class FatigueTimePoint(

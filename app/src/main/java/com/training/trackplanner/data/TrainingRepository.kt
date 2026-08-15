@@ -120,6 +120,7 @@ class TrainingRepository(
     private val strengthPosteriorDao = db.strengthPosteriorDao()
     private val canonicalMetadataRepository = CanonicalExerciseMetadataRepositoryProvider.get(context)
     private val canonicalRuntimeMetadataCatalog = canonicalMetadataRepository.runtimeMetadataCatalog()
+    private val canonicalOfiAxisProfiles = canonicalMetadataRepository.ofiAxisProfiles()
     private val canonicalCoreCatalog = canonicalMetadataRepository.coreCatalog()
     private val badmintonObjectiveCatalog = canonicalMetadataRepository.badmintonObjectiveCatalog()
     private val exerciseRoleRelationAssetLoader = ExerciseRoleRelationAssetLoader(context)
@@ -255,7 +256,8 @@ class TrainingRepository(
         dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
-        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        canonicalOfiAxisProfiles = canonicalOfiAxisProfiles
     )
     private val smashSpeedService = SmashSpeedService(
         smashSpeedDao = smashSpeedDao
@@ -303,7 +305,8 @@ class TrainingRepository(
         dailyMetricDao = dailyMetricDao,
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
-        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog
+        canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
+        canonicalOfiAxisProfiles = canonicalOfiAxisProfiles
     )
     private val coachingSignalsSummaryService = CoachingSignalsSummaryService(
         exerciseDao = exerciseDao,
@@ -847,7 +850,7 @@ class TrainingRepository(
         val restored = if (ExerciseSeedMetadataPolicy.isBuiltInStableKey(stableKey, seedByStableKey) && !hasRestoredOverride) {
             ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(csvExercise, seedByStableKey)
         } else {
-            ExerciseMetadataMapper.applyLegacyMetadata(csvExercise)
+            csvExercise
         }.let { exercise ->
             if (historyOnly) exercise.copy(isActive = false, planningEligibility = "HISTORY_ONLY") else exercise
         }
@@ -1059,60 +1062,19 @@ class TrainingRepository(
                 exerciseDao.insertExercise(seed)
                 return exerciseDao.findByStableKey(seed.stableKey) ?: seed
             }
-        val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
-            Exercise(
-                name = name,
-                category = category,
-                stableKey = stableKey,
-                movementPattern = category.defaultMovementPattern(),
-                movementCategory = category.defaultMovementCategory(),
-                primaryMuscles = category.defaultPrimaryMuscles(),
-                equipment = "NONE",
-                forceType = category.defaultForceType(),
-                plane = category.defaultPlane(),
-                laterality = "BILATERAL",
-                metadataConfidence = MetadataConfidence.LOW.name
-            )
+        val mapped = Exercise(
+            name = name,
+            category = category,
+            stableKey = stableKey,
+            activityKind = ActivityKind.UNKNOWN.name,
+            planningEligibility = PlanningEligibility.UNKNOWN.name,
+            metadataConfidence = MetadataConfidence.NEEDS_REVIEW.name,
+            isCustom = true,
+            needsReview = true
         )
         exerciseDao.insertExercise(mapped)
         return exerciseDao.findByStableKey(mapped.stableKey) ?: mapped
     }
-
-    private fun String.defaultMovementPattern(): String =
-        when (this) {
-            "유산소운동" -> MovementPattern.LOCOMOTION.name
-            "스포츠" -> MovementPattern.FOOTWORK.name
-            "기능성운동" -> MovementPattern.ANTI_ROTATION.name
-            else -> MovementPattern.ISOLATION.name
-        }
-
-    private fun String.defaultMovementCategory(): String =
-        when (this) {
-            "유산소운동" -> MovementCategory.CONDITIONING.name
-            "스포츠" -> MovementCategory.SKILL_DRILL.name
-            "기능성운동" -> MovementCategory.STABILITY.name
-            else -> MovementCategory.STRENGTH.name
-        }
-
-    private fun String.defaultPrimaryMuscles(): String =
-        when (this) {
-            "유산소운동", "스포츠" -> "QUADRICEPS,CALF"
-            "기능성운동" -> "CORE"
-            else -> "QUADRICEPS"
-        }
-
-    private fun String.defaultForceType(): String =
-        when (this) {
-            "유산소운동", "스포츠" -> FatigueForceType.ACCELERATE.name
-            "기능성운동" -> FatigueForceType.BRACE.name
-            else -> FatigueForceType.BRACE.name
-        }
-
-    private fun String.defaultPlane(): String =
-        when (this) {
-            "스포츠", "기능성운동" -> Plane.MULTI_PLANAR.name
-            else -> Plane.SAGITTAL.name
-        }
 
     internal suspend fun seedMissingPrograms(
         seeds: List<ProgramSeed> = SeedData.programs(context)
@@ -1308,12 +1270,8 @@ class TrainingRepository(
                 ExerciseMetadataOverrideBackupMapper.hasOverride(exercise.stableKey, runtimeOverrideKeys)
             if (hasBuiltInOverride) return@forEach
             val seedBacked = ExerciseSeedMetadataPolicy.applyBuiltInSeedMetadata(exercise, seedByStableKey)
-            val mapped = if (seedBacked != exercise) {
-                seedBacked
-            } else {
-                if (!exercise.needsAnalysisMetadataRefresh()) return@forEach
-                ExerciseMetadataMapper.applyLegacyMetadata(exercise)
-            }
+            if (seedBacked == exercise) return@forEach
+            val mapped = seedBacked
             if (mapped != exercise) {
                 exerciseDao.updateExercise(mapped)
             }
@@ -1322,30 +1280,6 @@ class TrainingRepository(
 
     private fun seedExercisesByStableKey(): Map<String, Exercise> =
         SeedData.exactExerciseMetadataByStableKey(context)
-
-    private fun Exercise.needsAnalysisMetadataRefresh(): Boolean =
-        compoundType.isBlank() ||
-            plane.isBlank() ||
-            axialLoadLevel.isBlank() ||
-            fatigueCategories.isBlank() ||
-            adaptiveBaselineGroups.isBlank() ||
-            recoveryDecayProfile.isBlank() ||
-            progressMetricType.isBlank() ||
-            strengthProgressionGroup.isBlank() ||
-            hypertrophyVolumeGroup.isBlank() ||
-            mainLiftGroup.isBlank() ||
-            accessoryContributionGroup.isBlank() ||
-            badmintonTransferStrength.isBlank() ||
-            courtMovementTypes.isBlank() ||
-            badmintonSkillTargets.isBlank() ||
-            stabilityDemandLevel.isBlank() ||
-            mobilityDemandLevel.isBlank() ||
-            analysisEligibility.isBlank() ||
-            activityKind.isBlank() ||
-            planningEligibility.isBlank() ||
-            activityKind !in ActivityKind.entries.map { kind -> kind.name } ||
-            planningEligibility !in PlanningEligibility.entries.map { eligibility -> eligibility.name } ||
-            metadataConfidence !in MetadataConfidence.entries.map { confidence -> confidence.name }
 
     private fun ProgramSeed.displayName(): String =
         when (name) {

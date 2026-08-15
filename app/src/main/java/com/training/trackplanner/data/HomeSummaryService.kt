@@ -19,7 +19,8 @@ internal class HomeSummaryService(
     private val dailyMetricDao: DailyMetricDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
-    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>
 ) {
     suspend fun build(todayStatus: PhaseAwareTodayStatus? = null): HomeTodaySummaryState = withContext(Dispatchers.IO) {
         val today = SystemAnalysisDateProvider().today()
@@ -29,7 +30,7 @@ internal class HomeSummaryService(
         val entries = workoutDao.entriesWithSetsUntil(todayString)
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val initialProfile = initialUserProfileDao.profile()
-        val calculator = DailyFatigueCalculator(runtimeMetadataCatalog)
+        val calculator = DailyFatigueCalculator(runtimeMetadataCatalog, canonicalOfiAxisProfiles)
         val results = calculator.calculateSeries(
             endDate = today,
             days = 7,

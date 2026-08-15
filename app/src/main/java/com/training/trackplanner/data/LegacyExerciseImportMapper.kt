@@ -30,7 +30,6 @@ internal class LegacyExerciseImportMapper private constructor(
     mappings: List<LegacyExerciseImportMapping>
 ) {
     private val byStableKey = mappings.associateBy(LegacyExerciseImportMapping::oldStableKey)
-    private val byExactName = mappings.groupBy(LegacyExerciseImportMapping::oldName)
 
     fun resolve(
         oldStableKey: String,
@@ -45,11 +44,7 @@ internal class LegacyExerciseImportMapper private constructor(
         if (sourceKey in canonicalStableKeys) {
             return LegacyExerciseResolution.Resolved(sourceKey, "CANONICAL_STABLE_KEY")
         }
-        val mapping = if (sourceKey.isNotBlank()) {
-            byStableKey[sourceKey]
-        } else {
-            byExactName[oldName.trim()]?.singleOrNull()
-        }
+        val mapping = sourceKey.takeIf(String::isNotBlank)?.let(byStableKey::get)
         if (mapping == null) {
             return rejected(
                 code = DataTransferDiagnosticCodes.RESTORE_CANONICAL_KEY_UNRESOLVED,

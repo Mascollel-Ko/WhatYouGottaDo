@@ -37,6 +37,8 @@ import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.ExerciseMetadataAdapter
+import com.training.trackplanner.data.ProgressMetricRuntimeBehavior
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
 import com.training.trackplanner.data.deleteDraftItem
@@ -151,7 +153,6 @@ internal fun ProgramSkeletonPreview(
         }
     }
 }
-
 @Composable
 private fun ProgramDraftEditTab(
     skeleton: GeneratedProgramSkeleton,
@@ -403,9 +404,11 @@ private fun draftItemForExercise(
     dayOfWeek: Int,
     orderIndex: Int
 ): ProgramSkeletonItem {
-    val timed = metadata.progressMetricType.contains("TIME", ignoreCase = true) ||
-        exercise.mode.contains("시간") ||
-        exercise.category in timedCategories
+    val timed = ExerciseMetadataAdapter.progressMetricBehavior(metadata.progressMetricType) in setOf(
+        ProgressMetricRuntimeBehavior.REPS_OR_TIME,
+        ProgressMetricRuntimeBehavior.DISTANCE_OR_TIME,
+        ProgressMetricRuntimeBehavior.SESSION_DURATION
+    )
     return ProgramSkeletonItem(
         localId = "manual-$weekNumber-$dayOfWeek-${exercise.stableKey}-${System.nanoTime()}",
         weekNumber = weekNumber,
@@ -442,4 +445,3 @@ private fun draftItemForExercise(
     )
 }
 
-private val timedCategories = setOf("유산소/운동", "스포츠")

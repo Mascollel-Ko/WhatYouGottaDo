@@ -208,8 +208,7 @@ internal object BackupPreflightValidator {
         }
 
         exercises.filter { exercise ->
-            exercise.stableKey.startsWith("imported_csv_") ||
-                exercise.name.startsWith("CSV 복원 ")
+            ExerciseMigrationKeyPolicy.isLegacyPlaceholderKey(exercise.stableKey)
         }.forEach { exercise ->
             warnings += DataTransferDiagnostic(
                 code = DataTransferDiagnosticCodes.LEGACY_PLACEHOLDER_EXERCISE,

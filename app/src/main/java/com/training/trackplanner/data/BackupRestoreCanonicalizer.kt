@@ -66,14 +66,13 @@ internal class BackupRestoreCanonicalizer(
         val sourceRowsByKey = data.exerciseRows
             .filter { it.stableKey.isNotBlank() }
             .associateBy(RestoreExerciseRow::stableKey)
-        val customNames = data.exerciseRows
-            .filter(RestoreExerciseRow::isCustom)
-            .groupBy(RestoreExerciseRow::name)
-            .filterValues { it.size == 1 }
-            .mapValues { (_, rows) ->
-                rows.single().stableKey.takeIf(UserExerciseStableKeyGenerator::isUserExerciseKey)
-                    ?: UserExerciseStableKeyGenerator.generate()
-            }
+        val blankSourceRowsByName = data.exerciseRows
+            .filter { it.stableKey.isBlank() }
+            .associateBy(RestoreExerciseRow::name)
+        val backupIdentity = data.manifest?.sourceDatabaseLineageId
+            ?: data.manifest?.contentSha256
+            ?: data.localIdentityFingerprint()
+        val blankKeysByName = mutableMapOf<String, String>()
         val customKeys = data.exerciseRows
             .filter { row -> row.isCustom && row.stableKey.isNotBlank() }
             .associate { row -> row.stableKey to row.stableKey }
@@ -87,17 +86,16 @@ internal class BackupRestoreCanonicalizer(
                     return@getOrPut LegacyExerciseResolution.Resolved(key, "BACKUP_CUSTOM_STABLE_KEY", name)
                 }
                 if (stableKey.isBlank()) {
-                    customNames[name]?.let { key ->
-                        custom += key
-                        return@getOrPut LegacyExerciseResolution.Resolved(key, "LEGACY_CUSTOM_EXACT_NAME", name)
+                    val key = blankKeysByName.getOrPut(name) {
+                        UserExerciseStableKeyGenerator.generateDeterministic(
+                            "wgtd-imported-exercise-v1|$backupIdentity|$name"
+                        )
                     }
-                    return@getOrPut legacyMapper.resolve(
-                        oldStableKey = stableKey,
-                        oldName = name,
-                        equipment = equipment,
-                        canonicalStableKeys = canonicalByKey.keys,
-                        stage = DataTransferStages.PLANNING,
-                        entityType = entityType
+                    custom += key
+                    return@getOrPut LegacyExerciseResolution.Resolved(
+                        canonicalStableKey = key,
+                        method = "LEGACY_BLANK_STABLE_KEY_CUSTOM",
+                        canonicalName = name
                     )
                 }
                 canonicalByKey[stableKey]?.let { current ->
@@ -147,8 +145,30 @@ internal class BackupRestoreCanonicalizer(
                     row.copy(
                         stableKey = resolution.canonicalStableKey,
                         name = current?.name ?: resolution.canonicalName.ifBlank { row.name },
-                        isActive = if (current != null || row.isCustom) row.isActive else false,
-                        needsReview = row.needsReview || (!row.isCustom && current == null)
+                        isActive = if (current != null || row.isCustom || row.stableKey.isBlank()) row.isActive else false,
+                        isCustom = row.isCustom || row.stableKey.isBlank(),
+                        needsReview = row.needsReview || row.stableKey.isBlank() || (!row.isCustom && current == null),
+                        primaryMuscles = row.primaryMuscles.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        secondaryMuscles = row.secondaryMuscles.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        movementPattern = row.movementPattern.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        movementCategory = row.movementCategory.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        forceType = row.forceType.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        bodyRegion = row.bodyRegion.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        laterality = row.laterality.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        plane = row.plane.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        legacyTrainingRole = row.legacyTrainingRole.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        trainingRoleCodes = row.trainingRoleCodes.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        programSlotCapabilityCodes = row.programSlotCapabilityCodes
+                            .takeUnless { row.stableKey.isBlank() }
+                            .orEmpty(),
+                        sportTransferDirect = row.sportTransferDirect.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        sportTransferSupportive = row.sportTransferSupportive.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        loadProfile = row.loadProfile.takeUnless { row.stableKey.isBlank() }.orEmpty(),
+                        metadataConfidence = if (row.stableKey.isBlank()) {
+                            MetadataConfidence.NEEDS_REVIEW.name
+                        } else {
+                            row.metadataConfidence
+                        }
                     )
                 }
                 is LegacyExerciseResolution.Dropped -> {
@@ -162,25 +182,26 @@ internal class BackupRestoreCanonicalizer(
             }
         }.distinctBy(RestoreExerciseRow::stableKey).toMutableList()
 
-        val referenceDetails = linkedMapOf<String, Pair<String, String>>()
-        data.setRows.forEach { row -> referenceDetails.putIfAbsent(row.stableKey, row.exerciseName to row.category) }
+        val referenceDetails = linkedMapOf<Pair<String, String>, String>()
+        data.setRows.forEach { row -> referenceDetails.putIfAbsent(row.stableKey to row.exerciseName, row.category) }
         data.programSnapshot?.items.orEmpty().forEach { item ->
-            referenceDetails.putIfAbsent(item.exerciseStableKey, item.exerciseName to item.category)
+            referenceDetails.putIfAbsent(item.exerciseStableKey to item.exerciseName, item.category)
         }
         data.runtimeMetadataRows.forEach { row ->
-            referenceDetails.putIfAbsent(row.stableKey, row.exerciseName to "Historical")
+            referenceDetails.putIfAbsent(row.stableKey to row.exerciseName, "Historical")
         }
-        referenceDetails.forEach { (sourceKey, details) ->
-            val source = sourceRowsByKey[sourceKey]
-            val resolution = resolve(sourceKey, details.first, source?.equipment.orEmpty(), "ExerciseReference")
+        referenceDetails.forEach { (identity, category) ->
+            val (sourceKey, name) = identity
+            val source = sourceRowsByKey[sourceKey] ?: blankSourceRowsByName[name]
+            val resolution = resolve(sourceKey, name, source?.equipment.orEmpty(), "ExerciseReference")
             if (resolution is LegacyExerciseResolution.Resolved &&
                 resolvedRows.none { it.stableKey == resolution.canonicalStableKey }
             ) {
                 val current = canonicalByKey[resolution.canonicalStableKey]
                 resolvedRows += minimalStub(
                     stableKey = resolution.canonicalStableKey,
-                    name = current?.name ?: resolution.canonicalName.ifBlank { details.first },
-                    category = current?.category ?: details.second,
+                    name = current?.name ?: resolution.canonicalName.ifBlank { name },
+                    category = current?.category ?: category,
                     current = current
                 )
                 if (current == null) {
@@ -195,7 +216,7 @@ internal class BackupRestoreCanonicalizer(
         }
 
         fun resolved(stableKey: String, name: String, entityType: String): LegacyExerciseResolution.Resolved? {
-            val source = sourceRowsByKey[stableKey]
+            val source = sourceRowsByKey[stableKey] ?: blankSourceRowsByName[name]
             return when (val result = resolve(stableKey, name, source?.equipment.orEmpty(), entityType)) {
                 is LegacyExerciseResolution.Resolved -> result
                 is LegacyExerciseResolution.Dropped -> {
@@ -210,6 +231,7 @@ internal class BackupRestoreCanonicalizer(
         }
 
         val runtimeRows = data.runtimeMetadataRows.mapNotNull { row ->
+            if (row.stableKey.isBlank()) return@mapNotNull null
             resolved(row.stableKey, row.exerciseName, "RuntimeExerciseMetadata")?.let { resolution ->
                 row.copy(
                     stableKey = resolution.canonicalStableKey,
@@ -219,10 +241,12 @@ internal class BackupRestoreCanonicalizer(
             }
         }.distinctBy(RuntimeExerciseMetadata::stableKey)
         val snapshotRows = data.metadataSnapshotRows.mapNotNull { row ->
+            if (row.stableKey.isBlank()) return@mapNotNull null
             resolved(row.stableKey, sourceRowsByKey[row.stableKey]?.name.orEmpty(), "ExerciseMetadataSnapshot")
                 ?.let { row.copy(stableKey = it.canonicalStableKey) }
         }
         val overrideRows = data.metadataUserOverrideRows.mapNotNull { row ->
+            if (row.stableKey.isBlank()) return@mapNotNull null
             resolved(row.stableKey, sourceRowsByKey[row.stableKey]?.name.orEmpty(), "ExerciseMetadataUserOverride")
                 ?.let { row.copy(stableKey = it.canonicalStableKey).validated() }
         }
@@ -313,6 +337,18 @@ internal class BackupRestoreCanonicalizer(
             )
         }
     }
+
+    private fun RecordCsvImportData.Restore.localIdentityFingerprint(): String =
+        buildList {
+            exerciseRows.mapTo(this) { row -> "exercise|${row.name}|${row.category}|${row.equipment}" }
+            setRows.mapTo(this) { row ->
+                "set|${row.entryKey}|${row.date}|${row.exerciseName}|${row.category}|${row.setIndex}"
+            }
+            programSnapshot?.items.orEmpty().mapTo(this) { item ->
+                "program|${item.programStableKey}|${item.weekNumber}|${item.dayOfWeek}|" +
+                    "${item.orderIndex}|${item.exerciseName}|${item.category}"
+            }
+        }.sorted().joinToString("\n")
 
     private fun minimalStub(
         stableKey: String,

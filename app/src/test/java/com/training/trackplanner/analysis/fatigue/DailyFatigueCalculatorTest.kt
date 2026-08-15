@@ -1,11 +1,13 @@
 package com.training.trackplanner.analysis.fatigue
 
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.CanonicalOfiAxisProfile
 import com.training.trackplanner.data.ExerciseMetadataAdapter
 import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
+import com.training.trackplanner.data.SeedData
 import com.training.trackplanner.data.WorkoutEntry
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
@@ -24,6 +26,7 @@ class DailyFatigueCalculatorTest {
         assertEquals(1.50, FatigueRecordFactors.rpeFactor(10.0), 0.0001)
         assertEquals(0.25, FatigueRecordFactors.axisLevelMultiplier("LOW"), 0.0001)
         assertEquals(1.00, FatigueRecordFactors.axisLevelMultiplier("VERY_HIGH"), 0.0001)
+        assertEquals(0.0, FatigueRecordFactors.axisLevelMultiplier("NONE"), 0.0001)
     }
 
     @Test
@@ -92,8 +95,8 @@ class DailyFatigueCalculatorTest {
         assertTrue(contribution.axes.highForceNeural > 0.0)
         assertTrue(contribution.axes.systemicMuscular > 0.0)
         assertTrue(contribution.axes.localMuscular > contribution.axes.systemicMuscular)
-        assertTrue(contribution.axes.highSpeed > 0.0)
-        assertTrue(contribution.axes.reactive > 0.0)
+        assertEquals(0.0, contribution.axes.highSpeed, 0.0001)
+        assertEquals(0.0, contribution.axes.reactive, 0.0001)
         assertTrue(contribution.axes.recoveryPressure > 0.0)
         assertEquals("SHORT", contribution.recoveryDurationClass)
     }
@@ -106,7 +109,7 @@ class DailyFatigueCalculatorTest {
     }
 
     @Test
-    fun badmintonDurationAndRpeProduceIndependentHighSpeedReactiveAndSystemicLoads() {
+    fun canonicalBadmintonUsesExplicitIndependentHighSpeedAndReactiveAxisAuthority() {
         val canonical = badmintonContribution(
             secondaryStressTags = "COURT_MOVEMENT_LOAD|DECELERATION_LOAD|OVERHEAD_REPETITION_LOAD",
             cognitiveStressTags = "REACTION_LOAD|DECISION_MAKING_LOAD|VISUAL_TRACKING_LOAD",
@@ -133,9 +136,9 @@ class DailyFatigueCalculatorTest {
         assertTrue(canonical.axes.reactive > 0.0)
         assertTrue(canonical.axes.systemicMuscular > 0.0)
         assertEquals(canonical.axes.highSpeed, withoutReactiveCues.axes.highSpeed, 0.0001)
-        assertTrue(canonical.axes.reactive > withoutReactiveCues.axes.reactive)
+        assertEquals(canonical.axes.reactive, withoutReactiveCues.axes.reactive, 0.0001)
         assertEquals(canonical.axes.reactive, withoutHighSpeedCues.axes.reactive, 0.0001)
-        assertTrue(canonical.axes.highSpeed > withoutHighSpeedCues.axes.highSpeed)
+        assertEquals(canonical.axes.highSpeed, withoutHighSpeedCues.axes.highSpeed, 0.0001)
         assertFalse(canonical.axes.highSpeed == canonical.axes.reactive)
     }
 
@@ -161,6 +164,59 @@ class DailyFatigueCalculatorTest {
         assertFalse(result.state.cautionReasons.any { reason -> reason.contains("POWER_REACTION") })
     }
 
+    @Test
+    fun exerciseRenameDoesNotChangeFatigueSemanticsOrGrouping() {
+        val date = LocalDate.of(2026, 8, 15)
+        val exercise = Exercise(name = "Current name", category = "Strength", stableKey = "stable-lift")
+        val metadata = neutralTestMetadata(exercise.stableKey, exercise.name)
+        fun result(recordedName: String) = DailyFatigueCalculator(
+            RuntimeExerciseMetadataCatalog.of(listOf(metadata))
+        ).calculate(
+            targetDate = date,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(testRecord(date, exercise.stableKey, recordedName)),
+            initialProfile = null
+        )
+
+        val before = result("Old name")
+        val after = result("Renamed display text")
+
+        assertEquals(before.state, after.state)
+        assertEquals(
+            setOf("stable-lift"),
+            after.groupStates.filter { it.groupType == "exerciseStableKey" }.mapTo(mutableSetOf(), GroupFatigueState::groupKey)
+        )
+    }
+
+    @Test
+    fun equalDisplayNamesNeverMergeDifferentStableKeys() {
+        val date = LocalDate.of(2026, 8, 15)
+        val first = Exercise(name = "Same name", category = "Strength", stableKey = "first-key")
+        val second = first.copy(stableKey = "second-key")
+        val result = DailyFatigueCalculator(
+            RuntimeExerciseMetadataCatalog.of(
+                listOf(
+                    neutralTestMetadata(first.stableKey, first.name),
+                    neutralTestMetadata(second.stableKey, second.name)
+                )
+            )
+        ).calculate(
+            targetDate = date,
+            exercises = listOf(first, second),
+            entriesWithSets = listOf(
+                testRecord(date, first.stableKey, first.name, id = 1),
+                testRecord(date, second.stableKey, second.name, id = 2)
+            ),
+            initialProfile = null
+        )
+
+        assertEquals(
+            setOf(first.stableKey, second.stableKey),
+            result.groupStates.filter { it.groupType == "exerciseStableKey" }
+                .mapTo(mutableSetOf(), GroupFatigueState::groupKey)
+        )
+    }
+
     private fun badmintonContribution(
         secondaryStressTags: String,
         cognitiveStressTags: String,
@@ -177,7 +233,10 @@ class DailyFatigueCalculatorTest {
             skillTargets,
             physicalQualities
         )
-        return DailyFatigueCalculator(RuntimeExerciseMetadataCatalog.of(listOf(metadata))).calculate(
+        return DailyFatigueCalculator(
+            RuntimeExerciseMetadataCatalog.of(listOf(metadata)),
+            canonicalBadmintonOfiProfile()
+        ).calculate(
             targetDate = date,
             exercises = listOf(exercise),
             entriesWithSets = listOf(badmintonRecord(date, exercise)),
@@ -208,6 +267,69 @@ class DailyFatigueCalculatorTest {
         return RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
             .single { metadata -> metadata.stableKey == "ex_ae9ecdbc" }
     }
+
+    private fun canonicalBadmintonOfiProfile(): Map<String, CanonicalOfiAxisProfile> {
+        val asset = sequenceOf(
+            File("src/main/assets/metadata/canonical_v1/ofi_relations.csv"),
+            File("app/src/main/assets/metadata/canonical_v1/ofi_relations.csv")
+        ).first(File::isFile)
+        val parsed = asset.readLines(Charsets.UTF_8).filter(String::isNotBlank).map(SeedData::parseCsvLine)
+        val header = parsed.first()
+        val rows = parsed.drop(1).map { values -> header.zip(values).toMap() }
+            .filter { row ->
+                row.getValue("exerciseStableKey") == "ex_ae9ecdbc" && row.getValue("relationType") == "OFI_AXIS"
+            }
+        val values = rows.associate { row -> row.getValue("relationId") to row.getValue("coefficient").toDouble() }
+        return mapOf(
+            "ex_ae9ecdbc" to CanonicalOfiAxisProfile(
+                exerciseStableKey = "ex_ae9ecdbc",
+                highForceNeural = values.getValue("HIGH_FORCE_NEURAL"),
+                systemicMuscular = values.getValue("SYSTEMIC_MUSCULAR"),
+                localMuscular = values.getValue("LOCAL_MUSCULAR"),
+                highSpeed = values.getValue("HIGH_SPEED"),
+                reactive = values.getValue("REACTIVE")
+            )
+        )
+    }
+
+    private fun neutralTestMetadata(stableKey: String, name: String): RuntimeExerciseMetadata =
+        ExerciseMetadataAdapter.fromFields(
+            mapOf(
+                "stableKey" to stableKey,
+                "exerciseName" to name,
+                "currentActivityKind" to "EXERCISE",
+                "currentPlanningEligibility" to "ANALYSIS_ONLY",
+                "movementFamily" to "TEST_FAMILY",
+                "movementSubtype" to "TEST_MOVEMENT",
+                "programSlot" to "NOT_APPLICABLE",
+                "redundancyGroup" to "TEST_GROUP",
+                "progressMetricType" to "LOAD_REPS",
+                "strengthProgressionGroup" to "TEST_GROUP",
+                "analysisEligibility" to "FATIGUE",
+                "primaryStressProfile" to "TEST_STRESS",
+                "recoveryDecayProfile" to "SHORT",
+                "neuromuscularStressLevel" to "LOW",
+                "systemicMuscularStressLevel" to "LOW",
+                "localMuscularStressLevel" to "HIGH",
+                "recoveryDurationClass" to "SHORT"
+            )
+        )
+
+    private fun testRecord(
+        date: LocalDate,
+        stableKey: String,
+        name: String,
+        id: Long = 1
+    ): WorkoutEntryWithSets = WorkoutEntryWithSets(
+        WorkoutEntry(
+            id = id,
+            date = date.toString(),
+            exerciseStableKey = stableKey,
+            exerciseName = name,
+            category = "Strength"
+        ),
+        listOf(WorkoutSet(entryId = id, setIndex = 1, reps = 8, weightKg = 20.0, confirmed = true, rpe = 8.0))
+    )
 
     private fun badmintonRecord(date: LocalDate, exercise: Exercise): WorkoutEntryWithSets =
         WorkoutEntryWithSets(

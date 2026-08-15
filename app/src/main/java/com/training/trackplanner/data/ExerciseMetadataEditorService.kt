@@ -107,8 +107,9 @@ internal class ExerciseMetadataEditorService(
         )
         val originalRows = editableRows(data.originalExercise, data.originalMetadata)
         val submittedRows = editableRows(submittedExercise, submittedMetadata)
-        val canonicalRuntime = canonicalMetadataRepository.runtimeMetadataCatalog().resolve(canonical)
-            ?: RuntimeExerciseMetadataDefaults.forExercise(canonical)
+        val canonicalRuntime = requireNotNull(canonicalMetadataRepository.runtimeMetadataCatalog().resolve(canonical)) {
+            "Canonical runtime metadata is missing for ${canonical.stableKey}."
+        }
         val canonicalRows = editableRows(canonical, canonicalRuntime)
         submittedRows.forEach { (fieldKey, submitted) ->
             if (submitted.value == originalRows[fieldKey]?.value) return@forEach

@@ -6,6 +6,7 @@ import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
 import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.MetadataTokenField
 import com.training.trackplanner.data.ProgramCandidate
 import com.training.trackplanner.data.ProgramExerciseRole
@@ -42,26 +43,22 @@ class AnalysisContractBaselineTest {
     private val tissueCatalog by lazy { TissueRcvAssetRepository.fromAssets(context).catalog }
 
     @Test
-    fun baselineAssetMatchesCurrentBuiltInOracle() {
-        val rendered = renderCurrentOracle()
-        val generated = repoFile("app/build/generated/analysis-contract/analysis_contract_baseline_v1.csv")
-        requireNotNull(generated.parentFile).mkdirs()
-        generated.writeText(rendered, Charsets.UTF_8)
+    fun canonicalOfiAxisAuthorityPreservesHistoricalProbeLoads() {
+        val historical = AnalysisContractAssetLoader(context).load()
+        val currentProfiles = CanonicalExerciseMetadataRepository(context).ofiAxisProfiles()
 
-        val asset = repoFile("app/src/main/assets/${AnalysisContractAssetLoader.ASSET_PATH}")
-        check(asset.isFile) {
-            "Baseline asset is missing. Copy ${generated.absolutePath} to ${asset.absolutePath}."
+        assertEquals(224, historical.size)
+        historical.all().forEach { relations ->
+            val current = requireNotNull(currentProfiles[relations.exerciseStableKey])
+            val expected = relations.ofiAxisContributions.associate { contribution ->
+                contribution.axisId to contribution.coefficient
+            }
+            assertEquals(expected.getValue(OfiAxisId.HIGH_FORCE_NEURAL), current.highForceNeural, 0.0001)
+            assertEquals(expected.getValue(OfiAxisId.SYSTEMIC_MUSCULAR), current.systemicMuscular, 0.0001)
+            assertEquals(expected.getValue(OfiAxisId.LOCAL_MUSCULAR), current.localMuscular, 0.0001)
+            assertEquals(expected.getValue(OfiAxisId.HIGH_SPEED), current.highSpeed, 0.0001)
+            assertEquals(expected.getValue(OfiAxisId.REACTIVE), current.reactive, 0.0001)
         }
-        val committed = asset.readText(Charsets.UTF_8)
-        val differences = AnalysisContractShadowParity.compare(
-            oldOracle = AnalysisContractAssetLoader.parse(rendered),
-            newRelations = AnalysisContractAssetLoader.parse(committed)
-        )
-        assertTrue(
-            "Analysis contract shadow parity failed:\n${differences.take(20).joinToString("\n")}",
-            differences.isEmpty()
-        )
-        assertEquals(committed.normalizeLines(), rendered.normalizeLines())
     }
 
     @Test
@@ -155,11 +152,9 @@ class AnalysisContractBaselineTest {
 
     @Test
     fun builtInRelationsCoverEveryStableKeyAndAnalysis() {
-        val exercises = legacyExercises()
         val repository = AnalysisContractAssetLoader(context).load()
 
-        assertEquals(224, exercises.size)
-        assertEquals(exercises.map(Exercise::stableKey).toSet(), repository.all().map { it.exerciseStableKey }.toSet())
+        assertEquals(224, repository.size)
         repository.all().forEach { relations ->
             assertEquals(REQUIRED_ANALYSES, relations.capabilities.map { it.analysisTypeId }.toSet())
             assertNotNull(relations.ofiDoseProfile)
@@ -241,7 +236,10 @@ class AnalysisContractBaselineTest {
                 rpe = 8.0
             )
         }
-        val fatigue = DailyFatigueCalculator(RuntimeExerciseMetadataCatalog.of(listOf(metadata))).calculate(
+        val fatigue = DailyFatigueCalculator(
+            RuntimeExerciseMetadataCatalog.of(listOf(metadata)),
+            CanonicalExerciseMetadataRepository(context).ofiAxisProfiles()
+        ).calculate(
             targetDate = PROBE_DATE,
             exercises = listOf(exercise),
             entriesWithSets = listOf(WorkoutEntryWithSets(entry, sets)),
@@ -429,21 +427,12 @@ class AnalysisContractBaselineTest {
         repoFile("app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
 
     private fun legacyExercises(): List<Exercise> {
-        fun rows(asset: String): List<Map<String, String>> =
-            context.assets.open(asset).bufferedReader(Charsets.UTF_8).use { reader ->
-                val parsed = reader.lineSequence().filter(String::isNotBlank).map(SeedData::parseCsvLine).toList()
-                val header = parsed.first().map { it.removePrefix("\uFEFF") }
-                parsed.drop(1).map { values ->
-                    header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
-                }
-            }
-        val images = rows("exercise_image_mapping.csv").associate { row ->
-            row.getValue("stable_key") to (row.getValue("image_asset_name") to (row.getValue("needs_review") == "1"))
-        }
-        return SeedData.exercisesFromParsedRows(rows("training_settings_seed.csv")).map { exercise ->
-            val image = images[exercise.stableKey] ?: return@map exercise
-            exercise.copy(imageAssetName = image.first, needsReview = exercise.needsReview || image.second)
-        }
+        val legacyKeys = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(
+            legacyMetadataFile().readText(Charsets.UTF_8)
+        ).mapTo(mutableSetOf(), RuntimeExerciseMetadata::stableKey)
+        return CanonicalExerciseMetadataRepository(context)
+            .exercises(includeHistory = true)
+            .filter { exercise -> exercise.stableKey in legacyKeys }
     }
 
     private fun repoFile(path: String): File {

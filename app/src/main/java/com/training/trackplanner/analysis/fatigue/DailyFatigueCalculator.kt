@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.fatigue
 import com.training.trackplanner.analysis.features.BodyweightEffectiveLoadCalculator
 import com.training.trackplanner.analysis.features.AnalysisExerciseDisplayNameResolver
 import com.training.trackplanner.analysis.features.DurationHoldLoadCalculator
+import com.training.trackplanner.data.CanonicalOfiAxisProfile
 import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
@@ -16,7 +17,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 class DailyFatigueCalculator(
-    private val metadataCatalog: RuntimeExerciseMetadataCatalog
+    private val metadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile> = emptyMap()
 ) {
     fun calculate(
         targetDate: LocalDate,
@@ -47,6 +49,7 @@ class DailyFatigueCalculator(
                 record = record,
                 exercise = exercise,
                 metadata = metadata,
+                canonicalOfiAxisProfile = canonicalOfiAxisProfiles[exercise.stableKey],
                 confirmedSets = confirmedSets,
                 rpe = averageRpe(record, confirmedSets) ?: defaultRpe(metadata),
                 rawWorkload = calculateWorkload(
@@ -191,17 +194,6 @@ class DailyFatigueCalculator(
             rpe >= 8.0 -> 1.10
             else -> 1.00
         }
-        val heavyModifier = if (
-            metadata.progressMetricType == "ESTIMATED_1RM" ||
-            metadata.programSlot.anyToken("MAIN", "HEAVY")
-        ) 1.15 else 1.00
-        val testModifier = if ("TEST_METRIC" in metadata.analysisEligibility) 1.20 else 1.00
-        val recoveryModifier = if (
-            metadata.tokens.anyToken("RECOVERY", "STRETCH", "MOBILITY")
-        ) 0.50 else 1.00
-        val highForceNeural = recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.highForceNeuralStressLevel) *
-            intensityModifier * heavyModifier * testModifier * recoveryModifier * scale
-
         val durationMinutes = record.confirmedSets.sumOf { it.seconds } / 60.0
         val durationModifier = if (durationMinutes > 0.0) {
             when {
@@ -217,16 +209,6 @@ class DailyFatigueCalculator(
                 else -> 1.15
             }
         }
-        val compoundModifier = when {
-            metadata.activityKind == "SPORT_SESSION" -> 1.20
-            metadata.programSlot.anyToken("MAIN", "HEAVY") -> 1.15
-            metadata.movementFamily.anyToken("ISOLATION") -> 0.70
-            metadata.programSlot.anyToken("ACCESSORY") -> 0.85
-            else -> 1.00
-        }
-        val systemic = recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.systemicMuscularStressLevel) *
-            durationModifier * compoundModifier * scale
-
         val totalReps = record.confirmedSets.sumOf { it.reps }
         val setVolumeModifier = when {
             record.confirmedSets.size <= 2 -> 0.75
@@ -236,32 +218,28 @@ class DailyFatigueCalculator(
         val localVolumeModifier = setVolumeModifier *
             (if (totalReps >= 15) 1.10 else 1.00) *
             (if (rpe >= 9.0) 1.20 else 1.00)
-        val local = recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.localMuscularStressLevel) *
-            localVolumeModifier * scale
-
-        val velocityModifier = when {
-            metadata.tokens.anyToken("NEURAL_SPEED", "SPRINT", "MAX_VELOCITY") -> 1.25
-            metadata.tokens.anyToken("PLYOMETRIC", "ELASTIC_SSC", "ACCELERATION", "FIRST_STEP") -> 1.20
-            metadata.tokens.anyToken("COURT_MOVEMENT", "FOOTWORK", "RUNNING") -> 1.15
-            metadata.activityKind == "SPORT_SESSION" -> 1.10
-            else -> 1.00
+        val canonicalProfile = record.canonicalOfiAxisProfile
+        val (highForceNeural, systemic, local, highSpeed, reactive) = if (canonicalProfile != null) {
+            val loadRatio = recordLoad / CANONICAL_PROBE_RECORD_LOAD
+            listOf(
+                canonicalProfile.highForceNeural * loadRatio * (intensityModifier / CANONICAL_PROBE_INTENSITY_MODIFIER),
+                canonicalProfile.systemicMuscular * loadRatio * (durationModifier / CANONICAL_PROBE_DURATION_MODIFIER),
+                canonicalProfile.localMuscular * loadRatio * (localVolumeModifier / CANONICAL_PROBE_LOCAL_VOLUME_MODIFIER),
+                canonicalProfile.highSpeed * loadRatio * (intensityModifier / CANONICAL_PROBE_INTENSITY_MODIFIER),
+                canonicalProfile.reactive * loadRatio
+            )
+        } else {
+            listOf(
+                recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.highForceNeuralStressLevel) *
+                    intensityModifier * scale,
+                recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.systemicMuscularStressLevel) *
+                    durationModifier * scale,
+                recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.localMuscularStressLevel) *
+                    localVolumeModifier * scale,
+                0.0,
+                0.0
+            )
         }
-        val highSpeed = recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.highSpeedStressLevel) *
-            intensityModifier * velocityModifier * recoveryModifier * scale
-
-        val reactionModifier = when {
-            metadata.cognitiveStressTags.anyToken("REACTION", "DECISION", "VISUAL_TRACKING") -> 1.25
-            metadata.tokens.anyToken("RANDOM", "BEEP", "REACTION") -> 1.20
-            metadata.activityKind == "SPORT_SESSION" -> 1.10
-            else -> 1.00
-        }
-        val directionChangeModifier = when {
-            metadata.tokens.anyToken("CHANGE_OF_DIRECTION", "DIRECTION_CHANGE", "REACTIVE_AGILITY") -> 1.20
-            metadata.tokens.anyToken("FOOTWORK", "AGILITY", "SHUTTLE", "COURT_MOVEMENT") -> 1.15
-            else -> 1.00
-        }
-        val reactive = recordLoad * FatigueRecordFactors.axisLevelMultiplier(metadata.reactiveStressLevel) *
-            reactionModifier * directionChangeModifier * recoveryModifier * scale
 
         val other = listOf(highForceNeural, systemic, local, highSpeed, reactive)
         val recovery = RecoveryPressureCalculator.calculate(
@@ -321,7 +299,7 @@ class DailyFatigueCalculator(
                 "redundancyGroup" to contribution.redundancyGroup,
                 "movementFamily" to contribution.movementFamily,
                 "programSlot" to contribution.programSlot,
-                "exerciseName" to contribution.exerciseName
+                "exerciseStableKey" to contribution.stableKey
             ).filter { (_, key) -> key.isNotBlank() && key != "NOT_APPLICABLE" }
                 .forEach { (type, key) ->
                     val groupKey = GroupKey(type, key)
@@ -391,7 +369,6 @@ class DailyFatigueCalculator(
         when {
             "TEST_METRIC" in metadata.analysisEligibility -> 8.0
             metadata.activityKind == "SPORT_SESSION" -> 7.0
-            metadata.tokens.anyToken("RECOVERY", "STRETCH", "MOBILITY") -> 4.0
             else -> 7.0
         }
 
@@ -411,12 +388,6 @@ class DailyFatigueCalculator(
             else -> 1.00
         }
 
-    private fun String.anyToken(vararg fragments: String): Boolean =
-        fragments.any { contains(it, ignoreCase = true) }
-
-    private fun Collection<String>.anyToken(vararg fragments: String): Boolean =
-        any { value -> value.anyToken(*fragments) }
-
     private data class RawDailyFatigue(
         val axes: FatigueAxisValues,
         val confirmedTrainingLoad: Double
@@ -427,6 +398,7 @@ class DailyFatigueCalculator(
         val record: WorkoutEntryWithSets,
         val exercise: Exercise,
         val metadata: ResolvedFatigueMetadata,
+        val canonicalOfiAxisProfile: CanonicalOfiAxisProfile?,
         val confirmedSets: List<WorkoutSet>,
         val rpe: Double,
         val rawWorkload: Double
@@ -441,31 +413,14 @@ class DailyFatigueCalculator(
         val progressMetricType: String,
         val strengthProgressionGroup: String,
         val analysisEligibility: Set<String>,
-        val cognitiveStressTags: Set<String>,
         val highForceNeuralStressLevel: String,
         val systemicMuscularStressLevel: String,
         val localMuscularStressLevel: String,
-        val highSpeedStressLevel: String,
-        val reactiveStressLevel: String,
-        val recoveryDurationClass: String,
-        val tokens: Set<String>
+        val recoveryDurationClass: String
     ) {
         companion object {
             fun from(exercise: Exercise, runtime: RuntimeExerciseMetadata?): ResolvedFatigueMetadata {
                 if (runtime != null) {
-                    val tokens = buildSet {
-                        add(runtime.movementFamily)
-                        add(runtime.movementSubtype)
-                        add(runtime.programSlot)
-                        add(runtime.primaryStressProfile)
-                        addAll(runtime.secondaryStressTags.values)
-                        addAll(runtime.cognitiveStressTags.values)
-                        addAll(runtime.sportContextTags.values)
-                        addAll(runtime.badmintonTransferType.values)
-                        addAll(runtime.badmintonSkillTargets.values)
-                        addAll(runtime.badmintonPhysicalQualities.values)
-                    }
-                    val effectiveTokens = tokens.filter(String::isNotBlank).toSet()
                     return ResolvedFatigueMetadata(
                         activityKind = runtime.activityKind,
                         movementFamily = runtime.movementFamily,
@@ -475,124 +430,36 @@ class DailyFatigueCalculator(
                         progressMetricType = runtime.progressMetricType,
                         strengthProgressionGroup = runtime.strengthProgressionGroup,
                         analysisEligibility = runtime.analysisEligibility.values.toSet(),
-                        cognitiveStressTags = runtime.cognitiveStressTags.values.toSet(),
-                        highForceNeuralStressLevel = highForceLevel(
-                            runtime.activityKind,
-                            runtime.progressMetricType,
-                            runtime.programSlot,
-                            effectiveTokens
-                        ),
+                        highForceNeuralStressLevel = runtime.neuromuscularStressLevel,
                         systemicMuscularStressLevel = runtime.systemicMuscularStressLevel,
                         localMuscularStressLevel = runtime.localMuscularStressLevel,
-                        highSpeedStressLevel = highSpeedLevel(runtime.activityKind, effectiveTokens),
-                        reactiveStressLevel = reactiveLevel(
-                            runtime.activityKind,
-                            runtime.cognitiveStressTags.values.toSet(),
-                            effectiveTokens
-                        ),
                         recoveryDurationClass = runtime.recoveryDurationClass
                             .ifBlank { runtime.recoveryDecayProfile }
-                            .ifBlank { "MEDIUM" },
-                        tokens = effectiveTokens
+                            .ifBlank { "NOT_APPLICABLE" }
                     )
                 }
-                fun level(weight: Double): String = when {
-                    weight >= 0.85 -> "VERY_HIGH"
-                    weight >= 0.60 -> "HIGH"
-                    weight >= 0.30 -> "MODERATE"
-                    else -> "LOW"
-                }
-                val tokens = setOf(
-                    exercise.movementPattern,
-                    exercise.movementCategory,
-                    exercise.fatigueCategories,
-                    exercise.courtMovementTypes,
-                    exercise.badmintonSkillTargets,
-                    exercise.badmintonTransferRoles
-                ).flatMap { it.splitTokens() }.toSet()
                 return ResolvedFatigueMetadata(
-                    activityKind = exercise.activityKind,
-                    movementFamily = exercise.movementPattern,
-                    movementSubtype = "",
-                    programSlot = exercise.movementCategory,
-                    redundancyGroup = exercise.movementPattern,
-                    progressMetricType = exercise.progressMetricType,
-                    strengthProgressionGroup = exercise.strengthProgressionGroup,
-                    analysisEligibility = exercise.analysisEligibility.splitTokens(),
-                    cognitiveStressTags = emptySet(),
-                    highForceNeuralStressLevel = maxLevel(
-                        level(exercise.neuralHeavyWeight),
-                        highForceLevel(exercise.activityKind, exercise.progressMetricType, exercise.movementCategory, tokens)
-                    ),
-                    systemicMuscularStressLevel = level(exercise.systemicLoadWeight),
-                    localMuscularStressLevel = level(exercise.localLoadWeight),
-                    highSpeedStressLevel = maxLevel(
-                        level(exercise.neuralSpeedWeight),
-                        highSpeedLevel(exercise.activityKind, tokens)
-                    ),
-                    reactiveStressLevel = maxLevel(
-                        level(exercise.decelerationWeight),
-                        reactiveLevel(exercise.activityKind, emptySet(), tokens)
-                    ),
-                    recoveryDurationClass = exercise.recoveryDecayProfile.ifBlank { "MEDIUM" },
-                    tokens = tokens
+                    activityKind = "UNKNOWN",
+                    movementFamily = "NOT_APPLICABLE",
+                    movementSubtype = "NOT_APPLICABLE",
+                    programSlot = "NOT_APPLICABLE",
+                    redundancyGroup = "NOT_APPLICABLE",
+                    progressMetricType = "NOT_APPLICABLE",
+                    strengthProgressionGroup = "NOT_APPLICABLE",
+                    analysisEligibility = emptySet(),
+                    highForceNeuralStressLevel = "NONE",
+                    systemicMuscularStressLevel = "NONE",
+                    localMuscularStressLevel = "NONE",
+                    recoveryDurationClass = "NOT_APPLICABLE"
                 )
             }
-
-            private fun highForceLevel(
-                activityKind: String,
-                progressMetricType: String,
-                programSlot: String,
-                tokens: Set<String>
-            ): String = when {
-                activityKind == "SPORT_SESSION" -> "LOW"
-                progressMetricType == "ESTIMATED_1RM" || programSlot.has("MAIN", "HEAVY") -> "VERY_HIGH"
-                tokens.has("HEAVY_LOAD", "MAX_STRENGTH", "HEAVY_AXIAL") -> "HIGH"
-                programSlot.has("STRENGTH", "COMPOUND") -> "MODERATE"
-                else -> "LOW"
-            }
-
-            private fun highSpeedLevel(activityKind: String, tokens: Set<String>): String = when {
-                tokens.has("NEURAL_SPEED_LOAD") && tokens.has("SPRINT", "PLYOMETRIC", "ELASTIC_SSC") -> "VERY_HIGH"
-                tokens.has(
-                    "NEURAL_SPEED", "SPRINT", "MAX_VELOCITY", "PLYOMETRIC", "ELASTIC_SSC",
-                    "ACCELERATION", "FIRST_STEP", "COURT_MOVEMENT", "FOOTWORK", "REACTIVE_AGILITY"
-                ) -> "HIGH"
-                activityKind == "SPORT_SESSION" || tokens.has("BADMINTON", "RUNNING") -> "MODERATE"
-                else -> "LOW"
-            }
-
-            private fun reactiveLevel(
-                activityKind: String,
-                cognitiveStressTags: Set<String>,
-                tokens: Set<String>
-            ): String = when {
-                cognitiveStressTags.has("REACTION", "DECISION") &&
-                    tokens.has("CHANGE_OF_DIRECTION", "FOOTWORK", "REACTIVE_AGILITY") -> "VERY_HIGH"
-                cognitiveStressTags.has("REACTION", "DECISION", "VISUAL_TRACKING") ||
-                    tokens.has("CHANGE_OF_DIRECTION", "DIRECTION_CHANGE", "RANDOM", "BEEP", "REACTIVE_AGILITY") -> "HIGH"
-                activityKind == "SPORT_SESSION" || tokens.has("BADMINTON", "FOOTWORK", "AGILITY") -> "MODERATE"
-                else -> "LOW"
-            }
-
-            private fun maxLevel(first: String, second: String): String =
-                if (levelRank(first) >= levelRank(second)) first else second
-
-            private fun levelRank(level: String): Int = when (level) {
-                "VERY_HIGH" -> 3
-                "HIGH" -> 2
-                "MODERATE" -> 1
-                else -> 0
-            }
-
-            private fun String.has(vararg fragments: String): Boolean =
-                fragments.any { fragment -> contains(fragment, ignoreCase = true) }
-
-            private fun Set<String>.has(vararg fragments: String): Boolean =
-                any { token -> token.has(*fragments) }
-
-            private fun String.splitTokens(): Set<String> =
-                split('|', ',', ';').map(String::trim).filter(String::isNotBlank).toSet()
         }
+    }
+
+    private companion object {
+        const val CANONICAL_PROBE_RECORD_LOAD = 1.25
+        const val CANONICAL_PROBE_INTENSITY_MODIFIER = 1.10
+        const val CANONICAL_PROBE_DURATION_MODIFIER = 1.00
+        const val CANONICAL_PROBE_LOCAL_VOLUME_MODIFIER = 1.10
     }
 }

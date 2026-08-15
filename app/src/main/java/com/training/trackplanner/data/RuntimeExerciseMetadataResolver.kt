@@ -1,11 +1,15 @@
 package com.training.trackplanner.data
 
 import java.util.UUID
+import java.nio.charset.StandardCharsets
 
 object UserExerciseStableKeyGenerator {
     const val PREFIX = "user_ex_"
 
     fun generate(uuid: UUID = UUID.randomUUID()): String = PREFIX + uuid.toString()
+
+    fun generateDeterministic(sourceIdentity: String): String =
+        PREFIX + UUID.nameUUIDFromBytes(sourceIdentity.toByteArray(StandardCharsets.UTF_8)).toString()
 
     fun isUserExerciseKey(value: String): Boolean = value.startsWith(PREFIX)
 }
@@ -64,8 +68,6 @@ class RuntimeExerciseMetadataResolver(
     fun resolve(exercise: Exercise): RuntimeExerciseMetadata {
         val persisted = persistedByStableKey[exercise.stableKey]
         val canonical = canonicalCatalog.resolve(exercise)
-        val exerciseDerived = RuntimeExerciseMetadataDefaults.forExercise(exercise)
-        val repairSource = canonical ?: exerciseDerived
         return when {
             persisted != null && canonical != null -> persisted.copy(
                 stableKey = canonical.stableKey,
@@ -79,16 +81,13 @@ class RuntimeExerciseMetadataResolver(
                 safeForSeedMutation = false,
                 appCueProfile = canonical.appCueProfile
             )
-            persisted != null && !persisted.safeForSeedMutation -> persisted
             persisted != null -> persisted.copy(
-                progressMetricType = persisted.progressMetricType.ifSet() ?: repairSource.progressMetricType,
-                strengthProgressionGroup = persisted.strengthProgressionGroup.ifSet()
-                    ?: repairSource.strengthProgressionGroup,
-                analysisEligibility = persisted.analysisEligibility.takeIf { field -> field.values.isNotEmpty() }
-                    ?: repairSource.analysisEligibility
+                stableKey = exercise.stableKey,
+                exerciseName = exercise.name,
+                safeForSeedMutation = false
             )
             canonical != null -> canonical
-            else -> exerciseDerived
+            else -> RuntimeExerciseMetadataDefaults.forIdentity(exercise.stableKey, exercise.name)
         }
     }
 
@@ -111,72 +110,15 @@ private fun String.ifSet(): String? =
 private fun String.seedLookupKey(): String = trim().lowercase()
 
 object RuntimeExerciseMetadataDefaults {
-    fun forExercise(exercise: Exercise): RuntimeExerciseMetadata {
-        val progressMetricType = exercise.progressMetricType.ifSet()
-            ?: if (exercise.estimated1RmEligible) "ESTIMATED_1RM"
-            else if (exercise.volumeLoadEligible) "VOLUME_LOAD"
-            else "NOT_APPLICABLE"
-        val analysisTokens = exercise.analysisEligibility.splitRuntimeTokens().toMutableSet()
-        if (exercise.estimated1RmEligible) analysisTokens += "STRENGTH_PROGRESS"
-        if (exercise.volumeLoadEligible) analysisTokens += "HYPERTROPHY_VOLUME"
-        val analysisEligibility = MetadataTokenField.parse(
-            analysisTokens.takeIf { it.isNotEmpty() }?.joinToString("|") ?: "NONE"
-        )
-        val strengthProgressionGroup = exercise.strengthProgressionGroup.ifSet()
-            ?: exercise.mainLiftGroup.ifSet()
-            ?: exercise.familyId.ifSet()
-            ?: "NOT_APPLICABLE"
-
-        return RuntimeExerciseMetadata(
-            stableKey = exercise.stableKey,
-            exerciseName = exercise.name,
-            activityKind = exercise.activityKind.ifSet() ?: "EXERCISE",
-            planningEligibility = exercise.planningEligibility.ifSet() ?: "PROGRAM_SELECTABLE",
-            movementFamily = exercise.movementPattern.ifSet() ?: "NOT_APPLICABLE",
-            movementSubtype = exercise.movementCategory.ifSet() ?: "NOT_APPLICABLE",
-            programSlot = "NOT_APPLICABLE",
-            redundancyGroup = exercise.familyId.ifSet() ?: "NOT_APPLICABLE",
-            progressMetricType = progressMetricType,
-            strengthProgressionGroup = strengthProgressionGroup,
-            analysisEligibility = analysisEligibility,
-            primaryStressProfile = exercise.loadProfile.ifSet()
-                ?: exercise.fatigueCategories.splitRuntimeTokens().firstOrNull()
-                ?: "LOW_LOAD_PREHAB_CONTROL_STRESS",
-            secondaryStressTags = MetadataTokenField.parse(exercise.fatigueCategories),
-            tendonStressTags = MetadataTokenField.parse(exercise.jointStressTags),
-            ligamentJointStabilityStressTags = MetadataTokenField.parse(exercise.jointStressTags),
-            jointImpactStressTags = MetadataTokenField.parse(exercise.jointStressTags),
-            cognitiveStressTags = MetadataTokenField.parse("NONE"),
-            sportContextTags = MetadataTokenField.parse(exercise.courtMovementTypes),
-            recoveryDecayProfile = exercise.recoveryDecayProfile.ifSet() ?: "SHORT",
-            stressMagnitudeHint = exercise.loadProfile.ifSet() ?: "LOW",
-            badmintonTransferLevel = exercise.badmintonTransferStrength.ifSet() ?: "NONE",
-            badmintonTransferType = MetadataTokenField.parse(exercise.badmintonTransferRoles),
-            badmintonSkillTargets = MetadataTokenField.parse(exercise.badmintonSkillTargets),
-            badmintonPhysicalQualities = MetadataTokenField.parse(exercise.courtMovementTypes),
-            transferConfidence = "NONE",
-            sourceConfidenceLevel = exercise.metadataConfidence.ifSet() ?: "HEURISTIC_ACCEPTED",
-            finalSourceStatus = if (exercise.metadataConfidence.ifSet() != null) {
-                "SOURCE_ACCEPTED"
-            } else {
-                "SOURCE_ACCEPTED_WITH_LIMITATION"
-            },
-            neuromuscularStressLevel = levelFromWeight(exercise.neuralHeavyWeight + exercise.neuralSpeedWeight),
-            systemicMuscularStressLevel = levelFromWeight(exercise.systemicLoadWeight),
-            localMuscularStressLevel = levelFromWeight(exercise.localLoadWeight),
-            jointTendonImpactStressLevel = levelFromWeight(exercise.decelerationWeight + exercise.elasticSscWeight),
-            movementFocusDemandLevel = exercise.stabilityDemandLevel.ifSet() ?: "LOW",
-            recoveryDurationClass = exercise.recoveryDecayProfile.ifSet() ?: "SHORT",
-            safeForSeedMutation = false
-        )
-    }
+    fun forExercise(exercise: Exercise): RuntimeExerciseMetadata =
+        forIdentity(exercise.stableKey, exercise.name)
 
     fun forIdentity(stableKey: String, exerciseName: String): RuntimeExerciseMetadata =
         RuntimeExerciseMetadata(
             stableKey = stableKey,
             exerciseName = exerciseName,
-            activityKind = "EXERCISE",
-            planningEligibility = "PROGRAM_SELECTABLE",
+            activityKind = "UNKNOWN",
+            planningEligibility = "HIDDEN",
             movementFamily = "NOT_APPLICABLE",
             movementSubtype = "NOT_APPLICABLE",
             programSlot = "NOT_APPLICABLE",
@@ -184,44 +126,31 @@ object RuntimeExerciseMetadataDefaults {
             progressMetricType = "NOT_APPLICABLE",
             strengthProgressionGroup = "NOT_APPLICABLE",
             analysisEligibility = MetadataTokenField.parse("NONE"),
-            primaryStressProfile = "LOW_LOAD_PREHAB_CONTROL_STRESS",
+            primaryStressProfile = "NOT_APPLICABLE",
             secondaryStressTags = MetadataTokenField.parse("NONE"),
             tendonStressTags = MetadataTokenField.parse("NONE"),
             ligamentJointStabilityStressTags = MetadataTokenField.parse("NONE"),
             jointImpactStressTags = MetadataTokenField.parse("NONE"),
             cognitiveStressTags = MetadataTokenField.parse("NONE"),
             sportContextTags = MetadataTokenField.parse("NONE"),
-            recoveryDecayProfile = "SHORT",
-            stressMagnitudeHint = "LOW",
+            recoveryDecayProfile = "NOT_APPLICABLE",
+            stressMagnitudeHint = "NONE",
             badmintonTransferLevel = "NONE",
             badmintonTransferType = MetadataTokenField.parse("NONE"),
             badmintonSkillTargets = MetadataTokenField.parse("NONE"),
             badmintonPhysicalQualities = MetadataTokenField.parse("NONE"),
             transferConfidence = "NONE",
-            sourceConfidenceLevel = "HEURISTIC_ACCEPTED",
-            finalSourceStatus = "SOURCE_ACCEPTED_WITH_LIMITATION",
-            neuromuscularStressLevel = "LOW",
-            systemicMuscularStressLevel = "LOW",
-            localMuscularStressLevel = "LOW",
-            jointTendonImpactStressLevel = "LOW",
-            movementFocusDemandLevel = "LOW",
-            recoveryDurationClass = "SHORT",
+            sourceConfidenceLevel = "UNREVIEWED",
+            finalSourceStatus = "UNAVAILABLE",
+            neuromuscularStressLevel = "NONE",
+            systemicMuscularStressLevel = "NONE",
+            localMuscularStressLevel = "NONE",
+            jointTendonImpactStressLevel = "NONE",
+            movementFocusDemandLevel = "NONE",
+            recoveryDurationClass = "NOT_APPLICABLE",
             safeForSeedMutation = false
         )
 }
-
-private fun String.splitRuntimeTokens(): Set<String> =
-    split(',', '|', '/', ';')
-        .map { value -> value.trim() }
-        .filter { value -> value.isNotEmpty() && !value.equals("NONE", ignoreCase = true) }
-        .toSet()
-
-private fun levelFromWeight(weight: Double): String =
-    when {
-        weight >= 0.7 -> "HIGH"
-        weight >= 0.35 -> "MODERATE"
-        else -> "LOW"
-    }
 
 data class RuntimeMetadataEditorOptions(
     private val valuesByField: Map<String, List<String>>
@@ -285,7 +214,7 @@ data class RuntimeMetadataEditorOptions(
         private val levels = listOf("LOW", "MODERATE", "HIGH", "VERY_HIGH")
         private val durations = listOf("SHORT", "MEDIUM", "LONG", "VERY_LONG")
         private val defaultValuesByField = mapOf(
-            "activityKind" to listOf("EXERCISE", "SPORT_SESSION"),
+            "activityKind" to listOf("UNKNOWN", "EXERCISE", "SPORT_SESSION"),
             "planningEligibility" to listOf("PROGRAM_SELECTABLE", "FATIGUE_ONLY", "ANALYSIS_ONLY", "HIDDEN"),
             "movementFamily" to MovementPattern.entries.map { it.name } + ProgramSlotId.entries.map { it.name } + listOf("NOT_APPLICABLE"),
             "movementSubtype" to MovementPattern.entries.map { it.name } + listOf("NOT_APPLICABLE"),

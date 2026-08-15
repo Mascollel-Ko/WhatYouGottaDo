@@ -1,5 +1,6 @@
 package com.training.trackplanner.data
 
+import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
 import com.training.trackplanner.analysis.features.MetadataReadinessReporter
 import com.training.trackplanner.analysis.features.ReadinessStatus
@@ -9,12 +10,18 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class MetadataSanityCheckerTest {
+    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
     @Test
     fun seedExercisesHaveValidFatigueMetadata() {
-        val exercises = SeedData.exercisesFromParsedRows(seedRows())
+        val exercises = legacyAnalysisExercises()
         val report = MetadataSanityChecker.checkAll(exercises)
 
         assertTrue(exercises.size >= 200)
@@ -116,7 +123,7 @@ class MetadataSanityCheckerTest {
 
     @Test
     fun readinessReporterMarksSeedCatalogReady() {
-        val report = MetadataReadinessReporter.generate(SeedData.exercisesFromParsedRows(seedRows()))
+        val report = MetadataReadinessReporter.generate(legacyAnalysisExercises())
 
         assertEquals(224, report.summary.totalExerciseCount)
         assertEquals(224, report.summary.fatigueReadyCounts[ReadinessStatus.YES])
@@ -129,7 +136,7 @@ class MetadataSanityCheckerTest {
 
     @Test
     fun exerciseAnalysisMapperCreatesFeatureVectorWithoutNameParsing() {
-        val exercise = SeedData.exercisesFromParsedRows(seedRows())
+        val exercise = legacyAnalysisExercises()
             .first { candidate -> candidate.estimated1RmEligible }
         val renamedExercise = exercise.copy(name = "Renamed without classification words")
 
@@ -144,19 +151,18 @@ class MetadataSanityCheckerTest {
     }
 
     @Test
-    fun exerciseAnalysisMapperFallsBackFromRuntimeDefaultMetadataToExerciseRow() {
-        val exercise = SeedData.exercisesFromParsedRows(seedRows())
+    fun exerciseAnalysisMapperDoesNotReconstructSemanticsFromExerciseRow() {
+        val exercise = legacyAnalysisExercises()
             .first { candidate -> candidate.estimated1RmEligible }
         val runtimeDefault = RuntimeExerciseMetadataDefaults.forIdentity(exercise.stableKey, exercise.name)
 
         val features = ExerciseAnalysisMapper.fromExercise(exercise, runtimeDefault)
 
-        assertEquals("ESTIMATED_1RM", features.progressMetricType)
-        assertEquals(exercise.strengthProgressionGroup, features.strengthProgressionGroup)
-        assertTrue(features.estimated1RmEligible)
-        assertTrue(features.volumeLoadEligible)
-        assertTrue("STRENGTH_PROGRESS" in features.analysisEligibility)
-        assertTrue("HYPERTROPHY_VOLUME" in features.analysisEligibility)
+        assertEquals("NOT_APPLICABLE", features.progressMetricType)
+        assertEquals("NOT_APPLICABLE", features.strengthProgressionGroup)
+        assertFalse(features.estimated1RmEligible)
+        assertFalse(features.volumeLoadEligible)
+        assertTrue(features.analysisEligibility.isEmpty())
     }
 
     @Test
@@ -189,18 +195,18 @@ class MetadataSanityCheckerTest {
         assertEquals("FOOTWORK", features.movementPattern)
         assertEquals("SKILL_DRILL", features.movementCategory)
         assertEquals("SUPPORTIVE", features.badmintonTransferStrength)
-        assertTrue("FOOTWORK" in features.badmintonTransferRoles)
-        assertTrue("ACCELERATION" in features.badmintonTransferRoles)
-        assertTrue("FIRST_STEP" in features.courtMovementTypes)
-        assertTrue("DECELERATION" in features.fatigueCategories)
-        assertTrue("ELASTIC_SSC" in features.fatigueCategories)
-        assertTrue("REACTION_LOAD" in features.fatigueCategories)
-        assertTrue("ACHILLES_TENDON_STRESS" in features.jointStressTags)
+        assertTrue("FOOTWORK" in features.canonicalBadmintonTransferTypes)
+        assertTrue("ACCELERATION" in features.canonicalBadmintonTransferTypes)
+        assertTrue("FIRST_STEP" in features.badmintonPhysicalQualities)
+        assertTrue("DECELERATION" in features.secondaryStressTags)
+        assertTrue("ELASTIC_SSC" in features.secondaryStressTags)
+        assertTrue("REACTION_LOAD" in features.cognitiveStressTags)
+        assertTrue("ACHILLES_TENDON_STRESS" in features.tendonStressTags)
     }
 
     @Test
     fun exerciseAnalysisMapperDistinguishesPlannedAndCompletedSets() {
-        val exercise = SeedData.exercisesFromParsedRows(seedRows())
+        val exercise = legacyAnalysisExercises()
             .first { candidate -> candidate.estimated1RmEligible }
         val entry = WorkoutEntry(
             id = 10,
@@ -237,43 +243,14 @@ class MetadataSanityCheckerTest {
         assertNotNull(completedFeatures.estimated1Rm)
     }
 
-    private fun seedRows(): List<Map<String, String>> {
-        val file = listOf(
-            File("src/main/assets/training_settings_seed.csv"),
-            File("app/src/main/assets/training_settings_seed.csv")
-        ).first { candidate -> candidate.exists() }
-        val parsedRows = file.readLines(Charsets.UTF_8)
-            .filter { line -> line.isNotBlank() }
-            .map(::parseCsvLine)
-        val header = parsedRows.first()
-        return parsedRows.drop(1).map { values ->
-            header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
-        }
-    }
-
-    private fun parseCsvLine(line: String): List<String> {
-        val values = mutableListOf<String>()
-        val current = StringBuilder()
-        var inQuotes = false
-        var index = 0
-        while (index < line.length) {
-            val char = line[index]
-            when {
-                char == '"' && inQuotes && index + 1 < line.length && line[index + 1] == '"' -> {
-                    current.append('"')
-                    index += 1
-                }
-                char == '"' -> inQuotes = !inQuotes
-                char == ',' && !inQuotes -> {
-                    values += current.toString()
-                    current.clear()
-                }
-                else -> current.append(char)
-            }
-            index += 1
-        }
-        values += current.toString()
-        return values
+    private fun legacyAnalysisExercises(): List<Exercise> {
+        val legacyKeys = context.assets.open("metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
+            .bufferedReader(Charsets.UTF_8)
+            .use { reader -> RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(reader.readText()) }
+            .mapTo(mutableSetOf(), RuntimeExerciseMetadata::stableKey)
+        return CanonicalExerciseMetadataRepository(context)
+            .exercises(includeHistory = true)
+            .filter { exercise -> exercise.stableKey in legacyKeys }
     }
 
     private fun Exercise.weightValues(): List<Double> =

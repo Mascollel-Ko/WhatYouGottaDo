@@ -40,8 +40,9 @@ internal class ExerciseMetadataEffectiveStateResolver(
             isCustom = false,
             needsReview = materializedExercise.needsReview || canonicalExercise.needsReview
         )
-        val canonicalRuntime = canonicalRuntimeMetadataCatalog.resolve(canonicalExercise)
-            ?: RuntimeExerciseMetadataDefaults.forExercise(canonicalExercise)
+        val canonicalRuntime = requireNotNull(canonicalRuntimeMetadataCatalog.resolve(canonicalExercise)) {
+            "Canonical runtime metadata is missing for ${canonicalExercise.stableKey}."
+        }
         val restored = ExerciseMetadataFieldPolicyRegistry.restore(
             exercise = baseExercise,
             runtimeMetadata = canonicalRuntime,

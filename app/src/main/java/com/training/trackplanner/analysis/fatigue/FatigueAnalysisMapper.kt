@@ -117,6 +117,12 @@ object FatigueAnalysisMapper {
         grouping: ContributionGrouping,
         period: FatigueAnalysisPeriod
     ): List<FatigueContributionSeries> {
+        val exerciseLabels = if (grouping == ContributionGrouping.EXERCISE) {
+            window.flatMap(DailyFatigueResult::recordContributions)
+                .associate { contribution -> contribution.stableKey to contribution.exerciseName }
+        } else {
+            emptyMap()
+        }
         val sourceKeys = window.flatMap { result ->
             result.groupStates.filter { it.groupType == grouping.groupType }.map { it.groupKey }
         }.distinct()
@@ -129,7 +135,7 @@ object FatigueAnalysisMapper {
             }
             FatigueContributionSeries(
                 sourceKey = sourceKey,
-                sourceLabel = sourceKey.toDisplayLabel(),
+                sourceLabel = exerciseLabels[sourceKey] ?: sourceKey.toDisplayLabel(),
                 target = target,
                 points = aggregate(daily, period.usesWeeklyAggregation),
                 periodContributionPercent = 0

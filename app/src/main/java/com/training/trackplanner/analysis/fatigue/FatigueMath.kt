@@ -17,6 +17,7 @@ object FatigueRecordFactors {
 
     fun axisLevelMultiplier(level: String): Double =
         when (level.uppercase()) {
+            "", "NONE", "UNKNOWN", "NOT_APPLICABLE" -> 0.0
             "LOW" -> 0.25
             "HIGH" -> 0.85
             "VERY_HIGH" -> 1.00

@@ -143,7 +143,8 @@ class AnalysisSummaryServiceTest {
             dailyMetricDao = db.dailyMetricDao(),
             initialUserProfileDao = db.initialUserProfileDao(),
             runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao(),
-            canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
+            canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
+            canonicalOfiAxisProfiles = emptyMap()
         )
 
     private suspend fun insertFatigueExercise(

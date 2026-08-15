@@ -13,13 +13,17 @@ internal class AnalysisSummaryService(
     private val dailyMetricDao: DailyMetricDao,
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
-    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog
+    private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
+    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>
 ) {
     suspend fun fatigueAnalysisHistory(days: Int = 28 * 7): List<DailyFatigueResult> {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
-        return DailyFatigueCalculator(resolvedRuntimeMetadataCatalog(exercises)).calculateSeries(
+        return DailyFatigueCalculator(
+            resolvedRuntimeMetadataCatalog(exercises),
+            canonicalOfiAxisProfiles
+        ).calculateSeries(
             endDate = today,
             days = days.coerceIn(1, 28 * 7),
             exercises = exercises,
@@ -44,7 +48,10 @@ internal class AnalysisSummaryService(
         val effectiveEndString = effectiveEnd.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
         val days = ChronoUnit.DAYS.between(start, effectiveEnd).toInt() + 1
-        return DailyFatigueCalculator(resolvedRuntimeMetadataCatalog(exercises)).calculateSeries(
+        return DailyFatigueCalculator(
+            resolvedRuntimeMetadataCatalog(exercises),
+            canonicalOfiAxisProfiles
+        ).calculateSeries(
             endDate = effectiveEnd,
             days = days,
             exercises = exercises,

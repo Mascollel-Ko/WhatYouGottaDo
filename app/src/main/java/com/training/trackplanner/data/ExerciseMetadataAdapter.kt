@@ -98,8 +98,6 @@ data class RuntimeExerciseMetadata(
     val transferLevel: RuntimeBadmintonTransferLevel
         get() = ExerciseMetadataAdapter.badmintonTransferLevel(badmintonTransferLevel)
 
-    fun broadLegacyFatigueCategories(): Set<String> =
-        ExerciseMetadataAdapter.broadLegacyFatigueCategories(this)
 }
 
 class RuntimeExerciseMetadataCatalog private constructor(
@@ -239,25 +237,6 @@ object ExerciseMetadataAdapter {
             "GENERAL" -> RuntimeBadmintonTransferLevel.GENERAL
             "NONE", "" -> RuntimeBadmintonTransferLevel.NONE
             else -> RuntimeBadmintonTransferLevel.UNKNOWN
-        }
-
-    fun broadLegacyFatigueCategories(metadata: RuntimeExerciseMetadata): Set<String> =
-        buildSet {
-            val tokens = buildList {
-                add(metadata.primaryStressProfile)
-                addAll(metadata.secondaryStressTags.values)
-                addAll(metadata.tendonStressTags.values)
-                addAll(metadata.ligamentJointStabilityStressTags.values)
-                addAll(metadata.jointImpactStressTags.values)
-            }.map { it.uppercase(Locale.ROOT) }
-            if (tokens.any { it.contains("AXIAL") || it.contains("SYSTEMIC") }) add("SYSTEMIC")
-            if (tokens.any { it.contains("BALLISTIC") || it.contains("PLYOMETRIC") }) add("NEURAL_SPEED")
-            if (tokens.any { it.contains("DECELERATION") || it.contains("LANDING") }) add("DECELERATION")
-            if (tokens.any { it.contains("SSC") || it.contains("ELASTIC") }) add("ELASTIC_SSC")
-            if (tokens.any { it.contains("OVERHEAD") || it.contains("RACKET") }) add("OVERHEAD_REPETITION")
-            if (tokens.any { it.contains("GRIP") || it.contains("FOREARM") }) add("GRIP_FOREARM")
-            if (tokens.any { it.contains("ISOLATION") || it.contains("LOCAL") }) add("LOCAL_MUSCLE")
-            if (tokens.any { it.contains("PREHAB") || it.contains("RECOVERY") }) add("LOW_FATIGUE_REHAB")
         }
 
     private fun Map<String, String>.value(vararg keys: String): String =

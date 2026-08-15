@@ -1,13 +1,21 @@
 package com.training.trackplanner.data
 
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 import java.util.Locale
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class ExerciseSeedMetadataPolicyTest {
+    private val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+
     @Test
     fun programSlotCapabilitiesUseOnlyTheApprovedStableKeyWhitelist() {
         val actual = relationRows("exercise_program_slot_capability_relations_v1.csv")
@@ -22,7 +30,7 @@ class ExerciseSeedMetadataPolicyTest {
     }
 
     @Test
-    fun directSportTransferPreservesLegacyFallbackUntilCutover() {
+    fun canonicalSportTransferProjectionRemainsExplicit() {
         val seeds = exactSeedMap()
 
         assertEquals(
@@ -101,32 +109,6 @@ class ExerciseSeedMetadataPolicyTest {
     }
 
     @Test
-    fun allSeedExercisesExportWithExactSeedCsvMetadataFields() {
-        val rawRows = seedRowsByStableKey()
-        val seeds = exactSeedMap()
-
-        assertEquals(224, rawRows.size)
-        assertEquals(rawRows.size, seeds.size)
-
-        val parsed = RecordCsvBackupRestore.parse(
-            RecordCsvBackupRestore.buildRestoreCsv(
-                entriesWithSets = emptyList(),
-                metrics = emptyList(),
-                exercises = seeds.values.toList()
-            )
-        ) as RecordCsvImportData.Restore
-        val rawPipeCount = rawRows.values.count { row -> row.value("movement_pattern").contains("|") }
-        val exportPipeCount = parsed.exerciseRows.count { row -> row.movementPattern.contains("|") }
-
-        assertEquals(rawRows.size, parsed.exerciseRows.size)
-        assertEquals(rawPipeCount, exportPipeCount)
-        assertTrue(exportPipeCount > 0)
-        parsed.exerciseRows.forEach { row ->
-            assertRawSeedMetadata(rawRows.getValue(row.stableKey.seedLookupKey()), row)
-        }
-    }
-
-    @Test
     fun customExerciseMetadataIsNotForcedToSeedMetadata() {
         val custom = Exercise(
             name = "Custom cable thing",
@@ -154,13 +136,14 @@ class ExerciseSeedMetadataPolicyTest {
     }
 
     @Test
-    fun unknownExerciseFallbackDoesNotBecomeSquat() {
-        val mapped = ExerciseMetadataMapper.applyLegacyMetadata(
+    fun unknownExerciseDefaultsStayNeutral() {
+        val mapped = RuntimeExerciseMetadataDefaults.forExercise(
             Exercise(name = "Unknown upper accessory", category = "Custom", stableKey = "custom_unknown")
         )
 
-        assertEquals(MovementPattern.ISOLATION.name, mapped.movementPattern)
-        assertEquals(FatigueForceType.BRACE.name, mapped.forceType)
+        assertEquals("NOT_APPLICABLE", mapped.movementFamily)
+        assertEquals("HIDDEN", mapped.planningEligibility)
+        assertTrue(mapped.analysisEligibility.values.isEmpty())
     }
 
     private fun riskyBuiltIns(seeds: List<Exercise>): List<Exercise> =
@@ -182,39 +165,8 @@ class ExerciseSeedMetadataPolicyTest {
         assertEquals(seed.metadataConfidence, actual.metadataConfidence)
     }
 
-    private fun assertRawSeedMetadata(seedRow: Map<String, String>, actual: RestoreExerciseRow) {
-        assertEquals(seedRow.value("primary_muscles"), actual.primaryMuscles)
-        assertEquals(seedRow.value("secondary_muscles"), actual.secondaryMuscles)
-        assertEquals(seedRow.value("equipment_tags"), actual.equipment)
-        assertEquals(seedRow.value("movement_pattern"), actual.movementPattern)
-        assertEquals(seedRow.value("movement_category"), actual.movementCategory)
-        assertEquals(seedRow.value("force_type"), actual.forceType)
-        assertEquals(seedRow.value("body_region"), actual.bodyRegion)
-        assertEquals(seedRow.value("laterality"), actual.laterality)
-        assertEquals(seedRow.value("plane"), actual.plane)
-    }
-
     private fun exactSeedMap(): Map<String, Exercise> =
-        SeedData.exactExerciseMetadataFromParsedRows(seedRows())
-
-    private fun seedRowsByStableKey(): Map<String, Map<String, String>> =
-        seedRows()
-            .filter { row -> row["row_type"] == "exercise" }
-            .associateBy { row -> row.value("stable_key").seedLookupKey() }
-
-    private fun seedRows(): List<Map<String, String>> {
-        val file = listOf(
-            File("src/main/assets/training_settings_seed.csv"),
-            File("app/src/main/assets/training_settings_seed.csv")
-        ).first { candidate -> candidate.exists() }
-        val parsedRows = file.readLines(Charsets.UTF_8)
-            .filter { line -> line.isNotBlank() }
-            .map(::parseCsvLine)
-        val header = parsedRows.first()
-        return parsedRows.drop(1).map { values ->
-            header.mapIndexed { index, key -> key to values.getOrElse(index) { "" } }.toMap()
-        }
-    }
+        SeedData.exactExerciseMetadataByStableKey(context)
 
     private fun relationRows(fileName: String): List<Map<String, String>> {
         val file = listOf(

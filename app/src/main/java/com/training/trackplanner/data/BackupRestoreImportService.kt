@@ -449,8 +449,9 @@ internal class BackupRestoreImportService(
             needsReview = needsReview,
             planningEligibility = if (currentHistoryOnly) "HISTORY_ONLY" else canonical.planningEligibility
         )
-        val runtime = (canonicalRuntimeMetadataCatalog.resolve(canonical)
-            ?: RuntimeExerciseMetadataDefaults.forExercise(canonical)).copy(
+        val runtime = requireNotNull(canonicalRuntimeMetadataCatalog.resolve(canonical)) {
+            "Canonical runtime metadata is missing for ${canonical.stableKey}."
+        }.copy(
             stableKey = canonical.stableKey,
             exerciseName = canonical.name,
             planningEligibility = if (currentHistoryOnly) "HISTORY_ONLY" else canonical.planningEligibility,
@@ -490,7 +491,11 @@ internal class BackupRestoreImportService(
         val existing = exerciseDao.findByStableKey(stableKey)
         val fallback = row.toFallbackExercise()
         val baseExercise = current ?: existing ?: fallback
-        val canonicalRuntime = canonicalRuntimeMetadataCatalog.resolve(baseExercise)
+        val canonicalRuntime = current?.let { canonical ->
+            requireNotNull(canonicalRuntimeMetadataCatalog.resolve(canonical)) {
+                "Canonical runtime metadata is missing for ${canonical.stableKey}."
+            }
+        } ?: canonicalRuntimeMetadataCatalog.resolve(baseExercise)
         val hasRuntimeSnapshot = snapshots.any {
             it.fieldScope == ExerciseMetadataFieldScope.RUNTIME_METADATA
         }
