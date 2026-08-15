@@ -13,27 +13,13 @@ data class DailyCoreStimulus(
     val total: Double get() = direct + indirect
 }
 
-data class CumulativeCoreStimulusPoint(
-    val date: LocalDate,
-    val cumulativeDirect: Double,
-    val cumulativeIndirect: Double
-) {
-    val cumulativeTotal: Double get() = cumulativeDirect + cumulativeIndirect
-}
-
 data class CoreStimulusSummary(
     val calculationVersion: String,
-    val daily: List<DailyCoreStimulus>,
-    val cumulative: List<CumulativeCoreStimulusPoint>
+    val daily: List<DailyCoreStimulus>
 ) {
-    val cumulativeDirect: Double get() = cumulative.lastOrNull()?.cumulativeDirect ?: 0.0
-    val cumulativeIndirect: Double get() = cumulative.lastOrNull()?.cumulativeIndirect ?: 0.0
-    val cumulativeTotal: Double get() = cumulativeDirect + cumulativeIndirect
-    val indirectShare: Double? get() = cumulativeTotal.takeIf { it > 0.0 }?.let { cumulativeIndirect / it }
-
     companion object {
         const val VERSION = "CORE_STIMULUS_V1"
-        val EMPTY = CoreStimulusSummary(VERSION, emptyList(), emptyList())
+        val EMPTY = CoreStimulusSummary(VERSION, emptyList())
     }
 }
 
@@ -76,25 +62,7 @@ class CoreStimulusCalculator(
             .sortedBy(DailyCoreStimulus::date)
         return CoreStimulusSummary(
             calculationVersion = CoreStimulusSummary.VERSION,
-            daily = daily,
-            cumulative = cumulativeSeries(daily)
+            daily = daily
         )
-    }
-
-    internal fun cumulativeSeries(daily: List<DailyCoreStimulus>): List<CumulativeCoreStimulusPoint> {
-        val byDate = daily.associateBy(DailyCoreStimulus::date)
-        val start = daily.minOfOrNull(DailyCoreStimulus::date) ?: return emptyList()
-        val end = daily.maxOf(DailyCoreStimulus::date)
-        var direct = 0.0
-        var indirect = 0.0
-        return generateSequence(start) { date -> date.plusDays(1).takeIf { it <= end } }
-            .map { date ->
-                byDate[date]?.let { point ->
-                    direct += point.direct
-                    indirect += point.indirect
-                }
-                CumulativeCoreStimulusPoint(date, direct, indirect)
-            }
-            .toList()
     }
 }

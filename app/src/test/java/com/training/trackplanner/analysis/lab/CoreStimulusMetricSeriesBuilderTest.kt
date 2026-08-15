@@ -17,8 +17,7 @@ class CoreStimulusMetricSeriesBuilderTest {
                 DailyCoreStimulus(LocalDate.parse("2026-08-04"), 1.0, 2.0, emptyMap()),
                 DailyCoreStimulus(LocalDate.parse("2026-08-06"), 2.0, 3.0, emptyMap()),
                 DailyCoreStimulus(LocalDate.parse("2026-08-18"), 4.0, 1.0, emptyMap())
-            ),
-            cumulative = emptyList()
+            )
         )
         val uiWeeks = CoreStimulusWeeklySeries.aggregate(summary.daily)
         val lab = CoreStimulusMetricSeriesBuilder.build(summary)

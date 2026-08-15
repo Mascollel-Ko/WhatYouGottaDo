@@ -1,7 +1,6 @@
 package com.training.trackplanner
 
 import com.training.trackplanner.analysis.core.CoreStimulusSummary
-import com.training.trackplanner.analysis.core.CumulativeCoreStimulusPoint
 import com.training.trackplanner.analysis.core.DailyCoreStimulus
 import com.training.trackplanner.analysis.trends.ChartTimeGranularity
 import com.training.trackplanner.analysis.trends.ChartType
@@ -19,9 +18,6 @@ class CoreStimulusChartSpecTest {
                 DailyCoreStimulus(LocalDate.parse("2026-08-03"), 2.0, 5.0, emptyMap()),
                 DailyCoreStimulus(LocalDate.parse("2026-08-10"), 0.0, 3.0, emptyMap()),
                 DailyCoreStimulus(LocalDate.parse("2026-08-17"), 4.0, 1.0, emptyMap())
-            ),
-            cumulative = listOf(
-                CumulativeCoreStimulusPoint(LocalDate.parse("2026-08-03"), 100.0, 200.0)
             )
         )
         val spec = coreStimulusChartSpec(summary)

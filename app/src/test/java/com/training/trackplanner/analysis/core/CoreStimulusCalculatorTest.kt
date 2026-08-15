@@ -34,9 +34,13 @@ class CoreStimulusCalculatorTest {
             mapOf(hidden.stableKey to hidden)
         )
 
-        assertEquals(3.36, base.cumulativeTotal, 0.0001)
-        assertEquals(base.cumulativeTotal, changedDose.cumulativeTotal, 0.0001)
-        assertEquals(0.0, base.cumulativeDirect, 0.0001)
+        assertEquals(3.36, base.daily.sumOf(DailyCoreStimulus::total), 0.0001)
+        assertEquals(
+            base.daily.sumOf(DailyCoreStimulus::total),
+            changedDose.daily.sumOf(DailyCoreStimulus::total),
+            0.0001
+        )
+        assertEquals(0.0, base.daily.sumOf(DailyCoreStimulus::direct), 0.0001)
         assertTrue(base.daily.single().directTargets.isEmpty())
     }
 
@@ -47,14 +51,13 @@ class CoreStimulusCalculatorTest {
             mapOf(direct.stableKey to direct)
         )
 
-        assertEquals(3.0, result.cumulativeDirect, 0.0001)
-        assertEquals(0.0, result.cumulativeIndirect, 0.0001)
+        assertEquals(3.0, result.daily.single().direct, 0.0001)
+        assertEquals(0.0, result.daily.single().indirect, 0.0001)
         assertEquals(3.0, result.daily.single().directTargets.getValue(CoreDirectTarget.ANTI_ROTATION), 0.0001)
-        assertEquals(result.cumulativeTotal, result.cumulativeDirect + result.cumulativeIndirect, 0.0)
     }
 
     @Test
-    fun cumulativeSeriesCarriesNoTrainingDateAndNeverDecreases() {
+    fun dailySeriesContainsRecordedDatesAndPreservesDirectIndirectTotals() {
         val result = calculator.calculate(
             listOf(
                 record(hidden, "2026-08-01", listOf(set(rpe = 8.0))),
@@ -63,10 +66,9 @@ class CoreStimulusCalculatorTest {
             mapOf(hidden.stableKey to hidden, direct.stableKey to direct)
         )
 
-        assertEquals(listOf("2026-08-01", "2026-08-02", "2026-08-03"), result.cumulative.map { it.date.toString() })
-        assertEquals(result.cumulative[0].cumulativeIndirect, result.cumulative[1].cumulativeIndirect, 0.0)
-        assertEquals(result.cumulative[0].cumulativeDirect, result.cumulative[1].cumulativeDirect, 0.0)
-        assertTrue(result.cumulative.zipWithNext().all { (a, b) -> b.cumulativeTotal >= a.cumulativeTotal })
+        assertEquals(listOf("2026-08-01", "2026-08-03"), result.daily.map { it.date.toString() })
+        assertEquals(0.84, result.daily.sumOf(DailyCoreStimulus::indirect), 0.0001)
+        assertEquals(1.05, result.daily.sumOf(DailyCoreStimulus::direct), 0.0001)
     }
 
     @Test
@@ -80,7 +82,7 @@ class CoreStimulusCalculatorTest {
             mapOf(sport.stableKey to sport, historicalExercise.stableKey to historicalExercise)
         )
 
-        assertEquals(0.84, result.cumulativeIndirect, 0.0001)
+        assertEquals(0.84, result.daily.sumOf(DailyCoreStimulus::indirect), 0.0001)
         assertEquals("history_hidden", historicalExercise.stableKey)
     }
 
