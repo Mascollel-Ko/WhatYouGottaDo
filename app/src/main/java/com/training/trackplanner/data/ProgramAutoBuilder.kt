@@ -66,7 +66,6 @@ internal class ProgramAutoBuilder(
             items = items,
             weekDaySchedule = schedule,
             warnings = missing.map { "RULE_TABLE_EXERCISE_FALLBACK: $it" },
-            evaluation = null,
             optimizationSummary = ProgramOptimizationSummary(
                 notices = listOf(
                     ProgramUserNotice(

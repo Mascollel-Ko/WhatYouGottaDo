@@ -28,18 +28,3 @@ data class ProgramUserNotice(
     val totalCount: Int = 0,
     val level: ProgramUserNoticeLevel = ProgramUserNoticeLevel.INFO
 )
-
-data class ProgramOptimizationTrace(
-    val iteration: Int,
-    val beforeScore: Int,
-    val afterScore: Int,
-    val accepted: Boolean,
-    val actions: List<String>,
-    val details: List<String> = emptyList()
-)
-
-internal data class ProgramRepairResult(
-    val skeleton: GeneratedProgramSkeleton,
-    val actions: List<String>,
-    val details: List<String> = emptyList()
-)

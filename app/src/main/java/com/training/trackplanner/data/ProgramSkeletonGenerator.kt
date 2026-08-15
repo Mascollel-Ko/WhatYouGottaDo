@@ -55,16 +55,6 @@ enum class ProgramFatigueBand { GREEN, YELLOW, ORANGE, RED }
 
 enum class ProgramVarietyPreference { LOW, NORMAL, HIGH }
 
-enum class ProgramValidationSeverity { HARD, WARNING, SOFT_PENALTY }
-
-data class ProgramValidationIssue(
-    val code: String,
-    val severity: ProgramValidationSeverity,
-    val message: String
-) {
-    fun render(): String = "[${severity.name}] $code: $message"
-}
-
 enum class BadmintonEventProfile {
     SINGLES,
     DOUBLES,
@@ -149,8 +139,8 @@ data class ProgramSkeletonItem(
     val primarySlotCapabilities: List<String> = emptyList(),
     val secondarySlotCapabilities: List<String> = emptyList(),
     val weakSlotCapabilities: List<String> = emptyList(),
-    val slotCapabilitySource: String = SlotCapabilitySource.NONE.name,
-    val slotCapabilityConfidence: String = SlotCapabilityConfidence.NONE.name,
+    val slotCapabilitySource: String = "NONE",
+    val slotCapabilityConfidence: String = "NONE",
     val slotCapabilityWarnings: List<String> = emptyList(),
     val requestedTemplateSlot: String = "",
     val requiredTemplateAnchor: Boolean = false,
@@ -165,54 +155,10 @@ data class GeneratedProgramSkeleton(
     val weekPlans: List<ProgramWeekPlan>,
     val items: List<ProgramSkeletonItem>,
     val weekDaySchedule: Map<Int, Set<Int>> = emptyMap(),
-    val candidateTraces: List<ProgramCandidateTrace> = emptyList(),
     val warnings: List<String> = emptyList(),
-    val validationIssues: List<String> = emptyList(),
-    val validationDetails: List<ProgramValidationIssue> = emptyList(),
-    val evaluation: ProgramEvaluation? = null,
     val optimizationSummary: ProgramOptimizationSummary = ProgramOptimizationSummary(),
-    val optimizationTrace: List<ProgramOptimizationTrace> = emptyList(),
     val templateId: String = "POLICY_FALLBACK",
     val representativeTemplate: Boolean = false
-)
-
-data class ProgramCandidateTrace(
-    val weekNumber: Int,
-    val dayOfWeek: Int,
-    val requestedTemplateSlot: String,
-    val selectedMainReservationStableKey: String = "",
-    val captainChairBlockedCount: Int = 0,
-    val captainChairBlockReason: String = "",
-    val role: String,
-    val allActive: Int,
-    val programSelectable: Int,
-    val equipmentMatched: Int,
-    val notExcludedByUser: Int,
-    val capabilityMatched: Int,
-    val repeatAllowed: Int,
-    val fatigueAllowed: Int,
-    val templateAllowed: Int,
-    val sessionAllowed: Int,
-    val scored: Int,
-    val selectionPool: Int,
-    val selected: Int,
-    val warnings: List<String> = emptyList(),
-    val scoreAdjustments: List<ProgramCandidateScoreTrace> = emptyList()
-)
-
-data class ProgramCandidateScoreTrace(
-    val exerciseName: String,
-    val stableKey: String,
-    val baseScore: Double,
-    val contextRerankScore: Double,
-    val selectedMainBoostApplied: Boolean,
-    val captainChairPenaltyApplied: Boolean,
-    val finalScore: Double,
-    val hardGatePassed: Boolean = true,
-    val exclusionStage: String = "",
-    val exclusionReason: String = "",
-    val selectionWindowIncluded: Boolean = false,
-    val selected: Boolean = false
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

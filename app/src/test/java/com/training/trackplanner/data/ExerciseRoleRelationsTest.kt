@@ -52,57 +52,27 @@ class ExerciseRoleRelationsTest {
 
     @Test
     fun trainingMeaningDoesNotGrantProgramPlacement() {
-        val exercise = Exercise(
-            name = "Isolation fixture",
-            category = "strength",
-            stableKey = "barbell_back_squat",
-            movementPattern = "ISOLATION",
-            movementCategory = "HYPERTROPHY",
-            compoundType = "ISOLATION"
-        )
-        val emptyProfile = SlotCapabilityProfile(
-            primary = emptySet(),
-            secondary = emptySet(),
-            weakMatches = emptySet(),
-            source = SlotCapabilitySource.NONE
-        )
-        val meaningOnly = ProgramCandidate(
-            exercise = exercise,
-            metadata = null,
-            canonical = false,
-            slotCapabilities = emptyProfile,
-            trainingRoles = setOf(TrainingRole.STRENGTH)
-        )
-        val placement = meaningOnly.copy(
-            programSlotCapabilities = setOf(ProgramSlotCapability.MAIN_STRENGTH_SLOT)
-        )
-
-        assertFalse(meaningOnly.allowedForRole(ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT, ProgramExerciseRole.ANCHOR))
-        assertTrue(placement.allowedForRole(ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT, ProgramExerciseRole.ANCHOR))
-
         val catalog = ExerciseRoleRelationCatalog.of(
             trainingRelations = listOf(
-                ExerciseTrainingRoleRelation(exercise.stableKey, TrainingRole.STRENGTH.name, "test", "APPROVED")
+                ExerciseTrainingRoleRelation("meaning-only", TrainingRole.STRENGTH.name, "test", "APPROVED")
             ),
             capabilityRelations = listOf(
                 ExerciseProgramSlotCapabilityRelation(
-                    exercise.stableKey,
+                    "placement-only",
                     ProgramSlotCapability.MAIN_STRENGTH_SLOT.name,
                     "test",
                     "APPROVED"
                 )
             )
         )
-        val collected = ProgramCandidateInventory().collect(
-            exercises = listOf(exercise),
-            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
-            availableEquipment = emptySet(),
-            roleRelationCatalog = catalog
-        ).candidates.single()
 
-        assertEquals(setOf(TrainingRole.STRENGTH), collected.trainingRoles)
-        assertEquals(setOf(ProgramSlotCapability.MAIN_STRENGTH_SLOT), collected.programSlotCapabilities)
-        assertTrue(collected.allowedForRole(ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT, ProgramExerciseRole.ANCHOR))
+        assertEquals(setOf(TrainingRole.STRENGTH), catalog.trainingRoles("meaning-only"))
+        assertTrue(catalog.programSlotCapabilities("meaning-only").isEmpty())
+        assertTrue(catalog.trainingRoles("placement-only").isEmpty())
+        assertEquals(
+            setOf(ProgramSlotCapability.MAIN_STRENGTH_SLOT),
+            catalog.programSlotCapabilities("placement-only")
+        )
     }
 
     @Test

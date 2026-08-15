@@ -178,7 +178,7 @@ internal class ProgramSlotAllocator {
         pool: List<ProgramExerciseSpec>,
         usage: ProgramAutoUsage
     ): Comparator<ProgramExerciseSpec> =
-        compareBy<ProgramExerciseSpec> { usage.exerciseCount(it.displayName) }
+        compareBy<ProgramExerciseSpec> { usage.exerciseCount(it.stableKey) }
             .thenBy { usage.groupCount(it.substitutionGroup.orEmpty()) }
             .thenBy { pool.indexOf(it) }
 
@@ -209,7 +209,7 @@ internal class ProgramAutoUsage {
     private val smallPartCounts = mutableMapOf<ProgramSmallPart, Int>()
 
     fun record(spec: ProgramExerciseSpec) {
-        exerciseCounts[spec.displayName] = exerciseCount(spec.displayName) + 1
+        exerciseCounts[spec.stableKey] = exerciseCount(spec.stableKey) + 1
         spec.substitutionGroup?.let { groupCounts[it] = groupCount(it) + 1 }
         spec.badmintonCategory?.let {
             badmintonCounts[it] = badmintonCount(it) + 1

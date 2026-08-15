@@ -3,10 +3,8 @@ package com.training.trackplanner
 import android.content.Context
 import android.content.res.Configuration
 import androidx.test.core.app.ApplicationProvider
-import com.training.trackplanner.data.ProgramOptimizationTrace
 import com.training.trackplanner.data.ProgramUserNotice
 import com.training.trackplanner.data.ProgramUserNoticeCode
-import com.training.trackplanner.data.programNoticeForOptimizationAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -19,22 +17,6 @@ import java.util.Locale
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ProgramUserNoticePresentationTest {
-    @Test
-    fun selectedMainRepairUsesCleanLocalizedTextAndKeepsDiagnosticCodeInternal() {
-        val action = "REOPEN_FILLER_SLOT_FOR_SELECTED_MAIN"
-        val notice = programNoticeForOptimizationAction(action)
-        val text = context(Locale.KOREAN).programUserNoticeText(notice)
-        val trace = ProgramOptimizationTrace(1, 70, 78, true, listOf(action))
-
-        assertEquals(
-            "근력 메인 운동이 보조 운동에 밀리지 않도록 구성을 보정했습니다.",
-            text
-        )
-        assertFalse(MOJIBAKE.containsMatchIn(text))
-        assertFalse(text.contains(action))
-        assertEquals(action, trace.actions.single())
-    }
-
     @Test
     fun constraintNoticesPreserveCountsInKoreanAndEnglish() {
         val excluded = ProgramUserNotice(

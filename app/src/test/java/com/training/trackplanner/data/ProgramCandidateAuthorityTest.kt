@@ -34,46 +34,7 @@ class ProgramCandidateAuthorityTest {
             exercise("unknown_badminton", "Badminton supportive exercise", badmintonTransferStrength = "DIRECT"),
             exercise("barbell_back_squat_copy", "스쿼트")
         )
-        val metadata = unknown.map { exercise ->
-            ExerciseMetadataAdapter.fromFields(
-                mapOf(
-                    "stableKey" to exercise.stableKey,
-                    "exerciseName" to exercise.name,
-                    "currentActivityKind" to "TRAINING_EXERCISE",
-                    "planningEligibility" to "PROGRAM_SELECTABLE",
-                    "movementFamily" to "CORE",
-                    "movementSubtype" to "ANTI_ROTATION",
-                    "programSlot" to "STABILITY_SLOT",
-                    "badmintonTransferLevel" to "DIRECT",
-                    "badmintonTransferType" to "ANTI_ROTATION"
-                )
-            )
-        }
-        val roles = ExerciseRoleRelationCatalog.of(
-            trainingRelations = unknown.map { exercise ->
-                ExerciseTrainingRoleRelation(exercise.stableKey, TrainingRole.STABILITY.name, "TEST", "APPROVED")
-            },
-            capabilityRelations = unknown.map { exercise ->
-                ExerciseProgramSlotCapabilityRelation(
-                    exercise.stableKey,
-                    ProgramSlotCapability.STABILITY_SLOT.name,
-                    "TEST",
-                    "APPROVED"
-                )
-            }
-        )
-
-        val inventory = ProgramCandidateInventory().collect(
-            exercises = unknown,
-            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.of(metadata),
-            availableEquipment = emptySet(),
-            roleRelationCatalog = roles
-        )
-
-        assertEquals(unknown.size, inventory.allActive)
-        assertEquals(0, inventory.programSelectable)
-        assertTrue(inventory.candidates.isEmpty())
-        assertTrue(inventory.reservoir.candidates.isEmpty())
+        assertTrue(unknown.none { exercise -> ProgramCandidateAuthority.allows(exercise.stableKey) })
     }
 
     @Test
@@ -83,23 +44,7 @@ class ProgramCandidateAuthorityTest {
             name = "Localized renamed exercise",
             movementPattern = "UNRELATED_LABEL"
         )
-        val metadata = ExerciseMetadataAdapter.fromFields(
-            mapOf(
-                "stableKey" to approved.stableKey,
-                "exerciseName" to "다국어 이름",
-                "currentActivityKind" to "TRAINING_EXERCISE",
-                "planningEligibility" to "PROGRAM_SELECTABLE",
-                "movementFamily" to "UNRELATED_METADATA"
-            )
-        )
-
-        val inventory = ProgramCandidateInventory().collect(
-            exercises = listOf(approved),
-            runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.of(listOf(metadata)),
-            availableEquipment = emptySet()
-        )
-
-        assertEquals(listOf("barbell_back_squat"), inventory.candidates.map { it.exercise.stableKey })
+        assertTrue(ProgramCandidateAuthority.allows(approved.stableKey))
     }
 
     private fun exercise(

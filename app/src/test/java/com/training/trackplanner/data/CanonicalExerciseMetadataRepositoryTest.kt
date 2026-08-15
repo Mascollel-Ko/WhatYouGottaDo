@@ -47,14 +47,10 @@ class CanonicalExerciseMetadataRepositoryTest {
         assertTrue(listOf("dumbbell_single_leg_rdl", "kettlebell_single_leg_rdl").all { key -> slots.getValue(key).any { it.capabilityCode == "MAIN_STRENGTH_SLOT" } })
         assertTrue(listOf("standing_bodyweight_calf_raise", "standing_calf_raise_machine", "standing_dumbbell_calf_raise").all { key -> slots.getValue(key).any { it.capabilityCode == "ACCESSORY_SLOT" } })
 
-        val catalog = ExerciseRoleRelationCatalog.of(repository.trainingRoleRelations(), repository.programSlotCapabilityRelations())
-        val inventory = ProgramCandidateInventory().collect(
-            exercises = repository.exercises(includeHistory = true),
-            runtimeMetadataCatalog = repository.runtimeMetadataCatalog(),
-            availableEquipment = emptySet(),
-            roleRelationCatalog = catalog
-        )
-        assertTrue(inventory.candidates.none { candidate -> repository.identity(candidate.exercise.stableKey)?.historyOnly == true })
+        val historyKeys = repository.identities()
+            .filter(CanonicalExerciseIdentity::historyOnly)
+            .map(CanonicalExerciseIdentity::stableKey)
+        assertTrue(historyKeys.none(ProgramCandidateAuthority::allows))
         val ruleKeys = ProgramRuleTables.mainExercises.values.flatten() +
             ProgramRuleTables.pairedAccessories.values.flatten() +
             ProgramRuleTables.smallPartAccessories.values.flatten() +

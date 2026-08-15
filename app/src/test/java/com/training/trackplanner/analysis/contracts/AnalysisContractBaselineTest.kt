@@ -2,27 +2,15 @@ package com.training.trackplanner.analysis.contracts
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.training.trackplanner.analysis.features.ExerciseAnalysisMapper
-import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
-import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
-import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.MetadataTokenField
-import com.training.trackplanner.data.ProgramCandidate
-import com.training.trackplanner.data.ProgramExerciseRole
 import com.training.trackplanner.data.ProgramGoal
 import com.training.trackplanner.data.ProgramPeriodizationType
 import com.training.trackplanner.data.ProgramSkeletonGenerator
 import com.training.trackplanner.data.ProgramSkeletonRequest
-import com.training.trackplanner.data.ProgramTrainingSlot
-import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.SeedData
-import com.training.trackplanner.data.SlotCapabilityResolver
-import com.training.trackplanner.data.WorkoutEntry
-import com.training.trackplanner.data.WorkoutEntryWithSets
-import com.training.trackplanner.data.WorkoutSet
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -34,13 +22,11 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 import java.time.LocalDate
 import java.util.Locale
-import java.util.StringTokenizer
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class AnalysisContractBaselineTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val tissueCatalog by lazy { TissueRcvAssetRepository.fromAssets(context).catalog }
 
     @Test
     fun canonicalOfiAxisAuthorityPreservesHistoricalProbeLoads() {
@@ -195,221 +181,6 @@ class AnalysisContractBaselineTest {
         assertFalse(projected.movementPatterns.any { it.movementPatternId == "SQUAT" })
     }
 
-    private fun renderCurrentOracle(): String {
-        val exercises = legacyExercises().sortedBy(Exercise::stableKey)
-        val metadataByKey = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(
-            legacyMetadataFile().readText(Charsets.UTF_8)
-        ).associateBy(RuntimeExerciseMetadata::stableKey)
-        return buildString {
-            appendLine(HEADER)
-            exercises.forEach { exercise ->
-                val metadata = requireNotNull(metadataByKey[exercise.stableKey])
-                rowsFor(exercise, metadata).forEach { row ->
-                    appendLine(row.joinToString(",") { value -> value.csvValue() })
-                }
-            }
-        }
-    }
-
-    private fun rowsFor(exercise: Exercise, metadata: RuntimeExerciseMetadata): List<List<String>> {
-        val features = ExerciseAnalysisMapper.fromExercise(exercise, metadata)
-        val slotProfile = SlotCapabilityResolver.DEFAULT.resolve(exercise, metadata)
-        val candidate = ProgramCandidate(exercise, metadata, canonical = true, slotCapabilities = slotProfile)
-        val entry = WorkoutEntry(
-            id = 1,
-            date = PROBE_DATE.toString(),
-            exerciseStableKey = exercise.stableKey,
-            exerciseName = exercise.name,
-            category = exercise.category,
-            rpe = 8.0,
-            completedAt = 1L
-        )
-        val sets = (1..3).map { index ->
-            WorkoutSet(
-                id = index.toLong(),
-                entryId = entry.id,
-                setIndex = index,
-                reps = 8,
-                weightKg = 20.0,
-                seconds = 600,
-                confirmed = true,
-                rpe = 8.0
-            )
-        }
-        val fatigue = DailyFatigueCalculator(
-            RuntimeExerciseMetadataCatalog.of(listOf(metadata)),
-            CanonicalExerciseMetadataRepository(context).ofiAxisProfiles()
-        ).calculate(
-            targetDate = PROBE_DATE,
-            exercises = listOf(exercise),
-            entriesWithSets = listOf(WorkoutEntryWithSets(entry, sets)),
-            initialProfile = null
-        )
-        val contribution = fatigue.recordContributions.single()
-        val muscle = LegacyMuscleLoadContractOracle.contributions(exercise, entry, metadata)
-        val badmintonType = LegacyBadmintonContractOracle.transferType(features)
-        val badmintonAxes = LegacyBadmintonContractOracle.axes(features)
-        val badmintonFatigue = LegacyBadmintonContractOracle.fatigueCost(features)
-        val rows = mutableListOf<List<String>>()
-
-        fun add(
-            type: String,
-            relationId: String,
-            role: String = "",
-            qualifier: String = "",
-            coefficient: Double = 0.0,
-            confidence: Double = 1.0,
-            status: String = ""
-        ) {
-            rows += listOf(
-                exercise.stableKey,
-                type,
-                relationId,
-                role,
-                qualifier,
-                coefficient.contractNumber(),
-                confidence.contractNumber(),
-                AnalysisSourceStatus.MIGRATED_CURRENT_BEHAVIOR.name,
-                AnalysisContractAssetLoader.CONTRACT_VERSION,
-                status
-            )
-        }
-
-        add("CAPABILITY", "OFI", status = AnalysisCapabilityStatus.ENABLED.name)
-        add(
-            "CAPABILITY",
-            "PROGRAM_GENERATION",
-            status = when {
-                metadata.planningEligibility != "PROGRAM_SELECTABLE" -> AnalysisCapabilityStatus.DISABLED
-                slotProfile.allCapabilities.isEmpty() -> AnalysisCapabilityStatus.INCOMPLETE
-                else -> AnalysisCapabilityStatus.ENABLED
-            }.name
-        )
-        add(
-            "CAPABILITY",
-            "MUSCLE_LOAD",
-            status = if (muscle.isEmpty()) AnalysisCapabilityStatus.DISABLED.name else AnalysisCapabilityStatus.ENABLED.name
-        )
-        add(
-            "CAPABILITY",
-            "BADMINTON_TRANSFER",
-            status = if (badmintonType == LegacyBadmintonTransferType.NONE && badmintonAxes.isEmpty()) {
-                AnalysisCapabilityStatus.DISABLED.name
-            } else {
-                AnalysisCapabilityStatus.ENABLED.name
-            }
-        )
-        add(
-            "CAPABILITY",
-            "CONNECTIVE_TISSUE",
-            status = if (exercise.stableKey in tissueCatalog.exerciseStableKeys) {
-                AnalysisCapabilityStatus.ENABLED.name
-            } else {
-                AnalysisCapabilityStatus.INCOMPLETE.name
-            }
-        )
-
-        add("OFI_DOSE", metadata.progressBehavior.name, qualifier = PROBE_INPUT_POLICY)
-        mapOf(
-            OfiAxisId.HIGH_FORCE_NEURAL to contribution.axes.highForceNeural,
-            OfiAxisId.SYSTEMIC_MUSCULAR to contribution.axes.systemicMuscular,
-            OfiAxisId.LOCAL_MUSCULAR to contribution.axes.localMuscular,
-            OfiAxisId.HIGH_SPEED to contribution.axes.highSpeed,
-            OfiAxisId.REACTIVE to contribution.axes.reactive
-        ).forEach { (axis, value) ->
-            add("OFI_AXIS", axis.name, qualifier = metadata.recoveryDurationClass, coefficient = value)
-        }
-        listOf(
-            OfiComparisonPurpose.WORKLOAD_BASELINE to metadata.strengthProgressionGroup,
-            OfiComparisonPurpose.LOCAL_REPEAT_DETECTION to metadata.redundancyGroup,
-            OfiComparisonPurpose.STRENGTH_COMPARISON to metadata.strengthProgressionGroup
-        ).forEach { (purpose, group) ->
-            add("OFI_GROUP", group.ifBlank { "NOT_APPLICABLE" }, qualifier = purpose.name)
-        }
-        mapOf(
-            OfiAxisId.HIGH_FORCE_NEURAL to fatigue.state.highForceNeuralScore,
-            OfiAxisId.SYSTEMIC_MUSCULAR to fatigue.state.systemicMuscularScore,
-            OfiAxisId.LOCAL_MUSCULAR to fatigue.state.localMuscularScore,
-            OfiAxisId.HIGH_SPEED to fatigue.state.highSpeedScore,
-            OfiAxisId.REACTIVE to fatigue.state.reactiveScore
-        ).forEach { (axis, score) -> add("OFI_SCORE", axis.name, coefficient = score.toDouble()) }
-        add(
-            "OFI_SNAPSHOT",
-            "SUMMARY",
-            role = fatigue.state.readinessLabel.name,
-            qualifier = fatigue.state.confidence.name,
-            coefficient = fatigue.state.overallFatigueIndex.toDouble()
-        )
-        fatigue.state.cautionReasons.forEach { reason -> add("OFI_CAUTION", reason) }
-
-        slotProfile.primary.forEach { slot ->
-            add("PROGRAM_SLOT", slot.name, role = ProgramCapabilityRole.PRIMARY.name, coefficient = 1.0)
-        }
-        slotProfile.secondary.forEach { slot ->
-            add("PROGRAM_SLOT", slot.name, role = ProgramCapabilityRole.SECONDARY.name, coefficient = 0.65)
-        }
-        slotProfile.weakMatches.forEach { slot ->
-            add("PROGRAM_SLOT", slot.name, role = ProgramCapabilityRole.LIMITED.name, coefficient = 0.35)
-        }
-        ProgramExerciseRole.entries.forEach { role ->
-            val eligible = ProgramTrainingSlot.entries.any { slot -> candidate.allowedForRole(slot, role) }
-            add(
-                "PROGRAM_ROLE",
-                role.name,
-                qualifier = if (eligible) ProgramRoleEligibility.ELIGIBLE.name else ProgramRoleEligibility.INELIGIBLE.name
-            )
-        }
-        metadata.redundancyGroup.takeIf { it.isContractValue() }?.let { add("VARIANT_GROUP", it) }
-        metadata.strengthProgressionGroup.takeIf { it.isContractValue() }?.let { add("PROGRESSION_GROUP", it) }
-
-        muscle.toSortedMap().forEach { (bucket, coefficient) ->
-            add(
-                "MUSCLE",
-                bucket,
-                role = when {
-                    coefficient >= 0.75 -> MuscleContributionRole.PRIMARY
-                    coefficient >= 0.5 -> MuscleContributionRole.SECONDARY
-                    else -> MuscleContributionRole.STABILIZER
-                }.name,
-                coefficient = coefficient
-            )
-        }
-        badmintonAxes.sortedBy(Enum<*>::name).forEach { axis ->
-            add(
-                "BADMINTON_TRANSFER",
-                axis.name,
-                qualifier = badmintonType.toContractLevel().name,
-                coefficient = 1.0
-            )
-        }
-        add("BADMINTON_FATIGUE_COST", badmintonFatigue.name)
-        metadata.badmintonPhysicalQualities.values.sorted().forEach { quality ->
-            add("PHYSICAL_QUALITY", quality, coefficient = 1.0)
-        }
-        metadata.movementFamily.takeIf { it.isContractValue() }?.let { add("MOVEMENT_PATTERN", it) }
-        exercise.bodyRegion.contractTokens().forEach { add("BODY_REGION", it) }
-        sequenceOf(metadata.activityKind).filter { it.isContractValue() }.forEach { add("MODALITY", it) }
-        return rows
-    }
-
-    private fun LegacyBadmintonTransferType.toContractLevel(): ContractBadmintonTransferLevel = when (this) {
-        LegacyBadmintonTransferType.DIRECT -> ContractBadmintonTransferLevel.DIRECT
-        LegacyBadmintonTransferType.SUPPORTIVE -> ContractBadmintonTransferLevel.SUPPORTIVE
-        LegacyBadmintonTransferType.GENERAL_STRENGTH -> ContractBadmintonTransferLevel.GENERAL
-        LegacyBadmintonTransferType.LOW -> ContractBadmintonTransferLevel.LOW
-        LegacyBadmintonTransferType.NONE -> ContractBadmintonTransferLevel.NONE
-    }
-
-    private fun String.contractTokens(): List<String> =
-        StringTokenizer(this, "|,/;").toList().map(Any::toString)
-            .map(String::trim)
-            .filter { it.isContractValue() }
-            .distinct()
-            .sorted()
-
-    private fun String.isContractValue(): Boolean =
-        isNotBlank() && this != "NONE" && this != "NOT_APPLICABLE"
-
     private fun Double.contractNumber(): String =
         String.format(Locale.ROOT, "%.12f", this).trimEnd('0').trimEnd('.').ifBlank { "0" }
 
@@ -422,18 +193,6 @@ class AnalysisContractBaselineTest {
 
     private fun canonicalMetadataFile(): File =
         repoFile("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
-
-    private fun legacyMetadataFile(): File =
-        repoFile("app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv")
-
-    private fun legacyExercises(): List<Exercise> {
-        val legacyKeys = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(
-            legacyMetadataFile().readText(Charsets.UTF_8)
-        ).mapTo(mutableSetOf(), RuntimeExerciseMetadata::stableKey)
-        return CanonicalExerciseMetadataRepository(context)
-            .exercises(includeHistory = true)
-            .filter { exercise -> exercise.stableKey in legacyKeys }
-    }
 
     private fun repoFile(path: String): File {
         val current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
@@ -455,9 +214,6 @@ class AnalysisContractBaselineTest {
             AnalysisTypeId.BADMINTON_TRANSFER,
             AnalysisTypeId.CONNECTIVE_TISSUE
         )
-        const val PROBE_INPUT_POLICY = "THREE_CONFIRMED_SETS_20KG_8REPS_600SECONDS_RPE8"
-        const val HEADER =
-            "exerciseStableKey,relationType,relationId,role,qualifier,coefficient,confidence,sourceStatus,version,status"
         const val PROGRAM_HEADER =
             "scenario,rowType,week,day,order,exerciseStableKey,role,slot,value,number1,number2,number3,number4,number5"
         val PROGRAM_SCENARIOS = listOf(

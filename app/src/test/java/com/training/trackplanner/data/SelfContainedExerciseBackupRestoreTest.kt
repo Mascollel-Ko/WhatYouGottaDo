@@ -189,13 +189,7 @@ class SelfContainedExerciseBackupRestoreTest {
         assertEquals(historical.stableKey, target.workoutDao().allEntries().single().exerciseStableKey)
         assertEquals(historical.stableKey, target.programDao().allProgramItems().single().exerciseStableKey)
         assertTrue(target.exerciseDao().allExercises().map(Exercise::stableKey).containsAll(currentKeys))
-        assertTrue(
-            ProgramCandidateInventory().collect(
-                exercises = listOf(restored),
-                runtimeMetadataCatalog = RuntimeExerciseMetadataCatalog.of(listOf(restoredRuntime)),
-                availableEquipment = emptySet()
-            ).candidates.isEmpty()
-        )
+        assertFalse(ProgramCandidateAuthority.allows(restored.stableKey))
 
         val roundTrip = RecordCsvBackupRestore.parse(export(target)) as RecordCsvImportData.Restore
         assertTrue(roundTrip.exerciseRows.any { row -> row.stableKey == historical.stableKey })
