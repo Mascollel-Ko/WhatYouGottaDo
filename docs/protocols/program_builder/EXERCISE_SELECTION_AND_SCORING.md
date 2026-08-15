@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-SCORING |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
-| Implementation status | PARTIALLY_IMPLEMENTED |
+| Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; exact stableKey candidate authority from v0.5.0.35 |
 | Last audited commit | ce93b32 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
@@ -39,13 +39,12 @@
 
 ## 7. 계산 또는 분류 계약
 
-선택 comparator는 exercise 사용 횟수 오름차순, group 사용 횟수 오름차순, table order 순입니다. exact stable key/name rule과 narrow selected-main rule을 사용하며 inactive `ProgramScoringPolicy`의 점수를 공개 runtime이라고 설명하지 않습니다.
+선택 comparator는 exercise 사용 횟수 오름차순, group 사용 횟수 오름차순, table order 순입니다. exact stableKey와 narrow selected-main rule을 사용하며 삭제된 advanced scoring/reranking 설계를 공개 runtime이라고 설명하지 않습니다.
 
 Candidate eligibility is not a score. `ProgramCandidateAuthority` is a typed,
 read-only projection of the exact stableKeys declared by `ProgramRuleTables`.
-Only those keys can enter public selection or the disconnected advanced
-inventory/reservoir/spec path. Metadata, role, movement, core, and display-name
-classification may rank an admitted candidate but can never grant admission.
+Only those keys can enter public selection. Metadata, role, movement, core,
+and display-name classification cannot grant admission.
 Adding a future candidate therefore requires an explicit rule-table change.
 
 ## 8. 집계 방식
@@ -74,14 +73,13 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
-- 고급 scoring/reranking class는 source와 직접 test가 있으나 공개 ProgramSkeletonGenerator에서 호출되지 않습니다.
+- Advanced scoring/reranking source was removed after its production consumer count was confirmed as zero.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
 
 - Specification status: `ACTIVE`
-- Runtime implementation status: `PARTIALLY_IMPLEMENTED`
+- Runtime implementation status: `IMPLEMENTED`
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -92,8 +90,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramScoringPolicy.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt)
 
 ## 17. 검증 테스트
 
@@ -114,5 +110,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-15): retired the disconnected advanced scoring/reranking implementation and retained only the deterministic public comparator plus exact 59-key admission authority.
 - `1.1.0` (2026-08-15): hard candidate admission을 ProgramRuleTables exact stableKey authority로 분리하고 metadata/name matching은 admitted-candidate ranking으로만 제한했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

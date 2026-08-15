@@ -5826,3 +5826,84 @@ Remaining debt:
 - Metadata workbook validation, deterministic canonical export/cutover checks, metadata display routing, localization authority/audit, protocol registry validation, semantic source audit, and `git diff --check`: passed.
 - Release commit: final `chore(release): bump version to v0.5.0.36` commit containing this entry.
 - Main push, tag push, and CI result are recorded in the final task report.
+
+## 2026-08-15 - v0.5.0.37 final semantic-authority closeout
+
+### Baseline and isolation
+
+- Expected and actual baseline: `573e6e5c1204639b7c5a9adfa705fcf90168c5d7` (`v0.5.0.36`, `500036`).
+- Work branch: `codex/final-semantic-authority-v050037` in the isolated worktree `C:\Users\pki08\Documents\Codex\whatyougottado-v050037`.
+- The original workspace and every pre-existing `outputs/*` change were left untouched and excluded from path-specific staging.
+- Goal: make explicit reviewed tables and exact stableKeys the only production authority for exercise semantics, repair the approved tissue split gap, and delete proven zero-consumer compatibility code.
+
+### Commit 1 - residual semantic inference
+
+- Commit: `b66ff02` (`refactor(metadata): remove residual semantic inference`).
+- Deleted dead SeedData metadata generators and residual name/text-derived planning semantics.
+- Changed blank-stableKey legacy restore from name-to-canonical promotion to deterministic imported custom identity.
+- Changed DailyFatigue repeat identity from exercise name to exact stableKey.
+- Removed legacy runtime semantic reconstruction while retaining name-based search, display, localization, accessibility, and diagnostics.
+- Classification: `INVALID_INFERENCE_REMOVED`, `INTENTIONAL_FAIL_CLOSED`, and canonical parity where explicit authority already existed.
+
+### Commit 2 - tissue equipment split
+
+- Commit: `c3ced91` (`refactor(tissue): repair equipment split coverage`).
+- Proved the exact 33-target gap against the approved equipment split plan and materialized each target from its explicit source stableKey.
+- Added separate exact target dose authority: 26 weighted-repetition, five bodyweight-repetition, and two carry load-time targets.
+- Kept the four inverted-row targets at factor `0.60`, set the standing bodyweight calf tissue-only proxy to `1.00`, and used recorded `weightKg * seconds` for both carries without distance or per-hand multiplication.
+- Retained all 16 old generic identities for history and left `ex_dd16e07a` explicitly handled but numerically unresolved.
+- Post-change tissue coverage: 257 handled identities, 256 scored identities, 3,637 authority rows.
+
+### Commit 3 - exact strength proxy
+
+- Commit: `041ad38` (`refactor(strength): remove metadata proxy fallback`).
+- Removed metadata-derived proxy fallback and retained 21 reviewed exact relations across four strength targets.
+- Added an audit of 36 selectable fallback-only identities; none were promoted to reviewed authority.
+- Persistent posterior mathematics and reviewed coefficients were unchanged.
+
+### Focused fixture alignment
+
+- Commit: `ccf9444` (`test(metadata): align fail-closed neutral assertions`).
+- Updated focused tests to assert the new neutral/fail-closed contract rather than deleted inference.
+- No production behavior was added in this commit.
+
+### Commit 4 - explicit Badminton Objective V2
+
+- Commit: `8564a20` (`refactor(badminton): finalize explicit objective authority`).
+- Materialized 280 current objective rows across exactly nine objectives.
+- Preserved 278 inherited relations and two separately approved Pallof relations with their existing provenance.
+- Removed current dependence on old semantic-token interpretation without changing V2 numerical output or expanding relation coverage.
+
+### Commit 5 - disconnected advanced ProgramBuilder
+
+- Commit: `0828a46` (`refactor(program): remove disconnected advanced builder`).
+- Zero production consumers were proven before deletion.
+- Removed 35 disconnected production files and 21 advanced-only tests.
+- Preserved the public `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder` path, exact 59-key authority, and golden output matrix.
+
+### Commit 6 - dead Core cumulative compatibility
+
+- Commit: `fea01ea` (`refactor(core): remove dead cumulative compatibility`).
+- Removed zero-consumer cumulative Core points and summary series.
+- Preserved CoreStimulus V1 daily arithmetic and the weekly chart derived from daily results.
+
+### Commit 7 - architecture guards
+
+- Commit: `cd4b428` (`test(architecture): enforce explicit semantic authority`).
+- Added guards against dead generator return, metadata proxy fallback, name-based fatigue grouping, name-based canonical restore, tissue inference, deleted advanced ProgramBuilder source, and stableKey fragment semantics.
+- Focused architecture, authority, backup, load-profile, fatigue, strength, tissue, Core, badminton, and public ProgramBuilder tests passed before release closeout.
+
+### Release closeout
+
+- Full-suite alignment commit: `f576b8d` (`test(metadata): align full-suite authority fixtures`).
+- Updated fail-closed fixtures and current audit/localization inventories without restoring deleted inference.
+- Preserved all 936 connective-tissue prior numeric boundaries by excluding the 33 provenance-marked equipment variants from reweighting the original 224 authority-distinct simulation identities; regenerated only current fingerprints/checksums and added a direct regression guard.
+- Release commit: pending (`chore(release): bump version to v0.5.0.37`).
+- Version: `0.5.0.37 / 500037`.
+- Updated canonical metadata, identity, backup, tissue, bodyweight, strength, badminton, OFI, Core, ProgramBuilder, protocol registry/index, strategy, worklog, and release documents.
+- Full `:app:testDebugUnitTest`: 1,119 tests across 202 suites; zero failures, errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, `:app:assembleDebug`, and `:app:validateConnectiveTissuePriorBaselines`: passed.
+- Debug APK: 51,104,773 bytes; SHA-256 `B00A90162F718BEC1E2EA567FAF96068853BB3BE2BD172B16CC2ABD2E0BF852D`.
+- Metadata workbook (257 total, 241 selectable, 16 history-only), deterministic export/cutover, display routing, tissue split, protocol registry (8 families, 34 protocols), localization authority/audit, metadata Python tests, and localization Python tests passed.
+- `git diff --check` passed. The original workspace and all `outputs/*` files remained untouched and excluded from staging.
+- Main push, `v0.5.0.37` tag push, and GitHub Actions results are recorded in the final task report after remote verification.

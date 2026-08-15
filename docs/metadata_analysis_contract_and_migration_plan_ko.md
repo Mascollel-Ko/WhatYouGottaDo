@@ -1,4 +1,4 @@
-# WhatYouGottaDo 운동 메타데이터 전략 v2.5
+# WhatYouGottaDo 운동 메타데이터 전략 v2.6
 
 ## 0. 문서 지위
 
@@ -8,6 +8,7 @@
 - 이전 문서 상태: v2.2를 대체한다.
 - v2.3 개정 사유: 승인된 legacy `trainingRole` stableKey whitelist를 복구하고, `familyId`·`loadProfile`·`sportTransferDirect`의 target 의미를 확정하며, production과 분리된 strength-proxy prior 및 Level-1 한국어 taxonomy 검토 초안을 추가한다.
 - v2.5 개정 사유: 승인된 241개 `CoreClass` 관계와 objective-specific 배드민턴 9목적 관계를 production 분석 권위로 전환하고, raw-history replay와 no-legacy-fallback 경계를 확정한다.
+- v2.6 개정 사유: production 의미 부여를 exact stableKey와 명시적 relation/profile로 닫고, name/similarity 기반 잔여 fallback 제거, equipment split tissue 권위 보완, 비연결 고급 ProgramBuilder 및 Core 누적 호환 계층 제거를 최종 확정한다.
 - 핵심 식별자: `exerciseStableKey`
 
 ## 0.1 v0.5.0.33 canonical analysis authority
@@ -18,6 +19,20 @@
 - CoreStimulus V1과 Badminton Objective Stimulus V2는 confirmed set 수와 mild RPE만 사용한다. kg, reps, seconds는 두 계산의 multiplier가 아니다.
 - historical identity는 기존 compatibility 관계로 의미만 resolve하며 raw record와 stableKey를 수정하지 않는다.
 - 새 계산 활성화 후 UI는 이전 core/objective derived value로 fallback하거나 scale을 혼합하지 않는다.
+
+## 0.2 v0.5.0.37 explicit semantic-authority closeout
+
+Production 의미 경로는 `explicit table/reviewed relation -> exact stableKey -> controlled parser -> typed semantics -> calculator`로 고정한다. 운동 이름, 설명, category 문자열, stableKey 일부, 장비·동작·family 유사성은 분석 의미를 만들 수 없다. 이름은 검색·표시·접근성·진단에만 사용한다.
+
+- 현재 built-in은 누락된 정본 relation을 legacy `Exercise` 문자열로 복구하지 않고 validation에서 실패한다.
+- custom/imported/unresolved identity는 명시적 권위가 없으면 `UNKNOWN`/`NONE`/무기여로 닫힌다.
+- stableKey가 없는 legacy backup 운동은 이름이 같은 built-in으로 승격하지 않고 source identity에 기반한 deterministic custom stableKey를 받는다.
+- strength proxy는 검토된 exact stableKey 관계만 사용한다. metadata 유사성으로 생성되던 36개 후보는 audit-only로 남고 production proxy가 아니다.
+- Badminton Objective V2는 9개 objective의 명시적 280-row authority를 직접 읽는다. Core나 이전 semantic token에서 objective를 재구성하지 않는다.
+- tissue equipment split은 승인된 33개 target→source 관계만 profile을 materialize하며, target별 dose semantics는 별도 exact-key authority로 소유한다.
+- `ex_dd16e07a` generic stretching은 identity/protocol 상 처리되지만 숫자 tissue score는 의도적으로 미해결 상태를 유지한다.
+- 공개 프로그램 생성 경로와 59개 candidate authority는 유지하고, production consumer가 없던 advanced reservoir/beam/evaluation 계층은 제거한다.
+- CoreStimulus의 daily arithmetic와 daily-derived weekly chart는 유지하고, consumer가 없던 cumulative compatibility output만 제거한다.
 
 ---
 

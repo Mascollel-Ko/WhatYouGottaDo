@@ -3,12 +3,32 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-METADATA-ANALYSIS-CONTRACT |
-| Protocol version | 2.0.0 |
+| Protocol version | 2.1.0 |
 | Status | ACTIVE |
 | Implementation status | PARTIALLY_IMPLEMENTED |
-| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33 |
+| Implemented from app version | v0.5.0.16 shadow baseline; role split from v0.5.0.21; bundled authority cutover from v0.5.0.22; Korean display authority from v0.5.0.23; explicit override authority from v0.5.0.25; fieldKey routing from v0.5.0.26; canonical normalization from v0.5.0.32; core/objective analysis cutover from v0.5.0.33; explicit semantic-authority closeout from v0.5.0.37 |
 | Last audited commit | 532d2343cafd9e54924dc52350c6e108893b4b07 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.37 explicit semantic-authority closeout
+
+Production analysis now follows one direction: explicit authored table or
+reviewed relation, exact `stableKey`, controlled boundary parsing, typed
+semantics, then calculator. Exercise names, descriptions, categories,
+stableKey fragments, equipment resemblance, movement resemblance, family
+resemblance, and similar exercises cannot create analytical semantics.
+
+Current built-ins require canonical authority. Missing authority for a custom,
+imported, or unresolved identity fails closed to unknown, none, or no
+attribution. Blank-key legacy backup rows become deterministic custom
+identities; a matching display name does not promote them to a canonical
+built-in. Daily fatigue groups by exact stableKey, reviewed strength proxy rows
+are exact-key only, badminton objective V2 reads its explicit relation
+authority, and tissue profile inheritance plus target dose semantics are
+separate exact-key contracts.
+
+Search, localization, display labels, accessibility text, and diagnostics may
+still read names. This presentation allowance grants no semantic authority.
 
 ## v0.5.0.33 analysis authority cutover
 
@@ -215,7 +235,7 @@ asset과 non-persisted projection을 사용해 Room/backup 변경 없이 rollbac
 
 ## 14. 알려진 한계
 
-- production calculator는 아직 legacy parsing/fallback을 포함합니다.
+- read-only persistence compatibility fields remain, but production calculators do not use them to reconstruct missing exercise semantics.
 - public program runtime은 `ProgramAutoBuilder`이며 legacy candidate trace를
   직접 노출하지 않습니다.
 - user relation override는 저장되지 않습니다.
@@ -330,6 +350,7 @@ golden을 검증합니다.
 
 ## 20. 변경 이력
 
+- `2.1.0` (2026-08-15): removed residual name, text, stableKey-fragment, and metadata-resemblance semantic inference; made blank-key backup identity fail closed to deterministic custom identity; materialized exact badminton and tissue authorities; and added architecture guards.
 - `1.9.0` (2026-08-12): reused the existing canonical relation owners,
   decomposed the overloaded trunk-bracing bucket, switched canonical
   badminton transfer to explicit sport-specific authority, and added

@@ -3,15 +3,24 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-BODYWEIGHT-LOAD |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; exact stableKey profile authority from v0.5.0.36; tissue split dose profiles from v0.5.0.37 |
 | Last audited commit | bb045da |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+## v0.5.0.37 tissue-only split dose profiles
+
+The connective-tissue pipeline has a separate exact-key dose authority. The
+four approved inverted-row variants use `0.60 * bodyWeightKg + 1.00 *
+addedLoadKg` per repetition. `standing_bodyweight_calf_raise` uses a
+tissue-only `1.00 * bodyWeightKg` repetition proxy with no added-load factor.
+These rows do not broaden the general strength volume authority and are not
+derived from names or equipment tokens.
 
 ## 1. 일반 사용자용 요약
 
@@ -110,6 +119,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-15): documented exact tissue-only bodyweight dose profiles for four inverted-row variants and standing bodyweight calf raise; no general load formula changed.
 - `1.1.0` (2026-08-15): 이름·family·movement·equipment token heuristic을 제거하고 19개 검증 stableKey의 explicit profile authority로 전환했습니다. 지원 key의 수치는 보존하고 미등록 이름은 fail closed 처리합니다.
 - `1.0.1` (2026-07-23): 중량 풀업 posterior의 총부하, 체중 출처 우선순위, 당시 bodyweight snapshot과 assisted pull-up 비-direct 경계를 명시했습니다. 기존 volume 계수는 변경하지 않았습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

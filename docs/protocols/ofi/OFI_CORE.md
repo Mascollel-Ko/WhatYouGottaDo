@@ -3,15 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CORE |
-| Protocol version | 1.1.0 |
+| Protocol version | 1.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.15 |
+| Implemented from app version | v0.4.2.15; explicit axis-profile resolution from v0.5.0.37 |
 | Last audited commit | aa08b49ff183c60c45c9e8bf95a9542df1b592ce |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.1.0`은 OFI의 canonical 다섯 축을 고중량·힘 신경계, 전신 근육, 국소 근육, 고속, 반응으로 바로잡은 계약입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+## v0.5.0.37 dynamic exact-axis authority
+
+Dynamic OFI still calculates the canonical five axes from the current workout
+record. Exact canonical axis profiles are resolved by stableKey; concatenated
+metadata tokens no longer create high-speed, reactive, or other axis meaning.
+The frozen `OFI_SCORE`/`OFI_SNAPSHOT` rows remain parity artifacts and are not
+runtime inputs. Unknown identities receive no invented high-speed or reactive
+attribution. Axis thresholds, decay, classification, readiness, and connective-
+tissue separation are unchanged.
 
 ## 1. 일반 사용자용 요약
 
@@ -103,5 +113,6 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.2.0` (2026-08-15): replaced metadata-token axis inference with exact canonical axis profiles while preserving dynamic five-axis arithmetic, thresholds, and OFI/connective-tissue separation.
 - `1.1.0` (2026-07-18): canonical 다섯 축을 복원하고 연결조직 계산과의 경계를 명시했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

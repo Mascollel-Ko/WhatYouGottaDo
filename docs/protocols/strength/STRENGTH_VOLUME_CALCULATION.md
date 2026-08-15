@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-VOLUME |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; CoreStimulus V1 from v0.5.0.33; weekly core presentation from v0.5.0.34; Lab pseudo-core metrics retired in v0.5.0.35; exact load/muscle authority from v0.5.0.36; dead cumulative compatibility removed in v0.5.0.37 |
 | Last audited commit | 79998bf |
 | Evidence profile | MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -61,6 +61,16 @@ records that retain a governed stableKey can still resolve load policy without
 an `Exercise` DB row. The Korean-name substring error that attributed Hollow
 Body Hold to row/back muscles is intentionally not preserved; CoreStimulus V1
 continues to own its functional-core semantics unchanged.
+
+## v0.5.0.37 Core daily authority closeout
+
+`DailyCoreStimulus` is the sole CoreStimulus result authority. Direct,
+indirect, total, and direct-target arithmetic is unchanged, and
+`CoreStimulusWeeklySeries` still derives the UI and Lab weekly projection from
+recorded daily points. The unused lifetime cumulative compatibility model and
+its generated no-record gap dates were removed after confirming zero
+production consumers. No workout record, coefficient, graph value, or
+CoreStimulus V1 calculation version changed.
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
@@ -171,6 +181,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-15): removed the zero-consumer cumulative Core compatibility projection while preserving daily arithmetic and weekly UI/Lab aggregation.
 - `1.4.0` (2026-08-15): effective-load/hold profile과 muscle attribution에서 운동 이름 기반 semantic fallback을 제거하고 exact stableKey 및 canonical muscle metadata 경계를 문서화했습니다.
 - `1.3.0` (2026-08-15): Analysis Lab의 legacy pseudo-core metric을 제거하고 CoreStimulus V1 total/direct/indirect weekly projection으로 통합했습니다.
 - `1.0.3` (2026-07-23): 기존 Epley series를 `기존 공식 환산값` 경계로 명시하고 event-driven nonlinear posterior가 volume/e1RM 관측을 변경하거나 소비하지 않는다고 갱신했습니다.

@@ -3,15 +3,25 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-LOAD-UNIT-CATALOGUE |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.7; EDU-2 copy active from v0.4.2.13 |
+| Implemented from app version | v0.4.2.7; EDU-2 copy active from v0.4.2.13; exact 257-identity handling from v0.5.0.37 |
 | Last audited commit | 401ece4ca451b5303b3607bf8b3462b95f25a581 |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
 | Supersedes | CT-LOAD-UNIT-CATALOGUE 1.0.0 |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+## v0.5.0.37 identity coverage
+
+The tissue index handles 257 exact identities: 241 current selectable
+identities and 16 history-only generic split sources. Numeric authority covers
+256 identities and 3,637 exercise/load-unit rows. `ex_dd16e07a` generic
+stretching is the sole explicit unresolved exception: it remains handled but
+receives no fabricated load unit or numeric tissue score. History-only source
+keys remain readable and non-selectable; workout history is not rewritten to a
+new equipment variant.
 
 ## 1. 일반 사용자용 요약
 
@@ -110,6 +120,7 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-15): expanded exact identity handling to 241 selectable plus 16 history-only keys, preserved generic stretching as the one governed unscored identity, and replaced fixed-count-only validation with relational coverage invariants.
 - `1.2.0` (2026-07-28): exercise identity를 224개 canonical stableKey로
   정본화하고 workbook의 KEEP/REBUILD/SPLIT 결정을 반영했습니다. 수치 protocol은
   유지했습니다.

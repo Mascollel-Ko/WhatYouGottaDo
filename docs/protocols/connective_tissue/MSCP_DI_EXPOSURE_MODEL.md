@@ -3,15 +3,31 @@
 | Field | Value |
 |---|---|
 | Protocol ID | CT-MSCP-DI-EXPOSURE |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.7 |
+| Implemented from app version | v0.4.2.7; exact equipment-split profile and dose authority from v0.5.0.37 |
 | Last audited commit | 22e51779bbd173e554c3ba1dbeec0fcf13a6ba20 |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLICY |
 | Supersedes | — |
 
 `1.0.1`은 현재 runtime 계산을 바꾸지 않고, offline prior generator가 같은 production authority를 재사용한다는 경계를 문서화합니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
+
+## v0.5.0.37 exact profile and dose separation
+
+The 33 approved equipment-split target stableKeys materialize the unchanged
+M/S/C/P, load-unit, joint/tissue, protocol-class, recovery-curve, and recovery-
+routing profile of their explicit source stableKey. This is
+`MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT`, not new tissue research and not a
+similarity match.
+
+Target recording semantics are a separate exact-key dose profile: 26 targets
+use `WEIGHTED_REPETITION`, five use `BODYWEIGHT_REPETITION`, and two farmer-
+carry variants use `LOAD_TIME`. The four inverted-row variants use factor
+`0.60`; standing bodyweight calf raise uses factor `1.00`; dumbbell and
+kettlebell farmer carries use exactly `recorded weightKg * confirmed seconds`.
+No distance and no per-hand multiplier are invented. Calculator selection does
+not inspect name, equipment, movement, or family text.
 
 ## 1. 일반 사용자용 요약
 
@@ -103,6 +119,7 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLI
 - [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_load_units_v1.csv)
 - [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_di_profiles_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_di_profiles_v1.csv)
 - [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_score_contract_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_score_contract_v1.csv)
+- [`app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_dose_profiles_v1.csv`](../../../app/src/main/assets/metadata/tissue_load_v1/tissue_rcv_exercise_dose_profiles_v1.csv)
 
 ## 19. 관련 문서
 
@@ -113,5 +130,6 @@ Evidence profile은 `MIXED, RESEARCH_TRANSFER, MECHANISTIC_SUPPORT, PRODUCT_POLI
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): materialized 33 approved equipment-split profiles by exact source stableKey and added independent exact target dose profiles without changing inherited tissue or recovery values.
 - `1.0.1` (2026-07-17): offline prior generation이 production M/D/I/C, event ledger와 recovery authority를 직접 재사용하며 runtime 계산은 바꾸지 않는다는 경계를 추가했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

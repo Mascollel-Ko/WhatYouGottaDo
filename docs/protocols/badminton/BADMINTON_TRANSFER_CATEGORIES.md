@@ -3,12 +3,22 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TRANSFER |
-| Protocol version | 2.2.0 |
+| Protocol version | 2.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; Badminton Objective Stimulus V2 from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35; explicit objective relation authority from v0.5.0.37 |
 | Last audited commit | e2fb51f |
 | Evidence profile | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY |
+
+## v0.5.0.37 explicit objective V2 authority
+
+`badminton_objective_relations_v2_authority.csv` is the explicit reviewed
+projection consumed by the nine-objective runtime. It contains exactly 280
+exercise/objective rows over nine objectives: 278 preserve
+`INHERITED_FROM_EXPLICIT_BADMINTON_RELATION_V1` provenance and two preserve the
+separate product-approved Pallof provenance. Generation no longer interprets
+legacy relation tokens to create current objective rows. No exercise/objective
+pair or transfer level was added, removed, or upgraded by this materialization.
 
 ## v0.5.0.34 objective presentation and reviewed Pallof decision
 
@@ -212,3 +222,7 @@ the overlapping nine-objective V2 scale.
 - canonical code와 한국어 display/definition은 분리했습니다. 미승인 한국어 정의는 `REVIEW_REQUIRED`입니다.
 
 이 closeout은 `ARTIFACT_ONLY`입니다. transfer weight, RPE factor, 7일/28일 window, equal axis split, fatigue cost, 추천, 차트, 색상, UI를 변경하지 않습니다.
+
+## 23. 변경 이력
+
+- `2.3.0` (2026-08-15): materialized the existing 280-row, nine-objective V2 relationship set as explicit authority and retired legacy relation-token inference without numerical change.

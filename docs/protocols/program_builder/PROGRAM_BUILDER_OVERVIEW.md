@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.4.0 |
+| Protocol version | 1.5.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; exact stableKey candidate authority from v0.5.0.35 |
+| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; exact stableKey candidate authority from v0.5.0.35; disconnected advanced path removed in v0.5.0.37 |
 | Last audited commit | ce93b32 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -45,7 +45,8 @@ Program candidate admission is exact stableKey authority. The typed
 `ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
 names, metadata labels, core tokens, or similarity cannot add an exercise.
 The approved set remains 59 keys. The disconnected advanced builder is guarded
-at inventory, reservoir, and exercise-spec boundaries by the same authority.
+against reintroduction and was removed after confirming zero production
+consumers.
 
 저장 프로그램 적용은 생성이나 재평가가 아니라 exact materialization입니다.
 `TrainingViewModel → TrainingRepository → ProgramPlanService` 적용 경로는
@@ -100,7 +101,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
 - 현재 공개 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않습니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
@@ -131,7 +131,6 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt)
@@ -166,6 +165,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.5.0` (2026-08-15): deleted the zero-consumer advanced ProgramBuilder reservoir/beam/evaluation stack, retained the public deterministic pipeline and 59-key authority, and verified the public golden matrix unchanged.
 - `1.4.0` (2026-08-15): ProgramRuleTables의 59 exact stableKey를 sole candidate authority로 고정하고 192-scenario public output parity를 추가했습니다.
 - `1.3.0` (2026-07-30): 내부 optimization action과 사용자 완료 문구를
   typed notice 및 locale resource 경계로 분리했습니다.

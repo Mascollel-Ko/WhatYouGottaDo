@@ -3,6 +3,20 @@
 `WhatYouGottaDo_metadata_authority_v1.xlsx` is the single human-editable
 authoring source for bundled exercise metadata. Android never reads XLSX.
 
+## Production semantic boundary
+
+From v0.5.0.37, bundled exercise semantics are consumed only from explicit
+workbook-generated tables or separately reviewed domain relation assets by
+exact stableKey. Exercise names and descriptions are presentation/search data;
+stableKey is identity; an explicit table, relation, or profile is semantic
+authority. Production must not recover a missing relation from name text,
+stableKey fragments, equipment, movement, family, or another similar exercise.
+
+Current canonical rows with missing required authority fail validation.
+Custom, imported, and unresolved identities fail closed to unknown, none, or
+no attribution. Controlled CSV parsing may translate exact authored codes into
+typed values, but calculators do not interpret concatenated metadata text.
+
 ## Korean/English localization authority
 
 `WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx`

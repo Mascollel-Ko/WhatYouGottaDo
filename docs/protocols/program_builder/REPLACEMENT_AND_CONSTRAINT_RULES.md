@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-CONSTRAINTS |
-| Protocol version | 1.0.0 |
+| Protocol version | 1.1.0 |
 | Status | ACTIVE |
-| Implementation status | PARTIALLY_IMPLEMENTED |
+| Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0 |
 | Last audited commit | 06b65f6cdb243780e97a7464f659219b50010c7c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
@@ -39,7 +39,7 @@
 
 ## 7. 계산 또는 분류 계약
 
-같은 main area와 exact selected-main family의 좁은 중복을 막고 candidate가 없으면 다음 table candidate를 사용합니다. 고급 fatigue/session constraint, reservoir relaxation과 issue-driven repair class는 공개 경로에 연결되지 않았습니다.
+같은 main area와 exact selected-main stableKey의 좁은 중복을 막고 candidate가 없으면 다음 table candidate를 사용합니다. 연결되지 않았던 advanced fatigue/session constraint, reservoir relaxation, and issue-driven repair classes were removed in v0.5.0.37.
 
 ## 8. 집계 방식
 
@@ -67,14 +67,13 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
 - public runtime은 fatigue history와 advanced repair loop를 사용하지 않습니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
 
 - Specification status: `ACTIVE`
-- Runtime implementation status: `PARTIALLY_IMPLEMENTED`
+- Runtime implementation status: `IMPLEMENTED`
 - Audit result: 현재 local main의 source, tests, authority assets를 감사한 계약입니다.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
@@ -83,14 +82,11 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramSessionConstraintPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSessionConstraintPolicy.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt)
 
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
-- [`app/src/test/java/com/training/trackplanner/data/ProgramBuilderSelectedMainSlotRepairTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramBuilderSelectedMainSlotRepairTest.kt)
 
 ## 18. 권위 자산
 
@@ -104,4 +100,5 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): removed disconnected advanced constraint/repair source and documented the narrow public deterministic constraints as the complete implemented runtime.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

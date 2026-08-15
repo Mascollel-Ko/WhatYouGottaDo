@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-EVALUATION |
-| Protocol version | 1.0.1 |
+| Protocol version | 1.1.0 |
 | Status | DRAFT |
 | Implementation status | SPECIFICATION_ONLY |
 | Implemented from app version | — |
@@ -15,7 +15,7 @@
 
 ## 1. 일반 사용자용 요약
 
-주간·전체 프로그램 품질 평가 모델과 보정 정책은 source와 직접 단위 테스트에 남아 있지만 현재 공개 자동 골자 결과에는 연결되지 않습니다.
+주간·전체 프로그램 품질 평가와 보정 정책은 historical specification으로만 남습니다. 연결되지 않았던 production source와 advanced-only tests는 v0.5.0.37에서 제거됐고 현재 공개 자동 골자 결과에는 evaluation model이 없습니다.
 
 ## 2. 목적
 
@@ -39,7 +39,7 @@
 
 ## 7. 계산 또는 분류 계약
 
-현재 `ProgramAutoBuilder` output은 `evaluation = null`이고 고정 optimization summary를 반환합니다. 따라서 `ProgramEvaluationPolicy`의 score, issue, repair를 사용자에게 현재 실행되는 계약으로 주장하지 않습니다.
+현재 `ProgramAutoBuilder`는 고정 사용자 요약만 반환합니다. 삭제된 advanced evaluation score, issue, and repair model을 사용자에게 현재 실행되는 계약으로 주장하지 않습니다.
 
 평가 또는 fatigue/readiness 결과는 저장 프로그램 적용의 입력이 아닙니다.
 프로그램 적용은 저장된 운동과 set을 그대로 materialize하며, 평가 결과가
@@ -74,8 +74,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
-- 공개 output의 evaluation은 null이며 optimization summary는 평가 결과가 아닌 고정 문구입니다.
+- 공개 runtime은 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`이며 evaluation/repair model을 포함하지 않습니다.
+- 공개 optimization summary는 평가 결과가 아닌 고정 사용자 문구입니다.
 - 저장 프로그램 적용은 평가/repair 경로와 분리된 exact materialization입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
@@ -83,19 +83,16 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - Specification status: `DRAFT`
 - Runtime implementation status: `SPECIFICATION_ONLY`
-- Audit result: 설계와 직접 단위 테스트는 존재하지만 공개 runtime 미연결이므로 specification-only로 분류합니다.
+- Audit result: historical design only; production source and advanced-only tests were removed after zero-consumer verification.
 - 문서와 runtime이 다르면 이 문서의 known gap에 남기며 문서만으로 runtime을 완료 상태로 바꾸지 않습니다.
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/data/ProgramEvaluationPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramEvaluationPolicy.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationPolicy.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRepairPolicy.kt)
+- No current production implementation. Historical source remains available in Git.
 
 ## 17. 검증 테스트
 
-- [`app/src/test/java/com/training/trackplanner/data/ProgramEvaluationPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramEvaluationPolicyTest.kt)
-- [`app/src/test/java/com/training/trackplanner/data/ProgramOptimizationPolicyTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramOptimizationPolicyTest.kt)
+- [`app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/contracts/ExerciseNameSemanticAuthorityArchitectureTest.kt) prevents the disconnected implementation from returning.
 
 ## 18. 권위 자산
 
@@ -109,6 +106,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `1.1.0` (2026-08-15): classified evaluation/repair as historical specification after deleting its zero-consumer production source and advanced-only tests.
 - `1.0.1` (2026-07-30): 평가와 fatigue/readiness를 저장 프로그램
   적용 변경 입력으로 사용하지 않는 advisory boundary를 명시했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

@@ -3,16 +3,25 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.5.0 |
+| Protocol version | 1.6.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25 |
+| Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25; fail-closed blank stableKey import from v0.5.0.37 |
 | Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 
 `1.0.0`은 백업·복원 호환성 계약을 처음 canonical protocol로 고정한
 버전입니다.
+
+## v0.5.0.37 name-only legacy identity
+
+A legacy exercise row with a blank stableKey is never matched to a current
+built-in by display name. Restore creates one deterministic imported-custom
+identity for the source-local exercise, remaps that backup's records and
+program references to it, preserves the display name, and clears unreviewed
+canonical semantics. Exact name is allowed only as an in-file transport
+grouping key when the backup has no immutable exercise identifier.
 
 ## 1. 일반 사용자용 요약
 
@@ -378,6 +387,7 @@ metadata reconciliation markers are never overwritten from a backup.
 
 ## 20. 변경 이력
 
+- `1.6.0`: blank-key legacy exercise rows restore as deterministic custom identities and cannot gain canonical identity or analysis semantics from their names.
 - `1.5.0`: backup format 12 and restore schema 11 add explicit metadata
   overrides, represented user state, immutable source conflict handling,
   projected reference retention, two restore choices, final confirmation,

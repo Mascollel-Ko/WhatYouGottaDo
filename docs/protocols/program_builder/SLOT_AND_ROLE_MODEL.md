@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-SLOTS |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; typed role split from v0.5.0.21; workbook authority from v0.5.0.22 |
@@ -67,7 +67,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder이며 고급 ProgramBuilder reservoir/beam/evaluation/optimization 경로는 호출하지 않습니다.
+- 공개 runtime은 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder → ProgramSlotAllocator`입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
@@ -107,7 +107,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - `TrainingRole` describes intrinsic training meaning only. It never grants main,
   secondary, or accessory placement.
-- `ProgramSlotCapability` describes ProgramBuilder placement only. Analysis,
+- `ProgramSlotCapability` describes public program placement only. Analysis,
   fatigue, muscle, connective-tissue, badminton-transfer, and strength-proxy
   calculations do not consume it.
 - The initial capability authority contains exactly the 26 approved stableKeys
@@ -117,16 +117,17 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
   intrinsic TrainingRole remains absent pending independent review.
 - Room schema 27 stores the two concepts in separate normalized relation tables.
   The legacy mixed `Exercise.trainingRole` column is removed.
-- The advanced `ProgramBuilder` compatibility path reads the typed capability.
-  The public `ProgramAutoBuilder` path remains a known architectural boundary;
-  a full ProgramBuilder policy redesign is deferred.
+- The public `ProgramAutoBuilder` and `ProgramSlotAllocator` use the current
+  exact rule-table contract. The disconnected advanced compatibility path was
+  removed in v0.5.0.37.
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-15): removed references to the disconnected advanced builder and made the public ProgramSlotAllocator path the only implemented slot runtime.
 - `1.2.0` (2026-08-05): moved active TrainingRole, ProgramSlotCapability,
   and materialized timing authority to the canonical workbook export. The 16
   history-only identities and their compatibility relations remain readable
-  but cannot enter ProgramBuilder. Approved concrete variants replace generic
+  but cannot enter the public candidate tables. Approved concrete variants replace generic
   identities in active candidate tables without changing slot policy.
 - `1.1.0` (2026-08-04): split intrinsic `TrainingRole` from placement-only
   `ProgramSlotCapability`, migrated the approved 26 exact stableKeys, and

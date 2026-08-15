@@ -3,12 +3,26 @@
 | Field | Value |
 |---|---|
 | Protocol ID | DATA-EXERCISE-IDENTITY |
-| Protocol version | 1.5.0 |
+| Protocol version | 1.6.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32; analysis name boundary from v0.5.0.36 |
+| Implemented from app version | v0.5.0.6; legacy direct-map correction from v0.5.0.8; restore metadata preservation from v0.5.0.11; workbook authority from v0.5.0.22; self-contained historical restore from v0.5.0.24; explicit metadata ownership from v0.5.0.25; relation normalization from v0.5.0.32; analysis name boundary from v0.5.0.36; fail-closed blank identity from v0.5.0.37 |
 | Last audited commit | acf1d3f |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
+
+## v0.5.0.37 blank-key restore boundary
+
+A legacy backup exercise with no stableKey is restored as an imported custom
+exercise with a deterministic user stableKey. The immutable backup lineage or
+content fingerprint and the source-local identity provide the deterministic
+input. Exact name may group rows only inside the same backup when no immutable
+identifier exists; it never grants canonical identity or metadata.
+
+The imported custom identity receives no automatic canonical muscle,
+movement, bodyweight, duration, Core, badminton, strength proxy, tissue, or
+ProgramBuilder semantics. Its display name is preserved and later backups
+write the assigned custom stableKey. Existing nonblank legacy keys continue to
+use only the reviewed import map.
 
 ## v0.5.0.32 relation normalization boundary
 
@@ -209,6 +223,7 @@ for future display-catalogue routing; no localization rename is persisted here.
 
 ## 20. 변경 이력
 
+- `1.6.0` (2026-08-15): made blank stableKey restore deterministic and custom-only, removed name-to-canonical promotion, and preserved name solely as presentation or backup-local grouping data.
 - `1.5.0` (2026-08-15): exercise name을 analysis identity fallback으로 사용하지 않는 경계와 Exercise row 없이도 record stableKey를 먼저 해석하는 규칙을 명시했습니다.
 - `1.3.0` (2026-08-09): defined current seed plus explicit override ownership,
   independent user state, catalogue-missing reference retention, and the

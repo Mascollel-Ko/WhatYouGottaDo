@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | STRENGTH-PROXY-PERFORMANCE |
-| Protocol version | 3.1.1 |
+| Protocol version | 3.2.0 |
 | Status | EXPERIMENTAL |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.3 |
+| Implemented from app version | v0.5.0.3; exact reviewed proxy-only resolution from v0.5.0.37 |
 | Last audited commit | 79998bf |
 | Evidence profile | DIRECT_RESEARCH_SUPPORT, PRODUCT_POLICY, ENGINEERING_HEURISTIC, LOW_CONFIDENCE_PROXY |
 | Relation closeout status | ARTIFACT_ONLY |
@@ -15,6 +15,15 @@
 이 문서는 완료 세션 이벤트로만 갱신되는 벤치프레스, 스쿼트, 데드리프트, 중량 풀업 수행능력 사후분포의 단일 canonical 계약입니다. v3은 보고 RPE를 단일 RIR로 치환하지 않고 확률분포로 적분하며, 같은 세션의 공통 컨디션 효과와 exercise-local 수행 변화를 분리합니다. 프록시는 다른 운동의 절대 kg를 옮기지 않고 검토된 shared factor에 local innovation만 전달합니다. v0.5.0.1의 화면 진입 시 재계산 엔진과 기존 Epley 계열은 권위 경로가 아닙니다.
 
 v0.5.0.36에서 삭제한 `analysis/proxyperformance` package는 이 persistent posterior와 연결되지 않은 과거 실험 구현입니다. 현재 `analysis/strengthperformance`, `StrengthPerformanceRegistry`, reviewed proxy loading assets, Room state/history와 event-driven update path는 그대로 유지됩니다.
+
+v0.5.0.37부터 production proxy resolution은
+`strength_proxy_loadings_v1.csv`의 exact reviewed stableKey row만 허용합니다.
+현재 authority는 21개 row, 21개 exercise stableKey, 네 target으로 유지됩니다.
+Metadata eligibility, movement/family resemblance, exercise name, or a
+squat/hinge/press/pull-like profile cannot create a proxy. The 36 selectable
+identities formerly reached only by metadata fallback remain an audit report,
+not promoted authority. Posterior likelihood, transfer coefficients, and
+persistence mathematics are unchanged.
 
 ## 1. 일반 사용자용 요약
 
@@ -285,6 +294,7 @@ legacy `기존 공식 환산값` Epley card는 제거했습니다. Lab의 기존
 
 ## 20. 변경 이력
 
+- `3.2.0` (2026-08-15): removed metadata-derived proxy fallback, retained the exact 21 reviewed relations across four targets, and documented 36 fallback-only identities as audit-only impact.
 - `3.1.1` (2026-08-15): production-unreachable `analysis/proxyperformance` experiment를 제거하고, active persistent `analysis/strengthperformance` 및 `StrengthPerformanceRegistry`가 별도 canonical authority로 유지됨을 명시했습니다.
 - `3.1.0` (2026-08-04): 5개 direct anchor와 12개 shared-factor proxy의 relation membership을 artifact-only 권위본으로 확정하고, 7개 exclusion provenance와 미래 no-session 주간 interpolation 요구를 기록했습니다. production posterior, alpha 수치와 개인화 알고리즘은 변경하지 않았습니다.
 - `3.0.1` (2026-07-28): exercise identity가 바뀌는 model boundary에서
