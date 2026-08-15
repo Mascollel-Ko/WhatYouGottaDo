@@ -68,6 +68,106 @@ class ExerciseNameSemanticAuthorityArchitectureTest {
         )
     }
 
+    @Test
+    fun retiredSemanticInferenceEntrypointsStayAbsent() {
+        val seedSource = repoFile(
+            "app/src/main/java/com/training/trackplanner/data/SeedData.kt"
+        ).readText()
+        listOf(
+            "exactExerciseMetadataFromParsedRows",
+            "exerciseFromCsv",
+            "movementPatternFor",
+            "musclesFor",
+            "equipmentFor",
+            "familyIdFor",
+            "sportTransferDirectFor"
+        ).forEach { retiredName ->
+            assertFalse("Retired SeedData inference returned: $retiredName", seedSource.contains(retiredName))
+        }
+        assertFalse(
+            repoFile("app/src/main/java/com/training/trackplanner/data/ExerciseMetadataMapper.kt").isFile
+        )
+
+        val strengthSource = repoFile(
+            "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt"
+        ).readText()
+        assertFalse(strengthSource.contains("metadataProxyLoadings"))
+        assertTrue(strengthSource.contains("proxyLoadings(exercise.stableKey)"))
+
+        val fatigueSource = repoFile(
+            "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt"
+        ).readText().filterNot(Char::isWhitespace)
+        assertFalse(fatigueSource.contains("broadLegacyFatigueCategories"))
+        assertFalse(fatigueSource.contains("groupBy{it.exerciseName}"))
+        assertFalse(fatigueSource.contains("anyToken("))
+        assertFalse(fatigueSource.contains("splitTokens("))
+        assertTrue(fatigueSource.contains("\"exerciseStableKey\"tocontribution.stableKey"))
+    }
+
+    @Test
+    fun blankBackupIdentityAndTissueDoseStayFailClosed() {
+        val backupSource = repoFile(
+            "app/src/main/java/com/training/trackplanner/data/BackupRestoreCanonicalizer.kt"
+        ).readText()
+        assertFalse(backupSource.contains("canonicalByName"))
+        assertFalse(backupSource.contains("findByName"))
+        assertFalse(backupSource.contains("LEGACY_CUSTOM_EXACT_NAME"))
+        assertTrue(backupSource.contains("LEGACY_BLANK_STABLE_KEY_CUSTOM"))
+        assertTrue(backupSource.contains("UserExerciseStableKeyGenerator.generateDeterministic"))
+
+        val tissueDoseSource = repoFile(
+            "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueDoseResolver.kt"
+        ).readText()
+        listOf(
+            "record.exercise.name",
+            "record.exercise.equipment",
+            "record.exercise.movementPattern",
+            "contains("
+        ).forEach { forbidden ->
+            assertFalse("Tissue dose inference returned: $forbidden", tissueDoseSource.contains(forbidden))
+        }
+        assertTrue(tissueDoseSource.contains("record.exercise.stableKey == profile.exerciseStableKey"))
+    }
+
+    @Test
+    fun disconnectedAdvancedBuilderStaysAbsent() {
+        listOf(
+            "ProgramBuilder.kt",
+            "ProgramCandidateInventory.kt",
+            "ProgramCandidateReservoir.kt",
+            "ProgramSlotCandidateQuery.kt",
+            "SlotCapabilityResolver.kt"
+        ).forEach { fileName ->
+            assertFalse(
+                "Disconnected advanced builder file returned: $fileName",
+                repoFile("app/src/main/java/com/training/trackplanner/data/$fileName").isFile
+            )
+        }
+    }
+
+    @Test
+    fun semanticAuthoritiesCannotClassifyStableKeyFragments() {
+        val guardedFiles = listOf(
+            "app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt",
+            "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
+            "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
+            "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
+            "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueDoseResolver.kt"
+        )
+        val forbidden = listOf(
+            "stableKey.contains(",
+            "stableKey.startsWith(",
+            "exerciseStableKey.contains(",
+            "exerciseStableKey.startsWith("
+        )
+        val offenders = guardedFiles.flatMap { path ->
+            val source = repoFile(path).readText()
+            forbidden.filter(source::contains).map { token -> "$path: $token" }
+        }
+
+        assertTrue("Stable-key fragment inference found:\n${offenders.joinToString("\n")}", offenders.isEmpty())
+    }
+
     private fun repoFile(path: String): File {
         val current = File(requireNotNull(System.getProperty("user.dir"))).absoluteFile
         val root = generateSequence(current) { directory -> directory.parentFile?.takeUnless { it == directory } }
