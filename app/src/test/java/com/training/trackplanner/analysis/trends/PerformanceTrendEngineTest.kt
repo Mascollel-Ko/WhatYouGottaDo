@@ -194,8 +194,8 @@ class PerformanceTrendEngineTest {
             "display names must not restore canonical squat eligibility",
             squatFeatures.estimated1RmEligible || deadliftFeatures.estimated1RmEligible
         )
-        assertTrue(squatFeatures.progressMetricType.isBlank())
-        assertTrue(deadliftFeatures.progressMetricType.isBlank())
+        assertEquals("NOT_APPLICABLE", squatFeatures.progressMetricType)
+        assertEquals("NOT_APPLICABLE", deadliftFeatures.progressMetricType)
         assertFalse("STRENGTH_PROGRESS" in squatFeatures.analysisEligibility)
         assertFalse("STRENGTH_PROGRESS" in deadliftFeatures.analysisEligibility)
         assertTrue(
@@ -247,8 +247,8 @@ class PerformanceTrendEngineTest {
             "stale defaults must not restore canonical squat eligibility",
             squatFeatures.estimated1RmEligible || deadliftFeatures.estimated1RmEligible
         )
-        assertTrue(squatFeatures.progressMetricType.isBlank())
-        assertTrue(deadliftFeatures.progressMetricType.isBlank())
+        assertEquals("NOT_APPLICABLE", squatFeatures.progressMetricType)
+        assertEquals("NOT_APPLICABLE", deadliftFeatures.progressMetricType)
         assertTrue(
             "stale lost-key metadata must remain isolated from canonical strength identities",
             summary.strengthWeeks.all { week ->
