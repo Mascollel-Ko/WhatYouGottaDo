@@ -281,7 +281,7 @@ class AnalysisTimeSeriesUiTest {
         )
         return PerformanceTrendSummary(
             strengthPerformanceSeries = composite(TrendMetricId.STRENGTH_PERFORMANCE, emptyList()),
-            badmintonTrainingSeries = composite(TrendMetricId.BADMINTON_TRAINING, x),
+            badmintonPracticeSeries = composite(TrendMetricId.BADMINTON_PRACTICE_LOAD, x),
             fatigueCompositeSeries = composite(TrendMetricId.FATIGUE_COMPOSITE, y),
             forecastRanges = emptyMap(),
             trendSentence = "",

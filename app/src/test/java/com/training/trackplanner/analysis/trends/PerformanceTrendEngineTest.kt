@@ -258,7 +258,7 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
-    fun badmintonTrainingUsesMetadataAndDoesNotClaimSkillGain() {
+    fun badmintonPracticeUsesCanonicalIdentityAndDoesNotClaimSkillGain() {
         val renamed = badmintonExercise(name = "Renamed fixture")
         val entries = (0 until 8).map { index ->
             record(
@@ -275,18 +275,18 @@ class PerformanceTrendEngineTest {
             dailyMetrics = emptyList()
         )
 
-        assertTrue(summary.badmintonTrainingSeries.dataPoints.any { point -> (point.value ?: 0.0) > 0.0 })
+        assertTrue(summary.badmintonPracticeSeries.dataPoints.any { point -> (point.value ?: 0.0) > 0.0 })
         val text = summary.trendSentence + summary.detailSections.joinToString { section -> section.shortInterpretation }
         assertFalse(text.contains("실력 향상"))
         assertNoExerciseNameParsingInTrendPackage()
     }
 
     @Test
-    fun badmintonRankingChartUsesResolvedExerciseNameInsteadOfFallbackIdLabel() {
+    fun badmintonObjectiveExamplesUseResolvedExerciseNameInsteadOfFallbackIdLabel() {
         val engine = PerformanceTrendEngine(
-            badmintonObjectiveCatalog = objectiveCatalog("badminton_fixture_2", BadmintonObjective.FOOTWORK)
+            badmintonObjectiveCatalog = objectiveCatalog("footwork_fixture", BadmintonObjective.FOOTWORK)
         )
-        val exercise = badmintonExercise(name = "운동" + "113")
+        val exercise = antiRotationSupportExercise(30, "운동" + "113", "footwork_fixture")
         val entries = (0 until 2).map { index ->
             record(
                 exercise,
@@ -302,53 +302,50 @@ class PerformanceTrendEngineTest {
             entriesWithSets = entries,
             dailyMetrics = emptyList()
         )
-        val ranking = PerformanceChartSpecBuilder().badmintonDetail(
-            mode = DetailChartMode.RANKING,
-            selectedMetrics = emptyList(),
-            badmintonWeeks = summary.badmintonWeeks,
-            exerciseDisplayNamesByStableKey = summary.exerciseDisplayNamesByStableKey
-        )
-
-        assertEquals("랜덤 풋워크", ranking.bars.single().label)
-        assertFalse(ranking.bars.single().label.matches(Regex("""운동\s*\d+""")))
-        assertTrue(summary.badmintonMethodExamples.values.flatten().contains("랜덤 풋워크"))
-        assertFalse(summary.badmintonMethodExamples.values.flatten().any { it.matches(Regex("""운동\s*\d+""")) })
+        assertTrue(summary.badmintonObjectiveExamples.values.flatten().contains("랜덤 풋워크"))
+        assertFalse(summary.badmintonObjectiveExamples.values.flatten().any { it.matches(Regex("""운동\s*\d+""")) })
     }
 
     @Test
     fun badmintonDailyLoadsUseConfirmedSetsAndWeeklyPointsRemainWeekly() {
-        val exercise = badmintonExercise()
+        val practice = badmintonExercise()
+        val objectiveExercise = antiRotationSupportExercise(33, "Reaction fixture", "reaction_fixture")
         val summary = PerformanceTrendEngine(
             badmintonObjectiveCatalog = objectiveCatalog(
-                exercise.stableKey,
+                objectiveExercise.stableKey,
                 BadmintonObjective.REACTION,
                 BadmintonObjective.DECELERATION,
                 BadmintonObjective.FOOTWORK
             )
         ).analyze(
             today = today,
-            exercises = listOf(exercise),
+            exercises = listOf(practice, objectiveExercise),
             entriesWithSets = listOf(
                 record(
-                    exercise,
+                    practice,
                     today.minusDays(1),
                     listOf(set(seconds = 600, confirmed = true)),
                     plannedSets = listOf(set(seconds = 3600, confirmed = false))
+                ),
+                record(
+                    objectiveExercise,
+                    today.minusDays(1),
+                    listOf(set(reps = 10, confirmed = true))
                 )
             ),
             dailyMetrics = emptyList()
         )
 
-        assertEquals(1, summary.badmintonDailyLoads.size)
-        val daily = summary.badmintonDailyLoads.single()
-        assertTrue(daily.totalRaw > 0.0)
+        assertEquals(1, summary.badmintonPracticeDailyLoads.size)
+        assertEquals(10.0, summary.badmintonPracticeDailyLoads.single().practiceLoad, 0.001)
+        val daily = summary.badmintonObjectiveDailyStimulus.single()
         assertEquals(1.0, daily.objectiveStimulus.getValue("REACTION"), 0.001)
         assertEquals(1.0, daily.objectiveStimulus.getValue("DECELERATION"), 0.001)
         assertEquals(1.0, daily.objectiveStimulus.getValue("FOOTWORK"), 0.001)
         assertFalse("role/body-part keys must not leak into transfer objective chart", "GRIP_FOREARM" in daily.objectiveStimulus)
         assertFalse("movement category must not leak into transfer objective chart", "REACTIVE" in daily.objectiveStimulus)
-        assertTrue(summary.badmintonMethodExamples["REACTION"].orEmpty().contains(exercise.name))
-        assertTrue(summary.badmintonWeeks.map { it.weekStart }.distinct().size <= summary.badmintonWeeks.size)
+        assertTrue(summary.badmintonObjectiveExamples["REACTION"].orEmpty().contains(objectiveExercise.name))
+        assertTrue(summary.badmintonPracticeWeeks.map { it.weekStart }.distinct().size <= summary.badmintonPracticeWeeks.size)
     }
 
     @Test
@@ -365,9 +362,7 @@ class PerformanceTrendEngineTest {
             dailyMetrics = emptyList()
         )
 
-        val daily = summary.badmintonDailyLoads.single()
-        assertTrue(daily.totalRaw > 0.0)
-        assertEquals(0.0, daily.objectiveStimulus.getValue("ANTI_ROTATION"), 0.001)
+        assertTrue(summary.badmintonObjectiveDailyStimulus.isEmpty())
     }
 
     @Test
@@ -386,7 +381,7 @@ class PerformanceTrendEngineTest {
             dailyMetrics = emptyList()
         )
 
-        val daily = summary.badmintonDailyLoads.single()
+        val daily = summary.badmintonObjectiveDailyStimulus.single()
         assertTrue(daily.objectiveStimulus.getValue("ANTI_ROTATION") > 0.0)
     }
 
@@ -581,11 +576,12 @@ class PerformanceTrendEngineTest {
         }
     )
 
-    private fun badmintonExercise(id: Long = 2, name: String = "Badminton fixture"): Exercise =
+    private fun badmintonExercise(name: String = "Badminton fixture"): Exercise =
         Exercise(
             name = name,
             category = "스포츠",
-            stableKey = "badminton_fixture_$id",
+            stableKey = "ex_ae9ecdbc",
+            activityKind = "SPORT_SESSION",
             movementPattern = "FOOTWORK",
             movementCategory = "REACTIVE",
             primaryMuscles = "QUADS|CALVES",

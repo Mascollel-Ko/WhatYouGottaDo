@@ -3,6 +3,9 @@ package com.training.trackplanner.analysis.trends
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.core.CoreStimulusSummary
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveDailyPoint
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeDailyPoint
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeWeekPoint
 import java.time.LocalDate
 
 enum class ChartType {
@@ -40,6 +43,7 @@ enum class TrendMetricId {
     STRENGTH_INTENSITY,
     STRENGTH_VOLUME,
     STRENGTH_EFFICIENCY,
+    BADMINTON_PRACTICE_LOAD,
     BADMINTON_TRAINING,
     COURT_VOLUME,
     FOOTWORK_REACTIVE,
@@ -291,7 +295,7 @@ data class RepRangeWeekShare(
 
 data class PerformanceTrendSummary(
     val strengthPerformanceSeries: CompositeTrendSeries,
-    val badmintonTrainingSeries: CompositeTrendSeries,
+    val badmintonPracticeSeries: CompositeTrendSeries,
     val fatigueCompositeSeries: CompositeTrendSeries,
     val forecastRanges: Map<TrendMetricId, ForecastRange>,
     val trendSentence: String,
@@ -299,13 +303,13 @@ data class PerformanceTrendSummary(
     val detailSections: List<PerformanceDetailSection>,
     val dashboardChartSpecs: List<ChartSpec>,
     val strengthWeeks: List<StrengthWeekIndex> = emptyList(),
-    val badmintonWeeks: List<BadmintonWeekIndex> = emptyList(),
-    val badmintonDailyLoads: List<BadmintonDailyLoadPoint> = emptyList(),
+    val badmintonPracticeWeeks: List<BadmintonPracticeWeekPoint> = emptyList(),
+    val badmintonPracticeDailyLoads: List<BadmintonPracticeDailyPoint> = emptyList(),
+    val badmintonObjectiveDailyStimulus: List<BadmintonObjectiveDailyPoint> = emptyList(),
     val fatigueWeeks: List<FatigueWeekIndex> = emptyList(),
     val repRangeWeeks: List<RepRangeWeekShare> = emptyList(),
     val metricSeries: Map<TrendMetricId, List<TrendDataPoint>> = emptyMap(),
-    val badmintonMethodExamples: Map<String, List<String>> = emptyMap(),
-    val exerciseDisplayNamesByStableKey: Map<String, String> = emptyMap(),
+    val badmintonObjectiveExamples: Map<String, List<String>> = emptyMap(),
     val coreStimulus: CoreStimulusSummary = CoreStimulusSummary.EMPTY,
     val persistentStrengthPerformanceSummary: PersistentStrengthPerformanceSummary? = null
 )

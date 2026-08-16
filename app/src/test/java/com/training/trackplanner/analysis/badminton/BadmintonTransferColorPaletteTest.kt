@@ -1,6 +1,5 @@
 package com.training.trackplanner.analysis.badminton
 
-import com.training.trackplanner.analysis.trends.BadmintonDailyLoadPoint
 import com.training.trackplanner.analysis.trends.BadmintonTrainingMethodSeries
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -30,11 +29,8 @@ class BadmintonTransferColorPaletteTest {
     @Test
     fun canonicalObjectiveLegendUsesTheChartColorKey() {
         val points = listOf(
-            BadmintonDailyLoadPoint(
+            BadmintonObjectiveDailyPoint(
                 date = LocalDate.parse("2026-07-01"),
-                courtRaw = 0.0,
-                footworkReactiveRaw = 0.0,
-                supportRaw = 0.0,
                 objectiveStimulus = mapOf("FOOTWORK" to 10.0, "REACTION" to 6.0)
             )
         )

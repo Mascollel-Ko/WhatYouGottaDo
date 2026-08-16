@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.trends
 
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveDailyPoint
 
 object BadmintonTrainingMethodSeries {
     val objectiveKeys: List<String> = BadmintonObjective.entries.map(BadmintonObjective::name)
@@ -8,7 +9,7 @@ object BadmintonTrainingMethodSeries {
     fun colorIndex(key: String): Int =
         objectiveKeys.indexOf(BadmintonTrainingMethodLabels.canonicalObjectiveKey(key)).takeIf { it >= 0 } ?: 0
 
-    fun totals(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): Map<String, Double> {
+    fun totals(points: List<BadmintonObjectiveDailyPoint>, selectedKeys: Set<String>? = null): Map<String, Double> {
         val allowed = selectedKeys?.mapNotNull(BadmintonTrainingMethodLabels::canonicalObjectiveKey)?.toSet()
         val keys = objectiveKeys.filter { key -> allowed == null || key in allowed }
         val totals = linkedMapOf<String, Double>().apply { keys.forEach { key -> put(key, 0.0) } }
@@ -23,7 +24,7 @@ object BadmintonTrainingMethodSeries {
         return totals
     }
 
-    fun objectiveBars(points: List<BadmintonDailyLoadPoint>): List<BarItem> {
+    fun objectiveBars(points: List<BadmintonObjectiveDailyPoint>): List<BarItem> {
         val totals = totals(points)
         return objectiveKeys.map { key ->
             BarItem(
@@ -35,7 +36,7 @@ object BadmintonTrainingMethodSeries {
         }
     }
 
-    fun summary(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): BadmintonTrainingMethodSummary {
+    fun summary(points: List<BadmintonObjectiveDailyPoint>, selectedKeys: Set<String>? = null): BadmintonTrainingMethodSummary {
         val today = points.maxOfOrNull { it.date }
             ?: return BadmintonTrainingMethodSummary("최근 7일 배드민턴 전이 목적 기록이 부족합니다.", emptyList(), emptyList())
         val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today }, selectedKeys)
@@ -57,7 +58,7 @@ object BadmintonTrainingMethodSeries {
         return BadmintonTrainingMethodSummary(sentence, topKeys, lowKeys)
     }
 
-    fun recentComparisonGroups(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
+    fun recentComparisonGroups(points: List<BadmintonObjectiveDailyPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
         val today = points.maxOfOrNull { it.date } ?: return emptyList()
         val recent7 = totals(points.filter { it.date >= today.minusDays(6) && it.date <= today }, selectedKeys)
         val recent28 = totals(points.filter { it.date >= today.minusDays(27) && it.date <= today }, selectedKeys)
@@ -68,7 +69,7 @@ object BadmintonTrainingMethodSeries {
         )
     }
 
-    fun weeklyStackedGroups(points: List<BadmintonDailyLoadPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
+    fun weeklyStackedGroups(points: List<BadmintonObjectiveDailyPoint>, selectedKeys: Set<String>? = null): List<StackedBarGroup> {
         val allowed = selectedKeys?.mapNotNull(BadmintonTrainingMethodLabels::canonicalObjectiveKey)?.toSet()
         return points.groupBy { point -> AnalysisChartTemporalPolicy.weekStart(point.date) }
             .toSortedMap()

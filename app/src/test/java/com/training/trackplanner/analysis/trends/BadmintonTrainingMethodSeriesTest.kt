@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveDailyPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -13,9 +14,9 @@ class BadmintonTrainingMethodSeriesTest {
         val nextMonday = monday.plusWeeks(1)
         val groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(
             listOf(
-                BadmintonDailyLoadPoint(monday, 0.0, 10.0, 0.0, mapOf("FOOTWORK" to 10.0)),
-                BadmintonDailyLoadPoint(monday.plusDays(2), 0.0, 5.0, 0.0, mapOf("FOOTWORK" to 5.0)),
-                BadmintonDailyLoadPoint(nextMonday, 0.0, 7.0, 0.0, mapOf("REACTION" to 7.0))
+                BadmintonObjectiveDailyPoint(monday, mapOf("FOOTWORK" to 10.0)),
+                BadmintonObjectiveDailyPoint(monday.plusDays(2), mapOf("FOOTWORK" to 5.0)),
+                BadmintonObjectiveDailyPoint(nextMonday, mapOf("REACTION" to 7.0))
             )
         )
 
@@ -37,11 +38,8 @@ class BadmintonTrainingMethodSeriesTest {
         val weekStart = LocalDate.parse("2026-06-29")
         val group = BadmintonTrainingMethodSeries.weeklyStackedGroups(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     weekStart.plusDays(2),
-                    0.0,
-                    10.0,
-                    0.0,
                     mapOf("FOOTWORK" to 10.0)
                 )
             )
@@ -57,7 +55,7 @@ class BadmintonTrainingMethodSeriesTest {
     fun totalsPreserveDuplicatedMultiLabelStimulus() {
         val totals = BadmintonTrainingMethodSeries.totals(
             listOf(
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 10.0, 0.0, mapOf("FOOTWORK" to 10.0, "REACTION" to 10.0))
+                BadmintonObjectiveDailyPoint(LocalDate.parse("2026-06-01"), mapOf("FOOTWORK" to 10.0, "REACTION" to 10.0))
             )
         )
 
@@ -69,11 +67,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun totalsDuplicateReactionAccelerationFootworkStimulus() {
         val totals = BadmintonTrainingMethodSeries.totals(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-01"),
-                    0.0,
-                    10.0,
-                    0.0,
                     mapOf("FOOTWORK" to 10.0, "REACTION" to 10.0, "ACCELERATION" to 10.0)
                 )
             )
@@ -88,11 +83,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun totalsCanFilterSelectedObjectivesOnly() {
         val totals = BadmintonTrainingMethodSeries.totals(
             points = listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-01"),
-                    0.0,
-                    30.0,
-                    0.0,
                     mapOf("FOOTWORK" to 10.0, "REACTION" to 12.0, "ACCELERATION" to 8.0)
                 )
             ),
@@ -109,8 +101,8 @@ class BadmintonTrainingMethodSeriesTest {
         val selected = setOf("FOOTWORK", "REACTION")
         val groups = BadmintonTrainingMethodSeries.recentComparisonGroups(
             points = listOf(
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 0.0, 0.0, mapOf("DECELERATION" to 28.0)),
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-10"), 0.0, 0.0, 0.0, mapOf("FOOTWORK" to 14.0, "REACTION" to 7.0))
+                BadmintonObjectiveDailyPoint(LocalDate.parse("2026-06-01"), mapOf("DECELERATION" to 28.0)),
+                BadmintonObjectiveDailyPoint(LocalDate.parse("2026-06-10"), mapOf("FOOTWORK" to 14.0, "REACTION" to 7.0))
             ),
             selectedKeys = selected
         )
@@ -128,8 +120,8 @@ class BadmintonTrainingMethodSeriesTest {
         val today = LocalDate.parse("2026-06-28")
         val groups = BadmintonTrainingMethodSeries.recentComparisonGroups(
             points = listOf(
-                BadmintonDailyLoadPoint(today.minusDays(20), 0.0, 0.0, 0.0, mapOf("FOOTWORK" to 28.0)),
-                BadmintonDailyLoadPoint(today, 0.0, 0.0, 0.0, mapOf("REACTION" to 14.0))
+                BadmintonObjectiveDailyPoint(today.minusDays(20), mapOf("FOOTWORK" to 28.0)),
+                BadmintonObjectiveDailyPoint(today, mapOf("REACTION" to 14.0))
             )
         )
 
@@ -149,11 +141,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun weeklyStackedGroupsKeepAllNineIncludingZeroObjectives() {
         val groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-01"),
-                    0.0,
-                    0.0,
-                    0.0,
                     mapOf("REACTION" to 12.0)
                 )
             )
@@ -168,11 +157,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun weeklyStackedGroupsRespectSelectedObjectivesAndStableColors() {
         val groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(
             points = listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-01"),
-                    0.0,
-                    0.0,
-                    0.0,
                     mapOf("FOOTWORK" to 10.0, "REACTION" to 6.0, "ACCELERATION" to 3.0)
                 )
             ),
@@ -188,11 +174,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun summaryUsesTransferObjectiveLabelsNotLegacyAxisLabels() {
         val summary = BadmintonTrainingMethodSeries.summary(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-10"),
-                    0.0,
-                    0.0,
-                    0.0,
                     mapOf(
                         "RACKET_SUPPORT" to 100.0,
                         "UNILATERAL_STABILITY" to 100.0,
@@ -216,11 +199,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun totalsFilterLegacyAxisKeysOutOfObjectiveChartData() {
         val totals = BadmintonTrainingMethodSeries.totals(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-10"),
-                    0.0,
-                    0.0,
-                    0.0,
                     mapOf(
                         "RACKET_SUPPORT" to 100.0,
                         "UNILATERAL_STABILITY" to 100.0,
@@ -240,11 +220,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun objectiveBarsAlwaysShowAllNineIncludingZero() {
         val bars = BadmintonTrainingMethodSeries.objectiveBars(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-10"),
-                    0.0,
-                    0.0,
-                    0.0,
                     mapOf("REACTION" to 12.0)
                 )
             )
@@ -260,8 +237,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun recentComparisonGroupsUseTransferObjectiveLabels() {
         val groups = BadmintonTrainingMethodSeries.recentComparisonGroups(
             listOf(
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-01"), 0.0, 0.0, 0.0, mapOf("DECELERATION" to 28.0)),
-                BadmintonDailyLoadPoint(LocalDate.parse("2026-06-10"), 0.0, 0.0, 0.0, mapOf("FOOTWORK" to 14.0, "RACKET_SUPPORT" to 99.0))
+                BadmintonObjectiveDailyPoint(LocalDate.parse("2026-06-01"), mapOf("DECELERATION" to 28.0)),
+                BadmintonObjectiveDailyPoint(LocalDate.parse("2026-06-10"), mapOf("FOOTWORK" to 14.0, "RACKET_SUPPORT" to 99.0))
             )
         )
 
@@ -276,11 +253,8 @@ class BadmintonTrainingMethodSeriesTest {
     fun summaryDoesNotEmitLowerBodyDeficitLanguage() {
         val summary = BadmintonTrainingMethodSeries.summary(
             listOf(
-                BadmintonDailyLoadPoint(
+                BadmintonObjectiveDailyPoint(
                     LocalDate.parse("2026-06-10"),
-                    0.0,
-                    30.0,
-                    0.0,
                     mapOf(
                         "FOOTWORK" to 15.0,
                         "ACCELERATION" to 10.0,

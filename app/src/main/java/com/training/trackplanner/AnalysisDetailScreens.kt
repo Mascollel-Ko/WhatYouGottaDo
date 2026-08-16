@@ -159,7 +159,7 @@ private fun BadmintonTransferObjectiveSentenceCard(
     summary: PerformanceTrendSummary,
     selectedMethodKeys: Set<String>
 ) {
-    val methodSummary = BadmintonTrainingMethodSeries.summary(summary.badmintonDailyLoads, selectedMethodKeys)
+    val methodSummary = BadmintonTrainingMethodSeries.summary(summary.badmintonObjectiveDailyStimulus, selectedMethodKeys)
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(methodSummary.sentence, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -179,44 +179,11 @@ private fun BadmintonTrainingLoadCharts(
     selectedMethodKeys: List<String>,
     onSelectedMethodKeysChange: (List<String>) -> Unit
 ) {
-    var mode by rememberSaveable { mutableStateOf(BadmintonLoadMode.TOTAL) }
     var showMethodDescription by rememberSaveable { mutableStateOf(false) }
     var showMethodPicker by rememberSaveable { mutableStateOf(false) }
-    val methodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonDailyLoads)
+    val methodTotals = BadmintonTrainingMethodSeries.totals(summary.badmintonObjectiveDailyStimulus)
     val selectedMethodSet = selectedMethodKeys.toSet()
-    val methodKeys = BadmintonTrainingMethodSeries.objectiveKeys
-    var selectedMethod by rememberSaveable(BadmintonTrainingMethodSeries.objectiveKeys.joinToString()) {
-        mutableStateOf(methodTotals.maxByOrNull { it.value }?.key ?: methodKeys.first())
-    }
-    if (selectedMethod !in methodKeys) {
-        selectedMethod = methodTotals.maxByOrNull { it.value }?.key ?: methodKeys.first()
-    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("배드민턴 관련 훈련량 선택", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                AnalysisChipRow(
-                    labels = BadmintonLoadMode.entries.map { it.label },
-                    selected = BadmintonLoadMode.entries.indexOf(mode),
-                    onSelect = { index -> mode = BadmintonLoadMode.entries[index] }
-                )
-                if (mode == BadmintonLoadMode.METHOD) {
-                    if (methodTotals.values.none { it > 0.0 }) {
-                        Text(
-                            "전이 목적 메타데이터가 있는 기록이 부족합니다.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        AnalysisChipRow(
-                            labels = methodKeys.map { key -> localizedUiText(BadmintonTrainingMethodLabels.label(key)) },
-                            selected = methodKeys.indexOf(selectedMethod).coerceAtLeast(0),
-                            onSelect = { index -> selectedMethod = methodKeys[index] }
-                        )
-                    }
-                }
-            }
-        }
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -232,35 +199,42 @@ private fun BadmintonTrainingLoadCharts(
             )
         }
         AnalysisSectionChart(
-            title = "배드민턴 관련 훈련량(일별)",
+            title = "배드민턴 연습 훈련량(일별)",
             spec = ChartSpec(
                 type = ChartType.LINE,
-                title = "배드민턴 관련 훈련량(일별)",
+                title = "배드민턴 연습 훈련량(일별)",
                 lineSeries = listOf(
                     ChartSeries(
-                        badmintonSeriesLabel(mode, selectedMethod),
-                        summary.badmintonDailyLoads.map { point ->
-                            TrendDataPoint(point.date, point.valueFor(mode, selectedMethod))
+                        "배드민턴 연습 훈련량",
+                        summary.badmintonPracticeDailyLoads.map { point ->
+                            TrendDataPoint(point.date, point.practiceLoad)
                         }
                     )
                 ),
                 timeGranularity = ChartTimeGranularity.DAILY,
-                xDomain = AnalysisChartTemporalPolicy.dailyDomain(summary.badmintonDailyLoads.map { it.date })
+                xDomain = AnalysisChartTemporalPolicy.dailyDomain(summary.badmintonPracticeDailyLoads.map { it.date })
             ),
-            note = "확인된 기록만 사용한 일별 관련 훈련량입니다."
+            note = "확인된 배드민턴 연습 시간과 RPE만 사용한 일별 훈련량입니다."
         )
         AnalysisSectionChart(
-            title = "배드민턴 관련 훈련량(주별)",
+            title = "배드민턴 연습 훈련량(주별)",
             spec = ChartSpec(
                 type = ChartType.LINE,
-                title = "배드민턴 관련 훈련량(주별)",
-                lineSeries = listOf(ChartSeries(badmintonSeriesLabel(mode, selectedMethod), weeklyBadmintonPoints(summary, mode, selectedMethod))),
+                title = "배드민턴 연습 훈련량(주별)",
+                lineSeries = listOf(
+                    ChartSeries(
+                        "배드민턴 연습 훈련량",
+                        summary.badmintonPracticeWeeks.map { point ->
+                            TrendDataPoint(point.weekStart, point.practiceLoad)
+                        }
+                    )
+                ),
                 timeGranularity = ChartTimeGranularity.WEEKLY,
-                xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonDailyLoads.map { it.date })
+                xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonPracticeDailyLoads.map { it.date })
             ),
             note = "월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다."
         )
-        val comparisonGroups = BadmintonTrainingMethodSeries.recentComparisonGroups(summary.badmintonDailyLoads, selectedMethodSet)
+        val comparisonGroups = BadmintonTrainingMethodSeries.recentComparisonGroups(summary.badmintonObjectiveDailyStimulus, selectedMethodSet)
         if (comparisonGroups.isNotEmpty()) {
             AnalysisSectionChart(
                 title = "최근 7일 vs 28일 전이 목적 비교",
@@ -286,7 +260,7 @@ private fun BadmintonTrainingLoadCharts(
                         ChartSpec(
                             type = ChartType.HORIZONTAL_BAR,
                             title = "배드민턴 전이 목적별 자극량",
-                            bars = BadmintonTrainingMethodSeries.objectiveBars(summary.badmintonDailyLoads)
+                            bars = BadmintonTrainingMethodSeries.objectiveBars(summary.badmintonObjectiveDailyStimulus)
                         )
                     )
                     Text(
@@ -300,9 +274,9 @@ private fun BadmintonTrainingLoadCharts(
                 title = "주별 배드민턴 전이 자극량",
                 spec = badmintonObjectiveStackedChartSpec(
                     title = "주별 배드민턴 전이 자극량",
-                    groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonDailyLoads, selectedMethodSet),
+                    groups = BadmintonTrainingMethodSeries.weeklyStackedGroups(summary.badmintonObjectiveDailyStimulus, selectedMethodSet),
                     timeGranularity = ChartTimeGranularity.WEEKLY,
-                    xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonDailyLoads.map { it.date })
+                    xDomain = AnalysisChartTemporalPolicy.weeklyDomain(summary.badmintonObjectiveDailyStimulus.map { it.date })
                 ),
                 note = "각 주마다 어떤 배드민턴 전이 목적의 자극이 많았는지 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다. 월별이 아니라 주별 집계입니다."
             )
@@ -312,7 +286,7 @@ private fun BadmintonTrainingLoadCharts(
         if (showMethodDescription) {
             BadmintonMethodDescriptionDialog(
                 methodKeys = selectedMethodKeys,
-                examples = summary.badmintonMethodExamples,
+                examples = summary.badmintonObjectiveExamples,
                 onDismiss = { showMethodDescription = false }
             )
         }
@@ -509,42 +483,6 @@ private fun filterBadmintonMethodKeys(available: List<String>, query: String): L
             BadmintonTrainingMethodLabels.label(key).contains(needle, ignoreCase = true)
     }
 }
-
-private enum class BadmintonLoadMode(val label: String) {
-    TOTAL("전체"),
-    DIRECT("직접"),
-    TRANSFER("전이"),
-    METHOD("전이 목적")
-}
-
-private fun badmintonSeriesLabel(mode: BadmintonLoadMode, method: String): String = when (mode) {
-    BadmintonLoadMode.TOTAL -> "전체 배드민턴 관련 훈련량"
-    BadmintonLoadMode.DIRECT -> "직접 배드민턴 훈련량"
-    BadmintonLoadMode.TRANSFER -> "배드민턴 전이 훈련량"
-    BadmintonLoadMode.METHOD -> BadmintonTrainingMethodLabels.label(method.ifBlank { "전이 목적" })
-}
-
-private fun com.training.trackplanner.analysis.trends.BadmintonDailyLoadPoint.valueFor(
-    mode: BadmintonLoadMode,
-    method: String
-): Double = when (mode) {
-    BadmintonLoadMode.TOTAL -> totalRaw
-    BadmintonLoadMode.DIRECT -> courtRaw + footworkReactiveRaw
-    BadmintonLoadMode.TRANSFER -> supportRaw
-    BadmintonLoadMode.METHOD -> objectiveStimulus[method] ?: 0.0
-}
-
-private fun weeklyBadmintonPoints(
-    summary: PerformanceTrendSummary,
-    mode: BadmintonLoadMode,
-    method: String
-): List<TrendDataPoint> =
-    summary.badmintonDailyLoads
-        .groupBy { point -> AnalysisChartTemporalPolicy.weekStart(point.date) }
-        .toSortedMap()
-        .map { (week, points) ->
-            TrendDataPoint(week, points.sumOf { point -> point.valueFor(mode, method) }.takeIf { it > 0.0 })
-        }
 
 internal fun accumulatedFatigueChartSpec(
     points: List<com.training.trackplanner.analysis.fatigue.FatigueTimePoint>

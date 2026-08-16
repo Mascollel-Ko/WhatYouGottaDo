@@ -9,10 +9,14 @@ object AnalysisMetricRegistry {
         metric(TrendMetricId.STRENGTH_INTENSITY, "강도", "주간 근력운동 강도 지수", AnalysisMetricCategory.STRENGTH, true),
         metric(TrendMetricId.STRENGTH_VOLUME, "수행량", "주간 유효 근력운동 수행량", AnalysisMetricCategory.VOLUME, true),
         metric(TrendMetricId.STRENGTH_EFFICIENCY, "RPE 대비 운동량", "자각 강도 대비 수행 효율", AnalysisMetricCategory.STRENGTH, true),
-        metric(TrendMetricId.BADMINTON_TRAINING, "배드민턴 훈련량", "코트, 풋워크, 보조훈련을 합친 주간 지수", AnalysisMetricCategory.BADMINTON, true),
-        metric(TrendMetricId.COURT_VOLUME, "셔틀 플레이 시간", "주간 코트 훈련량", AnalysisMetricCategory.BADMINTON, true),
-        metric(TrendMetricId.FOOTWORK_REACTIVE, "풋워크/반응", "주간 풋워크 및 반응 훈련량", AnalysisMetricCategory.TRANSFER, true),
-        metric(TrendMetricId.BADMINTON_SUPPORT, "보조훈련량", "배드민턴 지원 목적의 주간 훈련량", AnalysisMetricCategory.TRANSFER, true),
+        metric(
+            TrendMetricId.BADMINTON_PRACTICE_LOAD,
+            "배드민턴 연습 훈련량",
+            "확인된 배드민턴 연습 시간과 RPE를 반영한 주간 훈련량",
+            AnalysisMetricCategory.BADMINTON,
+            true,
+            "훈련량"
+        ),
         metric(TrendMetricId.FATIGUE_COMPOSITE, "이번 주 누적 부담", "주간 canonical OFI 기반 누적 부담 지수", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.SYSTEMIC_FATIGUE, "전신 부담", "주간 전신성 피로 부담", AnalysisMetricCategory.FATIGUE, false),
         metric(TrendMetricId.STRENGTH_FATIGUE, "근력운동 부담", "근력운동에서 발생한 주간 피로 부담", AnalysisMetricCategory.FATIGUE, false),

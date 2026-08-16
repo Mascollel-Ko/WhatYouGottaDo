@@ -1,10 +1,12 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeWeekPoint
+
 class PerformanceChartSpecBuilder {
     fun dashboardSpecs(summary: PerformanceTrendSummary): List<ChartSpec> =
         listOf(
             dashboardLineSpec(summary.strengthPerformanceSeries),
-            dashboardLineSpec(summary.badmintonTrainingSeries),
+            dashboardLineSpec(summary.badmintonPracticeSeries),
             dashboardLineSpec(summary.fatigueCompositeSeries)
         )
 
@@ -58,46 +60,17 @@ class PerformanceChartSpecBuilder {
         }
     }
 
-    fun badmintonDetail(
-        mode: DetailChartMode,
-        selectedMetrics: List<TrendMetricId>,
-        badmintonWeeks: List<BadmintonWeekIndex>,
-        exerciseDisplayNamesByStableKey: Map<String, String> = emptyMap()
-    ): ChartSpec {
-        val sanitized = DetailChartSelector.sanitizeSelection(
-            mode,
-            selectedMetrics,
-            listOf(TrendMetricId.COURT_VOLUME)
-        )
-        return when (mode) {
-            DetailChartMode.TREND -> ChartSpec(
-                type = ChartType.LINE,
-                title = "배드민턴 훈련 해설",
-                lineSeries = sanitized.map { metric ->
-                    ChartSeries(metric.label(), badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.valueFor(metric)) })
-                },
-                timeGranularity = ChartTimeGranularity.WEEKLY
+    fun badmintonPracticeDetail(weeks: List<BadmintonPracticeWeekPoint>): ChartSpec = ChartSpec(
+        type = ChartType.LINE,
+        title = "배드민턴 연습 훈련량",
+        lineSeries = listOf(
+            ChartSeries(
+                TrendMetricId.BADMINTON_PRACTICE_LOAD.label(),
+                weeks.map { week -> TrendDataPoint(week.weekStart, week.practiceLoad) }
             )
-            DetailChartMode.COMPOSITION -> compositionSpec(
-                title = "배드민턴 훈련 구성",
-                items = latestBadmintonComposition(badmintonWeeks)
-            )
-            DetailChartMode.CONTRIBUTION -> barSpec(
-                title = "최근 변화 기여",
-                items = badmintonContribution(badmintonWeeks)
-            )
-            DetailChartMode.RANKING -> horizontalBarSpec(
-                title = "최근 관련 훈련",
-                items = badmintonWeeks.lastOrNull()?.itemScores
-                    ?.entries
-                    ?.sortedByDescending { entry -> entry.value }
-                    ?.take(6)
-                    ?.map { entry -> BarItem(exerciseDisplayNamesByStableKey[entry.key] ?: "운동 ${entry.key}", entry.value) }
-                    .orEmpty()
-            )
-            DetailChartMode.RELATIONSHIP -> ChartSpec(ChartType.SCATTER, "관계 분석")
-        }
-    }
+        ),
+        timeGranularity = ChartTimeGranularity.WEEKLY
+    )
 
     fun fatigueDetail(
         mode: DetailChartMode,
@@ -165,16 +138,6 @@ class PerformanceChartSpecBuilder {
         return shareItems(components)
     }
 
-    private fun latestBadmintonComposition(weeks: List<BadmintonWeekIndex>): List<BarItem> {
-        val latest = weeks.lastOrNull() ?: return emptyList()
-        val components = listOf(
-            "셔틀 플레이" to PerformanceTrendConstants.BADMINTON_COURT_WEIGHT * latest.courtVolumeIndex,
-            "풋워크/반응" to PerformanceTrendConstants.BADMINTON_FOOTWORK_WEIGHT * latest.footworkReactiveIndex,
-            "보조훈련" to PerformanceTrendConstants.BADMINTON_SUPPORT_WEIGHT * latest.supportIndex
-        )
-        return shareItems(components)
-    }
-
     private fun latestFatigueComposition(weeks: List<FatigueWeekIndex>): List<BarItem> {
         val latest = weeks.lastOrNull() ?: return emptyList()
         val components = listOf(
@@ -195,17 +158,6 @@ class PerformanceChartSpecBuilder {
             contributionItem("강도", current.map { it.intensityIndex }, previous.map { it.intensityIndex }, 0.50),
             contributionItem("수행량", current.map { it.volumeIndex }, previous.map { it.volumeIndex }, 0.40),
             contributionItem("RPE 대비 운동량", current.map { it.efficiencyIndex }, previous.map { it.efficiencyIndex }, 0.10)
-        )
-    }
-
-    private fun badmintonContribution(weeks: List<BadmintonWeekIndex>): List<BarItem> {
-        if (weeks.size < 2) return emptyList()
-        val current = weeks.takeLast(4)
-        val previous = weeks.dropLast(4).takeLast(4)
-        return listOf(
-            contributionItem("셔틀 플레이", current.map { it.courtVolumeIndex }, previous.map { it.courtVolumeIndex }, 0.60),
-            contributionItem("풋워크", current.map { it.footworkReactiveIndex }, previous.map { it.footworkReactiveIndex }, 0.25),
-            contributionItem("보조", current.map { it.supportIndex }, previous.map { it.supportIndex }, 0.15)
         )
     }
 
@@ -247,14 +199,6 @@ class PerformanceChartSpecBuilder {
             TrendMetricId.STRENGTH_VOLUME_ONLY -> volumeIndex
             TrendMetricId.STRENGTH_EFFICIENCY -> efficiencyIndex
             else -> performanceIndex
-        }
-
-    private fun BadmintonWeekIndex.valueFor(metric: TrendMetricId): Double =
-        when (metric) {
-            TrendMetricId.COURT_VOLUME -> courtVolumeIndex
-            TrendMetricId.FOOTWORK_REACTIVE -> footworkReactiveIndex
-            TrendMetricId.BADMINTON_SUPPORT -> supportIndex
-            else -> trainingIndex
         }
 
     private fun FatigueWeekIndex.valueFor(metric: TrendMetricId): Double =

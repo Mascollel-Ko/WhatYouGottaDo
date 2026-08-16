@@ -3,14 +3,34 @@ package com.training.trackplanner.analysis.badminton
 import com.training.trackplanner.analysis.core.AnalysisStimulusRpePolicy
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import java.time.LocalDate
 
 object BadmintonObjectiveStimulusContract {
     const val VERSION = "BADMINTON_OBJECTIVE_STIMULUS_V2"
 }
 
+data class BadmintonObjectiveDailyPoint(
+    val date: LocalDate,
+    val objectiveStimulus: Map<String, Double>
+)
+
 class BadmintonObjectiveStimulusCalculator(
     private val catalog: CanonicalBadmintonObjectiveCatalog
 ) {
+    fun daily(
+        records: List<WorkoutEntryWithSets>,
+        exerciseMap: Map<String, Exercise>
+    ): List<BadmintonObjectiveDailyPoint> = records
+        .filter { record -> record.sets.any { set -> set.confirmed } }
+        .groupBy { record -> runCatching { LocalDate.parse(record.entry.date) }.getOrNull() }
+        .mapNotNull { (date, sameDateRecords) ->
+            date ?: return@mapNotNull null
+            val stimulus = calculate(sameDateRecords, exerciseMap)
+            if (stimulus.values.none { value -> value > 0.0 }) return@mapNotNull null
+            BadmintonObjectiveDailyPoint(date, stimulus)
+        }
+        .sortedBy(BadmintonObjectiveDailyPoint::date)
+
     fun calculate(
         records: List<WorkoutEntryWithSets>,
         exerciseMap: Map<String, Exercise>

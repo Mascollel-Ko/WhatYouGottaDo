@@ -13,6 +13,10 @@ import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveExampleResolver
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCalculator
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeWeekPoint
 import com.training.trackplanner.analysis.core.CanonicalCoreCatalog
 import com.training.trackplanner.analysis.core.CoreStimulusCalculator
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -25,8 +29,12 @@ class PerformanceTrendEngine(
     private val weeklyAggregator: WeeklyAnalysisAggregator = WeeklyAnalysisAggregator(),
     private val strengthCalculator: StrengthPerformanceIndexCalculator =
         StrengthPerformanceIndexCalculator(runtimeMetadataCatalog),
-    private val badmintonCalculator: BadmintonTrainingLoadIndexCalculator =
-        BadmintonTrainingLoadIndexCalculator(runtimeMetadataCatalog, badmintonObjectiveCatalog),
+    private val badmintonPracticeCalculator: BadmintonPracticeLoadCalculator =
+        BadmintonPracticeLoadCalculator(runtimeMetadataCatalog),
+    private val badmintonObjectiveCalculator: BadmintonObjectiveStimulusCalculator =
+        BadmintonObjectiveStimulusCalculator(badmintonObjectiveCatalog),
+    private val badmintonObjectiveExampleResolver: BadmintonObjectiveExampleResolver =
+        BadmintonObjectiveExampleResolver(badmintonObjectiveCatalog),
     private val fatigueCalculator: FatigueCompositeIndexCalculator = FatigueCompositeIndexCalculator(),
     private val forecastCalculator: TrendForecastRangeCalculator = TrendForecastRangeCalculator(),
     private val chartSpecBuilder: PerformanceChartSpecBuilder = PerformanceChartSpecBuilder(),
@@ -43,17 +51,22 @@ class PerformanceTrendEngine(
         val exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey(exercises, entriesWithSets)
         val weeks = weeklyAggregator.aggregate(today, entriesWithSets, dailyMetrics)
         val strengthWeeks = strengthCalculator.calculate(weeks, exerciseMap, dailyMetrics)
-        val badmintonWeeks = badmintonCalculator.calculate(weeks, exerciseMap)
-        val badmintonDailyLoads = badmintonCalculator.dailyLoads(entriesWithSets, exerciseMap)
-        val badmintonMethodExamples = badmintonCalculator.methodExamples(entriesWithSets, exerciseMap, exerciseDisplayNamesByStableKey)
+        val badmintonPracticeWeeks = badmintonPracticeCalculator.weeklyLoads(weeks, exerciseMap)
+        val badmintonPracticeDailyLoads = badmintonPracticeCalculator.dailyLoads(entriesWithSets, exerciseMap)
+        val badmintonObjectiveDailyStimulus = badmintonObjectiveCalculator.daily(entriesWithSets, exerciseMap)
+        val badmintonObjectiveExamples = badmintonObjectiveExampleResolver.resolve(
+            entriesWithSets,
+            exerciseMap,
+            exerciseDisplayNamesByStableKey
+        )
         val coreStimulus = CoreStimulusCalculator(canonicalCoreCatalog).calculate(entriesWithSets, exerciseMap)
         val fatigueWeeks = fatigueWeeks(today, weeks, entriesWithSets, exercises, dailyMetrics)
         val repRangeWeeks = repRangeWeeks(weeks)
-        val metricSeries = metricSeries(strengthWeeks, badmintonWeeks, fatigueWeeks)
+        val metricSeries = metricSeries(strengthWeeks, badmintonPracticeWeeks, fatigueWeeks)
         val confidence = TrendMath.combineConfidence(
             listOf(
                 strengthWeeks.lastOrNull()?.confidence,
-                badmintonWeeks.lastOrNull()?.confidence,
+                badmintonPracticeWeeks.lastOrNull()?.confidence,
                 fatigueWeeks.lastOrNull()?.confidence
             ).filterNotNull()
         )
@@ -65,10 +78,10 @@ class PerformanceTrendEngine(
             confidence = strengthWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
         )
         val badmintonSeries = compositeSeries(
-            title = "배드민턴 훈련량",
-            metricId = TrendMetricId.BADMINTON_TRAINING,
-            points = metricSeries.getValue(TrendMetricId.BADMINTON_TRAINING),
-            confidence = badmintonWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
+            title = "배드민턴 연습 훈련량",
+            metricId = TrendMetricId.BADMINTON_PRACTICE_LOAD,
+            points = metricSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD),
+            confidence = badmintonPracticeWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
         )
         val fatigueSeries = compositeSeries(
             title = "이번 주 누적 부담",
@@ -80,10 +93,10 @@ class PerformanceTrendEngine(
             .mapNotNull { series -> series.forecastRange?.let { range -> series.metricId to range } }
             .toMap()
 
-        val detailSections = detailSections(strengthWeeks, badmintonWeeks, fatigueWeeks, metricSeries, exerciseDisplayNamesByStableKey)
+        val detailSections = detailSections(strengthWeeks, badmintonPracticeWeeks, fatigueWeeks, metricSeries)
         val provisional = PerformanceTrendSummary(
             strengthPerformanceSeries = strengthSeries,
-            badmintonTrainingSeries = badmintonSeries,
+            badmintonPracticeSeries = badmintonSeries,
             fatigueCompositeSeries = fatigueSeries,
             forecastRanges = forecasts,
             trendSentence = sentenceBuilder.dashboardSentence(
@@ -96,13 +109,13 @@ class PerformanceTrendEngine(
             detailSections = detailSections,
             dashboardChartSpecs = emptyList(),
             strengthWeeks = strengthWeeks,
-            badmintonWeeks = badmintonWeeks,
-            badmintonDailyLoads = badmintonDailyLoads,
+            badmintonPracticeWeeks = badmintonPracticeWeeks,
+            badmintonPracticeDailyLoads = badmintonPracticeDailyLoads,
+            badmintonObjectiveDailyStimulus = badmintonObjectiveDailyStimulus,
             fatigueWeeks = fatigueWeeks,
             repRangeWeeks = repRangeWeeks,
             metricSeries = metricSeries,
-            badmintonMethodExamples = badmintonMethodExamples,
-            exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey,
+            badmintonObjectiveExamples = badmintonObjectiveExamples,
             coreStimulus = coreStimulus
         )
         return provisional.copy(
@@ -175,21 +188,18 @@ class PerformanceTrendEngine(
 
     private fun metricSeries(
         strengthWeeks: List<StrengthWeekIndex>,
-        badmintonWeeks: List<BadmintonWeekIndex>,
+        badmintonPracticeWeeks: List<BadmintonPracticeWeekPoint>,
         fatigueWeeks: List<FatigueWeekIndex>
     ): Map<TrendMetricId, List<TrendDataPoint>> {
         val strengthPerformance = strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.performanceIndex) }
-        val badmintonTraining = badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.trainingIndex) }
+        val badmintonPractice = badmintonPracticeWeeks.map { week -> TrendDataPoint(week.weekStart, week.practiceLoad) }
         val fatigueComposite = fatigueWeeks.map { week -> TrendDataPoint(week.weekStart, week.compositeIndex) }
         return mapOf(
             TrendMetricId.STRENGTH_PERFORMANCE to strengthPerformance,
             TrendMetricId.STRENGTH_INTENSITY to strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.intensityIndex) },
             TrendMetricId.STRENGTH_VOLUME to strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.volumeIndex) },
             TrendMetricId.STRENGTH_EFFICIENCY to strengthWeeks.map { week -> TrendDataPoint(week.weekStart, week.efficiencyIndex) },
-            TrendMetricId.BADMINTON_TRAINING to badmintonTraining,
-            TrendMetricId.COURT_VOLUME to badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.courtVolumeIndex) },
-            TrendMetricId.FOOTWORK_REACTIVE to badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.footworkReactiveIndex) },
-            TrendMetricId.BADMINTON_SUPPORT to badmintonWeeks.map { week -> TrendDataPoint(week.weekStart, week.supportIndex) },
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to badmintonPractice,
             TrendMetricId.FATIGUE_COMPOSITE to fatigueComposite,
             TrendMetricId.SYSTEMIC_FATIGUE to fatigueWeeks.map { week -> TrendDataPoint(week.weekStart, week.systemicGroupScore) },
             TrendMetricId.STRENGTH_FATIGUE to fatigueWeeks.map { week -> TrendDataPoint(week.weekStart, week.strengthGroupScore) },
@@ -236,13 +246,12 @@ class PerformanceTrendEngine(
 
     private fun detailSections(
         strengthWeeks: List<StrengthWeekIndex>,
-        badmintonWeeks: List<BadmintonWeekIndex>,
+        badmintonPracticeWeeks: List<BadmintonPracticeWeekPoint>,
         fatigueWeeks: List<FatigueWeekIndex>,
-        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>,
-        exerciseDisplayNamesByStableKey: Map<String, String>
+        metricSeries: Map<TrendMetricId, List<TrendDataPoint>>
     ): List<PerformanceDetailSection> {
         val scatter = scatterAnalyzer.analyze(
-            TrendMetricId.BADMINTON_TRAINING,
+            TrendMetricId.BADMINTON_PRACTICE_LOAD,
             TrendMetricId.FATIGUE_COMPOSITE,
             metricSeries
         )
@@ -261,18 +270,13 @@ class PerformanceTrendEngine(
             PerformanceDetailSection(
                 type = PerformanceDetailSectionType.BADMINTON,
                 title = "배드민턴 훈련 해설",
-                availableModes = listOf(DetailChartMode.TREND, DetailChartMode.COMPOSITION, DetailChartMode.CONTRIBUTION, DetailChartMode.RANKING),
+                availableModes = listOf(DetailChartMode.TREND),
                 selectedMode = DetailChartMode.TREND,
-                availableMetrics = listOf(TrendMetricId.COURT_VOLUME, TrendMetricId.FOOTWORK_REACTIVE, TrendMetricId.BADMINTON_SUPPORT),
-                selectedMetrics = listOf(TrendMetricId.COURT_VOLUME),
-                chartSpec = chartSpecBuilder.badmintonDetail(
-                    DetailChartMode.TREND,
-                    listOf(TrendMetricId.COURT_VOLUME),
-                    badmintonWeeks,
-                    exerciseDisplayNamesByStableKey
-                ),
-                shortInterpretation = sentenceBuilder.badmintonInterpretation(badmintonWeeks.lastOrNull()),
-                confidence = badmintonWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
+                availableMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
+                selectedMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
+                chartSpec = chartSpecBuilder.badmintonPracticeDetail(badmintonPracticeWeeks),
+                shortInterpretation = sentenceBuilder.badmintonInterpretation(badmintonPracticeWeeks.lastOrNull()),
+                confidence = badmintonPracticeWeeks.lastOrNull()?.confidence ?: com.training.trackplanner.analysis.readiness.AnalysisConfidence.LOW
             ),
             PerformanceDetailSection(
                 type = PerformanceDetailSectionType.FATIGUE,
@@ -296,8 +300,8 @@ class PerformanceTrendEngine(
                 title = "관계 분석",
                 availableModes = listOf(DetailChartMode.RELATIONSHIP),
                 selectedMode = DetailChartMode.RELATIONSHIP,
-                availableMetrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
-                selectedMetrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+                availableMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
+                selectedMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
                 chartSpec = chartSpecBuilder.scatterSpec(scatter),
                 shortInterpretation = scatter.interpretation,
                 confidence = scatter.confidence

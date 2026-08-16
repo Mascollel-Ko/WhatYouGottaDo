@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeWeekPoint
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 
 class PerformanceTrendSentenceBuilder {
@@ -15,7 +16,7 @@ class PerformanceTrendSentenceBuilder {
         val strengthTrend = trendLabel(strength)
         val badmintonTrend = trendLabel(badminton)
         val fatigueTrend = trendLabel(fatigue)
-        return "근력운동은 $strengthTrend, 배드민턴 훈련량은 $badmintonTrend, 이번 주 누적 부담은 $fatigueTrend 흐름입니다."
+        return "근력운동은 $strengthTrend, 배드민턴 연습 훈련량은 $badmintonTrend, 이번 주 누적 부담은 $fatigueTrend 흐름입니다."
             .safeTrendSentence()
     }
 
@@ -26,11 +27,11 @@ class PerformanceTrendSentenceBuilder {
             "최근 근력운동 퍼포먼스는 강도와 수행량의 상대 변화로 계산됩니다."
         }
 
-    fun badmintonInterpretation(latest: BadmintonWeekIndex?): String =
+    fun badmintonInterpretation(latest: BadmintonPracticeWeekPoint?): String =
         if (latest == null) {
-            "기록이 더 쌓이면 배드민턴 관련 수행량을 볼 수 있습니다."
+            "기록이 더 쌓이면 배드민턴 연습 훈련량을 볼 수 있습니다."
         } else {
-            "배드민턴 훈련량은 셔틀 플레이 시간, 풋워크/반응, 보조훈련량을 합친 흐름입니다."
+            "배드민턴 연습 훈련량은 확인된 연습 시간과 RPE를 반영한 흐름입니다."
         }
 
     fun fatigueInterpretation(latest: FatigueWeekIndex?): String =
@@ -79,6 +80,7 @@ internal fun TrendMetricId.label(): String =
         TrendMetricId.STRENGTH_INTENSITY -> "강도"
         TrendMetricId.STRENGTH_VOLUME -> "수행량"
         TrendMetricId.STRENGTH_EFFICIENCY -> "RPE 대비 운동량"
+        TrendMetricId.BADMINTON_PRACTICE_LOAD -> "배드민턴 연습 훈련량"
         TrendMetricId.BADMINTON_TRAINING -> "배드민턴 훈련량"
         TrendMetricId.COURT_VOLUME -> "셔틀 플레이 시간"
         TrendMetricId.FOOTWORK_REACTIVE -> "풋워크/반응"

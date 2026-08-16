@@ -13,10 +13,7 @@ class AnalysisMetricRegistryTest {
         TrendMetricId.STRENGTH_INTENSITY,
         TrendMetricId.STRENGTH_VOLUME,
         TrendMetricId.STRENGTH_EFFICIENCY,
-        TrendMetricId.BADMINTON_TRAINING,
-        TrendMetricId.COURT_VOLUME,
-        TrendMetricId.FOOTWORK_REACTIVE,
-        TrendMetricId.BADMINTON_SUPPORT,
+        TrendMetricId.BADMINTON_PRACTICE_LOAD,
         TrendMetricId.FATIGUE_COMPOSITE,
         TrendMetricId.SYSTEMIC_FATIGUE,
         TrendMetricId.STRENGTH_FATIGUE,
@@ -59,7 +56,7 @@ class AnalysisMetricRegistryTest {
         val series = mapOf(
             TrendMetricId.STRENGTH_VOLUME to listOf(TrendDataPoint(date, 100.0)),
             TrendMetricId.FATIGUE_COMPOSITE to listOf(TrendDataPoint(date, null)),
-            TrendMetricId.COURT_VOLUME to emptyList()
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to emptyList()
         )
 
         val available = AnalysisMetricRegistry.scatterMetrics(series)

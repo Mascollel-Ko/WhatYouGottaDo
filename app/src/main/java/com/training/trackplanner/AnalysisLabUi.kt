@@ -90,7 +90,7 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
     val xIds = xMetrics.map { it.id }
     val yIds = yMetrics.map { it.id }
     val controlIds = controlMetrics.map { it.id }
-    val defaultX = preferredMetric(TrendMetricId.BADMINTON_TRAINING, xIds, 0)
+    val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, xIds, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, yIds, 0)
     val defaultControls = remember(controlIds) { recommendedControlMetrics(controlIds) }
     var xMetric by rememberSaveable { mutableStateOf(defaultX) }
@@ -192,7 +192,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
     val xMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesXMetrics(summary.metricSeries) }
     val responseMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesYMetrics(summary.metricSeries) }
     val controlMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesControlMetrics(summary.metricSeries) }
-    val defaultX = preferredMetric(TrendMetricId.BADMINTON_TRAINING, xMetrics.map { it.id }, 0)
+    val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, xMetrics.map { it.id }, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, responseMetrics.map { it.id }, 0)
     var xMetric by rememberSaveable { mutableStateOf(defaultX) }
     val selectedY = remember { mutableStateListOf(defaultY) }
@@ -671,7 +671,7 @@ private fun RelationshipExplorerCard(
     availableMetrics: List<AnalysisMetricDescriptor>
 ) {
     val availableIds = availableMetrics.map { it.id }
-    val defaultX = preferredMetric(TrendMetricId.BADMINTON_TRAINING, availableIds, 0)
+    val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, availableIds, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, availableIds, 1)
     var xMetric by rememberSaveable { mutableStateOf(defaultX) }
     var yMetric by rememberSaveable { mutableStateOf(defaultY) }

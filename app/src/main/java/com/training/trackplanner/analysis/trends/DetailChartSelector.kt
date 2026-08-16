@@ -38,7 +38,7 @@ object PerformanceChartSelector {
     fun dashboardSeries(summary: PerformanceTrendSummary): List<CompositeTrendSeries> =
         listOf(
             summary.strengthPerformanceSeries,
-            summary.badmintonTrainingSeries,
+            summary.badmintonPracticeSeries,
             summary.fatigueCompositeSeries
         )
 }
