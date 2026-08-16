@@ -53,6 +53,10 @@ ANDROID_PLACEHOLDER = re.compile(
 KOTLIN_PLACEHOLDER = re.compile(r"\$\{[^}]+}|\$[A-Za-z_][A-Za-z0-9_]*")
 CELL_REF = re.compile(r"([A-Z]+)(\d+)")
 CONTEXT_ONLY_APPROVAL_KEYS = {"approval_1359", "approval_1447"}
+RETIRED_UI_TEXTS = {
+    "배드민턴 훈련량은 셔틀 플레이 시간, 풋워크/반응, 보조훈련량을 합친 흐름입니다.",
+    "전이 점검, 배드민턴 관련 훈련량의 일별·주별 흐름",
+}
 
 
 def _xlsx_rows(path: Path, sheet_name: str) -> list[dict[str, object]]:
@@ -254,6 +258,8 @@ def _ui_assets(
             continue
         korean = _text(row.get("koreanSource"))
         english = _text(row.get("englishTarget"))
+        if korean in RETIRED_UI_TEXTS:
+            continue
         if korean and english:
             generated.setdefault(
                 (korean, english),
@@ -319,6 +325,8 @@ def _ui_assets(
             continue
         korean = _text(row.get("koreanSource"))
         english = _text(row.get("englishTarget"))
+        if korean in RETIRED_UI_TEXTS:
+            continue
         source_template = _source_template(korean)
         if korean and english and "${}" in source_template:
             pattern_candidates[source_template].add(_english_resource_template(english))

@@ -1,4 +1,5 @@
 koreanTemplate,englishTemplate,provenance,sourcePath
+"근력운동은 ${}, 배드민턴 연습 훈련량은 ${}, 이번 주 누적 부담은 ${} 흐름입니다.","Strength training is %1$s, badminton practice load is %2$s, and this week's accumulated load is %3$s.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendSentenceBuilder.kt
 ${}년 ${}월 ${}일 ${}요일,"%2$s %3$s, %1$s (%4$s)",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
 ${}: ${} 외 ${}개,%1$s: %2$s and %3$s more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 "${} 완료: profile ${}, daily ${}, check-in ${}, entry ${}, set ${}, program ${}, program item ${}, program item set ${}, program tombstone ${}, skip ${}","%1$s complete: profile %2$s, daily %3$s, check-in %4$s, entry %5$s, set %6$s, program %7$s, program item %8$s, program item set %9$s, program tombstone %10$s, skip %11$s",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt

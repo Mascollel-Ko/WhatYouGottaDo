@@ -41,7 +41,7 @@ internal fun AnalysisHubContent(
             HorizontalDivider()
             AnalysisHubRow(
                 title = "배드민턴 전이 분석",
-                body = "전이 점검, 배드민턴 관련 훈련량의 일별·주별 흐름",
+                body = "전이 점검, 배드민턴 연습 훈련량의 일별·주별 흐름",
                 onClick = onBadmintonClick
             )
             HorizontalDivider()

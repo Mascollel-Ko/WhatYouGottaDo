@@ -366,9 +366,8 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 배드민턴 경기력,badminton performance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 배드민턴 경력 년,years of badminton experience,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 배드민턴 관련 훈련 자극과 주간 흐름을 봅니다.,View badminton-related training stimulation and weekly flow.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisScreen.kt
-배드민턴 관련 훈련량 선택,Selection of badminton-related training volume,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
-배드민턴 관련 훈련량(일별),Badminton-related training volume (daily),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
-배드민턴 관련 훈련량(주별),Badminton-related training volume (weekly),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+배드민턴 연습 훈련량(일별),Badminton practice load (daily),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+배드민턴 연습 훈련량(주별),Badminton practice load (weekly),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 배드민턴 목표에 맞춰 코트 피로를 더 민감하게 반영했습니다.,Court fatigue has been reflected more sensitively in line with badminton goals.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/InitialAdaptationProfile.kt
 배드민턴 보조 4주,Badminton Assistant 4 weeks,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt
 배드민턴 부담,badminton burden,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
@@ -380,13 +379,12 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 배드민턴 전이 목적 설명,Badminton transfer purpose explanation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 배드민턴 전이 목적별 자극량,Badminton transfer stimulation amount for each purpose,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 배드민턴 전이 목적별 자극량을 계산하고 있습니다.,We are calculating the amount of stimulation for each badminton transfer purpose.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
-배드민턴 전이 훈련량,Badminton transfer training amount,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 배드민턴 주당,badminton per week,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 배드민턴 지원 목적의 주간 훈련량,Weekly training volume for badminton support purposes,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 배드민턴 지원 웨이트,badminton support weights,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt
 배드민턴 특이 훈련과 일반 근력의 우선순위를 조절합니다.,Prioritize badminton-specific training and general strength training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-배드민턴 훈련량,badminton training amount,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
-배드민턴 훈련량 추세를 계산하고 있습니다.,We are calculating badminton training volume trends.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+배드민턴 연습 훈련량,Badminton practice load,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+배드민턴 연습 훈련량 추세를 계산하고 있습니다.,Calculating the badminton practice load trend.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 배드민턴 훈련에서 발생한 주간 피로 부담,Weekly fatigue burden from badminton training,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 배드민턴 훈련을 버틸 수 있는 반복 능력과 체력 기반을 보강하는 전이 목적입니다.,The transfer purpose is to strengthen your repetition ability and strength base to withstand badminton training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
 백업 복원 ${summary.backupRestorationProvenance ?:,Restore Backup ${summary.backupRestorationProvenance ?:,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -401,7 +399,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 보조 전이,secondary transition,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferModels.kt
 보조 풀,auxiliary pool,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt
 보조근,auxiliary muscle,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
-보조훈련량,Auxiliary training amount,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 보통 수준의 탐색 결과이며 인과관계를 의미하지 않습니다.,These are moderate exploratory results and do not imply causality.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 보통 신뢰도 · 패턴 탐색,Medium reliability · pattern search,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/ScatterRelationshipAnalyzer.kt
 보통 이하,below average,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
@@ -457,7 +454,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 상태 지문 ${summary.modelStateFingerprint?.take(16) ?:,State Fingerprint ${summary.modelStateFingerprint?.take(16) ?:,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 상태 확인,Check status,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/PhaseAwareTodayStatus.kt
 새 프로그램,new program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt
-서서,standing,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 선택 복사,copy selection,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 선택 삭제,select delete,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 선택 안 함,Not selected,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
@@ -488,7 +484,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 세트+,set+,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 세트별,By set,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 세트별 휴식,Rest per set,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-셔틀 플레이 시간,shuttle play time,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 소표본 결과입니다. 산점도와 상관계수는 참고용입니다.,This is a small sample result. Scatterplots and correlation coefficients are for reference only.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt
 속도,speed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 손목,wrist,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
@@ -506,7 +501,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 수면질,sleep quality,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 수정,Edit,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/HomeDailyCheckInCard.kt
 수치 진단 ${summary.numericalDiagnostics.ifEmpty { listOf(,Numerical Diagnostics ${summary.numericalDiagnostics.ifEmpty { listOf(,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-수트케이스,suitcase,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 수행 저하 신호,signs of poor performance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/FatigueDetailSectionBuilder.kt
 수행능력 레벨 비교,Performance level comparison,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 숨김,hiding,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/ExerciseScreen.kt
@@ -626,7 +620,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 운동명 검색,Exercise name search,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 원본 동작 분류,Original Movement Classification,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt
 원본 동작 패턴,Original Behavior Pattern,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RuntimeMetadataExerciseEditorDialog.kt
-원암,Wonam,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 월,month,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
 월별이 아니라 각 주마다 하나의 포인트를 찍는 주별 차트입니다.,This is a weekly chart with one point for each week rather than a monthly chart.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 유산소/운동,Cardio/Exercise,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -698,7 +691,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 전이 종류,type of transition,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 전체,entire,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 전체 RPE,Full RPE,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
-전체 배드민턴 관련 훈련량,Total badminton-related training volume,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 전체 선택,select all,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 전체 스트레스 크기,total stress magnitude,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 전체 운동량,total training volume,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisLabModels.kt
@@ -801,7 +793,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 직접 1RM,Direct 1RM,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt
 직접 기록이 더 쌓이면 관련 운동 신호를 kg 범위로 추정할 수 있습니다.,"As more direct recordings are made, the relevant motor signals can be estimated in the kg range.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
 직접 기록이 부족해 비교 신뢰도가 낮습니다.,The lack of direct records makes comparisons unreliable.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
-직접 배드민턴 훈련량,Direct badminton training amount,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
 직접 수행 기록이 아직 없습니다.,There is no record of direct performance yet.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisProxyPerformanceUi.kt
 직접 입력,Enter directly,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 직접 전이,direct transfer,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferModels.kt
@@ -886,7 +877,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 코트 시간 반응 데이터가 적습니다,There is less court time response data,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzer.kt
 코트 시간 반응은 참고 수준입니다,Court time response is reference level,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzer.kt
 "코트 이동, 스텝, 위치 회복을 직접 보강하는 전이 목적입니다.","It is for transition purposes, directly reinforcing court movement, steps, and position recovery.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
-"코트, 풋워크, 보조훈련을 합친 주간 지수","Weekly index combining court, footwork and assistance training",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 키 cm,height cm,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 킬로그램,kilogram,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt
 탄성/점프,elastic/jump,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/readiness/TodayReadinessSentenceBuilder.kt
@@ -916,7 +906,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 풀다운,pull down,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/features/BodyweightEffectiveLoadCalculator.kt
 풀업 추가 kg,Additional kg of pull-ups,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 풀업 회,pull-up times,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
-풋워크/반응,Footwork/Reactions,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 프로그램 기간,Program Duration,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 프로그램 사용 여부,Whether to use the program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 프로그램 새로 만들기,Create a new program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -1020,7 +1009,6 @@ kg 수정,kg fix,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackpla
 회전 동작,rotation motion,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/InitialProfileDialog.kt
 회전 생성,Rotation generation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodLabels.kt
 회전근,rotator cuff,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
-회전저항,rotation resistance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt
 회전코어,rotating core,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/MuscleGroupKeyNormalizer.kt
 횟수,number,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
 횟수 +,Count +,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt
@@ -1129,3 +1117,9 @@ CoreStimulus V1의 주간 직접 및 간접 자극 합계,Weekly sum of direct a
 CoreStimulus V1의 주간 직접 코어 자극,Weekly direct CoreStimulus V1,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 주간 코어 간접 자극,Weekly indirect core stimulus,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 CoreStimulus V1의 주간 간접 코어 자극,Weekly indirect CoreStimulus V1,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+확인된 배드민턴 연습 시간과 RPE를 반영한 주간 훈련량,Weekly load based on confirmed badminton practice time and RPE.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+훈련량,Load,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
+기록이 더 쌓이면 배드민턴 연습 훈련량을 볼 수 있습니다.,You can view badminton practice load after more records accumulate.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendSentenceBuilder.kt
+배드민턴 연습 훈련량은 확인된 연습 시간과 RPE를 반영한 흐름입니다.,Badminton practice load reflects confirmed practice time and RPE.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendSentenceBuilder.kt
+확인된 배드민턴 연습 시간과 RPE만 사용한 일별 훈련량입니다.,Daily load using only confirmed badminton practice time and RPE.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt
+"전이 점검, 배드민턴 연습 훈련량의 일별·주별 흐름","Transfer review and daily and weekly badminton practice load trends",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisHubUi.kt

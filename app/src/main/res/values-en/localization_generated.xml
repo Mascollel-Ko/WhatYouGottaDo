@@ -11,6 +11,7 @@
     <string name="loc_baseline_00d1a5e77366">The small overlay is an optional feature. The timer operates even without permission.</string>
     <string name="loc_baseline_01370e747113">Calculating</string>
     <string name="loc_baseline_014564391e46">This relationship may have appeared by chance and should be interpreted with low reliability.</string>
+    <string name="loc_baseline_0149f1cf4c88">Daily load using only confirmed badminton practice time and RPE.</string>
     <string name="loc_baseline_016399c37189">There is no record of the selected transition purpose.</string>
     <string name="loc_baseline_0179186c7d48">Anti-rotation/torso control</string>
     <string name="loc_baseline_01f38b117b82">push up</string>
@@ -122,13 +123,11 @@
     <string name="loc_baseline_196cd5ecaa4f">Comparisons are made based on transfer objectives such as footwork, acceleration, deceleration, and reaction, rather than old transfer axes such as racket assistance.</string>
     <string name="loc_baseline_196d77bc194a">Automatic pattern detection</string>
     <string name="loc_baseline_19fe6c8ae2cd">Weekly</string>
-    <string name="loc_baseline_1a27358ea7a3">We are calculating badminton training volume trends.</string>
     <string name="loc_baseline_1a5c9d0c476f">main goal</string>
     <string name="loc_baseline_1a72cb6350bf">very tired</string>
     <string name="loc_baseline_1a7fadc9293f">sec</string>
     <string name="loc_baseline_1a842bb74872">Save the recording period as a program</string>
     <string name="loc_baseline_1aa3a0092113">thigh work</string>
-    <string name="loc_baseline_1aa50590ed1e">Direct badminton training amount</string>
     <string name="loc_baseline_1aa9bece2561">high load</string>
     <string name="loc_baseline_1aaba5f6f852">2-3 sets x 3-5 reps · Conservative weight · RPE 6.5-7.5</string>
     <string name="loc_baseline_1af3094d97f5">well</string>
@@ -159,7 +158,6 @@
     <string name="loc_baseline_223906541902">Anti-rotation/rotation core</string>
     <string name="loc_baseline_223c54f832ed">use note</string>
     <string name="loc_baseline_22541cfc2d81">Court time response is reference level</string>
-    <string name="loc_baseline_2267fd34b75f">badminton training amount</string>
     <string name="loc_baseline_226affe55b1f">smash speed</string>
     <string name="loc_baseline_228d96ded8be">local muscle</string>
     <string name="loc_baseline_229dfbc9d893">Weekly posterior chain/erector spinae exercise volume</string>
@@ -177,6 +175,7 @@
     <string name="loc_baseline_257031186d02">Y variable</string>
     <string name="loc_baseline_259b1455ff75">Evidence reliability</string>
     <string name="loc_baseline_25ba5d064c60">Increased lower body fatigue input</string>
+    <string name="loc_baseline_260769d70709">Transfer review and daily and weekly badminton practice load trends</string>
     <string name="loc_baseline_265f8e0ade50">7. Advanced runtime fields</string>
     <string name="loc_baseline_2661e2029543">Responds to rapid elongation load</string>
     <string name="loc_baseline_26657d340f42">Overwriting will delete the existing record.</string>
@@ -206,12 +205,13 @@
     <string name="loc_baseline_2c79666166c1">By part</string>
     <string name="loc_baseline_2cb057c8eaee">Weekly forearm/grip workouts</string>
     <string name="loc_baseline_2ce459c24e2e">Weekly adductor/abductor exercise volume</string>
-    <string name="loc_baseline_2ce7b7ec6930">suitcase</string>
     <string name="loc_baseline_2cf61e9d28c8">Back/Erector Muscles</string>
     <string name="loc_baseline_2dd0b82e5228">correction</string>
     <string name="loc_baseline_2dedfb5998ad">3. Movement classification</string>
     <string name="loc_baseline_2e00544bcedb">before exercise</string>
+    <string name="loc_baseline_2e1cb3789fe5">Badminton practice load (daily)</string>
     <string name="loc_baseline_2e579af277d8">Trends in exercise volume ratio by muscle group</string>
+    <string name="loc_baseline_2e6b205ed2ed">Weekly load based on confirmed badminton practice time and RPE.</string>
     <string name="loc_baseline_2efc321d3510">muscle strength</string>
     <string name="loc_baseline_2f7b6f57dd66">} · Last Processed ${selected.lastProcessedSessionDate ?:</string>
     <string name="loc_baseline_2f9f6bc89dd7">There are no badminton-related training records to display by state.</string>
@@ -228,6 +228,7 @@
     <string name="loc_baseline_32ab97f0c8a7">Rolling pre-verification</string>
     <string name="loc_baseline_32b7c71c494e">Concentration/motivation input is low.</string>
     <string name="loc_baseline_32e49e1ef77a">daily exercise time</string>
+    <string name="loc_baseline_33447234570c">Load</string>
     <string name="loc_baseline_336357de03b9">Select transition purpose</string>
     <string name="loc_baseline_3417b0bbe048">Signs of discomfort/restriction</string>
     <string name="loc_baseline_3433f45d93d3">RPE not entered lower limit observation</string>
@@ -291,6 +292,7 @@
     <string name="loc_baseline_415b09dd3dd4">Enter sleep deprivation/recovery</string>
     <string name="loc_baseline_415c678e0f84">Romanian</string>
     <string name="loc_baseline_417307eba915">3 sets x 3-5 reps · RPE 7.5-8.5</string>
+    <string name="loc_baseline_41b67957372e">Calculating the badminton practice load trend.</string>
     <string name="loc_baseline_420a55b276ed">jisoo</string>
     <string name="loc_baseline_421cc497eddc">8 weeks</string>
     <string name="loc_baseline_4240d433c490">low</string>
@@ -320,7 +322,6 @@
     <string name="loc_baseline_47520a0a651f">Indirect core stimulus</string>
     <string name="loc_baseline_476d7b372004">Recently, the strength index has also decreased.</string>
     <string name="loc_baseline_476fd8811a56">Weekly Smash Top Speed</string>
-    <string name="loc_baseline_47b00dd40fcb">standing</string>
     <string name="loc_baseline_47c37a37b341">shortage</string>
     <string name="loc_baseline_483b4dbc7d18">Weekly Smash Average Speed</string>
     <string name="loc_baseline_484ff93e5808">My fatigue after exercising today is in the usual range.</string>
@@ -351,6 +352,7 @@
     <string name="loc_baseline_4dff3c0fa3b8">X variable</string>
     <string name="loc_baseline_4e569c203d8e">A required X, Y, or Z metric could not be prepared.</string>
     <string name="loc_baseline_4ea9973c5e79">The exploratory model required for shock identification could not be fitted stably.</string>
+    <string name="loc_baseline_4fefe2ca6e5a">Badminton practice load</string>
     <string name="loc_baseline_50d2bed8de2f">Multivariate time series analysis</string>
     <string name="loc_baseline_514992bd220e">As check-in records are accumulated, recovery/condition indicators can also be compared in the laboratory.</string>
     <string name="loc_baseline_51b8c89ae8f9">Fatigue/Recovery</string>
@@ -378,12 +380,10 @@
     <string name="loc_baseline_5737de2a0531">Current estimate range versus the previous median</string>
     <string name="loc_baseline_5751d60afe68">entire</string>
     <string name="loc_baseline_577cc9c08a01">A required metric cannot be prepared safely for the current exploratory model.</string>
-    <string name="loc_baseline_57b2894541ef">shuttle play time</string>
     <string name="loc_baseline_585368025ab9">stop</string>
     <string name="loc_baseline_587066dc74f3">reaction confirmation period</string>
     <string name="loc_baseline_58a7fd0d053e">There is insufficient weekly data available for analysis. At least 8 to 12 weeks of records are required.</string>
     <string name="loc_baseline_58bd07372bf7">Change in strength index next week</string>
-    <string name="loc_baseline_58c8d312f414">Total badminton-related training volume</string>
     <string name="loc_baseline_58cc326767c1">Sleep time was recorded as low.</string>
     <string name="loc_baseline_58e964ffbdad">Heavy lower body</string>
     <string name="loc_baseline_59bb822c98ac">Exploratory VAR compatibility model</string>
@@ -422,7 +422,6 @@
     <string name="loc_baseline_5ff8a629b98e">Load from an existing workout</string>
     <string name="loc_baseline_6011d6ac4d20">Lunge</string>
     <string name="loc_baseline_601360ddf02f">Would you like to delete this date\'s workout history?</string>
-    <string name="loc_baseline_601833b6d666">Weekly index combining court, footwork and assistance training</string>
     <string name="loc_baseline_601acf0c8e62">I have an existing plan</string>
     <string name="loc_baseline_6031172e0109">Weekly shoulder training volume in the last 3 days</string>
     <string name="loc_baseline_6047b05cdd77">View the flow of major lifts, muscle groups, and reps.</string>
@@ -488,6 +487,7 @@
     <string name="loc_baseline_6fe8663596e9">An indicator registry structure is prepared for future analysis.</string>
     <string name="loc_baseline_6ff4b1528397">forearm</string>
     <string name="loc_baseline_6ffdc080becd">Multivariate analysis</string>
+    <string name="loc_baseline_7036921313b4">Badminton practice load reflects confirmed practice time and RPE.</string>
     <string name="loc_baseline_704545999a00">fury</string>
     <string name="loc_baseline_7082a8019339">Based on the initial profile, there is room to absorb the current load.</string>
     <string name="loc_baseline_708780296a98">Other notes</string>
@@ -511,7 +511,6 @@
     <string name="loc_baseline_7415a2ebfc51">There is a lack of weekly indicators for use in time series analysis.</string>
     <string name="loc_baseline_743638ff7d17">The number of exercises was adjusted to fit a 45-minute session.</string>
     <string name="loc_baseline_745c20d835e1">Select a program and apply a start date to create a set of plans for each date.</string>
-    <string name="loc_baseline_746b267ae102">Selection of badminton-related training volume</string>
     <string name="loc_baseline_74a3c3ac0aea">Analysis unit name</string>
     <string name="loc_baseline_74c9313c8e7c">proxy observations</string>
     <string name="loc_baseline_74e2b12eb1ee">For the year of birth, only four digits from 1900 to this year are stored.</string>
@@ -564,7 +563,6 @@
     <string name="loc_baseline_81bdcbda09c4">Strength exercise burden</string>
     <string name="loc_baseline_8238465849f4">RPE rose at similar loads</string>
     <string name="loc_baseline_82514279de74">Weekly quadriceps training volume in the last 7 days</string>
-    <string name="loc_baseline_82704e0c5359">Badminton-related training volume (weekly)</string>
     <string name="loc_baseline_828819cf4506">Weekly back/lat training volume</string>
     <string name="loc_baseline_82962011b0f2">main stress</string>
     <string name="loc_baseline_82d6a8b37809">tennis match</string>
@@ -676,7 +674,6 @@
     <string name="loc_baseline_9ea562bf0f99">candidate week</string>
     <string name="loc_baseline_9eb8927d664f">Main action</string>
     <string name="loc_baseline_9f38bdd9fb3a">Check recovery input after long court times</string>
-    <string name="loc_baseline_9f7a22d76eb0">Footwork/Reactions</string>
     <string name="loc_baseline_a0283eae91fb">This is training that strengthens the ability to decelerate just before stopping, landing, and changing direction.</string>
     <string name="loc_baseline_a06c23387b04">Condition today</string>
     <string name="loc_baseline_a0a7783e0561">retry from beginning</string>
@@ -687,7 +684,6 @@
     <string name="loc_baseline_a1e70a1713c5">The completion set is also modified.</string>
     <string name="loc_baseline_a1e72d290fbf">Calf</string>
     <string name="loc_baseline_a3ae17072427">By set</string>
-    <string name="loc_baseline_a3b3a28dfe90">Badminton transfer training amount</string>
     <string name="loc_baseline_a3cb16204da2">Badminton transfer stimulation amount for each purpose</string>
     <string name="loc_baseline_a3edac969a92">Expected fatigue after finishing</string>
     <string name="loc_baseline_a465720c8921">The selected data do not have enough variation or numerical stability.</string>
@@ -695,7 +691,6 @@
     <string name="loc_baseline_a47f46ab7775">maintain</string>
     <string name="loc_baseline_a4892f8945c5">bad</string>
     <string name="loc_baseline_a5103348660f">sleep quality</string>
-    <string name="loc_baseline_a532cc4ba54c">Auxiliary training amount</string>
     <string name="loc_baseline_a5c6bc42c69b">Bilateral RPE excluded from shared strength signal due to lack of evidence</string>
     <string name="loc_baseline_a5f937de0ef1">Delete with confirmation</string>
     <string name="loc_baseline_a62ce9baab6c">Enter the program name.</string>
@@ -816,7 +811,6 @@
     <string name="loc_baseline_bdfbd27dd1a9">Beware of low reliability and coincidence correlation</string>
     <string name="loc_baseline_be36f60c3f6f">We take a conservative view as there is little recovery input.</string>
     <string name="loc_baseline_be5960952add">Finalizing the result.</string>
-    <string name="loc_baseline_be81614df2da">Badminton-related training volume (daily)</string>
     <string name="loc_baseline_becfcd73c42f">High-intensity exercise for areas of discomfort</string>
     <string name="loc_baseline_bef467fbeb2d">check</string>
     <string name="loc_baseline_bf30efb8e83d">number of exercises</string>
@@ -856,7 +850,6 @@
     <string name="loc_baseline_c5f51ac00076">Delete only unconfirmed</string>
     <string name="loc_baseline_c6a0ba9d5bc2">The strength analysis could not be recalculated at this time. Your raw workout history has not been deleted.</string>
     <string name="loc_baseline_c6af60d95b20">They tend to be moderate.</string>
-    <string name="loc_baseline_c709ffb8a00a">rotation resistance</string>
     <string name="loc_baseline_c718501b0ec3">Original Movement Classification</string>
     <string name="loc_baseline_c7266fe8ecfb">Weekly glute training volume in the last 7 days</string>
     <string name="loc_baseline_c76df3b96a56">The configuration you are currently writing will be replaced with an automatic outline.</string>
@@ -878,6 +871,7 @@
     <string name="loc_baseline_ca85b68fc208">Existing configuration</string>
     <string name="loc_baseline_caaf90dbbacd">There is a relatively clear trend.</string>
     <string name="loc_baseline_cb4d295f7af7">pecs</string>
+    <string name="loc_baseline_cbda0dc6cebf">You can view badminton practice load after more records accumulate.</string>
     <string name="loc_baseline_cbf4e1d31e4c">Try again with fewer variables or collect more records.</string>
     <string name="loc_baseline_ccb93d6b3cbf">Multiple recovery signals overlapped.</string>
     <string name="loc_baseline_cda32c83f199">movements you want to avoid</string>
@@ -961,6 +955,7 @@
     <string name="loc_baseline_e15e2e4aa9d4">percent</string>
     <string name="loc_baseline_e189ad3d918d">Lower body</string>
     <string name="loc_baseline_e1abc73454bc">High risk of injury</string>
+    <string name="loc_baseline_e1bd2a76d986">Badminton practice load (weekly)</string>
     <string name="loc_baseline_e2226766ceed">App cue enabled</string>
     <string name="loc_baseline_e240423b7183">torso fixation</string>
     <string name="loc_baseline_e2445908a0a3">Continuous performance posterior distribution diagnosis</string>
@@ -1021,7 +1016,6 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_efa60bb8df9a">Parking and day slots are being placed.</string>
     <string name="loc_baseline_efdc9bb2794f">squat heavy</string>
     <string name="loc_baseline_f034ce63a18d">cable chop</string>
-    <string name="loc_baseline_f08f2437ab3b">Wonam</string>
     <string name="loc_baseline_f09c732ed987">recovery/condition</string>
     <string name="loc_baseline_f0e39fa16b33">Weekly effective strength training performance</string>
     <string name="loc_baseline_f102bd4ef878">Minimum number of local observations reviewed not met</string>
@@ -2619,7 +2613,6 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_6662ffc75642">Current fatigue composition</string>
     <string name="loc_ui_66b42f2a42d4">There is not enough body-part history yet.</string>
     <string name="loc_ui_66d8f634abe7">Transfer stimulus over the past 7 days is concentrated in %1$s.</string>
-    <string name="loc_ui_67fa0497594c">Badminton training load combines shuttle-play time, footwork/reaction work, and support training.</string>
     <string name="loc_ui_69b3c4d305ee">Shuttle play</string>
     <string name="loc_ui_69cee2302728">Restore records</string>
     <string name="loc_ui_69d0ca4ea174">About the app</string>
@@ -2647,7 +2640,6 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_79716b7e8f90">Recent sleep warrants caution</string>
     <string name="loc_ui_79b55471ed42">No</string>
     <string name="loc_ui_79bf8f02677d">Open the guide to reading analysis results</string>
-    <string name="loc_ui_7a3cd11005c8">Transfer coverage and daily/weekly trends in badminton-related training load</string>
     <string name="loc_ui_7ad69a85a7d5">Skipped a temporary exercise created by an older CSV restore.</string>
     <string name="loc_ui_7ae41c726dbb">See relative trends in training load that may remain in joints, tendons, ligaments, and other connective tissues.</string>
     <string name="loc_ui_7b06167a1e6f">Training volume</string>
@@ -2931,6 +2923,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_1c8f1272e7c3">Complete set %1$s pieces</string>
     <string name="loc_ui_pattern_1e3c3c2107d8">%1$s-%2$s Primary joint/tendon/impact accumulation %3$s exceeds control criteria %4$s.</string>
     <string name="loc_ui_pattern_1fc2320668c5">Dispersion multiplier %1$s · Personal correction %2$s</string>
+    <string name="loc_ui_pattern_200fe36edef1">Strength training is %1$s, badminton practice load is %2$s, and this week\'s accumulated load is %3$s.</string>
     <string name="loc_ui_pattern_202ca80b3cb3">%1$sParking %2$s</string>
     <string name="loc_ui_pattern_20653fa1ad9b">Grounds %1$s · Set %2$s · Fingerprint %3$s</string>
     <string name="loc_ui_pattern_21c868ab8b29">Curve Correction %1$s · Recent Processing %2$s</string>

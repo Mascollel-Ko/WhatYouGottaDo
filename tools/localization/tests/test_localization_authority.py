@@ -61,6 +61,20 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertGreater(kotlin.count("private fun exactUiTextIdsChunk"), 1)
         self.assertIn("putAll(exactUiTextIdsChunk0())", kotlin)
 
+    def test_retired_badminton_composite_wording_is_not_generated(self):
+        artifacts = authority._artifacts()
+        runtime_text = "\n".join(
+            (
+                artifacts[authority.OUTPUTS["ui_base"]],
+                artifacts[authority.OUTPUTS["ui_en"]],
+                artifacts[authority.OUTPUTS["kotlin"]],
+            )
+        )
+
+        self.assertIn("Badminton practice load", runtime_text)
+        for retired in authority.RETIRED_UI_TEXTS:
+            self.assertNotIn(retired, runtime_text)
+
     def test_static_percent_is_literal_while_formatted_percent_is_escaped(self):
         xml = authority._xml_strings(
             [("static", "80% range"), ("dynamic", "80% %1$s")]
