@@ -16,6 +16,8 @@ No authority asset is changed by this phase. CSV row counts exclude the header.
 | `docs/metadata_authority/core_training_classification_review_2026-08-13.csv` | 241 | `3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954` |
 | `docs/metadata_authority/badminton_objective_relations_v2_authority.csv` | 280 | `bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56` |
 | `app/src/main/assets/metadata/canonical_v1/identity_master.csv` | 257 | `e790eae55f94e2ea9644078114315b1febf2d7b2eb1c0f602232f1a42bd26eb4` |
+| `app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv` | 257 | `204e74ae94f038842d9887145edbfa173616cd19f914c99ded4fe0a0ba3d7e43` |
+| `app/src/main/assets/metadata/canonical_v1/runtime_metadata.csv` | 257 | `781a2b0acd2df110fe859e1306b0030d73017c10a3868fcf814127c6b5500bb0` |
 | `app/src/main/assets/metadata/canonical_v1/core_relations.csv` | 272 | `cc82347feef75a3d27de0802856111f80bc96a0ba91552ebb5178786bf617489` |
 | `app/src/main/assets/metadata/canonical_v1/badminton_objective_relations.csv` | 280 | `bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56` |
 | `app/src/main/assets/metadata/canonical_v1/badminton_relations.csv` | 1,865 | `e9d22c985b6985e7e210cd6a0b16d3864ba4611af07912273e75ab153cd42d2b` |
@@ -44,9 +46,9 @@ Sentinel verification on the baseline passed in `CanonicalAnalysisAuthorityTest`
 |---|---|---|---|---|---|---|
 | A | `AnalysisEngineV3`, `AnalysisDashboardV3Result`, `AnalysisInputCollector`, `AnalysisInputSnapshot`, `Common*Metrics`, disabled method registry, sentence scaffolding | No product, UI, Lab, persistence, or compatibility capability. A debuggable startup path computed a log-only summary; most outputs were discarded. | Formerly `TrainingRepository.logDebugSummary()` only; no UI/Lab/public repository/backup/Room consumer | None required | `DEAD_NO_CAPABILITY`, retired in `abe140a` | Debug invocation and closed dependency island removed; compile and architecture guard passed. |
 | B | `LegacyBadmintonContractOracle` | No. It was an unreferenced test helper and was not an authority asset or compatibility parser. | Declaration only | None required | `DEAD_NO_CAPABILITY`, retired in `abe140a` | Removed after repository-wide reference proof; architecture guard passed. |
-| C | `BadmintonTrainingLoadIndexCalculator` legacy court/footwork/support composite | Yes. Current practice-load trend, method examples, detail charts, and Lab series depend on it. | `PerformanceTrendEngine`, `PerformanceChartSpecBuilder`, analysis UI, Analysis Lab, tests | Separate `BadmintonPracticeLoad` owner plus existing `BadmintonObjectiveStimulusCalculator` | `REPLACEMENT_REQUIRED` | Audit governed practice formula, provide practice calculator, characterize, wire all consumers, then retire composite fields. |
+| C | `BadmintonTrainingLoadIndexCalculator` legacy court/footwork/support composite | Yes. Current practice-load trend, method examples, detail charts, and Lab series depend on it. | `PerformanceTrendEngine`, `PerformanceChartSpecBuilder`, analysis UI, Analysis Lab, tests | Future explicit `BadmintonPracticeCatalog` + `BadmintonPracticeLoadCalculator`; existing `BadmintonObjectiveStimulusCalculator` remains separate | `PRACTICE_CONTRACT_READY`; composite remains `REPLACEMENT_REQUIRED` | Phase 2A/2B characterized exact practice admission and arithmetic. Implement the practice owner with exact parity, migrate every consumer and saved metric boundary, then retire legacy footwork/support/composite fields. |
 | D | Nine-objective badminton stimulus | Yes, current canonical capability. | Trend engine, badminton screens, canonical repository, tests | `BadmintonObjectiveStimulusCalculator` + `CanonicalBadmintonObjectiveCatalog` | `CURRENT_CANONICAL_AUTHORITY` | Preserve all 280 explicit relations and all nine objectives. No migration in this phase. |
-| E | `BADMINTON_TRAINING`, `COURT_VOLUME`, `FOOTWORK_REACTIVE`, `BADMINTON_SUPPORT`, `BadmintonWeekIndex` composite fields | Yes until semantically equivalent current metrics are registered and saved selector state is handled. | Analysis detail UI, Analysis Lab registry/pipeline, chart builders, trend tests | Explicit practice metric and objective-specific metrics, only where consumed | `REPLACEMENT_REQUIRED` | Never relabel an old metric ID. Add providers and selector fallback before removal. |
+| E | `BADMINTON_TRAINING`, `COURT_VOLUME`, `FOOTWORK_REACTIVE`, `BADMINTON_SUPPORT`, `BadmintonWeekIndex` composite fields | Yes until semantically equivalent current metrics are registered and saved selector state is handled. `COURT_VOLUME` currently standardizes the governed practice raw value, while the other IDs retain legacy composite meanings. | Analysis detail UI, Analysis Lab registry/pipeline, chart builders, trend tests | Explicit raw/daily/weekly practice metric plus existing objective-specific metrics, only where consumed | `REPLACEMENT_REQUIRED`; not ready for deletion | Never relabel an old metric ID. Add the practice provider, define standardization/selector compatibility, migrate UI and Lab consumers, and provide saved-state fallback before removal. |
 | F | `StrengthPerformanceIndexCalculator` composite performance/intensity/volume/efficiency | Yes. The UI and Lab still consume all four concepts. | `PerformanceTrendEngine`, strength detail UI, Lab, tests | Persistent posterior for modeled performance; exact-load/muscle builders for volume; no approved efficiency replacement yet | `REPLACEMENT_REQUIRED` | Split capabilities, verify each contract, and keep the calculator until every live metric has a provider. |
 | G | Persistent strength posterior | Yes, current canonical modeled-performance authority. | Repository rebuild/event lifecycle, strength UI, history persistence | `StrengthPerformanceRegistry` and persistent posterior services | `CURRENT_CANONICAL_AUTHORITY` | Preserve posterior math, events, revisions, proxies, fingerprints, uncertainty, and raw evidence. |
 | H | Strength volume/intensity/efficiency presentation | Yes. | Strength detail UI and Lab metric registry | `StrengthAndMuscleMetricSeriesBuilder` and exact load policies cover part of volume; remaining intensity/efficiency semantics need explicit verification | `REPLACEMENT_EXISTS_NOT_WIRED` | Characterize current outputs and identify the exact missing providers; do not invent a new efficiency formula. |
@@ -68,6 +70,135 @@ Sentinel verification on the baseline passed in `CanonicalAnalysisAuthorityTest`
 - Local body-part fatigue still carries a user-facing capability without a proved canonical replacement. It remains `BLOCKED` rather than being zeroed or removed.
 - Strength efficiency has no identified approved canonical replacement. It remains `REPLACEMENT_REQUIRED`.
 - Current Room semantic columns have live consumers and were not audited for information-preserving collapse. Schema work is out of scope until those gates are met.
+
+## Phase 2A/2B badminton practice-load contract audit
+
+Phase 2A/2B started from `664c670c8daf7a6118850626823ddf424bcb3808`
+with version `0.5.0.37 / 500037` and a clean worktree.
+
+### Canonical identity snapshot and admission paths
+
+[`badminton_practice_admission_set_matrix.csv`](badminton_practice_admission_set_matrix.csv)
+materializes every rule below for all 257 current canonical identities. It has
+257 data rows and SHA-256
+`74614924edb849a794e35de10888d9e094a094156f1c033a453be8e9ce9e4fd5`.
+Every `TRUE` row carries the exact stableKey, canonical display name, and the
+metadata fields that caused admission. Display names are review labels only;
+no admission rule uses them.
+
+| Set | Production owner and rule | Count | Authority character |
+|---|---|---:|---|
+| A | `BadmintonTrainingLoadIndexCalculator.courtVolumeRaw`: resolved `activityKind == SPORT_SESSION` and exact stableKey in `{ex_ae9ecdbc, ex_badminton_lesson}` | 2 | Explicit identity allowlist plus resolved activity kind |
+| B | `CourtDurationRecoveryAnalyzer`: resolved activity is `SPORT_SESSION` or `MATCH_RECORD`, and transfer is `DIRECT` or context contains `BADMINTON`/`COURT` | 2 | Inferred effective-runtime-metadata predicate |
+| C | Legacy `footworkReactiveRaw`: not Set A and a configured court movement or legacy transfer role matches its hard-coded reactive lists | 48 | Legacy `Exercise` metadata inference; not canonical objective authority |
+| D | Legacy `supportRaw`: not Set A and resolved `badmintonTransferLevel` is `DIRECT`, `SUPPORTIVE`, or `GENERAL` | 222 | Broad effective-runtime-metadata inference |
+| E | `BadmintonObjectiveStimulusCalculator`: an explicit objective relation exists and the `Exercise` is not `SPORT_SESSION` | 102 | Explicit 280-row canonical nine-objective authority; 104 related identities minus two sport sessions |
+| F | `DailyAnalysisLoadAggregator` yields a positive legacy `BADMINTON_COURT` category for a representative positive base dose when any speed/deceleration/elastic/overhead/grip weight or transfer bonus is positive | 243 | Broad readiness-fatigue feature composition; not practice duration or recovery court exposure |
+
+Sets A and B are currently identical:
+
+| stableKey | Canonical name | activityKind | transfer | sport context |
+|---|---|---|---|---|
+| `ex_ae9ecdbc` | 배드민턴 | `SPORT_SESSION` | `DIRECT` | `BADMINTON_MATCH`, `BADMINTON_RALLY`, `BADMINTON_DIRECT_TRANSFER` |
+| `ex_badminton_lesson` | 배드민턴 레슨 | `SPORT_SESSION` | `DIRECT` | `BADMINTON_LESSON`, `BADMINTON_DIRECT_TRANSFER` |
+
+The important set comparisons are:
+
+| Pair | Intersection | Only first | Only second |
+|---|---:|---:|---:|
+| A / B | 2 | 0 | 0 |
+| A / C | 0 | 2 | 48 |
+| A / D | 0 | 2 | 222 |
+| A / E | 0 | 2 | 102 |
+| A / F | 2 | 0 | 241 |
+| C / D | 45 | 3 | 177 |
+| C / E | 43 | 5 | 59 |
+| C / F | 48 | 0 | 195 |
+| D / E | 102 | 120 | 0 |
+| D / F | 222 | 0 | 21 |
+| E / F | 102 | 0 | 141 |
+
+The full exact memberships and names are in the matrix rather than repeated in
+this document. The informative differences include `농구`, `축구`, and
+`러닝 풋살` in C but not D; C also includes those three plus `원레그 레그 컬`
+and `힙 어덕션` without a canonical objective relation. These results prove
+that the legacy footwork, support, objective, and readiness categories are not
+aliases for practice.
+
+### Practice versus recovery court exposure
+
+The semantic result is **C. DISTINCT_CONCEPTS**, with currently identical
+canonical stableKey sets.
+
+- Practice load is an RPE-adjusted training dose owned by the exact two-key
+  shuttle-play allowlist.
+- Recovery court exposure is unadjusted court minutes paired to next-day
+  check-in/fatigue data. Its metadata predicate also accepts `MATCH_RECORD`.
+- A characterization fixture shows that a metadata-valid synthetic
+  `MATCH_RECORD` is admitted by recovery exposure but not by the practice
+  allowlist. It is an implementation-boundary fixture, not a new canonical
+  identity or product approval.
+- Current canonical Set A and Set B happen to coincide; that coincidence does
+  not transfer authority from one owner to the other.
+
+No display-name fallback, broad `SPORT_SESSION + DIRECT` practice inference,
+or semantic metadata reclassification is approved by this audit.
+
+### Exact current practice arithmetic
+
+For an admitted record, the current raw practice value is:
+
+`sum(confirmed set seconds) / 60 * badmintonIntensityFactor(averageRpe)`
+
+| Contract part | Exact current behavior | Classification |
+|---|---|---|
+| Admission | Resolved `SPORT_SESSION` plus exact key `ex_ae9ecdbc` or `ex_badminton_lesson` | `GOVERNED_PRODUCT_SEMANTIC` for current canonical identities |
+| Confirmation | Only confirmed sets contribute duration or set RPE; an all-unconfirmed record contributes zero | `GOVERNED_PRODUCT_SEMANTIC` |
+| Duration | Sum confirmed `seconds`, then divide by 60; repetitions and load do not provide a practice fallback | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE source | Average all non-null RPE values on confirmed sets; use `WorkoutEntry.rpe` only when no confirmed set supplies RPE | `GOVERNED_PRODUCT_SEMANTIC` |
+| Null RPE | Multiplier `1.00` | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE `<= 6.0` | Multiplier `0.90` | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE `> 6.0 && < 8.0` | Multiplier `1.00` | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE `>= 8.0 && < 9.0` | Multiplier `1.05` | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE `>= 9.0 && < 10.0` | Multiplier `1.10` | `GOVERNED_PRODUCT_SEMANTIC` |
+| RPE `>= 10.0` | Multiplier `1.15` | `GOVERNED_PRODUCT_SEMANTIC` |
+| Same date | Parseable ISO dates are grouped and all admitted record doses are summed | `GOVERNED_PRODUCT_SEMANTIC` |
+| Invalid date | `dailyLoads` silently drops an unparseable date | `CURRENT_IMPLEMENTATION_DETAIL` |
+| Weekly raw | Sum records already placed in each caller-supplied `WeeklyTrainingData` bucket; the calculator does not rebucket dates | `GOVERNED_PRODUCT_SEMANTIC` at the supplied-bucket boundary |
+| Weekly standardization | Historical-baseline standardization into `courtVolumeIndex` | `LEGACY_COMPOSITE_ONLY` until the live metric migration defines its replacement boundary |
+| Zero seconds | Zero practice load and no practice-only daily point | `GOVERNED_PRODUCT_SEMANTIC` |
+| Negative seconds | Nonpositive aggregate is collapsed to zero | `CURRENT_IMPLEMENTATION_DETAIL`; invalid input must not become future authority |
+| Legacy footwork/support and 0.60/0.25/0.15 `trainingIndex` | Separate inferred components and composite standardization | `LEGACY_COMPOSITE_ONLY` |
+
+### Nine-objective separation and frozen sentinels
+
+Practice load is not one of the nine objectives and is not added to objective
+stimulus as a total. The objective calculator skips `SPORT_SESSION` records,
+so Sets A and E are disjoint at runtime even though the two practice identities
+retain explicit authority rows. The 280 objective rows and all coefficients are
+unchanged. `band_pallof_press` and `cable_pallof_press` retain their separately
+reviewed `ANTI_ROTATION / SUPPORTIVE` relations, and Copenhagen plank retains
+its baseline relations.
+
+### Future replacement boundary
+
+The narrowest future authority is an explicit `BadmintonPracticeCatalog` with
+exactly the two current canonical practice stableKeys. No relation enum is
+needed yet because the governed arithmetic does not distinguish practice from
+lesson. It must not reuse the broader recovery-court metadata predicate.
+
+A future `BadmintonPracticeLoadCalculator` needs only stableKey, date,
+confirmed seconds, non-null confirmed-set RPE values, and entry RPE fallback.
+Daily grouping and externally supplied week grouping may be adapters around
+that calculator. The characterization suite is the exact-parity gate for the
+practice capability; legacy footwork/support arithmetic is intentionally not
+blessed as the replacement model.
+
+The practice capability is **READY_FOR_REPLACEMENT_IMPLEMENTATION**. The live
+`BadmintonTrainingLoadIndexCalculator` is **not ready for deletion** because
+`PerformanceTrendEngine`, chart builders, Analysis detail UI, Analysis Lab,
+metric IDs, saved selector behavior, and the legacy composite fields still
+consume it. No consumer cutover occurs in Phase 2A/2B.
 
 ## Phase 1 deletion proof
 
