@@ -13,7 +13,7 @@ import org.junit.Test
 class TimeSeriesPreparedPipelineContractTest {
     @Test
     fun qualitySummaryCountsEachEligibleCellOnceWhenDiagnosticsOverlap() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val weeks = weeks(6)
         val cells = listOf(
             TimeSeriesCell(metric, weeks[0], TimeSeriesCellState.MISSING, null, missingReason = "transformation unavailable: MISSING"),
@@ -54,37 +54,37 @@ class TimeSeriesPreparedPipelineContractTest {
             )
         )
         val alignment = TimeSeriesAlignmentService().alignObservations(
-            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            metrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
             observations = weeks(12).mapIndexed { index, week ->
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, week, index.toDouble())
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, week, index.toDouble())
             },
-            lifecycleMetadata = mapOf(TrendMetricId.BADMINTON_TRAINING to metadata)
+            lifecycleMetadata = mapOf(TrendMetricId.BADMINTON_PRACTICE_LOAD to metadata)
         )!!
-        val original = alignment.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).lifecycleMetadata
+        val original = alignment.preparedSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).lifecycleMetadata
 
         val restricted = TimeSeriesAlignmentService().restrictToWeeks(alignment, alignment.weeks.drop(1).take(9))!!
         val stationarized = TimeSeriesAlignmentService().stationarize(
             alignment,
-            listOf(IntegrationDiagnostic(TrendMetricId.BADMINTON_TRAINING, IntegrationOrder.I1, 0.0, 0.0, 0.0, 0.0, "fixture"))
+            listOf(IntegrationDiagnostic(TrendMetricId.BADMINTON_PRACTICE_LOAD, IntegrationOrder.I1, 0.0, 0.0, 0.0, 0.0, "fixture"))
         )!!.first
 
-        assertEquals(original, restricted.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).lifecycleMetadata)
-        assertEquals(original.fingerprint(), restricted.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).lifecycleMetadata.fingerprint())
-        assertEquals(original, stationarized.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).lifecycleMetadata)
-        assertEquals(original.fingerprint(), stationarized.preparedSeries.getValue(TrendMetricId.BADMINTON_TRAINING).lifecycleMetadata.fingerprint())
+        assertEquals(original, restricted.preparedSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).lifecycleMetadata)
+        assertEquals(original.fingerprint(), restricted.preparedSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).lifecycleMetadata.fingerprint())
+        assertEquals(original, stationarized.preparedSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).lifecycleMetadata)
+        assertEquals(original.fingerprint(), stationarized.preparedSeries.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).lifecycleMetadata.fingerprint())
     }
 
     @Test
     fun heterogeneousRevisionSchemesProduceConflictWithoutOrderingFieldsTogether() {
         val alignment = TimeSeriesAlignmentService().alignObservations(
-            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            metrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
             observations = listOf(
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 1.0, revisionNumber = 2),
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, LocalDate.parse("2026-01-05"), 2.0, versionSequence = 3)
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, LocalDate.parse("2026-01-05"), 1.0, revisionNumber = 2),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, LocalDate.parse("2026-01-05"), 2.0, versionSequence = 3)
             )
         )!!
 
-        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_PRACTICE_LOAD, 0)!!
 
         assertEquals(TimeSeriesCellState.CONFLICT, cell.state)
         assertEquals(ObservationConflictSelectionRule.HETEROGENEOUS_REVISION_SCHEME_CONFLICT, cell.conflictProvenance!!.selectionRule)
@@ -95,17 +95,17 @@ class TimeSeriesPreparedPipelineContractTest {
     fun tiedHighestRevisionWithDifferentValuesIsConflictAndPermutationInvariant() {
         val monday = LocalDate.parse("2026-01-05")
         val observations = listOf(
-            TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 1.0, revisionNumber = 1, source = "old"),
-            TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 2.0, revisionNumber = 2, source = "a"),
-            TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 3.0, revisionNumber = 2, source = "b")
+            TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 1.0, revisionNumber = 1, source = "old"),
+            TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 2.0, revisionNumber = 2, source = "a"),
+            TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 3.0, revisionNumber = 2, source = "b")
         )
         val results = listOf(
             observations,
             listOf(observations[2], observations[0], observations[1]),
             listOf(observations[1], observations[2], observations[0])
         ).map { ordered ->
-            TimeSeriesAlignmentService().alignObservations(listOf(TrendMetricId.BADMINTON_TRAINING), ordered)!!
-                .grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+            TimeSeriesAlignmentService().alignObservations(listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD), ordered)!!
+                .grid!!.cell(TrendMetricId.BADMINTON_PRACTICE_LOAD, 0)!!
         }
 
         results.forEach { cell ->
@@ -121,15 +121,15 @@ class TimeSeriesPreparedPipelineContractTest {
     fun tiedHighestRevisionWithIdenticalValuesMerges() {
         val monday = LocalDate.parse("2026-01-05")
         val alignment = TimeSeriesAlignmentService().alignObservations(
-            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            metrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
             observations = listOf(
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 1.0, revisionNumber = 1),
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 2.0, revisionNumber = 2, source = "a"),
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 2.0, revisionNumber = 2, source = "b")
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 1.0, revisionNumber = 1),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 2.0, revisionNumber = 2, source = "a"),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 2.0, revisionNumber = 2, source = "b")
             )
         )!!
 
-        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_PRACTICE_LOAD, 0)!!
 
         assertEquals(TimeSeriesCellState.OBSERVED_VALUE, cell.state)
         assertEquals(2.0, cell.value!!, 0.0)
@@ -141,14 +141,14 @@ class TimeSeriesPreparedPipelineContractTest {
     fun ordinaryObservationTimeIsNotRevisionAuthority() {
         val monday = LocalDate.parse("2026-01-05")
         val alignment = TimeSeriesAlignmentService().alignObservations(
-            metrics = listOf(TrendMetricId.BADMINTON_TRAINING),
+            metrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD),
             observations = listOf(
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 1.0, observedAt = Instant.parse("2026-01-06T00:00:00Z")),
-                TimeSeriesObservation(TrendMetricId.BADMINTON_TRAINING, monday, 2.0, observedAt = Instant.parse("2026-01-07T00:00:00Z"))
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 1.0, observedAt = Instant.parse("2026-01-06T00:00:00Z")),
+                TimeSeriesObservation(TrendMetricId.BADMINTON_PRACTICE_LOAD, monday, 2.0, observedAt = Instant.parse("2026-01-07T00:00:00Z"))
             )
         )!!
 
-        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_TRAINING, 0)!!
+        val cell = alignment.grid!!.cell(TrendMetricId.BADMINTON_PRACTICE_LOAD, 0)!!
 
         assertEquals(TimeSeriesCellState.CONFLICT, cell.state)
         assertEquals(ObservationConflictSelectionRule.UNRESOLVED_CONFLICT, cell.conflictProvenance!!.selectionRule)
@@ -156,7 +156,7 @@ class TimeSeriesPreparedPipelineContractTest {
 
     @Test
     fun preparedSeriesFactoryRejectsInconsistentCellsAndDerivesSummary() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val weeks = weeks(3)
         val valid = PreparedMetricSeries.createValidated(
             metric = metric,
@@ -187,24 +187,24 @@ class TimeSeriesPreparedPipelineContractTest {
     @Test
     fun preparedSystemDerivesCommonRowsAndDeterministicFingerprints() {
         val weeks = weeks(10)
-        val first = preparedSeries(TrendMetricId.BADMINTON_TRAINING, weeks) { index -> index.toDouble() }
+        val first = preparedSeries(TrendMetricId.BADMINTON_PRACTICE_LOAD, weeks) { index -> index.toDouble() }
         val second = preparedSeries(TrendMetricId.FATIGUE_COMPOSITE, weeks) { index -> if (index == 4) null else index.toDouble() * 2.0 }
         val prepared = mapOf(first.metric to first, second.metric to second)
 
         val system = PreparedTimeSeriesSystem.createValidated(
-            orderedMetrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            orderedMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
             preparedSeries = prepared,
             lag = 1,
             horizon = 1
         )
         val reversed = PreparedTimeSeriesSystem.createValidated(
-            orderedMetrics = listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.BADMINTON_TRAINING),
+            orderedMetrics = listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.BADMINTON_PRACTICE_LOAD),
             preparedSeries = prepared,
             lag = 1,
             horizon = 1
         )
         val differentLag = PreparedTimeSeriesSystem.createValidated(
-            orderedMetrics = listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            orderedMetrics = listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
             preparedSeries = prepared,
             lag = 2,
             horizon = 1
@@ -221,26 +221,26 @@ class TimeSeriesPreparedPipelineContractTest {
     fun transformationPlanIsBuiltBeforeSelectionAndExcludesInconclusiveOptionalCandidates() {
         val service = TimeSeriesAlignmentService()
         val alignment = service.align(
-            listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+            listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
             mapOf(
-                TrendMetricId.BADMINTON_TRAINING to weeks(10).map { TrendDataPoint(it, 5.0) },
+                TrendMetricId.BADMINTON_PRACTICE_LOAD to weeks(10).map { TrendDataPoint(it, 5.0) },
                 TrendMetricId.FATIGUE_COMPOSITE to weeks(10).map { TrendDataPoint(it, 7.0) }
             )
         )!!
 
-        val plan = service.transformationPlan(alignment, mandatoryMetrics = setOf(TrendMetricId.BADMINTON_TRAINING))
+        val plan = service.transformationPlan(alignment, mandatoryMetrics = setOf(TrendMetricId.BADMINTON_PRACTICE_LOAD))
         val catalog = service.preparedCandidateCatalog(alignment, plan)!!
 
-        assertEquals(SeriesTransformation.LEVEL, plan.plansByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).transformation)
+        assertEquals(SeriesTransformation.LEVEL, plan.plansByMetric.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).transformation)
         assertEquals(SeriesTransformation.EXCLUDED, plan.plansByMetric.getValue(TrendMetricId.FATIGUE_COMPOSITE).transformation)
         assertTrue(TrendMetricId.FATIGUE_COMPOSITE !in catalog.preparedSeriesByMetric)
-        assertEquals(plan.planFingerprint, service.transformationPlan(alignment, mandatoryMetrics = setOf(TrendMetricId.BADMINTON_TRAINING)).planFingerprint)
+        assertEquals(plan.planFingerprint, service.transformationPlan(alignment, mandatoryMetrics = setOf(TrendMetricId.BADMINTON_PRACTICE_LOAD)).planFingerprint)
     }
 
     @Test
     fun transformedPreparedCatalogIsSharedBySelectionAndFinalPreparation() {
         val service = TimeSeriesAlignmentService()
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val alignment = service.align(
             listOf(metric),
             mapOf(metric to weeks(10).mapIndexed { index, week -> TrendDataPoint(week, (index * index).toDouble()) })
@@ -271,7 +271,7 @@ class TimeSeriesPreparedPipelineContractTest {
     @Test
     fun roleAwareRowsDoNotRequireFutureTargetsForContemporaneousControls() {
         val weeks = weeks(12)
-        val x = preparedSeries(TrendMetricId.BADMINTON_TRAINING, weeks) { it.toDouble() + 1.0 }
+        val x = preparedSeries(TrendMetricId.BADMINTON_PRACTICE_LOAD, weeks) { it.toDouble() + 1.0 }
         val y = preparedSeries(TrendMetricId.FATIGUE_COMPOSITE, weeks) { it.toDouble() * 2.0 + 1.0 }
         val control = preparedSeries(TrendMetricId.STRENGTH_VOLUME, weeks) { index -> if (index >= 9) null else index.toDouble() + 3.0 }
         val prepared = listOf(x, y, control).associateBy(PreparedMetricSeries::metric)
@@ -320,7 +320,7 @@ class TimeSeriesPreparedPipelineContractTest {
     @Test
     fun requestedHorizonAndRoleChangesAffectRowFingerprint() {
         val weeks = weeks(12)
-        val first = preparedSeries(TrendMetricId.BADMINTON_TRAINING, weeks) { it.toDouble() }
+        val first = preparedSeries(TrendMetricId.BADMINTON_PRACTICE_LOAD, weeks) { it.toDouble() }
         val second = preparedSeries(TrendMetricId.FATIGUE_COMPOSITE, weeks) { it.toDouble() * 2.0 }
         val prepared = mapOf(first.metric to first, second.metric to second)
 
@@ -345,9 +345,9 @@ class TimeSeriesPreparedPipelineContractTest {
         val weeks = weeks(40)
         fun alignment(outlier: Boolean): TimeSeriesAlignment =
             TimeSeriesAlignmentService().align(
-                listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
+                listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
                 mapOf(
-                    TrendMetricId.BADMINTON_TRAINING to weeks.mapIndexed { index, week ->
+                    TrendMetricId.BADMINTON_PRACTICE_LOAD to weeks.mapIndexed { index, week ->
                         TrendDataPoint(week, if (outlier && index == weeks.lastIndex) 1_000_000.0 else kotlin.math.sin(index / 3.0) + index * 0.1)
                     },
                     TrendMetricId.FATIGUE_COMPOSITE to weeks.mapIndexed { index, week ->
@@ -356,8 +356,8 @@ class TimeSeriesPreparedPipelineContractTest {
                 )
             )!!
         val allowed = weeks.drop(3).take(30).toSet()
-        val clean = BayesianVarEstimator().fitSystem(alignment(false), listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 1, false, allowed)!!
-        val dirty = BayesianVarEstimator().fitSystem(alignment(true), listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 1, false, allowed)!!
+        val clean = BayesianVarEstimator().fitSystem(alignment(false), listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 1, false, allowed)!!
+        val dirty = BayesianVarEstimator().fitSystem(alignment(true), listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 1, false, allowed)!!
 
         assertEquals(clean.observations, dirty.observations)
         assertEquals(clean.residualCovariance[0][0], dirty.residualCovariance[0][0], 1e-9)
@@ -370,9 +370,9 @@ class TimeSeriesPreparedPipelineContractTest {
         assertTrue(
             runCatching {
                 PreparedMetricSeries.createValidated(
-                    metric = TrendMetricId.BADMINTON_TRAINING,
+                    metric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
                     weeks = listOf(week),
-                    cells = listOf(TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, week, TimeSeriesCellState.STRUCTURAL_ZERO, 0.0)),
+                    cells = listOf(TimeSeriesCell(TrendMetricId.BADMINTON_PRACTICE_LOAD, week, TimeSeriesCellState.STRUCTURAL_ZERO, 0.0)),
                     transformation = "level",
                     lifecycleMetadata = MetricLifecycleMetadata(structuralZeroAllowed = false),
                     provenance = listOf("test")
@@ -382,9 +382,9 @@ class TimeSeriesPreparedPipelineContractTest {
         assertTrue(
             runCatching {
                 PreparedMetricSeries.createValidated(
-                    metric = TrendMetricId.BADMINTON_TRAINING,
+                    metric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
                     weeks = listOf(week),
-                    cells = listOf(TimeSeriesCell(TrendMetricId.BADMINTON_TRAINING, week, TimeSeriesCellState.OBSERVED_VALUE, 1.0)),
+                    cells = listOf(TimeSeriesCell(TrendMetricId.BADMINTON_PRACTICE_LOAD, week, TimeSeriesCellState.OBSERVED_VALUE, 1.0)),
                     transformation = "level",
                     lifecycleMetadata = MetricLifecycleMetadata(notApplicableWeeks = setOf(week)),
                     provenance = listOf("test")

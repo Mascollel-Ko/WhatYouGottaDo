@@ -58,7 +58,7 @@ class ScatterRelationshipAnalyzerTest {
 
     @Test
     fun sameMetricReturnsInvalidEmptyResult() {
-        val result = analyzer.analyze(TrendMetricId.COURT_VOLUME, TrendMetricId.COURT_VOLUME, emptyMap())
+        val result = analyzer.analyze(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.BADMINTON_PRACTICE_LOAD, emptyMap())
 
         assertTrue(result.dataPoints.isEmpty())
         assertNull(result.correlation)

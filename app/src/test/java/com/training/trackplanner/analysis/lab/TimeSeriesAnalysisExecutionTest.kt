@@ -24,7 +24,7 @@ import org.junit.Test
 
 class TimeSeriesAnalysisExecutionTest {
     private val request = TimeSeriesAnalysisRequest(
-        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.BADMINTON_PRACTICE_LOAD,
         listOf(TrendMetricId.FATIGUE_COMPOSITE),
         emptyList(),
         2
@@ -251,7 +251,7 @@ class TimeSeriesAnalysisExecutionTest {
     private fun fixture(count: Int): Map<TrendMetricId, List<TrendDataPoint>> {
         val start = LocalDate.parse("2026-01-05")
         return mapOf(
-            TrendMetricId.BADMINTON_TRAINING to (0 until count).map { index ->
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to (0 until count).map { index ->
                 TrendDataPoint(start.plusWeeks(index.toLong()), (index % 7).toDouble())
             },
             TrendMetricId.FATIGUE_COMPOSITE to (0 until count).map { index ->

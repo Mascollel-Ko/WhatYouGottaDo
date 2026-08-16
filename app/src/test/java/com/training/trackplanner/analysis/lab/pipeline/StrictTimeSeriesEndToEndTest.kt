@@ -17,7 +17,7 @@ class StrictTimeSeriesEndToEndTest {
 
     @Test
     fun rawWeeklyDataProducesOneImmutablePreparationContextWithoutRunningEstimators() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y1 = TrendMetricId.FATIGUE_COMPOSITE
         val y2 = TrendMetricId.STRENGTH_PERFORMANCE
         val z = TrendMetricId.SLEEP_HOURS

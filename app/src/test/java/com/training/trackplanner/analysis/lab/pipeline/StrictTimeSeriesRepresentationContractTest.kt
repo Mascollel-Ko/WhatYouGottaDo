@@ -18,7 +18,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun diagnosticsPreserveSegmentsAndNeverCompressAcrossGapsOrLifecycleBoundaries() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val weeks = weeks(98)
         val lifecycle = StrictMetricLifecycle.createValidated(
@@ -46,7 +46,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun disagreeingEligibleSegmentsAreInconclusive() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val left = fixtureValues("two_segments_i0_left")
         val right = fixtureValues("two_segments_i1_left")
@@ -74,7 +74,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun optionalInconclusiveIsExcludedButRequiredInconclusiveFailsWithoutFallback() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val optional = TrendMetricId.STRENGTH_VOLUME
         val supported = fixtureValues("stationary_ar_03")
@@ -109,7 +109,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun i1SeriesIsDifferencedExactlyOnceWhileLevelSeriesRemainsAvailable() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val walk = fixtureValues("random_walk")
         val weeks = weeks(walk.size)
@@ -135,7 +135,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun estimatorRepresentationsKeepI1LevelsAndDifferencesDistinct() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val walk = fixtureValues("random_walk")
         val weeks = weeks(walk.size)
@@ -160,7 +160,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     @Test
     fun contradictoryExplicitTransformationFailsStrictPreparation() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val walk = fixtureValues("random_walk")
         val weeks = weeks(walk.size)
@@ -190,7 +190,7 @@ class StrictTimeSeriesRepresentationContractTest {
         val sourceIdentity = bvarPosteriorSourceIdentity()
         val shockSize = sourceIdentity.eligibleSourceWeeks.size
         val posterior = IdentifiedShockPosterior.createValidated(
-            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            sourceMetric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
             orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
             structuralOrdering = "temporal",
             normalizationPolicy = "one-standard-deviation",
@@ -209,7 +209,7 @@ class StrictTimeSeriesRepresentationContractTest {
         assertTrue(
             runCatching {
                 IdentifiedShockPosterior.createValidated(
-                    TrendMetricId.BADMINTON_TRAINING,
+                    TrendMetricId.BADMINTON_PRACTICE_LOAD,
                     sourceIdentity.orderedEndogenousMetrics,
                     "temporal",
                     "one-standard-deviation",
@@ -257,7 +257,7 @@ class StrictTimeSeriesRepresentationContractTest {
         val sourceIdentity = bvarPosteriorSourceIdentity()
         val shockSize = sourceIdentity.eligibleSourceWeeks.size
         val forward = IdentifiedShockPosterior.createValidated(
-            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            sourceMetric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
             orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
             structuralOrdering = "temporal",
             normalizationPolicy = "one-standard-deviation",
@@ -269,7 +269,7 @@ class StrictTimeSeriesRepresentationContractTest {
             rejectedDrawDiagnostics = listOf(RejectedShockDrawDiagnostic("r2", "non-SPD"), RejectedShockDrawDiagnostic("r1", "weight"))
         )
         val permuted = IdentifiedShockPosterior.createValidated(
-            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            sourceMetric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
             orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
             structuralOrdering = "temporal",
             normalizationPolicy = "one-standard-deviation",
@@ -296,7 +296,7 @@ class StrictTimeSeriesRepresentationContractTest {
             shocks: Map<String, List<Double>> = mapOf("d1" to List(shockSize) { 0.1 }, "d2" to List(shockSize) { 0.2 }),
             rejected: List<RejectedShockDrawDiagnostic> = emptyList()
         ) = IdentifiedShockPosterior.createValidated(
-            sourceMetric = TrendMetricId.BADMINTON_TRAINING,
+            sourceMetric = TrendMetricId.BADMINTON_PRACTICE_LOAD,
             orderedEndogenousMetrics = sourceIdentity.orderedEndogenousMetrics,
             structuralOrdering = "temporal",
             normalizationPolicy = "one-standard-deviation",
@@ -353,7 +353,7 @@ class StrictTimeSeriesRepresentationContractTest {
     ) = StrictPreparationRequest(x, listOf(y), optionalCandidates = optional, horizons = setOf(1, 2))
 
     private fun context(): PreparedAnalysisContext {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val supported = fixtureValues("stationary_ar_03")
         val weeks = weeks(supported.size)

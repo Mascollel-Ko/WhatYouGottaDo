@@ -44,10 +44,6 @@ enum class TrendMetricId {
     STRENGTH_VOLUME,
     STRENGTH_EFFICIENCY,
     BADMINTON_PRACTICE_LOAD,
-    BADMINTON_TRAINING,
-    COURT_VOLUME,
-    FOOTWORK_REACTIVE,
-    BADMINTON_SUPPORT,
     FATIGUE_COMPOSITE,
     SYSTEMIC_FATIGUE,
     STRENGTH_FATIGUE,
@@ -248,19 +244,6 @@ data class StrengthWeekIndex(
     val patternVolumes: Map<String, Double>
 )
 
-data class BadmintonWeekIndex(
-    val weekStart: LocalDate,
-    val courtVolumeIndex: Double,
-    val footworkReactiveIndex: Double,
-    val supportIndex: Double,
-    val trainingIndex: Double,
-    val confidence: AnalysisConfidence,
-    val courtRaw: Double,
-    val footworkReactiveRaw: Double,
-    val supportRaw: Double,
-    val itemScores: Map<String, Double>
-)
-
 data class FatigueWeekIndex(
     val weekStart: LocalDate,
     val systemicGroupScore: Double,
@@ -273,17 +256,6 @@ data class FatigueWeekIndex(
     val categoryScores: Map<String, Double>,
     val bodyPartScores: Map<String, Double>
 )
-
-data class BadmintonDailyLoadPoint(
-    val date: LocalDate,
-    val courtRaw: Double,
-    val footworkReactiveRaw: Double,
-    val supportRaw: Double,
-    val objectiveStimulus: Map<String, Double> = emptyMap()
-) {
-    val totalRaw: Double
-        get() = courtRaw + footworkReactiveRaw + supportRaw
-}
 
 data class RepRangeWeekShare(
     val weekStart: LocalDate,

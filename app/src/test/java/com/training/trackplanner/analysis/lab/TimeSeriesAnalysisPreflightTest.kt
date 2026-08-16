@@ -11,7 +11,7 @@ import org.junit.Test
 class TimeSeriesAnalysisPreflightTest {
     private val policy = TimeSeriesAnalysisPreflightPolicy()
     private val request = TimeSeriesAnalysisRequest(
-        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.BADMINTON_PRACTICE_LOAD,
         listOf(TrendMetricId.FATIGUE_COMPOSITE),
         emptyList(),
         2
@@ -99,7 +99,7 @@ class TimeSeriesAnalysisPreflightTest {
     @Test
     fun zeroVarianceShockIsBlockedBeforeEstimation() {
         val fixture = stationaryFixture(52).toMutableMap()
-        fixture[TrendMetricId.BADMINTON_TRAINING] = fixture.getValue(TrendMetricId.BADMINTON_TRAINING)
+        fixture[TrendMetricId.BADMINTON_PRACTICE_LOAD] = fixture.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD)
             .map { it.copy(value = 1.0) }
 
         val result = policy.evaluate(request, fixture)
@@ -120,7 +120,7 @@ class TimeSeriesAnalysisPreflightTest {
         val weeks = (0 until count).map { start.plusWeeks(it.toLong()) }
         val xValues = (0 until count).map { index -> ((index % 7) - 3).toDouble() + if (index % 3 == 0) 0.2 else -0.1 }
         return mapOf(
-            TrendMetricId.BADMINTON_TRAINING to weeks.mapIndexed { index, week -> TrendDataPoint(week, xValues[index]) },
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to weeks.mapIndexed { index, week -> TrendDataPoint(week, xValues[index]) },
             TrendMetricId.FATIGUE_COMPOSITE to weeks.mapIndexed { index, week ->
                 val lagged = xValues.getOrElse((index - 2).coerceAtLeast(0)) { 0.0 }
                 TrendDataPoint(week, lagged * 0.7 + ((index % 5) - 2) * 0.08)

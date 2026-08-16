@@ -32,9 +32,6 @@ internal object PerformanceTrendConstants {
     const val STRENGTH_EFFICIENCY_SCORE_WEIGHT = 0.70
     const val STRENGTH_EFFICIENCY_SAME_LOAD_WEIGHT = 0.30
 
-    const val BADMINTON_COURT_WEIGHT = 0.60
-    const val BADMINTON_FOOTWORK_WEIGHT = 0.25
-    const val BADMINTON_SUPPORT_WEIGHT = 0.15
 
     const val FATIGUE_AVERAGE_WEIGHT = 0.60
     const val FATIGUE_MAX_WEIGHT = 0.25

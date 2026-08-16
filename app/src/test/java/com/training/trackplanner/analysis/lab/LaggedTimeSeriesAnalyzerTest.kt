@@ -12,7 +12,7 @@ class LaggedTimeSeriesAnalyzerTest {
     @Test
     fun BayesianLocalProjectionKeepsMissingWeeksMissingAndReturnsHorizonZeroThroughTwo() {
         val result = LegacyTimeSeriesAnalyzer().analyze(
-            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
+            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             stationaryFixture(52)
         )
 
@@ -24,7 +24,7 @@ class LaggedTimeSeriesAnalyzerTest {
     @Test
     fun requestedHorizonIsReducedInsteadOfFillingFutureWeeks() {
         val result = LegacyTimeSeriesAnalyzer().analyze(
-            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 8),
+            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 8),
             stationaryFixture(31)
         )
 
@@ -37,9 +37,9 @@ class LaggedTimeSeriesAnalyzerTest {
         val start = LocalDate.parse("2026-01-05")
         val weeks = (0 until 40).map { start.plusWeeks(it.toLong()) }
         val result = LegacyTimeSeriesAnalyzer().analyze(
-            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
+            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             mapOf(
-                TrendMetricId.BADMINTON_TRAINING to weeks.map { TrendDataPoint(it, 1.0) },
+                TrendMetricId.BADMINTON_PRACTICE_LOAD to weeks.map { TrendDataPoint(it, 1.0) },
                 TrendMetricId.FATIGUE_COMPOSITE to weeks.mapIndexed { index, week -> TrendDataPoint(week, index.toDouble()) }
             )
         )
@@ -54,7 +54,7 @@ class LaggedTimeSeriesAnalyzerTest {
         val stationary = (0 until 64).map { index -> if (index % 2 == 0) 1.0 else -1.0 }
         val randomWalk = (0 until 64).runningFold(0.0) { total, index -> total + if (index % 2 == 0) 1.0 else -0.35 }.dropLast(1)
 
-        assertEquals(IntegrationOrder.I0, analyzer.diagnose(TrendMetricId.BADMINTON_TRAINING, stationary).levelOrder)
+        assertEquals(IntegrationOrder.I0, analyzer.diagnose(TrendMetricId.BADMINTON_PRACTICE_LOAD, stationary).levelOrder)
         assertTrue(analyzer.diagnose(TrendMetricId.FATIGUE_COMPOSITE, randomWalk).levelOrder in setOf(IntegrationOrder.I1, IntegrationOrder.INCONCLUSIVE))
     }
 
@@ -62,7 +62,7 @@ class LaggedTimeSeriesAnalyzerTest {
     fun lagPosteriorIsSharedAcrossEveryResponseHorizon() {
         val result = LegacyTimeSeriesAnalyzer().analyze(
             TimeSeriesAnalysisRequest(
-                TrendMetricId.BADMINTON_TRAINING,
+                TrendMetricId.BADMINTON_PRACTICE_LOAD,
                 listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
                 emptyList(),
                 2
@@ -84,12 +84,12 @@ class LaggedTimeSeriesAnalyzerTest {
         }
 
         val alignment = TimeSeriesAlignmentService().align(
-            listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE),
-            mapOf(TrendMetricId.BADMINTON_TRAINING to x, TrendMetricId.FATIGUE_COMPOSITE to y)
+            listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE),
+            mapOf(TrendMetricId.BADMINTON_PRACTICE_LOAD to x, TrendMetricId.FATIGUE_COMPOSITE to y)
         )!!
 
         assertEquals(32, alignment.weeks.size)
-        assertTrue(alignment.valuesByMetric.getValue(TrendMetricId.BADMINTON_TRAINING).contains(0.0))
+        assertTrue(alignment.valuesByMetric.getValue(TrendMetricId.BADMINTON_PRACTICE_LOAD).contains(0.0))
         assertEquals(5.0 / 32.0, alignment.qualitySummaries.getValue(TrendMetricId.FATIGUE_COMPOSITE).rawMissingRate, 1e-9)
     }
 
@@ -97,15 +97,15 @@ class LaggedTimeSeriesAnalyzerTest {
     fun rollingOriginScoreUsesHeldOutWeeklyResponses() {
         val fixture = stationaryFixture(56, includeStrength = true)
         val alignment = TimeSeriesAlignmentService().align(
-            listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
+            listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
             fixture
         )!!
 
         val score = BayesianLocalProjectionEstimator().rollingPredictiveScore(
             alignment,
-            TrendMetricId.BADMINTON_TRAINING,
+            TrendMetricId.BADMINTON_PRACTICE_LOAD,
             TrendMetricId.FATIGUE_COMPOSITE,
-            listOf(TrendMetricId.BADMINTON_TRAINING, TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
+            listOf(TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.STRENGTH_PERFORMANCE),
             emptyList()
         )
 
@@ -119,17 +119,17 @@ class LaggedTimeSeriesAnalyzerTest {
     fun canonicalCholeskyOrderExcludesExogenousControlsAndDoesNotForceXFirst() {
         val identifier = CholeskyShockIdentifier()
         val order = identifier.canonicalOrder(
-            listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.BADMINTON_TRAINING, TrendMetricId.SQUAT_E1RM)
+            listOf(TrendMetricId.FATIGUE_COMPOSITE, TrendMetricId.BADMINTON_PRACTICE_LOAD, TrendMetricId.SQUAT_E1RM)
         )
 
-        assertEquals(TrendMetricId.BADMINTON_TRAINING, order.first())
+        assertEquals(TrendMetricId.BADMINTON_PRACTICE_LOAD, order.first())
         assertFalse(TrendMetricId.SLEEP_HOURS in order)
     }
 
     @Test
     fun legacyCointegrationDiagnosticDoesNotRouteToBayesianVecm() {
         val result = LegacyTimeSeriesAnalyzer().analyze(
-            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
+            TimeSeriesAnalysisRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), emptyList(), 2),
             cointegratedFixture(72)
         )
 
@@ -148,7 +148,7 @@ class LaggedTimeSeriesAnalyzerTest {
             TrendDataPoint(week, lagged * 0.7 + ((index % 5) - 2) * 0.08)
         }
         return buildMap {
-            put(TrendMetricId.BADMINTON_TRAINING, x)
+            put(TrendMetricId.BADMINTON_PRACTICE_LOAD, x)
             put(TrendMetricId.FATIGUE_COMPOSITE, fatigue)
             if (includeStrength) put(
                 TrendMetricId.STRENGTH_PERFORMANCE,
@@ -163,7 +163,7 @@ class LaggedTimeSeriesAnalyzerTest {
         val xValues = (0 until count).map { index -> index.toDouble() + ((index * 7 % 5) - 2).toDouble() * 0.2 }
         val yValues = xValues.mapIndexed { index, value -> value * 0.9 + ((index * 11 % 7) - 3).toDouble() * 0.12 }
         return mapOf(
-            TrendMetricId.BADMINTON_TRAINING to weeks.mapIndexed { index, week -> TrendDataPoint(week, xValues[index]) },
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to weeks.mapIndexed { index, week -> TrendDataPoint(week, xValues[index]) },
             TrendMetricId.FATIGUE_COMPOSITE to weeks.mapIndexed { index, week -> TrendDataPoint(week, yValues[index]) }
         )
     }

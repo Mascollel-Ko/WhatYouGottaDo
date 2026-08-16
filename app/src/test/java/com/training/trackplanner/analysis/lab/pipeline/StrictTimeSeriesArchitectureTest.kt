@@ -15,7 +15,7 @@ import org.junit.Test
 class StrictTimeSeriesArchitectureTest {
     @Test
     fun ingestionOwnsCanonicalContinuousCalendarAndMissingCells() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val input = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
                 metric to listOf(
@@ -38,7 +38,7 @@ class StrictTimeSeriesArchitectureTest {
 
     @Test
     fun conflictingRawObservationsNeverBecomeNumeric() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val input = RawTimeSeriesInput.fromTrendSeries(
             mapOf(
                 metric to listOf(
@@ -57,7 +57,7 @@ class StrictTimeSeriesArchitectureTest {
 
     @Test
     fun unresolvedDuplicateRawObservationsCannotBypassResolver() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
 
         assertTrue(
             runCatching {
@@ -88,7 +88,7 @@ class StrictTimeSeriesArchitectureTest {
 
     @Test
     fun availabilityEndCreatesLifecycleBoundaryAndConflictIdentityIsPermutationStable() {
-        val metric = TrendMetricId.BADMINTON_TRAINING
+        val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val response = TrendMetricId.FATIGUE_COMPOSITE
         val first = LocalDate.parse("2026-01-05")
         val lifecycle = StrictMetricLifecycle.createValidated(

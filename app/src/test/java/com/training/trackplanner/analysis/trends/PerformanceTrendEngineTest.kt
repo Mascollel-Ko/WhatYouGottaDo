@@ -500,7 +500,7 @@ class PerformanceTrendEngineTest {
     @Test
     fun scatterRequiresSufficientPointsAndAvoidsCausalLanguage() {
         val shortSeries = mapOf(
-            TrendMetricId.BADMINTON_TRAINING to (0 until 5).map {
+            TrendMetricId.BADMINTON_PRACTICE_LOAD to (0 until 5).map {
                 TrendDataPoint(today.minusWeeks(it.toLong()), 100.0 + it)
             },
             TrendMetricId.FATIGUE_COMPOSITE to (0 until 5).map {
@@ -508,7 +508,7 @@ class PerformanceTrendEngineTest {
             }
         )
         val result = ScatterRelationshipAnalyzer().analyze(
-            TrendMetricId.BADMINTON_TRAINING,
+            TrendMetricId.BADMINTON_PRACTICE_LOAD,
             TrendMetricId.FATIGUE_COMPOSITE,
             shortSeries
         )

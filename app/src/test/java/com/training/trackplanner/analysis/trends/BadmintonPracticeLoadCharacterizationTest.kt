@@ -36,76 +36,6 @@ class BadmintonPracticeLoadCharacterizationTest {
     }
 
     @Test
-    fun canonicalPracticeProviderHasExactParityWithLegacyCourtRaw() {
-        val badminton = canonicalExercise("ex_ae9ecdbc")
-        val lesson = canonicalExercise("ex_badminton_lesson")
-        val tennis = exercise(canonicalRows.single { it.stableKey == "ex_2f3b56d0" })
-        val demotedCatalog = RuntimeExerciseMetadataCatalog.of(
-            listOf(canonicalRows.single { it.stableKey == badminton.stableKey }.copy(activityKind = "EXERCISE"))
-        )
-        val confirmedSet = { seconds: Int, rpe: Double? -> set(seconds, true, rpe) }
-        val unconfirmedSet = { seconds: Int -> set(seconds, false) }
-        val cases = buildList {
-            add(ParityCase("empty", emptyList(), emptyList(), canonicalCatalog))
-            add(ParityCase("canonical badminton", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), canonicalCatalog))
-            add(ParityCase("canonical lesson", listOf(record(lesson, date.toString(), listOf(confirmedSet(600, null)))), listOf(lesson), canonicalCatalog))
-            add(ParityCase("non badminton sport", listOf(record(tennis, date.toString(), listOf(confirmedSet(600, null)))), listOf(tennis), canonicalCatalog))
-            add(ParityCase("wrong resolved kind", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), demotedCatalog))
-            add(ParityCase("unconfirmed", listOf(record(badminton, date.toString(), listOf(unconfirmedSet(600)))), listOf(badminton), canonicalCatalog))
-            add(ParityCase("multiple confirmed", listOf(record(badminton, date.toString(), listOf(confirmedSet(120, null), confirmedSet(180, null)))), listOf(badminton), canonicalCatalog))
-            add(ParityCase("set RPE precedence", listOf(record(badminton, date.toString(), listOf(confirmedSet(120, 6.0), confirmedSet(180, 10.0)), 2.0)), listOf(badminton), canonicalCatalog))
-            add(ParityCase("entry RPE fallback", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)), 9.0)), listOf(badminton), canonicalCatalog))
-            add(ParityCase("null RPE", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), canonicalCatalog))
-            listOf(6.0, 6.5, 7.999, 8.0, 8.999, 9.0, 9.999, 10.0, 11.0).forEach { rpe ->
-                add(ParityCase("RPE $rpe", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, rpe)))), listOf(badminton), canonicalCatalog))
-            }
-            add(ParityCase("zero duration", listOf(record(badminton, date.toString(), listOf(confirmedSet(0, null)))), listOf(badminton), canonicalCatalog))
-            add(
-                ParityCase(
-                    "same date aggregation",
-                    listOf(
-                        record(badminton, date.toString(), listOf(confirmedSet(300, null))),
-                        record(badminton, date.toString(), listOf(confirmedSet(600, 8.0)))
-                    ),
-                    listOf(badminton),
-                    canonicalCatalog
-                )
-            )
-            add(
-                ParityCase(
-                    "multiple dates",
-                    listOf(
-                        record(badminton, date.toString(), listOf(confirmedSet(300, null))),
-                        record(badminton, date.plusDays(2).toString(), listOf(confirmedSet(600, 8.0)))
-                    ),
-                    listOf(badminton),
-                    canonicalCatalog
-                )
-            )
-        }
-
-        cases.forEach { fixture ->
-            val exerciseMap = fixture.exercises.associateBy(Exercise::stableKey)
-            val old = BadmintonTrainingLoadIndexCalculator(fixture.catalog).calculate(
-                listOf(week(date, fixture.records)),
-                exerciseMap
-            ).single().courtRaw
-            val new = BadmintonPracticeLoadCalculator(fixture.catalog).calculateRaw(fixture.records, exerciseMap)
-            assertEquals("EXACT_PARITY ${fixture.name}", old, new, 0.0000001)
-        }
-
-        val weeks = listOf(
-            week(date, listOf(record(badminton, date.toString(), listOf(set(300, true))))),
-            week(date.plusWeeks(1), listOf(record(lesson, date.plusWeeks(1).toString(), listOf(set(1_200, true, 9.0)))))
-        )
-        val exerciseMap = listOf(badminton, lesson).associateBy(Exercise::stableKey)
-        assertEquals(
-            BadmintonTrainingLoadIndexCalculator(canonicalCatalog).calculate(weeks, exerciseMap).map { it.courtRaw },
-            BadmintonPracticeLoadCalculator(canonicalCatalog).weeklyLoads(weeks, exerciseMap).map { it.practiceLoad }
-        )
-    }
-
-    @Test
     fun currentCanonicalPracticeAndCourtExposureSetsAreEqualButOwnedByDifferentRules() {
         val exercises = canonicalRows.map(::exercise)
         val practiceKeys = exercises.filterTo(linkedSetOf()) { candidate ->
@@ -204,8 +134,8 @@ class BadmintonPracticeLoadCharacterizationTest {
 
     @Test
     fun emptyHistoryAndNonBadmintonSportSessionsHaveNoPracticeLoad() {
-        val calculator = BadmintonTrainingLoadIndexCalculator(canonicalCatalog)
-        assertTrue(calculator.calculate(emptyList(), emptyMap()).isEmpty())
+        val calculator = BadmintonPracticeLoadCalculator(canonicalCatalog)
+        assertTrue(calculator.weeklyLoads(emptyList(), emptyMap()).isEmpty())
         assertTrue(calculator.dailyLoads(emptyList(), emptyMap()).isEmpty())
 
         val tennis = exercise(canonicalRows.single { it.stableKey == "ex_2f3b56d0" })
@@ -287,24 +217,24 @@ class BadmintonPracticeLoadCharacterizationTest {
             record(badminton, secondDate.toString(), listOf(set(seconds = 60, rpe = 10.0, confirmed = true))),
             record(badminton, "invalid-date", listOf(set(seconds = 600, confirmed = true)))
         )
-        val daily = BadmintonTrainingLoadIndexCalculator(canonicalCatalog).dailyLoads(
+        val daily = BadmintonPracticeLoadCalculator(canonicalCatalog).dailyLoads(
             records,
             mapOf(badminton.stableKey to badminton)
         )
 
         assertEquals(listOf(firstDate, secondDate), daily.map { it.date })
-        assertEquals(15.50, daily[0].courtRaw, 0.0001)
-        assertEquals(1.15, daily[1].courtRaw, 0.0001)
+        assertEquals(15.50, daily[0].practiceLoad, 0.0001)
+        assertEquals(1.15, daily[1].practiceLoad, 0.0001)
 
         val weeks = listOf(
             week(firstDate, records.take(2)),
             week(firstDate.plusWeeks(1), listOf(record(badminton, firstDate.plusWeeks(1).toString(), listOf(set(seconds = 1_200, confirmed = true)))))
         )
-        val weekly = BadmintonTrainingLoadIndexCalculator(canonicalCatalog).calculate(
+        val weekly = BadmintonPracticeLoadCalculator(canonicalCatalog).weeklyLoads(
             weeks,
             mapOf(badminton.stableKey to badminton)
         )
-        assertEquals(listOf(15.50, 20.00), weekly.map { it.courtRaw })
+        assertEquals(listOf(15.50, 20.00), weekly.map { it.practiceLoad })
     }
 
     @Test
@@ -336,10 +266,10 @@ class BadmintonPracticeLoadCharacterizationTest {
         records: List<WorkoutEntryWithSets>,
         exercises: List<Exercise>,
         catalog: RuntimeExerciseMetadataCatalog = canonicalCatalog
-    ): Double = BadmintonTrainingLoadIndexCalculator(catalog).calculate(
-        weeks = listOf(week(date, records)),
+    ): Double = BadmintonPracticeLoadCalculator(catalog).calculateRaw(
+        entriesWithSets = records,
         exerciseMap = exercises.associateBy(Exercise::stableKey)
-    ).single().courtRaw
+    )
 
     private fun week(start: LocalDate, records: List<WorkoutEntryWithSets>) = WeeklyTrainingData(
         weekStart = start,
@@ -406,10 +336,4 @@ class BadmintonPracticeLoadCharacterizationTest {
         File("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
     ).firstOrNull(File::isFile) ?: error("Canonical runtime metadata test asset not found.")
 
-    private data class ParityCase(
-        val name: String,
-        val records: List<WorkoutEntryWithSets>,
-        val exercises: List<Exercise>,
-        val catalog: RuntimeExerciseMetadataCatalog
-    )
 }

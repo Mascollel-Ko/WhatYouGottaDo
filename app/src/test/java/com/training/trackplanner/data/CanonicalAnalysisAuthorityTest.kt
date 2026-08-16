@@ -99,17 +99,27 @@ class CanonicalAnalysisAuthorityTest {
         val engine = projectFile(
             "app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendEngine.kt"
         ).readText()
-        val badminton = projectFile(
-            "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt"
+        val practice = projectFile(
+            "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeLoadCalculator.kt"
         ).readText()
         val models = projectFile(
             "app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendModels.kt"
         ).readText()
 
         assertTrue(engine.contains("CoreStimulusCalculator(canonicalCoreCatalog)"))
-        assertTrue(badminton.contains("BadmintonObjectiveStimulusCalculator"))
-        assertFalse(badminton.contains("BadmintonTransferMetadataMapper"))
-        assertFalse(badminton.contains("CoreDirectTarget"))
+        assertTrue(engine.contains("BadmintonObjectiveStimulusCalculator"))
+        assertFalse(practice.contains("ExerciseAnalysisMapper"))
+        assertFalse(practice.contains("BadmintonTransferMetadataMapper"))
+        assertFalse(practice.contains("CoreDirectTarget"))
+        assertTrue(
+            sequenceOf(
+                File("app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt"),
+                File("../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt")
+            ).none(File::isFile)
+        )
+        assertFalse(models.contains("courtRaw"))
+        assertFalse(models.contains("footworkReactiveRaw"))
+        assertFalse(models.contains("supportRaw"))
         assertFalse(models.contains("methodRaw"))
     }
 

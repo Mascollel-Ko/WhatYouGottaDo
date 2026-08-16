@@ -54,7 +54,7 @@ class PreparedAnalysisContextContractTest {
 
     @Test
     fun estimatorViewsShareRootIdentityAndKeepLevelAndTransformedRepresentationsSeparate() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val walk = fixtureValues("random_walk")
         val weeks = weeks(walk.size)
@@ -80,7 +80,7 @@ class PreparedAnalysisContextContractTest {
 
     @Test
     fun roleAwareRowsDoNotRequireFutureControlValuesAndHorizonsChangeIdentity() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val control = TrendMetricId.SLEEP_HOURS
         val values = fixtureValues("stationary_ar_03")
@@ -175,7 +175,7 @@ class PreparedAnalysisContextContractTest {
     }
 
     private fun request(optional: List<TrendMetricId> = emptyList()) = StrictPreparationRequest(
-        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.BADMINTON_PRACTICE_LOAD,
         listOf(TrendMetricId.FATIGUE_COMPOSITE),
         optionalCandidates = optional,
         horizons = setOf(1, 2)

@@ -55,7 +55,7 @@ class StrictTimeSeriesIntegrationContractTest {
 
     @Test
     fun requiredAndOptionalInconclusivePoliciesAreFixed() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val optional = TrendMetricId.STRENGTH_VOLUME
         val supported = fixtureValues("stationary_ar_03")
@@ -90,7 +90,7 @@ class StrictTimeSeriesIntegrationContractTest {
 
     @Test
     fun explicitTransformationMustMatchCanonicalAssessment() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val supported = fixtureValues("stationary_ar_03")
         val weeks = weeks(supported.size)
@@ -132,10 +132,10 @@ class StrictTimeSeriesIntegrationContractTest {
 
     @Test
     fun strictHorizonRangeIsOneThroughEightAndNoHorizonRowsUseNoZeroSentinel() {
-        assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = setOf(1)) }.isSuccess)
-        assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = setOf(8)) }.isSuccess)
+        assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = setOf(1)) }.isSuccess)
+        assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = setOf(8)) }.isSuccess)
         listOf(emptySet(), setOf(0), setOf(9), setOf(-1), setOf(1, 9)).forEach { horizons ->
-            assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_TRAINING, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = horizons) }.isFailure)
+            assertTrue(runCatching { StrictPreparationRequest(TrendMetricId.BADMINTON_PRACTICE_LOAD, listOf(TrendMetricId.FATIGUE_COMPOSITE), horizons = horizons) }.isFailure)
         }
         val context = contextForScaling()
         val view = BvarPreparedView.from(context)
@@ -148,7 +148,7 @@ class StrictTimeSeriesIntegrationContractTest {
 
     @Test
     fun conflictingRawRevisionsRemainConflictProvenanceAtIngestionBoundary() {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val week = LocalDate.parse("2026-01-05")
         val alignment = requireNotNull(TimeSeriesAlignmentService().alignObservations(
@@ -169,7 +169,7 @@ class StrictTimeSeriesIntegrationContractTest {
     }
 
     private fun diagnosticFor(values: List<Double?>): IntegrationOrderAssessment {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val weeks = weeks(values.size)
         val input = RawTimeSeriesInput.fromTrendSeries(
@@ -182,7 +182,7 @@ class StrictTimeSeriesIntegrationContractTest {
     }
 
     private fun contextForScaling(): PreparedAnalysisContext {
-        val x = TrendMetricId.BADMINTON_TRAINING
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE
         val values = fixtureValues("stationary_ar_03").toMutableList().also {
             it[1] = it[0]
