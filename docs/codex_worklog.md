@@ -5957,3 +5957,85 @@ Remaining debt:
 - Local body-part fatigue remains `BLOCKED` until an approved equivalent presentation calculation exists.
 - Strength efficiency remains `REPLACEMENT_REQUIRED`; no replacement formula was invented.
 - Exercise legacy columns, backup readers, and Room migrations remain compatibility boundaries until consumer-zero and information-preservation proof both pass.
+
+## 2026-08-16 - replacement-first badminton practice contract Phase 2A/2B
+
+### Baseline and scope
+
+- Baseline: `664c670c8daf7a6118850626823ddf424bcb3808` on branch
+  `codex/badminton-practice-contract-audit`.
+- Version remains `0.5.0.37 / 500037`; no version bump or tag was created.
+- Scope was audit, characterization, and protocol governance only. No production
+  Kotlin, UI, Room, backup, readiness, strength, tissue, ProgramBuilder,
+  exercise semantic authority, or current consumer changed.
+
+### Commit 1 - practice admission characterization
+
+- Commit: `2adc231` (`test(audit): characterize badminton practice admission`).
+- Added `BadmintonPracticeLoadCharacterizationTest` covering empty history,
+  both exact practice identities, non-badminton sport sessions, a synthetic
+  recovery-only match boundary, confirmed/unconfirmed sets, several confirmed
+  sets, set/entry RPE precedence, all modifier boundaries, zero/negative
+  seconds, same-date aggregation, multiple dates, caller-supplied weeks, and
+  nine-objective separation.
+- Materialized A-F membership for all 257 canonical identities in
+  `badminton_practice_admission_set_matrix.csv`: practice 2, recovery court
+  exposure 2, legacy footwork/reactive 48, legacy support 222, canonical
+  objective stimulus 102, and legacy readiness `BADMINTON_COURT` positive-dose
+  membership 243.
+- Determined `BADMINTON_PRACTICE` and recovery `BADMINTON_COURT_EXPOSURE` are
+  `DISTINCT_CONCEPTS` whose current canonical stableKey sets happen to be
+  identical: `ex_ae9ecdbc` and `ex_badminton_lesson`.
+- Classified exact admission, confirmed duration, set-RPE/entry-RPE fallback,
+  modifier boundaries, and date/week sums as governed practice semantics.
+  Invalid-date dropping and negative-second collapse remain implementation
+  details. Footwork/support/standardized composite arithmetic remains legacy.
+
+### Commit 2 - canonical protocol boundary
+
+- Commit: pending (`docs(protocol): govern badminton practice load boundary`).
+- Updated `BADMINTON-VOLUME` in place from `1.2.0` to `1.3.0` without changing
+  the app version. The protocol now describes only exact practice admission and
+  confirmed duration x RPE arithmetic.
+- Marked recovery court exposure, nine-objective stimulus, legacy
+  footwork/support, readiness `BADMINTON_COURT`, and 0.60/0.25/0.15 composite
+  standardization as separate concepts.
+- Synchronized `protocol_registry.json` and the public protocol index.
+- Recommended a future explicit two-key `BadmintonPracticeCatalog` and minimal
+  `BadmintonPracticeLoadCalculator` input contract. No replacement class or
+  consumer cutover was implemented.
+
+### Frozen semantic authority
+
+- `exercise_bootstrap.csv`: 257 rows, SHA-256
+  `204e74ae94f038842d9887145edbfa173616cd19f914c99ded4fe0a0ba3d7e43`.
+- `runtime_metadata.csv`: 257 rows, SHA-256
+  `781a2b0acd2df110fe859e1306b0030d73017c10a3868fcf814127c6b5500bb0`.
+- `badminton_objective_relations.csv`: 280 rows, SHA-256
+  `bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56`.
+- Pallof `ANTI_ROTATION / SUPPORTIVE`, Copenhagen plank baseline relations, all
+  coefficients, and all nine objectives remained unchanged.
+
+### Validation
+
+- Focused practice, recovery-court, objective, canonical-authority, and audit
+  suites: passed.
+- Full `:app:testDebugUnitTest`: 1,130 tests across 204 suites; zero failures,
+  errors, or skips.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleDebug`: passed.
+- Protocol validator: passed, 8 families and 34 protocols.
+- Metadata authority workbook: valid with 257 identities (241 selectable,
+  16 history-only); deterministic canonical export is current.
+- Metadata authority Python tests: 9 passed.
+- Debug APK: 51,104,773 bytes; SHA-256
+  `a0be28c011c060abcf944dc897b29c2c1f3b91638edd8d4b496ef096b7eb2be0`,
+  unchanged from the production-identical Phase 1 build.
+
+### Next replacement-first gate
+
+- Practice capability status: `READY_FOR_REPLACEMENT_IMPLEMENTATION`.
+- Legacy `BadmintonTrainingLoadIndexCalculator` deletion status: `NOT_READY`.
+- The next phase must implement exact practice parity, then migrate
+  `PerformanceTrendEngine`, charts, Analysis detail UI, Analysis Lab, metric
+  IDs, and saved selector compatibility before deleting any composite field.

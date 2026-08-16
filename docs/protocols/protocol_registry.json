@@ -892,41 +892,46 @@
     {
       "protocolId": "BADMINTON-VOLUME",
       "familyId": "BADMINTON",
-      "titleKo": "배드민턴 훈련량 계산",
-      "titleEn": "Badminton Training Volume",
-      "currentVersion": "1.2.0",
+      "titleKo": "배드민턴 연습 훈련량 계산",
+      "titleEn": "Badminton Practice Load",
+      "currentVersion": "1.3.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
-        "MIXED",
         "PRODUCT_POLICY",
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "badminton/BADMINTON_VOLUME_CALCULATION.md",
-      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35",
-      "lastAuditedCommit": "e2fb51f",
+      "implementedFromAppVersion": "UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; exact practice contract governed in v0.5.0.37",
+      "lastAuditedCommit": "2adc231",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt",
-        "app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt",
-        "app/src/main/java/com/training/trackplanner/AnalysisDetailScreens.kt",
-        "app/src/main/java/com/training/trackplanner/AnalysisChartUi.kt"
+        "app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendConstants.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/features/ExerciseAnalysisMapper.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzer.kt",
+        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt"
       ],
       "testAnchors": [
-        "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeriesTest.kt",
-        "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt",
-        "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt"
+        "app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonPracticeLoadCharacterizationTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzerTest.kt",
+        "app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/metadata/canonical_exercise_metadata_v0_3_5_0_pass3_1.csv"
+        "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv",
+        "app/src/main/assets/metadata/canonical_v1/runtime_metadata.csv",
+        "app/src/main/assets/metadata/canonical_v1/badminton_objective_relations.csv"
       ],
       "supportingDocuments": [
-        "docs/analysis_algorithm_design.md",
-        "docs/v0.4.2.16_release_notes.md",
-        "docs/v0.5.0.35_release_notes.md"
+        "docs/protocols/badminton/BADMINTON_TRAINING_TAXONOMY.md",
+        "docs/protocols/badminton/BADMINTON_TRANSFER_CATEGORIES.md",
+        "docs/audits/replacement_first_analysis_migration_audit.md",
+        "docs/audits/badminton_practice_admission_set_matrix.csv"
       ],
       "knownGaps": [
-        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다."
+        "이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다.",
+        "Exact practice allowlist는 다음 replacement phase 전까지 legacy calculator 내부에 남아 있습니다.",
+        "Legacy footwork/support/composite metric과 UI/Lab consumer는 replacement-first migration 전까지 유지됩니다."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true
