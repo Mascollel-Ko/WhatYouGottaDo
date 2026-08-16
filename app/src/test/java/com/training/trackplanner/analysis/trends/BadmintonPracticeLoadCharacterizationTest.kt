@@ -3,6 +3,7 @@ package com.training.trackplanner.analysis.trends
 import com.training.trackplanner.analysis.badminton.BadmintonObjective
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCalculator
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveRelation
 import com.training.trackplanner.analysis.coach.CoachingSignalSeverity
@@ -31,6 +32,76 @@ class BadmintonPracticeLoadCharacterizationTest {
         RuntimeExerciseMetadataCatalog.of(
             metadata = canonicalRows,
             canonicalBadmintonAuthorityKeys = canonicalRows.map(RuntimeExerciseMetadata::stableKey)
+        )
+    }
+
+    @Test
+    fun canonicalPracticeProviderHasExactParityWithLegacyCourtRaw() {
+        val badminton = canonicalExercise("ex_ae9ecdbc")
+        val lesson = canonicalExercise("ex_badminton_lesson")
+        val tennis = exercise(canonicalRows.single { it.stableKey == "ex_2f3b56d0" })
+        val demotedCatalog = RuntimeExerciseMetadataCatalog.of(
+            listOf(canonicalRows.single { it.stableKey == badminton.stableKey }.copy(activityKind = "EXERCISE"))
+        )
+        val confirmedSet = { seconds: Int, rpe: Double? -> set(seconds, true, rpe) }
+        val unconfirmedSet = { seconds: Int -> set(seconds, false) }
+        val cases = buildList {
+            add(ParityCase("empty", emptyList(), emptyList(), canonicalCatalog))
+            add(ParityCase("canonical badminton", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), canonicalCatalog))
+            add(ParityCase("canonical lesson", listOf(record(lesson, date.toString(), listOf(confirmedSet(600, null)))), listOf(lesson), canonicalCatalog))
+            add(ParityCase("non badminton sport", listOf(record(tennis, date.toString(), listOf(confirmedSet(600, null)))), listOf(tennis), canonicalCatalog))
+            add(ParityCase("wrong resolved kind", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), demotedCatalog))
+            add(ParityCase("unconfirmed", listOf(record(badminton, date.toString(), listOf(unconfirmedSet(600)))), listOf(badminton), canonicalCatalog))
+            add(ParityCase("multiple confirmed", listOf(record(badminton, date.toString(), listOf(confirmedSet(120, null), confirmedSet(180, null)))), listOf(badminton), canonicalCatalog))
+            add(ParityCase("set RPE precedence", listOf(record(badminton, date.toString(), listOf(confirmedSet(120, 6.0), confirmedSet(180, 10.0)), 2.0)), listOf(badminton), canonicalCatalog))
+            add(ParityCase("entry RPE fallback", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)), 9.0)), listOf(badminton), canonicalCatalog))
+            add(ParityCase("null RPE", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, null)))), listOf(badminton), canonicalCatalog))
+            listOf(6.0, 6.5, 7.999, 8.0, 8.999, 9.0, 9.999, 10.0, 11.0).forEach { rpe ->
+                add(ParityCase("RPE $rpe", listOf(record(badminton, date.toString(), listOf(confirmedSet(600, rpe)))), listOf(badminton), canonicalCatalog))
+            }
+            add(ParityCase("zero duration", listOf(record(badminton, date.toString(), listOf(confirmedSet(0, null)))), listOf(badminton), canonicalCatalog))
+            add(
+                ParityCase(
+                    "same date aggregation",
+                    listOf(
+                        record(badminton, date.toString(), listOf(confirmedSet(300, null))),
+                        record(badminton, date.toString(), listOf(confirmedSet(600, 8.0)))
+                    ),
+                    listOf(badminton),
+                    canonicalCatalog
+                )
+            )
+            add(
+                ParityCase(
+                    "multiple dates",
+                    listOf(
+                        record(badminton, date.toString(), listOf(confirmedSet(300, null))),
+                        record(badminton, date.plusDays(2).toString(), listOf(confirmedSet(600, 8.0)))
+                    ),
+                    listOf(badminton),
+                    canonicalCatalog
+                )
+            )
+        }
+
+        cases.forEach { fixture ->
+            val exerciseMap = fixture.exercises.associateBy(Exercise::stableKey)
+            val old = BadmintonTrainingLoadIndexCalculator(fixture.catalog).calculate(
+                listOf(week(date, fixture.records)),
+                exerciseMap
+            ).single().courtRaw
+            val new = BadmintonPracticeLoadCalculator(fixture.catalog).calculateRaw(fixture.records, exerciseMap)
+            assertEquals("EXACT_PARITY ${fixture.name}", old, new, 0.0000001)
+        }
+
+        val weeks = listOf(
+            week(date, listOf(record(badminton, date.toString(), listOf(set(300, true))))),
+            week(date.plusWeeks(1), listOf(record(lesson, date.plusWeeks(1).toString(), listOf(set(1_200, true, 9.0)))))
+        )
+        val exerciseMap = listOf(badminton, lesson).associateBy(Exercise::stableKey)
+        assertEquals(
+            BadmintonTrainingLoadIndexCalculator(canonicalCatalog).calculate(weeks, exerciseMap).map { it.courtRaw },
+            BadmintonPracticeLoadCalculator(canonicalCatalog).weeklyLoads(weeks, exerciseMap).map { it.practiceLoad }
         )
     }
 
@@ -334,4 +405,11 @@ class BadmintonPracticeLoadCharacterizationTest {
         File("src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}"),
         File("app/src/main/assets/${RuntimeExerciseMetadataAssetLoader.CANONICAL_ASSET_PATH}")
     ).firstOrNull(File::isFile) ?: error("Canonical runtime metadata test asset not found.")
+
+    private data class ParityCase(
+        val name: String,
+        val records: List<WorkoutEntryWithSets>,
+        val exercises: List<Exercise>,
+        val catalog: RuntimeExerciseMetadataCatalog
+    )
 }
