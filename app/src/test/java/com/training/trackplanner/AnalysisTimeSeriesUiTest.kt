@@ -63,7 +63,7 @@ class AnalysisTimeSeriesUiTest {
     val compose = createComposeRule()
 
     private val request = TimeSeriesAnalysisRequest(
-        TrendMetricId.BADMINTON_TRAINING,
+        TrendMetricId.BADMINTON_PRACTICE_LOAD,
         listOf(TrendMetricId.FATIGUE_COMPOSITE),
         emptyList(),
         2
@@ -289,7 +289,7 @@ class AnalysisTimeSeriesUiTest {
             detailSections = emptyList(),
             dashboardChartSpecs = emptyList(),
             metricSeries = mapOf(
-                TrendMetricId.BADMINTON_TRAINING to x,
+                TrendMetricId.BADMINTON_PRACTICE_LOAD to x,
                 TrendMetricId.FATIGUE_COMPOSITE to y
             )
         )

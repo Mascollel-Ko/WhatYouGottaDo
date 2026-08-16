@@ -58,6 +58,7 @@ import com.training.trackplanner.analysis.trends.PerformanceChartSpecBuilder
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.ScatterRelationshipAnalyzer
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.trends.TrendMetricSelectionPolicy
 import com.training.trackplanner.localization.localizedUiText
 
 @Composable
@@ -93,15 +94,18 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
     val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, xIds, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, yIds, 0)
     val defaultControls = remember(controlIds) { recommendedControlMetrics(controlIds) }
-    var xMetric by rememberSaveable { mutableStateOf(defaultX) }
-    var yMetric by rememberSaveable { mutableStateOf(defaultY) }
+    var xMetricName by rememberSaveable { mutableStateOf(defaultX.name) }
+    var yMetricName by rememberSaveable { mutableStateOf(defaultY.name) }
+    val xMetric = TrendMetricSelectionPolicy.restore(xMetricName, xIds, defaultX)
+    val yMetric = TrendMetricSelectionPolicy.restore(yMetricName, yIds, defaultY)
     val controls = remember(defaultControls) { mutableStateListOf<TrendMetricId>().apply { addAll(defaultControls) } }
     var showControls by rememberSaveable { mutableStateOf(false) }
     var result by remember { mutableStateOf<LaggedTimeSeriesResult?>(null) }
     LaunchedEffect(xIds, yIds, controlIds) {
-        if (xMetric !in xIds) xMetric = defaultX
+        if (xMetricName != xMetric.name) xMetricName = xMetric.name
+        if (yMetricName != yMetric.name) yMetricName = yMetric.name
         if (yMetric !in yIds || yMetric == xMetric) {
-            yMetric = yIds.firstOrNull { it != xMetric } ?: defaultY
+            yMetricName = (yIds.firstOrNull { it != xMetric } ?: defaultY).name
         }
         controls.removeAll { it !in controlIds || it == xMetric || it == yMetric }
         if (controls.isEmpty()) {
@@ -119,14 +123,14 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
                     return@Column
                 }
                 MetricAxisDropdown("X 변수", xMetric, xMetrics) {
-                    xMetric = it
-                    if (yMetric == xMetric) yMetric = yIds.firstOrNull { id -> id != xMetric } ?: yMetric
+                    xMetricName = it.name
+                    if (yMetric == it) yMetricName = (yIds.firstOrNull { id -> id != it } ?: yMetric).name
                     controls.removeAll { id -> id == xMetric || id == yMetric }
                     result = null
                 }
                 MetricAxisDropdown("Y 변수", yMetric, yMetrics) {
-                    yMetric = it
-                    if (xMetric == yMetric) xMetric = xIds.firstOrNull { id -> id != yMetric } ?: xMetric
+                    yMetricName = it.name
+                    if (xMetric == it) xMetricName = (xIds.firstOrNull { id -> id != it } ?: xMetric).name
                     controls.removeAll { id -> id == xMetric || id == yMetric }
                     result = null
                 }
@@ -194,7 +198,8 @@ internal fun LaggedTimeSeriesAnalysisContent(
     val controlMetrics = remember(summary.metricSeries) { AnalysisMetricRegistry.timeSeriesControlMetrics(summary.metricSeries) }
     val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, xMetrics.map { it.id }, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, responseMetrics.map { it.id }, 0)
-    var xMetric by rememberSaveable { mutableStateOf(defaultX) }
+    var xMetricName by rememberSaveable { mutableStateOf(defaultX.name) }
+    val xMetric = TrendMetricSelectionPolicy.restore(xMetricName, xMetrics.map { it.id }, defaultX)
     val selectedY = remember { mutableStateListOf(defaultY) }
     val controls = remember { mutableStateListOf<TrendMetricId>() }
     var horizon by rememberSaveable { mutableStateOf(2) }
@@ -203,7 +208,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
     val running = executionState is TimeSeriesAnalysisUiState.Running
     val request = TimeSeriesAnalysisRequest(xMetric, selectedY.toList(), controls.toList(), horizon)
     LaunchedEffect(xMetrics, responseMetrics, controlMetrics) {
-        if (xMetric !in xMetrics.map { it.id }) xMetric = defaultX
+        if (xMetricName != xMetric.name) xMetricName = xMetric.name
         selectedY.removeAll { it == xMetric || it !in responseMetrics.map { item -> item.id } }
         if (selectedY.isEmpty()) responseMetrics.firstOrNull { it.id != xMetric }?.let { selectedY.add(it.id) }
         controls.removeAll { it == xMetric || it in selectedY || it !in controlMetrics.map { item -> item.id } }
@@ -224,7 +229,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
                     return@Column
                 }
                 MetricAxisDropdown("충격 변수 X", xMetric, xMetrics, enabled = !running) {
-                    xMetric = it
+                    xMetricName = it.name
                     selectedY.removeAll { metric -> metric == it }
                     if (selectedY.isEmpty()) responseMetrics.firstOrNull { item -> item.id != it }?.let { item -> selectedY.add(item.id) }
                     controls.removeAll { metric -> metric == it || metric in selectedY }
@@ -673,12 +678,15 @@ private fun RelationshipExplorerCard(
     val availableIds = availableMetrics.map { it.id }
     val defaultX = preferredMetric(TrendMetricId.BADMINTON_PRACTICE_LOAD, availableIds, 0)
     val defaultY = preferredMetric(TrendMetricId.FATIGUE_COMPOSITE, availableIds, 1)
-    var xMetric by rememberSaveable { mutableStateOf(defaultX) }
-    var yMetric by rememberSaveable { mutableStateOf(defaultY) }
+    var xMetricName by rememberSaveable { mutableStateOf(defaultX.name) }
+    var yMetricName by rememberSaveable { mutableStateOf(defaultY.name) }
+    val xMetric = TrendMetricSelectionPolicy.restore(xMetricName, availableIds, defaultX)
+    val yMetric = TrendMetricSelectionPolicy.restore(yMetricName, availableIds, defaultY, 1)
     LaunchedEffect(availableIds) {
-        if (xMetric !in availableIds) xMetric = defaultX
+        if (xMetricName != xMetric.name) xMetricName = xMetric.name
+        if (yMetricName != yMetric.name) yMetricName = yMetric.name
         if (yMetric !in availableIds || yMetric == xMetric) {
-            yMetric = availableIds.firstOrNull { it != xMetric } ?: defaultY
+            yMetricName = (availableIds.firstOrNull { it != xMetric } ?: defaultY).name
         }
     }
     val analyzer = remember { ScatterRelationshipAnalyzer() }
@@ -691,8 +699,8 @@ private fun RelationshipExplorerCard(
                 InfoCard("관계를 비교할 주간 지표 기록이 부족합니다.")
                 return@Column
             }
-            MetricAxisDropdown("X축", xMetric, availableMetrics) { xMetric = it }
-            MetricAxisDropdown("Y축", yMetric, availableMetrics) { yMetric = it }
+            MetricAxisDropdown("X축", xMetric, availableMetrics) { xMetricName = it.name }
+            MetricAxisDropdown("Y축", yMetric, availableMetrics) { yMetricName = it.name }
             val result = analyzer.analyze(xMetric, yMetric, summary.metricSeries)
             AnalysisChartSpecView(chartBuilder.scatterSpec(result))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
