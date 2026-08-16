@@ -323,7 +323,6 @@ $riskDefinitions = @(
     [pscustomobject]@{ Id="META-MUSCLE-FALLBACK"; File="app/src/main/java/com/training/trackplanner/analysis/lab/MuscleLoadInputBuilder.kt"; Symbol="fallbackContributions"; Field="primaryMuscles"; Module="muscle/strength analysis"; Severity="HIGH"; Mode="UNOBSERVABLE"; Raw="primary_muscles" },
     [pscustomobject]@{ Id="META-PROGRAM-LOADED-NAME"; File="app/src/main/java/com/training/trackplanner/data/ProgramEvaluationPolicy.kt"; Symbol="isLoadedStrength"; Field="equipment and exerciseName"; Module="program generation"; Severity="HIGH"; Mode="UNOBSERVABLE"; Raw="equipment_tags" },
     [pscustomobject]@{ Id="META-PROGRAM-RERANK-LOADED-NAME"; File="app/src/main/java/com/training/trackplanner/data/ProgramCandidateRerankingPolicy.kt"; Symbol="needsLoadedStrength"; Field="exerciseName"; Module="program generation"; Severity="HIGH"; Mode="UNOBSERVABLE"; Raw="equipment_tags" },
-    [pscustomobject]@{ Id="META-BADMINTON-LEVEL-FALLBACK"; File="app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt"; Symbol="transferType"; Field="badmintonTransferLevel"; Module="badminton analysis"; Severity="MEDIUM"; Mode="CANONICAL_EXPLICIT"; Raw="badmintonTransferLevel" },
     [pscustomobject]@{ Id="META-OFI-RECOVERY-DEFAULT"; File="app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt"; Symbol="RecordContext"; Field="recoveryDurationClass"; Module="OFI/readiness"; Severity="MEDIUM"; Mode="CANONICAL_EXPLICIT"; Raw="recoveryDurationClass" },
     [pscustomobject]@{ Id="META-BADMINTON-MUSCLE-INFERENCE"; File="app/src/main/java/com/training/trackplanner/data/ExerciseMetadataMapper.kt"; Symbol="MetadataSource"; Field="badminton and balance relations"; Module="badminton analysis"; Severity="HIGH"; Mode="STRUCTURAL"; Raw="primary_muscles" },
     [pscustomobject]@{ Id="META-STRENGTH-PROXY-FALLBACK"; File="app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt"; Symbol="proxyLoadings"; Field="strength proxy relation"; Module="muscle/strength analysis"; Severity="HIGH"; Mode="PROXY_FALLBACK"; Raw="analysisEligibility" }
@@ -576,9 +575,7 @@ Set-Content -LiteralPath (Join-Path $docsRoot "metadata_legacy_inference_risk_pa
 
 function AnalysisEligibility-Decision([string]$ConsumerFile) {
     switch -Exact ($ConsumerFile) {
-        "app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonTransferMetadataMapper.kt" { return [pscustomobject]@{ Use="FIXED_EXERCISE_RELATION"; Layer="BADMINTON"; Relation="ExerciseAnalysisCapability(BADMINTON_TRANSFER)" } }
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt" { return [pscustomobject]@{ Use="FIXED_EXERCISE_RELATION"; Layer="OFI"; Relation="ExerciseAnalysisCapability(OFI)" } }
-        "app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt" { return [pscustomobject]@{ Use="FIXED_EXERCISE_RELATION"; Layer="BADMINTON"; Relation="ExerciseAnalysisCapability(BADMINTON_TRANSFER)" } }
         "app/src/main/java/com/training/trackplanner/analysis/trends/StrengthPerformanceIndexCalculator.kt" { return [pscustomobject]@{ Use="FIXED_EXERCISE_RELATION"; Layer="STRENGTH_PERFORMANCE"; Relation="ExerciseAnalysisCapability(STRENGTH_PERFORMANCE)" } }
         "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt" { return [pscustomobject]@{ Use="FIXED_EXERCISE_RELATION"; Layer="STRENGTH_PERFORMANCE"; Relation="ExerciseAnalysisCapability(STRENGTH_PERFORMANCE)" } }
         "app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt" { return [pscustomobject]@{ Use="PROGRAM_POLICY"; Layer="PROGRAM_GENERATION"; Relation="ExercisePlanningProfile" } }
@@ -967,7 +964,7 @@ $ownerAuditRows += Add-OwnerAuditRow "primaryMuscles|secondaryMuscles" "ALL" "In
 $ownerAuditRows += Add-OwnerAuditRow "fatigueCategories|load weights" "ALL" "Intrinsic workload, stress, and recovery inputs" `
     (Joined-StableKeys $canonicalBootstrapRows) "OFI;readiness;fatigue;connective tissue" "ExerciseOfiAxisContribution" "ExerciseOfiDoseProfile" "ExerciseRecoveryProfile" "YES" "NO" "NONE" "NONE" "KEEP_AS_CANONICAL_METADATA"
 $ownerAuditRows += Add-OwnerAuditRow "generic exercise metadata" "badminton derived axes" "Legacy cross-domain transfer inference" `
-    (Joined-StableKeys $canonicalBootstrapRows) "BadmintonTransferMetadataMapper;BadmintonTrainingLoadIndexCalculator" "ExerciseBadmintonTransferPoint" "ExerciseBadmintonSkillTargetPoint" "ExercisePhysicalQualityPoint" "YES" "NO" "NONE" "Generic metadata must not duplicate sport-transfer authority" "REUSE_EXISTING_EXACTLY"
+    (Joined-StableKeys $canonicalBootstrapRows) "CanonicalBadmintonObjectiveCatalog;BadmintonObjectiveStimulusCalculator" "ExerciseBadmintonTransferPoint" "ExerciseBadmintonSkillTargetPoint" "ExercisePhysicalQualityPoint" "YES" "NO" "NONE" "Generic metadata must not duplicate sport-transfer authority" "REUSE_EXISTING_EXACTLY"
 $ownerAuditRows = @($ownerAuditRows | Sort-Object sourceField, sourceToken)
 $ownerColumns = @(
     "sourceField", "sourceToken", "semanticMeaning", "affectedStableKeys", "currentConsumers",

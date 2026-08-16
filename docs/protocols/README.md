@@ -42,8 +42,8 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 | `CONNECTIVE_TISSUE` | `CT-PERSONAL-CALIBRATION` | 연결조직 개인 기준과 상대 상태 | `2.0.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `v0.4.2.12` | `b95a1684ad8bc0ba82cd5eae52ccb3147eae4d61` | [문서](connective_tissue/PERSONAL_CALIBRATION.md) |
 | `CONNECTIVE_TISSUE` | `CT-COD-CONTEXT` | 방향전환 context modifier | `1.0.0` | `ACTIVE` | `IMPLEMENTED` | USER_APPROVED_POLICY, PRODUCT_POLICY | `v0.4.2.10` | `06b65f6cdb243780e97a7464f659219b50010c7c` | [문서](connective_tissue/COD_CONTEXT_MODIFIER.md) |
 | `CONNECTIVE_TISSUE` | `CT-RANKING-PRESENTATION` | 연결조직 순위와 표시 | `2.1.1` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, USER_APPROVED_POLICY | `v0.4.2.8`; EDU-2 `v0.4.2.13`; diagnostics internal-only `v0.4.2.14` | `9b9124d1d9cd5b6fcdd42a7578d2295f991bbe1b` | [문서](connective_tissue/RANKING_AND_PRESENTATION.md) |
-| `BADMINTON` | `BADMINTON-TAXONOMY` | 배드민턴 훈련 taxonomy | `1.5.0` | `ACTIVE` | `IMPLEMENTED`; identity closeout `ARTIFACT_ONLY` | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER | `UNKNOWN_PENDING_AUDIT`; objective authority `v0.5.0.33`; legacy seven-axis retired `v0.5.0.35` | `e2fb51f` | [문서](badminton/BADMINTON_TRAINING_TAXONOMY.md) |
-| `BADMINTON` | `BADMINTON-VOLUME` | 배드민턴 연습 훈련량 계산 | `1.3.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT`; practice/objective boundary `v0.5.0.33`; exact practice contract governed `v0.5.0.37` | `2adc231` | [문서](badminton/BADMINTON_VOLUME_CALCULATION.md) |
+| `BADMINTON` | `BADMINTON-TAXONOMY` | 배드민턴 훈련 taxonomy | `1.6.0` | `ACTIVE` | `IMPLEMENTED`; identity closeout `ARTIFACT_ONLY` | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER | `UNKNOWN_PENDING_AUDIT`; objective authority `v0.5.0.33`; legacy seven-axis retired `v0.5.0.35`; canonical practice owner `v0.5.0.37` | `8604ecf` | [문서](badminton/BADMINTON_TRAINING_TAXONOMY.md) |
+| `BADMINTON` | `BADMINTON-VOLUME` | 배드민턴 연습 훈련량 계산 | `1.4.0` | `ACTIVE` | `IMPLEMENTED` | PRODUCT_POLICY, ENGINEERING_HEURISTIC | `UNKNOWN_PENDING_AUDIT`; practice/objective boundary `v0.5.0.33`; canonical practice provider `v0.5.0.37` | `8604ecf` | [문서](badminton/BADMINTON_VOLUME_CALCULATION.md) |
 | `BADMINTON` | `BADMINTON-TRANSFER` | 배드민턴 전이 분류 | `2.3.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `UNKNOWN_PENDING_AUDIT`; objective stimulus `v0.5.0.33`; legacy seven-axis retired `v0.5.0.35`; explicit V2 authority `v0.5.0.37` | `e2fb51f` | [문서](badminton/BADMINTON_TRANSFER_CATEGORIES.md) |
 | `BADMINTON` | `BADMINTON-CATALOGUE` | 배드민턴 운동 catalogue | `1.1.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, RESEARCH_TRANSFER, PRODUCT_POLICY | `v0.3.5.0`; canonical identities `v0.5.0.6` | `401ece4ca451b5303b3607bf8b3462b95f25a581` | [문서](badminton/BADMINTON_EXERCISE_CATALOGUE.md) |
 | `STRENGTH` | `STRENGTH-TAXONOMY` | 근력훈련 taxonomy | `1.2.0` | `ACTIVE` | `IMPLEMENTED` | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER | `v0.3.5.0`; canonical CoreClass authority `v0.5.0.33` | `532d2343cafd9e54924dc52350c6e108893b4b07` | [문서](strength/STRENGTH_TRAINING_TAXONOMY.md) |
@@ -65,11 +65,11 @@ Protocol version과 application version은 독립적입니다. protocol `1.0.0`�
 
 ## Reading and publishing
 
-- v0.5.0.37 Phase 2A/2B governs badminton practice as the exact two-key
-  confirmed-duration/RPE capability. Recovery court exposure, the nine
-  canonical objectives, and legacy footwork/support composite metrics remain
-  separate. The practice replacement is ready to implement, but the legacy
-  calculator remains until all UI/Lab and metric compatibility consumers move.
+- v0.5.0.37 Phase 2C-2H activates the exact two-key canonical practice
+  catalog/calculator, cuts Coach/detail/Lab consumers to practice load and the
+  separate nine-objective provider, safely resets retired selector state, and
+  removes the legacy court/footwork/support composite. Recovery court exposure
+  remains independently governed.
 
 - v0.5.0.37 removes residual production semantic inference, materializes the
   approved tissue split and badminton objective authorities, retains exact

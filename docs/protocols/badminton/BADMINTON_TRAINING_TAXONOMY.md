@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-TAXONOMY |
-| Protocol version | 1.5.0 |
+| Protocol version | 1.6.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35 |
-| Last audited commit | e2fb51f |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; explicit canonical transfer authority from v0.5.0.32; objective-specific authority from v0.5.0.33; legacy seven-axis runtime retired in v0.5.0.35; canonical practice owner active in v0.5.0.37 |
+| Last audited commit | 8604ecf |
 | Evidence profile | MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER |
 
 ## v0.5.0.34 reviewed objective decisions
@@ -122,7 +122,8 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeCatalog.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeCatalog.kt)
+- [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeLoadCalculator.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingMethodSeries.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveAuthority.kt)
 - [`app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt)
@@ -147,6 +148,10 @@ Evidence profile은 `MIXED, PRODUCT_POLICY, RESEARCH_TRANSFER`입니다. 이는 
 
 ## 20. 변경 이력
 
+- `1.6.0` (2026-08-16): exact practice identity and load calculation을
+  dedicated catalog/calculator로 이동하고 legacy court/footwork/support
+  composite runtime을 retired했습니다. Nine-objective taxonomy와 relation은
+  독립 authority로 그대로 유지했습니다.
 - `1.5.0` (2026-08-15): legacy seven-axis runtime authority를 제거하고 canonical nine-objective V2와 badminton practice volume의 분리 경계를 명시했습니다.
 - `1.1.0` (2026-08-04): latest canonical inventory, equipment split inheritance, legacy lineage, localization-readiness 경계를 문서화했습니다.
 - `1.0.0` (2026-07-17): 현재 local `main` runtime을 감사해 첫 governed contract로 등록했습니다.

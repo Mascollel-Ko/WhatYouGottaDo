@@ -6039,3 +6039,121 @@ Remaining debt:
 - The next phase must implement exact practice parity, then migrate
   `PerformanceTrendEngine`, charts, Analysis detail UI, Analysis Lab, metric
   IDs, and saved selector compatibility before deleting any composite field.
+
+## 2026-08-16 - replacement-first badminton practice Phase 2C-2H
+
+### Baseline and scope
+
+- Baseline: `a12cd045f230bb1f9715db1d49f3be534cb49e5b` on
+  `codex/badminton-practice-cutover`, version `0.5.0.37 / 500037`.
+- This phase implemented the already-governed practice replacement, migrated
+  current consumers, retired the legacy composite only after parity and
+  consumer-zero proof, and kept recovery court exposure independent.
+- No version bump or tag was requested or created.
+
+### Commit 1 - canonical practice authority
+
+- Commit `1de0c28` (`feat(badminton): add canonical practice load provider`).
+- Added `BadmintonPracticeCatalog` with only `ex_ae9ecdbc` and
+  `ex_badminton_lesson`, both requiring resolved `SPORT_SESSION`.
+- Added `BadmintonPracticeLoadCalculator` using confirmed seconds, confirmed
+  set RPE average, and entry RPE fallback only. It does not consume names,
+  transfer/context metadata, kg, reps, objective stimulus, or
+  `ExerciseAnalysisMapper`.
+
+### Commit 2 - exact parity gate
+
+- Commit `71c36ab` (`test(badminton): prove practice load parity`).
+- Compared OLD `courtRaw` and NEW practice load over 22 governed fixtures and
+  two weekly buckets with exact numeric parity.
+- Negative seconds were retained as fail-safe implementation-detail coverage,
+  not promoted into canonical product semantics.
+
+### Commit 3 - consumer cutover and canonical supersession
+
+- Commit `992fc69` (`refactor(analysis): cut badminton consumers to canonical providers`).
+- `PerformanceTrendEngine`, Coach/dashboard, badminton detail, and Analysis
+  Lab now use `BADMINTON_PRACTICE_LOAD`.
+- Added independent daily/weekly nine-objective aggregation and
+  `BadmintonObjectiveExampleResolver`; fixed nine-category availability,
+  zero categories, comparison, stacked presentation, examples, and colors are
+  retained.
+- Legacy footwork/support numbers were not copied. Their useful transfer
+  capability is superseded by the canonical nine-objective provider.
+
+### Commit 4 - saved selector compatibility
+
+- Commit `20c7ee1` (`fix(analysis): reset retired badminton metric selections`).
+- Old `BADMINTON_TRAINING`, `COURT_VOLUME`, `FOOTWORK_REACTIVE`, and
+  `BADMINTON_SUPPORT` names reset to a deterministic supported metric without
+  semantic remapping or crashes.
+
+### Commit 5 - legacy deletion
+
+- Commit `49bc42e` (`refactor(badminton): retire legacy composite analysis`).
+- Deleted `BadmintonTrainingLoadIndexCalculator`, the mixed daily/weekly
+  models, four legacy metric IDs, 0.60/0.25/0.15 weights, and old labels after
+  focused consumer tests passed.
+- `CourtDurationRecoveryAnalyzer` and all canonical objective code remain.
+
+### Commit 6 - architecture guard
+
+- Commit `8604ecf` (`test(architecture): prevent legacy badminton authority regression`).
+- Added source-level guards against the retired calculator, metric/model/weight
+  surface, practice admission via legacy feature inference, and loss of the
+  independent recovery authority.
+
+### Documentation and localization closeout
+
+- Commit `67dc212` (`fix(analysis): align badminton practice wording`) removed
+  the final current composite phrasing from UI/localization routes while
+  preserving historical documentation and compatibility-only selector text.
+- Documentation closeout is recorded in
+  `docs(protocol): close badminton replacement migration`; its final SHA is
+  reported after the commit is created.
+- Updated BADMINTON-VOLUME to `1.4.0` and BADMINTON-TAXONOMY to `1.6.0`.
+- Updated the protocol registry, public index, replacement-first migration
+  audit, current metadata-audit generator owner references, and this worklog.
+- Updated the two remaining current UI phrases to say badminton practice load.
+  Retired composite wording is excluded from generated runtime localization;
+  new Korean/English routes pass the localization audit.
+- The full metadata audit generator still stops on the pre-existing stale
+  `META-SEED-CSV-FALLBACK` evidence definition before its complete output
+  phase. No partial generated audit was retained; this phase updates the
+  generator's badminton owner definitions and the direct current audit.
+
+### Frozen semantic authority
+
+- `exercise_bootstrap.csv`: 257 rows,
+  `204e74ae94f038842d9887145edbfa173616cd19f914c99ded4fe0a0ba3d7e43`.
+- `runtime_metadata.csv`: 257 rows,
+  `781a2b0acd2df110fe859e1306b0030d73017c10a3868fcf814127c6b5500bb0`.
+- `badminton_objective_relations.csv`: 280 rows,
+  `bbd4277111e52fc37a09840ebe41ef0dbe91347b9d17bbff6b4dac9a4cf47a56`.
+- Core review: 241 rows,
+  `3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954`.
+- Tissue authority: 7,824 rows,
+  `f900e57fd1845a43d16a143d278067de9daa6c4921d77c0135b678fd8a149423`.
+- Pallof and Copenhagen relations, objective coefficients, Core, OFI, tissue,
+  strength posterior, ProgramBuilder, Room, and backup semantics are unchanged.
+
+### Validation
+
+- Focused practice, trend, registry, saved-state, architecture, and canonical
+  authority tests: passed.
+- Protocol validator: passed, 8 families and 34 protocols.
+- Metadata authority workbook: valid, 257 identities; deterministic export
+  current; metadata Python tests: 9 passed.
+- Localization authority/audit: deterministic and current; Python tests pass
+  with zero unexplained Korean leaks; localization Python tests: 9 passed.
+- Full `:app:testDebugUnitTest`: passed in 3m 38s.
+- `:app:compileDebugKotlin`: passed.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed; debug APK was produced locally.
+- Final production-symbol audit found only the four explicitly permitted
+  retired-selector reset strings. Other `BADMINTON_SUPPORT` matches are the
+  independent ProgramBuilder/metadata taxonomy meaning, not the retired
+  analysis metric.
+- Frozen authority diff against baseline: empty; all recorded fingerprints
+  remain unchanged.
+- `git diff --check`: passed before the documentation closeout commit.

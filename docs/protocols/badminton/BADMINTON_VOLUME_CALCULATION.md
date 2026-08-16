@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | BADMINTON-VOLUME |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; exact practice contract governed in v0.5.0.37 |
-| Last audited commit | 2adc231 |
+| Implemented from app version | UNKNOWN_PENDING_AUDIT; practice/objective boundary clarified in v0.5.0.33; canonical practice provider active in v0.5.0.37 |
+| Last audited commit | 8604ecf |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -121,11 +121,10 @@ Practice raw에는 중량, 반복 수, event count 또는 support/base-dose fall
 Practice raw는 기록한 연습 시간과 자각 강도를 설명하는 제품 지표입니다.
 진단, 조직 손상량 또는 정확한 외부 부하로 해석하지 않습니다.
 
-현재 Analysis detail과 Lab에는 legacy `BADMINTON_TRAINING`,
-`COURT_VOLUME`, `FOOTWORK_REACTIVE`, `BADMINTON_SUPPORT` consumer가 남아
-있습니다. 그 composite 표시가 이 protocol의 practice 의미를 넓히지는
-않습니다. 새 practice provider와 selector compatibility가 모두 연결되기
-전에는 기존 metric ID를 relabel하거나 삭제하지 않습니다.
+Analysis detail, Coach trend, dashboard, and Lab use
+`BADMINTON_PRACTICE_LOAD` backed by the canonical practice provider. The UI
+continues to show the fixed nine-objective profile independently. It does not
+show or derive the retired court/footwork/support composite.
 
 ## 10. 예외 및 fallback
 
@@ -133,15 +132,14 @@ Practice raw는 기록한 연습 시간과 자각 강도를 설명하는 제품 
 - confirmed set RPE와 entry RPE가 모두 없으면 modifier 1.00을 사용합니다.
 - unparseable date를 daily path가 조용히 제외하는 동작은 현재 구현 세부사항이며
   canonical product 의미가 아닙니다.
-- 음수 seconds가 nonpositive raw로 collapse되는 동작도 invalid-input 처리의
-  현재 구현 세부사항이며 미래 authority가 아닙니다.
+- 음수 seconds는 record duration 합산 전에 0으로 clamp합니다. 이는
+  fail-safe implementation detail이며 미래 입력 의미를 정의하지 않습니다.
 - 연습 시간이 없을 때 repetition, weight 또는 임의 event count를 만들지 않습니다.
 
 ## 11. 개인화 또는 보정
 
-Practice raw 자체에는 개인 baseline이나 posterior 보정이 없습니다. 현재
-주간 `courtVolumeIndex`의 historical standardization은 live legacy consumer
-호환 경계이며 이 practice raw 계약의 일부가 아닙니다.
+Practice raw 자체에는 개인 baseline, posterior, historical standardization,
+또는 legacy composite 보정이 없습니다.
 
 ## 12. 연구 근거
 
@@ -167,33 +165,35 @@ Practice raw 자체에는 개인 baseline이나 posterior 보정이 없습니다
 ## 14. 알려진 한계
 
 - 이 protocol의 정확한 최초 app version은 추가 Git history 감사가 필요합니다.
-- exact practice stableKey allowlist는 아직 legacy calculator 내부에 있습니다.
-  다음 단계에서 작은 typed catalog로 이동해야 합니다.
-- legacy footwork/support/composite와 그 UI/Lab consumers는 replacement-first
-  migration이 완료될 때까지 남아 있습니다.
-- self-entered duration과 RPE 품질에 의존합니다.
+- practice input quality is limited by user-recorded confirmed duration and
+  RPE.
+- saved selector compatibility retains only retired metric-name strings so an
+  old selection can reset safely; no retired metric is registered or computed.
 
 ## 15. 현재 구현 상태
 
 - Practice specification: `ACTIVE / IMPLEMENTED`
-- Practice replacement readiness: `READY_FOR_REPLACEMENT_IMPLEMENTATION`
-- Legacy calculator deletion: `NOT_READY`
-- Runtime behavior change in this audit: none
+- Practice replacement: `ACTIVE`
+- Legacy practice-composite path: `RETIRED`
+- Objective path: `ACTIVE / INDEPENDENT`
+- Recovery court-exposure path: `ACTIVE / INDEPENDENT`
 
 ## 16. 구현 위치
 
-- [`BadmintonTrainingLoadIndexCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/BadmintonTrainingLoadIndexCalculator.kt): current exact practice path plus legacy components
-- [`PerformanceTrendConstants.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendConstants.kt): current RPE modifier boundaries
-- [`ExerciseAnalysisMapper.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/features/ExerciseAnalysisMapper.kt): confirmed-set and RPE fallback projection
+- [`BadmintonPracticeCatalog.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeCatalog.kt): exact two-identity practice admission
+- [`BadmintonPracticeLoadCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeLoadCalculator.kt): confirmed duration and RPE arithmetic
+- [`PerformanceTrendEngine.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendEngine.kt): separate practice and objective aggregation
 - [`CourtDurationRecoveryAnalyzer.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzer.kt): separate recovery court-exposure boundary
 - [`BadmintonObjectiveStimulusCalculator.kt`](../../../app/src/main/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculator.kt): separate nine-objective boundary
 
 ## 17. 검증 테스트
 
+- [`BadmintonPracticeLoadCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonPracticeLoadCalculatorTest.kt)
 - [`BadmintonPracticeLoadCharacterizationTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/trends/BadmintonPracticeLoadCharacterizationTest.kt)
 - [`CourtDurationRecoveryAnalyzerTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/coach/CourtDurationRecoveryAnalyzerTest.kt)
 - [`BadmintonObjectiveStimulusCalculatorTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/badminton/BadmintonObjectiveStimulusCalculatorTest.kt)
 - [`CanonicalAnalysisAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/CanonicalAnalysisAuthorityTest.kt)
+- [`RetiredAnalysisArchitectureTest.kt`](../../../app/src/test/java/com/training/trackplanner/analysis/contracts/RetiredAnalysisArchitectureTest.kt)
 
 ## 18. 권위 자산
 
@@ -211,6 +211,12 @@ Practice raw 자체에는 개인 baseline이나 posterior 보정이 없습니다
 
 ## 20. 변경 이력
 
+- `1.4.0` (2026-08-16): canonical practice catalog/calculator를 production에
+  연결하고, 22개 governed fixture와 2개 weekly bucket에서 legacy `courtRaw`
+  exact parity를 확인한 뒤 UI/Lab/Coach consumer를 cut over했습니다. Legacy
+  footwork/support/composite calculator, model, metric ID, and weights were
+  retired while the nine-objective and recovery court-exposure paths remained
+  independent.
 - `1.3.0` (2026-08-16): exact two-key practice admission, confirmed duration,
   RPE source/boundaries, date/week aggregation을 govern하고 legacy
   footwork/support/composite를 current practice contract에서 분리했습니다.
