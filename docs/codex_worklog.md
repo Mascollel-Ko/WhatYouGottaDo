@@ -6157,3 +6157,78 @@ Remaining debt:
 - Frozen authority diff against baseline: empty; all recorded fingerprints
   remain unchanged.
 - `git diff --check`: passed before the documentation closeout commit.
+
+## 2026-08-21 - strict Bayesian group Horseshoe Lab v0.7 integration
+
+### Baseline and authority
+
+- Baseline: `67b965073f88c9eec3343e5ee26399cb94fb1149` on
+  `codex/strict-bayesian-lab-v07`, app identity `0.5.0.37 / 500037`.
+- Read the supplied group Horseshoe sampling specification v0.7 as Phase B
+  mathematical authority and the supplied app integration specification v2.2
+  as weekly/runtime authority. The execution prompt did not override either.
+- Extended the existing Phase A authority instead of creating a parallel
+  ingestion, transformation, row, or scaling pipeline.
+
+### Weekly and Phase A
+
+- Added full-history `WeeklyAnalysisFeatureSnapshot`, canonical dynamic feature
+  descriptors, exercise aggregates, immutable fingerprints, and a conflated
+  background snapshot store with stale-publication rejection.
+- Generalized strict identities to `StrictSeriesKey`, separated 32-week
+  diagnostic eligibility from model readiness, added approved short-history
+  representations, and removed universal 8/12/24/32 availability conflation.
+- Bound the deterministic candidate set into Phase B and preserved focal X and
+  all Y targets. Added one common cross-lag row domain, one common scaling
+  identity, deterministic Pmax degradation, and conditional RPE two-stage
+  carrier/exposed-row centering.
+
+### Phase B and UI
+
+- Added the strict group Horseshoe v0.7 observation-space kernel, source-group
+  scales, tau0 calibration, dynamic shrinkage, inverse-Wishart Sigma,
+  matrix-normal B, Rao-Blackwellized lag posterior, functional diagnostics,
+  draw-wise recursive response, and APP/VALIDATION policies.
+- Added `StrictBayesianLabService`, coordinator, stable-key picker, named stage
+  progress, cancellation and stale-result rejection, posterior median/80%
+  interval presentation, typed failure details, and retry.
+- The current LAGGED_LAB route no longer consumes dashboard history or the
+  legacy analyzer. Legacy code remains reference/compatibility-only.
+
+### Regression and validation
+
+- Added threshold tests for T=12,16,18,24,31,32,40; source/view/row/scaling
+  lineage tests; conditional carrier tests; kernel/reference tests; p0,
+  lag-recovery, null, high-collinearity/leakage, regularized reference, and
+  diagnostic-gate validation fixtures.
+- Corrected a discovered lineage gap by storing and validating the source
+  grouping's prepared-view fingerprint.
+- Corrected one architecture test to route conflicts through the authoritative
+  resolver before strict ingestion; unresolved raw duplicates remain rejected.
+- Strict numeric/ownership source scan passed.
+- Final package-scoped strict regression run: 13 suites, 63 tests, all passed.
+- Focused boundary/availability/validation group: 17 tests passed.
+- Strict pipeline group: 75 tests passed before one obsolete resolver-fixture
+  assertion failed; corrected `StrictTimeSeriesArchitectureTest` then passed
+  separately. No production behavior was loosened.
+- Desktop JVM benchmark harness passed: weekly 21.5 ms, Phase A 66.7 ms,
+  short validation Phase B 514.2 ms. This is not Android device evidence.
+- Six strict Compose UI tests compile but runtime execution remains blocked by
+  unavailable Robolectric Maven artifacts/network.
+- Normal KAPT/full build remains blocked by the local JBR ZipFS
+  `AccessDeniedException`; the failure reproduced after disabling KAPT
+  compile-classpath/incremental caches and after copying the Gradle cache to a
+  separate short path, with different AndroidX jars named by the same close-time
+  failure. The test-only KAPT-disable init script and diagnostic Gradle homes
+  are ignored/untracked and must not be committed. Full `testDebugUnitTest` and
+  `assembleDebug` are therefore not reported as passing.
+
+### Documentation and versioning
+
+- Replaced outdated Phase-A-only/legacy-active statements in
+  `docs/bayesian_time_series_lab_architecture.md`.
+- Added `docs/strict_bayesian_lab_app_integration.md` as the repository
+  canonical successor to the supplied app integration document.
+- Added supplemental strict Lab integration notes. No app version bump or tag
+  was requested. The protocol registry remains unchanged because time-series
+  architecture is not currently registry-managed.

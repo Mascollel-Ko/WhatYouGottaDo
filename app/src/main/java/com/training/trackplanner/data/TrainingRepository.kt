@@ -9,12 +9,16 @@ import com.training.trackplanner.analysis.coach.CoachingSignalsSummary
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
+import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisFeatureSnapshot
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.strengthperformance.RpeRirPolicy
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.strengthperformance.curve.RepetitionCurveRegistry
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
+import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -248,6 +252,14 @@ class TrainingRepository(
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         appMetaDao = appMetaDao
     )
+    private val weeklyAnalysisFeatureSnapshotService = WeeklyAnalysisFeatureSnapshotService(
+        context = context,
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        dailyMetricDao = dailyMetricDao,
+        initialUserProfileDao = initialUserProfileDao,
+        canonicalMetadataRepository = canonicalMetadataRepository
+    )
     private val analysisSummaryService = AnalysisSummaryService(
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
@@ -378,6 +390,13 @@ class TrainingRepository(
 
     suspend fun performanceTrendSummary(): PerformanceTrendSummary = withContext(Dispatchers.IO) {
         performanceTrendSummaryService.build()
+    }
+
+    internal suspend fun weeklyAnalysisFeatureSnapshot(
+        sourceRevision: Long
+    ): WeeklyAnalysisFeatureSnapshot = withContext(Dispatchers.IO) {
+        val fullHistorySeries = performanceTrendSummaryService.build(WeeklyAnalysisWindow.FULL_HISTORY).metricSeries
+        weeklyAnalysisFeatureSnapshotService.build(fullHistorySeries, sourceRevision)
     }
 
     suspend fun rebuildStrengthAnalysisFromRawHistory(): PerformanceTrendSummary = withContext(Dispatchers.IO) {

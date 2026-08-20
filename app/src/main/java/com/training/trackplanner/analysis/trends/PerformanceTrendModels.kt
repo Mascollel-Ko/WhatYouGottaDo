@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.trends
 
+import com.training.trackplanner.analysis.lab.pipeline.StrictSeriesKey
 import com.training.trackplanner.analysis.readiness.AnalysisConfidence
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummary
 import com.training.trackplanner.analysis.core.CoreStimulusSummary
@@ -38,7 +39,7 @@ enum class PerformanceDetailSectionType {
     RELATIONSHIP
 }
 
-enum class TrendMetricId {
+enum class TrendMetricId : StrictSeriesKey {
     STRENGTH_PERFORMANCE,
     STRENGTH_INTENSITY,
     STRENGTH_VOLUME,
@@ -105,7 +106,10 @@ enum class TrendMetricId {
     STRENGTH_DELTA_NEXT,
     FATIGUE_DELTA_NEXT,
     STRENGTH_VOLUME_ONLY,
-    STRENGTH_INTENSITY_ONLY
+    STRENGTH_INTENSITY_ONLY;
+
+    override val stableId: String
+        get() = "metric:$name"
 }
 
 data class TrendDataPoint(

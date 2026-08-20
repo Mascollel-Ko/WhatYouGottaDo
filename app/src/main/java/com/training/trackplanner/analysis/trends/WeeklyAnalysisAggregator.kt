@@ -6,7 +6,9 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-class WeeklyAnalysisAggregator {
+class WeeklyAnalysisAggregator(
+    private val window: WeeklyAnalysisWindow = WeeklyAnalysisWindow.DASHBOARD
+) {
     fun aggregate(
         today: LocalDate,
         entriesWithSets: List<WorkoutEntryWithSets>,
@@ -16,14 +18,27 @@ class WeeklyAnalysisAggregator {
             val date = runCatching { LocalDate.parse(record.entry.date) }.getOrNull()
             date != null && date <= today && record.sets.any { set -> set.confirmed }
         }
-        val earliestDate = completedEntries
+        val earliestCompletedDate = completedEntries
             .mapNotNull { record -> runCatching { LocalDate.parse(record.entry.date) }.getOrNull() }
             .minOrNull()
         val currentWeekStart = weekStart(today)
-        val weekCount = if (earliestDate != null && earliestDate <= currentWeekStart.minusWeeks(8)) {
-            PerformanceTrendConstants.EXTENDED_WEEK_COUNT
-        } else {
-            PerformanceTrendConstants.DEFAULT_WEEK_COUNT
+        val earliestDate = when (window) {
+            WeeklyAnalysisWindow.DASHBOARD -> earliestCompletedDate
+            WeeklyAnalysisWindow.FULL_HISTORY -> listOfNotNull(
+                earliestCompletedDate,
+                dailyMetrics.mapNotNull { metric -> runCatching { LocalDate.parse(metric.date) }.getOrNull() }.minOrNull()
+            ).minOrNull()
+        }
+        val weekCount = when (window) {
+            WeeklyAnalysisWindow.DASHBOARD -> if (earliestDate != null && earliestDate <= currentWeekStart.minusWeeks(8)) {
+                PerformanceTrendConstants.EXTENDED_WEEK_COUNT
+            } else {
+                PerformanceTrendConstants.DEFAULT_WEEK_COUNT
+            }
+            WeeklyAnalysisWindow.FULL_HISTORY -> earliestDate
+                ?.let { java.time.temporal.ChronoUnit.WEEKS.between(weekStart(it), currentWeekStart).toInt() + 1 }
+                ?.coerceAtLeast(1)
+                ?: 1
         }
         val startWeek = currentWeekStart.minusWeeks((weekCount - 1).toLong())
         val weeks = (0 until weekCount).map { offset ->
@@ -47,4 +62,9 @@ class WeeklyAnalysisAggregator {
 
     fun weekStart(date: LocalDate): LocalDate =
         date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+}
+
+enum class WeeklyAnalysisWindow {
+    DASHBOARD,
+    FULL_HISTORY
 }

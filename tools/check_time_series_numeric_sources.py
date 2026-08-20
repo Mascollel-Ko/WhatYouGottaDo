@@ -23,8 +23,12 @@ LP = TARGET / "BayesianLocalProjectionEstimator.kt"
 DYNAMIC = TARGET / "BayesianDynamicEstimators.kt"
 ANALYSIS_UI = (
     ROOT / "app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt",
+    ROOT / "app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt",
     ROOT / "app/src/main/java/com/training/trackplanner/AnalysisScreen.kt",
 )
+ANALYSIS_SCREEN = ROOT / "app/src/main/java/com/training/trackplanner/AnalysisScreen.kt"
+TRAINING_VIEW_MODEL = ROOT / "app/src/main/java/com/training/trackplanner/TrainingViewModel.kt"
+WEEKLY_ADAPTER = STRICT_PIPELINE / "WeeklySnapshotPhaseAAdapter.kt"
 
 FORBIDDEN = [
     re.compile(r"MatrixUtils\.inverse"),
@@ -80,6 +84,19 @@ def main() -> int:
             violations.append(f"{path.relative_to(ROOT)}: Compose analysis UI owns unmanaged concurrency")
         if re.search(r"onClick\s*=\s*\{[^\r\n}]*\b\w+\.analyze\s*\(", text):
             violations.append(f"{path.relative_to(ROOT)}: Compose onClick executes a statistical analyzer directly")
+
+    analysis_screen_text = ANALYSIS_SCREEN.read_text(encoding="utf-8")
+    view_model_text = TRAINING_VIEW_MODEL.read_text(encoding="utf-8")
+    for token in ("strictLabFeatureCatalog", "StrictBayesianLabUiState", "LaggedTimeSeriesAnalysisContent"):
+        if token not in analysis_screen_text + view_model_text:
+            violations.append(f"strict Lab routing: missing current-consumer token {token}")
+    if "StrictBayesianLabCoordinator(" not in view_model_text:
+        violations.append("TrainingViewModel.kt: current Lab consumer must use StrictBayesianLabCoordinator")
+    if "TimeSeriesAnalysisCoordinator(" in view_model_text or "TimeSeriesAnalysisService(" in view_model_text:
+        violations.append("TrainingViewModel.kt: current Lab consumer routes back to the legacy execution path")
+    lagged_block = analysis_screen_text[analysis_screen_text.find("AnalysisDestination.LAGGED_LAB ->"):]
+    if "performanceTrend" in lagged_block.split("null -> Unit", 1)[0]:
+        violations.append("AnalysisScreen.kt: lagged Lab must not use dashboard-window performanceTrend data")
 
     wrapper_text = WRAPPER.read_text(encoding="utf-8")
     strict_start = wrapper_text.find("fun strictCholesky")
@@ -169,7 +186,7 @@ def main() -> int:
             if symbol in text:
                 violations.append(f"{path.relative_to(ROOT)}: strict pipeline references legacy symbol {symbol}")
         legacy_import = re.search(r"^import\s+com\.training\.trackplanner\.analysis\.lab\.(?!pipeline\.|StableLinearAlgebra\b)", text, re.MULTILINE)
-        if legacy_import and path != STRICT_INGESTION:
+        if legacy_import and path not in {STRICT_INGESTION, WEEKLY_ADAPTER}:
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline imports the legacy lab package")
         if re.search(r"\b(USE_DOCUMENTED_FALLBACK|ADF_REJECT|KPSS_RETAIN)\b", text):
             violations.append(f"{path.relative_to(ROOT)}: strict pipeline must not use legacy fixed diagnostic thresholds or fallback policy")
@@ -194,6 +211,9 @@ def main() -> int:
         "FutureBlpInput",
         "FutureJohansenInput",
         "FutureVecmInput",
+        "StrictPhaseAInputBundle",
+        "PreparedBvarComparisonDesign",
+        "FutureBvarComparisonInput",
     )
     for contract in required_strict_contracts:
         if contract not in all_strict_text:
@@ -229,7 +249,7 @@ def main() -> int:
         violations.append("StrictTimeSeriesRepresentation.kt: shock posterior fingerprints must use canonical draw ordering")
     if "ids.none { it in rejectedIds }" not in representation_text:
         violations.append("StrictTimeSeriesRepresentation.kt: accepted and rejected shock draw IDs must be disjoint")
-    if "TimeSeriesAlignmentService().alignObservations" not in ingestion_text:
+    if "fun fromResolvedAlignment(" not in ingestion_text or "alignment: TimeSeriesAlignment" not in ingestion_text:
         violations.append("StrictTimeSeriesIngestion.kt: strict ingestion must consume the existing authoritative resolver output")
     if "strict ingestion requires one authoritative resolved observation per metric/week" not in ingestion_text:
         violations.append("StrictTimeSeriesIngestion.kt: unresolved duplicate raw observations must be rejected at the strict boundary")

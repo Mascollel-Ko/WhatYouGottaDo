@@ -28,7 +28,7 @@ class PreparedAnalysisContextContractTest {
         assertEquals(context.request.yMetrics.toSet(), context.responseScalePlansByMetric.keys)
         assertTrue(optional in context.candidateCatalog.excludedCandidates)
         assertTrue(optional !in context.candidateCatalog.eligibleCandidates)
-        assertTrue(context.diagnostics.any { "PHASE E" in it })
+        assertTrue(context.diagnostics.any { "PHASE B shrinkage block" in it })
     }
 
     @Test

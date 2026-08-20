@@ -39,14 +39,19 @@ class StrictTimeSeriesArchitectureTest {
     @Test
     fun conflictingRawObservationsNeverBecomeNumeric() {
         val metric = TrendMetricId.BADMINTON_PRACTICE_LOAD
-        val input = RawTimeSeriesInput.fromTrendSeries(
-            mapOf(
-                metric to listOf(
-                    TrendDataPoint(LocalDate.parse("2026-01-05"), 1.0),
-                    TrendDataPoint(LocalDate.parse("2026-01-06"), 2.0)
+        val response = TrendMetricId.FATIGUE_COMPOSITE
+        val date = LocalDate.parse("2026-01-05")
+        val alignment = requireNotNull(
+            TimeSeriesAlignmentService().alignObservations(
+                listOf(metric, response),
+                listOf(
+                    TimeSeriesObservation(metric, date, 1.0, source = "a"),
+                    TimeSeriesObservation(metric, date.plusDays(1), 2.0, source = "b"),
+                    TimeSeriesObservation(response, date, 3.0, source = "response")
                 )
             )
         )
+        val input = RawTimeSeriesInput.fromResolvedAlignment(alignment)
 
         val cell = input.ingest(request(metric)).seriesByMetric.getValue(metric).cells.single()
 

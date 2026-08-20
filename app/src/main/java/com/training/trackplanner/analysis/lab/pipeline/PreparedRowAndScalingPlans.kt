@@ -1,19 +1,20 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
 import kotlin.math.sqrt
 
 internal enum class StrictVariableRole {
     SHOCK_SOURCE,
+    CANDIDATE_SOURCE,
     ENDOGENOUS_STATE,
     RESPONSE,
     CONTEMPORANEOUS_CONTROL,
+    CONDITIONAL_SUPPORT,
     LAGGED_CONTROL
 }
 
 internal class VariableRowRequirement private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     roles: Set<StrictVariableRole>,
     val sourceRequired: Boolean,
     requiredLagOffsets: Set<Int>,
@@ -27,7 +28,7 @@ internal class VariableRowRequirement private constructor(
 
     companion object {
         fun createValidated(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             roles: Set<StrictVariableRole>,
             sourceRequired: Boolean,
             requiredLagOffsets: Set<Int>,
@@ -214,27 +215,39 @@ internal class PreparedRowPlan private constructor(
 internal object VariableRoleAuthority {
     fun requirements(
         context: PreparedAnalysisContext,
+        view: PreparedEstimatorView,
         purpose: EstimatorPurpose,
         lag: Int,
         targetOffsets: Set<Int>
     ): List<VariableRowRequirement> {
         val request = context.request
-        return request.requiredMetrics.sortedBy { it.name }.map { metric ->
+        return view.metrics.sortedBy { it.name }.map { metric ->
             val roles = buildSet {
                 if (metric == request.xMetric) add(StrictVariableRole.SHOCK_SOURCE)
                 if (metric in request.yMetrics) add(StrictVariableRole.RESPONSE)
                 if (metric in request.controls) add(StrictVariableRole.CONTEMPORANEOUS_CONTROL)
-                if (purpose in setOf(EstimatorPurpose.BVAR_FIT, EstimatorPurpose.JOHANSEN_LEVEL_SYSTEM, EstimatorPurpose.VECM_FIT) && metric !in request.controls) {
+                if (metric in request.supportMetrics) add(StrictVariableRole.CONDITIONAL_SUPPORT)
+                if (purpose == EstimatorPurpose.BVAR_FIT && view is BvarPreparedView && metric in view.candidateMetrics) {
+                    add(StrictVariableRole.CANDIDATE_SOURCE)
+                }
+                val endogenous = when {
+                    purpose == EstimatorPurpose.BVAR_FIT && view is BvarPreparedView -> metric in view.responseMetrics
+                    purpose in setOf(EstimatorPurpose.JOHANSEN_LEVEL_SYSTEM, EstimatorPurpose.VECM_FIT) ->
+                        metric !in request.controls && metric !in request.supportMetrics
+                    else -> false
+                }
+                if (endogenous) {
                     add(StrictVariableRole.ENDOGENOUS_STATE)
                 }
             }
             val sourceRequired = when {
-                StrictVariableRole.CONTEMPORANEOUS_CONTROL in roles -> true
+                StrictVariableRole.CONTEMPORANEOUS_CONTROL in roles || StrictVariableRole.CONDITIONAL_SUPPORT in roles -> true
                 purpose == EstimatorPurpose.BLP_RESPONSE && roles == setOf(StrictVariableRole.RESPONSE) -> false
                 else -> true
             }
             val lagOffsets = if (
                 StrictVariableRole.ENDOGENOUS_STATE in roles ||
+                StrictVariableRole.CANDIDATE_SOURCE in roles ||
                 StrictVariableRole.SHOCK_SOURCE in roles && purpose != EstimatorPurpose.JOHANSEN_LEVEL_SYSTEM
             ) (1..lag).toSet() else emptySet()
             val requiredTargets = if (StrictVariableRole.RESPONSE in roles && purpose == EstimatorPurpose.BLP_RESPONSE) targetOffsets else emptySet()
@@ -268,8 +281,7 @@ internal object RowPlanner {
             HorizonPolicy.PER_HORIZON, HorizonPolicy.DECLARED_REFERENCE_HORIZON -> setOf(requireNotNull(referenceHorizon))
             HorizonPolicy.NOT_APPLICABLE -> emptySet()
         }
-        val requirements = VariableRoleAuthority.requirements(context, view.purpose, lag, targetOffsets)
-            .filter { it.metric in view.metrics }
+        val requirements = VariableRoleAuthority.requirements(context, view, view.purpose, lag, targetOffsets)
         val specification = PreparedRowSpecification.createValidated(
             requirements,
             lag,
@@ -311,6 +323,101 @@ internal object RowPlanner {
         view: PreparedEstimatorView,
         lag: Int
     ): PreparedRowPlan = plan(context, view, lag, emptySet(), null, HorizonPolicy.NOT_APPLICABLE)
+
+    fun planLagComparison(
+        context: PreparedAnalysisContext,
+        view: BvarPreparedView,
+        requestedPmax: Int,
+        minimumCommonRows: Int = 3
+    ): PreparedLagComparisonPlan {
+        require(requestedPmax >= 1)
+        require(minimumCommonRows >= 3)
+        val degradation = mutableListOf<String>()
+        for (pmax in requestedPmax downTo 1) {
+            val provisional = (1..pmax).associateWith { lag -> planWithoutHorizon(context, view, lag) }
+            val commonWeeks = provisional.values
+                .map { plan -> plan.rows.map(PreparedRowIdentity::sourceWeek).toSet() }
+                .reduce(Set<LocalDate>::intersect)
+                .sorted()
+            if (commonWeeks.size < minimumCommonRows) {
+                degradation += "Pmax=$pmax has ${commonWeeks.size} common rows"
+                continue
+            }
+            val commonSet = commonWeeks.toSet()
+            val plans = provisional.mapValues { (_, plan) ->
+                val retained = plan.rows.filter { it.sourceWeek in commonSet }
+                val excluded = plan.exclusions + plan.rows
+                    .filterNot { it.sourceWeek in commonSet }
+                    .map { PreparedRowExclusion(it.sourceWeek, "excluded by cross-lag common comparison domain") }
+                PreparedRowPlan.createValidated(view, plan.specification, retained, excluded)
+            }
+            if (pmax < requestedPmax) degradation += "reduced Pmax from $requestedPmax to $pmax"
+            return PreparedLagComparisonPlan.createValidated(
+                view = view,
+                requestedPmax = requestedPmax,
+                plansByLag = plans,
+                commonSourceWeeks = commonWeeks,
+                degradationDiagnostics = degradation
+            )
+        }
+        throw IllegalArgumentException("NO_FEASIBLE_COMMON_LAG_PLAN: ${degradation.joinToString("; ")}")
+    }
+}
+
+internal class PreparedLagComparisonPlan private constructor(
+    val sourceViewFingerprint: String,
+    val rootContextFingerprint: String,
+    val requestedPmax: Int,
+    plansByLag: Map<Int, PreparedRowPlan>,
+    commonSourceWeeks: List<LocalDate>,
+    degradationDiagnostics: List<String>,
+    val fingerprint: String
+) {
+    val plansByLag: Map<Int, PreparedRowPlan> = plansByLag.toSortedMap()
+    val feasibleLags: Set<Int> = plansByLag.keys.toSortedSet()
+    val pmax: Int = feasibleLags.max()
+    val commonSourceWeeks: List<LocalDate> = commonSourceWeeks.toList()
+    val degradationDiagnostics: List<String> = degradationDiagnostics.toList()
+
+    companion object {
+        fun createValidated(
+            view: BvarPreparedView,
+            requestedPmax: Int,
+            plansByLag: Map<Int, PreparedRowPlan>,
+            commonSourceWeeks: List<LocalDate>,
+            degradationDiagnostics: List<String>
+        ): PreparedLagComparisonPlan {
+            require(requestedPmax >= 1)
+            require(plansByLag.isNotEmpty() && plansByLag.keys == (1..plansByLag.keys.max()).toSet())
+            require(commonSourceWeeks.size >= 3 && commonSourceWeeks == commonSourceWeeks.distinct().sorted())
+            require(plansByLag.values.all { plan ->
+                plan.sourceViewFingerprint == view.fingerprint &&
+                    plan.rootContextFingerprint == view.rootContextFingerprint &&
+                    plan.rows.map(PreparedRowIdentity::sourceWeek) == commonSourceWeeks
+            })
+            val fingerprint = strictFingerprint(
+                listOf(
+                    view.rootContextFingerprint,
+                    view.fingerprint,
+                    requestedPmax,
+                    plansByLag.keys.sorted().joinToString(","),
+                    commonSourceWeeks.joinToString(","),
+                    plansByLag.toSortedMap().entries.joinToString(",") { "${it.key}:${it.value.fingerprint}" },
+                    degradationDiagnostics.joinToString("|"),
+                    LAG_COMPARISON_PLAN_VERSION
+                )
+            )
+            return PreparedLagComparisonPlan(
+                view.fingerprint,
+                view.rootContextFingerprint,
+                requestedPmax,
+                plansByLag,
+                commonSourceWeeks,
+                degradationDiagnostics,
+                fingerprint
+            )
+        }
+    }
 }
 
 internal enum class ScalingPolicy {
@@ -330,11 +437,12 @@ internal enum class ScalingFailureCode {
 
 internal class ScalingPlanFailureException(
     val code: ScalingFailureCode,
+    val metric: StrictSeriesKey,
     message: String
 ) : IllegalArgumentException("$code: $message")
 
 internal class PreparedScalingPlan private constructor(
-    statisticsByMetric: Map<TrendMetricId, ScalingStatistic>,
+    statisticsByMetric: Map<StrictSeriesKey, ScalingStatistic>,
     trainingRows: List<LocalDate>,
     val sourceViewFingerprint: String,
     val sourceRowPlanFingerprint: String,
@@ -343,7 +451,7 @@ internal class PreparedScalingPlan private constructor(
     diagnostics: List<String>,
     val fingerprint: String
 ) {
-    val statisticsByMetric: Map<TrendMetricId, ScalingStatistic> = statisticsByMetric.toMap()
+    val statisticsByMetric: Map<StrictSeriesKey, ScalingStatistic> = statisticsByMetric.toMap()
     val trainingRows: List<LocalDate> = trainingRows.toList()
     val diagnostics: List<String> = diagnostics.toList()
 
@@ -351,7 +459,7 @@ internal class PreparedScalingPlan private constructor(
         fun createValidated(
             view: PreparedEstimatorView,
             rowPlan: PreparedRowPlan,
-            statisticsByMetric: Map<TrendMetricId, ScalingStatistic>,
+            statisticsByMetric: Map<StrictSeriesKey, ScalingStatistic>,
             trainingRows: List<LocalDate>,
             policy: ScalingPolicy,
             diagnostics: List<String>
@@ -415,31 +523,124 @@ internal object ScalingPlanner {
         )
     }
 
-    private fun scalingStatistic(metric: TrendMetricId, values: List<Double>): ScalingStatistic {
+    fun planForComparison(
+        context: PreparedAnalysisContext,
+        view: BvarPreparedView,
+        comparisonPlan: PreparedLagComparisonPlan,
+        conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey> = emptyMap()
+    ): PreparedComparisonScalingPlan {
+        require(comparisonPlan.sourceViewFingerprint == view.fingerprint)
+        val indexByWeek = context.canonicalCalendar.weeks.withIndex().associate { it.value to it.index }
+        val statistics = view.metrics.associateWith { metric ->
+            if (metric in view.supportMetrics) return@associateWith ScalingStatistic(mean = 0.0, scale = 1.0)
+            val selectedWeeks = comparisonPlan.commonSourceWeeks.filter { week ->
+                val onFeature = conditionalOnFeatureByFeature[metric] ?: return@filter true
+                val index = indexByWeek.getValue(week)
+                view.value(onFeature, index)?.let { it > 0.5 } == true
+            }
+            val values = selectedWeeks.map { week ->
+                view.value(metric, indexByWeek.getValue(week))
+                    ?: error("comparison row lacks a finite prepared value for ${metric.stableId}")
+            }
+            scalingStatistic(metric, values)
+        }
+        val representative = comparisonPlan.plansByLag.getValue(comparisonPlan.pmax)
+        val base = PreparedScalingPlan.createValidated(
+            view,
+            representative,
+            statistics,
+            comparisonPlan.commonSourceWeeks,
+            ScalingPolicy.STANDARDIZE_TRAINING_ROWS,
+            buildList {
+                add("one common scaling identity for lags ${comparisonPlan.feasibleLags}")
+                if (view.supportMetrics.isNotEmpty()) add("conditional support features retain identity scale and are not model columns")
+                conditionalOnFeatureByFeature.keys.sortedBy { it.stableId }.forEach {
+                    add("${it.stableId} centered on exposed comparison rows only")
+                }
+            }
+        )
+        return PreparedComparisonScalingPlan.createValidated(
+            view,
+            comparisonPlan,
+            base,
+            conditionalOnFeatureByFeature
+        )
+    }
+
+    private fun scalingStatistic(metric: StrictSeriesKey, values: List<Double>): ScalingStatistic {
         if (values.size < 3) {
-            throw ScalingPlanFailureException(ScalingFailureCode.TOO_FEW_TRAINING_VALUES, "$metric has ${values.size} training values")
+            throw ScalingPlanFailureException(ScalingFailureCode.TOO_FEW_TRAINING_VALUES, metric, "$metric has ${values.size} training values")
         }
         if (values.any { !it.isFinite() }) {
-            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric has non-finite training values")
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, metric, "$metric has non-finite training values")
         }
         if (values.map(Double::toRawBits).distinct().size < 2) {
-            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, "$metric has fewer than two distinguishable values")
+            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, metric, "$metric has fewer than two distinguishable values")
         }
         val mean = values.average()
         if (!mean.isFinite()) {
-            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric mean is not finite")
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, metric, "$metric mean is not finite")
         }
         val variance = values.sumOf { (it - mean) * (it - mean) } / (values.size - 1)
         if (!variance.isFinite() || variance < 0.0) {
-            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, "$metric variance is not finite")
+            throw ScalingPlanFailureException(ScalingFailureCode.NON_FINITE_TRAINING_SERIES, metric, "$metric variance is not finite")
         }
         val scale = sqrt(variance)
         val maxAbs = values.maxOf { kotlin.math.abs(it) }
         val minimumScale = maxOf(1e-12, 1e-10 * maxOf(1.0, maxAbs))
         if (!scale.isFinite() || scale <= minimumScale) {
-            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, "$metric scale $scale <= $minimumScale")
+            throw ScalingPlanFailureException(ScalingFailureCode.NEAR_CONSTANT_TRAINING_SERIES, metric, "$metric scale $scale <= $minimumScale")
         }
         return ScalingStatistic(mean, scale)
+    }
+}
+
+internal class PreparedComparisonScalingPlan private constructor(
+    val sourceViewFingerprint: String,
+    val rootContextFingerprint: String,
+    val comparisonPlanFingerprint: String,
+    val baseScalingPlan: PreparedScalingPlan,
+    conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey>,
+    val fingerprint: String
+) {
+    val conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey> =
+        conditionalOnFeatureByFeature.toMap()
+
+    companion object {
+        fun createValidated(
+            view: BvarPreparedView,
+            comparisonPlan: PreparedLagComparisonPlan,
+            baseScalingPlan: PreparedScalingPlan,
+            conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey>
+        ): PreparedComparisonScalingPlan {
+            require(comparisonPlan.sourceViewFingerprint == view.fingerprint)
+            require(baseScalingPlan.sourceViewFingerprint == view.fingerprint)
+            require(baseScalingPlan.rootContextFingerprint == view.rootContextFingerprint)
+            require(baseScalingPlan.trainingRows == comparisonPlan.commonSourceWeeks)
+            require(baseScalingPlan.sourceRowPlanFingerprint == comparisonPlan.plansByLag.getValue(comparisonPlan.pmax).fingerprint)
+            require(conditionalOnFeatureByFeature.keys.all { it in view.metrics })
+            require(conditionalOnFeatureByFeature.values.all { it in view.metrics })
+            return PreparedComparisonScalingPlan(
+                view.fingerprint,
+                view.rootContextFingerprint,
+                comparisonPlan.fingerprint,
+                baseScalingPlan,
+                conditionalOnFeatureByFeature,
+                strictFingerprint(
+                    listOf(
+                        view.rootContextFingerprint,
+                        view.fingerprint,
+                        comparisonPlan.fingerprint,
+                        baseScalingPlan.fingerprint,
+                        conditionalOnFeatureByFeature.toSortedMap(compareBy { it.stableId }).entries.joinToString(",") {
+                            "${it.key.stableId}:${it.value.stableId}"
+                        },
+                        CONDITIONAL_FEATURE_ENGINEERING_VERSION,
+                        COMPARISON_SCALING_VERSION
+                    )
+                )
+            )
+        }
     }
 }
 
@@ -449,3 +650,6 @@ private fun LifecycleValidatedCell?.isUsable(): Boolean =
 internal const val ROW_SPECIFICATION_VERSION = "phase-a-row-specification-v1"
 internal const val ROW_PLAN_VERSION = "phase-a-row-plan-v1"
 internal const val SCALING_PLAN_VERSION = "phase-a-scaling-plan-v1"
+internal const val LAG_COMPARISON_PLAN_VERSION = "phase-a-cross-lag-common-rows-v1"
+internal const val COMPARISON_SCALING_VERSION = "phase-a-common-comparison-scaling-v1"
+internal const val CONDITIONAL_FEATURE_ENGINEERING_VERSION = "conditional-exposure-deviation-v1"

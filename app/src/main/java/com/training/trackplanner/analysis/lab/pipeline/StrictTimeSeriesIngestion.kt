@@ -2,18 +2,15 @@ package com.training.trackplanner.analysis.lab.pipeline
 
 import com.training.trackplanner.analysis.lab.ObservationConflictProvenance
 import com.training.trackplanner.analysis.lab.TimeSeriesAlignment
-import com.training.trackplanner.analysis.lab.TimeSeriesAlignmentService
 import com.training.trackplanner.analysis.lab.TimeSeriesCell
 import com.training.trackplanner.analysis.lab.TimeSeriesCellState
-import com.training.trackplanner.analysis.lab.TimeSeriesObservation
 import com.training.trackplanner.analysis.trends.TrendDataPoint
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
 internal data class RawTimeSeriesObservation(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val date: LocalDate,
     val value: Double?,
     val declaredState: StrictCellState? = null,
@@ -31,7 +28,7 @@ internal data class RawTimeSeriesObservation(
 
 internal class RawTimeSeriesInput private constructor(
     private val observations: List<RawTimeSeriesObservation>,
-    private val lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle>
+    private val lifecycleByMetric: Map<StrictSeriesKey, StrictMetricLifecycle>
 ) {
     fun ingest(request: StrictPreparationRequest): LifecycleValidatedLevelCatalog {
         require(request.allMetrics.isNotEmpty())
@@ -64,20 +61,27 @@ internal class RawTimeSeriesInput private constructor(
 
     companion object {
         fun fromTrendSeries(
-            seriesByMetric: Map<TrendMetricId, List<TrendDataPoint>>,
-            lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
+            seriesByMetric: Map<StrictSeriesKey, List<TrendDataPoint>>,
+            lifecycleByMetric: Map<StrictSeriesKey, StrictMetricLifecycle> = emptyMap()
         ): RawTimeSeriesInput {
             val observations = seriesByMetric.entries.flatMap { (metric, points) ->
-                points.map { point -> TimeSeriesObservation(metric, point.weekStart, point.value, source = "TrendDataPoint") }
+                points.mapIndexed { index, point ->
+                    RawTimeSeriesObservation(
+                        metric = metric,
+                        date = point.weekStart,
+                        value = point.value,
+                        declaredState = point.value?.let { StrictCellState.OBSERVED_VALUE },
+                        source = "TrendDataPoint",
+                        sourceIndex = index
+                    )
+                }
             }
-            val alignment = TimeSeriesAlignmentService().alignObservations(seriesByMetric.keys, observations)
-                ?: error("resolved time-series alignment is unavailable")
-            return fromResolvedAlignment(alignment, lifecycleByMetric)
+            return createValidated(observations, lifecycleByMetric)
         }
 
         fun fromResolvedAlignment(
             alignment: TimeSeriesAlignment,
-            lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
+            lifecycleByMetric: Map<StrictSeriesKey, StrictMetricLifecycle> = emptyMap()
         ): RawTimeSeriesInput {
             val grid = alignment.grid ?: error("resolved alignment must carry a validated calendar grid")
             return createValidated(
@@ -88,7 +92,7 @@ internal class RawTimeSeriesInput private constructor(
 
         fun createValidated(
             observations: Collection<RawTimeSeriesObservation>,
-            lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap()
+            lifecycleByMetric: Map<StrictSeriesKey, StrictMetricLifecycle> = emptyMap()
         ): RawTimeSeriesInput {
             require(observations.isNotEmpty()) { "raw observations cannot be empty" }
             val items = observations.toList()
@@ -100,7 +104,7 @@ internal class RawTimeSeriesInput private constructor(
         }
 
         private fun lifecycleCell(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             week: LocalDate,
             lifecycle: StrictMetricLifecycle,
             observations: List<RawTimeSeriesObservation>
@@ -186,15 +190,15 @@ internal class RawTimeSeriesInput private constructor(
 
 internal class LifecycleValidatedLevelCatalog private constructor(
     val calendar: CanonicalCalendar,
-    seriesByMetric: Map<TrendMetricId, LifecycleValidatedLevelSeries>,
+    seriesByMetric: Map<StrictSeriesKey, LifecycleValidatedLevelSeries>,
     val fingerprint: String
 ) {
-    val seriesByMetric: Map<TrendMetricId, LifecycleValidatedLevelSeries> = seriesByMetric.toMap()
+    val seriesByMetric: Map<StrictSeriesKey, LifecycleValidatedLevelSeries> = seriesByMetric.toMap()
 
     companion object {
         fun createValidated(
             calendar: CanonicalCalendar,
-            seriesByMetric: Map<TrendMetricId, LifecycleValidatedLevelSeries>
+            seriesByMetric: Map<StrictSeriesKey, LifecycleValidatedLevelSeries>
         ): LifecycleValidatedLevelCatalog {
             require(seriesByMetric.isNotEmpty())
             require(seriesByMetric.all { (metric, series) -> metric == series.metric && series.calendar.fingerprint == calendar.fingerprint })
@@ -207,12 +211,22 @@ internal class LifecycleValidatedLevelCatalog private constructor(
 }
 
 internal object StrictTimeSeriesPreparationPipeline {
+    fun prepare(bundle: StrictPhaseAInputBundle): StrictPreparationResult =
+        prepare(bundle.rawInput, bundle.request, bundle.policy, bundle.fingerprint)
+
     fun prepare(
         rawInput: RawTimeSeriesInput,
         request: StrictPreparationRequest,
-        policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
+        policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative(),
+        upstreamIdentityFingerprint: String? = null
     ): StrictPreparationResult = runCatching {
-        PreparedAnalysisContext.createValidated(request, rawInput.ingest(request), policy)
+        val catalog = rawInput.ingest(request)
+        PreparedAnalysisContext.createValidated(
+            request,
+            catalog,
+            policy,
+            upstreamIdentityFingerprint ?: catalog.fingerprint
+        )
     }.getOrElse { failure ->
         StrictPreparationResult.Failure(
             StrictPreparationFailureCode.PREPARED_CONTEXT_INCONSISTENT,
@@ -221,9 +235,9 @@ internal object StrictTimeSeriesPreparationPipeline {
     }
 
     fun prepareTrendSeries(
-        seriesByMetric: Map<TrendMetricId, List<TrendDataPoint>>,
+        seriesByMetric: Map<StrictSeriesKey, List<TrendDataPoint>>,
         request: StrictPreparationRequest,
-        lifecycleByMetric: Map<TrendMetricId, StrictMetricLifecycle> = emptyMap(),
+        lifecycleByMetric: Map<StrictSeriesKey, StrictMetricLifecycle> = emptyMap(),
         policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
     ): StrictPreparationResult = runCatching {
         RawTimeSeriesInput.fromTrendSeries(seriesByMetric, lifecycleByMetric)

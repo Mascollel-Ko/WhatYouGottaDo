@@ -185,7 +185,7 @@ private fun LegacyLaggedTimeSeriesAnalysisContent(summary: PerformanceTrendSumma
 }
 
 @Composable
-internal fun LaggedTimeSeriesAnalysisContent(
+private fun LegacyExecutableTimeSeriesAnalysisContent(
     summary: PerformanceTrendSummary,
     executionState: TimeSeriesAnalysisUiState,
     onRequestChanged: (TimeSeriesAnalysisRequest) -> Unit,

@@ -1,6 +1,5 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.ln
@@ -17,10 +16,13 @@ internal enum class RequiredMetricInconclusivePolicy {
 internal class StrictPreparationPolicy private constructor(
     val optionalInconclusivePolicy: OptionalMetricInconclusivePolicy,
     val requiredInconclusivePolicy: RequiredMetricInconclusivePolicy,
-    explicitTransformations: Map<TrendMetricId, CanonicalSeriesTransformation>,
+    explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation>,
+    shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation>,
     val fingerprint: String
 ) {
-    val explicitTransformations: Map<TrendMetricId, CanonicalSeriesTransformation> = explicitTransformations.toMap()
+    val explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = explicitTransformations.toMap()
+    val shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> =
+        shortHistoryTransformations.toMap()
 
     companion object {
         fun conservative(): StrictPreparationPolicy = createValidated()
@@ -28,17 +30,23 @@ internal class StrictPreparationPolicy private constructor(
         fun createValidated(
             optionalInconclusivePolicy: OptionalMetricInconclusivePolicy = OptionalMetricInconclusivePolicy.EXCLUDE_FROM_ELIGIBLE_CANDIDATES,
             requiredInconclusivePolicy: RequiredMetricInconclusivePolicy = RequiredMetricInconclusivePolicy.FAIL_STRICT_PREPARATION,
-            explicitTransformations: Map<TrendMetricId, CanonicalSeriesTransformation> = emptyMap()
+            explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap(),
+            shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap()
         ): StrictPreparationPolicy {
             require(explicitTransformations.values.none { it == CanonicalSeriesTransformation.EXCLUDED })
+            require(shortHistoryTransformations.values.none { it == CanonicalSeriesTransformation.EXCLUDED })
             val ordered = explicitTransformations.toSortedMap(compareBy { it.name })
+            val orderedShortHistory = shortHistoryTransformations.toSortedMap(compareBy { it.name })
             return StrictPreparationPolicy(
                 optionalInconclusivePolicy,
                 requiredInconclusivePolicy,
                 ordered,
+                orderedShortHistory,
                 strictFingerprint(
                     listOf(optionalInconclusivePolicy.name, requiredInconclusivePolicy.name) +
-                        ordered.map { "${it.key.name}:${it.value.name}" }
+                        ordered.map { "explicit:${it.key.name}:${it.value.name}" } +
+                        orderedShortHistory.map { "short:${it.key.name}:${it.value.name}" } +
+                        SHORT_HISTORY_REPRESENTATION_VERSION
                 )
             )
         }
@@ -54,7 +62,7 @@ internal enum class CanonicalSeriesTransformation {
 }
 
 internal class CanonicalTransformationDecision private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val integrationAssessmentFingerprint: String,
     val transformation: CanonicalSeriesTransformation,
     val supported: Boolean,
@@ -65,7 +73,7 @@ internal class CanonicalTransformationDecision private constructor(
 ) {
     companion object {
         fun createValidated(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             assessment: IntegrationOrderAssessment,
             transformation: CanonicalSeriesTransformation,
             supported: Boolean,
@@ -100,17 +108,17 @@ internal class CanonicalTransformationDecision private constructor(
 }
 
 internal class CanonicalTransformationPlan private constructor(
-    decisionsByMetric: Map<TrendMetricId, CanonicalTransformationDecision>,
-    val sourceAssessmentFingerprints: Map<TrendMetricId, String>,
+    decisionsByMetric: Map<StrictSeriesKey, CanonicalTransformationDecision>,
+    val sourceAssessmentFingerprints: Map<StrictSeriesKey, String>,
     val policyFingerprint: String,
     val fingerprint: String
 ) {
-    val decisionsByMetric: Map<TrendMetricId, CanonicalTransformationDecision> = decisionsByMetric.toMap()
+    val decisionsByMetric: Map<StrictSeriesKey, CanonicalTransformationDecision> = decisionsByMetric.toMap()
 
     companion object {
         fun createValidated(
-            decisionsByMetric: Map<TrendMetricId, CanonicalTransformationDecision>,
-            assessments: Map<TrendMetricId, IntegrationOrderAssessment>,
+            decisionsByMetric: Map<StrictSeriesKey, CanonicalTransformationDecision>,
+            assessments: Map<StrictSeriesKey, IntegrationOrderAssessment>,
             policy: StrictPreparationPolicy
         ): CanonicalTransformationPlan {
             require(decisionsByMetric.isNotEmpty() && decisionsByMetric.keys == assessments.keys)
@@ -140,7 +148,7 @@ internal sealed interface CanonicalTransformationPlanResult {
 internal object CanonicalTransformationAuthority {
     fun createPlan(
         catalog: LifecycleValidatedLevelCatalog,
-        assessments: Map<TrendMetricId, IntegrationOrderAssessment>,
+        assessments: Map<StrictSeriesKey, IntegrationOrderAssessment>,
         request: StrictPreparationRequest,
         policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
     ): CanonicalTransformationPlanResult {
@@ -151,7 +159,11 @@ internal object CanonicalTransformationAuthority {
             )
         }
         val requiredFailures = request.requiredMetrics.mapNotNull { metric ->
-            assessments[metric]?.takeUnless { it.status in SUPPORTED_STATUSES }?.let { "$metric: ${it.status}" }
+            assessments[metric]?.takeUnless { assessment ->
+                assessment.status in SUPPORTED_STATUSES ||
+                    assessment.status == IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE &&
+                    metric in policy.shortHistoryTransformations
+            }?.let { "$metric: ${it.status}" }
                 ?: if (metric !in assessments) "$metric: missing assessment" else null
         }
         if (requiredFailures.isNotEmpty()) {
@@ -164,6 +176,8 @@ internal object CanonicalTransformationAuthority {
             val automatic = when (assessment.status) {
                 IntegrationAssessmentStatus.SUPPORTED_I0 -> CanonicalSeriesTransformation.LEVEL
                 IntegrationAssessmentStatus.SUPPORTED_I1 -> CanonicalSeriesTransformation.FIRST_DIFFERENCE
+                IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE ->
+                    policy.shortHistoryTransformations[metric] ?: CanonicalSeriesTransformation.EXCLUDED
                 else -> CanonicalSeriesTransformation.EXCLUDED
             }
             val transformation = policy.explicitTransformations[metric] ?: automatic
@@ -178,9 +192,16 @@ internal object CanonicalTransformationAuthority {
                 assessment,
                 transformation,
                 supported = transformation != CanonicalSeriesTransformation.EXCLUDED,
-                policyForced = metric in policy.explicitTransformations,
+                policyForced = metric in policy.explicitTransformations ||
+                    assessment.status == IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE &&
+                    metric in policy.shortHistoryTransformations,
                 decisionReason = if (metric in policy.explicitTransformations) {
                     "explicit canonical transformation policy: ${transformation.name}"
+                } else if (
+                    assessment.status == IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE &&
+                    metric in policy.shortHistoryTransformations
+                ) {
+                    "semantic short-history representation: ${transformation.name}; diagnostic evidence unavailable, not stationarity-proven"
                 } else when (transformation) {
                     CanonicalSeriesTransformation.LEVEL -> "supported I(0)"
                     CanonicalSeriesTransformation.FIRST_DIFFERENCE -> "supported I(1); differenced once by canonical authority"
@@ -204,7 +225,7 @@ internal object CanonicalTransformationAuthority {
 }
 
 internal class TransformedPreparedSeries private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val calendar: CanonicalCalendar,
     cells: List<LifecycleValidatedCell>,
     val transformation: CanonicalSeriesTransformation,
@@ -284,13 +305,13 @@ internal class TransformedPreparedSeries private constructor(
 
 internal class TransformedPreparedCatalog private constructor(
     val calendar: CanonicalCalendar,
-    seriesByMetric: Map<TrendMetricId, TransformedPreparedSeries>,
-    excludedMetrics: Map<TrendMetricId, String>,
+    seriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries>,
+    excludedMetrics: Map<StrictSeriesKey, String>,
     val transformationPlanFingerprint: String,
     val fingerprint: String
 ) {
-    val seriesByMetric: Map<TrendMetricId, TransformedPreparedSeries> = seriesByMetric.toMap()
-    val excludedMetrics: Map<TrendMetricId, String> = excludedMetrics.toMap()
+    val seriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries> = seriesByMetric.toMap()
+    val excludedMetrics: Map<StrictSeriesKey, String> = excludedMetrics.toMap()
 
     companion object {
         fun createValidated(
@@ -327,7 +348,7 @@ internal enum class EstimatorSeriesRepresentation {
 }
 
 internal class EstimatorRepresentationDecision private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val bvarRepresentation: EstimatorSeriesRepresentation,
     val blpResponseRepresentation: EstimatorSeriesRepresentation,
     val johansenRepresentation: EstimatorSeriesRepresentation,
@@ -381,16 +402,16 @@ internal class EstimatorRepresentationDecision private constructor(
 }
 
 internal class EstimatorRepresentationPlan private constructor(
-    decisionsByMetric: Map<TrendMetricId, EstimatorRepresentationDecision>,
+    decisionsByMetric: Map<StrictSeriesKey, EstimatorRepresentationDecision>,
     val canonicalTransformationPlanFingerprint: String,
     val fingerprint: String
 ) {
-    val decisionsByMetric: Map<TrendMetricId, EstimatorRepresentationDecision> = decisionsByMetric.toMap()
+    val decisionsByMetric: Map<StrictSeriesKey, EstimatorRepresentationDecision> = decisionsByMetric.toMap()
 
     companion object {
         fun createValidated(
             transformationPlan: CanonicalTransformationPlan,
-            assessments: Map<TrendMetricId, IntegrationOrderAssessment>
+            assessments: Map<StrictSeriesKey, IntegrationOrderAssessment>
         ): EstimatorRepresentationPlan {
             val decisions = transformationPlan.decisionsByMetric.mapValues { (metric, decision) ->
                 EstimatorRepresentationDecision.createValidated(decision, assessments.getValue(metric))
@@ -433,7 +454,7 @@ internal enum class UncertaintyTransformationPolicy {
 }
 
 internal class ResponseScalePlan private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val estimationScale: ResponseEstimationScale,
     val displayScale: ResponseDisplayScale,
     val inverseTransformationRule: InverseTransformationRule,
@@ -534,8 +555,8 @@ internal data class RejectedShockDrawDiagnostic(
 )
 
 internal class IdentifiedShockPosterior private constructor(
-    val sourceMetric: TrendMetricId,
-    orderedEndogenousMetrics: List<TrendMetricId>,
+    val sourceMetric: StrictSeriesKey,
+    orderedEndogenousMetrics: List<StrictSeriesKey>,
     val structuralOrdering: String,
     val normalizationPolicy: String,
     posteriorDrawIds: List<String>,
@@ -546,7 +567,7 @@ internal class IdentifiedShockPosterior private constructor(
     rejectedDrawDiagnostics: List<RejectedShockDrawDiagnostic>,
     val fingerprint: String
 ) {
-    val orderedEndogenousMetrics: List<TrendMetricId> = orderedEndogenousMetrics.toList()
+    val orderedEndogenousMetrics: List<StrictSeriesKey> = orderedEndogenousMetrics.toList()
     val posteriorDrawIds: List<String> = posteriorDrawIds.toList()
     val drawWeights: Map<String, Double> = drawWeights.toMap()
     val shockSeriesByDraw: Map<String, List<Double>> = shockSeriesByDraw.mapValues { it.value.toList() }
@@ -561,8 +582,8 @@ internal class IdentifiedShockPosterior private constructor(
 
     companion object {
         fun createValidated(
-            sourceMetric: TrendMetricId,
-            orderedEndogenousMetrics: List<TrendMetricId>,
+            sourceMetric: StrictSeriesKey,
+            orderedEndogenousMetrics: List<StrictSeriesKey>,
             structuralOrdering: String,
             normalizationPolicy: String,
             posteriorDrawIds: List<String>,
@@ -622,6 +643,7 @@ internal class IdentifiedShockPosterior private constructor(
 }
 
 internal const val TRANSFORMATION_VERSION = "phase-a-canonical-transformation-v1"
+internal const val SHORT_HISTORY_REPRESENTATION_VERSION = "strict-short-history-representation-v1"
 internal const val REPRESENTATION_VERSION = "phase-a-estimator-representation-v1"
 internal const val RESPONSE_SCALE_VERSION = "phase-a-response-scale-v1"
 internal const val SHOCK_POSTERIOR_VERSION = "phase-a-future-shock-posterior-v1"

@@ -511,6 +511,19 @@ internal object StableLinearAlgebra {
         }.let(::columnsToRows)
     }
 
+    internal fun invertUpperTriangularStrict(upper: Array<DoubleArray>): Array<DoubleArray> {
+        validateMatrix(upper)
+        require(upper.indices.all { row -> (0 until row).all { column -> upper[row][column] == 0.0 } })
+        val upperMatrix = matrix(upper)
+        return Array(upper.size) { column ->
+            val vector = MatrixUtils.createRealVector(
+                DoubleArray(upper.size) { row -> if (row == column) 1.0 else 0.0 }
+            )
+            MatrixUtils.solveUpperTriangularSystem(upperMatrix, vector)
+            vector.toArray()
+        }.let(::columnsToRows)
+    }
+
     private fun applyUpperTriangular(upper: Array<DoubleArray>, rhs: DoubleArray): DoubleArray {
         val vector = MatrixUtils.createRealVector(rhs.copyOf())
         MatrixUtils.solveUpperTriangularSystem(matrix(upper), vector)

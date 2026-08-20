@@ -17,9 +17,12 @@ import com.training.trackplanner.analysis.fatigue.FatigueAnalysisPeriod
 import com.training.trackplanner.analysis.fatigue.FatigueAnalysisUiState
 import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
-import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisCoordinator
-import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisRequest
-import com.training.trackplanner.analysis.lab.TimeSeriesAnalysisUiState
+import com.training.trackplanner.analysis.lab.StrictBayesianLabCoordinator
+import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
+import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
+import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
+import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisSnapshotState
+import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisSnapshotStore
 import com.training.trackplanner.analysis.readiness.PhaseAwareTodayStatus
 import com.training.trackplanner.analysis.readiness.TodayReadinessSummary
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
@@ -130,8 +133,26 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     val performanceTrendSummary: StateFlow<PerformanceTrendSummary?> =
         _performanceTrendSummary.asStateFlow()
 
-    private val timeSeriesAnalysisCoordinator = TimeSeriesAnalysisCoordinator(viewModelScope)
-    internal val timeSeriesAnalysisState: StateFlow<TimeSeriesAnalysisUiState> = timeSeriesAnalysisCoordinator.state
+    private val weeklyAnalysisSnapshotStore = WeeklyAnalysisSnapshotStore(viewModelScope) { revision ->
+        repository.weeklyAnalysisFeatureSnapshot(revision)
+    }
+    internal val weeklyAnalysisSnapshotState: StateFlow<WeeklyAnalysisSnapshotState> =
+        weeklyAnalysisSnapshotStore.state
+    internal val strictLabFeatureCatalog: StateFlow<StrictLabFeatureCatalog> = weeklyAnalysisSnapshotStore.state
+        .map { state ->
+            (state as? WeeklyAnalysisSnapshotState.Ready)?.snapshot
+                ?.let(StrictLabFeatureCatalog::from)
+                ?: StrictLabFeatureCatalog.EMPTY
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StrictLabFeatureCatalog.EMPTY)
+    private val timeSeriesAnalysisCoordinator = StrictBayesianLabCoordinator(
+        scope = viewModelScope,
+        freshSnapshot = weeklyAnalysisSnapshotStore::awaitFresh,
+        currentSnapshotFingerprint = {
+            (weeklyAnalysisSnapshotStore.state.value as? WeeklyAnalysisSnapshotState.Ready)?.snapshot?.fingerprint
+        }
+    )
+    internal val timeSeriesAnalysisState: StateFlow<StrictBayesianLabUiState> = timeSeriesAnalysisCoordinator.state
 
     private val _strengthAnalysisRebuildRunning = MutableStateFlow(false)
     val strengthAnalysisRebuildRunning: StateFlow<Boolean> = _strengthAnalysisRebuildRunning.asStateFlow()
@@ -576,14 +597,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    internal fun prepareTimeSeriesAnalysis(request: TimeSeriesAnalysisRequest) {
-        timeSeriesAnalysisCoordinator.updateRequest(
-            request,
-            _performanceTrendSummary.value?.metricSeries.orEmpty()
-        )
+    internal fun prepareTimeSeriesAnalysis(request: StrictLabAnalysisRequest) {
+        timeSeriesAnalysisCoordinator.updateRequest(request)
     }
 
-    internal fun runTimeSeriesAnalysis(request: TimeSeriesAnalysisRequest) {
+    internal fun runTimeSeriesAnalysis(request: StrictLabAnalysisRequest) {
         timeSeriesAnalysisCoordinator.analyze(request)
     }
 
@@ -810,6 +828,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             repository.performanceTrendSummary()
         }.onSuccess { summary ->
             _performanceTrendSummary.value = summary
+            weeklyAnalysisSnapshotStore.markDirty()
         }
         runCatching {
             repository.connectiveTissueState()

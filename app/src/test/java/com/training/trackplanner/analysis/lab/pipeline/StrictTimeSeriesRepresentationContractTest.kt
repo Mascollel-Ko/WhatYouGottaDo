@@ -369,7 +369,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     private fun bvarPosteriorSourceIdentity(
         context: PreparedAnalysisContext = context(),
-        sourceMetric: TrendMetricId = context.request.xMetric,
+        sourceMetric: StrictSeriesKey = context.request.xMetric,
         bvarLag: Int = 1
     ): BvarPosteriorSourceIdentity {
         val view = BvarPreparedView.from(context)
@@ -381,7 +381,7 @@ class StrictTimeSeriesRepresentationContractTest {
 
     private fun shockPosterior(
         context: PreparedAnalysisContext,
-        sourceMetric: TrendMetricId = context.request.xMetric,
+        sourceMetric: StrictSeriesKey = context.request.xMetric,
         bvarLag: Int = 1
     ): IdentifiedShockPosterior {
         val sourceIdentity = bvarPosteriorSourceIdentity(context, sourceMetric, bvarLag)

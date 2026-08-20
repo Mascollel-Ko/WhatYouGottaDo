@@ -1,7 +1,8 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 internal class FutureBvarInput private constructor(
     val view: BvarPreparedView,
@@ -32,9 +33,221 @@ internal class FutureBvarInput private constructor(
     }
 }
 
+internal enum class StrictDeterministicTermPolicy {
+    COMMON_ROW_CENTERING_NO_INTERCEPT
+}
+
+internal class PriorActiveSourcePolicy private constructor(
+    val fraction: Double,
+    val minimum: Double,
+    val maximum: Double,
+    val version: String,
+    val fingerprint: String
+) {
+    fun targetFor(sourceCount: Int): Double {
+        require(sourceCount > 0)
+        val upper = sourceCount * (1.0 - 1e-9)
+        return (sourceCount * fraction).coerceIn(minimum.coerceAtMost(upper), maximum.coerceAtMost(upper))
+    }
+
+    companion object {
+        fun fractional(
+            fraction: Double = 0.10,
+            minimum: Double = 0.50,
+            maximum: Double = 20.0,
+            version: String = "prior-active-source-fraction-v1"
+        ): PriorActiveSourcePolicy {
+            require(fraction in 0.0..1.0 && fraction > 0.0)
+            require(minimum > 0.0 && maximum >= minimum && version.isNotBlank())
+            return PriorActiveSourcePolicy(
+                fraction,
+                minimum,
+                maximum,
+                version,
+                strictFingerprint(listOf(fraction, minimum, maximum, version))
+            )
+        }
+    }
+}
+
+internal class CandidateSourceGrouping private constructor(
+    val sourceViewFingerprint: String,
+    val sourceByFeature: Map<StrictSeriesKey, AnalysisSourceKey>,
+    val featuresBySource: Map<AnalysisSourceKey, List<StrictSeriesKey>>,
+    val groupingVersion: String,
+    val fingerprint: String
+) {
+    val sourceCount: Int
+        get() = featuresBySource.size
+
+    companion object {
+        fun createValidated(
+            view: BvarPreparedView,
+            sourceByFeature: Map<StrictSeriesKey, AnalysisSourceKey> = view.sourceByCandidate,
+            groupingVersion: String
+        ): CandidateSourceGrouping {
+            require(groupingVersion.isNotBlank())
+            require(sourceByFeature.keys == view.candidateMetrics.toSet())
+            val grouped = sourceByFeature.entries
+                .groupBy({ it.value }, { it.key })
+                .mapValues { (_, features) -> features.distinct().sortedBy { it.stableId } }
+                .toSortedMap()
+            require(grouped.isNotEmpty())
+            require(grouped.values.map(List<StrictSeriesKey>::size).distinct().size == 1) {
+                "Every candidate source must expose the same number of feature roles"
+            }
+            return CandidateSourceGrouping(
+                view.fingerprint,
+                sourceByFeature.toMap(),
+                grouped,
+                groupingVersion,
+                strictFingerprint(
+                    listOf(
+                        view.fingerprint,
+                        groupingVersion,
+                        grouped.entries.joinToString("|") { (source, features) ->
+                            "${source.value}:${features.joinToString(",") { it.stableId }}"
+                        },
+                        CANDIDATE_SOURCE_GROUPING_BOUNDARY_VERSION
+                    )
+                )
+            )
+        }
+    }
+}
+
+internal object TauZeroCalibration {
+    fun calibrate(
+        sourceCount: Int,
+        comparisonRowCount: Int,
+        lag: Int,
+        priorActiveSourceTarget: Double
+    ): Double {
+        require(sourceCount > 0 && comparisonRowCount > 0 && lag > 0)
+        require(priorActiveSourceTarget > 0.0 && priorActiveSourceTarget < sourceCount)
+        var lower = 0.0
+        var upper = 1.0
+        while (effectiveOpenSources(upper, sourceCount, comparisonRowCount, lag) < priorActiveSourceTarget) {
+            upper *= 2.0
+            require(upper.isFinite()) { "tau0 calibration did not bracket a finite root" }
+        }
+        repeat(160) {
+            val middle = (lower + upper) / 2.0
+            if (effectiveOpenSources(middle, sourceCount, comparisonRowCount, lag) < priorActiveSourceTarget) {
+                lower = middle
+            } else {
+                upper = middle
+            }
+        }
+        return (lower + upper) / 2.0
+    }
+
+    fun effectiveOpenSources(
+        tau: Double,
+        sourceCount: Int,
+        comparisonRowCount: Int,
+        lag: Int
+    ): Double {
+        require(tau >= 0.0 && tau.isFinite())
+        require(sourceCount > 0 && comparisonRowCount > 0 && lag > 0)
+        val openness = (1..lag).sumOf { lagIndex ->
+            val decayVariance = lagIndex.toDouble().pow(-4.0)
+            val a = tau * sqrt(comparisonRowCount * decayVariance)
+            a / (1.0 + a)
+        }
+        return sourceCount.toDouble() * openness / lag
+    }
+}
+
+internal class FutureBvarComparisonInput private constructor(
+    val view: BvarPreparedView,
+    val comparisonPlan: PreparedLagComparisonPlan,
+    val scalingPlan: PreparedComparisonScalingPlan,
+    val sourceGrouping: CandidateSourceGrouping,
+    val priorActiveSourcePolicy: PriorActiveSourcePolicy,
+    val priorActiveSourceTarget: Double,
+    val tauZeroByLag: Map<Int, Double>,
+    val deterministicTermPolicy: StrictDeterministicTermPolicy,
+    val priorFingerprint: String,
+    val fingerprint: String
+) {
+    val feasibleLags: Set<Int>
+        get() = comparisonPlan.feasibleLags
+
+    companion object {
+        fun createValidated(
+            view: BvarPreparedView,
+            comparisonPlan: PreparedLagComparisonPlan,
+            scalingPlan: PreparedComparisonScalingPlan,
+            sourceGrouping: CandidateSourceGrouping,
+            priorActiveSourcePolicy: PriorActiveSourcePolicy,
+            deterministicTermPolicy: StrictDeterministicTermPolicy =
+                StrictDeterministicTermPolicy.COMMON_ROW_CENTERING_NO_INTERCEPT
+        ): FutureBvarComparisonInput {
+            require(comparisonPlan.sourceViewFingerprint == view.fingerprint)
+            require(comparisonPlan.rootContextFingerprint == view.rootContextFingerprint)
+            require(scalingPlan.sourceViewFingerprint == view.fingerprint)
+            require(scalingPlan.rootContextFingerprint == view.rootContextFingerprint)
+            require(scalingPlan.comparisonPlanFingerprint == comparisonPlan.fingerprint)
+            require(sourceGrouping.sourceViewFingerprint == view.fingerprint)
+            require(sourceGrouping.sourceByFeature.keys == view.candidateMetrics.toSet())
+            require(sourceGrouping.sourceByFeature == view.sourceByCandidate)
+            require(comparisonPlan.plansByLag.values.all { plan ->
+                plan.rows.map(PreparedRowIdentity::sourceWeek) == comparisonPlan.commonSourceWeeks
+            })
+            val target = priorActiveSourcePolicy.targetFor(sourceGrouping.sourceCount)
+            val tauZero = comparisonPlan.feasibleLags.associateWith { lag ->
+                TauZeroCalibration.calibrate(
+                    sourceGrouping.sourceCount,
+                    comparisonPlan.commonSourceWeeks.size,
+                    lag,
+                    target
+                )
+            }
+            require(tauZero.values.all { it.isFinite() && it > 0.0 })
+            val priorFingerprint = strictFingerprint(
+                listOf(
+                    STRICT_BVAR_V07_PRIOR_VERSION,
+                    "kappa=2",
+                    "lagVariance=l^-4",
+                    "Sigma~IW(I_m,m+2)",
+                    priorActiveSourcePolicy.fingerprint,
+                    sourceGrouping.sourceCount,
+                    comparisonPlan.commonSourceWeeks.size,
+                    target,
+                    tauZero.toSortedMap().entries.joinToString(",") { "${it.key}:${it.value}" },
+                    deterministicTermPolicy.name
+                )
+            )
+            return FutureBvarComparisonInput(
+                view,
+                comparisonPlan,
+                scalingPlan,
+                sourceGrouping,
+                priorActiveSourcePolicy,
+                target,
+                tauZero,
+                deterministicTermPolicy,
+                priorFingerprint,
+                strictFingerprint(
+                    listOf(
+                        view.rootContextFingerprint,
+                        view.fingerprint,
+                        comparisonPlan.fingerprint,
+                        scalingPlan.fingerprint,
+                        sourceGrouping.fingerprint,
+                        priorFingerprint,
+                        STRICT_BVAR_V07_BOUNDARY_VERSION
+                    )
+                )
+            )
+        }
+    }
+}
+
 internal class BvarPosteriorSourceIdentity private constructor(
-    val sourceMetric: TrendMetricId,
-    orderedEndogenousMetrics: List<TrendMetricId>,
+    val sourceMetric: StrictSeriesKey,
+    orderedEndogenousMetrics: List<StrictSeriesKey>,
     val sourceContextFingerprint: String,
     val sourceSystemViewFingerprint: String,
     val sourceRowPlanFingerprint: String,
@@ -45,13 +258,13 @@ internal class BvarPosteriorSourceIdentity private constructor(
     eligibleSourceWeeks: List<LocalDate>,
     val fingerprint: String
 ) {
-    val orderedEndogenousMetrics: List<TrendMetricId> = orderedEndogenousMetrics.toList()
+    val orderedEndogenousMetrics: List<StrictSeriesKey> = orderedEndogenousMetrics.toList()
     val eligibleSourceWeeks: List<LocalDate> = eligibleSourceWeeks.toList()
 
     companion object {
         fun createValidated(
             input: FutureBvarInput,
-            sourceMetric: TrendMetricId,
+            sourceMetric: StrictSeriesKey,
             sourceBvarPosteriorFingerprint: String,
             eligibleSourceWeeks: List<LocalDate> = input.rowPlan.rows.map { it.sourceWeek }
         ): BvarPosteriorSourceIdentity {
@@ -156,6 +369,9 @@ internal class FutureBlpInput private constructor(
 }
 
 internal const val BVAR_POSTERIOR_SOURCE_IDENTITY_VERSION = "phase-a-bvar-posterior-source-identity-v1"
+internal const val CANDIDATE_SOURCE_GROUPING_BOUNDARY_VERSION = "candidate-source-grouping-boundary-v1"
+internal const val STRICT_BVAR_V07_PRIOR_VERSION = "strict-group-horseshoe-prior-v0.7"
+internal const val STRICT_BVAR_V07_BOUNDARY_VERSION = "strict-bvar-multi-lag-boundary-v0.7"
 
 internal class FutureJohansenInput private constructor(
     val view: JohansenPreparedView,

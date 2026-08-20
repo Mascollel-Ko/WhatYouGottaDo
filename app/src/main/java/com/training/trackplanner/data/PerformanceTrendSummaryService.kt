@@ -13,6 +13,8 @@ import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
+import com.training.trackplanner.analysis.trends.WeeklyAnalysisAggregator
+import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import java.time.format.DateTimeFormatter
 
 internal class PerformanceTrendSummaryService(
@@ -32,7 +34,7 @@ internal class PerformanceTrendSummaryService(
     private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
     private val appMetaDao: AppMetaDao
 ) {
-    suspend fun build(): PerformanceTrendSummary {
+    suspend fun build(window: WeeklyAnalysisWindow = WeeklyAnalysisWindow.DASHBOARD): PerformanceTrendSummary {
         val today = SystemAnalysisDateProvider().today()
         val todayString = today.format(DateTimeFormatter.ISO_LOCAL_DATE)
         val exercises = exerciseDao.allExercises()
@@ -42,7 +44,8 @@ internal class PerformanceTrendSummaryService(
         val base = PerformanceTrendEngine(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             canonicalCoreCatalog = canonicalCoreCatalog,
-            badmintonObjectiveCatalog = badmintonObjectiveCatalog
+            badmintonObjectiveCatalog = badmintonObjectiveCatalog,
+            weeklyAggregator = WeeklyAnalysisAggregator(window)
         ).analyze(
             today = today,
             exercises = exercises,

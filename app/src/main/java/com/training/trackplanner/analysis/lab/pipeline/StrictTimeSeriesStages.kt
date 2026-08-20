@@ -1,6 +1,5 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.security.MessageDigest
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -115,7 +114,7 @@ internal data class StrictObservationProvenance(
 )
 
 internal data class LifecycleValidatedCell(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val week: LocalDate,
     val state: StrictCellState,
     val value: Double?,
@@ -133,7 +132,7 @@ internal data class LifecycleValidatedCell(
 }
 
 internal class LifecycleValidatedLevelSeries private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val calendar: CanonicalCalendar,
     cells: List<LifecycleValidatedCell>,
     val lifecycle: StrictMetricLifecycle,
@@ -143,7 +142,7 @@ internal class LifecycleValidatedLevelSeries private constructor(
 
     companion object {
         fun createValidated(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             calendar: CanonicalCalendar,
             cells: List<LifecycleValidatedCell>,
             lifecycle: StrictMetricLifecycle
@@ -204,11 +203,12 @@ internal class LifecycleValidatedLevelSeries private constructor(
 }
 
 internal data class StrictPreparationRequest(
-    val xMetric: TrendMetricId,
-    val yMetrics: List<TrendMetricId>,
-    val controls: List<TrendMetricId> = emptyList(),
-    val optionalCandidates: List<TrendMetricId> = emptyList(),
-    val horizons: Set<Int> = setOf(1)
+    val xMetric: StrictSeriesKey,
+    val yMetrics: List<StrictSeriesKey>,
+    val controls: List<StrictSeriesKey> = emptyList(),
+    val optionalCandidates: List<StrictSeriesKey> = emptyList(),
+    val horizons: Set<Int> = setOf(1),
+    val supportMetrics: List<StrictSeriesKey> = emptyList()
 ) {
     init {
         require(yMetrics.isNotEmpty())
@@ -218,8 +218,8 @@ internal data class StrictPreparationRequest(
         require(xMetric !in yMetrics)
     }
 
-    val requiredMetrics: Set<TrendMetricId> = (listOf(xMetric) + yMetrics + controls).toSet()
-    val allMetrics: Set<TrendMetricId> = (requiredMetrics + optionalCandidates).toSet()
+    val requiredMetrics: Set<StrictSeriesKey> = (listOf(xMetric) + yMetrics + controls).toSet()
+    val allMetrics: Set<StrictSeriesKey> = (requiredMetrics + optionalCandidates + supportMetrics).toSet()
 }
 
 internal enum class StrictPreparationFailureCode {

@@ -1,7 +1,6 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
 import com.training.trackplanner.analysis.lab.StableLinearAlgebra
-import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -30,7 +29,7 @@ internal enum class SegmentIntegrationDecision {
 }
 
 internal class ContiguousUsableSegment private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     weeks: List<LocalDate>,
     values: List<Double>,
     val fingerprint: String
@@ -43,7 +42,7 @@ internal class ContiguousUsableSegment private constructor(
 
     companion object {
         fun createValidated(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             weeks: List<LocalDate>,
             values: List<Double>
         ): ContiguousUsableSegment {
@@ -172,7 +171,7 @@ internal class SegmentIntegrationDiagnostic private constructor(
 }
 
 internal class IntegrationOrderAssessment private constructor(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val status: IntegrationAssessmentStatus,
     val integrationOrder: Int?,
     segmentDiagnostics: List<SegmentIntegrationDiagnostic>,
@@ -187,7 +186,7 @@ internal class IntegrationOrderAssessment private constructor(
 
     companion object {
         fun createValidated(
-            metric: TrendMetricId,
+            metric: StrictSeriesKey,
             status: IntegrationAssessmentStatus,
             integrationOrder: Int?,
             segmentDiagnostics: List<SegmentIntegrationDiagnostic>,
@@ -231,7 +230,7 @@ internal class IntegrationOrderAssessment private constructor(
 }
 
 internal object SegmentAwareIntegrationAssessmentAuthority {
-    fun assess(catalog: LifecycleValidatedLevelCatalog): Map<TrendMetricId, IntegrationOrderAssessment> =
+    fun assess(catalog: LifecycleValidatedLevelCatalog): Map<StrictSeriesKey, IntegrationOrderAssessment> =
         catalog.seriesByMetric.toSortedMap(compareBy { it.name }).mapValues { (_, series) -> assess(series) }
 
     fun segments(series: LifecycleValidatedLevelSeries): List<ContiguousUsableSegment> {

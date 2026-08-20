@@ -32,6 +32,7 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
     val coachingSignals by viewModel.coachingSignalsSummary.collectAsState()
     val performanceTrend by viewModel.performanceTrendSummary.collectAsState()
     val timeSeriesAnalysis by viewModel.timeSeriesAnalysisState.collectAsState()
+    val strictLabFeatureCatalog by viewModel.strictLabFeatureCatalog.collectAsState()
     val strengthAnalysisRebuildRunning by viewModel.strengthAnalysisRebuildRunning.collectAsState()
     val connectiveTissue by viewModel.connectiveTissueState.collectAsState()
     var destination by rememberSaveable { mutableStateOf<AnalysisDestination?>(null) }
@@ -90,17 +91,14 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                     AnalysisDestination.CONNECTIVE_TISSUE -> ConnectiveTissueAnalysisContent(connectiveTissue)
                     AnalysisDestination.RELATIONSHIP_LAB -> performanceTrend?.let { AnalysisLabContent(it) }
                         ?: InfoCard("관계 탐색 지표를 계산하고 있습니다.")
-                    AnalysisDestination.LAGGED_LAB -> performanceTrend?.let {
-                        LaggedTimeSeriesAnalysisContent(
-                            summary = it,
-                            executionState = timeSeriesAnalysis,
-                            onRequestChanged = viewModel::prepareTimeSeriesAnalysis,
-                            onAnalyze = viewModel::runTimeSeriesAnalysis,
-                            onRetry = viewModel::retryTimeSeriesAnalysis,
-                            onCancel = viewModel::cancelTimeSeriesAnalysis
-                        )
-                    }
-                        ?: InfoCard("시계열 분석 지표를 계산하고 있습니다.")
+                    AnalysisDestination.LAGGED_LAB -> LaggedTimeSeriesAnalysisContent(
+                        featureCatalog = strictLabFeatureCatalog,
+                        executionState = timeSeriesAnalysis,
+                        onRequestChanged = viewModel::prepareTimeSeriesAnalysis,
+                        onAnalyze = viewModel::runTimeSeriesAnalysis,
+                        onRetry = viewModel::retryTimeSeriesAnalysis,
+                        onCancel = viewModel::cancelTimeSeriesAnalysis
+                    )
                     null -> Unit
                 }
             }

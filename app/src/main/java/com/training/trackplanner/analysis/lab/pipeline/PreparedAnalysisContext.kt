@@ -1,36 +1,35 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
-import com.training.trackplanner.analysis.trends.TrendMetricId
 
 internal data class CandidateExclusion(
-    val metric: TrendMetricId,
+    val metric: StrictSeriesKey,
     val reason: String,
     val integrationAssessmentFingerprint: String
 )
 
 internal class PreparedCandidateCatalog private constructor(
-    eligibleCandidates: List<TrendMetricId>,
-    excludedCandidates: Map<TrendMetricId, CandidateExclusion>,
-    preparedSeriesByMetric: Map<TrendMetricId, TransformedPreparedSeries>,
-    integrationAssessments: Map<TrendMetricId, IntegrationOrderAssessment>,
-    transformationDecisions: Map<TrendMetricId, CanonicalTransformationDecision>,
+    eligibleCandidates: List<StrictSeriesKey>,
+    excludedCandidates: Map<StrictSeriesKey, CandidateExclusion>,
+    preparedSeriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries>,
+    integrationAssessments: Map<StrictSeriesKey, IntegrationOrderAssessment>,
+    transformationDecisions: Map<StrictSeriesKey, CanonicalTransformationDecision>,
     val fingerprint: String
 ) {
-    val eligibleCandidates: List<TrendMetricId> = eligibleCandidates.toList()
-    val excludedCandidates: Map<TrendMetricId, CandidateExclusion> = excludedCandidates.toMap()
-    val preparedSeriesByMetric: Map<TrendMetricId, TransformedPreparedSeries> = preparedSeriesByMetric.toMap()
-    val integrationAssessments: Map<TrendMetricId, IntegrationOrderAssessment> = integrationAssessments.toMap()
-    val transformationDecisions: Map<TrendMetricId, CanonicalTransformationDecision> = transformationDecisions.toMap()
+    val eligibleCandidates: List<StrictSeriesKey> = eligibleCandidates.toList()
+    val excludedCandidates: Map<StrictSeriesKey, CandidateExclusion> = excludedCandidates.toMap()
+    val preparedSeriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries> = preparedSeriesByMetric.toMap()
+    val integrationAssessments: Map<StrictSeriesKey, IntegrationOrderAssessment> = integrationAssessments.toMap()
+    val transformationDecisions: Map<StrictSeriesKey, CanonicalTransformationDecision> = transformationDecisions.toMap()
 
     companion object {
         fun createValidated(
             request: StrictPreparationRequest,
             transformedCatalog: TransformedPreparedCatalog,
-            assessments: Map<TrendMetricId, IntegrationOrderAssessment>,
+            assessments: Map<StrictSeriesKey, IntegrationOrderAssessment>,
             transformationPlan: CanonicalTransformationPlan
         ): PreparedCandidateCatalog {
             val eligible = request.optionalCandidates.distinct().filter { metric ->
-                metric in transformedCatalog.seriesByMetric && assessments[metric]?.status in SUPPORTED_STATUSES
+                metric in transformedCatalog.seriesByMetric
             }.sortedBy { it.name }
             val excluded = request.optionalCandidates.distinct().filterNot(eligible::contains).associateWith { metric ->
                 val assessment = assessments.getValue(metric)
@@ -58,43 +57,42 @@ internal class PreparedCandidateCatalog private constructor(
             )
         }
 
-        private val SUPPORTED_STATUSES = setOf(
-            IntegrationAssessmentStatus.SUPPORTED_I0,
-            IntegrationAssessmentStatus.SUPPORTED_I1
-        )
     }
 }
 
 internal class PreparedAnalysisContext private constructor(
     val request: StrictPreparationRequest,
     val canonicalCalendar: CanonicalCalendar,
-    lifecycleMetadataByMetric: Map<TrendMetricId, StrictMetricLifecycle>,
-    validatedLevelSeriesByMetric: Map<TrendMetricId, LifecycleValidatedLevelSeries>,
-    contiguousSegmentsByMetric: Map<TrendMetricId, List<ContiguousUsableSegment>>,
-    integrationAssessmentsByMetric: Map<TrendMetricId, IntegrationOrderAssessment>,
+    lifecycleMetadataByMetric: Map<StrictSeriesKey, StrictMetricLifecycle>,
+    validatedLevelSeriesByMetric: Map<StrictSeriesKey, LifecycleValidatedLevelSeries>,
+    contiguousSegmentsByMetric: Map<StrictSeriesKey, List<ContiguousUsableSegment>>,
+    integrationAssessmentsByMetric: Map<StrictSeriesKey, IntegrationOrderAssessment>,
     val canonicalTransformationPlan: CanonicalTransformationPlan,
     val estimatorRepresentationPlan: EstimatorRepresentationPlan,
-    transformedSeriesByMetric: Map<TrendMetricId, TransformedPreparedSeries>,
-    responseScalePlansByMetric: Map<TrendMetricId, ResponseScalePlan>,
+    transformedSeriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries>,
+    responseScalePlansByMetric: Map<StrictSeriesKey, ResponseScalePlan>,
     val candidateCatalog: PreparedCandidateCatalog,
     val preparationPolicy: StrictPreparationPolicy,
+    val upstreamIdentityFingerprint: String,
     diagnostics: List<String>,
     val fingerprint: String
 ) {
-    val lifecycleMetadataByMetric: Map<TrendMetricId, StrictMetricLifecycle> = lifecycleMetadataByMetric.toMap()
-    val validatedLevelSeriesByMetric: Map<TrendMetricId, LifecycleValidatedLevelSeries> = validatedLevelSeriesByMetric.toMap()
-    val contiguousSegmentsByMetric: Map<TrendMetricId, List<ContiguousUsableSegment>> = contiguousSegmentsByMetric.mapValues { it.value.toList() }
-    val integrationAssessmentsByMetric: Map<TrendMetricId, IntegrationOrderAssessment> = integrationAssessmentsByMetric.toMap()
-    val transformedSeriesByMetric: Map<TrendMetricId, TransformedPreparedSeries> = transformedSeriesByMetric.toMap()
-    val responseScalePlansByMetric: Map<TrendMetricId, ResponseScalePlan> = responseScalePlansByMetric.toMap()
+    val lifecycleMetadataByMetric: Map<StrictSeriesKey, StrictMetricLifecycle> = lifecycleMetadataByMetric.toMap()
+    val validatedLevelSeriesByMetric: Map<StrictSeriesKey, LifecycleValidatedLevelSeries> = validatedLevelSeriesByMetric.toMap()
+    val contiguousSegmentsByMetric: Map<StrictSeriesKey, List<ContiguousUsableSegment>> = contiguousSegmentsByMetric.mapValues { it.value.toList() }
+    val integrationAssessmentsByMetric: Map<StrictSeriesKey, IntegrationOrderAssessment> = integrationAssessmentsByMetric.toMap()
+    val transformedSeriesByMetric: Map<StrictSeriesKey, TransformedPreparedSeries> = transformedSeriesByMetric.toMap()
+    val responseScalePlansByMetric: Map<StrictSeriesKey, ResponseScalePlan> = responseScalePlansByMetric.toMap()
     val diagnostics: List<String> = diagnostics.toList()
 
     companion object {
         fun createValidated(
             request: StrictPreparationRequest,
             levelCatalog: LifecycleValidatedLevelCatalog,
-            policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative()
+            policy: StrictPreparationPolicy = StrictPreparationPolicy.conservative(),
+            upstreamIdentityFingerprint: String = levelCatalog.fingerprint
         ): StrictPreparationResult {
+            require(upstreamIdentityFingerprint.isNotBlank())
             if (levelCatalog.seriesByMetric.keys != request.allMetrics) {
                 return StrictPreparationResult.Failure(
                     StrictPreparationFailureCode.PREPARED_CONTEXT_INCONSISTENT,
@@ -132,7 +130,7 @@ internal class PreparedAnalysisContext private constructor(
             val lifecycle = levelCatalog.seriesByMetric.mapValues { it.value.lifecycle }
             val diagnostics = buildList {
                 add("strict preparation only; no Bayesian estimator has run")
-                add("optional statistical selection disabled until PHASE E")
+                add("deterministically eligible optional sources enter the PHASE B shrinkage block")
                 assessments.values.filter { it.integrationOrder == null }.forEach {
                     add("${it.metric}: ${it.status} (${it.assessmentReason})")
                 }
@@ -142,6 +140,7 @@ internal class PreparedAnalysisContext private constructor(
                     request.xMetric.name,
                     request.yMetrics.joinToString(",") { it.name },
                     request.controls.joinToString(",") { it.name },
+                    request.supportMetrics.joinToString(",") { it.name },
                     request.optionalCandidates.joinToString(",") { it.name },
                     request.horizons.sorted().joinToString(","),
                     levelCatalog.calendar.fingerprint,
@@ -154,6 +153,7 @@ internal class PreparedAnalysisContext private constructor(
                     responseScales.toSortedMap(compareBy { it.name }).values.joinToString(",") { it.fingerprint },
                     candidateCatalog.fingerprint,
                     policy.fingerprint,
+                    upstreamIdentityFingerprint,
                     CONTEXT_VERSION
                 )
             )
@@ -170,6 +170,7 @@ internal class PreparedAnalysisContext private constructor(
                 responseScales,
                 candidateCatalog,
                 policy,
+                upstreamIdentityFingerprint,
                 diagnostics,
                 fingerprint
             )
