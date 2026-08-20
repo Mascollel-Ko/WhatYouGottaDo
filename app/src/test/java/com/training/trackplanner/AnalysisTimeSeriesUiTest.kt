@@ -145,7 +145,13 @@ class AnalysisTimeSeriesUiTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("분석을 완료하지 못했습니다"))
         compose.onNodeWithText("분석을 완료하지 못했습니다").assertIsDisplayed()
         compose.onNodeWithText("자세히").performClick()
+        compose.onNodeWithText("실패 로그").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("진단 코드: SB-AB12"))
         compose.onNodeWithText("진단 코드: SB-AB12").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("rhat exceeded policy"))
+        compose.onNodeWithText("rhat exceeded policy").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("다시 시도"))
+        compose.onNodeWithText("다시 시도").assertIsDisplayed()
         compose.onNodeWithText("다시 시도").performClick()
         assertTrue(retried.get())
     }

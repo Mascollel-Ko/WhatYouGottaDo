@@ -374,14 +374,15 @@ private fun StrictFailureCard(state: StrictBayesianLabUiState.Failed, onRetry: (
             Text("분석을 완료하지 못했습니다", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(state.message, color = MaterialTheme.colorScheme.error)
             Text(strictFailureNextStep(state.code), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
             if (state.diagnostics.isNotEmpty() || state.diagnosticId != null) {
                 TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "자세히 접기" else "자세히") }
                 if (showDetails) {
+                    Text("실패 로그", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     state.diagnosticId?.let { Text("진단 코드: $it", style = MaterialTheme.typography.labelSmall) }
                     state.diagnostics.forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
                 }
             }
-            OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
         }
     }
 }
