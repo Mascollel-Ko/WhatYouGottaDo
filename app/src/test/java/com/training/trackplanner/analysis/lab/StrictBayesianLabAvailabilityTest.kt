@@ -66,6 +66,27 @@ class StrictBayesianLabAvailabilityTest {
     }
 
     @Test
+    fun `phase A variation failure carries feature and closed week diagnostics`() = runTest {
+        val snapshot = snapshot(12, constantX = true)
+        val request = request()
+        val service = StrictBayesianLabService(Dispatchers.Unconfined)
+        val forcedExecutionPreflight = service.preflight(snapshot, request).copy(blockers = emptyList())
+
+        val outcome = service.execute(snapshot, request, forcedExecutionPreflight)
+
+        assertTrue(outcome is StrictLabExecutionOutcome.Failure)
+        val failure = (outcome as StrictLabExecutionOutcome.Failure).failure
+        assertEquals(StrictFailureStage.PHASE_A, failure.stage)
+        assertEquals(X.value, failure.affectedFeatureOrSource)
+        assertEquals(12, failure.availableClosedWeeks)
+        assertTrue(
+            failure.observations.any {
+                it.name == "${X.value}.distinctFiniteValues" && it.observedValue == "1" && it.passed == false
+            }
+        )
+    }
+
+    @Test
     fun `display label changes do not change strict snapshot identity`() {
         val original = snapshot(12, xLabel = "Badminton load")
         val localized = snapshot(12, xLabel = "배드민턴 부하")
@@ -138,14 +159,20 @@ class StrictBayesianLabAvailabilityTest {
         requestedHorizon
     )
 
-    private fun snapshot(weekCount: Int, xLabel: String = "Badminton load"): WeeklyAnalysisFeatureSnapshot {
+    private fun snapshot(
+        weekCount: Int,
+        xLabel: String = "Badminton load",
+        constantX: Boolean = false
+    ): WeeklyAnalysisFeatureSnapshot {
         val weeks = (0 until weekCount).map { START.plusWeeks(it.toLong()) }
         val descriptors = mapOf(
             X to AnalysisFeatureDescriptor(X, AnalysisSourceKey.metric(TrendMetricId.BADMINTON_PRACTICE_LOAD), xLabel, AnalysisFeatureFamily.TRAINING_FLOW),
             Y to AnalysisFeatureDescriptor(Y, AnalysisSourceKey.metric(TrendMetricId.FATIGUE_COMPOSITE), "Fatigue", AnalysisFeatureFamily.RECOVERY_CHECK_IN)
         )
         val cells = mapOf(
-            X to weeks.mapIndexed { index, week -> cell(X, week, stationaryFixture[index]) },
+            X to weeks.mapIndexed { index, week ->
+                cell(X, week, if (constantX) 1.0 else stationaryFixture[index])
+            },
             Y to weeks.mapIndexed { index, week -> cell(Y, week, stationaryFixture[index] * 1.7 + (index % 3) * 0.05) }
         )
         return WeeklyAnalysisFeatureSnapshot.createValidated(

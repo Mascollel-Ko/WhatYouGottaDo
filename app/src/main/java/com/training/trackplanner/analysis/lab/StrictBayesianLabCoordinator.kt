@@ -36,10 +36,12 @@ internal class StrictBayesianLabCoordinator(
                     mutableState.value = StrictBayesianLabUiState.Failed(
                         normalized,
                         null,
-                        StrictLabFailureCode.DATA_NOT_READY,
-                        "주간 분석 데이터를 준비하지 못했습니다.",
-                        listOfNotNull(failure.message),
-                        null
+                        StrictFailureDiagnostics(
+                            code = StrictLabFailureCode.DATA_NOT_READY,
+                            stage = StrictFailureStage.SNAPSHOT,
+                            primaryReason = "주간 분석 데이터를 준비하지 못했습니다.",
+                            technicalDetails = listOfNotNull(failure::class.qualifiedName, failure.message)
+                        )
                     )
                 }
                 return@launch
@@ -53,6 +55,14 @@ internal class StrictBayesianLabCoordinator(
     }
 
     fun analyze(request: StrictLabAnalysisRequest) {
+        analyze(request, StrictSamplingReliabilityMode.STRICT, retryAttempt = 0)
+    }
+
+    private fun analyze(
+        request: StrictLabAnalysisRequest,
+        samplingReliabilityMode: StrictSamplingReliabilityMode,
+        retryAttempt: Int
+    ) {
         if (mutableState.value is StrictBayesianLabUiState.Running) return
         val normalized = request.normalized()
         if (normalized != selectedRequest) return
@@ -65,7 +75,9 @@ internal class StrictBayesianLabCoordinator(
             token,
             normalized,
             priorPreflight,
-            StrictLabExecutionStage.PREPARING_STRICT_INPUT
+            StrictLabExecutionStage.PREPARING_STRICT_INPUT,
+            samplingReliabilityMode,
+            retryAttempt
         )
         activeJob = scope.launch {
             val captured = freshSnapshot().getOrElse { failure ->
@@ -73,10 +85,15 @@ internal class StrictBayesianLabCoordinator(
                     mutableState.value = StrictBayesianLabUiState.Failed(
                         normalized,
                         priorPreflight,
-                        StrictLabFailureCode.DATA_NOT_READY,
-                        "최신 주간 분석 데이터를 준비하지 못했습니다.",
-                        listOfNotNull(failure.message),
-                        null
+                        StrictFailureDiagnostics(
+                            code = StrictLabFailureCode.DATA_NOT_READY,
+                            stage = StrictFailureStage.SNAPSHOT,
+                            primaryReason = "최신 주간 분석 데이터를 준비하지 못했습니다.",
+                            availableClosedWeeks = priorPreflight.closedWeeks,
+                            samplingReliabilityMode = samplingReliabilityMode,
+                            retryAttempt = retryAttempt,
+                            technicalDetails = listOfNotNull(failure::class.qualifiedName, failure.message)
+                        )
                     )
                 }
                 return@launch
@@ -91,18 +108,37 @@ internal class StrictBayesianLabCoordinator(
                     mutableState.value = StrictBayesianLabUiState.Failed(
                         normalized,
                         preflight,
-                        StrictLabFailureCode.PREFLIGHT_INELIGIBLE,
-                        "갱신된 기록에서 선택한 조합을 분석할 수 없습니다.",
-                        preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" },
-                        null
+                        StrictFailureDiagnostics(
+                            code = StrictLabFailureCode.PREFLIGHT_INELIGIBLE,
+                            stage = StrictFailureStage.PREFLIGHT,
+                            primaryReason = "갱신된 기록에서 선택한 조합을 분석할 수 없습니다.",
+                            affectedFeatureOrSource = preflight.blockers.firstNotNullOfOrNull { it.feature?.value },
+                            availableClosedWeeks = preflight.closedWeeks,
+                            samplingReliabilityMode = samplingReliabilityMode,
+                            retryAttempt = retryAttempt,
+                            technicalDetails = preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" }
+                        )
                     )
                 }
                 return@launch
             }
             snapshot = captured
-            val outcome = service.execute(captured, normalized, preflight) { stage ->
+            val outcome = service.execute(
+                captured,
+                normalized,
+                preflight,
+                samplingReliabilityMode,
+                retryAttempt
+            ) { stage ->
                 if (token == requestToken) {
-                    mutableState.value = StrictBayesianLabUiState.Running(token, normalized, preflight, stage)
+                    mutableState.value = StrictBayesianLabUiState.Running(
+                        token,
+                        normalized,
+                        preflight,
+                        stage,
+                        samplingReliabilityMode,
+                        retryAttempt
+                    )
                 }
             }
             if (token != requestToken) return@launch
@@ -110,10 +146,18 @@ internal class StrictBayesianLabCoordinator(
                 mutableState.value = StrictBayesianLabUiState.Failed(
                     normalized,
                     preflight,
-                    StrictLabFailureCode.STALE_RESULT_REJECTED,
-                    "분석 중 기록이 갱신되어 이전 결과를 표시하지 않았습니다.",
-                    listOf("captured=${captured.fingerprint}", "current=${currentSnapshotFingerprint()}"),
-                    null
+                    StrictFailureDiagnostics(
+                        code = StrictLabFailureCode.STALE_RESULT_REJECTED,
+                        stage = StrictFailureStage.COORDINATION,
+                        primaryReason = "분석 중 기록이 갱신되어 이전 결과를 표시하지 않았습니다.",
+                        availableClosedWeeks = captured.closedWeeks.size,
+                        samplingReliabilityMode = samplingReliabilityMode,
+                        retryAttempt = retryAttempt,
+                        technicalDetails = listOf(
+                            "captured=${captured.fingerprint}",
+                            "current=${currentSnapshotFingerprint()}"
+                        )
+                    )
                 )
                 return@launch
             }
@@ -126,10 +170,7 @@ internal class StrictBayesianLabCoordinator(
                 is StrictLabExecutionOutcome.Failure -> StrictBayesianLabUiState.Failed(
                     normalized,
                     preflight,
-                    outcome.code,
-                    outcome.message,
-                    outcome.diagnostics,
-                    outcome.diagnosticId
+                    outcome.failure
                 )
             }
         }
@@ -138,7 +179,20 @@ internal class StrictBayesianLabCoordinator(
     fun retry() {
         val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
         val request = failed.request
-        if (failed.preflight?.canAnalyze == true && request == selectedRequest) analyze(request) else updateRequest(request)
+        if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
+            analyze(request, StrictSamplingReliabilityMode.STRICT, failed.failure.retryAttempt + 1)
+        } else {
+            updateRequest(request)
+        }
+    }
+
+    fun retryRelaxed() {
+        val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
+        if (!failed.code.allowsRelaxedRetry) return
+        val request = failed.request
+        if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
+            analyze(request, StrictSamplingReliabilityMode.RELAXED, failed.failure.retryAttempt + 1)
+        }
     }
 
     fun cancel() {

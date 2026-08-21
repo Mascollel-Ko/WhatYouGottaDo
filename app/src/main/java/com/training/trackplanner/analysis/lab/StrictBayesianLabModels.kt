@@ -1,6 +1,7 @@
 package com.training.trackplanner.analysis.lab
 
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
+import com.training.trackplanner.analysis.lab.pipeline.strictFingerprint
 import com.training.trackplanner.analysis.lab.strictbayes.StrictPosteriorSummary
 import com.training.trackplanner.analysis.lab.weekly.AnalysisFeatureDescriptor
 import com.training.trackplanner.analysis.lab.weekly.AnalysisFeatureFamily
@@ -146,8 +147,17 @@ internal data class StrictBayesianLabResult(
     val simplificationDiagnostics: List<String>,
     val summary: String,
     val preparedInputFingerprint: String,
-    val posteriorFingerprint: String
+    val posteriorFingerprint: String,
+    val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
+    val samplingPolicyFingerprint: String = "",
+    val retryAttempt: Int = 0,
+    val samplingIdentityFingerprint: String = ""
 )
+
+internal enum class StrictSamplingReliabilityMode {
+    STRICT,
+    RELAXED
+}
 
 internal enum class StrictLabFailureCode {
     DATA_NOT_READY,
@@ -169,14 +179,131 @@ internal enum class StrictLabFailureCode {
     INTERNAL_ERROR
 }
 
+internal enum class StrictFailureStage {
+    SNAPSHOT,
+    PREFLIGHT,
+    PHASE_A,
+    STABILIZATION,
+    PRODUCTION,
+    NUMERICAL,
+    COORDINATION,
+    INTERNAL
+}
+
+internal data class StrictDiagnosticObservation(
+    val name: String,
+    val observedValue: String,
+    val requiredValue: String? = null,
+    val passed: Boolean? = null
+) {
+    init {
+        require(name.isNotBlank() && observedValue.isNotBlank())
+    }
+
+    fun displayLine(): String = buildString {
+        passed?.let { append(if (it) "PASS " else "FAIL ") }
+        append(name)
+        append(": ")
+        append(observedValue)
+        requiredValue?.let {
+            append(" (required ")
+            append(it)
+            append(')')
+        }
+    }
+}
+
+internal data class StrictFailureDiagnostics(
+    val code: StrictLabFailureCode,
+    val stage: StrictFailureStage,
+    val primaryReason: String,
+    val affectedFeatureOrSource: String? = null,
+    val availableClosedWeeks: Int? = null,
+    val usableCommonRows: Int? = null,
+    val attemptedLags: List<Int> = emptyList(),
+    val selectedPmax: Int? = null,
+    val attemptedSimplifications: List<String> = emptyList(),
+    val observations: List<StrictDiagnosticObservation> = emptyList(),
+    val chainsAttempted: Int? = null,
+    val warmupDrawsPerChain: Int? = null,
+    val productionDrawsPerChain: Int? = null,
+    val preparedInputFingerprint: String? = null,
+    val samplingPolicyFingerprint: String? = null,
+    val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
+    val retryAttempt: Int = 0,
+    val technicalDetails: List<String> = emptyList(),
+    val diagnosticId: String = diagnosticId(
+        code,
+        stage,
+        primaryReason,
+        preparedInputFingerprint,
+        samplingPolicyFingerprint,
+        retryAttempt,
+        technicalDetails
+    )
+) {
+    init {
+        require(primaryReason.isNotBlank() && retryAttempt >= 0)
+        require(availableClosedWeeks == null || availableClosedWeeks >= 0)
+        require(usableCommonRows == null || usableCommonRows >= 0)
+        require(chainsAttempted == null || chainsAttempted > 0)
+        require(warmupDrawsPerChain == null || warmupDrawsPerChain >= 0)
+        require(productionDrawsPerChain == null || productionDrawsPerChain >= 0)
+    }
+
+    fun displayLines(): List<String> = buildList {
+        add("failureCode=${code.name}")
+        add("stage=${stage.name}")
+        affectedFeatureOrSource?.let { add("affected=$it") }
+        availableClosedWeeks?.let { add("availableClosedWeeks=$it") }
+        usableCommonRows?.let { add("usableCommonRows=$it") }
+        if (attemptedLags.isNotEmpty()) add("attemptedLags=${attemptedLags.joinToString(",")}")
+        selectedPmax?.let { add("selectedPmax=$it") }
+        chainsAttempted?.let { add("chains=$it") }
+        warmupDrawsPerChain?.let { add("warmupDrawsPerChain=$it") }
+        productionDrawsPerChain?.let { add("productionDrawsPerChain=$it") }
+        add("samplingReliabilityMode=${samplingReliabilityMode.name}")
+        add("retryAttempt=$retryAttempt")
+        preparedInputFingerprint?.let { add("preparedInputFingerprint=$it") }
+        samplingPolicyFingerprint?.let { add("samplingPolicyFingerprint=$it") }
+        attemptedSimplifications.forEach { add("simplification=$it") }
+        observations.forEach { add(it.displayLine()) }
+        addAll(technicalDetails)
+    }.distinct()
+
+    companion object {
+        private fun diagnosticId(
+            code: StrictLabFailureCode,
+            stage: StrictFailureStage,
+            primaryReason: String,
+            preparedInputFingerprint: String?,
+            samplingPolicyFingerprint: String?,
+            retryAttempt: Int,
+            technicalDetails: List<String>
+        ): String = "SB-${strictFingerprint(
+            listOf(
+                code.name,
+                stage.name,
+                primaryReason,
+                preparedInputFingerprint.orEmpty(),
+                samplingPolicyFingerprint.orEmpty(),
+                retryAttempt,
+                technicalDetails.joinToString("|")
+            )
+        ).take(10).uppercase()}"
+    }
+}
+
+internal val StrictLabFailureCode.allowsRelaxedRetry: Boolean
+    get() = this in setOf(
+        StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
+        StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
+        StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
+    )
+
 internal sealed interface StrictLabExecutionOutcome {
     data class Success(val result: StrictBayesianLabResult) : StrictLabExecutionOutcome
-    data class Failure(
-        val code: StrictLabFailureCode,
-        val message: String,
-        val diagnostics: List<String>,
-        val diagnosticId: String? = null
-    ) : StrictLabExecutionOutcome
+    data class Failure(val failure: StrictFailureDiagnostics) : StrictLabExecutionOutcome
 }
 
 internal sealed interface StrictBayesianLabUiState {
@@ -190,7 +317,9 @@ internal sealed interface StrictBayesianLabUiState {
         val requestToken: Long,
         val request: StrictLabAnalysisRequest,
         val preflight: StrictLabPreflight,
-        val stage: StrictLabExecutionStage
+        val stage: StrictLabExecutionStage,
+        val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
+        val retryAttempt: Int = 0
     ) : StrictBayesianLabUiState
     data class Success(
         val request: StrictLabAnalysisRequest,
@@ -200,9 +329,11 @@ internal sealed interface StrictBayesianLabUiState {
     data class Failed(
         val request: StrictLabAnalysisRequest,
         val preflight: StrictLabPreflight?,
-        val code: StrictLabFailureCode,
-        val message: String,
-        val diagnostics: List<String>,
-        val diagnosticId: String?
-    ) : StrictBayesianLabUiState
+        val failure: StrictFailureDiagnostics
+    ) : StrictBayesianLabUiState {
+        val code: StrictLabFailureCode get() = failure.code
+        val message: String get() = failure.primaryReason
+        val diagnostics: List<String> get() = failure.displayLines()
+        val diagnosticId: String get() = failure.diagnosticId
+    }
 }

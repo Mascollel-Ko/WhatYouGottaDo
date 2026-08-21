@@ -609,6 +609,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         timeSeriesAnalysisCoordinator.retry()
     }
 
+    internal fun retryTimeSeriesAnalysisRelaxed() {
+        timeSeriesAnalysisCoordinator.retryRelaxed()
+    }
+
     internal fun cancelTimeSeriesAnalysis() {
         timeSeriesAnalysisCoordinator.cancel()
     }

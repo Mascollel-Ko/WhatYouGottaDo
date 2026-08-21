@@ -6232,3 +6232,53 @@ Remaining debt:
 - Added supplemental strict Lab integration notes. No app version bump or tag
   was requested. The protocol registry remains unchanged because time-series
   architecture is not currently registry-managed.
+
+## 2026-08-21 - strict Bayesian failure diagnostics and relaxed retry
+
+### Baseline and scope
+
+- Baseline: `bb2c43525a5ac112fb91e2c93a107ff39baa75db`, latest `origin/main`.
+- Scope is limited to failure diagnostics, deterministic retry identity, one
+  optional RELAXED reliability profile, and the existing Lab failure/result UI.
+- App identity remains `0.5.0.38 / 500038`; no version bump or tag is included.
+
+### Implementation
+
+- Replaced UI-bound free-form failure lists with structured
+  `StrictFailureDiagnostics` while preserving every existing typed failure
+  code.
+- Added final stabilization-window and production reliability observations,
+  thresholds, draw counts, row/lag context, fingerprints, diagnostic IDs, and
+  bounded numerical operation details.
+- Added retry attempt to deterministic sampling identity. STRICT retry keeps
+  the prepared model and policy but changes the reproducible chain trajectory.
+- Added a fixed user-triggered RELAXED policy only for convergence, lag mixing,
+  and Monte Carlo precision failures. Numerical, Phase A, variation, metadata,
+  representation, stale, and cancellation failures cannot request it.
+- Added a second failure action and a small persistent RELAXED result notice;
+  no separate result screen or general Lab layout redesign was introduced.
+
+### Preserved behavior
+
+- STRICT APP_RUNTIME values and policy fingerprint remain unchanged.
+- Phase A, multi-lag BVAR, likelihood, priors, group-Horseshoe mathematics,
+  tau0, observation-space kernel, Sigma/B order, and Rao-Blackwellized lag
+  posterior are unchanged.
+- Existing short-history behavior remains reason-aware; no universal
+  8/12/24/32-week model gate was introduced.
+
+### Verification
+
+- `./gradlew.bat --version`: passed with Gradle 9.3.0 and Android Studio JBR.
+- `:app:compileDebugKotlin`: passed.
+- Focused Strict Bayesian and Compose UI group: 38 tests passed.
+- `:app:testDebugUnitTest`: 1,181 tests passed; 0 failures, 0 errors, 0 skipped.
+- `:app:assembleDebug`: passed and produced
+  `app/build/outputs/apk/debug/app-debug.apk`.
+- `scripts/validate_protocol_docs.py`: passed for 8 families and 34 protocols.
+- `tools/check_time_series_numeric_sources.py`: passed.
+- `tools/time_series_reference/generate_phase_a_fixtures.py`: completed with
+  `statsmodels 0.14.6`; only environment/source-provenance and floating-point
+  tail rewrites were produced, so those unrelated fixture changes were not
+  retained.
+- No Windows JBR/KAPT blocker reproduced in this run.

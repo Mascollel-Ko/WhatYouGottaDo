@@ -45,6 +45,8 @@ import com.training.trackplanner.analysis.lab.StrictLabFailureCode
 import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
 import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
+import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
+import com.training.trackplanner.analysis.lab.allowsRelaxedRetry
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.util.Locale
@@ -56,6 +58,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
     onRequestChanged: (StrictLabAnalysisRequest) -> Unit,
     onAnalyze: (StrictLabAnalysisRequest) -> Unit,
     onRetry: () -> Unit,
+    onRelaxedRetry: () -> Unit,
     onCancel: () -> Unit
 ) {
     val enabledX = featureCatalog.xFeatures.filter { it.enabled }
@@ -168,7 +171,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
         when (executionState) {
             is StrictBayesianLabUiState.Running -> StrictRunningCard(executionState.stage)
             is StrictBayesianLabUiState.Success -> StrictResultCard(executionState.result)
-            is StrictBayesianLabUiState.Failed -> StrictFailureCard(executionState, onRetry)
+            is StrictBayesianLabUiState.Failed -> StrictFailureCard(executionState, onRetry, onRelaxedRetry)
             StrictBayesianLabUiState.Idle,
             is StrictBayesianLabUiState.DataPreparing,
             is StrictBayesianLabUiState.PreflightReady -> Unit
@@ -329,6 +332,13 @@ private fun StrictResultCard(result: StrictBayesianLabResult) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("엄격 Bayesian 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (result.samplingReliabilityMode == StrictSamplingReliabilityMode.RELAXED) {
+                Text(
+                    "완화된 신뢰도 기준으로 계산된 결과입니다.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
             Text(result.summary)
             if (result.officialLagProbability.isNotEmpty()) {
                 Text(
@@ -367,7 +377,11 @@ private fun StrictResultCard(result: StrictBayesianLabResult) {
 }
 
 @Composable
-private fun StrictFailureCard(state: StrictBayesianLabUiState.Failed, onRetry: () -> Unit) {
+private fun StrictFailureCard(
+    state: StrictBayesianLabUiState.Failed,
+    onRetry: () -> Unit,
+    onRelaxedRetry: () -> Unit
+) {
     var showDetails by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -375,7 +389,12 @@ private fun StrictFailureCard(state: StrictBayesianLabUiState.Failed, onRetry: (
             Text(state.message, color = MaterialTheme.colorScheme.error)
             Text(strictFailureNextStep(state.code), style = MaterialTheme.typography.bodySmall)
             OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
-            if (state.diagnostics.isNotEmpty() || state.diagnosticId != null) {
+            if (state.code.allowsRelaxedRetry) {
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRelaxedRetry) {
+                    Text("완화해서 결과 보기")
+                }
+            }
+            if (state.diagnostics.isNotEmpty()) {
                 TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "자세히 접기" else "자세히") }
                 if (showDetails) {
                     Text("실패 로그", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)

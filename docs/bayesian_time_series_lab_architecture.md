@@ -137,6 +137,21 @@ lambda selection threshold is part of the production kernel.
 production bounds, lag prior, and posterior kernel. Validation requires higher
 ESS and lower MCSE-to-SD. Policy identity is fingerprinted.
 
+The default app profile remains `STRICT` with the v0.7 APP_RUNTIME values:
+four chains, two consecutive stabilization passes, a 2,000-draw stabilization
+cap, R-hat below 1.01, ESS at least 100, and MCSE/SD at most 0.10. Its policy
+fingerprint is unchanged. A user may request one versioned `RELAXED` retry only
+after convergence, lag-mixing, or Monte Carlo precision failure. RELAXED uses
+one stabilization pass, a 4,000-draw stabilization cap, R-hat below 1.05, ESS
+at least 50, and MCSE/SD at most 0.20. It is exploratory and is never presented
+as STRICT.
+
+Sampling identity is deterministic over the prepared-input fingerprint,
+materialized-design fingerprint, sampling-policy fingerprint, retry attempt,
+and chain index. Attempt zero is the first normal run. Retrying increments the
+attempt, which preserves the prepared model while producing a different,
+reproducible chain trajectory.
+
 Four chains are monitored with rank/folded R-hat, bulk/tail ESS, and MCSE/SD
 over functional quantities. Raw local scales are diagnostic-only. Weak but
 valid posterior evidence is a successful result with uncertainty, not
@@ -145,7 +160,19 @@ valid posterior evidence is a successful result with uncertainty, not
 Typed failures distinguish preparation, metadata/representation, focal or
 target variation, common-lag rows, scaling, source identity, convergence, lag
 mixing, precision, numerical SPD/non-finite state, cancellation, and unexpected
-runtime failure.
+runtime failure. `StrictFailureDiagnostics` is the single app-boundary owner of
+failure stage, affected feature/source, closed weeks and common rows, attempted
+lags/simplifications, observed R-hat/ESS/MCSE values and thresholds, sampling
+draws, fingerprints, retry identity, diagnostic ID, and bounded technical
+details. Stabilization retains its final functional window; production retains
+the actual failing functionals. Numerical diagnostics identify the operation
+and safe matrix dimensions without dumping matrices.
+
+RELAXED is not available for numerical SPD/non-finite state, Phase A structural
+failure, variation/metadata/representation failure, stale result, or
+cancellation. Neither profile changes the likelihood, priors, group-Horseshoe
+equations, tau0 calibration, observation-space kernel, Sigma/B update order, or
+Rao-Blackwellized lag posterior.
 
 ## App Boundary
 
@@ -157,8 +184,9 @@ stale completion by request token plus snapshot fingerprint.
 The strict picker reads snapshot capability descriptors. It does not use the
 dashboard 8/12-week window or `AnalysisMetricRegistry.minPoints=8`. The UI
 shows posterior medians and 80% intervals and the official Rao-Blackwellized
-lag probabilities. Raw local scales and detailed developer diagnostics are not
-presented as selection evidence.
+lag probabilities. Raw local scales remain internal. Failure details are
+user-expanded and render bounded structured diagnostics; ordinary successful
+output is not flooded with technical values.
 
 ## Legacy Boundary
 

@@ -1,5 +1,10 @@
 package com.training.trackplanner.analysis.lab.strictbayes
 
+import com.training.trackplanner.analysis.lab.StrictDiagnosticObservation
+import com.training.trackplanner.analysis.lab.StrictFailureDiagnostics
+import com.training.trackplanner.analysis.lab.StrictFailureStage
+import com.training.trackplanner.analysis.lab.StrictLabFailureCode
+import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisSourceKey
 import com.training.trackplanner.analysis.lab.pipeline.PreparedBvarComparisonDesign
 import com.training.trackplanner.analysis.lab.pipeline.StrictSeriesKey
@@ -18,6 +23,7 @@ internal enum class StrictSamplingMode {
 
 internal data class StrictSamplingPolicy(
     val mode: StrictSamplingMode,
+    val reliabilityMode: StrictSamplingReliabilityMode,
     val chains: Int,
     val stabilizationMinimum: Int,
     val diagnosticWindow: Int,
@@ -35,6 +41,7 @@ internal data class StrictSamplingPolicy(
     companion object {
         fun appRuntime(): StrictSamplingPolicy = create(
             StrictSamplingMode.APP_RUNTIME,
+            StrictSamplingReliabilityMode.STRICT,
             chains = 4,
             stabilizationMinimum = 500,
             diagnosticWindow = 500,
@@ -50,6 +57,7 @@ internal data class StrictSamplingPolicy(
 
         fun validation(): StrictSamplingPolicy = create(
             StrictSamplingMode.VALIDATION,
+            StrictSamplingReliabilityMode.STRICT,
             chains = 4,
             stabilizationMinimum = 500,
             diagnosticWindow = 500,
@@ -63,28 +71,55 @@ internal data class StrictSamplingPolicy(
             maximumMcseToSd = 0.05
         )
 
+        fun relaxedAppRuntime(): StrictSamplingPolicy = create(
+            StrictSamplingMode.APP_RUNTIME,
+            StrictSamplingReliabilityMode.RELAXED,
+            chains = 4,
+            stabilizationMinimum = 500,
+            diagnosticWindow = 500,
+            blockSize = 250,
+            consecutiveStabilizationPasses = 1,
+            stabilizationCap = 4_000,
+            productionMinimum = 500,
+            productionMaximum = 5_000,
+            precisionExtensionMaximum = 10_000,
+            minimumEss = 50.0,
+            maximumMcseToSd = 0.20,
+            maximumRhat = 1.05
+        )
+
         internal fun testing(
             chains: Int = 4,
             stabilization: Int = 20,
-            production: Int = 40
+            production: Int = 40,
+            consecutiveStabilizationPasses: Int = 1,
+            stabilizationCap: Int = stabilization,
+            productionMaximum: Int = production,
+            precisionExtensionMaximum: Int = productionMaximum,
+            maximumRhat: Double = 10.0,
+            minimumEss: Double = 1.0,
+            maximumMcseToSd: Double = 1.0,
+            reliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT
         ): StrictSamplingPolicy = create(
             StrictSamplingMode.VALIDATION,
+            reliabilityMode,
             chains,
             stabilization,
             stabilization,
             blockSize = 10,
-            consecutiveStabilizationPasses = 1,
-            stabilizationCap = stabilization,
+            consecutiveStabilizationPasses = consecutiveStabilizationPasses,
+            stabilizationCap = stabilizationCap,
             productionMinimum = production,
-            productionMaximum = production,
-            precisionExtensionMaximum = production,
-            minimumEss = 1.0,
-            maximumMcseToSd = 1.0,
-            maximumRhat = 10.0
+            productionMaximum = productionMaximum,
+            precisionExtensionMaximum = precisionExtensionMaximum,
+            minimumEss = minimumEss,
+            maximumMcseToSd = maximumMcseToSd,
+            maximumRhat = maximumRhat
         )
 
         private fun create(
             mode: StrictSamplingMode,
+            reliabilityMode: StrictSamplingReliabilityMode,
             chains: Int,
             stabilizationMinimum: Int,
             diagnosticWindow: Int,
@@ -102,8 +137,7 @@ internal data class StrictSamplingPolicy(
             require(stabilizationCap >= stabilizationMinimum)
             require(productionMaximum >= productionMinimum && precisionExtensionMaximum >= productionMaximum)
             require(maximumRhat > 1.0 && minimumEss > 0.0 && maximumMcseToSd > 0.0)
-            val fingerprint = strictFingerprint(
-                listOf(
+            val fingerprintParts = mutableListOf<Any>(
                     mode.name,
                     chains,
                     stabilizationMinimum,
@@ -118,10 +152,14 @@ internal data class StrictSamplingPolicy(
                     minimumEss,
                     maximumMcseToSd,
                     STRICT_SAMPLING_POLICY_VERSION
-                )
             )
+            if (reliabilityMode == StrictSamplingReliabilityMode.RELAXED) {
+                fingerprintParts += RELAXED_SAMPLING_POLICY_VERSION
+            }
+            val fingerprint = strictFingerprint(fingerprintParts)
             return StrictSamplingPolicy(
                 mode,
+                reliabilityMode,
                 chains,
                 stabilizationMinimum,
                 diagnosticWindow,
@@ -183,6 +221,9 @@ internal data class StrictBayesianV07Result(
     val dynamicScale: StrictPosteriorSummary,
     val retainedDrawsPerChain: Int,
     val samplingPolicyFingerprint: String,
+    val samplingReliabilityMode: StrictSamplingReliabilityMode,
+    val retryAttempt: Int,
+    val samplingIdentityFingerprint: String,
     val preparedInputFingerprint: String,
     val fingerprint: String
 )
@@ -191,9 +232,50 @@ internal sealed interface StrictBayesianV07Outcome {
     data class Success(val result: StrictBayesianV07Result, val diagnostics: List<String>) : StrictBayesianV07Outcome
     data class Failure(
         val code: StrictBayesianFailureCode,
-        val diagnostics: List<String>,
-        val preparedInputFingerprint: String
+        val failure: StrictFailureDiagnostics
     ) : StrictBayesianV07Outcome
+}
+
+internal data class StrictSamplingIdentity(
+    val preparedInputFingerprint: String,
+    val designFingerprint: String,
+    val samplingPolicyFingerprint: String,
+    val retryAttempt: Int,
+    val fingerprint: String
+) {
+    init {
+        require(retryAttempt >= 0)
+    }
+
+    fun seedForChain(chainIndex: Int): Long {
+        require(chainIndex >= 0)
+        return fingerprint.take(16).fold(0xcbf29ce484222325UL) { value, character ->
+            (value xor character.code.toULong()) * 0x100000001b3UL
+        }.toLong() xor (chainIndex + 1).toLong() * -7046029254386353131L
+    }
+
+    companion object {
+        fun create(
+            preparedInputFingerprint: String,
+            designFingerprint: String,
+            samplingPolicyFingerprint: String,
+            retryAttempt: Int
+        ): StrictSamplingIdentity = StrictSamplingIdentity(
+            preparedInputFingerprint,
+            designFingerprint,
+            samplingPolicyFingerprint,
+            retryAttempt,
+            strictFingerprint(
+                listOf(
+                    preparedInputFingerprint,
+                    designFingerprint,
+                    samplingPolicyFingerprint,
+                    retryAttempt,
+                    STRICT_SAMPLING_ATTEMPT_VERSION
+                )
+            )
+        )
+    }
 }
 
 internal enum class StrictBayesianSamplingStage {
@@ -206,98 +288,173 @@ internal enum class StrictBayesianSamplingStage {
 
 internal class StrictBayesianV07Sampler(
     private val design: PreparedBvarComparisonDesign,
-    private val policy: StrictSamplingPolicy = StrictSamplingPolicy.appRuntime()
+    private val policy: StrictSamplingPolicy = StrictSamplingPolicy.appRuntime(),
+    private val retryAttempt: Int = 0
 ) {
+    internal val samplingIdentity: StrictSamplingIdentity = StrictSamplingIdentity.create(
+        design.input.fingerprint,
+        design.fingerprint,
+        policy.fingerprint,
+        retryAttempt
+    )
+
+    init {
+        require(retryAttempt >= 0)
+    }
+
     fun sample(
         onStage: (StrictBayesianSamplingStage) -> Unit = {},
         isCancelled: () -> Boolean = { false }
     ): StrictBayesianV07Outcome {
         return try {
-        val kernel = StrictBayesianV07Kernel(design)
-        val seeds = LongArray(policy.chains) { chain -> deterministicSeed(design.fingerprint, chain) }
-        val randoms = seeds.map(::StrictRandom)
-        var states = List(policy.chains) { chain -> kernel.initialState(design.designsByLag.keys.sorted()[chain % design.designsByLag.size]) }
-
-        onStage(StrictBayesianSamplingStage.STABILIZING)
-        val warmup = List(policy.chains) { ChainTrace(design) }
-        var warmupDraws = 0
-        var consecutivePasses = 0
-        while (warmupDraws < policy.stabilizationCap && consecutivePasses < policy.consecutiveStabilizationPasses) {
-            checkCancellation(isCancelled)
-            val target = if (warmupDraws == 0) policy.stabilizationMinimum else min(
-                policy.stabilizationCap,
-                warmupDraws + policy.blockSize
-            )
-            states = runUntil(kernel, states, randoms, warmup, warmupDraws, target, isCancelled)
-            warmupDraws = target
-            if (warmupDraws >= policy.stabilizationMinimum) {
-                onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
-                val pass = stabilizationPass(warmup.map { it.tail(policy.diagnosticWindow) })
-                consecutivePasses = if (pass) consecutivePasses + 1 else 0
-                if (consecutivePasses < policy.consecutiveStabilizationPasses) onStage(StrictBayesianSamplingStage.STABILIZING)
+            val kernel = StrictBayesianV07Kernel(design)
+            val seeds = LongArray(policy.chains, samplingIdentity::seedForChain)
+            val randoms = seeds.map(::StrictRandom)
+            var states = List(policy.chains) { chain ->
+                kernel.initialState(design.designsByLag.keys.sorted()[chain % design.designsByLag.size])
             }
-        }
-        if (consecutivePasses < policy.consecutiveStabilizationPasses) {
-            return StrictBayesianV07Outcome.Failure(
-                StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED,
-                listOf("Stabilization did not pass two consecutive functional R-hat windows"),
-                design.input.fingerprint
-            )
-        }
 
-        val production = List(policy.chains) { ChainTrace(design) }
-        var productionDraws = 0
-        var precisionOnly = false
-        onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
-        while (productionDraws < policy.precisionExtensionMaximum) {
-            checkCancellation(isCancelled)
-            val normalLimit = if (precisionOnly) policy.precisionExtensionMaximum else policy.productionMaximum
-            val initialTarget = if (productionDraws == 0) policy.productionMinimum else productionDraws + policy.blockSize
-            val target = min(normalLimit, initialTarget)
-            states = runUntil(kernel, states, randoms, production, productionDraws, target, isCancelled)
-            productionDraws = target
-            onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
-            val reliability = reliability(production)
-            if (reliability.rhatFailure) {
-                if (productionDraws >= policy.productionMaximum) {
-                    return StrictBayesianV07Outcome.Failure(
-                        reliability.failureCode ?: StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED,
-                        reliability.diagnostics,
-                        design.input.fingerprint
+            onStage(StrictBayesianSamplingStage.STABILIZING)
+            val warmup = List(policy.chains) { ChainTrace(design) }
+            var warmupDraws = 0
+            var consecutivePasses = 0
+            var finalStabilizationDiagnostics = emptyList<NamedStatistics>()
+            while (warmupDraws < policy.stabilizationCap && consecutivePasses < policy.consecutiveStabilizationPasses) {
+                checkCancellation(isCancelled)
+                val target = if (warmupDraws == 0) policy.stabilizationMinimum else min(
+                    policy.stabilizationCap,
+                    warmupDraws + policy.blockSize
+                )
+                states = runUntil(kernel, states, randoms, warmup, warmupDraws, target, isCancelled)
+                warmupDraws = target
+                if (warmupDraws >= policy.stabilizationMinimum) {
+                    onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
+                    finalStabilizationDiagnostics = stabilizationDiagnostics(
+                        warmup.map { it.tail(policy.diagnosticWindow) }
                     )
+                    val pass = finalStabilizationDiagnostics.all { diagnostic ->
+                        diagnostic.statistics.rhat.isFinite() && diagnostic.statistics.rhat < policy.maximumRhat
+                    }
+                    consecutivePasses = if (pass) consecutivePasses + 1 else 0
+                    if (consecutivePasses < policy.consecutiveStabilizationPasses) {
+                        onStage(StrictBayesianSamplingStage.STABILIZING)
+                    }
                 }
-            } else if (!reliability.precisionFailure) {
-                onStage(StrictBayesianSamplingStage.SUMMARIZING)
-                return StrictBayesianV07Outcome.Success(
-                    summarize(production, productionDraws),
-                    listOf(
-                        "official lag probabilities are Rao-Blackwellized mean omega",
-                        "raw local Horseshoe scales are diagnostic-only",
-                        "stabilization draws were discarded"
+            }
+            if (consecutivePasses < policy.consecutiveStabilizationPasses) {
+                return StrictBayesianV07Outcome.Failure(
+                    StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED,
+                    samplingFailure(
+                        code = StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED,
+                        stage = StrictFailureStage.STABILIZATION,
+                        primaryReason = "Functional R-hat stabilization did not reach the required consecutive windows",
+                        observations = finalStabilizationDiagnostics.map { it.rhatObservation(policy.maximumRhat) },
+                        warmupDrawsPerChain = warmupDraws,
+                        technicalDetails = listOf(
+                            "diagnosticWindow=${policy.diagnosticWindow}",
+                            "requiredConsecutivePasses=${policy.consecutiveStabilizationPasses}",
+                            "observedConsecutivePasses=$consecutivePasses"
+                        )
                     )
                 )
-            } else if (productionDraws >= policy.productionMaximum) {
-                precisionOnly = true
-                onStage(StrictBayesianSamplingStage.EXTENDING_SAMPLING)
-            } else {
-                onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
             }
-            if (productionDraws >= policy.precisionExtensionMaximum) break
-        }
-        StrictBayesianV07Outcome.Failure(
-            StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED,
-            listOf("Posterior precision remained below ${policy.minimumEss} ESS / ${policy.maximumMcseToSd} MCSE-to-SD"),
-            design.input.fingerprint
-        )
+
+            val production = List(policy.chains) { ChainTrace(design) }
+            var productionDraws = 0
+            var precisionOnly = false
+            var lastReliability: Reliability? = null
+            onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
+            while (productionDraws < policy.precisionExtensionMaximum) {
+                checkCancellation(isCancelled)
+                val normalLimit = if (precisionOnly) policy.precisionExtensionMaximum else policy.productionMaximum
+                val initialTarget = if (productionDraws == 0) policy.productionMinimum else productionDraws + policy.blockSize
+                val target = min(normalLimit, initialTarget)
+                states = runUntil(kernel, states, randoms, production, productionDraws, target, isCancelled)
+                productionDraws = target
+                onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
+                val reliability = reliability(production)
+                lastReliability = reliability
+                if (reliability.rhatFailure) {
+                    if (productionDraws >= policy.productionMaximum) {
+                        val code = reliability.failureCode ?: StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED
+                        return StrictBayesianV07Outcome.Failure(
+                            code,
+                            samplingFailure(
+                                code = code,
+                                stage = StrictFailureStage.PRODUCTION,
+                                primaryReason = "Production posterior reliability checks failed",
+                                observations = reliability.failedObservations(policy),
+                                productionDrawsPerChain = productionDraws,
+                                technicalDetails = if (code == StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED) {
+                                    lagVisitationLines(production, productionDraws) +
+                                        "official Rao-Blackwellized lag probabilities are unavailable because the lag gate failed"
+                                } else {
+                                    emptyList()
+                                }
+                            )
+                        )
+                    }
+                } else if (!reliability.precisionFailure) {
+                    onStage(StrictBayesianSamplingStage.SUMMARIZING)
+                    return StrictBayesianV07Outcome.Success(
+                        summarize(production, productionDraws),
+                        listOf(
+                            "official lag probabilities are Rao-Blackwellized mean omega",
+                            "raw local Horseshoe scales are diagnostic-only",
+                            "stabilization draws were discarded"
+                        )
+                    )
+                } else if (productionDraws >= policy.productionMaximum) {
+                    precisionOnly = true
+                    onStage(StrictBayesianSamplingStage.EXTENDING_SAMPLING)
+                } else {
+                    onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
+                }
+                if (productionDraws >= policy.precisionExtensionMaximum) break
+            }
+            StrictBayesianV07Outcome.Failure(
+                StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED,
+                samplingFailure(
+                    code = StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED,
+                    stage = StrictFailureStage.PRODUCTION,
+                    primaryReason = "Posterior precision remained below the sampling acceptance policy",
+                    observations = lastReliability?.failedObservations(policy).orEmpty(),
+                    productionDrawsPerChain = productionDraws,
+                    technicalDetails = listOf("precisionExtensionMaximum=${policy.precisionExtensionMaximum}")
+                )
+            )
         } catch (failure: CancellationException) {
-            StrictBayesianV07Outcome.Failure(StrictBayesianFailureCode.CANCELLED, listOf("Sampling cancelled"), design.input.fingerprint)
+            StrictBayesianV07Outcome.Failure(
+                StrictBayesianFailureCode.CANCELLED,
+                samplingFailure(
+                    StrictBayesianFailureCode.CANCELLED,
+                    StrictFailureStage.PRODUCTION,
+                    "Sampling was cancelled",
+                    technicalDetails = listOf("Sampling cancelled")
+                )
+            )
         } catch (failure: StrictBayesianNumericalException) {
             val code = if (failure.message.orEmpty().contains("SPD")) {
                 StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE
             } else {
                 StrictBayesianFailureCode.NONFINITE_STATE
             }
-            StrictBayesianV07Outcome.Failure(code, listOf(failure.message.orEmpty()), design.input.fingerprint)
+            StrictBayesianV07Outcome.Failure(
+                code,
+                samplingFailure(
+                    code,
+                    StrictFailureStage.NUMERICAL,
+                    if (code == StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE) {
+                        "A strict SPD operation failed"
+                    } else {
+                        "A non-finite sampler state was detected"
+                    },
+                    technicalDetails = listOfNotNull(
+                        failure.message,
+                        failure.cause?.let { "cause=${it::class.qualifiedName}:${it.message}" }
+                    )
+                )
+            )
         }
     }
 
@@ -320,40 +477,41 @@ internal class StrictBayesianV07Sampler(
         state
     }
 
-    private fun stabilizationPass(traces: List<ChainTrace>): Boolean {
-        val monitored = buildList {
-            add(traces.map(ChainTrace::globalCandidateScale))
-            add(traces.map(ChainTrace::dynamicScale))
-            add(traces.map { it.lagAsDouble() })
+    private fun stabilizationDiagnostics(traces: List<ChainTrace>): List<NamedStatistics> = buildList {
+            add(NamedStatistics("gZ", StrictChainDiagnostics.statistics(traces.map(ChainTrace::globalCandidateScale))))
+            add(NamedStatistics("tauDyn", StrictChainDiagnostics.statistics(traces.map(ChainTrace::dynamicScale))))
+            add(NamedStatistics("lag", StrictChainDiagnostics.statistics(traces.map { it.lagAsDouble() })))
             design.input.sourceGrouping.featuresBySource.keys.forEach { source ->
-                add(traces.map { it.contribution(source) })
+                add(NamedStatistics("E[$source]", StrictChainDiagnostics.statistics(traces.map { it.contribution(source) })))
             }
             design.responseFeatures.forEach { feature ->
                 (1..design.maximumResponseHorizon).forEach { horizon ->
-                    add(traces.map { it.response(feature, horizon) })
+                    add(
+                        NamedStatistics(
+                            "response[${feature.stableId},$horizon]",
+                            StrictChainDiagnostics.statistics(traces.map { it.response(feature, horizon) })
+                        )
+                    )
                 }
             }
         }
-        return monitored.all { StrictChainDiagnostics.rankFoldedRhat(it) < policy.maximumRhat }
-    }
 
     private fun reliability(traces: List<ChainTrace>): Reliability {
-        val diagnostics = mutableListOf<String>()
+        val statistics = mutableListOf<NamedStatistics>()
         var rhatFailure = false
         var precisionFailure = false
         var lagFailure = false
         fun inspect(name: String, chains: List<DoubleArray>, lagQuantity: Boolean = false) {
-            val statistics = StrictChainDiagnostics.statistics(chains)
-            if (!statistics.rhat.isFinite() || statistics.rhat >= policy.maximumRhat) {
+            val observed = StrictChainDiagnostics.statistics(chains)
+            statistics += NamedStatistics(name, observed)
+            if (!observed.rhat.isFinite() || observed.rhat >= policy.maximumRhat) {
                 rhatFailure = true
                 lagFailure = lagFailure || lagQuantity
-                diagnostics += "$name R-hat=${statistics.rhat}"
             }
-            if (statistics.bulkEss < policy.minimumEss || statistics.tailEss < policy.minimumEss ||
-                statistics.mcseToSd > policy.maximumMcseToSd
+            if (observed.bulkEss < policy.minimumEss || observed.tailEss < policy.minimumEss ||
+                observed.mcseToSd > policy.maximumMcseToSd
             ) {
                 precisionFailure = true
-                diagnostics += "$name ESS=${statistics.bulkEss}/${statistics.tailEss} MCSE/SD=${statistics.mcseToSd}"
             }
         }
         inspect("gZ", traces.map(ChainTrace::globalCandidateScale))
@@ -374,7 +532,7 @@ internal class StrictBayesianV07Sampler(
             rhatFailure,
             precisionFailure,
             if (lagFailure) StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED else null,
-            diagnostics
+            statistics
         )
     }
 
@@ -416,11 +574,15 @@ internal class StrictBayesianV07Sampler(
             dynamic,
             drawsPerChain,
             policy.fingerprint,
+            policy.reliabilityMode,
+            retryAttempt,
+            samplingIdentity.fingerprint,
             design.input.fingerprint,
             strictFingerprint(
                 listOf(
                     design.fingerprint,
                     policy.fingerprint,
+                    samplingIdentity.fingerprint,
                     lagProbability.toSortedMap().entries.joinToString(",") { "${it.key}:${it.value}" },
                     responses.toSortedMap(compareBy { it.stableId }).entries.joinToString("|") { (feature, summaries) ->
                         "${feature.stableId}:${summaries.joinToString(",") { "${it.horizonWeeks}:${it.posterior.mean}" }}"
@@ -433,23 +595,89 @@ internal class StrictBayesianV07Sampler(
         )
     }
 
-    private fun deterministicSeed(fingerprint: String, chain: Int): Long =
-        fingerprint.take(16).fold(0xcbf29ce484222325UL) { value, character ->
-            (value xor character.code.toULong()) * 0x100000001b3UL
-        }.toLong() xor (chain + 1).toLong() * -7046029254386353131L
+    private fun samplingFailure(
+        code: StrictBayesianFailureCode,
+        stage: StrictFailureStage,
+        primaryReason: String,
+        observations: List<StrictDiagnosticObservation> = emptyList(),
+        warmupDrawsPerChain: Int? = null,
+        productionDrawsPerChain: Int? = null,
+        technicalDetails: List<String> = emptyList()
+    ): StrictFailureDiagnostics = StrictFailureDiagnostics(
+        code = code.toLabFailureCode(),
+        stage = stage,
+        primaryReason = primaryReason,
+        affectedFeatureOrSource = design.focalFeature.stableId,
+        usableCommonRows = design.comparisonRowCount,
+        attemptedLags = design.designsByLag.keys.sorted(),
+        selectedPmax = design.input.comparisonPlan.pmax,
+        observations = observations,
+        chainsAttempted = policy.chains,
+        warmupDrawsPerChain = warmupDrawsPerChain,
+        productionDrawsPerChain = productionDrawsPerChain,
+        preparedInputFingerprint = design.input.fingerprint,
+        samplingPolicyFingerprint = policy.fingerprint,
+        samplingReliabilityMode = policy.reliabilityMode,
+        retryAttempt = retryAttempt,
+        technicalDetails = technicalDetails + "samplingIdentityFingerprint=${samplingIdentity.fingerprint}"
+    )
+
+    private fun lagVisitationLines(traces: List<ChainTrace>, drawsPerChain: Int): List<String> {
+        val denominator = drawsPerChain * traces.size.toDouble()
+        return design.designsByLag.keys.sorted().map { lag ->
+            val visits = traces.sumOf { trace -> trace.lags().count { it == lag } }
+            "lagVisit[$lag]=${if (denominator > 0.0) visits / denominator else 0.0}"
+        }
+    }
 
     private fun checkCancellation(isCancelled: () -> Boolean) {
         if (isCancelled()) throw CancellationException()
+    }
+
+    private data class NamedStatistics(
+        val name: String,
+        val statistics: StrictChainDiagnostics.Statistics
+    ) {
+        fun rhatObservation(maximumRhat: Double): StrictDiagnosticObservation = StrictDiagnosticObservation(
+            name,
+            "Rhat=${statistics.rhat}",
+            "Rhat<$maximumRhat",
+            statistics.rhat.isFinite() && statistics.rhat < maximumRhat
+        )
+
+        fun reliabilityObservation(policy: StrictSamplingPolicy): StrictDiagnosticObservation {
+            val passed = statistics.rhat.isFinite() && statistics.rhat < policy.maximumRhat &&
+                statistics.bulkEss >= policy.minimumEss && statistics.tailEss >= policy.minimumEss &&
+                statistics.mcseToSd <= policy.maximumMcseToSd
+            return StrictDiagnosticObservation(
+                name,
+                "Rhat=${statistics.rhat}; bulkESS=${statistics.bulkEss}; tailESS=${statistics.tailEss}; MCSE/SD=${statistics.mcseToSd}",
+                "Rhat<${policy.maximumRhat}; ESS>=${policy.minimumEss}; MCSE/SD<=${policy.maximumMcseToSd}",
+                passed
+            )
+        }
     }
 
     private data class Reliability(
         val rhatFailure: Boolean,
         val precisionFailure: Boolean,
         val failureCode: StrictBayesianFailureCode?,
-        val diagnostics: List<String>
-    )
+        val statistics: List<NamedStatistics>
+    ) {
+        fun failedObservations(policy: StrictSamplingPolicy): List<StrictDiagnosticObservation> =
+            statistics.map { it.reliabilityObservation(policy) }.filterNot { it.passed == true }
+    }
 
     private class CancellationException : RuntimeException()
+}
+
+private fun StrictBayesianFailureCode.toLabFailureCode(): StrictLabFailureCode = when (this) {
+    StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> StrictLabFailureCode.MCMC_CONVERGENCE_FAILED
+    StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED -> StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED
+    StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED -> StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
+    StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE -> StrictLabFailureCode.NUMERICAL_SPD_FAILURE
+    StrictBayesianFailureCode.NONFINITE_STATE -> StrictLabFailureCode.NONFINITE_STATE
+    StrictBayesianFailureCode.CANCELLED -> StrictLabFailureCode.CANCELLED
 }
 
 private class ChainTrace private constructor(
@@ -742,4 +970,6 @@ internal object StrictChainDiagnostics {
 }
 
 internal const val STRICT_SAMPLING_POLICY_VERSION = "strict-bayesian-sampling-policy-v0.7"
-internal const val STRICT_BAYESIAN_V07_RESULT_VERSION = "strict-bayesian-result-v0.7"
+internal const val RELAXED_SAMPLING_POLICY_VERSION = "strict-bayesian-relaxed-sampling-policy-v1"
+internal const val STRICT_SAMPLING_ATTEMPT_VERSION = "strict-bayesian-sampling-attempt-v1"
+internal const val STRICT_BAYESIAN_V07_RESULT_VERSION = "strict-bayesian-result-v0.7.1-attempt-identity"

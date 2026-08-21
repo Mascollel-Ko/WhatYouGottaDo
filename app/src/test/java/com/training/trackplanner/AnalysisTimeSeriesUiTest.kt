@@ -23,12 +23,15 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.StrictBayesianLabResult
 import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
+import com.training.trackplanner.analysis.lab.StrictFailureDiagnostics
+import com.training.trackplanner.analysis.lab.StrictFailureStage
 import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
 import com.training.trackplanner.analysis.lab.StrictLabBlocker
 import com.training.trackplanner.analysis.lab.StrictLabBlockerCode
@@ -39,6 +42,7 @@ import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
 import com.training.trackplanner.analysis.lab.StrictLabResponse
 import com.training.trackplanner.analysis.lab.StrictLabResponsePoint
+import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.lab.strictbayes.StrictPosteriorSummary
 import com.training.trackplanner.analysis.lab.weekly.AnalysisFeatureFamily
@@ -125,6 +129,7 @@ class AnalysisTimeSeriesUiTest {
         compose.onNodeWithText("시차 posterior: 1주 70.000%, 2주 30.000%").assertIsDisplayed()
         compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").assertIsDisplayed()
         compose.onNodeWithText("posterior 중앙값과 80% 구간입니다.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("완화된 신뢰도 기준으로 계산된 결과입니다.").assertDoesNotExist()
     }
 
     @Test
@@ -134,10 +139,13 @@ class AnalysisTimeSeriesUiTest {
             StrictBayesianLabUiState.Failed(
                 request = request,
                 preflight = readyPreflight(),
-                code = StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
-                message = "posterior chain이 수렴 기준을 통과하지 못했습니다.",
-                diagnostics = listOf("rhat exceeded policy"),
-                diagnosticId = "SB-AB12"
+                failure = StrictFailureDiagnostics(
+                    code = StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
+                    stage = StrictFailureStage.STABILIZATION,
+                    primaryReason = "posterior chain이 수렴 기준을 통과하지 못했습니다.",
+                    technicalDetails = listOf("rhat exceeded policy"),
+                    diagnosticId = "SB-AB12"
+                )
             ),
             onRetry = { retried.set(true) }
         )
@@ -148,12 +156,65 @@ class AnalysisTimeSeriesUiTest {
         compose.onNodeWithText("실패 로그").assertIsDisplayed()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("진단 코드: SB-AB12"))
         compose.onNodeWithText("진단 코드: SB-AB12").assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("rhat exceeded policy"))
-        compose.onNodeWithText("rhat exceeded policy").assertIsDisplayed()
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("다시 시도"))
-        compose.onNodeWithText("다시 시도").assertIsDisplayed()
+        compose.onNodeWithText("rhat exceeded policy").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("다시 시도").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("다시 시도").performClick()
         assertTrue(retried.get())
+    }
+
+    @Test
+    fun relaxedRetryIsOnlyShownForEligibleReliabilityFailures() {
+        val relaxed = AtomicBoolean(false)
+        content(
+            StrictBayesianLabUiState.Failed(
+                request,
+                readyPreflight(),
+                StrictFailureDiagnostics(
+                    StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED,
+                    StrictFailureStage.PRODUCTION,
+                    "posterior precision failure"
+                )
+            ),
+            onRelaxedRetry = { relaxed.set(true) }
+        )
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완화해서 결과 보기"))
+        compose.onNodeWithText("완화해서 결과 보기").assertIsDisplayed().performClick()
+        assertTrue(relaxed.get())
+    }
+
+    @Test
+    fun numericalFailureDoesNotOfferRelaxedRetry() {
+        content(
+            StrictBayesianLabUiState.Failed(
+                request,
+                readyPreflight(),
+                StrictFailureDiagnostics(
+                    StrictLabFailureCode.NUMERICAL_SPD_FAILURE,
+                    StrictFailureStage.NUMERICAL,
+                    "strict SPD failure"
+                )
+            )
+        )
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("분석을 완료하지 못했습니다"))
+        compose.onNodeWithText("분석을 완료하지 못했습니다").assertIsDisplayed()
+        compose.onNodeWithText("완화해서 결과 보기").assertDoesNotExist()
+    }
+
+    @Test
+    fun relaxedSuccessIsMarkedWithoutChangingStrictSuccessPresentation() {
+        content(
+            StrictBayesianLabUiState.Success(
+                request,
+                successResult().copy(samplingReliabilityMode = StrictSamplingReliabilityMode.RELAXED),
+                readyPreflight()
+            )
+        )
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완화된 신뢰도 기준으로 계산된 결과입니다."))
+        compose.onNodeWithText("완화된 신뢰도 기준으로 계산된 결과입니다.").assertIsDisplayed()
+        compose.onNodeWithText("엄격 Bayesian 분석 결과").assertIsDisplayed()
     }
 
     @Test
@@ -173,6 +234,7 @@ class AnalysisTimeSeriesUiTest {
         state: StrictBayesianLabUiState = StrictBayesianLabUiState.Idle,
         onAnalyze: (StrictLabAnalysisRequest) -> Unit = {},
         onRetry: () -> Unit = {},
+        onRelaxedRetry: () -> Unit = {},
         fontScale: Float = 1f,
         darkTheme: Boolean = false
     ) {
@@ -197,6 +259,7 @@ class AnalysisTimeSeriesUiTest {
                                 onRequestChanged = {},
                                 onAnalyze = onAnalyze,
                                 onRetry = onRetry,
+                                onRelaxedRetry = onRelaxedRetry,
                                 onCancel = {}
                             )
                         }

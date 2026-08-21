@@ -49,7 +49,16 @@ reliability checking/extension, and summarization.
 
 Only Analyze is disabled while a run is active. Recording remains available.
 Cancellation, expected unavailability, numerical failure, and unexpected
-failure remain separate states with retry support.
+failure remain separate states. Every failure carries one structured
+`StrictFailureDiagnostics` value; the UI does not infer failure meaning from
+free-form strings.
+
+The first run is STRICT attempt zero. `다시 시도` remains STRICT and increments
+the deterministic retry attempt, so the same prepared input and policy do not
+repeat the identical chain. `완화해서 결과 보기` appears only for convergence,
+lag-posterior mixing, and Monte Carlo precision failures. It uses the fixed
+versioned RELAXED profile and a new attempt identity. Phase A is still prepared
+by the same deterministic authority and the v0.7 model is unchanged.
 
 ## Picker And Result Presentation
 
@@ -60,7 +69,16 @@ does not use legacy `minPoints=8`, a dashboard 8/12-week window, or a universal
 Success shows posterior medians and 80% intervals, official Rao-Blackwellized
 lag probabilities, and source summaries only when reliability permits them. A
 broad interval is uncertainty, not failure. Detailed sampler diagnostics and
-raw local Horseshoe scales remain internal.
+raw local Horseshoe scales remain internal during success. A RELAXED success
+uses the same result layout and carries a persistent `완화된 신뢰도 기준으로
+계산된 결과입니다.` notice plus structural `samplingReliabilityMode=RELAXED`
+identity.
+
+The failure card keeps a short product-facing reason and next step. Expanding
+`자세히` shows the diagnostic ID, stage, affected feature/source, row/lag and
+sampling identity, thresholds, observed failing metrics, and technical detail
+lines. Lag mixing failures explicitly withhold official Rao-Blackwellized lag
+probabilities when their reliability gate failed.
 
 ## Runtime Limits
 
@@ -77,6 +95,10 @@ instrumented device profiling is run.
 - stale results cannot overwrite a newer request;
 - selection changes cancel an active run;
 - weak valid posterior remains Success;
+- the strict APP_RUNTIME policy fingerprint and thresholds remain frozen;
+- the same retry attempt is reproducible and a new attempt changes chain seeds;
+- RELAXED is offered only for the three sampling reliability failures;
+- RELAXED success is visibly and structurally distinct from STRICT;
 - the LAGGED_LAB route uses the strict coordinator/catalog;
 - legacy analyzer/service construction is forbidden in `TrainingViewModel`;
 - dashboard `performanceTrend.metricSeries` is forbidden as strict raw input.

@@ -103,13 +103,22 @@ internal object StrictBayesianMatrix {
     fun solveSpdStrict(a: Array<DoubleArray>, b: Array<DoubleArray>): Array<DoubleArray> = try {
         StableLinearAlgebra.solveSpdStrict(a, b).solution
     } catch (failure: Throwable) {
-        throw StrictBayesianNumericalException("NUMERICAL_SPD_FAILURE", failure)
+        throw StrictBayesianNumericalException(
+            "NUMERICAL_SPD_FAILURE: operation=solveSpdStrict; matrixRole=posterior precision; " +
+                "aDimensions=${a.size}x${a.firstOrNull()?.size ?: 0}; " +
+                "bDimensions=${b.size}x${b.firstOrNull()?.size ?: 0}",
+            failure
+        )
     }
 
     fun strictSpdFactor(value: Array<DoubleArray>): Array<DoubleArray> = try {
         StableLinearAlgebra.strictCholesky(value).factor
     } catch (failure: Throwable) {
-        throw StrictBayesianNumericalException("NUMERICAL_SPD_FAILURE", failure)
+        throw StrictBayesianNumericalException(
+            "NUMERICAL_SPD_FAILURE: operation=strictCholesky; matrixRole=covariance or precision; " +
+                "dimensions=${value.size}x${value.firstOrNull()?.size ?: 0}",
+            failure
+        )
     }
 
     fun logDetSpdStrict(value: Array<DoubleArray>): Double {

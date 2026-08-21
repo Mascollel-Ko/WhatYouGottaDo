@@ -1,5 +1,7 @@
 package com.training.trackplanner.analysis.lab.strictbayes
 
+import com.training.trackplanner.analysis.lab.StrictFailureStage
+import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisSourceKey
 import com.training.trackplanner.analysis.lab.pipeline.BvarDesignMatrixMaterializer
 import com.training.trackplanner.analysis.lab.pipeline.BvarPreparedView
@@ -65,6 +67,27 @@ class StrictBayesianV07ValidationTest {
     }
 
     @Test
+    fun `sampling attempt identity reproduces the same chain and changes the next retry chain`() {
+        val design = syntheticDesign(signal = true)
+        val policy = StrictSamplingPolicy.appRuntime()
+        val first = StrictSamplingIdentity.create(design.input.fingerprint, design.fingerprint, policy.fingerprint, 0)
+        val repeated = StrictSamplingIdentity.create(design.input.fingerprint, design.fingerprint, policy.fingerprint, 0)
+        val retry = StrictSamplingIdentity.create(design.input.fingerprint, design.fingerprint, policy.fingerprint, 1)
+        val kernel = StrictBayesianV07Kernel(design)
+        val initial = kernel.initialState(initialLag = 2)
+
+        val firstStep = kernel.step(initial, StrictRandom(first.seedForChain(0)))
+        val repeatedStep = kernel.step(initial, StrictRandom(repeated.seedForChain(0)))
+        val retryStep = kernel.step(initial, StrictRandom(retry.seedForChain(0)))
+
+        assertEquals(design.input.fingerprint, first.preparedInputFingerprint)
+        assertEquals(first.fingerprint, repeated.fingerprint)
+        assertEquals(firstStep.state, repeatedStep.state)
+        assertNotEquals(first.fingerprint, retry.fingerprint)
+        assertNotEquals(firstStep.state, retryStep.state)
+    }
+
+    @Test
     fun `functional diagnostic gate accepts mixed stationary chains and rejects shifted chains`() {
         val stationary = List(4) { chain ->
             DoubleArray(240) { index -> sin((index + chain * 17) * 0.19) + cos((index + chain * 7) * 0.07) }
@@ -94,6 +117,103 @@ class StrictBayesianV07ValidationTest {
         assertTrue(validation.minimumEss > app.minimumEss)
         assertTrue(validation.maximumMcseToSd < app.maximumMcseToSd)
         assertNotEquals(app.fingerprint, validation.fingerprint)
+    }
+
+    @Test
+    fun `default app policy remains strict and relaxed policy only loosens bounded reliability settings`() {
+        val strict = StrictSamplingPolicy.appRuntime()
+        val relaxed = StrictSamplingPolicy.relaxedAppRuntime()
+
+        assertEquals(StrictSamplingReliabilityMode.STRICT, strict.reliabilityMode)
+        assertEquals(4, strict.chains)
+        assertEquals(500, strict.stabilizationMinimum)
+        assertEquals(2, strict.consecutiveStabilizationPasses)
+        assertEquals(2_000, strict.stabilizationCap)
+        assertEquals(1.01, strict.maximumRhat, 0.0)
+        assertEquals(100.0, strict.minimumEss, 0.0)
+        assertEquals(0.10, strict.maximumMcseToSd, 0.0)
+        assertEquals(
+            "caad4a0b3a7f5336596c5a713173aa1cc79d7731b6715ccb1e44cd8eb7851199",
+            strict.fingerprint
+        )
+
+        assertEquals(StrictSamplingReliabilityMode.RELAXED, relaxed.reliabilityMode)
+        assertEquals(strict.chains, relaxed.chains)
+        assertEquals(strict.stabilizationMinimum, relaxed.stabilizationMinimum)
+        assertEquals(strict.productionMinimum, relaxed.productionMinimum)
+        assertEquals(strict.productionMaximum, relaxed.productionMaximum)
+        assertEquals(strict.precisionExtensionMaximum, relaxed.precisionExtensionMaximum)
+        assertEquals(1, relaxed.consecutiveStabilizationPasses)
+        assertEquals(4_000, relaxed.stabilizationCap)
+        assertEquals(1.05, relaxed.maximumRhat, 0.0)
+        assertEquals(50.0, relaxed.minimumEss, 0.0)
+        assertEquals(0.20, relaxed.maximumMcseToSd, 0.0)
+        assertNotEquals(strict.fingerprint, relaxed.fingerprint)
+    }
+
+    @Test
+    fun `strict and relaxed identities preserve prepared model while separating sampling policy`() {
+        val design = syntheticDesign(signal = true)
+        val strict = StrictSamplingIdentity.create(
+            design.input.fingerprint,
+            design.fingerprint,
+            StrictSamplingPolicy.appRuntime().fingerprint,
+            1
+        )
+        val relaxed = StrictSamplingIdentity.create(
+            design.input.fingerprint,
+            design.fingerprint,
+            StrictSamplingPolicy.relaxedAppRuntime().fingerprint,
+            1
+        )
+
+        assertEquals(strict.preparedInputFingerprint, relaxed.preparedInputFingerprint)
+        assertEquals(strict.designFingerprint, relaxed.designFingerprint)
+        assertNotEquals(strict.samplingPolicyFingerprint, relaxed.samplingPolicyFingerprint)
+        assertNotEquals(strict.fingerprint, relaxed.fingerprint)
+    }
+
+    @Test
+    fun `stabilization failure reports monitored functional Rhat observations`() {
+        val outcome = StrictBayesianV07Sampler(
+            syntheticDesign(signal = true),
+            StrictSamplingPolicy.testing(
+                stabilization = 4,
+                production = 20,
+                maximumRhat = 1.000000000001
+            )
+        ).sample()
+
+        assertTrue(outcome is StrictBayesianV07Outcome.Failure)
+        val failure = (outcome as StrictBayesianV07Outcome.Failure).failure
+        assertEquals(StrictFailureStage.STABILIZATION, failure.stage)
+        assertTrue(failure.observations.any { it.passed == false })
+        assertTrue(failure.observations.any { it.name == "lag" })
+        assertTrue(failure.observations.any { it.name == "gZ" })
+        assertTrue(failure.observations.any { it.name == "tauDyn" })
+        assertTrue(failure.observations.any { it.name.startsWith("E[") })
+        assertTrue(failure.observations.any { it.name.startsWith("response[") })
+    }
+
+    @Test
+    fun `precision failure reports ESS MCSE observations thresholds and production draws`() {
+        val outcome = StrictBayesianV07Sampler(
+            syntheticDesign(signal = true),
+            StrictSamplingPolicy.testing(
+                stabilization = 50,
+                production = 100,
+                minimumEss = 1_000_000.0,
+                maximumMcseToSd = 0.000001
+            )
+        ).sample()
+
+        assertTrue(outcome is StrictBayesianV07Outcome.Failure)
+        val typed = outcome as StrictBayesianV07Outcome.Failure
+        assertEquals(StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED, typed.code)
+        assertEquals(100, typed.failure.productionDrawsPerChain)
+        assertTrue(typed.failure.observations.isNotEmpty())
+        assertTrue(typed.failure.observations.all { "bulkESS=" in it.observedValue && "MCSE/SD=" in it.observedValue })
+        assertTrue(typed.failure.observations.all { it.requiredValue?.contains("ESS>=1000000.0") == true })
     }
 
     @Test

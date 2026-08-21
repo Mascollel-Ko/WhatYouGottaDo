@@ -11,6 +11,7 @@ import com.training.trackplanner.analysis.lab.strictbayes.StrictBayesianFailureC
 import com.training.trackplanner.analysis.lab.strictbayes.StrictBayesianSamplingStage
 import com.training.trackplanner.analysis.lab.strictbayes.StrictBayesianV07Outcome
 import com.training.trackplanner.analysis.lab.strictbayes.StrictBayesianV07Sampler
+import com.training.trackplanner.analysis.lab.strictbayes.StrictSamplingPolicy
 import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisFeatureSnapshot
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -23,7 +24,13 @@ import kotlinx.coroutines.withContext
 
 internal open class StrictBayesianLabService(
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
-    private val samplerFactory: (PreparedBvarComparisonDesign) -> StrictBayesianV07Sampler = ::StrictBayesianV07Sampler
+    private val samplerFactory: (
+        PreparedBvarComparisonDesign,
+        StrictSamplingPolicy,
+        Int
+    ) -> StrictBayesianV07Sampler = { design, policy, retryAttempt ->
+        StrictBayesianV07Sampler(design, policy, retryAttempt)
+    }
 ) {
     open suspend fun preflight(
         snapshot: WeeklyAnalysisFeatureSnapshot,
@@ -67,21 +74,40 @@ internal open class StrictBayesianLabService(
         snapshot: WeeklyAnalysisFeatureSnapshot,
         request: StrictLabAnalysisRequest,
         preflight: StrictLabPreflight,
+        samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
+        retryAttempt: Int = 0,
         onStage: (StrictLabExecutionStage) -> Unit = {}
     ): StrictLabExecutionOutcome = withContext(dispatcher) {
+        require(retryAttempt >= 0)
         val context = currentCoroutineContext()
         if (!preflight.canAnalyze) {
             return@withContext StrictLabExecutionOutcome.Failure(
-                StrictLabFailureCode.PREFLIGHT_INELIGIBLE,
-                "선택한 지표 조합은 엄격 분석을 시작할 수 없습니다.",
-                preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" }
+                StrictFailureDiagnostics(
+                    code = StrictLabFailureCode.PREFLIGHT_INELIGIBLE,
+                    stage = StrictFailureStage.PREFLIGHT,
+                    primaryReason = "선택한 지표 조합은 엄격 분석을 시작할 수 없습니다.",
+                    affectedFeatureOrSource = preflight.blockers.firstNotNullOfOrNull { it.feature?.value },
+                    availableClosedWeeks = preflight.closedWeeks,
+                    samplingReliabilityMode = samplingReliabilityMode,
+                    retryAttempt = retryAttempt,
+                    technicalDetails = preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" }
+                )
             )
         }
         if (preflight.snapshotFingerprint != snapshot.fingerprint) {
             return@withContext StrictLabExecutionOutcome.Failure(
-                StrictLabFailureCode.STALE_RESULT_REJECTED,
-                "분석 데이터가 갱신되어 다시 준비해야 합니다.",
-                listOf("preflight=${preflight.snapshotFingerprint}", "snapshot=${snapshot.fingerprint}")
+                StrictFailureDiagnostics(
+                    code = StrictLabFailureCode.STALE_RESULT_REJECTED,
+                    stage = StrictFailureStage.COORDINATION,
+                    primaryReason = "분석 데이터가 갱신되어 다시 준비해야 합니다.",
+                    availableClosedWeeks = snapshot.closedWeeks.size,
+                    samplingReliabilityMode = samplingReliabilityMode,
+                    retryAttempt = retryAttempt,
+                    technicalDetails = listOf(
+                        "preflight=${preflight.snapshotFingerprint}",
+                        "snapshot=${snapshot.fingerprint}"
+                    )
+                )
             )
         }
         try {
@@ -98,14 +124,22 @@ internal open class StrictBayesianLabService(
             val planned = StrictBvarV07PlanningAuthority.plan(bundle)
             if (planned is StrictBvarPlanningResult.Failure) {
                 return@withContext StrictLabExecutionOutcome.Failure(
-                    planned.code.toLabFailureCode(),
-                    phaseAFailureMessage(planned),
-                    planned.diagnostics
+                    phaseAFailureDiagnostics(
+                        snapshot,
+                        request,
+                        planned,
+                        samplingReliabilityMode,
+                        retryAttempt
+                    )
                 )
             }
             planned as StrictBvarPlanningResult.Success
             val design = BvarDesignMatrixMaterializer.materialize(planned.context, planned.input)
-            val sampled = samplerFactory(design).sample(
+            val samplingPolicy = when (samplingReliabilityMode) {
+                StrictSamplingReliabilityMode.STRICT -> StrictSamplingPolicy.appRuntime()
+                StrictSamplingReliabilityMode.RELAXED -> StrictSamplingPolicy.relaxedAppRuntime()
+            }
+            val sampled = samplerFactory(design, samplingPolicy, retryAttempt).sample(
                 onStage = { stage -> onStage(stage.toExecutionStage()) },
                 isCancelled = { !context.isActive }
             )
@@ -147,14 +181,16 @@ internal open class StrictBayesianLabService(
                                 "현재 기록에서 계산 가능한 더 단순한 엄격 모형으로 posterior를 계산했습니다."
                             },
                             preparedInputFingerprint = sampled.result.preparedInputFingerprint,
-                            posteriorFingerprint = sampled.result.fingerprint
+                            posteriorFingerprint = sampled.result.fingerprint,
+                            samplingReliabilityMode = sampled.result.samplingReliabilityMode,
+                            samplingPolicyFingerprint = sampled.result.samplingPolicyFingerprint,
+                            retryAttempt = sampled.result.retryAttempt,
+                            samplingIdentityFingerprint = sampled.result.samplingIdentityFingerprint
                         )
                     )
                 }
                 is StrictBayesianV07Outcome.Failure -> StrictLabExecutionOutcome.Failure(
-                    code = sampled.code.toLabFailureCode(),
-                    message = sampled.code.userMessage(),
-                    diagnostics = sampled.diagnostics
+                    sampled.failure.copy(primaryReason = sampled.code.userMessage(sampled.failure.stage))
                 )
             }
         } catch (cancellation: CancellationException) {
@@ -163,12 +199,66 @@ internal open class StrictBayesianLabService(
             val diagnosticId = diagnosticId(failure)
             LOGGER.log(Level.SEVERE, "$diagnosticId strict Bayesian Lab execution failed", failure)
             StrictLabExecutionOutcome.Failure(
-                StrictLabFailureCode.INTERNAL_ERROR,
-                "엄격 Bayesian 분석을 완료하지 못했습니다.",
-                listOfNotNull(failure::class.qualifiedName, failure.message),
-                diagnosticId
+                StrictFailureDiagnostics(
+                    code = StrictLabFailureCode.INTERNAL_ERROR,
+                    stage = StrictFailureStage.INTERNAL,
+                    primaryReason = "엄격 Bayesian 분석을 완료하지 못했습니다.",
+                    availableClosedWeeks = snapshot.closedWeeks.size,
+                    samplingReliabilityMode = samplingReliabilityMode,
+                    retryAttempt = retryAttempt,
+                    technicalDetails = listOfNotNull(failure::class.qualifiedName, failure.message),
+                    diagnosticId = diagnosticId
+                )
             )
         }
+    }
+
+    private fun phaseAFailureDiagnostics(
+        snapshot: WeeklyAnalysisFeatureSnapshot,
+        request: StrictLabAnalysisRequest,
+        failure: StrictBvarPlanningResult.Failure,
+        samplingReliabilityMode: StrictSamplingReliabilityMode,
+        retryAttempt: Int
+    ): StrictFailureDiagnostics {
+        val code = failure.code.toLabFailureCode()
+        val affected = when (code) {
+            StrictLabFailureCode.NO_TARGET_VARIATION -> request.yFeatures.firstOrNull()
+            else -> request.xFeature
+        } ?: request.xFeature
+        val availability = snapshot.featureAvailabilityIndex[affected]
+        return StrictFailureDiagnostics(
+            code = code,
+            stage = StrictFailureStage.PHASE_A,
+            primaryReason = phaseAFailureMessage(failure),
+            affectedFeatureOrSource = affected.value,
+            availableClosedWeeks = snapshot.closedWeeks.size,
+            attemptedLags = (1..4).toList(),
+            attemptedSimplifications = failure.diagnostics.filter { diagnostic ->
+                diagnostic.contains("removed auto candidate", ignoreCase = true) ||
+                    diagnostic.contains("reduced Pmax", ignoreCase = true)
+            },
+            observations = buildList {
+                availability?.let {
+                    add(
+                        StrictDiagnosticObservation(
+                            "${affected.value}.usableClosedWeeks",
+                            it.activeWeeks.toString()
+                        )
+                    )
+                    add(
+                        StrictDiagnosticObservation(
+                            "${affected.value}.distinctFiniteValues",
+                            it.distinctFiniteValues.toString(),
+                            "at least 2 for variation",
+                            it.hasVariation
+                        )
+                    )
+                }
+            },
+            samplingReliabilityMode = samplingReliabilityMode,
+            retryAttempt = retryAttempt,
+            technicalDetails = failure.diagnostics
+        )
     }
 
     private fun phaseAFailureMessage(failure: StrictBvarPlanningResult.Failure): String = when (failure.code) {
@@ -179,6 +269,12 @@ internal open class StrictBayesianLabService(
             "선택한 지표의 주간 변화가 충분하지 않습니다."
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN ->
             "공통 주간 행을 유지하는 시차 모형을 만들 수 없습니다."
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.METADATA_INCOMPLETE ->
+            "선택한 지표에 필요한 canonical metadata가 완전하지 않습니다."
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_POLICY_UNAVAILABLE ->
+            "선택한 지표에 적용할 승인된 단기 기록 표현 정책이 없습니다."
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT ->
+            "기록 길이 부족이 아니라 표현 진단과 승인 정책이 서로 충돌했습니다."
         else -> "현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다."
     }
 
@@ -217,17 +313,12 @@ private fun StrictBayesianSamplingStage.toExecutionStage(): StrictLabExecutionSt
     StrictBayesianSamplingStage.SUMMARIZING -> StrictLabExecutionStage.SUMMARIZING_POSTERIOR
 }
 
-private fun StrictBayesianFailureCode.toLabFailureCode(): StrictLabFailureCode = when (this) {
-    StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> StrictLabFailureCode.MCMC_CONVERGENCE_FAILED
-    StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED -> StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED
-    StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED -> StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
-    StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE -> StrictLabFailureCode.NUMERICAL_SPD_FAILURE
-    StrictBayesianFailureCode.NONFINITE_STATE -> StrictLabFailureCode.NONFINITE_STATE
-    StrictBayesianFailureCode.CANCELLED -> StrictLabFailureCode.CANCELLED
-}
-
-private fun StrictBayesianFailureCode.userMessage(): String = when (this) {
-    StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> "Bayesian chain이 충분히 안정화되지 않았습니다. 다시 시도해 주세요."
+private fun StrictBayesianFailureCode.userMessage(stage: StrictFailureStage): String = when (this) {
+    StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> if (stage == StrictFailureStage.STABILIZATION) {
+        "Bayesian chain의 시차 상태와 일부 반응 추정치가 충분히 안정되지 않았습니다."
+    } else {
+        "Bayesian chain의 일부 추정치가 엄격 신뢰도 기준에 도달하지 못했습니다."
+    }
     StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED -> "시차 posterior의 혼합 신뢰도를 확보하지 못했습니다."
     StrictBayesianFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED -> "허용된 계산 범위에서 posterior 정밀도에 도달하지 못했습니다."
     StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE -> "행렬 계산의 수치 신뢰도 조건을 통과하지 못했습니다."
