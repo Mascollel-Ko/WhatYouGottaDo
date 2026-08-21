@@ -33,6 +33,7 @@ import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
 import com.training.trackplanner.analysis.lab.StrictFailureDiagnostics
 import com.training.trackplanner.analysis.lab.StrictFailureStage
 import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
+import com.training.trackplanner.analysis.lab.StrictLabAnalysisMode
 import com.training.trackplanner.analysis.lab.StrictLabBlocker
 import com.training.trackplanner.analysis.lab.StrictLabBlockerCode
 import com.training.trackplanner.analysis.lab.StrictLabExecutionStage
@@ -42,6 +43,7 @@ import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
 import com.training.trackplanner.analysis.lab.StrictLabResponse
 import com.training.trackplanner.analysis.lab.StrictLabResponsePoint
+import com.training.trackplanner.analysis.lab.StrictRelaxationRoute
 import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.lab.strictbayes.StrictPosteriorSummary
@@ -73,13 +75,11 @@ class AnalysisTimeSeriesUiTest {
         )
         content(StrictBayesianLabUiState.PreflightReady(request, preflight))
 
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완료된 주간 기록: 32주"))
-        compose.onNodeWithText("완료된 주간 기록: 32주").assertIsDisplayed()
+        compose.onNodeWithText("완료된 주간 기록: 32주").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("엄격 Bayesian 분석하기").assertIsNotEnabled()
-        compose.onNode(hasScrollAction()).performScrollToNode(
-            hasText("현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다.")
-        )
-        compose.onNodeWithText("현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다.").assertIsDisplayed()
+        compose.onNodeWithText("현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다.")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 
     @Test
@@ -104,7 +104,10 @@ class AnalysisTimeSeriesUiTest {
         val analyzeInvoked = AtomicBoolean(false)
         content(
             state = StrictBayesianLabUiState.PreflightReady(request, readyPreflight()),
-            onAnalyze = { analyzeInvoked.set(true) }
+            onAnalyze = { _, mode ->
+                assertTrue(mode == StrictLabAnalysisMode.STRICT)
+                analyzeInvoked.set(true)
+            }
         )
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("엄격 Bayesian 분석하기"))
@@ -124,12 +127,12 @@ class AnalysisTimeSeriesUiTest {
             )
         )
 
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("엄격 Bayesian 분석 결과"))
-        compose.onNodeWithText("엄격 Bayesian 분석 결과").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("Bayesian 분석 결과"))
+        compose.onNodeWithText("Bayesian 분석 결과").assertIsDisplayed()
         compose.onNodeWithText("시차 posterior: 1주 70.000%, 2주 30.000%").assertIsDisplayed()
         compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").assertIsDisplayed()
         compose.onNodeWithText("posterior 중앙값과 80% 구간입니다.", substring = true).assertIsDisplayed()
-        compose.onNodeWithText("완화된 신뢰도 기준으로 계산된 결과입니다.").assertDoesNotExist()
+        compose.onNodeWithText("완화된 분석 기준으로 계산된 탐색적 결과입니다.").assertDoesNotExist()
     }
 
     @Test
@@ -172,7 +175,8 @@ class AnalysisTimeSeriesUiTest {
                 StrictFailureDiagnostics(
                     StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED,
                     StrictFailureStage.PRODUCTION,
-                    "posterior precision failure"
+                    "posterior precision failure",
+                    availableRelaxationRoutes = setOf(StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY)
                 )
             ),
             onRelaxedRetry = { relaxed.set(true) }
@@ -207,14 +211,58 @@ class AnalysisTimeSeriesUiTest {
         content(
             StrictBayesianLabUiState.Success(
                 request,
-                successResult().copy(samplingReliabilityMode = StrictSamplingReliabilityMode.RELAXED),
+                successResult().copy(
+                    analysisMode = StrictLabAnalysisMode.RELAXED,
+                    samplingReliabilityMode = StrictSamplingReliabilityMode.RELAXED
+                ),
                 readyPreflight()
             )
         )
 
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완화된 신뢰도 기준으로 계산된 결과입니다."))
-        compose.onNodeWithText("완화된 신뢰도 기준으로 계산된 결과입니다.").assertIsDisplayed()
-        compose.onNodeWithText("엄격 Bayesian 분석 결과").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완화된 분석 기준으로 계산된 탐색적 결과입니다."))
+        compose.onNodeWithText("완화된 분석 기준으로 계산된 탐색적 결과입니다.").assertIsDisplayed()
+        compose.onNodeWithText("Bayesian 분석 결과").assertIsDisplayed()
+    }
+
+    @Test
+    fun relaxedModeCanBeSelectedBeforeAnalysis() {
+        var selectedMode: StrictLabAnalysisMode? = null
+        content(
+            state = StrictBayesianLabUiState.PreflightReady(request, readyPreflight()),
+            onAnalyze = { _, mode -> selectedMode = mode }
+        )
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("완화"))
+        compose.onNodeWithText("완화").performClick()
+        compose.onNodeWithText("일부 표현·모형 단순화·표본추출 기준을 완화한 탐색용 분석입니다.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose.onNodeWithText("완화 Bayesian 분석하기").performScrollTo().performClick()
+
+        assertTrue(selectedMode == StrictLabAnalysisMode.RELAXED)
+    }
+
+    @Test
+    fun relaxedFailureShowsExportButNoFurtherRelaxationAtLargeFont() {
+        content(
+            state = StrictBayesianLabUiState.Failed(
+                request,
+                readyPreflight(),
+                StrictFailureDiagnostics(
+                    StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
+                    StrictFailureStage.PRODUCTION,
+                    "relaxed posterior failure",
+                    analysisMode = StrictLabAnalysisMode.RELAXED
+                )
+            ),
+            fontScale = 1.3f
+        )
+
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("실패 기록 내보내기"))
+        compose.onNodeWithText("실패 기록 내보내기").assertIsDisplayed()
+        compose.onNodeWithText("자세히").assertIsDisplayed().performClick()
+        compose.onNodeWithText("실패 로그").assertIsDisplayed()
+        compose.onNodeWithText("완화해서 결과 보기").assertDoesNotExist()
     }
 
     @Test
@@ -232,7 +280,7 @@ class AnalysisTimeSeriesUiTest {
 
     private fun content(
         state: StrictBayesianLabUiState = StrictBayesianLabUiState.Idle,
-        onAnalyze: (StrictLabAnalysisRequest) -> Unit = {},
+        onAnalyze: (StrictLabAnalysisRequest, StrictLabAnalysisMode) -> Unit = { _, _ -> },
         onRetry: () -> Unit = {},
         onRelaxedRetry: () -> Unit = {},
         fontScale: Float = 1f,

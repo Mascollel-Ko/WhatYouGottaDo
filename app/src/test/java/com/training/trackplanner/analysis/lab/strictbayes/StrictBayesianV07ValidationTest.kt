@@ -193,6 +193,7 @@ class StrictBayesianV07ValidationTest {
         assertTrue(failure.observations.any { it.name == "tauDyn" })
         assertTrue(failure.observations.any { it.name.startsWith("E[") })
         assertTrue(failure.observations.any { it.name.startsWith("response[") })
+        assertEquals(failure.observations.first { it.passed == false }.name, failure.affectedFeatureOrSource)
     }
 
     @Test
@@ -214,6 +215,10 @@ class StrictBayesianV07ValidationTest {
         assertTrue(typed.failure.observations.isNotEmpty())
         assertTrue(typed.failure.observations.all { "bulkESS=" in it.observedValue && "MCSE/SD=" in it.observedValue })
         assertTrue(typed.failure.observations.all { it.requiredValue?.contains("ESS>=1000000.0") == true })
+        assertEquals(
+            typed.failure.observations.first { it.passed == false }.name,
+            typed.failure.affectedFeatureOrSource
+        )
     }
 
     @Test

@@ -333,6 +333,7 @@ internal object RowPlanner {
         require(requestedPmax >= 1)
         require(minimumCommonRows >= 3)
         val degradation = mutableListOf<String>()
+        val commonRowsByPmax = linkedMapOf<Int, Int>()
         for (pmax in requestedPmax downTo 1) {
             val provisional = (1..pmax).associateWith { lag -> planWithoutHorizon(context, view, lag) }
             val commonWeeks = provisional.values
@@ -340,6 +341,7 @@ internal object RowPlanner {
                 .reduce(Set<LocalDate>::intersect)
                 .sorted()
             if (commonWeeks.size < minimumCommonRows) {
+                commonRowsByPmax[pmax] = commonWeeks.size
                 degradation += "Pmax=$pmax has ${commonWeeks.size} common rows"
                 continue
             }
@@ -360,9 +362,17 @@ internal object RowPlanner {
                 degradationDiagnostics = degradation
             )
         }
-        throw IllegalArgumentException("NO_FEASIBLE_COMMON_LAG_PLAN: ${degradation.joinToString("; ")}")
+        throw NoFeasibleCommonLagPlanException(
+            commonRowsByPmax,
+            degradation
+        )
     }
 }
+
+internal class NoFeasibleCommonLagPlanException(
+    val commonRowsByPmax: Map<Int, Int>,
+    val degradationDiagnostics: List<String>
+) : IllegalArgumentException("NO_FEASIBLE_COMMON_LAG_PLAN: ${degradationDiagnostics.joinToString("; ")}")
 
 internal class PreparedLagComparisonPlan private constructor(
     val sourceViewFingerprint: String,

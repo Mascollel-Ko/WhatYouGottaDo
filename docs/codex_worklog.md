@@ -6282,3 +6282,64 @@ Remaining debt:
   tail rewrites were produced, so those unrelated fixture changes were not
   retained.
 - No Windows JBR/KAPT blocker reproduced in this run.
+
+## 2026-08-22 - selectable relaxed Bayesian analysis and failure export
+
+### Baseline and scope
+
+- Baseline: `a792efc8438e9964593e4802728b05bcfac146fd`, latest `origin/main`.
+- Task branch: `codex/selectable-relaxed-bayesian-mode-export`.
+- App identity remains `0.5.0.38 / 500038`; no tag or version bump is part of
+  this feature task.
+- Audited the protocol registry. The Lab architecture remains a referenced
+  evidence document rather than a registry-managed calculation family, so no
+  new protocol family or registry entry was created.
+
+### Implementation
+
+- Added analysis-level STRICT/RELAXED mode across UI, ViewModel, coordinator,
+  service, Phase A planning, sampler selection, results, failures, and
+  fingerprints. Mode changes are explicit; retry preserves mode.
+- Extended the existing canonical transformation authority for RELAXED
+  `INCONCLUSIVE` fallback using the adapter's single family semantic map.
+  Supported and unsupported diagnostic meanings remain unchanged.
+- Added versioned deterministic prefit control reduction after canonical
+  optional/Pmax degradation. Removed controls are excluded from rebuilt auto
+  candidates. The canonical adapter/planner recomputes rows, scaling, source
+  grouping, tau0, and materialized input identities for every attempt.
+- Replaced global failure-code UI eligibility with typed relaxation routes.
+  Added structured common-row attempts and actual failed-functional MCMC
+  attribution.
+- Added persistent RELAXED result disclosure, actual relaxation details, and a
+  pure bounded failure TXT formatter wired to SAF `CreateDocument(text/plain)`.
+  BuildConfig records `GITHUB_SHA`, local HEAD, or `unknown`; no storage
+  permission or raw workout export was added.
+
+### Preserved boundaries
+
+- STRICT APP_RUNTIME constants and fingerprint
+  `caad4a0b3a7f5336596c5a713173aa1cc79d7731b6715ccb1e44cd8eb7851199`
+  are unchanged.
+- No second Phase A pipeline, transformation table, Bayesian equation, prior,
+  tau0 formula, scaling rule, common-row minimum, or numerical jitter was
+  introduced. X, Y, support, and requested horizon are never removed.
+
+### Verification
+
+- Android Studio JBR / Gradle 9.3.0 wrapper check: passed.
+- `:app:compileDebugKotlin`: passed.
+- Focused representation, relaxed planning/control, coordinator/retry,
+  sampling-policy, diagnostics, formatter, availability, and Compose UI group:
+  52 tests passed with 0 failures, errors, or skipped tests.
+- Full `:app:testDebugUnitTest`: 1,189 tests passed with 0 failures, errors, or
+  skipped tests.
+- `:app:assembleDebug`: passed and produced
+  `app/build/outputs/apk/debug/app-debug.apk`.
+- `scripts/validate_protocol_docs.py`: passed for 8 families and 34 protocols.
+- `tools/check_time_series_numeric_sources.py`: passed.
+- `tools/time_series_reference/generate_phase_a_fixtures.py`: passed with the
+  independent NumPy/SciPy/statsmodels environment. Only environment/source
+  provenance and floating-point tail rewrites were produced, so those
+  unrelated fixture changes were not retained.
+- Final commit and remote branch/main SHAs are recorded by the task closeout;
+  app identity remains unchanged and no tag is created.

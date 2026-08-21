@@ -31,7 +31,7 @@ returns only a snapshot matching the latest requested revision.
 
 Analysis refresh marks the store dirty after canonical trend/history refresh.
 Set recording and ordinary screen navigation do not synchronously run MCMC.
-The first strict request builds a snapshot if no revision has been published.
+The first Lab request builds a snapshot if no revision has been published.
 
 ## Request And Execution
 
@@ -53,12 +53,20 @@ failure remain separate states. Every failure carries one structured
 `StrictFailureDiagnostics` value; the UI does not infer failure meaning from
 free-form strings.
 
-The first run is STRICT attempt zero. `다시 시도` remains STRICT and increments
-the deterministic retry attempt, so the same prepared input and policy do not
-repeat the identical chain. `완화해서 결과 보기` appears only for convergence,
-lag-posterior mixing, and Monte Carlo precision failures. It uses the fixed
-versioned RELAXED profile and a new attempt identity. Phase A is still prepared
-by the same deterministic authority and the v0.7 model is unchanged.
+The UI defaults to analysis-level STRICT but lets the user choose RELAXED before
+the first run. Attempt zero remains the first execution. `다시 시도` preserves
+the current analysis mode and increments the deterministic retry attempt.
+`완화해서 결과 보기` appears only on a STRICT failure carrying at least one
+typed approved route; a RELAXED failure does not offer another escalation.
+
+Approved routes are `RELAXED_REPRESENTATION`,
+`REDUCE_CONTROLS_FOR_COMMON_ROWS`, and `RELAX_SAMPLING_RELIABILITY`. The first
+reuses the one existing family semantic map for `INCONCLUSIVE` diagnostics
+only. The second starts only after existing optional/Pmax degradation fails,
+removes controls by versioned prefit availability ordering, and rebuilds the
+entire canonical Phase A graph. The third uses the fixed RELAXED sampler. No
+route removes X/Y, changes the horizon, lowers three common rows, or changes
+v0.7 model equations.
 
 ## Picker And Result Presentation
 
@@ -70,15 +78,22 @@ Success shows posterior medians and 80% intervals, official Rao-Blackwellized
 lag probabilities, and source summaries only when reliability permits them. A
 broad interval is uncertainty, not failure. Detailed sampler diagnostics and
 raw local Horseshoe scales remain internal during success. A RELAXED success
-uses the same result layout and carries a persistent `완화된 신뢰도 기준으로
-계산된 결과입니다.` notice plus structural `samplingReliabilityMode=RELAXED`
-identity.
+uses the same result layout and carries a persistent `완화된 분석 기준으로
+계산된 탐색적 결과입니다.` notice plus analysis-mode, effective-request,
+relaxation-trace, preparation-policy, sampling-policy, and attempt
+fingerprints. `완화 적용 내용` shows only routes actually applied.
 
 The failure card keeps a short product-facing reason and next step. Expanding
 `자세히` shows the diagnostic ID, stage, affected feature/source, row/lag and
 sampling identity, thresholds, observed failing metrics, and technical detail
 lines. Lag mixing failures explicitly withhold official Rao-Blackwellized lag
 probabilities when their reliability gate failed.
+
+`실패 기록 내보내기` uses SAF `CreateDocument` with `text/plain`; it requests no
+broad storage permission. One pure formatter emits app/build identity,
+diagnostic ID, original and effective requests, structured common-row data,
+representation and sampling observations, relaxation routes, and bounded
+technical details. Raw workout history and profile data are excluded.
 
 ## Runtime Limits
 
@@ -97,7 +112,12 @@ instrumented device profiling is run.
 - weak valid posterior remains Success;
 - the strict APP_RUNTIME policy fingerprint and thresholds remain frozen;
 - the same retry attempt is reproducible and a new attempt changes chain seeds;
-- RELAXED is offered only for the three sampling reliability failures;
+- RELAXED is selectable before analysis and never selected implicitly;
+- generic retry preserves the current analysis mode and increments attempt;
+- structured failure routes, rather than a global failure-code switch, own
+  escalation eligibility;
+- control reduction is deterministic, prefit, and followed by full Phase A
+  reconstruction;
 - RELAXED success is visibly and structurally distinct from STRICT;
 - the LAGGED_LAB route uses the strict coordinator/catalog;
 - legacy analyzer/service construction is forbidden in `TrainingViewModel`;

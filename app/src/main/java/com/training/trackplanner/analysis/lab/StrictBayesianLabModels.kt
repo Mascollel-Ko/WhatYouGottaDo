@@ -148,11 +148,72 @@ internal data class StrictBayesianLabResult(
     val summary: String,
     val preparedInputFingerprint: String,
     val posteriorFingerprint: String,
+    val effectiveRequest: StrictLabAnalysisRequest = request,
+    val analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
+    val relaxationTrace: StrictRelaxationTrace = StrictRelaxationTrace.none(request),
+    val preparationPolicyFingerprint: String = "",
+    val effectivePlanFingerprint: String = "",
     val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
     val samplingPolicyFingerprint: String = "",
     val retryAttempt: Int = 0,
     val samplingIdentityFingerprint: String = ""
-)
+) {
+    val resultFingerprint: String
+        get() = strictFingerprint(
+            listOf(
+                posteriorFingerprint,
+                preparedInputFingerprint,
+                analysisMode.name,
+                effectiveRequest.fingerprint(),
+                relaxationTrace.fingerprint,
+                preparationPolicyFingerprint,
+                effectivePlanFingerprint,
+                samplingPolicyFingerprint,
+                samplingIdentityFingerprint
+            )
+        )
+}
+
+internal enum class StrictLabAnalysisMode {
+    STRICT,
+    RELAXED
+}
+
+internal enum class StrictRelaxationRoute {
+    RELAXED_REPRESENTATION,
+    REDUCE_CONTROLS_FOR_COMMON_ROWS,
+    RELAX_SAMPLING_RELIABILITY
+}
+
+internal data class StrictRelaxationTrace(
+    val originalControls: List<AnalysisFeatureKey>,
+    val effectiveControls: List<AnalysisFeatureKey>,
+    val attemptedRoutes: Set<StrictRelaxationRoute> = emptySet(),
+    val appliedRoutes: Set<StrictRelaxationRoute> = emptySet(),
+    val representationOverrides: List<String> = emptyList(),
+    val planningDetails: List<String> = emptyList()
+) {
+    val removedControls: List<AnalysisFeatureKey>
+        get() = originalControls.filterNot { it in effectiveControls }
+
+    val fingerprint: String
+        get() = strictFingerprint(
+            listOf(
+                originalControls.joinToString(",") { it.value },
+                effectiveControls.joinToString(",") { it.value },
+                attemptedRoutes.map { it.name }.sorted().joinToString(","),
+                appliedRoutes.map { it.name }.sorted().joinToString(","),
+                representationOverrides.sorted().joinToString("|"),
+                planningDetails.joinToString("|"),
+                STRICT_LAB_RELAXATION_TRACE_VERSION
+            )
+        )
+
+    companion object {
+        fun none(request: StrictLabAnalysisRequest): StrictRelaxationTrace =
+            StrictRelaxationTrace(request.controls, request.controls)
+    }
+}
 
 internal enum class StrictSamplingReliabilityMode {
     STRICT,
@@ -229,15 +290,38 @@ internal data class StrictFailureDiagnostics(
     val productionDrawsPerChain: Int? = null,
     val preparedInputFingerprint: String? = null,
     val samplingPolicyFingerprint: String? = null,
+    val analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
     val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
     val retryAttempt: Int = 0,
+    val availableRelaxationRoutes: Set<StrictRelaxationRoute> = emptySet(),
+    val attemptedRelaxationRoutes: Set<StrictRelaxationRoute> = emptySet(),
+    val appliedRelaxationRoutes: Set<StrictRelaxationRoute> = emptySet(),
+    val originalControls: List<String> = emptyList(),
+    val effectiveControls: List<String> = originalControls,
+    val representationOverrides: List<String> = emptyList(),
+    val attemptedCommonRowsByPmax: Map<Int, Int> = emptyMap(),
+    val snapshotFingerprint: String? = null,
+    val preparationPolicyFingerprint: String? = null,
+    val effectivePlanFingerprint: String? = null,
+    val samplingIdentityFingerprint: String? = null,
     val technicalDetails: List<String> = emptyList(),
     val diagnosticId: String = diagnosticId(
         code,
         stage,
         primaryReason,
+        analysisMode,
+        availableRelaxationRoutes,
+        attemptedRelaxationRoutes,
+        appliedRelaxationRoutes,
+        originalControls,
+        effectiveControls,
+        representationOverrides,
+        snapshotFingerprint,
         preparedInputFingerprint,
+        preparationPolicyFingerprint,
+        effectivePlanFingerprint,
         samplingPolicyFingerprint,
+        samplingIdentityFingerprint,
         retryAttempt,
         technicalDetails
     )
@@ -263,9 +347,25 @@ internal data class StrictFailureDiagnostics(
         warmupDrawsPerChain?.let { add("warmupDrawsPerChain=$it") }
         productionDrawsPerChain?.let { add("productionDrawsPerChain=$it") }
         add("samplingReliabilityMode=${samplingReliabilityMode.name}")
+        add("analysisMode=${analysisMode.name}")
         add("retryAttempt=$retryAttempt")
+        if (availableRelaxationRoutes.isNotEmpty()) add("availableRelaxationRoutes=${availableRelaxationRoutes.names()}")
+        if (attemptedRelaxationRoutes.isNotEmpty()) add("attemptedRelaxationRoutes=${attemptedRelaxationRoutes.names()}")
+        if (appliedRelaxationRoutes.isNotEmpty()) add("appliedRelaxationRoutes=${appliedRelaxationRoutes.names()}")
+        if (originalControls.isNotEmpty()) add("originalControls=${originalControls.joinToString(",")}")
+        if (effectiveControls.isNotEmpty()) add("effectiveControls=${effectiveControls.joinToString(",")}")
+        val removedControls = originalControls.filterNot { it in effectiveControls }
+        if (removedControls.isNotEmpty()) add("removedControls=${removedControls.joinToString(",")}")
+        representationOverrides.forEach { add("representationOverride=$it") }
+        attemptedCommonRowsByPmax.toSortedMap(reverseOrder()).forEach { (pmax, rows) ->
+            add("commonRows[Pmax=$pmax]=$rows")
+        }
+        snapshotFingerprint?.let { add("snapshotFingerprint=$it") }
         preparedInputFingerprint?.let { add("preparedInputFingerprint=$it") }
+        preparationPolicyFingerprint?.let { add("preparationPolicyFingerprint=$it") }
+        effectivePlanFingerprint?.let { add("effectivePlanFingerprint=$it") }
         samplingPolicyFingerprint?.let { add("samplingPolicyFingerprint=$it") }
+        samplingIdentityFingerprint?.let { add("samplingIdentityFingerprint=$it") }
         attemptedSimplifications.forEach { add("simplification=$it") }
         observations.forEach { add(it.displayLine()) }
         addAll(technicalDetails)
@@ -276,8 +376,19 @@ internal data class StrictFailureDiagnostics(
             code: StrictLabFailureCode,
             stage: StrictFailureStage,
             primaryReason: String,
+            analysisMode: StrictLabAnalysisMode,
+            availableRelaxationRoutes: Set<StrictRelaxationRoute>,
+            attemptedRelaxationRoutes: Set<StrictRelaxationRoute>,
+            appliedRelaxationRoutes: Set<StrictRelaxationRoute>,
+            originalControls: List<String>,
+            effectiveControls: List<String>,
+            representationOverrides: List<String>,
+            snapshotFingerprint: String?,
             preparedInputFingerprint: String?,
+            preparationPolicyFingerprint: String?,
+            effectivePlanFingerprint: String?,
             samplingPolicyFingerprint: String?,
+            samplingIdentityFingerprint: String?,
             retryAttempt: Int,
             technicalDetails: List<String>
         ): String = "SB-${strictFingerprint(
@@ -285,21 +396,25 @@ internal data class StrictFailureDiagnostics(
                 code.name,
                 stage.name,
                 primaryReason,
+                analysisMode.name,
+                availableRelaxationRoutes.names(),
+                attemptedRelaxationRoutes.names(),
+                appliedRelaxationRoutes.names(),
+                originalControls.joinToString(","),
+                effectiveControls.joinToString(","),
+                representationOverrides.joinToString("|"),
+                snapshotFingerprint.orEmpty(),
                 preparedInputFingerprint.orEmpty(),
+                preparationPolicyFingerprint.orEmpty(),
+                effectivePlanFingerprint.orEmpty(),
                 samplingPolicyFingerprint.orEmpty(),
+                samplingIdentityFingerprint.orEmpty(),
                 retryAttempt,
                 technicalDetails.joinToString("|")
             )
         ).take(10).uppercase()}"
     }
 }
-
-internal val StrictLabFailureCode.allowsRelaxedRetry: Boolean
-    get() = this in setOf(
-        StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
-        StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
-        StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
-    )
 
 internal sealed interface StrictLabExecutionOutcome {
     data class Success(val result: StrictBayesianLabResult) : StrictLabExecutionOutcome
@@ -318,7 +433,7 @@ internal sealed interface StrictBayesianLabUiState {
         val request: StrictLabAnalysisRequest,
         val preflight: StrictLabPreflight,
         val stage: StrictLabExecutionStage,
-        val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
+        val analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
         val retryAttempt: Int = 0
     ) : StrictBayesianLabUiState
     data class Success(
@@ -337,3 +452,16 @@ internal sealed interface StrictBayesianLabUiState {
         val diagnosticId: String get() = failure.diagnosticId
     }
 }
+
+internal fun StrictLabAnalysisRequest.fingerprint(): String = strictFingerprint(
+    listOf(
+        xFeature.value,
+        yFeatures.joinToString(",") { it.value },
+        controls.joinToString(",") { it.value },
+        requestedHorizon
+    )
+)
+
+private fun Set<StrictRelaxationRoute>.names(): String = map { it.name }.sorted().joinToString(",")
+
+internal const val STRICT_LAB_RELAXATION_TRACE_VERSION = "strict-lab-relaxation-trace-v1"

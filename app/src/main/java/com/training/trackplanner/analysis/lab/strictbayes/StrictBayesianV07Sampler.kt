@@ -607,7 +607,8 @@ internal class StrictBayesianV07Sampler(
         code = code.toLabFailureCode(),
         stage = stage,
         primaryReason = primaryReason,
-        affectedFeatureOrSource = design.focalFeature.stableId,
+        affectedFeatureOrSource = observations.firstOrNull { it.passed == false }?.name
+            ?: design.focalFeature.stableId,
         usableCommonRows = design.comparisonRowCount,
         attemptedLags = design.designsByLag.keys.sorted(),
         selectedPmax = design.input.comparisonPlan.pmax,
@@ -619,6 +620,7 @@ internal class StrictBayesianV07Sampler(
         samplingPolicyFingerprint = policy.fingerprint,
         samplingReliabilityMode = policy.reliabilityMode,
         retryAttempt = retryAttempt,
+        samplingIdentityFingerprint = samplingIdentity.fingerprint,
         technicalDetails = technicalDetails + "samplingIdentityFingerprint=${samplingIdentity.fingerprint}"
     )
 

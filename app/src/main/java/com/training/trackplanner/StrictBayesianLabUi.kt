@@ -1,5 +1,8 @@
 package com.training.trackplanner
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +21,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,10 +37,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.StrictBayesianLabResult
 import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
+import com.training.trackplanner.analysis.lab.StrictFailureReportBuildIdentity
+import com.training.trackplanner.analysis.lab.StrictFailureReportFormatter
+import com.training.trackplanner.analysis.lab.StrictLabAnalysisMode
 import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
 import com.training.trackplanner.analysis.lab.StrictLabBlocker
 import com.training.trackplanner.analysis.lab.StrictLabBlockerCode
@@ -45,18 +53,18 @@ import com.training.trackplanner.analysis.lab.StrictLabFailureCode
 import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
 import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
-import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
-import com.training.trackplanner.analysis.lab.allowsRelaxedRetry
+import com.training.trackplanner.analysis.lab.StrictRelaxationRoute
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.util.Locale
+import java.time.LocalDate
 
 @Composable
 internal fun LaggedTimeSeriesAnalysisContent(
     featureCatalog: StrictLabFeatureCatalog,
     executionState: StrictBayesianLabUiState,
     onRequestChanged: (StrictLabAnalysisRequest) -> Unit,
-    onAnalyze: (StrictLabAnalysisRequest) -> Unit,
+    onAnalyze: (StrictLabAnalysisRequest, StrictLabAnalysisMode) -> Unit,
     onRetry: () -> Unit,
     onRelaxedRetry: () -> Unit,
     onCancel: () -> Unit
@@ -73,6 +81,28 @@ internal fun LaggedTimeSeriesAnalysisContent(
     var horizon by rememberSaveable { mutableStateOf(2) }
     var showYPicker by rememberSaveable { mutableStateOf(false) }
     var showControlPicker by rememberSaveable { mutableStateOf(false) }
+    var analysisMode by rememberSaveable { mutableStateOf(StrictLabAnalysisMode.STRICT) }
+    var pendingFailureReport by remember { mutableStateOf<String?>(null) }
+    var exportStatus by rememberSaveable { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val reportLauncher = if (LocalActivityResultRegistryOwner.current != null) {
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+            if (uri != null) {
+                exportStatus = runCatching {
+                    val report = requireNotNull(pendingFailureReport)
+                    context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
+                        writer.write(report)
+                    } ?: error("선택한 문서를 열 수 없습니다.")
+                }.fold(
+                    onSuccess = { "실패 기록을 내보냈습니다." },
+                    onFailure = { "실패 기록을 내보내지 못했습니다: ${it.message ?: it::class.simpleName}" }
+                )
+                pendingFailureReport = null
+            }
+        }
+    } else {
+        null
+    }
 
     LaunchedEffect(featureCatalog.snapshotFingerprint) {
         val validX = enabledX.mapTo(mutableSetOf()) { it.key.value }
@@ -150,15 +180,35 @@ internal fun LaggedTimeSeriesAnalysisContent(
                             TextButton(onClick = { horizon++ }, enabled = !running && horizon < 8) { Text("+") }
                         }
                     }
+                    Text("분석 기준", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StrictLabAnalysisMode.entries.forEach { mode ->
+                            FilterChip(
+                                selected = analysisMode == mode,
+                                onClick = { analysisMode = mode },
+                                enabled = !running,
+                                label = { Text(if (mode == StrictLabAnalysisMode.STRICT) "엄격" else "완화") }
+                            )
+                        }
+                    }
+                    Text(
+                        if (analysisMode == StrictLabAnalysisMode.STRICT) {
+                            "현재 엄격한 분석 기준을 사용합니다."
+                        } else {
+                            "일부 표현·모형 단순화·표본추출 기준을 완화한 탐색용 분석입니다."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     StrictPreflightContent(executionState)
                     OutlinedButton(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = request != null &&
                             !running &&
                             (executionState as? StrictBayesianLabUiState.PreflightReady)?.preflight?.canAnalyze == true,
-                        onClick = { request?.let(onAnalyze) }
+                        onClick = { request?.let { onAnalyze(it, analysisMode) } }
                     ) {
-                        Text("엄격 Bayesian 분석하기")
+                        Text(if (analysisMode == StrictLabAnalysisMode.STRICT) "엄격 Bayesian 분석하기" else "완화 Bayesian 분석하기")
                     }
                     Text(
                         "전체 주간 기록으로 posterior를 표본추출합니다. 80% 구간이 넓으면 방향보다 불확실성을 우선해 해석하세요.",
@@ -169,9 +219,32 @@ internal fun LaggedTimeSeriesAnalysisContent(
             }
         }
         when (executionState) {
-            is StrictBayesianLabUiState.Running -> StrictRunningCard(executionState.stage)
+            is StrictBayesianLabUiState.Running -> StrictRunningCard(executionState.stage, executionState.analysisMode)
             is StrictBayesianLabUiState.Success -> StrictResultCard(executionState.result)
-            is StrictBayesianLabUiState.Failed -> StrictFailureCard(executionState, onRetry, onRelaxedRetry)
+            is StrictBayesianLabUiState.Failed -> StrictFailureCard(
+                state = executionState,
+                exportStatus = exportStatus,
+                onRetry = onRetry,
+                onRelaxedRetry = onRelaxedRetry,
+                onExport = {
+                    val displayNames = (featureCatalog.xFeatures + featureCatalog.responseFeatures + featureCatalog.controlFeatures)
+                        .associate { it.key to it.displayName }
+                    pendingFailureReport = StrictFailureReportFormatter.format(
+                        request = executionState.request,
+                        failure = executionState.failure,
+                        displayNames = displayNames,
+                        build = StrictFailureReportBuildIdentity(
+                            versionName = BuildConfig.VERSION_NAME,
+                            versionCode = BuildConfig.VERSION_CODE,
+                            gitCommitSha = BuildConfig.GIT_COMMIT_SHA
+                        )
+                    )
+                    exportStatus = null
+                    reportLauncher?.launch(
+                        "whatyougottado_bayesian_failure_${LocalDate.now()}_${executionState.diagnosticId}.txt"
+                    )
+                }
+            )
             StrictBayesianLabUiState.Idle,
             is StrictBayesianLabUiState.DataPreparing,
             is StrictBayesianLabUiState.PreflightReady -> Unit
@@ -314,13 +387,20 @@ private fun StrictPreflightContent(state: StrictBayesianLabUiState) {
 }
 
 @Composable
-private fun StrictRunningCard(stage: StrictLabExecutionStage) {
+private fun StrictRunningCard(stage: StrictLabExecutionStage, analysisMode: StrictLabAnalysisMode) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Row(modifier = Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("엄격 Bayesian 분석을 실행하고 있습니다.", fontWeight = FontWeight.SemiBold)
-                Text(strictStageLabel(stage), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (analysisMode == StrictLabAnalysisMode.STRICT) {
+                        "엄격 Bayesian 분석을 실행하고 있습니다."
+                    } else {
+                        "완화 Bayesian 분석을 실행하고 있습니다."
+                    },
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(strictStageLabel(stage, analysisMode), style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -329,15 +409,24 @@ private fun StrictRunningCard(stage: StrictLabExecutionStage) {
 @Composable
 private fun StrictResultCard(result: StrictBayesianLabResult) {
     var showDetails by rememberSaveable { mutableStateOf(false) }
+    var showRelaxations by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("엄격 Bayesian 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            if (result.samplingReliabilityMode == StrictSamplingReliabilityMode.RELAXED) {
+            Text("Bayesian 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (result.analysisMode == StrictLabAnalysisMode.RELAXED) {
                 Text(
-                    "완화된 신뢰도 기준으로 계산된 결과입니다.",
+                    "완화된 분석 기준으로 계산된 탐색적 결과입니다.",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error
                 )
+                TextButton(onClick = { showRelaxations = !showRelaxations }) {
+                    Text(if (showRelaxations) "완화 적용 내용 접기" else "완화 적용 내용")
+                }
+                if (showRelaxations) {
+                    strictRelaxationDetails(result).forEach { detail ->
+                        Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             Text(result.summary)
             if (result.officialLagProbability.isNotEmpty()) {
@@ -379,8 +468,10 @@ private fun StrictResultCard(result: StrictBayesianLabResult) {
 @Composable
 private fun StrictFailureCard(
     state: StrictBayesianLabUiState.Failed,
+    exportStatus: String?,
     onRetry: () -> Unit,
-    onRelaxedRetry: () -> Unit
+    onRelaxedRetry: () -> Unit,
+    onExport: () -> Unit
 ) {
     var showDetails by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -389,13 +480,23 @@ private fun StrictFailureCard(
             Text(state.message, color = MaterialTheme.colorScheme.error)
             Text(strictFailureNextStep(state.code), style = MaterialTheme.typography.bodySmall)
             OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
-            if (state.code.allowsRelaxedRetry) {
+            if (state.failure.analysisMode == StrictLabAnalysisMode.STRICT &&
+                state.failure.availableRelaxationRoutes.isNotEmpty()
+            ) {
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRelaxedRetry) {
                     Text("완화해서 결과 보기")
                 }
             }
             if (state.diagnostics.isNotEmpty()) {
-                TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "자세히 접기" else "자세히") }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { showDetails = !showDetails }) {
+                        Text(if (showDetails) "자세히 접기" else "자세히")
+                    }
+                    TextButton(onClick = onExport) { Text("실패 기록 내보내기") }
+                }
+                exportStatus?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (showDetails) {
                     Text("실패 로그", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                     state.diagnosticId?.let { Text("진단 코드: $it", style = MaterialTheme.typography.labelSmall) }
@@ -484,14 +585,28 @@ private fun strictBlockerMessage(blocker: StrictLabBlocker): String = when (bloc
     StrictLabBlockerCode.PHASE_A_INELIGIBLE -> "현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다."
 }
 
-private fun strictStageLabel(stage: StrictLabExecutionStage): String = when (stage) {
-    StrictLabExecutionStage.PREPARING_STRICT_INPUT -> "엄격 분석 입력을 준비하는 중입니다."
+private fun strictStageLabel(stage: StrictLabExecutionStage, analysisMode: StrictLabAnalysisMode): String = when (stage) {
+    StrictLabExecutionStage.PREPARING_STRICT_INPUT -> if (analysisMode == StrictLabAnalysisMode.STRICT) {
+        "엄격 분석 입력을 준비하는 중입니다."
+    } else {
+        "완화 분석 입력을 준비하는 중입니다."
+    }
     StrictLabExecutionStage.STABILIZING_CHAINS -> "Bayesian chain을 안정화하는 중입니다."
     StrictLabExecutionStage.SAMPLING_POSTERIOR -> "posterior를 표본추출하는 중입니다."
     StrictLabExecutionStage.CHECKING_PRECISION -> "수치 신뢰도를 확인하는 중입니다."
     StrictLabExecutionStage.EXTENDING_SAMPLING -> "필요한 정밀도를 위해 표본추출을 연장하는 중입니다."
     StrictLabExecutionStage.SUMMARIZING_POSTERIOR -> "posterior 결과를 정리하는 중입니다."
 }
+
+private fun strictRelaxationDetails(result: StrictBayesianLabResult): List<String> = buildList {
+    addAll(result.relaxationTrace.representationOverrides)
+    result.relaxationTrace.removedControls.forEach { control ->
+        add("통제 ${control.value}: 공통행 확보를 위해 제외")
+    }
+    if (StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY in result.relaxationTrace.appliedRoutes) {
+        add("표본추출 신뢰도 기준: RELAXED")
+    }
+}.ifEmpty { listOf("선택한 완화 표본추출 기준을 적용했습니다.") }
 
 private fun strictFailureNextStep(code: StrictLabFailureCode): String = when (code) {
     StrictLabFailureCode.DATA_NOT_READY,

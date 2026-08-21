@@ -18,11 +18,14 @@ internal class StrictPreparationPolicy private constructor(
     val requiredInconclusivePolicy: RequiredMetricInconclusivePolicy,
     explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation>,
     shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation>,
+    relaxedInconclusiveTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation>,
     val fingerprint: String
 ) {
     val explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = explicitTransformations.toMap()
     val shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> =
         shortHistoryTransformations.toMap()
+    val relaxedInconclusiveTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> =
+        relaxedInconclusiveTransformations.toMap()
 
     companion object {
         fun conservative(): StrictPreparationPolicy = createValidated()
@@ -31,22 +34,32 @@ internal class StrictPreparationPolicy private constructor(
             optionalInconclusivePolicy: OptionalMetricInconclusivePolicy = OptionalMetricInconclusivePolicy.EXCLUDE_FROM_ELIGIBLE_CANDIDATES,
             requiredInconclusivePolicy: RequiredMetricInconclusivePolicy = RequiredMetricInconclusivePolicy.FAIL_STRICT_PREPARATION,
             explicitTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap(),
-            shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap()
+            shortHistoryTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap(),
+            relaxedInconclusiveTransformations: Map<StrictSeriesKey, CanonicalSeriesTransformation> = emptyMap()
         ): StrictPreparationPolicy {
             require(explicitTransformations.values.none { it == CanonicalSeriesTransformation.EXCLUDED })
             require(shortHistoryTransformations.values.none { it == CanonicalSeriesTransformation.EXCLUDED })
+            require(relaxedInconclusiveTransformations.values.none { it == CanonicalSeriesTransformation.EXCLUDED })
             val ordered = explicitTransformations.toSortedMap(compareBy { it.name })
             val orderedShortHistory = shortHistoryTransformations.toSortedMap(compareBy { it.name })
+            val orderedRelaxedInconclusive = relaxedInconclusiveTransformations.toSortedMap(compareBy { it.name })
             return StrictPreparationPolicy(
                 optionalInconclusivePolicy,
                 requiredInconclusivePolicy,
                 ordered,
                 orderedShortHistory,
+                orderedRelaxedInconclusive,
                 strictFingerprint(
                     listOf(optionalInconclusivePolicy.name, requiredInconclusivePolicy.name) +
                         ordered.map { "explicit:${it.key.name}:${it.value.name}" } +
                         orderedShortHistory.map { "short:${it.key.name}:${it.value.name}" } +
-                        SHORT_HISTORY_REPRESENTATION_VERSION
+                        SHORT_HISTORY_REPRESENTATION_VERSION +
+                        if (orderedRelaxedInconclusive.isEmpty()) {
+                            emptyList()
+                        } else {
+                            orderedRelaxedInconclusive.map { "relaxed-inconclusive:${it.key.name}:${it.value.name}" } +
+                                RELAXED_INCONCLUSIVE_REPRESENTATION_VERSION
+                        }
                 )
             )
         }
@@ -162,7 +175,9 @@ internal object CanonicalTransformationAuthority {
             assessments[metric]?.takeUnless { assessment ->
                 assessment.status in SUPPORTED_STATUSES ||
                     assessment.status == IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE &&
-                    metric in policy.shortHistoryTransformations
+                    metric in policy.shortHistoryTransformations ||
+                    assessment.status == IntegrationAssessmentStatus.INCONCLUSIVE &&
+                    metric in policy.relaxedInconclusiveTransformations
             }?.let { "$metric: ${it.status}" }
                 ?: if (metric !in assessments) "$metric: missing assessment" else null
         }
@@ -178,6 +193,8 @@ internal object CanonicalTransformationAuthority {
                 IntegrationAssessmentStatus.SUPPORTED_I1 -> CanonicalSeriesTransformation.FIRST_DIFFERENCE
                 IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE ->
                     policy.shortHistoryTransformations[metric] ?: CanonicalSeriesTransformation.EXCLUDED
+                IntegrationAssessmentStatus.INCONCLUSIVE ->
+                    policy.relaxedInconclusiveTransformations[metric] ?: CanonicalSeriesTransformation.EXCLUDED
                 else -> CanonicalSeriesTransformation.EXCLUDED
             }
             val transformation = policy.explicitTransformations[metric] ?: automatic
@@ -194,7 +211,9 @@ internal object CanonicalTransformationAuthority {
                 supported = transformation != CanonicalSeriesTransformation.EXCLUDED,
                 policyForced = metric in policy.explicitTransformations ||
                     assessment.status == IntegrationAssessmentStatus.INSUFFICIENT_CONTIGUOUS_SAMPLE &&
-                    metric in policy.shortHistoryTransformations,
+                    metric in policy.shortHistoryTransformations ||
+                    assessment.status == IntegrationAssessmentStatus.INCONCLUSIVE &&
+                    metric in policy.relaxedInconclusiveTransformations,
                 decisionReason = if (metric in policy.explicitTransformations) {
                     "explicit canonical transformation policy: ${transformation.name}"
                 } else if (
@@ -202,6 +221,11 @@ internal object CanonicalTransformationAuthority {
                     metric in policy.shortHistoryTransformations
                 ) {
                     "semantic short-history representation: ${transformation.name}; diagnostic evidence unavailable, not stationarity-proven"
+                } else if (
+                    assessment.status == IntegrationAssessmentStatus.INCONCLUSIVE &&
+                    metric in policy.relaxedInconclusiveTransformations
+                ) {
+                    "relaxed semantic representation: INCONCLUSIVE -> ${transformation.name}; family semantic fallback"
                 } else when (transformation) {
                     CanonicalSeriesTransformation.LEVEL -> "supported I(0)"
                     CanonicalSeriesTransformation.FIRST_DIFFERENCE -> "supported I(1); differenced once by canonical authority"
@@ -223,6 +247,8 @@ internal object CanonicalTransformationAuthority {
         IntegrationAssessmentStatus.SUPPORTED_I1
     )
 }
+
+internal const val RELAXED_INCONCLUSIVE_REPRESENTATION_VERSION = "relaxed-inconclusive-representation-v1"
 
 internal class TransformedPreparedSeries private constructor(
     val metric: StrictSeriesKey,

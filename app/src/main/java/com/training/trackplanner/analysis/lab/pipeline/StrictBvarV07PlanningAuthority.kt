@@ -22,7 +22,8 @@ internal sealed interface StrictBvarPlanningResult {
 
     data class Failure(
         val code: StrictBvarPlanningFailureCode,
-        val diagnostics: List<String>
+        val diagnostics: List<String>,
+        val attemptedCommonRowsByPmax: Map<Int, Int> = emptyMap()
     ) : StrictBvarPlanningResult
 }
 
@@ -113,7 +114,8 @@ internal object StrictBvarV07PlanningAuthority {
                 val failure = attempt.exceptionOrNull()
                 return StrictBvarPlanningResult.Failure(
                     mapPlanningFailure(failure, context),
-                    diagnostics + (failure?.message ?: "strict BVAR planning failed")
+                    diagnostics + (failure?.message ?: "strict BVAR planning failed"),
+                    (failure as? NoFeasibleCommonLagPlanException)?.commonRowsByPmax.orEmpty()
                 )
             }
             val removed = remainingOptional.minWithOrNull(
@@ -156,6 +158,7 @@ internal object StrictBvarV07PlanningAuthority {
             }
             else -> StrictBvarPlanningFailureCode.SCALING_UNAVAILABLE
         }
+        is NoFeasibleCommonLagPlanException -> StrictBvarPlanningFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN
         is IllegalArgumentException -> when {
             failure.message.orEmpty().contains("NO_FEASIBLE_COMMON_LAG_PLAN") ->
                 StrictBvarPlanningFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN

@@ -1,5 +1,6 @@
 package com.training.trackplanner.analysis.lab.pipeline
 
+import com.training.trackplanner.analysis.lab.StrictLabAnalysisMode
 import com.training.trackplanner.analysis.lab.weekly.AnalysisFeatureDescriptor
 import com.training.trackplanner.analysis.lab.weekly.AnalysisFeatureFamily
 import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisFeatureSnapshot
@@ -10,6 +11,7 @@ internal class StrictPhaseAInputBundle private constructor(
     val rawInput: RawTimeSeriesInput,
     val request: StrictPreparationRequest,
     val policy: StrictPreparationPolicy,
+    val analysisMode: StrictLabAnalysisMode,
     sourceByFeature: Map<StrictSeriesKey, AnalysisSourceKey>,
     descriptors: Map<StrictSeriesKey, AnalysisFeatureDescriptor>,
     conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey>,
@@ -25,6 +27,7 @@ internal class StrictPhaseAInputBundle private constructor(
             rawInput: RawTimeSeriesInput,
             request: StrictPreparationRequest,
             policy: StrictPreparationPolicy,
+            analysisMode: StrictLabAnalysisMode,
             sourceByFeature: Map<StrictSeriesKey, AnalysisSourceKey>,
             descriptors: Map<StrictSeriesKey, AnalysisFeatureDescriptor>,
             conditionalOnFeatureByFeature: Map<StrictSeriesKey, StrictSeriesKey>,
@@ -51,6 +54,7 @@ internal class StrictPhaseAInputBundle private constructor(
                     },
                     STRICT_SOURCE_GROUPING_VERSION,
                     policy.fingerprint,
+                    analysisMode.name,
                     WEEKLY_SNAPSHOT_PHASE_A_ADAPTER_VERSION
                 )
             )
@@ -58,6 +62,7 @@ internal class StrictPhaseAInputBundle private constructor(
                 rawInput,
                 request,
                 policy,
+                analysisMode,
                 sourceByFeature,
                 descriptors,
                 conditionalOnFeatureByFeature,
@@ -83,7 +88,9 @@ internal data class StrictFeatureSelection(
 internal object WeeklySnapshotPhaseAAdapter {
     fun adapt(
         snapshot: WeeklyAnalysisFeatureSnapshot,
-        strictRequest: StrictFeatureSelection
+        strictRequest: StrictFeatureSelection,
+        analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
+        excludedAutomaticFeatures: Set<AnalysisFeatureKey> = emptySet()
     ): StrictPhaseAInputBundle {
         val normalized = strictRequest.normalized()
         val x = normalized.xFeature
@@ -93,6 +100,7 @@ internal object WeeklySnapshotPhaseAAdapter {
         require(focal.all { it in snapshot.descriptors }) { "requested strict feature is absent from weekly snapshot" }
         val optional: List<StrictSeriesKey> = snapshot.descriptors.keys
             .filterNot { it in focal }
+            .filterNot { it in excludedAutomaticFeatures }
             .filter { key ->
                 snapshot.descriptors.getValue(key).family != AnalysisFeatureFamily.CUMULATIVE_OR_UNKNOWN &&
                     isAutomaticPhaseBCandidate(key)
@@ -165,12 +173,20 @@ internal object WeeklySnapshotPhaseAAdapter {
             horizons = setOf(normalized.requestedHorizon)
         )
         val shortHistory: Map<StrictSeriesKey, CanonicalSeriesTransformation> = descriptors.mapNotNull { (feature, descriptor) ->
-            shortHistoryTransformation(descriptor.family)?.let { feature to it }
+            semanticTransformation(descriptor.family)?.let { feature to it }
         }.toMap()
         return StrictPhaseAInputBundle.createValidated(
             rawInput = RawTimeSeriesInput.createValidated(observations, lifecycle),
             request = request,
-            policy = StrictPreparationPolicy.createValidated(shortHistoryTransformations = shortHistory),
+            policy = StrictPreparationPolicy.createValidated(
+                shortHistoryTransformations = shortHistory,
+                relaxedInconclusiveTransformations = if (analysisMode == StrictLabAnalysisMode.RELAXED) {
+                    shortHistory
+                } else {
+                    emptyMap()
+                }
+            ),
+            analysisMode = analysisMode,
             sourceByFeature = descriptors.mapValues { (feature, _) -> modelSource(feature) },
             descriptors = descriptors,
             conditionalOnFeatureByFeature = conditionalOn,
@@ -188,7 +204,7 @@ internal object WeeklySnapshotPhaseAAdapter {
     private fun modelSource(feature: StrictSeriesKey): AnalysisSourceKey =
         AnalysisSourceKey.parse("feature:${feature.stableId}")
 
-    private fun shortHistoryTransformation(family: AnalysisFeatureFamily): CanonicalSeriesTransformation? = when (family) {
+    fun semanticTransformation(family: AnalysisFeatureFamily): CanonicalSeriesTransformation? = when (family) {
         AnalysisFeatureFamily.TRAINING_FLOW,
         AnalysisFeatureFamily.ANATOMY_LOAD,
         AnalysisFeatureFamily.EXPOSURE_INDICATOR,

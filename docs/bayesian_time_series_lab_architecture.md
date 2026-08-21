@@ -137,14 +137,31 @@ lambda selection threshold is part of the production kernel.
 production bounds, lag prior, and posterior kernel. Validation requires higher
 ESS and lower MCSE-to-SD. Policy identity is fingerprinted.
 
-The default app profile remains `STRICT` with the v0.7 APP_RUNTIME values:
+The default analysis-level mode remains `STRICT` with the v0.7 APP_RUNTIME values:
 four chains, two consecutive stabilization passes, a 2,000-draw stabilization
 cap, R-hat below 1.01, ESS at least 100, and MCSE/SD at most 0.10. Its policy
-fingerprint is unchanged. A user may request one versioned `RELAXED` retry only
-after convergence, lag-mixing, or Monte Carlo precision failure. RELAXED uses
-one stabilization pass, a 4,000-draw stabilization cap, R-hat below 1.05, ESS
-at least 50, and MCSE/SD at most 0.20. It is exploratory and is never presented
-as STRICT.
+fingerprint remains
+`caad4a0b3a7f5336596c5a713173aa1cc79d7731b6715ccb1e44cd8eb7851199`.
+The user may explicitly select analysis-level `RELAXED` before execution or
+escalate an eligible STRICT failure. RELAXED uses one stabilization pass, a
+4,000-draw stabilization cap, R-hat below 1.05, ESS at least 50, and MCSE/SD at
+most 0.20. It is exploratory and is never presented as STRICT.
+
+Analysis-level RELAXED has two bounded Phase A routes. An `INCONCLUSIVE`
+required series may reuse the adapter's existing family semantic map; positive
+`SUPPORTED_I0`/`SUPPORTED_I1` evidence is never overwritten and `UNSUPPORTED`
+or unclassified cumulative series remain blocked. After the canonical
+optional-candidate and Pmax degradation is exhausted, a common-row failure may
+remove selected controls by fewer usable CLOSED weeks, then greater
+missingness, then stable feature ID. X, Y, support, horizon, and the
+`minimumCommonRows=3` invariant are never reduced.
+
+Every control-removal attempt recreates the effective request through
+`WeeklySnapshotPhaseAAdapter` and the single canonical Phase A pipeline. Row
+plans, scaling, source grouping, J/T/q, tau0, materialized designs, and
+fingerprints are recalculated. Selection is prefit and deterministic; no
+coefficient, posterior, lag probability, or reliability diagnostic can choose
+which control is removed. The first feasible specification is final.
 
 Sampling identity is deterministic over the prepared-input fingerprint,
 materialized-design fingerprint, sampling-policy fingerprint, retry attempt,
@@ -168,11 +185,12 @@ details. Stabilization retains its final functional window; production retains
 the actual failing functionals. Numerical diagnostics identify the operation
 and safe matrix dimensions without dumping matrices.
 
-RELAXED is not available for numerical SPD/non-finite state, Phase A structural
-failure, variation/metadata/representation failure, stale result, or
-cancellation. Neither profile changes the likelihood, priors, group-Horseshoe
-equations, tau0 calibration, observation-space kernel, Sigma/B update order, or
-Rao-Blackwellized lag posterior.
+RELAXED is not available for numerical SPD/non-finite state, unavailable data,
+focal/target variation failure, incomplete metadata/source identity,
+unsupported representation, invalid scaling, stale result, cancellation, or
+unexpected internal failure. Neither profile changes the likelihood, priors,
+group-Horseshoe equations, tau0 calibration, observation-space kernel, Sigma/B
+update order, or Rao-Blackwellized lag posterior.
 
 ## App Boundary
 
@@ -181,12 +199,20 @@ an immutable stable-key request, waits for a fresh snapshot, runs CPU work off
 the main thread, exposes named stages, cancels on selection changes, and rejects
 stale completion by request token plus snapshot fingerprint.
 
-The strict picker reads snapshot capability descriptors. It does not use the
+The picker reads snapshot capability descriptors and shows explicit `엄격` and
+`완화` analysis-mode choices before execution. It does not use the
 dashboard 8/12-week window or `AnalysisMetricRegistry.minPoints=8`. The UI
 shows posterior medians and 80% intervals and the official Rao-Blackwellized
-lag probabilities. Raw local scales remain internal. Failure details are
-user-expanded and render bounded structured diagnostics; ordinary successful
-output is not flooded with technical values.
+lag probabilities. A RELAXED result retains a persistent exploratory marker
+and lists only relaxations actually applied. Raw local scales remain internal.
+Failure details are user-expanded and render bounded structured diagnostics;
+ordinary successful output is not flooded with technical values.
+
+Failure export uses Storage Access Framework `CreateDocument(text/plain)` and
+one pure formatter. The bounded report contains request/effective controls,
+routes, row/lag and sampler observations, fingerprints, app version, and a
+BuildConfig commit SHA resolved from `GITHUB_SHA`, local Git, or `unknown`. It
+does not export workout-set history or profile data.
 
 ## Legacy Boundary
 

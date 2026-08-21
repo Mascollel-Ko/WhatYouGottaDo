@@ -54,13 +54,16 @@ internal class StrictBayesianLabCoordinator(
         }
     }
 
-    fun analyze(request: StrictLabAnalysisRequest) {
-        analyze(request, StrictSamplingReliabilityMode.STRICT, retryAttempt = 0)
+    fun analyze(
+        request: StrictLabAnalysisRequest,
+        analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT
+    ) {
+        analyze(request, analysisMode, retryAttempt = 0)
     }
 
     private fun analyze(
         request: StrictLabAnalysisRequest,
-        samplingReliabilityMode: StrictSamplingReliabilityMode,
+        analysisMode: StrictLabAnalysisMode,
         retryAttempt: Int
     ) {
         if (mutableState.value is StrictBayesianLabUiState.Running) return
@@ -76,7 +79,7 @@ internal class StrictBayesianLabCoordinator(
             normalized,
             priorPreflight,
             StrictLabExecutionStage.PREPARING_STRICT_INPUT,
-            samplingReliabilityMode,
+            analysisMode,
             retryAttempt
         )
         activeJob = scope.launch {
@@ -90,8 +93,11 @@ internal class StrictBayesianLabCoordinator(
                             stage = StrictFailureStage.SNAPSHOT,
                             primaryReason = "최신 주간 분석 데이터를 준비하지 못했습니다.",
                             availableClosedWeeks = priorPreflight.closedWeeks,
-                            samplingReliabilityMode = samplingReliabilityMode,
+                            analysisMode = analysisMode,
+                            samplingReliabilityMode = analysisMode.samplingMode(),
                             retryAttempt = retryAttempt,
+                            originalControls = normalized.controls.map { it.value },
+                            effectiveControls = normalized.controls.map { it.value },
                             technicalDetails = listOfNotNull(failure::class.qualifiedName, failure.message)
                         )
                     )
@@ -114,8 +120,12 @@ internal class StrictBayesianLabCoordinator(
                             primaryReason = "갱신된 기록에서 선택한 조합을 분석할 수 없습니다.",
                             affectedFeatureOrSource = preflight.blockers.firstNotNullOfOrNull { it.feature?.value },
                             availableClosedWeeks = preflight.closedWeeks,
-                            samplingReliabilityMode = samplingReliabilityMode,
+                            analysisMode = analysisMode,
+                            samplingReliabilityMode = analysisMode.samplingMode(),
                             retryAttempt = retryAttempt,
+                            originalControls = normalized.controls.map { it.value },
+                            effectiveControls = normalized.controls.map { it.value },
+                            snapshotFingerprint = captured.fingerprint,
                             technicalDetails = preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" }
                         )
                     )
@@ -127,7 +137,7 @@ internal class StrictBayesianLabCoordinator(
                 captured,
                 normalized,
                 preflight,
-                samplingReliabilityMode,
+                analysisMode,
                 retryAttempt
             ) { stage ->
                 if (token == requestToken) {
@@ -136,7 +146,7 @@ internal class StrictBayesianLabCoordinator(
                         normalized,
                         preflight,
                         stage,
-                        samplingReliabilityMode,
+                        analysisMode,
                         retryAttempt
                     )
                 }
@@ -151,8 +161,12 @@ internal class StrictBayesianLabCoordinator(
                         stage = StrictFailureStage.COORDINATION,
                         primaryReason = "분석 중 기록이 갱신되어 이전 결과를 표시하지 않았습니다.",
                         availableClosedWeeks = captured.closedWeeks.size,
-                        samplingReliabilityMode = samplingReliabilityMode,
+                        analysisMode = analysisMode,
+                        samplingReliabilityMode = analysisMode.samplingMode(),
                         retryAttempt = retryAttempt,
+                        originalControls = normalized.controls.map { it.value },
+                        effectiveControls = normalized.controls.map { it.value },
+                        snapshotFingerprint = captured.fingerprint,
                         technicalDetails = listOf(
                             "captured=${captured.fingerprint}",
                             "current=${currentSnapshotFingerprint()}"
@@ -180,7 +194,7 @@ internal class StrictBayesianLabCoordinator(
         val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
         val request = failed.request
         if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
-            analyze(request, StrictSamplingReliabilityMode.STRICT, failed.failure.retryAttempt + 1)
+            analyze(request, failed.failure.analysisMode, failed.failure.retryAttempt + 1)
         } else {
             updateRequest(request)
         }
@@ -188,10 +202,12 @@ internal class StrictBayesianLabCoordinator(
 
     fun retryRelaxed() {
         val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
-        if (!failed.code.allowsRelaxedRetry) return
+        if (failed.failure.analysisMode != StrictLabAnalysisMode.STRICT ||
+            failed.failure.availableRelaxationRoutes.isEmpty()
+        ) return
         val request = failed.request
         if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
-            analyze(request, StrictSamplingReliabilityMode.RELAXED, failed.failure.retryAttempt + 1)
+            analyze(request, StrictLabAnalysisMode.RELAXED, failed.failure.retryAttempt + 1)
         }
     }
 
@@ -201,6 +217,11 @@ internal class StrictBayesianLabCoordinator(
         activeJob = null
         mutableState.value = StrictBayesianLabUiState.Idle
     }
+}
+
+private fun StrictLabAnalysisMode.samplingMode(): StrictSamplingReliabilityMode = when (this) {
+    StrictLabAnalysisMode.STRICT -> StrictSamplingReliabilityMode.STRICT
+    StrictLabAnalysisMode.RELAXED -> StrictSamplingReliabilityMode.RELAXED
 }
 
 private fun StrictBayesianLabUiState.preflightOrNull(): StrictLabPreflight? = when (this) {

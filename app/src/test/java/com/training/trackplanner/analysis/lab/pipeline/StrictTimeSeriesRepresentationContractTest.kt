@@ -73,6 +73,48 @@ class StrictTimeSeriesRepresentationContractTest {
     }
 
     @Test
+    fun relaxedInconclusivePolicyUsesSemanticRepresentationWithoutOverridingSupportedEvidence() {
+        val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
+        val y = TrendMetricId.FATIGUE_COMPOSITE
+        val left = fixtureValues("two_segments_i0_left")
+        val right = fixtureValues("two_segments_i1_left")
+        val stationary = fixtureValues("stationary_ar_03")
+        val weeks = weeks(left.size + 1 + right.size)
+        val catalog = RawTimeSeriesInput.fromTrendSeries(
+            mapOf(
+                x to weeks.mapIndexed { index, week ->
+                    TrendDataPoint(
+                        week,
+                        when {
+                            index < left.size -> left[index]
+                            index == left.size -> null
+                            else -> right[index - left.size - 1]
+                        }
+                    )
+                },
+                y to weeks.mapIndexed { index, week -> TrendDataPoint(week, stationary[index % stationary.size]) }
+            )
+        ).ingest(request(x, y))
+        val assessments = SegmentAwareIntegrationAssessmentAuthority.assess(catalog)
+        val strict = CanonicalTransformationAuthority.createPlan(catalog, assessments, request(x, y))
+        val relaxedPolicy = StrictPreparationPolicy.createValidated(
+            relaxedInconclusiveTransformations = mapOf(x to CanonicalSeriesTransformation.LEVEL)
+        )
+        val relaxed = CanonicalTransformationAuthority.createPlan(catalog, assessments, request(x, y), relaxedPolicy)
+
+        assertTrue(strict is CanonicalTransformationPlanResult.Failure)
+        assertTrue(relaxed is CanonicalTransformationPlanResult.Success)
+        val relaxedPlan = (relaxed as CanonicalTransformationPlanResult.Success).plan
+        val xDecision = relaxedPlan.decisionsByMetric.getValue(x)
+        val yDecision = relaxedPlan.decisionsByMetric.getValue(y)
+        assertEquals(CanonicalSeriesTransformation.LEVEL, xDecision.transformation)
+        assertTrue(xDecision.decisionReason.startsWith("relaxed semantic representation:"))
+        assertEquals(CanonicalSeriesTransformation.LEVEL, yDecision.transformation)
+        assertEquals("supported I(0)", yDecision.decisionReason)
+        assertNotEquals(StrictPreparationPolicy.conservative().fingerprint, relaxedPolicy.fingerprint)
+    }
+
+    @Test
     fun optionalInconclusiveIsExcludedButRequiredInconclusiveFailsWithoutFallback() {
         val x = TrendMetricId.BADMINTON_PRACTICE_LOAD
         val y = TrendMetricId.FATIGUE_COMPOSITE

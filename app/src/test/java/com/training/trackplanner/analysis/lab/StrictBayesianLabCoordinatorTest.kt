@@ -24,17 +24,51 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class StrictBayesianLabCoordinatorTest {
     @Test
-    fun `only three sampling reliability failures allow relaxed inference`() {
-        val allowed = StrictLabFailureCode.entries.filter { it.allowsRelaxedRetry }.toSet()
-
-        assertEquals(
-            setOf(
-                StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
-                StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
-                StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
-            ),
-            allowed
+    fun `default analysis mode is strict`() = runTest {
+        val snapshot = snapshot(1L)
+        val calls = mutableListOf<StrictLabAnalysisMode>()
+        val coordinator = StrictBayesianLabCoordinator(
+            scope = this,
+            freshSnapshot = { Result.success(snapshot) },
+            currentSnapshotFingerprint = { snapshot.fingerprint },
+            service = fakeService { request, _, mode, _ ->
+                calls += mode
+                StrictLabExecutionOutcome.Success(successResult(request))
+            }
         )
+
+        coordinator.updateRequest(REQUEST)
+        advanceUntilIdle()
+        coordinator.analyze(REQUEST)
+        advanceUntilIdle()
+
+        assertEquals(listOf(StrictLabAnalysisMode.STRICT), calls)
+        assertEquals(StrictSamplingReliabilityMode.STRICT, StrictLabAnalysisMode.STRICT.samplingPolicy().reliabilityMode)
+        assertEquals(StrictSamplingReliabilityMode.RELAXED, StrictLabAnalysisMode.RELAXED.samplingPolicy().reliabilityMode)
+    }
+
+    @Test
+    fun `relaxed can be selected before the first analysis`() = runTest {
+        val snapshot = snapshot(1L)
+        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
+        val coordinator = StrictBayesianLabCoordinator(
+            scope = this,
+            freshSnapshot = { Result.success(snapshot) },
+            currentSnapshotFingerprint = { snapshot.fingerprint },
+            service = fakeService { request, _, mode, attempt ->
+                calls += mode to attempt
+                StrictLabExecutionOutcome.Success(successResult(request).copy(analysisMode = mode))
+            }
+        )
+
+        coordinator.updateRequest(REQUEST)
+        advanceUntilIdle()
+        coordinator.analyze(REQUEST, StrictLabAnalysisMode.RELAXED)
+        advanceUntilIdle()
+
+        assertEquals(listOf(StrictLabAnalysisMode.RELAXED to 0), calls)
+        val success = assertState<StrictBayesianLabUiState.Success>(coordinator.state.value)
+        assertEquals(StrictLabAnalysisMode.RELAXED, success.result.analysisMode)
     }
 
     @Test
@@ -113,7 +147,7 @@ class StrictBayesianLabCoordinatorTest {
     @Test
     fun `strict retry increments attempt while preserving prepared input identity`() = runTest {
         val snapshot = snapshot(1L)
-        val calls = mutableListOf<Pair<StrictSamplingReliabilityMode, Int>>()
+        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
         val coordinator = StrictBayesianLabCoordinator(
             scope = this,
             freshSnapshot = { Result.success(snapshot) },
@@ -135,8 +169,8 @@ class StrictBayesianLabCoordinatorTest {
 
         assertEquals(
             listOf(
-                StrictSamplingReliabilityMode.STRICT to 0,
-                StrictSamplingReliabilityMode.STRICT to 1
+                StrictLabAnalysisMode.STRICT to 0,
+                StrictLabAnalysisMode.STRICT to 1
             ),
             calls
         )
@@ -145,9 +179,9 @@ class StrictBayesianLabCoordinatorTest {
     }
 
     @Test
-    fun `relaxed retry is dispatched only for eligible reliability failures`() = runTest {
+    fun `strict escalation and relaxed retry preserve explicit analysis mode`() = runTest {
         val snapshot = snapshot(1L)
-        val calls = mutableListOf<Pair<StrictSamplingReliabilityMode, Int>>()
+        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
         var code = StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED
         val coordinator = StrictBayesianLabCoordinator(
             scope = this,
@@ -165,7 +199,11 @@ class StrictBayesianLabCoordinatorTest {
         advanceUntilIdle()
         coordinator.retryRelaxed()
         advanceUntilIdle()
-        assertEquals(StrictSamplingReliabilityMode.RELAXED to 1, calls.last())
+        assertEquals(StrictLabAnalysisMode.RELAXED to 1, calls.last())
+
+        coordinator.retry()
+        advanceUntilIdle()
+        assertEquals(StrictLabAnalysisMode.RELAXED to 2, calls.last())
 
         code = StrictLabFailureCode.NUMERICAL_SPD_FAILURE
         coordinator.retry()
@@ -180,7 +218,7 @@ class StrictBayesianLabCoordinatorTest {
         execute: suspend (
             StrictLabAnalysisRequest,
             StrictLabPreflight,
-            StrictSamplingReliabilityMode,
+            StrictLabAnalysisMode,
             Int
         ) -> StrictLabExecutionOutcome
     ) = object : StrictBayesianLabService(Dispatchers.Unconfined) {
@@ -200,12 +238,12 @@ class StrictBayesianLabCoordinatorTest {
             snapshot: WeeklyAnalysisFeatureSnapshot,
             request: StrictLabAnalysisRequest,
             preflight: StrictLabPreflight,
-            samplingReliabilityMode: StrictSamplingReliabilityMode,
+            analysisMode: StrictLabAnalysisMode,
             retryAttempt: Int,
             onStage: (StrictLabExecutionStage) -> Unit
         ): StrictLabExecutionOutcome {
             onStage(StrictLabExecutionStage.SAMPLING_POSTERIOR)
-            return execute(request, preflight, samplingReliabilityMode, retryAttempt)
+            return execute(request, preflight, analysisMode, retryAttempt)
         }
     }
 
@@ -244,7 +282,7 @@ class StrictBayesianLabCoordinatorTest {
 
     private fun failureOutcome(
         code: StrictLabFailureCode,
-        mode: StrictSamplingReliabilityMode,
+        mode: StrictLabAnalysisMode,
         attempt: Int
     ): StrictLabExecutionOutcome.Failure = StrictLabExecutionOutcome.Failure(
         StrictFailureDiagnostics(
@@ -257,8 +295,24 @@ class StrictBayesianLabCoordinatorTest {
             primaryReason = code.name,
             preparedInputFingerprint = "prepared-input",
             samplingPolicyFingerprint = "policy-${mode.name}",
-            samplingReliabilityMode = mode,
-            retryAttempt = attempt
+            analysisMode = mode,
+            samplingReliabilityMode = if (mode == StrictLabAnalysisMode.STRICT) {
+                StrictSamplingReliabilityMode.STRICT
+            } else {
+                StrictSamplingReliabilityMode.RELAXED
+            },
+            retryAttempt = attempt,
+            availableRelaxationRoutes = if (
+                mode == StrictLabAnalysisMode.STRICT && code in setOf(
+                    StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
+                    StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
+                    StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
+                )
+            ) {
+                setOf(StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY)
+            } else {
+                emptySet()
+            }
         )
     )
 

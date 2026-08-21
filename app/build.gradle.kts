@@ -5,6 +5,16 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+val gitCommitSha = providers.environmentVariable("GITHUB_SHA").orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?: runCatching {
+        providers.exec {
+            commandLine("git", "rev-parse", "HEAD")
+        }.standardOutput.asText.get().trim()
+    }.getOrNull()?.takeIf { it.isNotEmpty() }
+    ?: "unknown"
+
 android {
     namespace = "com.training.trackplanner"
     compileSdk = 35
@@ -17,6 +27,7 @@ android {
         versionCode = 500038
         versionName = "0.5.0.38"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GIT_COMMIT_SHA", "\"$gitCommitSha\"")
     }
 
     sourceSets {
@@ -30,6 +41,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
