@@ -82,6 +82,7 @@ class AnalysisStrengthChartSpecTest {
         assertEquals(Color(0xFF2E7D32.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT.value))
         assertEquals(Color(0xFF6D4C41.toInt()), strengthPerformanceTargetColor(StrengthPerformanceRegistry.WEIGHTED_PULL_UP.value))
         assertEquals(withProxyOnlyObservation.map { it.targetKey }, spec.intervalBands.map { it.seriesKey })
+        assertTrue(spec.enableVerticalZoom)
     }
 
     @Test

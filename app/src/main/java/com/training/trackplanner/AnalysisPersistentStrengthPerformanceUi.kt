@@ -772,7 +772,8 @@ internal fun persistentStrengthHistoryChartSpec(
         yMax = yRange?.second,
         timeGranularity = ChartTimeGranularity.DAILY,
         xDomain = domain,
-        valueUnit = if (displayMode == StrengthPerformanceDisplayMode.LEVEL) "kg" else "%"
+        valueUnit = if (displayMode == StrengthPerformanceDisplayMode.LEVEL) "kg" else "%",
+        enableVerticalZoom = true
     )
 }
 

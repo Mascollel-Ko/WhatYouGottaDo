@@ -2,6 +2,8 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,17 +17,23 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -46,6 +54,35 @@ import com.training.trackplanner.localization.localizedUiText
 import java.util.Locale
 import java.time.LocalDate
 import kotlin.math.abs
+import kotlin.math.max
+
+internal data class VerticalChartViewport(val min: Double, val max: Double) {
+    val span: Double get() = max - min
+}
+
+internal object VerticalChartZoomPolicy {
+    fun auto(min: Double, max: Double): VerticalChartViewport {
+        if (min.isFinite() && max.isFinite() && max > min) return VerticalChartViewport(min, max)
+        val center = listOf(min, max).firstOrNull(Double::isFinite) ?: 0.0
+        return VerticalChartViewport(center - 0.5, center + 0.5)
+    }
+
+    fun zoom(
+        current: VerticalChartViewport,
+        auto: VerticalChartViewport,
+        gestureScale: Float
+    ): VerticalChartViewport {
+        if (!gestureScale.isFinite() || gestureScale <= 0f) return current
+        val center = (current.min + current.max) / 2.0
+        val minSpan = max(auto.span * 0.05, 0.01)
+        val maxSpan = max(auto.span * 4.0, minSpan)
+        val span = (current.span / gestureScale.toDouble()).coerceIn(minSpan, maxSpan)
+        return VerticalChartViewport(center - span / 2.0, center + span / 2.0)
+    }
+
+    fun isAuto(viewport: VerticalChartViewport, auto: VerticalChartViewport): Boolean =
+        abs(viewport.min - auto.min) < 1e-9 && abs(viewport.max - auto.max) < 1e-9
+}
 
 @Composable
 internal fun AnalysisChartSpecView(spec: ChartSpec) {
@@ -164,8 +201,14 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         InfoCard("기록 부족")
         return
     }
-    val min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0)
-    val max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
+    val autoViewport = VerticalChartZoomPolicy.auto(
+        min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0),
+        max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
+    )
+    var viewport by remember(spec) { mutableStateOf(autoViewport) }
+    val visibleViewport = if (spec.enableVerticalZoom) viewport else autoViewport
+    val min = visibleViewport.min
+    val max = visibleViewport.max
     val domain = AnalysisChartTemporalPolicy.domain(spec)
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
     val accessibility = localizedAnalysisChartContentDescription(spec)
@@ -175,7 +218,27 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         },
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Canvas(modifier = modifier.fillMaxWidth()) {
+        val zoomModifier = if (spec.enableVerticalZoom) {
+            Modifier
+                .testTag("persistent-strength-y-zoom-chart")
+                .pointerInput(autoViewport) {
+                    awaitEachGesture {
+                        do {
+                            val event = awaitPointerEvent()
+                            if (event.changes.count { change -> change.pressed } >= 2) {
+                                val scale = event.calculateZoom()
+                                if (scale.isFinite() && scale != 1f) {
+                                    viewport = VerticalChartZoomPolicy.zoom(viewport, autoViewport, scale)
+                                    event.changes.forEach { change -> change.consume() }
+                                }
+                            }
+                        } while (event.changes.any { change -> change.pressed })
+                    }
+                }
+        } else {
+            Modifier
+        }
+        Canvas(modifier = modifier.fillMaxWidth().then(zoomModifier)) {
             repeat(3) { index ->
                 val y = size.height * (index + 1) / 4f
                 drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
@@ -266,6 +329,24 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         }
         spec.timeGranularity?.let { granularity ->
             AnalysisTimeAxisLabels(domain, granularity)
+        }
+        if (spec.enableVerticalZoom && !VerticalChartZoomPolicy.isAuto(viewport, autoViewport)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = buildString {
+                        append(String.format(Locale.getDefault(), "Y축 %.1f–%.1f", min, max))
+                        spec.valueUnit?.let { unit -> append(" $unit") }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TextButton(onClick = { viewport = autoViewport }) {
+                    Text("축 맞춤")
+                }
+            }
         }
     }
 }
