@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,11 +104,15 @@ internal fun TrainingTrackPlannerApp(
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.Home) }
     var infoRoute by rememberSaveable { mutableStateOf<AppInfoRoute?>(null) }
     var recordTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
+    var recordTargetRequestId by remember { mutableStateOf(0L) }
+    var dismissedTimerRunId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(restTimerTargets) {
         restTimerTargets.collect { target ->
-            recordTarget = target
+            recordTargetRequestId += 1
+            recordTarget = target.copy(navigationRequestId = recordTargetRequestId)
             infoRoute = null
             selectedTab = AppTab.Record
         }
@@ -124,10 +130,27 @@ internal fun TrainingTrackPlannerApp(
     Scaffold(
         bottomBar = {
             if (infoRoute == null) {
-                AppBottomNavigation(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
-                )
+                Column {
+                    if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerRunId)) {
+                        RestTimerForegroundBar(
+                            state = timerState,
+                            onOpenTarget = {
+                                recordTargetRequestId += 1
+                                recordTarget = RestTimerForegroundBarPolicy.target(
+                                    timerState,
+                                    recordTargetRequestId
+                                )
+                                infoRoute = null
+                                selectedTab = AppTab.Record
+                            },
+                            onDismiss = { dismissedTimerRunId = timerState.runId }
+                        )
+                    }
+                    AppBottomNavigation(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
             }
         }
     ) { innerPadding ->

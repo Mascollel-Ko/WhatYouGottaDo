@@ -119,12 +119,13 @@ class RestTimerSessionController(context: Context) {
         }
 
         val remaining = remainingSecondsUntil(endAt)
+        val total = preferences.getInt(KEY_REST_TOTAL_SECONDS, remaining).coerceAtLeast(remaining)
         val restored = RestTimerState(
             runId = nextRunId++,
             isRunning = !finished && remaining > 0,
             isFinished = finished || remaining <= 0,
             remainingSeconds = remaining,
-            totalSeconds = remaining,
+            totalSeconds = total,
             endAtEpochMillis = endAt,
             nextHint = next,
             hasNextTarget = hasNextTarget,
@@ -202,6 +203,7 @@ class RestTimerSessionController(context: Context) {
     private fun persist(state: RestTimerState) {
         preferences.edit()
             .putLong(KEY_REST_END_AT, state.endAtEpochMillis)
+            .putInt(KEY_REST_TOTAL_SECONDS, state.totalSeconds)
             .putString(KEY_REST_NEXT, state.nextHint)
             .putBoolean(KEY_REST_HAS_NEXT_TARGET, state.hasNextTarget)
             .putBoolean(KEY_REST_STARTED_AFTER_CONFIRMED_SET, state.startedAfterConfirmedSet)
@@ -233,6 +235,7 @@ class RestTimerSessionController(context: Context) {
     private companion object {
         const val PREFERENCES_NAME = "rest_timer"
         const val KEY_REST_END_AT = "rest_end_at"
+        const val KEY_REST_TOTAL_SECONDS = "rest_total_seconds"
         const val KEY_REST_NEXT = "rest_next"
         const val KEY_REST_HAS_NEXT_TARGET = "rest_has_next_target"
         const val KEY_REST_STARTED_AFTER_CONFIRMED_SET = "rest_started_after_confirmed_set"

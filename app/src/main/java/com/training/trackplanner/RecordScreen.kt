@@ -84,6 +84,7 @@ internal fun RecordScreen(
     var showCalendar by rememberSaveable { mutableStateOf(false) }
     var calendarSearchQuery by rememberSaveable { mutableStateOf("") }
     var pendingSearchJump by remember { mutableStateOf<RecordSearchJumpRequest?>(null) }
+    var pendingTimerTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var highlightedEntryId by remember { mutableStateOf<Long?>(null) }
     var draggedEntryId by remember(selectedDate) { mutableStateOf<Long?>(null) }
     var dragTargetEntryId by remember(selectedDate) { mutableStateOf<Long?>(null) }
@@ -109,8 +110,22 @@ internal fun RecordScreen(
     LaunchedEffect(target) {
         target?.let {
             pendingSearchJump = null
+            pendingTimerTarget = it
             selectedDate = it.recordDate
         }
+    }
+
+    LaunchedEffect(pendingTimerTarget, selectedDate, sortedEntries, showPermissionHint) {
+        val timerTarget = pendingTimerTarget ?: return@LaunchedEffect
+        if (timerTarget.recordDate != selectedDate) return@LaunchedEffect
+        val entryIndex = sortedEntries.indexOfFirst { record -> record.entry.id == timerTarget.entryId }
+        if (entryIndex < 0) return@LaunchedEffect
+        pendingTimerTarget = null
+        val leadingItems = 4 + if (showPermissionHint) 1 else 0
+        listState.animateScrollToItem(leadingItems + entryIndex)
+        highlightedEntryId = timerTarget.entryId
+        delay(1_200L)
+        if (highlightedEntryId == timerTarget.entryId) highlightedEntryId = null
     }
 
     LaunchedEffect(pendingSearchJump, selectedDate, sortedEntries, exerciseMap, showPermissionHint) {
