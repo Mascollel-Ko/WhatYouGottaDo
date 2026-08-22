@@ -97,7 +97,6 @@ internal fun AnalysisScreen(viewModel: TrainingViewModel) {
                         onRequestChanged = viewModel::prepareTimeSeriesAnalysis,
                         onAnalyze = viewModel::runTimeSeriesAnalysis,
                         onRetry = viewModel::retryTimeSeriesAnalysis,
-                        onRelaxedRetry = viewModel::retryTimeSeriesAnalysisRelaxed,
                         onCancel = viewModel::cancelTimeSeriesAnalysis
                     )
                     null -> Unit

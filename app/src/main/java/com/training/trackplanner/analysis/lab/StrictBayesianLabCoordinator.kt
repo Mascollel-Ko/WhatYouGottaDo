@@ -33,7 +33,7 @@ internal class StrictBayesianLabCoordinator(
         activeJob = scope.launch {
             val captured = freshSnapshot().getOrElse { failure ->
                 if (token == requestToken) {
-                    mutableState.value = StrictBayesianLabUiState.Failed(
+                    mutableState.value = StrictBayesianLabUiState.Unavailable(
                         normalized,
                         null,
                         StrictFailureDiagnostics(
@@ -54,16 +54,12 @@ internal class StrictBayesianLabCoordinator(
         }
     }
 
-    fun analyze(
-        request: StrictLabAnalysisRequest,
-        analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT
-    ) {
-        analyze(request, analysisMode, retryAttempt = 0)
+    fun analyze(request: StrictLabAnalysisRequest) {
+        analyze(request, retryAttempt = 0)
     }
 
     private fun analyze(
         request: StrictLabAnalysisRequest,
-        analysisMode: StrictLabAnalysisMode,
         retryAttempt: Int
     ) {
         if (mutableState.value is StrictBayesianLabUiState.Running) return
@@ -79,13 +75,12 @@ internal class StrictBayesianLabCoordinator(
             normalized,
             priorPreflight,
             StrictLabExecutionStage.PREPARING_STRICT_INPUT,
-            analysisMode,
             retryAttempt
         )
         activeJob = scope.launch {
             val captured = freshSnapshot().getOrElse { failure ->
                 if (token == requestToken) {
-                    mutableState.value = StrictBayesianLabUiState.Failed(
+                    mutableState.value = StrictBayesianLabUiState.Unavailable(
                         normalized,
                         priorPreflight,
                         StrictFailureDiagnostics(
@@ -93,8 +88,6 @@ internal class StrictBayesianLabCoordinator(
                             stage = StrictFailureStage.SNAPSHOT,
                             primaryReason = "최신 주간 분석 데이터를 준비하지 못했습니다.",
                             availableClosedWeeks = priorPreflight.closedWeeks,
-                            analysisMode = analysisMode,
-                            samplingReliabilityMode = analysisMode.samplingMode(),
                             retryAttempt = retryAttempt,
                             originalControls = normalized.controls.map { it.value },
                             effectiveControls = normalized.controls.map { it.value },
@@ -111,7 +104,7 @@ internal class StrictBayesianLabCoordinator(
             }
             if (!preflight.canAnalyze) {
                 if (token == requestToken) {
-                    mutableState.value = StrictBayesianLabUiState.Failed(
+                    mutableState.value = StrictBayesianLabUiState.Unavailable(
                         normalized,
                         preflight,
                         StrictFailureDiagnostics(
@@ -120,8 +113,6 @@ internal class StrictBayesianLabCoordinator(
                             primaryReason = "갱신된 기록에서 선택한 조합을 분석할 수 없습니다.",
                             affectedFeatureOrSource = preflight.blockers.firstNotNullOfOrNull { it.feature?.value },
                             availableClosedWeeks = preflight.closedWeeks,
-                            analysisMode = analysisMode,
-                            samplingReliabilityMode = analysisMode.samplingMode(),
                             retryAttempt = retryAttempt,
                             originalControls = normalized.controls.map { it.value },
                             effectiveControls = normalized.controls.map { it.value },
@@ -137,7 +128,6 @@ internal class StrictBayesianLabCoordinator(
                 captured,
                 normalized,
                 preflight,
-                analysisMode,
                 retryAttempt
             ) { stage ->
                 if (token == requestToken) {
@@ -146,14 +136,13 @@ internal class StrictBayesianLabCoordinator(
                         normalized,
                         preflight,
                         stage,
-                        analysisMode,
                         retryAttempt
                     )
                 }
             }
             if (token != requestToken) return@launch
             if (currentSnapshotFingerprint() != captured.fingerprint) {
-                mutableState.value = StrictBayesianLabUiState.Failed(
+                mutableState.value = StrictBayesianLabUiState.Unavailable(
                     normalized,
                     preflight,
                     StrictFailureDiagnostics(
@@ -161,8 +150,6 @@ internal class StrictBayesianLabCoordinator(
                         stage = StrictFailureStage.COORDINATION,
                         primaryReason = "분석 중 기록이 갱신되어 이전 결과를 표시하지 않았습니다.",
                         availableClosedWeeks = captured.closedWeeks.size,
-                        analysisMode = analysisMode,
-                        samplingReliabilityMode = analysisMode.samplingMode(),
                         retryAttempt = retryAttempt,
                         originalControls = normalized.controls.map { it.value },
                         effectiveControls = normalized.controls.map { it.value },
@@ -176,38 +163,28 @@ internal class StrictBayesianLabCoordinator(
                 return@launch
             }
             mutableState.value = when (outcome) {
-                is StrictLabExecutionOutcome.Success -> StrictBayesianLabUiState.Success(
+                is StrictLabExecutionOutcome.Available -> StrictBayesianLabUiState.Available(
                     normalized,
                     outcome.result,
                     preflight
                 )
-                is StrictLabExecutionOutcome.Failure -> StrictBayesianLabUiState.Failed(
+                is StrictLabExecutionOutcome.Unavailable -> StrictBayesianLabUiState.Unavailable(
                     normalized,
                     preflight,
-                    outcome.failure
+                    outcome.failure,
+                    outcome.adjustmentTrace
                 )
             }
         }
     }
 
     fun retry() {
-        val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
+        val failed = mutableState.value as? StrictBayesianLabUiState.Unavailable ?: return
         val request = failed.request
         if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
-            analyze(request, failed.failure.analysisMode, failed.failure.retryAttempt + 1)
+            analyze(request, failed.failure.retryAttempt + 1)
         } else {
             updateRequest(request)
-        }
-    }
-
-    fun retryRelaxed() {
-        val failed = mutableState.value as? StrictBayesianLabUiState.Failed ?: return
-        if (failed.failure.analysisMode != StrictLabAnalysisMode.STRICT ||
-            failed.failure.availableRelaxationRoutes.isEmpty()
-        ) return
-        val request = failed.request
-        if (failed.preflight?.canAnalyze == true && request == selectedRequest) {
-            analyze(request, StrictLabAnalysisMode.RELAXED, failed.failure.retryAttempt + 1)
         }
     }
 
@@ -219,16 +196,11 @@ internal class StrictBayesianLabCoordinator(
     }
 }
 
-private fun StrictLabAnalysisMode.samplingMode(): StrictSamplingReliabilityMode = when (this) {
-    StrictLabAnalysisMode.STRICT -> StrictSamplingReliabilityMode.STRICT
-    StrictLabAnalysisMode.RELAXED -> StrictSamplingReliabilityMode.RELAXED
-}
-
 private fun StrictBayesianLabUiState.preflightOrNull(): StrictLabPreflight? = when (this) {
     is StrictBayesianLabUiState.PreflightReady -> preflight
     is StrictBayesianLabUiState.Running -> preflight
-    is StrictBayesianLabUiState.Success -> preflight
-    is StrictBayesianLabUiState.Failed -> preflight
+    is StrictBayesianLabUiState.Available -> preflight
+    is StrictBayesianLabUiState.Unavailable -> preflight
     StrictBayesianLabUiState.Idle,
     is StrictBayesianLabUiState.DataPreparing -> null
 }

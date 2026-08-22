@@ -17,7 +17,8 @@ internal sealed interface StrictBvarPlanningResult {
     data class Success(
         val context: PreparedAnalysisContext,
         val input: FutureBvarComparisonInput,
-        val diagnostics: List<String>
+        val diagnostics: List<String>,
+        val removedOptionalCandidates: List<StrictSeriesKey> = emptyList()
     ) : StrictBvarPlanningResult
 
     data class Failure(
@@ -107,7 +108,15 @@ internal object StrictBvarV07PlanningAuthority {
                 if (remainingOptional.size < context.candidateCatalog.eligibleCandidates.size) {
                     diagnostics += "automatic candidates were deterministically reduced to a feasible common-row model"
                 }
-                return StrictBvarPlanningResult.Success(context, input, diagnostics.distinct())
+                val removedOptionalCandidates = context.candidateCatalog.eligibleCandidates
+                    .filterNot { it in remainingOptional }
+                    .sortedBy { it.stableId }
+                return StrictBvarPlanningResult.Success(
+                    context,
+                    input,
+                    diagnostics.distinct(),
+                    removedOptionalCandidates
+                )
             }
 
             if (remainingOptional.isEmpty()) {

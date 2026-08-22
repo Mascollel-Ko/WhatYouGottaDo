@@ -137,24 +137,36 @@ lambda selection threshold is part of the production kernel.
 production bounds, lag prior, and posterior kernel. Validation requires higher
 ESS and lower MCSE-to-SD. Policy identity is fingerprinted.
 
-The default analysis-level mode remains `STRICT` with the v0.7 APP_RUNTIME values:
-four chains, two consecutive stabilization passes, a 2,000-draw stabilization
-cap, R-hat below 1.01, ESS at least 100, and MCSE/SD at most 0.10. Its policy
+The app boundary distinguishes result availability from sampling quality. A
+finite, interpretable posterior is `AVAILABLE`; diagnostic thresholds classify
+it as `STRICT`, `RELAXED`, or `LIMITED`. A R-hat, ESS, MCSE/SD, lag-mixing, or
+stabilization-cap miss does not by itself make a result unavailable.
+`UNAVAILABLE` is reserved for a required-data, identification, unsupported
+representation, row-domain, numerical, non-finite, cancellation, stale, or
+unexpected blocker that prevents a valid result.
+
+Sampling always starts with the v0.7 STRICT APP_RUNTIME values: four chains,
+two consecutive stabilization passes, a 2,000-draw stabilization cap, R-hat
+below 1.01, ESS at least 100, and MCSE/SD at most 0.10. The strict policy
 fingerprint remains
 `caad4a0b3a7f5336596c5a713173aa1cc79d7731b6715ccb1e44cd8eb7851199`.
-The user may explicitly select analysis-level `RELAXED` before execution or
-escalate an eligible STRICT failure. RELAXED uses one stabilization pass, a
-4,000-draw stabilization cap, R-hat below 1.05, ESS at least 50, and MCSE/SD at
-most 0.20. It is exploratory and is never presented as STRICT.
+If those diagnostics are not reached, the same prepared model, chain state,
+and sampling identity continue automatically within the approved RELAXED
+budget: one stabilization pass, a 4,000-draw stabilization cap, R-hat below
+1.05, ESS at least 50, and MCSE/SD at most 0.20. No looser third profile exists.
+Production and precision bounds remain 5,000 and 10,000 draws per chain.
 
-Analysis-level RELAXED has two bounded Phase A routes. An `INCONCLUSIVE`
-required series may reuse the adapter's existing family semantic map; positive
-`SUPPORTED_I0`/`SUPPORTED_I1` evidence is never overwritten and `UNSUPPORTED`
-or unclassified cumulative series remain blocked. After the canonical
-optional-candidate and Pmax degradation is exhausted, a common-row failure may
-remove selected controls by fewer usable CLOSED weeks, then greater
-missingness, then stable feature ID. X, Y, support, horizon, and the
-`minimumCommonRows=3` invariant are never reduced.
+Before sampling, approved deterministic Phase A adjustments run
+automatically. An `INCONCLUSIVE` series may reuse the existing reviewed
+feature-family semantic representation; positive `SUPPORTED_I0`/
+`SUPPORTED_I1` evidence is never overwritten, and `UNSUPPORTED` or
+unclassified cumulative series remain blocked. After canonical optional
+candidate and Pmax degradation, an infeasible common-row plan may remove
+removable controls one at a time by fewer semantically usable CLOSED weeks,
+then greater effective missingness, then stable feature ID. Conditional RPE
+`NOT_APPLICABLE` no-exposure cells count as the same semantic zero carriers
+used by canonical Phase A. X, Y, horizon, and `minimumCommonRows=3` are never
+reduced or guessed.
 
 Every control-removal attempt recreates the effective request through
 `WeeklySnapshotPhaseAAdapter` and the single canonical Phase A pipeline. Row
@@ -164,33 +176,34 @@ coefficient, posterior, lag probability, or reliability diagnostic can choose
 which control is removed. The first feasible specification is final.
 
 Sampling identity is deterministic over the prepared-input fingerprint,
-materialized-design fingerprint, sampling-policy fingerprint, retry attempt,
-and chain index. Attempt zero is the first normal run. Retrying increments the
-attempt, which preserves the prepared model while producing a different,
-reproducible chain trajectory.
+materialized-design fingerprint, initial sampling-policy fingerprint, retry
+attempt, and chain index. Automatic diagnostic-budget continuation does not
+change that identity or rebuild Phase A. Attempt zero is the first normal run;
+a user retry increments the attempt while preserving the requested model.
 
 Four chains are monitored with rank/folded R-hat, bulk/tail ESS, and MCSE/SD
-over functional quantities. Raw local scales are diagnostic-only. Weak but
-valid posterior evidence is a successful result with uncertainty, not
-"not enough data".
+over functional quantities. The final four completed diagnostic windows are
+retained as bounded descriptive evidence. Raw local scales remain
+diagnostic-only. Mathematically finite medians, intervals, Rao-Blackwellized
+lag probabilities, and source summaries stay visible under `LIMITED` quality
+with explicit caution instead of being suppressed.
 
-Typed failures distinguish preparation, metadata/representation, focal or
-target variation, common-lag rows, scaling, source identity, convergence, lag
-mixing, precision, numerical SPD/non-finite state, cancellation, and unexpected
-runtime failure. `StrictFailureDiagnostics` is the single app-boundary owner of
-failure stage, affected feature/source, closed weeks and common rows, attempted
-lags/simplifications, observed R-hat/ESS/MCSE values and thresholds, sampling
-draws, fingerprints, retry identity, diagnostic ID, and bounded technical
-details. Stabilization retains its final functional window; production retains
-the actual failing functionals. Numerical diagnostics identify the operation
-and safe matrix dimensions without dumping matrices.
+`AnalysisAdjustmentTrace` records ordered semantic fallback, control removal,
+optional-candidate reduction, Pmax degradation, sampling-budget extension,
+and final diagnostic classification. Events contain only bounded provenance
+and before/after fingerprints, never raw workout history. Model-changing
+prefit adjustments rebuild canonical Phase A; sampling continuation explicitly
+records that model structure did not change.
 
-RELAXED is not available for numerical SPD/non-finite state, unavailable data,
-focal/target variation failure, incomplete metadata/source identity,
-unsupported representation, invalid scaling, stale result, cancellation, or
-unexpected internal failure. Neither profile changes the likelihood, priors,
-group-Horseshoe equations, tau0 calibration, observation-space kernel, Sigma/B
-update order, or Rao-Blackwellized lag posterior.
+Typed blockers distinguish preparation, metadata/representation, focal or
+target variation, common-lag rows, scaling, source identity, numerical
+SPD/non-finite state, cancellation, stale execution, and unexpected runtime
+failure. Historical convergence, lag-mixing, and precision failure-code names
+may remain inside compatibility paths, but the automatic app path treats their
+observations as quality diagnostics whenever a finite posterior exists.
+Neither diagnostic profile changes the likelihood, priors, group-Horseshoe
+equations, tau0 calibration, observation-space kernel, Sigma/B update order, or
+Rao-Blackwellized lag posterior.
 
 ## App Boundary
 
@@ -199,20 +212,30 @@ an immutable stable-key request, waits for a fresh snapshot, runs CPU work off
 the main thread, exposes named stages, cancels on selection changes, and rejects
 stale completion by request token plus snapshot fingerprint.
 
-The picker reads snapshot capability descriptors and shows explicit `엄격` and
-`완화` analysis-mode choices before execution. It does not use the
-dashboard 8/12-week window or `AnalysisMetricRegistry.minPoints=8`. The UI
-shows posterior medians and 80% intervals and the official Rao-Blackwellized
-lag probabilities. A RELAXED result retains a persistent exploratory marker
-and lists only relaxations actually applied. Raw local scales remain internal.
-Failure details are user-expanded and render bounded structured diagnostics;
-ordinary successful output is not flooded with technical values.
+The picker reads snapshot capability descriptors and exposes one normal
+`Bayesian 분석하기` action. There is no pre-analysis STRICT/RELAXED selector or
+manual relaxed-result rescue. It does not use the dashboard 8/12-week window
+or `AnalysisMetricRegistry.minPoints=8`.
 
-Failure export uses Storage Access Framework `CreateDocument(text/plain)` and
-one pure formatter. The bounded report contains request/effective controls,
-routes, row/lag and sampler observations, fingerprints, app version, and a
-BuildConfig commit SHA resolved from `GITHUB_SHA`, local Git, or `unknown`. It
-does not export workout-set history or profile data.
+An `AVAILABLE` card always shows mathematically defined posterior medians,
+80% intervals, and lag/source summaries, plus a compact `엄격 기준 충족`,
+`완화 기준 충족`, or `제한적` diagnostic label and the automatic-adjustment
+count. A true blocker shows `분석할 수 없음`. Both surfaces expose one
+scrollable `분석 상세` view backed by `BayesianAnalysisReport`.
+
+The same canonical report powers UI details and Storage Access Framework
+`CreateDocument(text/plain)` export for every available classification and for
+unavailable outcomes. It contains original/effective requests, model and row
+provenance, ordered adjustments, execution-time strict/relaxed policy
+snapshots, recent diagnostic windows, posterior or terminal blocker, app
+version, and BuildConfig commit SHA. Raw workout history and profile data are
+excluded.
+
+The protocol registry was audited for this redesign. The Strict Bayesian Lab
+remains an architecture/app integration contract rather than a separately
+registry-managed protocol family; the existing registry reference is only a
+supporting document of the strength-performance family, so registry ownership
+and versions remain unchanged.
 
 ## Legacy Boundary
 
@@ -224,12 +247,14 @@ and prevents dashboard-window data from re-entering the strict route.
 
 ## Validation Evidence And Limits
 
-Automated coverage includes threshold separation, full-history publication,
-lineage/common-row checks, conditional carrier/scaling, tau0 and p0 behavior,
-observation/coefficient reference equivalence, deterministic kernel identity,
-lag recovery and Rao-Blackwellization, partial-active/high-collinearity and
-complete-null fixtures, ordinary/regularized reference behavior, functional
-diagnostic gates, APP/VALIDATION policy agreement, and stale-result handling.
+Automated coverage includes threshold separation, automatic STRICT/RELAXED/
+LIMITED classification, non-blocking finite posterior summaries, unchanged
+model identity during sampling continuation, automatic representation and
+control adjustments, full-history publication, conditional carrier/scaling,
+tau0 and p0 behavior, observation/coefficient reference equivalence,
+deterministic kernel identity, lag recovery and Rao-Blackwellization,
+functional diagnostic gates, universal reports/export, narrow-screen UI, and
+stale/cancellation handling.
 
 The desktop JVM benchmark harness measures weekly publication, Phase A, and a
 short validation Phase B separately. It is not Android thermal, battery, or

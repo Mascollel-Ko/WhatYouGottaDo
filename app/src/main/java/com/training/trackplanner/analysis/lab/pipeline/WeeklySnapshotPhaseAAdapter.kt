@@ -86,6 +86,21 @@ internal data class StrictFeatureSelection(
 }
 
 internal object WeeklySnapshotPhaseAAdapter {
+    fun isSemanticallyUsable(
+        snapshot: WeeklyAnalysisFeatureSnapshot,
+        feature: AnalysisFeatureKey,
+        week: LocalDate
+    ): Boolean {
+        val cell = snapshot.cell(feature, week) ?: return false
+        val family = snapshot.descriptors[feature]?.family ?: return false
+        return when {
+            cell.state in setOf(WeeklyCellState.OBSERVED, WeeklyCellState.STRUCTURAL_ZERO) ->
+                cell.value?.isFinite() == true
+            family == AnalysisFeatureFamily.CONDITIONAL_RPE && cell.state == WeeklyCellState.NOT_APPLICABLE -> true
+            else -> false
+        }
+    }
+
     fun adapt(
         snapshot: WeeklyAnalysisFeatureSnapshot,
         strictRequest: StrictFeatureSelection,

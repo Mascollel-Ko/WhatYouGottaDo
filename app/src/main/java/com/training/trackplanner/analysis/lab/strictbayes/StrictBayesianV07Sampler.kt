@@ -5,6 +5,10 @@ import com.training.trackplanner.analysis.lab.StrictFailureDiagnostics
 import com.training.trackplanner.analysis.lab.StrictFailureStage
 import com.training.trackplanner.analysis.lab.StrictLabFailureCode
 import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
+import com.training.trackplanner.analysis.lab.StrictSamplingAssessment
+import com.training.trackplanner.analysis.lab.StrictSamplingDiagnosticClassification
+import com.training.trackplanner.analysis.lab.StrictSamplingDiagnosticWindow
+import com.training.trackplanner.analysis.lab.StrictSamplingPolicySnapshot
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisSourceKey
 import com.training.trackplanner.analysis.lab.pipeline.PreparedBvarComparisonDesign
 import com.training.trackplanner.analysis.lab.pipeline.StrictSeriesKey
@@ -38,6 +42,20 @@ internal data class StrictSamplingPolicy(
     val maximumMcseToSd: Double,
     val fingerprint: String
 ) {
+    fun snapshot(identity: String = reliabilityMode.name): StrictSamplingPolicySnapshot =
+        StrictSamplingPolicySnapshot(
+            identity = identity,
+            chains = chains,
+            maximumRhat = maximumRhat,
+            minimumEss = minimumEss,
+            maximumMcseToSd = maximumMcseToSd,
+            consecutiveStabilizationPasses = consecutiveStabilizationPasses,
+            stabilizationCap = stabilizationCap,
+            productionMaximum = productionMaximum,
+            precisionExtensionMaximum = precisionExtensionMaximum,
+            fingerprint = fingerprint
+        )
+
     companion object {
         fun appRuntime(): StrictSamplingPolicy = create(
             StrictSamplingMode.APP_RUNTIME,
@@ -87,6 +105,28 @@ internal data class StrictSamplingPolicy(
             maximumMcseToSd = 0.20,
             maximumRhat = 1.05
         )
+
+        fun relaxedContinuation(strict: StrictSamplingPolicy): StrictSamplingPolicy =
+            if (strict.mode == StrictSamplingMode.APP_RUNTIME) {
+                relaxedAppRuntime()
+            } else {
+                create(
+                    mode = strict.mode,
+                    reliabilityMode = StrictSamplingReliabilityMode.RELAXED,
+                    chains = strict.chains,
+                    stabilizationMinimum = strict.stabilizationMinimum,
+                    diagnosticWindow = strict.diagnosticWindow,
+                    blockSize = strict.blockSize,
+                    consecutiveStabilizationPasses = 1,
+                    stabilizationCap = max(strict.stabilizationCap, strict.stabilizationMinimum),
+                    productionMinimum = strict.productionMinimum,
+                    productionMaximum = strict.productionMaximum,
+                    precisionExtensionMaximum = strict.precisionExtensionMaximum,
+                    minimumEss = min(strict.minimumEss, 50.0),
+                    maximumMcseToSd = max(strict.maximumMcseToSd, 0.20),
+                    maximumRhat = max(strict.maximumRhat, 1.05)
+                )
+            }
 
         internal fun testing(
             chains: Int = 4,
@@ -225,7 +265,8 @@ internal data class StrictBayesianV07Result(
     val retryAttempt: Int,
     val samplingIdentityFingerprint: String,
     val preparedInputFingerprint: String,
-    val fingerprint: String
+    val fingerprint: String,
+    val samplingAssessment: StrictSamplingAssessment? = null
 )
 
 internal sealed interface StrictBayesianV07Outcome {
@@ -458,6 +499,176 @@ internal class StrictBayesianV07Sampler(
         }
     }
 
+    /** App path: preserve one prepared model and chain state while diagnostics become descriptive. */
+    fun sampleAutomatically(
+        relaxedPolicy: StrictSamplingPolicy = StrictSamplingPolicy.relaxedContinuation(policy),
+        onStage: (StrictBayesianSamplingStage) -> Unit = {},
+        isCancelled: () -> Boolean = { false }
+    ): StrictBayesianV07Outcome {
+        require(relaxedPolicy.chains == policy.chains)
+        require(relaxedPolicy.stabilizationCap >= policy.stabilizationCap)
+        require(relaxedPolicy.productionMaximum == policy.productionMaximum)
+        require(relaxedPolicy.precisionExtensionMaximum == policy.precisionExtensionMaximum)
+        return try {
+            val kernel = StrictBayesianV07Kernel(design)
+            val seeds = LongArray(policy.chains, samplingIdentity::seedForChain)
+            val randoms = seeds.map(::StrictRandom)
+            var states = List(policy.chains) { chain ->
+                kernel.initialState(design.designsByLag.keys.sorted()[chain % design.designsByLag.size])
+            }
+            val windows = ArrayDeque<StrictSamplingDiagnosticWindow>(4)
+            fun retain(window: StrictSamplingDiagnosticWindow) {
+                if (windows.size == 4) windows.removeFirst()
+                windows.addLast(window)
+            }
+
+            onStage(StrictBayesianSamplingStage.STABILIZING)
+            val warmup = List(policy.chains) { ChainTrace(design) }
+            var warmupDraws = 0
+            var strictPasses = 0
+            var relaxedPasses = 0
+            while (warmupDraws < relaxedPolicy.stabilizationCap) {
+                checkCancellation(isCancelled)
+                val target = if (warmupDraws == 0) {
+                    policy.stabilizationMinimum
+                } else {
+                    min(relaxedPolicy.stabilizationCap, warmupDraws + policy.blockSize)
+                }
+                states = runUntil(kernel, states, randoms, warmup, warmupDraws, target, isCancelled)
+                warmupDraws = target
+                onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
+                val statistics = stabilizationDiagnostics(warmup.map { it.tail(policy.diagnosticWindow) })
+                val strictPass = statistics.all { it.statistics.rhat.isFinite() && it.statistics.rhat < policy.maximumRhat }
+                val relaxedPass = statistics.all {
+                    it.statistics.rhat.isFinite() && it.statistics.rhat < relaxedPolicy.maximumRhat
+                }
+                strictPasses = if (strictPass) strictPasses + 1 else 0
+                relaxedPasses = if (relaxedPass) relaxedPasses + 1 else 0
+                retain(
+                    diagnosticWindow(
+                        StrictFailureStage.STABILIZATION,
+                        warmupDraws,
+                        statistics,
+                        strictPass,
+                        relaxedPass
+                    )
+                )
+                if (strictPasses >= policy.consecutiveStabilizationPasses) break
+                if (warmupDraws >= policy.stabilizationCap &&
+                    relaxedPasses >= relaxedPolicy.consecutiveStabilizationPasses
+                ) break
+                onStage(StrictBayesianSamplingStage.STABILIZING)
+            }
+            val strictStabilized = strictPasses >= policy.consecutiveStabilizationPasses
+            val relaxedStabilized = relaxedPasses >= relaxedPolicy.consecutiveStabilizationPasses
+
+            val production = List(policy.chains) { ChainTrace(design) }
+            var productionDraws = 0
+            var strictReliability: Reliability? = null
+            var relaxedReliability: Reliability? = null
+            onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
+            while (productionDraws < policy.precisionExtensionMaximum) {
+                checkCancellation(isCancelled)
+                val target = if (productionDraws == 0) {
+                    policy.productionMinimum
+                } else {
+                    min(policy.precisionExtensionMaximum, productionDraws + policy.blockSize)
+                }
+                states = runUntil(kernel, states, randoms, production, productionDraws, target, isCancelled)
+                productionDraws = target
+                onStage(StrictBayesianSamplingStage.CHECKING_RELIABILITY)
+                strictReliability = reliability(production, policy)
+                relaxedReliability = reliability(production, relaxedPolicy)
+                val strictMet = strictStabilized && strictReliability.passed
+                val relaxedMet = relaxedStabilized && relaxedReliability.passed
+                retain(
+                    diagnosticWindow(
+                        StrictFailureStage.PRODUCTION,
+                        productionDraws,
+                        strictReliability.statistics,
+                        strictMet,
+                        relaxedMet
+                    )
+                )
+                val classification = when {
+                    strictMet -> StrictSamplingDiagnosticClassification.STRICT
+                    relaxedMet -> StrictSamplingDiagnosticClassification.RELAXED
+                    else -> null
+                }
+                if (classification != null) {
+                    onStage(StrictBayesianSamplingStage.SUMMARIZING)
+                    val assessment = samplingAssessment(
+                        classification,
+                        relaxedPolicy,
+                        windows.toList(),
+                        warmupDraws,
+                        productionDraws,
+                        strictMet,
+                        relaxedMet,
+                        relaxedReliability.failureCode == StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED
+                    )
+                    return StrictBayesianV07Outcome.Success(
+                        summarize(production, productionDraws, assessment),
+                        automaticSamplingDiagnostics(assessment)
+                    )
+                }
+                if (productionDraws >= policy.productionMaximum) {
+                    onStage(StrictBayesianSamplingStage.EXTENDING_SAMPLING)
+                } else {
+                    onStage(StrictBayesianSamplingStage.SAMPLING_POSTERIOR)
+                }
+            }
+            onStage(StrictBayesianSamplingStage.SUMMARIZING)
+            val finalRelaxed = requireNotNull(relaxedReliability)
+            val assessment = samplingAssessment(
+                StrictSamplingDiagnosticClassification.LIMITED,
+                relaxedPolicy,
+                windows.toList(),
+                warmupDraws,
+                productionDraws,
+                strictCriteriaMet = false,
+                relaxedCriteriaMet = false,
+                lagMixingConcern = finalRelaxed.failureCode == StrictBayesianFailureCode.LAG_POSTERIOR_MIXING_FAILED
+            )
+            StrictBayesianV07Outcome.Success(
+                summarize(production, productionDraws, assessment),
+                automaticSamplingDiagnostics(assessment)
+            )
+        } catch (failure: CancellationException) {
+            StrictBayesianV07Outcome.Failure(
+                StrictBayesianFailureCode.CANCELLED,
+                samplingFailure(
+                    StrictBayesianFailureCode.CANCELLED,
+                    StrictFailureStage.PRODUCTION,
+                    "Sampling was cancelled",
+                    technicalDetails = listOf("Sampling cancelled")
+                )
+            )
+        } catch (failure: StrictBayesianNumericalException) {
+            val code = if (failure.message.orEmpty().contains("SPD")) {
+                StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE
+            } else {
+                StrictBayesianFailureCode.NONFINITE_STATE
+            }
+            StrictBayesianV07Outcome.Failure(
+                code,
+                samplingFailure(
+                    code,
+                    StrictFailureStage.NUMERICAL,
+                    if (code == StrictBayesianFailureCode.NUMERICAL_SPD_FAILURE) {
+                        "A strict SPD operation failed"
+                    } else {
+                        "A non-finite sampler state was detected"
+                    },
+                    technicalDetails = listOfNotNull(
+                        failure.message,
+                        failure.cause?.let { "cause=${it::class.qualifiedName}:${it.message}" }
+                    )
+                )
+            )
+        }
+    }
+
     private fun runUntil(
         kernel: StrictBayesianV07Kernel,
         initialStates: List<StrictBayesianV07State>,
@@ -496,7 +707,10 @@ internal class StrictBayesianV07Sampler(
             }
         }
 
-    private fun reliability(traces: List<ChainTrace>): Reliability {
+    private fun reliability(
+        traces: List<ChainTrace>,
+        criteria: StrictSamplingPolicy = policy
+    ): Reliability {
         val statistics = mutableListOf<NamedStatistics>()
         var rhatFailure = false
         var precisionFailure = false
@@ -504,12 +718,12 @@ internal class StrictBayesianV07Sampler(
         fun inspect(name: String, chains: List<DoubleArray>, lagQuantity: Boolean = false) {
             val observed = StrictChainDiagnostics.statistics(chains)
             statistics += NamedStatistics(name, observed)
-            if (!observed.rhat.isFinite() || observed.rhat >= policy.maximumRhat) {
+            if (!observed.rhat.isFinite() || observed.rhat >= criteria.maximumRhat) {
                 rhatFailure = true
                 lagFailure = lagFailure || lagQuantity
             }
-            if (observed.bulkEss < policy.minimumEss || observed.tailEss < policy.minimumEss ||
-                observed.mcseToSd > policy.maximumMcseToSd
+            if (observed.bulkEss < criteria.minimumEss || observed.tailEss < criteria.minimumEss ||
+                observed.mcseToSd > criteria.maximumMcseToSd
             ) {
                 precisionFailure = true
             }
@@ -536,7 +750,11 @@ internal class StrictBayesianV07Sampler(
         )
     }
 
-    private fun summarize(traces: List<ChainTrace>, drawsPerChain: Int): StrictBayesianV07Result {
+    private fun summarize(
+        traces: List<ChainTrace>,
+        drawsPerChain: Int,
+        assessment: StrictSamplingAssessment? = null
+    ): StrictBayesianV07Result {
         val lagProbability = design.designsByLag.keys.associateWith { lag -> traces.flatMap { it.omega(lag).asIterable() }.average() }
         val visits = design.designsByLag.keys.associateWith { lag ->
             traces.sumOf { trace -> trace.lags().count { it == lag } }.toDouble() / (drawsPerChain * traces.size)
@@ -559,13 +777,16 @@ internal class StrictBayesianV07Sampler(
                 openness,
                 contribution,
                 coefficient,
-                relevanceAvailable = openness.rhat < policy.maximumRhat &&
-                    openness.bulkEss >= policy.minimumEss && openness.tailEss >= policy.minimumEss
+                relevanceAvailable = listOf(openness, contribution, coefficient).all { it.hasFiniteEstimate() }
             )
         }
         val global = StrictChainDiagnostics.summary(traces.map(ChainTrace::globalCandidateScale))
         val dynamic = StrictChainDiagnostics.summary(traces.map(ChainTrace::dynamicScale))
-        return StrictBayesianV07Result(
+        val classification = assessment?.classification ?: when (policy.reliabilityMode) {
+            StrictSamplingReliabilityMode.STRICT -> StrictSamplingDiagnosticClassification.STRICT
+            StrictSamplingReliabilityMode.RELAXED -> StrictSamplingDiagnosticClassification.RELAXED
+        }
+        val result = StrictBayesianV07Result(
             lagProbability,
             visits,
             responses,
@@ -574,7 +795,11 @@ internal class StrictBayesianV07Sampler(
             dynamic,
             drawsPerChain,
             policy.fingerprint,
-            policy.reliabilityMode,
+            if (classification == StrictSamplingDiagnosticClassification.STRICT) {
+                StrictSamplingReliabilityMode.STRICT
+            } else {
+                StrictSamplingReliabilityMode.RELAXED
+            },
             retryAttempt,
             samplingIdentity.fingerprint,
             design.input.fingerprint,
@@ -589,10 +814,69 @@ internal class StrictBayesianV07Sampler(
                     },
                     sourceSummaries.toSortedMap().entries.joinToString("|") { "${it.key}:${it.value.contribution.mean}" },
                     drawsPerChain,
+                    classification.name,
                     STRICT_BAYESIAN_V07_RESULT_VERSION
                 )
-            )
+            ),
+            assessment
         )
+        if (!result.isFinite()) {
+            throw StrictBayesianNumericalException("NONFINITE_STATE: posterior summary")
+        }
+        return result
+    }
+
+    private fun diagnosticWindow(
+        stage: StrictFailureStage,
+        drawsPerChain: Int,
+        statistics: List<NamedStatistics>,
+        strictCriteriaMet: Boolean,
+        relaxedCriteriaMet: Boolean
+    ): StrictSamplingDiagnosticWindow {
+        val worstRhat = statistics.maxByOrNull { it.statistics.rhat } ?: error("missing diagnostics")
+        return StrictSamplingDiagnosticWindow(
+            stage = stage,
+            drawsPerChain = drawsPerChain,
+            worstRhat = worstRhat.statistics.rhat,
+            worstRhatFunctional = worstRhat.name,
+            minimumBulkEss = statistics.minOf { it.statistics.bulkEss },
+            minimumTailEss = statistics.minOf { it.statistics.tailEss },
+            worstMcseToSd = statistics.maxOf { it.statistics.mcseToSd },
+            strictCriteriaMet = strictCriteriaMet,
+            relaxedCriteriaMet = relaxedCriteriaMet
+        )
+    }
+
+    private fun samplingAssessment(
+        classification: StrictSamplingDiagnosticClassification,
+        relaxedPolicy: StrictSamplingPolicy,
+        windows: List<StrictSamplingDiagnosticWindow>,
+        warmupDraws: Int,
+        productionDraws: Int,
+        strictCriteriaMet: Boolean,
+        relaxedCriteriaMet: Boolean,
+        lagMixingConcern: Boolean
+    ): StrictSamplingAssessment = StrictSamplingAssessment(
+        classification = classification,
+        strictPolicy = policy.snapshot("STRICT"),
+        relaxedPolicy = relaxedPolicy.snapshot("RELAXED"),
+        recentWindows = windows.takeLast(4),
+        stabilizationDrawsPerChain = warmupDraws,
+        productionDrawsPerChain = productionDraws,
+        strictCriteriaMet = strictCriteriaMet,
+        relaxedCriteriaMet = relaxedCriteriaMet,
+        lagMixingConcern = lagMixingConcern
+    )
+
+    private fun automaticSamplingDiagnostics(assessment: StrictSamplingAssessment): List<String> = buildList {
+        add("official lag probabilities are Rao-Blackwellized mean omega")
+        add("raw local Horseshoe scales are diagnostic-only")
+        add("stabilization draws were discarded")
+        add("sampling classification=${assessment.classification.name}")
+        if (assessment.classification == StrictSamplingDiagnosticClassification.LIMITED) {
+            add("finite posterior retained despite unmet relaxed diagnostic targets")
+        }
+        if (assessment.lagMixingConcern) add("lag mixing diagnostic target was not met")
     }
 
     private fun samplingFailure(
@@ -666,12 +950,31 @@ internal class StrictBayesianV07Sampler(
         val failureCode: StrictBayesianFailureCode?,
         val statistics: List<NamedStatistics>
     ) {
+        val passed: Boolean
+            get() = !rhatFailure && !precisionFailure
+
         fun failedObservations(policy: StrictSamplingPolicy): List<StrictDiagnosticObservation> =
             statistics.map { it.reliabilityObservation(policy) }.filterNot { it.passed == true }
     }
 
     private class CancellationException : RuntimeException()
 }
+
+private fun StrictPosteriorSummary.hasFiniteEstimate(): Boolean = listOf(
+    mean,
+    median,
+    lower80,
+    upper80
+).all(Double::isFinite)
+
+private fun StrictBayesianV07Result.isFinite(): Boolean =
+    officialLagProbability.values.all(Double::isFinite) &&
+        lagVisitationFrequency.values.all(Double::isFinite) &&
+        responses.values.flatten().all { it.posterior.hasFiniteEstimate() } &&
+        sourceSummaries.values.all { summary ->
+            summary.openness.hasFiniteEstimate() && summary.contribution.hasFiniteEstimate() &&
+                summary.coefficientRms.hasFiniteEstimate()
+        } && globalCandidateScale.hasFiniteEstimate() && dynamicScale.hasFiniteEstimate()
 
 private fun StrictBayesianFailureCode.toLabFailureCode(): StrictLabFailureCode = when (this) {
     StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> StrictLabFailureCode.MCMC_CONVERGENCE_FAILED

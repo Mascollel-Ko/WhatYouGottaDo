@@ -8,7 +8,12 @@ application, tests, tooling, and protocol registry.
 - `docs/audits/`: audits referenced by current contracts or validation.
 - `docs/analysis_method_reviews/`: current analysis review templates.
 - `docs/reviews/`: reviewed copy required by current contract tests.
-- `docs/v0.5.0.27_release_notes.md`: release notes for the current version.
+- `docs/v0.5.0.38_strict_bayesian_reliability_retry_release_notes.md`: current
+  Strict Bayesian Lab release history and latest runtime-flow supersession.
+- `docs/bayesian_time_series_lab_architecture.md`: canonical Phase A/Phase B
+  architecture and result-availability semantics.
+- `docs/strict_bayesian_lab_app_integration.md`: current Lab orchestration, UI,
+  detail-report, and export contract.
 - `docs/codex_worklog.md`: cumulative implementation worklog.
 
 Older release notes, handoffs, superseded designs, and generated Markdown

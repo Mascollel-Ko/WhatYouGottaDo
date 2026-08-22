@@ -34,6 +34,14 @@ class StrictLabRelaxedPlanningPolicyTest {
         assertEquals(request, relaxed.effectiveRequest)
         assertNotEquals(strict.bundle.fingerprint, relaxed.bundle.fingerprint)
         assertTrue(relaxed.bundle.policy.fingerprint.isNotBlank())
+
+        val automatic = StrictLabRelaxedPlanningPolicy.planAutomatically(snapshot, request)
+        assertTrue(automatic is StrictLabPlanningOutcome.Success)
+        automatic as StrictLabPlanningOutcome.Success
+        assertTrue(automatic.adjustmentTrace.events.any { event ->
+            event.type == AnalysisAdjustmentType.REPRESENTATION_SEMANTIC_FALLBACK &&
+                event.triggerCode == "SHORT_HISTORY_DIAGNOSTIC_UNAVAILABLE"
+        })
     }
 
     @Test
@@ -84,6 +92,83 @@ class StrictLabRelaxedPlanningPolicyTest {
         assertEquals(
             StrictLabRelaxedPlanningPolicy.controlRemovalOrder(first, controls),
             StrictLabRelaxedPlanningPolicy.controlRemovalOrder(changed, controls)
+        )
+    }
+
+    @Test
+    fun `automatic planning removes controls one at a time but preserves X Y and horizon`() {
+        val request = StrictLabAnalysisRequest(X, listOf(Y), listOf(SPARSE_CONTROL, COMPLETE_CONTROL), 2)
+        val automatic = StrictLabRelaxedPlanningPolicy.planAutomatically(
+            snapshot(includeSparseControl = true),
+            request
+        )
+
+        assertTrue(automatic is StrictLabPlanningOutcome.Success)
+        automatic as StrictLabPlanningOutcome.Success
+        assertEquals(X, automatic.effectiveRequest.xFeature)
+        assertEquals(listOf(Y), automatic.effectiveRequest.yFeatures)
+        assertEquals(2, automatic.effectiveRequest.requestedHorizon)
+        assertEquals(listOf(COMPLETE_CONTROL), automatic.effectiveRequest.controls)
+        assertTrue(automatic.adjustmentTrace.events.any { it.type == AnalysisAdjustmentType.REMOVE_CONTROL })
+        assertTrue(automatic.adjustmentTrace.events.all { event ->
+            event.affected !in listOf(X.value, Y.value)
+        })
+    }
+
+    @Test
+    fun `conditional RPE no exposure carriers count as usable in control ranking`() {
+        val snapshot = conditionalRpeSnapshot()
+
+        assertEquals(
+            listOf(SPARSE_CONTROL, CONDITIONAL_RPE),
+            StrictLabRelaxedPlanningPolicy.controlRemovalOrder(
+                snapshot,
+                listOf(CONDITIONAL_RPE, SPARSE_CONTROL)
+            )
+        )
+    }
+
+    private fun conditionalRpeSnapshot(): WeeklyAnalysisFeatureSnapshot {
+        val weeks = (0 until 12).map { START.plusWeeks(it.toLong()) }
+        val descriptors = mapOf(
+            CONDITIONAL_RPE to AnalysisFeatureDescriptor(
+                CONDITIONAL_RPE,
+                AnalysisSourceKey.parse("exercise:barbell_back_squat"),
+                "Squat RPE",
+                AnalysisFeatureFamily.CONDITIONAL_RPE
+            ),
+            SPARSE_CONTROL to descriptor(
+                SPARSE_CONTROL,
+                TrendMetricId.SLEEP_HOURS,
+                "Sleep",
+                AnalysisFeatureFamily.RECOVERY_CHECK_IN
+            )
+        )
+        val cells = mapOf(
+            CONDITIONAL_RPE to weeks.mapIndexed { index, week ->
+                if (index % 3 == 0) {
+                    WeeklyFeatureCell(CONDITIONAL_RPE, week, WeeklyCellState.OBSERVED, 7.0, "fixture")
+                } else {
+                    WeeklyFeatureCell(CONDITIONAL_RPE, week, WeeklyCellState.NOT_APPLICABLE, null, "fixture")
+                }
+            },
+            SPARSE_CONTROL to weeks.mapIndexed { index, week ->
+                if (index in setOf(2, 9)) {
+                    WeeklyFeatureCell(SPARSE_CONTROL, week, WeeklyCellState.OBSERVED, index.toDouble(), "fixture")
+                } else {
+                    WeeklyFeatureCell(SPARSE_CONTROL, week, WeeklyCellState.MISSING, null, "fixture")
+                }
+            }
+        )
+        return WeeklyAnalysisFeatureSnapshot.createValidated(
+            weeks,
+            weeks.associateWith { AnalysisWeekState.CLOSED },
+            descriptors,
+            cells,
+            emptyList(),
+            1L,
+            "metadata-v1",
+            setOf("calculator-v1")
         )
     }
 
@@ -140,5 +225,6 @@ class StrictLabRelaxedPlanningPolicyTest {
         val Y: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.FATIGUE_COMPOSITE)
         val SPARSE_CONTROL: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.SLEEP_HOURS)
         val COMPLETE_CONTROL: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.STRENGTH_VOLUME)
+        val CONDITIONAL_RPE: AnalysisFeatureKey = AnalysisFeatureKey.exercise("barbell_back_squat", "mean_rpe")
     }
 }

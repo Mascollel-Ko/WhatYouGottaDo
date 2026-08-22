@@ -19,7 +19,6 @@ import com.training.trackplanner.analysis.fatigue.FatigueTarget
 import com.training.trackplanner.analysis.fatigue.HomeTodaySummaryState
 import com.training.trackplanner.analysis.lab.StrictBayesianLabCoordinator
 import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
-import com.training.trackplanner.analysis.lab.StrictLabAnalysisMode
 import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
 import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
 import com.training.trackplanner.analysis.lab.weekly.WeeklyAnalysisSnapshotState
@@ -602,19 +601,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         timeSeriesAnalysisCoordinator.updateRequest(request)
     }
 
-    internal fun runTimeSeriesAnalysis(
-        request: StrictLabAnalysisRequest,
-        analysisMode: StrictLabAnalysisMode
-    ) {
-        timeSeriesAnalysisCoordinator.analyze(request, analysisMode)
+    internal fun runTimeSeriesAnalysis(request: StrictLabAnalysisRequest) {
+        timeSeriesAnalysisCoordinator.analyze(request)
     }
 
     internal fun retryTimeSeriesAnalysis() {
         timeSeriesAnalysisCoordinator.retry()
-    }
-
-    internal fun retryTimeSeriesAnalysisRelaxed() {
-        timeSeriesAnalysisCoordinator.retryRelaxed()
     }
 
     internal fun cancelTimeSeriesAnalysis() {

@@ -15,7 +15,8 @@ internal sealed interface StrictLabPlanningOutcome {
         val effectiveRequest: StrictLabAnalysisRequest,
         val bundle: StrictPhaseAInputBundle,
         val planned: StrictBvarPlanningResult.Success,
-        val relaxationTrace: StrictRelaxationTrace
+        val relaxationTrace: StrictRelaxationTrace,
+        val adjustmentTrace: AnalysisAdjustmentTrace = AnalysisAdjustmentTrace()
     ) : StrictLabPlanningOutcome
 
     data class Failure(
@@ -23,39 +24,29 @@ internal sealed interface StrictLabPlanningOutcome {
         val effectiveRequest: StrictLabAnalysisRequest,
         val bundle: StrictPhaseAInputBundle,
         val planned: StrictBvarPlanningResult.Failure,
-        val relaxationTrace: StrictRelaxationTrace
+        val relaxationTrace: StrictRelaxationTrace,
+        val adjustmentTrace: AnalysisAdjustmentTrace = AnalysisAdjustmentTrace()
     ) : StrictLabPlanningOutcome
 }
 
 /** Uses only semantic policy and prefit availability, then reruns the canonical Phase A path. */
 internal object StrictLabRelaxedPlanningPolicy {
-    fun availableRoutes(
+    fun planAutomatically(
         snapshot: WeeklyAnalysisFeatureSnapshot,
-        request: StrictLabAnalysisRequest,
-        failureCode: StrictLabFailureCode,
-        analysisMode: StrictLabAnalysisMode,
-        diagnostics: List<String> = emptyList()
-    ): Set<StrictRelaxationRoute> {
-        if (analysisMode == StrictLabAnalysisMode.RELAXED) return emptySet()
-        return when (failureCode) {
-            StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
-            StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
-            StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED ->
-                setOf(StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY)
-            StrictLabFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN ->
-                setOf(StrictRelaxationRoute.REDUCE_CONTROLS_FOR_COMMON_ROWS).takeIf {
-                    request.controls.isNotEmpty()
-                }.orEmpty()
-            StrictLabFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT -> {
-                val hasInconclusive = diagnostics.any { it.contains("INCONCLUSIVE") }
-                val hasSemanticRoute = (listOf(request.xFeature) + request.yFeatures + request.controls).any { feature ->
-                    snapshot.descriptors[feature]?.family?.let(WeeklySnapshotPhaseAAdapter::semanticTransformation) != null
-                }
-                setOf(StrictRelaxationRoute.RELAXED_REPRESENTATION).takeIf {
-                    hasInconclusive && hasSemanticRoute
-                }.orEmpty()
-            }
-            else -> emptySet()
+        request: StrictLabAnalysisRequest
+    ): StrictLabPlanningOutcome {
+        val strict = plan(snapshot, request, StrictLabAnalysisMode.STRICT)
+        if (strict is StrictLabPlanningOutcome.Success) {
+            return strict.copy(adjustmentTrace = planningAdjustments(strict, strict.bundle.fingerprint))
+        }
+        val strictFingerprint = (strict as StrictLabPlanningOutcome.Failure).bundle.fingerprint
+        return when (val adjusted = plan(snapshot, request, StrictLabAnalysisMode.RELAXED)) {
+            is StrictLabPlanningOutcome.Success -> adjusted.copy(
+                adjustmentTrace = planningAdjustments(adjusted, strictFingerprint)
+            )
+            is StrictLabPlanningOutcome.Failure -> adjusted.copy(
+                adjustmentTrace = planningAdjustments(adjusted, strictFingerprint)
+            )
         }
     }
 
@@ -78,13 +69,12 @@ internal object StrictLabRelaxedPlanningPolicy {
             ) {
                 attemptedRoutes += StrictRelaxationRoute.RELAXED_REPRESENTATION
             }
-            if (planned is StrictBvarPlanningResult.Failure &&
-                planned.code == StrictBvarPlanningFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN &&
-                original.controls.isNotEmpty()
+            if (planned is StrictBvarPlanningResult.Failure && original.controls.isNotEmpty() &&
+                planned.code.isRemovableControlFailure()
             ) {
                 attemptedRoutes += StrictRelaxationRoute.REDUCE_CONTROLS_FOR_COMMON_ROWS
                 val removalOrder = controlRemovalOrder(snapshot, original.controls)
-                planningDetails += "full request exhausted canonical optional-candidate and Pmax degradation"
+                planningDetails += "full request exhausted canonical prefit planning before control reduction"
                 planningDetails += "controlReductionPolicy=$RELAXED_CONTROL_REDUCTION_POLICY_VERSION"
                 for (index in removalOrder.indices) {
                     val removed = removalOrder.take(index + 1).toSet()
@@ -102,9 +92,17 @@ internal object StrictLabRelaxedPlanningPolicy {
 
         val representationOverrides = if (planned is StrictBvarPlanningResult.Success) {
             planned.context.canonicalTransformationPlan.decisionsByMetric.values
-                .filter { it.decisionReason.startsWith("relaxed semantic representation:") }
+                .filter { decision ->
+                    decision.decisionReason.startsWith("relaxed semantic representation:") ||
+                        decision.decisionReason.startsWith("semantic short-history representation:")
+                }
                 .map { decision ->
-                    "${decision.metric.stableId}: INCONCLUSIVE -> semantic ${decision.transformation.name}"
+                    val observed = if (decision.decisionReason.startsWith("relaxed semantic representation:")) {
+                        "INCONCLUSIVE"
+                    } else {
+                        "DIAGNOSTIC_UNAVAILABLE_SHORT_HISTORY"
+                    }
+                    "${decision.metric.stableId}: $observed -> semantic ${decision.transformation.name}"
                 }
                 .sorted()
         } else {
@@ -143,9 +141,99 @@ internal object StrictLabRelaxedPlanningPolicy {
         snapshot: WeeklyAnalysisFeatureSnapshot,
         feature: com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
     ): Int = snapshot.closedWeeks.count { week ->
-        val cell = snapshot.cell(feature, week)
-        cell != null && cell.state in setOf(WeeklyCellState.OBSERVED, WeeklyCellState.STRUCTURAL_ZERO) &&
-            cell.value?.isFinite() == true
+        WeeklySnapshotPhaseAAdapter.isSemanticallyUsable(snapshot, feature, week)
+    }
+
+    private fun planningAdjustments(
+        outcome: StrictLabPlanningOutcome,
+        beforeFingerprint: String
+    ): AnalysisAdjustmentTrace {
+        val events = mutableListOf<AnalysisAdjustmentEvent>()
+        val trace = when (outcome) {
+            is StrictLabPlanningOutcome.Success -> outcome.relaxationTrace
+            is StrictLabPlanningOutcome.Failure -> outcome.relaxationTrace
+        }
+        val finalBundle = when (outcome) {
+            is StrictLabPlanningOutcome.Success -> outcome.bundle
+            is StrictLabPlanningOutcome.Failure -> outcome.bundle
+        }
+        trace.representationOverrides.forEach { override ->
+            val shortHistory = "DIAGNOSTIC_UNAVAILABLE_SHORT_HISTORY" in override
+            events += AnalysisAdjustmentEvent(
+                sequence = events.size + 1,
+                type = AnalysisAdjustmentType.REPRESENTATION_SEMANTIC_FALLBACK,
+                triggerCode = if (shortHistory) {
+                    "SHORT_HISTORY_DIAGNOSTIC_UNAVAILABLE"
+                } else {
+                    "INCONCLUSIVE_REPRESENTATION"
+                },
+                affected = override.substringBefore(':'),
+                observedCondition = override,
+                action = "approved semantic representation applied",
+                explanation = if (shortHistory) {
+                    "The approved short-history semantic representation was used because ADF/KPSS evidence was unavailable."
+                } else {
+                    "The reviewed feature-family representation was used after an inconclusive diagnostic."
+                },
+                modelStructureChanged = true,
+                samplingPolicyChanged = false,
+                beforeFingerprint = beforeFingerprint,
+                afterFingerprint = finalBundle.fingerprint
+            )
+        }
+        trace.removedControls.forEach { control ->
+            events += AnalysisAdjustmentEvent(
+                sequence = events.size + 1,
+                type = AnalysisAdjustmentType.REMOVE_CONTROL,
+                triggerCode = "CONTROL_PREFIT_UNAVAILABLE",
+                affected = control.value,
+                observedCondition = "The selected control prevented a feasible canonical Phase A model.",
+                action = "control removed and canonical Phase A rebuilt",
+                beforeValue = "included",
+                afterValue = "removed",
+                explanation = "Controls are removed one at a time using deterministic prefit usability only.",
+                modelStructureChanged = true,
+                samplingPolicyChanged = false,
+                beforeFingerprint = beforeFingerprint,
+                afterFingerprint = finalBundle.fingerprint
+            )
+        }
+        if (outcome is StrictLabPlanningOutcome.Success) {
+            outcome.planned.removedOptionalCandidates.forEach { candidate ->
+                events += AnalysisAdjustmentEvent(
+                    sequence = events.size + 1,
+                    type = AnalysisAdjustmentType.OPTIONAL_CANDIDATE_REDUCED,
+                    triggerCode = "OPTIONAL_CANDIDATE_PREFIT_DEGRADATION",
+                    affected = candidate.stableId,
+                    observedCondition = "The optional candidate reduced the feasible common-row domain.",
+                    action = "optional candidate removed before sampling",
+                    explanation = "The canonical optional-candidate degradation order was preserved.",
+                    modelStructureChanged = true,
+                    samplingPolicyChanged = false,
+                    beforeFingerprint = beforeFingerprint,
+                    afterFingerprint = outcome.planned.input.fingerprint
+                )
+            }
+            val comparison = outcome.planned.input.comparisonPlan
+            if (comparison.pmax < comparison.requestedPmax) {
+                events += AnalysisAdjustmentEvent(
+                    sequence = events.size + 1,
+                    type = AnalysisAdjustmentType.PMAX_DEGRADED,
+                    triggerCode = "COMMON_ROW_DOMAIN",
+                    affected = "Pmax",
+                    observedCondition = "The requested lag maximum did not preserve the minimum common-row domain.",
+                    action = "Pmax deterministically reduced",
+                    beforeValue = comparison.requestedPmax.toString(),
+                    afterValue = comparison.pmax.toString(),
+                    explanation = "Pmax was reduced no lower than the canonical minimum while minimumCommonRows remained 3.",
+                    modelStructureChanged = true,
+                    samplingPolicyChanged = false,
+                    beforeFingerprint = beforeFingerprint,
+                    afterFingerprint = outcome.planned.input.fingerprint
+                )
+            }
+        }
+        return AnalysisAdjustmentTrace(events)
     }
 
     private fun adapt(
@@ -165,5 +253,18 @@ internal object StrictLabRelaxedPlanningPolicy {
         excludedAutomaticFeatures
     )
 }
+
+private fun StrictBvarPlanningFailureCode.isRemovableControlFailure(): Boolean = this in setOf(
+    StrictBvarPlanningFailureCode.PREPARATION_FAILED,
+    StrictBvarPlanningFailureCode.FOCAL_FEATURE_UNAVAILABLE,
+    StrictBvarPlanningFailureCode.NO_FOCAL_VARIATION,
+    StrictBvarPlanningFailureCode.NO_TARGET_VARIATION,
+    StrictBvarPlanningFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN,
+    StrictBvarPlanningFailureCode.METADATA_INCOMPLETE,
+    StrictBvarPlanningFailureCode.REPRESENTATION_POLICY_UNAVAILABLE,
+    StrictBvarPlanningFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT,
+    StrictBvarPlanningFailureCode.SCALING_UNAVAILABLE,
+    StrictBvarPlanningFailureCode.SOURCE_IDENTITY_UNAVAILABLE
+)
 
 internal const val RELAXED_CONTROL_REDUCTION_POLICY_VERSION = "relaxed-control-reduction-prefit-availability-v1"

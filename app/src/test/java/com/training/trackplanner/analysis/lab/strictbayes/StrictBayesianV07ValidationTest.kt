@@ -2,6 +2,7 @@ package com.training.trackplanner.analysis.lab.strictbayes
 
 import com.training.trackplanner.analysis.lab.StrictFailureStage
 import com.training.trackplanner.analysis.lab.StrictSamplingReliabilityMode
+import com.training.trackplanner.analysis.lab.StrictSamplingDiagnosticClassification
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisSourceKey
 import com.training.trackplanner.analysis.lab.pipeline.BvarDesignMatrixMaterializer
 import com.training.trackplanner.analysis.lab.pipeline.BvarPreparedView
@@ -219,6 +220,81 @@ class StrictBayesianV07ValidationTest {
             typed.failure.observations.first { it.passed == false }.name,
             typed.failure.affectedFeatureOrSource
         )
+    }
+
+    @Test
+    fun `automatic sampling classifies strict without changing prepared model identity`() {
+        val design = syntheticDesign(signal = true)
+        val strict = StrictSamplingPolicy.testing(stabilization = 30, production = 60)
+        val sampler = StrictBayesianV07Sampler(design, strict)
+        val outcome = sampler.sampleAutomatically(
+            relaxedPolicy = StrictSamplingPolicy.testing(
+                stabilization = 30,
+                production = 60,
+                reliabilityMode = StrictSamplingReliabilityMode.RELAXED
+            )
+        )
+
+        assertTrue(outcome is StrictBayesianV07Outcome.Success)
+        val result = (outcome as StrictBayesianV07Outcome.Success).result
+        assertEquals(StrictSamplingDiagnosticClassification.STRICT, result.samplingAssessment?.classification)
+        assertEquals(design.input.fingerprint, result.preparedInputFingerprint)
+        assertEquals(design.input.fingerprint, sampler.samplingIdentity.preparedInputFingerprint)
+        assertEquals(design.fingerprint, sampler.samplingIdentity.designFingerprint)
+    }
+
+    @Test
+    fun `automatic sampling classifies relaxed after strict diagnostics miss`() {
+        val design = syntheticDesign(signal = true)
+        val strict = StrictSamplingPolicy.testing(
+            stabilization = 20,
+            production = 40,
+            maximumRhat = 1.000000000001,
+            minimumEss = 1_000_000.0,
+            maximumMcseToSd = 0.000001
+        )
+        val relaxed = StrictSamplingPolicy.testing(
+            stabilization = 20,
+            production = 40,
+            maximumRhat = 10.0,
+            minimumEss = 1.0,
+            maximumMcseToSd = 1.0,
+            reliabilityMode = StrictSamplingReliabilityMode.RELAXED
+        )
+        val outcome = StrictBayesianV07Sampler(design, strict).sampleAutomatically(relaxed)
+
+        assertTrue(outcome is StrictBayesianV07Outcome.Success)
+        val result = (outcome as StrictBayesianV07Outcome.Success).result
+        assertEquals(StrictSamplingDiagnosticClassification.RELAXED, result.samplingAssessment?.classification)
+        assertTrue(result.responses.values.flatten().all { it.posterior.median.isFinite() })
+    }
+
+    @Test
+    fun `finite posterior remains available as limited when relaxed diagnostics miss`() {
+        val design = syntheticDesign(signal = true)
+        val impossible = StrictSamplingPolicy.testing(
+            stabilization = 20,
+            production = 40,
+            maximumRhat = 1.000000000001,
+            minimumEss = 1_000_000.0,
+            maximumMcseToSd = 0.000001
+        )
+        val relaxedImpossible = StrictSamplingPolicy.testing(
+            stabilization = 20,
+            production = 40,
+            maximumRhat = 1.000000000001,
+            minimumEss = 1_000_000.0,
+            maximumMcseToSd = 0.000001,
+            reliabilityMode = StrictSamplingReliabilityMode.RELAXED
+        )
+        val outcome = StrictBayesianV07Sampler(design, impossible).sampleAutomatically(relaxedImpossible)
+
+        assertTrue(outcome is StrictBayesianV07Outcome.Success)
+        val result = (outcome as StrictBayesianV07Outcome.Success).result
+        assertEquals(StrictSamplingDiagnosticClassification.LIMITED, result.samplingAssessment?.classification)
+        assertTrue(result.officialLagProbability.values.all(Double::isFinite))
+        assertTrue(result.sourceSummaries.values.all { it.relevanceAvailable })
+        assertTrue(result.samplingAssessment?.recentWindows.orEmpty().size <= 4)
     }
 
     @Test

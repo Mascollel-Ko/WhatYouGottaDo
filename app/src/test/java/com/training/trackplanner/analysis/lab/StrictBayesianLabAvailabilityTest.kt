@@ -74,8 +74,8 @@ class StrictBayesianLabAvailabilityTest {
 
         val outcome = service.execute(snapshot, request, forcedExecutionPreflight)
 
-        assertTrue(outcome is StrictLabExecutionOutcome.Failure)
-        val failure = (outcome as StrictLabExecutionOutcome.Failure).failure
+        assertTrue(outcome is StrictLabExecutionOutcome.Unavailable)
+        val failure = (outcome as StrictLabExecutionOutcome.Unavailable).failure
         assertEquals(StrictFailureStage.PHASE_A, failure.stage)
         assertEquals(X.value, failure.affectedFeatureOrSource)
         assertEquals(12, failure.availableClosedWeeks)

@@ -140,6 +140,126 @@ internal data class StrictLabResponse(
     val points: List<StrictLabResponsePoint>
 )
 
+internal data class StrictLabSourceSummary(
+    val sourceId: String,
+    val contribution: StrictPosteriorSummary
+)
+
+internal enum class StrictAnalysisAvailability {
+    AVAILABLE,
+    UNAVAILABLE
+}
+
+internal enum class StrictSamplingDiagnosticClassification {
+    STRICT,
+    RELAXED,
+    LIMITED,
+    NOT_APPLICABLE
+}
+
+internal data class StrictSamplingPolicySnapshot(
+    val identity: String,
+    val chains: Int,
+    val maximumRhat: Double,
+    val minimumEss: Double,
+    val maximumMcseToSd: Double,
+    val consecutiveStabilizationPasses: Int,
+    val stabilizationCap: Int,
+    val productionMaximum: Int,
+    val precisionExtensionMaximum: Int,
+    val fingerprint: String
+)
+
+internal data class StrictSamplingDiagnosticWindow(
+    val stage: StrictFailureStage,
+    val drawsPerChain: Int,
+    val worstRhat: Double,
+    val worstRhatFunctional: String,
+    val minimumBulkEss: Double,
+    val minimumTailEss: Double,
+    val worstMcseToSd: Double,
+    val strictCriteriaMet: Boolean,
+    val relaxedCriteriaMet: Boolean
+)
+
+internal data class StrictSamplingAssessment(
+    val classification: StrictSamplingDiagnosticClassification,
+    val strictPolicy: StrictSamplingPolicySnapshot,
+    val relaxedPolicy: StrictSamplingPolicySnapshot,
+    val recentWindows: List<StrictSamplingDiagnosticWindow>,
+    val stabilizationDrawsPerChain: Int,
+    val productionDrawsPerChain: Int,
+    val strictCriteriaMet: Boolean,
+    val relaxedCriteriaMet: Boolean,
+    val lagMixingConcern: Boolean
+) {
+    init {
+        require(recentWindows.size <= 4)
+    }
+}
+
+internal enum class AnalysisAdjustmentType {
+    REPRESENTATION_SEMANTIC_FALLBACK,
+    REMOVE_CONTROL,
+    PMAX_DEGRADED,
+    OPTIONAL_CANDIDATE_REDUCED,
+    SAMPLING_BUDGET_EXTENDED,
+    SAMPLING_ASSESSMENT_RELAXED
+}
+
+internal data class AnalysisAdjustmentEvent(
+    val sequence: Int,
+    val type: AnalysisAdjustmentType,
+    val triggerCode: String,
+    val affected: String?,
+    val observedCondition: String,
+    val action: String,
+    val beforeValue: String? = null,
+    val afterValue: String? = null,
+    val explanation: String,
+    val modelStructureChanged: Boolean,
+    val samplingPolicyChanged: Boolean,
+    val beforeFingerprint: String? = null,
+    val afterFingerprint: String? = null
+) {
+    init {
+        require(sequence > 0)
+        require(triggerCode.isNotBlank() && observedCondition.isNotBlank() && action.isNotBlank())
+    }
+}
+
+internal data class AnalysisAdjustmentTrace(
+    val events: List<AnalysisAdjustmentEvent> = emptyList()
+) {
+    init {
+        require(events.map { it.sequence } == (1..events.size).toList())
+    }
+
+    val modelAdjustmentCount: Int
+        get() = events.count { it.modelStructureChanged }
+
+    val samplingAdjustmentCount: Int
+        get() = events.count { it.samplingPolicyChanged }
+
+    val fingerprint: String
+        get() = strictFingerprint(events.flatMap { event ->
+            listOf(
+                event.sequence,
+                event.type.name,
+                event.triggerCode,
+                event.affected.orEmpty(),
+                event.observedCondition,
+                event.action,
+                event.beforeValue.orEmpty(),
+                event.afterValue.orEmpty(),
+                event.modelStructureChanged,
+                event.samplingPolicyChanged,
+                event.beforeFingerprint.orEmpty(),
+                event.afterFingerprint.orEmpty()
+            )
+        })
+}
+
 internal data class StrictBayesianLabResult(
     val request: StrictLabAnalysisRequest,
     val responses: List<StrictLabResponse>,
@@ -156,7 +276,20 @@ internal data class StrictBayesianLabResult(
     val samplingReliabilityMode: StrictSamplingReliabilityMode = StrictSamplingReliabilityMode.STRICT,
     val samplingPolicyFingerprint: String = "",
     val retryAttempt: Int = 0,
-    val samplingIdentityFingerprint: String = ""
+    val samplingIdentityFingerprint: String = "",
+    val samplingAssessment: StrictSamplingAssessment? = null,
+    val adjustmentTrace: AnalysisAdjustmentTrace = AnalysisAdjustmentTrace(),
+    val effectiveCandidates: List<String> = emptyList(),
+    val representationDecisions: List<String> = emptyList(),
+    val closedWeeks: Int = 0,
+    val availableFrom: LocalDate? = null,
+    val availableUntil: LocalDate? = null,
+    val commonRows: Int = 0,
+    val selectedPmax: Int? = null,
+    val rowPlanFingerprint: String = "",
+    val scalingFingerprint: String = "",
+    val designFingerprint: String = "",
+    val sourceSummaries: List<StrictLabSourceSummary> = emptyList()
 ) {
     val resultFingerprint: String
         get() = strictFingerprint(
@@ -169,7 +302,9 @@ internal data class StrictBayesianLabResult(
                 preparationPolicyFingerprint,
                 effectivePlanFingerprint,
                 samplingPolicyFingerprint,
-                samplingIdentityFingerprint
+                samplingIdentityFingerprint,
+                samplingAssessment?.classification?.name.orEmpty(),
+                adjustmentTrace.fingerprint
             )
         )
 }
@@ -181,8 +316,7 @@ internal enum class StrictLabAnalysisMode {
 
 internal enum class StrictRelaxationRoute {
     RELAXED_REPRESENTATION,
-    REDUCE_CONTROLS_FOR_COMMON_ROWS,
-    RELAX_SAMPLING_RELIABILITY
+    REDUCE_CONTROLS_FOR_COMMON_ROWS
 }
 
 internal data class StrictRelaxationTrace(
@@ -228,6 +362,8 @@ internal enum class StrictLabFailureCode {
     NO_FOCAL_VARIATION,
     NO_FEASIBLE_COMMON_LAG_PLAN,
     METADATA_INCOMPLETE,
+    SCALING_UNAVAILABLE,
+    SOURCE_IDENTITY_UNAVAILABLE,
     REPRESENTATION_POLICY_UNAVAILABLE,
     REPRESENTATION_DIAGNOSTIC_CONFLICT,
     MCMC_CONVERGENCE_FAILED,
@@ -417,8 +553,11 @@ internal data class StrictFailureDiagnostics(
 }
 
 internal sealed interface StrictLabExecutionOutcome {
-    data class Success(val result: StrictBayesianLabResult) : StrictLabExecutionOutcome
-    data class Failure(val failure: StrictFailureDiagnostics) : StrictLabExecutionOutcome
+    data class Available(val result: StrictBayesianLabResult) : StrictLabExecutionOutcome
+    data class Unavailable(
+        val failure: StrictFailureDiagnostics,
+        val adjustmentTrace: AnalysisAdjustmentTrace = AnalysisAdjustmentTrace()
+    ) : StrictLabExecutionOutcome
 }
 
 internal sealed interface StrictBayesianLabUiState {
@@ -433,18 +572,18 @@ internal sealed interface StrictBayesianLabUiState {
         val request: StrictLabAnalysisRequest,
         val preflight: StrictLabPreflight,
         val stage: StrictLabExecutionStage,
-        val analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
         val retryAttempt: Int = 0
     ) : StrictBayesianLabUiState
-    data class Success(
+    data class Available(
         val request: StrictLabAnalysisRequest,
         val result: StrictBayesianLabResult,
         val preflight: StrictLabPreflight
     ) : StrictBayesianLabUiState
-    data class Failed(
+    data class Unavailable(
         val request: StrictLabAnalysisRequest,
         val preflight: StrictLabPreflight?,
-        val failure: StrictFailureDiagnostics
+        val failure: StrictFailureDiagnostics,
+        val adjustmentTrace: AnalysisAdjustmentTrace = AnalysisAdjustmentTrace()
     ) : StrictBayesianLabUiState {
         val code: StrictLabFailureCode get() = failure.code
         val message: String get() = failure.primaryReason

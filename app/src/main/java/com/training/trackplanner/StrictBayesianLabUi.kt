@@ -21,7 +21,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,9 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.StrictBayesianLabResult
 import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
-import com.training.trackplanner.analysis.lab.StrictFailureReportBuildIdentity
-import com.training.trackplanner.analysis.lab.StrictFailureReportFormatter
-import com.training.trackplanner.analysis.lab.StrictLabAnalysisMode
+import com.training.trackplanner.analysis.lab.BayesianAnalysisReport
+import com.training.trackplanner.analysis.lab.BayesianAnalysisReportBuildIdentity
+import com.training.trackplanner.analysis.lab.BayesianAnalysisReportFactory
+import com.training.trackplanner.analysis.lab.BayesianAnalysisReportFormatter
 import com.training.trackplanner.analysis.lab.StrictLabAnalysisRequest
 import com.training.trackplanner.analysis.lab.StrictLabBlocker
 import com.training.trackplanner.analysis.lab.StrictLabBlockerCode
@@ -53,20 +53,18 @@ import com.training.trackplanner.analysis.lab.StrictLabFailureCode
 import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
 import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
-import com.training.trackplanner.analysis.lab.StrictRelaxationRoute
+import com.training.trackplanner.analysis.lab.StrictSamplingDiagnosticClassification
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import java.util.Locale
-import java.time.LocalDate
 
 @Composable
 internal fun LaggedTimeSeriesAnalysisContent(
     featureCatalog: StrictLabFeatureCatalog,
     executionState: StrictBayesianLabUiState,
     onRequestChanged: (StrictLabAnalysisRequest) -> Unit,
-    onAnalyze: (StrictLabAnalysisRequest, StrictLabAnalysisMode) -> Unit,
+    onAnalyze: (StrictLabAnalysisRequest) -> Unit,
     onRetry: () -> Unit,
-    onRelaxedRetry: () -> Unit,
     onCancel: () -> Unit
 ) {
     val enabledX = featureCatalog.xFeatures.filter { it.enabled }
@@ -81,27 +79,58 @@ internal fun LaggedTimeSeriesAnalysisContent(
     var horizon by rememberSaveable { mutableStateOf(2) }
     var showYPicker by rememberSaveable { mutableStateOf(false) }
     var showControlPicker by rememberSaveable { mutableStateOf(false) }
-    var analysisMode by rememberSaveable { mutableStateOf(StrictLabAnalysisMode.STRICT) }
-    var pendingFailureReport by remember { mutableStateOf<String?>(null) }
+    var pendingReport by remember { mutableStateOf<BayesianAnalysisReport?>(null) }
+    var detailReport by remember { mutableStateOf<BayesianAnalysisReport?>(null) }
     var exportStatus by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val reportLauncher = if (LocalActivityResultRegistryOwner.current != null) {
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
             if (uri != null) {
                 exportStatus = runCatching {
-                    val report = requireNotNull(pendingFailureReport)
+                    val report = requireNotNull(pendingReport)
                     context.contentResolver.openOutputStream(uri)?.bufferedWriter(Charsets.UTF_8)?.use { writer ->
-                        writer.write(report)
+                        writer.write(BayesianAnalysisReportFormatter.format(report))
                     } ?: error("선택한 문서를 열 수 없습니다.")
                 }.fold(
-                    onSuccess = { "실패 기록을 내보냈습니다." },
-                    onFailure = { "실패 기록을 내보내지 못했습니다: ${it.message ?: it::class.simpleName}" }
+                    onSuccess = { "분석 기록을 내보냈습니다." },
+                    onFailure = { "분석 기록을 내보내지 못했습니다: ${it.message ?: it::class.simpleName}" }
                 )
-                pendingFailureReport = null
+                pendingReport = null
             }
         }
     } else {
         null
+    }
+    val displayNames = remember(featureCatalog.snapshotFingerprint) {
+        (featureCatalog.xFeatures + featureCatalog.responseFeatures + featureCatalog.controlFeatures)
+            .associate { it.key to it.displayName }
+    }
+    val buildIdentity = remember {
+        BayesianAnalysisReportBuildIdentity(
+            versionName = BuildConfig.VERSION_NAME,
+            versionCode = BuildConfig.VERSION_CODE,
+            gitCommitSha = BuildConfig.GIT_COMMIT_SHA
+        )
+    }
+    val outcomeReport = remember(executionState, displayNames, buildIdentity) {
+        when (executionState) {
+            is StrictBayesianLabUiState.Available -> BayesianAnalysisReportFactory.available(
+                executionState,
+                displayNames,
+                buildIdentity
+            )
+            is StrictBayesianLabUiState.Unavailable -> BayesianAnalysisReportFactory.unavailable(
+                executionState,
+                displayNames,
+                buildIdentity
+            )
+            else -> null
+        }
+    }
+    fun export(report: BayesianAnalysisReport) {
+        pendingReport = report
+        exportStatus = null
+        reportLauncher?.launch(report.exportFileName)
     }
 
     LaunchedEffect(featureCatalog.snapshotFingerprint) {
@@ -142,7 +171,7 @@ internal fun LaggedTimeSeriesAnalysisContent(
         StrictLabIntroductionCard()
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("엄격 Bayesian 시차 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Bayesian 시차 분석", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 if (enabledX.isEmpty() || enabledY.isEmpty()) {
                     InfoCard("전체 기록에서 분석 가능한 주간 지표를 준비하고 있습니다.")
                 } else {
@@ -180,23 +209,8 @@ internal fun LaggedTimeSeriesAnalysisContent(
                             TextButton(onClick = { horizon++ }, enabled = !running && horizon < 8) { Text("+") }
                         }
                     }
-                    Text("분석 기준", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        StrictLabAnalysisMode.entries.forEach { mode ->
-                            FilterChip(
-                                selected = analysisMode == mode,
-                                onClick = { analysisMode = mode },
-                                enabled = !running,
-                                label = { Text(if (mode == StrictLabAnalysisMode.STRICT) "엄격" else "완화") }
-                            )
-                        }
-                    }
                     Text(
-                        if (analysisMode == StrictLabAnalysisMode.STRICT) {
-                            "현재 엄격한 분석 기준을 사용합니다."
-                        } else {
-                            "일부 표현·모형 단순화·표본추출 기준을 완화한 탐색용 분석입니다."
-                        },
+                        "가장 엄격한 승인 경로부터 시작하고, 필요하면 허용된 조정을 자동 적용합니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -206,9 +220,9 @@ internal fun LaggedTimeSeriesAnalysisContent(
                         enabled = request != null &&
                             !running &&
                             (executionState as? StrictBayesianLabUiState.PreflightReady)?.preflight?.canAnalyze == true,
-                        onClick = { request?.let { onAnalyze(it, analysisMode) } }
+                        onClick = { request?.let(onAnalyze) }
                     ) {
-                        Text(if (analysisMode == StrictLabAnalysisMode.STRICT) "엄격 Bayesian 분석하기" else "완화 Bayesian 분석하기")
+                        Text("Bayesian 분석하기")
                     }
                     Text(
                         "전체 주간 기록으로 posterior를 표본추출합니다. 80% 구간이 넓으면 방향보다 불확실성을 우선해 해석하세요.",
@@ -219,36 +233,35 @@ internal fun LaggedTimeSeriesAnalysisContent(
             }
         }
         when (executionState) {
-            is StrictBayesianLabUiState.Running -> StrictRunningCard(executionState.stage, executionState.analysisMode)
-            is StrictBayesianLabUiState.Success -> StrictResultCard(executionState.result)
-            is StrictBayesianLabUiState.Failed -> StrictFailureCard(
+            is StrictBayesianLabUiState.Running -> StrictRunningCard(executionState.stage)
+            is StrictBayesianLabUiState.Available -> StrictResultCard(
+                result = executionState.result,
+                report = requireNotNull(outcomeReport),
+                exportStatus = exportStatus,
+                onDetails = { detailReport = outcomeReport },
+                onExport = { export(requireNotNull(outcomeReport)) }
+            )
+            is StrictBayesianLabUiState.Unavailable -> StrictUnavailableCard(
                 state = executionState,
+                report = requireNotNull(outcomeReport),
                 exportStatus = exportStatus,
                 onRetry = onRetry,
-                onRelaxedRetry = onRelaxedRetry,
-                onExport = {
-                    val displayNames = (featureCatalog.xFeatures + featureCatalog.responseFeatures + featureCatalog.controlFeatures)
-                        .associate { it.key to it.displayName }
-                    pendingFailureReport = StrictFailureReportFormatter.format(
-                        request = executionState.request,
-                        failure = executionState.failure,
-                        displayNames = displayNames,
-                        build = StrictFailureReportBuildIdentity(
-                            versionName = BuildConfig.VERSION_NAME,
-                            versionCode = BuildConfig.VERSION_CODE,
-                            gitCommitSha = BuildConfig.GIT_COMMIT_SHA
-                        )
-                    )
-                    exportStatus = null
-                    reportLauncher?.launch(
-                        "whatyougottado_bayesian_failure_${LocalDate.now()}_${executionState.diagnosticId}.txt"
-                    )
-                }
+                onDetails = { detailReport = outcomeReport },
+                onExport = { export(requireNotNull(outcomeReport)) }
             )
             StrictBayesianLabUiState.Idle,
             is StrictBayesianLabUiState.DataPreparing,
             is StrictBayesianLabUiState.PreflightReady -> Unit
         }
+    }
+
+    detailReport?.let { report ->
+        StrictAnalysisDetailDialog(
+            report = report,
+            exportStatus = exportStatus,
+            onDismiss = { detailReport = null },
+            onExport = { export(report) }
+        )
     }
 
     if (showYPicker) {
@@ -369,8 +382,8 @@ private fun StrictPreflightContent(state: StrictBayesianLabUiState) {
     val preflight = when (state) {
         is StrictBayesianLabUiState.PreflightReady -> state.preflight
         is StrictBayesianLabUiState.Running -> state.preflight
-        is StrictBayesianLabUiState.Success -> state.preflight
-        is StrictBayesianLabUiState.Failed -> state.preflight
+        is StrictBayesianLabUiState.Available -> state.preflight
+        is StrictBayesianLabUiState.Unavailable -> state.preflight
         StrictBayesianLabUiState.Idle,
         is StrictBayesianLabUiState.DataPreparing -> null
     } ?: return
@@ -387,47 +400,34 @@ private fun StrictPreflightContent(state: StrictBayesianLabUiState) {
 }
 
 @Composable
-private fun StrictRunningCard(stage: StrictLabExecutionStage, analysisMode: StrictLabAnalysisMode) {
+private fun StrictRunningCard(stage: StrictLabExecutionStage) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Row(modifier = Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    if (analysisMode == StrictLabAnalysisMode.STRICT) {
-                        "엄격 Bayesian 분석을 실행하고 있습니다."
-                    } else {
-                        "완화 Bayesian 분석을 실행하고 있습니다."
-                    },
+                    "Bayesian 분석을 실행하고 있습니다.",
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(strictStageLabel(stage, analysisMode), style = MaterialTheme.typography.bodySmall)
+                Text(strictStageLabel(stage), style = MaterialTheme.typography.bodySmall)
             }
         }
     }
 }
 
 @Composable
-private fun StrictResultCard(result: StrictBayesianLabResult) {
-    var showDetails by rememberSaveable { mutableStateOf(false) }
-    var showRelaxations by rememberSaveable { mutableStateOf(false) }
+private fun StrictResultCard(
+    result: StrictBayesianLabResult,
+    report: BayesianAnalysisReport,
+    exportStatus: String?,
+    onDetails: () -> Unit,
+    onExport: () -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Bayesian 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            if (result.analysisMode == StrictLabAnalysisMode.RELAXED) {
-                Text(
-                    "완화된 분석 기준으로 계산된 탐색적 결과입니다.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-                TextButton(onClick = { showRelaxations = !showRelaxations }) {
-                    Text(if (showRelaxations) "완화 적용 내용 접기" else "완화 적용 내용")
-                }
-                if (showRelaxations) {
-                    strictRelaxationDetails(result).forEach { detail ->
-                        Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+            Text("MCMC 진단: ${samplingClassificationLabel(report.samplingClassification)}")
+            Text("자동 조정: ${report.adjustmentTrace.events.size.takeIf { it > 0 }?.let { "${it}건" } ?: "없음"}")
             Text(result.summary)
             if (result.officialLagProbability.isNotEmpty()) {
                 Text(
@@ -450,58 +450,39 @@ private fun StrictResultCard(result: StrictBayesianLabResult) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (result.simplificationDiagnostics.isNotEmpty()) {
-                Text("현재 기록에서 계산 가능한 더 단순한 모형을 사용했습니다.", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { showDetails = !showDetails }) {
-                    Text(if (showDetails) "단순화 내용 접기" else "단순화 내용")
-                }
-                if (showDetails) {
-                    result.simplificationDiagnostics.forEach { diagnostic ->
-                        Text(diagnostic, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDetails) { Text("분석 상세") }
+                TextButton(onClick = onExport) { Text("내보내기") }
+            }
+            exportStatus?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-private fun StrictFailureCard(
-    state: StrictBayesianLabUiState.Failed,
+private fun StrictUnavailableCard(
+    state: StrictBayesianLabUiState.Unavailable,
+    report: BayesianAnalysisReport,
     exportStatus: String?,
     onRetry: () -> Unit,
-    onRelaxedRetry: () -> Unit,
+    onDetails: () -> Unit,
     onExport: () -> Unit
 ) {
-    var showDetails by rememberSaveable { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("분석을 완료하지 못했습니다", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("분석할 수 없음", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(state.message, color = MaterialTheme.colorScheme.error)
             Text(strictFailureNextStep(state.code), style = MaterialTheme.typography.bodySmall)
+            Text("자동 조정: ${report.adjustmentTrace.events.size}건 시도", style = MaterialTheme.typography.bodySmall)
             OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRetry) { Text("다시 시도") }
-            if (state.failure.analysisMode == StrictLabAnalysisMode.STRICT &&
-                state.failure.availableRelaxationRoutes.isNotEmpty()
-            ) {
-                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRelaxedRetry) {
-                    Text("완화해서 결과 보기")
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDetails) { Text("분석 상세") }
+                TextButton(onClick = onExport) { Text("내보내기") }
             }
-            if (state.diagnostics.isNotEmpty()) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { showDetails = !showDetails }) {
-                        Text(if (showDetails) "자세히 접기" else "자세히")
-                    }
-                    TextButton(onClick = onExport) { Text("실패 기록 내보내기") }
-                }
-                exportStatus?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (showDetails) {
-                    Text("실패 로그", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                    state.diagnosticId?.let { Text("진단 코드: $it", style = MaterialTheme.typography.labelSmall) }
-                    state.diagnostics.forEach { Text(it, style = MaterialTheme.typography.labelSmall) }
-                }
+            exportStatus?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -573,6 +554,37 @@ private fun StrictFeatureMultiSelectDialog(
     )
 }
 
+@Composable
+private fun StrictAnalysisDetailDialog(
+    report: BayesianAnalysisReport,
+    exportStatus: String?,
+    onDismiss: () -> Unit,
+    onExport: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
+        dismissButton = { TextButton(onClick = onExport) { Text("내보내기") } },
+        title = { Text("분석 상세") },
+        text = {
+            Column(
+                modifier = Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                report.sections.forEach { section ->
+                    Text(section.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    section.lines.forEach { line ->
+                        Text(line, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                exportStatus?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    )
+}
+
 private fun strictFeatureSummary(options: List<StrictLabFeatureOption>): String =
     options.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.displayName } ?: "선택 없음"
 
@@ -585,12 +597,8 @@ private fun strictBlockerMessage(blocker: StrictLabBlocker): String = when (bloc
     StrictLabBlockerCode.PHASE_A_INELIGIBLE -> "현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다."
 }
 
-private fun strictStageLabel(stage: StrictLabExecutionStage, analysisMode: StrictLabAnalysisMode): String = when (stage) {
-    StrictLabExecutionStage.PREPARING_STRICT_INPUT -> if (analysisMode == StrictLabAnalysisMode.STRICT) {
-        "엄격 분석 입력을 준비하는 중입니다."
-    } else {
-        "완화 분석 입력을 준비하는 중입니다."
-    }
+private fun strictStageLabel(stage: StrictLabExecutionStage): String = when (stage) {
+    StrictLabExecutionStage.PREPARING_STRICT_INPUT -> "승인된 분석 입력과 자동 조정 경로를 준비하는 중입니다."
     StrictLabExecutionStage.STABILIZING_CHAINS -> "Bayesian chain을 안정화하는 중입니다."
     StrictLabExecutionStage.SAMPLING_POSTERIOR -> "posterior를 표본추출하는 중입니다."
     StrictLabExecutionStage.CHECKING_PRECISION -> "수치 신뢰도를 확인하는 중입니다."
@@ -598,15 +606,12 @@ private fun strictStageLabel(stage: StrictLabExecutionStage, analysisMode: Stric
     StrictLabExecutionStage.SUMMARIZING_POSTERIOR -> "posterior 결과를 정리하는 중입니다."
 }
 
-private fun strictRelaxationDetails(result: StrictBayesianLabResult): List<String> = buildList {
-    addAll(result.relaxationTrace.representationOverrides)
-    result.relaxationTrace.removedControls.forEach { control ->
-        add("통제 ${control.value}: 공통행 확보를 위해 제외")
-    }
-    if (StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY in result.relaxationTrace.appliedRoutes) {
-        add("표본추출 신뢰도 기준: RELAXED")
-    }
-}.ifEmpty { listOf("선택한 완화 표본추출 기준을 적용했습니다.") }
+private fun samplingClassificationLabel(classification: StrictSamplingDiagnosticClassification): String = when (classification) {
+    StrictSamplingDiagnosticClassification.STRICT -> "엄격 기준 충족"
+    StrictSamplingDiagnosticClassification.RELAXED -> "완화 기준 충족"
+    StrictSamplingDiagnosticClassification.LIMITED -> "제한적"
+    StrictSamplingDiagnosticClassification.NOT_APPLICABLE -> "해당 없음"
+}
 
 private fun strictFailureNextStep(code: StrictLabFailureCode): String = when (code) {
     StrictLabFailureCode.DATA_NOT_READY,
@@ -617,6 +622,8 @@ private fun strictFailureNextStep(code: StrictLabFailureCode): String = when (co
     StrictLabFailureCode.NO_FOCAL_VARIATION -> "충격 지표의 주간 변화가 더 쌓인 뒤 다시 확인해 주세요."
     StrictLabFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN -> "통제 변수를 줄이거나 반응 확인 기간을 줄여 주세요."
     StrictLabFailureCode.METADATA_INCOMPLETE -> "분석에 필요한 canonical metadata가 준비된 뒤 다시 시도해 주세요."
+    StrictLabFailureCode.SCALING_UNAVAILABLE -> "필수 지표에 분석 가능한 변화가 있는지 확인해 주세요."
+    StrictLabFailureCode.SOURCE_IDENTITY_UNAVAILABLE -> "필수 지표의 canonical source가 준비된 뒤 다시 시도해 주세요."
     StrictLabFailureCode.REPRESENTATION_POLICY_UNAVAILABLE,
     StrictLabFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT -> "다른 지표 조합을 선택해 주세요."
     StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,

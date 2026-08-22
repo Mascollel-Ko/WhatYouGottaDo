@@ -15,6 +15,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,93 +25,53 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class StrictBayesianLabCoordinatorTest {
     @Test
-    fun `default analysis mode is strict`() = runTest {
+    fun `one analyze action runs the automatic service path`() = runTest {
         val snapshot = snapshot(1L)
-        val calls = mutableListOf<StrictLabAnalysisMode>()
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = fakeService { request, _, mode, _ ->
-                calls += mode
-                StrictLabExecutionOutcome.Success(successResult(request))
-            }
-        )
+        val attempts = mutableListOf<Int>()
+        val coordinator = coordinator(snapshot) { request, _, attempt ->
+            attempts += attempt
+            StrictLabExecutionOutcome.Available(successResult(request))
+        }
 
         coordinator.updateRequest(REQUEST)
         advanceUntilIdle()
         coordinator.analyze(REQUEST)
         advanceUntilIdle()
 
-        assertEquals(listOf(StrictLabAnalysisMode.STRICT), calls)
-        assertEquals(StrictSamplingReliabilityMode.STRICT, StrictLabAnalysisMode.STRICT.samplingPolicy().reliabilityMode)
-        assertEquals(StrictSamplingReliabilityMode.RELAXED, StrictLabAnalysisMode.RELAXED.samplingPolicy().reliabilityMode)
+        assertEquals(listOf(0), attempts)
+        assertState<StrictBayesianLabUiState.Available>(coordinator.state.value)
     }
 
     @Test
-    fun `relaxed can be selected before the first analysis`() = runTest {
-        val snapshot = snapshot(1L)
-        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = fakeService { request, _, mode, attempt ->
-                calls += mode to attempt
-                StrictLabExecutionOutcome.Success(successResult(request).copy(analysisMode = mode))
-            }
-        )
-
-        coordinator.updateRequest(REQUEST)
-        advanceUntilIdle()
-        coordinator.analyze(REQUEST, StrictLabAnalysisMode.RELAXED)
-        advanceUntilIdle()
-
-        assertEquals(listOf(StrictLabAnalysisMode.RELAXED to 0), calls)
-        val success = assertState<StrictBayesianLabUiState.Success>(coordinator.state.value)
-        assertEquals(StrictLabAnalysisMode.RELAXED, success.result.analysisMode)
-    }
-
-    @Test
-    fun `snapshot change rejects a completed stale posterior`() = runTest {
+    fun `snapshot change makes the completed result unavailable as stale`() = runTest {
         val snapshot = snapshot(1L)
         var currentFingerprint = snapshot.fingerprint
         val release = CompletableDeferred<Unit>()
-        val service = fakeService { request, preflight, _, _ ->
-            release.await()
-            StrictLabExecutionOutcome.Success(successResult(request))
-        }
         val coordinator = StrictBayesianLabCoordinator(
             scope = this,
             freshSnapshot = { Result.success(snapshot) },
             currentSnapshotFingerprint = { currentFingerprint },
-            service = service
+            service = fakeService { request, _, _ ->
+                release.await()
+                StrictLabExecutionOutcome.Available(successResult(request))
+            }
         )
 
         coordinator.updateRequest(REQUEST)
         advanceUntilIdle()
         coordinator.analyze(REQUEST)
-        assertState<StrictBayesianLabUiState.Running>(coordinator.state.value)
         currentFingerprint = "newer-snapshot"
         release.complete(Unit)
         advanceUntilIdle()
 
-        val failed = assertState<StrictBayesianLabUiState.Failed>(coordinator.state.value)
-        assertEquals(StrictLabFailureCode.STALE_RESULT_REJECTED, failed.code)
+        val unavailable = assertState<StrictBayesianLabUiState.Unavailable>(coordinator.state.value)
+        assertEquals(StrictLabFailureCode.STALE_RESULT_REJECTED, unavailable.code)
     }
 
     @Test
-    fun `selection change cancels in flight work and never publishes its result`() = runTest {
+    fun `selection change cancels in-flight work`() = runTest {
         val snapshot = snapshot(1L)
-        val service = fakeService { _, _, _, _ ->
-            awaitCancellation()
-        }
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = service
-        )
+        val coordinator = coordinator(snapshot) { _, _, _ -> awaitCancellation() }
         val changed = REQUEST.copy(requestedHorizon = 1)
 
         coordinator.updateRequest(REQUEST)
@@ -120,107 +81,58 @@ class StrictBayesianLabCoordinatorTest {
         coordinator.updateRequest(changed)
         advanceUntilIdle()
 
-        val ready = assertState<StrictBayesianLabUiState.PreflightReady>(coordinator.state.value)
-        assertEquals(changed, ready.request)
+        assertEquals(changed, assertState<StrictBayesianLabUiState.PreflightReady>(coordinator.state.value).request)
     }
 
     @Test
-    fun `wide but finite posterior remains a successful uncertain result`() = runTest {
+    fun `wide but finite posterior remains available`() = runTest {
         val snapshot = snapshot(1L)
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = fakeService { request, _, _, _ -> StrictLabExecutionOutcome.Success(successResult(request)) }
-        )
+        val coordinator = coordinator(snapshot) { request, _, _ ->
+            StrictLabExecutionOutcome.Available(successResult(request))
+        }
 
         coordinator.updateRequest(REQUEST)
         advanceUntilIdle()
         coordinator.analyze(REQUEST)
         advanceUntilIdle()
 
-        val success = assertState<StrictBayesianLabUiState.Success>(coordinator.state.value)
-        assertTrue(success.result.responses.single().points.single().low80 < 0.0)
-        assertTrue(success.result.responses.single().points.single().high80 > 0.0)
+        val available = assertState<StrictBayesianLabUiState.Available>(coordinator.state.value)
+        assertTrue(available.result.responses.single().points.single().low80 < 0.0)
+        assertTrue(available.result.responses.single().points.single().high80 > 0.0)
     }
 
     @Test
-    fun `strict retry increments attempt while preserving prepared input identity`() = runTest {
+    fun `retry increments attempt without a user-selected reliability mode`() = runTest {
         val snapshot = snapshot(1L)
-        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = fakeService { _, _, mode, attempt ->
-                calls += mode to attempt
-                failureOutcome(StrictLabFailureCode.MCMC_CONVERGENCE_FAILED, mode, attempt)
-            }
-        )
+        val attempts = mutableListOf<Int>()
+        val coordinator = coordinator(snapshot) { _, _, attempt ->
+            attempts += attempt
+            unavailableOutcome(attempt)
+        }
 
         coordinator.updateRequest(REQUEST)
         advanceUntilIdle()
         coordinator.analyze(REQUEST)
         advanceUntilIdle()
-        val first = assertState<StrictBayesianLabUiState.Failed>(coordinator.state.value)
         coordinator.retry()
         advanceUntilIdle()
-        val retried = assertState<StrictBayesianLabUiState.Failed>(coordinator.state.value)
 
-        assertEquals(
-            listOf(
-                StrictLabAnalysisMode.STRICT to 0,
-                StrictLabAnalysisMode.STRICT to 1
-            ),
-            calls
-        )
-        assertEquals(first.failure.preparedInputFingerprint, retried.failure.preparedInputFingerprint)
-        assertEquals(1, retried.failure.retryAttempt)
+        assertEquals(listOf(0, 1), attempts)
+        assertEquals(1, assertState<StrictBayesianLabUiState.Unavailable>(coordinator.state.value).failure.retryAttempt)
     }
 
-    @Test
-    fun `strict escalation and relaxed retry preserve explicit analysis mode`() = runTest {
-        val snapshot = snapshot(1L)
-        val calls = mutableListOf<Pair<StrictLabAnalysisMode, Int>>()
-        var code = StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED
-        val coordinator = StrictBayesianLabCoordinator(
-            scope = this,
-            freshSnapshot = { Result.success(snapshot) },
-            currentSnapshotFingerprint = { snapshot.fingerprint },
-            service = fakeService { _, _, mode, attempt ->
-                calls += mode to attempt
-                failureOutcome(code, mode, attempt)
-            }
-        )
-
-        coordinator.updateRequest(REQUEST)
-        advanceUntilIdle()
-        coordinator.analyze(REQUEST)
-        advanceUntilIdle()
-        coordinator.retryRelaxed()
-        advanceUntilIdle()
-        assertEquals(StrictLabAnalysisMode.RELAXED to 1, calls.last())
-
-        coordinator.retry()
-        advanceUntilIdle()
-        assertEquals(StrictLabAnalysisMode.RELAXED to 2, calls.last())
-
-        code = StrictLabFailureCode.NUMERICAL_SPD_FAILURE
-        coordinator.retry()
-        advanceUntilIdle()
-        val callCount = calls.size
-        coordinator.retryRelaxed()
-        advanceUntilIdle()
-        assertEquals(callCount, calls.size)
-    }
+    private fun TestScope.coordinator(
+        snapshot: WeeklyAnalysisFeatureSnapshot,
+        execute: suspend (StrictLabAnalysisRequest, StrictLabPreflight, Int) -> StrictLabExecutionOutcome
+    ) = StrictBayesianLabCoordinator(
+        scope = this,
+        freshSnapshot = { Result.success(snapshot) },
+        currentSnapshotFingerprint = { snapshot.fingerprint },
+        service = fakeService(execute)
+    )
 
     private fun fakeService(
-        execute: suspend (
-            StrictLabAnalysisRequest,
-            StrictLabPreflight,
-            StrictLabAnalysisMode,
-            Int
-        ) -> StrictLabExecutionOutcome
+        execute: suspend (StrictLabAnalysisRequest, StrictLabPreflight, Int) -> StrictLabExecutionOutcome
     ) = object : StrictBayesianLabService(Dispatchers.Unconfined) {
         override suspend fun preflight(
             snapshot: WeeklyAnalysisFeatureSnapshot,
@@ -238,12 +150,11 @@ class StrictBayesianLabCoordinatorTest {
             snapshot: WeeklyAnalysisFeatureSnapshot,
             request: StrictLabAnalysisRequest,
             preflight: StrictLabPreflight,
-            analysisMode: StrictLabAnalysisMode,
             retryAttempt: Int,
             onStage: (StrictLabExecutionStage) -> Unit
         ): StrictLabExecutionOutcome {
             onStage(StrictLabExecutionStage.SAMPLING_POSTERIOR)
-            return execute(request, preflight, analysisMode, retryAttempt)
+            return execute(request, preflight, retryAttempt)
         }
     }
 
@@ -253,24 +164,11 @@ class StrictBayesianLabCoordinatorTest {
     }
 
     private fun successResult(request: StrictLabAnalysisRequest): StrictBayesianLabResult {
-        val diagnostics = StrictPosteriorSummary(
-            mean = 0.1,
-            median = 0.1,
-            lower80 = -2.0,
-            upper80 = 2.2,
-            rhat = 1.0,
-            bulkEss = 500.0,
-            tailEss = 500.0,
-            mcseToSd = 0.04
-        )
+        val diagnostics = StrictPosteriorSummary(0.1, 0.1, -2.0, 2.2, 1.0, 500.0, 500.0, 0.04)
         return StrictBayesianLabResult(
-            request,
+            request = request,
             responses = listOf(
-                StrictLabResponse(
-                    Y,
-                    "Fatigue",
-                    listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, diagnostics))
-                )
+                StrictLabResponse(Y, "Fatigue", listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, diagnostics)))
             ),
             officialLagProbability = mapOf(1 to 1.0),
             simplificationDiagnostics = emptyList(),
@@ -280,41 +178,16 @@ class StrictBayesianLabCoordinatorTest {
         )
     }
 
-    private fun failureOutcome(
-        code: StrictLabFailureCode,
-        mode: StrictLabAnalysisMode,
-        attempt: Int
-    ): StrictLabExecutionOutcome.Failure = StrictLabExecutionOutcome.Failure(
-        StrictFailureDiagnostics(
-            code = code,
-            stage = if (code == StrictLabFailureCode.NUMERICAL_SPD_FAILURE) {
-                StrictFailureStage.NUMERICAL
-            } else {
-                StrictFailureStage.PRODUCTION
-            },
-            primaryReason = code.name,
-            preparedInputFingerprint = "prepared-input",
-            samplingPolicyFingerprint = "policy-${mode.name}",
-            analysisMode = mode,
-            samplingReliabilityMode = if (mode == StrictLabAnalysisMode.STRICT) {
-                StrictSamplingReliabilityMode.STRICT
-            } else {
-                StrictSamplingReliabilityMode.RELAXED
-            },
-            retryAttempt = attempt,
-            availableRelaxationRoutes = if (
-                mode == StrictLabAnalysisMode.STRICT && code in setOf(
-                    StrictLabFailureCode.MCMC_CONVERGENCE_FAILED,
-                    StrictLabFailureCode.LAG_POSTERIOR_MIXING_FAILED,
-                    StrictLabFailureCode.MONTE_CARLO_PRECISION_NOT_REACHED
-                )
-            ) {
-                setOf(StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY)
-            } else {
-                emptySet()
-            }
+    private fun unavailableOutcome(attempt: Int): StrictLabExecutionOutcome.Unavailable =
+        StrictLabExecutionOutcome.Unavailable(
+            StrictFailureDiagnostics(
+                code = StrictLabFailureCode.NUMERICAL_SPD_FAILURE,
+                stage = StrictFailureStage.NUMERICAL,
+                primaryReason = "No finite posterior",
+                preparedInputFingerprint = "prepared-input",
+                retryAttempt = attempt
+            )
         )
-    )
 
     private fun snapshot(revision: Long): WeeklyAnalysisFeatureSnapshot {
         val weeks = (0 until 12).map { START.plusWeeks(it.toLong()) }

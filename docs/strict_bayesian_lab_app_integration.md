@@ -48,25 +48,28 @@ common-row model construction, chain stabilization, posterior sampling,
 reliability checking/extension, and summarization.
 
 Only Analyze is disabled while a run is active. Recording remains available.
-Cancellation, expected unavailability, numerical failure, and unexpected
-failure remain separate states. Every failure carries one structured
-`StrictFailureDiagnostics` value; the UI does not infer failure meaning from
-free-form strings.
+The app boundary is `Available` or `Unavailable`; sampling quality is an
+independent `STRICT`, `RELAXED`, or `LIMITED` classification. Diagnostic misses
+do not become unavailable when a finite interpretable posterior exists. True
+blockers carry structured `StrictFailureDiagnostics`; the UI does not infer
+meaning from free-form strings.
 
-The UI defaults to analysis-level STRICT but lets the user choose RELAXED before
-the first run. Attempt zero remains the first execution. `다시 시도` preserves
-the current analysis mode and increments the deterministic retry attempt.
-`완화해서 결과 보기` appears only on a STRICT failure carrying at least one
-typed approved route; a RELAXED failure does not offer another escalation.
+The user has one Analyze action. Attempt zero automatically runs the strictest
+approved path first. If strict diagnostics are not reached, the same prepared
+model and chain state continue within the existing relaxed computation budget.
+There is no pre-analysis mode selector and no `완화해서 결과 보기` rescue.
+`다시 시도` starts a new deterministic attempt only after an unavailable
+outcome; it does not select a diagnostic profile.
 
-Approved routes are `RELAXED_REPRESENTATION`,
-`REDUCE_CONTROLS_FOR_COMMON_ROWS`, and `RELAX_SAMPLING_RELIABILITY`. The first
-reuses the one existing family semantic map for `INCONCLUSIVE` diagnostics
-only. The second starts only after existing optional/Pmax degradation fails,
-removes controls by versioned prefit availability ordering, and rebuilds the
-entire canonical Phase A graph. The third uses the fixed RELAXED sampler. No
-route removes X/Y, changes the horizon, lowers three common rows, or changes
-v0.7 model equations.
+Before sampling, an `INCONCLUSIVE` series may reuse only its existing approved
+family semantic representation. Positive I(0)/I(1) evidence is preserved, and
+unsupported or undefined required X/Y series stay blocked. Existing optional
+candidate and Pmax degradation run first. If the common-row plan remains
+infeasible, removable controls are dropped one at a time by canonical prefit
+semantic usability and Phase A is rebuilt after every removal. Conditional RPE
+no-exposure `NOT_APPLICABLE` cells use the same zero-carrier semantics in both
+ranking and preparation. No route removes X/Y, changes the horizon, lowers
+three common rows, or changes v0.7 model equations.
 
 ## Picker And Result Presentation
 
@@ -74,26 +77,24 @@ Picker availability comes from snapshot descriptors and strict preflight. It
 does not use legacy `minPoints=8`, a dashboard 8/12-week window, or a universal
 24/32-week model gate. Disabled features show their actual availability reason.
 
-Success shows posterior medians and 80% intervals, official Rao-Blackwellized
-lag probabilities, and source summaries only when reliability permits them. A
-broad interval is uncertainty, not failure. Detailed sampler diagnostics and
-raw local Horseshoe scales remain internal during success. A RELAXED success
-uses the same result layout and carries a persistent `완화된 분석 기준으로
-계산된 탐색적 결과입니다.` notice plus analysis-mode, effective-request,
-relaxation-trace, preparation-policy, sampling-policy, and attempt
-fingerprints. `완화 적용 내용` shows only routes actually applied.
+`Available` always shows finite posterior medians and 80% intervals, official
+Rao-Blackwellized lag probabilities, and source summaries when mathematically
+defined. A broad interval or diagnostic miss adds caution; it does not hide the
+quantity. The compact card shows `엄격 기준 충족`, `완화 기준 충족`, or
+`제한적`, plus the ordered automatic-adjustment count. Raw local Horseshoe
+scales remain internal.
 
-The failure card keeps a short product-facing reason and next step. Expanding
-`자세히` shows the diagnostic ID, stage, affected feature/source, row/lag and
-sampling identity, thresholds, observed failing metrics, and technical detail
-lines. Lag mixing failures explicitly withhold official Rao-Blackwellized lag
-probabilities when their reliability gate failed.
+Every outcome exposes `분석 상세`. The scrollable detail uses the canonical
+`BayesianAnalysisReport` to show the original request, effective model,
+representation/row/scaling provenance, automatic adjustments, execution-time
+sampling criteria, observed recent diagnostic windows, fingerprints, and
+posterior summary or terminal blocker. Only genuine blockers use `분석할 수
+없음`.
 
-`실패 기록 내보내기` uses SAF `CreateDocument` with `text/plain`; it requests no
-broad storage permission. One pure formatter emits app/build identity,
-diagnostic ID, original and effective requests, structured common-row data,
-representation and sampling observations, relaxation routes, and bounded
-technical details. Raw workout history and profile data are excluded.
+`내보내기` uses SAF `CreateDocument` with `text/plain`; it requests no broad
+storage permission and is available for STRICT, RELAXED, LIMITED, and
+Unavailable outcomes. The UI and TXT formatter consume the same immutable
+report sections. Raw workout history and profile data are excluded.
 
 ## Runtime Limits
 
@@ -109,16 +110,18 @@ instrumented device profiling is run.
 - snapshot identity ignores localized labels;
 - stale results cannot overwrite a newer request;
 - selection changes cancel an active run;
-- weak valid posterior remains Success;
+- a finite interpretable posterior remains Available even when strict or
+  relaxed diagnostic targets are missed;
 - the strict APP_RUNTIME policy fingerprint and thresholds remain frozen;
+- strict sampling is always attempted first and relaxed computation is bounded
+  by the existing approved policy;
+- sampling continuation preserves prepared model and sampling identity;
 - the same retry attempt is reproducible and a new attempt changes chain seeds;
-- RELAXED is selectable before analysis and never selected implicitly;
-- generic retry preserves the current analysis mode and increments attempt;
-- structured failure routes, rather than a global failure-code switch, own
-  escalation eligibility;
 - control reduction is deterministic, prefit, and followed by full Phase A
   reconstruction;
-- RELAXED success is visibly and structurally distinct from STRICT;
+- X, Y, horizon, and `minimumCommonRows=3` are never reduced;
+- `LIMITED` is visibly distinct but retains posterior output;
+- one canonical report backs UI detail and TXT export for every outcome;
 - the LAGGED_LAB route uses the strict coordinator/catalog;
 - legacy analyzer/service construction is forbidden in `TrainingViewModel`;
 - dashboard `performanceTrend.metricSeries` is forbidden as strict raw input.

@@ -27,21 +27,23 @@ internal open class StrictBayesianLabService(
         Int
     ) -> StrictBayesianV07Sampler = { design, policy, retryAttempt ->
         StrictBayesianV07Sampler(design, policy, retryAttempt)
-    }
+    },
+    private val relaxedSamplingPolicy: (StrictSamplingPolicy) -> StrictSamplingPolicy =
+        StrictSamplingPolicy::relaxedContinuation
 ) {
     open suspend fun preflight(
         snapshot: WeeklyAnalysisFeatureSnapshot,
         request: StrictLabAnalysisRequest
     ): StrictLabPreflight = withContext(dispatcher) {
         val normalized = request.normalized()
-        val requested = (listOf(normalized.xFeature) + normalized.yFeatures + normalized.controls).distinct()
+        val required = (listOf(normalized.xFeature) + normalized.yFeatures).distinct()
         val blockers = buildList {
             if (normalized.requestedHorizon !in 1..8) add(StrictLabBlocker(StrictLabBlockerCode.INVALID_HORIZON))
             if (normalized.yFeatures.isEmpty()) add(StrictLabBlocker(StrictLabBlockerCode.RESPONSE_REQUIRED))
-            requested.filterNot { it in snapshot.descriptors }.forEach { feature ->
+            required.filterNot { it in snapshot.descriptors }.forEach { feature ->
                 add(StrictLabBlocker(StrictLabBlockerCode.FEATURE_UNAVAILABLE, feature))
             }
-            requested.filter { it in snapshot.featureAvailabilityIndex }.forEach { feature ->
+            required.filter { it in snapshot.featureAvailabilityIndex }.forEach { feature ->
                 val availability = snapshot.featureAvailabilityIndex.getValue(feature)
                 when {
                     !availability.hasData -> add(
@@ -63,6 +65,12 @@ internal open class StrictBayesianLabService(
                 if (snapshot.closedWeeks.size < 32) {
                     add("적분 진단 표본은 짧지만 승인된 단기 기록 표현으로 가능한 엄격 모형을 시도합니다.")
                 }
+                normalized.controls.filter { control ->
+                    control !in snapshot.descriptors ||
+                        snapshot.featureAvailabilityIndex[control]?.let { !it.hasData || !it.hasVariation } != false
+                }.forEach { control ->
+                    add("통제 ${control.value}는 분석 가능성을 막지 않으며 필요하면 자동으로 제외됩니다.")
+                }
             }
         )
     }
@@ -71,37 +79,31 @@ internal open class StrictBayesianLabService(
         snapshot: WeeklyAnalysisFeatureSnapshot,
         request: StrictLabAnalysisRequest,
         preflight: StrictLabPreflight,
-        analysisMode: StrictLabAnalysisMode = StrictLabAnalysisMode.STRICT,
         retryAttempt: Int = 0,
         onStage: (StrictLabExecutionStage) -> Unit = {}
     ): StrictLabExecutionOutcome = withContext(dispatcher) {
         require(retryAttempt >= 0)
-        val samplingReliabilityMode = analysisMode.toSamplingMode()
         val context = currentCoroutineContext()
         if (!preflight.canAnalyze) {
-            return@withContext StrictLabExecutionOutcome.Failure(
+            return@withContext StrictLabExecutionOutcome.Unavailable(
                 StrictFailureDiagnostics(
                     code = StrictLabFailureCode.PREFLIGHT_INELIGIBLE,
                     stage = StrictFailureStage.PREFLIGHT,
                     primaryReason = "선택한 지표 조합은 엄격 분석을 시작할 수 없습니다.",
                     affectedFeatureOrSource = preflight.blockers.firstNotNullOfOrNull { it.feature?.value },
                     availableClosedWeeks = preflight.closedWeeks,
-                    analysisMode = analysisMode,
-                    samplingReliabilityMode = samplingReliabilityMode,
                     retryAttempt = retryAttempt,
                     technicalDetails = preflight.blockers.map { "${it.code}:${it.feature}:${it.detail}" }
                 )
             )
         }
         if (preflight.snapshotFingerprint != snapshot.fingerprint) {
-            return@withContext StrictLabExecutionOutcome.Failure(
+            return@withContext StrictLabExecutionOutcome.Unavailable(
                 StrictFailureDiagnostics(
                     code = StrictLabFailureCode.STALE_RESULT_REJECTED,
                     stage = StrictFailureStage.COORDINATION,
                     primaryReason = "분석 데이터가 갱신되어 다시 준비해야 합니다.",
                     availableClosedWeeks = snapshot.closedWeeks.size,
-                    analysisMode = analysisMode,
-                    samplingReliabilityMode = samplingReliabilityMode,
                     retryAttempt = retryAttempt,
                     technicalDetails = listOf(
                         "preflight=${preflight.snapshotFingerprint}",
@@ -112,23 +114,24 @@ internal open class StrictBayesianLabService(
         }
         try {
             onStage(StrictLabExecutionStage.PREPARING_STRICT_INPUT)
-            val planningOutcome = StrictLabRelaxedPlanningPolicy.plan(snapshot, request, analysisMode)
+            val planningOutcome = StrictLabRelaxedPlanningPolicy.planAutomatically(snapshot, request)
             if (planningOutcome is StrictLabPlanningOutcome.Failure) {
-                return@withContext StrictLabExecutionOutcome.Failure(
+                return@withContext StrictLabExecutionOutcome.Unavailable(
                     phaseAFailureDiagnostics(
                         snapshot,
                         planningOutcome,
-                        analysisMode,
                         retryAttempt
-                    )
+                    ),
+                    planningOutcome.adjustmentTrace
                 )
             }
             planningOutcome as StrictLabPlanningOutcome.Success
             val planned = planningOutcome.planned
             val design = BvarDesignMatrixMaterializer.materialize(planned.context, planned.input)
-            val samplingPolicy = analysisMode.samplingPolicy()
-            val relaxationTrace = planningOutcome.relaxationTrace.withSamplingMode(analysisMode)
-            val sampled = samplerFactory(design, samplingPolicy, retryAttempt).sample(
+            val samplingPolicy = StrictSamplingPolicy.appRuntime()
+            val relaxationTrace = planningOutcome.relaxationTrace
+            val sampled = samplerFactory(design, samplingPolicy, retryAttempt).sampleAutomatically(
+                relaxedPolicy = relaxedSamplingPolicy(samplingPolicy),
                 onStage = { stage -> onStage(stage.toExecutionStage()) },
                 isCancelled = { !context.isActive }
             )
@@ -162,48 +165,63 @@ internal open class StrictBayesianLabService(
                         addAll(relaxationTrace.representationOverrides)
                         addAll(relaxationTrace.planningDetails)
                     }.distinct()
-                    StrictLabExecutionOutcome.Success(
+                    val assessment = requireNotNull(sampled.result.samplingAssessment)
+                    val adjustmentTrace = planningOutcome.adjustmentTrace.withSamplingAssessment(
+                        assessment,
+                        sampled.result.samplingIdentityFingerprint
+                    )
+                    StrictLabExecutionOutcome.Available(
                         StrictBayesianLabResult(
                             request = planningOutcome.originalRequest,
                             responses = responses,
                             officialLagProbability = sampled.result.officialLagProbability,
                             simplificationDiagnostics = simplifications,
-                            summary = when {
-                                analysisMode == StrictLabAnalysisMode.RELAXED ->
-                                    "완화된 분석 기준으로 탐색적 Bayesian posterior를 계산했습니다."
-                                simplifications.isEmpty() ->
-                                    "엄격 Bayesian posterior를 계산했습니다. 구간이 넓으면 관계의 불확실성이 큰 것으로 해석하세요."
-                                else -> "현재 기록에서 계산 가능한 더 단순한 엄격 모형으로 posterior를 계산했습니다."
+                            summary = when (assessment.classification) {
+                                StrictSamplingDiagnosticClassification.STRICT ->
+                                    "Bayesian posterior를 계산했고 엄격 진단 기준을 충족했습니다."
+                                StrictSamplingDiagnosticClassification.RELAXED ->
+                                    "Bayesian posterior를 계산했습니다. 완화 진단 기준을 충족한 탐색적 결과입니다."
+                                StrictSamplingDiagnosticClassification.LIMITED ->
+                                    "유한한 Bayesian posterior를 계산했습니다. 진단이 제한적이므로 추가 주의가 필요합니다."
+                                StrictSamplingDiagnosticClassification.NOT_APPLICABLE -> error("available sampling is applicable")
                             },
                             preparedInputFingerprint = sampled.result.preparedInputFingerprint,
                             posteriorFingerprint = sampled.result.fingerprint,
                             effectiveRequest = planningOutcome.effectiveRequest,
-                            analysisMode = analysisMode,
                             relaxationTrace = relaxationTrace,
                             preparationPolicyFingerprint = planningOutcome.bundle.policy.fingerprint,
                             effectivePlanFingerprint = planned.input.fingerprint,
                             samplingReliabilityMode = sampled.result.samplingReliabilityMode,
                             samplingPolicyFingerprint = sampled.result.samplingPolicyFingerprint,
                             retryAttempt = sampled.result.retryAttempt,
-                            samplingIdentityFingerprint = sampled.result.samplingIdentityFingerprint
+                            samplingIdentityFingerprint = sampled.result.samplingIdentityFingerprint,
+                            samplingAssessment = assessment,
+                            adjustmentTrace = adjustmentTrace,
+                            effectiveCandidates = planned.input.view.candidateMetrics.map { it.stableId }.sorted(),
+                            representationDecisions = planned.context.canonicalTransformationPlan.decisionsByMetric.values
+                                .sortedBy { it.metric.stableId }
+                                .map { "${it.metric.stableId}: ${it.transformation.name} (${it.decisionReason})" },
+                            closedWeeks = snapshot.closedWeeks.size,
+                            availableFrom = snapshot.closedWeeks.firstOrNull(),
+                            availableUntil = snapshot.closedWeeks.lastOrNull(),
+                            commonRows = planned.input.comparisonPlan.commonSourceWeeks.size,
+                            selectedPmax = planned.input.comparisonPlan.pmax,
+                            rowPlanFingerprint = planned.input.comparisonPlan.fingerprint,
+                            scalingFingerprint = planned.input.scalingPlan.fingerprint,
+                            designFingerprint = design.fingerprint,
+                            sourceSummaries = sampled.result.sourceSummaries.entries.sortedBy { it.key.value }.map {
+                                StrictLabSourceSummary(it.key.value, it.value.contribution)
+                            }
                         )
                     )
                 }
                 is StrictBayesianV07Outcome.Failure -> {
-                    val failureCode = sampled.failure.code
-                    StrictLabExecutionOutcome.Failure(
+                    StrictLabExecutionOutcome.Unavailable(
                         sampled.failure.copy(
                             primaryReason = sampled.code.userMessage(sampled.failure.stage),
                             affectedFeatureOrSource = sampled.failure.observations
                                 .firstOrNull { it.passed == false }?.name
                                 ?: sampled.failure.affectedFeatureOrSource,
-                            analysisMode = analysisMode,
-                            availableRelaxationRoutes = StrictLabRelaxedPlanningPolicy.availableRoutes(
-                                snapshot,
-                                planningOutcome.originalRequest,
-                                failureCode,
-                                analysisMode
-                            ),
                             attemptedRelaxationRoutes = relaxationTrace.attemptedRoutes,
                             appliedRelaxationRoutes = relaxationTrace.appliedRoutes,
                             originalControls = planningOutcome.originalRequest.controls.map { it.value },
@@ -213,7 +231,8 @@ internal open class StrictBayesianLabService(
                             preparationPolicyFingerprint = planningOutcome.bundle.policy.fingerprint,
                             effectivePlanFingerprint = planned.input.fingerprint,
                             samplingIdentityFingerprint = sampled.failure.samplingIdentityFingerprint
-                        )
+                        ),
+                        planningOutcome.adjustmentTrace
                     )
                 }
             }
@@ -222,14 +241,12 @@ internal open class StrictBayesianLabService(
         } catch (failure: Throwable) {
             val diagnosticId = diagnosticId(failure)
             LOGGER.log(Level.SEVERE, "$diagnosticId strict Bayesian Lab execution failed", failure)
-            StrictLabExecutionOutcome.Failure(
+            StrictLabExecutionOutcome.Unavailable(
                 StrictFailureDiagnostics(
                     code = StrictLabFailureCode.INTERNAL_ERROR,
                     stage = StrictFailureStage.INTERNAL,
                     primaryReason = "엄격 Bayesian 분석을 완료하지 못했습니다.",
                     availableClosedWeeks = snapshot.closedWeeks.size,
-                    analysisMode = analysisMode,
-                    samplingReliabilityMode = samplingReliabilityMode,
                     retryAttempt = retryAttempt,
                     originalControls = request.controls.map { it.value },
                     effectiveControls = request.controls.map { it.value },
@@ -244,7 +261,6 @@ internal open class StrictBayesianLabService(
     private fun phaseAFailureDiagnostics(
         snapshot: WeeklyAnalysisFeatureSnapshot,
         outcome: StrictLabPlanningOutcome.Failure,
-        analysisMode: StrictLabAnalysisMode,
         retryAttempt: Int
     ): StrictFailureDiagnostics {
         val request = outcome.originalRequest
@@ -257,13 +273,6 @@ internal open class StrictBayesianLabService(
             else -> null
         }
         val availability = affected?.let(snapshot.featureAvailabilityIndex::get)
-        val routes = StrictLabRelaxedPlanningPolicy.availableRoutes(
-            snapshot,
-            request,
-            code,
-            analysisMode,
-            failure.diagnostics
-        )
         return StrictFailureDiagnostics(
             code = code,
             stage = StrictFailureStage.PHASE_A,
@@ -293,10 +302,7 @@ internal open class StrictBayesianLabService(
                     )
                 }
             },
-            analysisMode = analysisMode,
-            samplingReliabilityMode = analysisMode.toSamplingMode(),
             retryAttempt = retryAttempt,
-            availableRelaxationRoutes = routes,
             attemptedRelaxationRoutes = outcome.relaxationTrace.attemptedRoutes,
             appliedRelaxationRoutes = outcome.relaxationTrace.appliedRoutes,
             originalControls = outcome.originalRequest.controls.map { it.value },
@@ -319,6 +325,10 @@ internal open class StrictBayesianLabService(
             "공통 주간 행을 유지하는 시차 모형을 만들 수 없습니다."
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.METADATA_INCOMPLETE ->
             "선택한 지표에 필요한 canonical metadata가 완전하지 않습니다."
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.SCALING_UNAVAILABLE ->
+            "필수 지표의 유한한 분석 척도를 만들 수 없습니다."
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.SOURCE_IDENTITY_UNAVAILABLE ->
+            "필수 지표의 canonical source identity를 확인할 수 없습니다."
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_POLICY_UNAVAILABLE ->
             "선택한 지표에 적용할 승인된 단기 기록 표현 정책이 없습니다."
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT ->
@@ -346,6 +356,10 @@ private fun com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFa
             StrictLabFailureCode.NO_FEASIBLE_COMMON_LAG_PLAN
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.METADATA_INCOMPLETE ->
             StrictLabFailureCode.METADATA_INCOMPLETE
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.SCALING_UNAVAILABLE ->
+            StrictLabFailureCode.SCALING_UNAVAILABLE
+        com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.SOURCE_IDENTITY_UNAVAILABLE ->
+            StrictLabFailureCode.SOURCE_IDENTITY_UNAVAILABLE
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_POLICY_UNAVAILABLE ->
             StrictLabFailureCode.REPRESENTATION_POLICY_UNAVAILABLE
         com.training.trackplanner.analysis.lab.pipeline.StrictBvarPlanningFailureCode.REPRESENTATION_DIAGNOSTIC_CONFLICT ->
@@ -361,25 +375,50 @@ private fun StrictBayesianSamplingStage.toExecutionStage(): StrictLabExecutionSt
     StrictBayesianSamplingStage.SUMMARIZING -> StrictLabExecutionStage.SUMMARIZING_POSTERIOR
 }
 
-private fun StrictLabAnalysisMode.toSamplingMode(): StrictSamplingReliabilityMode = when (this) {
-    StrictLabAnalysisMode.STRICT -> StrictSamplingReliabilityMode.STRICT
-    StrictLabAnalysisMode.RELAXED -> StrictSamplingReliabilityMode.RELAXED
-}
-
-internal fun StrictLabAnalysisMode.samplingPolicy(): StrictSamplingPolicy = when (this) {
-    StrictLabAnalysisMode.STRICT -> StrictSamplingPolicy.appRuntime()
-    StrictLabAnalysisMode.RELAXED -> StrictSamplingPolicy.relaxedAppRuntime()
-}
-
-private fun StrictRelaxationTrace.withSamplingMode(mode: StrictLabAnalysisMode): StrictRelaxationTrace =
-    if (mode == StrictLabAnalysisMode.RELAXED) {
-        copy(
-            attemptedRoutes = attemptedRoutes + StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY,
-            appliedRoutes = appliedRoutes + StrictRelaxationRoute.RELAX_SAMPLING_RELIABILITY
+private fun AnalysisAdjustmentTrace.withSamplingAssessment(
+    assessment: StrictSamplingAssessment,
+    samplingFingerprint: String
+): AnalysisAdjustmentTrace {
+    val appended = events.toMutableList()
+    val strict = assessment.strictPolicy
+    if (assessment.stabilizationDrawsPerChain > strict.stabilizationCap ||
+        assessment.productionDrawsPerChain > strict.productionMaximum
+    ) {
+        appended += AnalysisAdjustmentEvent(
+            sequence = appended.size + 1,
+            type = AnalysisAdjustmentType.SAMPLING_BUDGET_EXTENDED,
+            triggerCode = "STRICT_DIAGNOSTIC_TARGET_MISS",
+            affected = "sampling budget",
+            observedCondition = "Strict diagnostic targets were not met within the strict computation budget.",
+            action = "continued the same chains and prepared model within approved bounds",
+            beforeValue = "warmup<=${strict.stabilizationCap}; production<=${strict.productionMaximum}",
+            afterValue = "warmup=${assessment.stabilizationDrawsPerChain}; production=${assessment.productionDrawsPerChain}",
+            explanation = "Additional computation did not rebuild or change the model.",
+            modelStructureChanged = false,
+            samplingPolicyChanged = true,
+            beforeFingerprint = samplingFingerprint,
+            afterFingerprint = samplingFingerprint
         )
-    } else {
-        this
     }
+    if (assessment.classification != StrictSamplingDiagnosticClassification.STRICT) {
+        appended += AnalysisAdjustmentEvent(
+            sequence = appended.size + 1,
+            type = AnalysisAdjustmentType.SAMPLING_ASSESSMENT_RELAXED,
+            triggerCode = "FINAL_SAMPLING_DIAGNOSTICS",
+            affected = "MCMC diagnostic classification",
+            observedCondition = "Not every strict diagnostic target was met.",
+            action = "classified as ${assessment.classification.name} without suppressing finite posterior summaries",
+            beforeValue = "STRICT target",
+            afterValue = assessment.classification.name,
+            explanation = "Diagnostic quality is reported independently from result availability.",
+            modelStructureChanged = false,
+            samplingPolicyChanged = false,
+            beforeFingerprint = samplingFingerprint,
+            afterFingerprint = samplingFingerprint
+        )
+    }
+    return AnalysisAdjustmentTrace(appended)
+}
 
 private fun StrictBayesianFailureCode.userMessage(stage: StrictFailureStage): String = when (this) {
     StrictBayesianFailureCode.MCMC_CONVERGENCE_FAILED -> if (stage == StrictFailureStage.STABILIZATION) {

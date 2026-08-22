@@ -6343,3 +6343,91 @@ Remaining debt:
   unrelated fixture changes were not retained.
 - Final commit and remote branch/main SHAs are recorded by the task closeout;
   app identity remains unchanged and no tag is created.
+
+## 2026-08-22 - non-blocking automatic Strict Bayesian analysis
+
+### Baseline and product decision
+
+- Baseline local and `origin/main`:
+  `db17651bf0537eb90f836d710a9e4de6ad829cc2`; the worktree was clean before
+  this task.
+- Task branch: `codex/bayesian-nonblocking-auto-adjust`.
+- App identity remains `0.5.0.38 / 500038`; no version bump or tag is part of
+  this redesign.
+- Product semantics now separate result availability from sampling diagnostic
+  quality. A mathematically finite interpretable posterior is Available even
+  when strict or relaxed diagnostic targets are missed.
+
+### Architecture and behavior
+
+- Replaced the app-boundary Success/Failure result path with
+  `Available`/`Unavailable`. Sampling assessment is independently `STRICT`,
+  `RELAXED`, `LIMITED`, or `NOT_APPLICABLE`.
+- Removed the pre-analysis STRICT/RELAXED selector and manual relaxed-result
+  rescue. One Analyze action runs the strict policy first and continues the
+  same model/chains within the approved relaxed budget when needed.
+- Preserved STRICT criteria (4 chains, R-hat < 1.01, ESS >= 100, MCSE/SD <=
+  0.10, two passes, stabilization cap 2,000) and RELAXED criteria (4 chains,
+  R-hat < 1.05, ESS >= 50, MCSE/SD <= 0.20, one pass, cap 4,000). Production
+  and precision maxima remain 5,000 and 10,000 draws per chain.
+- Kept every v0.7 likelihood, prior, Horseshoe, tau0, lag, Sigma/B, and
+  Rao-Blackwellized posterior equation unchanged. Automatic sampling extension
+  preserves prepared-input, design, source grouping, row/scaling, and sampling
+  identity.
+- Automatic Phase A order is approved semantic representation fallback,
+  canonical optional-candidate/Pmax degradation, then deterministic removable
+  controls one at a time with full Phase A reconstruction. X, Y, horizon, and
+  `minimumCommonRows=3` are never reduced. Conditional-RPE no-exposure
+  `NOT_APPLICABLE` cells share canonical zero-carrier usability.
+- Added immutable ordered adjustment provenance and bounded final-four sampling
+  windows. Diagnostic misses annotate finite results; numerical SPD,
+  non-finite posterior, missing/constant required X/Y, unsupported required
+  representation, infeasible rows, cancellation, stale execution, and internal
+  failures remain true unavailable blockers.
+- Generalized the failure-only formatter into `BayesianAnalysisReport`. UI
+  detail and SAF TXT export use the same report for STRICT, RELAXED, LIMITED,
+  and unavailable outcomes. Raw workout history is not included.
+- Compose now shows one Analyze action, compact diagnostic classification,
+  adjustment count, posterior values for every Available result, scrollable
+  detail at 360dp/fontScale 1.3, and `분석할 수 없음` only for true blockers.
+
+### Documentation and protocol audit
+
+- Updated `docs/bayesian_time_series_lab_architecture.md`,
+  `docs/strict_bayesian_lab_app_integration.md`, `docs/README.md`, and appended
+  a historical supersession to
+  `docs/v0.5.0.38_strict_bayesian_reliability_retry_release_notes.md`.
+- Repository-wide stale-term search covered STRICT, RELAXED, failure, retry,
+  Korean relaxed/failure wording, R-hat, ESS, MCSE, lag mixing,
+  `CreateDocument`, Success, source summaries, and reliability-gated wording.
+  Remaining selectable-mode text is confined to explicitly historical
+  worklog/release-note sections followed by the current supersession.
+- `docs/analysis_algorithm_design.md` was audited and contains no current
+  Strict Bayesian Lab runtime contract requiring amendment.
+- `docs/protocols/README.md` and `protocol_registry.json` were audited. The Lab
+  remains intentionally outside a separately registry-managed protocol family;
+  its architecture document is only supporting evidence for the existing
+  strength-performance family, so registry ownership/version metadata is
+  unchanged.
+
+### Verification
+
+- First Gradle wrapper check used Android Studio JBR and repository-local
+  `.gradle-user-home`: passed (Gradle 9.3.0).
+- Focused Strict Bayesian/service/coordinator/report/Compose suite: 46 tests,
+  0 failures.
+- Full `:app:testDebugUnitTest`: 1,190 tests, 0 failures, 0 errors, 0 skipped.
+- `:app:assembleDebug`: passed; produced
+  `app/build/outputs/apk/debug/app-debug.apk`.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `scripts/validate_protocol_docs.py`: passed for 8 families and 34 protocols.
+- `tools/check_time_series_numeric_sources.py`: passed.
+- Independent Phase A NumPy/SciPy/statsmodels generator: passed. Its
+  environment/provenance-only fixture rewrites were not retained because no
+  Phase A numerical contract changed.
+- Sandboxed KAPT initially failed while closing Gradle transform JARs with
+  Windows `AccessDeniedException`; the same source compiled and all tests
+  passed under the user-approved full-access execution.
+- Final commit SHA is the commit containing this entry and is recorded in Git
+  history and the task closeout. Final branch/main push state is verified after
+  commit; no tag is created.
