@@ -3,6 +3,7 @@ package com.training.trackplanner
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -50,6 +53,9 @@ internal fun WorkoutEntryCard(
     entryWithSets: WorkoutEntryWithSets,
     exercise: Exercise?,
     highlighted: Boolean = false,
+    cardModifier: Modifier = Modifier,
+    headerDragModifier: Modifier = Modifier,
+    dragging: Boolean = false,
     restTimerSessionController: RestTimerSessionController,
     timerState: RestTimerState,
     onUpdateEntry: (WorkoutEntry) -> Unit,
@@ -71,7 +77,7 @@ internal fun WorkoutEntryCard(
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
     val exerciseDisplayName = localizedExerciseName(entry.exerciseStableKey, entry.exerciseName)
     val cardColor by animateColorAsState(
-        targetValue = if (highlighted) {
+        targetValue = if (highlighted || dragging) {
             MaterialTheme.colorScheme.secondaryContainer
         } else {
             MaterialTheme.colorScheme.surfaceContainerHigh
@@ -131,9 +137,11 @@ internal fun WorkoutEntryCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .then(cardModifier)
             .testTag(if (highlighted) "record-entry-highlighted-${entry.id}" else "record-entry-${entry.id}"),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor)
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (dragging) 6.dp else 0.dp)
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -144,13 +152,19 @@ internal fun WorkoutEntryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Top
             ) {
-                MaterialText(
-                    modifier = Modifier.weight(1f),
-                    text = exerciseDisplayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2
-                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "길게 눌러 운동 순서 변경" }
+                        .then(headerDragModifier)
+                ) {
+                    MaterialText(
+                        text = exerciseDisplayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2
+                    )
+                }
                 TextButton(
                     modifier = Modifier.defaultMinSize(minWidth = 0.dp),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),

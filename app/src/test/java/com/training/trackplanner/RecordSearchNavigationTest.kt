@@ -69,7 +69,7 @@ class RecordSearchNavigationTest {
         assertTrue(source.contains("var calendarSearchQuery by rememberSaveable"))
         assertTrue(source.contains("exerciseSearchQuery = calendarSearchQuery"))
         assertTrue(source.contains("pendingSearchJump = null\n        val entryIndex"))
-        assertTrue(source.contains("highlighted = highlightedEntryId == entryWithSets.entry.id"))
+        assertTrue(source.contains("highlighted = highlightedEntryId == entryId"))
     }
 
     private fun record(id: Long, stableKey: String, name: String, confirmed: Boolean) =

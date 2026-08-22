@@ -7,7 +7,8 @@ internal class RecordMutationService(
     private val exerciseDao: ExerciseDao,
     private val workoutDao: WorkoutDao,
     private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null,
-    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null,
+    private val appMetaDao: AppMetaDao? = null
 ) {
     suspend fun addWorkoutEntry(date: String, exerciseStableKey: String): Long {
         val exercise = exerciseDao.findByStableKey(exerciseStableKey) ?: return 0L
@@ -99,14 +100,20 @@ internal class RecordMutationService(
                 val entry = workoutDao.findEntryById(set.entryId)
                 if (entry != null) {
                     val records = normalizeDisplayOrder(entry.date)
-                    val previousPerformedEntryId = records
-                        .asSequence()
-                        .filter { record -> record.entry.id != entry.id }
-                        .filter { record -> record.entry.firstConfirmedAt != null }
-                        .maxByOrNull { record -> record.entry.firstConfirmedAt ?: Long.MIN_VALUE }
-                        ?.entry
-                        ?.id
-                    moveEntryAfter(entry.date, entry.id, previousPerformedEntryId)
+                    val hasManualOrder = RecordManualOrderPolicy.applies(
+                        marker = appMetaDao?.value(RecordManualOrderPolicy.key(entry.date)),
+                        currentEntryIds = records.map { record -> record.entry.id }
+                    )
+                    if (!hasManualOrder) {
+                        val previousPerformedEntryId = records
+                            .asSequence()
+                            .filter { record -> record.entry.id != entry.id }
+                            .filter { record -> record.entry.firstConfirmedAt != null }
+                            .maxByOrNull { record -> record.entry.firstConfirmedAt ?: Long.MIN_VALUE }
+                            ?.entry
+                            ?.id
+                        moveEntryAfter(entry.date, entry.id, previousPerformedEntryId)
+                    }
                 }
             }
             workoutDao.updateSet(set)

@@ -299,6 +299,12 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun reorderWorkoutEntries(date: String, orderedEntryIds: List<Long>) {
+        viewModelScope.launch {
+            repository.reorderWorkoutEntries(date, orderedEntryIds)
+        }
+    }
+
     fun createProgram() {
         viewModelScope.launch {
             repository.createProgram()

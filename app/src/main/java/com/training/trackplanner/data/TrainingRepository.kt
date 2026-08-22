@@ -282,8 +282,14 @@ class TrainingRepository(
         db = db,
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
+        appMetaDao = appMetaDao,
         workoutSourceIdentityProvider = workoutSourceIdentityProvider,
         strengthPosteriorCoordinator = strengthPosteriorCoordinator
+    )
+    private val recordPresentationOrderService = RecordPresentationOrderService(
+        db = db,
+        workoutDao = workoutDao,
+        appMetaDao = appMetaDao
     )
     private val programPlanService = ProgramPlanService(
         db = db,
@@ -706,6 +712,11 @@ class TrainingRepository(
     suspend fun deleteSet(set: WorkoutSet): Boolean = withContext(Dispatchers.IO) {
         recordMutationService.deleteSet(set)
     }
+
+    suspend fun reorderWorkoutEntries(date: String, orderedEntryIds: List<Long>): Boolean =
+        withContext(Dispatchers.IO) {
+            recordPresentationOrderService.reorder(date, orderedEntryIds)
+        }
 
     suspend fun createProgram() = withContext(Dispatchers.IO) {
         programPlanService.createProgram()
