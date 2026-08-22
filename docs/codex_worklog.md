@@ -6567,3 +6567,18 @@ Remaining debt:
   passed with the canonical revision unchanged.
 - Release identity is `0.5.1 / 501000`; final release commit and remote main
   SHA are recorded by the task closeout.
+
+## 2026-08-22 - Rest timer foreground dismissal restore hotfix
+
+- Cause: foreground dismissal used controller-local `runId`, which can be
+  reused after Activity/controller restoration and hide a different active
+  timer.
+- Change: dismissal now stores a deterministic presentation identity composed
+  of `endAtEpochMillis`, `targetRecordDate`, `targetEntryId`, and `targetSetId`.
+  The X button still hides only the foreground bar and never stops the timer.
+- Scope: `MainActivity`, `RestTimerForegroundBarPolicy`, its focused tests, and
+  this release documentation. Timer timing, notifications, sound, vibration,
+  workout semantics, analysis, and metadata are unchanged.
+- Verification: focused timer tests 7/7, full unit tests 1,219/1,219,
+  `:app:assembleDebug`, and `git diff --check` passed. Version remains
+  `0.5.1 / 501000`.

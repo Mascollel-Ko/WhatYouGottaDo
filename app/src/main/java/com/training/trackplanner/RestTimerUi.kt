@@ -32,8 +32,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 internal object RestTimerForegroundBarPolicy {
-    fun visible(state: RestTimerState, dismissedRunId: Long?): Boolean =
-        state.isActive && dismissedRunId != state.runId
+    fun presentationIdentity(state: RestTimerState): String =
+        listOf(
+            state.endAtEpochMillis,
+            state.targetRecordDate,
+            state.targetEntryId,
+            state.targetSetId
+        ).joinToString(separator = "|")
+
+    fun visible(state: RestTimerState, dismissedIdentity: String?): Boolean =
+        state.isActive && dismissedIdentity != presentationIdentity(state)
 
     fun progress(state: RestTimerState): Float =
         if (state.totalSeconds <= 0) 0f

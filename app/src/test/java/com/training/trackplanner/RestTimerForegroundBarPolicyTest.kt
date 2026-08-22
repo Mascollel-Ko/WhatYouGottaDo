@@ -20,15 +20,46 @@ class RestTimerForegroundBarPolicyTest {
     }
 
     @Test
-    fun `dismissal stays scoped to one run and next run appears`() {
-        assertFalse(RestTimerForegroundBarPolicy.visible(state(runId = 101), dismissedRunId = 101))
+    fun `same persisted timer stays dismissed after controller restore`() {
+        val original = state(runId = 101)
+        val dismissedIdentity = RestTimerForegroundBarPolicy.presentationIdentity(original)
+        val restored = original.copy(runId = 1)
+
+        assertEquals(dismissedIdentity, RestTimerForegroundBarPolicy.presentationIdentity(restored))
+        assertFalse(RestTimerForegroundBarPolicy.visible(restored, dismissedIdentity))
         assertFalse(
             RestTimerForegroundBarPolicy.visible(
-                state(runId = 101).copy(remainingSeconds = 14),
-                dismissedRunId = 101
+                restored.copy(remainingSeconds = 14),
+                dismissedIdentity
             )
         )
-        assertTrue(RestTimerForegroundBarPolicy.visible(state(runId = 102), dismissedRunId = 101))
+    }
+
+    @Test
+    fun `new timer for the same target appears when end time changes`() {
+        val oldTimer = state(runId = 101, endAtEpochMillis = 10_000L)
+        val dismissedIdentity = RestTimerForegroundBarPolicy.presentationIdentity(oldTimer)
+        val newTimer = state(runId = 1, endAtEpochMillis = 20_000L)
+
+        assertFalse(
+            dismissedIdentity == RestTimerForegroundBarPolicy.presentationIdentity(newTimer)
+        )
+        assertTrue(RestTimerForegroundBarPolicy.visible(newTimer, dismissedIdentity))
+    }
+
+    @Test
+    fun `running and finished states share presentation identity`() {
+        val running = state(runId = 101)
+        val finished = running.copy(
+            isRunning = false,
+            isFinished = true,
+            remainingSeconds = 0
+        )
+
+        assertEquals(
+            RestTimerForegroundBarPolicy.presentationIdentity(running),
+            RestTimerForegroundBarPolicy.presentationIdentity(finished)
+        )
     }
 
     @Test
@@ -60,18 +91,23 @@ class RestTimerForegroundBarPolicyTest {
 
         val bottomBar = main.substringAfter("bottomBar = {").substringBefore("} \n    )")
         assertTrue(bottomBar.indexOf("RestTimerForegroundBar(") < bottomBar.indexOf("AppBottomNavigation("))
-        assertTrue(main.contains("onDismiss = { dismissedTimerRunId = timerState.runId }"))
+        assertTrue(main.contains("var dismissedTimerIdentity by rememberSaveable"))
+        assertTrue(main.contains("RestTimerForegroundBarPolicy.presentationIdentity(timerState)"))
+        assertFalse(main.contains("dismissedTimerRunId"))
         assertFalse(main.contains("onDismiss = restTimerSessionController::stop"))
         assertTrue(timer.contains("putInt(KEY_REST_TOTAL_SECONDS, state.totalSeconds)"))
         assertTrue(timer.contains("totalSeconds = total"))
     }
 
-    private fun state(runId: Long = 7) = RestTimerState(
+    private fun state(
+        runId: Long = 7,
+        endAtEpochMillis: Long = 10_000L
+    ) = RestTimerState(
         runId = runId,
         isRunning = true,
         remainingSeconds = 60,
         totalSeconds = 60,
-        endAtEpochMillis = 10_000L,
+        endAtEpochMillis = endAtEpochMillis,
         exerciseName = "스쿼트",
         nextHint = "스쿼트 3세트",
         targetRecordDate = "2026-08-22",

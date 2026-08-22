@@ -105,7 +105,7 @@ internal fun TrainingTrackPlannerApp(
     var infoRoute by rememberSaveable { mutableStateOf<AppInfoRoute?>(null) }
     var recordTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var recordTargetRequestId by remember { mutableStateOf(0L) }
-    var dismissedTimerRunId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var dismissedTimerIdentity by rememberSaveable { mutableStateOf<String?>(null) }
     val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
 
@@ -131,7 +131,7 @@ internal fun TrainingTrackPlannerApp(
         bottomBar = {
             if (infoRoute == null) {
                 Column {
-                    if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerRunId)) {
+                    if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerIdentity)) {
                         RestTimerForegroundBar(
                             state = timerState,
                             onOpenTarget = {
@@ -143,7 +143,10 @@ internal fun TrainingTrackPlannerApp(
                                 infoRoute = null
                                 selectedTab = AppTab.Record
                             },
-                            onDismiss = { dismissedTimerRunId = timerState.runId }
+                            onDismiss = {
+                                dismissedTimerIdentity =
+                                    RestTimerForegroundBarPolicy.presentationIdentity(timerState)
+                            }
                         )
                     }
                     AppBottomNavigation(
