@@ -173,12 +173,6 @@ internal fun WorkoutSetRow(
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    if (showWeight) {
-                        CompactChip(
-                            text = "${formatWeight(set.weightKg)}kg",
-                            onClick = { editField = SetEditField.Weight }
-                        )
-                    }
                     CompactChip(
                         text = if (set.seconds > 0 && !showWeight) {
                             if (isSportDurationInput) formatSportDurationLabel(set.seconds) else "${set.seconds}초"
@@ -197,6 +191,12 @@ internal fun WorkoutSetRow(
                             }
                         }
                     )
+                    if (showWeight) {
+                        CompactChip(
+                            text = "${formatWeight(set.weightKg)}kg",
+                            onClick = { editField = SetEditField.Weight }
+                        )
+                    }
                     CompactChip(
                         text = set.rpe?.let { "RPE${formatRpe(it)}" } ?: "RPE-",
                         onClick = { showRpeDialog = true }
