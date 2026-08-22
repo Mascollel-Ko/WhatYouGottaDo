@@ -6493,3 +6493,77 @@ Remaining debt:
   numerical fixture content matched; source-commit-only fixture rewrites were
   intentionally not retained because this task did not change Phase A.
 - Final commit, push, and main SHAs are recorded in the task closeout.
+
+## 2026-08-22 - 0.5.1 UI/UX refinement release
+
+### Baseline and invariant
+
+- Baseline local and `origin/main`:
+  `a64cdd831bb54ba5619e270008612c39572bb333`; the worktree was clean.
+- Task branch: `codex/ui-ux-release-051`.
+- Presentation/UI behavior changed. Analysis and canonical metadata semantics
+  did not change.
+- Protocol registry ownership is unchanged because this release adds no
+  calculation, threshold, stableKey, or metadata semantic authority.
+
+### Feature commits
+
+- `013a337 feat(record): preserve exercise search across date editing`
+  hoists saveable calendar search state, limits navigation to explicit active
+  result taps, consumes the request once, and highlights the first confirmed
+  matching entry. Focused search/calendar tests passed.
+- `eb67123 fix(record): keep set field order stable after confirmation` keeps
+  ordinary weighted rows in `reps -> kg -> RPE` order. Focused layout and set
+  tests passed.
+- `9260a1e feat(record): support drag reorder for daily exercises` adds
+  header-only long-press drag, a `displayOrder`-only Room transaction, durable
+  local manual-order protection, and no analysis refresh. Focused gesture,
+  Room, ordering, and mutation tests passed.
+- `59c6a74 feat(timer): add persistent bottom rest timer bar` adds the root
+  bottom bar, shrinking progress, final-five-second emphasis, finished state,
+  run-scoped dismissal, and explicit Record target navigation. Timer timing and
+  completion semantics are unchanged. Focused timer/navigation tests passed.
+- `c6af7ba feat(assets): replace exercise images with stable-key assets` adds
+  250 deterministic 384px PNG replacements and retains six fallback images.
+  One approved duplicate uses the user-selected `ex_f6703b06` source; longest
+  exact canonical stableKey resolves nested suffixes. Mapping is applied only
+  by the exercise-detail UI, so canonical objects/revisions remain unchanged.
+  Focused image, repository, and metadata revision tests passed.
+- `0c383f7 feat(analysis-ui): add vertical zoom to strength trend charts` adds
+  bounded two-finger Y zoom and axis reset only for persistent strength history
+  charts. Source series, posterior values, line width, and point radius are
+  unchanged. Focused chart and 360dp/fontScale 1.3 tests passed.
+
+### Asset and regression audit
+
+- Images: 190 files / 24,232,100 bytes before; 256 files / 37,352,067 bytes
+  after. Source set: 251 PNGs, 250 unique replacements, 0 unmatched source
+  files, one approved duplicate, six retained fallbacks, and one unchanged
+  no-image identity (`ex_eaea872c`).
+- Debug APK: 51,380,465 bytes before; 64,560,764 bytes in the final 0.5.1
+  build.
+- Canonical metadata asset diff: none. StableKeys, semantic revision, display
+  revision, and exercise seed revision remain at baseline values.
+- Manual order changes only `displayOrder`; workout chronology, values,
+  timestamps, source identity, posterior replay, and analysis invalidation are
+  unchanged.
+- Timer foreground state does not alter end time, countdown, notification,
+  sound, vibration, or controller stop behavior.
+- Vertical zoom changes only the viewport and never mutates chart data.
+
+### Full verification before release commit
+
+- Android Studio JBR and repository-local `.gradle-user-home`; Gradle 9.3.0.
+- Final full `:app:testDebugUnitTest`: 1,217 tests, 0 failures, 0 errors, 0
+  skipped.
+- `:app:compileDebugAndroidTestKotlin`: passed.
+- `:app:assembleDebug`: passed; debug APK produced.
+- `scripts/validate_protocol_docs.py`: passed for 8 families and 34 protocols.
+- `tools/check_time_series_numeric_sources.py`: passed.
+- `git diff --check`: passed.
+- The first full-test attempt detected image presentation paths entering the
+  canonical metadata revision. The image commit was corrected to resolve paths
+  only in the detail UI; metadata contract tests and the final full suite then
+  passed with the canonical revision unchanged.
+- Release identity is `0.5.1 / 501000`; final release commit and remote main
+  SHA are recorded by the task closeout.
