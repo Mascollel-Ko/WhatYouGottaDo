@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseImageAssetMapping
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedExerciseDescription
@@ -358,12 +359,15 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
             translator.translate("exercise.detail2", exercise.detail2).orEmpty()
         )
     }.filter(String::isNotBlank).joinToString(" / ")
-    val bitmap = remember(exercise.imageAssetName) {
+    val resolvedImageAssetName = remember(exercise.stableKey, exercise.imageAssetName) {
+        ExerciseImageAssetMapping.resolve(context, exercise.stableKey, exercise.imageAssetName)
+    }
+    val bitmap = remember(resolvedImageAssetName) {
         runCatching {
-            if (exercise.imageAssetName.isBlank()) {
+            if (resolvedImageAssetName.isBlank()) {
                 null
             } else {
-                context.assets.open(exercise.imageAssetName).use { input ->
+                context.assets.open(resolvedImageAssetName).use { input ->
                     BitmapFactory.decodeStream(input)
                 }
             }
@@ -384,7 +388,7 @@ internal fun ExerciseDetailCard(exercise: Exercise) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 Surface(
