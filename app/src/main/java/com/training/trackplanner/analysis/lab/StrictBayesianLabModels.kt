@@ -140,6 +140,28 @@ internal data class StrictLabResponse(
     val points: List<StrictLabResponsePoint>
 )
 
+internal data class StrictLabShockDefinition(
+    val feature: AnalysisFeatureKey,
+    val displayName: String,
+    val humanDescription: String,
+    val standardizedMagnitude: Double,
+    val originalUnitMagnitude: Double? = null
+)
+
+internal data class StrictLabResponseInterpretation(
+    val feature: AnalysisFeatureKey,
+    val displayName: String,
+    val summary: String,
+    val peakMedianHorizonWeeks: Int
+)
+
+internal data class StrictLabResponsePresentation(
+    val shockDefinition: StrictLabShockDefinition,
+    val responseInterpretations: List<StrictLabResponseInterpretation>,
+    val overallSummary: String,
+    val lagExplanation: String
+)
+
 internal data class StrictLabSourceSummary(
     val sourceId: String,
     val contribution: StrictPosteriorSummary
@@ -264,6 +286,8 @@ internal data class StrictBayesianLabResult(
     val request: StrictLabAnalysisRequest,
     val responses: List<StrictLabResponse>,
     val officialLagProbability: Map<Int, Double>,
+    val shockDefinition: StrictLabShockDefinition,
+    val presentation: StrictLabResponsePresentation,
     val simplificationDiagnostics: List<String>,
     val summary: String,
     val preparedInputFingerprint: String,

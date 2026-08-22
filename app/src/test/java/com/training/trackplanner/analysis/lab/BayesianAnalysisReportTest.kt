@@ -37,7 +37,16 @@ class BayesianAnalysisReportTest {
             "Git/build commit SHA: abc123",
             "prepared-fp",
             "row-fp",
-            "scaling-fp"
+            "scaling-fp",
+            "SHOCK DEFINITION",
+            "앱에서 분석에 맞게 변환한 훈련 부하 값이",
+            "RESPONSE INTERPRETATION",
+            "80% 구간이 0을 포함해 방향이 불확실",
+            "HORIZON RESPONSE",
+            "피로 1w: median=0.100000, 80%=-0.200000..0.400000",
+            "LAG INTERPRETATION",
+            "1주 시차가 가장 높은 posterior 비중(70.0%)",
+            "Raw official lag posterior: 1w=0.700000, 2w=0.300000"
         ).forEach { expected -> assertTrue("missing $expected", expected in text) }
         assertFalse("raw set history must not be exported", "workoutSets" in text)
         assertFalse("raw workout history must not be exported", "raw workout history" in text)
@@ -100,10 +109,20 @@ class BayesianAnalysisReportTest {
             false,
             true
         )
+        val responses = listOf(StrictLabResponse(Y, "피로", listOf(StrictLabResponsePoint(1, 0.1, -0.2, 0.4, posterior))))
+        val lagProbability = mapOf(1 to 0.7, 2 to 0.3)
+        val shock = StrictLabShockDefinitionFactory.standardizedTrainingRowShock(X, "훈련 부하")
         return StrictBayesianLabResult(
             request = REQUEST,
-            responses = listOf(StrictLabResponse(Y, "피로", listOf(StrictLabResponsePoint(1, 0.1, -0.2, 0.4, posterior)))),
-            officialLagProbability = mapOf(1 to 0.7, 2 to 0.3),
+            responses = responses,
+            officialLagProbability = lagProbability,
+            shockDefinition = shock,
+            presentation = BayesianResponsePresentationFactory.create(
+                shock,
+                responses,
+                lagProbability,
+                StrictSamplingDiagnosticClassification.LIMITED
+            ),
             simplificationDiagnostics = emptyList(),
             summary = "제한적 결과",
             preparedInputFingerprint = "prepared-fp",

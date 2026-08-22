@@ -170,11 +170,26 @@ internal open class StrictBayesianLabService(
                         assessment,
                         sampled.result.samplingIdentityFingerprint
                     )
+                    val focalDisplayName = StrictLabFeatureCatalog.from(snapshot)
+                        .option(planningOutcome.originalRequest.xFeature)?.displayName
+                        ?: descriptors.getValue(planningOutcome.originalRequest.xFeature).displayName
+                    val shockDefinition = StrictLabShockDefinitionFactory.standardizedTrainingRowShock(
+                        planningOutcome.originalRequest.xFeature,
+                        focalDisplayName
+                    )
+                    val presentation = BayesianResponsePresentationFactory.create(
+                        shockDefinition,
+                        responses,
+                        sampled.result.officialLagProbability,
+                        assessment.classification
+                    )
                     StrictLabExecutionOutcome.Available(
                         StrictBayesianLabResult(
                             request = planningOutcome.originalRequest,
                             responses = responses,
                             officialLagProbability = sampled.result.officialLagProbability,
+                            shockDefinition = shockDefinition,
+                            presentation = presentation,
                             simplificationDiagnostics = simplifications,
                             summary = when (assessment.classification) {
                                 StrictSamplingDiagnosticClassification.STRICT ->

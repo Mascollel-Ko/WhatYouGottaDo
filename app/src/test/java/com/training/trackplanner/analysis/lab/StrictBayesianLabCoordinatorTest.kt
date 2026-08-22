@@ -165,12 +165,22 @@ class StrictBayesianLabCoordinatorTest {
 
     private fun successResult(request: StrictLabAnalysisRequest): StrictBayesianLabResult {
         val diagnostics = StrictPosteriorSummary(0.1, 0.1, -2.0, 2.2, 1.0, 500.0, 500.0, 0.04)
+        val responses = listOf(
+            StrictLabResponse(Y, "Fatigue", listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, diagnostics)))
+        )
+        val lagProbability = mapOf(1 to 1.0)
+        val shock = StrictLabShockDefinitionFactory.standardizedTrainingRowShock(X, "Load")
         return StrictBayesianLabResult(
             request = request,
-            responses = listOf(
-                StrictLabResponse(Y, "Fatigue", listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, diagnostics)))
+            responses = responses,
+            officialLagProbability = lagProbability,
+            shockDefinition = shock,
+            presentation = BayesianResponsePresentationFactory.create(
+                shock,
+                responses,
+                lagProbability,
+                StrictSamplingDiagnosticClassification.STRICT
             ),
-            officialLagProbability = mapOf(1 to 1.0),
             simplificationDiagnostics = emptyList(),
             summary = "불확실성이 큰 posterior입니다.",
             preparedInputFingerprint = "prepared",

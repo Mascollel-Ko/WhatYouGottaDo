@@ -23,6 +23,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -119,10 +120,13 @@ class AnalysisTimeSeriesUiTest {
         content(StrictBayesianLabUiState.Available(request, result(StrictSamplingDiagnosticClassification.STRICT), readyPreflight()))
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Bayesian 분석 결과"))
-        compose.onNodeWithText("MCMC 진단: 엄격 기준 충족").assertIsDisplayed()
-        compose.onNodeWithText("시차 posterior: 1주 70.000%, 2주 30.000%").assertIsDisplayed()
-        compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").assertIsDisplayed()
-        compose.onNodeWithText("분석 상세").performClick()
+        compose.onNodeWithText("앱에서 분석에 맞게 변환한 배드민턴 훈련 부하 값이, 분석에 사용된 공통 주간 기록의 표본표준편차 1개만큼 증가한 경우")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("strict-response-irf-${Y.value}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("MCMC 진단: 엄격 기준 충족").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("시차 posterior: 1주 70.000%, 2주 30.000%").assertDoesNotExist()
+        compose.onNodeWithText("분석 상세").performScrollTo().performClick()
         compose.onNodeWithText("FINAL STATUS").assertIsDisplayed()
         compose.onAllNodesWithText("내보내기").assertCountEquals(2)
     }
@@ -131,10 +135,23 @@ class AnalysisTimeSeriesUiTest {
     fun availableLimitedStillShowsPosteriorValues() {
         content(StrictBayesianLabUiState.Available(request, result(StrictSamplingDiagnosticClassification.LIMITED), readyPreflight()))
 
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("MCMC 진단: 제한적"))
-        compose.onNodeWithText("MCMC 진단: 제한적").assertIsDisplayed()
-        compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").assertIsDisplayed()
+        compose.onNodeWithText("MCMC 진단: 제한적").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("1주 후: 중앙값 0.100 · 80% 구간 -2.000~2.200").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("분석할 수 없음").assertDoesNotExist()
+    }
+
+    @Test
+    fun multipleResponsesRenderSeparateInterpretationsAndGraphs() {
+        val result = result(
+            StrictSamplingDiagnosticClassification.STRICT,
+            listOf(Y to "피로 종합", Y2 to "준비도")
+        )
+        content(StrictBayesianLabUiState.Available(request, result, readyPreflight()))
+
+        compose.onNodeWithTag("strict-response-irf-${Y.value}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("strict-response-irf-${Y2.value}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("피로 종합의 반응은", substring = true).assertExists()
+        compose.onNodeWithText("준비도의 반응은", substring = true).assertExists()
     }
 
     @Test
@@ -173,7 +190,7 @@ class AnalysisTimeSeriesUiTest {
         )
 
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("MCMC 진단: 완화 기준 충족"))
-        compose.onNodeWithText("분석 상세").performClick()
+        compose.onNodeWithText("분석 상세").performScrollTo().performClick()
         compose.onNodeWithText("SAMPLING DIAGNOSTICS").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithText("내보내기").assertCountEquals(2)
     }
@@ -224,7 +241,10 @@ class AnalysisTimeSeriesUiTest {
         emptyList()
     )
 
-    private fun result(classification: StrictSamplingDiagnosticClassification): StrictBayesianLabResult {
+    private fun result(
+        classification: StrictSamplingDiagnosticClassification,
+        responseFeatures: List<Pair<AnalysisFeatureKey, String>> = listOf(Y to "피로 종합")
+    ): StrictBayesianLabResult {
         val posterior = StrictPosteriorSummary(0.1, 0.1, -2.0, 2.2, 1.0, 500.0, 500.0, 0.04)
         val strict = StrictSamplingPolicy.appRuntime().snapshot("STRICT")
         val relaxed = StrictSamplingPolicy.relaxedAppRuntime().snapshot("RELAXED")
@@ -251,10 +271,23 @@ class AnalysisTimeSeriesUiTest {
             classification != StrictSamplingDiagnosticClassification.LIMITED,
             false
         )
+        val responses = responseFeatures.map { (feature, name) ->
+            StrictLabResponse(feature, name, listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, posterior)))
+        }
+        val lagProbability = mapOf(1 to 0.7, 2 to 0.3)
+        val shock = com.training.trackplanner.analysis.lab.StrictLabShockDefinitionFactory
+            .standardizedTrainingRowShock(X, "배드민턴 훈련 부하")
         return StrictBayesianLabResult(
             request = request,
-            responses = listOf(StrictLabResponse(Y, "피로 종합", listOf(StrictLabResponsePoint(1, 0.1, -2.0, 2.2, posterior)))),
-            officialLagProbability = mapOf(1 to 0.7, 2 to 0.3),
+            responses = responses,
+            officialLagProbability = lagProbability,
+            shockDefinition = shock,
+            presentation = com.training.trackplanner.analysis.lab.BayesianResponsePresentationFactory.create(
+                shock,
+                responses,
+                lagProbability,
+                classification
+            ),
             simplificationDiagnostics = emptyList(),
             summary = "불확실성이 큰 posterior입니다.",
             preparedInputFingerprint = "prepared",
@@ -276,11 +309,13 @@ class AnalysisTimeSeriesUiTest {
         val until = LocalDate.parse("2026-08-10")
         val x = StrictLabFeatureOption(X, "배드민턴 훈련 부하", AnalysisFeatureFamily.TRAINING_FLOW, 32, from, until, true, null)
         val y = StrictLabFeatureOption(Y, "피로 종합", AnalysisFeatureFamily.RECOVERY_CHECK_IN, 32, from, until, true, null)
-        return StrictLabFeatureCatalog(listOf(x, y), listOf(y), listOf(x, y), "snapshot-v1")
+        val y2 = StrictLabFeatureOption(Y2, "준비도", AnalysisFeatureFamily.RECOVERY_CHECK_IN, 32, from, until, true, null)
+        return StrictLabFeatureCatalog(listOf(x, y, y2), listOf(y, y2), listOf(x, y, y2), "snapshot-v1")
     }
 
     private companion object {
         val X: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.BADMINTON_PRACTICE_LOAD)
         val Y: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.FATIGUE_COMPOSITE)
+        val Y2: AnalysisFeatureKey = AnalysisFeatureKey.metric(TrendMetricId.RECOVERY_CHECKIN_COMPOSITE)
     }
 }

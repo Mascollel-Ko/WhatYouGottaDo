@@ -77,12 +77,29 @@ Picker availability comes from snapshot descriptors and strict preflight. It
 does not use legacy `minPoints=8`, a dashboard 8/12-week window, or a universal
 24/32-week model gate. Disabled features show their actual availability reason.
 
-`Available` always shows finite posterior medians and 80% intervals, official
-Rao-Blackwellized lag probabilities, and source summaries when mathematically
-defined. A broad interval or diagnostic miss adds caution; it does not hide the
-quantity. The compact card shows `엄격 기준 충족`, `완화 기준 충족`, or
-`제한적`, plus the ordered automatic-adjustment count. Raw local Horseshoe
-scales remain internal.
+`Available` first explains the result in plain Korean. The displayed shock is
+the production v0.7 focal-X change: the analysis-transformed X increases by one
+standardized unit, equal to one sample standard deviation over the canonical
+common source weeks. The app does not invent an original-unit conversion. This
+metadata is read-only and never feeds back into preparation or sampling.
+
+Each response Y has its own compact IRF-style Canvas, finite posterior medians,
+and 80% intervals on the same existing response scale. The graph includes zero,
+uses only emitted horizons, and never smooths or combines variables with
+different scales. Deterministic wording calls a wholly positive interval an
+increasing direction, a wholly negative interval a decreasing direction, and
+an interval containing zero uncertain. It identifies the largest absolute
+posterior median horizon, says `중앙값 기준`, and explicitly avoids causal or
+statistical-significance claims. RELAXED and LIMITED results keep the same
+interpretation with their existing diagnostic caution.
+
+The official Rao-Blackwellized lag probabilities remain numerically unchanged.
+The compact card explains only which lag model has the highest posterior weight
+and directs users to the full response path; it does not describe that weight
+as the probability that an effect occurs in a particular week. Raw lag weights
+remain in details and TXT. The card also retains `엄격 기준 충족`, `완화 기준
+충족`, or `제한적`, plus the ordered automatic-adjustment count. Raw local
+Horseshoe scales remain internal.
 
 Every outcome exposes `분석 상세`. The scrollable detail uses the canonical
 `BayesianAnalysisReport` to show the original request, effective model,
@@ -94,7 +111,11 @@ posterior summary or terminal blocker. Only genuine blockers use `분석할 수
 `내보내기` uses SAF `CreateDocument` with `text/plain`; it requests no broad
 storage permission and is available for STRICT, RELAXED, LIMITED, and
 Unavailable outcomes. The UI and TXT formatter consume the same immutable
-report sections. Raw workout history and profile data are excluded.
+report sections. For Available results those sections now include `SHOCK
+DEFINITION`, `RESPONSE INTERPRETATION`, `HORIZON RESPONSE`, and `LAG
+INTERPRETATION`; the same result-owned presentation object supplies the compact
+card, details, and TXT. Raw workout history, posterior draws, and profile data
+are excluded.
 
 ## Runtime Limits
 

@@ -6431,3 +6431,65 @@ Remaining debt:
 - Final commit SHA is the commit containing this entry and is recorded in Git
   history and the task closeout. Final branch/main push state is verified after
   commit; no tag is created.
+
+## 2026-08-22 - Bayesian response explanation and IRF presentation
+
+### Baseline and scope
+
+- Baseline local and `origin/main`:
+  `a5b8fd71cfa4491a0cd480fdb7a35d37e3a940ad`; the worktree was clean.
+- Task branch: `codex/bayesian-response-presentation`.
+- This is a read-only presentation change. App identity remains
+  `0.5.0.38 / 500038`; no version bump or tag is planned.
+
+### Production shock audit and implementation
+
+- `BvarDesignMatrixMaterializer` standardizes transformed focal X as
+  `(value - mean) / sampleStandardDeviation` over canonical common source
+  weeks. `StrictBayesianV07Kernel.focalResponse` applies a positive one-unit
+  standardized focal-X change, recursively propagates the existing lagged Y
+  dynamics, restores each Y scale, and applies the existing inverse
+  transformation. The current path does not use the legacy Cholesky shock.
+- Added read-only `StrictLabShockDefinition` and one result-owned
+  `StrictLabResponsePresentation`. No original-unit shock is fabricated.
+- Added a small pure deterministic factory for increasing, decreasing, and
+  zero-crossing interval language, largest absolute median horizon,
+  RELAXED/LIMITED cautions, and non-causal lag interpretation.
+- Added one Compose Canvas per Y using only existing response points: median
+  line/points, 80% interval, zero line, zero-inclusive range, and emitted
+  horizon labels. No smoothing, horizon zero, or mixed Y scale was added.
+- Extended `BayesianAnalysisReport` with `SHOCK DEFINITION`, `RESPONSE
+  INTERPRETATION`, `HORIZON RESPONSE`, and `LAG INTERPRETATION`. UI detail and
+  TXT consume the same result-owned presentation object and retain raw official
+  lag probabilities and technical provenance.
+
+### Frozen numerical boundary and governance
+
+- No strict Bayesian kernel, estimator equation, prior, tau0, Phase A,
+  common-row/scaling rule, response recursion, inverse transform, RNG,
+  sampling policy, diagnostic threshold, or automatic adjustment behavior was
+  changed.
+- `docs/protocols/protocol_registry.json` and `docs/protocols/README.md` were
+  audited and intentionally left unchanged. The Lab remains an architecture
+  and app-integration contract rather than a separate registry-managed
+  protocol family.
+
+### Verification
+
+- First Gradle wrapper check used Android Studio JBR and repository-local
+  `.gradle-user-home`: passed (Gradle 9.3.0).
+- Focused interpretation/report/360dp Compose and deterministic Bayesian
+  regression suite: 31 tests, 0 failures.
+- Full `:app:testDebugUnitTest`: 1,195 tests passed. The first sandboxed run
+  failed 316 Robolectric tests while `MavenArtifactFetcher` could not access
+  its remote artifacts; the same suite passed after rerunning with network
+  access, confirming this was an environment failure rather than a product
+  regression.
+- `:app:assembleDebug`: passed; produced
+  `app/build/outputs/apk/debug/app-debug.apk`.
+- `scripts/validate_protocol_docs.py`: passed for 8 families and 34 protocols.
+- `tools/check_time_series_numeric_sources.py`: passed.
+- Independent Phase A NumPy/SciPy/statsmodels generator: passed. Generated
+  numerical fixture content matched; source-commit-only fixture rewrites were
+  intentionally not retained because this task did not change Phase A.
+- Final commit, push, and main SHAs are recorded in the task closeout.

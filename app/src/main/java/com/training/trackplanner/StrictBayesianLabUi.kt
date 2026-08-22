@@ -3,12 +3,14 @@ package com.training.trackplanner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,8 +38,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.lab.StrictBayesianLabResult
 import com.training.trackplanner.analysis.lab.StrictBayesianLabUiState
@@ -53,6 +61,7 @@ import com.training.trackplanner.analysis.lab.StrictLabFailureCode
 import com.training.trackplanner.analysis.lab.StrictLabFeatureCatalog
 import com.training.trackplanner.analysis.lab.StrictLabFeatureOption
 import com.training.trackplanner.analysis.lab.StrictLabPreflight
+import com.training.trackplanner.analysis.lab.StrictLabResponse
 import com.training.trackplanner.analysis.lab.StrictSamplingDiagnosticClassification
 import com.training.trackplanner.analysis.lab.pipeline.AnalysisFeatureKey
 import com.training.trackplanner.analysis.trends.TrendMetricId
@@ -426,18 +435,12 @@ private fun StrictResultCard(
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Bayesian 분석 결과", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("MCMC 진단: ${samplingClassificationLabel(report.samplingClassification)}")
-            Text("자동 조정: ${report.adjustmentTrace.events.size.takeIf { it > 0 }?.let { "${it}건" } ?: "없음"}")
-            Text(result.summary)
-            if (result.officialLagProbability.isNotEmpty()) {
-                Text(
-                    "시차 posterior: " + result.officialLagProbability.entries.sortedBy { it.key }
-                        .joinToString(", ") { (lag, probability) -> "${lag}주 ${strictValue(probability * 100.0)}%" },
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
+            Text(result.presentation.overallSummary)
+            Text("충격 기준", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(result.shockDefinition.humanDescription, style = MaterialTheme.typography.bodySmall)
             result.responses.forEach { response ->
                 Text(response.displayName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                StrictResponseChart(response)
                 response.points.forEach { point ->
                     Text(
                         "${point.horizonWeeks}주 후: 중앙값 ${strictValue(point.estimate)} · 80% 구간 ${strictValue(point.low80)}~${strictValue(point.high80)}",
@@ -446,16 +449,81 @@ private fun StrictResultCard(
                 }
             }
             Text(
-                "posterior 중앙값과 80% 구간입니다. 구간이 0을 넓게 가로지르면 방향을 단정하지 마세요.",
+                result.presentation.lagExplanation,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text("MCMC 진단: ${samplingClassificationLabel(report.samplingClassification)}")
+            Text("자동 조정: ${report.adjustmentTrace.events.size.takeIf { it > 0 }?.let { "${it}건" } ?: "없음"}")
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onDetails) { Text("분석 상세") }
                 TextButton(onClick = onExport) { Text("내보내기") }
             }
             exportStatus?.let {
                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StrictResponseChart(response: StrictLabResponse) {
+    val points = response.points.sortedBy { it.horizonWeeks }
+    if (points.isEmpty()) return
+    val medianColor = MaterialTheme.colorScheme.primary
+    val intervalColor = MaterialTheme.colorScheme.secondary
+    val zeroColor = MaterialTheme.colorScheme.outline
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+                .testTag("strict-response-irf-${response.feature.value}")
+                .semantics { contentDescription = "${response.displayName} 주별 posterior 반응 그래프" }
+        ) {
+            val observedMin = minOf(0.0, points.minOf { it.low80 })
+            val observedMax = maxOf(0.0, points.maxOf { it.high80 })
+            val observedRange = (observedMax - observedMin).takeIf { it > 0.0 } ?: 1.0
+            val lower = observedMin - observedRange * 0.08
+            val upper = observedMax + observedRange * 0.08
+            val horizontalPadding = 12.dp.toPx()
+            fun x(index: Int): Float = if (points.size == 1) {
+                size.width / 2f
+            } else {
+                horizontalPadding + index.toFloat() / (points.size - 1) * (size.width - horizontalPadding * 2f)
+            }
+            fun y(value: Double): Float =
+                size.height - ((value - lower) / (upper - lower) * size.height).toFloat()
+
+            drawLine(zeroColor, start = androidx.compose.ui.geometry.Offset(0f, y(0.0)), end = androidx.compose.ui.geometry.Offset(size.width, y(0.0)), strokeWidth = 1.dp.toPx())
+            if (points.size > 1) {
+                val band = Path().apply {
+                    moveTo(x(0), y(points.first().low80))
+                    points.drop(1).forEachIndexed { index, point -> lineTo(x(index + 1), y(point.low80)) }
+                    points.asReversed().forEachIndexed { reverseIndex, point -> lineTo(x(points.lastIndex - reverseIndex), y(point.high80)) }
+                    close()
+                }
+                drawPath(band, intervalColor.copy(alpha = 0.18f))
+                val median = Path().apply {
+                    moveTo(x(0), y(points.first().estimate))
+                    points.drop(1).forEachIndexed { index, point -> lineTo(x(index + 1), y(point.estimate)) }
+                }
+                drawPath(median, medianColor, style = Stroke(width = 2.dp.toPx()))
+            }
+            points.forEachIndexed { index, point ->
+                val centerX = x(index)
+                drawLine(intervalColor, androidx.compose.ui.geometry.Offset(centerX, y(point.low80)), androidx.compose.ui.geometry.Offset(centerX, y(point.high80)), strokeWidth = 2.dp.toPx())
+                drawCircle(medianColor, radius = 4.dp.toPx(), center = androidx.compose.ui.geometry.Offset(centerX, y(point.estimate)))
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            points.forEach { point ->
+                Text(
+                    text = "${point.horizonWeeks}주",
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         }
     }

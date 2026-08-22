@@ -77,6 +77,30 @@ internal object BayesianAnalysisReportFactory {
                         "Design fingerprint: ${result.designFingerprint}"
                     )
                 ),
+                BayesianAnalysisReportSection(
+                    "SHOCK DEFINITION",
+                    listOf(result.shockDefinition.humanDescription)
+                ),
+                BayesianAnalysisReportSection(
+                    "RESPONSE INTERPRETATION",
+                    result.presentation.responseInterpretations.map { it.summary } + result.presentation.overallSummary
+                ),
+                BayesianAnalysisReportSection(
+                    "HORIZON RESPONSE",
+                    result.responses.flatMap { response ->
+                        response.points.map { point ->
+                            "${response.displayName} ${point.horizonWeeks}w: median=${value(point.estimate)}, " +
+                                "80%=${value(point.low80)}..${value(point.high80)}"
+                        }
+                    }
+                ),
+                BayesianAnalysisReportSection(
+                    "LAG INTERPRETATION",
+                    listOf(
+                        result.presentation.lagExplanation,
+                        "Raw official lag posterior: ${result.officialLagProbability.toSortedMap().entries.joinToString { "${it.key}w=${value(it.value)}" }}"
+                    )
+                ),
                 adjustmentSection(result.adjustmentTrace),
                 samplingPolicySection(assessment),
                 samplingDiagnosticsSection(assessment),
@@ -84,12 +108,6 @@ internal object BayesianAnalysisReportFactory {
                     "RESULT SUMMARY",
                     buildList {
                         add(result.summary)
-                        add("Official lag probability: ${result.officialLagProbability.toSortedMap().entries.joinToString { "${it.key}w=${value(it.value)}" }}")
-                        result.responses.forEach { response ->
-                            response.points.forEach { point ->
-                                add("${response.displayName} ${point.horizonWeeks}w: median=${value(point.estimate)}, 80%=${value(point.low80)}..${value(point.high80)}")
-                            }
-                        }
                         result.sourceSummaries.forEach { source ->
                             add(
                                 "Source ${source.sourceId}: median=${value(source.contribution.median)}, " +

@@ -131,6 +131,36 @@ No explicit matrix inverse, hand-written triangular solve, equation-wise
 independent posterior, arbitrary jitter, posterior-mean feedback, or raw local
 lambda selection threshold is part of the production kernel.
 
+## Response Shock And Read-Only Presentation
+
+The current v0.7 response is not a legacy Cholesky shock. The canonical BVAR
+design standardizes the transformed focal X over the cross-lag common source
+weeks as `(value - mean) / sampleStandardDeviation`. `focalResponse` applies a
+positive one-unit change on that standardized focal-X scale, propagates the
+existing lag coefficients through the response dynamics for horizons 1 through
+the requested maximum, restores each Y scale, and applies its existing inverse
+transformation rule. There is no fabricated horizon zero and no original-unit
+X magnitude is inferred when the transformed representation cannot support
+one.
+
+The app now carries that existing shock definition as read-only result
+metadata. `BayesianResponsePresentationFactory` derives Korean interpretation
+only from each existing posterior median and 80% interval: wholly positive
+intervals are increasing-direction, wholly negative intervals are
+decreasing-direction, and intervals containing zero have uncertain direction.
+It also identifies the largest absolute median horizon and explains the
+highest-weight official lag model without presenting that weight as an effect
+timing probability. The wording is conditional on the user's records and does
+not claim causality or statistical significance.
+
+Each Y is rendered separately as a compact IRF-style Canvas using only its
+existing `StrictLabResponsePoint` values. The chart connects posterior medians,
+shows each median point and 80% interval, includes a zero reference and zero in
+the plotted range, and does not smooth, interpolate, resample, or combine
+different Y scales. The numerical kernel, RNG order, sampling policies,
+diagnostic classification, posterior summaries, official lag probabilities,
+and source summaries are unchanged.
+
 ## Sampling And Failure Semantics
 
 `APP_RUNTIME` and `VALIDATION` share the same chain count, warmup shape,
@@ -217,19 +247,24 @@ The picker reads snapshot capability descriptors and exposes one normal
 manual relaxed-result rescue. It does not use the dashboard 8/12-week window
 or `AnalysisMetricRegistry.minPoints=8`.
 
-An `AVAILABLE` card always shows mathematically defined posterior medians,
-80% intervals, and lag/source summaries, plus a compact `엄격 기준 충족`,
-`완화 기준 충족`, or `제한적` diagnostic label and the automatic-adjustment
-count. A true blocker shows `분석할 수 없음`. Both surfaces expose one
-scrollable `분석 상세` view backed by `BayesianAnalysisReport`.
+An `AVAILABLE` card starts with deterministic plain-language response and shock
+explanations, then shows one compact IRF-style graph per Y and the unchanged
+posterior medians and 80% intervals. A safe lag explanation directs the user to
+the whole response path rather than treating lag weight as an effect-time
+probability. The card retains a compact `엄격 기준 충족`, `완화 기준 충족`, or
+`제한적` diagnostic label and the automatic-adjustment count. A true blocker
+shows `분석할 수 없음`. Both surfaces expose one scrollable `분석 상세` view
+backed by `BayesianAnalysisReport`.
 
 The same canonical report powers UI details and Storage Access Framework
 `CreateDocument(text/plain)` export for every available classification and for
 unavailable outcomes. It contains original/effective requests, model and row
 provenance, ordered adjustments, execution-time strict/relaxed policy
 snapshots, recent diagnostic windows, posterior or terminal blocker, app
-version, and BuildConfig commit SHA. Raw workout history and profile data are
-excluded.
+version, and BuildConfig commit SHA. Available reports additionally contain the
+same shock definition, response interpretations, horizon values, safe lag
+explanation, and unchanged raw official lag posterior used by the result
+surface. Raw workout history and profile data are excluded.
 
 The protocol registry was audited for this redesign. The Strict Bayesian Lab
 remains an architecture/app integration contract rather than a separately
