@@ -58,7 +58,9 @@ import java.time.YearMonth
 internal fun RecordCalendarScreen(
     viewModel: TrainingViewModel,
     selectedDate: String,
-    onDateSelected: (String) -> Unit,
+    exerciseSearchQuery: String,
+    onExerciseSearchQueryChange: (String) -> Unit,
+    onDateSelected: (String, Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -75,7 +77,6 @@ internal fun RecordCalendarScreen(
     val ofiByDate by remember(startDate, endDate) {
         viewModel.calendarOfiByDate(startDate, endDate)
     }.collectAsState(initial = emptyMap())
-    var exerciseSearchQuery by rememberSaveable { mutableStateOf("") }
     val normalizedExerciseSearch = remember(exerciseSearchQuery) { exerciseSearchQuery.trim() }
     val matchingDates by remember(startDate, endDate, normalizedExerciseSearch) {
         viewModel.confirmedExerciseDates(startDate, endDate, normalizedExerciseSearch)
@@ -257,7 +258,7 @@ internal fun RecordCalendarScreen(
                     onClick = {
                         val today = LocalDate.now()
                         visibleMonth = YearMonth.from(today).toString()
-                        onDateSelected(today.toString())
+                        onDateSelected(today.toString(), false)
                     }
                 ) {
                     Text("오늘")
@@ -275,12 +276,12 @@ internal fun RecordCalendarScreen(
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(),
                 value = exerciseSearchQuery,
-                onValueChange = { exerciseSearchQuery = it },
+                onValueChange = onExerciseSearchQueryChange,
                 label = { Text("운동명 검색") },
                 singleLine = true,
                 trailingIcon = if (exerciseSearchQuery.isNotEmpty()) {
                     {
-                        IconButton(onClick = { exerciseSearchQuery = "" }) {
+                        IconButton(onClick = { onExerciseSearchQueryChange("") }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = clearSearchDescription
@@ -351,7 +352,12 @@ internal fun RecordCalendarScreen(
                             rangeCopy = rangeCopy,
                             rangeDelete = rangeDelete,
                             viewModel = viewModel,
-                            onPlainDateSelected = onDateSelected,
+                            onPlainDateSelected = { date ->
+                                onDateSelected(
+                                    date,
+                                    normalizedExerciseSearch.isNotEmpty() && date in matchingDateSet
+                                )
+                            },
                             onPendingConflict = { pendingConflict = it },
                             onPendingRangeDelete = { pendingRangeDelete = it },
                             onPendingActionChange = { pendingAction = it },

@@ -40,6 +40,7 @@ import com.training.trackplanner.data.RecordEntryOrdering
 import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import java.time.LocalDate
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun RecordScreen(
@@ -69,6 +70,9 @@ internal fun RecordScreen(
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.stableKey } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
+    var calendarSearchQuery by rememberSaveable { mutableStateOf("") }
+    var pendingSearchJump by remember { mutableStateOf<RecordSearchJumpRequest?>(null) }
+    var highlightedEntryId by remember { mutableStateOf<Long?>(null) }
     var pendingAddedEntryId by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingAddedAfterConfirmed by rememberSaveable { mutableStateOf(false) }
     val showPermissionHint = timerState.isActive &&
@@ -88,7 +92,27 @@ internal fun RecordScreen(
     }
 
     LaunchedEffect(target) {
-        target?.let { selectedDate = it.recordDate }
+        target?.let {
+            pendingSearchJump = null
+            selectedDate = it.recordDate
+        }
+    }
+
+    LaunchedEffect(pendingSearchJump, selectedDate, sortedEntries, exerciseMap, showPermissionHint) {
+        val request = pendingSearchJump ?: return@LaunchedEffect
+        val entryId = RecordSearchNavigation.firstConfirmedMatch(
+            request = request,
+            selectedDate = selectedDate,
+            records = sortedEntries,
+            currentExerciseNames = exerciseMap.mapValues { (_, exercise) -> exercise.name }
+        ) ?: return@LaunchedEffect
+        pendingSearchJump = null
+        val entryIndex = sortedEntries.indexOfFirst { record -> record.entry.id == entryId }
+        val leadingItems = 4 + if (showPermissionHint) 1 else 0
+        listState.animateScrollToItem(leadingItems + entryIndex)
+        highlightedEntryId = entryId
+        delay(1_200L)
+        if (highlightedEntryId == entryId) highlightedEntryId = null
     }
 
     if (showCalendar) {
@@ -98,8 +122,15 @@ internal fun RecordScreen(
         RecordCalendarScreen(
             viewModel = viewModel,
             selectedDate = selectedDate,
-            onDateSelected = {
-                selectedDate = it
+            exerciseSearchQuery = calendarSearchQuery,
+            onExerciseSearchQueryChange = { calendarSearchQuery = it },
+            onDateSelected = { date, tappedMatchingResult ->
+                pendingSearchJump = RecordSearchNavigation.request(
+                    date = date,
+                    query = calendarSearchQuery,
+                    tappedMatchingResult = tappedMatchingResult
+                )
+                selectedDate = date
                 showCalendar = false
             },
             onBack = { showCalendar = false }
@@ -157,8 +188,14 @@ internal fun RecordScreen(
         item {
             RecordDateSwitcher(
                 date = date,
-                onPrevious = { selectedDate = date.minusDays(1).toString() },
-                onNext = { selectedDate = date.plusDays(1).toString() },
+                onPrevious = {
+                    pendingSearchJump = null
+                    selectedDate = date.minusDays(1).toString()
+                },
+                onNext = {
+                    pendingSearchJump = null
+                    selectedDate = date.plusDays(1).toString()
+                },
                 onOpenCalendar = { showCalendar = true }
             )
         }
@@ -190,6 +227,7 @@ internal fun RecordScreen(
                     selectedDate = selectedDate,
                     entryWithSets = entryWithSets,
                     exercise = exerciseMap[entryWithSets.entry.exerciseStableKey],
+                    highlighted = highlightedEntryId == entryWithSets.entry.id,
                     restTimerSessionController = restTimerSessionController,
                     timerState = timerState,
                     onUpdateEntry = viewModel::updateWorkoutEntry,

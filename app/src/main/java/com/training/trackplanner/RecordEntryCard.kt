@@ -1,5 +1,7 @@
 package com.training.trackplanner
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,6 +49,7 @@ internal fun WorkoutEntryCard(
     selectedDate: String,
     entryWithSets: WorkoutEntryWithSets,
     exercise: Exercise?,
+    highlighted: Boolean = false,
     restTimerSessionController: RestTimerSessionController,
     timerState: RestTimerState,
     onUpdateEntry: (WorkoutEntry) -> Unit,
@@ -66,6 +70,15 @@ internal fun WorkoutEntryCard(
     var showExerciseInfo by rememberSaveable(entry.id) { mutableStateOf(false) }
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
     val exerciseDisplayName = localizedExerciseName(entry.exerciseStableKey, entry.exerciseName)
+    val cardColor by animateColorAsState(
+        targetValue = if (highlighted) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerHigh
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "record-search-highlight"
+    )
 
     if (showExerciseInfo && exercise != null) {
         ExerciseInfoDialog(
@@ -116,8 +129,11 @@ internal fun WorkoutEntryCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(if (highlighted) "record-entry-highlighted-${entry.id}" else "record-entry-${entry.id}"),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
