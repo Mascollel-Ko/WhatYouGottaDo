@@ -3,6 +3,7 @@
     <string name="loc_baseline_0019749af983">badminton game</string>
     <string name="loc_baseline_001e3808b4da">Copy to record state</string>
     <string name="loc_baseline_00261f505117">badminton support weights</string>
+    <string name="loc_baseline_002f5173b594">The matrix calculation did not pass the numerical reliability checks.</string>
     <string name="loc_baseline_003ed974b7ac">disease</string>
     <string name="loc_baseline_005b130a0815">This exercise reinforces jumping and landing control.</string>
     <string name="loc_baseline_009fcc7a85a4">weight management</string>
@@ -14,9 +15,11 @@
     <string name="loc_baseline_0149f1cf4c88">Daily load using only confirmed badminton practice time and RPE.</string>
     <string name="loc_baseline_016399c37189">There is no record of the selected transition purpose.</string>
     <string name="loc_baseline_0179186c7d48">Anti-rotation/torso control</string>
+    <string name="loc_baseline_01e70086195a">Weekly analysis data could not be prepared.</string>
     <string name="loc_baseline_01f38b117b82">push up</string>
     <string name="loc_baseline_021049efb3a6">badminton burden</string>
     <string name="loc_baseline_02394c1c6a5a">Should I delete this exercise program? This action is irreversible.</string>
+    <string name="loc_baseline_0241c72373c6">The lag posterior did not achieve reliable mixing.</string>
     <string name="loc_baseline_0266e7ee6f34">Select at least one response variable Y.</string>
     <string name="loc_baseline_028c9fe986ad">High fatigue</string>
     <string name="loc_baseline_029a0f27dea4">Proportion of intensity intervals based on repetitions</string>
@@ -25,6 +28,7 @@
     <string name="loc_baseline_035194f8d97b">Joint/tendon/impact</string>
     <string name="loc_baseline_03621c8c757a">restorative exercise</string>
     <string name="loc_baseline_03735f21f6c2">Deadlift/RDL series</string>
+    <string name="loc_baseline_037d04aa9178">The latest weekly analysis data could not be prepared.</string>
     <string name="loc_baseline_03d3389f78f9">There is an existing record on the target date.</string>
     <string name="loc_baseline_04074fbebc7d">Weekly sum of direct and indirect CoreStimulus V1</string>
     <string name="loc_baseline_0421ca8fe2d0">progress indicators</string>
@@ -44,6 +48,7 @@
     <string name="loc_baseline_0622332ac966">0 seconds</string>
     <string name="loc_baseline_064d6e259bff">This is a training exercise that reinforces first steps and acceleration over short distances.</string>
     <string name="loc_baseline_06c8c5f97a3e">technology goals</string>
+    <string name="loc_baseline_06ee648ecee9">Check whether the required metrics have analyzable variation.</string>
     <string name="loc_baseline_07227700899b">Weekly adductor/abductor training volume in the last 3 days</string>
     <string name="loc_baseline_072b77ad03c8">Direct 1RM</string>
     <string name="loc_baseline_07572fc26284">If this is your first time, select the default program and apply the start date.</string>
@@ -51,6 +56,8 @@
     <string name="loc_baseline_07e5b52ae2b7">Automatic outline creation failed.</string>
     <string name="loc_baseline_08716c618ee9">Exploratory lag analysis</string>
     <string name="loc_baseline_08746616d58a">As you accumulate more records, your personal baseline judgment will stabilize.</string>
+    <string name="loc_baseline_0890edae9ad5">Check the records or representation policy for the selected exposure metric.</string>
+    <string name="loc_baseline_0895af4fc523">Response variable Y</string>
     <string name="loc_baseline_08b743f32999">High repetitions/volume (10 or more)</string>
     <string name="loc_baseline_08e5888aceb6">side core</string>
     <string name="loc_baseline_0902b89f1fbd">break ends</string>
@@ -65,6 +72,7 @@
     <string name="loc_baseline_0ad33b5ea69b">It performed below expectations.</string>
     <string name="loc_baseline_0ae8c31b3c0f">Badminton transfer purpose explanation</string>
     <string name="loc_baseline_0b1efea65d7e">hypertrophy</string>
+    <string name="loc_baseline_0b29f68bcf10">The result was calculated, but the sampling diagnostics are limited, so interpret it with greater caution.</string>
     <string name="loc_baseline_0b6f770e491d">weight kg</string>
     <string name="loc_baseline_0b7a87c9495f">perceived stress</string>
     <string name="loc_baseline_0beb52bef7ff">Curve ${selected.curveProfileId ?:</string>
@@ -76,6 +84,7 @@
     <string name="loc_baseline_0d4f5328ad46">Failed</string>
     <string name="loc_baseline_0d66c478d7b3">Weekly triceps training volume for the last 3 days</string>
     <string name="loc_baseline_0e4433d30664">Although the sample is relatively stable, it does not prove causality or effect.</string>
+    <string name="loc_baseline_0e7da0848a4c">Try again with the same settings or after more weekly records accumulate.</string>
     <string name="loc_baseline_0eb2e12520be">direct transfer</string>
     <string name="loc_baseline_0edb6ed3c5ac">The final program is being put together.</string>
     <string name="loc_baseline_0f297533c3e1">6. Basis/Status</string>
@@ -84,12 +93,15 @@
     <string name="loc_baseline_0fa21f1dbb7a">Retrying only clears the strength analysis derived results and recalculates the preserved workout history by date.</string>
     <string name="loc_baseline_0fb81051e90c">Weekly lateral core exercise</string>
     <string name="loc_baseline_1052cecec399">Recent exercise hiatus</string>
+    <string name="loc_baseline_10637e48e2bb">Long-press to change exercise order</string>
+    <string name="loc_baseline_10663c03dc09">The records changed during analysis, so the previous result was not displayed.</string>
     <string name="loc_baseline_107e72a35bad">Available Metrics</string>
     <string name="loc_baseline_10a50f4c0f4f">menu</string>
     <string name="loc_baseline_10be53e9d04c">Removing controls or reducing the response horizon may increase the available rows.</string>
     <string name="loc_baseline_10dc5faef4e9">RPE probability observation</string>
     <string name="loc_baseline_10ff17dcca1d">maintain strength</string>
     <string name="loc_baseline_11992ee3f1c8">Select different indicators for the X-axis and Y-axis.</string>
+    <string name="loc_baseline_119d8ceeaca9">The Bayesian posterior was calculated and met the strict diagnostic criteria.</string>
     <string name="loc_baseline_11c675356677">lower body fatigue</string>
     <string name="loc_baseline_11da17a5d736">simply</string>
     <string name="loc_baseline_12319de074f1">Weekly anti-rotational/rotational core training volume</string>
@@ -103,14 +115,18 @@
     <string name="loc_baseline_1423f206a055">View your current fatigue state and major contributing exercises for each fatigue axis.</string>
     <string name="loc_baseline_144274bcdea4">weekly calf exercise</string>
     <string name="loc_baseline_1455ae2bb9d2">Low reps/high intensity (1-5 reps)</string>
+    <string name="loc_baseline_14a202b5dbd9">The canonical metadata required for the selected metrics is incomplete.</string>
     <string name="loc_baseline_14a575e8650a">Cumulative kg</string>
     <string name="loc_baseline_152c4618fe70">Existing Deload</string>
+    <string name="loc_baseline_15a3bfc6cfd9">Reduce the controls or shorten the response window.</string>
     <string name="loc_baseline_15ff496eca6d">Required input</string>
     <string name="loc_baseline_161727be8dd9">badminton performance</string>
     <string name="loc_baseline_162f3dd337d8">badminton session</string>
+    <string name="loc_baseline_16333b7e57cd">There is no approved short-history representation policy for the selected metrics.</string>
     <string name="loc_baseline_164c326df0e7">Weekly Forearm/Grip Exercise Amount in Last 3 Days</string>
     <string name="loc_baseline_16cad59ea994">overhead repetition</string>
     <string name="loc_baseline_16cc597d9ea3">fold record</string>
+    <string name="loc_baseline_16ccb7416c22" formatted="false">The posterior is sampled from the full weekly history. When the 80% interval is wide, prioritize uncertainty over direction.</string>
     <string name="loc_baseline_171d11a9fba0">butt</string>
     <string name="loc_baseline_17468bf90757">State Fingerprint ${summary.modelStateFingerprint?.take(16) ?:</string>
     <string name="loc_baseline_17505620ff53">Plan 0 sets</string>
@@ -133,6 +149,7 @@
     <string name="loc_baseline_1af3094d97f5">well</string>
     <string name="loc_baseline_1b1caaa93088">transmit tensile load</string>
     <string name="loc_baseline_1b59b5fdeb0d">injury</string>
+    <string name="loc_baseline_1b8e5497dd22">There are no recorded weekly values.</string>
     <string name="loc_baseline_1ba9528d7b92">Running the exploratory analysis.</string>
     <string name="loc_baseline_1bd39fffdc98">transition purpose</string>
     <string name="loc_baseline_1bebeb03e49b">RPE settings</string>
@@ -170,6 +187,7 @@
     <string name="loc_baseline_23f068d578eb">Failed to save diagnostic report: ${error.message ?:</string>
     <string name="loc_baseline_241c12ec0c1d">vertebrae</string>
     <string name="loc_baseline_2439b244f9be">Weekly hamstring training volume in the last 3 days</string>
+    <string name="loc_baseline_2499b8f15fe2">Export</string>
     <string name="loc_baseline_2543382ac70e">Exploratory local-projection compatibility model</string>
     <string name="loc_baseline_254ba72f3509">Weekly shoulder training volume in the last 7 days</string>
     <string name="loc_baseline_257031186d02">Y variable</string>
@@ -201,6 +219,7 @@
     <string name="loc_baseline_2b7b91d61abb">maintain current strength</string>
     <string name="loc_baseline_2c0ac99a3d08">We are calculating relationship navigation metrics.</string>
     <string name="loc_baseline_2c127dec4cc0">You can proceed with your scheduled training today.</string>
+    <string name="loc_baseline_2c1915cbaa00">Check again after more weekly changes accumulate for the response metric.</string>
     <string name="loc_baseline_2c2d0e284348">Too few common observations remain after automatic metric screening.</string>
     <string name="loc_baseline_2c79666166c1">By part</string>
     <string name="loc_baseline_2cb057c8eaee">Weekly forearm/grip workouts</string>
@@ -219,9 +238,11 @@
     <string name="loc_baseline_30177141d3ac">After today\'s workout, I\'m a bit overworked and need some recovery.</string>
     <string name="loc_baseline_3078729ca7fe">[Ga-hi]</string>
     <string name="loc_baseline_30902ceff5c3">This analysis shows exploratory lag patterns in your records; it does not establish causality or represent a completed strict Bayesian posterior.</string>
+    <string name="loc_baseline_30b266369467">Run Bayesian analysis</string>
     <string name="loc_baseline_30e1eeffac71">Weekly average concentration/motivation check-in</string>
     <string name="loc_baseline_315003b90b54">Records less than 8 weeks old will not be used to determine relationships.</string>
     <string name="loc_baseline_3151aaf6d252">Aligning weekly records.</string>
+    <string name="loc_baseline_317f18bfbbfe">A non-finite value occurred during posterior calculation.</string>
     <string name="loc_baseline_31f2a330fdb6">2. Program/Analysis</string>
     <string name="loc_baseline_321e63d7568f">Confirm joint/tendon discomfort input</string>
     <string name="loc_baseline_32864853c7f9">My sleep has been very low lately</string>
@@ -230,6 +251,7 @@
     <string name="loc_baseline_32e49e1ef77a">daily exercise time</string>
     <string name="loc_baseline_33447234570c">Load</string>
     <string name="loc_baseline_336357de03b9">Select transition purpose</string>
+    <string name="loc_baseline_3376fff138fb">A finite analysis scale cannot be created for a required metric.</string>
     <string name="loc_baseline_3417b0bbe048">Signs of discomfort/restriction</string>
     <string name="loc_baseline_3433f45d93d3">RPE not entered lower limit observation</string>
     <string name="loc_baseline_34677024f840">exercise search</string>
@@ -248,6 +270,7 @@
     <string name="loc_baseline_371984d2694d">) { it.label }} Lack of stimulation.</string>
     <string name="loc_baseline_374583dff405">Movement classification</string>
     <string name="loc_baseline_376e868f5618">Please enter a number between 0 and 24.</string>
+    <string name="loc_baseline_3777ecf1e7d9">Exposure reference</string>
     <string name="loc_baseline_38238b867af3">The currently saved strength analysis model is not compatible with the app\'s canonical model.</string>
     <string name="loc_baseline_3914c67ed6cd">The balance between strength training and badminton transfer training has been corrected.</string>
     <string name="loc_baseline_395d37cf223a">Posterior chain/erector spinae</string>
@@ -283,6 +306,7 @@
     <string name="loc_baseline_3ea504bf348d">csv restoration exercise</string>
     <string name="loc_baseline_3f020f3bc7f4">See reactions after 90+ minutes of court time</string>
     <string name="loc_baseline_3f0226f846c1">There are still insufficient records needed to analyze the cause.</string>
+    <string name="loc_baseline_3f5278c42e6a">Check the diagnostic code in Details, then try again.</string>
     <string name="loc_baseline_3faa9c3b2bde">3 sets x 8-12 reps · RPE 6.5-8</string>
     <string name="loc_baseline_3fcdbaeda91f">8 weeks or more</string>
     <string name="loc_baseline_402647ff8dd1">Modify number of times</string>
@@ -292,6 +316,7 @@
     <string name="loc_baseline_415b09dd3dd4">Enter sleep deprivation/recovery</string>
     <string name="loc_baseline_415c678e0f84">Romanian</string>
     <string name="loc_baseline_417307eba915">3 sets x 3-5 reps · RPE 7.5-8.5</string>
+    <string name="loc_baseline_417b3fda5e53">The analysis starts with the strictest approved path and automatically applies allowed adjustments when needed.</string>
     <string name="loc_baseline_41b67957372e">Calculating the badminton practice load trend.</string>
     <string name="loc_baseline_420a55b276ed">jisoo</string>
     <string name="loc_baseline_421cc497eddc">8 weeks</string>
@@ -311,6 +336,7 @@
     <string name="loc_baseline_4529e7a80734">Unconfirmed set only</string>
     <string name="loc_baseline_455ac19797f1">Kettlebell one-leg Romanian deadlift</string>
     <string name="loc_baseline_456344fb7102">There are no saved workouts yet.</string>
+    <string name="loc_baseline_45c5c5a15899">Sampling the posterior.</string>
     <string name="loc_baseline_45d80cc5ba3d">Weekly index reflecting recovery status and performance decline</string>
     <string name="loc_baseline_45eaed656e5b">chart limits</string>
     <string name="loc_baseline_45ed0ae23cfc">I feel very tired after exercising today.</string>
@@ -328,6 +354,7 @@
     <string name="loc_baseline_4880c9172fc3">The configuration has been checked to ensure that repetitive exercise objectives are not excessive.</string>
     <string name="loc_baseline_4883ac7fab6a">Self-estimation of related movements</string>
     <string name="loc_baseline_48b1e249cf63">High repetitions/volume</string>
+    <string name="loc_baseline_4926559aa67f">Checking whether the full weekly history can be analyzed.</string>
     <string name="loc_baseline_493e88f1b3a9">There is less court time response data</string>
     <string name="loc_baseline_49523082b460">Weekly abs/front core training volume in the last 7 days</string>
     <string name="loc_baseline_4956595bdb1a">recovery</string>
@@ -340,23 +367,29 @@
     <string name="loc_baseline_4a5a589092d7">The selected shock or response metric does not vary enough to calculate a stable lag response.</string>
     <string name="loc_baseline_4a731fb5be0d">Home</string>
     <string name="loc_baseline_4a99d2731fe6">There are no completed sessions processed yet.</string>
+    <string name="loc_baseline_4aa3aef29a41">The selected metrics do not have weekly value changes yet.</string>
     <string name="loc_baseline_4ad7bddf2299">This is a low confidence interval. It may be a relationship that appears by chance.</string>
     <string name="loc_baseline_4ae6b66b8d6c">status today</string>
     <string name="loc_baseline_4ba135521203">This is the estimate after exercising on the same day. Check your condition and fatigue the next day to determine if recovery is incomplete.</string>
     <string name="loc_baseline_4c03f8ad8d4d">The strength average RPE is stored only as a number from 1 to 10.</string>
     <string name="loc_baseline_4c89ddebac44">unconditionally</string>
     <string name="loc_baseline_4cd03b3afd0b">spare load</string>
+    <string name="loc_baseline_4cd8cf80fd40">Exogenous controls Z</string>
+    <string name="loc_baseline_4d2401de5ab5">Checking numerical reliability.</string>
     <string name="loc_baseline_4d65a787ca20">Your personal baseline will be recalculated using your most recent records.</string>
     <string name="loc_baseline_4dbc4c4e9dc6">Workout list management</string>
     <string name="loc_baseline_4df116bd3201">The analysis could not be completed because of an unexpected internal error.</string>
     <string name="loc_baseline_4dff3c0fa3b8">X variable</string>
     <string name="loc_baseline_4e569c203d8e">A required X, Y, or Z metric could not be prepared.</string>
     <string name="loc_baseline_4ea9973c5e79">The exploratory model required for shock identification could not be fitted stably.</string>
+    <string name="loc_baseline_4eef9d6d57a0">Posterior weight may also be distributed across other lags, so review the weekly response path rather than treating one week as the definite onset of an effect.</string>
     <string name="loc_baseline_4fefe2ca6e5a">Badminton practice load</string>
     <string name="loc_baseline_50d2bed8de2f">Multivariate time series analysis</string>
     <string name="loc_baseline_514992bd220e">As check-in records are accumulated, recovery/condition indicators can also be compared in the laboratory.</string>
     <string name="loc_baseline_51b8c89ae8f9">Fatigue/Recovery</string>
     <string name="loc_baseline_51d57c6047f9">Exploratory lag analysis result</string>
+    <string name="loc_baseline_523569be46b7">The weekly values have not changed yet.</string>
+    <string name="loc_baseline_5235feb759ab">Try again with fewer metrics.</string>
     <string name="loc_baseline_5241d729bb14" formatted="false">80% estimated range</string>
     <string name="loc_baseline_528fb3e67961">high speed footwork</string>
     <string name="loc_baseline_52b1c2cdd0f9">Plans from tomorrow do not significantly conflict with the current state</string>
@@ -389,6 +422,7 @@
     <string name="loc_baseline_59bb822c98ac">Exploratory VAR compatibility model</string>
     <string name="loc_baseline_59c961346932">Cardio/Exercise</string>
     <string name="loc_baseline_5a6a393a476d">copy to plan</string>
+    <string name="loc_baseline_5acaadfe569b">Preparing eligible weekly metrics from the full record history.</string>
     <string name="loc_baseline_5ad08fa58e36">Cable Palloff Press</string>
     <string name="loc_baseline_5b17552b351e">M2 Shared Factor</string>
     <string name="loc_baseline_5b2351a1fd46">You must rest</string>
@@ -399,6 +433,7 @@
     <string name="loc_baseline_5c5b522305c8">Weekly glute training volume in the last 3 days</string>
     <string name="loc_baseline_5c606ff306db">Select response variable Y</string>
     <string name="loc_baseline_5c6f22817a44">This is an estimated range that also reflects related exercise performance. It does not replace your actual e1RM recording.</string>
+    <string name="loc_baseline_5c937a726f00">The integration diagnostic sample is short, but an eligible strict model will be attempted using the approved short-history representation.</string>
     <string name="loc_baseline_5c96400aa14f">Weekly posterior chain/erector spinae training volume for the last 3 days</string>
     <string name="loc_baseline_5cb98942d79e">relationship</string>
     <string name="loc_baseline_5cd90d2d0305">gun stress</string>
@@ -437,6 +472,7 @@
     <string name="loc_baseline_62fc7d69232d">viper turn up</string>
     <string name="loc_baseline_63a33abdedf1">Increased strength</string>
     <string name="loc_baseline_63b5d9e981f8">RPE interpretation is conservative due to low recent sleep input.</string>
+    <string name="loc_baseline_63d43a941b2a">The selected metrics do not have enough weekly variation.</string>
     <string name="loc_baseline_63e4ec8d0940">Left and right random pick</string>
     <string name="loc_baseline_643e40604795">Curve Boundaries ${summary.curveVersionBoundaries.ifEmpty { listOf(</string>
     <string name="loc_baseline_643e771c04b8">overhead press</string>
@@ -448,6 +484,7 @@
     <string name="loc_baseline_669a9626cd34">Last 7 days</string>
     <string name="loc_baseline_6713ca4b9370">} · Schema ${summary.factorSchemaVersion ?:</string>
     <string name="loc_baseline_6790b535e2af">Score version</string>
+    <string name="loc_baseline_67a23155a6e2">The posterior did not reach the required precision within the allowed computation limits.</string>
     <string name="loc_baseline_67b4f5b997ea">bench kg</string>
     <string name="loc_baseline_6802f37681bd">Previous version conservative lower bound observation</string>
     <string name="loc_baseline_68106876f1f0">Landmine Rotation</string>
@@ -472,6 +509,7 @@
     <string name="loc_baseline_6d396e9b6165">Fatigue analysis is applied conservatively due to low sleep time.</string>
     <string name="loc_baseline_6d3d33920776">sadhu</string>
     <string name="loc_baseline_6d4ae0efa70a">Bare body standing calf raise</string>
+    <string name="loc_baseline_6dc78385d2fe">Some estimates in the Bayesian chains did not meet the strict reliability criteria.</string>
     <string name="loc_baseline_6dde307cc232">No input</string>
     <string name="loc_baseline_6df4cbe579d4">The discomfort input is high and the area requires adjustment.</string>
     <string name="loc_baseline_6e461cad5ecd">The purpose of the transition is to keep the torso from collapsing during reach, lunge, and direction changes.</string>
@@ -487,6 +525,7 @@
     <string name="loc_baseline_6fe8663596e9">An indicator registry structure is prepared for future analysis.</string>
     <string name="loc_baseline_6ff4b1528397">forearm</string>
     <string name="loc_baseline_6ffdc080becd">Multivariate analysis</string>
+    <string name="loc_baseline_7000bf7fef67">Zoomed</string>
     <string name="loc_baseline_7036921313b4">Badminton practice load reflects confirmed practice time and RPE.</string>
     <string name="loc_baseline_704545999a00">fury</string>
     <string name="loc_baseline_7082a8019339">Based on the initial profile, there is room to absorb the current load.</string>
@@ -511,8 +550,10 @@
     <string name="loc_baseline_7415a2ebfc51">There is a lack of weekly indicators for use in time series analysis.</string>
     <string name="loc_baseline_743638ff7d17">The number of exercises was adjusted to fit a 45-minute session.</string>
     <string name="loc_baseline_745c20d835e1">Select a program and apply a start date to create a set of plans for each date.</string>
+    <string name="loc_baseline_748db3051030">Strict criteria met</string>
     <string name="loc_baseline_74a3c3ac0aea">Analysis unit name</string>
     <string name="loc_baseline_74c9313c8e7c">proxy observations</string>
+    <string name="loc_baseline_74cef5e86a4d">Stabilizing the Bayesian chains.</string>
     <string name="loc_baseline_74e2b12eb1ee">For the year of birth, only four digits from 1900 to this year are stored.</string>
     <string name="loc_baseline_74fea7fd72fc">Y axis</string>
     <string name="loc_baseline_75b7f7dfd345">Grip/Forearm</string>
@@ -526,12 +567,14 @@
     <string name="loc_baseline_76d9b9bfeef1">Due to a lack of recent sleep input, a sleep compensation signal was not calculated.</string>
     <string name="loc_baseline_7722aec2f222">Current recovery judgment</string>
     <string name="loc_baseline_77f43de7675b">Detailed classification</string>
+    <string name="loc_baseline_7831d01c49ae">The lag states and some response estimates in the Bayesian chains were not sufficiently stable.</string>
     <string name="loc_baseline_7853c4f81fa1">3 sets x 8-15 reps</string>
     <string name="loc_baseline_790713d56a85">RPE elevation</string>
     <string name="loc_baseline_79213187d4cd">I\'m in the process of organizing the main and auxiliary exercises.</string>
     <string name="loc_baseline_7949e17a8353">minute</string>
     <string name="loc_baseline_794acfa59ec7">The default horizon is 2 weeks, and you can select from 1 to 8 weeks. If there is insufficient data, the period is automatically reduced to the available period.</string>
     <string name="loc_baseline_79666bda855c">new program</string>
+    <string name="loc_baseline_7a1ef8b0c35e">Analysis details</string>
     <string name="loc_baseline_7a76049be91d">Import from program</string>
     <string name="loc_baseline_7ab0e0ae5bdd">month</string>
     <string name="loc_baseline_7ad9cf4c26e5">Exercise information</string>
@@ -540,8 +583,10 @@
     <string name="loc_baseline_7b4320f39456">select input</string>
     <string name="loc_baseline_7ba5f35b06a4">try again</string>
     <string name="loc_baseline_7ba69af2fbbf">Adjustable high-intensity items</string>
+    <string name="loc_baseline_7c3c06215677">The approved strict-model input cannot be built from the current records.</string>
     <string name="loc_baseline_7c93adf85602">Abs/front core</string>
     <string name="loc_baseline_7cc3aa997908">Weekly abs/front core training volume for the last 3 days</string>
+    <string name="loc_baseline_7ccd71f6c7c9">Bayesian analysis result</string>
     <string name="loc_baseline_7df60fb9331f">Feedback integration after badminton session</string>
     <string name="loc_baseline_7e0bd250a092">Weekly burden of highest local area</string>
     <string name="loc_baseline_7e25e4f10fcf">2-3 sets x 8-12 reps · RPE 6.5-7.5</string>
@@ -552,6 +597,7 @@
     <string name="loc_baseline_7fc00d5897ba">Enter detailed information</string>
     <string name="loc_baseline_80323b70f0a3">No control variables</string>
     <string name="loc_baseline_80833eb66fe2">These are moderate exploratory results and do not imply causality.</string>
+    <string name="loc_baseline_8086f0aa8b79">Running Bayesian analysis.</string>
     <string name="loc_baseline_809d61a1b2cf">accumulated fatigue</string>
     <string name="loc_baseline_80b25ada6260">heavy squats</string>
     <string name="loc_baseline_80d4bce53edc">knee</string>
@@ -571,6 +617,7 @@
     <string name="loc_baseline_837de53d5d57">The number of repetitions of the same weight was reduced.</string>
     <string name="loc_baseline_8434ee57d7b8">The current burden is high.</string>
     <string name="loc_baseline_849019ee280a">There are no exercise records to save for the selected period.</string>
+    <string name="loc_baseline_84e299edc206">There is no lag posterior to compare.</string>
     <string name="loc_baseline_853e71dbf10d">Select a response horizon from 1 to 8 weeks.</string>
     <string name="loc_baseline_855569c328fa">stress and recovery</string>
     <string name="loc_baseline_85c5658cbcd8">There is still a lack of relevant motor changes that can be reflected.</string>
@@ -587,6 +634,7 @@
     <string name="loc_baseline_883faea70e11">Hop/Bound/Jump</string>
     <string name="loc_baseline_885a79a8e5b5">Weekly core training stimulus</string>
     <string name="loc_baseline_8876fee2ca1c">Weekly training volume for badminton support purposes</string>
+    <string name="loc_baseline_893368531ff6">The result is a posterior conditional on the records and does not establish causality.</string>
     <string name="loc_baseline_89cdcbf08abc">Glute/Hamstrings</string>
     <string name="loc_baseline_89f1c21fd1c3">Lag analysis results</string>
     <string name="loc_baseline_89f3c031c247">No exploratory model passed with the current data.</string>
@@ -628,8 +676,10 @@
     <string name="loc_baseline_91d1a6cb4018">EZ bar reverse curl</string>
     <string name="loc_baseline_9214e0516555">dead kg</string>
     <string name="loc_baseline_92435328617d">Repeated comparisons of multiple indicators may make the relationships appear to be coincidental.</string>
+    <string name="loc_baseline_92493f69b716">Try again after the canonical metadata required for analysis is available.</string>
     <string name="loc_baseline_92672cbdbfa2">weekly biceps workout</string>
     <string name="loc_baseline_934d6d0646a8">Collect more weekly records for the selected metrics and check again.</string>
+    <string name="loc_baseline_94039e17cbe7">Finalizing the posterior result.</string>
     <string name="loc_baseline_94156dba23b5">data count</string>
     <string name="loc_baseline_94225a909a76">Training adjustment reference signals that are reflected in coach analysis along with exercise load.</string>
     <string name="loc_baseline_948ba53425dd">Hidden view</string>
@@ -648,6 +698,7 @@
     <string name="loc_baseline_99b1fb48b807">Edit</string>
     <string name="loc_baseline_99e6c13d1354">Fatigue contribution trend</string>
     <string name="loc_baseline_9ad2ff92bc5c">Bulk Edit</string>
+    <string name="loc_baseline_9b43a07f1905">Cannot analyze</string>
     <string name="loc_baseline_9b6d5ddee178">Description/Notes</string>
     <string name="loc_baseline_9ba0f9edf9c4">Reduce high-intensity exercise due to discomfort input.</string>
     <string name="loc_baseline_9c2804cdbe30">reset</string>
@@ -660,8 +711,10 @@
     <string name="loc_baseline_9ce844fc2110">Curve Calibration ${selected.curveCalibrationStatus ?:</string>
     <string name="loc_baseline_9cfd2edfc285">Expected fatigue is moderate</string>
     <string name="loc_baseline_9d000cbc30b3">We are preparing the basic program. Please check back later.</string>
+    <string name="loc_baseline_9d0677e24670">Extending sampling to reach the required precision.</string>
     <string name="loc_baseline_9d076ed9f648">A stable standardized shock could not be identified from the selected X.</string>
     <string name="loc_baseline_9d1dfd8f3a22">The selected pain area and avoidance movements were conservatively reflected.</string>
+    <string name="loc_baseline_9d34539742e4">The full weekly-record snapshot could not be prepared.</string>
     <string name="loc_baseline_9d7c2119c1c3">stiff</string>
     <string name="loc_baseline_9dc16d7bab4c">Control variable selection</string>
     <string name="loc_baseline_9df995cfd994">Please enter your default classification.</string>
@@ -670,6 +723,7 @@
     <string name="loc_baseline_9e64452c5317">States reflected only by proxy</string>
     <string name="loc_baseline_9e667008e0d1">Proxy transfer exclusion · ${local.proxyTransferExclusionReason ?:</string>
     <string name="loc_baseline_9e9ab74505d5">Medium reliability · pattern search</string>
+    <string name="loc_baseline_9e9ad7d8e7c4">Relaxed criteria met</string>
     <string name="loc_baseline_9e9b24777593">select all</string>
     <string name="loc_baseline_9ea562bf0f99">candidate week</string>
     <string name="loc_baseline_9eb8927d664f">Main action</string>
@@ -683,6 +737,7 @@
     <string name="loc_baseline_a18e76ad10f0">Joint/tendon discomfort is high, so caution is required when decelerating, landing, and performing heavy lower body exercises.</string>
     <string name="loc_baseline_a1e70a1713c5">The completion set is also modified.</string>
     <string name="loc_baseline_a1e72d290fbf">Calf</string>
+    <string name="loc_baseline_a326fe24358f">Limited</string>
     <string name="loc_baseline_a3ae17072427">By set</string>
     <string name="loc_baseline_a3cb16204da2">Badminton transfer stimulation amount for each purpose</string>
     <string name="loc_baseline_a3edac969a92">Expected fatigue after finishing</string>
@@ -696,11 +751,13 @@
     <string name="loc_baseline_a62ce9baab6c">Enter the program name.</string>
     <string name="loc_baseline_a6729d22a607">Check your exercise list and preferred recording method.</string>
     <string name="loc_baseline_a68f9a552fea">Medium repetition/medium intensity</string>
+    <string name="loc_baseline_a6b2aa76ab51">Bayesian lag analysis</string>
     <string name="loc_baseline_a71673fb1da4">There are still few records for each part.</string>
     <string name="loc_baseline_a717c2c60d78">Comparison of last 7 days vs. 28 days transition purpose</string>
     <string name="loc_baseline_a89deeb8d0d8">Hide expected range</string>
     <string name="loc_baseline_a8b9d5789d75">No recent direct 1RM records</string>
     <string name="loc_baseline_a8e1e520d649">Growth rate compared to previous estimate</string>
+    <string name="loc_baseline_a8f80d7e23e7">The representation diagnostics conflict with the approval policy; this is not simply a short-history issue.</string>
     <string name="loc_baseline_a8f8df0e19c0">Total core stimulus</string>
     <string name="loc_baseline_a972e38e79f6">Badminton Assistant 4 weeks</string>
     <string name="loc_baseline_a9a7a6d01e08">3 sets x 5 reps/side</string>
@@ -708,6 +765,7 @@
     <string name="loc_baseline_aa0591296fa1">Analysis execution error</string>
     <string name="loc_baseline_aa2ee81983ea">Landmine Press</string>
     <string name="loc_baseline_aa3990056a28">When finished, the expected fatigue level is in the usual range.</string>
+    <string name="loc_baseline_aaadd4909912">Strict Bayesian analysis could not be completed.</string>
     <string name="loc_baseline_aad54aa1632a">Some exercises were rearranged to avoid continuous lower body fatigue.</string>
     <string name="loc_baseline_aadf60a9763e">Bayesian time series analysis</string>
     <string name="loc_baseline_aae5c70bba7f">At least one selected metric cannot be transformed safely by the current analysis route.</string>
@@ -720,6 +778,7 @@
     <string name="loc_baseline_acab26eb02e0">Dumbbell overhead triceps extension</string>
     <string name="loc_baseline_ad0553a6c5f6">aerobic exercise</string>
     <string name="loc_baseline_ad76f7602ede">Beware of fatigue</string>
+    <string name="loc_baseline_addcec6c1a5f">The selected combination cannot be analyzed from the updated records.</string>
     <string name="loc_baseline_ade7978faf77">Badminton: Strength</string>
     <string name="loc_baseline_ae07c2a64e98">When it\'s over, the expected fatigue level is high. Check your recovery flow the next day.</string>
     <string name="loc_baseline_ae230cc29f18">Court fatigue has been reflected more sensitively in line with badminton goals.</string>
@@ -779,6 +838,7 @@
     <string name="loc_baseline_b93551c2ff24">reaction</string>
     <string name="loc_baseline_b947641986f1">Notification permission is required to view break ends outside of the app.</string>
     <string name="loc_baseline_b94be021d47b">Record</string>
+    <string name="loc_baseline_b95364efe786">This result met the relaxed diagnostic criteria.</string>
     <string name="loc_baseline_b9d8fe5ca2a9">When you create an automatic outline, you\'ll see a preview and edits before saving.</string>
     <string name="loc_baseline_b9fec0e1a00d">palof</string>
     <string name="loc_baseline_ba0e7a91c7dc">Checking the metric combination for analysis.</string>
@@ -811,6 +871,7 @@
     <string name="loc_baseline_bdfbd27dd1a9">Beware of low reliability and coincidence correlation</string>
     <string name="loc_baseline_be36f60c3f6f">We take a conservative view as there is little recovery input.</string>
     <string name="loc_baseline_be5960952add">Finalizing the result.</string>
+    <string name="loc_baseline_be808b41d14a">This response is conditional on the current records and model and does not establish causality.</string>
     <string name="loc_baseline_becfcd73c42f">High-intensity exercise for areas of discomfort</string>
     <string name="loc_baseline_bef467fbeb2d">check</string>
     <string name="loc_baseline_bf30efb8e83d">number of exercises</string>
@@ -831,13 +892,16 @@
     <string name="loc_baseline_c21e2526123c">Redundancy Suppression Group</string>
     <string name="loc_baseline_c2249e79384a">kettlebell press</string>
     <string name="loc_baseline_c22f587c8057">The purpose of transition is to quickly judge and react to changes in signals or situations.</string>
+    <string name="loc_baseline_c3061e451f3f">The selected core metrics cannot be prepared for the strict model representation.</string>
     <string name="loc_baseline_c31548ac089d">Count +</string>
     <string name="loc_baseline_c332999a5684">Left and right use</string>
     <string name="loc_baseline_c335e32e57dd">There is a lack of records of exercise volume for each muscle group.</string>
     <string name="loc_baseline_c3664e7fe4cf">Level</string>
+    <string name="loc_baseline_c380487303c2">None selected</string>
     <string name="loc_baseline_c3b335d60c37">M1 · Direct recording</string>
     <string name="loc_baseline_c3e5e48155a5">Weekly fatigue burden from badminton training</string>
     <string name="loc_baseline_c41402a5fd1b">extroversion</string>
+    <string name="loc_baseline_c41f23d402bc">The analysis was canceled.</string>
     <string name="loc_baseline_c444d8af8266">female</string>
     <string name="loc_baseline_c46f97a10fdb">Set RPE</string>
     <string name="loc_baseline_c48303d5dbf6">Analysis</string>
@@ -891,6 +955,7 @@
     <string name="loc_baseline_d0bd48681421">Some session configurations may be short due to a limited number of eligible exercise candidates.</string>
     <string name="loc_baseline_d0d24860d9f0">total training volume</string>
     <string name="loc_baseline_d12bc541857f">Force/Load Type</string>
+    <string name="loc_baseline_d18c06e94b40">Strict analysis cannot start with the selected metric combination.</string>
     <string name="loc_baseline_d1e991bdf03b">It reflects both initial profiles and recent records.</string>
     <string name="loc_baseline_d24a52aa208b">correlation coefficient</string>
     <string name="loc_baseline_d27e508c1b62">Recovery confirmation required</string>
@@ -899,6 +964,7 @@
     <string name="loc_baseline_d32b67b61518">Weekly adductor/abductor training volume in the last 7 days</string>
     <string name="loc_baseline_d3c717733188">When it\'s over, your expected fatigue will increase. Check whether recovery is incomplete or not in the next day\'s flow.</string>
     <string name="loc_baseline_d3cf16afdf0f">Fatigue is also normal</string>
+    <string name="loc_baseline_d3f4d132da12">Try again after the canonical source for the required metrics is available.</string>
     <string name="loc_baseline_d43dc5ebd3bf">The growth rate shading is a range of current estimates relative to the previous median, not the exact posterior distribution of growth rates.</string>
     <string name="loc_baseline_d47e323a8001">Notifies the end of rest between sets.</string>
     <string name="loc_baseline_d496ee359c7f">Smash Speed ​​Attempts</string>
@@ -919,8 +985,10 @@
     <string name="loc_baseline_d90e9bea7bef">Adjustment is better when you look at your initial profile and recent history together.</string>
     <string name="loc_baseline_d9226da8bae3">Source URL</string>
     <string name="loc_baseline_d938e0d32f77">select delete</string>
+    <string name="loc_baseline_d978af5e6d7b">Hide rest timer bar</string>
     <string name="loc_baseline_d988f307c705">Exercise volume ratio for each muscle group</string>
     <string name="loc_baseline_d98c1a994911">See description</string>
+    <string name="loc_baseline_d9d3bc5af31f">The selected metrics have no completed weekly records.</string>
     <string name="loc_baseline_da3659910a99">Recent load and recovery inputs have been conservatively reflected together.</string>
     <string name="loc_baseline_da7e61049d80">This is a weekly chart with one point for each week rather than a monthly chart.</string>
     <string name="loc_baseline_da9974e883be">There are no plans for today yet.</string>
@@ -936,11 +1004,14 @@
     <string name="loc_baseline_dbf1bbf1c14e">Calculating response paths and uncertainty intervals.</string>
     <string name="loc_baseline_dc040874f928">Enter the exercise name.</string>
     <string name="loc_baseline_dc816c939ddd">triceps</string>
+    <string name="loc_baseline_dc867fe61abc">Try again after the records have finished preparing.</string>
     <string name="loc_baseline_dc87fe59e799">Weekly average lower body fatigue check-in</string>
     <string name="loc_baseline_dd4b04eb64fe">Functional curve</string>
     <string name="loc_baseline_dd5edc2fcf78">stay current</string>
     <string name="loc_baseline_ddbd5f72ab11">Hack squat</string>
+    <string name="loc_baseline_ddc6d5d60d16">Preparing the approved analysis input and automatic adjustment path.</string>
     <string name="loc_baseline_de15027f60ef">Discomfort inputs have been high recently. Rather than relying on exercise records alone, adjust today\'s load conservatively.</string>
+    <string name="loc_baseline_de15778d5a2f">Fit axes</string>
     <string name="loc_baseline_de55353c0a62">)} This is a record that contributed a lot to the load.</string>
     <string name="loc_baseline_de5c4fd42d3f">Acceleration/First Step</string>
     <string name="loc_baseline_deb2214d8958">secondary stress</string>
@@ -964,7 +1035,9 @@
     <string name="loc_baseline_e35180917884">recovery first</string>
     <string name="loc_baseline_e48e445306d4">} · Status ${summary.activeRevisionStatus ?:</string>
     <string name="loc_baseline_e4b23fc833e6">hop to stick</string>
+    <string name="loc_baseline_e4bec6798a12">The analysis data changed and must be prepared again.</string>
     <string name="loc_baseline_e52c6d35286b">waist</string>
+    <string name="loc_baseline_e53415708df2">Check again after more weekly changes accumulate for the exposure metric.</string>
     <string name="loc_baseline_e53f75bf5fa5">It is summarized based on badminton transfer objectives as shown in the chart below.</string>
     <string name="loc_baseline_e54ae39367f0">Saved as a program.</string>
     <string name="loc_baseline_e56b32ad1e40">Lower body fatigue input is high.</string>
@@ -996,6 +1069,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_eaa10f713d12">number</string>
     <string name="loc_baseline_eb00476200ad">RIR Policy ${summary.rirPolicyVersion ?:</string>
     <string name="loc_baseline_eb24d2ff9f81">very light</string>
+    <string name="loc_baseline_eb2d394d7715">A lag model that preserves the common weekly rows cannot be built.</string>
     <string name="loc_baseline_eb3cc90cdf41">Adjust the intensity a little today.</string>
     <string name="loc_baseline_eba535d029ae">Success</string>
     <string name="loc_baseline_ebba64d68bc3">This is the badminton transfer purpose identified in the existing metadata.</string>
@@ -1004,6 +1078,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_ec16bf0e7c0c">triangle</string>
     <string name="loc_baseline_ec74c692ac9f">Checking metric gaps and transformation availability.</string>
     <string name="loc_baseline_ec97cde8e3a9">Deadlift Specificity</string>
+    <string name="loc_baseline_eca8f5237854">Shows how recovery and performance metrics changed over the weeks after a training metric changed.</string>
     <string name="loc_baseline_ecf3d7262ff4">The amount of exercise for each muscle group is a relative indicator estimated based on exercise records and metadata.</string>
     <string name="loc_baseline_ed5a292b6877">3-4 sets x 12-20 reps · RPE 6-7.5</string>
     <string name="loc_baseline_ed71b3ef8b67">There are still insufficient records to judge the badminton transfer axis.</string>
@@ -1019,6 +1094,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f09c732ed987">recovery/condition</string>
     <string name="loc_baseline_f0e39fa16b33">Weekly effective strength training performance</string>
     <string name="loc_baseline_f102bd4ef878">Minimum number of local observations reviewed not met</string>
+    <string name="loc_baseline_f115dc75fd9b">Select fewer metrics or choose other metrics with recorded values.</string>
     <string name="loc_baseline_f1449566141c">year of birth</string>
     <string name="loc_baseline_f1caae60a086">back chain</string>
     <string name="loc_baseline_f1d1755df2c3">Weight Source ${point.bodyWeightSource ?:</string>
@@ -1061,6 +1137,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f9f88a6323af">previous day</string>
     <string name="loc_baseline_fa8c1567a4c6">The current burden is in the usual range.</string>
     <string name="loc_baseline_fad5afbd93f5">Weekly triceps training volume in the last 7 days</string>
+    <string name="loc_baseline_fad83a745de6">Select a different metric combination.</string>
     <string name="loc_baseline_fad9f8899eb8">Based on records</string>
     <string name="loc_baseline_fb05f4603ba2">soccer match</string>
     <string name="loc_baseline_fb31665f15b8">I rule</string>
@@ -1072,6 +1149,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_fba9fff75a1b">Example exercise: No record</string>
     <string name="loc_baseline_fbca7c20328b">In RED fatigue state, hard day should be 0.</string>
     <string name="loc_baseline_fc073b4ab241">leg curl</string>
+    <string name="loc_baseline_fc0cbbcdca42">The canonical source identity of a required metric cannot be verified.</string>
     <string name="loc_baseline_fc1b287d1270">absoluteness</string>
     <string name="loc_baseline_fc1bc64c6c5b">Contribution</string>
     <string name="loc_baseline_fc47e56fd790">leg extension</string>
@@ -2884,6 +2962,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_fee642387022">Loading data</string>
     <string name="loc_ui_ff954b90fd23">Strength-training classification and load</string>
     <string name="loc_ui_ffd81bad3371">Program set indices must start at 1 and continue without duplicates.</string>
+    <string name="loc_ui_pattern_01bf794d70d0">%1$s weeks available</string>
     <string name="loc_ui_pattern_01fc109148c3">Standard: %1$s set · %2$s times · %3$skg · RPE %4$s · %5$s</string>
     <string name="loc_ui_pattern_02b59859a139">Reliability %1$s</string>
     <string name="loc_ui_pattern_038cb7eebfa1">%1$s~%2$s %3$s Select start date to paste</string>
@@ -2913,6 +2992,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_137bf72fde83">Does %1$skg apply to empty sets as well?</string>
     <string name="loc_ui_pattern_13e552e130b7">Time budget %1$s minutes exceeded.</string>
     <string name="loc_ui_pattern_13f028b088e2">%1$s-%2$s The majority of shoulder stability exposures are low-load rehab activation.</string>
+    <string name="loc_ui_pattern_1463d09fa1ca">%1$s weekly posterior response chart</string>
     <string name="loc_ui_pattern_15d95b62a241">Recent Direct Record %1$s</string>
     <string name="loc_ui_pattern_163e37318b76">Actual e1RM %1$s</string>
     <string name="loc_ui_pattern_186c6e6f3ec1">The last 7 days have been very stimulating %1$s.</string>
@@ -2926,6 +3006,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_200fe36edef1">Strength training is %1$s, badminton practice load is %2$s, and this week\'s accumulated load is %3$s.</string>
     <string name="loc_ui_pattern_202ca80b3cb3">%1$sParking %2$s</string>
     <string name="loc_ui_pattern_20653fa1ad9b">Grounds %1$s · Set %2$s · Fingerprint %3$s</string>
+    <string name="loc_ui_pattern_217c832715e3">Completed weekly records: %1$s weeks</string>
     <string name="loc_ui_pattern_21c868ab8b29">Curve Correction %1$s · Recent Processing %2$s</string>
     <string name="loc_ui_pattern_262e4029c171">Contribution in selected period: %1$s%%%%</string>
     <string name="loc_ui_pattern_26bf9b3870f4">%1$s-%2$smain nervous system cumulative %3$s exceeds control criteria %4$s.</string>
@@ -2951,6 +3032,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_38d9c6bef00c">%1$s and %2$s</string>
     <string name="loc_ui_pattern_39faa969a671">Complete set preserved: Set %1$s</string>
     <string name="loc_ui_pattern_3a22a37693da">Target date %1$s</string>
+    <string name="loc_ui_pattern_3a3df7c6b93b">Automatic adjustments: %1$s</string>
     <string name="loc_ui_pattern_3b4b5fb5435f">%1$s-%2$s Week Unexposed Pattern: %3$s</string>
     <string name="loc_ui_pattern_3bd4469e19d9">Weekly %1$s Training volume for the last 3 days</string>
     <string name="loc_ui_pattern_3d3eedc5aaa5">There are %1$s estimation rows after applying the lag and response horizon; the current combination requires at least %2$s.</string>
@@ -2974,6 +3056,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_47d095462538">Week %1$s day %2$s rehab-like activation occupies the main position.</string>
     <string name="loc_ui_pattern_47e5e0c6e9d1">Rest %1$s</string>
     <string name="loc_ui_pattern_4a4cdcc88a3d">%1$s Month %2$s Week</string>
+    <string name="loc_ui_pattern_4c29ae1bef8e">Control %1$s does not block analysis and will be excluded automatically if needed.</string>
     <string name="loc_ui_pattern_4cbbdd01cabe">Model %1$s · Curve %2$s</string>
     <string name="loc_ui_pattern_4d111f456227">Rest %1$s</string>
     <string name="loc_ui_pattern_514ac6d3c176">grid diagnosis %1$s · repetition out of support range %2$s</string>
@@ -2988,6 +3071,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_5af3f05f94b3">%1$s Day %2$s Sessions exceed 7 workouts.</string>
     <string name="loc_ui_pattern_5b182518fc08">%1$s Week %2$s:%3$s Program</string>
     <string name="loc_ui_pattern_5b2354f5fbee">File: %1$s</string>
+    <string name="loc_ui_pattern_5b3442b31fa6">When the app-transformed %1$s value increases by one sample standard deviation across the common weekly records used in the analysis</string>
     <string name="loc_ui_pattern_5c052dbfb24e">After week %1$s: %2$s (80%% %3$s~%4$s, n=%5$s)</string>
     <string name="loc_ui_pattern_5cbe8e392b8a">%1$s movement family is limited to %2$s.</string>
     <string name="loc_ui_pattern_5d0094607de2">Weekly %1$s training volume</string>
@@ -3046,6 +3130,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_87410667f641">This is the average %1$s time for the last three days. We take a slightly more conservative look at fatigue signals.</string>
     <string name="loc_ui_pattern_880dd0f10f8f">%1$s weeks later</string>
     <string name="loc_ui_pattern_8897bf053c74">%1$s currently active exercises will be deactivated.</string>
+    <string name="loc_ui_pattern_8c7d4dcbfe3c">MCMC diagnostics: %1$s</string>
     <string name="loc_ui_pattern_8c9282b818aa">A normal session on %2$s days of week %1$s included %3$s rehab-like activations.</string>
     <string name="loc_ui_pattern_8ca607dc44a9">Response Y: %1$s</string>
     <string name="loc_ui_pattern_8e8477a0ca14">Total body fatigue today was entered as %1$s/5.</string>
@@ -3055,6 +3140,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_94c7afdda79a">%1$s specific gravity and related fatigue are both set high.</string>
     <string name="loc_ui_pattern_967d2f4f30d2">Existing exercises %1$s</string>
     <string name="loc_ui_pattern_96ad6b8fc0ec">%1$s The burden is slightly high.</string>
+    <string name="loc_ui_pattern_96baaa5d3274">After %1$s, the direction of increase was relatively consistent.</string>
     <string name="loc_ui_pattern_96d89d0c80dd">Period: %1$s ~ %2$s (%3$s days)</string>
     <string name="loc_ui_pattern_97f59a725f8b">Session likelihood %1$s</string>
     <string name="loc_ui_pattern_97f6e023c006">Direct %1$s · Proxy %2$s · Related Exercises %3$s</string>
@@ -3072,6 +3158,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_a50084744e12">Whole body %1$s</string>
     <string name="loc_ui_pattern_a6ad4ce96d34">%1$s differences in records from the same source outside the replacement scope will be preserved in their current state.</string>
     <string name="loc_ui_pattern_a769ff167e0f">Curve %1$s · Matching %2$s</string>
+    <string name="loc_ui_pattern_a7b34464f884">After %1$s, the direction of decrease was relatively consistent.</string>
     <string name="loc_ui_pattern_a853cf96e496">%1$s current metadata edits will be reset to the state in the backup.</string>
     <string name="loc_ui_pattern_a8abfd85c1b3">The recent increase in fatigue is likely the cumulative effect of the %1$s record and the %2$s burden.</string>
     <string name="loc_ui_pattern_ab0636dd4680">%1$s minutes</string>
@@ -3108,6 +3195,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_c2fb597d599e">%1$s confirmed sets, %2$s unconfirmed sets</string>
     <string name="loc_ui_pattern_c40cf1b21623">Relevant sessions %1$s · direct 1RM %2$s · RPE likelihood observations %3$s · strong nRM %4$s · proxy innovations %5$s · failures %6$s</string>
     <string name="loc_ui_pattern_c515d247c24f">The selected record-handling method will be applied to %1$s overlapping workout dates.</string>
+    <string name="loc_ui_pattern_c5b72e3f911f">Next: %1$s</string>
     <string name="loc_ui_pattern_c5defa9be338">%1$s content differences from the same source will be handled according to the selected workout-record method.</string>
     <string name="loc_ui_pattern_c958857782ca">%1$s month %2$s day</string>
     <string name="loc_ui_pattern_c958f97424fd">There are no recent records for %1$s.</string>
@@ -3122,6 +3210,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_d208a82b01f5">Top %1$s%%%%</string>
     <string name="loc_ui_pattern_d328389f9cce">Before session local prior %1$s</string>
     <string name="loc_ui_pattern_d3705dbaf636">\\nDiagnostic code: %1$s</string>
+    <string name="loc_ui_pattern_d47be7eee0b2">For %1$s, the largest response by %2$s median appeared after %3$s weeks.</string>
     <string name="loc_ui_pattern_d60ba3adcf46">Current stage: %1$s</string>
     <string name="loc_ui_pattern_d6c24dd9114e">Analysis cannot start because %1$s has no weekly records.</string>
     <string name="loc_ui_pattern_d6e364873ecc">Rest between sets: %1$s sec</string>
@@ -3135,8 +3224,10 @@ Week %2$s</string>
     <string name="loc_ui_pattern_dbedbe291fc1">There is a record of high levels of fatigue/discomfort the next day after playing badminton for more than %1$s minutes. We do not assume the same pattern and take a conservative look at the next day\'s intensity.</string>
     <string name="loc_ui_pattern_dc704836ce85">80%% range %1$s</string>
     <string name="loc_ui_pattern_dc74e2bf28cd">Week %1$s-%2$s</string>
+    <string name="loc_ui_pattern_dd7e64fc8350">Automatic adjustments: %1$s attempts</string>
     <string name="loc_ui_pattern_de48a31689fb">Operation:%1$s</string>
     <string name="loc_ui_pattern_df21da260c14">Base rest %1$s seconds</string>
+    <string name="loc_ui_pattern_df8630a6413f">After %1$s weeks: median %2$s · 80%%%% interval %3$s–%4$s</string>
     <string name="loc_ui_pattern_e0c7110e5a0d">Condition · %1$s</string>
     <string name="loc_ui_pattern_e2963a15ec28">Current status: %1$s · %2$s</string>
     <string name="loc_ui_pattern_e3fcf317a5d8">Exposure to %1$s stock %2$s family was concentrated in %3$s circuit.</string>
@@ -3145,6 +3236,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_e5aebd77f857">%1$s minutes %2$s seconds</string>
     <string name="loc_ui_pattern_e5dcbd239015">Failed to save diagnostic report: %1$s</string>
     <string name="loc_ui_pattern_e71ffe149943">There are only %2$s overlapping groups of %1$s badminton transitions.</string>
+    <string name="loc_ui_pattern_e7fb06fbc0b4">Among the lag models, the %1$s-week lag had the highest posterior weight (%2$s).</string>
     <string name="loc_ui_pattern_e83afdb75b3b">Rest between sets %1$s seconds</string>
     <string name="loc_ui_pattern_e8454c82341f">Overlapping dates: %1$s · Current records: %2$s · Backup records: %3$s</string>
     <string name="loc_ui_pattern_e88776ff3b3a">Apply %1$skg to empty kg</string>
@@ -3152,6 +3244,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_e9c319abcdc0">Of the requested %1$s weeks the current data support estimation through at most %2$s weeks.</string>
     <string name="loc_ui_pattern_ea9e72783dcb">%1$s sets</string>
     <string name="loc_ui_pattern_eb23e3fa3516">Numerical diagnosis: %1$s</string>
+    <string name="loc_ui_pattern_eb6d05e8a6ee">After %1$s, the direction is uncertain because the 80%%%% interval includes zero.</string>
     <string name="loc_ui_pattern_ec6601935b1f">%1$s more selected</string>
     <string name="loc_ui_pattern_ec8f757b3a46">Today’s lower body fatigue was entered as %1$s/5.</string>
     <string name="loc_ui_pattern_ec9a412b86fd">Week %1$s day %2$s estimated duration of %3$s min</string>

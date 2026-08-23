@@ -1929,7 +1929,7 @@
       "familyId": "UI_PRESENTATION",
       "titleKo": "한국어/영어 localization 계약",
       "titleEn": "Korean and English Localization",
-      "currentVersion": "1.2.0",
+      "currentVersion": "1.3.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1937,11 +1937,13 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "presentation/LOCALIZATION.md",
-      "implementedFromAppVersion": "v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30",
-      "lastAuditedCommit": "ee62896",
+      "implementedFromAppVersion": "v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30; persistent-strength identity hardening from v0.5.1",
+      "lastAuditedCommit": "a56d636",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/localization/AppLanguageRegistry.kt",
         "app/src/main/java/com/training/trackplanner/localization/LocalizedPresentation.kt",
+        "app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt",
+        "app/src/main/assets/strength_performance/strength_target_registry_v1.csv",
         "app/src/main/java/com/training/trackplanner/LocalizedText.kt",
         "app/src/main/res/xml/locales_config.xml",
         "app/src/main/res/values/localization_generated.xml",
@@ -1953,6 +1955,8 @@
         "app/src/test/java/com/training/trackplanner/localization/AppLanguageRegistryTest.kt",
         "app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationTest.kt",
         "app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt",
         "tools/localization/tests/test_localization_authority.py",
         "tools/localization/tests/test_localization_audit.py"
       ],
@@ -1965,7 +1969,8 @@
         "docs/audits/v0.5.0.26_localization_translation_gate_audit.md",
         "docs/v0.5.0.27_release_notes.md",
         "docs/v0.5.0.28_release_notes.md",
-        "docs/v0.5.0.30_release_notes.md"
+        "docs/v0.5.0.30_release_notes.md",
+        "docs/v0.5.1_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [

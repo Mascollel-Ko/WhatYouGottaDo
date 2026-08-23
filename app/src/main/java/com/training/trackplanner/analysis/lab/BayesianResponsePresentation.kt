@@ -30,16 +30,20 @@ internal object BayesianResponsePresentationFactory {
             StrictSamplingDiagnosticClassification.STRICT,
             StrictSamplingDiagnosticClassification.NOT_APPLICABLE -> ""
             StrictSamplingDiagnosticClassification.RELAXED ->
-                " 이 결과는 완화 진단 기준을 충족했습니다."
+                "이 결과는 완화 진단 기준을 충족했습니다."
             StrictSamplingDiagnosticClassification.LIMITED ->
-                " 결과는 계산되었지만 표본추출 진단이 제한적이므로 더 주의해서 해석하세요."
+                "결과는 계산되었지만 표본추출 진단이 제한적이므로 더 주의해서 해석하세요."
         }
         val overall = buildString {
             append(interpretations.joinToString(" ") { it.summary })
             if (interpretations.isNotEmpty()) {
-                append(" 이 반응은 현재 기록과 모형에 조건부이며 인과관계를 확정하지 않습니다.")
+                append(' ')
+                append("이 반응은 현재 기록과 모형에 조건부이며 인과관계를 확정하지 않습니다.")
             }
-            append(diagnosticNotice)
+            if (diagnosticNotice.isNotEmpty()) {
+                append(' ')
+                append(diagnosticNotice)
+            }
         }
         return StrictLabResponsePresentation(
             shockDefinition = shockDefinition,
@@ -72,7 +76,8 @@ internal object BayesianResponsePresentationFactory {
     private fun lagExplanation(probabilities: Map<Int, Double>): String {
         if (probabilities.isEmpty()) return "비교할 시차 posterior가 없습니다."
         val (lag, probability) = probabilities.maxWith(compareBy<Map.Entry<Int, Double>> { it.value }.thenByDescending { it.key })
-        return "시차 모형 중에서는 ${lag}주 시차가 가장 높은 posterior 비중(${percent(probability)})을 가졌습니다. " +
+        return "시차 모형 중에서는 ${lag}주 시차가 가장 높은 posterior 비중(${percent(probability)})을 가졌습니다." +
+            " " +
             "다른 시차에도 비중이 분포할 수 있으므로 특정 한 주를 효과 발생 시점으로 단정하지 말고 주별 반응 경로를 함께 보세요."
     }
 

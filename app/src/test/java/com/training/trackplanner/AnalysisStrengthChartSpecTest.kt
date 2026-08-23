@@ -86,6 +86,35 @@ class AnalysisStrengthChartSpecTest {
     }
 
     @Test
+    fun localizedTargetNamesChangeOnlyHumanFacingChartLabels() {
+        val target = target(
+            StrengthPerformanceRegistry.BACK_SQUAT.value,
+            "스쿼트",
+            listOf(100.0, 105.0)
+        )
+        val korean = persistentStrengthHistoryChartSpec(
+            targets = listOf(target),
+            displayMode = StrengthPerformanceDisplayMode.LEVEL,
+            focusedTargetKey = target.targetKey
+        )
+        val english = persistentStrengthHistoryChartSpec(
+            targets = listOf(target),
+            displayMode = StrengthPerformanceDisplayMode.LEVEL,
+            focusedTargetKey = target.targetKey,
+            targetDisplayNames = mapOf(target.targetKey to "Back squat")
+        )
+
+        assertEquals("Back squat 사후분포 중앙값", english.lineSeries.first().label)
+        assertEquals("Back squat 직접 세션 관측", english.lineSeries.last().label)
+        assertEquals("Back squat 80% 범위", english.intervalBands.single().label)
+        assertEquals(korean.lineSeries.map { it.points }, english.lineSeries.map { it.points })
+        assertEquals(korean.lineSeries.map { it.seriesKey }, english.lineSeries.map { it.seriesKey })
+        assertEquals(korean.lineSeries.map { it.colorKey }, english.lineSeries.map { it.colorKey })
+        assertEquals(korean.intervalBands.map { it.points }, english.intervalBands.map { it.points })
+        assertEquals(korean.xDomain, english.xDomain)
+    }
+
+    @Test
     fun labPerformanceMetricUsesTheLastPersistedPosteriorMedianInEachWeek() {
         val first = LocalDate.of(2026, 7, 6)
         val bench = target(

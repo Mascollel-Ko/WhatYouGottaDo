@@ -6592,3 +6592,26 @@ Remaining debt:
   and reset restores the full date domain plus automatic Y range.
 - Plot data, posterior calculations, interval values, source series, line
   width, and point radius are unchanged. Focused chart tests passed 26/26.
+
+## 2026-08-23 - Persistent-strength presentation identity localization
+
+- Baseline: `a56d636`, after the independently revertable 2D plot-area zoom
+  commit. App identity remains `0.5.1 / 501000`.
+- Cause: persistent-strength UI paths composed `displayNameKo` into selector,
+  current-row, legend, chart, accessibility, Lab and weighted total-load text
+  before localization, while local details rendered stored Korean names.
+- Change: the existing localization generator now binds the four enabled
+  strength targetKeys to approved exact resources. Presentation resolves those
+  identities first, composes outer semantic labels second, and resolves
+  built-in local exercise details by stableKey. Custom names pass through.
+- Audit closure: a fresh current-baseline audit exposed 93 pre-existing
+  presentation literals outside this screen. They were registered through the
+  existing deterministic generated-English baseline route; Strict Bayesian
+  source edits only separate surrounding spaces and preserve final Korean text
+  and all numerical behavior.
+- Invariants: persistent-strength chart points, intervals, observations,
+  dates, seriesKey, colorKey, posterior values, registry semantics, evidence,
+  stableKeys and targetKeys are unchanged.
+- Verification: focused Kotlin tests and all 10 localization generator/audit
+  tests passed. Full unit, Android-test compilation, assemble, protocol and
+  numerical-authority results are recorded after final validation.

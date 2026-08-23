@@ -36,6 +36,27 @@ import java.util.Locale
 @Config(sdk = [34])
 class LocalizedPresentationTest {
     @Test
+    fun strengthTargetsResolveByTargetKeyWhileUnknownTargetsUseFallback() {
+        val english = context(Locale.ENGLISH)
+        val korean = context(Locale.KOREAN)
+        val targets = mapOf(
+            "strength.bench_press" to ("벤치프레스" to "Bench Press"),
+            "strength.back_squat" to ("스쿼트" to "Back squat"),
+            "strength.conventional_deadlift" to ("데드리프트" to "Barbell Deadlift"),
+            "strength.weighted_pull_up" to ("중량 풀업" to "Weighted pull up")
+        )
+
+        targets.forEach { (targetKey, names) ->
+            assertEquals(names.first, LocalizedPresentation.strengthTargetName(korean, targetKey, "wrong"))
+            assertEquals(names.second, LocalizedPresentation.strengthTargetName(english, targetKey, "wrong"))
+        }
+        assertEquals(
+            "내 커스텀 대상",
+            LocalizedPresentation.strengthTargetName(english, "user.target", "내 커스텀 대상")
+        )
+    }
+
+    @Test
     fun builtInAndHistoryNamesResolveByStableKeyWhileCustomNamesPassThrough() {
         val english = context(Locale.ENGLISH)
 

@@ -42,6 +42,8 @@ import com.training.trackplanner.analysis.trends.IntervalBand
 import com.training.trackplanner.analysis.trends.IntervalPoint
 import com.training.trackplanner.analysis.trends.TrendChartRange
 import com.training.trackplanner.analysis.trends.TrendDataPoint
+import com.training.trackplanner.localization.localizedExerciseName
+import com.training.trackplanner.localization.localizedStrengthTargetName
 import com.training.trackplanner.localization.localizedUiText
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -341,7 +343,7 @@ private fun PersistentStrengthCompactCurrentRow(
         ) {
             Surface(modifier = Modifier.size(10.dp), shape = RoundedCornerShape(8.dp), color = color) {}
             Text(
-                text = target.comparisonDisplayName(),
+                text = target.localizedComparisonDisplayName(),
                 modifier = Modifier.weight(1f),
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -426,10 +428,14 @@ private fun PersistentStrengthHistoryCard(
             if (selectedTargets.all { target -> target.history.isEmpty() }) {
                 InfoCard("처리된 완료 세션이 아직 없습니다.")
             } else {
+                val targetDisplayNames = selectedTargets.associate { target ->
+                    target.targetKey to target.localizedComparisonDisplayName()
+                }
                 val spec = persistentStrengthHistoryChartSpec(
                     targets = selectedTargets,
                     displayMode = displayMode,
-                    focusedTargetKey = focusedTarget.targetKey
+                    focusedTargetKey = focusedTarget.targetKey,
+                    targetDisplayNames = targetDisplayNames
                 )
                 AnalysisChartSpecView(spec)
                 PersistentStrengthComparisonLegend(selectedTargets, displayMode)
@@ -469,7 +475,10 @@ private fun PersistentStrengthHistoryCard(
                                     .testTag("persistent-strength-local-detail"),
                                 verticalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Text("${local.exerciseName} · ${local.sessionDate}", fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${localizedExerciseName(local.exerciseStableKey, local.exerciseName)} · ${local.sessionDate}",
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Text("세션 전 local prior ${kgOrDash(local.priorMedianKg)}")
                                 Text("세션 likelihood ${kgOrDash(local.sessionLikelihoodMedianKg)}")
                                 Text("세션 innovation ${percentOrDash(local.innovationPercent)}")
@@ -603,7 +612,9 @@ private fun PersistentTargetSelector(
     onSelected: (PersistentStrengthTargetSummary) -> Unit
 ) {
     AnalysisChipRow(
-        labels = targets.map(PersistentStrengthTargetSummary::displayNameKo),
+        labels = targets.map { target ->
+            localizedStrengthTargetName(target.targetKey, target.displayNameKo)
+        },
         selected = targets.indexOfFirst { target -> target.targetKey == selected.targetKey }.coerceAtLeast(0),
         onSelect = { index -> onSelected(targets[index]) }
     )
@@ -627,7 +638,13 @@ private fun PersistentTargetSelector(
                 modifier = Modifier.testTag("persistent-strength-target-${target.targetKey}"),
                 selected = selected,
                 onClick = { onToggled(target.targetKey) },
-                label = { Text(target.displayNameKo, maxLines = 1, softWrap = false) },
+                label = {
+                    Text(
+                        localizedStrengthTargetName(target.targetKey, target.displayNameKo),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                },
                 leadingIcon = {
                     Surface(
                         modifier = Modifier.size(9.dp),
@@ -668,7 +685,10 @@ private fun PersistentStrengthComparisonLegend(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Surface(modifier = Modifier.size(8.dp), shape = RoundedCornerShape(8.dp), color = color) {}
-                    Text("${target.comparisonDisplayName()} · $latest", style = MaterialTheme.typography.labelMedium)
+                    Text(
+                        "${target.localizedComparisonDisplayName()} · $latest",
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
         }
@@ -686,9 +706,12 @@ internal fun persistentStrengthHistoryChartSpec(
 internal fun persistentStrengthHistoryChartSpec(
     targets: List<PersistentStrengthTargetSummary>,
     displayMode: StrengthPerformanceDisplayMode,
-    focusedTargetKey: String
+    focusedTargetKey: String,
+    targetDisplayNames: Map<String, String> = emptyMap()
 ): ChartSpec {
     val posteriorSeries = targets.map { target ->
+        val displayName = targetDisplayNames[target.targetKey]
+            ?: target.comparisonDisplayName(target.displayNameKo)
         val points = when (displayMode) {
             StrengthPerformanceDisplayMode.LEVEL ->
                 target.history.map { point -> TrendDataPoint(point.sessionDate, point.posteriorMedianKg) }
@@ -698,7 +721,7 @@ internal fun persistentStrengthHistoryChartSpec(
                 }
         }
         ChartSeries(
-            label = "${target.comparisonDisplayName()} 사후분포 중앙값",
+            label = "$displayName 사후분포 중앙값",
             points = points,
             seriesKey = target.targetKey,
             colorKey = target.targetKey,
@@ -706,6 +729,8 @@ internal fun persistentStrengthHistoryChartSpec(
         )
     }
     val observationSeries = targets.map { target ->
+        val displayName = targetDisplayNames[target.targetKey]
+            ?: target.comparisonDisplayName(target.displayNameKo)
         val points = when (displayMode) {
             StrengthPerformanceDisplayMode.LEVEL ->
                 target.history.mapNotNull { point ->
@@ -719,7 +744,7 @@ internal fun persistentStrengthHistoryChartSpec(
                 }
         }
         ChartSeries(
-            label = "${target.comparisonDisplayName()} 직접 세션 관측",
+            label = "$displayName 직접 세션 관측",
             points = points,
             connectPoints = false,
             seriesKey = "${target.targetKey}.observation",
@@ -728,6 +753,8 @@ internal fun persistentStrengthHistoryChartSpec(
         )
     }
     val intervalBands = targets.map { target ->
+        val displayName = targetDisplayNames[target.targetKey]
+            ?: target.comparisonDisplayName(target.displayNameKo)
         val points = when (displayMode) {
             StrengthPerformanceDisplayMode.LEVEL -> target.history.mapNotNull { point ->
                 val low = point.posteriorLow80Kg
@@ -742,7 +769,7 @@ internal fun persistentStrengthHistoryChartSpec(
                 }
         }
         IntervalBand(
-            label = "${target.comparisonDisplayName()} 80% 범위",
+            label = "$displayName 80% 범위",
             points = points,
             seriesKey = target.targetKey,
             colorKey = target.targetKey,
@@ -780,8 +807,14 @@ internal fun persistentStrengthHistoryChartSpec(
 private fun PersistentStrengthTargetSummary.isWeightedPullUp(): Boolean =
     loadSemantics == StrengthLoadSemantics.BODYWEIGHT_PLUS_ADDED_LOAD
 
-private fun PersistentStrengthTargetSummary.comparisonDisplayName(): String =
-    if (isWeightedPullUp()) "$displayNameKo 총부하" else displayNameKo
+private fun PersistentStrengthTargetSummary.comparisonDisplayName(targetName: String): String =
+    if (isWeightedPullUp()) "$targetName 총부하" else targetName
+
+@Composable
+private fun PersistentStrengthTargetSummary.localizedComparisonDisplayName(): String =
+    localizedUiText(
+        comparisonDisplayName(localizedStrengthTargetName(targetKey, displayNameKo))
+    )
 
 private fun PersistentStrengthHistoryPoint.hasDirectTargetScaleObservation(): Boolean =
     directObservationType != "NONE" && sessionObservationMedianKg?.let { value -> value.isFinite() && value > 0.0 } == true

@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-LOCALIZATION |
-| Protocol version | 1.2.0 |
+| Protocol version | 1.3.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30 |
-| Last audited commit | ee62896 |
+| Implemented from app version | v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30; persistent-strength identity hardening from v0.5.1 |
+| Last audited commit | a56d636 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | v0.5.0.26 translation-gate audit policy |
 
@@ -26,7 +26,7 @@ locale override, identity 기반 운동/metadata/tissue 표시와 release audit
 ## 3. 적용 범위
 
 - production UI, dialog, validation/error, accessibility text
-- built-in/history exercise display names
+- built-in/history exercise and persistent-strength target display names
 - metadata and connective-tissue education presentation
 - date, unit, plural and placeholder formatting
 - Home language selector and AppCompat application locale persistence
@@ -47,8 +47,9 @@ ProgramBuilder, OFI, strength, badminton and connective-tissue calculations은
 ## 6. 입력 데이터
 
 Locale 입력은 Android configuration과 AppCompat application locales입니다.
-표시 입력은 Korean source text, stableKey, canonical metadata code, tissue
-stable identity와 user-entered content입니다. 별도 Room locale 값은 없습니다.
+표시 입력은 Korean source text, stableKey, persistent-strength targetKey,
+canonical metadata code, tissue stable identity와 user-entered content입니다.
+별도 Room locale 값은 없습니다.
 
 ## 7. 계산 또는 분류 계약
 
@@ -80,6 +81,13 @@ identities remain inactive and non-selectable. Custom names and user-authored
 content remain verbatim. Metadata keeps `MetadataDisplayCatalogue` and
 `MetadataTranslator`; tissue education keeps its existing stable identity
 overlay.
+
+Persistent-strength target names resolve by `targetKey` through generated
+presentation resources before selectors, current rows, legends, chart labels,
+accessibility descriptions, Lab selectors, and weighted total-load labels are
+composed. Built-in local exercise details use their exercise stableKey; unknown
+or custom names retain the stored text. `displayNameKo` remains a Korean
+fallback and never becomes numerical or evidence identity.
 
 Dynamic presentation templates localize approved semantic arguments before
 formatting the outer sentence. This prevents an English prefix from being
@@ -133,13 +141,16 @@ Connected cold-launch 검증은 Android emulator가 있을 때만 실행할 수
 - 1,834 metadata rows and 92 tissue education entities: implemented
 - deterministic parity/placeholder/Korean-leak gates: implemented
 - runtime-composed semantic argument localization and operation report labels: implemented
+- persistent-strength targetKey and local-exercise stableKey presentation: implemented
 - English runtime Hangul gate for Home, fatigue, exercise metadata, profile and transfer details: implemented
+- persistent-strength selector/current/legend/chart/accessibility/Lab Hangul gate: implemented
 
 ## 16. 구현 위치
 
 - `app/src/main/java/com/training/trackplanner/localization/AppLanguageRegistry.kt`
 - `app/src/main/java/com/training/trackplanner/localization/LocalizedPresentation.kt`
 - `app/src/main/java/com/training/trackplanner/LocalizedText.kt`
+- `app/src/main/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUi.kt`
 - `app/src/main/java/com/training/trackplanner/localization/GeneratedLocalizationCatalogue.kt`
 - `app/src/main/res/xml/locales_config.xml`
 - `app/src/main/res/values/localization_generated.xml`
@@ -151,6 +162,8 @@ Connected cold-launch 검증은 Android emulator가 있을 때만 실행할 수
 - `app/src/test/java/com/training/trackplanner/localization/AppLanguageRegistryTest.kt`
 - `app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationTest.kt`
 - `app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt`
 - `tools/localization/tests/test_localization_authority.py`
 - `tools/localization/tests/test_localization_audit.py`
 - `app/src/test/java/com/training/trackplanner/AdaptiveControlLayoutTest.kt`
@@ -172,6 +185,23 @@ hand-maintained authority가 아닙니다.
 - [v0.5.0.27 release notes](../../v0.5.0.27_release_notes.md)
 - [v0.5.0.28 release notes](../../v0.5.0.28_release_notes.md)
 - [v0.5.0.30 release notes](../../v0.5.0.30_release_notes.md)
+- [v0.5.1 release notes](../../v0.5.1_release_notes.md)
+
+## v0.5.1 persistent-strength identity routing
+
+- The generated localization catalogue binds enabled persistent-strength
+  targetKeys to already-approved target-name resources. It does not add
+  English fields to the numerical strength registry.
+- Dynamic labels localize in layers: target identity, optional total-load
+  qualifier, then posterior/observation/interval wording. This prevents nested
+  Korean fragments in English chart accessibility output.
+- Persistent-strength chart points, dates, seriesKey, colorKey, posterior
+  values, targetKeys, stableKeys, evidence and stored names are unchanged.
+- Re-running the current-baseline audit exposed 93 previously unregistered
+  presentation literals, chiefly in the Strict Bayesian Lab UI. They now use
+  the existing deterministic `CODEX_GENERATED_ENGLISH` route; the only source
+  adjustment separates surrounding spaces without changing Korean output or
+  Bayesian behavior.
 
 ## v0.5.0.28 production presentation routing
 
@@ -224,6 +254,10 @@ and are classified separately by the audit.
 
 ## 20. 변경 이력
 
+- `1.3.0` (2026-08-23): persistent-strength target and local exercise
+  identities were routed by targetKey/stableKey before dynamic composition;
+  current-baseline localization audit coverage returned to zero unexplained
+  production leaks without changing analysis semantics.
 - `1.2.0` (2026-08-11): dynamic semantic arguments, data-transfer stages,
   compact record units and management actions were corrected at the approved
   presentation boundary. Cross-platform authority generation and runtime

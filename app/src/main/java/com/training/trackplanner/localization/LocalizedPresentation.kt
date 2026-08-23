@@ -95,6 +95,11 @@ internal object LocalizedPresentation {
             ?.let(context::getString)
             ?: storedName
 
+    fun strengthTargetName(context: Context, targetKey: String, fallbackName: String): String =
+        GeneratedLocalizationCatalogue.strengthTargetNameIds[targetKey]
+            ?.let(context::getString)
+            ?: fallbackName
+
     fun exerciseName(context: Context, exercise: Exercise): String =
         if (exercise.isCustom) exercise.name
         else exerciseName(context, exercise.stableKey, exercise.name)
@@ -345,6 +350,15 @@ internal fun localizedExerciseName(stableKey: String, storedName: String): Strin
     val locale = LocalConfiguration.current.locales[0].toLanguageTag()
     return remember(stableKey, storedName, locale) {
         LocalizedPresentation.exerciseName(context, stableKey, storedName)
+    }
+}
+
+@Composable
+internal fun localizedStrengthTargetName(targetKey: String, fallbackName: String): String {
+    val context = LocalContext.current
+    val locale = LocalConfiguration.current.locales[0].toLanguageTag()
+    return remember(targetKey, fallbackName, locale) {
+        LocalizedPresentation.strengthTargetName(context, targetKey, fallbackName)
     }
 }
 

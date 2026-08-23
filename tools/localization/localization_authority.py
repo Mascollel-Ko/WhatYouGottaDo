@@ -27,6 +27,9 @@ EXERCISE_DESCRIPTION_EN = ROOT / "tools/localization/exercise_description_genera
 PROGRAM_NAME_EN = ROOT / "tools/localization/program_name_generated_en.csv"
 EXERCISE_BOOTSTRAP = ROOT / "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"
 TRAINING_SETTINGS_SEED = ROOT / "app/src/main/assets/training_settings_seed.csv"
+STRENGTH_TARGET_REGISTRY = (
+    ROOT / "app/src/main/assets/strength_performance/strength_target_registry_v1.csv"
+)
 
 OUTPUTS = {
     "ui_base": ROOT / "app/src/main/res/values/localization_generated.xml",
@@ -452,6 +455,20 @@ def _program_name_assets() -> tuple[str, str, dict[str, str]]:
     return _identity_text_assets(_csv_rows(PROGRAM_NAME_EN), canonical, "program_name")
 
 
+def _strength_target_name_keys(exact_ui: dict[str, str]) -> dict[str, str]:
+    keys: dict[str, str] = {}
+    for row in _csv_rows(STRENGTH_TARGET_REGISTRY):
+        if row["enabled"].strip().lower() != "true":
+            continue
+        target_key = row["targetKey"].strip()
+        display_name = row["displayNameKo"].strip()
+        resource = exact_ui.get(display_name)
+        if not target_key or resource is None:
+            raise ValueError(f"Missing approved strength target localization: {target_key}")
+        keys[target_key] = resource
+    return keys
+
+
 def _tissue_assets(rows: list[dict[str, object]]) -> tuple[str, str, dict[str, tuple[str, str, str, str]]]:
     with TISSUE_KO.open(encoding="utf-8", newline="") as handle:
         korean_rows = {row["stableKey"]: row for row in csv.DictReader(handle)}
@@ -485,6 +502,7 @@ def _tissue_assets(rows: list[dict[str, object]]) -> tuple[str, str, dict[str, t
 def _generated_kotlin(
     exact_ui: dict[str, str],
     ui_patterns: list[tuple[str, str]],
+    strength_target_keys: dict[str, str],
     exercise_keys: dict[str, str],
     exercise_description_keys: dict[str, str],
     program_name_keys: dict[str, str],
@@ -526,6 +544,11 @@ def _generated_kotlin(
     lines.extend(
         f'        UiTextPattern(Regex("{_kotlin_string(regex)}"), R.string.{resource}),'
         for regex, resource in ui_patterns
+    )
+    lines.extend(["    )", "", "    val strengthTargetNameIds: Map<String, Int> = mapOf("])
+    lines.extend(
+        f'        "{_kotlin_string(target_key)}" to R.string.{resource},'
+        for target_key, resource in sorted(strength_target_keys.items())
     )
     lines.extend(["    )", "", "    val exerciseNameIds: Map<String, Int> = mapOf("])
     lines.extend(
@@ -577,6 +600,7 @@ def _artifacts() -> dict[Path, str]:
         metadata,
         baseline_generated,
     )
+    strength_target_keys = _strength_target_name_keys(exact_ui)
     exercise_base, exercise_en, exercise_keys = _exercise_assets(exercises)
     exercise_description_base, exercise_description_en, exercise_description_keys = (
         _exercise_description_assets()
@@ -592,6 +616,7 @@ def _artifacts() -> dict[Path, str]:
         "exerciseApprovedRows": len(exercises),
         "exerciseDescriptionLocalizedRows": len(exercise_description_keys),
         "seedProgramLocalizedRows": len(program_name_keys),
+        "strengthTargetLocalizedRows": len(strength_target_keys),
         "metadataAuthoritativeRows": len(metadata),
         "tissueApprovedRows": len(tissues),
         "exactUiRuntimeEntries": len(exact_ui),
@@ -616,6 +641,7 @@ def _artifacts() -> dict[Path, str]:
         OUTPUTS["kotlin"]: _generated_kotlin(
             exact_ui,
             ui_patterns,
+            strength_target_keys,
             exercise_keys,
             exercise_description_keys,
             program_name_keys,

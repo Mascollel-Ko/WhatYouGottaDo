@@ -7,12 +7,13 @@
   "exerciseApprovedRows": 257,
   "exerciseDescriptionLocalizedRows": 257,
   "seedProgramLocalizedRows": 12,
+  "strengthTargetLocalizedRows": 4,
   "metadataAuthoritativeRows": 1834,
   "tissueApprovedRows": 92,
-  "exactUiRuntimeEntries": 2834,
+  "exactUiRuntimeEntries": 2912,
   "workbookExactUiRuntimeEntries": 418,
   "metadataExactUiRuntimeEntries": 1319,
-  "codexGeneratedEnglishEntries": 1097,
-  "dynamicUiRuntimeEntries": 304,
+  "codexGeneratedEnglishEntries": 1175,
+  "dynamicUiRuntimeEntries": 319,
   "provenance": "LOC-AUTH-2026-08-09-v2-FULL-APPROVED"
 }

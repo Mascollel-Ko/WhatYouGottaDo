@@ -21,6 +21,7 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertEqual(257, manifest["exerciseApprovedRows"])
         self.assertEqual(257, manifest["exerciseDescriptionLocalizedRows"])
         self.assertEqual(12, manifest["seedProgramLocalizedRows"])
+        self.assertEqual(4, manifest["strengthTargetLocalizedRows"])
         self.assertEqual(1834, manifest["metadataAuthoritativeRows"])
         self.assertEqual(92, manifest["tissueApprovedRows"])
         self.assertEqual(0, manifest["currentBaselineCheckRequired"])
@@ -60,6 +61,18 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertIn("val exactUiTextIds: Map<String, Int> = buildMap {", kotlin)
         self.assertGreater(kotlin.count("private fun exactUiTextIdsChunk"), 1)
         self.assertIn("putAll(exactUiTextIdsChunk0())", kotlin)
+
+    def test_strength_targets_use_approved_identity_resources(self):
+        kotlin = authority._artifacts()[authority.OUTPUTS["kotlin"]]
+
+        self.assertIn("val strengthTargetNameIds: Map<String, Int> = mapOf(", kotlin)
+        for target_key in (
+            "strength.bench_press",
+            "strength.back_squat",
+            "strength.conventional_deadlift",
+            "strength.weighted_pull_up",
+        ):
+            self.assertIn(f'"{target_key}" to R.string.', kotlin)
 
     def test_retired_badminton_composite_wording_is_not_generated(self):
         artifacts = authority._artifacts()

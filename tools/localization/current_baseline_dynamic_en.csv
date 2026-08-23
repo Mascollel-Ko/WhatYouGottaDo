@@ -275,3 +275,18 @@ ${} 주간 기록이 없어 분석을 시작할 수 없습니다.,Analysis canno
 전체 ${} · 직접 ${} · 간접 ${} · 간접 비중 ${}%,Total %1$s · Direct %2$s · Indirect %3$s · Indirect share %4$s%%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 최신 주 합계 ${} · 직접 ${} · 간접 ${},Latest week total %1$s · Direct %2$s · Indirect %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
 최신 주 합계 ${} · 직접 ${} · 간접 ${} · 해당 주 간접 비중 ${}%,Latest week total %1$s · Direct %2$s · Indirect %3$s · This week's indirect share %4$s%%,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisStrengthTrendSections.kt
+"앱에서 분석에 맞게 변환한 ${} 값이, 분석에 사용된 공통 주간 기록의 표본표준편차 1개만큼 증가한 경우","When the app-transformed %1$s value increases by one sample standard deviation across the common weekly records used in the analysis",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+"${} 후에는 증가 방향이 비교적 일관되게 나타났습니다.","After %1$s, the direction of increase was relatively consistent.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+"${} 후에는 감소 방향이 비교적 일관되게 나타났습니다.","After %1$s, the direction of decrease was relatively consistent.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+"${} 후에는 80% 구간이 0을 포함해 방향이 불확실합니다.","After %1$s, the direction is uncertain because the 80%% interval includes zero.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+"${}의 반응은 ${} 중앙값 기준 가장 큰 반응은 ${}주 후에 나타났습니다.","For %1$s, the largest response by %2$s median appeared after %3$s weeks.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+"시차 모형 중에서는 ${}주 시차가 가장 높은 posterior 비중(${})을 가졌습니다.","Among the lag models, the %1$s-week lag had the highest posterior weight (%2$s).",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/BayesianResponsePresentation.kt
+통제 ${}는 분석 가능성을 막지 않으며 필요하면 자동으로 제외됩니다.,Control %1$s does not block analysis and will be excluded automatically if needed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/StrictBayesianLabService.kt
+다음: ${},Next: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/RestTimerUi.kt
+사용 가능 ${}주,%1$s weeks available,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+완료된 주간 기록: ${}주,Completed weekly records: %1$s weeks,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+${}주 후: 중앙값 ${} · 80% 구간 ${}~${},After %1$s weeks: median %2$s · 80%% interval %3$s–%4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+MCMC 진단: ${},MCMC diagnostics: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+자동 조정: ${},Automatic adjustments: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+${} 주별 posterior 반응 그래프,%1$s weekly posterior response chart,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+자동 조정: ${}건 시도,Automatic adjustments: %1$s attempts,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt

@@ -4,9 +4,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -20,6 +23,8 @@ import com.training.trackplanner.data.StrengthAnalysisLifecycleStatus
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -96,16 +101,99 @@ class AnalysisPersistentStrengthPerformanceUiTest {
 
     @Test
     @Config(sdk = [34], qualifiers = "en-rUS-w360dp-h800dp")
-    fun `english performance card uses posterior terminology and complete key lift names`() {
-        content { PersistentStrengthPerformanceCards(summary()) }
+    fun `english performance card localizes every built-in target before composing labels`() {
+        val base = summary()
+        val withHistory = base.copy(
+            targets = base.targets.mapIndexed { index, target ->
+                target.copy(
+                    history = listOf(
+                        historyPoint().copy(
+                            eventUuid = "event-$index",
+                            posteriorMedianKg = target.currentMedianKg,
+                            posteriorLow80Kg = target.currentLow80Kg,
+                            posteriorHigh80Kg = target.currentHigh80Kg
+                        )
+                    )
+                )
+            }
+        )
+        content { PersistentStrengthPerformanceCards(withHistory) }
+
+        compose.onNodeWithText("Posterior median 100.0 kg").assertExists()
+
+        withHistory.targets.drop(1).forEach { target ->
+            compose.onNodeWithTag("persistent-strength-target-${target.targetKey}").performClick()
+        }
 
         compose.onNodeWithText("Estimation of current performance").assertIsDisplayed()
         compose.onNodeWithText("Level").assertIsDisplayed()
         compose.onNodeWithText("Growth rate").assertIsDisplayed()
-        compose.onNodeWithText("Posterior median 100.0 kg").assertExists()
-        compose.onNodeWithText("Back squat").assertExists()
-        compose.onNodeWithText("Bench Press").assertExists()
-        compose.onNodeWithText("Barbell Deadlift").assertExists()
+        listOf("Bench Press", "Back squat", "Barbell Deadlift", "Weighted pull up").forEach { label ->
+            assertTrue(compose.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty())
+        }
+        compose.onNodeWithText("Bench Press · 100.0 kg").assertExists()
+        compose.onNodeWithText("Weighted pull up total load · 100.0 kg").assertExists()
+        val chart = compose.onNodeWithContentDescription(
+            "Bench Press median posterior distribution",
+            substring = true
+        )
+        chart.assertExists()
+        listOf("벤치프레스", "스쿼트", "데드리프트", "중량 풀업").forEach { korean ->
+            compose.onNodeWithText(korean).assertDoesNotExist()
+        }
+        val chartDescription = chart.fetchSemanticsNode()
+            .config[SemanticsProperties.ContentDescription]
+            .joinToString()
+        assertFalse(chartDescription, Regex("[가-힣]").containsMatchIn(chartDescription))
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "en-rUS-w360dp-h800dp")
+    fun `english laboratory selector uses target identity localization`() {
+        content { PersistentStrengthPerformanceLabCard(summary()) }
+
+        listOf("Bench Press", "Back squat", "Barbell Deadlift", "Weighted pull up").forEach { label ->
+            compose.onNodeWithText(label).assertExists()
+        }
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "en-rUS-w360dp-h800dp")
+    fun `english local detail localizes built-in identity and preserves custom name`() {
+        val base = summary()
+        val target = base.targets.first().copy(
+            history = listOf(historyPoint()),
+            localExerciseDetails = listOf(
+                PersistentStrengthExerciseLocalSummary(
+                    exerciseStableKey = "ex_a61f1e96",
+                    exerciseName = "인클라인 덤벨 프레스",
+                    sessionDate = LocalDate.of(2026, 7, 20),
+                    priorMedianKg = 52.0,
+                    sessionLikelihoodMedianKg = 60.0,
+                    innovationPercent = 15.4,
+                    posteriorMedianKg = 56.0,
+                    proxyTransferApplied = true,
+                    proxyTransferExclusionReason = null
+                ),
+                PersistentStrengthExerciseLocalSummary(
+                    exerciseStableKey = "user_custom_press",
+                    exerciseName = "내 커스텀 프레스",
+                    sessionDate = LocalDate.of(2026, 7, 20),
+                    priorMedianKg = 40.0,
+                    sessionLikelihoodMedianKg = 42.0,
+                    innovationPercent = 5.0,
+                    posteriorMedianKg = 41.0,
+                    proxyTransferApplied = false,
+                    proxyTransferExclusionReason = "NOT_REVIEWED"
+                )
+            )
+        )
+        content { PersistentStrengthPerformanceCards(base.copy(targets = listOf(target))) }
+
+        compose.onNodeWithText("View session details").performScrollTo().performClick()
+        compose.onNodeWithText("Incline Dumbbell Press", substring = true).assertExists()
+        compose.onNodeWithText("인클라인 덤벨 프레스", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("내 커스텀 프레스", substring = true).assertExists()
     }
 
     @Test
