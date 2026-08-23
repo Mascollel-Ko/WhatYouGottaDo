@@ -212,7 +212,7 @@ data class ChartSpec(
     val timeGranularity: ChartTimeGranularity? = null,
     val xDomain: List<LocalDate> = emptyList(),
     val valueUnit: String? = null,
-    val enableVerticalZoom: Boolean = false
+    val enablePlotZoom: Boolean = false
 ) {
     val visibleLineCount: Int
         get() = lineSeries.size

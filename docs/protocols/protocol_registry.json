@@ -1849,7 +1849,7 @@
       "familyId": "UI_PRESENTATION",
       "titleKo": "조용한 UI 표시 원칙",
       "titleEn": "Quiet UI Presentation",
-      "currentVersion": "1.5.0",
+      "currentVersion": "1.6.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1857,8 +1857,8 @@
         "PRODUCT_POLICY"
       ],
       "canonicalDocument": "presentation/QUIET_UI_PRESENTATION.md",
-      "implementedFromAppVersion": "v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27; adaptive compact controls and temporal axes from v0.5.0.30",
-      "lastAuditedCommit": "45fc91f",
+      "implementedFromAppVersion": "v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27; adaptive compact controls and temporal axes from v0.5.0.30; persistent-strength 2D plot zoom from v0.5.1",
+      "lastAuditedCommit": "714b755",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/MainActivity.kt",
         "app/src/main/java/com/training/trackplanner/CommonUi.kt",
@@ -1899,6 +1899,7 @@
         "app/src/test/java/com/training/trackplanner/localization/LocalizedPresentationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/AdaptiveControlLayoutTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/AnalysisPlotChartZoomTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt"
       ],
       "authorityAssets": [
@@ -1916,7 +1917,8 @@
         "docs/v0.5.0.23_release_notes.md",
         "docs/v0.5.0.26_release_notes.md",
         "docs/v0.5.0.27_release_notes.md",
-        "docs/v0.5.0.30_release_notes.md"
+        "docs/v0.5.0.30_release_notes.md",
+        "docs/v0.5.1_release_notes.md"
       ],
       "knownGaps": [],
       "supersedes": [],

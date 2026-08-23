@@ -6582,3 +6582,13 @@ Remaining debt:
 - Verification: focused timer tests 7/7, full unit tests 1,219/1,219,
   `:app:assembleDebug`, and `git diff --check` passed. Version remains
   `0.5.1 / 501000`.
+
+## 2026-08-23 - Persistent-strength 2D plot-area zoom
+
+- Replaced the persistent-strength Y-only viewport with bounded X/Y viewport
+  mapping anchored to the two-finger centroid. The same gesture pans the plot;
+  one-finger page scrolling remains unconsumed.
+- Visible date labels follow the X viewport, out-of-range geometry is clipped,
+  and reset restores the full date domain plus automatic Y range.
+- Plot data, posterior calculations, interval values, source series, line
+  width, and point radius are unchanged. Focused chart tests passed 26/26.

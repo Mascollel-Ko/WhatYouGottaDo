@@ -3,6 +3,8 @@ package com.training.trackplanner
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
@@ -56,32 +59,75 @@ import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.max
 
-internal data class VerticalChartViewport(val min: Double, val max: Double) {
-    val span: Double get() = max - min
+internal data class PlotChartViewport(
+    val xMin: Double,
+    val xMax: Double,
+    val yMin: Double,
+    val yMax: Double
+) {
+    val xSpan: Double get() = xMax - xMin
+    val ySpan: Double get() = yMax - yMin
+
+    fun xAtFraction(fraction: Double): Double = xMin + xSpan * fraction.coerceIn(0.0, 1.0)
+    fun yAtFraction(fraction: Double): Double = yMax - ySpan * fraction.coerceIn(0.0, 1.0)
 }
 
-internal object VerticalChartZoomPolicy {
-    fun auto(min: Double, max: Double): VerticalChartViewport {
-        if (min.isFinite() && max.isFinite() && max > min) return VerticalChartViewport(min, max)
-        val center = listOf(min, max).firstOrNull(Double::isFinite) ?: 0.0
-        return VerticalChartViewport(center - 0.5, center + 0.5)
+internal object PlotChartZoomPolicy {
+    fun auto(domainSize: Int, yMin: Double, yMax: Double): PlotChartViewport {
+        val xBounds = if (domainSize <= 1) -0.5 to 0.5 else 0.0 to (domainSize - 1).toDouble()
+        val safeYBounds = if (yMin.isFinite() && yMax.isFinite() && yMax > yMin) {
+            yMin to yMax
+        } else {
+            val center = listOf(yMin, yMax).firstOrNull(Double::isFinite) ?: 0.0
+            center - 0.5 to center + 0.5
+        }
+        return PlotChartViewport(
+            xMin = xBounds.first,
+            xMax = xBounds.second,
+            yMin = safeYBounds.first,
+            yMax = safeYBounds.second
+        )
     }
 
-    fun zoom(
-        current: VerticalChartViewport,
-        auto: VerticalChartViewport,
-        gestureScale: Float
-    ): VerticalChartViewport {
-        if (!gestureScale.isFinite() || gestureScale <= 0f) return current
-        val center = (current.min + current.max) / 2.0
-        val minSpan = max(auto.span * 0.05, 0.01)
-        val maxSpan = max(auto.span * 4.0, minSpan)
-        val span = (current.span / gestureScale.toDouble()).coerceIn(minSpan, maxSpan)
-        return VerticalChartViewport(center - span / 2.0, center + span / 2.0)
+    fun update(
+        current: PlotChartViewport,
+        full: PlotChartViewport,
+        gestureScale: Float,
+        focalXFraction: Double,
+        focalYFraction: Double,
+        panXFraction: Double = 0.0,
+        panYFraction: Double = 0.0
+    ): PlotChartViewport {
+        val base = current.takeIf(::isValid) ?: full
+        if (!isValid(full) || !gestureScale.isFinite() || gestureScale <= 0f) return base
+
+        val scale = gestureScale.toDouble()
+        val focalX = focalXFraction.takeIf(Double::isFinite)?.coerceIn(0.0, 1.0) ?: 0.5
+        val focalY = focalYFraction.takeIf(Double::isFinite)?.coerceIn(0.0, 1.0) ?: 0.5
+        val panX = panXFraction.takeIf(Double::isFinite) ?: 0.0
+        val panY = panYFraction.takeIf(Double::isFinite) ?: 0.0
+        val minXSpan = max(full.xSpan * 0.05, 0.01).coerceAtMost(full.xSpan)
+        val minYSpan = max(full.ySpan * 0.05, 0.01).coerceAtMost(full.ySpan)
+        val xSpan = (base.xSpan / scale).coerceIn(minXSpan, full.xSpan)
+        val ySpan = (base.ySpan / scale).coerceIn(minYSpan, full.ySpan)
+        val focalXValue = base.xAtFraction(focalX)
+        val focalYValue = base.yAtFraction(focalY)
+        val rawXMin = focalXValue - focalX * xSpan - panX * xSpan
+        val rawYMin = focalYValue - (1.0 - focalY) * ySpan + panY * ySpan
+        val xMin = rawXMin.coerceIn(full.xMin, full.xMax - xSpan)
+        val yMin = rawYMin.coerceIn(full.yMin, full.yMax - ySpan)
+        return PlotChartViewport(xMin, xMin + xSpan, yMin, yMin + ySpan)
     }
 
-    fun isAuto(viewport: VerticalChartViewport, auto: VerticalChartViewport): Boolean =
-        abs(viewport.min - auto.min) < 1e-9 && abs(viewport.max - auto.max) < 1e-9
+    fun isAuto(viewport: PlotChartViewport, full: PlotChartViewport): Boolean =
+        abs(viewport.xMin - full.xMin) < 1e-9 &&
+            abs(viewport.xMax - full.xMax) < 1e-9 &&
+            abs(viewport.yMin - full.yMin) < 1e-9 &&
+            abs(viewport.yMax - full.yMax) < 1e-9
+
+    private fun isValid(viewport: PlotChartViewport): Boolean =
+        viewport.xMin.isFinite() && viewport.xMax.isFinite() && viewport.xSpan > 0.0 &&
+            viewport.yMin.isFinite() && viewport.yMax.isFinite() && viewport.ySpan > 0.0
 }
 
 @Composable
@@ -201,15 +247,16 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         InfoCard("기록 부족")
         return
     }
-    val autoViewport = VerticalChartZoomPolicy.auto(
-        min = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0),
-        max = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
-    )
-    var viewport by remember(spec) { mutableStateOf(autoViewport) }
-    val visibleViewport = if (spec.enableVerticalZoom) viewport else autoViewport
-    val min = visibleViewport.min
-    val max = visibleViewport.max
     val domain = AnalysisChartTemporalPolicy.domain(spec)
+    val fullViewport = PlotChartZoomPolicy.auto(
+        domainSize = domain.size,
+        yMin = spec.yMin ?: ((allValues.minOrNull() ?: 50.0).coerceAtMost(100.0) - 8.0),
+        yMax = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
+    )
+    var viewport by remember(spec) { mutableStateOf(fullViewport) }
+    val visibleViewport = if (spec.enablePlotZoom) viewport else fullViewport
+    val min = visibleViewport.yMin
+    val max = visibleViewport.yMax
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
     val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
@@ -218,17 +265,27 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         },
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        val zoomModifier = if (spec.enableVerticalZoom) {
+        val zoomModifier = if (spec.enablePlotZoom) {
             Modifier
-                .testTag("persistent-strength-y-zoom-chart")
-                .pointerInput(autoViewport) {
+                .testTag("persistent-strength-plot-zoom-chart")
+                .pointerInput(fullViewport) {
                     awaitEachGesture {
                         do {
                             val event = awaitPointerEvent()
                             if (event.changes.count { change -> change.pressed } >= 2) {
                                 val scale = event.calculateZoom()
-                                if (scale.isFinite() && scale != 1f) {
-                                    viewport = VerticalChartZoomPolicy.zoom(viewport, autoViewport, scale)
+                                val centroid = event.calculateCentroid(useCurrent = true)
+                                val pan = event.calculatePan()
+                                if (scale != 1f || pan.x != 0f || pan.y != 0f) {
+                                    viewport = PlotChartZoomPolicy.update(
+                                        current = viewport,
+                                        full = fullViewport,
+                                        gestureScale = scale,
+                                        focalXFraction = centroid.x.toDouble() / size.width.coerceAtLeast(1),
+                                        focalYFraction = centroid.y.toDouble() / size.height.coerceAtLeast(1),
+                                        panXFraction = pan.x.toDouble() / size.width.coerceAtLeast(1),
+                                        panYFraction = pan.y.toDouble() / size.height.coerceAtLeast(1)
+                                    )
                                     event.changes.forEach { change -> change.consume() }
                                 }
                             }
@@ -243,108 +300,114 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                 val y = size.height * (index + 1) / 4f
                 drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
             }
-            val totalCount = domain.size.coerceAtLeast(2)
             fun xAt(index: Int): Float =
-                if (domain.size <= 1) size.width / 2f else size.width * index / (totalCount - 1)
+                (size.width * ((index - visibleViewport.xMin) / visibleViewport.xSpan)).toFloat()
             fun xAt(date: LocalDate): Float = xAt(domainIndex[date] ?: 0)
             fun yAt(value: Double): Float {
-                val ratio = ((value - min) / (max - min)).coerceIn(0.0, 1.0)
+                val ratio = (value - min) / (max - min)
                 return (size.height - (size.height * ratio)).toFloat()
             }
-            spec.forecastRange?.points?.takeIf { it.isNotEmpty() }?.let { forecast ->
-                val path = Path()
-                forecast.forEachIndexed { index, point ->
-                    val x = xAt(point.weekStart)
-                    val y = yAt(point.upper)
-                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                forecast.asReversed().forEach { point ->
-                    path.lineTo(xAt(point.weekStart), yAt(point.lower))
-                }
-                path.close()
-                drawPath(path, forecastColor)
-            }
-            intervalBands.forEachIndexed { bandIndex, band ->
-                val interval = band.points
-                if (interval.isEmpty()) return@forEachIndexed
-                val path = Path()
-                interval.forEachIndexed { index, point ->
-                    val x = xAt(point.date)
-                    val y = yAt(point.upper)
-                    if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-                }
-                interval.asReversed().forEach { point ->
-                    path.lineTo(xAt(point.date), yAt(point.lower))
-                }
-                path.close()
-                val color = band.colorKey?.let(::strengthPerformanceTargetColor)
-                    ?: colors[bandIndex % colors.size]
-                drawPath(path, color.copy(alpha = band.alpha.coerceIn(0f, 1f)))
-            }
-            spec.horizontalReferenceValues.filter { value -> value in min..max }.forEach { value ->
-                val y = yAt(value)
-                drawLine(
-                    color = referenceColor,
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 2f
-                )
-            }
-            spec.lineSeries.forEachIndexed { seriesIndex, series ->
-                val path = Path()
-                var previousDomainIndex: Int? = null
-                var hasPoint = false
-                val seriesColor = series.colorKey?.let(::strengthPerformanceTargetColor)
-                    ?: colors[seriesIndex % colors.size]
-                series.points.sortedBy { point -> point.weekStart }.forEach { point ->
-                    val value = point.value?.takeIf(Double::isFinite)
-                    val index = domainIndex[point.weekStart]
-                    if (value == null || index == null) {
-                        previousDomainIndex = null
-                        return@forEach
+            clipRect(left = 0f, top = 0f, right = size.width, bottom = size.height) {
+                spec.forecastRange?.points?.takeIf { it.isNotEmpty() }?.let { forecast ->
+                    val path = Path()
+                    forecast.forEachIndexed { index, point ->
+                        val x = xAt(point.weekStart)
+                        val y = yAt(point.upper)
+                        if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
                     }
-                    val x = xAt(index)
+                    forecast.asReversed().forEach { point ->
+                        path.lineTo(xAt(point.weekStart), yAt(point.lower))
+                    }
+                    path.close()
+                    drawPath(path, forecastColor)
+                }
+                intervalBands.forEachIndexed { bandIndex, band ->
+                    val interval = band.points
+                    if (interval.isEmpty()) return@forEachIndexed
+                    val path = Path()
+                    interval.forEachIndexed { index, point ->
+                        val x = xAt(point.date)
+                        val y = yAt(point.upper)
+                        if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+                    }
+                    interval.asReversed().forEach { point ->
+                        path.lineTo(xAt(point.date), yAt(point.lower))
+                    }
+                    path.close()
+                    val color = band.colorKey?.let(::strengthPerformanceTargetColor)
+                        ?: colors[bandIndex % colors.size]
+                    drawPath(path, color.copy(alpha = band.alpha.coerceIn(0f, 1f)))
+                }
+                spec.horizontalReferenceValues.filter { value -> value in min..max }.forEach { value ->
                     val y = yAt(value)
-                    if (
-                        previousDomainIndex != null &&
-                        (series.connectAcrossDomainGaps || previousDomainIndex?.plus(1) == index)
-                    ) {
-                        path.lineTo(x, y)
-                    } else {
-                        path.moveTo(x, y)
-                    }
-                    hasPoint = true
-                    previousDomainIndex = index
-                    drawCircle(
-                        color = seriesColor,
-                        radius = 4f,
-                        center = Offset(x, y),
-                        style = if (series.hollowPoints) Stroke(width = 2f) else androidx.compose.ui.graphics.drawscope.Fill
+                    drawLine(
+                        color = referenceColor,
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 2f
                     )
                 }
-                if (hasPoint && series.connectPoints) {
-                    drawPath(path, seriesColor, style = Stroke(width = 4f))
+                spec.lineSeries.forEachIndexed { seriesIndex, series ->
+                    val path = Path()
+                    var previousDomainIndex: Int? = null
+                    var hasPoint = false
+                    val seriesColor = series.colorKey?.let(::strengthPerformanceTargetColor)
+                        ?: colors[seriesIndex % colors.size]
+                    series.points.sortedBy { point -> point.weekStart }.forEach { point ->
+                        val value = point.value?.takeIf(Double::isFinite)
+                        val index = domainIndex[point.weekStart]
+                        if (value == null || index == null) {
+                            previousDomainIndex = null
+                            return@forEach
+                        }
+                        val x = xAt(index)
+                        val y = yAt(value)
+                        if (
+                            previousDomainIndex != null &&
+                            (series.connectAcrossDomainGaps || previousDomainIndex?.plus(1) == index)
+                        ) {
+                            path.lineTo(x, y)
+                        } else {
+                            path.moveTo(x, y)
+                        }
+                        hasPoint = true
+                        previousDomainIndex = index
+                        drawCircle(
+                            color = seriesColor,
+                            radius = 4f,
+                            center = Offset(x, y),
+                            style = if (series.hollowPoints) {
+                                Stroke(width = 2f)
+                            } else {
+                                androidx.compose.ui.graphics.drawscope.Fill
+                            }
+                        )
+                    }
+                    if (hasPoint && series.connectPoints) {
+                        drawPath(path, seriesColor, style = Stroke(width = 4f))
+                    }
                 }
             }
         }
         spec.timeGranularity?.let { granularity ->
-            AnalysisTimeAxisLabels(domain, granularity)
+            AnalysisTimeAxisLabels(
+                domain = domain,
+                granularity = granularity,
+                xViewport = visibleViewport.takeIf { spec.enablePlotZoom }
+            )
         }
-        if (spec.enableVerticalZoom && !VerticalChartZoomPolicy.isAuto(viewport, autoViewport)) {
+        if (spec.enablePlotZoom && !PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 Text(
-                    text = buildString {
-                        append(String.format(Locale.getDefault(), "Y축 %.1f–%.1f", min, max))
-                        spec.valueUnit?.let { unit -> append(" $unit") }
-                    },
+                    text = localizedUiText("확대됨"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = { viewport = autoViewport }) {
-                    Text("축 맞춤")
+                TextButton(onClick = { viewport = fullViewport }) {
+                    Text(localizedUiText("축 맞춤"))
                 }
             }
         }
@@ -474,18 +537,24 @@ private fun AnalysisStackedBarLegendItem(label: String, color: Color) {
 @Composable
 private fun AnalysisTimeAxisLabels(
     domain: List<LocalDate>,
-    granularity: ChartTimeGranularity
+    granularity: ChartTimeGranularity,
+    xViewport: PlotChartViewport? = null
 ) {
     if (domain.isEmpty()) return
+    val indexedDomain = domain.withIndex().filter { indexed ->
+        xViewport == null || indexed.index.toDouble() in xViewport.xMin..xViewport.xMax
+    }
+    if (indexedDomain.isEmpty()) return
+    val visibleDomain = indexedDomain.map { indexed -> indexed.value }
     Layout(
         content = {
-            domain.forEach { date ->
+            visibleDomain.forEach { date ->
                 Text(
                     text = AnalysisChartTemporalPolicy.compactAxisLabel(
                         date = date,
                         granularity = granularity,
-                        domain = domain,
-                        includeWeekday = granularity == ChartTimeGranularity.DAILY && domain.size <= 7
+                        domain = visibleDomain,
+                        includeWeekday = granularity == ChartTimeGranularity.DAILY && visibleDomain.size <= 7
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = TextAlign.Center,
@@ -507,7 +576,7 @@ private fun AnalysisTimeAxisLabels(
             )
         }
         val visibleIndices = AnalysisChartTemporalPolicy.visibleAxisLabelIndices(
-            domain = domain,
+            domain = visibleDomain,
             granularity = granularity,
             labelWidths = placeables.map { it.width },
             availableWidth = constraints.maxWidth,
@@ -517,10 +586,14 @@ private fun AnalysisTimeAxisLabels(
         layout(constraints.maxWidth, height) {
             visibleIndices.forEach { domainIndex ->
                 val placeable = placeables[domainIndex]
-                val center = if (domain.size <= 1) {
+                val originalIndex = indexedDomain[domainIndex].index
+                val center = if (xViewport != null) {
+                    (constraints.maxWidth *
+                        ((originalIndex - xViewport.xMin) / xViewport.xSpan)).toInt()
+                } else if (domain.size <= 1) {
                     constraints.maxWidth / 2
                 } else {
-                    constraints.maxWidth * domainIndex / domain.lastIndex
+                    constraints.maxWidth * originalIndex / domain.lastIndex
                 }
                 val maxX = (constraints.maxWidth - placeable.width).coerceAtLeast(0)
                 val x = (center - placeable.width / 2).coerceIn(0, maxX)

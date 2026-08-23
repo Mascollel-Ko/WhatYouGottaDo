@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | UI-QUIET-PRESENTATION |
-| Protocol version | 1.5.0 |
+| Protocol version | 1.6.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27; adaptive compact controls and temporal axes from v0.5.0.30 |
-| Last audited commit | 45fc91f |
+| Implemented from app version | v0.5.0.0; metadata and program-result refinement from v0.5.0.14; canonical Korean metadata display from v0.5.0.23; fieldKey routing from v0.5.0.26; localized surfaces from v0.5.0.27; adaptive compact controls and temporal axes from v0.5.0.30; persistent-strength 2D plot zoom from v0.5.1 |
+| Last audited commit | 714b755 |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 
 ## Canonical metadata display language (v0.5.0.23, routing v0.5.0.26)
@@ -154,6 +154,13 @@ Material platform 관례에 근거합니다.
 - 넓은 chart는 모든 tick을 표시하고, 충돌 시 stride 2부터 시작해 필요한
   만큼만 증가합니다. 첫/마지막과 month boundary는 충돌하지 않을 때만
   보존합니다.
+- Persistent-strength history chart의 두 손가락 gesture는 고정된 plot
+  window 안에서 X/Y data viewport를 함께 확대하고 centroid translation으로
+  이동합니다. 한 손가락 page scroll은 소비하지 않으며 reset은 전체 date
+  domain과 automatic Y range를 함께 복원합니다.
+- Plot zoom은 data-to-pixel mapping만 바꿉니다. 선 두께, 점 반경, interval
+  opacity, grid/reference stroke와 text size는 screen-space 상수로 유지되고,
+  표시 범위를 벗어난 geometry는 plot bounds에서 clip됩니다.
 
 ## 14. 알려진 한계
 
@@ -174,6 +181,7 @@ Material platform 관례에 근거합니다.
 - grouped exercise information과 field-style metadata selector: 구현됨
 - 320/360/411dp와 large-font whole-control wrapping: 구현됨
 - measured-width daily/weekly visual tick density with full data retention: 구현됨
+- persistent-strength centroid-anchored 2D plot zoom and two-finger pan: 구현됨
 
 ## 16. 구현 위치
 
@@ -210,6 +218,7 @@ Material platform 관례에 근거합니다.
 - `app/src/test/java/com/training/trackplanner/MetadataDisplayCatalogueTest.kt`
 - `app/src/test/java/com/training/trackplanner/AdaptiveControlLayoutTest.kt`
 - `app/src/test/java/com/training/trackplanner/AnalysisChartTemporalUiTest.kt`
+- `app/src/test/java/com/training/trackplanner/AnalysisPlotChartZoomTest.kt`
 - `app/src/test/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicyTest.kt`
 
 ## 18. 권위 자산
@@ -230,6 +239,9 @@ Material platform 관례에 근거합니다.
 
 ## 20. 변경 이력
 
+- `1.6.0` (2026-08-23): Persistent-strength chart interaction changed from
+  Y-only viewport zoom to 2D plot-area zoom. Strength data, posterior
+  calculations, intervals and source series are unchanged.
 - `1.5.0` (2026-08-11): compact controls now wrap as whole items on narrow
   screens, and temporal chart labels use measured-width tick thinning while
   retaining every plotted and accessible data value.
