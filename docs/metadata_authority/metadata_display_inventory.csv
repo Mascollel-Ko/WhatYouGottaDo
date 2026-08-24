@@ -935,6 +935,7 @@ MOVEMENT_SUBTYPE,LOCOMOTION,app/src/main/assets/metadata/canonical_v1,0,Locomoti
 MOVEMENT_SUBTYPE,LUNGE,app/src/main/assets/metadata/canonical_v1,0,런지,Lunge,RETAINED_SEARCH_ONLY,
 MOVEMENT_SUBTYPE,LYING_TRICEPS_EXTENSION,app/src/main/assets/metadata/canonical_v1,2,라잉 트라이셉스 익스텐션,Lying triceps extension,RETAIN,
 MOVEMENT_SUBTYPE,MACHINE_CHEST_PRESS,app/src/main/assets/metadata/canonical_v1,1,머신 체스트프레스,Machine chest press,RETAIN,
+MOVEMENT_SUBTYPE,MACHINE_FLY,app/src/main/assets/metadata/canonical_v1,1,머신 플라이,Machine fly,RETAIN,
 MOVEMENT_SUBTYPE,MACHINE_OVERHEAD_PRESS,app/src/main/assets/metadata/canonical_v1,1,머신 숄더프레스,Machine overhead press,RETAIN,
 MOVEMENT_SUBTYPE,MEADOWS_ROW,app/src/main/assets/metadata/canonical_v1,1,메도우즈 로우,Meadows row,RETAIN,
 MOVEMENT_SUBTYPE,MED_BALL_CHEST_PASS,app/src/main/assets/metadata/canonical_v1,1,메디신볼 체스트 패스,Med ball chest pass,RETAIN,

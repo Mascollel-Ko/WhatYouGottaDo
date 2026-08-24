@@ -88,8 +88,8 @@ def target_dose(stable_key: str) -> tuple[str, str, str, str, str, str]:
 
 def materialize() -> dict[Path, str]:
     plan = read_rows(SPLIT_PLAN)
-    if len(plan) != 33:
-        raise ValueError(f"Expected 33 approved split targets, found {len(plan)}")
+    if len(plan) != 34:
+        raise ValueError(f"Expected 34 approved split targets, found {len(plan)}")
     for row in plan:
         if row["analysisMetadataInheritance"] != "MUSCLE_TISSUE_OFI_INHERITED_UNCHANGED_FROM_GENERIC_SOURCE":
             raise ValueError(f"Unapproved inheritance for {row['variantStableKey']}")
@@ -97,13 +97,13 @@ def materialize() -> dict[Path, str]:
             raise ValueError(f"Split target is not approved/selectable: {row['variantStableKey']}")
 
     target_keys = {row["variantStableKey"] for row in plan}
-    if len(target_keys) != 33:
+    if len(target_keys) != 34:
         raise ValueError("Approved split plan contains duplicate target stable keys")
     if len(BODYWEIGHT_FACTORS) != 5 or len(CARRY_KEYS) != 2:
         raise AssertionError("Exact dose classification constants changed unexpectedly")
     weighted_keys = target_keys - BODYWEIGHT_FACTORS.keys() - CARRY_KEYS
-    if len(weighted_keys) != 26:
-        raise ValueError(f"Expected 26 weighted targets, found {len(weighted_keys)}")
+    if len(weighted_keys) != 27:
+        raise ValueError(f"Expected 27 weighted targets, found {len(weighted_keys)}")
 
     authority_base = [row for row in read_rows(AUTHORITY) if row["exerciseStableKey"] not in target_keys]
     index_base = [row for row in read_rows(INDEX) if row["exerciseStableKey"] not in target_keys]
@@ -191,8 +191,8 @@ def materialize() -> dict[Path, str]:
     authority_rows = authority_base + new_authority
     index_rows = index_base + new_index
     protocol_rows = protocol_base + new_protocols
-    if len(new_authority) != 413:
-        raise ValueError(f"Expected 413 materialized authority rows, found {len(new_authority)}")
+    if len(new_authority) != 427:
+        raise ValueError(f"Expected 427 materialized authority rows, found {len(new_authority)}")
 
     di_rows = [row for row in read_rows(DI_PROFILES) if row["diProfileId"] != "DI_LOAD_TIME"]
     di_rows.append(

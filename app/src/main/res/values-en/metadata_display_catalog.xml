@@ -368,7 +368,6 @@
         <item>EXERCISE_DETAIL|이두근/전완근|이두근/전완근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/견갑안정근|이두근/전완근/견갑안정근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/코어|이두근/전완근/코어</item>
-        <item>EXERCISE_DETAIL|이두근/코어|이두근/코어</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근|이두근/하부승모근</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근/코어|이두근/하부승모근/코어</item>
         <item>EXERCISE_DETAIL|이두근/후면삼각근|이두근/후면삼각근</item>
@@ -937,6 +936,7 @@
         <item>MOVEMENT_SUBTYPE|LUNGE|Lunge</item>
         <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|Lying triceps extension</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|Machine chest press</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_FLY|Machine fly</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|Machine overhead press</item>
         <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|Meadows row</item>
         <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|Med ball chest pass</item>
@@ -2193,7 +2193,6 @@
         <item>EXERCISE_DETAIL|이두근/전완근|이두근/전완근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/견갑안정근|이두근/전완근/견갑안정근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/코어|이두근/전완근/코어</item>
-        <item>EXERCISE_DETAIL|이두근/코어|이두근/코어</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근|이두근/하부승모근</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근/코어|이두근/하부승모근/코어</item>
         <item>EXERCISE_DETAIL|이두근/후면삼각근|이두근/후면삼각근</item>
@@ -2762,6 +2761,7 @@
         <item>MOVEMENT_SUBTYPE|LUNGE|Lunge|LUNGE</item>
         <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|Lying triceps extension|LYING TRICEPS EXTENSION</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|Machine chest press|MACHINE CHEST PRESS</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_FLY|Machine fly|MACHINE CHEST FLY|PEC DECK FLY</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|Machine overhead press|MACHINE OVERHEAD PRESS</item>
         <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|Meadows row|MEADOWS ROW</item>
         <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|Med ball chest pass|MED BALL CHEST PASS</item>

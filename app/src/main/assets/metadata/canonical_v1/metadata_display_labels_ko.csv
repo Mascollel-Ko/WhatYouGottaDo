@@ -366,7 +366,6 @@ EXERCISE_DETAIL,이두근 장두,이두근 장두,이두근 장두,,이두근 �
 EXERCISE_DETAIL,이두근/전완근,이두근/전완근,이두근/전완근,,이두근/전완근 항목을 나타내는 앱 표시 용어입니다.,,이두근/전완근,이두근/전완근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,이두근/전완근/견갑안정근,이두근/전완근/견갑안정근,이두근/전완근/견갑안정근,,이두근/전완근/견갑안정근 항목을 나타내는 앱 표시 용어입니다.,,이두근/전완근/견갑안정근,이두근/전완근/견갑안정근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,이두근/전완근/코어,이두근/전완근/코어,이두근/전완근/코어,,이두근/전완근/코어 항목을 나타내는 앱 표시 용어입니다.,,이두근/전완근/코어,이두근/전완근/코어,,PRODUCTION,APPROVED_RESEARCHED
-EXERCISE_DETAIL,이두근/코어,이두근/코어,이두근/코어,,이두근/코어 항목을 나타내는 앱 표시 용어입니다.,,이두근/코어,이두근/코어,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,이두근/하부승모근,이두근/하부승모근,이두근/하부승모근,,이두근/하부승모근 항목을 나타내는 앱 표시 용어입니다.,,이두근/하부승모근,이두근/하부승모근,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,이두근/하부승모근/코어,이두근/하부승모근/코어,이두근/하부승모근/코어,,이두근/하부승모근/코어 항목을 나타내는 앱 표시 용어입니다.,,이두근/하부승모근/코어,이두근/하부승모근/코어,,PRODUCTION,APPROVED_RESEARCHED
 EXERCISE_DETAIL,이두근/후면삼각근,이두근/후면삼각근,이두근/후면삼각근,,이두근/후면삼각근 항목을 나타내는 앱 표시 용어입니다.,,이두근/후면삼각근,이두근/후면삼각근,,PRODUCTION,APPROVED_RESEARCHED
@@ -935,6 +934,7 @@ MOVEMENT_SUBTYPE,LOCOMOTION,이동,이동,,이동 항목을 나타내는 앱 표
 MOVEMENT_SUBTYPE,LUNGE,런지,런지,,런지 항목을 나타내는 앱 표시 용어입니다.,,Lunge,LUNGE,,SEARCH_ONLY,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,LYING_TRICEPS_EXTENSION,라잉 트라이셉스 익스텐션,라잉 트라이셉스 익스텐션,,라잉 트라이셉스 익스텐션 항목을 나타내는 앱 표시 용어입니다.,,Lying triceps extension,LYING TRICEPS EXTENSION,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,MACHINE_CHEST_PRESS,머신 체스트프레스,머신 체스트프레스,,머신 체스트프레스 항목을 나타내는 앱 표시 용어입니다.,,Machine chest press,MACHINE CHEST PRESS,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_SUBTYPE,MACHINE_FLY,머신 플라이,머신 플라이,머신 체스트 플라이,머신 플라이 항목을 나타내는 앱 표시 용어입니다.,머신 체스트 플라이|펙 덱 플라이,Machine fly,MACHINE CHEST FLY|PEC DECK FLY,,PRODUCTION,PRODUCT_OWNER_APPROVED
 MOVEMENT_SUBTYPE,MACHINE_OVERHEAD_PRESS,머신 숄더프레스,머신 숄더프레스,,머신 숄더프레스 항목을 나타내는 앱 표시 용어입니다.,,Machine overhead press,MACHINE OVERHEAD PRESS,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,MEADOWS_ROW,메도우즈 로우,메도우즈 로우,,메도우즈 로우 항목을 나타내는 앱 표시 용어입니다.,,Meadows row,MEADOWS ROW,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,MED_BALL_CHEST_PASS,메디신볼 체스트 패스,메디신볼 체스트 패스,,메디신볼 체스트 패스 항목을 나타내는 앱 표시 용어입니다.,,Med ball chest pass,MED BALL CHEST PASS,,PRODUCTION,APPROVED_RESEARCHED
@@ -981,7 +981,7 @@ MOVEMENT_SUBTYPE,PREACHER_CURL,프리처 컬,프리처 컬,,프리처 컬 항목
 MOVEMENT_SUBTYPE,PREHAB,프리햅,프리햅,,프리햅 항목을 나타내는 앱 표시 용어입니다.,,Prehab,PREHAB,,SEARCH_ONLY,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,PRONATION_SUPINATION,덤벨 프로네이션/수피네이션,덤벨 프로네이션/수피네이션,,덤벨 프로네이션/수피네이션 항목을 나타내는 앱 표시 용어입니다.,,Pronation supination,PRONATION SUPINATION,,PRODUCTION,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,PULL_HORIZONTAL,당기기 수평,당기기 수평,,당기기 수평 항목을 나타내는 앱 표시 용어입니다.,,Pull horizontal,PULL HORIZONTAL,,SEARCH_ONLY,APPROVED_RESEARCHED
-MOVEMENT_SUBTYPE,PULL_UP,풀업,풀업,,풀업 항목을 나타내는 앱 표시 용어입니다.,,Pull up,PULL UP,,PRODUCTION,APPROVED_RESEARCHED
+MOVEMENT_SUBTYPE,PULL_UP,풀업,풀업,,풀업 항목을 나타내는 앱 표시 용어입니다.,,Pull up,PULL UP,,SEARCH_ONLY,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,PULL_VERTICAL,당기기 수직,당기기 수직,,당기기 수직 항목을 나타내는 앱 표시 용어입니다.,,Pull vertical,PULL VERTICAL,,SEARCH_ONLY,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,PUSH_HORIZONTAL,밀기 수평,밀기 수평,,밀기 수평 항목을 나타내는 앱 표시 용어입니다.,,Push horizontal,PUSH HORIZONTAL,,SEARCH_ONLY,APPROVED_RESEARCHED
 MOVEMENT_SUBTYPE,PUSH_UP,푸시업,푸시업,,푸시업 항목을 나타내는 앱 표시 용어입니다.,,Push up,PUSH UP,,PRODUCTION,APPROVED_RESEARCHED

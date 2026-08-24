@@ -202,9 +202,9 @@ internal object ExerciseMigrationKeyPolicy {
     const val UNRESOLVED_REFERENCE_KEY = "migration_unresolved_exercise"
 
     private val directMappings = mapOf(
-        "ex_201f6426" to "single_leg_rdl",
-        "ex_885b629" to "single_leg_rdl",
-        "imported_싱글_레그_rdl" to "single_leg_rdl",
+        "ex_201f6426" to "dumbbell_single_leg_rdl",
+        "ex_885b629" to "dumbbell_single_leg_rdl",
+        "imported_싱글_레그_rdl" to "dumbbell_single_leg_rdl",
         "imported_6코너_섀도우_풋워크" to "ex_33841b88",
         "imported_싱글_레그_홉_앤_스틱" to "ex_314df428",
         "ex_bb728af2" to "ex_e2efd0fe",

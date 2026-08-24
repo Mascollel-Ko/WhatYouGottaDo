@@ -17,11 +17,7 @@ APPROVED_DUPLICATE = {
 }
 FALLBACK_ASSETS = {
     "ex_d9084b5e": "exercise_images/local_downloads/one_arm_inverted_row.png",
-    "ex_dd2f732e": "exercise_images/local_downloads/reverse_curl.png",
     "ex_e159d15a": "exercise_images/local_downloads/inverted_row.png",
-    "ex_e994008a": "exercise_images/local_downloads/preacher_curl.png",
-    "pull_up": "exercise_images/local_downloads/pull_up.png",
-    "single_leg_rdl": "exercise_images/local_downloads/single_leg_rdl.png",
 }
 
 
@@ -44,8 +40,12 @@ def main() -> None:
         identities = list(csv.DictReader(handle))
     names = {row["stableKey"]: row["exerciseName"] for row in identities}
     keys = tuple(names)
+    keys_by_name: dict[str, list[str]] = defaultdict(list)
+    for stable_key, exercise_name in names.items():
+        keys_by_name[exercise_name].append(stable_key)
 
     candidates: dict[str, list[Path]] = defaultdict(list)
+    unmatched_sources: list[Path] = []
     for image_path in sorted(path for path in source.iterdir() if path.is_file()):
         matches = sorted(
             (key for key in keys if image_path.stem.endswith("_" + key)),
@@ -53,7 +53,14 @@ def main() -> None:
             reverse=True,
         )
         if not matches:
-            raise ValueError(f"No canonical stableKey suffix: {image_path.name}")
+            matches = sorted(keys_by_name.get(image_path.stem, ()))
+            if len(matches) > 1:
+                raise ValueError(
+                    f"Ambiguous canonical exercise name {image_path.name}: {matches}"
+                )
+        if not matches:
+            unmatched_sources.append(image_path)
+            continue
         candidates[matches[0]].append(image_path)
 
     selected: dict[str, Path] = {}
@@ -68,13 +75,7 @@ def main() -> None:
             raise ValueError(f"Unapproved duplicate stableKey {stable_key}: {joined}")
         selected[stable_key] = approved
 
-    overlap = selected.keys() & FALLBACK_ASSETS.keys()
-    if overlap:
-        raise ValueError(f"Fallback assets unexpectedly received replacements: {sorted(overlap)}")
-
     output_dir.mkdir(parents=True, exist_ok=True)
-    for old_file in output_dir.glob("*.png"):
-        old_file.unlink()
     for stable_key, source_path in sorted(selected.items()):
         with Image.open(source_path) as image:
             prepared = ImageOps.exif_transpose(image)
@@ -83,6 +84,11 @@ def main() -> None:
                 prepared = prepared.convert("RGBA")
             prepared.save(output_dir / f"{stable_key}.png", format="PNG", optimize=True, compress_level=9)
 
+    stable_key_assets = {
+        image_path.stem
+        for image_path in output_dir.glob("*.png")
+        if image_path.stem in names
+    }
     mapping_rows = [
         {
             "exercise_name": names[stable_key],
@@ -92,7 +98,7 @@ def main() -> None:
             "needs_review": "0",
             "reason": "user_approved_stable_key_asset",
         }
-        for stable_key in sorted(selected)
+        for stable_key in sorted(stable_key_assets)
     ]
     mapping_rows.extend(
         {
@@ -104,6 +110,7 @@ def main() -> None:
             "reason": "retained_existing_image_no_new_asset",
         }
         for stable_key, asset_path in sorted(FALLBACK_ASSETS.items())
+        if stable_key not in stable_key_assets
     )
     mapping_rows.sort(key=lambda row: row["stable_key"])
     with mapping_path.open("w", encoding="utf-8", newline="") as handle:
@@ -111,7 +118,16 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(mapping_rows)
 
-    print(f"prepared={len(selected)} fallback={len(FALLBACK_ASSETS)} mappings={len(mapping_rows)}")
+    mapped_keys = {row["stable_key"] for row in mapping_rows}
+    missing_keys = sorted(set(names) - mapped_keys)
+    print(
+        f"prepared={len(selected)} retained={len(stable_key_assets - selected.keys())} "
+        f"fallback={len(mapped_keys & FALLBACK_ASSETS.keys())} mappings={len(mapping_rows)}"
+    )
+    for image_path in unmatched_sources:
+        print(f"unmatched_source={image_path.name}")
+    for stable_key in missing_keys:
+        print(f"missing_mapping={stable_key}\t{names[stable_key]}")
 
 
 if __name__ == "__main__":

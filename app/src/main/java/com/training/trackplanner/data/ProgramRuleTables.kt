@@ -112,7 +112,6 @@ internal object ProgramRuleTables {
             )
         ),
         ProgramMainArea.BACK to listOf(
-            main("pull_up", "풀업", ProgramMainArea.BACK, "main-back"),
             main("ex_e41f4c2b", "중량 풀업", ProgramMainArea.BACK, "main-back")
         )
     )

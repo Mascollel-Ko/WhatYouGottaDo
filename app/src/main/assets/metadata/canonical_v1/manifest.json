@@ -1,15 +1,15 @@
 {
-  "authorityWorkbookSha256": "c60d7e305e1991a914a93328c6760eefb84ee0b77f8a91a5dd1f7f2e549101e7",
+  "authorityWorkbookSha256": "d625b316f487eda58856f0edccd39d683cb022d6ba9911c410b45ecad92884a3",
   "counts": {
-    "bootstrapRows": 257,
+    "bootstrapRows": 253,
     "displayRows": 1823,
-    "historyOnlyIdentityRows": 16,
-    "identityRows": 257,
-    "productionDisplayRows": 1687,
-    "programSlotRows": 31,
-    "selectableIdentityRows": 241,
-    "timingRows": 241,
-    "trainingRoleRows": 19
+    "historyOnlyIdentityRows": 11,
+    "identityRows": 253,
+    "productionDisplayRows": 1686,
+    "programSlotRows": 30,
+    "selectableIdentityRows": 242,
+    "timingRows": 242,
+    "trainingRoleRows": 18
   },
   "files": [
     {
@@ -26,18 +26,18 @@
       "primaryKey": [
         "relationKey"
       ],
-      "rowCount": 1865,
+      "rowCount": 1864,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "e9d22c985b6985e7e210cd6a0b16d3864ba4611af07912273e75ab153cd42d2b"
+      "sha256": "0b4f3e49dcc5f9f2d93945c6f18c97fe3529a55429f86830cf36bcebb3919436"
     },
     {
       "path": "core_relations.csv",
       "primaryKey": [
         "relationId"
       ],
-      "rowCount": 272,
+      "rowCount": 273,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "cc82347feef75a3d27de0802856111f80bc96a0ba91552ebb5178786bf617489"
+      "sha256": "cac7a538171bb80528f2719ce07a4e583aea54de06a0b819a3592a535c4f2a7c"
     },
     {
       "path": "equipment_relations.csv",
@@ -46,27 +46,27 @@
         "groupId",
         "memberOrder"
       ],
-      "rowCount": 266,
+      "rowCount": 267,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "034fe71e5b586b6268f4975913686d94962e71a387a5aecdfb51f7888b58b34c"
+      "sha256": "e91eef5ac0955776679bb3e4bc2f56e59622fe2ef49f91aca1ccee297c0606e1"
     },
     {
       "path": "exercise_bootstrap.csv",
       "primaryKey": [
         "stableKey"
       ],
-      "rowCount": 257,
+      "rowCount": 253,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "204e74ae94f038842d9887145edbfa173616cd19f914c99ded4fe0a0ba3d7e43"
+      "sha256": "3ad125db092cbca56129ba834e7068464b871f2cc2d6a088cd02f033e7f2f48f"
     },
     {
       "path": "history_identity.csv",
       "primaryKey": [
         "stableKey"
       ],
-      "rowCount": 16,
+      "rowCount": 11,
       "scope": "HISTORY_COMPATIBILITY_ONLY",
-      "sha256": "3b53170adb6ec7382aa4865e0b231176c775765be5813587a92290a3609cfab5"
+      "sha256": "d61cafcdacf70d256189cd69fc13c964d85688e34253cbb7344c66d9b3860dfb"
     },
     {
       "path": "history_program_slot_capabilities.csv",
@@ -74,9 +74,9 @@
         "exerciseStableKey",
         "capabilityCode"
       ],
-      "rowCount": 2,
+      "rowCount": 1,
       "scope": "HISTORY_COMPATIBILITY_ONLY",
-      "sha256": "d2f4ea4de9548e89ba63c06d5cca338ee339b036b5f1ee9fa0386bda6126759a"
+      "sha256": "d6fa84544262673fa1222e531ae911fd3952d338b7467adbb7720fc05106e007"
     },
     {
       "path": "history_training_roles.csv",
@@ -84,18 +84,18 @@
         "exerciseStableKey",
         "trainingRoleCode"
       ],
-      "rowCount": 1,
+      "rowCount": 0,
       "scope": "HISTORY_COMPATIBILITY_ONLY",
-      "sha256": "fc7b81db1fd3fbb0389efa196d572cb43370bad0852ac67f64252dfe6a64d650"
+      "sha256": "b5b19cfecdfcb8c5f05edc01f8f3370bd08227e9c7c8d19f2dcbd24b05d7499c"
     },
     {
       "path": "identity_master.csv",
       "primaryKey": [
         "stableKey"
       ],
-      "rowCount": 257,
+      "rowCount": 253,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "e790eae55f94e2ea9644078114315b1febf2d7b2eb1c0f602232f1a42bd26eb4"
+      "sha256": "6fa1463673689eedf20128729670ea820de69f23eeb9e440780b9bebffad312e"
     },
     {
       "path": "metadata_display_labels_ko.csv",
@@ -105,16 +105,16 @@
       ],
       "rowCount": 1823,
       "scope": "PRESENTATION_AND_SEARCH",
-      "sha256": "92a98044917aa85a1ca385024d71525f7f866f0e146129239d9e16ac6be6764b"
+      "sha256": "44244e9390004355b1a22878a067809a86cbb74010253587046f92a361043813"
     },
     {
       "path": "movement_relations.csv",
       "primaryKey": [
         "relationId"
       ],
-      "rowCount": 2253,
+      "rowCount": 2248,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "858219fdc1bb577249565af15a5bcaf93c94a8259bd7450876735b70f07e2709"
+      "sha256": "d261b22ac2088066b93d69f7fe85a91317f6c2e8bd2e50268be5b725a4d0ea8f"
     },
     {
       "path": "muscle_relations.csv",
@@ -123,7 +123,7 @@
       ],
       "rowCount": 797,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "733337040bdd0aad150fcc1a2313f299ec26676e043761cdc2733ed3de78c6ca"
+      "sha256": "a515f7c924b15cd095efab151bf5d60f6ffe16e30e0722d370557202c293abb4"
     },
     {
       "path": "ofi_relations.csv",
@@ -132,7 +132,7 @@
       ],
       "rowCount": 3913,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "9c93a4b4b49a4cc0c05d97260b25010b8a5e3216b3b251e6d14c25bd1e92b78d"
+      "sha256": "3838c8344d91ab2c9a4604464f7a83103403404d6f755c6767b66b1a15ddbb5b"
     },
     {
       "path": "program_slot_capabilities.csv",
@@ -149,9 +149,9 @@
       "primaryKey": [
         "stableKey"
       ],
-      "rowCount": 241,
+      "rowCount": 242,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "080427fc700a765b64053d3d9f2a0195970a2024a116d02d9f8469e03368c0ae"
+      "sha256": "7c20123fe7a399f357017357dcdb5bb381733646ec67b23d8a38d4a51796b0ef"
     },
     {
       "path": "progression_relations.csv",
@@ -160,7 +160,7 @@
       ],
       "rowCount": 194,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "096db7ab522b293e943a908aa12ef2dc208ac1e9138cde29569a4865c80069aa"
+      "sha256": "ee1cae574716c7a5066446b4c2f0ab59397116b9669211721b65a83c8f21badb"
     },
     {
       "path": "recovery_relations.csv",
@@ -169,25 +169,25 @@
       ],
       "rowCount": 241,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "fc154d99b7c7c3a4cd807cc8c929949a1830e96669390a92c49329800b64d475"
+      "sha256": "35bea474abfe7e212c669b26c9f35f1813d37b327842a9317740ca22ec4b33b3"
     },
     {
       "path": "runtime_metadata.csv",
       "primaryKey": [
         "stableKey"
       ],
-      "rowCount": 257,
+      "rowCount": 253,
       "scope": "CANONICAL_AND_HISTORY_COMPATIBILITY",
-      "sha256": "781a2b0acd2df110fe859e1306b0030d73017c10a3868fcf814127c6b5500bb0"
+      "sha256": "5af26ee1ca179eb5ccbe31ca53d9ae74b7c93648625ba11d7693549f42f152da"
     },
     {
       "path": "strength_proxy_relations.csv",
       "primaryKey": [
         "relationId"
       ],
-      "rowCount": 17,
+      "rowCount": 16,
       "scope": "PRODUCTION_ACTIVE",
-      "sha256": "4ab67d84d1cea801b2c08dc272200d4170da6a62506403aa330a0e7e95573b8f"
+      "sha256": "1481c313608f829feaaf4aff445b9a315bdcc6ebe8e62d657e97865ecf6f5b6f"
     },
     {
       "path": "training_roles.csv",

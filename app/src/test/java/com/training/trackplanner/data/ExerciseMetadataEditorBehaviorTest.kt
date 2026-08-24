@@ -254,7 +254,7 @@ class ExerciseMetadataEditorBehaviorTest {
     fun historyOnlyExerciseCannotBeReactivated() = runBlocking {
         val db = newDatabase()
         val repository = repository(db)
-        val history = SeedData.exactExerciseMetadataByStableKey(context).getValue("single_leg_rdl")
+        val history = SeedData.exactExerciseMetadataByStableKey(context).getValue("ex_bd072cd")
         db.exerciseDao().insertExercise(history)
 
         repository.setExerciseActive(history.stableKey, true)

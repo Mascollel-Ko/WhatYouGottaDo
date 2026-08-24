@@ -14,7 +14,7 @@ class ProgramCandidateAuthorityTest {
             ProgramRuleTables.badmintonAccessories.values.flatten()
         ).flatten().mapTo(linkedSetOf(), ProgramExerciseSpec::stableKey)
 
-        assertEquals(59, declared.size)
+        assertEquals(58, declared.size)
         assertEquals(declared, ProgramCandidateAuthority.allAllowedStableKeys)
         assertEquals(
             ProgramRuleTables.mainExercises.mapValues { (_, specs) -> specs.mapTo(linkedSetOf(), ProgramExerciseSpec::stableKey) },

@@ -1,8 +1,12 @@
 old_stable_key,old_name,canonical_stable_key,canonical_name,import_rule
-ex_201f6426,B-스탠스 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
-ex_885b629,킥스탠스 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
-imported_싱글_레그_rdl,싱글 레그 RDL,single_leg_rdl,원레그 루마니안 데드리프트,DIRECT
-single_leg_rdl,원레그 RDL,single_leg_rdl,원레그 루마니안 데드리프트,CANONICAL
+ex_dd2f732e,리버스 컬,barbell_reverse_curl,바벨 리버스 컬,CANONICAL_RENAME
+ex_e994008a,프리처 컬,dumbbell_preacher_curl,덤벨 프리처 컬,CANONICAL_RENAME
+ex_201f6426,B-스탠스 RDL,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,DIRECT
+ex_885b629,킥스탠스 RDL,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,DIRECT
+imported_싱글_레그_rdl,싱글 레그 RDL,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,DIRECT
+single_leg_rdl,원레그 RDL,dumbbell_single_leg_rdl,덤벨 원레그 루마니안 데드리프트,CANONICAL_RENAME
+ex_eaea872c,힙 어덕션,hip_adduction_machine,힙 어덕션 머신,CANONICAL_RENAME
+pull_up,풀업,ex_e41f4c2b,중량 풀업,CANONICAL_RENAME
 imported_6코너_섀도우_풋워크,6코너 섀도우 풋워크,ex_33841b88,6코너 풋워크,DIRECT
 imported_싱글_레그_홉_앤_스틱,싱글 레그 홉 앤 스틱,ex_314df428,원레그 홉 투 스틱,DIRECT
 ex_bb728af2,리어풋 엘리베이티드 스플릿 스쿼트,ex_e2efd0fe,불가리안 스플릿 스쿼트,DIRECT

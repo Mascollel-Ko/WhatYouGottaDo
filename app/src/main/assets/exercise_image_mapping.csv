@@ -178,18 +178,17 @@ B스킵,ex_a12de4d2,exercise_images/stable_key/ex_a12de4d2.png,HIGH,0,user_appro
 드롭 점프,ex_d6726746,exercise_images/stable_key/ex_d6726746.png,HIGH,0,user_approved_stable_key_asset
 피스톨 스쿼트,ex_d67e5761,exercise_images/stable_key/ex_d67e5761.png,HIGH,0,user_approved_stable_key_asset
 로잉머신,ex_d7c90536,exercise_images/stable_key/ex_d7c90536.png,HIGH,0,user_approved_stable_key_asset
-원암 인버티드 로우,ex_d9084b5e,exercise_images/local_downloads/one_arm_inverted_row.png,HIGH,0,retained_existing_image_no_new_asset
+원암 인버티드 로우,ex_d9084b5e,exercise_images/stable_key/ex_d9084b5e.png,HIGH,0,user_approved_stable_key_asset
 박스 점프,ex_d9e141e4,exercise_images/stable_key/ex_d9e141e4.png,HIGH,0,user_approved_stable_key_asset
 덤벨 킥백,ex_da56a4fe,exercise_images/stable_key/ex_da56a4fe.png,HIGH,0,user_approved_stable_key_asset
 랫풀다운,ex_dc9e5953,exercise_images/stable_key/ex_dc9e5953.png,HIGH,0,user_approved_stable_key_asset
 스트레칭,ex_dd16e07a,exercise_images/stable_key/ex_dd16e07a.png,HIGH,0,user_approved_stable_key_asset
-리버스 컬,ex_dd2f732e,exercise_images/local_downloads/reverse_curl.png,HIGH,0,retained_existing_image_no_new_asset
 바벨 로우,ex_de46b7f6,exercise_images/stable_key/ex_de46b7f6.png,HIGH,0,user_approved_stable_key_asset
 다이아몬드 푸시업,ex_debf6a8b,exercise_images/stable_key/ex_debf6a8b.png,HIGH,0,user_approved_stable_key_asset
 벤치 딥스,ex_deca2b61,exercise_images/stable_key/ex_deca2b61.png,HIGH,0,user_approved_stable_key_asset
 점프 런지,ex_df966b45,exercise_images/stable_key/ex_df966b45.png,HIGH,0,user_approved_stable_key_asset
 원암 덤벨 RDL,ex_e0b1e364,exercise_images/stable_key/ex_e0b1e364.png,HIGH,0,user_approved_stable_key_asset
-인버티드 로우,ex_e159d15a,exercise_images/local_downloads/inverted_row.png,HIGH,0,retained_existing_image_no_new_asset
+인버티드 로우,ex_e159d15a,exercise_images/stable_key/ex_e159d15a.png,HIGH,0,user_approved_stable_key_asset
 스캡 풀업,ex_e1894690,exercise_images/stable_key/ex_e1894690.png,HIGH,0,user_approved_stable_key_asset
 불가리안 스플릿 스쿼트,ex_e2efd0fe,exercise_images/stable_key/ex_e2efd0fe.png,HIGH,0,user_approved_stable_key_asset
 워킹 런지,ex_e3715c0b,exercise_images/stable_key/ex_e3715c0b.png,HIGH,0,user_approved_stable_key_asset
@@ -199,7 +198,6 @@ B스킵,ex_a12de4d2,exercise_images/stable_key/ex_a12de4d2.png,HIGH,0,user_appro
 네거티브 풀업,ex_e4f911bb,exercise_images/stable_key/ex_e4f911bb.png,HIGH,0,user_approved_stable_key_asset
 케이블 컬,ex_e709eeda,exercise_images/stable_key/ex_e709eeda.png,HIGH,0,user_approved_stable_key_asset
 밴드 외회전,ex_e8ff8cfa,exercise_images/stable_key/ex_e8ff8cfa.png,HIGH,0,user_approved_stable_key_asset
-프리처 컬,ex_e994008a,exercise_images/local_downloads/preacher_curl.png,HIGH,0,retained_existing_image_no_new_asset
 핵 스쿼트,ex_e9e97659,exercise_images/stable_key/ex_e9e97659.png,HIGH,0,user_approved_stable_key_asset
 원암 케이블 오버헤드 트라이셉스 익스텐션,ex_eb636bac,exercise_images/stable_key/ex_eb636bac.png,HIGH,0,user_approved_stable_key_asset
 스케이터 스쿼트,ex_ee378da7,exercise_images/stable_key/ex_ee378da7.png,HIGH,0,user_approved_stable_key_asset
@@ -234,6 +232,7 @@ EZ바 스파이더 컬,ez_bar_spider_curl,exercise_images/stable_key/ez_bar_spid
 랜드마인 안티로테이션,landmine_anti_rotation,exercise_images/stable_key/landmine_anti_rotation.png,HIGH,0,user_approved_stable_key_asset
 랜드마인 좌우 회전,landmine_rotation,exercise_images/stable_key/landmine_rotation.png,HIGH,0,user_approved_stable_key_asset
 래터럴 바운드,lateral_bound_continuous,exercise_images/stable_key/lateral_bound_continuous.png,HIGH,0,user_approved_stable_key_asset
+머신 플라이,machine_chest_fly,exercise_images/stable_key/machine_chest_fly.png,HIGH,0,user_approved_stable_key_asset
 메디신볼 체스트 패스,med_ball_chest_pass,exercise_images/stable_key/med_ball_chest_pass.png,HIGH,0,user_approved_stable_key_asset
 메디신볼 위에서 아래로 슬램,med_ball_overhead_slam,exercise_images/stable_key/med_ball_overhead_slam.png,HIGH,0,user_approved_stable_key_asset
 메디신볼 로테이셔널 스쿱 토스,med_ball_rotational_scoop_toss,exercise_images/stable_key/med_ball_rotational_scoop_toss.png,HIGH,0,user_approved_stable_key_asset
@@ -244,9 +243,7 @@ EZ바 스파이더 컬,ez_bar_spider_curl,exercise_images/stable_key/ez_bar_spid
 짐내스틱 링 원암 로우,one_arm_gymnastic_ring_row,exercise_images/stable_key/one_arm_gymnastic_ring_row.png,HIGH,0,user_approved_stable_key_asset
 서스펜션 트레이너 원암 로우,one_arm_suspension_trainer_row,exercise_images/stable_key/one_arm_suspension_trainer_row.png,HIGH,0,user_approved_stable_key_asset
 플레이트 로테이셔널 프레스아웃,plate_rotational_press_out,exercise_images/stable_key/plate_rotational_press_out.png,HIGH,0,user_approved_stable_key_asset
-풀업,pull_up,exercise_images/local_downloads/pull_up.png,HIGH,0,retained_existing_image_no_new_asset
 원레그 힙 브릿지,single_leg_hip_bridge,exercise_images/stable_key/single_leg_hip_bridge.png,HIGH,0,user_approved_stable_key_asset
-원레그 루마니안 데드리프트,single_leg_rdl,exercise_images/local_downloads/single_leg_rdl.png,HIGH,0,retained_existing_image_no_new_asset
 맨몸 스탠딩 카프 레이즈,standing_bodyweight_calf_raise,exercise_images/stable_key/standing_bodyweight_calf_raise.png,HIGH,0,user_approved_stable_key_asset
 스탠딩 카프 레이즈 머신,standing_calf_raise_machine,exercise_images/stable_key/standing_calf_raise_machine.png,HIGH,0,user_approved_stable_key_asset
 덤벨 스탠딩 카프 레이즈,standing_dumbbell_calf_raise,exercise_images/stable_key/standing_dumbbell_calf_raise.png,HIGH,0,user_approved_stable_key_asset

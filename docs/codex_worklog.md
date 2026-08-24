@@ -6615,3 +6615,37 @@ Remaining debt:
 - Verification: focused Kotlin tests and all 10 localization generator/audit
   tests passed. Full unit, Android-test compilation, assemble, protocol and
   numerical-authority results are recorded after final validation.
+
+## 2026-08-24 - Exercise image remap and approved generic identity cleanup
+
+- Remapped the complete canonical exercise inventory to 253 stable-key image
+  assets and normalized every mapped PNG to 384 x 384. Added the supplied
+  machine fly, dumbbell curl, inverted row, and one-arm inverted row images;
+  existing assets remain the fallback when no replacement was supplied.
+- Restored `ex_e159d15a` (inverted row) as a selectable BODYWEIGHT exercise
+  without inventing ring or suspension equipment. Kept `ex_d9084b5e`
+  (one-arm inverted row) as history-only and mapped its supplied image.
+- Approved core semantics are explicit: weighted pull-up `ex_e41f4c2b`,
+  inverted row `ex_e159d15a`, and historical one-arm inverted row
+  `ex_d9084b5e` resolve to `HIDDEN_MODERATE`. Existing one-arm ring and
+  suspension-row variants retain their reviewed `HIDDEN_HIGH` relations.
+- Retired five superseded generic identities and routed program persistence to
+  their approved concrete replacements: hip adduction to machine hip
+  adduction, pull-up to weighted pull-up, one-leg Romanian deadlift to its
+  dumbbell variant, reverse curl to barbell reverse curl, and preacher curl to
+  dumbbell preacher curl. Historical workout rows remain available to analysis;
+  startup migration changes only program-item references.
+- Canonical inventories now contain 253 identities: 242 selectable and 11
+  history-only. Every identity has exactly one image mapping. Metadata,
+  localization, tissue-prior, and generated contract artifacts were regenerated
+  from their canonical sources rather than patched only at runtime.
+- ProgramBuilder parity remained stable: 307 golden rows matched exactly after
+  applying only the approved stable-key replacement map. Week count, selected
+  weekdays, daily time, badminton-to-strength ratio, and resulting schedule
+  structure did not otherwise change.
+- Verification: metadata authority tests 9/9, localization tests 10/10,
+  focused image/identity/core/backup/program tests passed, full
+  `:app:testDebugUnitTest` passed 1,229/1,229, and `:app:assembleDebug` passed.
+  Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (67,856,885 bytes).
+- This implementation phase does not change the app version; the release
+  identity is updated separately after the verified feature commit.

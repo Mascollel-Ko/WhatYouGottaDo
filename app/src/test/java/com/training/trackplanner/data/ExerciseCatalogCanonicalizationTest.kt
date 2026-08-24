@@ -21,7 +21,7 @@ class ExerciseCatalogCanonicalizationTest {
         val keys = exercises.map(Exercise::stableKey)
         val names = exercises.map(Exercise::name)
 
-        assertEquals(241, exercises.size)
+        assertEquals(242, exercises.size)
         assertTrue(keys.all(String::isNotBlank))
         assertEquals(keys.size, keys.distinct().size)
         assertEquals(names.size, names.distinct().size)
@@ -44,7 +44,11 @@ class ExerciseCatalogCanonicalizationTest {
             "imported_csv_복원_근력운동",
             "imported_csv_복원_기능성운동",
             "imported_csv_복원_스포츠",
-            "single_leg_rdl"
+            "single_leg_rdl",
+            "ex_dd2f732e",
+            "ex_e994008a",
+            "ex_eaea872c",
+            "pull_up"
         )
         val required = setOf(
             "dumbbell_single_leg_rdl",
@@ -56,12 +60,25 @@ class ExerciseCatalogCanonicalizationTest {
             "lateral_bound_continuous",
             "ex_34e7d21",
             "ex_eb636bac",
-            "landmine_rotation"
+            "landmine_rotation",
+            "ex_e159d15a"
         )
 
         assertTrue(required.all(byKey::containsKey))
         assertTrue(removed.none(byKey::containsKey))
         assertFalse(byKey.getValue("lateral_bound_continuous").name.contains("스틱"))
         assertTrue(byKey.getValue("ex_34e7d21").name.contains("스틱"))
+    }
+
+    @Test
+    fun builtInProgramsUseCurrentReplacementIdentitiesOnly() {
+        val itemKeys = SeedData.programs(context)
+            .flatMap(ProgramSeed::items)
+            .mapTo(mutableSetOf(), ProgramItemSeed::exerciseStableKey)
+        val removed = setOf("single_leg_rdl", "ex_dd2f732e", "ex_e994008a", "ex_eaea872c", "pull_up")
+
+        assertTrue(itemKeys.none(removed::contains))
+        assertTrue("ex_e41f4c2b" in itemKeys)
+        assertTrue("dumbbell_single_leg_rdl" in itemKeys)
     }
 }

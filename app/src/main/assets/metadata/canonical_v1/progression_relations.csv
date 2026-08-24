@@ -183,7 +183,6 @@ PROGRESSION_00181,medicine_ball_three_step_deceleration_throw,메디신볼 3스�
 PROGRESSION_00182,one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,HORIZONTAL_PULL_COMPOUND,VOLUME_LOAD,HORIZONTAL_PULL_COMPOUND,ex_d9084b5e,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00183,one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,HORIZONTAL_PULL_COMPOUND,VOLUME_LOAD,HORIZONTAL_PULL_COMPOUND,ex_d9084b5e,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00184,plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,ANTI_ROTATION,QUALITY_BASED,ANTI_ROTATION,plate_rotational_press_out,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
-PROGRESSION_00185,pull_up,풀업,VERTICAL_PULL_COMPOUND,ESTIMATED_1RM,VERTICAL_PULL_COMPOUND,pull_up,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00186,single_leg_hip_bridge,원레그 힙 브릿지,HIP_THRUST_GLUTE,VOLUME_LOAD,HIP_THRUST_GLUTE,single_leg_hip_bridge,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00187,standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,CALF_ACHILLES_ANKLE_STIFFNESS,VOLUME_LOAD,CALF_ACHILLES_ANKLE_STIFFNESS,ex_bd072cd,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00188,standing_calf_raise_machine,스탠딩 카프 레이즈 머신,CALF_ACHILLES_ANKLE_STIFFNESS,VOLUME_LOAD,CALF_ACHILLES_ANKLE_STIFFNESS,ex_bd072cd,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
@@ -193,3 +192,4 @@ PROGRESSION_00191,vipr_chop,바이퍼 회전 아래로,ROTATION_POWER,QUALITY_BA
 PROGRESSION_00192,vipr_rotational_lift,바이퍼 회전 위로,ROTATION_POWER,QUALITY_BASED,ROTATION_POWER,vipr_rotational_lift,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00193,vipr_rotational_press_out,바이퍼 로테이셔널 프레스아웃,ROTATION_POWER,QUALITY_BASED,ROTATION_POWER,vipr_rotational_press_out,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
 PROGRESSION_00194,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,ROTATION_POWER,QUALITY_BASED,ROTATION_POWER,vipr_step_and_rotate,MIGRATED_CURRENT_BEHAVIOR,,analysis contract descriptive tag; not a directed edge
+PROGRESSION_MACHINE_CHEST_FLY,machine_chest_fly,머신 플라이,CHEST_FLY_ISOLATION,LOAD_REPS,CHEST_FLY_ISOLATION,ex_4c779df2,MIGRATED_CURRENT_BEHAVIOR,,Inherited unchanged from ex_4c779df2 for user-approved machine variant

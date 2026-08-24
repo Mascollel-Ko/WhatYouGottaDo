@@ -368,7 +368,6 @@
         <item>EXERCISE_DETAIL|이두근/전완근|이두근/전완근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/견갑안정근|이두근/전완근/견갑안정근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/코어|이두근/전완근/코어</item>
-        <item>EXERCISE_DETAIL|이두근/코어|이두근/코어</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근|이두근/하부승모근</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근/코어|이두근/하부승모근/코어</item>
         <item>EXERCISE_DETAIL|이두근/후면삼각근|이두근/후면삼각근</item>
@@ -937,6 +936,7 @@
         <item>MOVEMENT_SUBTYPE|LUNGE|런지</item>
         <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|라잉 트라이셉스 익스텐션</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|머신 체스트프레스</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_FLY|머신 플라이</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|머신 숄더프레스</item>
         <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|메도우즈 로우</item>
         <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|메디신볼 체스트 패스</item>
@@ -2193,7 +2193,6 @@
         <item>EXERCISE_DETAIL|이두근/전완근|이두근/전완근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/견갑안정근|이두근/전완근/견갑안정근</item>
         <item>EXERCISE_DETAIL|이두근/전완근/코어|이두근/전완근/코어</item>
-        <item>EXERCISE_DETAIL|이두근/코어|이두근/코어</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근|이두근/하부승모근</item>
         <item>EXERCISE_DETAIL|이두근/하부승모근/코어|이두근/하부승모근/코어</item>
         <item>EXERCISE_DETAIL|이두근/후면삼각근|이두근/후면삼각근</item>
@@ -2762,6 +2761,7 @@
         <item>MOVEMENT_SUBTYPE|LUNGE|런지</item>
         <item>MOVEMENT_SUBTYPE|LYING_TRICEPS_EXTENSION|라잉 트라이셉스 익스텐션</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_CHEST_PRESS|머신 체스트프레스</item>
+        <item>MOVEMENT_SUBTYPE|MACHINE_FLY|머신 플라이|머신 체스트 플라이|펙 덱 플라이</item>
         <item>MOVEMENT_SUBTYPE|MACHINE_OVERHEAD_PRESS|머신 숄더프레스</item>
         <item>MOVEMENT_SUBTYPE|MEADOWS_ROW|메도우즈 로우</item>
         <item>MOVEMENT_SUBTYPE|MED_BALL_CHEST_PASS|메디신볼 체스트 패스</item>

@@ -70,18 +70,16 @@ def validate(path: Path) -> dict[str, int]:
 
     identities = sheet_rows(workbook, IDENTITY_SHEET)
     identity_by_key = index_by(identities, "stableKey")
-    require(len(identities) == 257, f"Expected 257 identities, found {len(identities)}")
+    require(len(identities) == 253, f"Expected 253 identities, found {len(identities)}")
     history = [row for row in identities if row["identityStatus"] == HISTORY_ONLY_STATUS]
     selectable = [row for row in identities if row["selectable"] == "YES"]
-    require(len(history) == 16, f"Expected 16 history-only identities, found {len(history)}")
-    require(len(selectable) == 241, f"Expected 241 selectable identities, found {len(selectable)}")
+    require(len(history) == 11, f"Expected 11 history-only identities, found {len(history)}")
+    require(len(selectable) == 242, f"Expected 242 selectable identities, found {len(selectable)}")
     require(all(row["selectable"] == "NO" for row in history), "History-only identities must be non-selectable")
     require(all("PRESERVE" in row["historyTreatment"] for row in history), "History-only treatment must preserve history")
     require(not any(row["mappingConfidence"] in DECISION_TOKENS for row in identities), "Decision token found in mappingConfidence")
     require(identity_by_key["ex_bd072cd"]["identityDecisionStatus"] == "KEEP_CANONICAL", "Missing ex_bd072cd decision")
-    require(identity_by_key["single_leg_rdl"]["identityDecisionStatus"] == "PROPOSED_USER_APPROVED", "Missing single_leg_rdl decision")
     require(not identity_by_key["ex_bd072cd"]["mappingConfidence"], "ex_bd072cd confidence must remain blank")
-    require(not identity_by_key["single_leg_rdl"]["mappingConfidence"], "single_leg_rdl confidence must remain blank")
 
     bootstrap = sheet_rows(workbook, BOOTSTRAP_SHEET)
     bootstrap_by_key = index_by(bootstrap, "stableKey")
@@ -112,8 +110,6 @@ def validate(path: Path) -> dict[str, int]:
     require(all(row["capabilityCode"] in PROGRAM_SLOTS for row in slots), "Invalid ProgramSlotCapability")
     training_keys = {(row["exerciseStableKey"], row["trainingRoleCode"], row["relationScope"]) for row in training}
     slot_keys = {(row["exerciseStableKey"], row["capabilityCode"], row["relationScope"]) for row in slots}
-    require(("single_leg_rdl", "STRENGTH", HISTORY_COMPATIBILITY_ONLY) in training_keys, "single_leg_rdl history role missing")
-    require(("single_leg_rdl", "MAIN_STRENGTH_SLOT", HISTORY_COMPATIBILITY_ONLY) in slot_keys, "single_leg_rdl history slot missing")
     require(("ex_bd072cd", "ACCESSORY_SLOT", HISTORY_COMPATIBILITY_ONLY) in slot_keys, "ex_bd072cd history slot missing")
     for stable_key in ("dumbbell_single_leg_rdl", "kettlebell_single_leg_rdl"):
         require((stable_key, "MAIN_STRENGTH_SLOT", PRODUCTION_ACTIVE) in slot_keys, f"Active hinge slot missing: {stable_key}")

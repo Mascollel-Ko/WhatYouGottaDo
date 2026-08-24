@@ -184,7 +184,6 @@
     <string name="exercise_name_ex_da56a4fe">덤벨 킥백</string>
     <string name="exercise_name_ex_dc9e5953">랫풀다운</string>
     <string name="exercise_name_ex_dd16e07a">스트레칭</string>
-    <string name="exercise_name_ex_dd2f732e">리버스 컬</string>
     <string name="exercise_name_ex_de46b7f6">바벨 로우</string>
     <string name="exercise_name_ex_debf6a8b">다이아몬드 푸시업</string>
     <string name="exercise_name_ex_deca2b61">벤치 딥스</string>
@@ -200,9 +199,7 @@
     <string name="exercise_name_ex_e4f911bb">네거티브 풀업</string>
     <string name="exercise_name_ex_e709eeda">케이블 컬</string>
     <string name="exercise_name_ex_e8ff8cfa">밴드 외회전</string>
-    <string name="exercise_name_ex_e994008a">프리처 컬</string>
     <string name="exercise_name_ex_e9e97659">핵 스쿼트</string>
-    <string name="exercise_name_ex_eaea872c">힙 어덕션</string>
     <string name="exercise_name_ex_eb636bac">원암 케이블 오버헤드 트라이셉스 익스텐션</string>
     <string name="exercise_name_ex_ee378da7">스케이터 스쿼트</string>
     <string name="exercise_name_ex_f1d31d3d">원레그 핵 스쿼트</string>
@@ -236,6 +233,7 @@
     <string name="exercise_name_landmine_anti_rotation">랜드마인 안티로테이션</string>
     <string name="exercise_name_landmine_rotation">랜드마인 좌우 회전</string>
     <string name="exercise_name_lateral_bound_continuous">래터럴 바운드</string>
+    <string name="exercise_name_machine_chest_fly">머신 플라이</string>
     <string name="exercise_name_med_ball_chest_pass">메디신볼 체스트 패스</string>
     <string name="exercise_name_med_ball_overhead_slam">메디신볼 위에서 아래로 슬램</string>
     <string name="exercise_name_med_ball_rotational_scoop_toss">메디신볼 로테이셔널 스쿱 토스</string>
@@ -246,9 +244,7 @@
     <string name="exercise_name_one_arm_gymnastic_ring_row">짐내스틱 링 원암 로우</string>
     <string name="exercise_name_one_arm_suspension_trainer_row">서스펜션 트레이너 원암 로우</string>
     <string name="exercise_name_plate_rotational_press_out">플레이트 로테이셔널 프레스아웃</string>
-    <string name="exercise_name_pull_up">풀업</string>
     <string name="exercise_name_single_leg_hip_bridge">원레그 힙 브릿지</string>
-    <string name="exercise_name_single_leg_rdl">원레그 루마니안 데드리프트</string>
     <string name="exercise_name_standing_bodyweight_calf_raise">맨몸 스탠딩 카프 레이즈</string>
     <string name="exercise_name_standing_calf_raise_machine">스탠딩 카프 레이즈 머신</string>
     <string name="exercise_name_standing_dumbbell_calf_raise">덤벨 스탠딩 카프 레이즈</string>

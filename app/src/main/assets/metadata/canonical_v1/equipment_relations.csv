@@ -195,6 +195,7 @@ ex_debf6a8b,다이아몬드 푸시업,,NONE,,,NO,ex_debf6a8b,Bodyweight/no equip
 ex_deca2b61,벤치 딥스,eqreq_ex_deca2b61,SINGLE,1,BENCH,NO,ex_deca2b61,Single atomic equipment requirement.
 ex_df966b45,점프 런지,,NONE,,,NO,ex_df966b45,Bodyweight/no equipment is represented by the absence of EquipmentRef.
 ex_e0b1e364,원암 덤벨 RDL,eqreq_ex_e0b1e364,SINGLE,1,DUMBBELL,NO,ex_e0b1e364,Single atomic equipment requirement.
+ex_e159d15a,인버티드 로우,eqreq_ex_e159d15a,SINGLE,1,BODYWEIGHT,NO,ex_e159d15a,General bodyweight movement; no dedicated external equipment required.
 ex_e1894690,스캡 풀업,eqreq_ex_e1894690,SINGLE,1,PULL_UP_BAR,NO,ex_e1894690,Single atomic equipment requirement.
 ex_e2efd0fe,불가리안 스플릿 스쿼트,eqreq_ex_e2efd0fe,ALL_REQUIRED,1,BENCH,YES,ex_e2efd0fe,All listed atomic items are simultaneously required.
 ex_e2efd0fe,불가리안 스플릿 스쿼트,eqreq_ex_e2efd0fe,ALL_REQUIRED,2,DUMBBELL,YES,ex_e2efd0fe,All listed atomic items are simultaneously required.
@@ -245,6 +246,7 @@ kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,eqreq
 landmine_anti_rotation,랜드마인 안티로테이션,eqreq_landmine_anti_rotation,SINGLE,1,LANDMINE,NO,landmine_anti_rotation,Single atomic equipment requirement.
 landmine_rotation,랜드마인 좌우 회전,eqreq_landmine_rotation,SINGLE,1,LANDMINE,NO,landmine_rotation,Single atomic equipment requirement.
 lateral_bound_continuous,래터럴 바운드,,NONE,,,NO,lateral_bound_continuous,Bodyweight/no equipment is represented by the absence of EquipmentRef.
+machine_chest_fly,머신 플라이,eqreq_machine_chest_fly,SINGLE,1,MACHINE,NO,ex_4c779df2,Single atomic equipment requirement.
 med_ball_chest_pass,메디신볼 체스트 패스,eqreq_med_ball_chest_pass,SINGLE,1,MEDICINE_BALL,NO,med_ball_chest_pass,Single atomic equipment requirement.
 med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,eqreq_med_ball_overhead_slam,SINGLE,1,MEDICINE_BALL,NO,med_ball_overhead_slam,Single atomic equipment requirement.
 med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,eqreq_med_ball_rotational_scoop_toss,SINGLE,1,MEDICINE_BALL,NO,med_ball_rotational_scoop_toss,Single atomic equipment requirement.
@@ -255,7 +257,6 @@ medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지�
 one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,eqreq_one_arm_gymnastic_ring_row,SINGLE,1,GYMNASTIC_RINGS,NO,ex_d9084b5e,Single atomic equipment requirement.
 one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,eqreq_one_arm_suspension_trainer_row,SINGLE,1,SUSPENSION_TRAINER,NO,ex_d9084b5e,Single atomic equipment requirement.
 plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,eqreq_plate_rotational_press_out,SINGLE,1,WEIGHT_PLATE,NO,plate_rotational_press_out,Single atomic equipment requirement.
-pull_up,풀업,eqreq_pull_up,SINGLE,1,PULL_UP_BAR,NO,pull_up,Single atomic equipment requirement.
 single_leg_hip_bridge,원레그 힙 브릿지,,NONE,,,NO,single_leg_hip_bridge,Bodyweight/no equipment is represented by the absence of EquipmentRef.
 standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,,NONE,,,NO,ex_bd072cd,Bodyweight/no equipment is represented by the absence of EquipmentRef.
 standing_calf_raise_machine,스탠딩 카프 레이즈 머신,eqreq_standing_calf_raise_machine,SINGLE,1,STANDING_CALF_RAISE_MACHINE,NO,ex_bd072cd,Single atomic equipment requirement.

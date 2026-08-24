@@ -184,7 +184,6 @@
     <string name="exercise_description_ex_da56a4fe">상체를 숙이고 팔꿈치를 몸 옆에 고정한 뒤 팔을 뒤로 편다. 가볍게 끝 범위 수축을 확인한다.</string>
     <string name="exercise_description_ex_dc9e5953">랫풀다운: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근이고, 이두근/하부승모근이 흔들리지 않게 보조한다.</string>
     <string name="exercise_description_ex_dd16e07a">훈련 후 관절과 근육을 가볍게 풀어준다. 디로드 주간에는 피로를 낮추고 움직임 품질을 유지하는 데 쓴다.</string>
-    <string name="exercise_description_ex_dd2f732e">손등이 위를 향하게 잡고 컬을 수행한다. 라켓 스포츠에 필요한 전완 버티는 힘을 보강한다.</string>
     <string name="exercise_description_ex_de46b7f6">바벨 로우: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근/능형근이고, 이두근/후면삼각근/코어이 흔들리지 않게 보조한다.</string>
     <string name="exercise_description_ex_debf6a8b">양손을 좁게 모아 푸시업을 한다. 팔꿈치가 과하게 벌어지지 않게 하며 삼두와 가슴 안쪽 자극을 기록한다.</string>
     <string name="exercise_description_ex_deca2b61">손을 벤치에 두고 몸을 내려갔다 밀어 올린다. 어깨 앞쪽이 불편하면 깊이를 줄이거나 다른 삼두 운동으로 바꾼다.</string>
@@ -200,9 +199,7 @@
     <string name="exercise_description_ex_e4f911bb">위에서 시작해 천천히 내려온다. 풀업 반복 수가 부족한 날에도 당기는 힘과 견갑 제어를 연습할 수 있다.</string>
     <string name="exercise_description_ex_e709eeda">케이블을 팔꿈치 고정 상태로 말아 올린다. 반복 내내 장력이 유지돼 이두 고립에 좋다.</string>
     <string name="exercise_description_ex_e8ff8cfa">팔꿈치를 몸통 옆에 고정하고 바깥쪽으로 회전한다. 어깨 충돌을 줄이고 오버헤드 동작을 보조한다.</string>
-    <string name="exercise_description_ex_e994008a">팔꿈치를 패드에 고정해 반동을 줄이고 컬한다. 아놀드식 팔 훈련에서 자주 보이는 이두 고립운동이다.</string>
     <string name="exercise_description_ex_e9e97659">머신에서 등을 대고 깊게 내려갔다가 밀어 올린다. 대퇴사두근에 집중하기 쉬운 보디빌딩 하체 운동이다.</string>
-    <string name="exercise_description_ex_eaea872c">다리를 안쪽으로 모아 내전근을 훈련한다. 사이드 런지와 코트 감속에서 필요한 안쪽 허벅지 힘을 보강한다.</string>
     <string name="exercise_description_ex_eb636bac">케이블을 등 뒤 또는 머리 뒤에서 시작해 한 팔을 머리 위로 편다. 상완 위치를 유지하며 삼두 장두의 신장과 팔꿈치 신전을 통제한다.</string>
     <string name="exercise_description_ex_ee378da7">뒤쪽 무릎을 바닥 쪽으로 보내며 한발로 내려갔다 올라온다. 사이드 런지와 착지 제어에 필요한 한발 힘을 키운다.</string>
     <string name="exercise_description_ex_f1d31d3d">핵 스쿼트 머신에서 한쪽 다리 중심으로 밀어 올린다. 한발 힘과 좌우 대퇴사두근 차이를 기록하기 좋다.</string>
@@ -236,6 +233,7 @@
     <string name="exercise_description_landmine_anti_rotation">랜드마인을 몸 앞에서 이동시키며 골반과 몸통이 불필요하게 회전하지 않도록 버틴다.</string>
     <string name="exercise_description_landmine_rotation">랜드마인 끝을 양손으로 잡고 머리 앞의 호를 따라 좌우로 이동하며 골반·몸통 회전과 어깨 안정성을 함께 제어한다.</string>
     <string name="exercise_description_lateral_bound_continuous">좌우로 연속 바운드하며 착지 직후 다음 반동으로 연결한다. 측면 파워, 반복 리듬과 연속적인 신장-단축 주기를 훈련한다.</string>
+    <string name="exercise_description_machine_chest_fly">머신의 손잡이나 패드를 가슴 앞에서 모아 대흉근을 수축한다. 프레스 후 가슴 볼륨을 보완하는 고립운동이다.</string>
     <string name="exercise_description_med_ball_chest_pass">가슴 앞의 메디신볼을 몸통 고정과 함께 전방으로 빠르게 밀어 던진다.</string>
     <string name="exercise_description_med_ball_overhead_slam">메디신볼을 머리 위로 올린 뒤 몸통과 고관절을 함께 사용해 바닥으로 빠르게 내리친다.</string>
     <string name="exercise_description_med_ball_rotational_scoop_toss">낮은 위치에서 골반과 몸통을 연결해 회전하며 메디신볼을 스쿱 동작으로 던진다.</string>
@@ -246,9 +244,7 @@
     <string name="exercise_description_one_arm_gymnastic_ring_row">몸을 비스듬히 세운 상태에서 한 팔 중심으로 당긴다. 견갑 안정성과 좌우 당기는 힘을 스포츠 전이형으로 보강한다.</string>
     <string name="exercise_description_one_arm_suspension_trainer_row">몸을 비스듬히 세운 상태에서 한 팔 중심으로 당긴다. 견갑 안정성과 좌우 당기는 힘을 스포츠 전이형으로 보강한다.</string>
     <string name="exercise_description_plate_rotational_press_out">플레이트를 몸 앞에서 밀어내며 천천히 회전하고 몸통의 흔들림을 제어한다.</string>
-    <string name="exercise_description_pull_up">풀업: 자세와 관절 정렬을 유지한 채 반복한다. 주동근은 광배근이고, 이두근/코어이 흔들리지 않게 보조한다.</string>
     <string name="exercise_description_single_leg_hip_bridge">한쪽 발로 지면을 밀어 엉덩이를 들어 올린다. 등은 바닥 또는 벤치에 지지할 수 있으며 편측 둔근 수축과 골반 안정성을 훈련한다.</string>
-    <string name="exercise_description_single_leg_rdl">앞다리에 대부분의 체중과 부하를 싣고 엉덩이를 뒤로 보내며 힙힌지한다. 반대쪽 발은 균형을 위해 뒤에 가볍게 접지할 수 있으며 앞다리의 햄스트링·둔근과 골반·몸통 안정성을 훈련한다.</string>
     <string name="exercise_description_standing_bodyweight_calf_raise">무릎을 편 상태에서 뒤꿈치를 들어 올려 종아리를 수축한다. 발목 강성과 점프·착지 보조 능력을 훈련한다.</string>
     <string name="exercise_description_standing_calf_raise_machine">무릎을 편 상태에서 뒤꿈치를 들어 올려 종아리를 수축한다. 발목 강성과 점프·착지 보조 능력을 훈련한다.</string>
     <string name="exercise_description_standing_dumbbell_calf_raise">무릎을 편 상태에서 뒤꿈치를 들어 올려 종아리를 수축한다. 발목 강성과 점프·착지 보조 능력을 훈련한다.</string>

@@ -760,9 +760,6 @@ MUSCLE_00758,plate_rotational_press_out,플레이트 로테이셔널 프레스�
 MUSCLE_00759,plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,plate_rotational_press_out,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00760,plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,plate_rotational_press_out,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00761,plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,plate_rotational_press_out,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00762,pull_up,풀업,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,pull_up,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00763,pull_up,풀업,BACK_LATS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,pull_up,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
-MUSCLE_00764,pull_up,풀업,BICEPS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,pull_up,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00765,single_leg_hip_bridge,원레그 힙 브릿지,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,single_leg_hip_bridge,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00766,single_leg_hip_bridge,원레그 힙 브릿지,ANTERIOR_CORE,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,single_leg_hip_bridge,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00767,single_leg_hip_bridge,원레그 힙 브릿지,HAMSTRINGS,SECONDARY,,0.5,1,MIGRATED_CURRENT_BEHAVIOR,,single_leg_hip_bridge,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
@@ -796,3 +793,6 @@ MUSCLE_00794,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,FOREARM_GRIP
 MUSCLE_00795,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,GLUTES,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_step_and_rotate,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00796,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,LATERAL_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_step_and_rotate,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
 MUSCLE_00797,vipr_step_and_rotate,바이퍼 스텝 앤 로테이트,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,vipr_step_and_rotate,analysis_contract_baseline_v1.csv; inherited only where final closeout says so
+MUSCLE_MACHINE_CHEST_FLY_01,machine_chest_fly,머신 플라이,ANTERIOR_CORE,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_4c779df2,Inherited unchanged from ex_4c779df2 for user-approved machine variant
+MUSCLE_MACHINE_CHEST_FLY_02,machine_chest_fly,머신 플라이,CHEST,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_4c779df2,Inherited unchanged from ex_4c779df2 for user-approved machine variant
+MUSCLE_MACHINE_CHEST_FLY_03,machine_chest_fly,머신 플라이,SHOULDERS,PRIMARY,,1,1,MIGRATED_CURRENT_BEHAVIOR,,ex_4c779df2,Inherited unchanged from ex_4c779df2 for user-approved machine variant

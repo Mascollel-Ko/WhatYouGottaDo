@@ -51,13 +51,13 @@ def export_to(directory: Path):
 class MetadataAuthorityTest(unittest.TestCase):
     def test_workbook_encodes_approved_identity_and_relation_decisions(self):
         counts = validate(WORKBOOK)
-        self.assertEqual(257, counts["identityRows"])
-        self.assertEqual(241, counts["selectableIdentityRows"])
-        self.assertEqual(16, counts["historyOnlyIdentityRows"])
-        self.assertEqual(241, counts["timingRows"])
-        self.assertEqual(257, counts["bootstrapRows"])
+        self.assertEqual(253, counts["identityRows"])
+        self.assertEqual(242, counts["selectableIdentityRows"])
+        self.assertEqual(11, counts["historyOnlyIdentityRows"])
+        self.assertEqual(242, counts["timingRows"])
+        self.assertEqual(253, counts["bootstrapRows"])
         self.assertEqual(1823, counts["displayRows"])
-        self.assertEqual(1687, counts["productionDisplayRows"])
+        self.assertEqual(1686, counts["productionDisplayRows"])
         workbook = load_workbook(WORKBOOK, read_only=True)
         self.assertEqual(DISPLAY_HEADERS, [str(cell.value or "").strip() for cell in workbook[DISPLAY_SHEET][1]])
 
@@ -85,7 +85,7 @@ class MetadataAuthorityTest(unittest.TestCase):
         workbook = load_workbook(WORKBOOK, read_only=True)
         identities = {row["stableKey"]: row for row in sheet_rows(workbook, "05_IDENTITY_MASTER")}
         history = {key for key, row in identities.items() if row["identityStatus"] == "HISTORY_ONLY_GENERIC"}
-        self.assertEqual(16, len(history))
+        self.assertEqual(11, len(history))
         self.assertTrue(all(identities[key]["selectable"] == "NO" for key in history))
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
@@ -102,9 +102,18 @@ class MetadataAuthorityTest(unittest.TestCase):
         )
         canonical = csv_by_key(ASSETS / "runtime_metadata.csv", "stableKey")
         history = set(csv_by_key(ASSETS / "history_identity.csv", "stableKey"))
+        retired_current_identities = {
+            "ex_eaea872c",
+            "pull_up",
+            "single_leg_rdl",
+            "ex_dd2f732e",
+            "ex_e994008a",
+        }
         self.assertEqual(224, len(legacy))
-        self.assertEqual(set(legacy), set(canonical).intersection(legacy))
+        self.assertEqual(set(legacy) - retired_current_identities, set(canonical).intersection(legacy))
         for stable_key, old in legacy.items():
+            if stable_key in retired_current_identities:
+                continue
             current = canonical[stable_key]
             for field, old_value in old.items():
                 if field == "exerciseName":
@@ -130,7 +139,7 @@ class MetadataAuthorityTest(unittest.TestCase):
             hashlib.sha256(BADMINTON_OBJECTIVE_AUTHORITY_SOURCE.read_bytes()).hexdigest(),
         )
         core, objectives, rotation_audit = build_analysis_assets()
-        self.assertEqual(272, len(core))
+        self.assertEqual(273, len(core))
         self.assertEqual(280, len(objectives))
         self.assertEqual(19, len(rotation_audit))
         self.assertEqual(4, sum(row["coreDirectTarget"] == "ANTI_ROTATION" and row["decision"] == "CREATE_EXPLICIT_OBJECTIVE" for row in rotation_audit))
@@ -162,9 +171,9 @@ class MetadataAuthorityTest(unittest.TestCase):
     def test_display_routing_audit_is_current_and_complete(self):
         metrics = collect_display_routing(REPO)
         validate_display_routing(metrics)
-        self.assertEqual(1687, metrics["reachableProductionPairCount"])
-        self.assertEqual(1687, metrics["translatedReachableProductionPairCount"])
-        self.assertEqual(136, metrics["expectedCompatibilityOnlyPairCount"])
+        self.assertEqual(1686, metrics["reachableProductionPairCount"])
+        self.assertEqual(1686, metrics["translatedReachableProductionPairCount"])
+        self.assertEqual(137, metrics["expectedCompatibilityOnlyPairCount"])
         self.assertEqual(70, metrics["preRefactorRawCodeProneUiPathCount"])
         self.assertEqual(0, metrics["postRefactorRawCodeProneUiPathCount"])
         self.assertEqual(

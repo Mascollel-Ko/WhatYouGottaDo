@@ -25,9 +25,9 @@ class TissueEquipmentSplitMaterializationTest {
             .map { it.getValue("stableKey") }.toSet()
         val historySources = splitRows.map { it.getValue("sourceGenericStableKey") }.toSet()
 
-        assertEquals(241, selectable.size)
-        assertEquals(16, historySources.size)
-        assertEquals(selectable + historySources, catalog.exerciseStableKeys)
+        assertEquals(242, selectable.size)
+        assertEquals(17, historySources.size)
+        assertEquals(selectable + historySources + setOf("pull_up"), catalog.exerciseStableKeys)
         assertEquals(setOf("ex_dd16e07a"), catalog.exerciseStableKeys - catalog.authorityRows.map {
             it.exerciseStableKey
         }.toSet())
@@ -35,7 +35,7 @@ class TissueEquipmentSplitMaterializationTest {
 
     @Test
     fun everyTargetCopiesOnlyItsExplicitApprovedSourceProfile() {
-        assertEquals(33, splitRows.size)
+        assertEquals(34, splitRows.size)
         splitRows.forEach { split ->
             val targetKey = split.getValue("variantStableKey")
             val sourceKey = split.getValue("sourceGenericStableKey")
@@ -61,7 +61,7 @@ class TissueEquipmentSplitMaterializationTest {
     @Test
     fun exactDoseProfilesHaveApprovedClassificationAndArithmetic() {
         val grouped = catalog.exerciseDoseProfiles.values.groupingBy { it.doseKind }.eachCount()
-        assertEquals(26, grouped[TissueExerciseDoseKind.WEIGHTED_REPETITION])
+        assertEquals(27, grouped[TissueExerciseDoseKind.WEIGHTED_REPETITION])
         assertEquals(5, grouped[TissueExerciseDoseKind.BODYWEIGHT_REPETITION])
         assertEquals(2, grouped[TissueExerciseDoseKind.LOAD_TIME])
 

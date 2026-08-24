@@ -20,15 +20,14 @@ class CanonicalExerciseMetadataRepositoryTest {
         val historyKeys = setOf(
             "ex_516f4456", "ex_7176cbee", "ex_8e18b02a", "ex_8e51640a",
             "ex_99728d25", "ex_a1fc4533", "ex_a9e8859c", "ex_ac7df636",
-            "ex_bd072cd", "ex_d20b7487", "ex_d9084b5e", "ex_dd2f732e",
-            "ex_e159d15a", "ex_e994008a", "ex_eaea872c", "single_leg_rdl"
+            "ex_bd072cd", "ex_d20b7487", "ex_d9084b5e"
         )
 
-        assertEquals(257, repository.identities().size)
-        assertEquals(241, repository.selectableIdentities().size)
+        assertEquals(253, repository.identities().size)
+        assertEquals(242, repository.selectableIdentities().size)
         assertEquals(historyKeys, repository.identities().filter(CanonicalExerciseIdentity::historyOnly).mapTo(mutableSetOf(), CanonicalExerciseIdentity::stableKey))
-        assertEquals(241, repository.exercises().size)
-        assertEquals(257, repository.exercises(includeHistory = true).size)
+        assertEquals(242, repository.exercises().size)
+        assertEquals(253, repository.exercises(includeHistory = true).size)
         assertTrue(repository.exercises().none { it.stableKey in historyKeys })
         assertTrue(repository.exercises(includeHistory = true).filter { it.stableKey in historyKeys }.all {
             !it.isActive && it.planningEligibility == "HISTORY_ONLY"
@@ -63,21 +62,21 @@ class CanonicalExerciseMetadataRepositoryTest {
         val exercises = repository.exercises()
         assertTrue(exercises.all { exercise -> repository.timing(exercise.stableKey)?.defaultRestSeconds == exercise.defaultRestSeconds })
         assertEquals(exercises, SeedData.exercises(context))
-        assertEquals(257, SeedData.exactExerciseMetadataByStableKey(context).size)
+        assertEquals(253, SeedData.exactExerciseMetadataByStableKey(context).size)
     }
 
     @Test
     fun canonicalRepositoryExposesEveryProductionMetadataDomain() {
-        assertEquals(2253, repository.movementRelations().size)
+        assertEquals(2248, repository.movementRelations().size)
         assertEquals(797, repository.muscleRelations().size)
         assertEquals(3913, repository.ofiRelations().size)
         assertEquals(241, repository.recoveryProfiles().size)
-        assertEquals(1865, repository.badmintonRelations().size)
-        assertEquals(241, repository.coreCatalog().selectableProfiles().size)
+        assertEquals(1864, repository.badmintonRelations().size)
+        assertEquals(242, repository.coreCatalog().selectableProfiles().size)
         assertEquals(280, repository.badmintonObjectiveCatalog().allRelations().size)
         assertEquals(194, repository.progressionRelations().size)
-        assertEquals(17, repository.strengthProxyRelations().size)
-        assertEquals(3637, repository.tissueRepository().catalog.authorityRows.size)
+        assertEquals(16, repository.strengthProxyRelations().size)
+        assertEquals(3651, repository.tissueRepository().catalog.authorityRows.size)
     }
 
     @Test

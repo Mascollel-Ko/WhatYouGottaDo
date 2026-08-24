@@ -37,7 +37,7 @@ class TissuePriorBaselineGenerationTest {
             .mapTo(mutableSetOf(), TissueExerciseDoseProfile::exerciseStableKey)
         val simulationKeys = priorSimulationExerciseStableKeys(catalog)
 
-        assertEquals(33, materializedVariants.size)
+        assertEquals(34, materializedVariants.size)
         assertEquals(224, simulationKeys.size)
         assertTrue(simulationKeys.intersect(materializedVariants).isEmpty())
         assertEquals(catalog.exerciseStableKeys, simulationKeys + materializedVariants)

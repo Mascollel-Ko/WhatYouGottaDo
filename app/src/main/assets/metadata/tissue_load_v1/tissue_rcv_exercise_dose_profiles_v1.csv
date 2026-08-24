@@ -26,6 +26,7 @@ hip_adduction_machine,WEIGHTED_REPETITION,,,recordedWeightKg * reps,EXACT_STABLE
 kettlebell_farmer_carry,LOAD_TIME,,,recordedWeightKg * confirmedSeconds; no distance or per-hand multiplier,EXACT_STABLE_KEY_ONLY,ex_a1fc4533,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
 kettlebell_goblet_squat,WEIGHTED_REPETITION,,,recordedWeightKg * reps,EXACT_STABLE_KEY_ONLY,ex_ac7df636,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
 kettlebell_single_leg_rdl,WEIGHTED_REPETITION,,,recordedWeightKg * reps,EXACT_STABLE_KEY_ONLY,single_leg_rdl,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
+machine_chest_fly,WEIGHTED_REPETITION,,,recordedWeightKg * reps,EXACT_STABLE_KEY_ONLY,ex_4c779df2,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
 one_arm_gymnastic_ring_row,BODYWEIGHT_REPETITION,0.60,1.00,(bodyWeightKg * bodyweightFactor + recordedWeightKg * addedLoadFactor) * reps,EXACT_STABLE_KEY_ONLY,ex_d9084b5e,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
 one_arm_suspension_trainer_row,BODYWEIGHT_REPETITION,0.60,1.00,(bodyWeightKg * bodyweightFactor + recordedWeightKg * addedLoadFactor) * reps,EXACT_STABLE_KEY_ONLY,ex_d9084b5e,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT
 standing_bodyweight_calf_raise,BODYWEIGHT_REPETITION,1.00,0.00,(bodyWeightKg * bodyweightFactor + recordedWeightKg * addedLoadFactor) * reps,EXACT_STABLE_KEY_ONLY,ex_bd072cd,MATERIALIZED_FROM_APPROVED_EQUIPMENT_SPLIT

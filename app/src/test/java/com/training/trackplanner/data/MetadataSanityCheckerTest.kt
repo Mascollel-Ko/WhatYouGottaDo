@@ -125,11 +125,11 @@ class MetadataSanityCheckerTest {
     fun readinessReporterMarksSeedCatalogReady() {
         val report = MetadataReadinessReporter.generate(legacyAnalysisExercises())
 
-        assertEquals(224, report.summary.totalExerciseCount)
-        assertEquals(224, report.summary.fatigueReadyCounts[ReadinessStatus.YES])
-        assertEquals(224, report.summary.progressReadyCounts[ReadinessStatus.YES])
-        assertEquals(224, report.summary.badmintonReadyCounts[ReadinessStatus.YES])
-        assertEquals(224, report.summary.balanceReadyCounts[ReadinessStatus.YES])
+        assertEquals(219, report.summary.totalExerciseCount)
+        assertEquals(219, report.summary.fatigueReadyCounts[ReadinessStatus.YES])
+        assertEquals(219, report.summary.progressReadyCounts[ReadinessStatus.YES])
+        assertEquals(219, report.summary.badmintonReadyCounts[ReadinessStatus.YES])
+        assertEquals(219, report.summary.balanceReadyCounts[ReadinessStatus.YES])
         assertEquals(emptyList<String>(), report.summary.needsReviewExerciseNames)
         assertTrue(report.mappingLayerExists)
     }

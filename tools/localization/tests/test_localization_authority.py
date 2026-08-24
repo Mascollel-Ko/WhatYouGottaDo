@@ -18,8 +18,8 @@ class LocalizationAuthorityTest(unittest.TestCase):
         manifest = json.loads(artifacts[authority.OUTPUTS["manifest"]])
 
         self.assertEqual(612, manifest["uiApprovedRows"])
-        self.assertEqual(257, manifest["exerciseApprovedRows"])
-        self.assertEqual(257, manifest["exerciseDescriptionLocalizedRows"])
+        self.assertEqual(253, manifest["exerciseApprovedRows"])
+        self.assertEqual(253, manifest["exerciseDescriptionLocalizedRows"])
         self.assertEqual(12, manifest["seedProgramLocalizedRows"])
         self.assertEqual(4, manifest["strengthTargetLocalizedRows"])
         self.assertEqual(1834, manifest["metadataAuthoritativeRows"])
@@ -28,7 +28,7 @@ class LocalizationAuthorityTest(unittest.TestCase):
         self.assertGreater(manifest["codexGeneratedEnglishEntries"], 1_000)
         self.assertGreater(manifest["dynamicUiRuntimeEntries"], 200)
         self.assertEqual(
-            "0CA2D8D01B603499D8509CC6E6E00BA027818B1F693D4B2978BF642C0F7DFE3A",
+            "782B41556DE341BD1208F13A189C99387967F811435CEA2821B6B1D87CB040B8",
             manifest["authoritySha256"],
         )
 

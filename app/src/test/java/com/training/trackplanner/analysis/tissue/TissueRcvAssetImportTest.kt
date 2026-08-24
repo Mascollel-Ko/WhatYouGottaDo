@@ -13,13 +13,13 @@ class TissueRcvAssetImportTest {
     fun importsReviewedRcvAuthorityWithApprovedEquipmentSplitCoverage() {
         val catalog = repository().catalog
 
-        assertEquals(257, catalog.exerciseStableKeys.size)
-        assertEquals(3637, catalog.authorityRows.size)
-        assertEquals(256, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
-        assertEquals(257, catalog.protocols.size)
+        assertEquals(258, catalog.exerciseStableKeys.size)
+        assertEquals(3651, catalog.authorityRows.size)
+        assertEquals(257, catalog.authorityRows.map { it.exerciseStableKey }.toSet().size)
+        assertEquals(258, catalog.protocols.size)
         assertEquals(50, catalog.protocolClasses.size)
         assertEquals(14, catalog.diProfiles.size)
-        assertEquals(33, catalog.exerciseDoseProfiles.size)
+        assertEquals(34, catalog.exerciseDoseProfiles.size)
         assertEquals(21, catalog.curves.size)
         assertEquals(114, catalog.curves.values.sumOf { it.knots.size })
         assertEquals(7, catalog.routing.size)
@@ -32,7 +32,7 @@ class TissueRcvAssetImportTest {
         val rows = repository().catalog.authorityRows
         val rowsByPair = rows.groupBy { it.exerciseStableKey to it.loadUnitStableKey }
 
-        assertEquals(3627, rowsByPair.size)
+        assertEquals(3641, rowsByPair.size)
         assertEquals(7, rowsByPair.count { it.value.size > 1 })
         assertEquals(3, rowsByPair.maxOf { it.value.size })
     }

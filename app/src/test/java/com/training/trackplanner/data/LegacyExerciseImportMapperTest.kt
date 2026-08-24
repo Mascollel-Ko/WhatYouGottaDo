@@ -20,7 +20,7 @@ class LegacyExerciseImportMapperTest {
     fun everyReviewedLegacyMappingHasItsDeclaredDeterministicOutcome() {
         val mappings = mapper.mappings()
 
-        assertEquals(33, mappings.size)
+        assertEquals(37, mappings.size)
         mappings.forEach { mapping ->
             val result = resolve(mapping.oldStableKey, mapping.oldName)
             when (mapping.importRule) {

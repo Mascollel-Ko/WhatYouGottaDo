@@ -1,3 +1,2 @@
 exerciseStableKey,capabilityCode,relationScope,provenance,reviewStatus,notes
 ex_bd072cd,ACCESSORY_SLOT,HISTORY_COMPATIBILITY_ONLY,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from ACCESSORY
-single_leg_rdl,MAIN_STRENGTH_SLOT,HISTORY_COMPATIBILITY_ONLY,LEGACY-TRAINING-ROLE-SEED-V1,APPROVED,Exact 26-row compatibility migration from MAIN_STRENGTH

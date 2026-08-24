@@ -39,9 +39,10 @@ class StrengthMetadataProxyFallbackImpactTest {
         val exercises = SeedData.exercises(context)
         val reviewed = exercises.flatMap { registry.proxyLoadings(it.stableKey) }
 
-        assertEquals(21, reviewed.size)
-        assertEquals(21, reviewed.map { it.exerciseStableKey }.distinct().size)
+        assertEquals(20, reviewed.size)
+        assertEquals(20, reviewed.map { it.exerciseStableKey }.distinct().size)
         assertTrue(reviewed.all { it.reviewedStatus == "REVIEWED" })
+        assertEquals(1, registry.proxyLoadings("pull_up").size)
     }
 
     private fun legacyMetadataTarget(exercise: Exercise): String? {

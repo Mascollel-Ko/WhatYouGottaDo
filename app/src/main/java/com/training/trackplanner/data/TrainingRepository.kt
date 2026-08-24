@@ -581,6 +581,7 @@ class TrainingRepository(
         if (exerciseSeedVersion < EXERCISE_SEED_VERSION || exerciseDao.countExercises() == 0) {
             upsertSeedExercises()
             seedExerciseRoleRelations()
+            retireReplacedGenericExercises()
             appMetaDao.upsert(
                 AppMeta(
                     key = META_EXERCISE_SEED_VERSION,
@@ -640,6 +641,41 @@ class TrainingRepository(
             }
             exerciseRoleRelationDao.upsertTrainingRoles(trainingRoles)
             exerciseRoleRelationDao.upsertProgramSlotCapabilities(slotCapabilities)
+        }
+    }
+
+    private suspend fun retireReplacedGenericExercises() {
+        val replacementExercises = REPLACED_GENERIC_EXERCISES.mapValues { (_, replacementKey) ->
+            requireNotNull(exerciseDao.findByStableKey(replacementKey)) {
+                "Missing replacement exercise: $replacementKey"
+            }
+        }
+        val archivedAt = System.currentTimeMillis()
+        db.withTransaction {
+            programDao.allProgramItems().forEach { item ->
+                val replacement = replacementExercises[item.exerciseStableKey] ?: return@forEach
+                programDao.updateProgramItem(
+                    item.copy(
+                        exerciseStableKey = replacement.stableKey,
+                        exerciseName = replacement.name,
+                        category = replacement.category
+                    )
+                )
+            }
+            REPLACED_GENERIC_EXERCISES.keys.forEach { stableKey ->
+                exerciseDao.findByStableKey(stableKey)
+                    ?.takeIf { exercise -> !exercise.isCustom }
+                    ?.let { exercise ->
+                        exerciseDao.updateExercise(
+                            exercise.copy(
+                                isActive = false,
+                                archivedAt = exercise.archivedAt ?: archivedAt
+                            )
+                        )
+                    }
+                exerciseRoleRelationDao.deleteTrainingRoles(stableKey)
+                exerciseRoleRelationDao.deleteProgramSlotCapabilities(stableKey)
+            }
         }
     }
 
@@ -1295,11 +1331,18 @@ class TrainingRepository(
         }
 
     private companion object {
-        const val EXERCISE_SEED_VERSION = 9
+        const val EXERCISE_SEED_VERSION = 10
         const val PROGRAM_SEED_VERSION = 1
         const val PROGRAM_STABLE_KEY_REPAIR_VERSION = 1
         const val META_EXERCISE_SEED_VERSION = "exercise_seed_version"
         const val META_PROGRAM_SEED_VERSION = "program_seed_version"
         const val META_PROGRAM_STABLE_KEY_REPAIR_VERSION = "program_stable_key_repair_version"
+        val REPLACED_GENERIC_EXERCISES = mapOf(
+            "ex_dd2f732e" to "barbell_reverse_curl",
+            "ex_e994008a" to "dumbbell_preacher_curl",
+            "ex_eaea872c" to "hip_adduction_machine",
+            "pull_up" to "ex_e41f4c2b",
+            "single_leg_rdl" to "dumbbell_single_leg_rdl"
+        )
     }
 }

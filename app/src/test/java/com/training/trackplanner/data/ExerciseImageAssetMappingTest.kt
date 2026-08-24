@@ -29,8 +29,8 @@ class ExerciseImageAssetMappingTest {
         }
         val mapped = images.filterValues(String::isNotBlank)
 
-        assertEquals(256, mapped.size)
-        assertEquals(setOf("ex_eaea872c"), images.filterValues(String::isBlank).keys)
+        assertEquals(253, mapped.size)
+        assertTrue(images.filterValues(String::isBlank).isEmpty())
         mapped.forEach { (stableKey, imageAssetName) ->
             val bitmap = context.assets.open(imageAssetName).use(BitmapFactory::decodeStream)
             assertNotNull("Image must decode for $stableKey: $imageAssetName", bitmap)
@@ -50,10 +50,12 @@ class ExerciseImageAssetMappingTest {
         }
 
         assertEquals("exercise_images/stable_key/ex_f6703b06.png", images.getValue("ex_f6703b06"))
+        assertEquals("exercise_images/stable_key/machine_chest_fly.png", images.getValue("machine_chest_fly"))
+        assertEquals("exercise_images/stable_key/ex_e159d15a.png", images.getValue("ex_e159d15a"))
+        assertEquals("exercise_images/stable_key/ex_d9084b5e.png", images.getValue("ex_d9084b5e"))
+        assertEquals("exercise_images/stable_key/ex_281347da.png", images.getValue("ex_281347da"))
         assertEquals("exercise_images/stable_key/dumbbell_single_leg_rdl.png", images.getValue("dumbbell_single_leg_rdl"))
         assertEquals("exercise_images/stable_key/kettlebell_single_leg_rdl.png", images.getValue("kettlebell_single_leg_rdl"))
-        assertEquals("exercise_images/local_downloads/pull_up.png", images.getValue("pull_up"))
-        assertEquals("exercise_images/local_downloads/single_leg_rdl.png", images.getValue("single_leg_rdl"))
     }
 
     @Test

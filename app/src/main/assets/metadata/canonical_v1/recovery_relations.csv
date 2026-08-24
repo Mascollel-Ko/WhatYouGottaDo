@@ -220,6 +220,7 @@ kettlebell_single_leg_rdl,케틀벨 원레그 루마니안 데드리프트,MEDIU
 landmine_anti_rotation,랜드마인 안티로테이션,MEDIUM,MEDIUM,MODERATE,landmine_anti_rotation,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
 landmine_rotation,랜드마인 좌우 회전,LONG,LONG,HIGH,landmine_rotation,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
 lateral_bound_continuous,래터럴 바운드,LONG,LONG,HIGH,lateral_bound_continuous,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
+machine_chest_fly,머신 플라이,SHORT,SHORT,LOW,ex_4c779df2,INHERITED_UNCHANGED,SOURCE_ACCEPTED,User-approved machine variant inherited from ex_4c779df2
 med_ball_chest_pass,메디신볼 체스트 패스,LONG,LONG,HIGH,med_ball_chest_pass,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
 med_ball_overhead_slam,메디신볼 위에서 아래로 슬램,LONG,LONG,HIGH,med_ball_overhead_slam,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
 med_ball_rotational_scoop_toss,메디신볼 로테이셔널 스쿱 토스,LONG,LONG,HIGH,med_ball_rotational_scoop_toss,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
@@ -230,7 +231,6 @@ medicine_ball_three_step_deceleration_throw,메디신볼 3스텝 감속 던지�
 one_arm_gymnastic_ring_row,짐내스틱 링 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_d9084b5e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 one_arm_suspension_trainer_row,서스펜션 트레이너 원암 로우,MEDIUM,MEDIUM,MODERATE,ex_d9084b5e,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 plate_rotational_press_out,플레이트 로테이셔널 프레스아웃,SHORT,SHORT,LOW,plate_rotational_press_out,DIRECT_SOURCE,SOURCE_ACCEPTED_WITH_LIMITATION,canonical runtime metadata asset
-pull_up,풀업,MEDIUM,MEDIUM,MODERATE,pull_up,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 single_leg_hip_bridge,원레그 힙 브릿지,MEDIUM,MEDIUM,MODERATE,single_leg_hip_bridge,DIRECT_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 standing_bodyweight_calf_raise,맨몸 스탠딩 카프 레이즈,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset
 standing_calf_raise_machine,스탠딩 카프 레이즈 머신,SHORT,SHORT,MODERATE,ex_bd072cd,INHERITED_FROM_SOURCE,SOURCE_ACCEPTED,canonical runtime metadata asset

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CORE_APPROVED_SOURCE = (
     ROOT / "docs/metadata_authority/core_training_classification_review_2026-08-13.csv"
 )
-CORE_APPROVED_SHA256 = "3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954"
+CORE_APPROVED_SHA256 = "4fd8e61509ef89ad67953393b372972f9a8cfa0ac726db4633aaf05cf8cc8903"
 BADMINTON_OBJECTIVE_AUTHORITY_SOURCE = (
     ROOT / "docs/metadata_authority/badminton_objective_relations_v2_authority.csv"
 )
@@ -66,8 +66,8 @@ def read_csv(path: Path) -> list[dict[str, str]]:
 
 
 def build_core_relations(core_rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    if len(core_rows) != 241:
-        raise ValueError(f"Approved core authority must have 241 rows, found {len(core_rows)}")
+    if len(core_rows) != 242:
+        raise ValueError(f"Approved core authority must have 242 rows, found {len(core_rows)}")
     relations: list[dict[str, str]] = []
     for row in sorted(core_rows, key=lambda item: int(item["sourceRowOrder"])):
         stable_key = row["stableKey"]
@@ -96,8 +96,8 @@ def build_core_relations(core_rows: list[dict[str, str]]) -> list[dict[str, str]
             })
         elif target:
             raise ValueError(f"Non-DIRECT core row has target: {stable_key}")
-    if len(relations) != 272:
-        raise ValueError(f"Canonical core relation count must be 272, found {len(relations)}")
+    if len(relations) != 273:
+        raise ValueError(f"Canonical core relation count must be 273, found {len(relations)}")
     return relations
 
 

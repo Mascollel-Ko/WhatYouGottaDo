@@ -184,7 +184,6 @@
     <string name="exercise_name_ex_da56a4fe">Dumbbell Kickback</string>
     <string name="exercise_name_ex_dc9e5953">Lat Pulldown</string>
     <string name="exercise_name_ex_dd16e07a">Stretching</string>
-    <string name="exercise_name_ex_dd2f732e">Reverse Curl</string>
     <string name="exercise_name_ex_de46b7f6">Barbell Row</string>
     <string name="exercise_name_ex_debf6a8b">Diamond Push-Up</string>
     <string name="exercise_name_ex_deca2b61">Bench Dips</string>
@@ -200,9 +199,7 @@
     <string name="exercise_name_ex_e4f911bb">Negative Pull-Up</string>
     <string name="exercise_name_ex_e709eeda">Cable Curl</string>
     <string name="exercise_name_ex_e8ff8cfa">Band External Rotation</string>
-    <string name="exercise_name_ex_e994008a">Preacher Curl</string>
     <string name="exercise_name_ex_e9e97659">Hack Squat</string>
-    <string name="exercise_name_ex_eaea872c">Hip Adduction</string>
     <string name="exercise_name_ex_eb636bac">Single-Arm Cable Overhead Triceps Extension</string>
     <string name="exercise_name_ex_ee378da7">Skater Squat</string>
     <string name="exercise_name_ex_f1d31d3d">Single-Leg Hack Squat</string>
@@ -236,6 +233,7 @@
     <string name="exercise_name_landmine_anti_rotation">Landmine Anti-Rotation</string>
     <string name="exercise_name_landmine_rotation">Landmine Side-to-Side Rotation</string>
     <string name="exercise_name_lateral_bound_continuous">Lateral Bound</string>
+    <string name="exercise_name_machine_chest_fly">Machine Fly</string>
     <string name="exercise_name_med_ball_chest_pass">Medicine Ball Chest Pass</string>
     <string name="exercise_name_med_ball_overhead_slam">Medicine Ball Overhead Slam</string>
     <string name="exercise_name_med_ball_rotational_scoop_toss">Medicine Ball Rotational Scoop Toss</string>
@@ -246,9 +244,7 @@
     <string name="exercise_name_one_arm_gymnastic_ring_row">Gymnastic Ring Single-Arm Row</string>
     <string name="exercise_name_one_arm_suspension_trainer_row">Suspension Trainer Single-Arm Row</string>
     <string name="exercise_name_plate_rotational_press_out">Plate Rotational Press-Out</string>
-    <string name="exercise_name_pull_up">Pull-Up</string>
     <string name="exercise_name_single_leg_hip_bridge">Single-Leg Hip Bridge</string>
-    <string name="exercise_name_single_leg_rdl">Single-Leg Romanian Deadlift</string>
     <string name="exercise_name_standing_bodyweight_calf_raise">Bodyweight Standing Calf Raise</string>
     <string name="exercise_name_standing_calf_raise_machine">Standing Calf Raise Machine</string>
     <string name="exercise_name_standing_dumbbell_calf_raise">Standing Dumbbell Calf Raise</string>

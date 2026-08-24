@@ -25,7 +25,7 @@ class CanonicalAnalysisAuthorityTest {
     fun approvedCoreCsvIsExactCanonicalAuthority() {
         val approved = projectFile("docs/metadata_authority/core_training_classification_review_2026-08-13.csv")
         assertEquals(
-            "3c819568012cd17726486e7f3e21cac972c95eec1736e8ab038e9edc1c3fa954",
+            "4fd8e61509ef89ad67953393b372972f9a8cfa0ac726db4633aaf05cf8cc8903",
             MessageDigest.getInstance("SHA-256").digest(approved.readBytes()).joinToString("") { "%02x".format(it) }
         )
         val rows = approved.readLines().filter(String::isNotBlank).map(SeedData::parseCsvLine)
@@ -36,7 +36,7 @@ class CanonicalAnalysisAuthorityTest {
         }
         val profiles = repository.coreCatalog().selectableProfiles()
 
-        assertEquals(241, profiles.size)
+        assertEquals(242, profiles.size)
         assertEquals(values.keys, profiles.mapTo(mutableSetOf()) { it.exerciseStableKey })
         profiles.forEach { profile ->
             val approvedValue = values.getValue(profile.exerciseStableKey)
@@ -49,9 +49,19 @@ class CanonicalAnalysisAuthorityTest {
     fun coreClassAndDirectTargetCountsMatchApprovedReview() {
         val profiles = repository.coreCatalog().selectableProfiles()
 
-        assertEquals(mapOf(CoreClass.DIRECT to 31, CoreClass.HIDDEN_HIGH to 45, CoreClass.HIDDEN_MODERATE to 82, CoreClass.HIDDEN_LOW to 55, CoreClass.NONE to 28), profiles.groupingBy { it.coreClass }.eachCount())
+        assertEquals(mapOf(CoreClass.DIRECT to 31, CoreClass.HIDDEN_HIGH to 45, CoreClass.HIDDEN_MODERATE to 82, CoreClass.HIDDEN_LOW to 56, CoreClass.NONE to 28), profiles.groupingBy { it.coreClass }.eachCount())
         assertEquals(mapOf(CoreDirectTarget.ROTATION_GENERATION to 15, CoreDirectTarget.BRACING to 8, CoreDirectTarget.ANTI_ROTATION to 4, CoreDirectTarget.TRUNK_FLEXION to 3, CoreDirectTarget.TRUNK_EXTENSION to 1), profiles.mapNotNull { it.directTarget }.groupingBy { it }.eachCount())
         assertTrue(profiles.all { (it.coreClass == CoreClass.DIRECT) == (it.directTarget != null) })
+    }
+
+    @Test
+    fun invertedRowsUseTheApprovedPullUpCoreClass() {
+        val catalog = repository.coreCatalog()
+        val pullUp = requireNotNull(catalog.resolve("ex_e41f4c2b"))
+
+        assertEquals(CoreClass.HIDDEN_MODERATE, pullUp.coreClass)
+        assertEquals(pullUp.coreClass, catalog.resolve("ex_e159d15a")?.coreClass)
+        assertEquals(pullUp.coreClass, catalog.resolve("ex_d9084b5e")?.coreClass)
     }
 
     @Test

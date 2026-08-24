@@ -13,10 +13,10 @@
 - Simulation validations: `13/13` profiles
 - Slower recovery retains more at 24 hours: `true`
 - Recovery-engine fingerprint: `07a5da10fdd1a1e1069883f0e9da3f893edb4cdbb3317ce93629a1c1224a05dd`
-- Mapping-data fingerprint: `087e64ed5c0d38a799ac1fbe9ea260c5119220c4e962a9c547f913423abe1ab7`
-- Deterministic input checksum: `a6a90344c1f3ad05500d2101fe7ce8f3ce78df7d328b14d422ceee013819b5ea`
-- Deterministic output checksum: `a8b2c8fd6c50fd73111a6fca074521670089a0f2c578f39f397d5fe43f73f58e`
-- Canonical registry SHA-256: `0096441bfd923a96949a2df1bdce0f63c7fed6d8c611a854e9df0983b9109725`
+- Mapping-data fingerprint: `56cbae35b4a557bb5bc97df734c3fd2972b1c07174f839109d7ddcdb77901a65`
+- Deterministic input checksum: `9969cc68ffc3c1fe762b0df95b596aaf59dee7e3f322d855fcf99477e967be6c`
+- Deterministic output checksum: `001676195cfca6f9a4788da6b12c6a25eb4dec05353091a6739aee39a37930c5`
+- Canonical registry SHA-256: `db4623dbdc1ce4a48cc1eb7757a6d5768b7aa207e814aef87d5fa8c82f6f30d5`
 
 Scenario weights are product policy, not measured population prevalence.
 Boundaries use the positive residual distribution; a fully recovered zero state remains below Q30.

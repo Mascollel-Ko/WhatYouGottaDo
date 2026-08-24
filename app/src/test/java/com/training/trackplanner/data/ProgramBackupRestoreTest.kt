@@ -243,7 +243,7 @@ class ProgramBackupRestoreTest {
     @Test
     fun `history only exercise keeps readable row but cannot seed a new program`() = runBlocking {
         val db = newDatabase()
-        val historyExercise = SeedData.exactExerciseMetadataByStableKey(context).getValue("single_leg_rdl")
+        val historyExercise = SeedData.exactExerciseMetadataByStableKey(context).getValue("ex_bd072cd")
         db.exerciseDao().insertExercise(historyExercise)
         val seed = ProgramSeed(
             key = "history_only_seed",

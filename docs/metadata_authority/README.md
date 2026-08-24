@@ -118,10 +118,20 @@ Workbook rows distinguish `PRODUCTION_CANONICAL`, `LEGACY_COMPATIBILITY`,
 and not-adjudicated rows. The relationship conflict report is explicitly
 `NOT_ADJUDICATED`; this release does not claim full relationship correctness.
 
-The 16 `HISTORY_ONLY_GENERIC` identities remain readable, are bootstrapped as
+The 11 `HISTORY_ONLY_GENERIC` identities remain readable, are bootstrapped as
 inactive, and cannot enter planning. Their old stableKeys are never inferred
 or rewritten to equipment variants. Built-in program seeds containing one are
 skipped as a whole.
+
+The 2026-08-23 catalogue decision removes the replaced generic identities
+`ex_eaea872c`, `pull_up`, `single_leg_rdl`, `ex_dd2f732e`, and `ex_e994008a`
+from current selection. Startup archives those built-in rows and moves program
+items to their approved replacements without rewriting workout history.
+`ex_e159d15a` remains the selectable general bodyweight inverted row with no
+dedicated external equipment requirement; ring and suspension variants keep
+their separate stableKeys. Its reviewed core class is `HIDDEN_MODERATE`, the
+same as weighted pull-up. History-only `ex_d9084b5e` resolves to that same core
+class without changing the approved one-arm ring or suspension variant rows.
 
 `researchContextAxisScoreC` is research evidence. It is not the runtime
 `runtimeCodContextModifier`; the latter remains in the separately reviewed

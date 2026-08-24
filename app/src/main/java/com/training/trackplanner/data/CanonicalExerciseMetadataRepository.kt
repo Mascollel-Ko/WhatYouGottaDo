@@ -261,7 +261,12 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         require(profiles.keys == identitiesByStableKey.keys) {
             "Canonical OFI axis profiles must exactly cover canonical identities."
         }
-        return profiles
+        val retiredCompatibility = RETIRED_GENERIC_OFI_SOURCES.mapValues { (retiredStableKey, sourceStableKey) ->
+            requireNotNull(profiles[sourceStableKey]) {
+                "Retired OFI compatibility source is missing: $retiredStableKey -> $sourceStableKey"
+            }.copy(exerciseStableKey = retiredStableKey)
+        }
+        return profiles + retiredCompatibility
     }
 
     fun badmintonRelations(): List<CanonicalMetadataRelation> = canonicalRelations(
@@ -274,10 +279,12 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
 
     fun coreCatalog(): CanonicalCoreCatalog {
         val rows = parseVerifiedCsv("core_relations.csv")
-        require(rows.size == 272)
+        require(rows.size == 273)
         val grouped = rows.groupBy { it.required("exerciseStableKey").normalizedCanonicalKey() }
         val selectableKeys = selectableIdentities().mapTo(mutableSetOf(), CanonicalExerciseIdentity::stableKey)
-        require(grouped.keys == selectableKeys) { "Core authority must exactly cover selectable identities." }
+        require(grouped.keys == selectableKeys) {
+            "Core authority must exactly cover selectable identities."
+        }
         val profiles = grouped.map { (stableKey, relations) ->
             val classRows = relations.filter { it.required("relationType") == "CORE_CLASS" }
             val targetRows = relations.filter { it.required("relationType") == "DIRECT_TARGET" }
@@ -519,7 +526,7 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
         val profileByKey = profiles.associateBy(CanonicalCoreProfile::exerciseStableKey)
         return compatibleHistorySources { stableKey ->
             profileByKey[stableKey]?.let { it.coreClass to it.directTarget }
-        }
+        } + mapOf("ex_d9084b5e" to "ex_e159d15a")
     }
 
     private fun historyBadmintonSourceMap(
@@ -635,9 +642,9 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
     companion object {
         const val ASSET_DIRECTORY = "metadata/canonical_v1"
         const val MANIFEST_FILE = "manifest.json"
-        const val EXPECTED_IDENTITY_ROWS = 257
-        const val EXPECTED_SELECTABLE_ROWS = 241
-        const val EXPECTED_HISTORY_ROWS = 16
+        const val EXPECTED_IDENTITY_ROWS = 253
+        const val EXPECTED_SELECTABLE_ROWS = 242
+        const val EXPECTED_HISTORY_ROWS = 11
         private const val SCHEMA_VERSION = 1
         private val IDENTITY_DECISION_TOKENS = setOf("KEEP_CANONICAL", "PROPOSED_USER_APPROVED")
         private val CANONICAL_OFI_AXES = setOf(
@@ -646,6 +653,13 @@ class CanonicalExerciseMetadataRepository(private val context: Context) {
             "LOCAL_MUSCULAR",
             "HIGH_SPEED",
             "REACTIVE"
+        )
+        private val RETIRED_GENERIC_OFI_SOURCES = mapOf(
+            "ex_eaea872c" to "hip_adduction_machine",
+            "pull_up" to "ex_e41f4c2b",
+            "single_leg_rdl" to "dumbbell_single_leg_rdl",
+            "ex_dd2f732e" to "barbell_reverse_curl",
+            "ex_e994008a" to "dumbbell_preacher_curl"
         )
     }
 }

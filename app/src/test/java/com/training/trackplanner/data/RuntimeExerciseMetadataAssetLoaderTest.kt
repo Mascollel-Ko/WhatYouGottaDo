@@ -17,13 +17,13 @@ class RuntimeExerciseMetadataAssetLoaderTest {
 
         val rows = RuntimeExerciseMetadataAssetLoader.parseCanonicalCsv(asset.readText(Charsets.UTF_8))
 
-        assertEquals(257, rows.size)
-        assertEquals(257, rows.map { it.stableKey.lowercase() }.distinct().size)
+        assertEquals(253, rows.size)
+        assertEquals(253, rows.map { it.stableKey.lowercase() }.distinct().size)
         assertFalse(rows.any { it.stableKey.isBlank() })
         assertEquals(18, rows.count { it.badmintonTransferLevel == "DIRECT" })
-        assertEquals(101, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
-        assertEquals(105, rows.count { it.badmintonTransferLevel == "GENERAL" })
-        assertEquals(33, rows.count { it.badmintonTransferLevel == "NONE" })
+        assertEquals(99, rows.count { it.badmintonTransferLevel == "SUPPORTIVE" })
+        assertEquals(102, rows.count { it.badmintonTransferLevel == "GENERAL" })
+        assertEquals(34, rows.count { it.badmintonTransferLevel == "NONE" })
         assertEquals(47, rows.count { it.stressMagnitudeHint == "HIGH" })
         assertTrue(rows.all { it.neuromuscularStressLevel.isNotBlank() })
         assertTrue(rows.all { it.systemicMuscularStressLevel.isNotBlank() })
@@ -39,8 +39,8 @@ class RuntimeExerciseMetadataAssetLoaderTest {
         )
         assertEquals(randomBeepCueKeys, rows.filter { it.appCueProfile == "RANDOM_BEEP_CUE" }.map { it.stableKey }.toSet())
         assertTrue(rows.filterNot { it.stableKey in randomBeepCueKeys }.all { it.appCueProfile == "NONE" })
-        assertEquals(16, rows.count { it.planningEligibility == "HISTORY_ONLY" })
-        assertEquals("HISTORY_ONLY", rows.single { it.stableKey == "single_leg_rdl" }.planningEligibility)
+        assertEquals(11, rows.count { it.planningEligibility == "HISTORY_ONLY" })
+        assertTrue(rows.none { it.stableKey in setOf("ex_dd2f732e", "ex_e994008a", "ex_eaea872c", "pull_up", "single_leg_rdl") })
     }
 
     @Test

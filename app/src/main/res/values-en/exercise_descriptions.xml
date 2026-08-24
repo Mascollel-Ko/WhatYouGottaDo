@@ -184,7 +184,6 @@
     <string name="exercise_description_ex_da56a4fe">Bend your upper body, fix your elbows next to your body, and stretch your arms back. Lightly check for end range contraction.</string>
     <string name="exercise_description_ex_dc9e5953">Lat pulldown: Repeat while maintaining posture and joint alignment. The main movable muscle is the lats, and the biceps/lower trapezius muscles assist to keep it steady.</string>
     <string name="exercise_description_ex_dd16e07a">After training, lightly relax your joints and muscles. Deload weeks are used to reduce fatigue and maintain movement quality.</string>
-    <string name="exercise_description_ex_dd2f732e">Hold the back of your hand facing upward and perform the curl. Reinforces the forearm holding strength required for racket sports.</string>
     <string name="exercise_description_ex_de46b7f6">Barbell Row: Repeat while maintaining posture and joint alignment. The main activating muscles are the lats/rhomboids, and the biceps/rear deltoids/core assist to keep them steady.</string>
     <string name="exercise_description_ex_debf6a8b">Bring your hands together narrowly and do a push-up. Avoid excessive extension of the elbows and record stimulation of the triceps and inner chest.</string>
     <string name="exercise_description_ex_deca2b61">Place your hands on the bench and lower your body and push up. If you feel uncomfortable in the front of your shoulders, reduce the depth or switch to a different triceps exercise.</string>
@@ -200,9 +199,7 @@
     <string name="exercise_description_ex_e4f911bb">Start from the top and slowly come down. Even on days when you don\'t have enough pull-up reps, you can practice pulling strength and shoulder control.</string>
     <string name="exercise_description_ex_e709eeda">Roll up the cable with your elbows fixed. Tension is maintained throughout the repetition, making it good for bicep isolation.</string>
     <string name="exercise_description_ex_e8ff8cfa">Keep your elbows next to your torso and rotate outward. Reduces shoulder impingement and assists overhead movements.</string>
-    <string name="exercise_description_ex_e994008a">Fix your elbows on the pad to reduce recoil and curl. This is a biceps isolation exercise often seen in Arnold-style arm training.</string>
     <string name="exercise_description_ex_e9e97659">Lie on your back on the machine and lower yourself deeply, then push up. This is an easy bodybuilding lower body exercise that focuses on the quadriceps muscles.</string>
-    <string name="exercise_description_ex_eaea872c">Bring your legs inward and train your adductors. Reinforces inner thigh strength needed for side lunges and court deceleration.</string>
     <string name="exercise_description_ex_eb636bac">Start with the cable behind your back or head and extend one arm overhead. Maintains upper arm position and controls triceps extension and elbow extension.</string>
     <string name="exercise_description_ex_ee378da7">Send your back knee toward the floor and go down and come up on one foot. Develop the one-leg strength needed for side lunges and landing control.</string>
     <string name="exercise_description_ex_f1d31d3d">On a hack squat machine, push up onto one leg. It is good for recording the strength of one leg and the difference between the left and right quadriceps muscles.</string>
@@ -236,6 +233,7 @@
     <string name="exercise_description_landmine_anti_rotation">Move the landmine in front of your body and prevent your pelvis and torso from rotating unnecessarily.</string>
     <string name="exercise_description_landmine_rotation">Hold the end of the landmine with both hands and move it left and right along the arc in front of your head, controlling pelvic and torso rotation and shoulder stability together.</string>
     <string name="exercise_description_lateral_bound_continuous">Continuously bounce left and right and connect with the next bounce immediately after landing. Train lateral power, repetition rhythm and continuous extension-shortening cycles.</string>
+    <string name="exercise_description_machine_chest_fly">Bring the machine handles or pads together in front of your chest and contract your pectorals. This isolation exercise complements chest volume after pressing.</string>
     <string name="exercise_description_med_ball_chest_pass">Quickly push and throw the medicine ball forward in front of your chest while holding your body still.</string>
     <string name="exercise_description_med_ball_overhead_slam">Raise the medicine ball above your head and quickly lower it to the floor using your torso and hip joints.</string>
     <string name="exercise_description_med_ball_rotational_scoop_toss">From a low position, connect the pelvis and torso to rotate and throw the medicine ball in a scoop motion.</string>
@@ -246,9 +244,7 @@
     <string name="exercise_description_one_arm_gymnastic_ring_row">With your body upright, pull with one arm centered. Shoulder stability and left and right pulling strength are reinforced with a sports transfer type.</string>
     <string name="exercise_description_one_arm_suspension_trainer_row">With your body upright, pull with one arm centered. Shoulder stability and left and right pulling strength are reinforced with a sports transfer type.</string>
     <string name="exercise_description_plate_rotational_press_out">Rotate slowly by pushing the plate in front of your body and control the shaking of your body.</string>
-    <string name="exercise_description_pull_up">Pull-ups: Repeat while maintaining posture and joint alignment. The main activating muscle is the lats, and it assists the biceps/core to keep them steady.</string>
     <string name="exercise_description_single_leg_hip_bridge">Push off the ground with one foot and lift your buttocks. The back can be supported on the floor or bench and trains unilateral gluteal contraction and pelvic stability.</string>
-    <string name="exercise_description_single_leg_rdl">Place most of your weight and load on your front leg and send your hips back to do hip hinge. The opposite foot can be lightly grounded behind you for balance and trains the hamstrings, glutes, pelvis, and torso stability of the front leg.</string>
     <string name="exercise_description_standing_bodyweight_calf_raise">With your knees straight, lift your heels and contract your calves. Train ankle stiffness and jumping/landing assistance ability.</string>
     <string name="exercise_description_standing_calf_raise_machine">With your knees straight, lift your heels and contract your calves. Train ankle stiffness and jumping/landing assistance ability.</string>
     <string name="exercise_description_standing_dumbbell_calf_raise">With your knees straight, lift your heels and contract your calves. Train ankle stiffness and jumping/landing assistance ability.</string>

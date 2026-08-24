@@ -92,6 +92,7 @@ def _xlsx_rows(path: Path, sheet_name: str) -> list[dict[str, object]]:
             if header not in (None, "")
         }
         for row in rows[1:]
+        if any(value not in (None, "") for value in row)
     ]
 
 
@@ -583,7 +584,7 @@ def _artifacts() -> dict[Path, str]:
     tissues = _xlsx_rows(AUTHORITY, "05_TISSUE_EDU_EN")
     baseline = _xlsx_rows(AUTHORITY, "10_CURRENT_BASELINE_APPROVAL")
     baseline_generated = _csv_rows(BASELINE_GENERATED_EN)
-    if len(ui) != 612 or len(exercises) != 257 or len(metadata) != 1834 or len(tissues) != 92:
+    if len(ui) != 612 or len(exercises) != 253 or len(metadata) != 1834 or len(tissues) != 92:
         raise ValueError("Localization authority row counts do not match the approved baseline")
     if any(_text(row.get("authorityStatus")) != "APPROVED" for row in ui + exercises + tissues):
         raise ValueError("Localization authority contains an unapproved runtime row")

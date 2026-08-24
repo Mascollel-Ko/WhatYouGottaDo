@@ -281,16 +281,16 @@ class TissueRcvAssetRepository private constructor(
 object TissueRcvAssetValidator {
     fun requireValid(catalog: TissueRcvCatalog) {
         val scoredExerciseKeys = catalog.authorityRows.map(TissueRcvAuthorityRow::exerciseStableKey).toSet()
-        require(catalog.exerciseStableKeys.size == 257) { "Expected 257 explicitly handled exercise stable keys." }
-        require(catalog.authorityRows.size == 3637) { "Expected 3,637 deterministic authority score rows." }
+        require(catalog.exerciseStableKeys.size == 258) { "Expected 258 explicitly handled exercise stable keys." }
+        require(catalog.authorityRows.size == 3651) { "Expected 3,651 deterministic authority score rows." }
         require(catalog.exerciseStableKeys - scoredExerciseKeys == setOf("ex_dd16e07a")) {
             "Generic stretching must be the only explicitly handled exercise without a numeric score."
         }
         require(catalog.protocols.keys == catalog.exerciseStableKeys) {
             "Protocol mappings must cover the handled exercise stable keys exactly."
         }
-        require(catalog.exerciseDoseProfiles.size == 33) {
-            "Expected exact dose profiles for the 33 approved equipment-split targets."
+        require(catalog.exerciseDoseProfiles.size == 34) {
+            "Expected exact dose profiles for the 34 approved equipment-split targets."
         }
         require(catalog.exerciseDoseProfiles.keys.all { it in catalog.exerciseStableKeys }) {
             "Exercise dose profile contains an unknown stable key."

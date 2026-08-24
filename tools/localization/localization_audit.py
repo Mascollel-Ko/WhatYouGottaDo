@@ -490,7 +490,7 @@ def collect() -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str
         {"metric": "localizedExerciseNameCount", "value": str(sum(row["status"] == APPROVED for row in exercises))},
         {"metric": "localizedExerciseDescriptionCount", "value": str(sum(row["scope"] == "CANONICAL_ASSET_PRESENTATION" and row["resourceKey"].startswith("exercise.description.") for row in origins))},
         {"metric": "localizedSeedProgramNameCount", "value": str(sum(row["scope"] == "CANONICAL_ASSET_PRESENTATION" and row["resourceKey"].startswith("program.name.") for row in origins))},
-        {"metric": "historyOnlyExerciseNameCount", "value": "16"},
+        {"metric": "historyOnlyExerciseNameCount", "value": "11"},
         {"metric": "invalidEnglishPlaceholderCount", "value": str(invalid_placeholders)},
         {"metric": "approvedLocalizedPresentationCount", "value": str(sum(row["status"] == APPROVED for row in ui_rows))},
         {"metric": "codexGeneratedEnglishCount", "value": str(sum(row["status"] == GENERATED_ENGLISH for row in ui_rows))},

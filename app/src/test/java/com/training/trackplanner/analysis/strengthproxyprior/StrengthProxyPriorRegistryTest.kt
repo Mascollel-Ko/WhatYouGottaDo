@@ -55,8 +55,9 @@ class StrengthProxyPriorRegistryTest {
             .mapNotNull { it["stable_key"] }
             .toSet()
 
+        val analysisKeys = seedKeys + "pull_up"
         registry.relations.forEach { relation ->
-            assertTrue(relation.exerciseStableKey in seedKeys)
+            assertTrue(relation.exerciseStableKey in analysisKeys)
             val direct = relation.exerciseStableKey == registry.targetsByKey.getValue(relation.targetKey).anchorExerciseStableKey
             if (!direct) {
                 assertEquals(StrengthProxyEvidenceClass.PROVISIONAL_PRODUCT_PRIOR, relation.evidenceClass)

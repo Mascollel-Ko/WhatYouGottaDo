@@ -111,6 +111,34 @@ class SelfContainedExerciseBackupRestoreTest {
     }
 
     @Test
+    fun replacedGenericExerciseIsArchivedWhileProgramsMigrateAndWorkoutHistoryRemains() = runBlocking {
+        val db = inMemoryDatabase()
+        val generic = Exercise(
+            stableKey = "pull_up",
+            name = "풀업",
+            category = "근력운동"
+        )
+        db.exerciseDao().insertExercise(generic)
+        insertWorkout(db, generic, id = 31, createdAt = 100L)
+        insertProgram(db, generic, "legacy_pull_up_program")
+
+        TrainingRepository(db, context).seedIfNeeded()
+
+        val archived = db.exerciseDao().findByStableKey("pull_up")!!
+        val programId = db.programDao().findProgramByStableKey("legacy_pull_up_program")!!.id
+        val programItem = db.programDao().allProgramItems()
+            .single { item -> item.programId == programId }
+        val workout = db.workoutDao().allEntries().single { entry -> entry.id == 31L }
+
+        assertFalse(archived.isActive)
+        assertTrue(archived.archivedAt != null)
+        assertEquals("ex_e41f4c2b", programItem.exerciseStableKey)
+        assertEquals("중량 풀업", programItem.exerciseName)
+        assertEquals("pull_up", workout.exerciseStableKey)
+        assertEquals("풀업", workout.exerciseName)
+    }
+
+    @Test
     fun explicitUserOverridesRoundTripForCurrentBuiltIn() = runBlocking {
         val source = inMemoryDatabase()
         val canonical = SeedData.exactExerciseMetadataByStableKey(context).getValue("barbell_deadlift")
@@ -224,7 +252,7 @@ class SelfContainedExerciseBackupRestoreTest {
         val historyOnly = SeedData.exactExerciseMetadataByStableKey(context).values
             .filter { exercise -> exercise.planningEligibility == "HISTORY_ONLY" }
         val keys = historyOnly.mapTo(mutableSetOf(), Exercise::stableKey)
-        assertTrue(keys.containsAll(setOf("single_leg_rdl", "ex_bd072cd")))
+        assertTrue(keys.containsAll(setOf("ex_d9084b5e", "ex_bd072cd")))
         val target = inMemoryDatabase()
 
         val result = TrainingRepository(target, context).importRecordsBackup(
