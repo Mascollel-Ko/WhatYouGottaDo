@@ -6649,3 +6649,12 @@ Remaining debt:
   Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (67,856,885 bytes).
 - This implementation phase does not change the app version; the release
   identity is updated separately after the verified feature commit.
+
+### Release closeout
+
+- Feature commit: `c4cbaee feat(metadata): reconcile exercise identities and image assets`.
+- Final release identity: `0.5.1.1 / 501001`.
+- Final release APK: `app/build/outputs/apk/debug/app-debug.apk`
+  (64,933,567 bytes); `aapt` confirmed version `0.5.1.1 (501001)`.
+- The version bump and release note are intentionally isolated in the final
+  release commit. No tag is created unless separately requested.
