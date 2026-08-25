@@ -12,6 +12,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.training.trackplanner.localization.LocalizedPresentation
 import kotlin.math.abs
 
 class RestTimerOverlayController(private val context: Context) {
@@ -42,8 +43,8 @@ class RestTimerOverlayController(private val context: Context) {
         if (overlayView == null) {
             createOverlay(state)
         }
-        timeText?.text = if (state.isFinished) "휴식 종료" else formatSeconds(state.remainingSeconds)
-        hintText?.text = state.nextHint.ifBlank { state.exerciseName }
+        timeText?.text = restTimerOverlayTimeText(context, state)
+        hintText?.text = restTimerOverlayHintText(context, state)
     }
 
     fun remove() {
@@ -73,16 +74,16 @@ class RestTimerOverlayController(private val context: Context) {
         timeText = TextView(context).apply {
             setTextColor(Color.WHITE)
             textSize = 18f
-            text = formatSeconds(state.remainingSeconds)
+            text = restTimerOverlayTimeText(context, state)
         }
         hintText = TextView(context).apply {
             setTextColor(Color.rgb(218, 224, 235))
             textSize = 13f
-            text = state.nextHint
+            text = restTimerOverlayHintText(context, state)
             maxLines = 2
         }
         val closeButton = Button(context).apply {
-            text = "닫기"
+            text = context.getString(R.string.close)
             textSize = 12f
             setOnClickListener {
                 dismissForAwaySession()
@@ -161,7 +162,7 @@ class RestTimerOverlayController(private val context: Context) {
     private fun showDeleteTarget() {
         if (deleteTargetView != null || !canDrawOverlays()) return
         val deleteView = TextView(context).apply {
-            text = "삭제"
+            text = LocalizedPresentation.uiText(context, "삭제")
             textSize = 15f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
@@ -221,4 +222,19 @@ class RestTimerOverlayController(private val context: Context) {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
+}
+
+internal fun restTimerOverlayTimeText(context: Context, state: RestTimerState): String =
+    if (state.isFinished) LocalizedPresentation.uiText(context, "휴식 종료")
+    else context.getString(R.string.seconds_short, state.remainingSeconds)
+
+internal fun restTimerOverlayHintText(context: Context, state: RestTimerState): String {
+    val source = state.nextHint.ifBlank { state.exerciseName }
+    val match = Regex("""^(.+)\s+(\d+)세트 준비$""").matchEntire(source)
+        ?: return LocalizedPresentation.uiText(context, source)
+    return context.getString(
+        R.string.rest_timer_overlay_next_set,
+        LocalizedPresentation.uiText(context, match.groupValues[1]),
+        match.groupValues[2].toInt()
+    )
 }
