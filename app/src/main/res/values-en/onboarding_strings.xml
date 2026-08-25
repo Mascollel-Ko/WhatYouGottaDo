@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_home_title">Start with a program</string>
+    <string name="onboarding_home_body">If you’re new, choose a program to create your workout plan.</string>
+    <string name="onboarding_plan_title">Apply a program</string>
+    <string name="onboarding_plan_body">Apply one of the default programs to create workouts for each training day.</string>
+    <string name="onboarding_record_title">Check today’s workout</string>
+    <string name="onboarding_record_body">Your program workouts appear in the Record tab. Enter and confirm sets you actually perform so they become part of your training record.</string>
+    <string name="onboarding_analysis_tab_title">Analyze your training</string>
+    <string name="onboarding_analysis_tab_body">As your training history grows, use Analysis to review fatigue and training trends.</string>
+    <string name="onboarding_complete_title">You’re ready</string>
+    <string name="onboarding_complete_body">Use the app in the Program → Record → Analysis flow.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_tap_target">Tap the highlighted area</string>
+</resources>

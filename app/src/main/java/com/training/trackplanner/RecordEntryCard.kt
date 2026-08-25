@@ -35,6 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -65,6 +68,7 @@ internal fun WorkoutEntryCard(
     targetNavigationRequestId: Long = 0,
     restTimerSessionController: RestTimerSessionController,
     timerState: RestTimerState,
+    onOverviewTargetPositioned: (Rect) -> Unit = {},
     onUpdateEntry: (WorkoutEntry) -> Unit,
     onAddSet: () -> Unit,
     onUpdateSet: (WorkoutSet) -> Unit,
@@ -163,7 +167,11 @@ internal fun WorkoutEntryCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onGloballyPositioned { coordinates ->
+                        onOverviewTargetPositioned(coordinates.boundsInRoot())
+                    },
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.Top
             ) {

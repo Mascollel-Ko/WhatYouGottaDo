@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -29,6 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +62,10 @@ import java.time.LocalDate
 @Composable
 internal fun PlanScreen(
     viewModel: TrainingViewModel,
-    onOpenRecord: () -> Unit
+    onOpenRecord: () -> Unit,
+    tutorialApplyRequest: Int = 0,
+    showOnboardingApplyTarget: Boolean = false,
+    onApplyTargetPositioned: (Rect) -> Unit = {}
 ) {
     val programs by viewModel.programs.collectAsState()
     var selectedProgramId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -116,7 +123,10 @@ internal fun PlanScreen(
                         if (selectedProgramId == program.id) selectedProgramId = null
                     }
                 },
-                onOpenRecord = onOpenRecord
+                onOpenRecord = onOpenRecord,
+                tutorialApplyRequest = tutorialApplyRequest,
+                showOnboardingApplyTarget = showOnboardingApplyTarget,
+                onApplyTargetPositioned = onApplyTargetPositioned
         )
         }
         else -> {
@@ -138,11 +148,29 @@ private fun ProgramListScreen(
     onSelectProgram: (TrainingProgram) -> Unit,
     onEditProgram: (TrainingProgram) -> Unit,
     onDeleteProgram: (TrainingProgram) -> Unit,
-    onOpenRecord: () -> Unit
+    onOpenRecord: () -> Unit,
+    tutorialApplyRequest: Int,
+    showOnboardingApplyTarget: Boolean,
+    onApplyTargetPositioned: (Rect) -> Unit
 ) {
     val context = LocalContext.current
     var deleteTarget by remember { mutableStateOf<TrainingProgram?>(null) }
     var applyTarget by remember { mutableStateOf<TrainingProgram?>(null) }
+    var handledTutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(showOnboardingApplyTarget, programs) {
+        if (showOnboardingApplyTarget && programs.isNotEmpty()) {
+            listState.animateScrollToItem(4)
+        }
+    }
+
+    LaunchedEffect(tutorialApplyRequest, programs) {
+        if (tutorialApplyRequest > handledTutorialApplyRequest && programs.isNotEmpty()) {
+            handledTutorialApplyRequest = tutorialApplyRequest
+            applyTarget = programs.first()
+        }
+    }
 
     deleteTarget?.let { program ->
         AlertDialog(
@@ -194,6 +222,7 @@ private fun ProgramListScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = listState,
         contentPadding = screenPadding(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -232,7 +261,14 @@ private fun ProgramListScreen(
                     onClick = { onSelectProgram(program) },
                     onApply = { applyTarget = program },
                     onEdit = { onEditProgram(program) },
-                    onDelete = { deleteTarget = program }
+                    onDelete = { deleteTarget = program },
+                    applyModifier = if (program.id == programs.first().id) {
+                        Modifier.onGloballyPositioned { coordinates ->
+                            onApplyTargetPositioned(coordinates.boundsInRoot())
+                        }
+                    } else {
+                        Modifier
+                    }
                 )
             }
         }

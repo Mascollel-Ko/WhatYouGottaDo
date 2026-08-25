@@ -30,7 +30,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -106,8 +109,18 @@ internal fun TrainingTrackPlannerApp(
     var recordTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var recordTargetRequestId by remember { mutableStateOf(0L) }
     var dismissedTimerIdentity by rememberSaveable { mutableStateOf<String?>(null) }
+    var onboardingStep by rememberSaveable { mutableStateOf<OnboardingStep?>(null) }
+    var onboardingTarget by remember { mutableStateOf<Pair<OnboardingStep, Rect>?>(null) }
+    var tutorialApplyRequest by rememberSaveable { mutableStateOf(0) }
     val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
+    val onboardingStore = remember(context) { OnboardingStore(context) }
+
+    LaunchedEffect(onboardingStore) {
+        if (onboardingStep == null && onboardingStore.shouldAutoStart()) {
+            onboardingStep = OnboardingStep.HOME_PROGRAM
+        }
+    }
 
     LaunchedEffect(restTimerTargets) {
         restTimerTargets.collect { target ->
@@ -118,86 +131,163 @@ internal fun TrainingTrackPlannerApp(
         }
     }
 
-    BackHandler(enabled = infoRoute != null || selectedTab != AppTab.Home) {
-        val currentRoute = infoRoute
-        if (currentRoute != null) {
-            infoRoute = currentRoute.parent
-        } else {
-            selectedTab = AppTab.Home
+    BackHandler(enabled = onboardingStep != null || infoRoute != null || selectedTab != AppTab.Home) {
+        if (onboardingStep == null) {
+            val currentRoute = infoRoute
+            if (currentRoute != null) {
+                infoRoute = currentRoute.parent
+            } else {
+                selectedTab = AppTab.Home
+            }
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            if (infoRoute == null) {
-                Column {
-                    if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerIdentity)) {
-                        RestTimerForegroundBar(
-                            state = timerState,
-                            onOpenTarget = {
-                                recordTargetRequestId += 1
-                                recordTarget = RestTimerForegroundBarPolicy.target(
-                                    timerState,
-                                    recordTargetRequestId
-                                )
-                                infoRoute = null
-                                selectedTab = AppTab.Record
-                            },
-                            onDismiss = {
-                                dismissedTimerIdentity =
-                                    RestTimerForegroundBarPolicy.presentationIdentity(timerState)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
+                if (infoRoute == null) {
+                    Column {
+                        if (RestTimerForegroundBarPolicy.visible(timerState, dismissedTimerIdentity)) {
+                            RestTimerForegroundBar(
+                                state = timerState,
+                                onOpenTarget = {
+                                    recordTargetRequestId += 1
+                                    recordTarget = RestTimerForegroundBarPolicy.target(
+                                        timerState,
+                                        recordTargetRequestId
+                                    )
+                                    infoRoute = null
+                                    selectedTab = AppTab.Record
+                                },
+                                onDismiss = {
+                                    dismissedTimerIdentity =
+                                        RestTimerForegroundBarPolicy.presentationIdentity(timerState)
+                                }
+                            )
+                        }
+                        AppBottomNavigation(
+                            selectedTab = selectedTab,
+                            onTabSelected = { selectedTab = it },
+                            onAnalysisTargetPositioned = { bounds ->
+                                if (onboardingStep == OnboardingStep.ANALYSIS_TAB) {
+                                    onboardingTarget = OnboardingStep.ANALYSIS_TAB to bounds
+                                }
                             }
                         )
                     }
-                    AppBottomNavigation(
-                        selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it }
+                }
+            }
+        ) { innerPadding ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            ) {
+                when (infoRoute) {
+                    AppInfoRoute.AppExplanation -> AppExplanationScreen(
+                        onBack = { infoRoute = null },
+                        onOpenAnalysisGuide = { infoRoute = AppInfoRoute.AnalysisGuide },
+                        onOpenCalculationPrinciples = {
+                            infoRoute = AppInfoRoute.CalculationPrinciples
+                        }
                     )
+                    AppInfoRoute.AnalysisGuide -> AnalysisGuideScreen(
+                        onBack = { infoRoute = AppInfoRoute.AppExplanation }
+                    )
+                    AppInfoRoute.CalculationPrinciples -> CalculationPrinciplesScreen(
+                        onBack = { infoRoute = AppInfoRoute.AppExplanation },
+                        onOpenPublicProtocols = {
+                            launchPublicProtocolIndex(context::startActivity)
+                        }
+                    )
+                    null -> when (selectedTab) {
+                        AppTab.Home -> HomeScreen(
+                            viewModel = viewModel,
+                            onNavigate = { selectedTab = it },
+                            onOpenAppExplanation = {
+                                infoRoute = AppInfoRoute.AppExplanation
+                            },
+                            onProgramTargetPositioned = { bounds ->
+                                if (onboardingStep == OnboardingStep.HOME_PROGRAM) {
+                                    onboardingTarget = OnboardingStep.HOME_PROGRAM to bounds
+                                }
+                            }
+                        )
+                        AppTab.Record -> RecordScreen(
+                            viewModel = viewModel,
+                            restTimerSessionController = restTimerSessionController,
+                            target = recordTarget,
+                            onOpenPlan = { selectedTab = AppTab.Plan },
+                            showOnboardingWorkoutTarget =
+                                onboardingStep == OnboardingStep.RECORD_OVERVIEW,
+                            onWorkoutTargetPositioned = { bounds ->
+                                if (onboardingStep == OnboardingStep.RECORD_OVERVIEW) {
+                                    onboardingTarget = OnboardingStep.RECORD_OVERVIEW to bounds
+                                }
+                            }
+                        )
+                        AppTab.Plan -> PlanScreen(
+                            viewModel = viewModel,
+                            onOpenRecord = {
+                                selectedTab = AppTab.Record
+                                if (onboardingStep == OnboardingStep.PLAN_APPLY) {
+                                    onboardingStep = OnboardingStep.RECORD_OVERVIEW
+                                }
+                            },
+                            tutorialApplyRequest = tutorialApplyRequest,
+                            showOnboardingApplyTarget =
+                                onboardingStep == OnboardingStep.PLAN_APPLY,
+                            onApplyTargetPositioned = { bounds ->
+                                if (onboardingStep == OnboardingStep.PLAN_APPLY) {
+                                    onboardingTarget = OnboardingStep.PLAN_APPLY to bounds
+                                }
+                            }
+                        )
+                        AppTab.Exercise -> ExerciseScreen(viewModel)
+                        AppTab.Analysis -> AnalysisScreen(viewModel)
+                    }
                 }
             }
         }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            when (infoRoute) {
-                AppInfoRoute.AppExplanation -> AppExplanationScreen(
-                    onBack = { infoRoute = null },
-                    onOpenAnalysisGuide = { infoRoute = AppInfoRoute.AnalysisGuide },
-                    onOpenCalculationPrinciples = {
-                        infoRoute = AppInfoRoute.CalculationPrinciples
-                    }
-                )
-                AppInfoRoute.AnalysisGuide -> AnalysisGuideScreen(
-                    onBack = { infoRoute = AppInfoRoute.AppExplanation }
-                )
-                AppInfoRoute.CalculationPrinciples -> CalculationPrinciplesScreen(
-                    onBack = { infoRoute = AppInfoRoute.AppExplanation },
-                    onOpenPublicProtocols = {
-                        launchPublicProtocolIndex(context::startActivity)
-                    }
-                )
-                null -> when (selectedTab) {
-                    AppTab.Home -> HomeScreen(
-                        viewModel = viewModel,
-                        onNavigate = { selectedTab = it },
-                        onOpenAppExplanation = {
-                            infoRoute = AppInfoRoute.AppExplanation
+
+        onboardingStep?.let { step ->
+            OnboardingSpotlight(
+                step = step,
+                targetBounds = onboardingTarget
+                    ?.takeIf { (targetStep) -> targetStep == step }
+                    ?.second,
+                onTargetClick = {
+                    when (step) {
+                        OnboardingStep.HOME_PROGRAM -> {
+                            selectedTab = AppTab.Plan
+                            onboardingStep = OnboardingStep.PLAN_APPLY
                         }
-                    )
-                    AppTab.Record -> RecordScreen(
-                        viewModel = viewModel,
-                        restTimerSessionController = restTimerSessionController,
-                        target = recordTarget,
-                        onOpenPlan = { selectedTab = AppTab.Plan }
-                    )
-                    AppTab.Plan -> PlanScreen(viewModel) { selectedTab = AppTab.Record }
-                    AppTab.Exercise -> ExerciseScreen(viewModel)
-                    AppTab.Analysis -> AnalysisScreen(viewModel)
+                        OnboardingStep.PLAN_APPLY -> tutorialApplyRequest += 1
+                        OnboardingStep.ANALYSIS_TAB -> {
+                            selectedTab = AppTab.Analysis
+                            onboardingStep = OnboardingStep.ANALYSIS_OVERVIEW
+                        }
+                        OnboardingStep.RECORD_OVERVIEW,
+                        OnboardingStep.ANALYSIS_OVERVIEW -> Unit
+                    }
+                },
+                onNext = {
+                    when (step) {
+                        OnboardingStep.RECORD_OVERVIEW -> {
+                            onboardingStep = OnboardingStep.ANALYSIS_TAB
+                        }
+                        OnboardingStep.ANALYSIS_OVERVIEW -> {
+                            onboardingStore.complete()
+                            onboardingStep = null
+                        }
+                        else -> Unit
+                    }
+                },
+                onSkip = {
+                    onboardingStore.skip()
+                    onboardingStep = null
                 }
-            }
+            )
         }
     }
 }
@@ -205,7 +295,8 @@ internal fun TrainingTrackPlannerApp(
 @Composable
 internal fun AppBottomNavigation(
     selectedTab: AppTab,
-    onTabSelected: (AppTab) -> Unit
+    onTabSelected: (AppTab) -> Unit,
+    onAnalysisTargetPositioned: (Rect) -> Unit = {}
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -214,6 +305,11 @@ internal fun AppBottomNavigation(
         AppTab.entries.forEach { tab ->
             val localizedLabel = localizedUiText(tab.label)
             NavigationBarItem(
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    if (tab == AppTab.Analysis) {
+                        onAnalysisTargetPositioned(coordinates.boundsInRoot())
+                    }
+                },
                 selected = selectedTab == tab,
                 onClick = { onTabSelected(tab) },
                 icon = {

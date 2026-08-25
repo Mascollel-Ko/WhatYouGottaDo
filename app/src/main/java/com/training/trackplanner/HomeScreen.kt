@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -48,6 +49,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -72,7 +75,8 @@ import java.time.format.DateTimeFormatter
 internal fun HomeScreen(
     viewModel: TrainingViewModel,
     onNavigate: (AppTab) -> Unit,
-    onOpenAppExplanation: () -> Unit
+    onOpenAppExplanation: () -> Unit,
+    onProgramTargetPositioned: (Rect) -> Unit = {}
 ) {
     val today = remember { LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE) }
     val summary by viewModel.homeTodaySummary.collectAsState()
@@ -118,7 +122,8 @@ internal fun HomeScreen(
             CompactHomeActionGroup(
                 onRecord = { onNavigate(AppTab.Record) },
                 onProgram = { onNavigate(AppTab.Plan) },
-                onOpenAppExplanation = onOpenAppExplanation
+                onOpenAppExplanation = onOpenAppExplanation,
+                onProgramTargetPositioned = onProgramTargetPositioned
             )
         }
         item {
@@ -441,7 +446,8 @@ internal fun BackupRestoreDialogHost(
 internal fun CompactHomeActionGroup(
     onRecord: () -> Unit,
     onProgram: () -> Unit,
-    onOpenAppExplanation: () -> Unit
+    onOpenAppExplanation: () -> Unit,
+    onProgramTargetPositioned: (Rect) -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         CompactHomeActionButton(
@@ -452,6 +458,9 @@ internal fun CompactHomeActionGroup(
             onClick = onRecord
         )
         CompactHomeActionButton(
+            modifier = Modifier.onGloballyPositioned { coordinates ->
+                onProgramTargetPositioned(coordinates.boundsInRoot())
+            },
             title = "프로그램으로 시작하기",
             body = "프로그램을 선택해 날짜별 계획을 만듭니다.",
             icon = Icons.AutoMirrored.Outlined.EventNote,
@@ -474,6 +483,7 @@ internal fun CompactHomeActionGroup(
 
 @Composable
 private fun CompactHomeActionButton(
+    modifier: Modifier = Modifier,
     title: String,
     body: String,
     icon: ImageVector,
@@ -491,7 +501,7 @@ private fun CompactHomeActionButton(
         MaterialTheme.colorScheme.onSurface
     }
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
             .clickable(onClick = onClick),

@@ -37,6 +37,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -57,7 +58,9 @@ internal fun RecordScreen(
     viewModel: TrainingViewModel,
     restTimerSessionController: RestTimerSessionController,
     target: RestTimerTarget?,
-    onOpenPlan: () -> Unit
+    onOpenPlan: () -> Unit,
+    showOnboardingWorkoutTarget: Boolean = false,
+    onWorkoutTargetPositioned: (Rect) -> Unit = {}
 ) {
     val exercises by viewModel.exercises.collectAsState()
     val timerState by restTimerSessionController.state.collectAsState()
@@ -94,6 +97,13 @@ internal fun RecordScreen(
     var pendingAddedAfterConfirmed by rememberSaveable { mutableStateOf(false) }
     val showPermissionHint = timerState.isActive &&
         (timerState.notificationPermissionNeeded || !timerState.overlayPermissionGranted)
+
+    LaunchedEffect(showOnboardingWorkoutTarget, sortedEntries, showPermissionHint) {
+        if (showOnboardingWorkoutTarget && sortedEntries.isNotEmpty()) {
+            val leadingItems = 4 + if (showPermissionHint) 1 else 0
+            listState.animateScrollToItem(leadingItems)
+        }
+    }
 
     LaunchedEffect(pendingAddedEntryId, sortedEntries, showPermissionHint) {
         val entryId = pendingAddedEntryId ?: return@LaunchedEffect
@@ -338,6 +348,11 @@ internal fun RecordScreen(
                     targetNavigationRequestId = visibleTimerTarget?.navigationRequestId ?: 0L,
                     restTimerSessionController = restTimerSessionController,
                     timerState = timerState,
+                    onOverviewTargetPositioned = if (entryId == sortedEntries.first().entry.id) {
+                        onWorkoutTargetPositioned
+                    } else {
+                        {}
+                    },
                     onUpdateEntry = viewModel::updateWorkoutEntry,
                     onAddSet = { viewModel.addSet(entryWithSets.entry) },
                     onUpdateSet = viewModel::updateSet,

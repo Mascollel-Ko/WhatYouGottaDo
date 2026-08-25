@@ -140,7 +140,8 @@ internal fun ProgramCard(
     onClick: () -> Unit,
     onApply: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    applyModifier: Modifier = Modifier
 ) {
     val displayName = localizedProgramName(program)
     Card(
@@ -162,7 +163,7 @@ internal fun ProgramCard(
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Button(onClick = onApply) {
+                Button(modifier = applyModifier, onClick = onApply) {
                     Text("적용")
                 }
             }
