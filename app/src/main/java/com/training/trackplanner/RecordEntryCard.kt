@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -29,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -48,6 +52,7 @@ import com.training.trackplanner.localization.localizedExerciseName
 
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 internal fun WorkoutEntryCard(
     selectedDate: String,
     entryWithSets: WorkoutEntryWithSets,
@@ -56,6 +61,8 @@ internal fun WorkoutEntryCard(
     cardModifier: Modifier = Modifier,
     headerDragModifier: Modifier = Modifier,
     dragging: Boolean = false,
+    targetSetId: Long? = null,
+    targetNavigationRequestId: Long = 0,
     restTimerSessionController: RestTimerSessionController,
     timerState: RestTimerState,
     onUpdateEntry: (WorkoutEntry) -> Unit,
@@ -75,6 +82,7 @@ internal fun WorkoutEntryCard(
     var showDeleteEntryDialog by rememberSaveable(entry.id) { mutableStateOf(false) }
     var showExerciseInfo by rememberSaveable(entry.id) { mutableStateOf(false) }
     var pendingWeightSuggestion by remember { mutableStateOf<WeightSuggestion?>(null) }
+    val targetSetRequester = remember { BringIntoViewRequester() }
     val exerciseDisplayName = localizedExerciseName(entry.exerciseStableKey, entry.exerciseName)
     val cardColor by animateColorAsState(
         targetValue = if (highlighted || dragging) {
@@ -85,6 +93,13 @@ internal fun WorkoutEntryCard(
         animationSpec = tween(durationMillis = 300),
         label = "record-search-highlight"
     )
+
+    LaunchedEffect(targetSetId, targetNavigationRequestId) {
+        if (sets.any { set -> set.id == targetSetId }) {
+            withFrameNanos { }
+            targetSetRequester.bringIntoView()
+        }
+    }
 
     if (showExerciseInfo && exercise != null) {
         ExerciseInfoDialog(
@@ -235,49 +250,61 @@ internal fun WorkoutEntryCard(
             }
             HorizontalDivider()
             sets.forEach { set ->
-                WorkoutSetRow(
-                    entry = entry,
-                    set = set,
-                    sets = sets,
-                    showWeight = showWeight,
-                    isSportDurationInput = isSportDurationInput,
-                    canDelete = true,
-                    onUpdateSet = onUpdateSet,
-                    onDeleteSet = { targetSet ->
-                        if (sets.size <= 1) {
-                            onStopRestTimer()
-                            onDeleteEntry()
-                        } else {
-                            onDeleteSet(targetSet)
-                        }
-                    },
-                    timerState = timerState,
-                    onStopRestTimer = onStopRestTimer,
-                    onPositiveWeightEdit = { sourceSet, kg ->
-                        val hasEmptyTargets = sets.any { candidate ->
-                            candidate.id != sourceSet.id &&
-                                candidate.weightKg == 0.0 &&
-                                !candidate.manualWeight &&
-                                !candidate.confirmed
-                        }
-                        if (hasEmptyTargets) {
-                            pendingWeightSuggestion = WeightSuggestion(
-                                sourceSetId = sourceSet.id,
-                                kg = kg
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (set.id == targetSetId) {
+                                Modifier.bringIntoViewRequester(targetSetRequester)
+                            } else {
+                                Modifier
+                            }
+                        )
+                ) {
+                    WorkoutSetRow(
+                        entry = entry,
+                        set = set,
+                        sets = sets,
+                        showWeight = showWeight,
+                        isSportDurationInput = isSportDurationInput,
+                        canDelete = true,
+                        onUpdateSet = onUpdateSet,
+                        onDeleteSet = { targetSet ->
+                            if (sets.size <= 1) {
+                                onStopRestTimer()
+                                onDeleteEntry()
+                            } else {
+                                onDeleteSet(targetSet)
+                            }
+                        },
+                        timerState = timerState,
+                        onStopRestTimer = onStopRestTimer,
+                        onPositiveWeightEdit = { sourceSet, kg ->
+                            val hasEmptyTargets = sets.any { candidate ->
+                                candidate.id != sourceSet.id &&
+                                    candidate.weightKg == 0.0 &&
+                                    !candidate.manualWeight &&
+                                    !candidate.confirmed
+                            }
+                            if (hasEmptyTargets) {
+                                pendingWeightSuggestion = WeightSuggestion(
+                                    sourceSetId = sourceSet.id,
+                                    kg = kg
+                                )
+                            }
+                        },
+                        onStartRestTimer = { confirmedSet, effectiveRestSeconds ->
+                            restTimerSessionController.start(
+                                durationSeconds = effectiveRestSeconds,
+                                exerciseName = entry.exerciseName,
+                                nextHint = nextRestHint(entry, sets, confirmedSet),
+                                targetRecordDate = selectedDate,
+                                targetEntryId = entry.id,
+                                targetSetId = confirmedSet.id
                             )
                         }
-                    },
-                    onStartRestTimer = { confirmedSet, effectiveRestSeconds ->
-                        restTimerSessionController.start(
-                            durationSeconds = effectiveRestSeconds,
-                            exerciseName = entry.exerciseName,
-                            nextHint = nextRestHint(entry, sets, confirmedSet),
-                            targetRecordDate = selectedDate,
-                            targetEntryId = entry.id,
-                            targetSetId = confirmedSet.id
-                        )
-                    }
-                )
+                    )
+                }
             }
             if (showDetails) {
                 HorizontalDivider()

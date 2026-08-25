@@ -85,6 +85,7 @@ internal fun RecordScreen(
     var calendarSearchQuery by rememberSaveable { mutableStateOf("") }
     var pendingSearchJump by remember { mutableStateOf<RecordSearchJumpRequest?>(null) }
     var pendingTimerTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
+    var visibleTimerTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
     var highlightedEntryId by remember { mutableStateOf<Long?>(null) }
     var draggedEntryId by remember(selectedDate) { mutableStateOf<Long?>(null) }
     var dragTargetEntryId by remember(selectedDate) { mutableStateOf<Long?>(null) }
@@ -120,12 +121,13 @@ internal fun RecordScreen(
         if (timerTarget.recordDate != selectedDate) return@LaunchedEffect
         val entryIndex = sortedEntries.indexOfFirst { record -> record.entry.id == timerTarget.entryId }
         if (entryIndex < 0) return@LaunchedEffect
-        pendingTimerTarget = null
         val leadingItems = 4 + if (showPermissionHint) 1 else 0
         listState.animateScrollToItem(leadingItems + entryIndex)
+        visibleTimerTarget = timerTarget
         highlightedEntryId = timerTarget.entryId
         delay(1_200L)
         if (highlightedEntryId == timerTarget.entryId) highlightedEntryId = null
+        pendingTimerTarget = null
     }
 
     LaunchedEffect(pendingSearchJump, selectedDate, sortedEntries, exerciseMap, showPermissionHint) {
@@ -330,6 +332,10 @@ internal fun RecordScreen(
                     },
                     headerDragModifier = dragModifier,
                     dragging = isDragging,
+                    targetSetId = visibleTimerTarget
+                        ?.takeIf { timerTarget -> timerTarget.entryId == entryId }
+                        ?.setId,
+                    targetNavigationRequestId = visibleTimerTarget?.navigationRequestId ?: 0L,
                     restTimerSessionController = restTimerSessionController,
                     timerState = timerState,
                     onUpdateEntry = viewModel::updateWorkoutEntry,

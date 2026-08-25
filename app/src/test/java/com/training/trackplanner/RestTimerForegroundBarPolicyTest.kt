@@ -85,6 +85,22 @@ class RestTimerForegroundBarPolicyTest {
     }
 
     @Test
+    fun `record target selects its date then brings the exact set into view`() {
+        val screen = source("RecordScreen.kt")
+        val card = source("RecordEntryCard.kt")
+
+        assertTrue(screen.contains("selectedDate = it.recordDate"))
+        assertTrue(screen.contains("visibleTimerTarget = timerTarget"))
+        assertTrue(screen.contains("?.setId"))
+        assertTrue(
+            screen.indexOf("animateScrollToItem(leadingItems + entryIndex)") <
+                screen.indexOf("pendingTimerTarget = null")
+        )
+        assertTrue(card.contains("if (set.id == targetSetId)"))
+        assertTrue(card.contains("targetSetRequester.bringIntoView()"))
+    }
+
+    @Test
     fun `root scaffold owns bar above navigation and dismiss never stops controller`() {
         val main = source("MainActivity.kt")
         val timer = source("RestTimerSessionController.kt")
