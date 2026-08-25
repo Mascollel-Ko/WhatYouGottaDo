@@ -115,6 +115,16 @@ class RestTimerForegroundBarPolicyTest {
         assertTrue(timer.contains("totalSeconds = total"))
     }
 
+    @Test
+    fun `overlay target survives cold activity startup`() {
+        val main = source("MainActivity.kt")
+        val overlay = source("RestTimerOverlayController.kt")
+
+        assertTrue(main.contains("MutableSharedFlow<RestTimerTarget>(replay = 1)"))
+        assertTrue(overlay.contains("RestTimerNavigation.targetIntent(context, currentState)"))
+        assertTrue(overlay.contains("Intent.FLAG_ACTIVITY_NEW_TASK"))
+    }
+
     private fun state(
         runId: Long = 7,
         endAtEpochMillis: Long = 10_000L

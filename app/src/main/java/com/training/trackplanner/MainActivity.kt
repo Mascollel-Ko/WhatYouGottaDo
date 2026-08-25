@@ -41,7 +41,7 @@ import kotlinx.coroutines.flow.SharedFlow
 
 class MainActivity : AppCompatActivity() {
     private lateinit var restTimerSessionController: RestTimerSessionController
-    private val restTimerTargets = MutableSharedFlow<RestTimerTarget>(extraBufferCapacity = 1)
+    private val restTimerTargets = MutableSharedFlow<RestTimerTarget>(replay = 1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
