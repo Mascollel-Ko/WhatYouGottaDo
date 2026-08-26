@@ -180,6 +180,7 @@ data class DailyCheckIn(
     val overallFatigue: Int? = null,
     val lowerBodyFatigue: Int? = null,
     val jointTendonDiscomfort: Int? = null,
+    val jointTendonDiscomfortJointComplexKey: String? = null,
     val focusMotivation: Int? = null,
     val note: String? = null,
     val createdAt: Long = System.currentTimeMillis(),

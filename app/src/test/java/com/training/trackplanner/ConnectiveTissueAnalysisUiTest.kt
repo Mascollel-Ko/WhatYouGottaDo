@@ -87,7 +87,10 @@ class ConnectiveTissueAnalysisUiTest {
         compose.onAllNodes(hasText("lu_internal_stable_key", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("보정 중", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("56일", substring = true)).assertCountEquals(0)
-        compose.onAllNodes(hasText("점수", substring = true)).assertCountEquals(0)
+        compose.onAllNodesWithText(
+            "이 점수는 훈련 참고용 상대 지표이며 정확한 조직 손상이나 부상 확률, " +
+                "의학적 진단을 뜻하지 않습니다. 통증·불안정감 같은 실제 증상을 우선하세요."
+        ).assertCountEquals(1)
         compose.onAllNodes(hasText("%", substring = true)).assertCountEquals(0)
     }
 

@@ -132,7 +132,7 @@ class ExerciseMetadataFieldRegistryContractTest {
             revisions.metadataDisplayDictionaryRevision
         )
         assertTrue(
-            Regex("version\\s*=\\s*29").containsMatchIn(
+            Regex("version\\s*=\\s*30").containsMatchIn(
                 File("src/main/java/com/training/trackplanner/data/TrainingDatabase.kt")
                     .readText(Charsets.UTF_8)
             )

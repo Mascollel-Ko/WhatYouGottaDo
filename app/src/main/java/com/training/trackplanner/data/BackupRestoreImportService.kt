@@ -205,6 +205,8 @@ internal class BackupRestoreImportService(
                         overallFatigue = row.overallFatigue,
                         lowerBodyFatigue = row.lowerBodyFatigue,
                         jointTendonDiscomfort = row.jointTendonDiscomfort,
+                        jointTendonDiscomfortJointComplexKey =
+                            row.jointTendonDiscomfortJointComplexKey,
                         focusMotivation = row.focusMotivation,
                         note = row.note,
                         createdAt = row.createdAt ?: now,

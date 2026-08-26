@@ -69,5 +69,6 @@ data class TissueCurrentState(
     val jointComplexes: List<TissueJointComplexSummary>,
     val ofiSummary: TissueOfiSummary,
     val baselineProvenance: TissueBaselineProvenance,
-    val diagnostics: List<String>
+    val diagnostics: List<String>,
+    val hasUnscopedHighJointTendonDiscomfort: Boolean = false
 )

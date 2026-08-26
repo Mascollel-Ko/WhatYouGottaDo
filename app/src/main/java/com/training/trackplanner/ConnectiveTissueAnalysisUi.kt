@@ -81,6 +81,15 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
     var showAllJoints by rememberSaveable { mutableStateOf(false) }
     var selectedInfoKey by rememberSaveable { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (state.hasUnscopedHighJointTendonDiscomfort) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                Text(
+                    stringResource(R.string.tissue_analysis_unscoped_discomfort_warning),
+                    modifier = Modifier.padding(16.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(

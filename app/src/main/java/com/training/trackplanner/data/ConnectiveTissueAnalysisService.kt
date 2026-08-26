@@ -85,23 +85,24 @@ internal class ConnectiveTissueAnalysisService(
             weights = weights,
             historyByUnit = historyByUnit
         )
-        val symptomOverride = when (dailyCheckInDao.getForDate(today.toString())?.jointTendonDiscomfort) {
-            5 -> TissueSymptomOverride.BLOCK
-            4 -> TissueSymptomOverride.CAUTION
-            else -> TissueSymptomOverride.NONE
-        }
+        val todayCheckIn = dailyCheckInDao.getForDate(today.toString())
+        val symptomPlan = tissueSymptomOverridePlan(
+            discomfort = todayCheckIn?.jointTendonDiscomfort,
+            selectedJointComplexKey = todayCheckIn?.jointTendonDiscomfortJointComplexKey,
+            loadUnitJointComplexes = catalog.loadUnits.mapValues { it.value.jointComplexStableKey }
+        )
         return TissueCurrentStateAggregator(catalog).aggregate(
             residuals = currentResiduals,
             effectiveBaselinesByUnit = effectiveBaselines,
             historyByUnit = historyByUnit.mapValues { (_, values) -> values.toSortedMap().values.toList() },
-            symptomOverrides = catalog.loadUnits.keys.associateWith { symptomOverride },
+            symptomOverrides = symptomPlan.overridesByLoadUnit,
             diagnostics = buildList {
                 addAll(ledger.diagnostics)
                 priorRegistry.exceptionOrNull()?.let {
                     add("TISSUE_PRIOR_REGISTRY_INVALID: ${it.message ?: it::class.java.simpleName}")
                 }
             }
-        )
+        ).copy(hasUnscopedHighJointTendonDiscomfort = symptomPlan.unscopedHighDiscomfort)
     }
 
     private fun buildBaselines(
@@ -134,4 +135,29 @@ internal class ConnectiveTissueAnalysisService(
 
     private fun eventLocalDate(event: com.training.trackplanner.analysis.tissue.TissueExposureEvent): LocalDate? =
         event.performedTime.earliestEpochMillis?.let { Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate() }
+}
+
+internal data class TissueSymptomOverridePlan(
+    val overridesByLoadUnit: Map<String, TissueSymptomOverride>,
+    val unscopedHighDiscomfort: Boolean
+)
+
+internal fun tissueSymptomOverridePlan(
+    discomfort: Int?,
+    selectedJointComplexKey: String?,
+    loadUnitJointComplexes: Map<String, String>
+): TissueSymptomOverridePlan {
+    val override = when (discomfort) {
+        5 -> TissueSymptomOverride.BLOCK
+        4 -> TissueSymptomOverride.CAUTION
+        else -> TissueSymptomOverride.NONE
+    }
+    if (override == TissueSymptomOverride.NONE) return TissueSymptomOverridePlan(emptyMap(), false)
+
+    val matchingUnits = loadUnitJointComplexes.filterValues { it == selectedJointComplexKey }.keys
+    return if (matchingUnits.isEmpty()) {
+        TissueSymptomOverridePlan(emptyMap(), true)
+    } else {
+        TissueSymptomOverridePlan(matchingUnits.associateWith { override }, false)
+    }
 }

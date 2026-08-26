@@ -903,6 +903,31 @@ class TrainingDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate29To30AddsOptionalJointComplexToDailyCheckIn() {
+        helper.createDatabase(TEST_DB_29_30, 29).use { database ->
+            insertRowWithDefaults(
+                database,
+                "daily_check_ins",
+                mapOf(
+                    "date" to "2026-08-26",
+                    "jointTendonDiscomfort" to 5
+                )
+            )
+        }
+
+        helper.runMigrationsAndValidate(TEST_DB_29_30, 30, true, MIGRATION_29_30).use { database ->
+            database.query(
+                "SELECT jointTendonDiscomfort, jointTendonDiscomfortJointComplexKey " +
+                    "FROM daily_check_ins WHERE date = '2026-08-26'"
+            ).use { cursor ->
+                check(cursor.moveToFirst())
+                check(cursor.getInt(0) == 5)
+                check(cursor.isNull(1))
+            }
+        }
+    }
+
     private fun SupportSQLiteDatabase.foreignKeyTarget(table: String, column: String): String? =
         query("PRAGMA foreign_key_list(`$table`)").use { cursor ->
             val tableIndex = cursor.getColumnIndexOrThrow("table")
@@ -997,6 +1022,7 @@ class TrainingDatabaseMigrationTest {
         const val TEST_DB_26_27 = "training-migration-26-27-test"
         const val TEST_DB_27_28 = "training-migration-27-28-test"
         const val TEST_DB_28_29 = "training-migration-28-29-test"
+        const val TEST_DB_29_30 = "training-migration-29-30-test"
 
         val RUNTIME_METADATA_COLUMNS = setOf(
             "stableKey",

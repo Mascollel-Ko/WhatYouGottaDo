@@ -307,6 +307,7 @@ class RecordCsvBackupRestoreTest {
                     overallFatigue = 4,
                     lowerBodyFatigue = null,
                     jointTendonDiscomfort = 2,
+                    jointTendonDiscomfortJointComplexKey = "jc_6326ea19a8",
                     focusMotivation = 5,
                     note = "light day"
                 )
@@ -320,6 +321,7 @@ class RecordCsvBackupRestoreTest {
         assertEquals(null, checkIn.sleepHours)
         assertEquals(4, checkIn.overallFatigue)
         assertEquals(null, checkIn.lowerBodyFatigue)
+        assertEquals("jc_6326ea19a8", checkIn.jointTendonDiscomfortJointComplexKey)
         assertEquals("light day", checkIn.note)
     }
 

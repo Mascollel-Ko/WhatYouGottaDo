@@ -92,6 +92,7 @@ data class RestoreCheckInRow(
     val overallFatigue: Int?,
     val lowerBodyFatigue: Int?,
     val jointTendonDiscomfort: Int?,
+    val jointTendonDiscomfortJointComplexKey: String?,
     val focusMotivation: Int?,
     val note: String?,
     val createdAt: Long?,
@@ -298,6 +299,7 @@ object RecordCsvBackupRestore {
         "overall_fatigue",
         "lower_body_fatigue",
         "joint_tendon_discomfort",
+        "joint_tendon_discomfort_joint_complex_key",
         "focus_motivation",
         "checkin_note",
         "checkin_created_at",
@@ -726,6 +728,8 @@ object RecordCsvBackupRestore {
                         "overall_fatigue" -> checkIn.overallFatigue?.toString().orEmpty()
                         "lower_body_fatigue" -> checkIn.lowerBodyFatigue?.toString().orEmpty()
                         "joint_tendon_discomfort" -> checkIn.jointTendonDiscomfort?.toString().orEmpty()
+                        "joint_tendon_discomfort_joint_complex_key" ->
+                            checkIn.jointTendonDiscomfortJointComplexKey.orEmpty()
                         "focus_motivation" -> checkIn.focusMotivation?.toString().orEmpty()
                         "checkin_note" -> checkIn.note.orEmpty()
                         "checkin_created_at" -> checkIn.createdAt.toString()
@@ -1404,6 +1408,10 @@ object RecordCsvBackupRestore {
                         overallFatigue = row.safeInt(index, "overall_fatigue"),
                         lowerBodyFatigue = row.safeInt(index, "lower_body_fatigue"),
                         jointTendonDiscomfort = row.safeInt(index, "joint_tendon_discomfort"),
+                        jointTendonDiscomfortJointComplexKey = row.value(
+                            index,
+                            "joint_tendon_discomfort_joint_complex_key"
+                        ).ifBlank { null },
                         focusMotivation = row.safeInt(index, "focus_motivation"),
                         note = row.value(index, "checkin_note").ifBlank { null },
                         createdAt = row.safeLong(index, "checkin_created_at"),

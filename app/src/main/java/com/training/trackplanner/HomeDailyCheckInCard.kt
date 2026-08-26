@@ -23,9 +23,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -34,6 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.DailyCheckIn
+import com.training.trackplanner.analysis.tissue.TissueRcvAssetRepository
+import com.training.trackplanner.localization.AppLanguage
+import com.training.trackplanner.localization.AppLanguageRegistry
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -101,6 +106,11 @@ internal fun DailyConditionEditorDialog(
     var jointTendonDiscomfort by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
         mutableStateOf(checkIn?.jointTendonDiscomfort)
     }
+    var jointTendonDiscomfortJointComplexKey by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
+        mutableStateOf(checkIn?.jointTendonDiscomfortJointComplexKey)
+    }
+    var showJointComplexSelector by rememberSaveable { mutableStateOf(false) }
+    val jointComplexOptions = rememberJointComplexOptions()
     var focusMotivation by rememberSaveable(targetDate.toString(), checkIn?.updatedAt) {
         mutableStateOf(checkIn?.focusMotivation)
     }
@@ -154,6 +164,18 @@ internal fun DailyConditionEditorDialog(
                 CheckInScoreRow("전신 피로", overallFatigue) { overallFatigue = it }
                 CheckInScoreRow("하체 피로", lowerBodyFatigue) { lowerBodyFatigue = it }
                 CheckInScoreRow("관절/건 불편감", jointTendonDiscomfort) { jointTendonDiscomfort = it }
+                OutlinedButton(onClick = { showJointComplexSelector = true }) {
+                    Text(
+                        jointComplexOptions.firstOrNull {
+                            it.stableKey == jointTendonDiscomfortJointComplexKey
+                        }?.name ?: stringResource(R.string.daily_check_in_joint_complex_none)
+                    )
+                }
+                Text(
+                    stringResource(R.string.daily_check_in_joint_complex_label),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 CheckInScoreRow("집중력/의욕", focusMotivation) { focusMotivation = it }
                 Text(
                     "피로·불편감은 1이 낮음, 5가 높음입니다. 집중력/의욕은 5가 좋음입니다.",
@@ -173,6 +195,8 @@ internal fun DailyConditionEditorDialog(
                             overallFatigue = overallFatigue,
                             lowerBodyFatigue = lowerBodyFatigue,
                             jointTendonDiscomfort = jointTendonDiscomfort,
+                            jointTendonDiscomfortJointComplexKey =
+                                jointTendonDiscomfortJointComplexKey.takeIf { jointTendonDiscomfort != null },
                             focusMotivation = focusMotivation
                         )
                     )
@@ -182,6 +206,53 @@ internal fun DailyConditionEditorDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
     )
+
+    if (showJointComplexSelector) {
+        AlertDialog(
+            onDismissRequest = { showJointComplexSelector = false },
+            title = { Text(stringResource(R.string.daily_check_in_joint_complex_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    TextButton(
+                        onClick = {
+                            jointTendonDiscomfortJointComplexKey = null
+                            showJointComplexSelector = false
+                        }
+                    ) { Text(stringResource(R.string.daily_check_in_joint_complex_clear)) }
+                    jointComplexOptions.forEach { option ->
+                        TextButton(
+                            onClick = {
+                                jointTendonDiscomfortJointComplexKey = option.stableKey
+                                showJointComplexSelector = false
+                            }
+                        ) { Text(option.name) }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showJointComplexSelector = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            }
+        )
+    }
+}
+
+private data class JointComplexOption(val stableKey: String, val name: String)
+
+@Composable
+private fun rememberJointComplexOptions(): List<JointComplexOption> {
+    val context = LocalContext.current
+    val language = AppLanguageRegistry.effectiveLanguage(LocalConfiguration.current)
+    return remember(context.applicationContext, language) {
+        TissueRcvAssetRepository.fromAssets(context.applicationContext).catalog.jointComplexes.values.map {
+            JointComplexOption(
+                stableKey = it.stableKey,
+                name = if (language == AppLanguage.ENGLISH) it.nameEn else it.nameKo
+            )
+        }
+    }
 }
 
 @Composable
@@ -200,14 +271,26 @@ private fun CheckInScoreRow(label: String, selected: Int?, onSelect: (Int?) -> U
     }
 }
 
-internal fun DailyCheckIn.compactSummary(): String = buildList {
-    sleepHours?.let { add("수면 ${formatConditionNumber(it)}시간") }
-    bodyWeightKg?.let { add("몸무게 ${formatConditionNumber(it)}kg") }
-    overallFatigue?.let { add("전신 $it") }
-    lowerBodyFatigue?.let { add("하체 $it") }
-    jointTendonDiscomfort?.let { add("불편감 $it") }
-    focusMotivation?.let { add("집중/의욕 $it") }
-}.joinToString(" · ").ifBlank { "입력값 없음" }
+@Composable
+internal fun DailyCheckIn.compactSummary(): String {
+    val context = LocalContext.current
+    val selectedJointName = rememberJointComplexOptions().firstOrNull {
+        it.stableKey == jointTendonDiscomfortJointComplexKey
+    }?.name
+    return buildList {
+        sleepHours?.let { add(context.getString(R.string.daily_check_in_summary_sleep, formatConditionNumber(it))) }
+        bodyWeightKg?.let {
+            add(context.getString(R.string.daily_check_in_summary_body_weight, formatConditionNumber(it)))
+        }
+        overallFatigue?.let { add(context.getString(R.string.daily_check_in_summary_overall_fatigue, it)) }
+        lowerBodyFatigue?.let { add(context.getString(R.string.daily_check_in_summary_lower_body_fatigue, it)) }
+        jointTendonDiscomfort?.let {
+            add(context.getString(R.string.daily_check_in_summary_discomfort, it))
+            selectedJointName?.let(::add)
+        }
+        focusMotivation?.let { add(context.getString(R.string.daily_check_in_summary_focus, it)) }
+    }.joinToString(" · ").ifBlank { context.getString(R.string.daily_check_in_summary_empty) }
+}
 
 internal fun dailyConditionEditorTitle(
     context: Context,
