@@ -6706,3 +6706,23 @@ Remaining debt:
   tests passed; final `:app:testDebugUnitTest` passed 1,246/1,246;
   `:app:assembleDebug` and `git diff --check` passed. Version remains
   `0.5.1.2 / 501002`.
+
+## 2026-08-26 - Weekly canonical posterior performance gate
+
+- Weekly strength intensity now includes a canonical lift's posterior only
+  when that exact stable key has at least one confirmed set in the same week.
+  Proxy and accessory work can still update the Bayesian model, but cannot by
+  itself create a weekly squat, bench press, deadlift, or weighted pull-up
+  posterior entry.
+- A direct canonical performance enables the week's posterior regardless of
+  whether it occurred before or after proxy work. Noncanonical Epley behavior,
+  canonical no-fallback behavior, and same-day daily OFI semantics are
+  unchanged.
+- Verification: the focused `PerformanceTrendEngineTest` suite passed 27/27,
+  including proxy-only, direct-performance, week-ordering, and all four
+  canonical-key gate cases; `:app:assembleDebug` and `git diff --check` passed.
+  The full unit run executed 1,251 tests: 1,233 passed and 18 existing Room
+  backup/restore tests could not link Robolectric's SQLite native DLL in the
+  sandbox. Before the local Robolectric repository was selected, 335 tests
+  also failed only because network access prevented its cached Android runtime
+  artifact from being resolved.

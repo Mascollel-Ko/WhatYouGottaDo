@@ -146,6 +146,67 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun proxyOnlyWeekDoesNotCreateSquatPosteriorIntensity() {
+        val squat = strengthExercise().copy(stableKey = "barbell_back_squat")
+        val proxy = strengthExercise(2).copy(stableKey = "bulgarian_split_squat")
+        val week = weeklyData(record(proxy, today, listOf(set(reps = 8, weightKg = 40.0, confirmed = true))))
+
+        val result = weeklyPosteriorResult(week, squat, proxy)
+
+        assertFalse(squat.stableKey in result.exerciseScores)
+        assertTrue(proxy.stableKey in result.exerciseScores)
+    }
+
+    @Test
+    fun directSquatPerformanceAllowsWeeklyPosterior() {
+        val squat = strengthExercise().copy(stableKey = "barbell_back_squat")
+        val week = weeklyData(record(squat, today, listOf(set(reps = 5, weightKg = 200.0, confirmed = true))))
+
+        assertTrue(squat.stableKey in weeklyPosteriorResult(week, squat).exerciseScores)
+    }
+
+    @Test
+    fun directSquatEarlierInWeekStillAllowsLaterWeeklyPosterior() {
+        val squat = strengthExercise().copy(stableKey = "barbell_back_squat")
+        val proxy = strengthExercise(2).copy(stableKey = "bulgarian_split_squat")
+        val week = weeklyData(
+            record(squat, today, listOf(set(reps = 5, weightKg = 200.0, confirmed = true))),
+            record(proxy, today.plusDays(4), listOf(set(reps = 8, weightKg = 40.0, confirmed = true)))
+        )
+
+        assertTrue(squat.stableKey in weeklyPosteriorResult(week, squat, proxy).exerciseScores)
+    }
+
+    @Test
+    fun proxyBeforeDirectSquatStillAllowsWeeklyPosterior() {
+        val squat = strengthExercise().copy(stableKey = "barbell_back_squat")
+        val proxy = strengthExercise(2).copy(stableKey = "bulgarian_split_squat")
+        val week = weeklyData(
+            record(proxy, today, listOf(set(reps = 8, weightKg = 40.0, confirmed = true))),
+            record(squat, today.plusDays(4), listOf(set(reps = 5, weightKg = 200.0, confirmed = true)))
+        )
+
+        assertTrue(squat.stableKey in weeklyPosteriorResult(week, squat, proxy).exerciseScores)
+    }
+
+    @Test
+    fun canonicalWeeklyPosteriorGateAlsoCoversBenchDeadliftAndWeightedPullUp() {
+        listOf("barbell_bench_press", "barbell_deadlift", "ex_e41f4c2b").forEachIndexed { index, stableKey ->
+            val canonical = strengthExercise(index.toLong() + 10).copy(stableKey = stableKey)
+            val proxy = strengthExercise(index.toLong() + 20)
+            val proxyOnly = weeklyData(
+                record(proxy, today, listOf(set(reps = 8, weightKg = 40.0, confirmed = true)))
+            )
+            val direct = weeklyData(
+                record(canonical, today, listOf(set(reps = 5, weightKg = 100.0, confirmed = true)))
+            )
+
+            assertFalse(stableKey in weeklyPosteriorResult(proxyOnly, canonical, proxy).exerciseScores)
+            assertTrue(stableKey in weeklyPosteriorResult(direct, canonical).exerciseScores)
+        }
+    }
+
+    @Test
     fun unrelatedStrengthExerciseKeepsEpleyIntensity() {
         val exercise = strengthExercise()
         val weeks = threeStrengthWeeks(exercise, listOf(50.0, 50.0, 100.0))
@@ -632,6 +693,25 @@ class PerformanceTrendEngineTest {
 
         assertEquals(160.0, latest.exerciseScores.getValue(stableKey), 0.001)
     }
+
+    private fun weeklyData(vararg entries: WorkoutEntryWithSets): WeeklyTrainingData {
+        val weekStart = WeeklyAnalysisAggregator().weekStart(today)
+        return WeeklyTrainingData(weekStart, weekStart.plusDays(6), entries.toList(), emptyList())
+    }
+
+    private fun weeklyPosteriorResult(
+        week: WeeklyTrainingData,
+        canonical: Exercise,
+        vararg otherExercises: Exercise
+    ): StrengthWeekIndex = StrengthPerformanceIndexCalculator().calculate(
+        weeks = listOf(week),
+        exerciseMap = (listOf(canonical) + otherExercises).associateBy(Exercise::stableKey),
+        allDailyMetrics = emptyList(),
+        canonicalPosteriorIntensity = CanonicalStrengthPosteriorWeeklyIntensity(
+            canonicalExerciseStableKeys = setOf(canonical.stableKey),
+            valuesByWeek = mapOf(week.weekStart to mapOf(canonical.stableKey to 250.0))
+        )
+    ).single()
 
     private fun threeStrengthWeeks(exercise: Exercise, weights: List<Double>): List<WeeklyTrainingData> {
         val entries = weights.mapIndexed { index, weight ->

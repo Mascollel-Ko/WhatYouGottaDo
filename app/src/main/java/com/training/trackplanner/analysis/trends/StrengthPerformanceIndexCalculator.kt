@@ -30,10 +30,15 @@ class StrengthPerformanceIndexCalculator(
             CanonicalStrengthPosteriorWeeklyIntensity.EMPTY
     ): List<StrengthWeekIndex> {
         val rawIntensityByWeek = weeks.map { week ->
+            val performedExerciseStableKeys = week.entries
+                .filter { record -> record.sets.any { set -> set.confirmed } }
+                .mapTo(mutableSetOf()) { record -> record.entry.exerciseStableKey }
             week.entries.maxEpleyIntensityByExercise(
                 exerciseMap,
                 canonicalPosteriorIntensity.canonicalExerciseStableKeys
-            ) + canonicalPosteriorIntensity.valuesByWeek[week.weekStart].orEmpty()
+            ) + canonicalPosteriorIntensity.valuesByWeek[week.weekStart]
+                .orEmpty()
+                .filterKeys { stableKey -> stableKey in performedExerciseStableKeys }
         }
         val rawVolumeByWeek = weeks.map { week ->
             week.entries.weeklyStrengthVolumeRaw(exerciseMap, allDailyMetrics)
