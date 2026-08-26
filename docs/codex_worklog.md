@@ -6692,3 +6692,17 @@ Remaining debt:
   24-to-25 `single_leg_rdl` versus `dumbbell_single_leg_rdl` expectation
   mismatch (1 failed, 19 passed, 1 skipped), which is present on the starting
   main branch and is outside this change.
+
+## 2026-08-26 - Same-day posterior source for daily OFI e1RM
+
+- Daily OFI no longer calculates Epley e1RM for the four canonical strength
+  anchors. A confirmed canonical exercise contributes its persistent
+  `posteriorMedian` only when the posterior point has the same session date as
+  that performed exercise.
+- No previous-day or same-week posterior is carried into another date, and a
+  missing same-day canonical posterior does not fall back to Epley. Other
+  `ESTIMATED_1RM` exercises retain the existing Epley behavior.
+- Verification: focused daily-fatigue, analysis-summary, and performance-trend
+  tests passed; final `:app:testDebugUnitTest` passed 1,246/1,246;
+  `:app:assembleDebug` and `git diff --check` passed. Version remains
+  `0.5.1.2 / 501002`.

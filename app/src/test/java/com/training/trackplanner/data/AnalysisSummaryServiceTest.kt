@@ -144,7 +144,11 @@ class AnalysisSummaryServiceTest {
             initialUserProfileDao = db.initialUserProfileDao(),
             runtimeExerciseMetadataDao = db.runtimeExerciseMetadataDao(),
             canonicalRuntimeMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY,
-            canonicalOfiAxisProfiles = emptyMap()
+            canonicalOfiAxisProfiles = emptyMap(),
+            strengthPosteriorDao = db.strengthPosteriorDao(),
+            strengthPerformanceRegistry =
+                com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry.fromContext(context),
+            appMetaDao = db.appMetaDao()
         )
 
     private suspend fun insertFatigueExercise(

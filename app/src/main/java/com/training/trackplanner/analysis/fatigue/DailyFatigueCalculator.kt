@@ -16,9 +16,20 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.max
 import kotlin.math.roundToInt
 
+data class DailyCanonicalStrengthPosterior(
+    val canonicalExerciseStableKeys: Set<String>,
+    val valuesByDate: Map<LocalDate, Map<String, Double>>
+) {
+    companion object {
+        val EMPTY = DailyCanonicalStrengthPosterior(emptySet(), emptyMap())
+    }
+}
+
 class DailyFatigueCalculator(
     private val metadataCatalog: RuntimeExerciseMetadataCatalog,
-    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile> = emptyMap()
+    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile> = emptyMap(),
+    private val canonicalStrengthPosterior: DailyCanonicalStrengthPosterior =
+        DailyCanonicalStrengthPosterior.EMPTY
 ) {
     fun calculate(
         targetDate: LocalDate,
@@ -44,6 +55,18 @@ class DailyFatigueCalculator(
             val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
             if (confirmedSets.isEmpty()) return@mapNotNull null
             val metadata = ResolvedFatigueMetadata.from(exercise, metadataCatalog.resolve(exercise))
+            val rawWorkload = calculateWorkload(
+                date = date,
+                record = record,
+                exercise = exercise,
+                sets = confirmedSets,
+                metadata = metadata,
+                bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
+                    date = record.entry.date,
+                    dailyMetrics = dailyMetrics,
+                    initialProfile = initialProfile
+                )
+            ) ?: return@mapNotNull null
             RecordContext(
                 date = date,
                 record = record,
@@ -52,17 +75,7 @@ class DailyFatigueCalculator(
                 canonicalOfiAxisProfile = canonicalOfiAxisProfiles[exercise.stableKey],
                 confirmedSets = confirmedSets,
                 rpe = averageRpe(record, confirmedSets) ?: defaultRpe(metadata),
-                rawWorkload = calculateWorkload(
-                    record = record,
-                    exercise = exercise,
-                    sets = confirmedSets,
-                    metadata = metadata,
-                    bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(
-                        date = record.entry.date,
-                        dailyMetrics = dailyMetrics,
-                        initialProfile = initialProfile
-                    )
-                )
+                rawWorkload = rawWorkload
             )
         }.filter { it.date <= endDate }
 
@@ -332,12 +345,13 @@ class DailyFatigueCalculator(
         )
 
     private fun calculateWorkload(
+        date: LocalDate,
         record: WorkoutEntryWithSets,
         exercise: Exercise,
         sets: List<WorkoutSet>,
         metadata: ResolvedFatigueMetadata,
         bodyWeightKg: Double?
-    ): Double {
+    ): Double? {
         val totalReps = sets.sumOf { it.reps }
         val totalSeconds = sets.sumOf { it.seconds }
         val volumeLoad = sets.sumOf { set ->
@@ -348,9 +362,14 @@ class DailyFatigueCalculator(
         return when (metadata.progressMetricType) {
             "LOAD_REPS", "VOLUME_LOAD", "LOAD_REPS_OR_REPS", "MACHINE_LOAD_REPS", "REPS_AT_LOAD" ->
                 volumeLoad.takeIf { it > 0.0 } ?: totalReps.toDouble().coerceAtLeast(sets.size.toDouble())
-            "ESTIMATED_1RM" -> sets.maxOfOrNull { set ->
-                if (set.weightKg > 0.0 && set.reps > 0) set.weightKg * (1.0 + set.reps / 30.0) else 0.0
-            }?.coerceAtLeast(1.0) ?: 1.0
+            "ESTIMATED_1RM" -> if (exercise.stableKey in canonicalStrengthPosterior.canonicalExerciseStableKeys) {
+                canonicalStrengthPosterior.valuesByDate[date]?.get(exercise.stableKey)
+                    ?.takeIf { value -> value.isFinite() && value > 0.0 }
+            } else {
+                sets.maxOfOrNull { set ->
+                    if (set.weightKg > 0.0 && set.reps > 0) set.weightKg * (1.0 + set.reps / 30.0) else 0.0
+                }?.coerceAtLeast(1.0) ?: 1.0
+            }
             "REPS_OR_TIME", "TIME_OR_REPS", "LOAD_REPS_OR_TIME" ->
                 max(totalReps.toDouble(), totalSeconds / 60.0).coerceAtLeast(sets.size.toDouble())
             "SESSION_DURATION" -> (totalSeconds / 60.0).coerceAtLeast(sets.size.toDouble()) * (rpe / 7.0)

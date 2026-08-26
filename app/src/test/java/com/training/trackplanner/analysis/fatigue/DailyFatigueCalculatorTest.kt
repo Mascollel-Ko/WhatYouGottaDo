@@ -30,6 +30,69 @@ class DailyFatigueCalculatorTest {
     }
 
     @Test
+    fun canonicalE1rmUsesPosteriorPointFromThePerformedDate() {
+        val firstDate = LocalDate.of(2026, 8, 17)
+        val secondDate = firstDate.plusDays(1)
+        val stableKey = "barbell_back_squat"
+        val exercise = Exercise(name = "Back squat", category = "Strength", stableKey = stableKey)
+        val posterior = DailyCanonicalStrengthPosterior(
+            canonicalExerciseStableKeys = setOf(stableKey),
+            valuesByDate = mapOf(
+                firstDate to mapOf(stableKey to 100.0),
+                secondDate to mapOf(stableKey to 200.0)
+            )
+        )
+
+        val result = DailyFatigueCalculator(
+            metadataCatalog = RuntimeExerciseMetadataCatalog.of(
+                listOf(neutralTestMetadata(stableKey, exercise.name).copy(progressMetricType = "ESTIMATED_1RM"))
+            ),
+            canonicalStrengthPosterior = posterior
+        ).calculateSeries(
+            endDate = secondDate,
+            days = 2,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(
+                testRecord(firstDate, stableKey, exercise.name, id = 1),
+                testRecord(secondDate, stableKey, exercise.name, id = 2)
+            ),
+            initialProfile = null
+        )
+
+        assertEquals(2.5, result.last().recordContributions.single().trainingLoad, 0.0001)
+    }
+
+    @Test
+    fun canonicalE1rmDoesNotCarryAnEarlierPosteriorIntoPerformedDate() {
+        val firstDate = LocalDate.of(2026, 8, 17)
+        val secondDate = firstDate.plusDays(1)
+        val stableKey = "barbell_back_squat"
+        val exercise = Exercise(name = "Back squat", category = "Strength", stableKey = stableKey)
+        val posterior = DailyCanonicalStrengthPosterior(
+            canonicalExerciseStableKeys = setOf(stableKey),
+            valuesByDate = mapOf(firstDate to mapOf(stableKey to 100.0))
+        )
+
+        val result = DailyFatigueCalculator(
+            metadataCatalog = RuntimeExerciseMetadataCatalog.of(
+                listOf(neutralTestMetadata(stableKey, exercise.name).copy(progressMetricType = "ESTIMATED_1RM"))
+            ),
+            canonicalStrengthPosterior = posterior
+        ).calculateSeries(
+            endDate = secondDate,
+            days = 2,
+            exercises = listOf(exercise),
+            entriesWithSets = listOf(
+                testRecord(firstDate, stableKey, exercise.name, id = 1),
+                testRecord(secondDate, stableKey, exercise.name, id = 2)
+            ),
+            initialProfile = null
+        )
+
+        assertTrue(result.last().recordContributions.isEmpty())
+    }
+
+    @Test
     fun calculatesCanonicalFiveAxesAndAllowsLocalHighSystemicLow() {
         val date = LocalDate.of(2026, 6, 19)
         val exercise = Exercise(

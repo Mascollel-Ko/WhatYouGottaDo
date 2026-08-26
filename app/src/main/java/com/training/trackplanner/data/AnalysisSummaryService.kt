@@ -2,7 +2,9 @@ package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.core.SystemAnalysisDateProvider
 import com.training.trackplanner.analysis.fatigue.DailyFatigueCalculator
+import com.training.trackplanner.analysis.fatigue.DailyCanonicalStrengthPosterior
 import com.training.trackplanner.analysis.fatigue.DailyFatigueResult
+import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -14,7 +16,10 @@ internal class AnalysisSummaryService(
     private val initialUserProfileDao: InitialUserProfileDao,
     private val runtimeExerciseMetadataDao: RuntimeExerciseMetadataDao,
     private val canonicalRuntimeMetadataCatalog: RuntimeExerciseMetadataCatalog,
-    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>
+    private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>,
+    private val strengthPosteriorDao: StrengthPosteriorDao,
+    private val strengthPerformanceRegistry: StrengthPerformanceRegistry,
+    private val appMetaDao: AppMetaDao
 ) {
     suspend fun fatigueAnalysisHistory(days: Int = 28 * 7): List<DailyFatigueResult> {
         val today = SystemAnalysisDateProvider().today()
@@ -22,7 +27,8 @@ internal class AnalysisSummaryService(
         val exercises = exerciseDao.allExercises()
         return DailyFatigueCalculator(
             resolvedRuntimeMetadataCatalog(exercises),
-            canonicalOfiAxisProfiles
+            canonicalOfiAxisProfiles,
+            dailyCanonicalStrengthPosterior()
         ).calculateSeries(
             endDate = today,
             days = days.coerceIn(1, 28 * 7),
@@ -50,7 +56,8 @@ internal class AnalysisSummaryService(
         val days = ChronoUnit.DAYS.between(start, effectiveEnd).toInt() + 1
         return DailyFatigueCalculator(
             resolvedRuntimeMetadataCatalog(exercises),
-            canonicalOfiAxisProfiles
+            canonicalOfiAxisProfiles,
+            dailyCanonicalStrengthPosterior()
         ).calculateSeries(
             endDate = effectiveEnd,
             days = days,
@@ -71,4 +78,45 @@ internal class AnalysisSummaryService(
             canonicalRuntimeMetadataCatalog,
             runtimeExerciseMetadataDao.all().map(RuntimeExerciseMetadataEntity::toRuntimeMetadata)
         ).catalog(exercises)
+
+    private suspend fun dailyCanonicalStrengthPosterior(): DailyCanonicalStrengthPosterior {
+        val revision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
+        val history = if (
+            revision?.status == StrengthModelRevisionPolicy.STATUS_ACTIVE &&
+            StrengthModelRevisionPolicy.isCompatible(revision) &&
+            appMetaDao.value(StrengthModelRevisionPolicy.REBUILD_MARKER_KEY) != null
+        ) {
+            strengthPosteriorDao.historyForRevision(revision.revisionKey)
+        } else {
+            emptyList()
+        }
+        return dailyCanonicalStrengthPosterior(history, strengthPerformanceRegistry)
+    }
+}
+
+internal fun dailyCanonicalStrengthPosterior(
+    history: List<StrengthPosteriorHistoryEntity>,
+    registry: StrengthPerformanceRegistry
+): DailyCanonicalStrengthPosterior {
+    val targetKeys = setOf(
+        StrengthPerformanceRegistry.BENCH_PRESS,
+        StrengthPerformanceRegistry.BACK_SQUAT,
+        StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT,
+        StrengthPerformanceRegistry.WEIGHTED_PULL_UP
+    )
+    val targets = targetKeys.mapNotNull(registry::target).associateBy { it.targetKey.value }
+    val valuesByDate = mutableMapOf<LocalDate, MutableMap<String, Double>>()
+    history.sortedWith(compareBy(StrengthPosteriorHistoryEntity::sessionDate, StrengthPosteriorHistoryEntity::createdAt))
+        .forEach { point ->
+            val target = targets[point.targetKey] ?: return@forEach
+            val date = runCatching { LocalDate.parse(point.sessionDate) }.getOrNull() ?: return@forEach
+            val value = point.posteriorMedian?.takeIf { it.isFinite() && it > 0.0 } ?: return@forEach
+            target.anchorStableKeys.forEach { stableKey ->
+                valuesByDate.getOrPut(date, ::mutableMapOf)[stableKey] = value
+            }
+        }
+    return DailyCanonicalStrengthPosterior(
+        canonicalExerciseStableKeys = targets.values.flatMap { it.anchorStableKeys }.toSet(),
+        valuesByDate = valuesByDate
+    )
 }

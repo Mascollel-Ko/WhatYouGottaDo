@@ -267,7 +267,10 @@ class TrainingRepository(
         initialUserProfileDao = initialUserProfileDao,
         runtimeExerciseMetadataDao = runtimeExerciseMetadataDao,
         canonicalRuntimeMetadataCatalog = canonicalRuntimeMetadataCatalog,
-        canonicalOfiAxisProfiles = canonicalOfiAxisProfiles
+        canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
+        strengthPosteriorDao = strengthPosteriorDao,
+        strengthPerformanceRegistry = strengthPerformanceRegistry,
+        appMetaDao = appMetaDao
     )
     private val smashSpeedService = SmashSpeedService(
         smashSpeedDao = smashSpeedDao
