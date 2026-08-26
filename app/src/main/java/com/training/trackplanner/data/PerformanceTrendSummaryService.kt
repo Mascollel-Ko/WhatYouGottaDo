@@ -9,6 +9,7 @@ import com.training.trackplanner.analysis.strengthperformance.PersistentStrength
 import com.training.trackplanner.analysis.strengthperformance.PersistentStrengthPerformanceSummaryBuilder
 import com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry
 import com.training.trackplanner.analysis.trends.AnalysisChartTemporalPolicy
+import com.training.trackplanner.analysis.trends.CanonicalStrengthPosteriorWeeklyIntensity
 import com.training.trackplanner.analysis.trends.PerformanceTrendEngine
 import com.training.trackplanner.analysis.trends.PerformanceTrendSummary
 import com.training.trackplanner.analysis.trends.TrendDataPoint
@@ -41,17 +42,6 @@ internal class PerformanceTrendSummaryService(
         val dailyMetrics = dailyMetricDao.metricsUntil(todayString)
         val entries = workoutDao.entriesWithSetsUntil(todayString)
         val runtimeMetadataCatalog = resolvedRuntimeMetadataCatalog(exercises)
-        val base = PerformanceTrendEngine(
-            runtimeMetadataCatalog = runtimeMetadataCatalog,
-            canonicalCoreCatalog = canonicalCoreCatalog,
-            badmintonObjectiveCatalog = badmintonObjectiveCatalog,
-            weeklyAggregator = WeeklyAnalysisAggregator(window)
-        ).analyze(
-            today = today,
-            exercises = exercises,
-            entriesWithSets = entries,
-            dailyMetrics = dailyMetrics
-        )
         val checkInSeries = CheckInMetricSeriesBuilder.build(
             checkIns = dailyCheckInDao.between(MIN_DATE, todayString),
             dailyMetrics = dailyMetrics
@@ -65,7 +55,6 @@ internal class PerformanceTrendSummaryService(
             runtimeMetadataCatalog = runtimeMetadataCatalog,
             dailyMetrics = dailyMetrics
         )
-        val coreStimulusSeries = CoreStimulusMetricSeriesBuilder.build(base.coreStimulus)
         val initialProfile = initialUserProfileDao.profile()
         val currentBodyWeightKg = dailyMetrics.asReversed().firstNotNullOfOrNull(DailyMetric::bodyWeightKg)
             ?: initialProfile?.bodyWeightKg
@@ -148,6 +137,22 @@ internal class PerformanceTrendSummaryService(
             localHistory = revisionLocalHistory,
             proxyTransfers = revisionProxyHistory
         )
+        val base = PerformanceTrendEngine(
+            runtimeMetadataCatalog = runtimeMetadataCatalog,
+            canonicalCoreCatalog = canonicalCoreCatalog,
+            badmintonObjectiveCatalog = badmintonObjectiveCatalog,
+            weeklyAggregator = WeeklyAnalysisAggregator(window)
+        ).analyze(
+            today = today,
+            exercises = exercises,
+            entriesWithSets = entries,
+            dailyMetrics = dailyMetrics,
+            canonicalPosteriorIntensity = canonicalStrengthPosteriorWeeklyIntensity(
+                persistentStrengthSummary,
+                strengthPerformanceRegistry
+            )
+        )
+        val coreStimulusSeries = CoreStimulusMetricSeriesBuilder.build(base.coreStimulus)
         val persistentStrengthMetricSeries = persistentStrengthPosteriorMetricSeries(persistentStrengthSummary)
         return base.copy(
             metricSeries = base.metricSeries + checkInSeries + smashSpeedSeries +
@@ -167,6 +172,44 @@ internal class PerformanceTrendSummaryService(
     private companion object {
         const val MIN_DATE = "0001-01-01"
     }
+}
+
+internal fun canonicalStrengthPosteriorWeeklyIntensity(
+    summary: PersistentStrengthPerformanceSummary,
+    registry: StrengthPerformanceRegistry
+): CanonicalStrengthPosteriorWeeklyIntensity {
+    val canonicalTargetKeys = setOf(
+        StrengthPerformanceRegistry.BENCH_PRESS,
+        StrengthPerformanceRegistry.BACK_SQUAT,
+        StrengthPerformanceRegistry.CONVENTIONAL_DEADLIFT,
+        StrengthPerformanceRegistry.WEIGHTED_PULL_UP
+    )
+    val canonicalExerciseStableKeys = canonicalTargetKeys.flatMap { targetKey ->
+        registry.target(targetKey)?.anchorStableKeys.orEmpty()
+    }.toSet()
+    val valuesByWeek = mutableMapOf<java.time.LocalDate, MutableMap<String, Double>>()
+    summary.targets
+        .filter { target -> target.targetKey in canonicalTargetKeys.map { it.value } }
+        .forEach { target ->
+            val spec = registry.target(
+                com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceTargetKey(
+                    target.targetKey
+                )
+            ) ?: return@forEach
+            target.history
+                .mapNotNull { point ->
+                    point.posteriorMedianKg
+                        ?.takeIf { value -> value.isFinite() && value > 0.0 }
+                        ?.let { value -> AnalysisChartTemporalPolicy.weekStart(point.sessionDate) to value }
+                }
+                .groupBy({ (week, _) -> week }, { (_, value) -> value })
+                .forEach { (week, values) ->
+                    spec.anchorStableKeys.forEach { stableKey ->
+                        valuesByWeek.getOrPut(week, ::mutableMapOf)[stableKey] = values.last()
+                    }
+                }
+        }
+    return CanonicalStrengthPosteriorWeeklyIntensity(canonicalExerciseStableKeys, valuesByWeek)
 }
 
 internal fun persistentStrengthPosteriorMetricSeries(

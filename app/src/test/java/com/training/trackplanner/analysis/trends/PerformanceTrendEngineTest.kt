@@ -126,6 +126,61 @@ class PerformanceTrendEngineTest {
     }
 
     @Test
+    fun squatPosteriorOverridesOpposingEpleyTrend() {
+        assertCanonicalPosteriorOverridesEpley("barbell_back_squat")
+    }
+
+    @Test
+    fun benchPosteriorIsUsedForStrengthIntensity() {
+        assertCanonicalPosteriorOverridesEpley("barbell_bench_press")
+    }
+
+    @Test
+    fun deadliftPosteriorIsUsedForStrengthIntensity() {
+        assertCanonicalPosteriorOverridesEpley("barbell_deadlift")
+    }
+
+    @Test
+    fun weightedPullUpUsesPersistentTotalLoadPosteriorWithoutRecomputingAddedLoad() {
+        assertCanonicalPosteriorOverridesEpley("ex_e41f4c2b")
+    }
+
+    @Test
+    fun unrelatedStrengthExerciseKeepsEpleyIntensity() {
+        val exercise = strengthExercise()
+        val weeks = threeStrengthWeeks(exercise, listOf(50.0, 50.0, 100.0))
+        val latest = StrengthPerformanceIndexCalculator().calculate(
+            weeks = weeks,
+            exerciseMap = mapOf(exercise.stableKey to exercise),
+            allDailyMetrics = emptyList(),
+            canonicalPosteriorIntensity = CanonicalStrengthPosteriorWeeklyIntensity(
+                canonicalExerciseStableKeys = setOf("barbell_back_squat"),
+                valuesByWeek = emptyMap()
+            )
+        ).last()
+
+        assertEquals(160.0, latest.exerciseScores.getValue(exercise.stableKey), 0.001)
+    }
+
+    @Test
+    fun missingCanonicalPosteriorDoesNotFallBackToEpley() {
+        val exercise = strengthExercise().copy(stableKey = "barbell_back_squat")
+        val weeks = threeStrengthWeeks(exercise, listOf(100.0, 110.0, 120.0))
+        val latest = StrengthPerformanceIndexCalculator().calculate(
+            weeks = weeks,
+            exerciseMap = mapOf(exercise.stableKey to exercise),
+            allDailyMetrics = emptyList(),
+            canonicalPosteriorIntensity = CanonicalStrengthPosteriorWeeklyIntensity(
+                canonicalExerciseStableKeys = setOf(exercise.stableKey),
+                valuesByWeek = emptyMap()
+            )
+        ).last()
+
+        assertFalse(exercise.stableKey in latest.exerciseScores)
+        assertEquals(100.0, latest.intensityIndex, 0.001)
+    }
+
+    @Test
     fun singleWeekStrengthPerformanceFallbackShowsRawDataWasPresentButBaselinesWereMissing() {
         val catalog = canonicalRuntimeCatalog()
         val squat = canonicalExercise(201, catalog, "barbell_back_squat")
@@ -558,6 +613,37 @@ class PerformanceTrendEngineTest {
             analysisEligibility = "FATIGUE|STRENGTH_PROGRESS|HYPERTROPHY_VOLUME|BALANCE",
             metadataConfidence = "HIGH"
         )
+
+    private fun assertCanonicalPosteriorOverridesEpley(stableKey: String) {
+        val exercise = strengthExercise().copy(stableKey = stableKey)
+        val weeks = threeStrengthWeeks(exercise, listOf(200.0, 200.0, 50.0))
+        val posterior = listOf(100.0, 100.0, 200.0)
+        val latest = StrengthPerformanceIndexCalculator().calculate(
+            weeks = weeks,
+            exerciseMap = mapOf(stableKey to exercise),
+            allDailyMetrics = emptyList(),
+            canonicalPosteriorIntensity = CanonicalStrengthPosteriorWeeklyIntensity(
+                canonicalExerciseStableKeys = setOf(stableKey),
+                valuesByWeek = weeks.mapIndexed { index, week ->
+                    week.weekStart to mapOf(stableKey to posterior[index])
+                }.toMap()
+            )
+        ).last()
+
+        assertEquals(160.0, latest.exerciseScores.getValue(stableKey), 0.001)
+    }
+
+    private fun threeStrengthWeeks(exercise: Exercise, weights: List<Double>): List<WeeklyTrainingData> {
+        val entries = weights.mapIndexed { index, weight ->
+            record(
+                exercise,
+                today.minusWeeks((weights.lastIndex - index).toLong()),
+                listOf(set(reps = 5, weightKg = weight, confirmed = true))
+            )
+        }
+        return WeeklyAnalysisAggregator().aggregate(today, entries, emptyList())
+            .filter { week -> week.entries.isNotEmpty() }
+    }
 
     private fun objectiveCatalog(
         stableKey: String,

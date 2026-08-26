@@ -8,6 +8,16 @@ import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
+import java.time.LocalDate
+
+data class CanonicalStrengthPosteriorWeeklyIntensity(
+    val canonicalExerciseStableKeys: Set<String>,
+    val valuesByWeek: Map<LocalDate, Map<String, Double>>
+) {
+    companion object {
+        val EMPTY = CanonicalStrengthPosteriorWeeklyIntensity(emptySet(), emptyMap())
+    }
+}
 
 class StrengthPerformanceIndexCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
@@ -15,10 +25,15 @@ class StrengthPerformanceIndexCalculator(
     fun calculate(
         weeks: List<WeeklyTrainingData>,
         exerciseMap: Map<String, Exercise>,
-        allDailyMetrics: List<DailyMetric>
+        allDailyMetrics: List<DailyMetric>,
+        canonicalPosteriorIntensity: CanonicalStrengthPosteriorWeeklyIntensity =
+            CanonicalStrengthPosteriorWeeklyIntensity.EMPTY
     ): List<StrengthWeekIndex> {
         val rawIntensityByWeek = weeks.map { week ->
-            week.entries.maxIntensityByExercise(exerciseMap)
+            week.entries.maxEpleyIntensityByExercise(
+                exerciseMap,
+                canonicalPosteriorIntensity.canonicalExerciseStableKeys
+            ) + canonicalPosteriorIntensity.valuesByWeek[week.weekStart].orEmpty()
         }
         val rawVolumeByWeek = weeks.map { week ->
             week.entries.weeklyStrengthVolumeRaw(exerciseMap, allDailyMetrics)
@@ -123,10 +138,12 @@ class StrengthPerformanceIndexCalculator(
         }
     }
 
-    private fun List<WorkoutEntryWithSets>.maxIntensityByExercise(
-        exerciseMap: Map<String, Exercise>
+    private fun List<WorkoutEntryWithSets>.maxEpleyIntensityByExercise(
+        exerciseMap: Map<String, Exercise>,
+        posteriorOnlyExerciseStableKeys: Set<String>
     ): Map<String, Double> =
         mapNotNull { record ->
+            if (record.entry.exerciseStableKey in posteriorOnlyExerciseStableKeys) return@mapNotNull null
             val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,

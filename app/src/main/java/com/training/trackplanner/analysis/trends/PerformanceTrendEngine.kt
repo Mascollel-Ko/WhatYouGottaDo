@@ -45,12 +45,19 @@ class PerformanceTrendEngine(
         today: LocalDate,
         exercises: List<Exercise>,
         entriesWithSets: List<WorkoutEntryWithSets>,
-        dailyMetrics: List<DailyMetric>
+        dailyMetrics: List<DailyMetric>,
+        canonicalPosteriorIntensity: CanonicalStrengthPosteriorWeeklyIntensity =
+            CanonicalStrengthPosteriorWeeklyIntensity.EMPTY
     ): PerformanceTrendSummary {
         val exerciseMap = exercises.associateBy { exercise -> exercise.stableKey }
         val exerciseDisplayNamesByStableKey = exerciseDisplayNamesByStableKey(exercises, entriesWithSets)
         val weeks = weeklyAggregator.aggregate(today, entriesWithSets, dailyMetrics)
-        val strengthWeeks = strengthCalculator.calculate(weeks, exerciseMap, dailyMetrics)
+        val strengthWeeks = strengthCalculator.calculate(
+            weeks,
+            exerciseMap,
+            dailyMetrics,
+            canonicalPosteriorIntensity
+        )
         val badmintonPracticeWeeks = badmintonPracticeCalculator.weeklyLoads(weeks, exerciseMap)
         val badmintonPracticeDailyLoads = badmintonPracticeCalculator.dailyLoads(entriesWithSets, exerciseMap)
         val badmintonObjectiveDailyStimulus = badmintonObjectiveCalculator.daily(entriesWithSets, exerciseMap)
