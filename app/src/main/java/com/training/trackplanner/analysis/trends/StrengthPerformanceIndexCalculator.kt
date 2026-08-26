@@ -8,16 +8,6 @@ import com.training.trackplanner.data.DailyMetric
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.WorkoutEntryWithSets
-import java.time.LocalDate
-
-data class CanonicalStrengthPosteriorWeeklyIntensity(
-    val canonicalExerciseStableKeys: Set<String>,
-    val valuesByWeek: Map<LocalDate, Map<String, Double>>
-) {
-    companion object {
-        val EMPTY = CanonicalStrengthPosteriorWeeklyIntensity(emptySet(), emptyMap())
-    }
-}
 
 class StrengthPerformanceIndexCalculator(
     private val runtimeMetadataCatalog: RuntimeExerciseMetadataCatalog = RuntimeExerciseMetadataCatalog.EMPTY
@@ -25,20 +15,10 @@ class StrengthPerformanceIndexCalculator(
     fun calculate(
         weeks: List<WeeklyTrainingData>,
         exerciseMap: Map<String, Exercise>,
-        allDailyMetrics: List<DailyMetric>,
-        canonicalPosteriorIntensity: CanonicalStrengthPosteriorWeeklyIntensity =
-            CanonicalStrengthPosteriorWeeklyIntensity.EMPTY
+        allDailyMetrics: List<DailyMetric>
     ): List<StrengthWeekIndex> {
         val rawIntensityByWeek = weeks.map { week ->
-            val performedExerciseStableKeys = week.entries
-                .filter { record -> record.sets.any { set -> set.confirmed } }
-                .mapTo(mutableSetOf()) { record -> record.entry.exerciseStableKey }
-            week.entries.maxEpleyIntensityByExercise(
-                exerciseMap,
-                canonicalPosteriorIntensity.canonicalExerciseStableKeys
-            ) + canonicalPosteriorIntensity.valuesByWeek[week.weekStart]
-                .orEmpty()
-                .filterKeys { stableKey -> stableKey in performedExerciseStableKeys }
+            week.entries.maxIntensityByExercise(exerciseMap)
         }
         val rawVolumeByWeek = weeks.map { week ->
             week.entries.weeklyStrengthVolumeRaw(exerciseMap, allDailyMetrics)
@@ -143,12 +123,10 @@ class StrengthPerformanceIndexCalculator(
         }
     }
 
-    private fun List<WorkoutEntryWithSets>.maxEpleyIntensityByExercise(
-        exerciseMap: Map<String, Exercise>,
-        posteriorOnlyExerciseStableKeys: Set<String>
+    private fun List<WorkoutEntryWithSets>.maxIntensityByExercise(
+        exerciseMap: Map<String, Exercise>
     ): Map<String, Double> =
         mapNotNull { record ->
-            if (record.entry.exerciseStableKey in posteriorOnlyExerciseStableKeys) return@mapNotNull null
             val exercise = exerciseMap[record.entry.exerciseStableKey] ?: return@mapNotNull null
             val features = AnalysisFeatureExtractor.fromRecord(
                 exercise,
