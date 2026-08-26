@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="MissingTranslation">
-    <string name="app_name">WhatYouGottaTrain</string>
+    <string name="app_name">WhatYouGottaDo</string>
     <string name="product_name">WhatYouGottaDo</string>
     <string name="profile_habitual_training_intensity">평소 운동 강도</string>
     <string name="profile_habitual_training_intensity_light">가벼운 편</string>

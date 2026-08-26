@@ -140,7 +140,7 @@ internal fun HomeScreen(
                 message = transferMessage,
                 report = transferReport,
                 onBackup = {
-                    backupLauncher.launch("whatyougottatrain_backup_$today.csv")
+                    backupLauncher.launch("whatyougottado_backup_$today.csv")
                 },
                 onRestore = {
                     restoreLauncher.launch(
@@ -178,7 +178,7 @@ internal fun HomeScreen(
             report = transferReport!!,
             onDismiss = { showTransferReport = false },
             onSave = {
-                reportSaveLauncher.launch("whatyougottatrain_diagnostic_${transferReport!!.operationId}.txt")
+                reportSaveLauncher.launch("whatyougottado_diagnostic_${transferReport!!.operationId}.txt")
             }
         )
     }

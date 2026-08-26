@@ -11,7 +11,7 @@ data class RestTimerTarget(
 )
 
 object RestTimerNavigation {
-    const val ACTION_OPEN_RECORD_TARGET = "com.whatyougottatrain.action.OPEN_RECORD_TARGET"
+    const val ACTION_OPEN_RECORD_TARGET = "com.whatyougottado.action.OPEN_RECORD_TARGET"
     const val EXTRA_RECORD_DATE = "rest_timer_record_date"
     const val EXTRA_ENTRY_ID = "rest_timer_entry_id"
     const val EXTRA_SET_ID = "rest_timer_set_id"

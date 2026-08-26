@@ -21,7 +21,7 @@ android {
     buildToolsVersion = "35.0.0"
 
     defaultConfig {
-        applicationId = "com.whatyougottatrain.app"
+        applicationId = "com.whatyougottado.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 501002

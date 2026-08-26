@@ -6658,3 +6658,37 @@ Remaining debt:
   (64,933,567 bytes); `aapt` confirmed version `0.5.1.1 (501001)`.
 - The version bump and release note are intentionally isolated in the final
   release commit. No tag is created unless separately requested.
+
+## 2026-08-26 - Canonical strength posterior, scoped discomfort, and app identity
+
+- Canonical bench press, back squat, conventional deadlift, and weighted
+  pull-up strength-intensity weeks now consume the latest weekly
+  `posteriorMedianKg` from the existing persistent Bayesian summary. These
+  targets never mix in or fall back to Epley; other eligible exercises retain
+  the existing Epley estimate.
+- Daily check-ins now persist one canonical joint-complex stable key. Database
+  version 30 adds the nullable field through `MIGRATION_29_30`; CSV backup and
+  restore preserve it while older rows and backups remain valid with `NULL`.
+- A discomfort score of 4 or 5 applies `CAUTION` or `BLOCK` only to load units
+  belonging to the selected joint complex. Without a valid selection, no
+  tissue score changes and connective-tissue analysis shows an informational
+  global warning instead. A selected location without a discomfort score has
+  no penalty.
+- Connective-tissue safety copy now describes scores as relative training
+  references, not tissue-damage estimates, injury probabilities, or medical
+  diagnoses, and directs users to prioritize actual pain or instability.
+- Project name and display name changed from `WhatYouGottaTrain` to
+  `WhatYouGottaDo`; application ID changed from
+  `com.whatyougottatrain.app` to `com.whatyougottado.app`. The Kotlin namespace
+  remains `com.training.trackplanner`. This application-ID change creates a
+  separate Android app identity and is not an in-place update of installations
+  using the old ID.
+- Version remains `0.5.1.2 / 501002`; this feature work does not bump it.
+- Verification: final `:app:testDebugUnitTest` passed 1,244/1,244;
+  `:app:assembleDebug` and Android-test compilation passed; the focused
+  29-to-30 Room migration test passed 1/1 on `Medium_Phone` AVD; localization
+  audit generation/check and its 10 tests passed; `git diff --check` passed.
+  Running the complete historical migration class also reproduced its existing
+  24-to-25 `single_leg_rdl` versus `dumbbell_single_leg_rdl` expectation
+  mismatch (1 failed, 19 passed, 1 skipped), which is present on the starting
+  main branch and is outside this change.
