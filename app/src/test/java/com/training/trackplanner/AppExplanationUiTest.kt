@@ -119,16 +119,12 @@ class AppExplanationUiTest {
     }
 
     @Test
-    fun principlesRemainScrollableAndHandleMissingBrowserAtCompactAccessibleSize() {
+    fun principlesRemainScrollableWithTheGlobalDocumentationAction() {
         sizedContent(width = 320.dp, height = 640.dp, fontScale = 1.3f) {
-            CalculationPrinciplesScreen(
-                onBack = {},
-                onOpenPublicProtocols = { false }
-            )
+            CalculationPrinciplesScreen(onBack = {})
         }
-        compose.onNode(hasScrollAction()).performScrollToNode(hasText("공개 프로토콜 문서 보기"))
-        compose.onNodeWithText("공개 프로토콜 문서 보기").performClick()
-        compose.onNodeWithText("브라우저를 열 수 없습니다.").assertIsDisplayed()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("전체 문서 보기"))
+        compose.onNodeWithText("전체 문서 보기").assertIsDisplayed()
     }
 
     @Test
@@ -144,10 +140,7 @@ class AppExplanationUiTest {
     @Test
     fun protocolFamiliesAreComplete() {
         sizedContent(width = 360.dp, height = 720.dp) {
-            CalculationPrinciplesScreen(
-                onBack = {},
-                onOpenPublicProtocols = { true }
-            )
+            CalculationPrinciplesScreen(onBack = {})
         }
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("공개하는 주요 프로토콜"))
         protocolFamilies().forEach { family ->

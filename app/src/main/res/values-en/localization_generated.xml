@@ -417,6 +417,7 @@
     <string name="loc_baseline_587066dc74f3">reaction confirmation period</string>
     <string name="loc_baseline_58a7fd0d053e">There is insufficient weekly data available for analysis. At least 8 to 12 weeks of records are required.</string>
     <string name="loc_baseline_58bd07372bf7">Change in strength index next week</string>
+    <string name="loc_baseline_58c9ddb5af48">View all documentation</string>
     <string name="loc_baseline_58cc326767c1">Sleep time was recorded as low.</string>
     <string name="loc_baseline_58e964ffbdad">Heavy lower body</string>
     <string name="loc_baseline_59bb822c98ac">Exploratory VAR compatibility model</string>
@@ -1058,6 +1059,7 @@
     <string name="loc_baseline_e8d0687c01ab">Organization type</string>
     <string name="loc_baseline_e8d29276b380">Performed above expected range.</string>
     <string name="loc_baseline_e8d3eaddee3c">Technical practice</string>
+    <string name="loc_baseline_e96d8f932db2">Learn more</string>
     <string name="loc_baseline_e981df3c1383">saturday</string>
     <string name="loc_baseline_e988b6577208">number</string>
     <string name="loc_baseline_e9fc34624e90">estimated median</string>

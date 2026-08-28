@@ -237,6 +237,10 @@ internal fun ConnectiveTissueAnalysisContent(state: TissueCurrentState?) {
             }
         }
         TissueBaselineProvenanceFooter(ui.provenance)
+        DocumentationAction(
+            url = DocumentationLinks.CONNECTIVE_TISSUE_GUIDE,
+            testTag = "documentation-action-connective-tissue"
+        )
     }
     selectedInfoKey?.let(ui::info)?.let { info ->
         TissueEducationalInfoDialog(

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ class CurrentFatigueStatusCardUiTest {
         compose.onAllNodesWithText("관절/건/충격").assertCountEquals(0)
         compose.onAllNodesWithText("동작·집중").assertCountEquals(0)
         compose.onAllNodesWithText("캡틴체어 레그 레이즈").assertCountEquals(0)
+        compose.onNodeWithTag("documentation-action-ofi").assertExists()
     }
 
     @Test

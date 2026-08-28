@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -87,6 +88,7 @@ class ConnectiveTissueAnalysisUiTest {
         compose.onAllNodes(hasText("lu_internal_stable_key", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("보정 중", substring = true)).assertCountEquals(0)
         compose.onAllNodes(hasText("56일", substring = true)).assertCountEquals(0)
+        compose.onNodeWithTag("documentation-action-connective-tissue").assertExists()
         compose.onAllNodesWithText(
             "이 점수는 훈련 참고용 상대 지표이며 정확한 조직 손상이나 부상 확률, " +
                 "의학적 진단을 뜻하지 않습니다. 통증·불안정감 같은 실제 증상을 우선하세요."

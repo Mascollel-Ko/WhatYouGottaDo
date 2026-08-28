@@ -1,4 +1,6 @@
 korean,english,provenance,sourcePath
+자세히 알아보기,Learn more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/DocumentationLinks.kt
+전체 문서 보기,View all documentation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/DocumentationLinks.kt
 닫기,Close,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt
 RPE 대비 운동량,Training volume relative to RPE,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/AnalysisMetricRegistry.kt
 하체,Lower body,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/lab/MuscleBucketSelection.kt

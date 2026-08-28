@@ -1,8 +1,5 @@
 package com.training.trackplanner
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,21 +22,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -54,9 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 
-internal const val PUBLIC_PROTOCOL_INDEX_URL =
-    "https://github.com/Mascollel-Ko/WhatYouGottaDo/tree/main/docs/protocols"
-
 internal enum class AppInfoRoute(val routeName: String) {
     AppExplanation("app_explanation"),
     AnalysisGuide("analysis_guide"),
@@ -67,17 +55,6 @@ internal enum class AppInfoRoute(val routeName: String) {
             AppExplanation -> null
             AnalysisGuide, CalculationPrinciples -> AppExplanation
         }
-}
-
-internal fun launchPublicProtocolIndex(startActivity: (Intent) -> Unit): Boolean {
-    return try {
-        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PUBLIC_PROTOCOL_INDEX_URL)))
-        true
-    } catch (_: ActivityNotFoundException) {
-        false
-    } catch (_: SecurityException) {
-        false
-    }
 }
 
 @Composable
@@ -206,15 +183,19 @@ internal fun AnalysisGuideScreen(onBack: () -> Unit) {
                 lineHeight = 22.sp
             )
         }
+        item {
+            DocumentationAction(
+                url = DocumentationLinks.ANALYSIS_OVERVIEW,
+                testTag = "documentation-action-analysis-overview"
+            )
+        }
     }
 }
 
 @Composable
 internal fun CalculationPrinciplesScreen(
-    onBack: () -> Unit,
-    onOpenPublicProtocols: () -> Boolean
+    onBack: () -> Unit
 ) {
-    var browserUnavailable by rememberSaveable { mutableStateOf(false) }
     ExplanationScaffold(
         title = stringResource(R.string.calculation_principles_title),
         onBack = onBack
@@ -255,32 +236,11 @@ internal fun CalculationPrinciplesScreen(
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val description = stringResource(R.string.public_protocol_action_description)
-                OutlinedButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .semantics { contentDescription = description },
-                    onClick = {
-                        browserUnavailable = !onOpenPublicProtocols()
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                        contentDescription = null
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.public_protocol_action))
-                }
-                if (browserUnavailable) {
-                    Text(
-                        text = stringResource(R.string.public_protocol_browser_unavailable),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            DocumentationAction(
+                url = DocumentationLinks.HOME,
+                testTag = "documentation-action-home",
+                label = "전체 문서 보기"
+            )
         }
     }
 }

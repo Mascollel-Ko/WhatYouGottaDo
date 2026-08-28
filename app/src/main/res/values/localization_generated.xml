@@ -417,6 +417,7 @@
     <string name="loc_baseline_587066dc74f3">반응 확인 기간</string>
     <string name="loc_baseline_58a7fd0d053e">분석 가능한 주간 데이터가 부족합니다. 최소 8~12주 이상의 기록이 필요합니다.</string>
     <string name="loc_baseline_58bd07372bf7">다음 주 근력 지수의 변화량</string>
+    <string name="loc_baseline_58c9ddb5af48">전체 문서 보기</string>
     <string name="loc_baseline_58cc326767c1">수면 시간이 낮게 기록됐습니다.</string>
     <string name="loc_baseline_58e964ffbdad">고중량 하체</string>
     <string name="loc_baseline_59bb822c98ac">탐색적 VAR 호환 모형</string>
@@ -1058,6 +1059,7 @@
     <string name="loc_baseline_e8d0687c01ab">조직유형</string>
     <string name="loc_baseline_e8d29276b380">예상 범위보다 높게 수행했습니다.</string>
     <string name="loc_baseline_e8d3eaddee3c">기술연습</string>
+    <string name="loc_baseline_e96d8f932db2">자세히 알아보기</string>
     <string name="loc_baseline_e981df3c1383">토</string>
     <string name="loc_baseline_e988b6577208">수</string>
     <string name="loc_baseline_e9fc34624e90">추정 중앙값</string>

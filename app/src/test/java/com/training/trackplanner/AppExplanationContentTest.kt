@@ -106,22 +106,22 @@ class AppExplanationContentTest {
     }
 
     @Test
-    fun publicProtocolIntentUsesOneConfiguredUrl() {
+    fun publicDocumentationIntentUsesConfiguredHomeUrl() {
         var openedIntent: Intent? = null
 
-        assertTrue(launchPublicProtocolIndex { openedIntent = it })
+        assertTrue(launchPublicDocumentation(DocumentationLinks.HOME) { openedIntent = it })
         assertEquals(Intent.ACTION_VIEW, openedIntent?.action)
-        assertEquals(PUBLIC_PROTOCOL_INDEX_URL, openedIntent?.dataString)
+        assertEquals(DocumentationLinks.HOME, openedIntent?.dataString)
         assertEquals(
-            "https://github.com/Mascollel-Ko/WhatYouGottaDo/tree/main/docs/protocols",
-            PUBLIC_PROTOCOL_INDEX_URL
+            "https://github.com/Mascollel-Ko/WhatYouGottaDo-Docs",
+            DocumentationLinks.HOME
         )
     }
 
     @Test
     fun missingBrowserDoesNotCrash() {
         assertFalse(
-            launchPublicProtocolIndex {
+            launchPublicDocumentation(DocumentationLinks.HOME) {
                 throw ActivityNotFoundException("No browser")
             }
         )

@@ -327,6 +327,10 @@ internal fun CurrentFatigueStatusCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+            DocumentationAction(
+                url = DocumentationLinks.OFI_GUIDE,
+                testTag = "documentation-action-ofi"
+            )
         }
     }
 }
@@ -429,6 +433,12 @@ private fun PerformanceDetailSectionView(section: PerformanceDetailSection, summ
         }
         AnalysisChartSpecView(chartSpec)
         Text(section.shortInterpretation, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (section.type == PerformanceDetailSectionType.STRENGTH) {
+            DocumentationAction(
+                url = DocumentationLinks.LAB_STRENGTH_PERFORMANCE_GUIDE,
+                testTag = "documentation-action-lab-strength-performance"
+            )
+        }
     }
 }
 

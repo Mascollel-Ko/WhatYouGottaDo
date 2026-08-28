@@ -195,10 +195,7 @@ internal fun TrainingTrackPlannerApp(
                         onBack = { infoRoute = AppInfoRoute.AppExplanation }
                     )
                     AppInfoRoute.CalculationPrinciples -> CalculationPrinciplesScreen(
-                        onBack = { infoRoute = AppInfoRoute.AppExplanation },
-                        onOpenPublicProtocols = {
-                            launchPublicProtocolIndex(context::startActivity)
-                        }
+                        onBack = { infoRoute = AppInfoRoute.AppExplanation }
                     )
                     null -> when (selectedTab) {
                         AppTab.Home -> HomeScreen(

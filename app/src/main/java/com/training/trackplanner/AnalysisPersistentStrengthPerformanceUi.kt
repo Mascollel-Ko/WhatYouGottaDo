@@ -185,6 +185,10 @@ internal fun PersistentStrengthPerformanceCards(
         onFocused = { targetKey -> focusedTargetKey = targetKey }
     )
     PersistentStrengthHistoryCard(selectedTargets, focusedTarget, displayMode)
+    DocumentationAction(
+        url = DocumentationLinks.STRENGTH_ESTIMATE_GUIDE,
+        testTag = "documentation-action-strength-estimate"
+    )
 }
 
 @Composable

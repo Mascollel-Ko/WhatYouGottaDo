@@ -1990,6 +1990,7 @@ internal object GeneratedLocalizationCatalogue {
         "자세히" to R.string.loc_baseline_949d56d55fcc,
         "자세히 닫기" to R.string.loc_ui_63a09c3913a5,
         "자세히 보기" to R.string.loc_ui_65f53cdc50ff,
+        "자세히 알아보기" to R.string.loc_baseline_e96d8f932db2,
         "자세히에서 진단 코드를 확인한 뒤 다시 시도해 주세요." to R.string.loc_baseline_3f5278c42e6a,
         "작동" to R.string.loc_baseline_5f6d77a987c6,
         "작성 결과 재검증" to R.string.loc_ui_50a701d4c6df,
@@ -2039,10 +2040,10 @@ internal object GeneratedLocalizationCatalogue {
         "전면 코어 부하" to R.string.loc_metadata_7f9247ceb42d,
         "전반적 근력 보조" to R.string.loc_metadata_c54a58605f21,
         "전반적 컨디셔닝 보조" to R.string.loc_metadata_f5b9fff69b0e,
-        "전반적 파워 보조" to R.string.loc_metadata_3ca6d0cb625b,
     )
 
     private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
+        "전반적 파워 보조" to R.string.loc_metadata_3ca6d0cb625b,
         "전술 집중 부하" to R.string.loc_metadata_56e67355aae8,
         "전신" to R.string.loc_ui_4f1e4703afeb,
         "전신 근육" to R.string.loc_baseline_fd799160dcf5,
@@ -2083,6 +2084,7 @@ internal object GeneratedLocalizationCatalogue {
         "전체" to R.string.loc_baseline_5751d60afe68,
         "전체 RPE" to R.string.loc_baseline_b6cb4e8945dd,
         "전체 기록에서 분석 가능한 주간 지표를 준비하고 있습니다." to R.string.loc_baseline_5acaadfe569b,
+        "전체 문서 보기" to R.string.loc_baseline_58c9ddb5af48,
         "전체 선택" to R.string.loc_baseline_9e9b24777593,
         "전체 스트레스 크기" to R.string.loc_baseline_3e18ed7e0871,
         "전체 운동량" to R.string.loc_baseline_d0d24860d9f0,
@@ -2441,11 +2443,11 @@ internal object GeneratedLocalizationCatalogue {
         "캡틴 체어" to R.string.loc_metadata_45c23063ed2c,
         "캡틴체어 레그 레이즈" to R.string.loc_metadata_5dc9695f803a,
         "컨디셔닝" to R.string.loc_metadata_2801461fea62,
-        "컨디셔닝 부하" to R.string.loc_metadata_a81b71d6564e,
-        "컨디셔닝 코어" to R.string.loc_metadata_411fa7ea1eff,
     )
 
     private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
+        "컨디셔닝 부하" to R.string.loc_metadata_a81b71d6564e,
+        "컨디셔닝 코어" to R.string.loc_metadata_411fa7ea1eff,
         "컨디션" to R.string.loc_baseline_7359a8f1927c,
         "컨디션 입력" to R.string.loc_baseline_f37f1b842724,
         "컨센트레이션 컬" to R.string.loc_metadata_9f31d9134f84,
@@ -2844,11 +2846,11 @@ internal object GeneratedLocalizationCatalogue {
         "확인된 배드민턴 연습 시간과 RPE를 반영한 주간 훈련량" to R.string.loc_baseline_2e6b205ed2ed,
         "확인된 배드민턴 연습 시간과 RPE만 사용한 일별 훈련량입니다." to R.string.loc_baseline_0149f1cf4c88,
         "확인된 세트가 쌓이면 코치 분석의 신뢰도가 높아집니다." to R.string.loc_ui_ee365843e598,
-        "확인된 오류 수" to R.string.loc_metadata_375773563650,
-        "확장 기반" to R.string.loc_baseline_7af17b6c17f1,
     )
 
     private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
+        "확인된 오류 수" to R.string.loc_metadata_375773563650,
+        "확장 기반" to R.string.loc_baseline_7af17b6c17f1,
         "활동 종류" to R.string.loc_metadata_ae549080a040,
         "활성" to R.string.loc_ui_b4efb7c7a272,
         "활성 revision \${summary.activeRevisionKey ?:" to R.string.loc_baseline_658d2952235f,

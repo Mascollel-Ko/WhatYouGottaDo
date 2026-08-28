@@ -127,6 +127,12 @@ internal fun BadmintonTransferAnalysisContent(
             )
         }
             ?: InfoCard("배드민턴 연습 훈련량 추세를 계산하고 있습니다.")
+        if (performanceTrend != null) {
+            DocumentationAction(
+                url = DocumentationLinks.BADMINTON_GUIDE,
+                testTag = "documentation-action-badminton"
+            )
+        }
     }
 }
 

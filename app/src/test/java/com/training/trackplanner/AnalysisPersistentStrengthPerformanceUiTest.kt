@@ -42,6 +42,7 @@ class AnalysisPersistentStrengthPerformanceUiTest {
         content { PersistentStrengthPerformanceCards(summary()) }
 
         compose.onNodeWithTag("persistent-strength-capability-card").assertIsDisplayed()
+        compose.onNodeWithTag("documentation-action-strength-estimate").assertExists()
         listOf("벤치프레스", "스쿼트", "데드리프트", "중량 풀업").forEach { label ->
             compose.onNodeWithText(label).assertExists()
         }
@@ -266,6 +267,7 @@ class AnalysisPersistentStrengthPerformanceUiTest {
 
         compose.onNodeWithText("보존된 운동 기록으로 근력 분석을 처음부터 다시 계산하고 있습니다.", substring = true)
             .assertIsDisplayed()
+        compose.onNodeWithTag("documentation-action-strength-estimate").assertDoesNotExist()
     }
 
     private fun content(content: @androidx.compose.runtime.Composable () -> Unit) {
