@@ -2,13 +2,22 @@ package com.training.trackplanner.data
 
 import androidx.room.withTransaction
 import java.time.LocalDate
+import java.time.DateTimeException
 import java.time.format.DateTimeFormatter
+
+data class PlanPushResult(
+    val shiftedEntryCount: Int = 0,
+    val shiftedSetCount: Int = 0
+) {
+    val shifted: Boolean get() = shiftedSetCount > 0
+}
 
 internal class CalendarRecordService(
     private val db: TrainingDatabase,
     private val workoutDao: WorkoutDao,
     private val strengthPosteriorCoordinator: StrengthPosteriorUpdateCoordinator? = null,
-    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
+    private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null,
+    private val beforePlanShiftInsert: suspend (Int) -> Unit = {}
 ) {
     suspend fun calendarConflictSummary(dates: List<String>): CalendarConflictSummary =
         if (dates.isEmpty()) {
@@ -115,6 +124,82 @@ internal class CalendarRecordService(
         }
     }
 
+    suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult {
+        require(dayCount in 1..MAX_PLAN_PUSH_DAYS) { "dayCount must be between 1 and $MAX_PLAN_PUSH_DAYS" }
+        val start = LocalDate.parse(startDate, DateTimeFormatter.ISO_LOCAL_DATE)
+        try {
+            start.plusDays(dayCount.toLong())
+        } catch (error: DateTimeException) {
+            throw IllegalArgumentException("dayCount overflows LocalDate", error)
+        }
+        val snapshot = workoutDao.allEntriesWithSets()
+            .filter { record -> record.entry.date >= startDate && record.sets.any { !it.confirmed } }
+        if (snapshot.isEmpty()) return PlanPushResult()
+
+        val shifted = snapshot.map { record ->
+            val targetDate = try {
+                LocalDate.parse(record.entry.date, DateTimeFormatter.ISO_LOCAL_DATE)
+                    .plusDays(dayCount.toLong())
+                    .format(DateTimeFormatter.ISO_LOCAL_DATE)
+            } catch (error: DateTimeException) {
+                throw IllegalArgumentException("dayCount overflows LocalDate", error)
+            }
+            ShiftedPlan(record, targetDate, record.sets.filterNot(WorkoutSet::confirmed))
+        }
+        val affectedDates = shifted.flatMap { listOf(it.source.entry.date, it.targetDate) }.distinct()
+
+        return mutateDates(affectedDates) {
+            shifted.forEach { item ->
+                item.plannedSets.forEach { workoutDao.deleteSet(it) }
+                val confirmed = item.source.sets.filter(WorkoutSet::confirmed).sortedBy(WorkoutSet::setIndex)
+                if (confirmed.isEmpty()) {
+                    workoutDao.deleteEntryById(item.source.entry.id)
+                } else {
+                    confirmed.forEachIndexed { index, set ->
+                        if (set.setIndex != index + 1) workoutDao.updateSetIndex(set.id, index + 1)
+                    }
+                }
+            }
+
+            var createdAt = nextCreatedAt()
+            var insertIndex = 0
+            shifted.groupBy(ShiftedPlan::targetDate).toSortedMap().forEach { (targetDate, items) ->
+                var displayOrder = workoutDao.entriesWithSets(targetDate)
+                    .maxOfOrNull { it.entry.displayOrder } ?: 0
+                items.sortedWith(compareBy({ it.source.entry.date }, { it.source.entry.createdAt }, { it.source.entry.id }))
+                    .forEach { item ->
+                        beforePlanShiftInsert(insertIndex++)
+                        val sourceHadConfirmed = item.source.sets.any(WorkoutSet::confirmed)
+                        val entryId = workoutDao.insertEntry(
+                            item.source.entry.copy(
+                                id = 0,
+                                date = targetDate,
+                                createdAt = createdAt++,
+                                completedAt = null,
+                                firstConfirmedAt = null,
+                                performedAt = null,
+                                displayOrder = ++displayOrder,
+                                backupSourceId = if (sourceHadConfirmed) {
+                                    workoutSourceIdentityProvider?.newWorkoutSourceId()
+                                } else {
+                                    item.source.entry.backupSourceId
+                                }
+                            )
+                        )
+                        item.plannedSets.sortedBy(WorkoutSet::setIndex).forEachIndexed { index, set ->
+                            workoutDao.insertSet(
+                                set.copy(id = 0, entryId = entryId, setIndex = index + 1, confirmed = false)
+                            )
+                        }
+                    }
+            }
+            PlanPushResult(
+                shiftedEntryCount = shifted.size,
+                shiftedSetCount = shifted.sumOf { it.plannedSets.size }
+            )
+        }
+    }
+
     suspend fun copyDateRangeAsPlan(
         sourceStart: String,
         sourceEnd: String,
@@ -206,7 +291,17 @@ internal class CalendarRecordService(
 
     private fun nextCreatedAt(): Long = System.currentTimeMillis()
 
+    private data class ShiftedPlan(
+        val source: WorkoutEntryWithSets,
+        val targetDate: String,
+        val plannedSets: List<WorkoutSet>
+    )
+
     private suspend fun <T> mutateDates(dates: Collection<String>, mutation: suspend () -> T): T =
         strengthPosteriorCoordinator?.mutateDates(dates, mutation = mutation)
             ?: db.withTransaction { mutation() }
+
+    private companion object {
+        const val MAX_PLAN_PUSH_DAYS = 36_500
+    }
 }

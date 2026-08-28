@@ -64,6 +64,9 @@ internal fun RecordCalendarScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val pushSuccessMessage = localizedUiText("계획을 뒤로 밀었습니다.")
+    val noPlanMessage = localizedUiText("선택한 날짜 이후에 밀 계획이 없습니다.")
+    val pushFailedMessage = localizedUiText("계획을 밀지 못했습니다.")
     var visibleMonth by rememberSaveable(selectedDate) {
         mutableStateOf(YearMonth.from(LocalDate.parse(selectedDate)).toString())
     }
@@ -88,6 +91,7 @@ internal fun RecordCalendarScreen(
     var pendingConflict by remember { mutableStateOf<PendingConflict?>(null) }
     var pendingDelete by remember { mutableStateOf<PendingDelete?>(null) }
     var pendingRangeDelete by remember { mutableStateOf<PendingRangeDelete?>(null) }
+    var pendingPushDate by rememberSaveable { mutableStateOf<String?>(null) }
     var rangeCopy by remember { mutableStateOf<CalendarRangeCopy?>(null) }
     var rangeDelete by remember { mutableStateOf<CalendarRangeDelete?>(null) }
     var programRangeStart by rememberSaveable { mutableStateOf<String?>(null) }
@@ -98,6 +102,7 @@ internal fun RecordCalendarScreen(
             actionMenuDate != null -> actionMenuDate = null
             pendingDelete != null -> pendingDelete = null
             pendingRangeDelete != null -> pendingRangeDelete = null
+            pendingPushDate != null -> pendingPushDate = null
             pendingConflict != null -> pendingConflict = null
             pendingAction != null -> pendingAction = null
             rangeCopy != null -> rangeCopy = null
@@ -124,6 +129,10 @@ internal fun RecordCalendarScreen(
                 pendingAction = CalendarPendingAction(sourceDate, CalendarActionType.Move)
                 actionMenuDate = null
             },
+            onPushPlan = {
+                pendingPushDate = sourceDate
+                actionMenuDate = null
+            },
             onDelete = {
                 val summary = summaryByDate[sourceDate]
                 pendingDelete = PendingDelete(sourceDate, summary)
@@ -144,6 +153,31 @@ internal fun RecordCalendarScreen(
             onSaveAsProgram = {
                 programRangeStart = sourceDate
                 actionMenuDate = null
+            }
+        )
+    }
+
+    pendingPushDate?.let { sourceDate ->
+        PushPlanDialog(
+            sourceDate = sourceDate,
+            onDismiss = { pendingPushDate = null },
+            onConfirm = { dayCount ->
+                viewModel.pushFuturePlan(
+                    startDate = sourceDate,
+                    dayCount = dayCount,
+                    onResult = { result ->
+                        val message = if (result.shifted) {
+                            pushSuccessMessage
+                        } else {
+                            noPlanMessage
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        pendingPushDate = null
+                    },
+                    onError = {
+                        Toast.makeText(context, pushFailedMessage, Toast.LENGTH_LONG).show()
+                    }
+                )
             }
         )
     }
@@ -553,6 +587,7 @@ private fun CalendarActionDialog(
     onCopyPlan: () -> Unit,
     onCopyWithState: () -> Unit,
     onMove: () -> Unit,
+    onPushPlan: () -> Unit,
     onDelete: () -> Unit,
     onRangeCopy: () -> Unit,
     onRangeCopyWithState: () -> Unit,
@@ -572,6 +607,9 @@ private fun CalendarActionDialog(
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onMove) {
                     Text("이동")
+                }
+                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onPushPlan) {
+                    Text("밀기")
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeCopy) {
                     Text("선택복사")
@@ -597,6 +635,46 @@ private fun CalendarActionDialog(
             }
         }
     )
+}
+
+@Composable
+private fun PushPlanDialog(
+    sourceDate: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var dayCountText by rememberSaveable(sourceDate) { mutableStateOf("") }
+    val dayCount = validPlanPushDayCount(sourceDate, dayCountText)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("계획 밀기") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("선택한 날짜부터 이후의 계획을 입력한 일수만큼 뒤로 밉니다. 완료된 운동 기록은 이동하지 않습니다.")
+                OutlinedTextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = dayCountText,
+                    onValueChange = { dayCountText = it },
+                    label = { Text("쉴 일수") },
+                    singleLine = true,
+                    isError = dayCountText.isNotBlank() && dayCount == null
+                )
+            }
+        },
+        confirmButton = {
+            Button(enabled = dayCount != null, onClick = { onConfirm(checkNotNull(dayCount)) }) {
+                Text("밀기")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("취소") }
+        }
+    )
+}
+
+internal fun validPlanPushDayCount(sourceDate: String, value: String): Int? {
+    val count = value.toIntOrNull()?.takeIf { it in 1..36_500 } ?: return null
+    return runCatching { LocalDate.parse(sourceDate).plusDays(count.toLong()) }.getOrNull()?.let { count }
 }
 
 @Composable

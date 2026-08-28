@@ -863,6 +863,11 @@ class TrainingRepository(
         calendarRecordService.moveDate(sourceDate, targetDate, conflictMode)
     }
 
+    suspend fun pushFuturePlan(startDate: String, dayCount: Int): PlanPushResult =
+        withContext(Dispatchers.IO) {
+            calendarRecordService.pushFuturePlan(startDate, dayCount)
+        }
+
     suspend fun copyDateRangeAsPlan(
         sourceStart: String,
         sourceEnd: String,

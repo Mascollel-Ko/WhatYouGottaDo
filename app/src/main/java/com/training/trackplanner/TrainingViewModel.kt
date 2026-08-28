@@ -498,6 +498,22 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun pushFuturePlan(
+        startDate: String,
+        dayCount: Int,
+        onResult: (com.training.trackplanner.data.PlanPushResult) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            runCatching { repository.pushFuturePlan(startDate, dayCount) }
+                .onSuccess {
+                    refreshAnalysisSummaries()
+                    onResult(it)
+                }
+                .onFailure { onError(it.message ?: "계획을 밀지 못했습니다.") }
+        }
+    }
+
     fun deleteDate(date: String) {
         viewModelScope.launch {
             repository.deleteDate(date)
