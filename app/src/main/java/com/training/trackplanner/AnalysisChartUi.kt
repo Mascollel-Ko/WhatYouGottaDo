@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,8 @@ import java.util.Locale
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.hypot
+import kotlin.math.roundToInt
 
 internal data class PlotChartViewport(
     val xMin: Double,
@@ -125,9 +128,198 @@ internal object PlotChartZoomPolicy {
             abs(viewport.yMin - full.yMin) < 1e-9 &&
             abs(viewport.yMax - full.yMax) < 1e-9
 
+    fun bounds(xMin: Double, xMax: Double, yMin: Double, yMax: Double): PlotChartViewport {
+        fun safe(min: Double, max: Double): Pair<Double, Double> =
+            if (min.isFinite() && max.isFinite() && max > min) min to max
+            else (listOf(min, max).firstOrNull(Double::isFinite) ?: 0.0).let { it - 0.5 to it + 0.5 }
+        val x = safe(xMin, xMax)
+        val y = safe(yMin, yMax)
+        return PlotChartViewport(x.first, x.second, y.first, y.second)
+    }
+
     private fun isValid(viewport: PlotChartViewport): Boolean =
         viewport.xMin.isFinite() && viewport.xMax.isFinite() && viewport.xSpan > 0.0 &&
             viewport.yMin.isFinite() && viewport.yMax.isFinite() && viewport.ySpan > 0.0
+}
+
+internal data class ChartInspectionValue(val label: String, val value: Double, val xValue: Double? = null)
+internal data class ChartInspection(val domainLabel: String, val values: List<ChartInspectionValue>)
+internal data class InspectionLabelPlacement(
+    val originalIndex: Int,
+    val desiredY: Float,
+    val placedY: Float
+) {
+    val needsLeaderLine: Boolean get() = abs(desiredY - placedY) > 0.5f
+}
+
+internal fun placeInspectionLabels(
+    desiredYs: List<Float>,
+    top: Float,
+    bottom: Float,
+    minimumGap: Float
+): List<InspectionLabelPlacement> {
+    if (desiredYs.isEmpty() || bottom <= top) return emptyList()
+    val sorted = desiredYs.withIndex().sortedWith(compareBy({ it.value }, { it.index }))
+    val placed = FloatArray(sorted.size)
+    sorted.forEachIndexed { index, item ->
+        placed[index] = max(item.value.coerceIn(top, bottom), if (index == 0) top else placed[index - 1] + minimumGap)
+    }
+
+    if (placed.last() > bottom) {
+        placed[placed.lastIndex] = bottom
+        for (index in placed.lastIndex - 1 downTo 0) {
+            placed[index] = minOf(placed[index], placed[index + 1] - minimumGap)
+        }
+    }
+    if (placed.first() < top) {
+        placed[0] = top
+        for (index in 1..placed.lastIndex) placed[index] = max(placed[index], placed[index - 1] + minimumGap)
+    }
+    return sorted.mapIndexed { index, item ->
+        InspectionLabelPlacement(item.index, item.value, placed[index].coerceIn(top, bottom))
+    }.sortedBy(InspectionLabelPlacement::originalIndex)
+}
+
+private fun Modifier.cartesianChartGestures(
+    fullViewport: PlotChartViewport,
+    viewport: PlotChartViewport,
+    onViewportChange: (PlotChartViewport) -> Unit,
+    onInspect: (Offset) -> Unit
+): Modifier = testTag("analysis-cartesian-chart")
+    .pointerInput(fullViewport) {
+        awaitEachGesture {
+            do {
+                val event = awaitPointerEvent()
+                if (event.changes.count { it.pressed } >= 2) {
+                    val scale = event.calculateZoom()
+                    val centroid = event.calculateCentroid(useCurrent = true)
+                    val pan = event.calculatePan()
+                    if (scale != 1f || pan.x != 0f || pan.y != 0f) {
+                        onViewportChange(
+                            PlotChartZoomPolicy.update(
+                                viewport, fullViewport, scale,
+                                centroid.x.toDouble() / size.width.coerceAtLeast(1),
+                                centroid.y.toDouble() / size.height.coerceAtLeast(1),
+                                pan.x.toDouble() / size.width.coerceAtLeast(1),
+                                pan.y.toDouble() / size.height.coerceAtLeast(1)
+                            )
+                        )
+                        event.changes.forEach { it.consume() }
+                    }
+                }
+            } while (event.changes.any { it.pressed })
+        }
+    }
+    .pointerInput(fullViewport, viewport) {
+        detectTapGestures(onLongPress = { offset ->
+            onInspect(
+                Offset(
+                    offset.x / size.width.coerceAtLeast(1),
+                    offset.y / size.height.coerceAtLeast(1)
+                )
+            )
+        })
+    }
+
+@Composable
+private fun ChartInspectionPanel(inspection: ChartInspection?, unit: String?) {
+    inspection ?: return
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("chart-value-inspection"),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(localizedUiText(inspection.domainLabel), style = MaterialTheme.typography.labelMedium)
+            inspection.values.forEach { item ->
+                val xPrefix = item.xValue?.let { "x ${formatAnalysisValue(it)} · " }.orEmpty()
+                Text(
+                    "$xPrefix${localizedUiText(item.label)} ${formatInspectionValue(item.value, unit)}",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
+private fun formatInspectionValue(value: Double, unit: String?): String {
+    val number = if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
+    return if (unit.isNullOrBlank()) number else "$number $unit"
+}
+
+internal fun inspectLineChart(
+    spec: ChartSpec,
+    domain: List<LocalDate>,
+    viewport: PlotChartViewport,
+    xFraction: Double
+): ChartInspection? {
+    if (domain.isEmpty()) return null
+    val index = viewport.xAtFraction(xFraction).roundToInt().coerceIn(0, domain.lastIndex)
+    if (index.toDouble() !in viewport.xMin..viewport.xMax) return null
+    val date = domain[index]
+    val values = spec.lineSeries.mapNotNull { series ->
+        series.points.firstOrNull { it.weekStart == date }?.value?.takeIf(Double::isFinite)
+            ?.let { ChartInspectionValue(series.label, it) }
+    }
+    if (values.isEmpty()) return null
+    val label = spec.timeGranularity?.let { AnalysisChartTemporalPolicy.detailLabel(date, it, domain) }
+        ?: date.toString()
+    return ChartInspection(label, values)
+}
+
+internal fun inspectStackedAreaChart(
+    spec: ChartSpec,
+    domain: List<LocalDate>,
+    viewport: PlotChartViewport,
+    xFraction: Double
+): ChartInspection? {
+    if (domain.isEmpty()) return null
+    val index = viewport.xAtFraction(xFraction).roundToInt().coerceIn(0, domain.lastIndex)
+    val date = domain[index]
+    val values = spec.stackedAreaLayers.mapNotNull { layer ->
+        layer.points.firstOrNull { it.weekStart == date }?.value?.takeIf(Double::isFinite)
+            ?.let { ChartInspectionValue(layer.label, it) }
+    }
+    if (values.isEmpty()) return null
+    val label = spec.timeGranularity?.let { AnalysisChartTemporalPolicy.detailLabel(date, it, domain) }
+        ?: date.toString()
+    return ChartInspection(label, values)
+}
+
+internal fun inspectStackedBarChart(
+    spec: ChartSpec,
+    groups: List<com.training.trackplanner.analysis.trends.StackedBarGroup>,
+    domain: List<LocalDate>,
+    viewport: PlotChartViewport,
+    xFraction: Double
+): ChartInspection? {
+    if (groups.isEmpty()) return null
+    val domainIndex = domain.withIndex().associate { it.value to it.index }
+    val targetIndex = viewport.xAtFraction(xFraction).roundToInt()
+    val group = groups.minByOrNull { group ->
+        abs((group.weekStart?.let(domainIndex::get) ?: groups.indexOf(group)) - targetIndex)
+    } ?: return null
+    val label = group.weekStart?.let { date ->
+        spec.timeGranularity?.let { AnalysisChartTemporalPolicy.detailLabel(date, it, domain) }
+    } ?: group.label
+    return ChartInspection(label, group.segments.map { ChartInspectionValue(it.label, it.value) })
+}
+
+internal fun inspectScatterChart(
+    spec: ChartSpec,
+    viewport: PlotChartViewport,
+    xFraction: Double,
+    yFraction: Double
+): ChartInspection? {
+    val point = spec.scatterPoints.asSequence()
+        .filter { it.x in viewport.xMin..viewport.xMax && it.y in viewport.yMin..viewport.yMax }
+        .minByOrNull {
+            hypot(
+                (it.x - viewport.xMin) / viewport.xSpan - xFraction,
+                1.0 - (it.y - viewport.yMin) / viewport.ySpan - yFraction
+            )
+        } ?: return null
+    return ChartInspection(point.label, listOf(ChartInspectionValue("Y", point.y, point.x)))
 }
 
 @Composable
@@ -158,6 +350,9 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
     }
     val maxTotal = domain.maxOf { date -> valuesByLayer.sumOf { values -> values[date] ?: 0.0 } }
         .coerceAtLeast(1.0)
+    val fullViewport = PlotChartZoomPolicy.auto(domain.size, 0.0, maxTotal)
+    var viewport by remember(spec) { mutableStateOf(fullViewport) }
+    var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
     val colors = analysisChartPalette()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
     val accessibility = localizedAnalysisChartContentDescription(spec)
@@ -165,18 +360,26 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
         modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = accessibility },
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Canvas(modifier = modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = modifier.fillMaxWidth().cartesianChartGestures(
+                fullViewport,
+                viewport,
+                onViewportChange = { viewport = it; inspection = null },
+                onInspect = { point -> inspection = inspectStackedAreaChart(spec, domain, viewport, point.x.toDouble()) }
+            )
+        ) {
             repeat(3) { index ->
                 val y = size.height * (index + 1) / 4f
                 drawLine(gridColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
             }
             fun xAt(index: Int): Float =
-                if (domain.size <= 1) size.width / 2f else size.width * index / domain.lastIndex
+                (size.width * ((index - viewport.xMin) / viewport.xSpan)).toFloat()
             fun yAt(value: Double): Float =
-                (size.height - size.height * (value / maxTotal).coerceIn(0.0, 1.0)).toFloat()
+                (size.height - size.height * ((value - viewport.yMin) / viewport.ySpan)).toFloat()
 
-            val lowerByDate = DoubleArray(domain.size)
-            layers.forEachIndexed { layerIndex, _ ->
+            clipRect {
+              val lowerByDate = DoubleArray(domain.size)
+              layers.forEachIndexed { layerIndex, _ ->
                 val upperByDate = DoubleArray(domain.size) { index ->
                     lowerByDate[index] + (valuesByLayer[layerIndex][domain[index]] ?: 0.0)
                 }
@@ -200,9 +403,16 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
                 }
                 drawPath(boundary, color, style = Stroke(width = 3f))
                 upperByDate.copyInto(lowerByDate)
+              }
             }
         }
-        spec.timeGranularity?.let { AnalysisTimeAxisLabels(domain, it) }
+        spec.timeGranularity?.let { AnalysisTimeAxisLabels(domain, it, viewport) }
+        ChartInspectionPanel(inspection, spec.valueUnit)
+        if (!PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { viewport = fullViewport; inspection = null }) { Text("축 맞춤") }
+            }
+        }
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -254,7 +464,8 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         yMax = spec.yMax ?: ((allValues.maxOrNull() ?: 160.0).coerceAtLeast(100.0) + 8.0)
     )
     var viewport by remember(spec) { mutableStateOf(fullViewport) }
-    val visibleViewport = if (spec.enablePlotZoom) viewport else fullViewport
+    var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
+    val visibleViewport = viewport
     val min = visibleViewport.yMin
     val max = visibleViewport.yMax
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
@@ -265,36 +476,20 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
         },
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        val zoomModifier = if (spec.enablePlotZoom) {
-            Modifier
-                .testTag("persistent-strength-plot-zoom-chart")
-                .pointerInput(fullViewport) {
-                    awaitEachGesture {
-                        do {
-                            val event = awaitPointerEvent()
-                            if (event.changes.count { change -> change.pressed } >= 2) {
-                                val scale = event.calculateZoom()
-                                val centroid = event.calculateCentroid(useCurrent = true)
-                                val pan = event.calculatePan()
-                                if (scale != 1f || pan.x != 0f || pan.y != 0f) {
-                                    viewport = PlotChartZoomPolicy.update(
-                                        current = viewport,
-                                        full = fullViewport,
-                                        gestureScale = scale,
-                                        focalXFraction = centroid.x.toDouble() / size.width.coerceAtLeast(1),
-                                        focalYFraction = centroid.y.toDouble() / size.height.coerceAtLeast(1),
-                                        panXFraction = pan.x.toDouble() / size.width.coerceAtLeast(1),
-                                        panYFraction = pan.y.toDouble() / size.height.coerceAtLeast(1)
-                                    )
-                                    event.changes.forEach { change -> change.consume() }
-                                }
-                            }
-                        } while (event.changes.any { change -> change.pressed })
-                    }
-                }
-        } else {
-            Modifier
-        }
+        val zoomModifier = Modifier.cartesianChartGestures(
+            fullViewport = fullViewport,
+            viewport = viewport,
+            onViewportChange = {
+                viewport = it
+                inspection = null
+            },
+            onInspect = { offset ->
+                inspection = inspectLineChart(
+                    spec, domain, viewport,
+                    offset.x.toDouble()
+                )
+            }
+        )
         Canvas(modifier = modifier.fillMaxWidth().then(zoomModifier)) {
             repeat(3) { index ->
                 val y = size.height * (index + 1) / 4f
@@ -393,10 +588,11 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
             AnalysisTimeAxisLabels(
                 domain = domain,
                 granularity = granularity,
-                xViewport = visibleViewport.takeIf { spec.enablePlotZoom }
+                xViewport = visibleViewport
             )
         }
-        if (spec.enablePlotZoom && !PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
+        ChartInspectionPanel(inspection, spec.valueUnit)
+        if (!PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
@@ -439,6 +635,10 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
     val maxTotal = groups.maxOf { group -> group.segments.sumOf { it.value } }.coerceAtLeast(1.0)
     val domain = AnalysisChartTemporalPolicy.domain(spec)
     val domainIndex = domain.withIndex().associate { (index, date) -> date to index }
+    val slotCount = if (domain.isNotEmpty()) domain.size else groups.size
+    val fullViewport = PlotChartZoomPolicy.auto(slotCount, 0.0, maxTotal)
+    var viewport by remember(spec) { mutableStateOf(fullViewport) }
+    var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
     val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
         modifier = Modifier.semantics(mergeDescendants = true) {
@@ -446,29 +646,47 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
         },
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Canvas(modifier = modifier.fillMaxWidth()) {
-            val slotCount = if (domain.isNotEmpty()) domain.size else groups.size
-            val slot = size.width / slotCount.coerceAtLeast(1)
+        Canvas(
+            modifier = modifier.fillMaxWidth().cartesianChartGestures(
+                fullViewport,
+                viewport,
+                onViewportChange = { viewport = it; inspection = null },
+                onInspect = { point ->
+                    inspection = inspectStackedBarChart(spec, groups, domain, viewport, point.x.toDouble())
+                }
+            )
+        ) {
+            val slot = size.width / viewport.xSpan.coerceAtLeast(1.0).toFloat()
             val barWidth = slot * 0.62f
-            groups.forEachIndexed { groupIndex, group ->
+            clipRect {
+              groups.forEachIndexed { groupIndex, group ->
                 val index = group.weekStart?.let(domainIndex::get) ?: groupIndex
-                var bottom = size.height
+                val centerX = (size.width * ((index - viewport.xMin) / viewport.xSpan)).toFloat()
+                var cumulative = 0.0
                 group.segments.forEach { segment ->
-                    val height = (size.height * (segment.value / maxTotal)).toFloat()
+                    val lowerY = size.height - size.height * ((cumulative - viewport.yMin) / viewport.ySpan).toFloat()
+                    cumulative += segment.value
+                    val upperY = size.height - size.height * ((cumulative - viewport.yMin) / viewport.ySpan).toFloat()
                     val colorIndex = segment.colorIndex ?: labels.indexOf(segment.label).coerceAtLeast(0)
                     val color = segment.colorKey?.let { Color(BadmintonTransferColorPalette.colorForKey(it)) }
                         ?: colors[colorIndex % colors.size]
                     drawRect(
                         color = color,
-                        topLeft = Offset(index * slot + (slot - barWidth) / 2f, bottom - height),
-                        size = Size(barWidth, height)
+                        topLeft = Offset(centerX - barWidth / 2f, upperY),
+                        size = Size(barWidth, lowerY - upperY)
                     )
-                    bottom -= height
                 }
+              }
             }
         }
         spec.timeGranularity?.let { granularity ->
-            AnalysisTimeAxisLabels(domain, granularity)
+            AnalysisTimeAxisLabels(domain, granularity, viewport)
+        }
+        ChartInspectionPanel(inspection, spec.valueUnit)
+        if (!PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { viewport = fullViewport; inspection = null }) { Text("축 맞춤") }
+            }
         }
         if (spec.wrapStackedBarLegend) {
             FlowRow(
@@ -688,22 +906,44 @@ private fun AnalysisScatterChart(spec: ChartSpec, modifier: Modifier = Modifier)
     val maxX = points.maxOf { it.x }
     val minY = points.minOf { it.y }
     val maxY = points.maxOf { it.y }
-    Canvas(modifier = modifier.fillMaxWidth()) {
-        repeat(3) { index ->
-            val position = (index + 1) / 4f
-            drawLine(gridColor, Offset(size.width * position, 0f), Offset(size.width * position, size.height))
-            drawLine(gridColor, Offset(0f, size.height * position), Offset(size.width, size.height * position))
-        }
-        points.forEach { point ->
-            val xRatio = if (abs(maxX - minX) < 0.001) 0.5 else (point.x - minX) / (maxX - minX)
-            val yRatio = if (abs(maxY - minY) < 0.001) 0.5 else (point.y - minY) / (maxY - minY)
+    val fullViewport = PlotChartZoomPolicy.bounds(minX, maxX, minY, maxY)
+    var viewport by remember(spec) { mutableStateOf(fullViewport) }
+    var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      Canvas(
+        modifier = modifier.fillMaxWidth().cartesianChartGestures(
+            fullViewport,
+            viewport,
+            onViewportChange = { viewport = it; inspection = null },
+            onInspect = { point ->
+                inspection = inspectScatterChart(spec, viewport, point.x.toDouble(), point.y.toDouble())
+            }
+        )
+      ) {
+        clipRect {
+          repeat(3) { index ->
+              val position = (index + 1) / 4f
+              drawLine(gridColor, Offset(size.width * position, 0f), Offset(size.width * position, size.height))
+              drawLine(gridColor, Offset(0f, size.height * position), Offset(size.width, size.height * position))
+          }
+          points.forEach { point ->
+            val xRatio = (point.x - viewport.xMin) / viewport.xSpan
+            val yRatio = (point.y - viewport.yMin) / viewport.ySpan
             drawCircle(
                 color = pointColor,
                 radius = 5f,
                 center = Offset((size.width * xRatio).toFloat(), (size.height - size.height * yRatio).toFloat())
             )
+          }
         }
-    }
+      }
+      ChartInspectionPanel(inspection, spec.valueUnit)
+      if (!PlotChartZoomPolicy.isAuto(viewport, fullViewport)) {
+          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+              TextButton(onClick = { viewport = fullViewport; inspection = null }) { Text("축 맞춤") }
+          }
+      }
+   }
 }
 
 @Composable

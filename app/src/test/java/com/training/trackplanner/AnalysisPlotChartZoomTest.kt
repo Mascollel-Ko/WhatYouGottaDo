@@ -12,12 +12,17 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.trends.ChartSeries
 import com.training.trackplanner.analysis.trends.ChartSpec
 import com.training.trackplanner.analysis.trends.ChartTimeGranularity
 import com.training.trackplanner.analysis.trends.ChartType
+import com.training.trackplanner.analysis.trends.ScatterPoint
+import com.training.trackplanner.analysis.trends.StackedAreaLayer
+import com.training.trackplanner.analysis.trends.StackedBarGroup
+import com.training.trackplanner.analysis.trends.StackedBarSegment
 import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.io.File
@@ -110,6 +115,72 @@ class AnalysisPlotChartZoomTest {
     }
 
     @Test
+    fun inspectionUsesActualNearestDomainScatterAndStackedValues() {
+        val dates = (0L..2L).map { LocalDate.of(2026, 8, 29).plusDays(it) }
+        val viewport = PlotChartZoomPolicy.auto(3, 0.0, 250.0)
+        val line = ChartSpec(
+            ChartType.LINE,
+            "line",
+            lineSeries = listOf(
+                ChartSeries("Squat", dates.mapIndexed { index, date -> TrendDataPoint(date, 170.0 + index) }),
+                ChartSeries("Deadlift", listOf(TrendDataPoint(dates[1], 211.7)))
+            ),
+            timeGranularity = ChartTimeGranularity.DAILY,
+            valueUnit = "kg"
+        )
+        val lineInspection = requireNotNull(inspectLineChart(line, dates, viewport, 0.55))
+        assertEquals(listOf(171.0, 211.7), lineInspection.values.map { it.value })
+
+        val stacked = ChartSpec(
+            ChartType.STACKED_BAR,
+            "stacked",
+            stackedBars = listOf(
+                StackedBarGroup("day", listOf(StackedBarSegment("Strength", 3.0), StackedBarSegment("Court", 2.0)), dates[1])
+            ),
+            timeGranularity = ChartTimeGranularity.DAILY
+        )
+        assertEquals(listOf(3.0, 2.0), inspectStackedBarChart(stacked, stacked.stackedBars, dates, viewport, 0.5)?.values?.map { it.value })
+
+        val scatter = ChartSpec(
+            ChartType.SCATTER,
+            "scatter",
+            scatterPoints = listOf(ScatterPoint(1.0, 10.0, "A"), ScatterPoint(9.0, 90.0, "B"))
+        )
+        val scatterViewport = PlotChartZoomPolicy.bounds(0.0, 10.0, 0.0, 100.0)
+        val scatterInspection = requireNotNull(inspectScatterChart(scatter, scatterViewport, 0.88, 0.12))
+        assertEquals("B", scatterInspection.domainLabel)
+        assertEquals(9.0, scatterInspection.values.single().xValue!!, 0.0)
+        assertEquals(90.0, scatterInspection.values.single().value, 0.0)
+
+        val area = line.copy(
+            type = ChartType.STACKED_AREA,
+            lineSeries = emptyList(),
+            stackedAreaLayers = listOf(StackedAreaLayer("Load", listOf(TrendDataPoint(dates[1], 4.5))))
+        )
+        assertEquals(4.5, inspectStackedAreaChart(area, dates, viewport, 0.5)?.values?.single()?.value!!, 0.0)
+    }
+
+    @Test
+    fun collisionPlacementIsBoundedSeparatedStableAndKeepsTrueTargets() {
+        val cases = listOf(
+            listOf(50f, 50f),
+            listOf(48f, 49f, 50f, 51f),
+            listOf(0f, 1f, 2f),
+            listOf(98f, 99f, 100f),
+            List(12) { 50f }
+        )
+        cases.forEach { desired ->
+            val first = placeInspectionLabels(desired, 0f, 110f, 8f)
+            val second = placeInspectionLabels(desired, 0f, 110f, 8f)
+            assertEquals(first, second)
+            assertEquals(desired, first.sortedBy { it.originalIndex }.map { it.desiredY })
+            assertTrue(first.all { it.placedY in 0f..110f })
+            val sorted = first.sortedBy { it.placedY }
+            assertTrue(sorted.zipWithNext().all { (a, b) -> b.placedY - a.placedY >= 7.99f })
+        }
+    }
+
+    @Test
     fun persistentStrengthChartShowsResetOnlyAfterTwoDimensionalPinch() {
         val dates = (0L..2L).map { LocalDate.of(2026, 8, 1).plusDays(it) }
         val spec = ChartSpec(
@@ -138,7 +209,7 @@ class AnalysisPlotChartZoomTest {
         }
 
         compose.onNodeWithText("축 맞춤").assertDoesNotExist()
-        compose.onNodeWithTag("persistent-strength-plot-zoom-chart", useUnmergedTree = true).performTouchInput {
+        compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true).performTouchInput {
             pinch(
                 start0 = Offset(centerX - 20f, centerY - 20f),
                 end0 = Offset(centerX - 70f, centerY - 70f),
@@ -149,6 +220,8 @@ class AnalysisPlotChartZoomTest {
         compose.onNodeWithText("확대됨").assertIsDisplayed()
         compose.onNodeWithText("축 맞춤").assertIsDisplayed().performClick()
         compose.onNodeWithText("축 맞춤").assertDoesNotExist()
+        compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true).performTouchInput { longClick() }
+        compose.onNodeWithText("벤치프레스 91 kg").assertIsDisplayed()
     }
 
     @Test
@@ -166,11 +239,13 @@ class AnalysisPlotChartZoomTest {
 
         val chartSource = source("AnalysisChartUi.kt")
         val strengthSource = source("AnalysisPersistentStrengthPerformanceUi.kt")
-        assertTrue(chartSource.contains("count { change -> change.pressed } >= 2"))
+        assertTrue(chartSource.contains("count { it.pressed } >= 2"))
         assertTrue(chartSource.contains("clipRect(left = 0f"))
         assertTrue(chartSource.contains("radius = 4f"))
         assertTrue(chartSource.contains("Stroke(width = 4f)"))
         assertFalse(chartSource.contains("graphicsLayer"))
+        assertFalse(chartSource.contains("persistent-strength-plot-zoom-chart"))
+        assertTrue(chartSource.split("cartesianChartGestures(").size - 1 >= 5)
         assertTrue(strengthSource.contains("enablePlotZoom = true"))
         assertFalse(strengthSource.contains("enableVerticalZoom"))
     }
