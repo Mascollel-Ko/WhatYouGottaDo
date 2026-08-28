@@ -27,8 +27,8 @@ class RestTimerNotifier(private val context: Context) {
         notificationManager.notify(
             NOTIFICATION_ID,
             baseBuilder(state)
-                .setContentTitle("휴식 중")
-                .setContentText("${formatSeconds(state.remainingSeconds)} 남음 · ${state.nextHint}")
+                .setContentTitle(restTimerNotificationTitle(context, state))
+                .setContentText(restTimerNotificationText(context, state))
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .build()
@@ -40,8 +40,8 @@ class RestTimerNotifier(private val context: Context) {
         notificationManager.notify(
             NOTIFICATION_ID,
             baseBuilder(state)
-                .setContentTitle("휴식 종료")
-                .setContentText(state.nextHint.ifBlank { "${state.exerciseName} 다음 세트를 준비하세요." })
+                .setContentTitle(restTimerNotificationTitle(context, state))
+                .setContentText(restTimerNotificationText(context, state))
                 .setOngoing(false)
                 .setDefaults(Notification.DEFAULT_SOUND)
                 .build()
@@ -56,10 +56,10 @@ class RestTimerNotifier(private val context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "휴게 타이머",
+            context.getString(R.string.rest_timer_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "세트 사이 휴식 종료를 알려줍니다."
+            description = context.getString(R.string.rest_timer_channel_description)
         }
         notificationManager.createNotificationChannel(channel)
     }
@@ -89,3 +89,21 @@ class RestTimerNotifier(private val context: Context) {
         const val NOTIFICATION_ID = 2601
     }
 }
+
+internal fun restTimerNotificationTitle(context: Context, state: RestTimerState): String =
+    context.getString(if (state.isFinished) R.string.rest_timer_finished else R.string.rest_timer_running)
+
+internal fun restTimerNotificationText(context: Context, state: RestTimerState): String =
+    if (state.isFinished) {
+        state.takeIf { it.hasNextTarget }?.let { RestTimerPresentation.nextSetHint(context, it) }
+            ?: context.getString(
+                R.string.rest_timer_finished_notification,
+                RestTimerPresentation.exerciseName(context, state)
+            )
+    } else {
+        context.getString(
+            R.string.rest_timer_running_notification,
+            formatRestTimerClock(state.remainingSeconds),
+            RestTimerPresentation.nextSetHint(context, state)
+        )
+    }

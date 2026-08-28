@@ -304,8 +304,9 @@ internal fun WorkoutEntryCard(
                         onStartRestTimer = { confirmedSet, effectiveRestSeconds ->
                             restTimerSessionController.start(
                                 durationSeconds = effectiveRestSeconds,
-                                exerciseName = exerciseDisplayName,
-                                nextHint = nextRestHint(exerciseDisplayName, sets, confirmedSet),
+                                exerciseStableKey = entry.exerciseStableKey,
+                                storedExerciseName = entry.exerciseName,
+                                nextSetNumber = nextRestSetNumber(sets, confirmedSet),
                                 targetRecordDate = selectedDate,
                                 targetEntryId = entry.id,
                                 targetSetId = confirmedSet.id
@@ -480,17 +481,12 @@ private fun planSummary(sets: List<WorkoutSet>, showWeight: Boolean): String {
     }.joinToString(" · ")
 }
 
-private fun nextRestHint(
-    exerciseName: String,
+private fun nextRestSetNumber(
     sets: List<WorkoutSet>,
     currentSet: WorkoutSet
-): String {
+): Int? {
     val nextSet = sets.firstOrNull {
         it.setIndex > currentSet.setIndex && !it.confirmed
     }
-    return if (nextSet != null) {
-        "$exerciseName ${nextSet.setIndex}세트 준비"
-    } else {
-        ""
-    }
+    return nextSet?.setIndex
 }

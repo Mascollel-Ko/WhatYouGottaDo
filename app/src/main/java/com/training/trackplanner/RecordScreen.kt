@@ -43,6 +43,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -404,8 +405,9 @@ private fun RecordDailyConditionCard(
                     onClick = { showEditor = true }
                 ) {
                     Text(
-                        checkIn?.compactSummary()?.let { summary -> "컨디션 · $summary" }
-                            ?: "컨디션 입력",
+                        checkIn?.compactSummary()?.let { summary ->
+                            stringResource(R.string.record_condition_summary, summary)
+                        } ?: stringResource(R.string.record_condition_add),
                         maxLines = 1,
                         softWrap = false
                     )
@@ -413,7 +415,7 @@ private fun RecordDailyConditionCard(
                 Button(
                     onClick = onAddExercise
                 ) {
-                    Text("운동 추가", maxLines = 1, softWrap = false)
+                    Text(stringResource(R.string.record_add_exercise), maxLines = 1, softWrap = false)
                 }
             }
         }

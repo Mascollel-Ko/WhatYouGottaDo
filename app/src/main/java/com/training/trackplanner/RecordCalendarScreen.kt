@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -64,9 +65,9 @@ internal fun RecordCalendarScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val pushSuccessMessage = localizedUiText("계획을 뒤로 밀었습니다.")
-    val noPlanMessage = localizedUiText("선택한 날짜 이후에 밀 계획이 없습니다.")
-    val pushFailedMessage = localizedUiText("계획을 밀지 못했습니다.")
+    val pushSuccessMessage = stringResource(R.string.record_push_plan_success)
+    val noPlanMessage = stringResource(R.string.record_push_plan_empty)
+    val pushFailedMessage = stringResource(R.string.record_push_plan_failed)
     var visibleMonth by rememberSaveable(selectedDate) {
         mutableStateOf(YearMonth.from(LocalDate.parse(selectedDate)).toString())
     }
@@ -609,7 +610,7 @@ private fun CalendarActionDialog(
                     Text("이동")
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onPushPlan) {
-                    Text("밀기")
+                    Text(stringResource(R.string.record_push_plan_action))
                 }
                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onRangeCopy) {
                     Text("선택복사")
@@ -647,15 +648,15 @@ private fun PushPlanDialog(
     val dayCount = validPlanPushDayCount(sourceDate, dayCountText)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("계획 밀기") },
+        title = { Text(stringResource(R.string.record_push_plan_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("선택한 날짜부터 이후의 계획을 입력한 일수만큼 뒤로 밉니다. 완료된 운동 기록은 이동하지 않습니다.")
+                Text(stringResource(R.string.record_push_plan_description))
                 OutlinedTextField(
                     modifier = Modifier.fillMaxWidth(),
                     value = dayCountText,
                     onValueChange = { dayCountText = it },
-                    label = { Text("쉴 일수") },
+                    label = { Text(stringResource(R.string.record_push_plan_days)) },
                     singleLine = true,
                     isError = dayCountText.isNotBlank() && dayCount == null
                 )
@@ -663,11 +664,11 @@ private fun PushPlanDialog(
         },
         confirmButton = {
             Button(enabled = dayCount != null, onClick = { onConfirm(checkNotNull(dayCount)) }) {
-                Text("밀기")
+                Text(stringResource(R.string.record_push_plan_action))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("취소") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.daily_condition_cancel)) }
         }
     )
 }

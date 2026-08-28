@@ -12,7 +12,6 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import com.training.trackplanner.localization.LocalizedPresentation
 import kotlin.math.abs
 
 class RestTimerOverlayController(private val context: Context) {
@@ -162,7 +161,7 @@ class RestTimerOverlayController(private val context: Context) {
     private fun showDeleteTarget() {
         if (deleteTargetView != null || !canDrawOverlays()) return
         val deleteView = TextView(context).apply {
-            text = LocalizedPresentation.uiText(context, "삭제")
+            text = context.getString(R.string.rest_timer_delete)
             textSize = 15f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
@@ -225,16 +224,8 @@ class RestTimerOverlayController(private val context: Context) {
 }
 
 internal fun restTimerOverlayTimeText(context: Context, state: RestTimerState): String =
-    if (state.isFinished) LocalizedPresentation.uiText(context, "휴식 종료")
+    if (state.isFinished) context.getString(R.string.rest_timer_finished)
     else context.getString(R.string.seconds_short, state.remainingSeconds)
 
-internal fun restTimerOverlayHintText(context: Context, state: RestTimerState): String {
-    val source = state.nextHint.ifBlank { state.exerciseName }
-    val match = Regex("""^(.+)\s+(\d+)세트 준비$""").matchEntire(source)
-        ?: return LocalizedPresentation.uiText(context, source)
-    return context.getString(
-        R.string.rest_timer_overlay_next_set,
-        LocalizedPresentation.uiText(context, match.groupValues[1]),
-        match.groupValues[2].toInt()
-    )
-}
+internal fun restTimerOverlayHintText(context: Context, state: RestTimerState): String =
+    RestTimerPresentation.nextSetHint(context, state)

@@ -510,7 +510,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     refreshAnalysisSummaries()
                     onResult(it)
                 }
-                .onFailure { onError(it.message ?: "계획을 밀지 못했습니다.") }
+                .onFailure { onError(it.message.orEmpty()) }
         }
     }
 

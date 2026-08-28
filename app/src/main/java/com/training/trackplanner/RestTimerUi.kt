@@ -27,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,6 +65,8 @@ internal fun RestTimerForegroundBar(
     onOpenTarget: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val nextHint = RestTimerPresentation.nextSetHint(context, state)
     val emphasized = RestTimerForegroundBarPolicy.emphasized(state)
     val containerColor = when {
         emphasized -> MaterialTheme.colorScheme.errorContainer
@@ -96,16 +100,16 @@ internal fun RestTimerForegroundBar(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (state.isFinished) {
-                            "휴식 종료"
+                            stringResource(R.string.rest_timer_finished)
                         } else {
-                            "휴식 ${formatRestTimerClock(state.remainingSeconds)}"
+                            stringResource(R.string.rest_timer_foreground_running, formatRestTimerClock(state.remainingSeconds))
                         },
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
                     Text(
-                        text = "다음: ${state.nextHint.ifBlank { state.exerciseName }}",
+                        text = stringResource(R.string.rest_timer_next, nextHint),
                         style = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -117,7 +121,7 @@ internal fun RestTimerForegroundBar(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "휴식 타이머 바 숨기기"
+                        contentDescription = stringResource(R.string.rest_timer_hide)
                     )
                 }
             }
@@ -150,6 +154,7 @@ internal fun RestTimerMiniBar(
     onStop: () -> Unit
 ) {
     if (!state.isActive) return
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -171,18 +176,22 @@ internal fun RestTimerMiniBar(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (state.isFinished) "휴식 종료" else formatSeconds(state.remainingSeconds),
+                    text = if (state.isFinished) {
+                        stringResource(R.string.rest_timer_finished)
+                    } else {
+                        stringResource(R.string.rest_timer_foreground_running, formatRestTimerClock(state.remainingSeconds))
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = state.nextHint.ifBlank { state.exerciseName },
+                    text = RestTimerPresentation.nextSetHint(context, state),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
             OutlinedButton(onClick = onStop) {
-                Text("중지")
+                Text(stringResource(R.string.rest_timer_stop))
             }
         }
     }
@@ -208,26 +217,26 @@ internal fun RestTimerPermissionHint(
         ) {
             if (notificationPermissionNeeded) {
                 Text(
-                    text = "앱 밖에서도 휴식 종료를 보려면 알림 권한이 필요합니다.",
+                    text = stringResource(R.string.rest_timer_notification_permission),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onRequestNotification
                 ) {
-                    Text("알림 허용")
+                    Text(stringResource(R.string.rest_timer_notification_allow))
                 }
             }
             if (!overlayPermissionGranted) {
                 Text(
-                    text = "작은 오버레이는 선택 기능입니다. 권한이 없어도 타이머는 동작합니다.",
+                    text = stringResource(R.string.rest_timer_overlay_help),
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onOpenOverlaySettings
                 ) {
-                    Text("오버레이 설정")
+                    Text(stringResource(R.string.rest_timer_overlay_settings))
                 }
             }
         }

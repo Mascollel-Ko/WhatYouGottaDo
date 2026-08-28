@@ -1,7 +1,5 @@
 package com.training.trackplanner
 
-import com.training.trackplanner.localization.localizedUiText
-
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,15 +55,15 @@ internal fun HomeDailyCheckInCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("오늘 컨디션", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.daily_condition_home_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    checkIn?.compactSummary() ?: "아직 입력하지 않았습니다.",
+                    checkIn?.compactSummary() ?: stringResource(R.string.daily_condition_empty),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             OutlinedButton(onClick = { showEditor = true }) {
-                Text(if (checkIn == null) "입력" else "수정")
+                Text(stringResource(if (checkIn == null) R.string.daily_condition_add else R.string.daily_condition_edit))
             }
         }
     }
@@ -129,41 +127,41 @@ internal fun DailyConditionEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(9.dp)
             ) {
                 Text(
-                    "운동 부하와 함께 코치 분석에 반영되는 훈련 조절 참고 신호입니다.",
+                    stringResource(R.string.daily_condition_description),
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
                     value = sleepHours,
                     onValueChange = { sleepHours = it },
                     modifier = Modifier.width(150.dp),
-                    label = { Text("수면시간") },
+                    label = { Text(stringResource(R.string.daily_condition_sleep)) },
                     suffix = { Text(stringResource(R.string.sleep_hours_unit)) },
                     singleLine = true,
                     isError = !sleepValid,
                     supportingText = {
-                        if (!sleepValid) Text("0~24 사이의 숫자를 입력하세요.")
+                        if (!sleepValid) Text(stringResource(R.string.daily_condition_sleep_error))
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
-                val bodyWeightDescription = localizedUiText("몸무게(kg)")
+                val bodyWeightDescription = stringResource(R.string.daily_condition_body_weight)
                 OutlinedTextField(
                     value = bodyWeightKg,
                     onValueChange = { bodyWeightKg = it },
                     modifier = Modifier
                         .width(150.dp)
                         .semantics { contentDescription = bodyWeightDescription },
-                    label = { Text("몸무게") },
+                    label = { Text(stringResource(R.string.daily_condition_body_weight)) },
                     suffix = { Text("kg") },
                     singleLine = true,
                     isError = !bodyWeightValid,
                     supportingText = {
-                        if (!bodyWeightValid) Text("0보다 큰 숫자를 입력하세요.")
+                        if (!bodyWeightValid) Text(stringResource(R.string.daily_condition_body_weight_error))
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                 )
-                CheckInScoreRow("전신 피로", overallFatigue) { overallFatigue = it }
-                CheckInScoreRow("하체 피로", lowerBodyFatigue) { lowerBodyFatigue = it }
-                CheckInScoreRow("관절/건 불편감", jointTendonDiscomfort) { jointTendonDiscomfort = it }
+                CheckInScoreRow(stringResource(R.string.daily_condition_overall_fatigue), overallFatigue) { overallFatigue = it }
+                CheckInScoreRow(stringResource(R.string.daily_condition_lower_body_fatigue), lowerBodyFatigue) { lowerBodyFatigue = it }
+                CheckInScoreRow(stringResource(R.string.daily_condition_discomfort), jointTendonDiscomfort) { jointTendonDiscomfort = it }
                 OutlinedButton(onClick = { showJointComplexSelector = true }) {
                     Text(
                         jointComplexOptions.firstOrNull {
@@ -176,9 +174,9 @@ internal fun DailyConditionEditorDialog(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                CheckInScoreRow("집중력/의욕", focusMotivation) { focusMotivation = it }
+                CheckInScoreRow(stringResource(R.string.daily_condition_focus), focusMotivation) { focusMotivation = it }
                 Text(
-                    "피로·불편감은 1이 낮음, 5가 높음입니다. 집중력/의욕은 5가 좋음입니다.",
+                    stringResource(R.string.daily_condition_scale_help),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -202,9 +200,9 @@ internal fun DailyConditionEditorDialog(
                     )
                 },
                 enabled = sleepValid && bodyWeightValid
-            ) { Text("저장") }
+            ) { Text(stringResource(R.string.daily_condition_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.daily_condition_cancel)) } }
     )
 
     if (showJointComplexSelector) {

@@ -33,8 +33,9 @@ class RestTimerSessionController(context: Context) {
 
     fun start(
         durationSeconds: Int,
-        exerciseName: String,
-        nextHint: String,
+        exerciseStableKey: String,
+        storedExerciseName: String,
+        nextSetNumber: Int?,
         targetRecordDate: String,
         targetEntryId: Long,
         targetSetId: Long = 0
@@ -53,9 +54,10 @@ class RestTimerSessionController(context: Context) {
             remainingSeconds = durationSeconds,
             totalSeconds = durationSeconds,
             endAtEpochMillis = endAt,
-            exerciseName = exerciseName,
-            nextHint = nextHint,
-            hasNextTarget = nextHint.isNotBlank(),
+            exerciseStableKey = exerciseStableKey,
+            storedExerciseName = storedExerciseName,
+            nextSetNumber = nextSetNumber,
+            hasNextTarget = nextSetNumber != null,
             startedAfterConfirmedSet = true,
             targetRecordDate = targetRecordDate,
             targetEntryId = targetEntryId,
@@ -107,6 +109,10 @@ class RestTimerSessionController(context: Context) {
     private fun restoreRestTimerState() {
         val endAt = preferences.getLong(KEY_REST_END_AT, 0L)
         val next = preferences.getString(KEY_REST_NEXT, "").orEmpty()
+        val exerciseStableKey = preferences.getString(KEY_REST_EXERCISE_STABLE_KEY, "").orEmpty()
+        val storedExerciseName = preferences.getString(KEY_REST_STORED_EXERCISE_NAME, "").orEmpty()
+        val nextSetNumber = preferences.getInt(KEY_REST_NEXT_SET_NUMBER, 0).takeIf { it > 0 }
+        val legacyExerciseName = preferences.getString(KEY_REST_EXERCISE_NAME, "").orEmpty()
         val hasNextTarget = preferences.getBoolean(KEY_REST_HAS_NEXT_TARGET, next.isNotBlank())
         val startedAfterConfirmedSet = preferences.getBoolean(KEY_REST_STARTED_AFTER_CONFIRMED_SET, false)
         val targetDate = preferences.getString(KEY_REST_TARGET_DATE, "").orEmpty()
@@ -127,6 +133,10 @@ class RestTimerSessionController(context: Context) {
             remainingSeconds = remaining,
             totalSeconds = total,
             endAtEpochMillis = endAt,
+            exerciseStableKey = exerciseStableKey,
+            storedExerciseName = storedExerciseName,
+            nextSetNumber = nextSetNumber,
+            exerciseName = legacyExerciseName,
             nextHint = next,
             hasNextTarget = hasNextTarget,
             startedAfterConfirmedSet = startedAfterConfirmedSet,
@@ -204,6 +214,10 @@ class RestTimerSessionController(context: Context) {
         preferences.edit()
             .putLong(KEY_REST_END_AT, state.endAtEpochMillis)
             .putInt(KEY_REST_TOTAL_SECONDS, state.totalSeconds)
+            .putString(KEY_REST_EXERCISE_STABLE_KEY, state.exerciseStableKey)
+            .putString(KEY_REST_STORED_EXERCISE_NAME, state.storedExerciseName)
+            .putInt(KEY_REST_NEXT_SET_NUMBER, state.nextSetNumber ?: 0)
+            .putString(KEY_REST_EXERCISE_NAME, state.exerciseName)
             .putString(KEY_REST_NEXT, state.nextHint)
             .putBoolean(KEY_REST_HAS_NEXT_TARGET, state.hasNextTarget)
             .putBoolean(KEY_REST_STARTED_AFTER_CONFIRMED_SET, state.startedAfterConfirmedSet)
@@ -236,6 +250,10 @@ class RestTimerSessionController(context: Context) {
         const val PREFERENCES_NAME = "rest_timer"
         const val KEY_REST_END_AT = "rest_end_at"
         const val KEY_REST_TOTAL_SECONDS = "rest_total_seconds"
+        const val KEY_REST_EXERCISE_STABLE_KEY = "rest_exercise_stable_key"
+        const val KEY_REST_STORED_EXERCISE_NAME = "rest_stored_exercise_name"
+        const val KEY_REST_NEXT_SET_NUMBER = "rest_next_set_number"
+        const val KEY_REST_EXERCISE_NAME = "rest_exercise_name"
         const val KEY_REST_NEXT = "rest_next"
         const val KEY_REST_HAS_NEXT_TARGET = "rest_has_next_target"
         const val KEY_REST_STARTED_AFTER_CONFIRMED_SET = "rest_started_after_confirmed_set"
