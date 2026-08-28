@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -194,29 +195,41 @@ internal fun InlineDateSwitcher(
     onDateChange: (String) -> Unit
 ) {
     val parsedDate = runCatching { LocalDate.parse(dateText) }.getOrNull()
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedButton(
-            enabled = parsedDate != null,
-            onClick = { onDateChange(parsedDate!!.minusDays(1).toString()) }
-        ) {
-            Text("-1")
-        }
         OutlinedTextField(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("plan-start-date"),
             value = dateText,
             onValueChange = onDateChange,
             singleLine = true,
             label = { Text("시작일") }
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
         OutlinedButton(
+            modifier = Modifier
+                .weight(1f)
+                .testTag("plan-start-date-minus"),
+            enabled = parsedDate != null,
+            onClick = { onDateChange(parsedDate!!.minusDays(1).toString()) }
+        ) {
+            Text("-1")
+        }
+        OutlinedButton(
+            modifier = Modifier
+                .weight(1f)
+                .testTag("plan-start-date-plus"),
             enabled = parsedDate != null,
             onClick = { onDateChange(parsedDate!!.plusDays(1).toString()) }
         ) {
             Text("+1")
+        }
         }
     }
 }
