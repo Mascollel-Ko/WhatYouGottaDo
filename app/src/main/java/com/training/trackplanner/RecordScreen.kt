@@ -53,6 +53,8 @@ import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+internal enum class RecordDetailOrigin { Normal, Calendar }
+
 @Composable
 internal fun RecordScreen(
     viewModel: TrainingViewModel,
@@ -85,6 +87,7 @@ internal fun RecordScreen(
     val exerciseMap = remember(exercises) { exercises.associateBy { exercise -> exercise.stableKey } }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
     var showCalendar by rememberSaveable { mutableStateOf(false) }
+    var detailOrigin by rememberSaveable { mutableStateOf(RecordDetailOrigin.Normal) }
     var calendarSearchQuery by rememberSaveable { mutableStateOf("") }
     var pendingSearchJump by remember { mutableStateOf<RecordSearchJumpRequest?>(null) }
     var pendingTimerTarget by remember { mutableStateOf<RestTimerTarget?>(null) }
@@ -120,10 +123,15 @@ internal fun RecordScreen(
 
     LaunchedEffect(target) {
         target?.let {
+            detailOrigin = RecordDetailOrigin.Normal
             pendingSearchJump = null
             pendingTimerTarget = it
             selectedDate = it.recordDate
         }
+    }
+
+    BackHandler(enabled = !showCalendar && detailOrigin == RecordDetailOrigin.Calendar) {
+        showCalendar = true
     }
 
     LaunchedEffect(pendingTimerTarget, selectedDate, sortedEntries, showPermissionHint) {
@@ -158,9 +166,6 @@ internal fun RecordScreen(
     }
 
     if (showCalendar) {
-        BackHandler {
-            showCalendar = false
-        }
         RecordCalendarScreen(
             viewModel = viewModel,
             selectedDate = selectedDate,
@@ -173,9 +178,13 @@ internal fun RecordScreen(
                     tappedMatchingResult = tappedMatchingResult
                 )
                 selectedDate = date
+                detailOrigin = RecordDetailOrigin.Calendar
                 showCalendar = false
             },
-            onBack = { showCalendar = false }
+            onBack = {
+                detailOrigin = RecordDetailOrigin.Normal
+                showCalendar = false
+            }
         )
         return
     }
