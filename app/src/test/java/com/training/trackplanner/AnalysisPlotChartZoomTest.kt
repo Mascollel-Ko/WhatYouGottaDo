@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -178,6 +179,112 @@ class AnalysisPlotChartZoomTest {
             val sorted = first.sortedBy { it.placedY }
             assertTrue(sorted.zipWithNext().all { (a, b) -> b.placedY - a.placedY >= 7.99f })
         }
+    }
+
+    @Test
+    fun automaticPointLabelsRequireMeaningfulZoomAndReadableDensity() {
+        val full = PlotChartZoomPolicy.auto(21, 0.0, 100.0)
+        val insignificant = PlotChartViewport(0.2, 19.8, 1.0, 99.0)
+        val zoomed = PlotChartViewport(4.0, 16.0, 20.0, 80.0)
+
+        assertFalse(PointValueLabelPolicy.shouldShow(full, full, 5))
+        assertFalse(PointValueLabelPolicy.shouldShow(insignificant, full, 5))
+        assertTrue(PointValueLabelPolicy.shouldShow(zoomed, full, 5))
+        assertFalse(PointValueLabelPolicy.shouldShow(zoomed, full, 19))
+        assertFalse(PointValueLabelPolicy.shouldShow(full, full, 5))
+    }
+
+    @Test
+    fun visiblePointFilteringExcludesBothOffscreenAxes() {
+        val viewport = PlotChartViewport(2.0, 5.0, 20.0, 80.0)
+        val visible = ChartPointValue(3.0, 50.0, 50.0)
+        assertEquals(
+            listOf(visible),
+            visibleChartPointValues(
+                listOf(
+                    ChartPointValue(1.0, 50.0, 10.0),
+                    visible,
+                    ChartPointValue(3.0, 90.0, 90.0),
+                    ChartPointValue(Double.NaN, 50.0, 1.0)
+                ),
+                viewport
+            )
+        )
+    }
+
+    @Test
+    fun chartCandidatesContainOnlyActualLineScatterAndLayerValues() {
+        val dates = (0L..2L).map { LocalDate.of(2026, 8, 29).plusDays(it) }
+        val line = ChartSpec(
+            ChartType.LINE,
+            "line",
+            lineSeries = listOf(
+                ChartSeries("A", listOf(TrendDataPoint(dates[0], 160.2), TrendDataPoint(dates[2], 173.4))),
+                ChartSeries("B", listOf(TrendDataPoint(dates[1], null)))
+            )
+        )
+        assertEquals(listOf(160.2, 173.4), linePointValueCandidates(line, dates).map { it.value })
+
+        val scatter = line.copy(
+            type = ChartType.SCATTER,
+            lineSeries = emptyList(),
+            scatterPoints = listOf(ScatterPoint(145.0, 82.4, "actual"))
+        )
+        assertEquals(ChartPointValue(145.0, 82.4, 82.4), scatterPointValueCandidates(scatter).single())
+
+        val area = line.copy(
+            type = ChartType.STACKED_AREA,
+            lineSeries = emptyList(),
+            stackedAreaLayers = listOf(
+                StackedAreaLayer("base", listOf(TrendDataPoint(dates[0], 4.0))),
+                StackedAreaLayer("top", listOf(TrendDataPoint(dates[0], 2.0), TrendDataPoint(dates[2], 3.0)))
+            )
+        )
+        val areaPoints = stackedAreaPointValueCandidates(area, dates)
+        assertEquals(listOf(4.0, 2.0, 3.0), areaPoints.map { it.value })
+        assertEquals(listOf(2.0, 5.0, 1.5), areaPoints.map { it.y })
+    }
+
+    @Test
+    fun stackedBarCandidatesUseSegmentValuesWithoutChangingGeometry() {
+        val date = LocalDate.of(2026, 8, 29)
+        val groups = listOf(
+            StackedBarGroup(
+                "day",
+                listOf(StackedBarSegment("A", 3.0), StackedBarSegment("tiny", 0.1), StackedBarSegment("B", 2.0)),
+                date
+            )
+        )
+        val candidates = stackedBarPointValueCandidates(groups, listOf(date))
+        assertEquals(listOf(3.0, 0.1, 2.0), candidates.map { it.value })
+        assertEquals(listOf(1.5, 3.05, 4.1), candidates.map { it.y })
+        assertEquals(
+            listOf(0, 2),
+            readablePointValueIndices(
+                candidates.mapIndexed { index, point -> point.copy(availableHeight = listOf(30f, 2f, 24f)[index]) },
+                listOf(12f, 12f, 12f)
+            )
+        )
+    }
+
+    @Test
+    fun pointLabelBoxesStayInsideAllPlotEdgesAndKeepTrueTargets() {
+        val points = listOf(Offset(0f, 1f), Offset(100f, 99f), Offset(50f, 50f))
+        val sizes = listOf(Size(30f, 12f), Size(30f, 12f), Size(28f, 12f))
+        val first = placePointValueLabels(points, sizes, 100f, 100f, 3f)
+        val second = placePointValueLabels(points, sizes, 100f, 100f, 3f)
+
+        assertEquals(first, second)
+        assertEquals(points, first.map { Offset(it.pointX, it.pointY) })
+        assertTrue(first.all { it.labelX >= 0f && it.labelX + it.width <= 100f })
+        assertTrue(first.all { it.labelY >= 0f && it.labelY + it.height <= 100f })
+        assertTrue(placePointValueLabels(List(12) { Offset(50f, 50f) }, List(12) { Size(30f, 12f) }, 100f, 100f, 3f).isEmpty())
+    }
+
+    @Test
+    fun compactPointFormattingUsesExistingAnalysisConventions() {
+        assertEquals("91", formatPointValue(91.0))
+        assertEquals("173.4", formatPointValue(173.44))
     }
 
     @Test

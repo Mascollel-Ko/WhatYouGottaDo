@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
@@ -41,6 +42,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Constraints
 import com.training.trackplanner.analysis.badminton.BadmintonTransferColorPalette
@@ -152,6 +157,176 @@ internal data class InspectionLabelPlacement(
     val needsLeaderLine: Boolean get() = abs(desiredY - placedY) > 0.5f
 }
 
+internal object PointValueLabelPolicy {
+    private const val MEANINGFUL_ZOOM_RATIO = 0.72
+    private const val MAX_VISIBLE_LABELS = 18
+
+    fun shouldShow(
+        viewport: PlotChartViewport,
+        fullViewport: PlotChartViewport,
+        visiblePointCount: Int
+    ): Boolean {
+        if (visiblePointCount !in 1..MAX_VISIBLE_LABELS) return false
+        val xRatio = viewport.xSpan / fullViewport.xSpan
+        val yRatio = viewport.ySpan / fullViewport.ySpan
+        return xRatio.isFinite() && yRatio.isFinite() &&
+            minOf(xRatio, yRatio) <= MEANINGFUL_ZOOM_RATIO
+    }
+}
+
+internal data class ChartPointValue(
+    val x: Double,
+    val y: Double,
+    val value: Double,
+    val availableHeight: Float? = null
+)
+
+internal fun visibleChartPointValues(
+    points: List<ChartPointValue>,
+    viewport: PlotChartViewport
+): List<ChartPointValue> = points.filter { point ->
+    point.x.isFinite() && point.y.isFinite() && point.value.isFinite() &&
+        point.x in viewport.xMin..viewport.xMax && point.y in viewport.yMin..viewport.yMax
+}
+
+internal fun readablePointValueIndices(
+    points: List<ChartPointValue>,
+    requiredHeights: List<Float>
+): List<Int> = if (points.size != requiredHeights.size) emptyList() else points.indices.filter { index ->
+        points[index].availableHeight?.let { it >= requiredHeights[index] } ?: true
+    }
+
+internal data class PointValueLabelBox(
+    val originalIndex: Int,
+    val pointX: Float,
+    val pointY: Float,
+    val labelX: Float,
+    val labelY: Float,
+    val width: Float,
+    val height: Float
+) {
+    val needsLeaderLine: Boolean
+        get() = abs((labelY + height / 2f) - pointY) > height
+}
+
+internal fun placePointValueLabels(
+    points: List<Offset>,
+    labelSizes: List<Size>,
+    plotWidth: Float,
+    plotHeight: Float,
+    minimumGap: Float
+): List<PointValueLabelBox> {
+    if (points.isEmpty() || points.size != labelSizes.size || plotWidth <= 0f || plotHeight <= 0f) return emptyList()
+    val initialX = points.indices.map { index ->
+        (points[index].x - labelSizes[index].width / 2f)
+            .coerceIn(0f, (plotWidth - labelSizes[index].width).coerceAtLeast(0f))
+    }
+    val remaining = points.indices.toMutableSet()
+    val groups = mutableListOf<List<Int>>()
+    while (remaining.isNotEmpty()) {
+        val group = mutableSetOf(remaining.first())
+        var changed: Boolean
+        do {
+            changed = false
+            remaining.filter { candidate -> candidate !in group }.forEach { candidate ->
+                if (group.any { member ->
+                        initialX[candidate] < initialX[member] + labelSizes[member].width + minimumGap &&
+                            initialX[member] < initialX[candidate] + labelSizes[candidate].width + minimumGap
+                    }) {
+                    group += candidate
+                    changed = true
+                }
+            }
+        } while (changed)
+        remaining.removeAll(group)
+        groups += group.sorted()
+    }
+    if (groups.any { group ->
+            val height = group.maxOf { labelSizes[it].height }
+            group.size * height + (group.size - 1) * minimumGap > plotHeight
+        }) return emptyList()
+
+    return groups.flatMap { group ->
+        val maxHeight = group.maxOf { labelSizes[it].height }.coerceAtMost(plotHeight)
+        val vertical = placeInspectionLabels(
+            desiredYs = group.map { points[it].y - maxHeight / 2f - minimumGap },
+            top = maxHeight / 2f,
+            bottom = (plotHeight - maxHeight / 2f).coerceAtLeast(maxHeight / 2f),
+            minimumGap = maxHeight + minimumGap
+        )
+        group.mapIndexed { groupIndex, index ->
+            val size = labelSizes[index]
+            val centerY = vertical[groupIndex].placedY
+            PointValueLabelBox(
+                originalIndex = index,
+                pointX = points[index].x,
+                pointY = points[index].y,
+                labelX = initialX[index],
+                labelY = (centerY - size.height / 2f).coerceIn(0f, (plotHeight - size.height).coerceAtLeast(0f)),
+                width = size.width,
+                height = size.height
+            )
+        }
+    }.sortedBy(PointValueLabelBox::originalIndex)
+}
+
+private fun DrawScope.drawPointValueLabels(
+    points: List<ChartPointValue>,
+    viewport: PlotChartViewport,
+    fullViewport: PlotChartViewport,
+    textMeasurer: TextMeasurer,
+    textStyle: TextStyle,
+    textColor: Color,
+    backgroundColor: Color,
+    leaderColor: Color
+) {
+    val visible = visibleChartPointValues(points, viewport)
+    if (!PointValueLabelPolicy.shouldShow(viewport, fullViewport, visible.size)) return
+    val padding = 3.dp.toPx()
+    val measured = visible.map { point ->
+        val text = formatPointValue(point.value)
+        val layout = textMeasurer.measure(text, textStyle)
+        Triple(text, layout, Size(layout.size.width + padding * 2f, layout.size.height + padding * 2f))
+    }
+    val drawable = readablePointValueIndices(visible, measured.map { it.third.height })
+    if (drawable.isEmpty()) return
+    val candidates = drawable.map(visible::get)
+    val layouts = drawable.map(measured::get)
+    val offsets = candidates.map { point ->
+        Offset(
+            x = (size.width * ((point.x - viewport.xMin) / viewport.xSpan)).toFloat(),
+            y = (size.height - size.height * ((point.y - viewport.yMin) / viewport.ySpan)).toFloat()
+        )
+    }
+    val placements = placePointValueLabels(offsets, layouts.map { it.third }, size.width, size.height, 2.dp.toPx())
+    placements.forEachIndexed { index, placement ->
+        if (placement.needsLeaderLine) {
+            val labelCenterY = placement.labelY + placement.height / 2f
+            drawLine(
+                color = leaderColor,
+                start = Offset(
+                    placement.labelX + placement.width / 2f,
+                    if (labelCenterY < placement.pointY) placement.labelY + placement.height else placement.labelY
+                ),
+                end = Offset(placement.pointX, placement.pointY),
+                strokeWidth = 1.dp.toPx()
+            )
+        }
+        drawRoundRect(
+            color = backgroundColor,
+            topLeft = Offset(placement.labelX, placement.labelY),
+            size = Size(placement.width, placement.height),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx())
+        )
+        drawText(
+            textMeasurer = textMeasurer,
+            text = layouts[index].first,
+            topLeft = Offset(placement.labelX + padding, placement.labelY + padding),
+            style = textStyle.copy(color = textColor)
+        )
+    }
+}
+
 internal fun placeInspectionLabels(
     desiredYs: List<Float>,
     top: Float,
@@ -243,9 +418,12 @@ private fun ChartInspectionPanel(inspection: ChartInspection?, unit: String?) {
 }
 
 private fun formatInspectionValue(value: Double, unit: String?): String {
-    val number = if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
+    val number = formatPointValue(value)
     return if (unit.isNullOrBlank()) number else "$number $unit"
 }
+
+internal fun formatPointValue(value: Double): String =
+    if (value % 1.0 == 0.0) value.toLong().toString() else String.format(Locale.US, "%.1f", value)
 
 internal fun inspectLineChart(
     spec: ChartSpec,
@@ -322,6 +500,57 @@ internal fun inspectScatterChart(
     return ChartInspection(point.label, listOf(ChartInspectionValue("Y", point.y, point.x)))
 }
 
+internal fun linePointValueCandidates(spec: ChartSpec, domain: List<LocalDate>): List<ChartPointValue> {
+    val domainIndex = domain.withIndex().associate { it.value to it.index }
+    return spec.lineSeries.flatMap { series ->
+        series.points.mapNotNull { point ->
+            val index = domainIndex[point.weekStart] ?: return@mapNotNull null
+            val value = point.value?.takeIf(Double::isFinite) ?: return@mapNotNull null
+            ChartPointValue(index.toDouble(), value, value)
+        }
+    }
+}
+
+internal fun stackedAreaPointValueCandidates(spec: ChartSpec, domain: List<LocalDate>): List<ChartPointValue> {
+    val valuesByLayer = spec.stackedAreaLayers.map { layer ->
+        layer.points.associate { point -> point.weekStart to point.value?.takeIf(Double::isFinite) }
+    }
+    val lower = DoubleArray(domain.size)
+    return buildList {
+        valuesByLayer.indices.forEach { layerIndex ->
+            domain.indices.forEach { index ->
+                valuesByLayer[layerIndex][domain[index]]?.let { value ->
+                    if (value > 0.0) add(ChartPointValue(index.toDouble(), lower[index] + value / 2.0, value))
+                    lower[index] += value
+                }
+            }
+        }
+    }
+}
+
+internal fun stackedBarPointValueCandidates(
+    groups: List<com.training.trackplanner.analysis.trends.StackedBarGroup>,
+    domain: List<LocalDate>
+): List<ChartPointValue> {
+    val domainIndex = domain.withIndex().associate { it.value to it.index }
+    return groups.flatMapIndexed { groupIndex, group ->
+        val index = group.weekStart?.let(domainIndex::get) ?: groupIndex
+        var cumulative = 0.0
+        group.segments.mapNotNull { segment ->
+            val lower = cumulative
+            cumulative += segment.value
+            segment.value.takeIf { it.isFinite() && it > 0.0 }
+                ?.let { ChartPointValue(index.toDouble(), lower + it / 2.0, it) }
+        }
+    }
+}
+
+internal fun scatterPointValueCandidates(spec: ChartSpec): List<ChartPointValue> =
+    spec.scatterPoints.mapNotNull { point ->
+        point.takeIf { it.x.isFinite() && it.y.isFinite() }
+            ?.let { ChartPointValue(it.x, it.y, it.y) }
+    }
+
 @Composable
 internal fun AnalysisChartSpecView(spec: ChartSpec) {
     when (spec.type) {
@@ -355,6 +584,10 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
     var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
     val colors = analysisChartPalette()
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
+    val labelTextColor = MaterialTheme.colorScheme.onSurface
+    val labelBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
     val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
         modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = accessibility },
@@ -404,6 +637,10 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
                 drawPath(boundary, color, style = Stroke(width = 3f))
                 upperByDate.copyInto(lowerByDate)
               }
+              drawPointValueLabels(
+                  stackedAreaPointValueCandidates(spec, domain), viewport, fullViewport, textMeasurer, labelStyle,
+                  labelTextColor, labelBackgroundColor, gridColor
+              )
             }
         }
         spec.timeGranularity?.let { AnalysisTimeAxisLabels(domain, it, viewport) }
@@ -447,6 +684,10 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)
     val forecastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     val referenceColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.55f)
+    val labelTextColor = MaterialTheme.colorScheme.onSurface
+    val labelBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
     val intervalBands = spec.intervalBands + listOfNotNull(spec.intervalBand)
     val allValues = spec.lineSeries.flatMap { series -> series.points.mapNotNull { point -> point.value?.takeIf(Double::isFinite) } }
         .plus(spec.forecastRange?.points?.flatMap { point -> listOf(point.lower, point.upper) }.orEmpty())
@@ -582,6 +823,16 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                         drawPath(path, seriesColor, style = Stroke(width = 4f))
                     }
                 }
+                drawPointValueLabels(
+                    points = linePointValueCandidates(spec, domain),
+                    viewport = visibleViewport,
+                    fullViewport = fullViewport,
+                    textMeasurer = textMeasurer,
+                    textStyle = labelStyle,
+                    textColor = labelTextColor,
+                    backgroundColor = labelBackgroundColor,
+                    leaderColor = referenceColor
+                )
             }
         }
         spec.timeGranularity?.let { granularity ->
@@ -639,6 +890,11 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
     val fullViewport = PlotChartZoomPolicy.auto(slotCount, 0.0, maxTotal)
     var viewport by remember(spec) { mutableStateOf(fullViewport) }
     var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
+    val labelTextColor = MaterialTheme.colorScheme.onSurface
+    val labelBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+    val labelLeaderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
     val accessibility = localizedAnalysisChartContentDescription(spec)
     Column(
         modifier = Modifier.semantics(mergeDescendants = true) {
@@ -677,6 +933,13 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                     )
                 }
               }
+              drawPointValueLabels(
+                  stackedBarPointValueCandidates(groups, domain).map { point ->
+                      point.copy(availableHeight = (size.height * point.value / viewport.ySpan).toFloat())
+                  },
+                  viewport, fullViewport, textMeasurer, labelStyle,
+                  labelTextColor, labelBackgroundColor, labelLeaderColor
+              )
             }
         }
         spec.timeGranularity?.let { granularity ->
@@ -909,6 +1172,10 @@ private fun AnalysisScatterChart(spec: ChartSpec, modifier: Modifier = Modifier)
     val fullViewport = PlotChartZoomPolicy.bounds(minX, maxX, minY, maxY)
     var viewport by remember(spec) { mutableStateOf(fullViewport) }
     var inspection by remember(spec) { mutableStateOf<ChartInspection?>(null) }
+    val labelTextColor = MaterialTheme.colorScheme.onSurface
+    val labelBackgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f)
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val textMeasurer = rememberTextMeasurer()
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
       Canvas(
         modifier = modifier.fillMaxWidth().cartesianChartGestures(
@@ -935,6 +1202,11 @@ private fun AnalysisScatterChart(spec: ChartSpec, modifier: Modifier = Modifier)
                 center = Offset((size.width * xRatio).toFloat(), (size.height - size.height * yRatio).toFloat())
             )
           }
+          drawPointValueLabels(
+              scatterPointValueCandidates(spec),
+              viewport, fullViewport, textMeasurer, labelStyle,
+              labelTextColor, labelBackgroundColor, gridColor
+          )
         }
       }
       ChartInspectionPanel(inspection, spec.valueUnit)
