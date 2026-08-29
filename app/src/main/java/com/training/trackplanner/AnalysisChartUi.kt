@@ -3,10 +3,10 @@ package com.training.trackplanner
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateCentroid
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,9 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -66,6 +68,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.hypot
 import kotlin.math.roundToInt
+import kotlinx.coroutines.withTimeoutOrNull
 
 internal data class PlotChartViewport(
     val xMin: Double,
@@ -355,46 +358,117 @@ internal fun placeInspectionLabels(
     }.sortedBy(InspectionLabelPlacement::originalIndex)
 }
 
-private fun Modifier.cartesianChartGestures(
+internal enum class CartesianGestureState { Idle, OneFingerPending, Inspecting, Transforming }
+
+@Composable
+internal fun Modifier.cartesianChartGestures(
     fullViewport: PlotChartViewport,
     viewport: PlotChartViewport,
     onViewportChange: (PlotChartViewport) -> Unit,
-    onInspect: (Offset) -> Unit
-): Modifier = testTag("analysis-cartesian-chart")
-    .pointerInput(fullViewport) {
+    onInspect: (Offset) -> Unit,
+    onInspectionCancel: () -> Unit
+): Modifier {
+    val currentFullViewport by rememberUpdatedState(fullViewport)
+    val currentOnViewportChange by rememberUpdatedState(onViewportChange)
+    val currentOnInspect by rememberUpdatedState(onInspect)
+    val currentOnInspectionCancel by rememberUpdatedState(onInspectionCancel)
+    val latestViewport = remember { mutableStateOf(viewport) }
+    SideEffect { latestViewport.value = viewport }
+
+    return testTag("analysis-cartesian-chart").pointerInput(Unit) {
         awaitEachGesture {
-            do {
-                val event = awaitPointerEvent()
-                if (event.changes.count { it.pressed } >= 2) {
-                    val scale = event.calculateZoom()
-                    val centroid = event.calculateCentroid(useCurrent = true)
-                    val pan = event.calculatePan()
-                    if (scale != 1f || pan.x != 0f || pan.y != 0f) {
-                        onViewportChange(
-                            PlotChartZoomPolicy.update(
-                                viewport, fullViewport, scale,
-                                centroid.x.toDouble() / size.width.coerceAtLeast(1),
-                                centroid.y.toDouble() / size.height.coerceAtLeast(1),
-                                pan.x.toDouble() / size.width.coerceAtLeast(1),
-                                pan.y.toDouble() / size.height.coerceAtLeast(1)
-                            )
-                        )
-                        event.changes.forEach { it.consume() }
-                    }
+            val firstDown = awaitFirstDown(requireUnconsumed = false)
+            val firstPointerId = firstDown.id
+            val downPosition = firstDown.position
+            var lastPosition = downPosition
+            var state = CartesianGestureState.OneFingerPending
+            var remainingLongPressMillis = viewConfiguration.longPressTimeoutMillis
+            var gestureViewport = latestViewport.value
+
+            while (state != CartesianGestureState.Idle) {
+                val event = if (state == CartesianGestureState.OneFingerPending) {
+                    withTimeoutOrNull(remainingLongPressMillis.coerceAtLeast(1L)) { awaitPointerEvent() }
+                } else {
+                    awaitPointerEvent()
                 }
-            } while (event.changes.any { it.pressed })
+                if (event == null) {
+                    state = CartesianGestureState.Inspecting
+                    currentOnInspect(lastPosition.normalized(size.width, size.height))
+                    continue
+                }
+                val pressed = event.changes.filter { it.pressed }
+
+                if (pressed.size >= 2 && state != CartesianGestureState.Transforming) {
+                    state = CartesianGestureState.Transforming
+                    currentOnInspectionCancel()
+                    gestureViewport = latestViewport.value
+                }
+
+                when (state) {
+                    CartesianGestureState.OneFingerPending -> {
+                        val first = event.changes.firstOrNull { it.id == firstPointerId }
+                        if (first == null || !first.pressed) {
+                            state = CartesianGestureState.Idle
+                        } else {
+                            lastPosition = first.position
+                            val moved = hypot(
+                                (lastPosition.x - downPosition.x).toDouble(),
+                                (lastPosition.y - downPosition.y).toDouble()
+                            ) > viewConfiguration.touchSlop
+                            if (first.isConsumed || moved) {
+                                state = CartesianGestureState.Idle
+                            } else {
+                                remainingLongPressMillis =
+                                    viewConfiguration.longPressTimeoutMillis - (first.uptimeMillis - firstDown.uptimeMillis)
+                            }
+                        }
+                    }
+                    CartesianGestureState.Inspecting -> {
+                        val first = event.changes.firstOrNull { it.id == firstPointerId }
+                        if (first == null || !first.pressed) {
+                            state = CartesianGestureState.Idle
+                        } else {
+                            lastPosition = first.position
+                            currentOnInspect(lastPosition.normalized(size.width, size.height))
+                            first.consume()
+                        }
+                    }
+                    CartesianGestureState.Transforming -> {
+                        if (pressed.size >= 2) {
+                            val full = currentFullViewport
+                            val scale = event.calculateZoom()
+                            val centroid = event.calculateCentroid(useCurrent = true)
+                            val pan = event.calculatePan()
+                            if (scale != 1f || pan.x != 0f || pan.y != 0f) {
+                                gestureViewport = PlotChartZoomPolicy.update(
+                                    gestureViewport, full, scale,
+                                    centroid.x.toDouble() / size.width.coerceAtLeast(1),
+                                    centroid.y.toDouble() / size.height.coerceAtLeast(1),
+                                    pan.x.toDouble() / size.width.coerceAtLeast(1),
+                                    pan.y.toDouble() / size.height.coerceAtLeast(1)
+                                )
+                                latestViewport.value = gestureViewport
+                                currentOnViewportChange(gestureViewport)
+                            }
+                            event.changes.forEach { it.consume() }
+                        } else if (pressed.isEmpty()) {
+                            state = CartesianGestureState.Idle
+                        } else {
+                            event.changes.forEach { it.consume() }
+                        }
+                    }
+                    CartesianGestureState.Idle -> Unit
+                }
+            }
         }
     }
-    .pointerInput(fullViewport, viewport) {
-        detectTapGestures(onLongPress = { offset ->
-            onInspect(
-                Offset(
-                    offset.x / size.width.coerceAtLeast(1),
-                    offset.y / size.height.coerceAtLeast(1)
-                )
-            )
-        })
-    }
+}
+
+private fun Offset.normalized(width: Int, height: Int): Offset =
+    Offset(
+        x / width.coerceAtLeast(1),
+        y / height.coerceAtLeast(1)
+    )
 
 @Composable
 private fun ChartInspectionPanel(inspection: ChartInspection?, unit: String?) {
@@ -598,7 +672,8 @@ private fun AnalysisStackedAreaChart(spec: ChartSpec, modifier: Modifier = Modif
                 fullViewport,
                 viewport,
                 onViewportChange = { viewport = it; inspection = null },
-                onInspect = { point -> inspection = inspectStackedAreaChart(spec, domain, viewport, point.x.toDouble()) }
+                onInspect = { point -> inspection = inspectStackedAreaChart(spec, domain, viewport, point.x.toDouble()) },
+                onInspectionCancel = { inspection = null }
             )
         ) {
             repeat(3) { index ->
@@ -729,7 +804,8 @@ internal fun AnalysisTrendChart(spec: ChartSpec, modifier: Modifier = Modifier) 
                     spec, domain, viewport,
                     offset.x.toDouble()
                 )
-            }
+            },
+            onInspectionCancel = { inspection = null }
         )
         Canvas(modifier = modifier.fillMaxWidth().then(zoomModifier)) {
             repeat(3) { index ->
@@ -909,7 +985,8 @@ private fun AnalysisStackedBarChart(spec: ChartSpec, modifier: Modifier = Modifi
                 onViewportChange = { viewport = it; inspection = null },
                 onInspect = { point ->
                     inspection = inspectStackedBarChart(spec, groups, domain, viewport, point.x.toDouble())
-                }
+                },
+                onInspectionCancel = { inspection = null }
             )
         ) {
             val slot = size.width / viewport.xSpan.coerceAtLeast(1.0).toFloat()
@@ -1184,7 +1261,8 @@ private fun AnalysisScatterChart(spec: ChartSpec, modifier: Modifier = Modifier)
             onViewportChange = { viewport = it; inspection = null },
             onInspect = { point ->
                 inspection = inspectScatterChart(spec, viewport, point.x.toDouble(), point.y.toDouble())
-            }
+            },
+            onInspectionCancel = { inspection = null }
         )
       ) {
         clipRect {

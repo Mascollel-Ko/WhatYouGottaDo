@@ -1,7 +1,17 @@
 package com.training.trackplanner
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -14,6 +24,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pinch
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.analysis.trends.ChartSeries
@@ -288,6 +299,156 @@ class AnalysisPlotChartZoomTest {
     }
 
     @Test
+    fun oneFingerLongPressActivatesInspectionAndMovementScrubs() {
+        val full = PlotChartZoomPolicy.auto(5, 0.0, 100.0)
+        val inspected = mutableListOf<Offset>()
+        var cancelCount = 0
+        compose.setContent {
+            Canvas(
+                Modifier.fillMaxWidth().height(150.dp).cartesianChartGestures(
+                    fullViewport = full,
+                    viewport = full,
+                    onViewportChange = {},
+                    onInspect = inspected::add,
+                    onInspectionCancel = { cancelCount++ }
+                )
+            ) {}
+        }
+
+        compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true).performTouchInput {
+            down(Offset(width * 0.25f, centerY))
+            advanceEventTime(600)
+            moveTo(Offset(width * 0.75f, centerY), delayMillis = 32)
+            up()
+        }
+
+        compose.runOnIdle {
+            assertTrue(inspected.size >= 2)
+            assertTrue(inspected.first().x < inspected.last().x)
+            assertEquals(0, cancelCount)
+        }
+    }
+
+    @Test
+    fun oneFingerDragBeforeLongPressRemainsParentScrollable() {
+        val full = PlotChartZoomPolicy.auto(5, 0.0, 100.0)
+        lateinit var scrollState: androidx.compose.foundation.ScrollState
+        compose.setContent {
+            scrollState = rememberScrollState()
+            Column(Modifier.height(220.dp).verticalScroll(scrollState)) {
+                Canvas(
+                    Modifier.fillMaxWidth().height(150.dp).cartesianChartGestures(
+                        full, full, {}, {}, {}
+                    )
+                ) {}
+                Spacer(Modifier.height(700.dp))
+            }
+        }
+
+        compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true)
+            .performTouchInput { swipeUp(durationMillis = 180) }
+
+        compose.runOnIdle { assertTrue(scrollState.value > 0) }
+    }
+
+    @Test
+    fun secondPointerCancelsPendingOrActiveInspectionWithoutDelayedPopup() {
+        val full = PlotChartZoomPolicy.auto(9, 0.0, 100.0)
+        val inspected = mutableListOf<Offset>()
+        var cancelCount = 0
+        compose.setContent {
+            var viewport by remember { mutableStateOf(full) }
+            Canvas(
+                Modifier.fillMaxWidth().height(150.dp).cartesianChartGestures(
+                    full, viewport,
+                    onViewportChange = { viewport = it },
+                    onInspect = inspected::add,
+                    onInspectionCancel = { cancelCount++ }
+                )
+            ) {}
+        }
+        val node = compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true)
+
+        node.performTouchInput {
+            down(0, Offset(centerX - 20f, centerY))
+            advanceEventTime(100)
+            down(1, Offset(centerX + 20f, centerY))
+            moveTo(0, Offset(centerX - 60f, centerY - 20f), delayMillis = 32)
+            moveTo(1, Offset(centerX + 60f, centerY + 20f), delayMillis = 32)
+            up(0)
+            up(1)
+            advanceEventTime(600)
+        }
+        compose.runOnIdle {
+            assertTrue(inspected.isEmpty())
+            assertTrue(cancelCount >= 1)
+        }
+
+        node.performTouchInput {
+            down(0, Offset(centerX, centerY))
+            advanceEventTime(600)
+            moveTo(0, Offset(centerX + 5f, centerY), delayMillis = 16)
+            down(1, Offset(centerX + 40f, centerY))
+            moveTo(0, Offset(centerX - 30f, centerY), delayMillis = 32)
+            moveTo(1, Offset(centerX + 70f, centerY), delayMillis = 32)
+            up(0)
+            up(1)
+        }
+        compose.runOnIdle {
+            assertTrue(inspected.isNotEmpty())
+            assertTrue(cancelCount >= 2)
+        }
+    }
+
+    @Test
+    fun repeatedPinchAndPanAccumulateFromLatestViewport() {
+        val full = PlotChartZoomPolicy.auto(9, 0.0, 100.0)
+        var observed = full
+        compose.setContent {
+            var viewport by remember { mutableStateOf(full) }
+            Canvas(
+                Modifier.fillMaxWidth().height(150.dp).cartesianChartGestures(
+                    full, viewport,
+                    onViewportChange = { viewport = it; observed = it },
+                    onInspect = {},
+                    onInspectionCancel = {}
+                )
+            ) {}
+        }
+        val node = compose.onNodeWithTag("analysis-cartesian-chart", useUnmergedTree = true)
+        node.performTouchInput {
+            pinch(
+                start0 = Offset(centerX - 20f, centerY), end0 = Offset(centerX - 70f, centerY),
+                start1 = Offset(centerX + 20f, centerY), end1 = Offset(centerX + 70f, centerY)
+            )
+        }
+        val afterFirst = observed
+        node.performTouchInput {
+            pinch(
+                start0 = Offset(centerX - 20f, centerY), end0 = Offset(centerX - 55f, centerY),
+                start1 = Offset(centerX + 20f, centerY), end1 = Offset(centerX + 55f, centerY)
+            )
+        }
+        val afterSecond = observed
+        assertFalse(PointValueLabelPolicy.shouldShow(full, full, 5))
+        assertTrue(PointValueLabelPolicy.shouldShow(afterFirst, full, 5))
+        assertTrue(PointValueLabelPolicy.shouldShow(afterSecond, full, 5))
+        assertTrue(afterFirst.xSpan < full.xSpan)
+        assertTrue(afterSecond.xSpan < afterFirst.xSpan)
+
+        node.performTouchInput {
+            down(0, Offset(centerX - 40f, centerY - 20f))
+            down(1, Offset(centerX + 40f, centerY + 20f))
+            moveTo(0, Offset(centerX - 10f, centerY - 20f), delayMillis = 32)
+            moveTo(1, Offset(centerX + 70f, centerY + 20f), delayMillis = 32)
+            up(0)
+            up(1)
+        }
+        assertEquals(afterSecond.xSpan, observed.xSpan, 0.05)
+        assertNotEquals(afterSecond.xMin, observed.xMin, 0.0001)
+    }
+
+    @Test
     fun persistentStrengthChartShowsResetOnlyAfterTwoDimensionalPinch() {
         val dates = (0L..2L).map { LocalDate.of(2026, 8, 1).plusDays(it) }
         val spec = ChartSpec(
@@ -346,7 +507,13 @@ class AnalysisPlotChartZoomTest {
 
         val chartSource = source("AnalysisChartUi.kt")
         val strengthSource = source("AnalysisPersistentStrengthPerformanceUi.kt")
-        assertTrue(chartSource.contains("count { it.pressed } >= 2"))
+        assertTrue(chartSource.contains("pressed.size >= 2"))
+        assertTrue(chartSource.contains("CartesianGestureState.OneFingerPending"))
+        assertTrue(chartSource.contains("CartesianGestureState.Inspecting"))
+        assertTrue(chartSource.contains("CartesianGestureState.Transforming"))
+        assertEquals(1, chartSource.split(".pointerInput(").size - 1)
+        assertFalse(chartSource.contains("detectTapGestures"))
+        assertTrue(chartSource.contains("gestureViewport, full, scale"))
         assertTrue(chartSource.contains("clipRect(left = 0f"))
         assertTrue(chartSource.contains("radius = 4f"))
         assertTrue(chartSource.contains("Stroke(width = 4f)"))
