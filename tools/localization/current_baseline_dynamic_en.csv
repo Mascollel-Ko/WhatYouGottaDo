@@ -303,6 +303,18 @@ ${} 주간 기록이 없어 분석을 시작할 수 없습니다.,Analysis canno
 사용 가능 ${}주,%1$s weeks available,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 완료된 주간 기록: ${}주,Completed weekly records: %1$s weeks,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 ${}주 후: 중앙값 ${} · 80% 구간 ${}~${},After %1$s weeks: median %2$s · 80%% interval %3$s–%4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+과거에 관찰된 ${} 자극이 최근 4주에서 사라졌습니다.,Previously observed %1$s stimulus is absent from the last four weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+${} 축은 아직 직접 관찰되지 않은 발달 후보입니다.,The %1$s axis is a development candidate that has not yet been directly observed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+유효 근비대 자극이 ${}에 과도하게 치우쳐 ${} 보완이 필요합니다.,Effective hypertrophy stimulus is overly concentrated in %1$s; add %2$s coverage.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+최근 일반 코트 부하 ${}가 주간 빈도·밀도·회복 여유에 반영됐습니다. 이 부하는 Objective V2 자극으로 계산하지 않았습니다.,Recent generic court load %1$s affected weekly frequency density and recovery margin. It was not counted as Objective V2 stimulus.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+${} canonical planning metadata로 ${}을 선택했습니다.,%1$s Selected %2$s using canonical planning metadata.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} kg × 5회 × 5세트 · RPE 7–8.5 · ${},%1$s kg × 5 reps × 5 sets · RPE 7–8.5 · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} kg × ${}회 × ${}세트 · RPE 7–8.5 · ${},%1$s kg × %2$s reps × %3$s sets · RPE 7–8.5 · %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+Top ${} kg × ${}회; Backoff ${} kg × ${}회 × 2 · RPE 7.5–8.5 · ${},Top %1$s kg × %2$s reps; backoff %3$s kg × %4$s reps × 2 · RPE 7.5–8.5 · %5$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+Top set ${} kg × ${}회 · RPE 8–9 · ${},Top set %1$s kg × %2$s reps · RPE 8–9 · %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${} kg × ${}회 × 3세트 · ${},%1$s %2$s kg × %3$s reps × 3 sets · %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${}회 × 3세트 · RPE 7–8.5 · ${},%1$s %2$s reps × 3 sets · RPE 7–8.5 · %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${}${} 회 × ${} 세트 · RPE 7–8.5 · ${},%1$s%2$s reps × %3$s sets · RPE 7–8.5 · %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
 MCMC 진단: ${},MCMC diagnostics: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 자동 조정: ${},Automatic adjustments: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 ${} 주별 posterior 반응 그래프,%1$s weekly posterior response chart,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt

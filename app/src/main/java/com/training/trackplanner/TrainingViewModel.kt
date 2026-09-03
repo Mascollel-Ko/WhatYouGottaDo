@@ -41,6 +41,7 @@ import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
+import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramBuildProgressState
@@ -375,7 +376,11 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             runCatching {
                 withTimeout(15_000) {
                     _programBuildProgress.value = ProgramBuildProgressState.Running(45, "적응 상태와 보완 대상을 분석하는 중입니다.")
-                    repository.generatePersonalizedProgram(request, answers)
+                    repository.generatePersonalizedProgram(
+                        request,
+                        answers,
+                        PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
+                    )
                 }
             }.onSuccess { outcome ->
                 when (outcome) {

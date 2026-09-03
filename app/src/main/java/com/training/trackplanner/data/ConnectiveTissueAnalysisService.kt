@@ -40,10 +40,12 @@ internal class ConnectiveTissueAnalysisService(
         val now = Instant.ofEpochMilli(nowEpochMillis).atZone(zoneId)
         val today = now.toLocalDate()
         val profile = initialUserProfileDao.profile()
-        val dailyMetrics = dailyMetricDao.allMetrics()
-        val checkIns = dailyCheckInDao.all()
+        val dailyMetrics = dailyMetricDao.metricsUntil(today.toString())
+        val checkIns = dailyCheckInDao.all().filter { row ->
+            runCatching { LocalDate.parse(row.date) }.getOrNull()?.let { !it.isAfter(today) } == true
+        }
         val exercisesById = exerciseDao.allExercises().associateBy(Exercise::stableKey)
-        val records = workoutDao.allEntriesWithSets().mapNotNull { record ->
+        val records = workoutDao.entriesWithSetsUntil(today.toString()).mapNotNull { record ->
             if (record.sets.none(WorkoutSet::confirmed)) return@mapNotNull null
             val exercise = exercisesById[record.entry.exerciseStableKey] ?: return@mapNotNull null
             val bodyWeightKg = BodyweightEffectiveLoadCalculator.bodyWeightFor(

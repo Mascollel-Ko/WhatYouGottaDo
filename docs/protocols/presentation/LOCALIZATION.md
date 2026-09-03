@@ -64,6 +64,11 @@ education 92행으로 구성됩니다. Runtime exact/dynamic resources와 stable
 catalogues는 `tools/localization/localization_authority.py`가 결정적으로
 생성합니다.
 
+동결 workbook 이후 추가된 Android resource 번역은
+`tools/localization/current_baseline_android_en.csv`에 resource key와 Korean
+source를 함께 고정하며, 생성기는 현재 default resource와 정확히 일치하는지
+검증한 뒤 `values-en/strings.xml`에 포함합니다.
+
 ## 9. 출력과 UI 해석
 
 Korean은 base `values/`, English는 `values-en/`입니다. Empty override에서는

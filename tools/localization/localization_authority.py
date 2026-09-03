@@ -23,6 +23,7 @@ TISSUE_KO = (
 )
 BASELINE_GENERATED_EN = ROOT / "tools/localization/current_baseline_generated_en.csv"
 DYNAMIC_BASELINE_EN = ROOT / "tools/localization/current_baseline_dynamic_en.csv"
+ANDROID_BASELINE_EN = ROOT / "tools/localization/current_baseline_android_en.csv"
 EXERCISE_DESCRIPTION_EN = ROOT / "tools/localization/exercise_description_generated_en.csv"
 PROGRAM_NAME_EN = ROOT / "tools/localization/program_name_generated_en.csv"
 EXERCISE_BOOTSTRAP = ROOT / "app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv"
@@ -254,6 +255,24 @@ def _ui_assets(
     baseline_rows: list[dict[str, str]],
 ) -> tuple[str, str, str, dict[str, str], list[tuple[str, str]], dict[str, int]]:
     android_rows = [row for row in rows if _text(row.get("sourceType")) == "ANDROID_RESOURCE"]
+    android_translations = {
+        _text(row.get("sourceKeyOrContext")): _text(row.get("englishTarget"))
+        for row in android_rows
+    }
+    default_strings = {
+        node.attrib["name"]: "".join(node.itertext()).strip()
+        for node in ET.parse(ROOT / "app/src/main/res/values/strings.xml").getroot()
+        if node.tag == "string"
+    }
+    for row in _csv_rows(ANDROID_BASELINE_EN):
+        key = row["resourceKey"].strip()
+        korean = row["korean"].strip()
+        english = row["english"].strip()
+        if row["provenance"].strip() != "CODEX_GENERATED_ENGLISH":
+            raise ValueError(f"Invalid Android generated-English provenance: {key}")
+        if default_strings.get(key) != korean or not english:
+            raise ValueError(f"Android generated-English source mismatch: {key}")
+        android_translations[key] = english
     generated: dict[tuple[str, str], str] = {}
     for row in rows:
         if _text(row.get("sourceType")) == "ANDROID_RESOURCE":
@@ -378,12 +397,7 @@ def _ui_assets(
     return (
         _xml_strings([(key, pair[0]) for pair, key in generated.items()]),
         _xml_strings([(key, pair[1]) for pair, key in generated.items()]),
-        _xml_strings(
-            [
-                (_text(row.get("sourceKeyOrContext")), _text(row.get("englishTarget")))
-                for row in android_rows
-            ]
-        ),
+        _xml_strings(list(android_translations.items())),
         exact,
         patterns,
         counts,

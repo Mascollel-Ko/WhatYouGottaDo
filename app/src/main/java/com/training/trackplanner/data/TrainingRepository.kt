@@ -21,7 +21,9 @@ import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
+import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -313,7 +315,16 @@ class TrainingRepository(
         workoutDao = workoutDao,
         profileDao = initialUserProfileDao,
         appMetaDao = appMetaDao,
-        badmintonCatalog = badmintonObjectiveCatalog
+        badmintonCatalog = badmintonObjectiveCatalog,
+        dailyMetricDao = dailyMetricDao,
+        dailyCheckInDao = dailyCheckInDao,
+        strengthPosteriorDao = strengthPosteriorDao,
+        strengthPerformanceRegistry = strengthPerformanceRegistry,
+        canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
+        tissueStateProvider = { cutoff ->
+            val endOfDay = cutoff.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
+            connectiveTissueAnalysisService.build(endOfDay)
+        }
     )
     private val dailyReadinessInputService = DailyReadinessInputService(
         exerciseDao = exerciseDao,
@@ -777,12 +788,21 @@ class TrainingRepository(
 
     suspend fun generatePersonalizedProgram(
         request: ProgramSkeletonRequest,
-        answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers()
+        answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(
+            explicitGoal = request.goal,
+            explicitWeeklyTrainingDays = request.weeklyTrainingDays,
+            explicitDurationWeeks = request.durationWeeks,
+            explicitSessionMinutes = request.sessionMinutes
+        ),
+        cutoff: LocalDate = LocalDate.now()
     ): PersonalizedPlanningOutcome = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.generate(
             request = request,
             answers = answers,
-            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+            constraints = constraints,
+            cutoff = cutoff
         )
     }
 
@@ -791,7 +811,11 @@ class TrainingRepository(
         skeleton: GeneratedProgramSkeleton
     ): Long = withContext(Dispatchers.IO) {
         programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
-            skeleton.personalizedDecision?.let { personalizedProgramPlanningService.persistDecision(programId, it) }
+            skeleton.personalizedDecision?.let { decision ->
+                val stableKey = requireNotNull(programPlanService.programStableKey(programId))
+                val fingerprint = personalizedProgramFingerprint(skeleton.request, skeleton.items)
+                personalizedProgramPlanningService.persistDecision(programId, stableKey, decision, fingerprint)
+            }
         }
     }
 
@@ -806,14 +830,17 @@ class TrainingRepository(
         exerciseStableKey: String
     ) = withContext(Dispatchers.IO) {
         programPlanService.addExerciseToProgram(programId, weekNumber, dayOfWeek, exerciseStableKey)
+        programPlanService.programFingerprint(programId)?.let { personalizedProgramPlanningService.markProgramEdited(programId, it) }
     }
 
     suspend fun updateProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
         programPlanService.updateProgramItem(item)
+        programPlanService.programFingerprint(item.programId)?.let { personalizedProgramPlanningService.markProgramEdited(item.programId, it) }
     }
 
     suspend fun deleteProgramItem(item: TrainingProgramItem) = withContext(Dispatchers.IO) {
         programPlanService.deleteProgramItem(item)
+        programPlanService.programFingerprint(item.programId)?.let { personalizedProgramPlanningService.markProgramEdited(item.programId, it) }
     }
 
     suspend fun recordRangeProgramSummary(

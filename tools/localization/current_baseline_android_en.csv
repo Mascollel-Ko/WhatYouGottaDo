@@ -1,0 +1,14 @@
+resourceKey,korean,english,provenance
+daily_check_in_joint_complex_clear,선택 지우기,Clear selection,CODEX_GENERATED_ENGLISH
+daily_check_in_joint_complex_label,관절/건 불편감 위치,Joint/tendon discomfort location,CODEX_GENERATED_ENGLISH
+daily_check_in_joint_complex_none,위치 선택 안 함,No location selected,CODEX_GENERATED_ENGLISH
+daily_check_in_joint_complex_title,불편한 위치 선택,Select the discomfort location,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_body_weight,몸무게 %1$skg,Body weight %1$s kg,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_discomfort,불편감 %1$d,Discomfort %1$d,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_empty,입력값 없음,No values entered,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_focus,집중/의욕 %1$d,Focus/motivation %1$d,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_lower_body_fatigue,하체 %1$d,Lower body %1$d,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_overall_fatigue,전신 %1$d,Overall %1$d,CODEX_GENERATED_ENGLISH
+daily_check_in_summary_sleep,수면 %1$s시간,Sleep %1$s h,CODEX_GENERATED_ENGLISH
+tissue_analysis_not_diagnosis,"이 점수는 훈련 참고용 상대 지표이며 정확한 조직 손상이나 부상 확률, 의학적 진단을 뜻하지 않습니다. 통증·불안정감 같은 실제 증상을 우선하세요.","This score is a relative training reference. It is not an estimate of tissue damage or injury probability, nor a medical diagnosis. Prioritize actual symptoms such as pain or instability.",CODEX_GENERATED_ENGLISH
+tissue_analysis_unscoped_discomfort_warning,오늘 높은 관절/건 불편감이 입력되었습니다. 위치를 선택하지 않아 개별 조직 점수에는 적용하지 않았습니다.,"High joint/tendon discomfort was entered today. Because no location was selected, it was not applied to individual tissue scores.",CODEX_GENERATED_ENGLISH

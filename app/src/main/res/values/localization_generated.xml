@@ -73,6 +73,7 @@
     <string name="loc_baseline_0a92dce18992">포함하지 않음</string>
     <string name="loc_baseline_0ad33b5ea69b">예상보다 낮게 수행했습니다.</string>
     <string name="loc_baseline_0ae8c31b3c0f">배드민턴 전이 목적 설명</string>
+    <string name="loc_baseline_0b093214612b">회복/조직 신호가 주의 상태이므로 빈도와 세션 밀도를 보수적으로 유지합니다.</string>
     <string name="loc_baseline_0b1efea65d7e">근비대</string>
     <string name="loc_baseline_0b29f68bcf10">결과는 계산되었지만 표본추출 진단이 제한적이므로 더 주의해서 해석하세요.</string>
     <string name="loc_baseline_0b6f770e491d">체중 kg</string>
@@ -134,6 +135,7 @@
     <string name="loc_baseline_17468bf90757">상태 지문 ${summary.modelStateFingerprint?.take(16) ?:</string>
     <string name="loc_baseline_17505620ff53">계획 0세트</string>
     <string name="loc_baseline_17611cc1edb4">전신 피로 입력이 높습니다.</string>
+    <string name="loc_baseline_1762667f4e3c">조직 회복 상태가 높은 기여 운동의 증량을 제한합니다.</string>
     <string name="loc_baseline_185430024067">검색어 지우기</string>
     <string name="loc_baseline_189a21c33e5f">기본 휴식시간(초)</string>
     <string name="loc_baseline_1941b66b6945">이 차트는 전체 대비 나눠 보는 표가 아니라 전이 목적별 자극량을 보여줍니다. 운동 하나가 여러 전이 목적에 동시에 해당할 수 있어 자극량은 중복 반영됩니다.</string>
@@ -141,6 +143,7 @@
     <string name="loc_baseline_195b6e3cd1fa">없음</string>
     <string name="loc_baseline_196cd5ecaa4f">라켓 보조 같은 구 전이축이 아니라 풋워크, 가속, 감속, 리액션 등 전이 목적 기준으로 비교합니다.</string>
     <string name="loc_baseline_196d77bc194a">자동 패턴 탐지</string>
+    <string name="loc_baseline_19a4b22f9f2d">높은 코트 부하에 비해 하루 운동 수가 많습니다.</string>
     <string name="loc_baseline_19fe6c8ae2cd">주간</string>
     <string name="loc_baseline_1a5c9d0c476f">주요 목표</string>
     <string name="loc_baseline_1a72cb6350bf">매우 피곤함</string>
@@ -356,6 +359,7 @@
     <string name="loc_baseline_46643091a362">잔존 피로</string>
     <string name="loc_baseline_4699ee2b11cf">복사할 기준 세트가 없습니다.</string>
     <string name="loc_baseline_46eecc9c5db7">대상 날짜에 기존 기록이 없습니다.</string>
+    <string name="loc_baseline_46f1d002dc07">프로덕션 회복 신호가 안정 범위입니다.</string>
     <string name="loc_baseline_47520a0a651f">간접 코어 자극</string>
     <string name="loc_baseline_476d7b372004">최근 근력 지표가 함께 낮아졌습니다.</string>
     <string name="loc_baseline_476fd8811a56">주간 스매시 최고 속도</string>
@@ -597,6 +601,7 @@
     <string name="loc_baseline_79666bda855c">새 프로그램</string>
     <string name="loc_baseline_7a1ef8b0c35e">분석 상세</string>
     <string name="loc_baseline_7a76049be91d">프로그램에서 가져오기</string>
+    <string name="loc_baseline_7a9d28422fe9">선택된 계획 기간이 모두 생성되지 않았습니다.</string>
     <string name="loc_baseline_7ab0e0ae5bdd">월</string>
     <string name="loc_baseline_7ad9cf4c26e5">운동 정보</string>
     <string name="loc_baseline_7af17b6c17f1">확장 기반</string>
@@ -900,6 +905,7 @@
     <string name="loc_baseline_be5960952add">결과를 정리하는 중입니다.</string>
     <string name="loc_baseline_be808b41d14a">이 반응은 현재 기록과 모형에 조건부이며 인과관계를 확정하지 않습니다.</string>
     <string name="loc_baseline_becfcd73c42f">불편감 부위 고강도 운동</string>
+    <string name="loc_baseline_bed127bea739">회복 신호가 없어 부하 증가는 수행 확인 뒤에만 허용합니다.</string>
     <string name="loc_baseline_bef467fbeb2d">확인</string>
     <string name="loc_baseline_bf30efb8e83d">운동 수</string>
     <string name="loc_baseline_bf32f1af91b3">규칙표와 운동 풀을 확인하는 중입니다.</string>
@@ -957,6 +963,7 @@
     <string name="loc_baseline_c8d800a86328">통증/부상</string>
     <string name="loc_baseline_c8fa69ef939a">주차와 요일별 운동 구성을 텍스트 요약으로 확인합니다.</string>
     <string name="loc_baseline_c9039c735d87">관절/건 불편감 입력이 높습니다.</string>
+    <string name="loc_baseline_c943e2ba937b">하루 운동 수가 안전한 편집 한도를 넘었습니다.</string>
     <string name="loc_baseline_c989571e94cc">대퇴사두</string>
     <string name="loc_baseline_c9a31f474cc1">3세트 x 8-12회</string>
     <string name="loc_baseline_c9c4d9048952">선택한 제한 신호를 우선 반영했습니다.</string>
@@ -1181,6 +1188,7 @@
     <string name="loc_baseline_fb31665f15b8">I 규칙</string>
     <string name="loc_baseline_fb36da85d326">사선</string>
     <string name="loc_baseline_fb469bf2bac1">채널</string>
+    <string name="loc_baseline_fb54b66d3845">회복/조직 신호가 제한 상태이므로 부하 증가를 금지하고 검토가 필요합니다.</string>
     <string name="loc_baseline_fb582a6f44d6">디클라인</string>
     <string name="loc_baseline_fb797939e2ad">수치 진단 ${summary.numericalDiagnostics.ifEmpty { listOf(</string>
     <string name="loc_baseline_fb9aba22eb37">누적 부담 흐름</string>
@@ -3041,6 +3049,8 @@
     <string name="loc_ui_pattern_1931ab5abadf">끝나면 예상 피로도: %1$s · %2$s</string>
     <string name="loc_ui_pattern_1a69f3d55024">자동 포함 내생변수: %1$s</string>
     <string name="loc_ui_pattern_1a6b0891486e">%1$s 남음 · %2$s</string>
+    <string name="loc_ui_pattern_1b02670f55b5">Top set %1$s kg × %2$s회 · RPE 8–9 · %3$s</string>
+    <string name="loc_ui_pattern_1c1653a5d660">최근 일반 코트 부하 %1$s가 주간 빈도·밀도·회복 여유에 반영됐습니다. 이 부하는 Objective V2 자극으로 계산하지 않았습니다.</string>
     <string name="loc_ui_pattern_1c23397c4a78">오늘 집중력/의욕이 %1$s/5로 입력되었습니다.</string>
     <string name="loc_ui_pattern_1c8f1272e7c3">완료 세트 %1$s개</string>
     <string name="loc_ui_pattern_1e3c3c2107d8">%1$s-%2$s주 관절/건/충격 누적 %3$s가 관리 기준 %4$s를 초과합니다.</string>
@@ -3112,6 +3122,7 @@
     <string name="loc_ui_pattern_560a66cbce16">휴식 %1$s초</string>
     <string name="loc_ui_pattern_579307c3d041">이전 중앙값 대비 현재 추정 범위 %1$s</string>
     <string name="loc_ui_pattern_58bb3bfe08be">선택 통제 변수: %1$s</string>
+    <string name="loc_ui_pattern_59159ce08a9f">Top %1$s kg × %2$s회; Backoff %3$s kg × %4$s회 × 2 · RPE 7.5–8.5 · %5$s</string>
     <string name="loc_ui_pattern_59178425e02b">적용 예정: %1$s</string>
     <string name="loc_ui_pattern_5af3f05f94b3">%1$s주 %2$s일 세션이 운동 7개를 초과합니다.</string>
     <string name="loc_ui_pattern_5b182518fc08">%1$s주 %2$s:%3$s 프로그램</string>
@@ -3129,7 +3140,9 @@
     <string name="loc_ui_pattern_64f4758a32a3">확인된 보완 대상은 %1$s입니다.</string>
     <string name="loc_ui_pattern_6543d7c78840">자동 보정 변수: %1$s</string>
     <string name="loc_ui_pattern_6567d6837fde">%1$s 피로도가 높습니다. 스트레스를 줄이면 좋습니다.</string>
+    <string name="loc_ui_pattern_6574ad011b14">%1$s canonical planning metadata로 %2$s을 선택했습니다.</string>
     <string name="loc_ui_pattern_663909ae29b3">집중/의욕 %1$s</string>
+    <string name="loc_ui_pattern_67031b451184">%1$s kg × %2$s회 × %3$s세트 · RPE 7–8.5 · %4$s</string>
     <string name="loc_ui_pattern_677fa5365805">최근 %1$s 추정 신호</string>
     <string name="loc_ui_pattern_67db01a8aa7e">예상 대비 %1$s</string>
     <string name="loc_ui_pattern_69a803d27e4e">활성 revision %1$s · 상태 %2$s</string>
@@ -3139,6 +3152,7 @@
     <string name="loc_ui_pattern_6d6fbbd1a419">최고 %1$s · Top3 %2$s · %3$s회</string>
     <string name="loc_ui_pattern_6dd02358a0f4">%1$s anchor가 최소 2주 연속 노출되지 않아 진행성 추적이 어렵습니다.</string>
     <string name="loc_ui_pattern_6e1d2377ffb4">%1$s 기록 프로그램</string>
+    <string name="loc_ui_pattern_6e4de3238834">%1$s 축은 아직 직접 관찰되지 않은 발달 후보입니다.</string>
     <string name="loc_ui_pattern_6e600d0dcc03">전이:%1$s</string>
     <string name="loc_ui_pattern_6f539efe2360">RPE 확률 관측 %1$s · 강한 nRM %2$s ·</string>
     <string name="loc_ui_pattern_6fdff2935c5c">오류 유형: %1$s</string>
@@ -3148,6 +3162,7 @@
     <string name="loc_ui_pattern_71155c83ee16">프록시 혁신 %1$s · 실패 %2$s</string>
     <string name="loc_ui_pattern_71d56e5b507d">운동 %1$s개 · 세트 %2$s개</string>
     <string name="loc_ui_pattern_7222a8473ac9">%1$s %2$s kg × %3$s회 × 3세트</string>
+    <string name="loc_ui_pattern_72d46f4055b9">유효 근비대 자극이 %1$s에 과도하게 치우쳐 %2$s 보완이 필요합니다.</string>
     <string name="loc_ui_pattern_735a597c1e37">최근 %1$s일 동안 %2$s 부하에 많이 기여한 기록입니다.</string>
     <string name="loc_ui_pattern_7369d489b3c8">%1$s초</string>
     <string name="loc_ui_pattern_73fa233a3eb4">이벤트 원장 전체 %1$s · 대기 %2$s · 실패 %3$s</string>
@@ -3196,6 +3211,7 @@
     <string name="loc_ui_pattern_96d89d0c80dd">기간: %1$s ~ %2$s (%3$s일)</string>
     <string name="loc_ui_pattern_97f59a725f8b">세션 likelihood %1$s</string>
     <string name="loc_ui_pattern_97f6e023c006">직접 %1$s · 프록시 %2$s · 관련 운동 %3$s</string>
+    <string name="loc_ui_pattern_9881046e4a5d">%1$s kg × 5회 × 5세트 · RPE 7–8.5 · %2$s</string>
     <string name="loc_ui_pattern_9886d13f1f7c">상태: %1$s</string>
     <string name="loc_ui_pattern_9b95808d3192">세션 후 local posterior %1$s</string>
     <string name="loc_ui_pattern_9c62d0428cde">주간 %1$s 최근 7일 운동량</string>
@@ -3213,6 +3229,7 @@
     <string name="loc_ui_pattern_a7b34464f884">%1$s 후에는 감소 방향이 비교적 일관되게 나타났습니다.</string>
     <string name="loc_ui_pattern_a853cf96e496">현재 메타데이터 편집 %1$s개가 백업 상태로 초기화됩니다.</string>
     <string name="loc_ui_pattern_a8abfd85c1b3">최근 피로 상승은 %1$s 기록과 %2$s 부담이 함께 누적된 영향일 가능성이 큽니다.</string>
+    <string name="loc_ui_pattern_a8d0b151b893">과거에 관찰된 %1$s 자극이 최근 4주에서 사라졌습니다.</string>
     <string name="loc_ui_pattern_ab0636dd4680">%1$s분</string>
     <string name="loc_ui_pattern_ad3cdc67684d">곡선 %1$s · 매칭 %2$s · 보정 %3$s</string>
     <string name="loc_ui_pattern_ad932c0892af">세션 전 예상 %1$s</string>
@@ -3241,6 +3258,7 @@
     <string name="loc_ui_pattern_bf5063eac2e4">선택 기간 기여 %1$s%%</string>
     <string name="loc_ui_pattern_bf6fc923a4b0">분석 기간: %1$s · 정렬 관측치: %2$s</string>
     <string name="loc_ui_pattern_c03143533fb3">진단 코드: %1$s</string>
+    <string name="loc_ui_pattern_c1a5d0a39ede">%1$s%2$s 회 × %3$s 세트 · RPE 7–8.5 · %4$s</string>
     <string name="loc_ui_pattern_c1da6aa8393f">최근 3일 평균 %1$s시간입니다. 고강도 훈련 판단에는 여유를 둡니다.</string>
     <string name="loc_ui_pattern_c24efc06d0be">당시 체중 %1$s · 당시 추가중량 %2$s · 당시 총부하 %3$s</string>
     <string name="loc_ui_pattern_c2f9c47339c1">시작: %1$s</string>
@@ -3252,6 +3270,7 @@
     <string name="loc_ui_pattern_c958857782ca">%1$s월 %2$s일</string>
     <string name="loc_ui_pattern_c958f97424fd">최근 %1$s일 기록이 없습니다.</string>
     <string name="loc_ui_pattern_c9d27f60a8a2">운동 %1$s개, 세트 %2$s개</string>
+    <string name="loc_ui_pattern_ca65822c216b">%1$s %2$s회 × 3세트 · RPE 7–8.5 · %3$s</string>
     <string name="loc_ui_pattern_cbad4014a900">관측 %1$s · %2$s</string>
     <string name="loc_ui_pattern_cefe97900d05">외 %1$s개</string>
     <string name="loc_ui_pattern_cf2efb5ae88e">역할:%1$s</string>
@@ -3303,6 +3322,7 @@
     <string name="loc_ui_pattern_ec9a412b86fd">%1$s주 %2$s일 예상 %3$s분이</string>
     <string name="loc_ui_pattern_ed936d1b4aaa">현재 %1$s</string>
     <string name="loc_ui_pattern_eeeb2637ed27">직접 %1$s회 · 프록시 %2$s회 · 관련 운동 %3$s개</string>
+    <string name="loc_ui_pattern_eeebdc35a840">%1$s %2$s kg × %3$s회 × 3세트 · %4$s</string>
     <string name="loc_ui_pattern_ef58411a0e54">%1$s%2$s 회 × %3$s 세트 · RPE 7–8.5</string>
     <string name="loc_ui_pattern_f0e4cee90817">수면 %1$s시간</string>
     <string name="loc_ui_pattern_f2319ee8c5e6">주 %1$s일</string>

@@ -418,13 +418,7 @@ private fun ProgramEditorScreen(
     pendingPersonalizedQuestions.getOrNull(personalizedQuestionIndex)?.let { question ->
         AlertDialog(
             onDismissRequest = {
-                val fallback = question.options.last()
-                val updated = personalizedAnswers + (question.id to fallback.value)
-                personalizedAnswers = updated
-                if (personalizedQuestionIndex < pendingPersonalizedQuestions.lastIndex) personalizedQuestionIndex += 1 else {
-                    pendingPersonalizedQuestions = emptyList()
-                    generatePersonalized(updated)
-                }
+                pendingPersonalizedQuestions = emptyList()
             },
             title = { Text("기록 기반 계획 확인") },
             text = {
@@ -436,10 +430,8 @@ private fun ProgramEditorScreen(
                             onClick = {
                                 val updated = personalizedAnswers + (question.id to option.value)
                                 personalizedAnswers = updated
-                                if (personalizedQuestionIndex < pendingPersonalizedQuestions.lastIndex) personalizedQuestionIndex += 1 else {
-                                    pendingPersonalizedQuestions = emptyList()
-                                    generatePersonalized(updated)
-                                }
+                                pendingPersonalizedQuestions = emptyList()
+                                generatePersonalized(updated)
                             }
                         ) { Text(option.label) }
                     }
@@ -637,11 +629,16 @@ private fun ProgramEditorScreen(
                         if (!requireProgramName()) return@Button
                         val current = skeleton ?: return@Button
                         val request = currentRequest()
+                        val savedRequest = if (lastGenerationWasPersonalized) {
+                            current.request.copy(name = request.name)
+                        } else {
+                            request
+                        }
                         viewModel.saveGeneratedProgram(
                             existingProgramId = program?.id,
                             skeleton = current.copy(
                                 suggestedName = request.name,
-                                request = request
+                                request = savedRequest
                             ),
                             onSaved = onSaved
                         )

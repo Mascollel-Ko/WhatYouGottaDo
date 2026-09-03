@@ -1,6 +1,8 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCalculator
+import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -15,7 +17,9 @@ class PlanningHistorySnapshotBuilder {
         metadata: Map<String, RuntimeExerciseMetadata>,
         badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
         profile: InitialUserProfile?,
-        preferences: PersonalizedPlanningPreferences
+        preferences: PersonalizedPlanningPreferences,
+        canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
+        recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals()
     ): PlanningHistorySnapshot {
         val exerciseByKey = exercises.associateBy(Exercise::stableKey)
         val confirmed = history.asSequence()
@@ -45,6 +49,17 @@ class PlanningHistorySnapshotBuilder {
         val objectiveMap = confirmed.map(PlanningSetRecord::stableKey).distinct().associateWith { key ->
             badmintonCatalog.relations(key).associate { it.objective.name to it.transferLevel.coefficient }
         }
+        val eligibleHistory = history.filter { record ->
+            runCatching { LocalDate.parse(record.entry.date) }.getOrNull()?.let { !it.isAfter(cutoff) } == true
+        }
+        val recentHistory = eligibleHistory.filter { record ->
+            runCatching { LocalDate.parse(record.entry.date) }.getOrNull()?.let { !it.isBefore(cutoff.minusDays(27)) } == true
+        }
+        val runtimeCatalog = com.training.trackplanner.data.RuntimeExerciseMetadataCatalog.of(metadata.values)
+        val objectiveExposure = BadmintonObjectiveStimulusCalculator(badmintonCatalog)
+            .calculate(recentHistory, exerciseByKey)
+        val genericCourtLoad = BadmintonPracticeLoadCalculator(runtimeCatalog)
+            .calculateRaw(recentHistory, exerciseByKey)
         return PlanningHistorySnapshot(
             cutoff = cutoff,
             allConfirmedSets = confirmed,
@@ -54,7 +69,11 @@ class PlanningHistorySnapshotBuilder {
             profilePrimaryGoal = profile?.primaryGoal.orEmpty(),
             strengthTrainingYears = profile?.strengthTrainingYears ?: 0.0,
             badmintonTrainingYears = profile?.badmintonTrainingYears ?: 0.0,
-            preferences = preferences
+            preferences = preferences,
+            genericCourtLoad = genericCourtLoad,
+            objectiveExposure = objectiveExposure,
+            canonicalStrengthSignals = canonicalStrengthSignals,
+            recoverySignals = recoverySignals
         )
     }
 }

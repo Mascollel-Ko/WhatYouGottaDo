@@ -3,6 +3,7 @@ package com.training.trackplanner.data.personalized
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.RuntimeExerciseMetadata
+import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
 internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.8.0_KOTLIN_1"
@@ -15,6 +16,34 @@ enum class BadmintonPlanningIntent { ENABLED, DISABLED, UNRESOLVED }
 enum class FreeWeightWillingness { WILLING, AVOID, UNRESOLVED }
 enum class StrengthProgrammingStyle { NONE, TOP_SET_HYPERTROPHY, TOP_SET_BACKOFF, STRAIGHT_5X5, STRAIGHT_STRENGTH_SETS, MADCOW_LIKE_HLM_RAMPING, HEAVY_LIGHT_MEDIUM, DUP_LIKE_UNDULATING, UNRESOLVED }
 enum class PlanningConfidence { LOW, MODERATE, HIGH }
+enum class PlannedActivityKind { RESISTANCE, STRUCTURED_BADMINTON_DRILL, GENERIC_COURT_SESSION, OTHER }
+enum class MovementCoverage {
+    LOWER_KNEE, POSTERIOR_CHAIN, HORIZONTAL_PUSH, HORIZONTAL_PULL, VERTICAL_PUSH, VERTICAL_PULL,
+    CORE_DIRECT, CALVES, ARMS_BICEPS, ARMS_TRICEPS, OTHER
+}
+enum class ProgressionDecision { ADVANCE, HOLD, REDUCE, REVIEW }
+
+data class CanonicalStrengthSignal(
+    val posteriorMedianKg: Double? = null,
+    val posteriorChangePercent: Double? = null,
+    val observationCount: Int = 0,
+    val source: String = "UNKNOWN"
+)
+
+data class PlanningRecoverySignals(
+    val readinessStatus: String = "UNKNOWN",
+    val readinessConfidence: String = "LOW",
+    val overallFatigueIndex: Int? = null,
+    val restrictedModes: Set<String> = emptySet(),
+    val tissueStatus: String = "UNKNOWN",
+    val tissueRestrictedStableKeys: Set<String> = emptySet(),
+    val sourceCodes: Set<String> = emptySet()
+) {
+    val isConstrained: Boolean
+        get() = readinessStatus in setOf("CAUTION", "FATIGUED", "LIMITED") ||
+            tissueStatus in setOf("HIGH", "VERY_HIGH", "BLOCKED") ||
+            (overallFatigueIndex ?: 0) >= 70
+}
 
 data class PersonalizedPlanningPreferences(
     val strengthIntent: StrengthIntent? = null,
@@ -31,6 +60,13 @@ data class PersonalizedPlanningQuestion(
 )
 
 data class PersonalizedPlanningAnswers(val values: Map<String, String> = emptyMap())
+
+data class PersonalizedGenerationConstraints(
+    val explicitGoal: ProgramGoal? = null,
+    val explicitWeeklyTrainingDays: Int? = null,
+    val explicitDurationWeeks: Int? = null,
+    val explicitSessionMinutes: Int? = null
+)
 
 data class PlanningSetRecord(
     val date: LocalDate,
@@ -53,7 +89,11 @@ data class PlanningHistorySnapshot(
     val profilePrimaryGoal: String,
     val strengthTrainingYears: Double,
     val badmintonTrainingYears: Double,
-    val preferences: PersonalizedPlanningPreferences
+    val preferences: PersonalizedPlanningPreferences,
+    val genericCourtLoad: Double = 0.0,
+    val objectiveExposure: Map<String, Double> = emptyMap(),
+    val canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
+    val recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -67,7 +107,10 @@ data class UserAnchor(
     val movementGroup: String,
     val metric: String,
     val response: String,
-    val score: Double
+    val score: Double,
+    val style: StrengthProgrammingStyle = StrengthProgrammingStyle.UNRESOLVED,
+    val styleConfidence: PlanningConfidence = PlanningConfidence.LOW,
+    val canonicalPerformanceSource: String = "UNKNOWN"
 )
 
 data class AthletePlanningState(
@@ -87,7 +130,15 @@ data class AthletePlanningState(
     val observedStyleConfidence: PlanningConfidence,
     val structuredBadmintonSessions: Int,
     val recoveryConstraint: String,
-    val confidence: PlanningConfidence
+    val confidence: PlanningConfidence,
+    val profileGoal: String = "MIXED",
+    val programGoal: ProgramGoal = ProgramGoal.FUNCTIONAL_CONDITIONING,
+    val objectiveExposure: Map<String, Double> = emptyMap(),
+    val objectiveDropGaps: Set<String> = emptySet(),
+    val objectiveDevelopmentalGaps: Set<String> = emptySet(),
+    val genericCourtLoad: Double = 0.0,
+    val recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
+    val hypertrophyStimulusByMovement: Map<MovementCoverage, Double> = emptyMap()
 )
 
 data class AdaptationGap(val code: String, val priority: String, val reason: String)
@@ -118,7 +169,14 @@ data class PersonalizedPlanningDecision(
     val constraints: List<String>,
     val metadataAuthorityVersion: String,
     val priorDecisionId: String? = null,
-    val userAnswers: Map<String, String> = emptyMap()
+    val userAnswers: Map<String, String> = emptyMap(),
+    val generatedProgramStableKey: String? = null,
+    val originalGenerationFingerprint: String = "",
+    val userEditedAfterGeneration: Boolean = false,
+    val finalSavedFingerprint: String = "",
+    val recoverySignalCodes: List<String> = emptyList(),
+    val genericCourtLoad: Double = 0.0,
+    val objectiveExposure: Map<String, Double> = emptyMap()
 )
 
 sealed interface PersonalizedPlanningOutcome {

@@ -33,20 +33,36 @@ class PlanningQuestionPolicy {
 
 class AdaptationGapAnalyzer {
     fun analyze(snapshot: PlanningHistorySnapshot, state: AthletePlanningState): List<AdaptationGap> {
-        val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !snapshot.isSportSession(it.stableKey) && !snapshot.isStructuredBadminton(it.stableKey) }
-        val counts = recent.groupingBy { snapshot.movementGroup(it.stableKey).removeSuffix("_ISOLATION") }.eachCount()
+        val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(27)) && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
+        val counts = recent.groupingBy { snapshot.movementCoverage(it.stableKey) }.eachCount()
         val required = linkedMapOf("LOWER_KNEE" to "HIGH", "POSTERIOR_CHAIN" to "HIGH", "HORIZONTAL_PUSH" to "HIGH", "UPPER_PULL" to "HIGH", "CORE_DIRECT" to "MODERATE")
         if (state.primaryAdaptation.startsWith("HYPERTROPHY")) required.putAll(mapOf("ARMS_BICEPS" to "MODERATE", "ARMS_TRICEPS" to "MODERATE", "CALVES" to "MODERATE"))
         return buildList {
             required.forEach { (target, priority) ->
                 val count = when (target) {
-                    "UPPER_PULL" -> counts.getOrDefault("HORIZONTAL_PULL", 0) + counts.getOrDefault("VERTICAL_PULL", 0)
-                    else -> counts.getOrDefault(target, 0)
+                    "UPPER_PULL" -> counts.getOrDefault(MovementCoverage.HORIZONTAL_PULL, 0) + counts.getOrDefault(MovementCoverage.VERTICAL_PULL, 0)
+                    else -> runCatching { MovementCoverage.valueOf(target) }.getOrNull()?.let { counts.getOrDefault(it, 0) } ?: 0
                 }
                 if (count == 0) add(AdaptationGap(target, priority, "최근 4주간 $target 직접 훈련 기록이 없습니다."))
             }
             if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED && state.structuredBadmintonSessions == 0) {
                 add(AdaptationGap("BADMINTON_FOUNDATIONAL_ONRAMP", "HIGH", "배드민턴 의도는 활성화됐지만 구조화 훈련 기록이 없어 기초 온램프가 필요합니다."))
+            }
+            if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED) {
+                state.objectiveDropGaps.sorted().forEach { objective ->
+                    add(AdaptationGap("BADMINTON_DROP_$objective", "HIGH", "과거에 관찰된 $objective 자극이 최근 4주에서 사라졌습니다."))
+                }
+                state.objectiveDevelopmentalGaps.sorted().take(2).forEach { objective ->
+                    add(AdaptationGap("BADMINTON_DEVELOP_$objective", "MODERATE", "$objective 축은 아직 직접 관찰되지 않은 발달 후보입니다."))
+                }
+            }
+            if (state.primaryAdaptation.startsWith("HYPERTROPHY") && state.hypertrophyStimulusByMovement.isNotEmpty()) {
+                val positive = state.hypertrophyStimulusByMovement.filterValues { it > 0.0 }
+                val max = positive.maxByOrNull { it.value }
+                val min = positive.minByOrNull { it.value }
+                if (max != null && min != null && max.value >= min.value * 3.0) {
+                    add(AdaptationGap("HYPERTROPHY_REBALANCE_${min.key.name}", "HIGH", "유효 근비대 자극이 ${max.key.name}에 과도하게 치우쳐 ${min.key.name} 보완이 필요합니다."))
+                }
             }
         }
     }
@@ -54,6 +70,8 @@ class AdaptationGapAnalyzer {
 
 class PlanningHorizonPlanner {
     fun choose(state: AthletePlanningState, gaps: List<AdaptationGap>): Int = when {
+        state.recoverySignals.readinessStatus == "LIMITED" -> 2
+        state.recoverySignals.isConstrained -> 3
         state.historyDays < 28 -> 2
         state.strengthIntent == StrengthIntent.UNRESOLVED || state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED -> 3
         gaps.any { it.code == "BADMINTON_FOUNDATIONAL_ONRAMP" } -> 3
@@ -67,7 +85,14 @@ class PlanningHorizonPlanner {
 class WeeklyDosePlanner {
     fun chooseDays(state: AthletePlanningState, itemCount: Int): Int {
         val historical = state.recentTrainingDaysPerWeek.roundToInt().coerceIn(2, 5)
-        return maxOf(historical, ((itemCount + 4) / 5).coerceIn(2, 5))
+        val densityFloor = ((itemCount + 3) / 4).coerceIn(2, 5)
+        val courtAdjusted = if (state.genericCourtLoad >= 180.0) minOf(historical, 3) else historical
+        val recoveryCeiling = when {
+            state.recoverySignals.readinessStatus == "LIMITED" -> 2
+            state.recoverySignals.isConstrained -> 3
+            else -> 5
+        }
+        return maxOf(courtAdjusted, densityFloor).coerceAtMost(recoveryCeiling)
     }
 }
 
@@ -108,8 +133,10 @@ class BlockIntentPlanner {
             if (state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED) add("배드민턴 계획 의도가 미해결이어서 배드민턴 드릴을 새로 추가하지 않았습니다.")
             add("확인되지 않은 새 운동의 시작 중량은 RPE 기반으로 결정하며 기계 중량을 프리웨이트 중량으로 변환하지 않습니다.")
             add(state.recoveryConstraint)
+            if (state.genericCourtLoad > 0.0) add("최근 일반 코트 부하 ${state.genericCourtLoad.roundToInt()}가 주간 빈도·밀도·회복 여유에 반영됐습니다. 이 부하는 Objective V2 자극으로 계산하지 않았습니다.")
+            if (state.recoverySignals.tissueRestrictedStableKeys.isNotEmpty()) add("조직 회복 상태가 높은 기여 운동의 증량을 제한합니다.")
         }
-        return BlockIntent(state.primaryAdaptation, duration.first, duration.second, selectedStyle, if (preserveObserved) "PRESERVED_INCUMBENT" else "AUTO_CONSERVATIVE", reasons, constraints, listOf("HISTORY_CUTOFF_ENFORCED", "STABLE_KEY_AUTHORITY", "CONTINUITY_HYSTERESIS") + gaps.map { "GAP_${it.code}" })
+        return BlockIntent(state.primaryAdaptation, duration.first, duration.second, selectedStyle, if (preserveObserved) "PRESERVED_INCUMBENT" else "AUTO_CONSERVATIVE", reasons, constraints, listOf("HISTORY_CUTOFF_ENFORCED", "STABLE_KEY_AUTHORITY", "CONTINUITY_HYSTERESIS") + state.recoverySignals.sourceCodes.sorted() + gaps.map { "GAP_${it.code}" })
     }
 }
 

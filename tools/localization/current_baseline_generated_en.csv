@@ -1240,3 +1240,11 @@ CoreStimulus V1의 주간 간접 코어 자극,Weekly indirect CoreStimulus V1,C
 "같은 조건으로 다시 시도하거나 더 많은 주간 기록이 쌓인 뒤 확인해 주세요.","Try again with the same settings or after more weekly records accumulate.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 "지표 조합을 줄여 다시 시도해 주세요.","Try again with fewer metrics.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 "자세히에서 진단 코드를 확인한 뒤 다시 시도해 주세요.","Check the diagnostic code in Details, then try again.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+회복/조직 신호가 제한 상태이므로 부하 증가를 금지하고 검토가 필요합니다.,Recovery or tissue signals are limited; do not increase load and review the plan.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt
+회복/조직 신호가 주의 상태이므로 빈도와 세션 밀도를 보수적으로 유지합니다.,Recovery or tissue signals warrant caution; keep frequency and session density conservative.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt
+회복 신호가 없어 부하 증가는 수행 확인 뒤에만 허용합니다.,No recovery signal is available; increase load only after confirmed performance.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt
+프로덕션 회복 신호가 안정 범위입니다.,Production recovery signals are within a stable range.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt
+조직 회복 상태가 높은 기여 운동의 증량을 제한합니다.,Tissue recovery status limits load increases for high-contribution exercises.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+선택된 계획 기간이 모두 생성되지 않았습니다.,The selected planning horizon was not fully generated.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+하루 운동 수가 안전한 편집 한도를 넘었습니다.,The daily exercise count exceeds the safe editing limit.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+높은 코트 부하에 비해 하루 운동 수가 많습니다.,The daily exercise count is too high for the current court load.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt

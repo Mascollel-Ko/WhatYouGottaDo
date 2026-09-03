@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.security.MessageDigest
 
 data class RecordRangeProgramSummary(
     val startDate: String,
@@ -41,6 +42,24 @@ internal class ProgramPlanService(
                 durationDays = 28
             )
         )
+
+    suspend fun programStableKey(programId: Long): String? = programDao.findProgram(programId)?.stableKey
+
+    suspend fun programFingerprint(programId: Long): String? {
+        val program = programDao.findProgram(programId) ?: return null
+        val items = programDao.itemsForProgram(programId)
+        val sets = programDao.programItemSetsForProgram(programId).groupBy(TrainingProgramItemSet::programItemId)
+        val source = buildString {
+            append(listOf(program.stableKey, program.name, program.goal, program.durationDays, program.weeklyTrainingDays, program.sessionMinutes).joinToString("|"))
+            items.sortedWith(compareBy(TrainingProgramItem::weekNumber, TrainingProgramItem::dayOfWeek, TrainingProgramItem::orderIndex, TrainingProgramItem::exerciseStableKey)).forEach { item ->
+                append('\n').append(listOf(item.weekNumber, item.dayOfWeek, item.orderIndex, item.exerciseStableKey, item.restSeconds, item.prescription).joinToString("|"))
+                sets[item.id].orEmpty().sortedBy(TrainingProgramItemSet::setIndex).forEach { set ->
+                    append('|').append("${set.setIndex}:${set.reps}:${set.weightKg}:${set.seconds}")
+                }
+            }
+        }
+        return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
