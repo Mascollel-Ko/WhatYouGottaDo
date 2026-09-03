@@ -1,4 +1,41 @@
 korean,english,provenance,sourcePath
+"최근 기록만으로는 낮은 반복·고중량 훈련이 부족한 것인지, 의도적으로 피하는 것인지 구분하기 어렵습니다. 앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?",Recent records cannot distinguish insufficient low-rep heavy training from deliberate avoidance. How much strength improvement do you want from resistance training?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+근비대만 우선,Prioritize hypertrophy only,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+근비대 + 근력,Hypertrophy + strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+근력 우선,Prioritize strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+고중량은 의도적으로 피하고 싶음,I want to avoid heavy loading,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+잘 모르겠음,Not sure,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+배드민턴 경기력 향상을 위한 구조화 훈련을 프로그램에 포함할까요?,Include structured training for badminton performance?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+포함,Include,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+포함하지 않음,Do not include,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+낮은 강도의 프리웨이트 또는 편측 운동을 새 자극으로 포함해도 될까요?,May the plan include low-intensity free-weight or unilateral work as a new stimulus?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+포함 가능,May include,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+피하고 싶음,Prefer to avoid,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+배드민턴 의도는 활성화됐지만 구조화 훈련 기록이 없어 기초 온램프가 필요합니다.,Badminton planning is enabled but there is no structured history so a foundational on-ramp is needed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+고중량 선호가 미해결이어서 새로운 고중량 특화를 추가하지 않은 임시 계획입니다.,Heavy-load preference is unresolved so this provisional plan does not add new heavy specialization.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+배드민턴 계획 의도가 미해결이어서 배드민턴 드릴을 새로 추가하지 않았습니다.,Badminton planning intent is unresolved so no new badminton drills were added.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+확인되지 않은 새 운동의 시작 중량은 RPE 기반으로 결정하며 기계 중량을 프리웨이트 중량으로 변환하지 않습니다.,Starting loads for untested exercises are determined by RPE and machine loads are not converted to free-weight loads.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+25초 × 3세트 · RPE 5–6.5,25 sec × 3 sets · RPE 5–6.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+8–12회 × 3세트 · RPE 6–8 (첫 세션에서 중량 확인),8–12 reps × 3 sets · RPE 6–8 (find load in first session),CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+일반 배드민턴 세션은 프로그램 항목으로 생성할 수 없습니다.,Generic badminton sessions cannot be generated as program items.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+근비대 중심,Hypertrophy dominant,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+근력 중심,Strength dominant,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+근력·근비대 혼합,Mixed strength and hypertrophy,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+종합 혼합,General mixed,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+탑세트 근비대,Top-set hypertrophy,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+탑세트·백오프,Top set and backoff,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+동일중량 5×5,Straight 5×5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+동일중량 근력 세트,Straight strength sets,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+Madcow형 H/L/M 램핑,Madcow-like H/L/M ramping,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+주간 파동형,Daily undulating,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+기록 기반 계획 요약,Record-based plan summary,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+기록 기반 계획 확인,Review record-based plan,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기록 기반 알고리듬 프로그램 다시 만들기,Regenerate record-based algorithmic program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기록 기반 알고리듬 프로그램 만들기,Create record-based algorithmic program,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+완료 기록과 canonical 메타데이터를 확인하는 중입니다.,Checking completed records and canonical metadata.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+적응 상태와 보완 대상을 분석하는 중입니다.,Analyzing adaptation state and coverage targets.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+기록 기반 계획 생성 시간이 초과되었습니다.,Record-based plan generation timed out.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+기록 기반 계획 생성에 실패했습니다.,Record-based plan generation failed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
 자세히 알아보기,Learn more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/DocumentationLinks.kt
 전체 문서 보기,View all documentation,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/DocumentationLinks.kt
 닫기,Close,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/CommonUi.kt

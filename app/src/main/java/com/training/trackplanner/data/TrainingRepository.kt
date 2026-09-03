@@ -20,6 +20,8 @@ import com.training.trackplanner.analysis.trends.TrendDataPoint
 import com.training.trackplanner.analysis.trends.TrendMetricId
 import com.training.trackplanner.analysis.trends.WeeklyAnalysisWindow
 import com.training.trackplanner.analysis.tissue.TissueCurrentState
+import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
+import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -305,6 +307,13 @@ class TrainingRepository(
     )
     private val programGenerationService = ProgramGenerationService(
         exerciseDao = exerciseDao
+    )
+    private val personalizedProgramPlanningService = PersonalizedProgramPlanningService(
+        exerciseDao = exerciseDao,
+        workoutDao = workoutDao,
+        profileDao = initialUserProfileDao,
+        appMetaDao = appMetaDao,
+        badmintonCatalog = badmintonObjectiveCatalog
     )
     private val dailyReadinessInputService = DailyReadinessInputService(
         exerciseDao = exerciseDao,
@@ -766,11 +775,24 @@ class TrainingRepository(
             programGenerationService.generateProgramSkeleton(request)
         }
 
+    suspend fun generatePersonalizedProgram(
+        request: ProgramSkeletonRequest,
+        answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers()
+    ): PersonalizedPlanningOutcome = withContext(Dispatchers.IO) {
+        personalizedProgramPlanningService.generate(
+            request = request,
+            answers = answers,
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
+        )
+    }
+
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton
     ): Long = withContext(Dispatchers.IO) {
-        programPlanService.saveGeneratedProgram(existingProgramId, skeleton)
+        programPlanService.saveGeneratedProgram(existingProgramId, skeleton).also { programId ->
+            skeleton.personalizedDecision?.let { personalizedProgramPlanningService.persistDecision(programId, it) }
+        }
     }
 
     suspend fun deleteProgram(programId: Long) = withContext(Dispatchers.IO) {

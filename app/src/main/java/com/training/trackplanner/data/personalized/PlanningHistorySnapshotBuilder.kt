@@ -1,0 +1,60 @@
+package com.training.trackplanner.data.personalized
+
+import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.InitialUserProfile
+import com.training.trackplanner.data.RuntimeExerciseMetadata
+import com.training.trackplanner.data.WorkoutEntryWithSets
+import java.time.LocalDate
+
+class PlanningHistorySnapshotBuilder {
+    fun build(
+        cutoff: LocalDate,
+        history: List<WorkoutEntryWithSets>,
+        exercises: List<Exercise>,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        badmintonCatalog: CanonicalBadmintonObjectiveCatalog,
+        profile: InitialUserProfile?,
+        preferences: PersonalizedPlanningPreferences
+    ): PlanningHistorySnapshot {
+        val exerciseByKey = exercises.associateBy(Exercise::stableKey)
+        val confirmed = history.asSequence()
+            .filter { runCatching { LocalDate.parse(it.entry.date) }.getOrNull()?.let { date -> !date.isAfter(cutoff) } == true }
+            .flatMap { record ->
+                val date = LocalDate.parse(record.entry.date)
+                record.sets.asSequence().filter { it.confirmed }.map { set ->
+                    PlanningSetRecord(
+                        date = date,
+                        stableKey = record.entry.exerciseStableKey,
+                        exerciseName = record.entry.exerciseName,
+                        category = record.entry.category,
+                        setIndex = set.setIndex,
+                        reps = set.reps,
+                        weightKg = set.weightKg,
+                        seconds = set.seconds,
+                        rpe = set.rpe ?: record.entry.rpe
+                    )
+                }
+            }
+            .sortedWith(compareBy(PlanningSetRecord::date, PlanningSetRecord::stableKey, PlanningSetRecord::setIndex))
+            .toList()
+        require(confirmed.isNotEmpty()) { "기록 기반 계획에 사용할 완료 세트가 없습니다." }
+        require(confirmed.all { it.stableKey.isNotBlank() && it.stableKey in exerciseByKey }) {
+            "완료 기록의 canonical stableKey 메타데이터를 확인할 수 없습니다."
+        }
+        val objectiveMap = confirmed.map(PlanningSetRecord::stableKey).distinct().associateWith { key ->
+            badmintonCatalog.relations(key).associate { it.objective.name to it.transferLevel.coefficient }
+        }
+        return PlanningHistorySnapshot(
+            cutoff = cutoff,
+            allConfirmedSets = confirmed,
+            exercises = exerciseByKey,
+            metadata = metadata,
+            badmintonObjectives = objectiveMap,
+            profilePrimaryGoal = profile?.primaryGoal.orEmpty(),
+            strengthTrainingYears = profile?.strengthTrainingYears ?: 0.0,
+            badmintonTrainingYears = profile?.badmintonTrainingYears ?: 0.0,
+            preferences = preferences
+        )
+    }
+}

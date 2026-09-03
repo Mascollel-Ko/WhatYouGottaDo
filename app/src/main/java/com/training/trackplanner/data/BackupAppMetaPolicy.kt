@@ -6,11 +6,13 @@ enum class BackupAppMetaAuthority {
 }
 
 object BackupAppMetaPolicy {
-    // No app_meta key is currently part of the portable user-domain contract.
-    private val portableUserStateKeys = emptySet<String>()
+    private val portableUserStateKeys = setOf(PersonalizedProgramPlanningService.PREFERENCES_KEY)
+    private val portableUserStatePrefixes = setOf(PersonalizedProgramPlanningService.DECISION_PREFIX)
 
     fun authority(key: String): BackupAppMetaAuthority =
-        if (key in portableUserStateKeys) BackupAppMetaAuthority.PORTABLE_USER_STATE
+        if (key in portableUserStateKeys || portableUserStatePrefixes.any(key::startsWith)) {
+            BackupAppMetaAuthority.PORTABLE_USER_STATE
+        }
         else BackupAppMetaAuthority.LOCAL_INFRASTRUCTURE_STATE
 
     fun isSourceOverwriteAllowed(key: String): Boolean =

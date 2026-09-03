@@ -36,6 +36,7 @@ A compatibility field cannot be removed until production consumers are zero, par
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/MetadataSanityChecker.kt` | `check` | DATA | READ_WRITE | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/MetadataSanityChecker.kt` | `check` | DATA | REFERENCE | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/MetadataSanityChecker.kt` | `Exercise` | DATA | REFERENCE | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
+| `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt` | `anchors` | ANALYSIS | READ | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt` | `appendStrengthRow` | BACKUP_RESTORE | READ | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt` | `legacyRuntimeSnapshotRows` | BACKUP_RESTORE | READ | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |
 | `progressMetricType` | `app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt` | `value` | BACKUP_RESTORE | READ_WRITE | PRODUCTION | `NON_METADATA_ANALYSIS_OR_PRESCRIPTION_PROTOCOL` |

@@ -1,6 +1,7 @@
 package com.training.trackplanner.data
 
 import com.training.trackplanner.analysis.fatigue.DailyFatigueState
+import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
 import java.time.LocalDate
 
 enum class ProgramGoal {
@@ -158,7 +159,8 @@ data class GeneratedProgramSkeleton(
     val warnings: List<String> = emptyList(),
     val optimizationSummary: ProgramOptimizationSummary = ProgramOptimizationSummary(),
     val templateId: String = "POLICY_FALLBACK",
-    val representativeTemplate: Boolean = false
+    val representativeTemplate: Boolean = false,
+    val personalizedDecision: PersonalizedPlanningDecision? = null
 )
 
 /** Compatibility entry point retained for the existing repository and editor. */

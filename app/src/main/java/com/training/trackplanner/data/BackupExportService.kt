@@ -87,6 +87,7 @@ internal class BackupExportService(
             }
             val runtimeMetadata = effectiveStates.values.map(ExerciseMetadataEffectiveState::runtimeMetadata)
             val profile = initialUserProfileDao.profile()
+            val portableAppMeta = appMetaDao.all().filter { BackupAppMetaPolicy.authority(it.key) == BackupAppMetaAuthority.PORTABLE_USER_STATE }
             val posteriorEvents = strengthPosteriorDao.allEvents()
             val posteriorHistory = strengthPosteriorDao.allHistory()
             val posteriorStates = strengthPosteriorDao.allModelStates()
@@ -211,6 +212,7 @@ internal class BackupExportService(
                 programSlotCapabilityRelations = programSlotCapabilityRelations,
                 metadataSnapshots = metadataSnapshots,
                 metadataUserOverrides = metadataUserOverrides,
+                portableAppMeta = portableAppMeta,
                 sourceDatabaseLineageId = sourceDatabaseLineageId,
                 includeProgramSnapshot = true
             )
@@ -232,7 +234,8 @@ internal class BackupExportService(
                 programItemSetCount = backupProgramItemSets.size,
                 programTombstoneCount = programTombstones.size,
                 metadataSnapshotCount = metadataSnapshots.size,
-                metadataUserOverrideCount = metadataUserOverrides.size
+                metadataUserOverrideCount = metadataUserOverrides.size,
+                portableAppMetaCount = portableAppMeta.size
             )
             val csv = RecordCsvBackupRestore.wrapWithManifest(
                 body = body,

@@ -56,6 +56,9 @@ import com.training.trackplanner.data.TrainingProgramItemSet
 import com.training.trackplanner.data.defaultProgramWeekDaySchedule
 import com.training.trackplanner.data.emptyProgramSkeleton
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
+import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
+import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.PersonalizedPlanningQuestion
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
 
@@ -324,6 +327,11 @@ private fun ProgramEditorScreen(
     var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
     var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
+    var pendingPersonalizedQuestions by remember { mutableStateOf<List<PersonalizedPlanningQuestion>>(emptyList()) }
+    var personalizedQuestionIndex by rememberSaveable { mutableStateOf(0) }
+    var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(program?.id, existingItems, existingItemSets) {
         if (program != null && skeleton == null && existingItems.isNotEmpty()) {
@@ -371,14 +379,74 @@ private fun ProgramEditorScreen(
     fun generateSkeleton() {
         if (!requireProgramName()) return
         val request = currentRequest()
+        lastGenerationWasPersonalized = false
         viewModel.generateProgramSkeleton(request) { generated ->
             skeleton = generated.copy(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
             ).withResolvedWeekDaySchedule()
             autoSkeletonCreated = true
+            personalizedSkeletonCreated = false
             showSkeletonOptions = true
         }
+    }
+
+    fun generatePersonalized(answers: Map<String, String> = personalizedAnswers) {
+        if (!requireProgramName()) return
+        val request = currentRequest()
+        lastGenerationWasPersonalized = true
+        viewModel.generatePersonalizedProgram(request, PersonalizedPlanningAnswers(answers)) { outcome ->
+            when (outcome) {
+                is PersonalizedPlanningOutcome.Questions -> {
+                    pendingPersonalizedQuestions = outcome.questions
+                    personalizedQuestionIndex = 0
+                }
+                is PersonalizedPlanningOutcome.Generated -> {
+                    skeleton = outcome.skeleton.copy(
+                        suggestedName = request.name,
+                        request = outcome.skeleton.request.copy(name = request.name)
+                    ).withResolvedWeekDaySchedule()
+                    autoSkeletonCreated = false
+                    personalizedSkeletonCreated = true
+                    showSkeletonOptions = true
+                    pendingPersonalizedQuestions = emptyList()
+                }
+            }
+        }
+    }
+
+    pendingPersonalizedQuestions.getOrNull(personalizedQuestionIndex)?.let { question ->
+        AlertDialog(
+            onDismissRequest = {
+                val fallback = question.options.last()
+                val updated = personalizedAnswers + (question.id to fallback.value)
+                personalizedAnswers = updated
+                if (personalizedQuestionIndex < pendingPersonalizedQuestions.lastIndex) personalizedQuestionIndex += 1 else {
+                    pendingPersonalizedQuestions = emptyList()
+                    generatePersonalized(updated)
+                }
+            },
+            title = { Text("기록 기반 계획 확인") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(question.prompt)
+                    question.options.forEach { option ->
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                val updated = personalizedAnswers + (question.id to option.value)
+                                personalizedAnswers = updated
+                                if (personalizedQuestionIndex < pendingPersonalizedQuestions.lastIndex) personalizedQuestionIndex += 1 else {
+                                    pendingPersonalizedQuestions = emptyList()
+                                    generatePersonalized(updated)
+                                }
+                            }
+                        ) { Text(option.label) }
+                    }
+                }
+            },
+            confirmButton = {}
+        )
     }
 
     if (confirmRegenerate) {
@@ -506,6 +574,13 @@ private fun ProgramEditorScreen(
                     ) {
                         Text(if (autoSkeletonCreated) "자동 골자 다시 만들기" else "자동 골자 만들기")
                     }
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !generationRunning,
+                        onClick = { generatePersonalized() }
+                    ) {
+                        Text(if (personalizedSkeletonCreated) "기록 기반 알고리듬 프로그램 다시 만들기" else "기록 기반 알고리듬 프로그램 만들기")
+                    }
                     } else {
                         Text(
                             text = "기존 구성은 아래 목록에서 수정합니다.",
@@ -520,7 +595,7 @@ private fun ProgramEditorScreen(
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,
-                    onRetry = { generateSkeleton() }
+                    onRetry = { if (lastGenerationWasPersonalized) generatePersonalized() else generateSkeleton() }
                 )
             }
         }

@@ -384,4 +384,20 @@ class RecordCsvBackupRestoreTest {
         assertEquals(1, parsed.smashSpeedRows.size)
         assertEquals(1, parsed.warningCount)
     }
+
+    @Test
+    fun personalizedPlannerStateRoundTripsWhileInfrastructureMetadataIsExcluded() {
+        val decision = AppMeta("personalized_planning_decision_v1_example", "{\"decisionId\":\"example\"}", 42L)
+        val preferences = AppMeta("personalized_planning_preferences_v1", "{\"strengthIntent\":\"MIXED\"}", 41L)
+        val csv = RecordCsvBackupRestore.buildRestoreCsv(
+            entriesWithSets = emptyList(),
+            metrics = emptyList(),
+            portableAppMeta = listOf(decision, preferences, AppMeta("exercise_seed_version", "99"))
+        )
+
+        val parsed = RecordCsvBackupRestore.parse(csv) as RecordCsvImportData.Restore
+
+        assertEquals(listOf(decision, preferences).sortedBy(AppMeta::key), parsed.portableAppMetaRows)
+        assertFalse(csv.contains("exercise_seed_version"))
+    }
 }

@@ -40,6 +40,8 @@ import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.ExerciseListRestoreMode
 import com.training.trackplanner.data.ExerciseRuntimeMetadataEditorData
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
+import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
@@ -357,6 +359,33 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     } else {
                         error.message ?: "자동 골자 생성에 실패했습니다."
                     }
+                )
+            }
+        }
+    }
+
+    fun generatePersonalizedProgram(
+        request: ProgramSkeletonRequest,
+        answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
+        onOutcome: (PersonalizedPlanningOutcome) -> Unit
+    ) {
+        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
+        viewModelScope.launch {
+            _programBuildProgress.value = ProgramBuildProgressState.Running(10, "완료 기록과 canonical 메타데이터를 확인하는 중입니다.")
+            runCatching {
+                withTimeout(15_000) {
+                    _programBuildProgress.value = ProgramBuildProgressState.Running(45, "적응 상태와 보완 대상을 분석하는 중입니다.")
+                    repository.generatePersonalizedProgram(request, answers)
+                }
+            }.onSuccess { outcome ->
+                when (outcome) {
+                    is PersonalizedPlanningOutcome.Questions -> _programBuildProgress.value = ProgramBuildProgressState.Idle
+                    is PersonalizedPlanningOutcome.Generated -> _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton, outcome.skeleton.optimizationSummary)
+                }
+                onOutcome(outcome)
+            }.onFailure { error ->
+                _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                    if (error is TimeoutCancellationException) "기록 기반 계획 생성 시간이 초과되었습니다." else error.message ?: "기록 기반 계획 생성에 실패했습니다."
                 )
             }
         }

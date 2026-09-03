@@ -7,16 +7,20 @@ import org.junit.Test
 
 class BackupAppMetaPolicyTest {
     @Test
-    fun generatedInventoryIsDeterministicAndEveryKeyIsTargetLocal() {
+    fun generatedInventoryIsDeterministicAndOnlyPlannerUserStateIsPortable() {
         val artifact = File("../docs/generated/app_meta_portability_classification.csv")
         val rows = artifact.readLines(Charsets.UTF_8).filter(String::isNotBlank)
         assertEquals("keyPattern,authority,purpose", rows.first())
-        assertEquals(13, rows.drop(1).size)
+        assertEquals(15, rows.drop(1).size)
         assertEquals(rows.drop(1).sorted(), rows.drop(1))
-        assertEquals(
-            setOf("LOCAL_INFRASTRUCTURE_STATE"),
-            rows.drop(1).map { it.split(',')[1] }.toSet()
-        )
+        assertEquals(setOf("LOCAL_INFRASTRUCTURE_STATE", "PORTABLE_USER_STATE"), rows.drop(1).map { it.split(',')[1] }.toSet())
+
+        listOf(
+            PersonalizedProgramPlanningService.PREFERENCES_KEY,
+            "${PersonalizedProgramPlanningService.DECISION_PREFIX}example"
+        ).forEach { key ->
+            assertEquals(BackupAppMetaAuthority.PORTABLE_USER_STATE, BackupAppMetaPolicy.authority(key))
+        }
 
         val representativeKeys = listOf(
             "unknown_future_key",

@@ -45,6 +45,7 @@ sealed class RecordCsvImportData {
         val runtimeMetadataRows: List<RuntimeExerciseMetadata> = emptyList(),
         val metadataSnapshotRows: List<ExerciseMetadataSnapshotRow> = emptyList(),
         val metadataUserOverrideRows: List<ExerciseMetadataUserOverrideEntity> = emptyList(),
+        val portableAppMetaRows: List<AppMeta> = emptyList(),
         val backupSchemaVersion: Int = 1,
         val posteriorFormatPresent: Boolean = false,
         val posteriorBootstrapMarker: String? = null,
@@ -296,6 +297,9 @@ object RecordCsvBackupRestore {
         "mode",
         "profile_key",
         "profile_value",
+        "app_meta_key",
+        "app_meta_value",
+        "app_meta_updated_at",
         "overall_fatigue",
         "lower_body_fatigue",
         "joint_tendon_discomfort",
@@ -415,6 +419,7 @@ object RecordCsvBackupRestore {
         programSlotCapabilityRelations: List<ExerciseProgramSlotCapabilityRelation> = emptyList(),
         metadataSnapshots: List<ExerciseMetadataSnapshotRow> = emptyList(),
         metadataUserOverrides: List<ExerciseMetadataUserOverrideEntity> = emptyList(),
+        portableAppMeta: List<AppMeta> = emptyList(),
         sourceDatabaseLineageId: String = "standalone-backup",
         includeProgramSnapshot: Boolean = false
     ): String {
@@ -568,6 +573,19 @@ object RecordCsvBackupRestore {
                 }
             )
         }
+        portableAppMeta
+            .filter { BackupAppMetaPolicy.authority(it.key) == BackupAppMetaAuthority.PORTABLE_USER_STATE }
+            .sortedBy(AppMeta::key)
+            .forEach { meta ->
+                appendMappedRow(
+                    rowType = "app_meta",
+                    values = mapOf(
+                        "app_meta_key" to meta.key,
+                        "app_meta_value" to meta.value,
+                        "app_meta_updated_at" to meta.updatedAt.toString()
+                    )
+                )
+            }
         exercises.sortedBy { exercise -> exercise.name }.forEach { exercise ->
             appendMappedRow(
                 rowType = "exercise",
@@ -1041,6 +1059,7 @@ object RecordCsvBackupRestore {
         val runtimeMetadataRows = mutableListOf<RuntimeExerciseMetadata>()
         val metadataSnapshotRows = mutableListOf<ExerciseMetadataSnapshotRow>()
         val metadataUserOverrideRows = mutableListOf<ExerciseMetadataUserOverrideEntity>()
+        val portableAppMetaRows = mutableListOf<AppMeta>()
         val posteriorEvents = mutableListOf<StrengthPosteriorEventEntity>()
         val posteriorHistory = mutableListOf<StrengthPosteriorHistoryEntity>()
         val posteriorModelStates = mutableListOf<StrengthPosteriorModelStateEntity>()
@@ -1304,6 +1323,19 @@ object RecordCsvBackupRestore {
                 }
                 return@forEachIndexed
             }
+            if (rowType == "app_meta") {
+                val key = row.value(index, "app_meta_key").trim()
+                if (key.isBlank() || !BackupAppMetaPolicy.isSourceOverwriteAllowed(key)) {
+                    warnings += 1
+                } else {
+                    portableAppMetaRows += AppMeta(
+                        key = key,
+                        value = row.value(index, "app_meta_value"),
+                        updatedAt = row.safeLong(index, "app_meta_updated_at") ?: 0L
+                    )
+                }
+                return@forEachIndexed
+            }
             if (rowType == "exercise") {
                 val name = row.value(index, "exercise_name").trim()
                 if (name.isBlank()) {
@@ -1478,6 +1510,7 @@ object RecordCsvBackupRestore {
             runtimeMetadataRows = runtimeMetadataRows,
             metadataSnapshotRows = metadataSnapshotRows,
             metadataUserOverrideRows = metadataUserOverrideRows,
+            portableAppMetaRows = portableAppMetaRows,
             backupSchemaVersion = backupSchemaVersion,
             posteriorFormatPresent = posteriorFormatPresent,
             posteriorBootstrapMarker = posteriorBootstrapMarker,
@@ -1610,7 +1643,8 @@ object RecordCsvBackupRestore {
         programItemSetCount: Int = 0,
         programTombstoneCount: Int,
         metadataSnapshotCount: Int = 0,
-        metadataUserOverrideCount: Int = 0
+        metadataUserOverrideCount: Int = 0,
+        portableAppMetaCount: Int = 0
     ): Map<String, Int> = linkedMapOf(
         "exercise" to exerciseCount,
         "daily_metric" to dailyMetricCount,
@@ -1622,6 +1656,7 @@ object RecordCsvBackupRestore {
         "runtime_metadata" to runtimeMetadataCount,
         "exercise_metadata_snapshot" to metadataSnapshotCount,
         "exercise_metadata_user_override" to metadataUserOverrideCount,
+        "app_meta" to portableAppMetaCount,
         "program" to programCount,
         "program_item" to programItemCount,
         "program_item_set" to programItemSetCount,
@@ -1643,7 +1678,8 @@ object RecordCsvBackupRestore {
             programItemSetCount = data.programSnapshot?.sets?.size ?: 0,
             programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0,
             metadataSnapshotCount = data.metadataSnapshotRows.size,
-            metadataUserOverrideCount = data.metadataUserOverrideRows.size
+            metadataUserOverrideCount = data.metadataUserOverrideRows.size,
+            portableAppMetaCount = data.portableAppMetaRows.size
         )
 
     private fun sha256(value: String): String =

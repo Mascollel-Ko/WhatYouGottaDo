@@ -45,7 +45,9 @@ import com.training.trackplanner.data.deleteDraftItem
 import com.training.trackplanner.data.resolvedWeekDaySchedule
 import com.training.trackplanner.data.upsertDraftItem
 import com.training.trackplanner.data.withWeekDays
+import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
 import com.training.trackplanner.localization.localizedExerciseName
+import com.training.trackplanner.localization.localizedUiText
 
 @Composable
 internal fun ProgramSkeletonPreview(
@@ -116,40 +118,79 @@ internal fun ProgramSkeletonPreview(
         )
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        skeleton.personalizedDecision?.let { PersonalizedDecisionSummary(it) }
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
         ) {
-            ProgramDraftEditTab(
-                skeleton = skeleton,
-                selectedWeek = selectedWeek,
-                selectedDay = selectedDay,
-                selectedDays = selectedDays,
-                onSelectWeek = { selectedWeek = it },
-                onSelectDay = { selectedDay = it },
-                onToggleDay = { day ->
-                    val currentDays = schedule[selectedWeek].orEmpty()
-                    if (day in currentDays) {
-                        val hasItems = skeleton.items.any { it.weekNumber == selectedWeek && it.dayOfWeek == day }
-                        if (hasItems) {
-                            removeDayTarget = day
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProgramDraftEditTab(
+                    skeleton = skeleton,
+                    selectedWeek = selectedWeek,
+                    selectedDay = selectedDay,
+                    selectedDays = selectedDays,
+                    onSelectWeek = { selectedWeek = it },
+                    onSelectDay = { selectedDay = it },
+                    onToggleDay = { day ->
+                        val currentDays = schedule[selectedWeek].orEmpty()
+                        if (day in currentDays) {
+                            val hasItems = skeleton.items.any { it.weekNumber == selectedWeek && it.dayOfWeek == day }
+                            if (hasItems) {
+                                removeDayTarget = day
+                            } else {
+                                onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays - day))
+                            }
                         } else {
-                            onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays - day))
+                            onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays + day))
+                            selectedDay = day
                         }
-                    } else {
-                        onSkeletonChange(skeleton.withWeekDays(selectedWeek, currentDays + day))
-                        selectedDay = day
-                    }
-                },
-                onAddExercise = { showExercisePicker = true },
-                onEditItem = { editingItem = it },
-                onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
-            )
+                    },
+                    onAddExercise = { showExercisePicker = true },
+                    onEditItem = { editingItem = it },
+                    onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) {
+    fun label(value: String): String = when (value) {
+        "HIGH" -> "높음"
+        "MODERATE" -> "보통"
+        "LOW" -> "낮음"
+        "HYPERTROPHY_DOMINANT" -> "근비대 중심"
+        "STRENGTH_DOMINANT" -> "근력 중심"
+        "MIXED_STRENGTH_HYPERTROPHY" -> "근력·근비대 혼합"
+        "GENERAL_MIXED" -> "종합 혼합"
+        "UNKNOWN", "UNRESOLVED" -> "판단 보류"
+        "STRENGTH_SUPPORT" -> "근력 향상"
+        "HYPERTROPHY", "HYPERTROPHY_SUPPORT" -> "근비대"
+        "BADMINTON_SUPPORT" -> "배드민턴 보조"
+        "TOP_SET_HYPERTROPHY" -> "탑세트 근비대"
+        "TOP_SET_BACKOFF" -> "탑세트·백오프"
+        "STRAIGHT_5X5" -> "동일중량 5×5"
+        "STRAIGHT_STRENGTH_SETS" -> "동일중량 근력 세트"
+        "MADCOW_LIKE_HLM_RAMPING" -> "Madcow형 H/L/M 램핑"
+        "HEAVY_LIGHT_MEDIUM" -> "Heavy/Light/Medium"
+        "DUP_LIKE_UNDULATING" -> "주간 파동형"
+        else -> value.replace('_', ' ')
+    }
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            MaterialText(localizedUiText("기록 기반 계획 요약"), fontWeight = FontWeight.Bold)
+            MaterialText(localizedUiText("${decision.planningHorizonWeeks}주 계획 · 주 ${decision.weeklyFrequency}일 · 신뢰도 ${label(decision.confidence)}"))
+            MaterialText(localizedUiText("현재 경향 ${label(decision.observedTrainingBehavior)} · 주목표 ${label(decision.primaryAdaptation)}"))
+            if (decision.strengthStyle != "NONE") MaterialText(localizedUiText("근력 구성 ${label(decision.strengthStyle)}"))
+            if (decision.secondaryTargets.isNotEmpty()) MaterialText(localizedUiText("보완 대상 ${decision.secondaryTargets.joinToString { label(it) }}"))
+            decision.reasons.take(5).forEach { MaterialText("• ${localizedUiText(it)}", style = MaterialTheme.typography.bodySmall) }
+            decision.constraints.take(3).forEach { MaterialText(localizedUiText("주의: $it"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
 }

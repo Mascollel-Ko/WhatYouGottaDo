@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 1.5.0 |
+| Protocol version | 2.0.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; exact manual set prescriptions from v0.5.0.12; exact application from v0.5.0.13; exact stableKey candidate authority from v0.5.0.35; disconnected advanced path removed in v0.5.0.37 |
-| Last audited commit | ce93b32 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4 |
+| Last audited commit | implementation commit for this change |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -15,7 +15,7 @@
 
 ## 1. 일반 사용자용 요약
 
-현재 자동 골자 생성은 AI가 아니라 입력을 정규화하고 명시 rule table과 사용 횟수 기반 선택으로 운동을 배치하는 결정론적 protocol입니다.
+프로그램 만들기에는 서로 독립적인 두 결정론적 경로가 있습니다. 기존 자동 골자 생성은 기존 입력과 rule table을 그대로 사용합니다. 기록 기반 경로는 완료 기록, 명시 답변, canonical metadata를 사용해 설명 가능한 다주 계획을 만듭니다.
 
 ## 2. 목적
 
@@ -35,11 +35,15 @@
 
 ## 6. 입력 데이터
 
-현재 공개 UI의 프로그램명, 기간, 주당 운동일, 하루 시간, 배드민턴 비율과 active exercise catalogue를 사용합니다. history, today 상태, fatigue와 resolved runtime metadata catalogue 인자는 public generator에서 현재 사용되지 않습니다.
+기존 자동 경로는 프로그램명, 기간, 주당 운동일, 하루 시간, 배드민턴 비율과 active exercise catalogue를 사용합니다. 기록 기반 경로는 생성 cutoff 이하의 `confirmed=true` set, canonical exercise `stableKey`, resolved runtime metadata, 초기 profile, 저장된 사용자 의도와 이번 실행의 조건부 답변만 사용합니다. 미래 기록과 미확정 set은 입력에서 제외합니다.
 
 ## 7. 계산 또는 분류 계약
 
 공개 경로는 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`입니다. 현재 UI 입력은 이름, 기간, 주당 운동일, 하루 시간, 배드민턴 비율이며 builder는 goal, equipment, 제외어, sport-strength, periodization과 preferred/excluded stable key를 현재 기본값으로 정규화합니다.
+
+기록 기반 경로는 `TrainingViewModel → TrainingRepository → PersonalizedProgramPlanningService`이며 기존 `ProgramAutoBuilder`를 호출하거나 수정하지 않습니다. `PlanningHistorySnapshotBuilder`가 시점 고정 snapshot을 만들고, `AthletePlanningStateBuilder`가 관찰 행동과 명시 의도를 분리합니다. `AdaptationGapAnalyzer`는 결손 판정만 담당하고, 운동 선택은 별도의 reviewed stableKey authority에서 수행합니다. `PersonalizedProgramBuilder`는 주간 구조와 set별 처방을 materialize하고 기존 editor/save/apply 형식으로 변환합니다.
+
+질문은 기록만으로 의도를 안전하게 확정할 수 없을 때만 표시합니다. 근력 노출, 근비대 대 근력 의도, 배드민턴 포함 여부, 머신 위주 사용자에게 필요한 프리웨이트 허용 여부가 조건부 질문 대상입니다. 답변은 관찰 사실로 취급하지 않고 `EXPLICIT_USER` provenance로 저장합니다.
 
 Program candidate admission is exact stableKey authority. The typed
 `ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
@@ -56,7 +60,7 @@ fatigue/readiness gate를 입력받지 않습니다. 모든 item은
 
 ## 8. 집계 방식
 
-기간은 3~8주, 주당 일수는 3~7일, 시간은 30/45/60분으로 정규화하고 각 week/day slot을 독립 생성합니다.
+기존 자동 경로는 기간을 3~8주, 주당 일수를 3~7일, 시간을 30/45/60분으로 정규화합니다. 기록 기반 경로는 2~6주 horizon을 동적으로 선택하고 모든 week/day/set을 명시적으로 생성합니다. 운동 anchor는 최근 완료 기록에서 고정된 날짜와 실제 progression에 따라 계산하며, 생성 시점 wall clock이나 미래 기록을 읽지 않습니다.
 
 수동 프로그램은 자동 생성 범위와 별개입니다. 기록 달력에서 선택한
 inclusive 날짜 범위는 첫 날짜를 1주차 월요일로 매핑하고 날짜 간 빈칸을
@@ -85,11 +89,11 @@ readiness, OFI와 연결조직 분석은 정보와 권고이며 저장 프로그
 
 ## 10. 예외 및 fallback
 
-candidate가 부족하면 rule table의 deterministic fallback order를 사용하며 무작위 운동을 삽입하지 않습니다.
+기존 경로는 candidate가 부족하면 기존 rule table의 deterministic fallback order를 사용합니다. 기록 기반 경로도 무작위 운동이나 이름 유사도 fallback을 쓰지 않습니다. reviewed authority에서 유효한 stableKey를 찾지 못하거나 projection validation을 통과하지 못하면 실패를 표시하며 기존 editor 내용을 덮어쓰지 않습니다. 재시도는 같은 기록 기반 경로만 다시 실행합니다.
 
 ## 11. 개인화 또는 보정
 
-개인 기록을 사용하는 경우 현재 runtime의 history 범위와 우선순위를 그대로 적용합니다.
+기록 기반 경로는 반복된 실제 운동의 연속성을 우선하고, 다주 기록에서 확인된 `TOP_SET_BACKOFF`, `STRAIGHT_5X5`, `MADCOW_LIKE_HLM_RAMPING`, `DUP_LIKE_UNDULATING`, `HEAVY_LIGHT_MEDIUM` 등의 구성만 provenance와 함께 보존합니다. 일반 배드민턴 세션은 비용·일정 context이며 구조화된 배드민턴 목표 자극으로 계산하지 않습니다.
 
 ## 12. 연구 근거
 
@@ -101,13 +105,16 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 현재 공개 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않습니다.
+- 기존 자동 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않습니다. 이는 기록 기반 경로와 의도적으로 분리된 기존 계약입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
+- 기록 기반 결과는 의료·부상 판단이나 최적성 보장이 아니며, 선택된 horizon 끝에서 재평가하는 제품 휴리스틱입니다.
 
 ## 15. 현재 구현 상태
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
+- v0.5.1.4 record-based boundary: 기존 자동 버튼 바로 아래 별도 버튼으로 진입하며, 완료 기록 snapshot, 조건부 질문, 2~6주 horizon, style-aware prescription, projection validation, decision provenance와 기존 editor/save/apply 재사용을 제공합니다.
+- 개인화 선호와 최근 decision provenance는 portable `app_meta`로 백업·복원되며 로컬 seed/rebuild/lineage metadata는 이식하지 않습니다.
 - v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
   explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
 - v0.5.0.12 manual program boundary: `training_program_item_sets`가 있으면
@@ -128,6 +135,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt`](../../../app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt)
@@ -145,6 +155,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt)
 - [`app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt)
 - [`app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
@@ -165,6 +176,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `2.0.0` (2026-09-03): 기존 자동 builder를 유지한 채 완료 기록 기반의 독립 builder, 조건부 의도 질문, 동적 2~6주 horizon, strength-style 보존, provenance 및 portable backup 계약을 추가했습니다.
 - `1.5.0` (2026-08-15): deleted the zero-consumer advanced ProgramBuilder reservoir/beam/evaluation stack, retained the public deterministic pipeline and 59-key authority, and verified the public golden matrix unchanged.
 - `1.4.0` (2026-08-15): ProgramRuleTables의 59 exact stableKey를 sole candidate authority로 고정하고 192-scenario public output parity를 추가했습니다.
 - `1.3.0` (2026-07-30): 내부 optimization action과 사용자 완료 문구를

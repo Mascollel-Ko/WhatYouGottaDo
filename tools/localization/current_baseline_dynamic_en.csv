@@ -1,4 +1,21 @@
 koreanTemplate,englishTemplate,provenance,sourcePath
+최근 4주간 ${} 직접 훈련 기록이 없습니다.,No direct %1$s training was recorded in the last four weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+최근 반복 사용한 ${}을(를) 연속성 운동으로 유지했습니다.,Kept the recently repeated %1$s as continuity exercises.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+"기록된 저항훈련 행동은 ${}이며, 행동과 사용자의 의도는 별도로 판단했습니다.",Recorded resistance-training behavior is %1$s; behavior and user intent were assessed separately.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+확인된 보완 대상은 ${}입니다.,Identified coverage targets: %1$s.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+수행 기록에서 확인된 ${} 구성을 유지했습니다.,Preserved the %1$s structure supported by performance records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+${} kg × 5회 × 5세트 · RPE 7–8.5,%1$s kg × 5 reps × 5 sets · RPE 7–8.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} kg × ${}회 × ${}세트 · RPE 7–8.5,%1$s kg × %2$s reps × %3$s sets · RPE 7–8.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+Top ${} kg × ${}회; Backoff ${} kg × ${}회 × 2 · RPE 7.5–8.5,Top %1$s kg × %2$s reps; backoff %3$s kg × %4$s reps × 2 · RPE 7.5–8.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+Top set ${} kg × ${}회 · RPE 8–9,Top set %1$s kg × %2$s reps · RPE 8–9,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${} kg × ${}회 × 3세트,%1$s %2$s kg × %3$s reps × 3 sets,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${}회 × 3세트 · RPE 7–8.5,%1$s %2$s reps × 3 sets · RPE 7–8.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${}${} 회 × ${} 세트 · RPE 7–8.5,%1$s%2$s reps × %3$s sets · RPE 7–8.5,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${}주 계획 · 주 ${}일 · 신뢰도 ${},%1$s-week plan · %2$s days/week · confidence %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+현재 경향 ${} · 주목표 ${},Current emphasis %1$s · primary goal %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+근력 구성 ${},Strength structure %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+보완 대상 ${},Coverage targets %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+주의: ${},Note: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
 "근력운동은 ${}, 배드민턴 연습 훈련량은 ${}, 이번 주 누적 부담은 ${} 흐름입니다.","Strength training is %1$s, badminton practice load is %2$s, and this week's accumulated load is %3$s.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/PerformanceTrendSentenceBuilder.kt
 ${}년 ${}월 ${}일 ${}요일,"%2$s %3$s, %1$s (%4$s)",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/analysis/trends/AnalysisChartTemporalPolicy.kt
 ${}: ${} 외 ${}개,%1$s: %2$s and %3$s more,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/AnalysisLabUi.kt

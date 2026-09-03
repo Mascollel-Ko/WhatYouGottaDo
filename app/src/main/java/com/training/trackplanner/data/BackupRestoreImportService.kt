@@ -75,6 +75,9 @@ internal class BackupRestoreImportService(
                 initialUserProfileDao.upsert(profile)
                 profileCount = 1
             }
+            data.portableAppMetaRows
+                .filter { BackupAppMetaPolicy.isSourceOverwriteAllowed(it.key) }
+                .forEach { appMetaDao.upsert(it) }
             data.exerciseRows.forEach { row ->
                 val snapshots = snapshotsByKey[row.stableKey].orEmpty()
                 val existingBefore = exerciseDao.findByStableKey(row.stableKey)

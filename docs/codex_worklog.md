@@ -6726,3 +6726,12 @@ Remaining debt:
   sandbox. Before the local Robolectric repository was selected, 335 tests
   also failed only because network access prevented its cached Android runtime
   artifact from being resolved.
+
+## 2026-09-03 - Independent record-based personalized program builder
+
+- Preserved the legacy `ProgramAutoBuilder` path and added an independently callable confirmed-history planner below it in Plan UI.
+- Implemented cutoff-safe snapshot construction, observed-behavior versus explicit-intent separation, conditional questions, adaptation-gap analysis, reviewed stableKey selection, 2-6 week horizons, strength-style detection, exact set materialization, projection validation, and persisted decision provenance.
+- Reused the existing editor/save/apply pipeline only after generation succeeds; failure keeps existing editor state and retry cannot fall back to the legacy path.
+- Classified planner preferences and decisions as portable user state in CSV backup/restore while retaining conservative local ownership for infrastructure metadata.
+- Version remains `0.5.1.4 / 501004`; this implementation does not bump it.
+- Verification: 29 named reference personas plus focused invariants passed; the full unit suite passed 1,286/1,286; `assembleDebug`, localization generation/audit (10/10), and `git diff --check` passed. The APK was installed on `Medium_Phone` and the new button order plus explicit no-history failure were inspected on-device.
