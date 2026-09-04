@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.11.1 from 2026-09-04 |
-| Last audited commit | 14f11d124a7f7e8f7ed64de47b1ea081c4ba7e3c |
+| Last audited commit | 092803213aa517f1bd899b7a07d83dd4638da81d |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
