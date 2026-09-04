@@ -64,6 +64,7 @@
     <string name="loc_baseline_08e5888aceb6">side core</string>
     <string name="loc_baseline_0902b89f1fbd">break ends</string>
     <string name="loc_baseline_098b4a6627a7">Estimated major motor performance</string>
+    <string name="loc_baseline_09c95d446850">Record-based duration</string>
     <string name="loc_baseline_09ee679e2644">Delete exercise program</string>
     <string name="loc_baseline_09f214381f69">This is your usual training load range.</string>
     <string name="loc_baseline_0a00803efca9">Checking input conditions.</string>
@@ -545,6 +546,7 @@
     <string name="loc_baseline_6eb4640ca731">Next strength change</string>
     <string name="loc_baseline_6ef0e88ffad4">shock stress</string>
     <string name="loc_baseline_6f29b93d69f7">stress</string>
+    <string name="loc_baseline_6f399349a9ea">Weekly capacity was expanded narrowly to provide the minimum allocation for a high-priority gap exercise.</string>
     <string name="loc_baseline_6f5051f857a6">Dumbbell one leg Romanian deadlift</string>
     <string name="loc_baseline_6f84a762e04c">class</string>
     <string name="loc_baseline_6f9030b32c54">Modify existing configurations from the list below.</string>
@@ -673,6 +675,7 @@
     <string name="loc_baseline_89f1c21fd1c3">Lag analysis results</string>
     <string name="loc_baseline_89f3c031c247">No exploratory model passed with the current data.</string>
     <string name="loc_baseline_89f77d6babbf">judgment reserved</string>
+    <string name="loc_baseline_8a17e6831a77">Record-based weekly days</string>
     <string name="loc_baseline_8a3d85343ecf">weekly shoulder workout</string>
     <string name="loc_baseline_8a8f0d5d76f0">For fatigue and discomfort, 1 is low and 5 is high. For concentration/motivation, 5 is good.</string>
     <string name="loc_baseline_8a92d9e3ebf8">There is a lot of pressure right now.</string>
@@ -859,6 +862,7 @@
     <string name="loc_baseline_b4258c01c203">Prioritize badminton-specific training and general strength training.</string>
     <string name="loc_baseline_b43a60fa8a64">change direction</string>
     <string name="loc_baseline_b440c16b86ea">gold</string>
+    <string name="loc_baseline_b44765cfe56c">Record-based generation uses AUTO or the explicit values above. It shares the daily session-time setting and does not use the badminton-to-strength ratio.</string>
     <string name="loc_baseline_b44ae0e6e321">movement</string>
     <string name="loc_baseline_b4f7e219f20a">alternative</string>
     <string name="loc_baseline_b547bc3d7964">years of badminton experience</string>
@@ -936,6 +940,7 @@
     <string name="loc_baseline_c21c0c139de7">Weekly total core stimulus</string>
     <string name="loc_baseline_c21e2526123c">Redundancy Suppression Group</string>
     <string name="loc_baseline_c2249e79384a">kettlebell press</string>
+    <string name="loc_baseline_c2267c5b4c1d">The duration, weekly days, and ratio above apply to blank programs and the legacy automatic skeleton.</string>
     <string name="loc_baseline_c22f587c8057">The purpose of transition is to quickly judge and react to changes in signals or situations.</string>
     <string name="loc_baseline_c3061e451f3f">The selected core metrics cannot be prepared for the strict model representation.</string>
     <string name="loc_baseline_c31548ac089d">Count +</string>

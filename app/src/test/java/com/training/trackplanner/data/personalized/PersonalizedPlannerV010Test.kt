@@ -14,6 +14,10 @@ import com.training.trackplanner.data.WorkoutEntryWithSets
 import com.training.trackplanner.data.WorkoutSet
 import com.training.trackplanner.data.resolvePersonalizedRequest
 import com.training.trackplanner.data.canonicalStrengthSignalsForWindow
+import com.training.trackplanner.data.isPersonalizedProgramEdited
+import com.training.trackplanner.personalizedDurationOptions
+import com.training.trackplanner.personalizedOverrideFromSelection
+import com.training.trackplanner.personalizedWeeklyDayOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -53,6 +57,21 @@ class PersonalizedPlannerV010Test {
         assertEquals(10.0, signals.getValue("squat").posteriorChangePercent!!, .0001)
         assertEquals(2, signals.getValue("squat").observationCount)
         assertEquals(null, signals.getValue("press").posteriorChangePercent)
+    }
+
+    @Test
+    fun `transition keeps continuous posterior change and posterior observation confidence`() {
+        val planner = AdaptationTransitionPlanner()
+        fun transition(change: Double?, observations: Int, sessions: Int = 8): AnchorTransition {
+            val anchor = anchor("squat", MovementCoverage.LOWER_KNEE, change = change, observations = observations, sessions = sessions)
+            return planner.decide(anchor, state(anchors = listOf(anchor), features = mapOf("squat" to StyleFeatures(weeksObserved = 8))), emptyList())
+        }
+
+        assertNotEquals(transition(1.5, 6).adaptation.strengthResponse, transition(3.9, 6).adaptation.strengthResponse, .0001)
+        assertNotEquals(transition(4.0, 6).adaptation.strengthResponse, transition(10.0, 6).adaptation.strengthResponse, .0001)
+        assertTrue(transition(2.0, 2, sessions = 8).adaptation.responseConfidence < transition(2.0, 6, sessions = 8).adaptation.responseConfidence)
+        assertEquals(0.0, transition(null, 8).adaptation.responseConfidence, .0001)
+        assertEquals(0.0, transition(null, 8).adaptation.strengthResponse, .0001)
     }
 
     @Test
@@ -177,6 +196,137 @@ class PersonalizedPlannerV010Test {
         assertTrue(plan.personalizedDecision!!.planningBudget!!.plannedResistanceSets <= plan.personalizedDecision!!.planningBudget!!.targetResistanceSets)
         assertTrue(plan.personalizedDecision!!.anchorTransitions.all { it.observedStyle == StrengthProgrammingStyle.HEAVY_LIGHT_MEDIUM })
         assertTrue(plan.personalizedDecision!!.anchorTransitions.all { it.structureTreatment.name.isNotBlank() && it.doseTreatment.name.isNotBlank() })
+        assertPerAnchorStyleDaysAreDistinct(plan)
+    }
+
+    @Test
+    fun `two HLM anchors retain distinct per anchor days across four three and two day plans`() {
+        val exercises = listOf(exercise("squat", "MAIN_LOWER_STRENGTH"), exercise("press", "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY"))
+        val rows = buildList {
+            repeat(8) { week ->
+                val monday = cutoff.minusWeeks((7 - week).toLong()).with(java.time.DayOfWeek.MONDAY)
+                exercises.forEach { exercise ->
+                    addAll(session(monday, exercise.stableKey, 100.0))
+                    addAll(session(monday.plusDays(2), exercise.stableKey, 80.0))
+                    addAll(session(monday.plusDays(4), exercise.stableKey, 90.0))
+                }
+            }
+        }
+        val source = snapshot(rows, exercises)
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        listOf(4, 3, 2).forEach { days ->
+            val plan = PersonalizedProgramBuilder().build(source, state, emptyList(), BlockIntentPlanner().decide(state, emptyList()), 3, request(days, 3), PersonalizedPlanningAnswers(), null)
+            assertPerAnchorStyleDaysAreDistinct(plan)
+            val perAnchorCounts = plan.items.filter { it.weekNumber == 1 && it.selectionRole.startsWith("STYLE_") }.groupingBy { it.exerciseStableKey }.eachCount()
+            assertTrue(perAnchorCounts.values.all { it <= days })
+            if (days == 2) assertTrue(perAnchorCounts.values.all { it == 2 })
+        }
+    }
+
+    @Test
+    fun `two day heavy moderation keeps light and medium on distinct days`() {
+        val squat = exercise("squat", "MAIN_LOWER_STRENGTH")
+        val rows = buildList {
+            repeat(8) { week ->
+                val monday = cutoff.minusWeeks((7 - week).toLong()).with(java.time.DayOfWeek.MONDAY)
+                addAll(session(monday, "squat", 100.0))
+                addAll(session(monday.plusDays(2), "squat", 80.0))
+                addAll(session(monday.plusDays(4), "squat", 90.0))
+            }
+        }
+        val constrained = snapshot(rows, listOf(squat), recovery = PlanningRecoverySignals(readinessStatus = "LIMITED", tissueStatus = "HIGH", overallFatigueIndex = 85))
+        val state = AthletePlanningStateBuilder().build(constrained, PersonalizedPlanningAnswers())
+        val plan = PersonalizedProgramBuilder().build(constrained, state, emptyList(), BlockIntentPlanner().decide(state, emptyList()), 3, request(2, 3), PersonalizedPlanningAnswers(), null)
+        val variants = plan.items.filter { it.weekNumber == 1 }.map { it.selectionRole.substringAfter("STYLE_").substringBefore('_') }.toSet()
+        assertEquals(setOf("LIGHT", "MEDIUM"), variants)
+        assertPerAnchorStyleDaysAreDistinct(plan)
+    }
+
+    @Test
+    fun `repair finalizes exact budget fingerprint and untouched edit state`() {
+        val exercises = listOf(
+            exercise("squat", "MAIN_LOWER_STRENGTH"), exercise("hinge", "MAIN_HINGE_STRENGTH"),
+            exercise("press", "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY"), exercise("row", "HORIZONTAL_PULL_STRENGTH"),
+            exercise("vertical_press", "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY"), exercise("drill", "BADMINTON_FOOTWORK", equipment = "BODYWEIGHT")
+        )
+        val rows = buildList {
+            repeat(8) { week ->
+                exercises.filterNot { it.stableKey == "drill" }.forEach { addAll(session(cutoff.minusWeeks(week.toLong()), it.stableKey, 80.0)) }
+            }
+        }
+        val base = snapshot(rows, exercises, objectives = mapOf("drill" to mapOf("FOOTWORK" to 1.0)))
+        val source = base.copy(preferences = base.preferences.copy(badmintonIntent = BadmintonPlanningIntent.ENABLED))
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        val gaps = listOf(AdaptationGap("BADMINTON_FOUNDATIONAL_ONRAMP", "HIGH", "fixture"))
+        val plan = PersonalizedProgramBuilder().build(source, state, gaps, BlockIntentPlanner().decide(state, gaps), 3, request(2, 3, minutes = 15), PersonalizedPlanningAnswers(), null)
+        val decision = requireNotNull(plan.personalizedDecision)
+        val budget = requireNotNull(decision.planningBudget)
+        val firstWeek = plan.items.filter { it.weekNumber == 1 }
+        val finalFingerprint = personalizedProgramFingerprint(plan.request, plan.items)
+
+        assertTrue(firstWeek.map { it.exerciseStableKey }.distinct().size < exercises.size)
+        assertTrue(firstWeek.any { it.exerciseStableKey == "drill" })
+        assertEquals(finalFingerprint, decision.originalGenerationFingerprint)
+        assertEquals(firstWeek.filter { source.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf { it.setCount }, budget.plannedResistanceSets)
+        assertEquals(firstWeek.filter { source.activityKind(it.exerciseStableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf { it.setCount }, budget.plannedStructuredBadmintonBouts)
+        assertFalse(isPersonalizedProgramEdited(decision, finalFingerprint))
+    }
+
+    @Test
+    fun `HIGH gap outranks earlier MODERATE gap when one resistance gap fits`() {
+        val squat = exercise("squat", "MAIN_LOWER_STRENGTH")
+        val core = exercise("core", "CORE_STABILITY_ACCESSORY", equipment = "BODYWEIGHT")
+        val pull = exercise("machine_pull", "HORIZONTAL_PULL_STRENGTH", equipment = "MACHINE")
+        val source = snapshot(listOf(row(cutoff.minusDays(7), "squat"), row(cutoff.minusDays(14), "squat")), listOf(squat, core, pull))
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        val gaps = listOf(AdaptationGap("CORE_DIRECT", "MODERATE", "first"), AdaptationGap("UPPER_PULL", "HIGH", "second"))
+        val plan = PersonalizedProgramBuilder().build(source, state, gaps, BlockIntentPlanner().decide(state, gaps), 3, request(2, 3), PersonalizedPlanningAnswers(), null)
+
+        assertTrue(plan.items.any { it.exerciseStableKey == "machine_pull" })
+        assertFalse(plan.items.any { it.exerciseStableKey == "core" })
+    }
+
+    @Test
+    fun `low history does not expand to four without gap but allows documented material gap expansion`() {
+        val squat = exercise("squat", "MAIN_LOWER_STRENGTH")
+        val pull = exercise("machine_pull", "HORIZONTAL_PULL_STRENGTH", equipment = "MACHINE")
+        val source = snapshot(listOf(row(cutoff.minusDays(7), "squat"), row(cutoff.minusDays(14), "squat")), listOf(squat, pull))
+        val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
+        val noGap = PersonalizedProgramBuilder().build(source, state, emptyList(), BlockIntentPlanner().decide(state, emptyList()), 3, request(2, 3), PersonalizedPlanningAnswers(), null)
+        val gaps = listOf(AdaptationGap("UPPER_PULL", "HIGH", "fixture"))
+        val expanded = PersonalizedProgramBuilder().build(source, state, gaps, BlockIntentPlanner().decide(state, gaps), 3, request(2, 3), PersonalizedPlanningAnswers(), null)
+
+        assertEquals(1, noGap.personalizedDecision!!.planningBudget!!.targetResistanceSets)
+        assertFalse("MINIMAL_CAPACITY_EXPANSION" in noGap.personalizedDecision!!.reasonCodes)
+        assertEquals(3, expanded.personalizedDecision!!.planningBudget!!.targetResistanceSets)
+        assertTrue("MINIMAL_CAPACITY_EXPANSION" in expanded.personalizedDecision!!.reasonCodes)
+    }
+
+    @Test
+    fun `optional anchors do not force resistance target expansion`() {
+        val exercises = listOf(
+            exercise("squat", "MAIN_LOWER_STRENGTH"), exercise("hinge", "MAIN_HINGE_STRENGTH"),
+            exercise("press", "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY"), exercise("row", "HORIZONTAL_PULL_STRENGTH")
+        )
+        val source = snapshot(listOf(row(cutoff.minusDays(7), "squat"), row(cutoff.minusDays(14), "squat")), exercises)
+        val anchors = exercises.mapIndexed { index, exercise ->
+            anchor(exercise.stableKey, source.movementCoverage(exercise.stableKey), change = -10.0 - index, observations = 6)
+        }
+        val manualState = state(anchors = anchors, features = anchors.associate { it.stableKey to StyleFeatures(weeksObserved = 8) })
+        val plan = PersonalizedProgramBuilder().build(source, manualState, emptyList(), BlockIntentPlanner().decide(manualState, emptyList()), 3, request(2, 3), PersonalizedPlanningAnswers(), null)
+
+        assertEquals(1, plan.personalizedDecision!!.planningBudget!!.targetResistanceSets)
+        assertEquals(1, plan.items.filter { it.weekNumber == 1 }.sumOf { it.setCount })
+        assertEquals(1, plan.items.filter { it.weekNumber == 1 }.map { it.exerciseStableKey }.distinct().size)
+    }
+
+    @Test
+    fun `personalized AUTO and manual ranges are explicit and reversible`() {
+        assertEquals(listOf(0, 2, 3, 4, 5), personalizedWeeklyDayOptions)
+        assertEquals(listOf(0, 2, 3, 4, 5, 6), personalizedDurationOptions)
+        assertEquals(5, personalizedOverrideFromSelection(5))
+        assertEquals(6, personalizedOverrideFromSelection(6))
+        assertEquals(null, personalizedOverrideFromSelection(0))
     }
 
     @Test
@@ -296,12 +446,22 @@ class PersonalizedPlannerV010Test {
         )
     }
 
-    private fun anchor(key: String, movement: MovementCoverage, style: StrengthProgrammingStyle = StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS) =
-        UserAnchor(key, key, 8, 24, movement.name, "LOAD_REPS", "STABLE", 10.0, style, PlanningConfidence.HIGH, "TEST")
+    private fun anchor(
+        key: String,
+        movement: MovementCoverage,
+        style: StrengthProgrammingStyle = StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS,
+        change: Double? = 2.0,
+        observations: Int = 6,
+        sessions: Int = 8
+    ) = UserAnchor(key, key, sessions, 24, movement.name, "LOAD_REPS", "STABLE", 10.0, style, PlanningConfidence.HIGH, "TEST", change, observations)
 
     private fun slotFor(key: String): String = when (key) {
         "squat" -> "MAIN_LOWER_STRENGTH"
+        "hinge" -> "MAIN_HINGE_STRENGTH"
         "press", "incumbent" -> "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY"
+        "row" -> "HORIZONTAL_PULL_STRENGTH"
+        "vertical_press" -> "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY"
+        "core" -> "CORE_STABILITY_ACCESSORY"
         "drill" -> "BADMINTON_FOOTWORK"
         "a_free", "z_machine", "machine_pull" -> "HORIZONTAL_PULL_STRENGTH"
         else -> "OTHER"
@@ -353,6 +513,12 @@ class PersonalizedPlannerV010Test {
         periodizationType = ProgramPeriodizationType.AUTO,
         durationWeeks = weeks
     )
+
+    private fun assertPerAnchorStyleDaysAreDistinct(plan: com.training.trackplanner.data.GeneratedProgramSkeleton) {
+        plan.items.filter { it.selectionRole.startsWith("STYLE_") }
+            .groupBy { it.weekNumber to it.exerciseStableKey }
+            .forEach { (_, variants) -> assertEquals(variants.size, variants.map { it.dayOfWeek }.distinct().size) }
+    }
 
     private fun posterior(date: LocalDate, medianKg: Double, id: String, key: String = "squat") = StrengthExercisePerformanceHistoryEntity(
         revisionKey = "test", eventUuid = id, sessionKey = id, sessionDate = date.toString(), exerciseStableKey = key,

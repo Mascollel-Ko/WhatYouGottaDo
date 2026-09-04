@@ -1,6 +1,6 @@
-# Record-based planner v0.10 implementation note
+# Record-based planner v0.10.1 implementation note
 
-Baseline: `4409a73eba2a970955071e9dd80ceb93443f99c4`.
+Correction baseline: `3a95f2d2ebd25850476cbb89f35173419b282bdb`.
 
 The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`. Record-based generation remains independent, produces the same editable `GeneratedProgramSkeleton`, and reuses the existing save/apply flow only after successful generation.
 
@@ -20,6 +20,10 @@ The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGe
 - Gaps first reallocate a finite weekly resistance-set budget. Capacity expands only for the documented minimal representation case; selected gap work is never simply added on top without accounting.
 - Resistance working sets and timed structured-badminton bouts are separate quantities, but the resulting items share the same per-session time-capacity validation.
 - Multi-day execution is per anchor and constrained by its allocation and recovery. The strongest legitimate exposure in the latest observed week is the load reference.
+- Each anchor's retained multi-day variants occupy distinct generated days. A two-day plan keeps the existing HLM/Madcow or DUP pair semantics, including the heavy-exposure moderation pair.
+- Canonical posterior change remains continuous through transition calculation, while posterior observation count—not workout-session count—owns response confidence.
+- Gap truncation uses the existing HIGH, MEDIUM/MODERATE, LOW order with stable input order for ties. Projection repair retains higher existing selection priority without changing display order, and decision budget/fingerprint are finalized only from repaired returned items.
+- There is no unconditional four-set floor and optional/rotated anchors do not force expansion. Narrow favorable-recovery expansion for a selected HIGH resistance gap is explicit as `MINIMAL_CAPACITY_EXPANSION`.
 - A generated future week does not automatically increase load. Without new completed evidence, the current planned microcycle repeats.
 - Novel exercises keep load unknown and use an RPE/load-finding prescription. Strength intent affects progression and allocation; `PREFER_FAMILIAR`, `WILLING`, `AVOID`, and `UNRESOLVED` have distinct candidate behavior.
 
@@ -29,7 +33,7 @@ The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGe
 
 `generatePreparedPersonalizedProgram(...) -> GeneratedProgramSkeleton` receives the prepared cutoff, explicit constraints and complete answer set. It cannot return another question and does not move to a later date boundary while the user is away.
 
-Record-based duration and weekly days default to AUTO and resolve within 2..6 weeks and 2..5 days. Only an actual user selection overrides AUTO. Session minutes remain an explicit constraint. The legacy badminton-to-strength ratio is ignored on this path.
+Record-based duration and weekly days have visibly separate AUTO/manual controls and resolve within 2..6 weeks and 2..5 days. Only an actual user selection overrides AUTO, and selecting AUTO again clears the override. Session minutes remain an explicit constraint. The legacy builder retains its wider ranges, and the legacy badminton-to-strength ratio is ignored on the record-based path.
 
 Strength-intent preferences store the answer timestamp and profile goal at answer time. They become eligible for reconfirmation after 56 days or when the profile goal changes. Planner preferences and decision provenance remain portable `app_meta`; no Room schema migration is required.
 
@@ -50,7 +54,9 @@ Strength-intent preferences store the answer timestamp and profile goal at answe
 
 ## Verification
 
-`PersonalizedPlannerParityTest` preserves the 29 named v0.8 regression personas as historical-coverage protection. `PersonalizedPlannerV010Test` adds current v0.10 invariants for fixed windows, recent posterior response, 28+28 objective comparison, court-load normalization, intent/cost separation, global/local recovery, preflight, AUTO constraints, per-anchor finite allocation, strongest latest-week load, no future progression, separate drill dose, and canonical identity.
+`PersonalizedPlannerParityTest` preserves the 29 named v0.8 regression personas as historical-coverage protection and now makes Persona 28 genuinely Madcow-like in both favorable and pressured contexts. `PersonalizedPlannerV010Test` covers fixed windows, continuous recent posterior response, 28+28 objective comparison, court-load normalization, intent/cost separation, global/local recovery, preflight, explicit/reversible AUTO constraints, per-anchor finite allocation and distinct variant days, finalized repair provenance, priority truncation, bounded capacity expansion, strongest latest-week load, no future progression, separate drill dose, and canonical identity.
+
+Intentionally unchanged in v0.10.1: global gap pressure, active-week resistance baseline semantics, the provisional two-bout structured badminton default, conservative `provenTwice` multi-day progression gating, and all existing style/dose detection thresholds.
 
 `RealBackupPersonalizedPlannerE2eTest` now uses prepare-once/answer-all/generate-once. It remains opt-in because the user's backup must never enter source control.
 

@@ -166,7 +166,7 @@ internal class PersonalizedProgramPlanningService(
             generatedProgramId = programId,
             generatedProgramStableKey = programStableKey,
             finalSavedFingerprint = finalFingerprint,
-            userEditedAfterGeneration = decision.originalGenerationFingerprint.isNotBlank() && decision.originalGenerationFingerprint != finalFingerprint
+            userEditedAfterGeneration = isPersonalizedProgramEdited(decision, finalFingerprint)
         )
         appMetaDao.upsert(AppMeta("$DECISION_PREFIX${saved.generatedAtEpochMillis}_${saved.decisionId}", saved.toJson()))
         appMetaDao.trimLatest("$DECISION_PREFIX%", 20)
@@ -249,6 +249,9 @@ internal class PersonalizedProgramPlanningService(
         internal const val DECISION_PREFIX = "personalized_planning_decision_v1_"
     }
 }
+
+internal fun isPersonalizedProgramEdited(decision: PersonalizedPlanningDecision, finalFingerprint: String): Boolean =
+    decision.originalGenerationFingerprint.isNotBlank() && decision.originalGenerationFingerprint != finalFingerprint
 
 internal fun resolvePersonalizedRequest(
     request: ProgramSkeletonRequest,

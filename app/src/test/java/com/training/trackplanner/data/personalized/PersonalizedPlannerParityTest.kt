@@ -55,6 +55,9 @@ class PersonalizedPlannerParityTest {
             assertTrue(name, first.items.isNotEmpty())
             assertTrue(name, first.items.none { it.exerciseStableKey in setOf("ex_ae9ecdbc", "ex_badminton_lesson") })
             assertTrue(name, "HISTORY_CUTOFF_ENFORCED" in first.personalizedDecision!!.reasonCodes)
+            first.items.filter { it.selectionRole.startsWith("STYLE_") }
+                .groupBy { it.weekNumber to it.exerciseStableKey }
+                .forEach { (_, variants) -> assertEquals(name, variants.size, variants.map { it.dayOfWeek }.distinct().size) }
             assertScenarioSemantics(name, snapshot, state, gaps, first)
         }
     }
@@ -126,6 +129,36 @@ class PersonalizedPlannerParityTest {
         assertTrue(constrainedPlan.request.durationWeeks < ordinaryPlan.request.durationWeeks)
         assertTrue(constrainedPlan.items.filter { it.exerciseStableKey == "squat" }.all { it.weightSource.endsWith("REDUCE") })
         assertTrue(constrainedPlan.personalizedDecision!!.recoverySignalCodes.containsAll(constrained.recoverySignals.sourceCodes))
+    }
+
+    @Test
+    fun `persona 28 preserves observed Madcow while current pressure changes treatment`() {
+        val favorableSnapshot = rawSnapshotFor("28_explicit_madcow_incompatible_badminton", 28)
+        val pressuredSnapshot = favorableSnapshot.copy(
+            genericCourtLoad = 240.0,
+            recoverySignals = PlanningRecoverySignals(
+                readinessStatus = "LIMITED",
+                overallFatigueIndex = 85,
+                tissueStatus = "HIGH",
+                sourceCodes = setOf("TODAY_READINESS", "CANONICAL_OFI")
+            )
+        )
+        val favorableState = AthletePlanningStateBuilder().build(favorableSnapshot, PersonalizedPlanningAnswers())
+        val pressuredState = AthletePlanningStateBuilder().build(pressuredSnapshot, PersonalizedPlanningAnswers())
+        val gaps = listOf(AdaptationGap("POSTERIOR_CHAIN", "HIGH", "fixture"))
+        val planner = AdaptationTransitionPlanner()
+        val favorableAnchor = favorableState.anchors.single { it.stableKey == "squat" }
+        val pressuredAnchor = pressuredState.anchors.single { it.stableKey == "squat" }
+        val favorable = planner.decide(favorableAnchor, favorableState, emptyList())
+        val pressured = planner.decide(pressuredAnchor, pressuredState, gaps)
+
+        assertEquals(StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING, favorableState.observedStrengthStyle)
+        assertEquals(StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING, pressuredState.observedStrengthStyle)
+        assertEquals(PlanningConfidence.HIGH, favorableState.observedStyleConfidence)
+        assertEquals(PlanningConfidence.HIGH, pressuredState.observedStyleConfidence)
+        assertTrue(favorable.continuityScore > 0.0)
+        assertTrue(pressured.localDoseFactor < favorable.localDoseFactor)
+        assertTrue(pressured.doseTreatment != favorable.doseTreatment || pressured.structureTreatment != favorable.structureTreatment || pressured.moderatedFeatures != favorable.moderatedFeatures)
     }
 
     @Test
@@ -224,10 +257,10 @@ class PersonalizedPlannerParityTest {
         val history = buildList {
             repeat(weekCount) { week ->
                 definitions.filter { it.first in historyKeys }.forEachIndexed { exerciseIndex, (key, label, _) ->
-                    if (key == "squat" && name in setOf("26_madcow_like_style", "27_dup_like_style", "29_hlm_like_style")) {
+                    if (key == "squat" && name in setOf("26_madcow_like_style", "27_dup_like_style", "28_explicit_madcow_incompatible_badminton", "29_hlm_like_style")) {
                         val weekStart = cutoff.minusWeeks((weekCount - week - 1).toLong()).with(java.time.DayOfWeek.MONDAY)
                         val sessions = when (name) {
-                            "26_madcow_like_style" -> listOf(
+                            "26_madcow_like_style", "28_explicit_madcow_incompatible_badminton" -> listOf(
                                 listOf(55.0 to 5, 70.0 to 5, 85.0 to 5),
                                 listOf(50.0 to 5, 65.0 to 5, 75.0 to 5),
                                 listOf(60.0 to 5, 75.0 to 5, 90.0 to 5, 100.0 to 3, 85.0 to 8)
@@ -317,7 +350,10 @@ class PersonalizedPlannerParityTest {
             "25_straight_5x5_style" -> assertEquals(name, StrengthProgrammingStyle.STRAIGHT_5X5, state.observedStrengthStyle)
             "26_madcow_like_style" -> assertEquals(name, StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING, state.observedStrengthStyle)
             "27_dup_like_style" -> assertEquals(name, StrengthProgrammingStyle.DUP_LIKE_UNDULATING, state.observedStrengthStyle)
-            "28_explicit_madcow_incompatible_badminton" -> assertFalse(name, state.observedStrengthStyle == StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING)
+            "28_explicit_madcow_incompatible_badminton" -> {
+                assertEquals(name, StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING, state.observedStrengthStyle)
+                assertEquals(name, PlanningConfidence.HIGH, state.observedStyleConfidence)
+            }
             "29_hlm_like_style" -> assertEquals(name, StrengthProgrammingStyle.HEAVY_LIGHT_MEDIUM, state.observedStrengthStyle)
         }
     }

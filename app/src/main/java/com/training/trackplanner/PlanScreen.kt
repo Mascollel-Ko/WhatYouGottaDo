@@ -330,8 +330,8 @@ private fun ProgramEditorScreen(
     var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var pendingPersonalizedPreflight by remember { mutableStateOf<PersonalizedPlanningPreflight?>(null) }
     var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    var personalizedDaysAuto by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
-    var personalizedDurationAuto by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var personalizedDaysOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
+    var personalizedDurationOverride by rememberSaveable(program?.id ?: 0L) { mutableStateOf<Int?>(null) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(program?.id, existingItems, existingItemSets) {
@@ -414,8 +414,8 @@ private fun ProgramEditorScreen(
         viewModel.preparePersonalizedProgram(
             request = request,
             constraints = PersonalizedGenerationConstraints(
-                explicitWeeklyTrainingDays = weeklyDays.takeUnless { personalizedDaysAuto },
-                explicitDurationWeeks = durationWeeks.takeUnless { personalizedDurationAuto },
+                explicitWeeklyTrainingDays = personalizedDaysOverride,
+                explicitDurationWeeks = personalizedDurationOverride,
                 explicitSessionMinutes = sessionMinutes
             )
         ) { preflight ->
@@ -523,7 +523,7 @@ private fun ProgramEditorScreen(
                             selected = durationWeeks,
                             options = (3..8).toList(),
                             optionLabel = { "${it}주" },
-                            onSelect = { durationWeeks = it; personalizedDurationAuto = false },
+                            onSelect = { durationWeeks = it },
                             enabled = !generationRunning
                         )
                         ProgramDropdown(
@@ -532,7 +532,7 @@ private fun ProgramEditorScreen(
                             selected = weeklyDays,
                             options = (3..7).toList(),
                             optionLabel = { "주 ${it}일" },
-                            onSelect = { weeklyDays = it; personalizedDaysAuto = false },
+                            onSelect = { weeklyDays = it },
                             enabled = !generationRunning
                         )
                     }
@@ -557,7 +557,7 @@ private fun ProgramEditorScreen(
                         )
                     }
                     Text(
-                        text = "기록 기반 생성은 기간·주당 일수를 AUTO로 정합니다. 위 값을 직접 바꾸면 그 값이 우선하며, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.",
+                        text = "위 기간·일수·비율은 빈 프로그램과 기존 자동 골자에 적용됩니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -584,6 +584,31 @@ private fun ProgramEditorScreen(
                     ) {
                         Text(if (autoSkeletonCreated) "자동 골자 다시 만들기" else "자동 골자 만들기")
                     }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f),
+                            label = "기록 기반 기간",
+                            selected = personalizedDurationOverride ?: 0,
+                            options = personalizedDurationOptions,
+                            optionLabel = { if (it == 0) "AUTO" else "${it}주" },
+                            onSelect = { personalizedDurationOverride = personalizedOverrideFromSelection(it) },
+                            enabled = !generationRunning
+                        )
+                        ProgramDropdown(
+                            modifier = Modifier.weight(1f),
+                            label = "기록 기반 주당 일수",
+                            selected = personalizedDaysOverride ?: 0,
+                            options = personalizedWeeklyDayOptions,
+                            optionLabel = { if (it == 0) "AUTO" else "주 ${it}일" },
+                            onSelect = { personalizedDaysOverride = personalizedOverrideFromSelection(it) },
+                            enabled = !generationRunning
+                        )
+                    }
+                    Text(
+                        text = "기록 기반 생성은 AUTO 또는 위의 명시값을 사용합니다. 하루 운동시간은 공통 설정을 사용하고, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generationRunning,

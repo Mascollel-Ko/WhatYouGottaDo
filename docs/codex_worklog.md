@@ -6745,3 +6745,14 @@ Remaining debt:
 - Regenerated Korean/English localization authority assets for all new user-visible planner strings and updated `PROGRAM-BUILDER-OVERVIEW` to protocol version `3.0.0`.
 - Verification: supplied Python reference suite passed 22/22; Kotlin `testDebugUnitTest` passed 1,304/1,304 including the external format-12 real-backup E2E; localization tests passed 10/10 with zero unexplained leaks; protocol validation and `assembleDebug` passed.
 - Verified implementation commit: `4112b599075008ea27a6671e27f0b20f0313e57d` (`feat(planner): implement record-based planner v0.10`).
+
+## 2026-09-04 - Record-based planner v0.10.1 correctness closure
+
+- Started from exact latest `origin/main` baseline `3a95f2d2ebd25850476cbb89f35173419b282bdb` and kept the legacy `ProgramAutoBuilder` untouched.
+- Corrected per-anchor multi-day placement and two-day variant reduction, finalized budget/fingerprint after priority-aware projection repair, carried continuous 56-day canonical posterior change and observation count into transitions, and replaced Persona 28 with same-history comparative treatment assertions.
+- Ordered gap truncation by the existing priority, removed the unexplained four-set floor, retained only feasible anchor minima, and limited documented expansion to favorable low-dose cases with a selected HIGH resistance gap.
+- Added visible, reversible record-based AUTO/manual controls for 2..5 days and 2..6 weeks while preserving wider legacy controls and the non-authoritative record-based ratio contract.
+- Intentionally preserved global gap pressure, active-week resistance baseline, the provisional two-bout structured badminton default, conservative `provenTwice` progression, and all existing style/dose thresholds. Android app version and Room schema were not changed.
+- Planner runtime protocol is `RECORD_BASED_PLANNER_0.10.1_KOTLIN_2`; canonical protocol is `PROGRAM-BUILDER-OVERVIEW 3.0.1`.
+- Completion-gate behavior covered ordinary straight sets, HLM, two concurrent HLM anchors, DUP, favorable/pressured Madcow, sparse no-gap and HIGH-gap plans, multiple gap priorities, short-session structured badminton, and exact tissue-restricted versus unrestricted anchors. Week-one distributions, set totals, variants and decision provenance were asserted from final skeletons rather than compilation alone.
+- Verification: focused planner suites passed; full `testDebugUnitTest` ran 1,313 tests across 237 suites with 0 failures, 0 errors and one opt-in skip while the backup variable was unset. The skipped real-backup E2E then passed separately against the supplied 7.6 MB format-12 backup with `WGTD_REAL_BACKUP_PATH` configured. `assembleDebug` passed. Localization generation/audit passed with zero unexplained leaks and 10/10 Python tests; protocol validation passed for 8 families and 34 protocols; `git diff --check` passed.

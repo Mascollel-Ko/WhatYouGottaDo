@@ -209,6 +209,9 @@ private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) 
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+            if ("MINIMAL_CAPACITY_EXPANSION" in decision.reasonCodes) {
+                MaterialText(localizedUiText("높은 우선순위 보완 운동의 최소 배정을 위해 주간 용량을 제한적으로 확장했습니다."), style = MaterialTheme.typography.bodySmall)
+            }
             if (decision.secondaryTargets.isNotEmpty()) MaterialText(localizedUiText("보완 대상 ${decision.secondaryTargets.joinToString { label(it) }}"))
             decision.reasons.take(5).forEach { MaterialText("• ${localizedUiText(it)}", style = MaterialTheme.typography.bodySmall) }
             decision.constraints.take(3).forEach { MaterialText(localizedUiText("주의: $it"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

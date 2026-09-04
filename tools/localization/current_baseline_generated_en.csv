@@ -1263,3 +1263,8 @@ CoreStimulus V1의 주간 간접 코어 자극,Weekly indirect CoreStimulus V1,C
 기록 기반 사전 분석 시간이 초과되었습니다.,Record-based preflight timed out.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
 기록 기반 사전 분석에 실패했습니다.,Record-based preflight failed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
 확정된 입력으로 다음 블록을 구성하는 중입니다.,Building the next block from the confirmed inputs.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+높은 우선순위 보완 운동의 최소 배정을 위해 주간 용량을 제한적으로 확장했습니다.,Weekly capacity was expanded narrowly to provide the minimum allocation for a high-priority gap exercise.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+위 기간·일수·비율은 빈 프로그램과 기존 자동 골자에 적용됩니다.,"The duration, weekly days, and ratio above apply to blank programs and the legacy automatic skeleton.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기록 기반 기간,Record-based duration,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기록 기반 주당 일수,Record-based weekly days,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+"기록 기반 생성은 AUTO 또는 위의 명시값을 사용합니다. 하루 운동시간은 공통 설정을 사용하고, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.","Record-based generation uses AUTO or the explicit values above. It shares the daily session-time setting and does not use the badminton-to-strength ratio.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt

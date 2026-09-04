@@ -102,3 +102,7 @@ internal fun ProgramDecimalField(
 internal val badmintonRatioOptions = listOf(0, 30, 50, 70).associate { badminton ->
     (badminton / 100.0) to "$badminton:${100 - badminton}"
 }
+
+internal val personalizedDurationOptions = listOf(0) + (2..6)
+internal val personalizedWeeklyDayOptions = listOf(0) + (2..5)
+internal fun personalizedOverrideFromSelection(selection: Int): Int? = selection.takeIf { it != 0 }

@@ -64,6 +64,7 @@
     <string name="loc_baseline_08e5888aceb6">측면코어</string>
     <string name="loc_baseline_0902b89f1fbd">휴식 종료</string>
     <string name="loc_baseline_098b4a6627a7">추정 주요 운동 수행능력</string>
+    <string name="loc_baseline_09c95d446850">기록 기반 기간</string>
     <string name="loc_baseline_09ee679e2644">운동 프로그램 삭제</string>
     <string name="loc_baseline_09f214381f69">평소 훈련 부하 범위입니다.</string>
     <string name="loc_baseline_0a00803efca9">입력 조건을 확인하는 중입니다.</string>
@@ -545,6 +546,7 @@
     <string name="loc_baseline_6eb4640ca731">다음 근력 변화</string>
     <string name="loc_baseline_6ef0e88ffad4">충격 스트레스</string>
     <string name="loc_baseline_6f29b93d69f7">스트레스</string>
+    <string name="loc_baseline_6f399349a9ea">높은 우선순위 보완 운동의 최소 배정을 위해 주간 용량을 제한적으로 확장했습니다.</string>
     <string name="loc_baseline_6f5051f857a6">덤벨 원레그 루마니안 데드리프트</string>
     <string name="loc_baseline_6f84a762e04c">과</string>
     <string name="loc_baseline_6f9030b32c54">기존 구성은 아래 목록에서 수정합니다.</string>
@@ -673,6 +675,7 @@
     <string name="loc_baseline_89f1c21fd1c3">시차 분석 결과</string>
     <string name="loc_baseline_89f3c031c247">현재 자료에서는 통과한 탐색 모형이 없습니다.</string>
     <string name="loc_baseline_89f77d6babbf">판단 보류</string>
+    <string name="loc_baseline_8a17e6831a77">기록 기반 주당 일수</string>
     <string name="loc_baseline_8a3d85343ecf">주간 어깨 운동량</string>
     <string name="loc_baseline_8a8f0d5d76f0">피로·불편감은 1이 낮음, 5가 높음입니다. 집중력/의욕은 5가 좋음입니다.</string>
     <string name="loc_baseline_8a92d9e3ebf8">현재 부담이 크게 잡힙니다.</string>
@@ -859,6 +862,7 @@
     <string name="loc_baseline_b4258c01c203">배드민턴 특이 훈련과 일반 근력의 우선순위를 조절합니다.</string>
     <string name="loc_baseline_b43a60fa8a64">방향전환</string>
     <string name="loc_baseline_b440c16b86ea">금</string>
+    <string name="loc_baseline_b44765cfe56c">기록 기반 생성은 AUTO 또는 위의 명시값을 사용합니다. 하루 운동시간은 공통 설정을 사용하고, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.</string>
     <string name="loc_baseline_b44ae0e6e321">이동</string>
     <string name="loc_baseline_b4f7e219f20a">대체</string>
     <string name="loc_baseline_b547bc3d7964">배드민턴 경력 년</string>
@@ -936,6 +940,7 @@
     <string name="loc_baseline_c21c0c139de7">주간 코어 총 자극</string>
     <string name="loc_baseline_c21e2526123c">중복 억제 그룹</string>
     <string name="loc_baseline_c2249e79384a">케틀벨 프레스</string>
+    <string name="loc_baseline_c2267c5b4c1d">위 기간·일수·비율은 빈 프로그램과 기존 자동 골자에 적용됩니다.</string>
     <string name="loc_baseline_c22f587c8057">신호나 상황 변화에 맞춰 빠르게 판단하고 반응하는 전이 목적입니다.</string>
     <string name="loc_baseline_c3061e451f3f">선택한 핵심 지표를 엄격 모형 표현으로 준비할 수 없습니다.</string>
     <string name="loc_baseline_c31548ac089d">횟수 +</string>

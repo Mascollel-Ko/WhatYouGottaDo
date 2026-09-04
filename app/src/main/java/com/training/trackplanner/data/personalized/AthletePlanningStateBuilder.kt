@@ -115,7 +115,21 @@ class AthletePlanningStateBuilder(
                 val change = signal?.posteriorChangePercent
                 val response = when { change == null -> "UNKNOWN"; change >= 4 -> "STRONG_POSITIVE"; change >= 1.5 -> "POSITIVE"; change <= -2 -> "NEGATIVE"; else -> "STABLE" }
                 val perAnchorStyle = styleAnalyzer.analyze(snapshot, setOf(key))
-                UserAnchor(key, rows.maxBy(PlanningSetRecord::date).exerciseName, sessions, rows.size, snapshot.movementCoverage(key).name, snapshot.metadata[key]?.progressMetricType.orEmpty(), response, sessions * 2.0 + rows.size * .15 + when (response) { "STRONG_POSITIVE" -> 4; "POSITIVE" -> 3; "NEGATIVE" -> -3; else -> 1 }, perAnchorStyle.first, perAnchorStyle.second, signal?.source ?: "CANONICAL_SIGNAL_UNAVAILABLE")
+                UserAnchor(
+                    stableKey = key,
+                    exerciseName = rows.maxBy(PlanningSetRecord::date).exerciseName,
+                    sessions = sessions,
+                    sets = rows.size,
+                    movementGroup = snapshot.movementCoverage(key).name,
+                    metric = snapshot.metadata[key]?.progressMetricType.orEmpty(),
+                    response = response,
+                    score = sessions * 2.0 + rows.size * .15 + when (response) { "STRONG_POSITIVE" -> 4; "POSITIVE" -> 3; "NEGATIVE" -> -3; else -> 1 },
+                    style = perAnchorStyle.first,
+                    styleConfidence = perAnchorStyle.second,
+                    canonicalPerformanceSource = signal?.source ?: "CANONICAL_SIGNAL_UNAVAILABLE",
+                    posteriorChangePercent = change,
+                    posteriorObservationCount = signal?.observationCount ?: 0
+                )
             }
             .sortedWith(compareByDescending<UserAnchor> { it.score }.thenBy(UserAnchor::stableKey))
             .groupBy(UserAnchor::movementGroup).values.flatMap { it.take(2) }

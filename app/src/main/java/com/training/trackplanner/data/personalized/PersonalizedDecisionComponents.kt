@@ -55,16 +55,10 @@ class AdaptationTransitionPlanner {
 
     fun decide(anchor: UserAnchor, state: AthletePlanningState, gaps: List<AdaptationGap>): AnchorTransition {
         val features = state.styleFeaturesByAnchor[anchor.stableKey] ?: StyleFeatures()
-        val signal = anchor.response
-        val response = when (signal) {
-            "STRONG_POSITIVE" -> tanh(4.0 / 5.0)
-            "POSITIVE" -> tanh(2.0 / 5.0)
-            "NEGATIVE" -> tanh(-3.0 / 5.0)
-            "STABLE" -> 0.0
-            else -> 0.0
-        }
-        val canonical = anchor.canonicalPerformanceSource != "CANONICAL_SIGNAL_UNAVAILABLE" && signal != "UNKNOWN"
-        val responseConfidence = if (canonical) clip(anchor.sessions / 6.0, .15, 1.0) else 0.0
+        val canonical = anchor.canonicalPerformanceSource != "CANONICAL_SIGNAL_UNAVAILABLE" &&
+            anchor.posteriorChangePercent?.isFinite() == true && anchor.posteriorObservationCount >= 2
+        val response = if (canonical) tanh(requireNotNull(anchor.posteriorChangePercent) / 5.0) else 0.0
+        val responseConfidence = if (canonical) clip(anchor.posteriorObservationCount / 6.0) else 0.0
         val maturity = clip(features.weeksObserved / 8.0)
         val sufficiency = clip(maturity * (.55 + .45 * maxOf(0.0, response) * maxOf(responseConfidence, .35)))
         val gapWeights = gaps.map { gapScore.getOrDefault(it.priority, .55) }
