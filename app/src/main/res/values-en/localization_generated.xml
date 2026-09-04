@@ -405,6 +405,7 @@
     <string name="loc_baseline_4e569c203d8e">A required X, Y, or Z metric could not be prepared.</string>
     <string name="loc_baseline_4ea9973c5e79">The exploratory model required for shock identification could not be fitted stably.</string>
     <string name="loc_baseline_4eef9d6d57a0">Posterior weight may also be distributed across other lags, so review the weekly response path rather than treating one week as the definite onset of an effect.</string>
+    <string name="loc_baseline_4f3b28eed1db">No resistance training was recorded in the last 28 days, so a balanced re-entry structure is used.</string>
     <string name="loc_baseline_4fefe2ca6e5a">Badminton practice load</string>
     <string name="loc_baseline_50d2bed8de2f">Multivariate time series analysis</string>
     <string name="loc_baseline_514992bd220e">As check-in records are accumulated, recovery/condition indicators can also be compared in the laboratory.</string>
@@ -917,6 +918,7 @@
     <string name="loc_baseline_bdfa12da4cc3">no record</string>
     <string name="loc_baseline_bdfbd27dd1a9">Beware of low reliability and coincidence correlation</string>
     <string name="loc_baseline_be36f60c3f6f">We take a conservative view as there is little recovery input.</string>
+    <string name="loc_baseline_be52223bc24b">Badminton planning is enabled, but no recent structured training was recorded, so a foundational on-ramp is used.</string>
     <string name="loc_baseline_be5960952add">Finalizing the result.</string>
     <string name="loc_baseline_be808b41d14a">This response is conditional on the current records and model and does not establish causality.</string>
     <string name="loc_baseline_becfcd73c42f">High-intensity exercise for areas of discomfort</string>
@@ -3067,11 +3069,13 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_186c6e6f3ec1">The last 7 days have been very stimulating %1$s.</string>
     <string name="loc_ui_pattern_1929c49dcd53">No direct %1$s training was recorded in the last four weeks.</string>
     <string name="loc_ui_pattern_1931ab5abadf">Projected fatigue after completion: %1$s · %2$s</string>
+    <string name="loc_ui_pattern_193fb9805677">Recent direct %1$s training disappeared compared with the previous period.</string>
     <string name="loc_ui_pattern_1a69f3d55024">Automatically included endogenous variables: %1$s</string>
     <string name="loc_ui_pattern_1a6b0891486e">%1$s remaining · %2$s</string>
     <string name="loc_ui_pattern_1b02670f55b5">Top set %1$s kg × %2$s reps · RPE 8–9 · %3$s</string>
     <string name="loc_ui_pattern_1c1653a5d660">Recent generic court load %1$s affected weekly frequency density and recovery margin. It was not counted as Objective V2 stimulus.</string>
     <string name="loc_ui_pattern_1c23397c4a78">Today\'s concentration/motivation was entered as %1$s/5.</string>
+    <string name="loc_ui_pattern_1c2c4680a81d">No %1$s resistance training was recorded in the last 28 days.</string>
     <string name="loc_ui_pattern_1c8f1272e7c3">Complete set %1$s pieces</string>
     <string name="loc_ui_pattern_1e3c3c2107d8">%1$s-%2$s Primary joint/tendon/impact accumulation %3$s exceeds control criteria %4$s.</string>
     <string name="loc_ui_pattern_1fc2320668c5">Dispersion multiplier %1$s · Personal correction %2$s</string>
@@ -3105,6 +3109,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_ui_pattern_35e144e048a7">%1$s and %2$s selected</string>
     <string name="loc_ui_pattern_364df1eaa103">Weight %1$skg</string>
     <string name="loc_ui_pattern_3826d36ecf73">Bottom %1$s%%%%</string>
+    <string name="loc_ui_pattern_383a20267172">The recent %1$s share was lower than same-priority movements or its previous distribution.</string>
     <string name="loc_ui_pattern_38d9c6bef00c">%1$s and %2$s</string>
     <string name="loc_ui_pattern_39faa969a671">Complete set preserved: Set %1$s</string>
     <string name="loc_ui_pattern_3a22a37693da">Target date %1$s</string>
@@ -3129,6 +3134,7 @@ You can leave this screen open while it runs.</string>
 Week %2$s</string>
     <string name="loc_ui_pattern_471cb15cb069">Week %1$s hard day %2$s days exceed the upper allowable limit of %3$s days.</string>
     <string name="loc_ui_pattern_47998e7004b7">Response variable Y: %1$s</string>
+    <string name="loc_ui_pattern_47b598ee538e">Direct %1$s training was not observed in either comparison period and is retained only as an optional development candidate.</string>
     <string name="loc_ui_pattern_47d095462538">Week %1$s day %2$s rehab-like activation occupies the main position.</string>
     <string name="loc_ui_pattern_47e5e0c6e9d1">Rest %1$s</string>
     <string name="loc_ui_pattern_4a4cdcc88a3d">%1$s Month %2$s Week</string>
@@ -3197,6 +3203,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_790bfd8cfb4f">Example exercise: %1$s</string>
     <string name="loc_ui_pattern_79bf75b751fa">Select the last date to be saved as a program starting from %1$s</string>
     <string name="loc_ui_pattern_7a367df66508">Sleep time was entered as %1$s hours.</string>
+    <string name="loc_ui_pattern_7b0f38783eda">Existing effective hypertrophy stimulus was heavily concentrated in %1$s, creating a %2$s redistribution candidate.</string>
     <string name="loc_ui_pattern_7c9d3ab90a33">Plan %1$sset</string>
     <string name="loc_ui_pattern_7d7fb4d33f6e">Note: %1$s</string>
     <string name="loc_ui_pattern_7db88add52da">%1$s · Reliability %2$s</string>
@@ -3310,6 +3317,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_d3705dbaf636">\\nDiagnostic code: %1$s</string>
     <string name="loc_ui_pattern_d47be7eee0b2">For %1$s, the largest response by %2$s median appeared after %3$s weeks.</string>
     <string name="loc_ui_pattern_d60ba3adcf46">Current stage: %1$s</string>
+    <string name="loc_ui_pattern_d6bb223f48d8">The recent %1$s share was substantially lower than same-priority movements or its previous distribution.</string>
     <string name="loc_ui_pattern_d6c24dd9114e">Analysis cannot start because %1$s has no weekly records.</string>
     <string name="loc_ui_pattern_d6e364873ecc">Rest between sets: %1$s sec</string>
     <string name="loc_ui_pattern_d6f634ee08b5">%1$s exercises and %2$s sets will be deleted.</string>
@@ -3335,6 +3343,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_e4cfb5d8c3f5">%1$s %2$s kg × %3$s reps × %4$s sets · %5$s</string>
     <string name="loc_ui_pattern_e5aebd77f857">%1$s minutes %2$s seconds</string>
     <string name="loc_ui_pattern_e5dcbd239015">Failed to save diagnostic report: %1$s</string>
+    <string name="loc_ui_pattern_e68e305eac49">The recent relative share of %1$s stimulus was much lower than its previous record or current comparison axis.</string>
     <string name="loc_ui_pattern_e71ffe149943">There are only %2$s overlapping groups of %1$s badminton transitions.</string>
     <string name="loc_ui_pattern_e7fb06fbc0b4">Among the lag models, the %1$s-week lag had the highest posterior weight (%2$s).</string>
     <string name="loc_ui_pattern_e83afdb75b3b">Rest between sets %1$s seconds</string>

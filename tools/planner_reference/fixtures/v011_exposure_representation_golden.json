@@ -1,0 +1,2343 @@
+{
+  "activeBinExamples": {
+    "currentFour": 4,
+    "currentOne": 1,
+    "priorFour": 4
+  },
+  "badmintonCases": [
+    {
+      "activeBins": 4,
+      "currentDirect": {},
+      "currentWeighted": {
+        "ACCELERATION": 8,
+        "FOOTWORK": 8,
+        "REACTION": 8
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": true,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": 0.0,
+            "priorShare": 0.25,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "direct_deceleration_drop",
+      "priorDirect": {
+        "DECELERATION": 8
+      },
+      "priorWeighted": {
+        "ACCELERATION": 8,
+        "DECELERATION": 8,
+        "FOOTWORK": 8,
+        "REACTION": 8
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "DECELERATION": 1
+      },
+      "currentWeighted": {
+        "ACCELERATION": 9,
+        "DECELERATION": 1,
+        "FOOTWORK": 11,
+        "REACTION": 10
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.2903225806451613,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.9,
+            "personalRetentionRatio": 1.1612903225806452,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.03225806451612903,
+            "directDrop": false,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.1,
+            "personalRetentionRatio": 0.12903225806451613,
+            "priorShare": 0.25,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.3548387096774194,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.2222222222222223,
+            "personalRetentionRatio": 1.4193548387096775,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3225806451612903,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.1111111111111112,
+            "personalRetentionRatio": 1.2903225806451613,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "nonzero_personal_deceleration_collapse",
+      "priorDirect": {
+        "DECELERATION": 10
+      },
+      "priorWeighted": {
+        "ACCELERATION": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "REACTION": 10
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "DECELERATION": 1
+      },
+      "currentWeighted": {
+        "ACCELERATION": 9,
+        "DECELERATION": 1,
+        "FOOTWORK": 11,
+        "REACTION": 10
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.2903225806451613,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.9,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.03225806451612903,
+            "directDrop": false,
+            "gapPriority": "MODERATE",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.1,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.3548387096774194,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.2222222222222223,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3225806451612903,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.1111111111111112,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "peer_only_deceleration",
+      "priorDirect": {},
+      "priorWeighted": {}
+    },
+    {
+      "activeBins": 1,
+      "currentDirect": {
+        "DECELERATION": 1
+      },
+      "currentWeighted": {
+        "ACCELERATION": 9,
+        "DECELERATION": 1,
+        "FOOTWORK": 11,
+        "REACTION": 10
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "LOW",
+            "currentShare": 0.2903225806451613,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.9,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "LOW",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "LOW",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "LOW",
+            "currentShare": 0.03225806451612903,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.1,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "FOOTWORK": {
+            "confidence": "LOW",
+            "currentShare": 0.3548387096774194,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.2222222222222223,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "JUMP_LANDING": {
+            "confidence": "LOW",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "LOW",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "LOW",
+            "currentShare": 0.3225806451612903,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.1111111111111112,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "LOW",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "peer_imbalance_sparse",
+      "priorDirect": {},
+      "priorWeighted": {}
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {},
+      "currentWeighted": {
+        "ACCELERATION": 4,
+        "FOOTWORK": 4,
+        "JUMP_LANDING": 0.6,
+        "REACTION": 4
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.31746031746031744,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.31746031746031744,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.047619047619047616,
+            "directDrop": false,
+            "gapPriority": "MODERATE",
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.15,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNDERREPRESENTATION_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.31746031746031744,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "supportive_jump_without_direct",
+      "priorDirect": {},
+      "priorWeighted": {}
+    },
+    {
+      "activeBins": 0,
+      "currentDirect": {},
+      "currentWeighted": {},
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "JUMP_LANDING": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "genericCourtMinutes": 240,
+      "id": "generic_court_zero_objective",
+      "priorDirect": {},
+      "priorWeighted": {}
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {},
+      "currentWeighted": {
+        "FOOTWORK": 4
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 1.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 1.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "never_direct_not_drop",
+      "priorDirect": {},
+      "priorWeighted": {
+        "FOOTWORK": 4
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {},
+      "currentWeighted": {
+        "ACCELERATION": 4,
+        "FOOTWORK": 4,
+        "REACTION": 4
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.3333333333333333,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.3333333333333333,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.3333333333333333,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "never_direct_no_normal_pressure",
+      "priorDirect": {},
+      "priorWeighted": {
+        "ACCELERATION": 4,
+        "FOOTWORK": 4,
+        "REACTION": 4
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "ACCELERATION": 5,
+        "ANTI_ROTATION": 5,
+        "CONDITIONING": 5,
+        "DECELERATION": 5,
+        "FOOTWORK": 5,
+        "JUMP_LANDING": 5,
+        "LUNGE_REACH": 5,
+        "REACTION": 5,
+        "ROTATION_GENERATION": 5
+      },
+      "currentWeighted": {
+        "ACCELERATION": 5,
+        "ANTI_ROTATION": 5,
+        "CONDITIONING": 5,
+        "DECELERATION": 5,
+        "FOOTWORK": 5,
+        "JUMP_LANDING": 5,
+        "LUNGE_REACH": 5,
+        "REACTION": 5,
+        "ROTATION_GENERATION": 5
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": null,
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 5.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.1111111111111111,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "all_objectives_halved",
+      "priorDirect": {
+        "ACCELERATION": 10,
+        "ANTI_ROTATION": 10,
+        "CONDITIONING": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "JUMP_LANDING": 10,
+        "LUNGE_REACH": 10,
+        "REACTION": 10,
+        "ROTATION_GENERATION": 10
+      },
+      "priorWeighted": {
+        "ACCELERATION": 10,
+        "ANTI_ROTATION": 10,
+        "CONDITIONING": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "JUMP_LANDING": 10,
+        "LUNGE_REACH": 10,
+        "REACTION": 10,
+        "ROTATION_GENERATION": 10
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "DECELERATION": 2
+      },
+      "currentWeighted": {
+        "ACCELERATION": 10,
+        "DECELERATION": 2,
+        "FOOTWORK": 10,
+        "REACTION": 10
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3125,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.25,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0625,
+            "directDrop": false,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.2,
+            "personalRetentionRatio": 0.25,
+            "priorShare": 0.25,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.3125,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.25,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.3125,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.25,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "one_objective_share_drop",
+      "priorDirect": {
+        "DECELERATION": 10
+      },
+      "priorWeighted": {
+        "ACCELERATION": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "REACTION": 10
+      }
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "ACCELERATION": 10,
+        "ANTI_ROTATION": 10,
+        "CONDITIONING": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "JUMP_LANDING": 10,
+        "LUNGE_REACH": 10,
+        "REACTION": 10,
+        "ROTATION_GENERATION": 10
+      },
+      "currentWeighted": {
+        "ACCELERATION": 10,
+        "ANTI_ROTATION": 10,
+        "CONDITIONING": 10,
+        "DECELERATION": 10,
+        "FOOTWORK": 10,
+        "JUMP_LANDING": 10,
+        "LUNGE_REACH": 10,
+        "REACTION": 10,
+        "ROTATION_GENERATION": 10
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": null,
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.1111111111111111,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "balanced_current",
+      "priorDirect": {},
+      "priorWeighted": {}
+    },
+    {
+      "activeBins": 4,
+      "currentDirect": {
+        "JUMP_LANDING": 4
+      },
+      "currentWeighted": {
+        "JUMP_LANDING": 4
+      },
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentShare": 1.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "expectedActivityDomain": "ATHLETIC_PERFORMANCE_DRILL",
+      "id": "direct_athletic_plyometric",
+      "priorDirect": {},
+      "priorWeighted": {}
+    }
+  ],
+  "epsilon": 1e-09,
+  "movementCases": [
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 25,
+        "LOWER_KNEE": 30,
+        "POSTERIOR_CHAIN": 20,
+        "UPPER_PULL": 0
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.3333333333333333,
+            "gapPriority": null,
+            "peerReference": 25.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.4,
+            "gapPriority": null,
+            "peerReference": 22.5,
+            "peerRepresentationRatio": 1.3333333333333333,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.26666666666666666,
+            "gapPriority": null,
+            "peerReference": 27.5,
+            "peerRepresentationRatio": 0.7272727272727273,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "gapPriority": "HIGH",
+            "peerReference": 25,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "pull_absent",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 25,
+        "LOWER_KNEE": 30,
+        "POSTERIOR_CHAIN": 20,
+        "UPPER_PULL": 1
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.32894736842105265,
+            "gapPriority": null,
+            "peerReference": 20,
+            "peerRepresentationRatio": 1.25,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.39473684210526316,
+            "gapPriority": null,
+            "peerReference": 20,
+            "peerRepresentationRatio": 1.5,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.2631578947368421,
+            "gapPriority": null,
+            "peerReference": 25,
+            "peerRepresentationRatio": 0.8,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.013157894736842105,
+            "gapPriority": "HIGH",
+            "peerReference": 25,
+            "peerRepresentationRatio": 0.04,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          }
+        }
+      },
+      "id": "pull_one_vs_peers",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 10,
+        "LOWER_KNEE": 10,
+        "POSTERIOR_CHAIN": 10,
+        "UPPER_PULL": 10
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "balanced_ten",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 1,
+        "LOWER_KNEE": 1,
+        "POSTERIOR_CHAIN": 1,
+        "UPPER_PULL": 1
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 1,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 1,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 1,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 1,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "balanced_one",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 32,
+        "LOWER_KNEE": 30,
+        "POSTERIOR_CHAIN": 30,
+        "UPPER_PULL": 8
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.32,
+            "gapPriority": null,
+            "peerReference": 30,
+            "peerRepresentationRatio": 1.0666666666666667,
+            "personalRetentionRatio": 1.28,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.3,
+            "gapPriority": null,
+            "peerReference": 30,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.3,
+            "gapPriority": null,
+            "peerReference": 30,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.08,
+            "gapPriority": "HIGH",
+            "peerReference": 30,
+            "peerRepresentationRatio": 0.26666666666666666,
+            "personalRetentionRatio": 0.32,
+            "priorShare": 0.25,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          }
+        }
+      },
+      "id": "personal_pull_share_collapse",
+      "prior": {
+        "HORIZONTAL_PUSH": 25,
+        "LOWER_KNEE": 25,
+        "POSTERIOR_CHAIN": 25,
+        "UPPER_PULL": 25
+      },
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 10,
+        "LOWER_KNEE": 10,
+        "POSTERIOR_CHAIN": 10,
+        "UPPER_PULL": 10
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorShare": 0.25,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "all_halved_proportionally",
+      "prior": {
+        "HORIZONTAL_PUSH": 20,
+        "LOWER_KNEE": 20,
+        "POSTERIOR_CHAIN": 20,
+        "UPPER_PULL": 20
+      },
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 1,
+      "current": {
+        "HORIZONTAL_PUSH": 25,
+        "LOWER_KNEE": 30,
+        "POSTERIOR_CHAIN": 20,
+        "UPPER_PULL": 1
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "LOW",
+            "currentShare": 0.32894736842105265,
+            "gapPriority": null,
+            "peerReference": 20,
+            "peerRepresentationRatio": 1.25,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "LOWER_KNEE": {
+            "confidence": "LOW",
+            "currentShare": 0.39473684210526316,
+            "gapPriority": null,
+            "peerReference": 20,
+            "peerRepresentationRatio": 1.5,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "LOW",
+            "currentShare": 0.2631578947368421,
+            "gapPriority": null,
+            "peerReference": 25,
+            "peerRepresentationRatio": 0.8,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          },
+          "UPPER_PULL": {
+            "confidence": "LOW",
+            "currentShare": 0.013157894736842105,
+            "gapPriority": null,
+            "peerReference": 25,
+            "peerRepresentationRatio": 0.04,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "UNKNOWN"
+          }
+        }
+      },
+      "id": "one_active_bin",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 0,
+      "current": {
+        "CORE_DIRECT": 0,
+        "HORIZONTAL_PUSH": 0,
+        "LOWER_KNEE": 0,
+        "POSTERIOR_CHAIN": 0,
+        "UPPER_PULL": 0
+      },
+      "expected": {
+        "foundationalOnramp": true,
+        "representations": {
+          "CORE_DIRECT": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "HORIZONTAL_PUSH": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "LOWER_KNEE": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "UPPER_PULL": {
+            "confidence": "LOW",
+            "currentShare": null,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "no_resistance",
+      "prior": {},
+      "priorities": {
+        "CORE_DIRECT": "MODERATE",
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "HORIZONTAL_PUSH": 10,
+        "LOWER_KNEE": 10,
+        "POSTERIOR_CHAIN": 10,
+        "UPPER_PULL": 10
+      },
+      "excludedAthleticBouts": 50,
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "athletic_excluded",
+      "prior": {},
+      "priorities": {
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    },
+    {
+      "activeBins": 4,
+      "current": {
+        "CORE_DIRECT": 0,
+        "HORIZONTAL_PUSH": 10,
+        "LOWER_KNEE": 10,
+        "POSTERIOR_CHAIN": 10,
+        "UPPER_PULL": 10
+      },
+      "expected": {
+        "foundationalOnramp": false,
+        "representations": {
+          "CORE_DIRECT": {
+            "confidence": "HIGH",
+            "currentShare": 0.0,
+            "gapPriority": "MODERATE",
+            "peerReference": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "ABSENT"
+          },
+          "HORIZONTAL_PUSH": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LOWER_KNEE": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "POSTERIOR_CHAIN": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "UPPER_PULL": {
+            "confidence": "HIGH",
+            "currentShare": 0.25,
+            "gapPriority": null,
+            "peerReference": 10,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorShare": null,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "moderate_priority_ceiling",
+      "prior": {},
+      "priorities": {
+        "CORE_DIRECT": "MODERATE",
+        "HORIZONTAL_PUSH": "HIGH",
+        "LOWER_KNEE": "HIGH",
+        "POSTERIOR_CHAIN": "HIGH",
+        "UPPER_PULL": "HIGH"
+      }
+    }
+  ],
+  "version": "RECORD_BASED_PLANNER_0.11.0_REFERENCE_1",
+  "windowContract": [
+    {
+      "bin": 0,
+      "daysBeforeCutoff": 0,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 0,
+      "daysBeforeCutoff": 6,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 1,
+      "daysBeforeCutoff": 7,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 1,
+      "daysBeforeCutoff": 13,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 2,
+      "daysBeforeCutoff": 14,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 2,
+      "daysBeforeCutoff": 20,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 3,
+      "daysBeforeCutoff": 21,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 3,
+      "daysBeforeCutoff": 27,
+      "window": "CURRENT"
+    },
+    {
+      "bin": 0,
+      "daysBeforeCutoff": 28,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 0,
+      "daysBeforeCutoff": 34,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 1,
+      "daysBeforeCutoff": 35,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 1,
+      "daysBeforeCutoff": 41,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 2,
+      "daysBeforeCutoff": 42,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 2,
+      "daysBeforeCutoff": 48,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 3,
+      "daysBeforeCutoff": 49,
+      "window": "PRIOR"
+    },
+    {
+      "bin": 3,
+      "daysBeforeCutoff": 55,
+      "window": "PRIOR"
+    },
+    {
+      "bin": null,
+      "daysBeforeCutoff": 56,
+      "window": null
+    }
+  ]
+}

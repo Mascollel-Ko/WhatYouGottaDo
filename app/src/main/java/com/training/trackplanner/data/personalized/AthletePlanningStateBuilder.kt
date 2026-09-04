@@ -1,13 +1,14 @@
 package com.training.trackplanner.data.personalized
 
-import com.training.trackplanner.analysis.badminton.BadmintonObjective
 import com.training.trackplanner.data.ProgramGoal
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 class AthletePlanningStateBuilder(
     private val styleAnalyzer: StrengthProgrammingStyleAnalyzer = StrengthProgrammingStyleAnalyzer(),
-    private val featureAnalyzer: StrengthStyleFeatureAnalyzer = StrengthStyleFeatureAnalyzer()
+    private val featureAnalyzer: StrengthStyleFeatureAnalyzer = StrengthStyleFeatureAnalyzer(),
+    private val movementRepresentationAnalyzer: MovementExposureRepresentationAnalyzer = MovementExposureRepresentationAnalyzer(),
+    private val badmintonRepresentationAnalyzer: BadmintonObjectiveRepresentationAnalyzer = BadmintonObjectiveRepresentationAnalyzer()
 ) {
     fun build(snapshot: PlanningHistorySnapshot, answers: PersonalizedPlanningAnswers): AthletePlanningState {
         val recentStart = snapshot.cutoff.minusDays(27)
@@ -48,6 +49,10 @@ class AthletePlanningStateBuilder(
         }
         val decisionWindow = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(55)) }
         val structuredSessions = decisionWindow.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.map { it.date to it.stableKey }.distinct().size
+        val currentStructuredObjectiveSessions = recent.filter {
+            snapshot.activityKind(it.stableKey) in setOf(PlannedActivityKind.STRUCTURED_BADMINTON_DRILL, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL) &&
+                snapshot.badmintonObjectives[it.stableKey].orEmpty().values.any { coefficient -> coefficient > 0.0 }
+        }.map { it.date to it.stableKey }.distinct().size
         val answeredBadminton = answers.values[QUESTION_BADMINTON_INTENT]?.let { runCatching { BadmintonPlanningIntent.valueOf(it) }.getOrNull() }
         val badmintonIntent = answeredBadminton ?: snapshot.preferences.badmintonIntent ?: when {
             snapshot.profilePrimaryGoal.contains("BADMINTON", true) || snapshot.badmintonTrainingYears > 0 -> BadmintonPlanningIntent.ENABLED
@@ -67,7 +72,8 @@ class AthletePlanningStateBuilder(
         val volatility = if (weeklyCounts.size < 2) 0.0 else sqrt(weeklyCounts.sumOf { (it - weeklyCounts.average()).pow(2) } / weeklyCounts.size)
         val profileGoal = normalizeProfileGoal(snapshot.profilePrimaryGoal)
         val primary = primaryAdaptation(profileGoal, strengthIntent, badmintonIntent)
-        val objectiveGaps = badmintonGaps(snapshot)
+        val movementRepresentations = movementRepresentationAnalyzer.analyze(snapshot, primary.startsWith("HYPERTROPHY"))
+        val badmintonRepresentations = badmintonRepresentationAnalyzer.analyze(snapshot)
         val confidence = when {
             snapshot.historyDays >= 42 && anchors.size >= 4 -> PlanningConfidence.HIGH
             snapshot.historyDays >= 14 && anchors.isNotEmpty() -> PlanningConfidence.MODERATE
@@ -94,12 +100,16 @@ class AthletePlanningStateBuilder(
             profileGoal = profileGoal,
             programGoal = mapProgramGoal(profileGoal),
             objectiveExposure = snapshot.objectiveExposure,
-            objectiveDropGaps = objectiveGaps.first,
-            objectiveDevelopmentalGaps = objectiveGaps.second,
+            objectiveDropGaps = badmintonRepresentations.filter(BadmintonObjectiveRepresentation::directDrop).mapTo(linkedSetOf(), BadmintonObjectiveRepresentation::objective),
+            objectiveDevelopmentalGaps = badmintonRepresentations.filter(BadmintonObjectiveRepresentation::neverDirectObserved).mapTo(linkedSetOf(), BadmintonObjectiveRepresentation::objective),
             genericCourtLoad = snapshot.genericCourtLoad,
             recoverySignals = snapshot.recoverySignals,
             hypertrophyStimulusByMovement = hypertrophyStimulus,
-            styleFeaturesByAnchor = styleFeatures
+            styleFeaturesByAnchor = styleFeatures,
+            movementRepresentations = movementRepresentations,
+            badmintonObjectiveRepresentations = badmintonRepresentations,
+            resistanceFoundationalOnramp = movementRepresentations.sumOf(MovementExposureRepresentation::currentExposure28d) == 0.0,
+            badmintonFoundationalOnramp = currentStructuredObjectiveSessions == 0
         )
     }
 
@@ -268,17 +278,10 @@ class StrengthStyleFeatureAnalyzer(
     }
 }
 
-internal fun PlanningHistorySnapshot.activityKind(key: String): PlannedActivityKind {
-    val meta = metadata[key]
-    if (key in setOf("ex_ae9ecdbc", "ex_badminton_lesson") || meta?.activityKind == "SPORT_SESSION") {
-        return PlannedActivityKind.GENERIC_COURT_SESSION
-    }
-    if (meta?.activityKind == "EXERCISE" && meta.programSlot == "BADMINTON_FOOTWORK" &&
-        "BADMINTON_TRANSFER" in meta.analysisEligibility && meta.badmintonTransferLevel == "DIRECT") {
-        return PlannedActivityKind.STRUCTURED_BADMINTON_DRILL
-    }
-    return if (meta?.activityKind == "EXERCISE") PlannedActivityKind.RESISTANCE else PlannedActivityKind.OTHER
-}
+private val plannerActivityDomainResolver = PlannerActivityDomainResolver()
+
+internal fun PlanningHistorySnapshot.activityKind(key: String): PlannedActivityKind =
+    plannerActivityDomainResolver.resolve(this, key)
 
 internal fun PlanningHistorySnapshot.isSportSession(key: String): Boolean =
     activityKind(key) == PlannedActivityKind.GENERIC_COURT_SESSION
@@ -354,21 +357,6 @@ private fun primaryAdaptation(goal: String, strength: StrengthIntent, badminton:
         strength == StrengthIntent.MIXED -> "HYPERTROPHY_STRENGTH"
         else -> "GENERAL_FOUNDATION"
     }
-}
-
-private fun badmintonGaps(snapshot: PlanningHistorySnapshot): Pair<Set<String>, Set<String>> {
-    val currentStart = snapshot.cutoff.minusDays(27)
-    val priorStart = snapshot.cutoff.minusDays(55)
-    val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(currentStart) }
-    val prior = snapshot.allConfirmedSets.filter { !it.date.isBefore(priorStart) && it.date.isBefore(currentStart) }
-    fun exposure(rows: List<PlanningSetRecord>) = BadmintonObjective.entries.associate { objective ->
-        objective.name to rows.sumOf { row -> snapshot.badmintonObjectives[row.stableKey]?.get(objective.name) ?: 0.0 }
-    }
-    val current = exposure(recent)
-    val historical = exposure(prior)
-    val drop = current.filter { (objective, value) -> value == 0.0 && historical.getValue(objective) > 0.0 }.keys
-    val developmental = current.keys.filter { (current[it] ?: 0.0) == 0.0 && (historical[it] ?: 0.0) == 0.0 }.toSet()
-    return drop to developmental
 }
 
 private fun recoveryConstraint(signals: PlanningRecoverySignals): String = when {

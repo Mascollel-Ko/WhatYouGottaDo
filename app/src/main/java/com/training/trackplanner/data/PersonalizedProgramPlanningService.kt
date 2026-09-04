@@ -45,6 +45,7 @@ internal class PersonalizedProgramPlanningService(
     private val strengthPosteriorDao: StrengthPosteriorDao,
     private val strengthPerformanceRegistry: com.training.trackplanner.analysis.strengthperformance.StrengthPerformanceRegistry,
     private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>,
+    private val exerciseRoleRelationDao: ExerciseRoleRelationDao? = null,
     private val tissueStateProvider: suspend (LocalDate) -> com.training.trackplanner.analysis.tissue.TissueCurrentState? = { null },
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
@@ -150,7 +151,10 @@ internal class PersonalizedProgramPlanningService(
                 if (canonicalStrength.isNotEmpty()) add("STRENGTH_POSTERIOR")
             }
         )
-        val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery)
+        val roleCatalog = exerciseRoleRelationDao?.let { dao ->
+            ExerciseRoleRelationCatalog.of(dao.allTrainingRoles(), dao.allProgramSlotCapabilities())
+        } ?: ExerciseRoleRelationCatalog.EMPTY
+        val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
         return snapshot
     }
 
@@ -241,8 +245,58 @@ internal class PersonalizedProgramPlanningService(
             .put("plannedResistanceSets", budget.plannedResistanceSets)
             .put("targetStructuredBadmintonBouts", budget.targetStructuredBadmintonBouts)
             .put("plannedStructuredBadmintonBouts", budget.plannedStructuredBadmintonBouts)
+            .put("targetAthleticPerformanceBouts", budget.targetAthleticPerformanceBouts)
+            .put("plannedAthleticPerformanceBouts", budget.plannedAthleticPerformanceBouts)
             .put("systemicDoseFactor", budget.systemicDoseFactor)
-        }).toString()
+        })
+        .put("movementRepresentations", JSONArray(movementRepresentations.map { value -> JSONObject()
+            .put("movementCoverage", value.movementCoverage)
+            .put("basePriority", value.basePriority.name)
+            .put("currentExposure28d", value.currentExposure28d)
+            .put("priorExposure28d", value.priorExposure28d)
+            .put("currentActiveBins", value.currentActiveBins)
+            .put("currentShare", value.currentShare)
+            .put("priorShare", value.priorShare)
+            .put("peerReference", value.peerReference)
+            .put("peerRepresentationRatio", value.peerRepresentationRatio)
+            .put("personalRetentionRatio", value.personalRetentionRatio)
+            .put("representationState", value.representationState.name)
+            .put("evidenceConfidence", value.evidenceConfidence.name)
+            .put("reasonCodes", JSONArray(value.reasonCodes))
+        }))
+        .put("badmintonObjectiveRepresentations", JSONArray(badmintonObjectiveRepresentations.map { value -> JSONObject()
+            .put("objective", value.objective)
+            .put("currentWeighted28d", value.currentWeighted28d)
+            .put("priorWeighted28d", value.priorWeighted28d)
+            .put("currentDirect28d", value.currentDirect28d)
+            .put("priorDirect28d", value.priorDirect28d)
+            .put("currentShare", value.currentShare)
+            .put("priorShare", value.priorShare)
+            .put("personalRetentionRatio", value.personalRetentionRatio)
+            .put("peerMedianCurrent", value.peerMedianCurrent)
+            .put("peerRepresentationRatio", value.peerRepresentationRatio)
+            .put("currentActiveBins", value.currentActiveBins)
+            .put("evidenceConfidence", value.evidenceConfidence.name)
+            .put("directDrop", value.directDrop)
+            .put("neverDirectObserved", value.neverDirectObserved)
+            .put("representationState", value.representationState.name)
+            .put("reasonCodes", JSONArray(value.reasonCodes))
+        }))
+        .put("adaptationGaps", JSONArray(adaptationGaps.map { gap -> JSONObject()
+            .put("code", gap.code)
+            .put("priority", gap.priority)
+            .put("sourceType", gap.sourceType)
+            .put("representationState", gap.representationState?.name)
+            .put("evidenceConfidence", gap.evidenceConfidence?.name)
+            .put("currentExposure", gap.currentExposure)
+            .put("priorExposure", gap.priorExposure)
+            .put("currentShare", gap.currentShare)
+            .put("priorShare", gap.priorShare)
+            .put("peerRatio", gap.peerRatio)
+            .put("personalRetentionRatio", gap.personalRetentionRatio)
+            .put("reasonCodes", JSONArray(gap.reasonCodes))
+            .put("contributesTransitionPressure", gap.contributesTransitionPressure)
+        })).toString()
 
     companion object {
         internal const val PREFERENCES_KEY = "personalized_planning_preferences_v1"

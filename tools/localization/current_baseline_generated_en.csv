@@ -3,6 +3,8 @@ korean,english,provenance,sourcePath
 근비대만 우선,Prioritize hypertrophy only,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 근비대 + 근력,Hypertrophy + strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 근력 우선,Prioritize strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+최근 28일 저항운동 기록이 없어 균형 잡힌 재진입 구조를 사용합니다.,"No resistance training was recorded in the last 28 days, so a balanced re-entry structure is used.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+배드민턴 계획 의도는 활성화됐지만 최근 구조화 훈련 기록이 없어 기초 온램프를 사용합니다.,"Badminton planning is enabled, but no recent structured training was recorded, so a foundational on-ramp is used.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 고중량은 의도적으로 피하고 싶음,I want to avoid heavy loading,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 잘 모르겠음,Not sure,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 배드민턴 경기력 향상을 위한 구조화 훈련을 프로그램에 포함할까요?,Include structured training for badminton performance?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt

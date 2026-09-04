@@ -322,6 +322,7 @@ class TrainingRepository(
         strengthPosteriorDao = strengthPosteriorDao,
         strengthPerformanceRegistry = strengthPerformanceRegistry,
         canonicalOfiAxisProfiles = canonicalOfiAxisProfiles,
+        exerciseRoleRelationDao = exerciseRoleRelationDao,
         tissueStateProvider = { cutoff ->
             val endOfDay = cutoff.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - 1
             connectiveTissueAnalysisService.build(endOfDay)

@@ -60,8 +60,8 @@ class AdaptationTransitionPlanner {
         val response = if (canonical) tanh(requireNotNull(anchor.posteriorChangePercent) / 5.0) else 0.0
         val responseConfidence = if (canonical) clip(anchor.posteriorObservationCount / 6.0) else 0.0
         val maturity = clip(features.weeksObserved / 8.0)
-        val sufficiency = clip(maturity * (.55 + .45 * maxOf(0.0, response) * maxOf(responseConfidence, .35)))
-        val gapWeights = gaps.map { gapScore.getOrDefault(it.priority, .55) }
+        val rotationReadiness = clip(maturity * (.55 + .45 * maxOf(0.0, response) * maxOf(responseConfidence, .35)))
+        val gapWeights = gaps.filter(AdaptationGap::contributesTransitionPressure).map { gapScore.getOrDefault(it.priority, .55) }
         val gapPressure = if (gapWeights.isEmpty()) 0.0 else clip(gapWeights.max() + .12 * (gapWeights.size - 1))
         val systemicRecovery = systemicRecoveryPressure(state.recoverySignals)
         val frequencyPressure = clip((features.weeklyFrequency - 2.0) / 2.0)
@@ -71,7 +71,7 @@ class AdaptationTransitionPlanner {
         val goalAlignment = goalAlignment(state, features, styleDemand)
         val evidence = confidenceScore.getValue(anchor.styleConfidence)
         val continuityBase = .40 * evidence + .20 * features.frequencyStability + .20 * clip(.50 + .50 * response) + .20 * goalAlignment
-        val rotation = clip(.45 * gapPressure + .30 * sufficiency + .25 * (1.0 - goalAlignment))
+        val rotation = clip(.45 * gapPressure + .30 * rotationReadiness + .25 * (1.0 - goalAlignment))
         val continuity = clip(continuityBase - .35 * rotation - .15 * maxOf(0.0, -response) * maxOf(responseConfidence, .35))
         var localDose = clip(1.0 - .22 * systemicRecovery - .18 * sportInterference, .65, 1.0)
         if (anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys) localDose = minOf(localDose, .80)
@@ -111,7 +111,7 @@ class AdaptationTransitionPlanner {
             observedStyle = anchor.style,
             observedConfidence = anchor.styleConfidence,
             styleFeatures = features,
-            adaptation = AdaptationState(response, responseConfidence, maturity, sufficiency, gapPressure, systemicRecovery, sportInterference, goalAlignment, styleDemand),
+            adaptation = AdaptationState(response, responseConfidence, maturity, rotationReadiness, gapPressure, systemicRecovery, sportInterference, goalAlignment, styleDemand),
             structureTreatment = structure,
             doseTreatment = dose,
             continuityScore = continuity,
@@ -150,39 +150,143 @@ class AdaptationTransitionPlanner {
 
 class AdaptationGapAnalyzer {
     fun analyze(snapshot: PlanningHistorySnapshot, state: AthletePlanningState): List<AdaptationGap> {
-        val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(27)) && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
-        val counts = recent.groupingBy { snapshot.movementCoverage(it.stableKey) }.eachCount()
-        val required = linkedMapOf("LOWER_KNEE" to "HIGH", "POSTERIOR_CHAIN" to "HIGH", "HORIZONTAL_PUSH" to "HIGH", "UPPER_PULL" to "HIGH", "CORE_DIRECT" to "MODERATE")
-        if (state.primaryAdaptation.startsWith("HYPERTROPHY")) required.putAll(mapOf("ARMS_BICEPS" to "MODERATE", "ARMS_TRICEPS" to "MODERATE", "CALVES" to "MODERATE"))
-        return buildList {
-            required.forEach { (target, priority) ->
-                val count = when (target) {
-                    "UPPER_PULL" -> counts.getOrDefault(MovementCoverage.HORIZONTAL_PULL, 0) + counts.getOrDefault(MovementCoverage.VERTICAL_PULL, 0)
-                    else -> runCatching { MovementCoverage.valueOf(target) }.getOrNull()?.let { counts.getOrDefault(it, 0) } ?: 0
-                }
-                if (count == 0) add(AdaptationGap(target, priority, "최근 4주간 $target 직접 훈련 기록이 없습니다."))
+        val gaps = mutableListOf<AdaptationGap>()
+        if (state.resistanceFoundationalOnramp) {
+            gaps += AdaptationGap(
+                code = "RESISTANCE_FOUNDATIONAL_ONRAMP",
+                priority = "MODERATE",
+                reason = "최근 28일 저항운동 기록이 없어 균형 잡힌 재진입 구조를 사용합니다.",
+                sourceType = "MOVEMENT_REPRESENTATION",
+                evidenceConfidence = PlanningConfidence.LOW,
+                reasonCodes = listOf("NO_CURRENT_RESISTANCE_EXPOSURE", "SINGLE_FOUNDATIONAL_ONRAMP")
+            )
+        } else {
+            state.movementRepresentations.forEach { representation ->
+                val priority = ExposureRepresentationPolicy.movementGapPriority(
+                    representation.basePriority,
+                    representation.representationState,
+                    representation.evidenceConfidence
+                ) ?: return@forEach
+                gaps += representation.toGap(priority)
             }
-            if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED && state.structuredBadmintonSessions == 0) {
-                add(AdaptationGap("BADMINTON_FOUNDATIONAL_ONRAMP", "HIGH", "배드민턴 의도는 활성화됐지만 구조화 훈련 기록이 없어 기초 온램프가 필요합니다."))
-            }
-            if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED) {
-                state.objectiveDropGaps.sorted().forEach { objective ->
-                    add(AdaptationGap("BADMINTON_DROP_$objective", "HIGH", "과거에 관찰된 $objective 자극이 최근 4주에서 사라졌습니다."))
+        }
+
+        if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED) {
+            if (state.badmintonFoundationalOnramp) {
+                gaps += AdaptationGap(
+                    code = "BADMINTON_FOUNDATIONAL_ONRAMP",
+                    priority = "HIGH",
+                    reason = "배드민턴 계획 의도는 활성화됐지만 최근 구조화 훈련 기록이 없어 기초 온램프를 사용합니다.",
+                    sourceType = "BADMINTON_OBJECTIVE_REPRESENTATION",
+                    reasonCodes = listOf("NO_STRUCTURED_BADMINTON_HISTORY", "SINGLE_FOUNDATIONAL_ONRAMP")
+                )
+            } else state.badmintonObjectiveRepresentations.forEach { representation ->
+                when {
+                    representation.directDrop -> gaps += representation.toGap(
+                        code = "BADMINTON_DROP_${representation.objective}",
+                        priority = "HIGH",
+                        reason = "최근 직접 ${representation.objective} 훈련 기록이 직전 기간 대비 사라졌습니다."
+                    )
+                    representation.representationState in setOf(
+                        RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL,
+                        RepresentationState.UNDERREPRESENTATION_SIGNAL
+                    ) -> {
+                        val peerOnly = "PEER_ONLY_UNDERREPRESENTATION" in representation.reasonCodes
+                        val priority = requireNotNull(ExposureRepresentationPolicy.badmintonGapPriority(
+                            representation.representationState,
+                            representation.evidenceConfidence,
+                            peerOnly,
+                            directDrop = false
+                        ))
+                        gaps += representation.toGap(
+                            code = "BADMINTON_UNDERREPRESENTED_${representation.objective}",
+                            priority = priority,
+                            reason = "최근 ${representation.objective} 자극의 상대적 비중이 직전 기록 또는 현재 비교축보다 크게 낮았습니다."
+                        )
+                    }
                 }
-                state.objectiveDevelopmentalGaps.sorted().take(2).forEach { objective ->
-                    add(AdaptationGap("BADMINTON_DEVELOP_$objective", "MODERATE", "$objective 축은 아직 직접 관찰되지 않은 발달 후보입니다."))
-                }
             }
-            if (state.primaryAdaptation.startsWith("HYPERTROPHY") && state.hypertrophyStimulusByMovement.isNotEmpty()) {
-                val positive = state.hypertrophyStimulusByMovement.filterValues { it > 0.0 }
-                val max = positive.maxByOrNull { it.value }
-                val min = positive.minByOrNull { it.value }
-                if (max != null && min != null && max.value >= min.value * 3.0) {
-                    add(AdaptationGap("HYPERTROPHY_REBALANCE_${min.key.name}", "HIGH", "유효 근비대 자극이 ${max.key.name}에 과도하게 치우쳐 ${min.key.name} 보완이 필요합니다."))
+            if (!state.badmintonFoundationalOnramp) {
+                state.badmintonObjectiveRepresentations
+                    .asSequence()
+                    .filter(BadmintonObjectiveRepresentation::neverDirectObserved)
+                    .sortedBy(BadmintonObjectiveRepresentation::objective)
+                    .firstOrNull()
+                    ?.let { representation ->
+                        gaps += representation.toGap(
+                            code = "BADMINTON_DEVELOP_${representation.objective}",
+                            priority = "LOW",
+                            reason = "${representation.objective} 직접 훈련은 두 비교 기간 모두 관찰되지 않아 선택적 발달 후보로만 보존합니다.",
+                            contributesTransitionPressure = false
+                        )
+                    }
+            }
+        }
+
+        if (state.primaryAdaptation.startsWith("HYPERTROPHY") && state.hypertrophyStimulusByMovement.isNotEmpty()) {
+            val positive = state.hypertrophyStimulusByMovement.filterValues { it > 0.0 }
+            val max = positive.maxByOrNull { it.value }
+            val min = positive.minByOrNull { it.value }
+            if (max != null && min != null && max.value >= min.value * 3.0) {
+                val existingIndex = gaps.indexOfFirst { it.code == min.key.name }
+                if (existingIndex >= 0) {
+                    val existing = gaps[existingIndex]
+                    gaps[existingIndex] = existing.copy(reasonCodes = (existing.reasonCodes + "HYPERTROPHY_STIMULUS_SKEW").distinct())
+                } else {
+                    gaps += AdaptationGap(
+                        "HYPERTROPHY_REBALANCE_${min.key.name}",
+                        "HIGH",
+                        "기존 유효 근비대 자극 기록이 ${max.key.name}에 크게 치우쳐 ${min.key.name} 재배분 후보를 만들었습니다.",
+                        sourceType = "HYPERTROPHY_STIMULUS",
+                        reasonCodes = listOf("HYPERTROPHY_STIMULUS_SKEW")
+                    )
                 }
             }
         }
+        return gaps
     }
+
+    private fun MovementExposureRepresentation.toGap(priority: String) = AdaptationGap(
+        code = movementCoverage,
+        priority = priority,
+        reason = when (representationState) {
+            RepresentationState.ABSENT -> "최근 28일 $movementCoverage 저항운동 기록이 없습니다."
+            RepresentationState.STRONG_UNDERREPRESENTATION_SIGNAL -> "최근 $movementCoverage 비중이 같은 우선순위 운동 또는 직전 분포보다 현저히 낮았습니다."
+            else -> "최근 $movementCoverage 비중이 같은 우선순위 운동 또는 직전 분포보다 낮았습니다."
+        },
+        sourceType = "MOVEMENT_REPRESENTATION",
+        representationState = representationState,
+        evidenceConfidence = evidenceConfidence,
+        currentExposure = currentExposure28d,
+        priorExposure = priorExposure28d,
+        currentShare = currentShare,
+        priorShare = priorShare,
+        peerRatio = peerRepresentationRatio,
+        personalRetentionRatio = personalRetentionRatio,
+        reasonCodes = reasonCodes
+    )
+
+    private fun BadmintonObjectiveRepresentation.toGap(
+        code: String,
+        priority: String,
+        reason: String,
+        contributesTransitionPressure: Boolean = true
+    ) = AdaptationGap(
+        code = code,
+        priority = priority,
+        reason = reason,
+        sourceType = "BADMINTON_OBJECTIVE_REPRESENTATION",
+        representationState = representationState,
+        evidenceConfidence = evidenceConfidence,
+        currentExposure = currentWeighted28d,
+        priorExposure = priorWeighted28d,
+        currentShare = currentShare,
+        priorShare = priorShare,
+        peerRatio = peerRepresentationRatio,
+        personalRetentionRatio = personalRetentionRatio,
+        reasonCodes = reasonCodes,
+        contributesTransitionPressure = contributesTransitionPressure
+    )
 }
 
 class PlanningHorizonPlanner {

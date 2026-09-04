@@ -247,14 +247,14 @@ class PersonalizedPlannerV010Test {
         val exercises = listOf(
             exercise("squat", "MAIN_LOWER_STRENGTH"), exercise("hinge", "MAIN_HINGE_STRENGTH"),
             exercise("press", "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY"), exercise("row", "HORIZONTAL_PULL_STRENGTH"),
-            exercise("vertical_press", "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY"), exercise("drill", "BADMINTON_FOOTWORK", equipment = "BODYWEIGHT")
+            exercise("vertical_press", "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY"), exercise("ex_33841b88", "BADMINTON_FOOTWORK", equipment = "BODYWEIGHT")
         )
         val rows = buildList {
             repeat(8) { week ->
-                exercises.filterNot { it.stableKey == "drill" }.forEach { addAll(session(cutoff.minusWeeks(week.toLong()), it.stableKey, 80.0)) }
+            exercises.filterNot { it.stableKey == "ex_33841b88" }.forEach { addAll(session(cutoff.minusWeeks(week.toLong()), it.stableKey, 80.0)) }
             }
         }
-        val base = snapshot(rows, exercises, objectives = mapOf("drill" to mapOf("FOOTWORK" to 1.0)))
+        val base = snapshot(rows, exercises, objectives = mapOf("ex_33841b88" to mapOf("FOOTWORK" to 1.0)))
         val source = base.copy(preferences = base.preferences.copy(badmintonIntent = BadmintonPlanningIntent.ENABLED))
         val state = AthletePlanningStateBuilder().build(source, PersonalizedPlanningAnswers())
         val gaps = listOf(AdaptationGap("BADMINTON_FOUNDATIONAL_ONRAMP", "HIGH", "fixture"))
@@ -265,7 +265,7 @@ class PersonalizedPlannerV010Test {
         val finalFingerprint = personalizedProgramFingerprint(plan.request, plan.items)
 
         assertTrue(firstWeek.map { it.exerciseStableKey }.distinct().size < exercises.size)
-        assertTrue(firstWeek.any { it.exerciseStableKey == "drill" })
+        assertTrue(firstWeek.any { it.exerciseStableKey == "ex_33841b88" })
         assertEquals(finalFingerprint, decision.originalGenerationFingerprint)
         assertEquals(firstWeek.filter { source.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf { it.setCount }, budget.plannedResistanceSets)
         assertEquals(firstWeek.filter { source.activityKind(it.exerciseStableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf { it.setCount }, budget.plannedStructuredBadmintonBouts)
@@ -377,9 +377,9 @@ class PersonalizedPlannerV010Test {
     @Test
     fun `resistance sets and timed drills have separate budgets but share session capacity`() {
         val squat = exercise("squat", "MAIN_LOWER_STRENGTH")
-        val drill = exercise("drill", "BADMINTON_FOOTWORK", equipment = "BODYWEIGHT")
+        val drill = exercise("ex_33841b88", "BADMINTON_FOOTWORK", equipment = "BODYWEIGHT")
         val rows = (1..8).flatMap { week -> session(cutoff.minusWeeks(week.toLong()), "squat", 100.0) }
-        val source = snapshot(rows, listOf(squat, drill), objectives = mapOf("drill" to mapOf("FOOTWORK" to 1.0)))
+        val source = snapshot(rows, listOf(squat, drill), objectives = mapOf("ex_33841b88" to mapOf("FOOTWORK" to 1.0)))
         val state = AthletePlanningStateBuilder().build(source.copy(preferences = source.preferences.copy(badmintonIntent = BadmintonPlanningIntent.ENABLED)), PersonalizedPlanningAnswers())
         val gaps = listOf(AdaptationGap("BADMINTON_FOUNDATIONAL_ONRAMP", "HIGH", "fixture"))
         val plan = PersonalizedProgramBuilder().build(source, state, gaps, BlockIntentPlanner().decide(state, gaps), 3, request(days = 2, weeks = 3, minutes = 30), PersonalizedPlanningAnswers(), null)
@@ -442,7 +442,8 @@ class PersonalizedPlannerV010Test {
             badmintonTrainingYears = 0.0,
             preferences = preferences,
             canonicalStrengthSignals = byKey.mapValues { CanonicalStrengthSignal(100.0, null, 1, "TEST") },
-            recoverySignals = recovery
+            recoverySignals = recovery,
+            badmintonDirectObjectives = objectives.mapValues { (_, values) -> values.filterValues { it == 1.0 }.keys }
         )
     }
 
@@ -462,7 +463,7 @@ class PersonalizedPlannerV010Test {
         "row" -> "HORIZONTAL_PULL_STRENGTH"
         "vertical_press" -> "OVERHEAD_PUSH_STRENGTH_OR_ACCESSORY"
         "core" -> "CORE_STABILITY_ACCESSORY"
-        "drill" -> "BADMINTON_FOOTWORK"
+        "drill", "ex_33841b88" -> "BADMINTON_FOOTWORK"
         "a_free", "z_machine", "machine_pull" -> "HORIZONTAL_PULL_STRENGTH"
         else -> "OTHER"
     }

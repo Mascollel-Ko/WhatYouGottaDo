@@ -2,8 +2,10 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.analysis.badminton.CanonicalBadmintonObjectiveCatalog
 import com.training.trackplanner.analysis.badminton.BadmintonObjectiveStimulusCalculator
+import com.training.trackplanner.analysis.badminton.BadmintonObjectiveTransferLevel
 import com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator
 import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseRoleRelationCatalog
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.WorkoutEntryWithSets
@@ -19,7 +21,8 @@ class PlanningHistorySnapshotBuilder {
         profile: InitialUserProfile?,
         preferences: PersonalizedPlanningPreferences,
         canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
-        recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals()
+        recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
+        exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
     ): PlanningHistorySnapshot {
         val exerciseByKey = exercises.associateBy(Exercise::stableKey)
         val confirmed = history.asSequence()
@@ -46,8 +49,13 @@ class PlanningHistorySnapshotBuilder {
         require(confirmed.all { it.stableKey.isNotBlank() && it.stableKey in exerciseByKey }) {
             "완료 기록의 canonical stableKey 메타데이터를 확인할 수 없습니다."
         }
-        val objectiveMap = confirmed.map(PlanningSetRecord::stableKey).distinct().associateWith { key ->
+        val objectiveMap = exercises.map(Exercise::stableKey).distinct().associateWith { key ->
             badmintonCatalog.relations(key).associate { it.objective.name to it.transferLevel.coefficient }
+        }
+        val directObjectiveMap = exercises.map(Exercise::stableKey).distinct().associateWith { key ->
+            badmintonCatalog.relations(key)
+                .filter { it.transferLevel == BadmintonObjectiveTransferLevel.DIRECT }
+                .mapTo(linkedSetOf()) { it.objective.name }
         }
         val eligibleHistory = history.filter { record ->
             runCatching { LocalDate.parse(record.entry.date) }.getOrNull()?.let { !it.isAfter(cutoff) } == true
@@ -74,7 +82,9 @@ class PlanningHistorySnapshotBuilder {
             genericCourtLoad28d = genericCourtLoad28d,
             objectiveExposure = objectiveExposure,
             canonicalStrengthSignals = canonicalStrengthSignals,
-            recoverySignals = recoverySignals
+            recoverySignals = recoverySignals,
+            badmintonDirectObjectives = directObjectiveMap,
+            exerciseRoleCatalog = exerciseRoleCatalog
         )
     }
 }

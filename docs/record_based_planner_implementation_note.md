@@ -1,6 +1,6 @@
-# Record-based planner v0.10.1 implementation note
+# Record-based planner v0.11.0 implementation note
 
-Correction baseline: `3a95f2d2ebd25850476cbb89f35173419b282bdb`.
+Implementation baseline: `517f43d5743daccf431d87af31870a2bcf65bb53`.
 
 The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`. Record-based generation remains independent, produces the same editable `GeneratedProgramSkeleton`, and reuses the existing save/apply flow only after successful generation.
 
@@ -10,15 +10,23 @@ The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGe
 - Exercise identity, movement coverage, activity kind, planning eligibility, Objective V2, tissue contribution and candidate admission remain canonical `stableKey`/typed-metadata authorities. Names and substrings do not create semantics.
 - Per-anchor strength style, style features and current-block classification use only `cutoff - 55 days ... cutoff`.
 - Canonical exercise-local strength posterior change uses the same 56-day window. Fewer than two eligible observations yields `UNKNOWN`, never a fabricated zero or lifetime change.
-- Badminton objective drop compares the current 28 days with the immediately prior 28 days. Developmental absence is evaluated over the complete 56-day comparison horizon.
+- Exposure representation compares `cutoff - 27 ... cutoff` with the adjacent `cutoff - 55 ... cutoff - 28` window. Evidence stability uses exactly four cutoff-anchored seven-day bins, never ISO calendar weeks.
 - The 28-day generic court-load total is retained for provenance and divided by four before weekly 180/240 planning thresholds are applied.
 
 ## Transition and execution
 
+- The planner does not calculate exposure sufficiency. It records `ABSENT`, strong/ordinary underrepresentation signals, `NO_CLEAR_DEFICIT_SIGNAL`, or `UNKNOWN`; no state claims physiological adequacy.
+- Movement representation counts one confirmed resistance working set as one distribution unit. Shares are normalized inside the active required set; personal retention compares current share with prior share. Peer reference requires two positive same-priority peers and uses their median.
+- The centralized `.25/.50` ratios are engineering outlier rules, not biological thresholds. Low evidence suppresses relative conclusions, while factual absence remains visible. Zero current resistance creates one `RESISTANCE_FOUNDATIONAL_ONRAMP`, not independent severe gaps for every domain.
+- Objective V2 preserves existing weighted coefficients/RPE modifiers and separately counts DIRECT-only exposure. Personal normalized-share decline is primary; a median of at least three positive peer objectives is secondary and peer-only evidence is capped at MODERATE.
+- `DIRECT_DROP` remains factual disappearance. `NEVER_DIRECT_OBSERVED` is developmental evidence, contributes no normal transition pressure, and can produce at most one optional block candidate after stronger work.
+- Direct remediation requires an exact DIRECT relation for the objective. A novel athletic/badminton candidate must have reviewed `ProgramRuleTables`/`ProgramIntensityResolver` authority or legitimate recent personal prescription history; otherwise `NO_SAFE_PRESCRIPTION_AUTHORITY` is retained and no prescription is invented.
+- Typed role/capability, canonical activity kind, progress behavior and runtime metadata classify `RESISTANCE`, `STRUCTURED_BADMINTON_DRILL`, `ATHLETIC_PERFORMANCE_DRILL`, `GENERIC_COURT_SESSION`, and `OTHER`. Names and display categories are not semantic inputs.
+
 - Observed style describes history only. Each anchor also records multidimensional features, adaptation state, `StructureTreatment`, `DoseTreatment`, continuity score, local dose factor, and preserved/moderated features.
 - Recovery first changes dose. Systemic readiness/OFI pressure affects the global resistance budget; tissue restrictions affect only their explicit stableKeys. Real court cost affects lower-body sport interference even when structured-badminton generation is disabled.
 - Gaps first reallocate a finite weekly resistance-set budget. Capacity expands only for the documented minimal representation case; selected gap work is never simply added on top without accounting.
-- Resistance working sets and timed structured-badminton bouts are separate quantities, but the resulting items share the same per-session time-capacity validation.
+- Resistance working sets, structured-badminton bouts and athletic-performance bouts are separate quantities, but the resulting items share the same per-session time-capacity validation.
 - Multi-day execution is per anchor and constrained by its allocation and recovery. The strongest legitimate exposure in the latest observed week is the load reference.
 - Each anchor's retained multi-day variants occupy distinct generated days. A two-day plan keeps the existing HLM/Madcow or DUP pair semantics, including the heavy-exposure moderation pair.
 - Canonical posterior change remains continuous through transition calculation, while posterior observation count—not workout-session count—owns response confidence.
@@ -45,7 +53,8 @@ Strength-intent preferences store the answer timestamp and profile goal at answe
 | Movement/exercise identity | runtime canonical metadata | exact stableKey anchors, gaps and candidates |
 | Strength response | exercise-local posterior history | 56-day response, advance/hold/reduce/review |
 | Style and features | confirmed anchor history | observed history separated from next-block treatment |
-| Objective exposure | Objective Stimulus V2 | 28+28 day drop and 56-day developmental gaps |
+| Movement representation | confirmed resistance sets + typed activity domain | current/prior normalized share and same-priority peer signal |
+| Objective exposure | Objective Stimulus V2 | 28+28 weighted/direct representation and factual DIRECT drop |
 | Generic court load | `BadmintonPracticeLoadCalculator` | weekly-equivalent recovery and lower-body interference |
 | OFI/readiness | production fatigue/readiness services | systemic dose and schedule ceiling |
 | Tissue RCV | production tissue service | exact-stableKey local dose restriction |
@@ -54,10 +63,10 @@ Strength-intent preferences store the answer timestamp and profile goal at answe
 
 ## Verification
 
-`PersonalizedPlannerParityTest` preserves the 29 named v0.8 regression personas as historical-coverage protection and now makes Persona 28 genuinely Madcow-like in both favorable and pressured contexts. `PersonalizedPlannerV010Test` covers fixed windows, continuous recent posterior response, 28+28 objective comparison, court-load normalization, intent/cost separation, global/local recovery, preflight, explicit/reversible AUTO constraints, per-anchor finite allocation and distinct variant days, finalized repair provenance, priority truncation, bounded capacity expansion, strongest latest-week load, no future progression, separate drill dose, and canonical identity.
+`PersonalizedPlannerParityTest` preserves the 29 named historical regression personas. `PersonalizedPlannerV010Test` retains all v0.10.1 correction contracts. `ExposureRepresentationV011Test` checks the typed activity resolver, exact window boundaries, movement and Objective V2 representation states, DIRECT/weighted separation, foundational/developmental pressure guards, direct candidate authority and Kotlin/Python golden parity.
 
-Intentionally unchanged in v0.10.1: global gap pressure, active-week resistance baseline semantics, the provisional two-bout structured badminton default, conservative `provenTwice` multi-day progression gating, and all existing style/dose detection thresholds.
+Intentionally unchanged in v0.11.0: the 56-day style/posterior window, transition priority ladder, recovery/tissue arithmetic, conservative `provenTwice` progression, existing Objective V2 coefficients/RPE modifier, legacy builder, app version and Room schema. No absolute weekly-set target or equal nine-objective target was added.
 
 `RealBackupPersonalizedPlannerE2eTest` now uses prepare-once/answer-all/generate-once. It remains opt-in because the user's backup must never enter source control.
 
-Reference oracle: offline `wgtd_planner_reference_v0_10_FULL`. Its Python code and 22 passing tests are behavioral evidence. Production intentionally retains stronger canonical Android authorities and uses separate resistance-set and timed-drill budgets plus exact local tissue stableKey restrictions.
+The unchanged v0.10 transition/execution oracle remains offline `wgtd_planner_reference_v0_10_FULL`. The new layer has an independent test-only reference at `tools/planner_reference/v011_exposure_representation_reference.py` and deterministic fixture at `tools/planner_reference/fixtures/v011_exposure_representation_golden.json`. No Python runtime dependency enters Android production.

@@ -1363,7 +1363,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.0.1",
+      "currentVersion": "3.1.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1371,7 +1371,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.10 planner from 2026-09-04; v0.10.1 correctness closure from 2026-09-04",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.11 representation planner from 2026-09-04",
       "lastAuditedCommit": "8ceefa3dc42cc1683c2b0e88c9aee1efe46ba606",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
@@ -1382,6 +1382,7 @@
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/ExposureRepresentation.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
@@ -1404,13 +1405,16 @@
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/ExposureRepresentationV011Test.kt",
         "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt"
       ],
       "authorityAssets": [
-        "app/src/main/assets/training_settings_seed.csv"
+        "app/src/main/assets/training_settings_seed.csv",
+        "tools/planner_reference/v011_exposure_representation_reference.py",
+        "tools/planner_reference/fixtures/v011_exposure_representation_golden.json"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md",
@@ -1422,7 +1426,8 @@
       ],
       "knownGaps": [
         "기존 자동 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않으며 기록 기반 경로와 독립적으로 유지됩니다.",
-        "기록 기반 결과는 self-entered 기록과 canonical metadata 품질에 의존하는 제품 휴리스틱이며 의료 판단이 아닙니다."
+        "기록 기반 결과는 self-entered 기록과 canonical metadata 품질에 의존하는 제품 휴리스틱이며 의료 판단이 아닙니다.",
+        "노출 representation은 상대 분포 신호이며 생리적 충분성, 최적 주간 세트 수 또는 아홉 Objective V2의 동일 목표 비중을 정의하지 않습니다."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true
