@@ -8,8 +8,8 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.11.0_KOTLIN_1"
-internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.11.0-reviewed"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.11.1_KOTLIN_1"
+internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.11.1-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
 enum class StrengthExposure { PRESENT, LOW, ABSENT, UNKNOWN }

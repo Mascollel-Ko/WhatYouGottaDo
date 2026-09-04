@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.1.0 |
+| Protocol version | 3.1.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.11.0 from 2026-09-04 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.11.1 from 2026-09-04 |
 | Last audited commit | 14f11d124a7f7e8f7ed64de47b1ea081c4ba7e3c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -67,6 +67,8 @@ fatigue/readiness gate를 입력받지 않습니다. 모든 item은
 움직임 표현 단위는 확인된 저항운동 working set 1개이며 생리적 dose가 아닙니다. 현재·직전 share는 활성 required movement 집합 안에서 정규화합니다. 개인 비교는 `currentShare / priorShare`이고, peer 비교는 target을 제외한 같은 base-priority의 positive exposure가 둘 이상일 때 그 median을 사용합니다. `0.25`와 `0.50`은 큰 분포 차이를 찾는 engineering outlier rule일 뿐 충분량 또는 최적량 임계값이 아닙니다. 상태는 `ABSENT`, `STRONG_UNDERREPRESENTATION_SIGNAL`, `UNDERREPRESENTATION_SIGNAL`, `NO_CLEAR_DEFICIT_SIGNAL`, `UNKNOWN`이며 `NO_CLEAR_DEFICIT_SIGNAL`은 충분하다는 뜻이 아닙니다. 현재 저항운동이 전혀 없으면 개별 부재 provenance는 보존하되 하나의 `RESISTANCE_FOUNDATIONAL_ONRAMP`만 생성합니다.
 
 Objective V2는 기존 transfer coefficient와 RPE modifier를 유지하되 weighted exposure와 DIRECT-only exposure를 별도로 저장합니다. share의 개인 retention을 주된 비교로 사용하고 세 개 이상의 positive peer objective median은 약한 보조 신호로만 사용합니다. peer-only 신호는 HIGH gap이 될 수 없습니다. `DIRECT_DROP`은 직전 DIRECT가 최근 창에서 사라진 사실이고, `NEVER_DIRECT_OBSERVED`는 자동 gap이 아닌 발달 관찰입니다. 후자는 강한 gap 뒤 spare capacity에서 block당 최대 한 후보만 고려하며 PRESERVE anchor를 밀어내지 않습니다. 아홉 objective를 같은 목표량으로 가정하지 않습니다.
+
+anchor 전환의 `gapPressure`는 `contributesTransitionPressure=true`인 gap만 사용합니다. 선택적 `BADMINTON_DEVELOP_*` 관찰은 후보·설명·저장 provenance에는 남지만 단독으로 rotation, structure 또는 dose 전환을 바꾸지 않습니다. 회복 입력에서 production tissue `MODERATE`는 명시적으로 `.30`에 매핑하며 과거 `ELEVATED` 토큰도 같은 값으로 호환합니다. 그 밖의 readiness, OFI와 systemic recovery 식은 유지합니다.
 
 수동 프로그램은 자동 생성 범위와 별개입니다. 기록 달력에서 선택한
 inclusive 날짜 범위는 첫 날짜를 1주차 월요일로 매핑하고 날짜 간 빈칸을
@@ -202,6 +204,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.1.1` (2026-09-04): 비압력 발달 gap이 실제 anchor 전환 압력에 기여하지 않는 실행 계약을 고정하고, production tissue `MODERATE`를 `.30`으로 명시 매핑했으며, Python/Kotlin badminton parity가 raw 기록에서 실제 production analyzer를 통과하도록 강화했습니다.
 - `3.1.0` (2026-09-04): binary presence gap을 보수적 exposure representation 신호로 교체하고, 동일 priority movement peer median, normalized personal retention, Objective V2 weighted/DIRECT 분리, 최대 한 optional developmental candidate, typed athletic domain과 별도 bout budget, reviewed prescription gate를 계약화했습니다. 충분성·절대 주간 최소량·아홉 objective 동일 목표는 도입하지 않았습니다.
 - `3.0.1` (2026-09-04): per-anchor multi-day 배치, repair 이후 budget/fingerprint 확정, 연속 posterior 입력, Persona 28 비교 계약, gap priority, 설명 가능한 최소 용량 확장, optional-anchor 유한 배정과 명시적 AUTO override를 보정했습니다. global gap pressure, active-week baseline, 2-bout drill 기본값, 보수적 진행과 기존 임계값은 유지했습니다.
 - `3.0.0` (2026-09-04): 기록 기반 planner를 v0.10으로 올려 56일 current-block window, per-anchor style feature와 structure/dose 전환, 주간 저항·drill 분리 budget, 일괄 preflight, AUTO 조건, 최근 주 strongest load 기준과 미래 자동 증량 금지를 계약화했습니다.

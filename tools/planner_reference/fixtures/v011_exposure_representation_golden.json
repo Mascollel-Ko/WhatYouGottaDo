@@ -1594,6 +1594,3178 @@
       "priorWeighted": {}
     }
   ],
+  "badmintonRawActivities": {
+    "court_direct_deceleration": {
+      "directObjectives": [
+        "DECELERATION"
+      ],
+      "domain": "GENERIC_COURT_SESSION",
+      "objectives": {
+        "DECELERATION": 1.0
+      }
+    },
+    "direct_acceleration": {
+      "directObjectives": [
+        "ACCELERATION"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "ACCELERATION": 1.0
+      }
+    },
+    "direct_anti_rotation": {
+      "directObjectives": [
+        "ANTI_ROTATION"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "ANTI_ROTATION": 1.0
+      }
+    },
+    "direct_conditioning": {
+      "directObjectives": [
+        "CONDITIONING"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "CONDITIONING": 1.0
+      }
+    },
+    "direct_deceleration": {
+      "directObjectives": [
+        "DECELERATION"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "DECELERATION": 1.0
+      }
+    },
+    "direct_footwork": {
+      "directObjectives": [
+        "FOOTWORK"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "FOOTWORK": 1.0
+      }
+    },
+    "direct_jump_landing": {
+      "directObjectives": [
+        "JUMP_LANDING"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "JUMP_LANDING": 1.0
+      }
+    },
+    "direct_lunge_reach": {
+      "directObjectives": [
+        "LUNGE_REACH"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "LUNGE_REACH": 1.0
+      }
+    },
+    "direct_reaction": {
+      "directObjectives": [
+        "REACTION"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "REACTION": 1.0
+      }
+    },
+    "direct_rotation_generation": {
+      "directObjectives": [
+        "ROTATION_GENERATION"
+      ],
+      "domain": "STRUCTURED_BADMINTON_DRILL",
+      "objectives": {
+        "ROTATION_GENERATION": 1.0
+      }
+    },
+    "supportive_footwork": {
+      "directObjectives": [],
+      "domain": "RESISTANCE",
+      "objectives": {
+        "FOOTWORK": 0.6
+      }
+    },
+    "supportive_jump_landing": {
+      "directObjectives": [],
+      "domain": "RESISTANCE",
+      "objectives": {
+        "JUMP_LANDING": 0.6
+      }
+    }
+  },
+  "badmintonRawHistoryCases": [
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3333333333333333,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": true,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": 0.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3333333333333333,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3333333333333333,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.3333333333333333,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_direct_deceleration_drop",
+      "rows": [
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2972972972972974,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 1.0,
+            "currentShare": 0.02702702702702703,
+            "currentWeighted28d": 1.0,
+            "directDrop": false,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.08333333333333333,
+            "personalRetentionRatio": 0.10810810810810811,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2972972972972974,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2972972972972974,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_nonzero_personal_deceleration_collapse",
+      "rows": [
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 1.0,
+            "currentShare": 0.02702702702702703,
+            "currentWeighted28d": 1.0,
+            "directDrop": false,
+            "gapPriority": "MODERATE",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.08333333333333333,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 12.0,
+            "currentShare": 0.32432432432432434,
+            "currentWeighted28d": 12.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 12.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_peer_only_deceleration",
+      "rows": [
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 3,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 9.0,
+            "currentShare": 0.2903225806451613,
+            "currentWeighted28d": 9.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.9,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "UNKNOWN"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 1.0,
+            "currentShare": 0.03225806451612903,
+            "currentWeighted28d": 1.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 10.0,
+            "peerRepresentationRatio": 0.1,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "UNKNOWN"
+          },
+          "FOOTWORK": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 11.0,
+            "currentShare": 0.3548387096774194,
+            "currentWeighted28d": 11.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.2222222222222223,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "UNKNOWN"
+          },
+          "JUMP_LANDING": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 10.0,
+            "currentShare": 0.3225806451612903,
+            "currentWeighted28d": 10.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 9.0,
+            "peerRepresentationRatio": 1.1111111111111112,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "UNKNOWN"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 1,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 9.5,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_sparse_peer_imbalance",
+      "rows": [
+        {
+          "count": 9,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 11,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 10,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.2777777777777778,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.2777777777777778,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.16666666666666666,
+            "currentWeighted28d": 2.4,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.6,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.2777777777777778,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_supportive_jump_without_direct",
+      "rows": [
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "supportive_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "supportive_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "supportive_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "supportive_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "JUMP_LANDING": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "LOW",
+            "currentActiveBins": 0,
+            "currentDirect28d": 0.0,
+            "currentShare": null,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_generic_court_zero_objective",
+      "rows": [
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "court_direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "court_direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "court_direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "court_direct_deceleration"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ACCELERATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 1.0,
+            "currentWeighted28d": 2.4,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 0.0,
+            "priorShare": 1.0,
+            "priorWeighted28d": 2.4,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": null,
+            "peerRepresentationRatio": null,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_never_direct_not_drop",
+      "rows": [
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "supportive_footwork"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": null,
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.0,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.1111111111111111,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "raw_all_objectives_halved",
+      "rows": [
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": "ANTI_ROTATION",
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3076923076923077,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2307692307692308,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 2.0,
+            "currentShare": 0.07692307692307693,
+            "currentWeighted28d": 2.0,
+            "directDrop": false,
+            "gapPriority": "HIGH",
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.25,
+            "personalRetentionRatio": 0.3076923076923077,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "STRONG_UNDERREPRESENTATION_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3076923076923077,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2307692307692308,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 8.0,
+            "currentShare": 0.3076923076923077,
+            "currentWeighted28d": 8.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": 1.2307692307692308,
+            "priorDirect28d": 8.0,
+            "priorShare": 0.25,
+            "priorWeighted28d": 8.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 0.0,
+            "currentShare": 0.0,
+            "currentWeighted28d": 0.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": true,
+            "peerMedianCurrent": 8.0,
+            "peerRepresentationRatio": 0.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": 0.0,
+            "priorWeighted28d": 0.0,
+            "state": "ABSENT"
+          }
+        }
+      },
+      "id": "raw_one_objective_share_collapse",
+      "rows": [
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 31,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 38,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 45,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 2,
+          "daysBeforeCutoff": 52,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        }
+      ]
+    },
+    {
+      "expected": {
+        "optionalDevelopmentalCandidate": null,
+        "representations": {
+          "ACCELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ANTI_ROTATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "CONDITIONING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "DECELERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "FOOTWORK": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "JUMP_LANDING": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "LUNGE_REACH": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "REACTION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          },
+          "ROTATION_GENERATION": {
+            "confidence": "HIGH",
+            "currentActiveBins": 4,
+            "currentDirect28d": 4.0,
+            "currentShare": 0.1111111111111111,
+            "currentWeighted28d": 4.0,
+            "directDrop": false,
+            "gapPriority": null,
+            "neverDirectObserved": false,
+            "peerMedianCurrent": 4.0,
+            "peerRepresentationRatio": 1.0,
+            "personalRetentionRatio": null,
+            "priorDirect28d": 0.0,
+            "priorShare": null,
+            "priorWeighted28d": 0.0,
+            "state": "NO_CLEAR_DEFICIT_SIGNAL"
+          }
+        }
+      },
+      "id": "raw_balanced_current",
+      "rows": [
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_acceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_deceleration"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_footwork"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_jump_landing"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_lunge_reach"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_reaction"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_conditioning"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_rotation_generation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 3,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 10,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 17,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        },
+        {
+          "count": 1,
+          "daysBeforeCutoff": 24,
+          "rpe": null,
+          "stableKey": "direct_anti_rotation"
+        }
+      ]
+    }
+  ],
   "epsilon": 1e-09,
   "movementCases": [
     {
@@ -2252,7 +5424,7 @@
       }
     }
   ],
-  "version": "RECORD_BASED_PLANNER_0.11.0_REFERENCE_1",
+  "version": "RECORD_BASED_PLANNER_0.11.1_REFERENCE_1",
   "windowContract": [
     {
       "bin": 0,

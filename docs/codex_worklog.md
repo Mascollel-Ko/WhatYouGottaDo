@@ -6767,3 +6767,12 @@ Remaining debt:
 - Added the deterministic Python v0.11 reference and golden fixture, Kotlin/Python parity coverage, authority/classification/window/direct-prescription guards, and retained the 29-persona final-skeleton matrix plus all v0.10.1 correctness tests.
 - Planner runtime protocol is `RECORD_BASED_PLANNER_0.11.0_KOTLIN_1`; canonical protocol is `PROGRAM-BUILDER-OVERVIEW 3.1.0`.
 - Verification: focused v0.11/v0.10.1/29-persona suites passed 41/41; the full forced `testDebugUnitTest` run passed 1,320 tests with 0 failures and one expected opt-in real-backup skip across 238 suites. The supplied 7.6 MB format-12 real-backup E2E passed separately. `assembleDebug` passed. Localization generation/audit passed with zero unexplained leaks and 10/10 Python tests; protocol validation passed for 8 families and 34 protocols; Python golden validation and `git diff --check` passed.
+
+## 2026-09-04 - Record-based planner v0.11.1 correctness patch
+
+- Started from exact latest `origin/main` baseline `be70308a79dd1cc76cec55d04dce9d4852f054d1` and limited production changes to the requested planner correctness boundary.
+- Locked transition-pressure behavior to gaps whose explicit `contributesTransitionPressure` flag is true; non-pressure developmental observations remain selectable evidence without altering transition structure or dose.
+- Corrected tissue recovery mapping so `MODERATE` contributes `0.30`, retained `ELEVATED` as a compatibility alias for the same value, and left all other recovery logic and thresholds unchanged.
+- Extended the deterministic Python fixture with raw-history badminton cases and verified Kotlin parity through the production `BadmintonObjectiveRepresentationAnalyzer`, including direct drops, never-direct evidence, sparse bins, peer-only evidence, supportive transfer and unrelated court activity.
+- Planner runtime protocol is `RECORD_BASED_PLANNER_0.11.1_KOTLIN_1`; canonical protocol is `PROGRAM-BUILDER-OVERVIEW 3.1.1`. No Room schema, Android app version or user-visible localization changed.
+- Verification: Python golden validation passed; focused v0.11/v0.10.1/29-persona suites passed 44/44; full `testDebugUnitTest` ran 1,324 tests with 0 failures and one expected opt-in real-backup skip across 238 suites. The supplied 7.6 MB format-12 real-backup E2E passed 1/1 separately. `assembleDebug`, localization authority/audit and 10/10 localization tests, protocol validation for 8 families and 34 protocols, and `git diff --check` passed.

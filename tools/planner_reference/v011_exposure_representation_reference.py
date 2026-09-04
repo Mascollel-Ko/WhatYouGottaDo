@@ -159,6 +159,58 @@ def assess_badminton(case: dict) -> dict:
     return {"representations": result, "optionalDevelopmentalCandidate": developmental[0] if developmental else None}
 
 
+def rpe_modifier(rpe: float | None) -> float:
+    if rpe is None:
+        return 1.00
+    if rpe < 7.0:
+        return 0.90
+    if rpe < 8.0:
+        return 1.00
+    if rpe < 9.0:
+        return 1.05
+    if rpe < 10.0:
+        return 1.10
+    return 1.15
+
+
+def assess_badminton_raw(case: dict) -> dict:
+    weighted = {window: {key: 0.0 for key in OBJECTIVES} for window in ("CURRENT", "PRIOR")}
+    direct = {window: {key: 0.0 for key in OBJECTIVES} for window in ("CURRENT", "PRIOR")}
+    current_days = []
+    for row in case["rows"]:
+        activity = RAW_ACTIVITIES[row["stableKey"]]
+        if activity["domain"] == "GENERIC_COURT_SESSION":
+            continue
+        window = comparison_window(row["daysBeforeCutoff"])
+        if window is None:
+            continue
+        units = row.get("count", 1) * rpe_modifier(row.get("rpe"))
+        for objective, coefficient in activity["objectives"].items():
+            weighted[window][objective] += units * coefficient
+        for objective in activity["directObjectives"]:
+            direct[window][objective] += units
+        if window == "CURRENT" and any(value > 0 for value in activity["objectives"].values()):
+            current_days.append(row["daysBeforeCutoff"])
+    active_bins = active_anchored_bins(current_days)
+    aggregate = {
+        "currentWeighted": weighted["CURRENT"],
+        "priorWeighted": weighted["PRIOR"],
+        "currentDirect": direct["CURRENT"],
+        "priorDirect": direct["PRIOR"],
+        "activeBins": active_bins,
+    }
+    assessed = assess_badminton(aggregate)
+    for objective, representation in assessed["representations"].items():
+        representation.update({
+            "currentWeighted28d": weighted["CURRENT"][objective],
+            "priorWeighted28d": weighted["PRIOR"][objective],
+            "currentDirect28d": direct["CURRENT"][objective],
+            "priorDirect28d": direct["PRIOR"][objective],
+            "currentActiveBins": active_bins,
+        })
+    return assessed
+
+
 HIGH = {key: "HIGH" for key in ("LOWER_KNEE", "POSTERIOR_CHAIN", "HORIZONTAL_PUSH", "UPPER_PULL")}
 WITH_CORE = {**HIGH, "CORE_DIRECT": "MODERATE"}
 
@@ -196,9 +248,105 @@ BADMINTON_CASES = [
 ]
 
 
+RAW_ACTIVITIES = {
+    **{
+        f"direct_{objective.lower()}": {
+            "domain": "STRUCTURED_BADMINTON_DRILL",
+            "objectives": {objective: 1.0},
+            "directObjectives": [objective],
+        }
+        for objective in OBJECTIVES
+    },
+    "supportive_jump_landing": {
+        "domain": "RESISTANCE",
+        "objectives": {"JUMP_LANDING": 0.60},
+        "directObjectives": [],
+    },
+    "supportive_footwork": {
+        "domain": "RESISTANCE",
+        "objectives": {"FOOTWORK": 0.60},
+        "directObjectives": [],
+    },
+    "court_direct_deceleration": {
+        "domain": "GENERIC_COURT_SESSION",
+        "objectives": {"DECELERATION": 1.0},
+        "directObjectives": ["DECELERATION"],
+    },
+}
+
+
+def raw_rows(stable_key: str, days: list[int], count: int = 1, rpe: float | None = None) -> list[dict]:
+    return [
+        {"stableKey": stable_key, "daysBeforeCutoff": day, "count": count, "rpe": rpe}
+        for day in days
+    ]
+
+
+CURRENT_BINS = [3, 10, 17, 24]
+PRIOR_BINS = [31, 38, 45, 52]
+
+
+def objective_rows(objectives: list[str], days: list[int], count: int) -> list[dict]:
+    return [row for objective in objectives for row in raw_rows(f"direct_{objective.lower()}", days, count)]
+
+
+RAW_BADMINTON_CASES = [
+    {
+        "id": "raw_direct_deceleration_drop",
+        "rows": objective_rows(["ACCELERATION", "FOOTWORK", "REACTION"], CURRENT_BINS, 2)
+        + objective_rows(["ACCELERATION", "DECELERATION", "FOOTWORK", "REACTION"], PRIOR_BINS, 2),
+    },
+    {
+        "id": "raw_nonzero_personal_deceleration_collapse",
+        "rows": objective_rows(["ACCELERATION", "FOOTWORK", "REACTION"], CURRENT_BINS, 3)
+        + raw_rows("direct_deceleration", [3])
+        + objective_rows(["ACCELERATION", "DECELERATION", "FOOTWORK", "REACTION"], PRIOR_BINS, 2),
+    },
+    {
+        "id": "raw_peer_only_deceleration",
+        "rows": objective_rows(["ACCELERATION", "FOOTWORK", "REACTION"], CURRENT_BINS, 3)
+        + raw_rows("direct_deceleration", [3]),
+    },
+    {
+        "id": "raw_sparse_peer_imbalance",
+        "rows": raw_rows("direct_acceleration", [3], 9)
+        + raw_rows("direct_footwork", [3], 11)
+        + raw_rows("direct_reaction", [3], 10)
+        + raw_rows("direct_deceleration", [3]),
+    },
+    {
+        "id": "raw_supportive_jump_without_direct",
+        "rows": raw_rows("supportive_jump_landing", CURRENT_BINS)
+        + objective_rows(["ACCELERATION", "FOOTWORK", "REACTION"], CURRENT_BINS, 1),
+    },
+    {
+        "id": "raw_generic_court_zero_objective",
+        "rows": raw_rows("court_direct_deceleration", CURRENT_BINS),
+    },
+    {
+        "id": "raw_never_direct_not_drop",
+        "rows": raw_rows("supportive_footwork", CURRENT_BINS) + raw_rows("supportive_footwork", PRIOR_BINS),
+    },
+    {
+        "id": "raw_all_objectives_halved",
+        "rows": objective_rows(OBJECTIVES, CURRENT_BINS, 1) + objective_rows(OBJECTIVES, PRIOR_BINS, 2),
+    },
+    {
+        "id": "raw_one_objective_share_collapse",
+        "rows": objective_rows(["ACCELERATION", "FOOTWORK", "REACTION"], CURRENT_BINS, 2)
+        + raw_rows("direct_deceleration", [3], 2)
+        + objective_rows(["ACCELERATION", "DECELERATION", "FOOTWORK", "REACTION"], PRIOR_BINS, 2),
+    },
+    {
+        "id": "raw_balanced_current",
+        "rows": objective_rows(OBJECTIVES, CURRENT_BINS, 1),
+    },
+]
+
+
 def build_fixture() -> dict:
     return {
-        "version": "RECORD_BASED_PLANNER_0.11.0_REFERENCE_1",
+        "version": "RECORD_BASED_PLANNER_0.11.1_REFERENCE_1",
         "epsilon": 1e-9,
         "windowContract": [
             {"daysBeforeCutoff": day, "window": comparison_window(day), "bin": anchored_seven_day_bin(day)}
@@ -211,6 +359,8 @@ def build_fixture() -> dict:
         },
         "movementCases": [{**case, "expected": assess_movement(case)} for case in MOVEMENT_CASES],
         "badmintonCases": [{**case, "expected": assess_badminton(case)} for case in BADMINTON_CASES],
+        "badmintonRawActivities": RAW_ACTIVITIES,
+        "badmintonRawHistoryCases": [{**case, "expected": assess_badminton_raw(case)} for case in RAW_BADMINTON_CASES],
     }
 
 

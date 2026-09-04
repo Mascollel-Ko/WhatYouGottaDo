@@ -1,6 +1,7 @@
-# Record-based planner v0.11.0 implementation note
+# Record-based planner v0.11.1 implementation note
 
-Implementation baseline: `517f43d5743daccf431d87af31870a2bcf65bb53`.
+v0.11 implementation baseline: `517f43d5743daccf431d87af31870a2bcf65bb53`.
+v0.11.1 correction baseline: `be70308a79dd1cc76cec55d04dce9d4852f054d1`.
 
 The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`. Record-based generation remains independent, produces the same editable `GeneratedProgramSkeleton`, and reuses the existing save/apply flow only after successful generation.
 
@@ -20,6 +21,8 @@ The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGe
 - The centralized `.25/.50` ratios are engineering outlier rules, not biological thresholds. Low evidence suppresses relative conclusions, while factual absence remains visible. Zero current resistance creates one `RESISTANCE_FOUNDATIONAL_ONRAMP`, not independent severe gaps for every domain.
 - Objective V2 preserves existing weighted coefficients/RPE modifiers and separately counts DIRECT-only exposure. Personal normalized-share decline is primary; a median of at least three positive peer objectives is secondary and peer-only evidence is capped at MODERATE.
 - `DIRECT_DROP` remains factual disappearance. `NEVER_DIRECT_OBSERVED` is developmental evidence, contributes no normal transition pressure, and can produce at most one optional block candidate after stronger work.
+- Transition `gapPressure` filters on `contributesTransitionPressure`; retaining a non-pressure developmental gap for provenance or optional selection cannot change an anchor's rotation, structure, or dose result by itself.
+- Production tissue `MODERATE` maps explicitly to `.30`; legacy/test `ELEVATED` remains a `.30` compatibility alias. Readiness, OFI, tissue thresholds, local stableKey restriction and the systemic recovery formula are otherwise unchanged.
 - Direct remediation requires an exact DIRECT relation for the objective. A novel athletic/badminton candidate must have reviewed `ProgramRuleTables`/`ProgramIntensityResolver` authority or legitimate recent personal prescription history; otherwise `NO_SAFE_PRESCRIPTION_AUTHORITY` is retained and no prescription is invented.
 - Typed role/capability, canonical activity kind, progress behavior and runtime metadata classify `RESISTANCE`, `STRUCTURED_BADMINTON_DRILL`, `ATHLETIC_PERFORMANCE_DRILL`, `GENERIC_COURT_SESSION`, and `OTHER`. Names and display categories are not semantic inputs.
 
@@ -63,9 +66,9 @@ Strength-intent preferences store the answer timestamp and profile goal at answe
 
 ## Verification
 
-`PersonalizedPlannerParityTest` preserves the 29 named historical regression personas. `PersonalizedPlannerV010Test` retains all v0.10.1 correction contracts. `ExposureRepresentationV011Test` checks the typed activity resolver, exact window boundaries, movement and Objective V2 representation states, DIRECT/weighted separation, foundational/developmental pressure guards, direct candidate authority and Kotlin/Python golden parity.
+`PersonalizedPlannerParityTest` preserves the 29 named historical regression personas. `PersonalizedPlannerV010Test` retains all v0.10.1 correction contracts. `ExposureRepresentationV011Test` checks the typed activity resolver, exact window boundaries, movement and Objective V2 representation states, DIRECT/weighted separation, behavioral non-pressure transition invariance, production tissue status mapping, direct candidate authority and Kotlin/Python golden parity. Its raw-history badminton cases construct `PlanningSetRecord` and canonical Objective V2 relations, then compare Python golden results with the real `BadmintonObjectiveRepresentationAnalyzer` output.
 
-Intentionally unchanged in v0.11.0: the 56-day style/posterior window, transition priority ladder, recovery/tissue arithmetic, conservative `provenTwice` progression, existing Objective V2 coefficients/RPE modifier, legacy builder, app version and Room schema. No absolute weekly-set target or equal nine-objective target was added.
+Intentionally unchanged in v0.11.1: the 56-day style/posterior window, transition priority ladder, recovery arithmetic other than the missing production `MODERATE` token mapping, conservative `provenTwice` progression, existing Objective V2 coefficients/RPE modifier, legacy builder, app version and Room schema. No absolute weekly-set target or equal nine-objective target was added.
 
 `RealBackupPersonalizedPlannerE2eTest` now uses prepare-once/answer-all/generate-once. It remains opt-in because the user's backup must never enter source control.
 

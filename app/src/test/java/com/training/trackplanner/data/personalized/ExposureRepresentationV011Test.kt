@@ -93,6 +93,124 @@ class ExposureRepresentationV011Test {
     }
 
     @Test
+    fun `badminton analyzer matches Python raw-history golden through production calculation`() {
+        val activities = fixture.getJSONObject("badmintonRawActivities")
+        val cases = fixture.getJSONArray("badmintonRawHistoryCases")
+        repeat(cases.length()) { caseIndex ->
+            val case = cases.getJSONObject(caseIndex)
+            val actual = BadmintonObjectiveRepresentationAnalyzer().analyze(badmintonRawSnapshot(activities, case))
+                .associateBy(BadmintonObjectiveRepresentation::objective)
+            val expected = case.getJSONObject("expected").getJSONObject("representations")
+            BadmintonObjective.entries.forEach { objective ->
+                val key = objective.name
+                val value = actual.getValue(key)
+                val target = expected.getJSONObject(key)
+                assertEquals(case.getString("id"), target.getString("state"), value.representationState.name)
+                assertEquals(case.getString("id"), target.getString("confidence"), value.evidenceConfidence.name)
+                assertEquals(case.getString("id"), target.getBoolean("directDrop"), value.directDrop)
+                assertEquals(case.getString("id"), target.getBoolean("neverDirectObserved"), value.neverDirectObserved)
+                assertEquals(case.getString("id"), target.getInt("currentActiveBins"), value.currentActiveBins)
+                assertNullable(case.getString("id"), target, "currentWeighted28d", value.currentWeighted28d)
+                assertNullable(case.getString("id"), target, "priorWeighted28d", value.priorWeighted28d)
+                assertNullable(case.getString("id"), target, "currentDirect28d", value.currentDirect28d)
+                assertNullable(case.getString("id"), target, "priorDirect28d", value.priorDirect28d)
+                assertNullable(case.getString("id"), target, "currentShare", value.currentShare)
+                assertNullable(case.getString("id"), target, "priorShare", value.priorShare)
+                assertNullable(case.getString("id"), target, "personalRetentionRatio", value.personalRetentionRatio)
+                assertNullable(case.getString("id"), target, "peerMedianCurrent", value.peerMedianCurrent)
+                assertNullable(case.getString("id"), target, "peerRepresentationRatio", value.peerRepresentationRatio)
+                val peerOnly = "PEER_ONLY_UNDERREPRESENTATION" in value.reasonCodes
+                assertJsonNullable(
+                    case.getString("id"),
+                    target,
+                    "gapPriority",
+                    ExposureRepresentationPolicy.badmintonGapPriority(
+                        value.representationState,
+                        value.evidenceConfidence,
+                        peerOnly,
+                        value.directDrop
+                    )
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `non-pressure developmental gap leaves transition unchanged while real gap adds pressure`() {
+        val anchor = UserAnchor(
+            stableKey = "anchor",
+            exerciseName = "anchor",
+            sessions = 8,
+            sets = 24,
+            movementGroup = MovementCoverage.LOWER_KNEE.name,
+            metric = "LOAD_REPS",
+            response = "UNKNOWN",
+            score = 1.0,
+            style = StrengthProgrammingStyle.STRAIGHT_5X5,
+            styleConfidence = PlanningConfidence.HIGH,
+            canonicalPerformanceSource = "CANONICAL_SIGNAL_UNAVAILABLE"
+        )
+        val planner = AdaptationTransitionPlanner()
+        val planningState = state().copy(
+            anchors = listOf(anchor),
+            styleFeaturesByAnchor = mapOf(
+                anchor.stableKey to StyleFeatures(
+                    weeklyFrequency = 3.0,
+                    frequencyStability = .8,
+                    straightSetConsistency = .8,
+                    weeksObserved = 6
+                )
+            ),
+            recoverySignals = PlanningRecoverySignals(readinessStatus = "NORMAL", tissueStatus = "NORMAL", overallFatigueIndex = 55)
+        )
+        val withoutGap = planner.decide(anchor, planningState, emptyList())
+        val developmental = AdaptationGap(
+            code = "BADMINTON_DEVELOP_DECELERATION",
+            priority = "LOW",
+            reason = "fixture",
+            contributesTransitionPressure = false
+        )
+        val withDevelopmental = planner.decide(anchor, planningState, listOf(developmental))
+        assertEquals(withoutGap.adaptation.gapPressure, withDevelopmental.adaptation.gapPressure, 0.0)
+        assertEquals(withoutGap.rotationPressure, withDevelopmental.rotationPressure, 0.0)
+        assertEquals(withoutGap.structureTreatment, withDevelopmental.structureTreatment)
+        assertEquals(withoutGap.doseTreatment, withDevelopmental.doseTreatment)
+
+        val pressure = planner.decide(
+            anchor,
+            planningState,
+            listOf(AdaptationGap("BADMINTON_DROP_DECELERATION", "HIGH", "fixture"))
+        )
+        assertTrue(pressure.adaptation.gapPressure > withoutGap.adaptation.gapPressure)
+
+        val candidateSnapshot = snapshotForDefinitions(
+            mapOf("lateral_bound_continuous" to Triple("LATERAL_BOUND_CONTINUOUS_VARIANTS", "PLYOMETRIC_POWER", "QUALITY_BASED"))
+        ).copy(
+            badmintonObjectives = mapOf("lateral_bound_continuous" to mapOf("DECELERATION" to 1.0)),
+            badmintonDirectObjectives = mapOf("lateral_bound_continuous" to setOf("DECELERATION"))
+        )
+        assertEquals(
+            listOf("lateral_bound_continuous"),
+            GapCandidateSelector().select(candidateSnapshot, planningState, listOf(developmental), emptySet()).map(PlannedExercise::stableKey)
+        )
+    }
+
+    @Test
+    fun `production tissue moderate maps between low and high with elevated compatibility`() {
+        assertEquals(.10, tissueRecoveryPressure("LOW"), 0.0)
+        assertEquals(.30, tissueRecoveryPressure("MODERATE"), 0.0)
+        assertEquals(.30, tissueRecoveryPressure("ELEVATED"), 0.0)
+        assertEquals(.60, tissueRecoveryPressure("HIGH"), 0.0)
+        val planner = AdaptationTransitionPlanner()
+        fun systemic(status: String) = planner.systemicRecoveryPressure(
+            PlanningRecoverySignals(readinessStatus = "NORMAL", tissueStatus = status, overallFatigueIndex = 55)
+        )
+        assertTrue(systemic("MODERATE") > systemic("LOW"))
+        assertTrue(systemic("MODERATE") < systemic("HIGH"))
+        assertEquals(systemic("MODERATE"), systemic("ELEVATED"), 0.0)
+    }
+
+    @Test
     fun `activity resolver uses typed authority and excludes plyometric SSC and deceleration from resistance`() {
         val definitions = mapOf(
             "drop" to Triple("PLYOMETRIC_JUMP_VARIANTS", "PLYOMETRIC_POWER", "QUALITY_BASED"),
@@ -236,6 +354,71 @@ class ExposureRepresentationV011Test {
         appendCountRows(rows, case.getJSONObject("prior"), 4, current = false)
         if (case.has("excludedAthleticBouts")) repeat(case.getInt("excludedAthleticBouts")) { rows += row(cutoff.minusDays((it % 4) * 7L + 3), "athletic") }
         return base.copy(allConfirmedSets = rows)
+    }
+
+    private fun badmintonRawSnapshot(activities: JSONObject, case: JSONObject): PlanningHistorySnapshot {
+        val exercises = activities.keys().asSequence().associateWith { key ->
+            val activity = activities.getJSONObject(key)
+            Exercise(
+                stableKey = key,
+                name = key,
+                category = "fixture",
+                activityKind = if (activity.getString("domain") == "GENERIC_COURT_SESSION") "SPORT_SESSION" else "EXERCISE",
+                planningEligibility = "PROGRAM_SELECTABLE"
+            )
+        }
+        val metadata = exercises.mapValues { (key, exercise) ->
+            val activity = activities.getJSONObject(key)
+            when (activity.getString("domain")) {
+                "GENERIC_COURT_SESSION" -> RuntimeExerciseMetadataDefaults.forExercise(exercise)
+                "RESISTANCE" -> metadata(exercise, "SQUAT_VARIANTS", "MAIN_LOWER_STRENGTH", "LOAD_REPS").copy(
+                    badmintonTransferLevel = "SUPPORTIVE",
+                    analysisEligibility = MetadataTokenField.parse("FATIGUE|HYPERTROPHY_VOLUME|BADMINTON_SUPPORTIVE")
+                )
+                else -> metadata(exercise, "BADMINTON_FOOTWORK_DRILL_VARIANTS", "BADMINTON_FOOTWORK", "TIME_OR_DISTANCE").copy(
+                    badmintonTransferLevel = "DIRECT",
+                    analysisEligibility = MetadataTokenField.parse("FATIGUE|BADMINTON_TRANSFER")
+                )
+            }
+        }
+        val objectives = activities.keys().asSequence().associateWith { key ->
+            val source = activities.getJSONObject(key).getJSONObject("objectives")
+            source.keys().asSequence().associateWith(source::getDouble)
+        }
+        val direct = activities.keys().asSequence().associateWith { key ->
+            val source = activities.getJSONObject(key).getJSONArray("directObjectives")
+            (0 until source.length()).mapTo(linkedSetOf(), source::getString)
+        }
+        val rows = buildList {
+            val source = case.getJSONArray("rows")
+            repeat(source.length()) { rowIndex ->
+                val spec = source.getJSONObject(rowIndex)
+                repeat(spec.getInt("count")) { setIndex ->
+                    add(
+                        row(
+                            cutoff.minusDays(spec.getLong("daysBeforeCutoff")),
+                            spec.getString("stableKey"),
+                            seconds = if (exercises.getValue(spec.getString("stableKey")).activityKind == "SPORT_SESSION") 3600 else 0
+                        ).copy(
+                            setIndex = setIndex + 1,
+                            rpe = if (spec.isNull("rpe")) null else spec.getDouble("rpe")
+                        )
+                    )
+                }
+            }
+        }
+        return PlanningHistorySnapshot(
+            cutoff = cutoff,
+            allConfirmedSets = rows,
+            exercises = exercises,
+            metadata = metadata,
+            badmintonObjectives = objectives,
+            profilePrimaryGoal = "BADMINTON",
+            strengthTrainingYears = 0.0,
+            badmintonTrainingYears = 1.0,
+            preferences = PersonalizedPlanningPreferences(),
+            badmintonDirectObjectives = direct
+        )
     }
 
     private fun appendCountRows(target: MutableList<PlanningSetRecord>, counts: JSONObject, activeBins: Int, current: Boolean) {

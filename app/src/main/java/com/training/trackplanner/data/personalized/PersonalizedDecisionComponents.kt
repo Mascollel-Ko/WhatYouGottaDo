@@ -47,8 +47,8 @@ class AdaptationTransitionPlanner {
     fun systemicRecoveryPressure(signals: PlanningRecoverySignals): Double {
         val readiness = mapOf("READY" to 0.0, "NORMAL" to 0.0, "GOOD" to 0.0, "CAUTION" to .35, "FATIGUED" to .65, "LIMITED" to .85, "UNKNOWN" to .15)
             .getOrDefault(signals.readinessStatus, .15)
-        val tissue = mapOf("NORMAL" to 0.0, "LOW" to .10, "ELEVATED" to .30, "HIGH" to .60, "VERY_HIGH" to .85, "BLOCKED" to 1.0, "UNKNOWN" to .10)
-            .getOrDefault(signals.tissueStatus, .10)
+        val tissue =
+            tissueRecoveryPressure(signals.tissueStatus)
         val ofi = signals.overallFatigueIndex?.let { clip((it - 55.0) / 35.0) } ?: .10
         return clip(.75 * maxOf(readiness, tissue, ofi) + .25 * ((readiness + tissue + ofi) / 3.0))
     }
@@ -358,3 +358,13 @@ class BlockIntentPlanner {
 }
 
 private fun AthletePlanningState.strengthTrainingIsNovice(): Boolean = confidence == PlanningConfidence.LOW
+
+internal fun tissueRecoveryPressure(status: String): Double = when (status) {
+    "NORMAL" -> 0.0
+    "LOW" -> .10
+    "MODERATE", "ELEVATED" -> .30
+    "HIGH" -> .60
+    "VERY_HIGH" -> .85
+    "BLOCKED" -> 1.0
+    else -> .10
+}
