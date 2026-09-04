@@ -1248,3 +1248,18 @@ CoreStimulus V1의 주간 간접 코어 자극,Weekly indirect CoreStimulus V1,C
 선택된 계획 기간이 모두 생성되지 않았습니다.,The selected planning horizon was not fully generated.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
 하루 운동 수가 안전한 편집 한도를 넘었습니다.,The daily exercise count exceeds the safe editing limit.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
 높은 코트 부하에 비해 하루 운동 수가 많습니다.,The daily exercise count is too high for the current court load.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+익숙한 방식 우선,Prefer familiar methods,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+반복 기록에서 신뢰할 수 있는 기존 구성이 확인됐습니다.,A reliable existing structure was identified in repeated records.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+구성 유지,Preserve structure,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+핵심 유지·재배분,Preserve core and rebalance,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+부분 연속성,Partial continuity,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+강조점 전환,Rotate emphasis,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+용량 유지,Maintain dose,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+용량 소폭 감소,Reduce dose slightly,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+용량 중간 감소,Reduce dose moderately,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
+기록 기반 계획 사전 확인,Record-based plan preflight,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+이 답변으로 생성,Generate with these answers,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+"기록 기반 생성은 기간·주당 일수를 AUTO로 정합니다. 위 값을 직접 바꾸면 그 값이 우선하며, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.","Record-based generation chooses the duration and weekly training days automatically. Explicitly changing either value overrides AUTO; the badminton-to-strength ratio is not used for record-based generation.",CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanScreen.kt
+기록 기반 사전 분석 시간이 초과되었습니다.,Record-based preflight timed out.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+기록 기반 사전 분석에 실패했습니다.,Record-based preflight failed.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt
+확정된 입력으로 다음 블록을 구성하는 중입니다.,Building the next block from the confirmed inputs.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/TrainingViewModel.kt

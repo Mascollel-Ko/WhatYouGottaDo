@@ -43,6 +43,7 @@ import com.training.trackplanner.data.GeneratedProgramSkeleton
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.InitialUserProfile
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
@@ -388,6 +389,48 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     is PersonalizedPlanningOutcome.Generated -> _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton, outcome.skeleton.optimizationSummary)
                 }
                 onOutcome(outcome)
+            }.onFailure { error ->
+                _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                    if (error is TimeoutCancellationException) "기록 기반 계획 생성 시간이 초과되었습니다." else error.message ?: "기록 기반 계획 생성에 실패했습니다."
+                )
+            }
+        }
+    }
+
+    fun preparePersonalizedProgram(
+        request: ProgramSkeletonRequest,
+        constraints: PersonalizedGenerationConstraints,
+        onPrepared: (PersonalizedPlanningPreflight) -> Unit
+    ) {
+        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
+        viewModelScope.launch {
+            _programBuildProgress.value = ProgramBuildProgressState.Running(10, "완료 기록과 canonical 메타데이터를 확인하는 중입니다.")
+            runCatching {
+                withTimeout(15_000) { repository.preparePersonalizedProgram(request, constraints) }
+            }.onSuccess { preflight ->
+                _programBuildProgress.value = ProgramBuildProgressState.Idle
+                onPrepared(preflight)
+            }.onFailure { error ->
+                _programBuildProgress.value = ProgramBuildProgressState.Failed(
+                    if (error is TimeoutCancellationException) "기록 기반 사전 분석 시간이 초과되었습니다." else error.message ?: "기록 기반 사전 분석에 실패했습니다."
+                )
+            }
+        }
+    }
+
+    fun generatePreparedPersonalizedProgram(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        onResult: (GeneratedProgramSkeleton) -> Unit
+    ) {
+        if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
+        viewModelScope.launch {
+            _programBuildProgress.value = ProgramBuildProgressState.Running(35, "확정된 입력으로 다음 블록을 구성하는 중입니다.")
+            runCatching {
+                withTimeout(15_000) { repository.generatePreparedPersonalizedProgram(preflight, answers) }
+            }.onSuccess { generated ->
+                _programBuildProgress.value = ProgramBuildProgressState.Completed(generated, generated.optimizationSummary)
+                onResult(generated)
             }.onFailure { error ->
                 _programBuildProgress.value = ProgramBuildProgressState.Failed(
                     if (error is TimeoutCancellationException) "기록 기반 계획 생성 시간이 초과되었습니다." else error.message ?: "기록 기반 계획 생성에 실패했습니다."

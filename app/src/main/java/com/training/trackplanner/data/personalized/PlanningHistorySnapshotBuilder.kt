@@ -58,7 +58,7 @@ class PlanningHistorySnapshotBuilder {
         val runtimeCatalog = com.training.trackplanner.data.RuntimeExerciseMetadataCatalog.of(metadata.values)
         val objectiveExposure = BadmintonObjectiveStimulusCalculator(badmintonCatalog)
             .calculate(recentHistory, exerciseByKey)
-        val genericCourtLoad = BadmintonPracticeLoadCalculator(runtimeCatalog)
+        val genericCourtLoad28d = BadmintonPracticeLoadCalculator(runtimeCatalog)
             .calculateRaw(recentHistory, exerciseByKey)
         return PlanningHistorySnapshot(
             cutoff = cutoff,
@@ -70,7 +70,8 @@ class PlanningHistorySnapshotBuilder {
             strengthTrainingYears = profile?.strengthTrainingYears ?: 0.0,
             badmintonTrainingYears = profile?.badmintonTrainingYears ?: 0.0,
             preferences = preferences,
-            genericCourtLoad = genericCourtLoad,
+            genericCourtLoad = genericCourtLoad28d / 4.0,
+            genericCourtLoad28d = genericCourtLoad28d,
             objectiveExposure = objectiveExposure,
             canonicalStrengthSignals = canonicalStrengthSignals,
             recoverySignals = recoverySignals

@@ -6,7 +6,8 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 class AthletePlanningStateBuilder(
-    private val styleAnalyzer: StrengthProgrammingStyleAnalyzer = StrengthProgrammingStyleAnalyzer()
+    private val styleAnalyzer: StrengthProgrammingStyleAnalyzer = StrengthProgrammingStyleAnalyzer(),
+    private val featureAnalyzer: StrengthStyleFeatureAnalyzer = StrengthStyleFeatureAnalyzer()
 ) {
     fun build(snapshot: PlanningHistorySnapshot, answers: PersonalizedPlanningAnswers): AthletePlanningState {
         val recentStart = snapshot.cutoff.minusDays(27)
@@ -34,14 +35,19 @@ class AthletePlanningStateBuilder(
             resistance.isNotEmpty() -> StrengthExposure.ABSENT
             else -> StrengthExposure.UNKNOWN
         }
-        val savedStrength = snapshot.preferences.strengthIntent
+        val cutoffMillis = snapshot.cutoff.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val savedStrength = snapshot.preferences.strengthIntent.takeIf {
+            snapshot.preferences.strengthIntentProfileGoal == snapshot.profilePrimaryGoal &&
+                snapshot.preferences.strengthIntentAnsweredAtEpochMillis?.let { cutoffMillis - it <= 56L * 24 * 60 * 60 * 1000 } == true
+        }
         val answeredStrength = answers.values[QUESTION_STRENGTH_INTENT]?.let { runCatching { StrengthIntent.valueOf(it) }.getOrNull() }
         val strengthIntent = answeredStrength ?: savedStrength ?: when {
             snapshot.profilePrimaryGoal.contains("STRENGTH", true) -> StrengthIntent.STRENGTH_PRIORITY
             behavior == ObservedTrainingBehavior.MIXED_STRENGTH_HYPERTROPHY && exposure == StrengthExposure.PRESENT -> StrengthIntent.MIXED
             else -> StrengthIntent.UNRESOLVED
         }
-        val structuredSessions = snapshot.allConfirmedSets.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.map { it.date to it.stableKey }.distinct().size
+        val decisionWindow = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(55)) }
+        val structuredSessions = decisionWindow.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.map { it.date to it.stableKey }.distinct().size
         val answeredBadminton = answers.values[QUESTION_BADMINTON_INTENT]?.let { runCatching { BadmintonPlanningIntent.valueOf(it) }.getOrNull() }
         val badmintonIntent = answeredBadminton ?: snapshot.preferences.badmintonIntent ?: when {
             snapshot.profilePrimaryGoal.contains("BADMINTON", true) || snapshot.badmintonTrainingYears > 0 -> BadmintonPlanningIntent.ENABLED
@@ -53,7 +59,8 @@ class AthletePlanningStateBuilder(
         val freeRatio = resistance.count { snapshot.isFreeWeight(it.stableKey) }.toDouble() / resistance.size.coerceAtLeast(1)
         val anchors = anchors(snapshot)
         val style = styleAnalyzer.analyze(snapshot, anchors.map(UserAnchor::stableKey).toSet())
-        val weeklyCounts = snapshot.allConfirmedSets.filterNot { snapshot.isSportSession(it.stableKey) }
+        val styleFeatures = anchors.associate { it.stableKey to featureAnalyzer.analyze(snapshot, it.stableKey) }
+        val weeklyCounts = decisionWindow.filterNot { snapshot.isSportSession(it.stableKey) }
             .groupBy { it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }
             .values.map { rows -> rows.map(PlanningSetRecord::date).distinct().size.toDouble() }
         val typicalDays = weeklyCounts.medianOr(3.0)
@@ -91,7 +98,8 @@ class AthletePlanningStateBuilder(
             objectiveDevelopmentalGaps = objectiveGaps.second,
             genericCourtLoad = snapshot.genericCourtLoad,
             recoverySignals = snapshot.recoverySignals,
-            hypertrophyStimulusByMovement = hypertrophyStimulus
+            hypertrophyStimulusByMovement = hypertrophyStimulus,
+            styleFeaturesByAnchor = styleFeatures
         )
     }
 
@@ -104,8 +112,8 @@ class AthletePlanningStateBuilder(
                 val sessions = rows.map(PlanningSetRecord::date).distinct().size
                 if (sessions < 2 || snapshot.metadata[key]?.planningEligibility !in setOf("PROGRAM_SELECTABLE", "SELECTABLE")) return@mapNotNull null
                 val signal = snapshot.canonicalStrengthSignals[key]
-                val change = signal?.posteriorChangePercent ?: 0.0
-                val response = when { change >= 4 -> "STRONG_POSITIVE"; change >= 1.5 -> "POSITIVE"; change <= -2 -> "NEGATIVE"; else -> "STABLE" }
+                val change = signal?.posteriorChangePercent
+                val response = when { change == null -> "UNKNOWN"; change >= 4 -> "STRONG_POSITIVE"; change >= 1.5 -> "POSITIVE"; change <= -2 -> "NEGATIVE"; else -> "STABLE" }
                 val perAnchorStyle = styleAnalyzer.analyze(snapshot, setOf(key))
                 UserAnchor(key, rows.maxBy(PlanningSetRecord::date).exerciseName, sessions, rows.size, snapshot.movementCoverage(key).name, snapshot.metadata[key]?.progressMetricType.orEmpty(), response, sessions * 2.0 + rows.size * .15 + when (response) { "STRONG_POSITIVE" -> 4; "POSITIVE" -> 3; "NEGATIVE" -> -3; else -> 1 }, perAnchorStyle.first, perAnchorStyle.second, signal?.source ?: "CANONICAL_SIGNAL_UNAVAILABLE")
             }
@@ -119,7 +127,8 @@ class AthletePlanningStateBuilder(
 
 class StrengthProgrammingStyleAnalyzer {
     fun analyze(snapshot: PlanningHistorySnapshot, anchorKeys: Set<String>): Pair<StrengthProgrammingStyle, PlanningConfidence> {
-        val rows = snapshot.allConfirmedSets.filter { it.stableKey in anchorKeys }
+        val start = snapshot.cutoff.minusDays(55)
+        val rows = snapshot.allConfirmedSets.filter { it.stableKey in anchorKeys && !it.date.isBefore(start) }
         val bySession = rows.groupBy { it.stableKey to it.date }
         val byWeek = bySession.entries.groupBy { (key, _) -> Triple(key.first, key.second.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR), key.second.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)) }
         var madcowHits = 0
@@ -166,6 +175,82 @@ class StrengthProgrammingStyleAnalyzer {
         if (backoffs.size >= 2 && (top.rpe == null || top.rpe >= 7.5)) return StrengthProgrammingStyle.TOP_SET_BACKOFF
         if (top.reps in 6..15 && backoffs.isEmpty() && (top.rpe == null || top.rpe >= 8.0)) return StrengthProgrammingStyle.TOP_SET_HYPERTROPHY
         return null
+    }
+}
+
+class StrengthStyleFeatureAnalyzer(
+    private val styleAnalyzer: StrengthProgrammingStyleAnalyzer = StrengthProgrammingStyleAnalyzer()
+) {
+    fun analyze(snapshot: PlanningHistorySnapshot, stableKey: String): StyleFeatures {
+        val start = snapshot.cutoff.minusDays(55)
+        val rows = snapshot.allConfirmedSets.filter {
+            it.stableKey == stableKey && !it.date.isBefore(start) && it.weightKg > 0.0 && it.reps > 0
+        }
+        val bySession = rows.groupBy(PlanningSetRecord::date)
+        val byWeek = bySession.entries.groupBy { (date, _) ->
+            date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+        }
+        val weeklyCounts = byWeek.values.map(List<*>::size)
+        val weeklyFrequency = weeklyCounts.average().takeIf(Double::isFinite) ?: 0.0
+        val frequencyStability = when {
+            weeklyCounts.isEmpty() -> 0.0
+            weeklyCounts.size == 1 || weeklyFrequency == 0.0 -> 1.0
+            else -> {
+                val sd = sqrt(weeklyCounts.sumOf { (it - weeklyFrequency).pow(2) } / weeklyCounts.size)
+                (1.0 - sd / weeklyFrequency).coerceIn(0.0, 1.0)
+            }
+        }
+        val loadScores = mutableListOf<Double>()
+        val repScores = mutableListOf<Double>()
+        val hlmScores = mutableListOf<Double>()
+        byWeek.values.forEach { week ->
+            val sessions = week.sortedBy { it.key }.map { it.value }
+            if (sessions.size >= 2) {
+                val maxima = sessions.map { it.maxOf(PlanningSetRecord::weightKg) }
+                loadScores += (((maxima.max() - maxima.min()) / maxima.max().coerceAtLeast(.01)) / .25).coerceIn(0.0, 1.0)
+                val medians = sessions.map { it.map(PlanningSetRecord::reps).map(Int::toDouble).medianOr(0.0) }
+                repScores += ((medians.max() - medians.min()) / 5.0).coerceIn(0.0, 1.0)
+            }
+            if (sessions.size >= 3) {
+                val maxima = sessions.take(3).map { it.maxOf(PlanningSetRecord::weightKg) }
+                val order = if (maxima[0] > maxima[2] && maxima[2] > maxima[1]) 1.0 else if (maxima.distinct().size == 3) .55 else 0.0
+                val amplitude = (maxima.max() - maxima.min()) / maxima.max().coerceAtLeast(.01)
+                hlmScores += order * (amplitude / .20).coerceIn(0.0, 1.0)
+            }
+        }
+        val rampWeeks = mutableSetOf<Pair<Int, Int>>()
+        var backoff = 0
+        var straight = 0
+        var heavy = 0
+        var moderateHigh = 0
+        bySession.forEach { (date, session) ->
+            val ordered = session.sortedBy(PlanningSetRecord::setIndex)
+            if (ordered.size >= 4 && ordered.map(PlanningSetRecord::weightKg).distinct().size >= 3 && ordered.count { it.reps in 4..6 } >= 3) {
+                rampWeeks += date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)
+            }
+            when (styleAnalyzer.classifySession(ordered)) {
+                StrengthProgrammingStyle.TOP_SET_BACKOFF -> backoff += 1
+                StrengthProgrammingStyle.STRAIGHT_5X5, StrengthProgrammingStyle.STRAIGHT_STRENGTH_SETS -> straight += 1
+                else -> Unit
+            }
+            val medianReps = ordered.map(PlanningSetRecord::reps).map(Int::toDouble).medianOr(0.0)
+            if (medianReps <= 5.0) heavy += 1
+            if (medianReps >= 6.0) moderateHigh += 1
+        }
+        val sessionCount = bySession.size.coerceAtLeast(1).toDouble()
+        return StyleFeatures(
+            weeklyFrequency = weeklyFrequency,
+            frequencyStability = frequencyStability,
+            loadUndulation = loadScores.average().takeIf(Double::isFinite) ?: 0.0,
+            repZoneUndulation = repScores.average().takeIf(Double::isFinite) ?: 0.0,
+            hlmOrdering = hlmScores.average().takeIf(Double::isFinite) ?: 0.0,
+            withinSessionRamping = if (byWeek.isEmpty()) 0.0 else rampWeeks.size.toDouble() / byWeek.size,
+            topSetBackoff = backoff / sessionCount,
+            straightSetConsistency = straight / sessionCount,
+            heavyExposure = heavy / sessionCount,
+            moderateHighRepExposure = moderateHigh / sessionCount,
+            weeksObserved = byWeek.size
+        )
     }
 }
 
@@ -258,15 +343,17 @@ private fun primaryAdaptation(goal: String, strength: StrengthIntent, badminton:
 }
 
 private fun badmintonGaps(snapshot: PlanningHistorySnapshot): Pair<Set<String>, Set<String>> {
-    val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(snapshot.cutoff.minusDays(27)) }
-    val prior = snapshot.allConfirmedSets.filter { it.date.isBefore(snapshot.cutoff.minusDays(27)) }
+    val currentStart = snapshot.cutoff.minusDays(27)
+    val priorStart = snapshot.cutoff.minusDays(55)
+    val recent = snapshot.allConfirmedSets.filter { !it.date.isBefore(currentStart) }
+    val prior = snapshot.allConfirmedSets.filter { !it.date.isBefore(priorStart) && it.date.isBefore(currentStart) }
     fun exposure(rows: List<PlanningSetRecord>) = BadmintonObjective.entries.associate { objective ->
         objective.name to rows.sumOf { row -> snapshot.badmintonObjectives[row.stableKey]?.get(objective.name) ?: 0.0 }
     }
     val current = exposure(recent)
     val historical = exposure(prior)
     val drop = current.filter { (objective, value) -> value == 0.0 && historical.getValue(objective) > 0.0 }.keys
-    val developmental = current.filterValues { it == 0.0 }.keys - drop
+    val developmental = current.keys.filter { (current[it] ?: 0.0) == 0.0 && (historical[it] ?: 0.0) == 0.0 }.toSet()
     return drop to developmental
 }
 

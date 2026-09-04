@@ -7,7 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.data.personalized.BadmintonPlanningIntent
 import com.training.trackplanner.data.personalized.FreeWeightWillingness
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
-import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.QUESTION_BADMINTON_INTENT
 import com.training.trackplanner.data.personalized.QUESTION_FREE_WEIGHT
 import com.training.trackplanner.data.personalized.QUESTION_STRENGTH_INTENT
@@ -132,24 +132,25 @@ class RealBackupPersonalizedPlannerE2eTest {
     }
 
     private suspend fun generate(repository: TrainingRepository, request: ProgramSkeletonRequest, cutoff: LocalDate): GeneratedProgramSkeleton {
-        var answers = PersonalizedPlanningAnswers()
-        repeat(4) {
-            when (val outcome = repository.generatePersonalizedProgram(request, answers, cutoff = cutoff)) {
-                is PersonalizedPlanningOutcome.Generated -> return outcome.skeleton
-                is PersonalizedPlanningOutcome.Questions -> {
-                    assertEquals(1, outcome.questions.size)
-                    val question = outcome.questions.single()
-                    val value = when (question.id) {
-                        QUESTION_STRENGTH_INTENT -> StrengthIntent.MIXED.name
-                        QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
-                        QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
-                        else -> error("Unexpected personalized question: ${question.id}")
-                    }
-                    answers = PersonalizedPlanningAnswers(answers.values + (question.id to value))
-                }
+        val preflight = repository.preparePersonalizedProgram(
+            request = request,
+            constraints = PersonalizedGenerationConstraints(
+                explicitGoal = request.goal,
+                explicitWeeklyTrainingDays = request.weeklyTrainingDays,
+                explicitDurationWeeks = request.durationWeeks,
+                explicitSessionMinutes = request.sessionMinutes
+            ),
+            cutoff = cutoff
+        )
+        val answers = PersonalizedPlanningAnswers(preflight.questions.associate { question ->
+            question.id to when (question.id) {
+                QUESTION_STRENGTH_INTENT -> StrengthIntent.MIXED.name
+                QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
+                QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                else -> error("Unexpected personalized question: ${question.id}")
             }
-        }
-        error("Personalized planning did not resolve after one-question-at-a-time answers")
+        })
+        return repository.generatePreparedPersonalizedProgram(preflight, answers)
     }
 
     private fun request() = ProgramSkeletonRequest(

@@ -14,6 +14,8 @@ import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
+import com.training.trackplanner.data.personalized.PersonalizedPlanningQuestion
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreferences
 import com.training.trackplanner.data.personalized.CanonicalStrengthSignal
 import com.training.trackplanner.data.personalized.PlanningRecoverySignals
@@ -29,6 +31,7 @@ import com.training.trackplanner.data.personalized.StrengthIntent
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.math.exp
 
 internal class PersonalizedProgramPlanningService(
@@ -51,19 +54,65 @@ internal class PersonalizedProgramPlanningService(
     private val horizonPlanner: PlanningHorizonPlanner = PlanningHorizonPlanner(),
     private val programBuilder: PersonalizedProgramBuilder = PersonalizedProgramBuilder()
 ) {
+    suspend fun prepare(
+        request: ProgramSkeletonRequest,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        cutoff: LocalDate = LocalDate.now(),
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
+    ): PersonalizedPlanningPreflight {
+        val preferences = readPreferences()
+        val snapshot = buildSnapshot(cutoff, metadata, preferences)
+        val state = stateBuilder.build(snapshot, PersonalizedPlanningAnswers())
+        return PersonalizedPlanningPreflight(
+            preparationId = UUID.randomUUID().toString(),
+            cutoff = cutoff,
+            request = request,
+            constraints = constraints,
+            questions = questionPolicy.questions(snapshot, state, PersonalizedPlanningAnswers()),
+            preparedAtEpochMillis = System.currentTimeMillis()
+        )
+    }
+
+    suspend fun generatePrepared(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers,
+        metadata: Map<String, RuntimeExerciseMetadata>
+    ): GeneratedProgramSkeleton {
+        val missingAnswers = preflight.questions.map(PersonalizedPlanningQuestion::id).filterNot(answers.values::containsKey)
+        require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
+        val preferences = readPreferences()
+        val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences)
+        val state = stateBuilder.build(snapshot, answers)
+        persistAnswers(answers, snapshot.profilePrimaryGoal)
+        val gaps = gapAnalyzer.analyze(snapshot, state)
+        val intent = blockPlanner.decide(state, gaps)
+        val recommendedDays = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
+        val recommendedHorizon = horizonPlanner.choose(state, gaps)
+        val constraints = preflight.constraints
+        val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
+        val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
+        return programBuilder.build(snapshot, state, gaps, intent, personalizedRequest.durationWeeks, personalizedRequest, answers, priorId)
+    }
+
+    /** Compatibility wrapper for callers that have not yet adopted the two-phase API. */
     suspend fun generate(
         request: ProgramSkeletonRequest,
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>,
         cutoff: LocalDate = LocalDate.now(),
-        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(
-            explicitGoal = request.goal,
-            explicitWeeklyTrainingDays = request.weeklyTrainingDays,
-            explicitDurationWeeks = request.durationWeeks,
-            explicitSessionMinutes = request.sessionMinutes
-        )
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
     ): PersonalizedPlanningOutcome {
-        val preferences = readPreferences()
+        val preflight = prepare(request, metadata, cutoff, constraints)
+        val unanswered = preflight.questions.filterNot { it.id in answers.values }
+        return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
+        else PersonalizedPlanningOutcome.Generated(generatePrepared(preflight, answers, metadata))
+    }
+
+    private suspend fun buildSnapshot(
+        cutoff: LocalDate,
+        metadata: Map<String, RuntimeExerciseMetadata>,
+        preferences: PersonalizedPlanningPreferences
+    ): com.training.trackplanner.data.personalized.PlanningHistorySnapshot {
         val history = workoutDao.entriesWithSetsUntil(cutoff.toString())
         val exercises = exerciseDao.allExercises()
         val profile = profileDao.profile()
@@ -102,43 +151,14 @@ internal class PersonalizedProgramPlanningService(
             }
         )
         val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery)
-        val state = stateBuilder.build(snapshot, answers)
-        val questions = questionPolicy.questions(snapshot, state, answers).take(1)
-        if (questions.isNotEmpty()) return PersonalizedPlanningOutcome.Questions(questions)
-        persistAnswers(answers)
-        val gaps = gapAnalyzer.analyze(snapshot, state)
-        val intent = blockPlanner.decide(state, gaps)
-        val recommendedDays = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
-        val recommendedHorizon = horizonPlanner.choose(state, gaps)
-        val personalizedRequest = request.copy(
-            goal = constraints.explicitGoal ?: state.programGoal,
-            weeklyTrainingDays = (constraints.explicitWeeklyTrainingDays ?: recommendedDays).coerceIn(2, 5),
-            durationWeeks = (constraints.explicitDurationWeeks ?: recommendedHorizon).coerceIn(2, 6),
-            sessionMinutes = constraints.explicitSessionMinutes ?: request.sessionMinutes
-        )
-        val horizon = personalizedRequest.durationWeeks
-        val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
-        return PersonalizedPlanningOutcome.Generated(programBuilder.build(snapshot, state, gaps, intent, horizon, personalizedRequest, answers, priorId))
+        return snapshot
     }
 
     private suspend fun canonicalStrengthSignals(cutoff: LocalDate): Map<String, CanonicalStrengthSignal> {
         val revision = strengthPosteriorDao.revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
             ?.takeIf { it.status == StrengthModelRevisionPolicy.STATUS_ACTIVE && StrengthModelRevisionPolicy.isCompatible(it) }
             ?: return emptyMap()
-        return strengthPosteriorDao.localHistory(revision.revisionKey)
-            .filter { runCatching { LocalDate.parse(it.sessionDate) }.getOrNull()?.let { date -> !date.isAfter(cutoff) } == true }
-            .groupBy(StrengthExercisePerformanceHistoryEntity::exerciseStableKey)
-            .mapValues { (_, rows) ->
-                val ordered = rows.sortedWith(compareBy(StrengthExercisePerformanceHistoryEntity::sessionDate, StrengthExercisePerformanceHistoryEntity::createdAt))
-                val first = exp(ordered.first().posteriorLogMean)
-                val last = exp(ordered.last().posteriorLogMean)
-                CanonicalStrengthSignal(
-                    posteriorMedianKg = last,
-                    posteriorChangePercent = if (first > 0.0) (last / first - 1.0) * 100.0 else null,
-                    observationCount = ordered.size,
-                    source = "CANONICAL_EXERCISE_LOCAL_POSTERIOR:${revision.revisionKey}"
-                )
-            }
+        return canonicalStrengthSignalsForWindow(strengthPosteriorDao.localHistory(revision.revisionKey), cutoff, revision.revisionKey)
     }
 
     suspend fun persistDecision(programId: Long, programStableKey: String, decision: PersonalizedPlanningDecision, finalFingerprint: String) {
@@ -166,19 +186,28 @@ internal class PersonalizedProgramPlanningService(
         return PersonalizedPlanningPreferences(
             strengthIntent = json.optString("strengthIntent").takeIf(String::isNotBlank)?.let { runCatching { StrengthIntent.valueOf(it) }.getOrNull() },
             badmintonIntent = json.optString("badmintonIntent").takeIf(String::isNotBlank)?.let { runCatching { BadmintonPlanningIntent.valueOf(it) }.getOrNull() },
-            freeWeightWillingness = json.optString("freeWeightWillingness").takeIf(String::isNotBlank)?.let { runCatching { FreeWeightWillingness.valueOf(it) }.getOrNull() }
+            freeWeightWillingness = json.optString("freeWeightWillingness").takeIf(String::isNotBlank)?.let { runCatching { FreeWeightWillingness.valueOf(it) }.getOrNull() },
+            strengthIntentAnsweredAtEpochMillis = json.optLong("strengthIntentAnsweredAtEpochMillis", Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE },
+            strengthIntentProfileGoal = json.optString("strengthIntentProfileGoal").takeIf(String::isNotBlank)
         )
     }
 
-    private suspend fun persistAnswers(answers: PersonalizedPlanningAnswers) {
+    private suspend fun persistAnswers(answers: PersonalizedPlanningAnswers, profileGoal: String) {
         if (answers.values.isEmpty()) return
         val old = readPreferences()
         val next = old.copy(
             strengthIntent = answers.values[QUESTION_STRENGTH_INTENT]?.let { StrengthIntent.valueOf(it) } ?: old.strengthIntent,
             badmintonIntent = answers.values[QUESTION_BADMINTON_INTENT]?.let { BadmintonPlanningIntent.valueOf(it) } ?: old.badmintonIntent,
-            freeWeightWillingness = answers.values[QUESTION_FREE_WEIGHT]?.let { FreeWeightWillingness.valueOf(it) } ?: old.freeWeightWillingness
+            freeWeightWillingness = answers.values[QUESTION_FREE_WEIGHT]?.let { FreeWeightWillingness.valueOf(it) } ?: old.freeWeightWillingness,
+            strengthIntentAnsweredAtEpochMillis = if (QUESTION_STRENGTH_INTENT in answers.values) System.currentTimeMillis() else old.strengthIntentAnsweredAtEpochMillis,
+            strengthIntentProfileGoal = if (QUESTION_STRENGTH_INTENT in answers.values) profileGoal else old.strengthIntentProfileGoal
         )
-        appMetaDao.upsert(AppMeta(PREFERENCES_KEY, JSONObject().put("strengthIntent", next.strengthIntent?.name.orEmpty()).put("badmintonIntent", next.badmintonIntent?.name.orEmpty()).put("freeWeightWillingness", next.freeWeightWillingness?.name.orEmpty()).toString()))
+        appMetaDao.upsert(AppMeta(PREFERENCES_KEY, JSONObject()
+            .put("strengthIntent", next.strengthIntent?.name.orEmpty())
+            .put("strengthIntentAnsweredAtEpochMillis", next.strengthIntentAnsweredAtEpochMillis)
+            .put("strengthIntentProfileGoal", next.strengthIntentProfileGoal.orEmpty())
+            .put("badmintonIntent", next.badmintonIntent?.name.orEmpty())
+            .put("freeWeightWillingness", next.freeWeightWillingness?.name.orEmpty()).toString()))
     }
 
     private fun decisionIdFromJson(value: String): String? = runCatching { JSONObject(value).optString("decisionId").takeIf(String::isNotBlank) }.getOrNull()
@@ -195,10 +224,62 @@ internal class PersonalizedProgramPlanningService(
         .put("userAnswers", JSONObject(userAnswers)).put("generatedProgramStableKey", generatedProgramStableKey)
         .put("originalGenerationFingerprint", originalGenerationFingerprint).put("userEditedAfterGeneration", userEditedAfterGeneration)
         .put("finalSavedFingerprint", finalSavedFingerprint).put("recoverySignalCodes", JSONArray(recoverySignalCodes))
-        .put("genericCourtLoad", genericCourtLoad).put("objectiveExposure", JSONObject(objectiveExposure)).toString()
+        .put("genericCourtLoad", genericCourtLoad).put("objectiveExposure", JSONObject(objectiveExposure))
+        .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
+            .put("stableKey", transition.stableKey)
+            .put("observedStyle", transition.observedStyle.name)
+            .put("structureTreatment", transition.structureTreatment.name)
+            .put("doseTreatment", transition.doseTreatment.name)
+            .put("continuityScore", transition.continuityScore)
+            .put("localDoseFactor", transition.localDoseFactor)
+            .put("preservedFeatures", JSONArray(transition.preservedFeatures))
+            .put("moderatedFeatures", JSONArray(transition.moderatedFeatures))
+        }))
+        .put("planningBudget", planningBudget?.let { budget -> JSONObject()
+            .put("baselineResistanceSets", budget.baselineResistanceSets)
+            .put("targetResistanceSets", budget.targetResistanceSets)
+            .put("plannedResistanceSets", budget.plannedResistanceSets)
+            .put("targetStructuredBadmintonBouts", budget.targetStructuredBadmintonBouts)
+            .put("plannedStructuredBadmintonBouts", budget.plannedStructuredBadmintonBouts)
+            .put("systemicDoseFactor", budget.systemicDoseFactor)
+        }).toString()
 
     companion object {
         internal const val PREFERENCES_KEY = "personalized_planning_preferences_v1"
         internal const val DECISION_PREFIX = "personalized_planning_decision_v1_"
     }
 }
+
+internal fun resolvePersonalizedRequest(
+    request: ProgramSkeletonRequest,
+    constraints: PersonalizedGenerationConstraints,
+    inferredGoal: ProgramGoal,
+    recommendedDays: Int,
+    recommendedHorizon: Int
+): ProgramSkeletonRequest = request.copy(
+    goal = constraints.explicitGoal ?: inferredGoal,
+    weeklyTrainingDays = (constraints.explicitWeeklyTrainingDays ?: recommendedDays).coerceIn(2, 5),
+    durationWeeks = (constraints.explicitDurationWeeks ?: recommendedHorizon).coerceIn(2, 6),
+    sessionMinutes = constraints.explicitSessionMinutes ?: request.sessionMinutes,
+    badmintonTransferRatio = 0.0,
+    sportStrengthRatio = "AUTO"
+)
+
+internal fun canonicalStrengthSignalsForWindow(
+    rows: List<StrengthExercisePerformanceHistoryEntity>,
+    cutoff: LocalDate,
+    revisionKey: String
+): Map<String, CanonicalStrengthSignal> = rows
+    .filter { runCatching { LocalDate.parse(it.sessionDate) }.getOrNull()?.let { date -> !date.isAfter(cutoff) && !date.isBefore(cutoff.minusDays(55)) } == true }
+    .groupBy(StrengthExercisePerformanceHistoryEntity::exerciseStableKey)
+    .mapValues { (_, exerciseRows) ->
+        val ordered = exerciseRows.sortedWith(compareBy(StrengthExercisePerformanceHistoryEntity::sessionDate, StrengthExercisePerformanceHistoryEntity::createdAt))
+        val last = exp(ordered.last().posteriorLogMean)
+        val first = ordered.takeIf { it.size >= 2 }?.first()?.let { exp(it.posteriorLogMean) }
+        CanonicalStrengthSignal(
+            posteriorMedianKg = last,
+            posteriorChangePercent = first?.takeIf { it > 0.0 }?.let { (last / it - 1.0) * 100.0 },
+            observationCount = ordered.size,
+            source = "CANONICAL_EXERCISE_LOCAL_POSTERIOR:$revisionKey"
+        )
+    }

@@ -223,6 +223,7 @@ internal object GeneratedLocalizationCatalogue {
         "강도, 수행량, 효율을 합친 주간 근력 지수" to R.string.loc_baseline_61d1f93abe16,
         "강도/수행량/RPE 대비 운동량 구성" to R.string.loc_ui_5089905035d9,
         "강도나 반복 부위를 조절하세요." to R.string.loc_baseline_e87f2c22df6d,
+        "강조점 전환" to R.string.loc_baseline_af1cf34b901e,
         "강한 nRM 관측" to R.string.loc_baseline_b29ed567ecc6,
         "강한 주의" to R.string.loc_ui_2254a11ded6d,
         "강한 편" to R.string.loc_ui_9ff53fea5ee1,
@@ -422,15 +423,16 @@ internal object GeneratedLocalizationCatalogue {
         "광배근 부하" to R.string.loc_metadata_9f382258b9bc,
         "광배근 스트레이트암 풀다운 또는 풀오버 보조" to R.string.loc_metadata_997eecdf38f0,
         "교대" to R.string.loc_metadata_9a531ca78398,
+        "구성 유지" to R.string.loc_baseline_38dfb538c6c9,
         "구성 조직 stableKey" to R.string.loc_metadata_b68225eef407,
         "구성 조직 코드" to R.string.loc_metadata_35c53d009daf,
         "구성원 순서" to R.string.loc_metadata_1e3a639554dc,
         "구조적 모호성 건수" to R.string.loc_metadata_58705be4907c,
-        "국소 / 부위" to R.string.loc_ui_5bd78ee54c32,
-        "국소 근육" to R.string.loc_baseline_228d96ded8be,
     )
 
     private fun exactUiTextIdsChunk1(): Map<String, Int> = mapOf(
+        "국소 / 부위" to R.string.loc_ui_5bd78ee54c32,
+        "국소 근육" to R.string.loc_baseline_228d96ded8be,
         "국소 근육 분석에서는 현재 피로가 많이 남아 있는 근육을 우선해서 보여줍니다." to R.string.loc_ui_b54a5bd6368a,
         "국소 근육 스트레스 수준" to R.string.loc_metadata_cb4f33b50e2b,
         "국소 근육 피로" to R.string.loc_metadata_d7144a2452ac,
@@ -624,10 +626,14 @@ internal object GeneratedLocalizationCatalogue {
         "기록" to R.string.loc_baseline_b94be021d47b,
         "기록 관리" to R.string.loc_ui_192a2e98b0aa,
         "기록 기간을 프로그램으로 저장" to R.string.loc_baseline_1a842bb74872,
+        "기록 기반 계획 사전 확인" to R.string.loc_baseline_9c507fbc2a86,
         "기록 기반 계획 생성 시간이 초과되었습니다." to R.string.loc_baseline_a77dfe7e00d2,
         "기록 기반 계획 생성에 실패했습니다." to R.string.loc_baseline_e0235fddb55e,
         "기록 기반 계획 요약" to R.string.loc_baseline_f45e64b8e376,
         "기록 기반 계획 확인" to R.string.loc_baseline_91f5b207f093,
+        "기록 기반 사전 분석 시간이 초과되었습니다." to R.string.loc_baseline_4bf066617f50,
+        "기록 기반 사전 분석에 실패했습니다." to R.string.loc_baseline_087f46d28d08,
+        "기록 기반 생성은 기간·주당 일수를 AUTO로 정합니다. 위 값을 직접 바꾸면 그 값이 우선하며, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다." to R.string.loc_baseline_160ada52bac9,
         "기록 기반 알고리듬 프로그램 다시 만들기" to R.string.loc_baseline_d9da5f8fb20b,
         "기록 기반 알고리듬 프로그램 만들기" to R.string.loc_baseline_0f7f0c9b503c,
         "기록 기준으로는" to R.string.loc_baseline_fad9f8899eb8,
@@ -825,15 +831,15 @@ internal object GeneratedLocalizationCatalogue {
         "동일중량 5×5" to R.string.loc_baseline_64818d7d16f6,
         "동일중량 근력 세트" to R.string.loc_baseline_ff7f42e311a3,
         "동작 계열" to R.string.loc_baseline_72683872bfd8,
+    )
+
+    private fun exactUiTextIdsChunk2(): Map<String, Int> = mapOf(
         "동작 분류" to R.string.loc_baseline_374583dff405,
         "동작 세부형" to R.string.loc_baseline_205b7510925b,
         "동작 집중" to R.string.loc_baseline_f4f7ea5154ea,
         "동작 패턴" to R.string.loc_baseline_9e4eb33a1eaf,
         "동작 패턴 품질" to R.string.loc_metadata_8798d47f37ab,
         "동작 품질 기준" to R.string.loc_metadata_c8faed228969,
-    )
-
-    private fun exactUiTextIdsChunk2(): Map<String, Int> = mapOf(
         "동적 코어 굴곡 스트레스" to R.string.loc_metadata_f5b45c0fa020,
         "되돌리기" to R.string.loc_baseline_bc422c6f05c2,
         "두 지표의 같은 기간 관계를 살펴봅니다." to R.string.loc_ui_b9860b845fff,
@@ -1075,6 +1081,7 @@ internal object GeneratedLocalizationCatalogue {
         "반드시 쉬어야 합니다" to R.string.loc_baseline_5b2351a1fd46,
         "반복" to R.string.loc_ui_1d96796ed704,
         "반복 감소" to R.string.loc_baseline_af3706773550,
+        "반복 기록에서 신뢰할 수 있는 기존 구성이 확인됐습니다." to R.string.loc_baseline_f3103c60a237,
         "반복 발 접촉" to R.string.loc_metadata_a7e0d15b0c5b,
         "반복 비교에서는 우연 상관이 포함될 수 있습니다. 결과를 훈련 처방의 단독 근거로 사용하지 마세요." to R.string.loc_baseline_83061a6627c3,
         "반복 스프린트 부하" to R.string.loc_metadata_9320c643a4c4,
@@ -1227,6 +1234,9 @@ internal object GeneratedLocalizationCatalogue {
         "변형 운동 직접 연구" to R.string.loc_metadata_4a0e4a416054,
         "보간 잠재 상태 포함 불확실성" to R.string.loc_metadata_e492c4818a4f,
         "보고된 불편감이 없습니다." to R.string.loc_ui_57ced9c57385,
+    )
+
+    private fun exactUiTextIdsChunk3(): Map<String, Int> = mapOf(
         "보류" to R.string.loc_metadata_5a744d994262,
         "보류 ID" to R.string.loc_metadata_92dc9dc4bfe5,
         "보류 대상 향후 사전 단계" to R.string.loc_metadata_4ab98ad3aad3,
@@ -1234,9 +1244,6 @@ internal object GeneratedLocalizationCatalogue {
         "보조" to R.string.loc_ui_f77738404b15,
         "보조 근력 운동 슬롯" to R.string.loc_metadata_8b378f18fefd,
         "보조 스트레스" to R.string.loc_baseline_deb2214d8958,
-    )
-
-    private fun exactUiTextIdsChunk3(): Map<String, Int> = mapOf(
         "보조 스트레스 태그" to R.string.loc_metadata_fbaa78880834,
         "보조 운동" to R.string.loc_metadata_1ff6ecac0d45,
         "보조 운동 볼륨" to R.string.loc_metadata_66129e1a826a,
@@ -1270,6 +1277,7 @@ internal object GeneratedLocalizationCatalogue {
         "복원할 수 없습니다" to R.string.loc_ui_c9c8621d6634,
         "볼륨 부하" to R.string.loc_metadata_fd62163caa3a,
         "부담 낮추기" to R.string.loc_baseline_9e403e8abeab,
+        "부분 연속성" to R.string.loc_baseline_c31a4896026b,
         "부상" to R.string.loc_baseline_1b59b5fdeb0d,
         "부상 위험이 높습니다" to R.string.loc_baseline_e1abc73454bc,
         "부위 피로" to R.string.loc_ui_defeb11e42e1,
@@ -1629,6 +1637,9 @@ internal object GeneratedLocalizationCatalogue {
         "실패 상한 관측" to R.string.loc_baseline_e111feebf567,
         "실패근접 세트" to R.string.loc_baseline_d714b72bb2a4,
         "실험실" to R.string.loc_ui_0ddbe4c49723,
+    )
+
+    private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
         "심각도" to R.string.loc_metadata_278baecdf1b9,
         "심함" to R.string.loc_baseline_5570bae187dc,
         "아놀드 프레스" to R.string.loc_metadata_fe60b39b418b,
@@ -1637,9 +1648,6 @@ internal object GeneratedLocalizationCatalogue {
         "아직 기록이 부족해 이 관계를 판단하기 어렵습니다." to R.string.loc_baseline_f705bdac9427,
         "아직 배드민턴 전이 축을 판단할 기록이 부족합니다." to R.string.loc_baseline_ed71b3ef8b67,
         "아직 부위별 기록이 충분하지 않습니다." to R.string.loc_ui_66b42f2a42d4,
-    )
-
-    private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
         "아직 원인 분석에 필요한 기록이 부족합니다." to R.string.loc_baseline_3f0226f846c1,
         "아직 입력하지 않았습니다." to R.string.loc_baseline_f2dd24c694dc,
         "아직 저장된 운동 구성이 없습니다." to R.string.loc_baseline_456344fb7102,
@@ -1831,6 +1839,9 @@ internal object GeneratedLocalizationCatalogue {
         "용량 규칙" to R.string.loc_metadata_ba531262e18e,
         "용량 기준" to R.string.loc_metadata_9b08c021a1bb,
         "용량 단위" to R.string.loc_metadata_47b8b57649fb,
+        "용량 소폭 감소" to R.string.loc_baseline_975f68b05079,
+        "용량 유지" to R.string.loc_baseline_7bec64f57f9b,
+        "용량 중간 감소" to R.string.loc_baseline_677e67499e7c,
         "우연히 나타난 관계일 수 있어 낮은 신뢰도로 해석해야 합니다." to R.string.loc_baseline_014564391e46,
         "운동" to R.string.loc_metadata_7e6b4a1e296d,
         "운동 stableKey" to R.string.loc_metadata_bc66e1775362,
@@ -1945,6 +1956,7 @@ internal object GeneratedLocalizationCatalogue {
         "이 결과는 완화 진단 기준을 충족했습니다." to R.string.loc_baseline_b95364efe786,
         "이 날짜에는 아직 운동이 없습니다." to R.string.loc_baseline_726334dee04b,
         "이 날짜의 운동 기록을 삭제할까요?" to R.string.loc_baseline_601360ddf02f,
+        "이 답변으로 생성" to R.string.loc_baseline_c3cb32d7a4d0,
         "이 반응은 현재 기록과 모형에 조건부이며 인과관계를 확정하지 않습니다." to R.string.loc_baseline_be808b41d14a,
         "이 분석은 기록의 탐색적 시차 패턴을 보여 주며 인과관계나 완성된 엄격 Bayesian posterior를 뜻하지 않습니다." to R.string.loc_baseline_30902ceff5c3,
         "이 상태는 손상률이나 진단이 아닙니다." to R.string.loc_ui_c25b5ea1abbe,
@@ -1973,6 +1985,7 @@ internal object GeneratedLocalizationCatalogue {
         "이전 추정 없음" to R.string.loc_baseline_c15acfa592cf,
         "이전날" to R.string.loc_baseline_f9f88a6323af,
         "이전달" to R.string.loc_baseline_69f5cd6c7d8c,
+        "익숙한 방식 우선" to R.string.loc_baseline_8120f6e90282,
         "인과관계 확정이 아니라 주간 기록 기반의 탐색적 패턴입니다." to R.string.loc_baseline_c5549487d67f,
         "인대" to R.string.loc_metadata_15b0f3e81fe4,
         "인대 관절 안정성 스트레스 태그" to R.string.loc_metadata_0c320a3a8727,
@@ -2027,6 +2040,9 @@ internal object GeneratedLocalizationCatalogue {
         "작업 ID" to R.string.loc_ui_56efafb5a028,
         "작업 시작" to R.string.loc_ui_a22716e736c5,
         "작업: \${if (operation == DataTransferOperation.BACKUP)" to R.string.loc_baseline_e2b685540140,
+    )
+
+    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "작업량 기준선" to R.string.loc_metadata_a40d25c83e57,
         "작은 오버레이는 선택 기능입니다. 권한이 없어도 타이머는 동작합니다." to R.string.loc_baseline_00d1a5e77366,
         "잔여 피로" to R.string.loc_ui_a638cdedec5e,
@@ -2040,9 +2056,6 @@ internal object GeneratedLocalizationCatalogue {
         "장비 태그" to R.string.loc_metadata_2e28e01c7b35,
         "장시간 배드민턴" to R.string.loc_baseline_00ac81dac734,
         "재시도하면 근력 분석 파생 결과만 지우고 보존된 운동 기록을 날짜순으로 다시 계산합니다." to R.string.loc_baseline_0fa21f1dbb7a,
-    )
-
-    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "저강도 반응성 충격" to R.string.loc_metadata_327b80a4b823,
         "저강도 배드민턴" to R.string.loc_ui_5aeeaaf1d753,
         "저반복/고강도" to R.string.loc_baseline_c83923fb5088,
@@ -2430,6 +2443,9 @@ internal object GeneratedLocalizationCatalogue {
         "추천축 후보 운동" to R.string.loc_ui_08b23f48ebb1,
         "축 맞춤" to R.string.loc_baseline_de15778d5a2f,
         "축구" to R.string.loc_metadata_1b55b706f300,
+    )
+
+    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "축구 경기" to R.string.loc_baseline_fb05f4603ba2,
         "축구공" to R.string.loc_metadata_f1f85cb53542,
         "축성 부하" to R.string.loc_metadata_bbfdbeee55a8,
@@ -2443,9 +2459,6 @@ internal object GeneratedLocalizationCatalogue {
         "출처 상태" to R.string.loc_metadata_7e32286e9aef,
         "출처 신뢰도 수준" to R.string.loc_metadata_9b38c7b6e354,
         "출처 이력" to R.string.loc_metadata_44099ea66f37,
-    )
-
-    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "출처 이력 상태" to R.string.loc_metadata_dc7d05e7f445,
         "충격 기준" to R.string.loc_baseline_3777ecf1e7d9,
         "충격 변수 X" to R.string.loc_baseline_0c1ac712faeb,
@@ -2797,6 +2810,7 @@ internal object GeneratedLocalizationCatalogue {
         "핵 스쿼트" to R.string.loc_metadata_1862ca0feb8a,
         "핵 스쿼트 머신" to R.string.loc_metadata_d3630164112d,
         "핵스쿼트" to R.string.loc_baseline_ddbd5f72ab11,
+        "핵심 유지·재배분" to R.string.loc_baseline_2c1f62143b3d,
         "핸드스탠드 수직 밀기" to R.string.loc_metadata_47ec78f96cff,
         "핸드스탠드 푸시업" to R.string.loc_metadata_55c757fb78dc,
         "햄스트링" to R.string.loc_metadata_bc4e26928adf,
@@ -2832,6 +2846,9 @@ internal object GeneratedLocalizationCatalogue {
         "현재 단계" to R.string.loc_ui_8206aecc89d3,
         "현재 데이터에서 큰 충돌 신호는 보이지 않습니다." to R.string.loc_ui_9c0797fbb12d,
         "현재 동작 이관" to R.string.loc_metadata_d335f43f1066,
+    )
+
+    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "현재 부담 상위 부위" to R.string.loc_ui_e66e89908cc8,
         "현재 부담은 낮게 잡힙니다." to R.string.loc_baseline_f75f69178f01,
         "현재 부담은 평소 범위입니다." to R.string.loc_baseline_fa8c1567a4c6,
@@ -2846,9 +2863,6 @@ internal object GeneratedLocalizationCatalogue {
         "현재 불편감이나 관절/건 신호가 있으면 해당 항목을 줄이고 회복을 우선하세요." to R.string.loc_baseline_fd2cd6da2326,
         "현재 상태" to R.string.loc_ui_06e63a0be0a2,
         "현재 상태:" to R.string.loc_baseline_ce0305e583c0,
-    )
-
-    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "현재 수행능력 추정" to R.string.loc_baseline_819ac058bf54,
         "현재 어떤 근육의 피로가 상대적으로 많이 남아 있는지 확인합니다." to R.string.loc_ui_9a55b980f942,
         "현재 유지" to R.string.loc_baseline_dd5edc2fcf78,
@@ -2893,6 +2907,7 @@ internal object GeneratedLocalizationCatalogue {
         "확인된 세트가 쌓이면 코치 분석의 신뢰도가 높아집니다." to R.string.loc_ui_ee365843e598,
         "확인된 오류 수" to R.string.loc_metadata_375773563650,
         "확장 기반" to R.string.loc_baseline_7af17b6c17f1,
+        "확정된 입력으로 다음 블록을 구성하는 중입니다." to R.string.loc_baseline_e30f35c53b1b,
         "활동 종류" to R.string.loc_metadata_ae549080a040,
         "활성" to R.string.loc_ui_b4efb7c7a272,
         "활성 revision \${summary.activeRevisionKey ?:" to R.string.loc_baseline_658d2952235f,
@@ -3016,6 +3031,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^(.*?)\\ 완료:\\ profile\\ (.*?),\\ daily\\ (.*?),\\ check\\-in\\ (.*?),\\ entry\\ (.*?),\\ set\\ (.*?),\\ program\\ (.*?),\\ program\\ item\\ (.*?),\\ program\\ item\\ set\\ (.*?),\\ program\\ tombstone\\ (.*?),\\ skip\\ (.*?)\$"), R.string.loc_ui_pattern_dab7fe7fc498),
         UiTextPattern(Regex("^관련\\ 세션\\ (.*?)\\ ·\\ 직접\\ 1RM\\ (.*?)\\ ·\\ RPE\\ 확률\\ 관측\\ (.*?)\\ ·\\ 강한\\ nRM\\ (.*?)\\ ·\\ 프록시\\ 혁신\\ (.*?)\\ ·\\ 실패\\ (.*?)\$"), R.string.loc_ui_pattern_c40cf1b21623),
         UiTextPattern(Regex("^(.*?)분\\ 이상\\ 배드민턴\\ 뒤\\ 다음날\\ 피로/불편감\\ 입력이\\ 높았던\\ 기록이\\ 있습니다\\.\\ 같은\\ 패턴을\\ 단정하지\\ 않고\\ 다음날\\ 강도를\\ 보수적으로\\ 봅니다\\.\$"), R.string.loc_ui_pattern_dbedbe291fc1),
+        UiTextPattern(Regex("^Top\\ (.*?)\\ kg\\ ×\\ (.*?)회;\\ Backoff\\ (.*?)\\ kg\\ ×\\ (.*?)회\\ ×\\ (.*?)\\ ·\\ RPE\\ 7\\.5–8\\.5\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_85339bb50cde),
         UiTextPattern(Regex("^최근\\ 일반\\ 코트\\ 부하\\ (.*?)가\\ 주간\\ 빈도·밀도·회복\\ 여유에\\ 반영됐습니다\\.\\ 이\\ 부하는\\ Objective\\ V2\\ 자극으로\\ 계산하지\\ 않았습니다\\.\$"), R.string.loc_ui_pattern_1c1653a5d660),
         UiTextPattern(Regex("^Top\\ (.*?)\\ kg\\ ×\\ (.*?)회;\\ Backoff\\ (.*?)\\ kg\\ ×\\ (.*?)회\\ ×\\ 2\\ ·\\ RPE\\ 7\\.5–8\\.5\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_59159ce08a9f),
         UiTextPattern(Regex("^(.*?)의\\ 최근\\ RPE\\ 평균\\ (.*?),\\ 이전\\ 비슷한\\ 세트\\ (.*?)입니다\\.\\ 오늘은\\ 같은\\ 무게라도\\ 체감\\ 강도를\\ 확인하며\\ 조절합니다\\.\$"), R.string.loc_ui_pattern_703601d18a3b),
@@ -3024,6 +3040,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^(.*?)주\\ (.*?)일\\ strength/transfer\\ 세션의\\ 절반\\ 이상이\\ rehab\\-like\\ activation입니다\\.\$"), R.string.loc_ui_pattern_b13d27c4c98e),
         UiTextPattern(Regex("^앱에서\\ 분석에\\ 맞게\\ 변환한\\ (.*?)\\ 값이,\\ 분석에\\ 사용된\\ 공통\\ 주간\\ 기록의\\ 표본표준편차\\ 1개만큼\\ 증가한\\ 경우\$"), R.string.loc_ui_pattern_5b3442b31fa6),
         UiTextPattern(Regex("^(.*?)주의\\ hard\\ day\\ 3일은\\ HIGH/INTENSIFY와\\ 후속\\ 저부하\\ 주\\ 조건을\\ 충족하지\\ 않습니다\\.\$"), R.string.loc_ui_pattern_fc90b4725ffe),
+        UiTextPattern(Regex("^수행\\ 기록에서\\ (.*?)\\ 구성을\\ 관찰했습니다\\.\\ 다음\\ 블록\\ 처리는\\ 앵커별\\ 전환\\ 판단으로\\ 별도\\ 결정합니다\\.\$"), R.string.loc_ui_pattern_35af480e25eb),
         UiTextPattern(Regex("^3일\\ 평균은\\ (.*?)시간이며\\ 기준선\\ (.*?)시간보다\\ 낮습니다\\.\\ 오늘\\ 강도는\\ 더\\ 보수적으로\\ 해석합니다\\.\$"), R.string.loc_ui_0d073c4bf56e),
         UiTextPattern(Regex("^최신\\ 주\\ 합계\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\\ ·\\ 해당\\ 주\\ 간접\\ 비중\\ (.*?)%\$"), R.string.loc_ui_pattern_7005a199ef8d),
         UiTextPattern(Regex("^근력운동은\\ (.*?),\\ 배드민턴\\ 연습\\ 훈련량은\\ (.*?),\\ 이번\\ 주\\ 누적\\ 부담은\\ (.*?)\\ 흐름입니다\\.\$"), R.string.loc_ui_pattern_200fe36edef1),
@@ -3038,6 +3055,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^(.*?)\\ 완료:\\ profile\\ (.*?),\\ daily\\ (.*?),\\ check\\-in\\ (.*?),\$"), R.string.loc_ui_pattern_f3ebfb3980b9),
         UiTextPattern(Regex("^(.*?)\\-(.*?)주\\ 견갑\\ 안정성\\ 노출의\\ 과반이\\ 저부하\\ rehab\\ activation입니다\\.\$"), R.string.loc_ui_pattern_13f028b088e2),
         UiTextPattern(Regex("^(.*?)의\\ 반응은\\ (.*?)\\ 중앙값\\ 기준\\ 가장\\ 큰\\ 반응은\\ (.*?)주\\ 후에\\ 나타났습니다\\.\$"), R.string.loc_ui_pattern_d47be7eee0b2),
+        UiTextPattern(Regex("^주간\\ 저항\\ 세트\\ (.*?)\\ →\\ (.*?)/(.*?)\\ ·\\ 구조화\\ 배드민턴\\ (.*?)/(.*?)회\$"), R.string.loc_ui_pattern_86bf5b3ed650),
         UiTextPattern(Regex("^기준:\\ (.*?)세트\\ ·\\ (.*?)회\\ ·\\ (.*?)kg\\ ·\\ RPE\\ (.*?)\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_01fc109148c3),
         UiTextPattern(Regex("^변환\\ 후\\ 공통으로\\ 사용할\\ 수\\ 있는\\ 기록은\\ (.*?)주이며\\ 최소\\ (.*?)주가\\ 필요합니다\\.\$"), R.string.loc_ui_pattern_d19175dc4818),
         UiTextPattern(Regex("^(.*?)\\-(.*?)주\\ 관절/건/충격\\ 누적\\ (.*?)가\\ 관리\\ 기준\\ (.*?)를\\ 초과합니다\\.\$"), R.string.loc_ui_pattern_1e3c3c2107d8),
@@ -3051,9 +3069,11 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^전체\\ (.*?)\\ ·\\ 직접\\ (.*?)\\ ·\\ 간접\\ (.*?)\\ ·\\ 간접\\ 비중\\ (.*?)%\$"), R.string.loc_ui_pattern_454f3c3091e8),
         UiTextPattern(Regex("^(.*?)\\ anchor가\\ 최소\\ 2주\\ 연속\\ 노출되지\\ 않아\\ 진행성\\ 추적이\\ 어렵습니다\\.\$"), R.string.loc_ui_pattern_6dd02358a0f4),
         UiTextPattern(Regex("^(.*?)\\ canonical\\ planning\\ metadata로\\ (.*?)을\\ 선택했습니다\\.\$"), R.string.loc_ui_pattern_6574ad011b14),
+        UiTextPattern(Regex("^(.*?)\\ kg\\ ×\\ (.*?)회\\ ×\\ (.*?)세트\\ ·\\ RPE\\ 8–9\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_65a3f402fef1),
         UiTextPattern(Regex("^(.*?)\\ strength\\ progression\\ group가\\ (.*?)개로\\ 제한적입니다\\.\$"), R.string.loc_ui_pattern_82de5ae10593),
         UiTextPattern(Regex("^(.*?)\\-(.*?)주\\ 신경계\\ 누적\\ (.*?)가\\ 관리\\ 기준\\ (.*?)를\\ 초과합니다\\.\$"), R.string.loc_ui_pattern_26bf9b3870f4),
         UiTextPattern(Regex("^기록된\\ 저항훈련\\ 행동은\\ (.*?)이며,\\ 행동과\\ 사용자의\\ 의도는\\ 별도로\\ 판단했습니다\\.\$"), R.string.loc_ui_pattern_2fa98fc22b2a),
+        UiTextPattern(Regex("^(.*?)\\ kg\\ ×\\ 5회\\ ×\\ (.*?)세트\\ ·\\ RPE\\ 7–8\\.5\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_921c0af7324c),
         UiTextPattern(Regex("^요청한\\ (.*?)주\\ 중\\ 현재\\ 자료로는\\ 최대\\ (.*?)주까지\\ 추정할\\ 수\\ 있습니다\\.\$"), R.string.loc_ui_pattern_e9c319abcdc0),
         UiTextPattern(Regex("^최근\\ 3일\\ 평균\\ (.*?)시간입니다\\.\\ 피로\\ 신호를\\ 조금\\ 더\\ 보수적으로\\ 봅니다\\.\$"), R.string.loc_ui_pattern_87410667f641),
         UiTextPattern(Regex("^(.*?)(.*?)\\ 회\\ ×\\ (.*?)\\ 세트\\ ·\\ RPE\\ 7–8\\.5\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_c1a5d0a39ede),
@@ -3066,6 +3086,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^변환\\ 후\\ 사용할\\ 수\\ 있는\\ 기록\\ (.*?)주로는\\ 분석을\\ 완료할\\ 수\\ 없습니다\\.\$"), R.string.loc_ui_pattern_5e9f4aef6302),
         UiTextPattern(Regex("^유효\\ 근비대\\ 자극이\\ (.*?)에\\ 과도하게\\ 치우쳐\\ (.*?)\\ 보완이\\ 필요합니다\\.\$"), R.string.loc_ui_pattern_72d46f4055b9),
         UiTextPattern(Regex("^최근\\ 7일\\ 전이\\ 비중은\\ (.*?)에\\ 가장\\ 높고,\\ (.*?)\\ 자극은\\ 낮습니다\\.\$"), R.string.loc_ui_d0d8b9bc7f21),
+        UiTextPattern(Regex("^(.*?)\\ (.*?)회\\ ×\\ (.*?)세트\\ ·\\ RPE\\ 7–8\\.5\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_73bb5c99d8fb),
         UiTextPattern(Regex("^정렬된\\ 주간\\ 기록:\\ (.*?)주\\ ·\\ 변환\\ 후\\ 공통\\ 사용\\ 가능:\\ (.*?)주\$"), R.string.loc_ui_pattern_0bb4e8cee4f7),
         UiTextPattern(Regex("^최근\\ 3일\\ 평균\\ (.*?)시간입니다\\.\\ 고강도\\ 훈련\\ 판단에는\\ 여유를\\ 둡니다\\.\$"), R.string.loc_ui_pattern_c1da6aa8393f),
         UiTextPattern(Regex("^최근\\ 7일은\\ (.*?)\\ 자극이\\ 많고,\\ (.*?)\\ 자극은\\ 상대적으로\\ 적습니다\\.\$"), R.string.loc_ui_pattern_e8ca14046569),
@@ -3075,6 +3096,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^3일\\ 평균은\\ (.*?)시간입니다\\.\\ 피로\\ 신호를\\ 다소\\ 보수적으로\\ 해석합니다\\.\$"), R.string.loc_ui_6f56a82c4b1c),
         UiTextPattern(Regex("^기록\\ 또는\\ 프로그램이\\ 참조하는\\ 운동\\ (.*?)개는\\ 조회를\\ 위해\\ 보존됩니다\\.\$"), R.string.loc_ui_pattern_12b378185b59),
         UiTextPattern(Regex("^통제\\ (.*?)는\\ 분석\\ 가능성을\\ 막지\\ 않으며\\ 필요하면\\ 자동으로\\ 제외됩니다\\.\$"), R.string.loc_ui_pattern_4c29ae1bef8e),
+        UiTextPattern(Regex("^(.*?)\\ (.*?)\\ kg\\ ×\\ (.*?)회\\ ×\\ (.*?)세트\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_e4cfb5d8c3f5),
         UiTextPattern(Regex("^(.*?)\\ kg\\ ×\\ (.*?)회\\ ×\\ (.*?)세트\\ ·\\ RPE\\ 7–8\\.5\$"), R.string.loc_ui_pattern_950a56c52a74),
         UiTextPattern(Regex("^(.*?)\\ 관련\\ 피로가\\ 많이\\ 누적되었으며,\\ (.*?)\\ 자극은\\ 부족합니다\\.\$"), R.string.loc_ui_pattern_d97d91e59710),
         UiTextPattern(Regex("^(.*?)주\\ 후:\\ 중앙값\\ (.*?)\\ ·\\ 80%\\ 구간\\ (.*?)\\~(.*?)\$"), R.string.loc_ui_pattern_df8630a6413f),
@@ -3164,6 +3186,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^오늘\\ 불편감이\\ (.*?)/5로\\ 입력되었습니다\\.\$"), R.string.loc_ui_pattern_856438c34557),
         UiTextPattern(Regex("^완료\\ 세트\\ (.*?)개가\\ 포함되어\\ 있습니다\\.\$"), R.string.loc_ui_pattern_d07ace06e37d),
         UiTextPattern(Regex("^(.*?)\\ 피로도가\\ 높습니다\\.\\ 주의하세요\\.\$"), R.string.loc_ui_pattern_fc222f502c81),
+        UiTextPattern(Regex("^HEAVY\\ 램핑\\ (.*?)세트\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_bc8904a678a2),
         UiTextPattern(Regex("^상태\\ 지문\\ (.*?)\\ ·\\ 스키마\\ (.*?)\$"), R.string.loc_ui_pattern_b7db35c67030),
         UiTextPattern(Regex("^최근\\ 직접\\ 1RM\\ (.*?)\\ ·\\ (.*?)\$"), R.string.loc_ui_pattern_b4f413c63298),
         UiTextPattern(Regex("^프록시\\ 혁신\\ (.*?)\\ ·\\ 실패\\ (.*?)\$"), R.string.loc_ui_pattern_71155c83ee16),

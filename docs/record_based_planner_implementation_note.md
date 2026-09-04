@@ -1,45 +1,57 @@
-# Record-based planner implementation note
+# Record-based planner v0.10 implementation note
 
-Baseline: `0efe36bcbb7b49f2a3142fc253fbfbfc83514a04`.
+Baseline: `4409a73eba2a970955071e9dd80ceb93443f99c4`.
 
-The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`. Personalized generation is a separate path that produces the same editable `GeneratedProgramSkeleton` format and uses the existing save/apply flow.
+The legacy automatic path remains `ProgramGenerationService -> ProgramSkeletonGenerator -> ProgramAutoBuilder`. Record-based generation remains independent, produces the same editable `GeneratedProgramSkeleton`, and reuses the existing save/apply flow only after successful generation.
 
-## Authority and behavior
+## Authority and current-block windows
 
-- Only confirmed sets on or before the explicit cutoff enter planning history.
-- Exercises and candidates are resolved through canonical `stableKey` and typed runtime metadata. Movement coverage no longer uses display-name or substring inference.
-- `SPORT_SESSION` badminton records are generic court-load context only. Canonical, directly transferred `BADMINTON_FOOTWORK` exercises are structured drills. General strength-and-conditioning exercises with supportive Objective V2 relations remain resistance training.
-- All nine canonical badminton objectives are represented. A previously observed axis that disappears is a drop gap; an axis never observed is a lower-priority developmental gap.
-- Strength response uses the exercise-local canonical posterior when available. Missing posterior evidence remains unknown; it does not fall back to a generic Epley estimate.
-- Hypertrophy exposure uses eligibility, effort, and movement contribution rather than counting every 6-20-repetition set equally.
-- OFI, Today Readiness, tissue RCV, generic court load, and exercise-local strength posterior are cutoff-aware planner inputs. They constrain horizon, frequency, density, progression, and validation.
-- Progression is explicit: `ADVANCE`, `HOLD`, `REDUCE`, or `REVIEW`. Repetitions are never raised at the last load merely because the generated week number increased. A new exercise never receives an invented starting load.
-- Strength style is inferred per anchor. A multi-day style is expanded only for the anchor that evidenced it.
-- UI questions are returned and answered one at a time. Dismissing a question stores no answer and does not continue generation.
-- The submitted personalized request is authoritative for API callers. The legacy editor's default goal/day/week controls are passed as unspecified personalized constraints, while its session-time limit remains a real availability constraint.
-- Saved provenance includes the stable program key, original generation fingerprint, final saved fingerprint, and `userEditedAfterGeneration`. A later item edit updates that provenance.
+- Only `confirmed=true` sets on or before the explicit cutoff enter planning history. Future and unconfirmed work is excluded.
+- Exercise identity, movement coverage, activity kind, planning eligibility, Objective V2, tissue contribution and candidate admission remain canonical `stableKey`/typed-metadata authorities. Names and substrings do not create semantics.
+- Per-anchor strength style, style features and current-block classification use only `cutoff - 55 days ... cutoff`.
+- Canonical exercise-local strength posterior change uses the same 56-day window. Fewer than two eligible observations yields `UNKNOWN`, never a fabricated zero or lifetime change.
+- Badminton objective drop compares the current 28 days with the immediately prior 28 days. Developmental absence is evaluated over the complete 56-day comparison horizon.
+- The 28-day generic court-load total is retained for provenance and divided by four before weekly 180/240 planning thresholds are applied.
+
+## Transition and execution
+
+- Observed style describes history only. Each anchor also records multidimensional features, adaptation state, `StructureTreatment`, `DoseTreatment`, continuity score, local dose factor, and preserved/moderated features.
+- Recovery first changes dose. Systemic readiness/OFI pressure affects the global resistance budget; tissue restrictions affect only their explicit stableKeys. Real court cost affects lower-body sport interference even when structured-badminton generation is disabled.
+- Gaps first reallocate a finite weekly resistance-set budget. Capacity expands only for the documented minimal representation case; selected gap work is never simply added on top without accounting.
+- Resistance working sets and timed structured-badminton bouts are separate quantities, but the resulting items share the same per-session time-capacity validation.
+- Multi-day execution is per anchor and constrained by its allocation and recovery. The strongest legitimate exposure in the latest observed week is the load reference.
+- A generated future week does not automatically increase load. Without new completed evidence, the current planned microcycle repeats.
+- Novel exercises keep load unknown and use an RPE/load-finding prescription. Strength intent affects progression and allocation; `PREFER_FAMILIAR`, `WILLING`, `AVOID`, and `UNRESOLVED` have distinct candidate behavior.
+
+## Preflight contract
+
+`preparePersonalizedProgram(...) -> PersonalizedPlanningPreflight` returns all currently material questions together. The UI collects every required answer before the final create action. Dismissal stores nothing.
+
+`generatePreparedPersonalizedProgram(...) -> GeneratedProgramSkeleton` receives the prepared cutoff, explicit constraints and complete answer set. It cannot return another question and does not move to a later date boundary while the user is away.
+
+Record-based duration and weekly days default to AUTO and resolve within 2..6 weeks and 2..5 days. Only an actual user selection overrides AUTO. Session minutes remain an explicit constraint. The legacy badminton-to-strength ratio is ignored on this path.
+
+Strength-intent preferences store the answer timestamp and profile goal at answer time. They become eligible for reconfirmation after 56 days or when the profile goal changes. Planner preferences and decision provenance remain portable `app_meta`; no Room schema migration is required.
 
 ## Capability-consumer matrix
 
-| Capability | Canonical producer | Planner consumers | Observable effect |
-|---|---|---|---|
-| Confirmed history and cutoff | Room workout records | snapshot, every analyzer | future/unconfirmed records excluded |
-| Movement coverage | runtime metadata `programSlot` | anchors, gaps, candidates, structure | typed coverage and rebalance |
-| Badminton objectives | Objective Stimulus V2 catalog/calculator | state, gaps, candidates, decision trace | nine-axis drop/development gaps |
-| Generic court load | `BadmintonPracticeLoadCalculator` | dose, block constraints, recovery | lower density/frequency pressure; never objective stimulus |
-| Strength performance | exercise-local strength posterior history | anchor response, progression | posterior-based advance/hold/reduce/review |
-| Hypertrophy stimulus | runtime eligibility + confirmed set effort | behavior, skew gaps | effective stimulus instead of raw set count |
-| OFI | `DailyFatigueCalculator` | recovery constraints, decision trace | conservative planning at high fatigue |
-| Readiness | `TodayReadinessEngine` | dose, horizon, prescription | frequency ceiling and load reduction/review |
-| Connective tissue | tissue RCV service | prescription, constraints | blocks increases for high-contribution exercises |
-| User intent | one-at-a-time questions/preferences | state, candidates, block intent | modality and goal choices alter candidate eligibility |
-| Session availability | personalized constraints | weekly structure, validator/repair | 2-5 days and time-budget enforcement |
-| Save identity | program stable key + SHA-256 fingerprints | backup/restore and editor mutation | durable generation/edit provenance |
+| Capability | Canonical producer | Planner effect |
+|---|---|---|
+| Confirmed cutoff history | Room workout records | future/unconfirmed rows excluded |
+| Movement/exercise identity | runtime canonical metadata | exact stableKey anchors, gaps and candidates |
+| Strength response | exercise-local posterior history | 56-day response, advance/hold/reduce/review |
+| Style and features | confirmed anchor history | observed history separated from next-block treatment |
+| Objective exposure | Objective Stimulus V2 | 28+28 day drop and 56-day developmental gaps |
+| Generic court load | `BadmintonPracticeLoadCalculator` | weekly-equivalent recovery and lower-body interference |
+| OFI/readiness | production fatigue/readiness services | systemic dose and schedule ceiling |
+| Tissue RCV | production tissue service | exact-stableKey local dose restriction |
+| User intent | preflight answers/preferences | real progression, modality and drill-selection effects |
+| Weekly budgets | v0.10 transition/execution policy | finite resistance allocation plus separate drill bouts |
 
 ## Verification
 
-`PersonalizedPlannerParityTest` runs all 29 named v0.8 personas from raw confirmed workout history through snapshot, athlete state, gaps, block intent, candidate selection, structure, prescription, validation, and final skeleton. It compares deterministic final fingerprints; it does not treat a list of persona names as parity evidence.
+`PersonalizedPlannerParityTest` preserves the 29 named v0.8 regression personas as historical-coverage protection. `PersonalizedPlannerV010Test` adds current v0.10 invariants for fixed windows, recent posterior response, 28+28 objective comparison, court-load normalization, intent/cost separation, global/local recovery, preflight, AUTO constraints, per-anchor finite allocation, strongest latest-week load, no future progression, separate drill dose, and canonical identity.
 
-`RealBackupPersonalizedPlannerE2eTest` is opt-in because the user's backup must never enter source control. Set `WGTD_REAL_BACKUP_PATH` to the external format-12 CSV. The test uses the production parse/preflight/restore route, plans at latest/4-week/8-week cutoffs, checks future-row non-leakage, perturbs generic badminton load without changing Objective V2 exposure, saves a five-week/four-day bodybuilding request, records an edit, applies it as unconfirmed planned sets, exports, and restores into a second database.
+`RealBackupPersonalizedPlannerE2eTest` now uses prepare-once/answer-all/generate-once. It remains opt-in because the user's backup must never enter source control.
 
-Reference oracle: offline `wgtd_planner_reference_v0.8` (`REFERENCE_PLANNER_0.8.0`). The Python files are behavioral evidence, not runtime code and not production semantic authority.
+Reference oracle: offline `wgtd_planner_reference_v0_10_FULL`. Its Python code and 22 passing tests are behavioral evidence. Production intentionally retains stronger canonical Android authorities and uses separate resistance-set and timed-drill budgets plus exact local tissue stableKey restrictions.

@@ -57,8 +57,8 @@ import com.training.trackplanner.data.defaultProgramWeekDaySchedule
 import com.training.trackplanner.data.emptyProgramSkeleton
 import com.training.trackplanner.data.withResolvedWeekDaySchedule
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
-import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
-import com.training.trackplanner.data.personalized.PersonalizedPlanningQuestion
+import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
+import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
 
@@ -328,9 +328,10 @@ private fun ProgramEditorScreen(
     var showSkeletonOptions by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var autoSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
     var personalizedSkeletonCreated by rememberSaveable(program?.id ?: 0L) { mutableStateOf(false) }
-    var pendingPersonalizedQuestions by remember { mutableStateOf<List<PersonalizedPlanningQuestion>>(emptyList()) }
-    var personalizedQuestionIndex by rememberSaveable { mutableStateOf(0) }
+    var pendingPersonalizedPreflight by remember { mutableStateOf<PersonalizedPlanningPreflight?>(null) }
     var personalizedAnswers by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var personalizedDaysAuto by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
+    var personalizedDurationAuto by rememberSaveable(program?.id ?: 0L) { mutableStateOf(true) }
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(program?.id, existingItems, existingItemSets) {
@@ -391,53 +392,70 @@ private fun ProgramEditorScreen(
         }
     }
 
-    fun generatePersonalized(answers: Map<String, String> = personalizedAnswers) {
-        if (!requireProgramName()) return
-        val request = currentRequest()
-        lastGenerationWasPersonalized = true
-        viewModel.generatePersonalizedProgram(request, PersonalizedPlanningAnswers(answers)) { outcome ->
-            when (outcome) {
-                is PersonalizedPlanningOutcome.Questions -> {
-                    pendingPersonalizedQuestions = outcome.questions
-                    personalizedQuestionIndex = 0
-                }
-                is PersonalizedPlanningOutcome.Generated -> {
-                    skeleton = outcome.skeleton.copy(
-                        suggestedName = request.name,
-                        request = outcome.skeleton.request.copy(name = request.name)
-                    ).withResolvedWeekDaySchedule()
-                    autoSkeletonCreated = false
-                    personalizedSkeletonCreated = true
-                    showSkeletonOptions = true
-                    pendingPersonalizedQuestions = emptyList()
-                }
-            }
+    fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
+        viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(answers)) { generated ->
+            val request = currentRequest()
+            skeleton = generated.copy(
+                suggestedName = request.name,
+                request = generated.request.copy(name = request.name)
+            ).withResolvedWeekDaySchedule()
+            autoSkeletonCreated = false
+            personalizedSkeletonCreated = true
+            showSkeletonOptions = true
+            pendingPersonalizedPreflight = null
         }
     }
 
-    pendingPersonalizedQuestions.getOrNull(personalizedQuestionIndex)?.let { question ->
+    fun preparePersonalized() {
+        if (!requireProgramName()) return
+        val request = currentRequest()
+        lastGenerationWasPersonalized = true
+        personalizedAnswers = emptyMap()
+        viewModel.preparePersonalizedProgram(
+            request = request,
+            constraints = PersonalizedGenerationConstraints(
+                explicitWeeklyTrainingDays = weeklyDays.takeUnless { personalizedDaysAuto },
+                explicitDurationWeeks = durationWeeks.takeUnless { personalizedDurationAuto },
+                explicitSessionMinutes = sessionMinutes
+            )
+        ) { preflight ->
+            if (preflight.questions.isEmpty()) runPreparedPersonalized(preflight, emptyMap())
+            else pendingPersonalizedPreflight = preflight
+        }
+    }
+
+    pendingPersonalizedPreflight?.let { preflight ->
         AlertDialog(
             onDismissRequest = {
-                pendingPersonalizedQuestions = emptyList()
+                pendingPersonalizedPreflight = null
+                personalizedAnswers = emptyMap()
             },
-            title = { Text("기록 기반 계획 확인") },
+            title = { Text("기록 기반 계획 사전 확인") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(question.prompt)
-                    question.options.forEach { option ->
-                        OutlinedButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = {
-                                val updated = personalizedAnswers + (question.id to option.value)
-                                personalizedAnswers = updated
-                                pendingPersonalizedQuestions = emptyList()
-                                generatePersonalized(updated)
-                            }
-                        ) { Text(option.label) }
+                    preflight.questions.forEach { question ->
+                        Text(question.prompt, style = MaterialTheme.typography.bodyMedium)
+                        question.options.forEach { option ->
+                            OutlinedButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { personalizedAnswers = personalizedAnswers + (question.id to option.value) }
+                            ) { Text(if (personalizedAnswers[question.id] == option.value) "✓ ${option.label}" else option.label) }
+                        }
                     }
                 }
             },
-            confirmButton = {}
+            confirmButton = {
+                Button(
+                    enabled = preflight.questions.all { it.id in personalizedAnswers },
+                    onClick = { runPreparedPersonalized(preflight, personalizedAnswers) }
+                ) { Text("이 답변으로 생성") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    pendingPersonalizedPreflight = null
+                    personalizedAnswers = emptyMap()
+                }) { Text("취소") }
+            }
         )
     }
 
@@ -505,7 +523,7 @@ private fun ProgramEditorScreen(
                             selected = durationWeeks,
                             options = (3..8).toList(),
                             optionLabel = { "${it}주" },
-                            onSelect = { durationWeeks = it },
+                            onSelect = { durationWeeks = it; personalizedDurationAuto = false },
                             enabled = !generationRunning
                         )
                         ProgramDropdown(
@@ -514,7 +532,7 @@ private fun ProgramEditorScreen(
                             selected = weeklyDays,
                             options = (3..7).toList(),
                             optionLabel = { "주 ${it}일" },
-                            onSelect = { weeklyDays = it },
+                            onSelect = { weeklyDays = it; personalizedDaysAuto = false },
                             enabled = !generationRunning
                         )
                     }
@@ -539,7 +557,7 @@ private fun ProgramEditorScreen(
                         )
                     }
                     Text(
-                        text = "배드민턴 특이 훈련과 일반 근력의 우선순위를 조절합니다.",
+                        text = "기록 기반 생성은 기간·주당 일수를 AUTO로 정합니다. 위 값을 직접 바꾸면 그 값이 우선하며, 배드민턴:근력 비율은 기록 기반 생성에 사용하지 않습니다.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -569,7 +587,7 @@ private fun ProgramEditorScreen(
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !generationRunning,
-                        onClick = { generatePersonalized() }
+                        onClick = { preparePersonalized() }
                     ) {
                         Text(if (personalizedSkeletonCreated) "기록 기반 알고리듬 프로그램 다시 만들기" else "기록 기반 알고리듬 프로그램 만들기")
                     }
@@ -587,7 +605,7 @@ private fun ProgramEditorScreen(
             item {
                 ProgramBuildProgressCard(
                     progress = buildProgress,
-                    onRetry = { if (lastGenerationWasPersonalized) generatePersonalized() else generateSkeleton() }
+                    onRetry = { if (lastGenerationWasPersonalized) preparePersonalized() else generateSkeleton() }
                 )
             }
         }

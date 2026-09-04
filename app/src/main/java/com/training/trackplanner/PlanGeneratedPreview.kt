@@ -180,6 +180,13 @@ private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) 
         "MADCOW_LIKE_HLM_RAMPING" -> "Madcow형 H/L/M 램핑"
         "HEAVY_LIGHT_MEDIUM" -> "Heavy/Light/Medium"
         "DUP_LIKE_UNDULATING" -> "주간 파동형"
+        "PRESERVE" -> "구성 유지"
+        "PRESERVE_CORE_REBALANCE" -> "핵심 유지·재배분"
+        "PARTIAL_CONTINUITY" -> "부분 연속성"
+        "ROTATE_EMPHASIS" -> "강조점 전환"
+        "MAINTAIN" -> "용량 유지"
+        "REDUCE_SLIGHTLY" -> "용량 소폭 감소"
+        "REDUCE_MODERATELY" -> "용량 중간 감소"
         else -> value.replace('_', ' ')
     }
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
@@ -188,6 +195,20 @@ private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) 
             MaterialText(localizedUiText("${decision.planningHorizonWeeks}주 계획 · 주 ${decision.weeklyFrequency}일 · 신뢰도 ${label(decision.confidence)}"))
             MaterialText(localizedUiText("현재 경향 ${label(decision.observedTrainingBehavior)} · 주목표 ${label(decision.primaryAdaptation)}"))
             if (decision.strengthStyle != "NONE") MaterialText(localizedUiText("근력 구성 ${label(decision.strengthStyle)}"))
+            decision.anchorTransitions.take(4).forEach { transition ->
+                MaterialText(
+                    localizedUiText("${transition.stableKey}: 관찰 ${label(transition.observedStyle.name)} · 다음 블록 ${label(transition.structureTreatment.name)} · ${label(transition.doseTreatment.name)}"),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                val features = (transition.preservedFeatures.map { "유지 $it" } + transition.moderatedFeatures.map { "완화 $it" }).take(4)
+                if (features.isNotEmpty()) MaterialText(localizedUiText(features.joinToString(" · ")), style = MaterialTheme.typography.bodySmall)
+            }
+            decision.planningBudget?.let { budget ->
+                MaterialText(
+                    localizedUiText("주간 저항 세트 ${budget.baselineResistanceSets.toInt()} → ${budget.plannedResistanceSets}/${budget.targetResistanceSets} · 구조화 배드민턴 ${budget.plannedStructuredBadmintonBouts}/${budget.targetStructuredBadmintonBouts}회"),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
             if (decision.secondaryTargets.isNotEmpty()) MaterialText(localizedUiText("보완 대상 ${decision.secondaryTargets.joinToString { label(it) }}"))
             decision.reasons.take(5).forEach { MaterialText("• ${localizedUiText(it)}", style = MaterialTheme.typography.bodySmall) }
             decision.constraints.take(3).forEach { MaterialText(localizedUiText("주의: $it"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }

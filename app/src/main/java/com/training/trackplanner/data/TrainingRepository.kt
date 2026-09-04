@@ -23,6 +23,7 @@ import com.training.trackplanner.analysis.tissue.TissueCurrentState
 import com.training.trackplanner.data.personalized.PersonalizedPlanningAnswers
 import com.training.trackplanner.data.personalized.PersonalizedGenerationConstraints
 import com.training.trackplanner.data.personalized.PersonalizedPlanningOutcome
+import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -789,12 +790,7 @@ class TrainingRepository(
     suspend fun generatePersonalizedProgram(
         request: ProgramSkeletonRequest,
         answers: PersonalizedPlanningAnswers = PersonalizedPlanningAnswers(),
-        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(
-            explicitGoal = request.goal,
-            explicitWeeklyTrainingDays = request.weeklyTrainingDays,
-            explicitDurationWeeks = request.durationWeeks,
-            explicitSessionMinutes = request.sessionMinutes
-        ),
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
         cutoff: LocalDate = LocalDate.now()
     ): PersonalizedPlanningOutcome = withContext(Dispatchers.IO) {
         personalizedProgramPlanningService.generate(
@@ -803,6 +799,30 @@ class TrainingRepository(
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
             constraints = constraints,
             cutoff = cutoff
+        )
+    }
+
+    suspend fun preparePersonalizedProgram(
+        request: ProgramSkeletonRequest,
+        constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes),
+        cutoff: LocalDate = LocalDate.now()
+    ): PersonalizedPlanningPreflight = withContext(Dispatchers.IO) {
+        personalizedProgramPlanningService.prepare(
+            request = request,
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey(),
+            constraints = constraints,
+            cutoff = cutoff
+        )
+    }
+
+    suspend fun generatePreparedPersonalizedProgram(
+        preflight: PersonalizedPlanningPreflight,
+        answers: PersonalizedPlanningAnswers
+    ): GeneratedProgramSkeleton = withContext(Dispatchers.IO) {
+        personalizedProgramPlanningService.generatePrepared(
+            preflight = preflight,
+            answers = answers,
+            metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
         )
     }
 

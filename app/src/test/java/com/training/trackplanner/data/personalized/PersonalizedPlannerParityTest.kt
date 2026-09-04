@@ -280,7 +280,9 @@ class PersonalizedPlannerParityTest {
                 else -> StrengthIntent.STRENGTH_PRIORITY
             },
             badmintonIntent = if ("badminton" in name && name != "12_badminton_explicitly_disabled") BadmintonPlanningIntent.ENABLED else BadmintonPlanningIntent.DISABLED,
-            freeWeightWillingness = if ("machine" in name) FreeWeightWillingness.AVOID else FreeWeightWillingness.WILLING
+            freeWeightWillingness = if ("machine" in name) FreeWeightWillingness.AVOID else FreeWeightWillingness.WILLING,
+            strengthIntentAnsweredAtEpochMillis = cutoff.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            strengthIntentProfileGoal = goal
         )
         return PlanningHistorySnapshotBuilder().build(
             cutoff, history, exercises, metadata, badmintonCatalog(),

@@ -37,8 +37,11 @@ class ProgramRecordUiContractTest {
 
         assertTrue(screen.contains("기록 기반 알고리듬 프로그램 만들기"))
         assertTrue(screen.indexOf("기록 기반 알고리듬 프로그램 만들기") > screen.indexOf("자동 골자 만들기"))
-        assertTrue(screen.contains("viewModel.generatePersonalizedProgram"))
-        assertTrue(viewModel.contains("repository.generatePersonalizedProgram"))
+        assertTrue(screen.contains("viewModel.preparePersonalizedProgram"))
+        assertTrue(screen.contains("viewModel.generatePreparedPersonalizedProgram"))
+        assertTrue(viewModel.contains("repository.preparePersonalizedProgram"))
+        assertTrue(viewModel.contains("repository.generatePreparedPersonalizedProgram"))
+        assertFalse(screen.contains("questions.take(1)"))
         assertFalse(viewModel.contains("generatePersonalizedProgram") && viewModel.contains("자동 생성으로 전환"))
     }
 

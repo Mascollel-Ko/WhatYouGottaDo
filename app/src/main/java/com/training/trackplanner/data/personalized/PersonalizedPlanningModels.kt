@@ -2,20 +2,23 @@ package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.Exercise
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.ProgramSkeletonRequest
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.8.0_KOTLIN_1"
-internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.8-reviewed"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.10.0_KOTLIN_1"
+internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.10-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
 enum class StrengthExposure { PRESENT, LOW, ABSENT, UNKNOWN }
 enum class StrengthIntent { STRENGTH_PRIORITY, MIXED, HYPERTROPHY_PRIORITY, AVOID_HEAVY, UNRESOLVED }
 enum class BadmintonPlanningIntent { ENABLED, DISABLED, UNRESOLVED }
-enum class FreeWeightWillingness { WILLING, AVOID, UNRESOLVED }
+enum class FreeWeightWillingness { WILLING, PREFER_FAMILIAR, AVOID, UNRESOLVED }
 enum class StrengthProgrammingStyle { NONE, TOP_SET_HYPERTROPHY, TOP_SET_BACKOFF, STRAIGHT_5X5, STRAIGHT_STRENGTH_SETS, MADCOW_LIKE_HLM_RAMPING, HEAVY_LIGHT_MEDIUM, DUP_LIKE_UNDULATING, UNRESOLVED }
 enum class PlanningConfidence { LOW, MODERATE, HIGH }
+enum class StructureTreatment { PRESERVE, PRESERVE_CORE_REBALANCE, PARTIAL_CONTINUITY, ROTATE_EMPHASIS }
+enum class DoseTreatment { MAINTAIN, REDUCE_SLIGHTLY, REDUCE_MODERATELY }
 enum class PlannedActivityKind { RESISTANCE, STRUCTURED_BADMINTON_DRILL, GENERIC_COURT_SESSION, OTHER }
 enum class MovementCoverage {
     LOWER_KNEE, POSTERIOR_CHAIN, HORIZONTAL_PUSH, HORIZONTAL_PULL, VERTICAL_PUSH, VERTICAL_PULL,
@@ -48,7 +51,9 @@ data class PlanningRecoverySignals(
 data class PersonalizedPlanningPreferences(
     val strengthIntent: StrengthIntent? = null,
     val badmintonIntent: BadmintonPlanningIntent? = null,
-    val freeWeightWillingness: FreeWeightWillingness? = null
+    val freeWeightWillingness: FreeWeightWillingness? = null,
+    val strengthIntentAnsweredAtEpochMillis: Long? = null,
+    val strengthIntentProfileGoal: String? = null
 )
 
 data class PersonalizedPlanningAnswerOption(val value: String, val label: String)
@@ -66,6 +71,66 @@ data class PersonalizedGenerationConstraints(
     val explicitWeeklyTrainingDays: Int? = null,
     val explicitDurationWeeks: Int? = null,
     val explicitSessionMinutes: Int? = null
+)
+
+data class PersonalizedPlanningPreflight(
+    val preparationId: String,
+    val cutoff: LocalDate,
+    val request: ProgramSkeletonRequest,
+    val constraints: PersonalizedGenerationConstraints,
+    val questions: List<PersonalizedPlanningQuestion>,
+    val preparedAtEpochMillis: Long
+)
+
+data class StyleFeatures(
+    val weeklyFrequency: Double = 0.0,
+    val frequencyStability: Double = 0.0,
+    val loadUndulation: Double = 0.0,
+    val repZoneUndulation: Double = 0.0,
+    val hlmOrdering: Double = 0.0,
+    val withinSessionRamping: Double = 0.0,
+    val topSetBackoff: Double = 0.0,
+    val straightSetConsistency: Double = 0.0,
+    val heavyExposure: Double = 0.0,
+    val moderateHighRepExposure: Double = 0.0,
+    val weeksObserved: Int = 0
+)
+
+data class AdaptationState(
+    val strengthResponse: Double,
+    val responseConfidence: Double,
+    val styleMaturity: Double,
+    val emphasisSufficiency: Double,
+    val gapPressure: Double,
+    val systemicRecoveryPressure: Double,
+    val sportInterferencePressure: Double,
+    val goalAlignment: Double,
+    val styleDemand: Double
+)
+
+data class AnchorTransition(
+    val stableKey: String,
+    val observedStyle: StrengthProgrammingStyle,
+    val observedConfidence: PlanningConfidence,
+    val styleFeatures: StyleFeatures,
+    val adaptation: AdaptationState,
+    val structureTreatment: StructureTreatment,
+    val doseTreatment: DoseTreatment,
+    val continuityScore: Double,
+    val localDoseFactor: Double,
+    val rotationPressure: Double,
+    val preservedFeatures: List<String>,
+    val moderatedFeatures: List<String>,
+    val reasons: List<String>
+)
+
+data class PlanningBudget(
+    val baselineResistanceSets: Double,
+    val targetResistanceSets: Int,
+    val plannedResistanceSets: Int,
+    val targetStructuredBadmintonBouts: Int,
+    val plannedStructuredBadmintonBouts: Int,
+    val systemicDoseFactor: Double
 )
 
 data class PlanningSetRecord(
@@ -91,6 +156,7 @@ data class PlanningHistorySnapshot(
     val badmintonTrainingYears: Double,
     val preferences: PersonalizedPlanningPreferences,
     val genericCourtLoad: Double = 0.0,
+    val genericCourtLoad28d: Double = 0.0,
     val objectiveExposure: Map<String, Double> = emptyMap(),
     val canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
     val recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals()
@@ -138,7 +204,8 @@ data class AthletePlanningState(
     val objectiveDevelopmentalGaps: Set<String> = emptySet(),
     val genericCourtLoad: Double = 0.0,
     val recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
-    val hypertrophyStimulusByMovement: Map<MovementCoverage, Double> = emptyMap()
+    val hypertrophyStimulusByMovement: Map<MovementCoverage, Double> = emptyMap(),
+    val styleFeaturesByAnchor: Map<String, StyleFeatures> = emptyMap()
 )
 
 data class AdaptationGap(val code: String, val priority: String, val reason: String)
@@ -176,7 +243,9 @@ data class PersonalizedPlanningDecision(
     val finalSavedFingerprint: String = "",
     val recoverySignalCodes: List<String> = emptyList(),
     val genericCourtLoad: Double = 0.0,
-    val objectiveExposure: Map<String, Double> = emptyMap()
+    val objectiveExposure: Map<String, Double> = emptyMap(),
+    val anchorTransitions: List<AnchorTransition> = emptyList(),
+    val planningBudget: PlanningBudget? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

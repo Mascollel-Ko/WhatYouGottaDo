@@ -6735,3 +6735,12 @@ Remaining debt:
 - Classified planner preferences and decisions as portable user state in CSV backup/restore while retaining conservative local ownership for infrastructure metadata.
 - Version remains `0.5.1.4 / 501004`; this implementation does not bump it.
 - Verification: 29 named reference personas plus focused invariants passed; the full unit suite passed 1,286/1,286; `assembleDebug`, localization generation/audit (10/10), and `git diff --check` passed. The APK was installed on `Medium_Phone` and the new button order plus explicit no-history failure were inspected on-device.
+
+## 2026-09-04 - Record-based planner v0.10
+
+- Started from audited baseline `4409a73eba2a970955071e9dd80ceb93443f99c4` and kept the legacy `ProgramAutoBuilder`, save/apply semantics, canonical metadata, OFI, readiness, tissue and Objective V2 authorities unchanged.
+- Ported the supplied v0.10 reference semantics into the production Kotlin path: fixed 56-day style/feature/posterior windows, 28+28 badminton comparison, weekly court-load normalization, per-anchor adaptation transitions, separate structure/dose treatments, finite resistance allocation, separate structured-drill dose and strongest-latest-week load reference.
+- Added the two-phase prepare/answer-all/generate contract, AUTO days/weeks, material intent execution, timestamp/profile-bound strength preference reuse, and no synthetic future-week progression.
+- Preserved the 29 named regression personas and added 15 focused v0.10 unit tests. Updated the real-backup helper to use preflight once and prepared generation once.
+- Regenerated Korean/English localization authority assets for all new user-visible planner strings and updated `PROGRAM-BUILDER-OVERVIEW` to protocol version `3.0.0`.
+- Verification: supplied Python reference suite passed 22/22; Kotlin `testDebugUnitTest` passed 1,304/1,304 including the external format-12 real-backup E2E; localization tests passed 10/10 with zero unexplained leaks; protocol validation and `assembleDebug` passed.

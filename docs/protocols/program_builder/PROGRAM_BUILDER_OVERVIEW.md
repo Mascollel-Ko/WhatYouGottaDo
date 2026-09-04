@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 2.0.0 |
+| Protocol version | 3.0.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4 |
@@ -43,7 +43,7 @@
 
 기록 기반 경로는 `TrainingViewModel → TrainingRepository → PersonalizedProgramPlanningService`이며 기존 `ProgramAutoBuilder`를 호출하거나 수정하지 않습니다. `PlanningHistorySnapshotBuilder`가 시점 고정 snapshot을 만들고, `AthletePlanningStateBuilder`가 관찰 행동과 명시 의도를 분리합니다. `AdaptationGapAnalyzer`는 결손 판정만 담당하고, 운동 선택은 별도의 reviewed stableKey authority에서 수행합니다. `PersonalizedProgramBuilder`는 주간 구조와 set별 처방을 materialize하고 기존 editor/save/apply 형식으로 변환합니다.
 
-질문은 기록만으로 의도를 안전하게 확정할 수 없을 때만 표시합니다. 근력 노출, 근비대 대 근력 의도, 배드민턴 포함 여부, 머신 위주 사용자에게 필요한 프리웨이트 허용 여부가 조건부 질문 대상입니다. 답변은 관찰 사실로 취급하지 않고 `EXPLICIT_USER` provenance로 저장합니다.
+질문은 기록만으로 의도를 안전하게 확정할 수 없고 답변이 실제 생성 결과를 바꿀 때만 표시합니다. `preparePersonalizedProgram`이 현재 필요한 질문을 한 번에 반환하고, 사용자가 모두 답한 뒤 `generatePreparedPersonalizedProgram`이 고정된 cutoff와 명시 조건으로 중단 없이 생성합니다. 답변은 관찰 사실로 취급하지 않고 `EXPLICIT_USER` provenance로 저장합니다. 근력 의도는 답변 시각과 당시 profile goal을 함께 저장하며 56일 경과 또는 goal 변경 시 다시 확인할 수 있습니다.
 
 Program candidate admission is exact stableKey authority. The typed
 `ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
@@ -60,7 +60,9 @@ fatigue/readiness gate를 입력받지 않습니다. 모든 item은
 
 ## 8. 집계 방식
 
-기존 자동 경로는 기간을 3~8주, 주당 일수를 3~7일, 시간을 30/45/60분으로 정규화합니다. 기록 기반 경로는 2~6주 horizon을 동적으로 선택하고 모든 week/day/set을 명시적으로 생성합니다. 운동 anchor는 최근 완료 기록에서 고정된 날짜와 실제 progression에 따라 계산하며, 생성 시점 wall clock이나 미래 기록을 읽지 않습니다.
+기존 자동 경로는 기간을 3~8주, 주당 일수를 3~7일, 시간을 30/45/60분으로 정규화합니다. 기록 기반 경로의 기간과 주당 일수는 기본 `AUTO`이며 각각 2~6주와 2~5일에서 결정됩니다. 사용자가 실제로 선택한 값만 AUTO를 덮어쓰고, 기존 배드민턴:근력 비율은 기록 기반 계산에 쓰지 않습니다. 모든 week/day/set은 명시적으로 생성하며, 운동 anchor는 cutoff까지의 완료 기록과 실제 progression만 사용합니다.
+
+현재 블록 판단의 per-anchor strength style, style feature, 구조화 배드민턴 노출 및 canonical strength posterior 변화는 cutoff를 끝으로 하는 최근 56일만 사용합니다. 배드민턴 objective drop은 최근 28일과 바로 이전 28일을 비교합니다. 일반 코트 부하는 28일 원시량과 주간 환산량을 함께 보존하며 180/240 임계값은 주간 환산량에만 적용합니다.
 
 수동 프로그램은 자동 생성 범위와 별개입니다. 기록 달력에서 선택한
 inclusive 날짜 범위는 첫 날짜를 1주차 월요일로 매핑하고 날짜 간 빈칸을
@@ -93,7 +95,9 @@ readiness, OFI와 연결조직 분석은 정보와 권고이며 저장 프로그
 
 ## 11. 개인화 또는 보정
 
-기록 기반 경로는 반복된 실제 운동의 연속성을 우선하고, 다주 기록에서 확인된 `TOP_SET_BACKOFF`, `STRAIGHT_5X5`, `MADCOW_LIKE_HLM_RAMPING`, `DUP_LIKE_UNDULATING`, `HEAVY_LIGHT_MEDIUM` 등의 구성만 provenance와 함께 보존합니다. 일반 배드민턴 세션은 비용·일정 context이며 구조화된 배드민턴 목표 자극으로 계산하지 않습니다.
+기록 기반 경로는 반복된 실제 운동의 연속성을 우선하되 관찰 style을 미래 처방으로 직접 복사하지 않습니다. 각 anchor에 대해 관찰 style과 다차원 feature, 적응 상태를 계산하고 `StructureTreatment`와 `DoseTreatment`를 별도로 결정합니다. 회복은 우선 전체 또는 해당 stableKey의 dose를 낮추고, gap은 먼저 유한한 주간 저항 set budget 안에서 재배분합니다. 저항 working-set budget과 timed badminton-drill bout budget은 서로 다른 단위로 관리하면서 같은 세션 시간 한도를 공유합니다.
+
+`TOP_SET_BACKOFF`, `STRAIGHT_5X5`, `MADCOW_LIKE_HLM_RAMPING`, `DUP_LIKE_UNDULATING`, `HEAVY_LIGHT_MEDIUM` 등은 각 anchor의 실제 feature와 할당 budget이 허용할 때만 알아볼 수 있는 형태로 이어집니다. multi-day style의 중량 기준은 마지막 세션이 아니라 최근 관찰 주의 가장 강한 정당한 노출입니다. 생성된 미래 주차는 새 완료 근거가 없으므로 자동 증량하지 않고 같은 현재 microcycle을 반복할 수 있습니다. 일반 배드민턴 세션은 실제 회복 비용으로 계속 반영되지만 구조화된 배드민턴 목표 자극으로 계산하지 않습니다.
 
 ## 12. 연구 근거
 
@@ -113,7 +117,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
-- v0.5.1.4 record-based boundary: 기존 자동 버튼 바로 아래 별도 버튼으로 진입하며, 완료 기록 snapshot, 조건부 질문, 2~6주 horizon, style-aware prescription, projection validation, decision provenance와 기존 editor/save/apply 재사용을 제공합니다.
+- v0.10 record-based boundary: 기존 자동 버튼 바로 아래 별도 버튼으로 진입하며, 최근 56일의 완료 기록 snapshot, 일괄 preflight 질문, AUTO 기간·일수, per-anchor structure/dose 전환, 유한 budget 재배분, projection validation, decision provenance와 기존 editor/save/apply 재사용을 제공합니다.
 - 개인화 선호와 최근 decision provenance는 portable `app_meta`로 백업·복원되며 로컬 seed/rebuild/lineage metadata는 이식하지 않습니다.
 - v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
   explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
@@ -136,7 +140,11 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt`](../../../app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt)
+- [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt)
 - [`app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt)
 - [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
@@ -145,7 +153,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt)
 - [`app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt`](../../../app/src/main/java/com/training/trackplanner/ProgramUserNoticePresentation.kt)
+- [`app/src/main/java/com/training/trackplanner/TrainingViewModel.kt`](../../../app/src/main/java/com/training/trackplanner/TrainingViewModel.kt)
 - [`app/src/main/java/com/training/trackplanner/PlanScreen.kt`](../../../app/src/main/java/com/training/trackplanner/PlanScreen.kt)
+- [`app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt`](../../../app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt)
 - [`app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt`](../../../app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt)
 - [`app/src/main/java/com/training/trackplanner/PlanProgramSections.kt`](../../../app/src/main/java/com/training/trackplanner/PlanProgramSections.kt)
 
@@ -156,6 +166,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderParityMatrixTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt)
+- [`app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt`](../../../app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt)
 - [`app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt)
 - [`app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt)
 - [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
@@ -176,6 +187,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.0.0` (2026-09-04): 기록 기반 planner를 v0.10으로 올려 56일 current-block window, per-anchor style feature와 structure/dose 전환, 주간 저항·drill 분리 budget, 일괄 preflight, AUTO 조건, 최근 주 strongest load 기준과 미래 자동 증량 금지를 계약화했습니다.
 - `2.0.0` (2026-09-03): 기존 자동 builder를 유지한 채 완료 기록 기반의 독립 builder, 조건부 의도 질문, 동적 2~6주 horizon, strength-style 보존, provenance 및 portable backup 계약을 추가했습니다.
 - `1.5.0` (2026-08-15): deleted the zero-consumer advanced ProgramBuilder reservoir/beam/evaluation stack, retained the public deterministic pipeline and 59-key authority, and verified the public golden matrix unchanged.
 - `1.4.0` (2026-08-15): ProgramRuleTables의 59 exact stableKey를 sole candidate authority로 고정하고 192-scenario public output parity를 추가했습니다.

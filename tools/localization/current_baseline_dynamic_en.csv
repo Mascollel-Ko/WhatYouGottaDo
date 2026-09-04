@@ -319,3 +319,11 @@ MCMC 진단: ${},MCMC diagnostics: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/jav
 자동 조정: ${},Automatic adjustments: %1$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 ${} 주별 posterior 반응 그래프,%1$s weekly posterior response chart,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
 자동 조정: ${}건 시도,Automatic adjustments: %1$s attempts,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/StrictBayesianLabUi.kt
+수행 기록에서 ${} 구성을 관찰했습니다. 다음 블록 처리는 앵커별 전환 판단으로 별도 결정합니다.,Observed the %1$s structure in performance records. The next-block treatment is decided separately for each anchor.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+${} kg × 5회 × ${}세트 · RPE 7–8.5 · ${},%1$s kg × 5 reps × %2$s sets · RPE 7–8.5 · %3$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+Top ${} kg × ${}회; Backoff ${} kg × ${}회 × ${} · RPE 7.5–8.5 · ${},Top %1$s kg × %2$s reps; backoff %3$s kg × %4$s reps × %5$s · RPE 7.5–8.5 · %6$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} kg × ${}회 × ${}세트 · RPE 8–9 · ${},%1$s kg × %2$s reps × %3$s sets · RPE 8–9 · %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+HEAVY 램핑 ${}세트 · ${},HEAVY ramping %1$s sets · %2$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${} kg × ${}회 × ${}세트 · ${},%1$s %2$s kg × %3$s reps × %4$s sets · %5$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+${} ${}회 × ${}세트 · RPE 7–8.5 · ${},%1$s %2$s reps × %3$s sets · RPE 7–8.5 · %4$s,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+주간 저항 세트 ${} → ${}/${} · 구조화 배드민턴 ${}/${}회,Weekly resistance sets %1$s → %2$s/%3$s · structured badminton %4$s/%5$s bouts,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt
