@@ -6744,3 +6744,4 @@ Remaining debt:
 - Preserved the 29 named regression personas and added 15 focused v0.10 unit tests. Updated the real-backup helper to use preflight once and prepared generation once.
 - Regenerated Korean/English localization authority assets for all new user-visible planner strings and updated `PROGRAM-BUILDER-OVERVIEW` to protocol version `3.0.0`.
 - Verification: supplied Python reference suite passed 22/22; Kotlin `testDebugUnitTest` passed 1,304/1,304 including the external format-12 real-backup E2E; localization tests passed 10/10 with zero unexplained leaks; protocol validation and `assembleDebug` passed.
+- Verified implementation commit: `4112b599075008ea27a6671e27f0b20f0313e57d` (`feat(planner): implement record-based planner v0.10`).
