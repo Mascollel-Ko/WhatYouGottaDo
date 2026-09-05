@@ -1,4 +1,5 @@
 koreanTemplate,englishTemplate,provenance,sourcePath
+"${}~${}에는 평소보다 운동량이 크게 줄었습니다. 이 주의 주된 이유는 무엇이었나요?","You trained much less than usual during %1$s to %2$s. What was the main reason for this week?","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
 최근 완료 처방 유지 · ${}세트,Hold recent completed prescription · %1$s sets,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PerformancePrescriptionResolver.kt
 최근 4주간 ${} 직접 훈련 기록이 없습니다.,No direct %1$s training was recorded in the last four weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 최근 반복 사용한 ${}을(를) 연속성 운동으로 유지했습니다.,Kept the recently repeated %1$s as continuity exercises.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt

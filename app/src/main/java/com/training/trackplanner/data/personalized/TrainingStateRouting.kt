@@ -2,6 +2,17 @@ package com.training.trackplanner.data.personalized
 
 internal const val QUESTION_INTERRUPTION_CAUSE = "INTERRUPTION_CAUSE"
 internal const val QUESTION_INTERRUPTION_FREQUENCY = "INTERRUPTION_FREQUENCY"
+internal const val QUESTION_WEEK_CAUSE_PREFIX = "INTERRUPTION_CAUSE_"
+
+internal fun weekCauseQuestionId(start: java.time.LocalDate) = QUESTION_WEEK_CAUSE_PREFIX + start
+internal fun PersonalizedPlanningAnswers.weekAnnotations(answeredAtEpochMillis: Long? = null): Map<java.time.LocalDate,WeeklyContextAnnotation> =
+    values.mapNotNull { (id,value) ->
+        if (!id.startsWith(QUESTION_WEEK_CAUSE_PREFIX)) return@mapNotNull null
+        runCatching {
+            val date=java.time.LocalDate.parse(id.removePrefix(QUESTION_WEEK_CAUSE_PREFIX))
+            date to WeeklyContextAnnotation(date,WeeklyContextCause.valueOf(value),WeeklyContextSource.USER_CONFIRMED,answeredAtEpochMillis)
+        }.getOrNull()
+    }.toMap()
 
 /** Explicit profile choices mapped only through canonical movement/stress metadata, never names. */
 internal fun PlanningHistorySnapshot.explicitlyRestricted(key: String): Boolean {
@@ -23,7 +34,8 @@ internal fun PlanningHistorySnapshot.trainingStateInput(answers: PersonalizedPla
     answers.values[QUESTION_INTERRUPTION_CAUSE]?.let { runCatching { InterruptionCause.valueOf(it) }.getOrNull() }
         ?:preferences.interruptionCause?:InterruptionCause.UNSURE,
     answers.values[QUESTION_INTERRUPTION_FREQUENCY]?.let { runCatching { InterruptionFrequency.valueOf(it) }.getOrNull() }
-        ?:preferences.interruptionFrequency?:InterruptionFrequency.UNSURE)
+        ?:preferences.interruptionFrequency?:InterruptionFrequency.UNSURE,
+    weekAnnotations+answers.weekAnnotations())
 
 internal fun TrainingStateAssessment.explanation(): String = when(state) {
     TrainingState.HARD_RESTRICTION -> "명시적 회복·조직 제한은 유지합니다. 제한 범위 밖의 훈련량은 장기 수행과 소화 기록을 별도로 반영합니다."

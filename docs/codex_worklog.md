@@ -1,5 +1,19 @@
 # Codex Worklog
 
+## 2026-09-05 - Record-based planner v0.13.1 semantic correction
+
+- Actual clean main baseline: `fbaf65da9042d7d82c5481b79ee596a0621c3220`. Re-ran the supplied private backup on unchanged v0.13.0 production and froze `v0131_before.json/.txt` before editing. Original v0.12 BEFORE remains byte-identical. All private inputs, full programs, comparisons and round-trip exports stay ignored under `build/planner-comparison`.
+- Removed the court-load three-day AUTO cap. Demonstrated HIGH-qualified run days, normal-week median and recent days own frequency, with a separately persisted state ceiling and temporary item-count placement floor.
+- Added exact ISO-week cause/source/timestamp annotations in portable `personalized_planning_week_context_v1`, maximum three dated cause questions per generation, and frequency freshness. Legacy global cause is read-only compatibility and never classifies weeks. Frequency affects future robustness only.
+- Confirmed external/event weeks exclude scheduling shortages, not performance/RPE or physiological history. One confirmed gap can bridge two immediately preceding normal weeks and a returning normal week, without fake workload or performance. Partial leading/current weeks cannot inflate complete-week tolerance.
+- Split global versus local restriction provenance; local keys/modes do not replace productive global state, disable unrelated capacity, or hold unrelated progression.
+- Sustainable HIGH requires run-local successful duration and performance coverage. HIGH workload comes only from qualified runs; no cross-run performance borrowing.
+- Runtime `RECORD_BASED_PLANNER_0.13.1_KOTLIN_1`; canonical `PROGRAM-BUILDER-OVERVIEW 3.3.1`. Updated canonical overview/registry/index, implementation note and existing release note. Generated Korean/English dated-question presentation through the established localization authority.
+- Verification: JBR/isolated Gradle home/network-enabled `--version` first; final `testDebugUnitTest` and `assembleDebug` PASS. 1,369 tests across 243 suites, zero failures/errors/skips, including 29-persona coverage, v0.11/v0.12, DIRECT/SUPPORTIVE regression, new frequency/context/restriction/run tests, actual-backup Python parity and portable annotation/decision/program round trip.
+- Independent Python: 24 raw-input training-state cases plus 7 run-local cases and AUTO/release assertions; deterministic checks PASS. v0.11/v0.12 goldens PASS. Localization authority/audit and 10 localization tests PASS; protocol validation 8 families/34 protocols PASS; `git diff --check` PASS. No remote workflow or physical-device validation is claimed.
+- Private acceptance report: `v0131_private_before_after_report.md` and `v0131_diff.txt`, with exact core-input equality, all requested before/after metrics, dated low weeks, run-quality decomposition, every prescription and candidate reasons. Unknown week/frequency answers are explicitly test assumptions, never confirmed private events.
+- Intentional limits: existing top-nine/per-family anchor selection and proportional accessory allocation remain; calf inflation is flagged, not hidden with a name-specific cap. No stronger sustainable release without a qualified run. Canonical physiological engines, Objective V2/representation, finite allocator, legacy builder, Room, app version and tags remain unchanged.
+
 ## 2026-09-05 - Record-based planner v0.13 training state and sustainable workload
 
 - Baseline `d299800438410f9022add04f3601d20a3ffd722e`, verified against `origin/main`. Captured and froze the supplied private backup's complete BEFORE request/state/program before any production edit; private artifacts remain ignored under `build/planner-comparison`.

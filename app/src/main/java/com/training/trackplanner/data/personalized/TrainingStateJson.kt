@@ -77,7 +77,10 @@ internal fun WeeklyWorkloadEvidence.toJson(): JSONObject = evidenceObject(
     "low" to low,
     "localTypicalUnits" to localTypicalUnits,
     "reasonCodes" to reasonCodes,
-    "excludedFromTolerance" to excludedFromTolerance)
+    "excludedFromTolerance" to excludedFromTolerance,
+    "cause" to cause,
+    "source" to source,
+    "bridgesStableRun" to bridgesStableRun)
 
 internal fun StableWorkloadRun.toJson(): JSONObject = evidenceObject(
     "start" to start,
@@ -88,7 +91,14 @@ internal fun StableWorkloadRun.toJson(): JSONObject = evidenceObject(
     "days" to days,
     "response" to response,
     "rpeDrift" to rpeDrift,
-    "weight" to weight)
+    "weight" to weight,
+    "observedSuccessfulWeeks" to observedSuccessfulWeeks,
+    "calendarSpanWeeks" to calendarSpanWeeks,
+    "performanceEvidenceWeeks" to performanceEvidenceWeeks,
+    "performanceEvidenceCoverage" to performanceEvidenceCoverage,
+    "negativeBreadth" to negativeBreadth,
+    "confidence" to confidence,
+    "qualifiedForCapacityRelease" to qualifiedForCapacityRelease)
 
 internal fun SustainableWorkloadEvidence.toJson(): JSONObject = evidenceObject(
     "sustainableWeeklyControllableUnits" to sustainableWeeklyControllableUnits,
@@ -121,7 +131,16 @@ internal fun TrainingStateAssessment.toJson(): JSONObject = evidenceObject(
     "globalDoseFactor" to globalDoseFactor,
     "globalHardRestriction" to globalHardRestriction,
     "hardRestrictionCodes" to hardRestrictionCodes,
+    "globalHardRestrictionCodes" to globalHardRestrictionCodes,
+    "localRestrictionCodes" to localRestrictionCodes,
+    "localRestrictedStableKeys" to localRestrictedStableKeys,
+    "restrictedModes" to restrictedModes,
     "reasonCodes" to reasonCodes)
+
+internal fun WeeklyFrequencyEvidence.toJson(): JSONObject = evidenceObject(
+    "demonstratedDaysReference" to demonstratedDaysReference, "referenceSource" to referenceSource,
+    "demonstratedDays" to demonstratedDays, "schedulingDensityFloor" to schedulingDensityFloor,
+    "stateCeiling" to stateCeiling, "ceilingReason" to ceilingReason, "recommendedDays" to recommendedDays)
 
 private fun evidenceObject(vararg fields: Pair<String,Any?>) = JSONObject().apply { fields.forEach { (key,value) -> put(key,evidenceValue(value)) } }
 private fun evidenceValue(value: Any?): Any = when(value) {

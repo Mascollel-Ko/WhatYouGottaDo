@@ -226,7 +226,7 @@ class PersonalizedPrescriptionPlanner {
             item.stableKey in snapshot.recoverySignals.tissueRestrictedStableKeys || snapshot.recoverySignals.readinessStatus == "LIMITED" ||
                 (snapshot.recoverySignals.tissueStatus in setOf("VERY_HIGH", "BLOCKED") && snapshot.recoverySignals.tissueRestrictedStableKeys.isEmpty()) -> ProgressionDecision.REDUCE
             (anchor?.posteriorChangePercent ?: 0.0) < -2.0 -> ProgressionDecision.REVIEW
-            snapshot.hardRestrictedModes.isEmpty() && provenTwice && (anchor?.posteriorChangePercent ?: 0.0) > 0.0 && strengthIntent in setOf(StrengthIntent.STRENGTH_PRIORITY, StrengthIntent.MIXED) -> ProgressionDecision.ADVANCE
+            !snapshot.explicitlyRestricted(item.stableKey) && provenTwice && (anchor?.posteriorChangePercent ?: 0.0) > 0.0 && strengthIntent in setOf(StrengthIntent.STRENGTH_PRIORITY, StrengthIntent.MIXED) -> ProgressionDecision.ADVANCE
             else -> ProgressionDecision.HOLD
         }
         val load = when (progression) {
@@ -494,7 +494,8 @@ class PersonalizedProgramBuilder(
             movementRepresentations = state.movementRepresentations,
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
             adaptationGaps = gaps,
-            trainingStateAssessment = state.trainingStateAssessment
+            trainingStateAssessment = state.trainingStateAssessment,
+            weeklyFrequencyEvidence = WeeklyDosePlanner().resolve(state,state.anchors.size+gaps.size)
         )
         return repaired.copy(personalizedDecision = decision)
     }

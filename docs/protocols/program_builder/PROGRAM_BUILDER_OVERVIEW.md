@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.3.0 |
+| Protocol version | 3.3.1 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.13.0 from 2026-09-05 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.13.1 from 2026-09-05 |
 | Last audited commit | 81823e6d81649661bbe9ce89d88af7a05607ef4c |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -43,7 +43,7 @@
 
 기록 기반 경로는 `TrainingViewModel → TrainingRepository → PersonalizedProgramPlanningService`이며 기존 `ProgramAutoBuilder`를 호출하거나 수정하지 않습니다. `PlanningHistorySnapshotBuilder`가 시점 고정 snapshot을 만들고, `PlannerActivityDomainResolver`가 typed role/capability, canonical activity kind, progress metric과 runtime metadata로 저항운동·구조화 배드민턴 드릴·athletic-performance drill·일반 코트 세션을 분리합니다. `MovementExposureRepresentationAnalyzer`와 `BadmintonObjectiveRepresentationAnalyzer`가 관찰된 분포를 계산하고 `AdaptationGapAnalyzer`는 그 상태를 기존 우선순위 사다리로 변환합니다. 운동 선택은 별도의 reviewed stableKey authority에서 수행합니다. `PersonalizedProgramBuilder`는 주간 구조와 set별 처방을 materialize하고 기존 editor/save/apply 형식으로 변환합니다. projection repair가 필요하면 기존 선택 priority로 보존 항목을 결정한 뒤, 반환할 최종 item으로 실제 세트 수·drill bout·fingerprint를 다시 확정합니다.
 
-핵심 선호 세 질문은 매번 먼저 표시합니다. 반복된 저훈련 주가 용량 해석에 영향을 줄 때만 중단 원인·빈도 질문을 추가합니다. `preparePersonalizedProgram`이 질문을 한 번에 반환하고, 사용자가 모두 답한 뒤 `generatePreparedPersonalizedProgram`이 고정된 cutoff와 명시 조건으로 중단 없이 생성합니다. 모름/혼합은 유효한 중단 맥락 답변이며 피로 실패로 바꾸지 않습니다. 답변은 관찰 사실로 취급하지 않고 명시 사용자 맥락으로 저장합니다.
+핵심 선호 세 질문은 매번 먼저 표시합니다. 용량 해석에 영향을 줄 수 있는 미확인 저훈련 주를 최근순으로 최대 3개 골라 날짜가 있는 원인 질문을 추가합니다. 빈도는 향후 일정 견고성만 소유하며 90일 경과 또는 최근 8주 확정 외부 중단 2회와 NEVER/RARE 답변의 모순 때 다시 묻습니다. `preparePersonalizedProgram`이 질문을 한 번에 반환하고, 사용자가 모두 답한 뒤 `generatePreparedPersonalizedProgram`이 고정된 cutoff와 명시 조건으로 중단 없이 생성합니다. 기억나지 않음/다른 이유/의도적 디로드는 유효한 주별 답변이며 피로 실패로 바꾸지 않습니다. 답변은 관찰 사실로 취급하지 않고 명시 사용자 맥락으로 저장합니다.
 
 Program candidate admission is exact stableKey authority. The typed
 `ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
@@ -62,7 +62,7 @@ fatigue/readiness gate를 입력받지 않습니다. 모든 item은
 
 기존 자동 경로는 기간을 3~8주, 주당 일수를 3~7일, 시간을 30/45/60분으로 정규화합니다. 기록 기반 경로의 기간과 주당 일수는 별도 control에서 기본 `AUTO`로 보이며 각각 2~6주와 2~5일에서 결정됩니다. 사용자는 명시 override 뒤 다시 AUTO로 돌아갈 수 있습니다. 기존 자동 경로의 더 넓은 범위와 배드민턴:근력 비율은 유지되지만 그 비율은 기록 기반 계산에 쓰지 않습니다. 모든 week/day/set은 명시적으로 생성하며, 운동 anchor는 cutoff까지의 완료 기록과 실제 progression만 사용합니다.
 
-현재 블록 판단의 per-anchor strength style, style feature 및 canonical strength posterior 변화는 cutoff를 끝으로 하는 최근 56일만 사용합니다. 노출 표현 비교는 현재 `cutoff-27..cutoff`와 직전 `cutoff-55..cutoff-28`의 인접 28일 창을 사용하고, confidence는 각 창을 cutoff에 고정한 네 개의 7일 bin으로 계산합니다. ISO 주차는 사용하지 않습니다. 일반 코트 부하는 28일 원시량과 주간 환산량을 함께 보존하며 180/240 임계값은 주간 환산량에만 적용합니다.
+현재 블록 판단의 per-anchor strength style, style feature 및 canonical strength posterior 변화는 cutoff를 끝으로 하는 최근 56일만 사용합니다. 노출 표현 비교는 현재 `cutoff-27..cutoff`와 직전 `cutoff-55..cutoff-28`의 인접 28일 창을 사용하고, confidence는 각 창을 cutoff에 고정한 네 개의 7일 bin으로 계산합니다. 노출 representation에는 ISO 주차를 사용하지 않습니다. 별도의 지속 용량·중단 맥락은 완결된 ISO 월~일 주간을 사용합니다. 일반 코트 부하는 원시량과 주간 환산량을 보존하지만 코트 부하가 S&C 주당 일수를 직접 제한하지 않습니다.
 
 움직임 표현 단위는 확인된 저항운동 working set 1개이며 생리적 dose가 아닙니다. 현재·직전 share는 활성 required movement 집합 안에서 정규화합니다. 개인 비교는 `currentShare / priorShare`이고, peer 비교는 target을 제외한 같은 base-priority의 positive exposure가 둘 이상일 때 그 median을 사용합니다. `0.25`와 `0.50`은 큰 분포 차이를 찾는 engineering outlier rule일 뿐 충분량 또는 최적량 임계값이 아닙니다. 상태는 `ABSENT`, `STRONG_UNDERREPRESENTATION_SIGNAL`, `UNDERREPRESENTATION_SIGNAL`, `NO_CLEAR_DEFICIT_SIGNAL`, `UNKNOWN`이며 `NO_CLEAR_DEFICIT_SIGNAL`은 충분하다는 뜻이 아닙니다. 현재 저항운동이 전혀 없으면 개별 부재 provenance는 보존하되 하나의 `RESISTANCE_FOUNDATIONAL_ONRAMP`만 생성합니다.
 
@@ -115,7 +115,7 @@ multi-day style variant는 anchor별로 서로 다른 생성일에 배치합니�
 
 실행 순서는 representation/gap → 처방 authority → 유한 cross-domain 배분 → 실제 시간 배치 → residual repair → 반환 item 기준 count/fingerprint입니다. 보조 및 경기력 훈련을 저항 예산 밖에 덧붙이지 않습니다. 의미 있는 최소 처방을 먼저 배정하고 discretionary 연속성 용량을 양보할 수 있습니다. 동일 exact objective를 공유하는 항목은 중복 투입하지 않으며 typed family/redundancy로 서로 다른 훈련 질을 구분합니다.
 
-용량 envelope는 명시 주당 일수·세션 분·가용 초, 최근 session median/p75 단위·median 시간, 관찰 controllable workload, court context, useful demand, 시간상 bound와 최종 실제 단위를 보존합니다. v0.13에서는 전신 dose factor를 demand와 density 양쪽에 중복 적용하지 않고 가용 용량·유효 demand 경계가 정해진 뒤 한 번 적용합니다. 지속적으로 소화한 용량의 강한 근거, productive/tolerated 상태, 충분한 명시 가용 시간과 demand가 함께 있고 hard restriction이 없을 때 그 관찰 용량 근처까지 허용하되 자동 초과하지 않습니다. 실제 처방 시간 검사는 유지합니다.
+용량 envelope는 명시 주당 일수·세션 분·가용 초, 최근 session median/p75 단위·median 시간, 관찰 controllable workload, court context, useful demand, 시간상 bound와 최종 실제 단위를 보존합니다. v0.13에서는 전신 dose factor를 demand와 density 양쪽에 중복 적용하지 않고 가용 용량·유효 demand 경계가 정해진 뒤 한 번 적용합니다. 지속적으로 소화한 용량의 강한 근거, productive/tolerated 상태, 충분한 명시 가용 시간과 demand가 함께 있고 global hard restriction이 없을 때 그 관찰 용량 근처까지 허용하되 자동 초과하지 않습니다. 실제 처방 시간 검사는 유지합니다.
 
 고정 4/5개 item 제한과 high-court 별도 item cap은 제거했습니다. 코트 부하는 기존 recovery/자동 빈도/lower-anchor interference 문맥만 유지하며 objective 자극을 만들지 않습니다. 실제 처방과 세트 간 휴식이 시간 한도를 결정하고 typed 하체/impact 항목을 분산합니다. 시간이 늘어도 정당한 demand가 소진됐으면 filler를 만들지 않습니다.
 
@@ -127,13 +127,21 @@ portable app_meta의 planningBudget.execution은 최종 direct representation과
 
 `TrainingStateAssessment`는 기존 canonical OFI 56일 series를 읽으며 새 OFI engine이 아닙니다. strain은 최근 7일·직전 7일과 최근 7일을 제외한 개인 baseline `-55..-7`의 median/MAD를 사용합니다. 적응은 기존 posterior와 인접 28+28일의 load/reps/RPE 처방 matching을 결합하며, 결측은 0점이 아닌 unavailable입니다. 같은 완료 기록을 재사용하는 posterior/raw confidence는 합산하지 않고 큰 값으로 제한합니다. 운동별 반응을 여섯 주요 movement의 confidence-weighted median으로 먼저 집계한 뒤 positive/negative breadth를 계산합니다. accessory 하나의 PR은 광범위 저하를 상쇄하지 않습니다.
 
-전신 soft factor는 `clip(1 - .15*S*(1-P) - .10*M, .80, 1)`로 한 번만 적용합니다. 낮은 근거는 HOLD이고 LIMITED/VERY_HIGH/BLOCKED 및 명시 profile 제한은 별도 hard gate입니다. 정확한 tissue contributor key가 있으면 그 국소 범위를 보존하고, 국소 키 없는 심한 tissue 제한/LIMITED는 전신 cap을 적용합니다. 높은 soft OFI에서 생성된 사람이 읽는 readiness 권고 문장을 독립 hard restriction으로 재사용하지 않습니다. 국소 anchor 조정은 해당 운동의 반복 저하·tissue 제한·기존 lower-anchor court interference만 소유합니다.
+전신 soft factor는 `clip(1 - .15*S*(1-P) - .10*M, .80, 1)`로 한 번만 적용합니다. 낮은 근거는 HOLD입니다. LIMITED 또는 국소 contributor가 없는 VERY_HIGH/BLOCKED만 전신 hard gate이며, 국소 stableKey·profile 운동 제한은 전신 상태를 HARD_RESTRICTION으로 바꾸지 않습니다. 정확한 tissue contributor key가 있으면 그 국소 범위를 보존하고, 국소 키 없는 심한 tissue 제한/LIMITED는 전신 cap을 적용합니다. 높은 soft OFI에서 생성된 사람이 읽는 readiness 권고 문장을 독립 hard restriction으로 재사용하지 않습니다. 국소 anchor 조정은 해당 운동의 반복 저하·tissue 제한·기존 lower-anchor court interference만 소유합니다.
 
-최근 최대 12주의 용량 이력은 adaptation/OFI 창을 대체하지 않습니다. 각 주의 controllable 단위·시간·일수·canonical court load·수행·RPE를 보존하고 주변 non-low 주 중앙값의 `.625` 미만을 후보 저훈련 주로 표시합니다. 원인 상태는 NORMAL/EXTERNAL_INTERRUPTION_LIKELY/EVENT_OR_TAPER_LIKELY/RECOVERY_REDUCTION_LIKELY/UNEXPLAINED_LOW_WEEK입니다. 확정 외부 일정·event 및 보수적 drop/return 패턴은 정상 빈도와 tolerance 계산에서 제외하지만 실제 OFI·court·tissue 기록은 지우지 않습니다. 모르는 주는 소화 실패라고 단정하지 않습니다.
+최근 최대 12주의 용량 이력은 adaptation/OFI 창을 대체하지 않습니다. 각 주의 controllable 단위·시간·일수·canonical court load·수행·RPE를 보존하고 주변 non-low 주 중앙값의 `.625` 미만을 후보 저훈련 주로 표시합니다. 원인 상태는 NORMAL/EXTERNAL_INTERRUPTION_LIKELY/EVENT_OR_TAPER_LIKELY/RECOVERY_REDUCTION_LIKELY/UNEXPLAINED_LOW_WEEK입니다. 정확한 주의 USER_CONFIRMED EXTERNAL/EVENT_OR_TAPER만 workload/day/density tolerance의 분자·분모에서 제외합니다. 추론의 source는 INFERRED/HIGH_CONFIDENCE_INFERRED, 미확인은 UNRESOLVED로 보존하고 개인 사건으로 확정하지 않습니다. 실제 load/reps/RPE·OFI·court·tissue 기록은 어떤 맥락에서도 지우지 않습니다. 모르는 주는 소화 실패라고 단정하지 않습니다.
 
 `SustainableWorkloadEvidence`는 최소 2주 연속 사용 가능한 안정 run의 중앙 단위·시간·일수, run 길이·최근성, 수행과 RPE 근거를 보존합니다. 가중치는 `durationWeeks² * .92^ageWeeks`이며 1주 폭증은 run이 아닙니다. 이는 반복 소화한 관찰 용량이지 MRV·최대 안전량·최적량이 아닙니다. 외부 일정이 잦으면 CORE_MUST_DO/IMPORTANT/OPTIONAL_CAPACITY 순서로 핵심을 앞쪽 논리 세션에 보호하고 선택 항목을 뒤로 배치합니다. 요일을 하드코딩하거나 빈도 답변만으로 용량을 줄이지 않습니다.
 
-추가 assessment와 interruption preferences는 기존 portable app_meta JSON으로 저장·백업·복원합니다. 기존 결정은 새 필드 없이 읽을 수 있고 Room·Android version·release tag는 변경하지 않습니다. 세부 식·공학적 임계값·검증은 기존 implementation note에 있습니다.
+주별 답변은 `personalized_planning_week_context_v1`의 ISO Monday 키에 cause/source/answeredAtEpochMillis로 저장·백업·복원합니다. 옛 global interruptionCause는 읽기 호환만 유지하며 어떤 주에도 자동 적용하지 않습니다. 빈도와 answeredAtEpochMillis는 기존 preferences에 별도 저장합니다. 기존 결정은 새 필드 없이 읽을 수 있고 Room·Android version·release tag는 변경하지 않습니다. 세부 식·공학적 임계값·검증은 기존 implementation note에 있습니다.
+
+### v0.13.1 빈도·제한·구간 근거 교정
+
+AUTO 빈도는 HIGH-qualified sustainable days → NORMAL 주 중앙 일수 → 최근 실제 일수 순으로 참조해 2~5일로 반올림합니다. 임시 배치 보조값 ceil(itemCount/4)을 함께 쓰되 생리적 권위로 해석하지 않습니다. 전신 hard=2, MALADAPTATION=3, ACCUMULATING_STRAIN=4, 나머지=5의 state ceiling만 적용합니다. genericCourtLoad 180/305 등에서 직접 3일 cap을 부과하지 않습니다. 명시 일수·기간 override는 유지됩니다.
+
+각 run의 관찰 성공 주 수와 달력 span을 구분합니다. HIGH는 해당 run 자체의 성공 주 ≥4, 수행 비교 주 ≥2, 수행 coverage ≥.50, 넓은 저하·큰 RPE 악화 없음이 필요합니다. MODERATE는 ≥3주와 해당 run의 수행/RPE 근거, 그 외 LOW입니다. HIGH 전체 용량은 HIGH-qualified run만의 중앙 단위·시간·일수를 duration²/recency 가중합니다. 다른 run의 수행을 빌려 긴 run을 검증하지 않습니다.
+
+확정 외부/event 주 1개는 직전 안정 NORMAL 2주와 다음 주 .85~1.40 복귀 및 광범위 저하 없음 아래 연결될 수 있습니다. 중단 주는 성공 주·수행 근거·가짜 훈련량으로 세지 않습니다. 추론/미확인/FATIGUE/실제 악화 주는 연결하지 않습니다. 국소 제한이 있어도 productive/tolerated 상태와 HIGH 근거는 제한 밖 작업의 sustainable release를 허용하며, 해당 운동의 admission/처방은 제한을 계속 지킵니다.
 
 ## 12. 연구 근거
 
@@ -154,7 +162,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
-- v0.13.0 record-based boundary: 기존 v0.12 실행 배분 앞에 longitudinal training-state assessment와 interruption-aware sustainable workload를 연결했습니다. core 세 질문, 조건부 중단 질문, 명시 AUTO override, 유한 cross-domain 배분, 처방 시간 검사, final-item provenance와 기존 editor/save/apply를 유지합니다.
+- v0.13.1 record-based boundary: 기존 v0.12 실행 배분 앞에 longitudinal training-state assessment와 interruption-aware sustainable workload를 연결했습니다. core 세 질문, 조건부 중단 질문, 명시 AUTO override, 유한 cross-domain 배분, 처방 시간 검사, final-item provenance와 기존 editor/save/apply를 유지합니다.
 - 개인화 선호와 최근 decision provenance는 portable `app_meta`로 백업·복원되며 로컬 seed/rebuild/lineage metadata는 이식하지 않습니다.
 - v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
   explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
@@ -174,6 +182,8 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 16. 구현 위치
 
 - [TrainingStateAssessment.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateAssessment.kt)
+- [WeeklyWorkloadContext.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/WeeklyWorkloadContext.kt)
+- [WeeklyContextAnnotationJson.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/WeeklyContextAnnotationJson.kt)
 - [TrainingStateRouting.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateRouting.kt)
 - [TrainingStateJson.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateJson.kt)
 
@@ -207,6 +217,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 ## 17. 검증 테스트
 
 - [TrainingStateParityTest.kt](../../../app/src/test/java/com/training/trackplanner/data/personalized/TrainingStateParityTest.kt)
+- [TrainingStateCorrectionTest.kt](../../../app/src/test/java/com/training/trackplanner/data/personalized/TrainingStateCorrectionTest.kt)
 - [TrainingStateRealBackupComparisonTest.kt](../../../app/src/test/java/com/training/trackplanner/data/TrainingStateRealBackupComparisonTest.kt)
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
@@ -252,6 +263,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 20. 변경 이력
 
+- `3.3.1` (2026-09-05): 코트 기반 3일 AUTO cap을 제거하고 주별 중단 답변·확정 중단 bridge·run-local HIGH 근거·전신/국소 제한 분리를 적용했습니다. physiological engines/finite allocator/legacy 경로는 유지합니다.
 - `3.3.0` (2026-09-05): 장기 strain/adaptation/tolerance와 중단 인지 지속 용량을 추가하고 전신 soft dose 중복을 제거했습니다. SUPPORTIVE가 후속 DIRECT 후보를 지우지 않도록 수정했습니다. representation·Objective V2·OFI·strength posterior·tissue engine·legacy builder의 수치는 변경하지 않았습니다.
 
 - `3.2.0` (2026-09-05): 유한 cross-domain 재배분, 처방 기반 시간 용량, canonical seed 처방, 명시적 SUPPORTIVE 보조운동과 proactive 세 질문을 연결했습니다. representation 임계값·Objective V2 계수·strength posterior·tissue 회복식·legacy builder는 변경하지 않았습니다.

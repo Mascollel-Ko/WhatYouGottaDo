@@ -34,6 +34,7 @@ class TrainingStateRealBackupComparisonTest {
         val phase = System.getenv("WGTD_COMPARISON_PHASE")
         assumeTrue(source?.isFile == true && phase != null && phase in setOf("before", "after"))
         val directory = File(requireNotNull(System.getenv("WGTD_COMPARISON_DIR"))).apply { mkdirs() }
+        require(phase=="after") { "v0.13.0 correction BEFORE is already frozen; do not regenerate with corrected production" }
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, TrainingDatabase::class.java).allowMainThreadQueries().build()
         try {
@@ -46,9 +47,6 @@ class TrainingStateRealBackupComparisonTest {
             val constraints = PersonalizedGenerationConstraints(explicitSessionMinutes = 90)
             val originalAnswers = PersonalizedPlanningAnswers(mapOf(QUESTION_STRENGTH_INTENT to "MIXED",
                 QUESTION_BADMINTON_INTENT to "ENABLED", QUESTION_FREE_WEIGHT to "WILLING"))
-            val answers = if (phase == "after") PersonalizedPlanningAnswers(originalAnswers.values + mapOf(
-                QUESTION_INTERRUPTION_CAUSE to (System.getenv("WGTD_INTERRUPTION_CAUSE") ?: "UNSURE"),
-                QUESTION_INTERRUPTION_FREQUENCY to (System.getenv("WGTD_INTERRUPTION_FREQUENCY") ?: "UNSURE"))) else originalAnswers
             val service = field(repository,"personalizedProgramPlanningService") as PersonalizedProgramPlanningService
             val editor = field(repository,"exerciseMetadataEditorService") as ExerciseMetadataEditorService
             val metadata = editor.resolvedRuntimeMetadataByExerciseStableKey()
@@ -56,18 +54,23 @@ class TrainingStateRealBackupComparisonTest {
             val snapshot = invokeSuspending(service,"buildSnapshot",
                 arrayOf(LocalDate::class.java,Map::class.java,PersonalizedPlanningPreferences::class.java),
                 arrayOf(cutoff,metadata,preferences)) as PlanningHistorySnapshot
-            val state = AthletePlanningStateBuilder().build(snapshot,answers)
             val preflight = repository.preparePersonalizedProgram(request,constraints,cutoff)
+            // Identical core request; unknown dated causes are a test assumption, not a user confirmation.
+            val answers=PersonalizedPlanningAnswers(originalAnswers.values+preflight.questions.filter {
+                it.id.startsWith(QUESTION_WEEK_CAUSE_PREFIX) }.associate { it.id to "UNKNOWN" }+
+                mapOf(QUESTION_INTERRUPTION_FREQUENCY to "UNSURE"))
+            val state = AthletePlanningStateBuilder().build(snapshot,answers)
             val plan = repository.generatePreparedPersonalizedProgram(preflight,answers)
             val decision = requireNotNull(plan.personalizedDecision)
             val budget = requireNotNull(decision.planningBudget)
             val input = JSONObject().put("cutoff",cutoff).put("request",json(request))
                 .put("constraints",json(constraints)).put("answers",json(originalAnswers))
-                .put("preferences",(json(preferences) as JSONObject).apply { remove("interruptionCause"); remove("interruptionFrequency") })
+                .put("preferences",(json(preferences) as JSONObject).apply { remove("interruptionCause"); remove("interruptionFrequency"); remove("interruptionFrequencyAnsweredAtEpochMillis") })
             val report = JSONObject().put("input",input).put("recovery",json(snapshot.recoverySignals))
                 .put("isConstrained",snapshot.recoverySignals.isConstrained)
                 .put("systemicRecoveryPressure",AdaptationTransitionPlanner().systemicRecoveryPressure(snapshot.recoverySignals))
                 .put("genericCourtLoad",snapshot.genericCourtLoad).put("budget",json(budget))
+                .put("weeklyFrequencyEvidence",decision.weeklyFrequencyEvidence?.toJson())
                 .put("resolvedRequest",json(plan.request)).put("anchors",json(state.anchors))
                 .put("transitions",json(decision.anchorTransitions)).put("gaps",json(decision.adaptationGaps))
                 .put("items",JSONArray(plan.items.map { item ->
@@ -93,15 +96,14 @@ class TrainingStateRealBackupComparisonTest {
                 report.put("trainingStateAssessment",decision.trainingStateAssessment?.toJson())
                     .put("additionalContextAnswers",JSONObject(answers.values-originalAnswers.values.keys))
                     .put("additionalContextSource",if (System.getenv("WGTD_INTERRUPTION_CAUSE")==null) "TEST_ASSUMPTION_UNSURE_NOT_USER_CONFIRMED" else "EXPLICIT_TEST_CONTEXT")
-                val expected=JSONObject(File(directory,"v013_python_actual.json").readText())
                 val actual=decision.trainingStateAssessment!!
-                assertEquals(expected.getDouble("globalDoseFactor"),actual.globalDoseFactor,1e-9)
-                assertEquals(expected.getString("state"),actual.state.name)
                 val programId=repository.saveGeneratedProgram(null,plan)
                 val saved=JSONObject(db.appMetaDao().latestByPrefix("${PersonalizedProgramPlanningService.DECISION_PREFIX}%")!!.value)
                 assertEquals(actual.toJson().toString(),saved.getJSONObject("trainingStateAssessment").toString())
                 val preferencesBefore=db.appMetaDao().value(PersonalizedProgramPlanningService.PREFERENCES_KEY)
-                val roundTrip=File(directory,"v013_private_roundtrip.csv")
+                val annotationsBefore=db.appMetaDao().value(WeeklyContextAnnotationJson.KEY)
+                assertEquals(answers.weekAnnotations().keys,WeeklyContextAnnotationJson.read(annotationsBefore).keys)
+                val roundTrip=File(directory,"v0131_private_roundtrip.csv")
                 repository.exportRecordsBackup(Uri.fromFile(roundTrip))
                 val restoredDb=Room.inMemoryDatabaseBuilder(context,TrainingDatabase::class.java).allowMainThreadQueries().build()
                 try {
@@ -109,21 +111,23 @@ class TrainingStateRealBackupComparisonTest {
                     val restored=JSONObject(restoredDb.appMetaDao().latestByPrefix("${PersonalizedProgramPlanningService.DECISION_PREFIX}%")!!.value)
                     assertEquals(saved.getJSONObject("trainingStateAssessment").toString(),restored.getJSONObject("trainingStateAssessment").toString())
                     assertEquals(preferencesBefore,restoredDb.appMetaDao().value(PersonalizedProgramPlanningService.PREFERENCES_KEY))
+                    assertEquals(annotationsBefore,restoredDb.appMetaDao().value(WeeklyContextAnnotationJson.KEY))
+                    report.put("persistedWeekAnnotations",JSONObject(requireNotNull(annotationsBefore)))
                     assertNotNull(restoredDb.programDao().findProgramByStableKey(db.programDao().findProgram(programId)!!.stableKey))
-                    report.put("backupRestore","PASS_ASSESSMENT_PREFERENCES_PROGRAM")
+                    report.put("backupRestore","PASS_ASSESSMENT_PREFERENCES_WEEK_ANNOTATIONS_PROGRAM")
                 } finally { restoredDb.close() }
             }
-            val output = File(directory,"v013_$phase.json")
+            val output = File(directory,"v0131_$phase.json")
             val rendered = report.toString(2)+"\n"
             if (phase == "before" && output.exists()) assertEquals("BEFORE must stay frozen",output.readText(),rendered)
             else output.writeText(rendered)
-            File(directory,"v013_$phase.txt").writeText(buildString {
+            File(directory,"v0131_$phase.txt").writeText(buildString {
                 appendLine(input.toString(2)); appendLine(report.getJSONObject("recovery").toString(2))
                 appendLine("isConstrained=${report.getBoolean("isConstrained")}"); appendLine(json(budget))
                 appendLine("weeklyTotals=${json(weeks)}")
                 plan.items.forEach { appendLine("W${it.weekNumber}/D${it.dayOfWeek} ${it.exerciseName} [${it.exerciseStableKey}] domain=${snapshot.activityKind(it.exerciseStableKey)} role=${it.trainingSlot} ${it.setPrescriptions} rest=${it.restSeconds} seconds=${it.estimatedDurationSeconds}") }
             })
-            if (phase=="before") {
+            run {
                 val revision=db.strengthPosteriorDao().revision(StrengthModelRevisionPolicy.CURRENT_REVISION_KEY)
                     ?.takeIf { it.status==StrengthModelRevisionPolicy.STATUS_ACTIVE && StrengthModelRevisionPolicy.isCompatible(it) }
                 val posterior=revision?.let { db.strengthPosteriorDao().historyForRevision(it.revisionKey) }.orEmpty()
@@ -139,14 +143,15 @@ class TrainingStateRealBackupComparisonTest {
                     .put("metadata",json(snapshot.metadata)).put("domains",json(snapshot.exercises.keys.associateWith(snapshot::activityKind)))
                     .put("coverage",json(snapshot.exercises.keys.associateWith(snapshot::movementCoverage)))
                     .put("restSeconds",json(snapshot.exercises.mapValues { it.value.defaultRestSeconds }))
-                    .put("weeklyCourtLoad",JSONArray((0..11).map { offset ->
-                        val end=cutoff.minusDays(offset*7L)
-                        JSONObject().put("end",end.toString()).put("load",
-                            BadmintonPracticeLoadCalculator(RuntimeExerciseMetadataCatalog.of(metadata.values)).calculateRaw(
-                                history.filter { LocalDate.parse(it.entry.date) in end.minusDays(6)..end },snapshot.exercises))
-                    }))
-                File(directory,"v013_numerical_inputs.json").writeText(numerical.toString(2)+"\n")
-            } else assertEquals(JSONObject(File(directory,"v013_before.json").readText()).getJSONObject("input").toString(),input.toString())
+                    .put("weeklyCourtLoad",JSONArray(snapshot.weeklyCourtLoad.toSortedMap().map { (end,load) ->
+                        JSONObject().put("end",end.toString()).put("load",load)
+                    })).put("hardRestrictedModes",json(snapshot.hardRestrictedModes))
+                    .put("weekAnnotations",JSONObject(answers.weekAnnotations().mapKeys { it.key.toString() }.mapValues { (_,a) ->
+                        JSONObject().put("cause",a.cause.name).put("source",a.source.name)
+                    })).put("interruptionFrequency","UNSURE")
+                File(directory,"v0131_numerical_inputs.json").writeText(numerical.toString(2)+"\n")
+            }
+            assertEquals(JSONObject(File(directory,"v0131_before.json").readText()).getJSONObject("input").toString(),input.toString())
             println("COMPARISON_$phase ${output.absolutePath} weeks=${plan.request.durationWeeks} days=${plan.request.weeklyTrainingDays} totals=${json(weeks)}")
         } finally { db.close() }
     }

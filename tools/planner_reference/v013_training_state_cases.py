@@ -10,7 +10,7 @@ GOLDEN = Path(__file__).with_name('fixtures') / 'v013_training_state_golden.json
 
 
 def source(units=None, responses=None, baseline=68, current=90, decline=False, missing_rpe=False):
-    cutoff = date(2026, 9, 2)
+    cutoff = date(2026, 8, 30)
     units = units or [42]*12
     keys = ['knee', 'hinge', 'push', 'pull']
     groups = ['LOWER_KNEE', 'POSTERIOR_CHAIN', 'HORIZONTAL_PUSH', 'VERTICAL_PULL']
@@ -36,6 +36,15 @@ def source(units=None, responses=None, baseline=68, current=90, decline=False, m
         weeklyCourtLoad=[dict(end=str(cutoff-timedelta(days=i*7)),load=100) for i in range(len(units))])
 
 
+def annotate(value, indices, cause):
+    count = len(value["weeklyCourtLoad"])
+    cutoff = date.fromisoformat(value["cutoff"])
+    for i in indices:
+        start = cutoff-timedelta(days=(count-i)*7-1)
+        value.setdefault("weekAnnotations", {})[str(start)] = dict(cause=cause, source="USER_CONFIRMED", answeredAtEpochMillis=1)
+    return value
+
+
 def cases():
     values = {}
     values['chronic_high_improving'] = source(current=72)
@@ -55,16 +64,34 @@ def cases():
     values['isolated_interruption'] = source([42]*5+[18]+[42]*6)
     values['low_weeks_deterioration'] = source([42,42,42,18,42,18,42,18,42,18,42,18],[-8]*4,40,72,True)
     values['confirmed_external'] = source([40,42,18,41,43,20,42])
-    values['confirmed_external']['interruptionCause']='EXTERNAL'
+    annotate(values['confirmed_external'], [2,5], 'EXTERNAL')
     values['confirmed_event'] = copy.deepcopy(values['confirmed_external'])
-    values['confirmed_event']['interruptionCause']='EVENT'
+    annotate(values['confirmed_event'], [2,5], 'EVENT_OR_TAPER')
     values['confirmed_event']['weeklyCourtLoad'][1]['load']=600
     values['long_successful_run'] = source([54]*12)
     values['one_extreme_week'] = source([30]*6+[200]+[30]*5)
     values['frequent_interruption'] = copy.deepcopy(values['confirmed_external'])
     values['frequent_interruption']['interruptionFrequency']='FREQUENT'
     values['older_successful_run'] = source([54]*8+[12,14,15,18])
-    values['older_successful_run']['interruptionCause']='EXTERNAL'
+    annotate(values['older_successful_run'], [8,9,10,11], 'EXTERNAL')
+    values['local_press_only'] = source()
+    values['local_press_only']['recovery']['tissueRestrictedStableKeys']=['push']
+    values['local_press_only']['recovery']['tissueStatus']='VERY_HIGH'
+    values['overhead_mode_only'] = source()
+    values['overhead_mode_only']['hardRestrictedModes']=['OVERHEAD_PRESS']
+    values['limited_global'] = source()
+    values['limited_global']['recovery']['readinessStatus']='LIMITED'
+    values['legacy_global_external_ignored'] = source([40,42,18,41,43,20,42])
+    values['legacy_global_external_ignored']['interruptionCause']='EXTERNAL'
+    values['different_causes'] = copy.deepcopy(values['confirmed_external'])
+    annotate(values['different_causes'],[5],'FATIGUE')
+    values['external_with_rpe_decline'] = source([42]*8+[18,42,18,42], [-8]*4,40,72,True)
+    for row in values['external_with_rpe_decline']['records']: row['reps']=8
+    annotate(values['external_with_rpe_decline'],[8,10],'EXTERNAL')
+    values['confirmed_bridge'] = source([42,41,18,43,40])
+    annotate(values['confirmed_bridge'],[2],'EXTERNAL')
+    values['unknown_answer'] = copy.deepcopy(values['confirmed_bridge'])
+    annotate(values['unknown_answer'],[2],'UNKNOWN')
     return values
 
 
@@ -90,6 +117,17 @@ def verify(results):
     assert results['frequent_interruption']['globalDoseFactor']==results['confirmed_external']['globalDoseFactor']
     assert results['older_successful_run']['sustainable']['sustainableWeeklyControllableUnits']==54
     assert results['older_successful_run']['sustainable']['confidence']=='HIGH'
+    assert results['local_press_only']['state']!='HARD_RESTRICTION'
+    assert not results['overhead_mode_only']['globalHardRestriction']
+    assert results['limited_global']['globalHardRestriction']
+    assert not any(w['excludedFromTolerance'] for w in results['legacy_global_external_ignored']['weeklyContext'])
+    low=[w for w in results['different_causes']['weeklyContext'] if w['low']]
+    assert low[0]['excludedFromTolerance'] and not low[1]['excludedFromTolerance']
+    assert results['external_with_rpe_decline']['adaptation']['rpeDrift']>0
+    assert any(w['bridgesStableRun'] for w in results['confirmed_bridge']['weeklyContext'])
+    assert results['confirmed_bridge']['sustainable']['runs'][0]['observedSuccessfulWeeks']==4
+    assert results['confirmed_bridge']['sustainable']['runs'][0]['calendarSpanWeeks']==5
+    assert not any(w['bridgesStableRun'] for w in results['unknown_answer']['weeklyContext'])
 
 
 if __name__=='__main__':
@@ -105,4 +143,4 @@ if __name__=='__main__':
     if args.write: GOLDEN.write_text(rendered,encoding='utf-8')
     else: assert GOLDEN.read_text(encoding='utf-8')==rendered
     for k,v in results.items(): print(k,v['state'],round(v['globalDoseFactor'],6),v['sustainable']['confidence'])
-    print('PASS: 16 independent raw-input cases')
+    print(f'PASS: {len(inputs)} independent v0.13.1 raw-input cases')

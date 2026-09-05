@@ -443,6 +443,7 @@
     <string name="loc_baseline_566f9615c22b">추정 총부하</string>
     <string name="loc_baseline_56ba2a7d9c07">주간 햄스트링 최근 7일 운동량</string>
     <string name="loc_baseline_56d2897f84d5">러닝 세션</string>
+    <string name="loc_baseline_5710f42c1103">다른 이유</string>
     <string name="loc_baseline_5737de2a0531">이전 중앙값 대비 현재 추정 범위</string>
     <string name="loc_baseline_5751d60afe68">전체</string>
     <string name="loc_baseline_577cc9c08a01">필수 지표를 현재 탐색 모형에 맞게 안전하게 준비할 수 없습니다.</string>
@@ -634,6 +635,7 @@
     <string name="loc_baseline_7c93adf85602">복근/전면코어</string>
     <string name="loc_baseline_7cc3aa997908">주간 복근/전면코어 최근 3일 운동량</string>
     <string name="loc_baseline_7ccd71f6c7c9">Bayesian 분석 결과</string>
+    <string name="loc_baseline_7d2fb139e9d0">기억나지 않음</string>
     <string name="loc_baseline_7df60fb9331f">배드민턴 세션 후 피드백 연동</string>
     <string name="loc_baseline_7e0bd250a092">가장 높은 국소 부위의 주간 부담</string>
     <string name="loc_baseline_7e25e4f10fcf">2-3세트 x 8-12회 · RPE 6.5-7.5</string>
@@ -962,6 +964,7 @@
     <string name="loc_baseline_c3061e451f3f">선택한 핵심 지표를 엄격 모형 표현으로 준비할 수 없습니다.</string>
     <string name="loc_baseline_c31548ac089d">횟수 +</string>
     <string name="loc_baseline_c31a4896026b">부분 연속성</string>
+    <string name="loc_baseline_c32e3e3b8cbf">의도적으로 쉬거나 디로드함</string>
     <string name="loc_baseline_c332999a5684">좌우 사용</string>
     <string name="loc_baseline_c335e32e57dd">근육군별 운동량 기록이 부족합니다.</string>
     <string name="loc_baseline_c3664e7fe4cf">레벨</string>
@@ -1213,6 +1216,7 @@
     <string name="loc_baseline_f74780eb3924">시계열 분석에 사용할 수 있는 주간 지표가 부족합니다.</string>
     <string name="loc_baseline_f750c88a9d8d">회전근</string>
     <string name="loc_baseline_f75f69178f01">현재 부담은 낮게 잡힙니다.</string>
+    <string name="loc_baseline_f845cea8d2bc">외부 일정 때문에 운동 계획이 깨지는 일이 얼마나 자주 있나요?</string>
     <string name="loc_baseline_f8719dcf7526">휴게 타이머</string>
     <string name="loc_baseline_f883f06bf134">인클라인</string>
     <string name="loc_baseline_f88a10ee761c">근력 주당</string>
@@ -3382,6 +3386,7 @@
     <string name="loc_ui_pattern_ec8f757b3a46">오늘 하체 피로가 %1$s/5로 입력되었습니다.</string>
     <string name="loc_ui_pattern_ec9a412b86fd">%1$s주 %2$s일 예상 %3$s분이</string>
     <string name="loc_ui_pattern_ed936d1b4aaa">현재 %1$s</string>
+    <string name="loc_ui_pattern_ee97872a450d">%1$s~%2$s에는 평소보다 운동량이 크게 줄었습니다. 이 주의 주된 이유는 무엇이었나요?</string>
     <string name="loc_ui_pattern_eeeb2637ed27">직접 %1$s회 · 프록시 %2$s회 · 관련 운동 %3$s개</string>
     <string name="loc_ui_pattern_eeebdc35a840">%1$s %2$s kg × %3$s회 × 3세트 · %4$s</string>
     <string name="loc_ui_pattern_ef58411a0e54">%1$s%2$s 회 × %3$s 세트 · RPE 7–8.5</string>

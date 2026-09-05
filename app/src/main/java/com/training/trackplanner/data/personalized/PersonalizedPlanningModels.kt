@@ -8,7 +8,7 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.13.0_KOTLIN_1"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.13.1_KOTLIN_1"
 internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
@@ -92,8 +92,10 @@ data class PersonalizedPlanningPreferences(
     val freeWeightWillingness: FreeWeightWillingness? = null,
     val strengthIntentAnsweredAtEpochMillis: Long? = null,
     val strengthIntentProfileGoal: String? = null,
+    /** Legacy read compatibility only; never an authority for individual weeks. */
     val interruptionCause: InterruptionCause? = null,
-    val interruptionFrequency: InterruptionFrequency? = null
+    val interruptionFrequency: InterruptionFrequency? = null,
+    val interruptionFrequencyAnsweredAtEpochMillis: Long? = null
 )
 
 data class PersonalizedPlanningAnswerOption(val value: String, val label: String)
@@ -209,7 +211,8 @@ data class PlanningHistorySnapshot(
     val performancePrescriptions: Map<String, PerformancePrescriptionAuthority> = emptyMap(),
     val dailyStrain: List<PlanningDailyStrain> = emptyList(),
     val weeklyCourtLoad: Map<LocalDate, Double> = emptyMap(),
-    val hardRestrictedModes: Set<String> = emptySet()
+    val hardRestrictedModes: Set<String> = emptySet(),
+    val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -321,7 +324,8 @@ data class PersonalizedPlanningDecision(
     val movementRepresentations: List<MovementExposureRepresentation> = emptyList(),
     val badmintonObjectiveRepresentations: List<BadmintonObjectiveRepresentation> = emptyList(),
     val adaptationGaps: List<AdaptationGap> = emptyList(),
-    val trainingStateAssessment: TrainingStateAssessment? = null
+    val trainingStateAssessment: TrainingStateAssessment? = null,
+    val weeklyFrequencyEvidence: WeeklyFrequencyEvidence? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

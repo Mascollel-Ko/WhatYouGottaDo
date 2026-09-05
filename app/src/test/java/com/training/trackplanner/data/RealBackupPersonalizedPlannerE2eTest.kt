@@ -67,7 +67,7 @@ class RealBackupPersonalizedPlannerE2eTest {
                     QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
                     QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
                     QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
-                    else -> error(question.id)
+                    else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error(question.id)
                 } }
             ))
             listOf("AUTO" to autoPlan, "3_DAY" to threeDay, "5_DAY" to fiveDay).forEach { (label, plan) -> printAllocation(label, plan) }
@@ -188,7 +188,7 @@ class RealBackupPersonalizedPlannerE2eTest {
                 QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
                 QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
                 QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
-                else -> error("Unexpected personalized question: ${question.id}")
+                else -> if (question.id.startsWith("INTERRUPTION_CAUSE_")) "UNKNOWN" else error("Unexpected personalized question: ${question.id}")
             }
         })
         return repository.generatePreparedPersonalizedProgram(preflight, answers)

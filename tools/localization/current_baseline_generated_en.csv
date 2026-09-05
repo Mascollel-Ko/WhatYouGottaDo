@@ -1,4 +1,8 @@
 korean,english,provenance,sourcePath
+"의도적으로 쉬거나 디로드함","Intentional rest or deload","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
+"다른 이유","Another reason","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
+"기억나지 않음","I do not remember","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
+"외부 일정 때문에 운동 계획이 깨지는 일이 얼마나 자주 있나요?","How often do outside commitments disrupt your training schedule?","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
 "최근 기록에서 평소보다 운동량이 크게 줄어든 주가 몇 차례 있습니다. 이런 감소는 주로 어떤 이유였나요?","Your records show several weeks with much less training than usual. What mainly caused these reductions?","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
 "업무·출장·여행·개인 일정","Work, business travel, holidays, or personal commitments","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"
 "대회·경기·의도적인 테이퍼","Tournament, competition, or an intentional taper","CODEX_GENERATED_ENGLISH","app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt"

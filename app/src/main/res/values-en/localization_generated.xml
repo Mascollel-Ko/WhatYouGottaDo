@@ -443,6 +443,7 @@
     <string name="loc_baseline_566f9615c22b">estimated total load</string>
     <string name="loc_baseline_56ba2a7d9c07">Weekly hamstring training volume in the last 7 days</string>
     <string name="loc_baseline_56d2897f84d5">running session</string>
+    <string name="loc_baseline_5710f42c1103">Another reason</string>
     <string name="loc_baseline_5737de2a0531">Current estimate range versus the previous median</string>
     <string name="loc_baseline_5751d60afe68">entire</string>
     <string name="loc_baseline_577cc9c08a01">A required metric cannot be prepared safely for the current exploratory model.</string>
@@ -634,6 +635,7 @@
     <string name="loc_baseline_7c93adf85602">Abs/front core</string>
     <string name="loc_baseline_7cc3aa997908">Weekly abs/front core training volume for the last 3 days</string>
     <string name="loc_baseline_7ccd71f6c7c9">Bayesian analysis result</string>
+    <string name="loc_baseline_7d2fb139e9d0">I do not remember</string>
     <string name="loc_baseline_7df60fb9331f">Feedback integration after badminton session</string>
     <string name="loc_baseline_7e0bd250a092">Weekly burden of highest local area</string>
     <string name="loc_baseline_7e25e4f10fcf">2-3 sets x 8-12 reps · RPE 6.5-7.5</string>
@@ -962,6 +964,7 @@
     <string name="loc_baseline_c3061e451f3f">The selected core metrics cannot be prepared for the strict model representation.</string>
     <string name="loc_baseline_c31548ac089d">Count +</string>
     <string name="loc_baseline_c31a4896026b">Partial continuity</string>
+    <string name="loc_baseline_c32e3e3b8cbf">Intentional rest or deload</string>
     <string name="loc_baseline_c332999a5684">Left and right use</string>
     <string name="loc_baseline_c335e32e57dd">There is a lack of records of exercise volume for each muscle group.</string>
     <string name="loc_baseline_c3664e7fe4cf">Level</string>
@@ -1213,6 +1216,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f74780eb3924">There is a lack of weekly indicators available for time series analysis.</string>
     <string name="loc_baseline_f750c88a9d8d">rotator cuff</string>
     <string name="loc_baseline_f75f69178f01">The current burden is set low.</string>
+    <string name="loc_baseline_f845cea8d2bc">How often do outside commitments disrupt your training schedule?</string>
     <string name="loc_baseline_f8719dcf7526">break timer</string>
     <string name="loc_baseline_f883f06bf134">incline</string>
     <string name="loc_baseline_f88a10ee761c">strength per week</string>
@@ -3382,6 +3386,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_ec8f757b3a46">Today’s lower body fatigue was entered as %1$s/5.</string>
     <string name="loc_ui_pattern_ec9a412b86fd">Week %1$s day %2$s estimated duration of %3$s min</string>
     <string name="loc_ui_pattern_ed936d1b4aaa">Currently %1$s</string>
+    <string name="loc_ui_pattern_ee97872a450d">You trained much less than usual during %1$s to %2$s. What was the main reason for this week?</string>
     <string name="loc_ui_pattern_eeeb2637ed27">Direct %1$s times · Proxy %2$s times · %3$s related exercises</string>
     <string name="loc_ui_pattern_eeebdc35a840">%1$s %2$s kg × %3$s reps × 3 sets · %4$s</string>
     <string name="loc_ui_pattern_ef58411a0e54">%1$s%2$s reps × %3$s sets · RPE 7–8.5</string>

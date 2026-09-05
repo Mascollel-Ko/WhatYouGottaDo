@@ -6,7 +6,8 @@ enum class BackupAppMetaAuthority {
 }
 
 object BackupAppMetaPolicy {
-    private val portableUserStateKeys = setOf(PersonalizedProgramPlanningService.PREFERENCES_KEY)
+    private val portableUserStateKeys = setOf(PersonalizedProgramPlanningService.PREFERENCES_KEY,
+        com.training.trackplanner.data.personalized.WeeklyContextAnnotationJson.KEY)
     private val portableUserStatePrefixes = setOf(PersonalizedProgramPlanningService.DECISION_PREFIX)
 
     fun authority(key: String): BackupAppMetaAuthority =

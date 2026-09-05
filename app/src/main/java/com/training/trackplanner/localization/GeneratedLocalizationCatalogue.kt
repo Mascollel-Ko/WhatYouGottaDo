@@ -682,6 +682,7 @@ internal object GeneratedLocalizationCatalogue {
         "기술 연습" to R.string.loc_ui_31a426a594e8,
         "기술 집중 부하" to R.string.loc_metadata_c7d05892d32d,
         "기술연습" to R.string.loc_baseline_e8d3eaddee3c,
+        "기억나지 않음" to R.string.loc_baseline_7d2fb139e9d0,
         "기여도" to R.string.loc_baseline_fc1bc64c6c5b,
         "기여한 필드" to R.string.loc_metadata_cae5b1821a96,
         "기존 계획이 있습니다" to R.string.loc_baseline_601acf0c8e62,
@@ -752,6 +753,7 @@ internal object GeneratedLocalizationCatalogue {
         "누적 코어 훈련 자극" to R.string.loc_baseline_f98004da5b18,
         "누적 횟수" to R.string.loc_baseline_6b4ba9e2d08c,
         "다른 시차에도 비중이 분포할 수 있으므로 특정 한 주를 효과 발생 시점으로 단정하지 말고 주별 반응 경로를 함께 보세요." to R.string.loc_baseline_4eef9d6d57a0,
+        "다른 이유" to R.string.loc_baseline_5710f42c1103,
         "다른 지표 조합을 선택해 주세요." to R.string.loc_baseline_fad83a745de6,
         "다방향" to R.string.loc_metadata_5235e5838387,
         "다방향 이동" to R.string.loc_metadata_aa7eda55544a,
@@ -829,11 +831,11 @@ internal object GeneratedLocalizationCatalogue {
         "데드리프트 힌지 변형" to R.string.loc_metadata_4d48ba4daa3b,
         "데드리프트/RDL 계열" to R.string.loc_baseline_03735f21f6c2,
         "데드버그" to R.string.loc_metadata_f6b6a77ab1cb,
-        "데이터 불러오기" to R.string.loc_ui_fee642387022,
-        "데이터 수" to R.string.loc_baseline_94156dba23b5,
     )
 
     private fun exactUiTextIdsChunk2(): Map<String, Int> = mapOf(
+        "데이터 불러오기" to R.string.loc_ui_fee642387022,
+        "데이터 수" to R.string.loc_baseline_94156dba23b5,
         "도약" to R.string.loc_metadata_119074598586,
         "도출 방식" to R.string.loc_metadata_e8fba633855c,
         "동시 필요" to R.string.loc_metadata_815e28ac0688,
@@ -1232,11 +1234,11 @@ internal object GeneratedLocalizationCatalogue {
         "벤치" to R.string.loc_metadata_6c98f58b5c44,
         "벤치 kg" to R.string.loc_baseline_67b4f5b997ea,
         "벤치 딥스" to R.string.loc_metadata_b4214fafbe8a,
-        "벤치 특이성" to R.string.loc_baseline_5386f106771a,
-        "벤치 프레스" to R.string.loc_baseline_5fb4a62ad909,
     )
 
     private fun exactUiTextIdsChunk3(): Map<String, Int> = mapOf(
+        "벤치 특이성" to R.string.loc_baseline_5386f106771a,
+        "벤치 프레스" to R.string.loc_baseline_5fb4a62ad909,
         "벤치/상체 푸시" to R.string.loc_baseline_974cdb444126,
         "벤치·스쿼트·데드리프트 e1RM, 근육군과 반복수 비중" to R.string.loc_ui_e5a677371157,
         "벤치프레스" to R.string.loc_baseline_f5bfb738c23f,
@@ -1635,11 +1637,11 @@ internal object GeneratedLocalizationCatalogue {
         "신뢰도" to R.string.loc_metadata_219c82c9d5fe,
         "신속도 계수 S" to R.string.loc_metadata_e960a3da4e42,
         "신장성" to R.string.loc_metadata_af6bc32fb52d,
-        "신장성 건 스트레스" to R.string.loc_metadata_41c2bffa5dee,
-        "신장성 당기기" to R.string.loc_metadata_6510e2cae7f8,
     )
 
     private fun exactUiTextIdsChunk4(): Map<String, Int> = mapOf(
+        "신장성 건 스트레스" to R.string.loc_metadata_41c2bffa5dee,
+        "신장성 당기기" to R.string.loc_metadata_6510e2cae7f8,
         "신체 능력" to R.string.loc_baseline_b10b3a2c4170,
         "신체 능력 품질" to R.string.loc_metadata_322a21cde882,
         "신체 부위" to R.string.loc_metadata_4b98837c5d06,
@@ -1841,6 +1843,7 @@ internal object GeneratedLocalizationCatalogue {
         "완만한 주기 부하" to R.string.loc_metadata_b567d091833b,
         "완화 기준 충족" to R.string.loc_baseline_9e9ad7d8e7c4,
         "외부 부하" to R.string.loc_metadata_7a71ea97cea1,
+        "외부 일정 때문에 운동 계획이 깨지는 일이 얼마나 자주 있나요?" to R.string.loc_baseline_f845cea8d2bc,
         "외부 일정 때문에 운동량이 줄어드는 일이 얼마나 자주 있나요?" to R.string.loc_baseline_c372dc4e9638,
         "외생 통제 Z" to R.string.loc_baseline_4cd8cf80fd40,
         "외생 통제 Z 선택" to R.string.loc_baseline_713e6abe13ed,
@@ -1968,6 +1971,7 @@ internal object GeneratedLocalizationCatalogue {
         "응답 변수 Y 선택" to R.string.loc_baseline_5c606ff306db,
         "응답 변수 Y를 하나 이상 선택해 주세요." to R.string.loc_baseline_0266e7ee6f34,
         "응답 지표의 주간 변화가 더 쌓인 뒤 다시 확인해 주세요." to R.string.loc_baseline_2c1915cbaa00,
+        "의도적으로 쉬거나 디로드함" to R.string.loc_baseline_c32e3e3b8cbf,
         "의미" to R.string.loc_metadata_8435581d1c8a,
         "의사결정 부하" to R.string.loc_metadata_d56cd373e3a2,
         "의학적 정확성을 주장하지 않습니다" to R.string.loc_ui_51a38bc8e11c,
@@ -2036,13 +2040,13 @@ internal object GeneratedLocalizationCatalogue {
         "자각 강도 대비 수행 효율" to R.string.loc_baseline_bf92f2665a21,
         "자극" to R.string.loc_baseline_7118e58eb9ba,
         "자동 골자 다시 만들기" to R.string.loc_baseline_4528a742b35c,
+    )
+
+    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "자동 골자 만들기" to R.string.loc_baseline_b1e3ed390cdf,
         "자동 골자 생성 시간이 길어졌습니다. 조건을 조금 줄이고 다시 시도해 주세요." to R.string.loc_baseline_3d877091a30c,
         "자동 골자 생성에 실패했습니다." to R.string.loc_baseline_07e5b52ae2b7,
         "자동 골자로 대체" to R.string.loc_baseline_f417ce40a03c,
-    )
-
-    private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
         "자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다." to R.string.loc_baseline_b9d8fe5ca2a9,
         "자동 변환이 승인되지 않은 이전 운동입니다." to R.string.loc_ui_86cc8246a6e9,
         "자동 보정 변수: \${result.automaticAdjustments.joinToString(" to R.string.loc_baseline_e855003a134a,
@@ -2439,13 +2443,13 @@ internal object GeneratedLocalizationCatalogue {
         "최근 수면이 많이 낮습니다" to R.string.loc_baseline_32864853c7f9,
         "최근 수면이 매우 낮습니다" to R.string.loc_ui_8c461c2a8a78,
         "최근 수행 개선과 훈련 소화 기록을 반영합니다." to R.string.loc_baseline_a9acdcd7cbcd,
+    )
+
+    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "최근 안정적으로 소화한 유형은 기준선을 약간 높게 적용합니다." to R.string.loc_baseline_fcd77b384bf4,
         "최근 운동 공백" to R.string.loc_baseline_1052cecec399,
         "최근 운동 공백이 있어 기준선을 보수적으로 적용했습니다." to R.string.loc_baseline_91085c24fb86,
         "최근 운동량이 평소보다 빠르게 늘었습니다" to R.string.loc_baseline_5dd2e5f77ecb,
-    )
-
-    private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
         "최근 이벤트 지문 \${summary.latestEventFingerprint?.take(16) ?:" to R.string.loc_baseline_3dbdab223796,
         "최근 작업 상세" to R.string.loc_ui_2334260447ac,
         "최근 작업 상세 보기" to R.string.loc_ui_38e018076388,
@@ -2842,13 +2846,13 @@ internal object GeneratedLocalizationCatalogue {
         "핵심 유지·재배분" to R.string.loc_baseline_2c1f62143b3d,
         "핸드스탠드 수직 밀기" to R.string.loc_metadata_47ec78f96cff,
         "핸드스탠드 푸시업" to R.string.loc_metadata_55c757fb78dc,
+    )
+
+    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "햄스트링" to R.string.loc_metadata_bc4e26928adf,
         "햄스트링 건 스트레스" to R.string.loc_metadata_581a28ce5f93,
         "햄스트링 고립 보조" to R.string.loc_metadata_dc8921829e3f,
         "햄스트링 국소 부하" to R.string.loc_metadata_d3280dc980df,
-    )
-
-    private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
         "햄스트링 근력" to R.string.loc_metadata_78fdfef106da,
         "햄스트링 부하" to R.string.loc_metadata_f293c4e49181,
         "햄스트링 신장성" to R.string.loc_metadata_eaf0091aacf9,
@@ -3080,6 +3084,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^시차와\\ 반응\\ 기간을\\ 적용한\\ 추정\\ 행은\\ (.*?)개이며\\ 현재\\ 조합에는\\ 최소\\ (.*?)개가\\ 필요합니다\\.\$"), R.string.loc_ui_pattern_3d3eedc5aaa5),
         UiTextPattern(Regex("^최근\\ 3일\\ 평균\\ (.*?)시간,\\ 기준\\ (.*?)시간입니다\\.\\ 오늘\\ 강도\\ 해석을\\ 보수적으로\\ 적용합니다\\.\$"), R.string.loc_ui_pattern_bd7ba5af3da5),
         UiTextPattern(Regex("^축별\\ 상태:\\ 매우\\ 높음\\((.*?)\\),\\ 높음\\((.*?)\\),\\ 보통\\((.*?)\\),\\ 낮음\\((.*?)\\)\$"), R.string.loc_ui_pattern_546827d99394),
+        UiTextPattern(Regex("^(.*?)\\~(.*?)에는\\ 평소보다\\ 운동량이\\ 크게\\ 줄었습니다\\.\\ 이\\ 주의\\ 주된\\ 이유는\\ 무엇이었나요\\?\$"), R.string.loc_ui_pattern_ee97872a450d),
         UiTextPattern(Regex("^근력운동은\\ (.*?),\\ 배드민턴\\ 훈련량은\\ (.*?),\\ 이번\\ 주\\ 누적\\ 부담은\\ (.*?)\\ 흐름입니다\\.\$"), R.string.loc_ui_982d22d8ab2f),
         UiTextPattern(Regex("^기존\\ 유효\\ 근비대\\ 자극\\ 기록이\\ (.*?)에\\ 크게\\ 치우쳐\\ (.*?)\\ 재배분\\ 후보를\\ 만들었습니다\\.\$"), R.string.loc_ui_pattern_7b0f38783eda),
         UiTextPattern(Regex("^(.*?)\\ 직접\\ 훈련은\\ 두\\ 비교\\ 기간\\ 모두\\ 관찰되지\\ 않아\\ 선택적\\ 발달\\ 후보로만\\ 보존합니다\\.\$"), R.string.loc_ui_pattern_47b598ee538e),

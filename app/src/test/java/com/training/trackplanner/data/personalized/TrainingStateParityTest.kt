@@ -15,13 +15,13 @@ import java.time.LocalDate
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],manifest=Config.NONE)
 class TrainingStateParityTest {
-    private fun fixture(name: String): TrainingStateInput {
+    internal fun fixture(name: String): TrainingStateInput {
         val file=listOf(File("../tools/planner_reference/fixtures/v013_training_state_golden.json"),
             File("tools/planner_reference/fixtures/v013_training_state_golden.json")).first { it.isFile }
         val cases=JSONArray(file.readText())
         return trainingInput((0 until cases.length()).map(cases::getJSONObject).first { it.getString("name")==name }.getJSONObject("input"))
     }
-    private fun snapshot(input: TrainingStateInput): PlanningHistorySnapshot {
+    internal fun snapshot(input: TrainingStateInput): PlanningHistorySnapshot {
         val slots=mapOf("knee" to "MAIN_LOWER_STRENGTH","hinge" to "MAIN_HINGE_STRENGTH",
             "push" to "HORIZONTAL_PUSH_STRENGTH_OR_ACCESSORY","pull" to "VERTICAL_PULL_STRENGTH")
         val exercises=input.domains.keys.associateWith { Exercise(it,it,"",equipment="BARBELL",equipmentTags="BARBELL",
@@ -31,7 +31,8 @@ class TrainingStateParityTest {
                 programSlot=slots.getValue(key),progressMetricType="LOAD_REPS",sourceConfidenceLevel="HIGH",
                 analysisEligibility=MetadataTokenField.parse("STRENGTH_PROGRESS|HYPERTROPHY_VOLUME")) },emptyMap(),
             "STRENGTH",3.0,1.0,PersonalizedPlanningPreferences(StrengthIntent.MIXED,BadmintonPlanningIntent.ENABLED,FreeWeightWillingness.WILLING),
-            canonicalStrengthSignals=input.signals,recoverySignals=input.recovery,dailyStrain=input.daily,weeklyCourtLoad=input.weeklyCourtLoad)
+            canonicalStrengthSignals=input.signals,recoverySignals=input.recovery,dailyStrain=input.daily,weeklyCourtLoad=input.weeklyCourtLoad,
+            weekAnnotations=input.weekAnnotations,hardRestrictedModes=input.hardRestrictedModes)
     }
 
     @Test fun sustainableReleaseIsBoundedByEvidenceAvailabilityAndDemand() {
@@ -44,7 +45,7 @@ class TrainingStateParityTest {
         assertTrue(capacity.finalControllableUnits in 50..54)
         assertTrue(capacity.finalControllableUnits>assessment.sustainable.rawWeeklyMean!!)
         assertTrue(ExecutionCapacityPlanner().envelope(source,state,request,30.0,20,assessment.globalDoseFactor).finalControllableUnits<=20)
-        assertFalse(assessment.copy(hardRestrictionCodes=listOf("BLOCKED")).permitsSustainableRelease)
+        assertFalse(assessment.copy(globalHardRestriction=true).permitsSustainableRelease)
         assertTrue(ExecutionCapacityPlanner().envelope(source,state,request.copy(sessionMinutes=5),30.0,100,assessment.globalDoseFactor).finalControllableUnits<capacity.finalControllableUnits)
     }
 
@@ -66,15 +67,15 @@ class TrainingStateParityTest {
         val normal=snapshot(fixture("long_successful_run"))
         val normalState=AthletePlanningStateBuilder().build(normal,PersonalizedPlanningAnswers())
         assertEquals(3,PlanningQuestionPolicy().questions(normal,normalState,PersonalizedPlanningAnswers()).size)
-        val interrupted=snapshot(fixture("confirmed_external").copy(interruptionCause=InterruptionCause.UNSURE))
+        val interrupted=snapshot(fixture("confirmed_external").copy(weekAnnotations=emptyMap()))
         val state=AthletePlanningStateBuilder().build(interrupted,PersonalizedPlanningAnswers())
         val questions=PlanningQuestionPolicy().questions(interrupted,state,PersonalizedPlanningAnswers())
-        assertEquals(5,questions.size)
-        val answers=PersonalizedPlanningAnswers(questions.associate { it.id to if (it.id.startsWith("INTERRUPTION")) "UNSURE" else it.options.first().value })
+        assertEquals(6,questions.size)
+        val answers=PersonalizedPlanningAnswers(questions.associate { it.id to if (it.id.startsWith(QUESTION_WEEK_CAUSE_PREFIX)) "UNKNOWN" else if (it.id==QUESTION_INTERRUPTION_FREQUENCY) "UNSURE" else it.options.first().value })
         assertTrue(PlanningQuestionPolicy().questions(interrupted,state,answers).isEmpty())
         assertEquals(InterruptionCause.UNSURE,interrupted.trainingStateInput(answers).interruptionCause)
         val explained=interrupted.copy(preferences=interrupted.preferences.copy(interruptionCause=InterruptionCause.FATIGUE))
-        assertEquals(3,PlanningQuestionPolicy().questions(explained,
+        assertEquals(6,PlanningQuestionPolicy().questions(explained,
             AthletePlanningStateBuilder().build(explained,PersonalizedPlanningAnswers()),PersonalizedPlanningAnswers()).size)
     }
 
@@ -95,22 +96,22 @@ class TrainingStateParityTest {
             PlannedExercise("knee","CONTINUITY","",100,targetSets=2),StrengthProgrammingStyle.NONE)
         assertTrue(prescription.sets.all { it.weightKg==90.0 })
         val held=PersonalizedPrescriptionPlanner().prescribe(source.copy(recoverySignals=PlanningRecoverySignals(),
-            hardRestrictedModes=setOf("UNMAPPED_EXPLICIT_RESTRICTION")),StrengthIntent.MIXED,
+            hardRestrictedModes=setOf("KNEE")),StrengthIntent.MIXED,
             PlannedExercise("knee","CONTINUITY","",100,targetSets=2),StrengthProgrammingStyle.NONE)
         assertTrue(held.sets.all { it.weightKg==100.0 })
     }
     @Test fun realPythonAssessmentMatchesProductionAnalyzerWhenPrivateArtifactProvided() {
         val directory=System.getenv("WGTD_COMPARISON_DIR")?.let(::File)
-        org.junit.Assume.assumeTrue(directory?.resolve("v013_python_actual.json")?.isFile==true)
-        val source=JSONObject(directory!!.resolve("v013_numerical_inputs.json").readText())
-        val expected=JSONObject(directory.resolve("v013_python_actual.json").readText())
+        org.junit.Assume.assumeTrue(directory?.resolve("v0131_python_actual.json")?.isFile==true)
+        val source=JSONObject(directory!!.resolve("v0131_numerical_inputs.json").readText())
+        val expected=JSONObject(directory.resolve("v0131_python_actual.json").readText())
         compare(expected,TrainingStateAnalyzer().assess(trainingInput(source)).toJson(),"real")
     }
     @Test fun independentPythonRawInputsMatchEveryAssessmentField() {
         val file=listOf(File("../tools/planner_reference/fixtures/v013_training_state_golden.json"),
             File("tools/planner_reference/fixtures/v013_training_state_golden.json")).first { it.isFile }
         val cases=JSONArray(file.readText())
-        assertEquals(16,cases.length())
+        assertEquals(24,cases.length())
         for (i in 0 until cases.length()) {
             val case=cases.getJSONObject(i)
             val actual=TrainingStateAnalyzer().assess(trainingInput(case.getJSONObject("input")))
@@ -127,14 +128,14 @@ class TrainingStateParityTest {
         val input=trainingInput(source)
         val analyzer=TrainingStateAnalyzer()
         val confirmed=analyzer.assess(input)
-        val unknown=analyzer.assess(input.copy(interruptionCause=InterruptionCause.UNSURE))
+        val unknown=analyzer.assess(input.copy(weekAnnotations=emptyMap()))
         assertEquals(unknown.strain,confirmed.strain)
         assertEquals(unknown.weeklyContext.map { it.courtLoad },confirmed.weeklyContext.map { it.courtLoad })
         val future=input.records.first().copy(date=input.cutoff.plusDays(1),weightKg=10000.0)
         compare(assessmentJson(confirmed),assessmentJson(analyzer.assess(input.copy(records=input.records+future))),"future")
     }
 
-    private fun compare(expected: Any,actual: Any,path: String) {
+    internal fun compare(expected: Any,actual: Any,path: String) {
         when (expected) {
             is JSONObject -> {
                 assertTrue(path,actual is JSONObject); actual as JSONObject
@@ -174,7 +175,8 @@ internal fun trainingInput(json: JSONObject): TrainingStateInput {
         obj("restSeconds").let { o -> o.keys().asSequence().associateWith(o::getInt) },
         rows("weeklyCourtLoad").associate { LocalDate.parse(it.getString("end")) to it.getDouble("load") },
         strings(json.optJSONArray("hardRestrictedModes")),InterruptionCause.valueOf(json.optString("interruptionCause","UNSURE")),
-        InterruptionFrequency.valueOf(json.optString("interruptionFrequency","UNSURE")))
+        InterruptionFrequency.valueOf(json.optString("interruptionFrequency","UNSURE")),
+        WeeklyContextAnnotationJson.read(json.optJSONObject("weekAnnotations")?.toString()))
 }
 
 /** Test-only structural serializer also checks that no evidence field was silently omitted. */

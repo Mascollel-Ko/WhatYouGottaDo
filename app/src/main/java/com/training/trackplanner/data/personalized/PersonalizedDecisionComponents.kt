@@ -3,7 +3,7 @@ package com.training.trackplanner.data.personalized
 import kotlin.math.roundToInt
 import kotlin.math.tanh
 
-class PlanningQuestionPolicy {
+class PlanningQuestionPolicy(private val nowEpochMillis: () -> Long = System::currentTimeMillis) {
     fun questions(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, answers: PersonalizedPlanningAnswers): List<PersonalizedPlanningQuestion> = buildList {
         // Ask the core preferences on every preflight, even if history or saved answers look sufficient.
         if (answers.values[QUESTION_STRENGTH_INTENT] !in setOf("HYPERTROPHY_PRIORITY", "MIXED", "STRENGTH_PRIORITY", "AVOID_HEAVY")) {
@@ -27,23 +27,32 @@ class PlanningQuestionPolicy {
                 PersonalizedPlanningAnswerOption(FreeWeightWillingness.AVOID.name, "피하고 싶음")
             )))
         }
-        if (state.trainingStateAssessment?.sustainable?.questionRequired == true &&
-            answers.values[QUESTION_INTERRUPTION_CAUSE] !in InterruptionCause.entries.map { it.name }) {
-            add(PersonalizedPlanningQuestion(QUESTION_INTERRUPTION_CAUSE,
-                "최근 기록에서 평소보다 운동량이 크게 줄어든 주가 몇 차례 있습니다. 이런 감소는 주로 어떤 이유였나요?", listOf(
-                    PersonalizedPlanningAnswerOption("EXTERNAL","업무·출장·여행·개인 일정"),
-                    PersonalizedPlanningAnswerOption("EVENT","대회·경기·의도적인 테이퍼"),
-                    PersonalizedPlanningAnswerOption("FATIGUE","피로 때문에 평소 훈련을 소화하기 어려웠음"),
-                    PersonalizedPlanningAnswerOption("MIXED","여러 이유가 섞여 있음"),
-                    PersonalizedPlanningAnswerOption("UNSURE","잘 모르겠음"))))
-        }
-        if ((state.trainingStateAssessment?.sustainable?.questionRequired == true ||
-                state.trainingStateAssessment?.weeklyContext.orEmpty().any { it.excludedFromTolerance }) &&
-            state.trainingStateAssessment?.weeklyContext.orEmpty().count { it.low } >= 2 &&
-            snapshot.preferences.interruptionFrequency == null &&
-            answers.values[QUESTION_INTERRUPTION_FREQUENCY] !in InterruptionFrequency.entries.map { it.name }) {
+        val weeks=state.trainingStateAssessment?.weeklyContext.orEmpty()
+        // All observed low weeks can affect tolerance/run continuity. Recency is the deterministic priority.
+        weeks.filter { it.low && it.source!=WeeklyContextSource.USER_CONFIRMED &&
+            snapshot.weekAnnotations[it.start]?.source!=WeeklyContextSource.USER_CONFIRMED &&
+            it.start !in answers.weekAnnotations() }
+            .sortedByDescending { it.start }.take(3).forEach { week ->
+                add(PersonalizedPlanningQuestion(weekCauseQuestionId(week.start),
+                    "${week.start}~${week.end}에는 평소보다 운동량이 크게 줄었습니다. 이 주의 주된 이유는 무엇이었나요?", listOf(
+                        PersonalizedPlanningAnswerOption("EXTERNAL","업무·출장·여행·개인 일정"),
+                        PersonalizedPlanningAnswerOption("EVENT_OR_TAPER","대회·경기·의도적인 테이퍼"),
+                        PersonalizedPlanningAnswerOption("FATIGUE","피로 때문에 평소 훈련을 소화하기 어려웠음"),
+                        PersonalizedPlanningAnswerOption("INTENTIONAL_DELOAD","의도적으로 쉬거나 디로드함"),
+                        PersonalizedPlanningAnswerOption("OTHER","다른 이유"),
+                        PersonalizedPlanningAnswerOption("UNKNOWN","기억나지 않음"))))
+            }
+        val frequency=snapshot.preferences.interruptionFrequency
+        val answeredAt=snapshot.preferences.interruptionFrequencyAnsweredAtEpochMillis
+        val confirmedExternal=weeks.count { it.start>=snapshot.cutoff.minusWeeks(8) &&
+            (snapshot.weekAnnotations+answers.weekAnnotations())[it.start]?.let { annotation ->
+                annotation.source==WeeklyContextSource.USER_CONFIRMED && annotation.cause==WeeklyContextCause.EXTERNAL }==true }
+        val stale=frequency!=null && (answeredAt==null || nowEpochMillis()-answeredAt>=90L*24*60*60*1000 ||
+            frequency in setOf(InterruptionFrequency.NEVER,InterruptionFrequency.RARE) && confirmedExternal>=2)
+        val needsFrequency=stale || frequency==null && (weeks.count { it.low }>=2 || confirmedExternal>0)
+        if (needsFrequency && answers.values[QUESTION_INTERRUPTION_FREQUENCY] !in InterruptionFrequency.entries.map { it.name }) {
             add(PersonalizedPlanningQuestion(QUESTION_INTERRUPTION_FREQUENCY,
-                "외부 일정 때문에 운동량이 줄어드는 일이 얼마나 자주 있나요?", listOf(
+                "외부 일정 때문에 운동 계획이 깨지는 일이 얼마나 자주 있나요?", listOf(
                     PersonalizedPlanningAnswerOption("NEVER","거의 없음"),
                     PersonalizedPlanningAnswerOption("RARE","2~3개월에 한 번 미만"),
                     PersonalizedPlanningAnswerOption("MONTHLY","한 달에 한 번 정도"),
@@ -325,22 +334,33 @@ class PlanningHorizonPlanner {
     }
 }
 
+data class WeeklyFrequencyEvidence(val demonstratedDaysReference: Double, val referenceSource: String,
+    val demonstratedDays: Int, val schedulingDensityFloor: Int, val stateCeiling: Int,
+    val ceilingReason: String, val recommendedDays: Int)
+
 class WeeklyDosePlanner {
-    fun chooseDays(state: AthletePlanningState, itemCount: Int): Int {
-        val assessment = state.trainingStateAssessment
-        val normalDays = trainingMedian(assessment?.weeklyContext.orEmpty().filter {
-            it.context == WeeklyTrainingContext.NORMAL }.map { it.days.toDouble() })
-        val historical = (normalDays ?: state.recentTrainingDaysPerWeek).roundToInt().coerceIn(2, 5)
-        val densityFloor = ((itemCount + 3) / 4).coerceIn(2, 5)
-        val courtAdjusted = if (state.genericCourtLoad >= 180.0) minOf(historical, 3) else historical
-        val recoveryCeiling = when {
-            state.recoverySignals.readinessStatus == "LIMITED" -> 2
-            assessment?.globalHardRestriction == true -> 2
-            assessment?.state == TrainingState.MALADAPTATION_PATTERN -> 3
-            assessment?.state == TrainingState.ACCUMULATING_STRAIN -> 4
-            else -> 5
+    fun chooseDays(state: AthletePlanningState, itemCount: Int): Int = resolve(state,itemCount).recommendedDays
+
+    fun resolve(state: AthletePlanningState, itemCount: Int): WeeklyFrequencyEvidence {
+        val assessment=state.trainingStateAssessment
+        val sustainable=assessment?.sustainable?.takeIf { it.confidence==PlanningConfidence.HIGH }?.sustainableDaysPerWeek
+        val normal=trainingMedian(assessment?.weeklyContext.orEmpty().filter {
+            it.context==WeeklyTrainingContext.NORMAL }.map { it.days.toDouble() })
+        val reference=sustainable?:normal?:state.recentTrainingDaysPerWeek
+        val historical=reference.roundToInt().coerceIn(2,5)
+        // Temporary placement heuristic, not physiological frequency authority.
+        val densityFloor=((itemCount+3)/4).coerceIn(2,5)
+        val ceiling=when {
+            state.recoverySignals.readinessStatus=="LIMITED" || assessment?.globalHardRestriction==true -> 2 to "GLOBAL_HARD_RESTRICTION"
+            assessment?.state==TrainingState.MALADAPTATION_PATTERN -> 3 to "MALADAPTATION_PATTERN"
+            assessment?.state==TrainingState.ACCUMULATING_STRAIN -> 4 to "ACCUMULATING_STRAIN"
+            else -> 5 to "NORMAL_SCHEDULING_RANGE"
         }
-        return maxOf(courtAdjusted, densityFloor).coerceAtMost(recoveryCeiling)
+        return WeeklyFrequencyEvidence(reference,when {
+            sustainable!=null -> "HIGH_QUALIFIED_SUSTAINABLE_RUN"
+            normal!=null -> "NORMAL_WEEK_MEDIAN"
+            else -> "RECENT_TRAINING_DAYS"
+        },historical,densityFloor,ceiling.first,ceiling.second,maxOf(historical,densityFloor).coerceAtMost(ceiling.first))
     }
 }
 

@@ -143,7 +143,7 @@ def weekly_context(source, cutoff):
     weeks = []
     first = min((date.fromisoformat(r["date"]) for r in source["records"]), default=cutoff)
     for offset in reversed(range(12)):
-        end = cutoff-timedelta(days=offset*7)
+        end = complete_week_end(cutoff)-timedelta(days=offset*7)
         start = end-timedelta(days=6)
         if start < first:
             continue  # incomplete leading bins cannot prove sustainable weekly workload
@@ -160,71 +160,131 @@ def weekly_context(source, cutoff):
                           medianRpe=med([r.get("rpe") for r in group]),
                           performanceResponse=performance["globalAdaptationResponse"],
                           negativeBreadth=performance["negativeBreadth"], rpeDrift=performance["rpeDrift"]))
-    cause = source.get("interruptionCause", "UNSURE")
+    return classify_weeks(weeks, source, cutoff)
+
+
+def complete_week_end(cutoff):
+    return cutoff-timedelta(days=(cutoff.weekday()+1) % 7)
+
+
+def deteriorating(week):
+    return ((week["negativeBreadth"] or 0) >= .5 and (week["performanceResponse"] or 0) <= -.2
+            or (week["rpeDrift"] or 0) > 1)
+
+
+def usable(week):
+    return (week["context"] == "NORMAL" and week["units"] > 0 and
+            (week["negativeBreadth"] or 0) < .5 and (week["rpeDrift"] or 0) <= 1 and
+            (week["performanceResponse"] is None or week["performanceResponse"] >= -.10))
+
+
+def classify_weeks(weeks, source, cutoff):
+    # Context never removes performance or RPE. Old global interruptionCause is not consulted.
     for i, week in enumerate(weeks):
         neighbors = weeks[max(0, i-3):i]+weeks[i+1:i+4]
         initial = med([w["units"] for w in neighbors if w["units"] > 0])
         typical = med([w["units"] for w in neighbors if initial is not None and w["units"] >= LOW_WEEK_RATIO*initial])
         low = typical is not None and week["units"] < LOW_WEEK_RATIO*typical
-        deteriorating = ((week["negativeBreadth"] or 0) >= .5 and (week["performanceResponse"] or 0) <= -.2
-                         or (week["rpeDrift"] or 0) > 1.0)
-        context, reasons = "NORMAL", []
+        annotation = source.get("weekAnnotations", {}).get(week["start"])
+        if annotation and annotation.get("source") != "USER_CONFIRMED":
+            annotation = None
+        context, cause, provenance, reasons = "NORMAL", "UNKNOWN", "UNRESOLVED", []
         if low:
             returned = any(w["units"] >= .85*typical for w in weeks[i+1:i+3])
             preceding = weeks[max(0, i-2):i]
-            stable_before = len(preceding) == 2 and all(w["units"] >= .85*typical and
-                               (w["negativeBreadth"] or 0) < .5 and (w["rpeDrift"] or 0) <= 1 for w in preceding)
+            no_prior_decline = bool(preceding) and not any(deteriorating(w) for w in preceding)
+            stable_before = len(preceding) == 2 and no_prior_decline and all(w["units"] >= .85*typical for w in preceding)
             court_typical = med([w["courtLoad"] for w in neighbors if w["courtLoad"] > 0])
             event = court_typical is not None and week["courtLoad"] >= 1.5*court_typical
-            if cause in {"EXTERNAL", "EVENT"}:
-                context = "EXTERNAL_INTERRUPTION_LIKELY" if cause == "EXTERNAL" else "EVENT_OR_TAPER_LIKELY"
-                reasons = ["USER_CONFIRMED_CONTEXT"]
-            elif cause == "FATIGUE" or deteriorating:
-                context, reasons = "RECOVERY_REDUCTION_LIKELY", ["USER_REPORTED_FATIGUE" if cause == "FATIGUE" else "PERFORMANCE_OR_RPE_DETERIORATION"]
-            elif returned and event:
-                context, reasons = "EVENT_OR_TAPER_LIKELY", ["COURT_RISE_AND_SC_RETURN"]
-            elif returned and stable_before and not deteriorating:
-                context, reasons = "EXTERNAL_INTERRUPTION_LIKELY", ["ISOLATED_DROP_AND_RETURN_NO_OBSERVED_DECLINE"]
+            if annotation:
+                cause, provenance = annotation["cause"], "USER_CONFIRMED"
+                context = {"EXTERNAL": "EXTERNAL_INTERRUPTION_LIKELY",
+                           "EVENT_OR_TAPER": "EVENT_OR_TAPER_LIKELY",
+                           "FATIGUE": "RECOVERY_REDUCTION_LIKELY"}.get(cause, "UNEXPLAINED_LOW_WEEK")
+                reasons = ["EXACT_WEEK_USER_ANSWER", "CAUSE_"+cause]
+            elif deteriorating(week):
+                context, provenance, reasons = "RECOVERY_REDUCTION_LIKELY", "INFERRED", ["PERFORMANCE_OR_RPE_DETERIORATION"]
+            elif returned and event and no_prior_decline and not deteriorating(week):
+                context, provenance, reasons = "EVENT_OR_TAPER_LIKELY", "HIGH_CONFIDENCE_INFERRED", ["COURT_RISE_AND_SC_RETURN_NOT_USER_CONFIRMED"]
+            elif returned and stable_before and not deteriorating(week):
+                context, provenance, reasons = "EXTERNAL_INTERRUPTION_LIKELY", "HIGH_CONFIDENCE_INFERRED", ["ISOLATED_DROP_AND_RETURN_NOT_USER_CONFIRMED"]
             else:
                 context, reasons = "UNEXPLAINED_LOW_WEEK", ["CAUSE_UNKNOWN"]
         week.update(context=context, low=low, localTypicalUnits=typical, reasonCodes=reasons,
-                    excludedFromTolerance=context in {"EXTERNAL_INTERRUPTION_LIKELY", "EVENT_OR_TAPER_LIKELY"})
-    runs, current = [], []
-    for week in weeks:
-        usable = (week["context"] == "NORMAL" and week["units"] > 0 and
-                  (week["negativeBreadth"] or 0) < .5 and (week["rpeDrift"] or 0) <= 1 and
-                  (week["performanceResponse"] is None or week["performanceResponse"] >= -.10))
+                    cause=cause, source=provenance, bridgesStableRun=False,
+                    excludedFromTolerance=low and provenance == "USER_CONFIRMED" and cause in {"EXTERNAL", "EVENT_OR_TAPER"})
+    runs, current, bridged = [], [], set()
+    for i, week in enumerate(weeks):
+        following = weeks[i+1] if i+1 < len(weeks) else None
+        before_typical = med([w["units"] for w in current[-2:]])
+        bridge = (week["excludedFromTolerance"] and not deteriorating(week) and len(current) >= 2 and
+                  current[-1]["end"] == str(date.fromisoformat(week["start"])-timedelta(days=1)) and
+                  current[-2]["end"] == str(date.fromisoformat(week["start"])-timedelta(days=8)) and
+                  following is not None and usable(following) and before_typical is not None and
+                  .85*before_typical <= following["units"] <= 1.40*before_typical and
+                  all(w["units"] >= .85*before_typical for w in current[-2:]))
+        if bridge:
+            bridged.add(week["start"])
+            continue
         stable = not current or .70 <= week["units"]/max(1, current[-1]["units"]) <= 1.40
-        if not usable or not stable:
+        if not usable(week) or not stable:
             if len(current) >= 2:
                 runs.append(current)
             current = []
-        if usable:
+        if usable(week):
             current.append(week)
     if len(current) >= 2:
         runs.append(current)
-    summaries = [dict(start=run[0]["start"], end=run[-1]["end"], durationWeeks=len(run),
-                      units=med([w["units"] for w in run]), minutes=med([w["minutes"] for w in run]),
-                      days=med([w["days"] for w in run]), response=med([w["performanceResponse"] for w in run]),
-                      rpeDrift=med([w["rpeDrift"] for w in run]),
-                      weight=len(run)**2*.92**((cutoff-date.fromisoformat(run[-1]["end"])).days/7))
-                 for run in runs]
-    longest = max([r["durationWeeks"] for r in summaries], default=0)
-    observation = sum(r["durationWeeks"] for r in summaries)
-    performance_observed = any(r["response"] is not None for r in summaries)
-    confidence = ("HIGH" if performance_observed and (longest >= 4 or observation >= 4 and len(runs) >= 2)
-                  else "MODERATE" if longest >= 3 or observation >= 4 else "LOW")
-    sustainable = dict(sustainableWeeklyControllableUnits=weighted_median([(r["units"], r["weight"]) for r in summaries]),
-                       sustainableWeeklyMinutes=weighted_median([(r["minutes"], r["weight"]) for r in summaries]),
-                       sustainableDaysPerWeek=weighted_median([(r["days"], r["weight"]) for r in summaries]),
-                       longestStableRunWeeks=longest, successfulStableRunCount=len(runs), observationWeeks=len(weeks),
-                       confidence=confidence, runs=summaries,
-                       rawWeeklyMean=sum(w["units"] for w in weeks)/len(weeks) if weeks else None,
-                       normalWeekMedian=med([w["units"] for w in weeks if w["context"] == "NORMAL"]),
-                       questionRequired=sum(w["low"] for w in weeks) >= 2 and cause in {"UNSURE", "MIXED"},
-                       robustSchedule=source.get("interruptionFrequency") in {"MONTHLY", "FREQUENT", "VERY_FREQUENT"},
-                       reasonCodes=["DEMONSTRATED_NOT_MAXIMAL_OR_SAFE_CAPACITY"] + ([] if summaries else ["NO_MULTI_WEEK_STABLE_RUN"]))
+    summaries = []
+    for run in runs:
+        n = len(run)
+        performance = sum(w["performanceResponse"] is not None for w in run)
+        coverage = performance/n
+        confidence = ("HIGH" if n >= 4 and performance >= 2 and coverage >= .50 else
+                      "MODERATE" if n >= 3 and (performance > 0 or any(w["rpeDrift"] is not None for w in run)) else "LOW")
+        summaries.append(dict(start=run[0]["start"], end=run[-1]["end"], durationWeeks=n,
+            units=med([w["units"] for w in run]), minutes=med([w["minutes"] for w in run]), days=med([w["days"] for w in run]),
+            response=med([w["performanceResponse"] for w in run]), rpeDrift=med([w["rpeDrift"] for w in run]),
+            weight=n**2*.92**((cutoff-date.fromisoformat(run[-1]["end"])).days/7),
+            observedSuccessfulWeeks=n,
+            calendarSpanWeeks=((date.fromisoformat(run[-1]["end"])-date.fromisoformat(run[0]["start"])).days+1)//7,
+            performanceEvidenceWeeks=performance, performanceEvidenceCoverage=coverage,
+            negativeBreadth=med([w["negativeBreadth"] for w in run]), confidence=confidence,
+            qualifiedForCapacityRelease=confidence == "HIGH"))
+    high = [r for r in summaries if r["qualifiedForCapacityRelease"]]
+    confidence = "HIGH" if high else "MODERATE" if any(r["confidence"] == "MODERATE" for r in summaries) else "LOW"
+    capacity_runs = high or summaries
+    for week in weeks:
+        week["bridgesStableRun"] = week["start"] in bridged and any(r["start"] <= week["start"] <= r["end"] for r in summaries)
+    sustainable = dict(sustainableWeeklyControllableUnits=weighted_median([(r["units"], r["weight"]) for r in capacity_runs]),
+        sustainableWeeklyMinutes=weighted_median([(r["minutes"], r["weight"]) for r in capacity_runs]),
+        sustainableDaysPerWeek=weighted_median([(r["days"], r["weight"]) for r in capacity_runs]),
+        longestStableRunWeeks=max((r["observedSuccessfulWeeks"] for r in summaries), default=0),
+        successfulStableRunCount=len(runs), observationWeeks=len(weeks), confidence=confidence, runs=summaries,
+        rawWeeklyMean=sum(w["units"] for w in weeks)/len(weeks) if weeks else None,
+        normalWeekMedian=med([w["units"] for w in weeks if w["context"] == "NORMAL"]),
+        questionRequired=any(w["low"] and w["source"] != "USER_CONFIRMED" for w in weeks),
+        robustSchedule=source.get("interruptionFrequency") in {"MONTHLY", "FREQUENT", "VERY_FREQUENT"},
+        reasonCodes=["DEMONSTRATED_NOT_MAXIMAL_OR_SAFE_CAPACITY", "RUN_LOCAL_PERFORMANCE_AUTHORITY", "COMPLETE_ISO_WEEKS"]+
+            ([] if summaries else ["NO_MULTI_WEEK_STABLE_RUN"]))
     return weeks, sustainable
+
+
+def auto_frequency(assessment, recent_days, item_count):
+    sustainable = assessment["sustainable"]
+    qualified_days = sustainable["sustainableDaysPerWeek"] if sustainable["confidence"] == "HIGH" else None
+    normal = med([w["days"] for w in assessment["weeklyContext"] if w["context"] == "NORMAL"])
+    reference = qualified_days if qualified_days is not None else normal if normal is not None else recent_days
+    demonstrated = int(clip(math.floor(reference+.5), 2, 5))
+    floor = int(clip((item_count+3)//4, 2, 5))
+    ceiling = 2 if assessment["globalHardRestriction"] else {"MALADAPTATION_PATTERN": 3, "ACCUMULATING_STRAIN": 4}.get(assessment["state"], 5)
+    return min(max(demonstrated, floor), ceiling)
+
+
+def permits_release(assessment):
+    return (not assessment["globalHardRestriction"] and assessment["state"] in
+            {"PRODUCTIVE_HIGH_LOAD", "PRODUCTIVE_NORMAL", "TOLERATED_HIGH_LOAD"} and
+            assessment["sustainable"]["confidence"] == "HIGH")
 
 
 def assess(source):
@@ -262,14 +322,16 @@ def assess(source):
         relevant = [w for w in weeks if start <= date.fromisoformat(w["end"]) <= end]
         excluded = {w["end"] for w in relevant if w["excludedFromTolerance"]}
         usable = [r for r in rows if source["domains"].get(r["stableKey"]) in CONTROL and
+                  any(w["start"] <= r["date"] <= w["end"] for w in relevant) and
                   not any(w["end"] in excluded and w["start"] <= r["date"] <= w["end"] for w in relevant)]
         denomin = len(relevant)-len(excluded)
         days = {r["date"] for r in usable}
         density = med([sum(r["date"] == d for r in usable) for d in days])
         return dict(units=len(usable)/denomin if denomin else None,
                     days=len(days)/denomin if denomin else None, density=density)
-    now = tolerance_window(current, cutoff-timedelta(days=27), cutoff)
-    then = tolerance_window(prior, cutoff-timedelta(days=55), cutoff-timedelta(days=28))
+    week_end = complete_week_end(cutoff)
+    now = tolerance_window(within(source["records"], week_end-timedelta(days=27), week_end), week_end-timedelta(days=27), week_end)
+    then = tolerance_window(within(source["records"], week_end-timedelta(days=55), week_end-timedelta(days=28)), week_end-timedelta(days=55), week_end-timedelta(days=28))
     def stability(key):
         return clip((now[key]/then[key]-.60)/.30) if now[key] is not None and then[key] is not None and then[key] > 0 else None
     work, days, density = [stability(k) for k in ("units", "days", "density")]
@@ -280,7 +342,7 @@ def assess(source):
                      densityStability=density, rpeStability=rpe, score=T)
     A, positive, negative = adapt["globalAdaptationResponse"], adapt["positiveBreadth"], adapt["negativeBreadth"]
     P = mean_available([(clip((A+.20)/.80) if A is not None else None, .50), (T, .30), (positive, .20)])
-    unresolved = any(w["context"] == "UNEXPLAINED_LOW_WEEK" for w in weeks[-8:])
+    unresolved = any(w["low"] and w["source"] != "USER_CONFIRMED" and w["context"] != "RECOVERY_REDUCTION_LIKELY" or w["context"] == "UNEXPLAINED_LOW_WEEK" for w in weeks[-8:])
     M = mean_available([(clip((-A-.10)/.50) if A is not None else None, .40), (negative, .25),
                         (1-T if T is not None and not unresolved else None, .20),
                         (clip(max(0, drift)/1.5) if drift is not None else None, .15)])
@@ -293,13 +355,15 @@ def assess(source):
     local = recovery.get("tissueRestrictedStableKeys", [])
     if recovery["readinessStatus"] == "LIMITED":
         hard.append("READINESS_LIMITED")
-    if recovery["tissueStatus"] in {"VERY_HIGH", "BLOCKED"}:
+    if recovery["tissueStatus"] in {"VERY_HIGH", "BLOCKED"} and not local:
         hard.append("TISSUE_"+recovery["tissueStatus"])
-    hard += ["LOCAL_TISSUE:"+key for key in sorted(local)]
+    global_codes = hard.copy()
+    local_codes = ["LOCAL_TISSUE:"+key for key in sorted(local)]
     # Advisory readiness text generated from soft pressure is not an independent hard gate.
-    hard += ["EXPLICIT_MODE:"+mode for mode in sorted(source.get("hardRestrictedModes", []))]
+    local_codes += ["EXPLICIT_MODE:"+mode for mode in sorted(source.get("hardRestrictedModes", []))]
+    hard = global_codes+local_codes
     global_hard = recovery["readinessStatus"] == "LIMITED" or recovery["tissueStatus"] in {"VERY_HIGH", "BLOCKED"} and not local
-    state = ("HARD_RESTRICTION" if hard else "UNCERTAIN" if confidence == "LOW" else
+    state = ("HARD_RESTRICTION" if global_hard else "UNCERTAIN" if confidence == "LOW" else
              "MALADAPTATION_PATTERN" if M is not None and M >= .65 and negative is not None and negative >= .50 else
              "PRODUCTIVE_HIGH_LOAD" if S is not None and S >= .60 and P is not None and P >= .65 and M is not None and M < .30 else
              "TOLERATED_HIGH_LOAD" if S is not None and S >= .60 and P is not None and P >= .45 and M is not None and M < .45 else
@@ -314,6 +378,8 @@ def assess(source):
                 sustainable=sustainable, strainScore=S, productiveEvidence=P, maladaptationEvidence=M,
                 positiveBreadth=positive, negativeBreadth=negative, state=state, confidence=confidence,
                 globalDoseFactor=factor, globalHardRestriction=global_hard, hardRestrictionCodes=hard,
+                globalHardRestrictionCodes=global_codes, localRestrictionCodes=local_codes,
+                localRestrictedStableKeys=sorted(local), restrictedModes=sorted(source.get("hardRestrictedModes", [])),
                 reasonCodes=["SINGLE_GLOBAL_SOFT_DOSE", "CORRELATED_CONFIDENCE_CAPPED"]+
                             (["UNEXPLAINED_LOW_WEEK_NOT_ASSUMED_FAILURE"] if unresolved else []))
 

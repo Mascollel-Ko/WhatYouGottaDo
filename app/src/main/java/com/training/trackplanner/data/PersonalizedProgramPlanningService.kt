@@ -34,6 +34,9 @@ import com.training.trackplanner.data.personalized.InterruptionFrequency
 import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_CAUSE
 import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_FREQUENCY
 import com.training.trackplanner.data.personalized.toJson
+import com.training.trackplanner.data.personalized.WeeklyContextAnnotationJson
+import com.training.trackplanner.data.personalized.weekAnnotations
+import com.training.trackplanner.data.personalized.completedTrainingWeekEnd
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
@@ -174,13 +177,14 @@ internal class PersonalizedProgramPlanningService(
                 it.highForceNeuralScore.toDouble(),it.systemicMuscularScore.toDouble(),it.localMuscularScore.toDouble(),
                 it.highSpeedScore.toDouble(),it.reactiveScore.toDouble(),it.recoveryPressureScore.toDouble(),it.confirmedTrainingLoad) },
             weeklyCourtLoad = (0..11).associate { offset ->
-                val end=cutoff.minusDays(offset*7L)
+                val end=completedTrainingWeekEnd(cutoff).minusDays(offset*7L)
                 end to com.training.trackplanner.analysis.badminton.BadmintonPracticeLoadCalculator(runtimeCatalog).calculateRaw(
                     history.filter { LocalDate.parse(it.entry.date) in end.minusDays(6)..end },snapshot.exercises)
             },
             // Typed user declarations only. Soft readiness advice is not an independent hard gate.
             hardRestrictedModes = listOfNotNull(profile?.painAreaTags,profile?.avoidMovementTags)
-                .flatMap { it.split('|',',') }.map(String::trim).filter { it.isNotBlank() && it!="NONE" }.toSet())
+                .flatMap { it.split('|',',') }.map(String::trim).filter { it.isNotBlank() && it!="NONE" }.toSet(),
+            weekAnnotations = WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY)))
     }
 
     private suspend fun canonicalStrengthSignals(cutoff: LocalDate): Map<String, CanonicalStrengthSignal> {
@@ -219,7 +223,8 @@ internal class PersonalizedProgramPlanningService(
             strengthIntentAnsweredAtEpochMillis = json.optLong("strengthIntentAnsweredAtEpochMillis", Long.MIN_VALUE).takeIf { it != Long.MIN_VALUE },
             strengthIntentProfileGoal = json.optString("strengthIntentProfileGoal").takeIf(String::isNotBlank),
             interruptionCause = runCatching { InterruptionCause.valueOf(json.optString("interruptionCause")) }.getOrNull(),
-            interruptionFrequency = runCatching { InterruptionFrequency.valueOf(json.optString("interruptionFrequency")) }.getOrNull()
+            interruptionFrequency = runCatching { InterruptionFrequency.valueOf(json.optString("interruptionFrequency")) }.getOrNull(),
+            interruptionFrequencyAnsweredAtEpochMillis = json.optLong("interruptionFrequencyAnsweredAtEpochMillis",Long.MIN_VALUE).takeUnless { it==Long.MIN_VALUE }
         )
     }
 
@@ -232,8 +237,8 @@ internal class PersonalizedProgramPlanningService(
             freeWeightWillingness = answers.values[QUESTION_FREE_WEIGHT]?.let { FreeWeightWillingness.valueOf(it) } ?: old.freeWeightWillingness,
             strengthIntentAnsweredAtEpochMillis = if (QUESTION_STRENGTH_INTENT in answers.values) System.currentTimeMillis() else old.strengthIntentAnsweredAtEpochMillis,
             strengthIntentProfileGoal = if (QUESTION_STRENGTH_INTENT in answers.values) profileGoal else old.strengthIntentProfileGoal,
-            interruptionCause = answers.values[QUESTION_INTERRUPTION_CAUSE]?.let(InterruptionCause::valueOf) ?: old.interruptionCause,
-            interruptionFrequency = answers.values[QUESTION_INTERRUPTION_FREQUENCY]?.let(InterruptionFrequency::valueOf) ?: old.interruptionFrequency
+            interruptionFrequency = answers.values[QUESTION_INTERRUPTION_FREQUENCY]?.let(InterruptionFrequency::valueOf) ?: old.interruptionFrequency,
+            interruptionFrequencyAnsweredAtEpochMillis = if (QUESTION_INTERRUPTION_FREQUENCY in answers.values) System.currentTimeMillis() else old.interruptionFrequencyAnsweredAtEpochMillis
         )
         appMetaDao.upsert(AppMeta(PREFERENCES_KEY, JSONObject()
             .put("strengthIntent", next.strengthIntent?.name.orEmpty())
@@ -242,7 +247,11 @@ internal class PersonalizedProgramPlanningService(
             .put("badmintonIntent", next.badmintonIntent?.name.orEmpty())
             .put("interruptionCause",next.interruptionCause?.name.orEmpty())
             .put("interruptionFrequency",next.interruptionFrequency?.name.orEmpty())
+            .put("interruptionFrequencyAnsweredAtEpochMillis",next.interruptionFrequencyAnsweredAtEpochMillis)
             .put("freeWeightWillingness", next.freeWeightWillingness?.name.orEmpty()).toString()))
+        val annotations=answers.weekAnnotations(System.currentTimeMillis())
+        if (annotations.isNotEmpty()) appMetaDao.upsert(AppMeta(WeeklyContextAnnotationJson.KEY,
+            WeeklyContextAnnotationJson.write(WeeklyContextAnnotationJson.read(appMetaDao.value(WeeklyContextAnnotationJson.KEY))+annotations)))
     }
 
     private fun decisionIdFromJson(value: String): String? = runCatching { JSONObject(value).optString("decisionId").takeIf(String::isNotBlank) }.getOrNull()
@@ -261,6 +270,7 @@ internal class PersonalizedProgramPlanningService(
         .put("finalSavedFingerprint", finalSavedFingerprint).put("recoverySignalCodes", JSONArray(recoverySignalCodes))
         .put("genericCourtLoad", genericCourtLoad).put("objectiveExposure", JSONObject(objectiveExposure))
         .put("trainingStateAssessment", trainingStateAssessment?.toJson())
+        .put("weeklyFrequencyEvidence", weeklyFrequencyEvidence?.toJson())
         .put("anchorTransitions", JSONArray(anchorTransitions.map { transition -> JSONObject()
             .put("stableKey", transition.stableKey)
             .put("observedStyle", transition.observedStyle.name)

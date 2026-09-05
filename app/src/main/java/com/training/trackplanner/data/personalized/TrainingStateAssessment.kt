@@ -25,7 +25,8 @@ data class TrainingStateInput(val cutoff: LocalDate, val records: List<PlanningS
     val signals: Map<String, CanonicalStrengthSignal>, val recovery: PlanningRecoverySignals,
     val restSeconds: Map<String, Int> = emptyMap(), val weeklyCourtLoad: Map<LocalDate, Double> = emptyMap(),
     val hardRestrictedModes: Set<String> = emptySet(), val interruptionCause: InterruptionCause = InterruptionCause.UNSURE,
-    val interruptionFrequency: InterruptionFrequency = InterruptionFrequency.UNSURE)
+    val interruptionFrequency: InterruptionFrequency = InterruptionFrequency.UNSURE,
+    val weekAnnotations: Map<LocalDate, WeeklyContextAnnotation> = emptyMap())
 
 data class LongitudinalStrainProfile(val ofi7: Double?, val baselineMedian: Double?, val baselineMad: Double?,
     val robustScale: Double?, val personalZ: Double?, val absoluteStrain: Double?, val relativeStrain: Double?,
@@ -47,9 +48,16 @@ data class WeeklyWorkloadEvidence(val start: LocalDate, val end: LocalDate, val 
     val days: Int, val courtLoad: Double, val medianRpe: Double?, val performanceResponse: Double?,
     val negativeBreadth: Double?, val rpeDrift: Double?, val context: WeeklyTrainingContext = WeeklyTrainingContext.NORMAL,
     val low: Boolean = false, val localTypicalUnits: Double? = null, val reasonCodes: List<String> = emptyList(),
-    val excludedFromTolerance: Boolean = false)
+    val excludedFromTolerance: Boolean = false,
+    val cause: WeeklyContextCause = WeeklyContextCause.UNKNOWN,
+    val source: WeeklyContextSource = WeeklyContextSource.UNRESOLVED,
+    val bridgesStableRun: Boolean = false)
 data class StableWorkloadRun(val start: LocalDate, val end: LocalDate, val durationWeeks: Int, val units: Double,
-    val minutes: Double, val days: Double, val response: Double?, val rpeDrift: Double?, val weight: Double)
+    val minutes: Double, val days: Double, val response: Double?, val rpeDrift: Double?, val weight: Double,
+    val observedSuccessfulWeeks: Int = durationWeeks, val calendarSpanWeeks: Int = durationWeeks,
+    val performanceEvidenceWeeks: Int = 0, val performanceEvidenceCoverage: Double = 0.0,
+    val negativeBreadth: Double? = null, val confidence: PlanningConfidence = PlanningConfidence.LOW,
+    val qualifiedForCapacityRelease: Boolean = false)
 /** Demonstrated repeatable workload, NOT MRV, maximum safe volume, or optimal volume. */
 data class SustainableWorkloadEvidence(val sustainableWeeklyControllableUnits: Double?, val sustainableWeeklyMinutes: Double?,
     val sustainableDaysPerWeek: Double?, val longestStableRunWeeks: Int, val successfulStableRunCount: Int,
@@ -60,8 +68,10 @@ data class TrainingStateAssessment(val strain: LongitudinalStrainProfile, val ad
     val tolerance: WorkloadToleranceProfile, val weeklyContext: List<WeeklyWorkloadEvidence>, val sustainable: SustainableWorkloadEvidence,
     val strainScore: Double?, val productiveEvidence: Double?, val maladaptationEvidence: Double?,
     val positiveBreadth: Double?, val negativeBreadth: Double?, val state: TrainingState, val confidence: PlanningConfidence,
-    val globalDoseFactor: Double, val globalHardRestriction: Boolean, val hardRestrictionCodes: List<String>, val reasonCodes: List<String>) {
-    val permitsSustainableRelease: Boolean get() = hardRestrictionCodes.isEmpty() &&
+    val globalDoseFactor: Double, val globalHardRestriction: Boolean, val hardRestrictionCodes: List<String>, val reasonCodes: List<String>,
+    val globalHardRestrictionCodes: List<String> = emptyList(), val localRestrictionCodes: List<String> = emptyList(),
+    val localRestrictedStableKeys: Set<String> = emptySet(), val restrictedModes: Set<String> = emptySet()) {
+    val permitsSustainableRelease: Boolean get() = !globalHardRestriction &&
         state in setOf(TrainingState.PRODUCTIVE_HIGH_LOAD, TrainingState.TOLERATED_HIGH_LOAD, TrainingState.PRODUCTIVE_NORMAL) &&
         sustainable.confidence == PlanningConfidence.HIGH
 }
@@ -107,14 +117,17 @@ class TrainingStateAnalyzer {
             val relevant = weeks.filter { it.end in start..finish }
             val excluded = relevant.filter { it.excludedFromTolerance }
             val usable = rows.filter { input.domains[it.stableKey] in TrainingStatePolicy.controllableDomains &&
+                relevant.any { w -> it.date in w.start..w.end } &&
                 excluded.none { w -> it.date in w.start..w.end } }
             val denominator = relevant.size-excluded.size
             return ToleranceWindow(if (denominator>0) usable.size.toDouble()/denominator else null,
                 if (denominator>0) usable.map { it.date }.distinct().size.toDouble()/denominator else null,
                 median(usable.groupBy { it.date }.values.map { it.size.toDouble() }))
         }
-        val now = window(current,end.minusDays(27),end)
-        val then = window(prior,end.minusDays(55),end.minusDays(28))
+        // Scheduling tolerance uses complete ISO weeks. Adaptation/OFI retain all cutoff observations.
+        val weekEnd = completedTrainingWeekEnd(end)
+        val now = window(input.records.between(weekEnd.minusDays(27),weekEnd),weekEnd.minusDays(27),weekEnd)
+        val then = window(input.records.between(weekEnd.minusDays(55),weekEnd.minusDays(28)),weekEnd.minusDays(55),weekEnd.minusDays(28))
         fun stability(a: Double?, b: Double?) = if (a!=null && b!=null && b>0) clamp((a/b-.60)/.30) else null
         val work=stability(now.units,then.units); val days=stability(now.days,then.days); val density=stability(now.density,then.density)
         val drift=adaptation.rpeDrift
@@ -123,7 +136,8 @@ class TrainingStateAnalyzer {
         val tolerance=WorkloadToleranceProfile(now,then,work,days,density,rpe,t)
         val a=adaptation.globalAdaptationResponse; val positive=adaptation.positiveBreadth; val negative=adaptation.negativeBreadth
         val p=available(a?.let { clamp((it+.20)/.80) } to .50,t to .30,positive to .20)
-        val unresolved=weeks.takeLast(8).any { it.context==WeeklyTrainingContext.UNEXPLAINED_LOW_WEEK }
+        val unresolved=weeks.takeLast(8).any { it.low && it.source!=WeeklyContextSource.USER_CONFIRMED &&
+            it.context!=WeeklyTrainingContext.RECOVERY_REDUCTION_LIKELY || it.context==WeeklyTrainingContext.UNEXPLAINED_LOW_WEEK }
         val m=available(a?.let { clamp((-it-.10)/.50) } to .40,negative to .25,
             t?.takeUnless { unresolved }?.let { 1-it } to .20,drift?.let { clamp(maxOf(0.0,it)/1.5) } to .15)
         val active=(0..3).count { i -> current.any { input.domains[it.stableKey] in TrainingStatePolicy.controllableDomains && it.date in end.minusDays(6+i*7L)..end.minusDays(i*7L) } }
@@ -133,15 +147,18 @@ class TrainingStateAnalyzer {
             else -> PlanningConfidence.LOW
         }
         val local=recovery.tissueRestrictedStableKeys
-        val hard=buildList {
+        val globalCodes=buildList {
             if (recovery.readinessStatus=="LIMITED") add("READINESS_LIMITED")
-            if (recovery.tissueStatus in setOf("VERY_HIGH","BLOCKED")) add("TISSUE_${recovery.tissueStatus}")
+            if (recovery.tissueStatus in setOf("VERY_HIGH","BLOCKED") && local.isEmpty()) add("TISSUE_${recovery.tissueStatus}")
+        }
+        val localCodes=buildList {
             addAll(local.sorted().map { "LOCAL_TISSUE:$it" })
             addAll(input.hardRestrictedModes.sorted().map { "EXPLICIT_MODE:$it" })
         }
-        val globalHard=recovery.readinessStatus=="LIMITED" || (recovery.tissueStatus in setOf("VERY_HIGH","BLOCKED") && local.isEmpty())
+        val hard=globalCodes+localCodes // Legacy diagnostics union, never a global authority.
+        val globalHard=globalCodes.isNotEmpty()
         val state=when {
-            hard.isNotEmpty() -> TrainingState.HARD_RESTRICTION
+            globalHard -> TrainingState.HARD_RESTRICTION
             confidence==PlanningConfidence.LOW -> TrainingState.UNCERTAIN
             m!=null && m>=.65 && negative!=null && negative>=.50 -> TrainingState.MALADAPTATION_PATTERN
             s!=null && s>=.60 && p!=null && p>=.65 && m!=null && m<.30 -> TrainingState.PRODUCTIVE_HIGH_LOAD
@@ -155,7 +172,8 @@ class TrainingStateAnalyzer {
         if (globalHard) factor=minOf(factor,if (recovery.readinessStatus=="LIMITED" || recovery.tissueStatus=="BLOCKED") .75 else .80)
         return TrainingStateAssessment(strain,adaptation,tolerance,weeks,sustainable,s,p,m,positive,negative,state,confidence,factor,
             globalHard,hard,listOf("SINGLE_GLOBAL_SOFT_DOSE","CORRELATED_CONFIDENCE_CAPPED")+
-                if (unresolved) listOf("UNEXPLAINED_LOW_WEEK_NOT_ASSUMED_FAILURE") else emptyList())
+                (if (unresolved) listOf("UNEXPLAINED_LOW_WEEK_NOT_ASSUMED_FAILURE") else emptyList()),
+            globalCodes,localCodes,local,input.hardRestrictedModes)
     }
 
     private fun adaptation(input: TrainingStateInput, current: List<PlanningSetRecord>, prior: List<PlanningSetRecord>, posterior: Boolean=true): LongitudinalAdaptationProfile {
@@ -218,7 +236,7 @@ class TrainingStateAnalyzer {
         val rows=input.records.filter { input.domains[it.stableKey] in TrainingStatePolicy.controllableDomains }
         val first=input.records.minOfOrNull { it.date }?:input.cutoff
         val raw=(11 downTo 0).mapNotNull { offset ->
-            val end=input.cutoff.minusDays(offset*7L); val start=end.minusDays(6)
+            val end=completedTrainingWeekEnd(input.cutoff).minusDays(offset*7L); val start=end.minusDays(6)
             if (start<first) return@mapNotNull null
             val group=rows.between(start,end)
             val seconds=group.groupBy { it.date to it.stableKey }.values.sumOf { batch ->
@@ -227,63 +245,8 @@ class TrainingStateAnalyzer {
             WeeklyWorkloadEvidence(start,end,group.size,seconds/60.0,group.map { it.date }.distinct().size,
                 input.weeklyCourtLoad[end]?:0.0,median(group.mapNotNull { it.rpe }),performance.globalAdaptationResponse,performance.negativeBreadth,performance.rpeDrift)
         }
-        val weeks=raw.mapIndexed { i,week ->
-            val neighbors=raw.subList(maxOf(0,i-3),i)+raw.subList(i+1,minOf(raw.size,i+4))
-            val initial=median(neighbors.filter { it.units>0 }.map { it.units.toDouble() })
-            val typical=median(neighbors.filter { initial!=null && it.units>=TrainingStatePolicy.LOW_WEEK_RATIO*initial }.map { it.units.toDouble() })
-            val low=typical!=null && week.units<TrainingStatePolicy.LOW_WEEK_RATIO*typical
-            val deteriorating=(week.negativeBreadth?:0.0)>=.5 && (week.performanceResponse?:0.0)<=-.2 || (week.rpeDrift?:0.0)>1
-            var context=WeeklyTrainingContext.NORMAL; var reasons=emptyList<String>()
-            if (low) {
-                val returned=raw.subList(i+1,minOf(raw.size,i+3)).any { it.units>=.85*typical!! }
-                val preceding=raw.subList(maxOf(0,i-2),i)
-                val stableBefore=preceding.size==2 && preceding.all { it.units>=.85*typical!! && (it.negativeBreadth?:0.0)<.5 && (it.rpeDrift?:0.0)<=1 }
-                val courtTypical=median(neighbors.filter { it.courtLoad>0 }.map { it.courtLoad })
-                val event=courtTypical!=null && week.courtLoad>=1.5*courtTypical
-                when {
-                    input.interruptionCause in setOf(InterruptionCause.EXTERNAL,InterruptionCause.EVENT) -> {
-                        context=if (input.interruptionCause==InterruptionCause.EXTERNAL) WeeklyTrainingContext.EXTERNAL_INTERRUPTION_LIKELY else WeeklyTrainingContext.EVENT_OR_TAPER_LIKELY
-                        reasons=listOf("USER_CONFIRMED_CONTEXT")
-                    }
-                    input.interruptionCause==InterruptionCause.FATIGUE || deteriorating -> {
-                        context=WeeklyTrainingContext.RECOVERY_REDUCTION_LIKELY
-                        reasons=listOf(if (input.interruptionCause==InterruptionCause.FATIGUE) "USER_REPORTED_FATIGUE" else "PERFORMANCE_OR_RPE_DETERIORATION")
-                    }
-                    returned && event -> { context=WeeklyTrainingContext.EVENT_OR_TAPER_LIKELY; reasons=listOf("COURT_RISE_AND_SC_RETURN") }
-                    returned && stableBefore && !deteriorating -> { context=WeeklyTrainingContext.EXTERNAL_INTERRUPTION_LIKELY; reasons=listOf("ISOLATED_DROP_AND_RETURN_NO_OBSERVED_DECLINE") }
-                    else -> { context=WeeklyTrainingContext.UNEXPLAINED_LOW_WEEK; reasons=listOf("CAUSE_UNKNOWN") }
-                }
-            }
-            week.copy(context=context,low=low,localTypicalUnits=typical,reasonCodes=reasons,
-                excludedFromTolerance=context in setOf(WeeklyTrainingContext.EXTERNAL_INTERRUPTION_LIKELY,WeeklyTrainingContext.EVENT_OR_TAPER_LIKELY))
-        }
-        val runs=mutableListOf<List<WeeklyWorkloadEvidence>>(); var current=mutableListOf<WeeklyWorkloadEvidence>()
-        for (week in weeks) {
-            val usable=week.context==WeeklyTrainingContext.NORMAL && week.units>0 && (week.negativeBreadth?:0.0)<.5 &&
-                (week.rpeDrift?:0.0)<=1 && (week.performanceResponse==null || week.performanceResponse>=-.10)
-            val stable=current.isEmpty() || week.units.toDouble()/maxOf(1,current.last().units) in .70..1.40
-            if (!usable || !stable) { if (current.size>=2) runs+=current.toList(); current=mutableListOf() }
-            if (usable) current+=week
-        }
-        if (current.size>=2) runs+=current.toList()
-        val summaries=runs.map { run -> StableWorkloadRun(run.first().start,run.last().end,run.size,
-            median(run.map { it.units.toDouble() })!!,median(run.map { it.minutes })!!,median(run.map { it.days.toDouble() })!!,
-            median(run.mapNotNull { it.performanceResponse }),median(run.mapNotNull { it.rpeDrift }),
-            run.size.toDouble().pow(2)*.92.pow((input.cutoff.toEpochDay()-run.last().end.toEpochDay())/7.0)) }
-        val longest=summaries.maxOfOrNull { it.durationWeeks }?:0; val observation=summaries.sumOf { it.durationWeeks }
-        val performanceObserved=summaries.any { it.response!=null }
-        val confidence=when {
-            performanceObserved && (longest>=4 || observation>=4 && runs.size>=2) -> PlanningConfidence.HIGH
-            longest>=3 || observation>=4 -> PlanningConfidence.MODERATE
-            else -> PlanningConfidence.LOW
-        }
-        return weeks to SustainableWorkloadEvidence(weightedMedian(summaries.map { it.units to it.weight }),
-            weightedMedian(summaries.map { it.minutes to it.weight }),weightedMedian(summaries.map { it.days to it.weight }),
-            longest,runs.size,weeks.size,confidence,summaries,weeks.takeIf { it.isNotEmpty() }?.map { it.units }?.average(),
-            median(weeks.filter { it.context==WeeklyTrainingContext.NORMAL }.map { it.units.toDouble() }),
-            weeks.count { it.low }>=2 && input.interruptionCause in setOf(InterruptionCause.UNSURE,InterruptionCause.MIXED),
-            input.interruptionFrequency in setOf(InterruptionFrequency.MONTHLY,InterruptionFrequency.FREQUENT,InterruptionFrequency.VERY_FREQUENT),
-            listOf("DEMONSTRATED_NOT_MAXIMAL_OR_SAFE_CAPACITY")+if (summaries.isEmpty()) listOf("NO_MULTI_WEEK_STABLE_RUN") else emptyList())
+        return WeeklyWorkloadContextAnalyzer().evaluate(raw,input)
+
     }
 }
 
