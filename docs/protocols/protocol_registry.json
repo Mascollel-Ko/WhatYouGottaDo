@@ -1372,7 +1372,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.13.1 training state correction from 2026-09-05",
-      "lastAuditedCommit": "81823e6d81649661bbe9ce89d88af7a05607ef4c",
+      "lastAuditedCommit": "8a81fbdf6955713d4f15f3c04650edf1fcc3e817",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",

@@ -2,6 +2,8 @@
 
 ## 2026-09-05 - Record-based planner v0.13.1 semantic correction
 
+- Audited implementation commit: `8a81fbdf6955713d4f15f3c04650edf1fcc3e817`; audit provenance is finalized in a separate docs-only commit.
+
 - Actual clean main baseline: `fbaf65da9042d7d82c5481b79ee596a0621c3220`. Re-ran the supplied private backup on unchanged v0.13.0 production and froze `v0131_before.json/.txt` before editing. Original v0.12 BEFORE remains byte-identical. All private inputs, full programs, comparisons and round-trip exports stay ignored under `build/planner-comparison`.
 - Removed the court-load three-day AUTO cap. Demonstrated HIGH-qualified run days, normal-week median and recent days own frequency, with a separately persisted state ceiling and temporary item-count placement floor.
 - Added exact ISO-week cause/source/timestamp annotations in portable `personalized_planning_week_context_v1`, maximum three dated cause questions per generation, and frequency freshness. Legacy global cause is read-only compatibility and never classifies weeks. Frequency affects future robustness only.
