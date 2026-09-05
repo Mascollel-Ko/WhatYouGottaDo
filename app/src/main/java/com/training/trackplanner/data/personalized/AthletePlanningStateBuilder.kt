@@ -79,6 +79,7 @@ class AthletePlanningStateBuilder(
             snapshot.historyDays >= 14 && anchors.isNotEmpty() -> PlanningConfidence.MODERATE
             else -> PlanningConfidence.LOW
         }
+        val assessment = TrainingStateAnalyzer().assess(snapshot.trainingStateInput(answers))
         return AthletePlanningState(
             observedBehavior = behavior,
             strengthExposure = exposure,
@@ -95,7 +96,7 @@ class AthletePlanningStateBuilder(
             observedStrengthStyle = style.first,
             observedStyleConfidence = style.second,
             structuredBadmintonSessions = structuredSessions,
-            recoveryConstraint = recoveryConstraint(snapshot.recoverySignals),
+            recoveryConstraint = assessment.explanation(),
             confidence = confidence,
             profileGoal = profileGoal,
             programGoal = mapProgramGoal(profileGoal),
@@ -109,7 +110,8 @@ class AthletePlanningStateBuilder(
             movementRepresentations = movementRepresentations,
             badmintonObjectiveRepresentations = badmintonRepresentations,
             resistanceFoundationalOnramp = movementRepresentations.sumOf(MovementExposureRepresentation::currentExposure28d) == 0.0,
-            badmintonFoundationalOnramp = currentStructuredObjectiveSessions == 0
+            badmintonFoundationalOnramp = currentStructuredObjectiveSessions == 0,
+            trainingStateAssessment = assessment
         )
     }
 
@@ -120,7 +122,7 @@ class AthletePlanningStateBuilder(
             .groupBy(PlanningSetRecord::stableKey)
             .mapNotNull { (key, rows) ->
                 val sessions = rows.map(PlanningSetRecord::date).distinct().size
-                if (sessions < 2 || snapshot.metadata[key]?.planningEligibility !in setOf("PROGRAM_SELECTABLE", "SELECTABLE")) return@mapNotNull null
+                if (sessions < 2 || snapshot.metadata[key]?.planningEligibility !in setOf("PROGRAM_SELECTABLE", "SELECTABLE") || snapshot.explicitlyRestricted(key)) return@mapNotNull null
                 val signal = snapshot.canonicalStrengthSignals[key]
                 val change = signal?.posteriorChangePercent
                 val response = when { change == null -> "UNKNOWN"; change >= 4 -> "STRONG_POSITIVE"; change >= 1.5 -> "POSITIVE"; change <= -2 -> "NEGATIVE"; else -> "STABLE" }
@@ -357,13 +359,6 @@ private fun primaryAdaptation(goal: String, strength: StrengthIntent, badminton:
         strength == StrengthIntent.MIXED -> "HYPERTROPHY_STRENGTH"
         else -> "GENERAL_FOUNDATION"
     }
-}
-
-private fun recoveryConstraint(signals: PlanningRecoverySignals): String = when {
-    signals.readinessStatus == "LIMITED" || signals.tissueStatus == "VERY_HIGH" -> "회복/조직 신호가 제한 상태이므로 부하 증가를 금지하고 검토가 필요합니다."
-    signals.isConstrained -> "회복/조직 신호가 주의 상태이므로 빈도와 세션 밀도를 보수적으로 유지합니다."
-    signals.readinessStatus == "UNKNOWN" -> "회복 신호가 없어 부하 증가는 수행 확인 뒤에만 허용합니다."
-    else -> "프로덕션 회복 신호가 안정 범위입니다."
 }
 
 private fun List<Double>.medianOr(default: Double): Double = if (isEmpty()) default else sorted().let { if (size % 2 == 1) it[size / 2] else (it[size / 2 - 1] + it[size / 2]) / 2 }

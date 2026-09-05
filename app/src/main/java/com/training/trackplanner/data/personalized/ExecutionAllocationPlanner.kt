@@ -37,7 +37,8 @@ data class ExecutionAllocationTrace(
     val candidateAudit: Map<String, String>,
     val representedGapCodesByStableKey: Map<String, Set<String>>,
     val prescriptionSources: Map<String, String>,
-    val supportiveGapCodesByStableKey: Map<String, Set<String>> = emptyMap()
+    val supportiveGapCodesByStableKey: Map<String, Set<String>> = emptyMap(),
+    val scheduleTiers: Map<String, ScheduleTier> = emptyMap()
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("capacity", JSONObject()
@@ -68,6 +69,7 @@ data class ExecutionAllocationTrace(
             representedGapCodesByStableKey.forEach { (key, codes) -> put(key, JSONArray(codes.toList())) }
         })
         .put("prescriptionSources", JSONObject(prescriptionSources))
+        .put("scheduleTiers",JSONObject(scheduleTiers.mapValues { it.value.name }))
         .put("supportiveGapCodesByStableKey", JSONObject().apply {
             supportiveGapCodesByStableKey.forEach { (key, codes) -> put(key, JSONArray(codes.toList())) }
         })
@@ -93,7 +95,8 @@ class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPre
         val deferred = mutableListOf<TimedPlannedExercise>()
         fun timed(item: PlannedExercise) = TimedPlannedExercise(item, prescriptions.prescribe(snapshot, state.strengthIntent, item, item.style))
         fun fits(items: List<PlannedExercise>): Boolean =
-            TimedWeeklyPlacementPlanner().distribute(items.map(::timed), days, minutes, snapshot).second.isEmpty()
+            TimedWeeklyPlacementPlanner().distribute(items.map(::timed), days, minutes, snapshot,
+                state.trainingStateAssessment?.sustainable?.robustSchedule == true).second.isEmpty()
         // One core set per retained resistance anchor; style variants are rebuilt below.
         val cores = continuity.filter { it.transition != null }.groupBy(PlannedExercise::stableKey).values.map { variants ->
             variants.first().copy(targetSets = 1)
@@ -118,7 +121,8 @@ class TimedExecutionAllocationPlanner(private val prescriptions: PersonalizedPre
             if (count == 0) deferred += timed(desired)
         }
         optional.forEach { if (fits(funded + it)) funded += it else deferred += timed(it) }
-        val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot)
+        val placement = TimedWeeklyPlacementPlanner().distribute(funded.map(::timed), days, minutes, snapshot,
+            state.trainingStateAssessment?.sustainable?.robustSchedule == true)
         check(placement.second.isEmpty())
         return TimedExecutionAllocation(placement.first, deferred)
     }
@@ -190,7 +194,8 @@ class MaterialDemandResolver {
                 val existing = selected[choice.stableKey]
                 val owner = existing?.takeIf { it.material && !choice.material } ?: choice
                 selected[choice.stableKey] = owner.copy(representedGapCodes = covered + existing?.representedGapCodes.orEmpty())
-                represented += covered
+                // Supportive exposure remains useful demand, but cannot close another DIRECT gap.
+                represented += covered.filter { it == gap.code || objectiveFromGap(it) in choice.representedObjectives }
                 selectedQualities += quality(choice)
                 audit[choice.stableKey] = if (objectiveFromGap(gap.code) in choice.supportiveObjectives &&
                     objectiveFromGap(gap.code) !in choice.representedObjectives) "SELECTED_SUPPORTIVE_DEMAND" else "SELECTED_MATERIAL_DEMAND"
@@ -202,6 +207,7 @@ class MaterialDemandResolver {
             val matches = gaps.any { objectiveFromGap(it.code) in objectives || it.code == "BADMINTON_FOUNDATIONAL_ONRAMP" }
             audit.putIfAbsent(key, when {
                 key in request.excludedExerciseStableKeys -> "USER_EXCLUDED"
+                snapshot.explicitlyRestricted(key) -> "EXPLICIT_PROFILE_RESTRICTION"
                 key in snapshot.recoverySignals.tissueRestrictedStableKeys -> "TISSUE_RESTRICTED"
                 PerformancePrescriptionResolver.resolve(snapshot, key) == null -> "NO_SAFE_PRESCRIPTION_AUTHORITY"
                 !matches -> "NO_MATCHING_CURRENT_OBJECTIVE_DEMAND"
@@ -242,9 +248,12 @@ object FiniteExecutionAllocator {
 class ExecutionCapacityPlanner {
     fun envelope(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, request: ProgramSkeletonRequest,
                  baseline: Double, usefulDemand: Int, doseFactor: Double): WeeklyCapacityEnvelope {
+        val assessment = state.trainingStateAssessment
+        val excludedWeeks = assessment?.weeklyContext.orEmpty().filter { it.excludedFromTolerance }
         val recent = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(55)) && !it.date.isAfter(snapshot.cutoff) &&
-                snapshot.activityKind(it.stableKey) in setOf(PlannedActivityKind.RESISTANCE, PlannedActivityKind.STRUCTURED_BADMINTON_DRILL, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL)
+                snapshot.activityKind(it.stableKey) in setOf(PlannedActivityKind.RESISTANCE, PlannedActivityKind.STRUCTURED_BADMINTON_DRILL, PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL) &&
+                excludedWeeks.none { week -> it.date in week.start..week.end }
         }
         val sessions = recent.groupBy(PlanningSetRecord::date).values
         val counts = sessions.map { it.size.toDouble() }.sorted()
@@ -263,10 +272,16 @@ class ExecutionCapacityPlanner {
         val dayScale = if (historicalDays > 0) maxOf(1.0, request.weeklyTrainingDays / historicalDays) else 1.0
         val timeScale = if (medianSeconds > 0) maxOf(1.0, request.sessionMinutes * 60.0 / medianSeconds) else 1.0
         val demonstrated = maxOf(baseline, historical)
-        val densityBound = if (sessions.isEmpty()) usefulDemand else ceil(demonstrated * doseFactor * dayScale * timeScale).toInt()
+        val sustainable = assessment?.sustainable
+        val release = assessment?.permitsSustainableRelease == true &&
+            request.weeklyTrainingDays >= (sustainable?.sustainableDaysPerWeek ?: Double.MAX_VALUE) &&
+            request.weeklyTrainingDays * request.sessionMinutes >= (sustainable?.sustainableWeeklyMinutes ?: Double.MAX_VALUE)
+        val densityBound = if (release) requireNotNull(sustainable?.sustainableWeeklyControllableUnits).toInt()
+            else if (sessions.isEmpty()) usefulDemand else ceil(demonstrated * dayScale * timeScale).toInt()
         val available = request.weeklyTrainingDays * request.sessionMinutes * 60
         val scheduleUnits = (available / maxOf(45.0, if (median > 0) medianSeconds / median else 135.0)).toInt()
-        val final = minOf(usefulDemand, densityBound, scheduleUnits).coerceAtLeast(0)
+        // Exactly one global soft/hard factor, after availability and useful demand bounds.
+        val final = (minOf(usefulDemand, densityBound, scheduleUnits) * doseFactor).roundToInt().coerceAtLeast(0)
         return WeeklyCapacityEnvelope(request.weeklyTrainingDays, request.sessionMinutes, available, sessions.size,
             sessions.size, median, typical, medianSeconds, historical, 1.0 - doseFactor, state.genericCourtLoad,
             usefulDemand, scheduleUnits, final)
@@ -275,7 +290,8 @@ class ExecutionCapacityPlanner {
 
 /** Prescriptions precede placement. No item-count or generic-court-count capacity rule. */
 class TimedWeeklyPlacementPlanner {
-    fun distribute(items: List<TimedPlannedExercise>, days: Int, sessionMinutes: Int, snapshot: PlanningHistorySnapshot? = null): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
+    fun distribute(items: List<TimedPlannedExercise>, days: Int, sessionMinutes: Int, snapshot: PlanningHistorySnapshot? = null,
+                   robustSchedule: Boolean = false): Pair<Map<Int, List<TimedPlannedExercise>>, List<TimedPlannedExercise>> {
         val buckets = (1..days).associateWith { mutableListOf<TimedPlannedExercise>() }
         val deferred = mutableListOf<TimedPlannedExercise>()
         val ordered = items.sortedWith(compareByDescending<TimedPlannedExercise> { it.item.priority }
@@ -292,10 +308,22 @@ class TimedWeeklyPlacementPlanner {
                 entry.key !in sameKeyDays && entry.value.sumOf { it.estimatedSeconds } + row.estimatedSeconds <= sessionMinutes * 60
             }.minWithOrNull(compareBy<Map.Entry<Int, MutableList<TimedPlannedExercise>>> {
                 if (lowerStress(row)) it.value.filter(::lowerStress).sumOf(TimedPlannedExercise::estimatedSeconds) else 0
+            }.thenBy {
+                if (!robustSchedule) 0 else when (row.item.scheduleTier()) {
+                    ScheduleTier.CORE_MUST_DO -> if (it.key <= (days+1)/2) 0 else 1
+                    ScheduleTier.IMPORTANT -> 0
+                    ScheduleTier.OPTIONAL_CAPACITY -> days-it.key
+                }
             }.thenBy { it.value.sumOf(TimedPlannedExercise::estimatedSeconds) }
                 .thenBy { it.key })
             if (target == null) deferred += row else target.value += row
         }
         return buckets to deferred
     }
+}
+
+internal fun PlannedExercise.scheduleTier(): ScheduleTier = when {
+    transition != null && priority >= 75 || material && priority >= 100 -> ScheduleTier.CORE_MUST_DO
+    transition != null || material || role == "PERFORMANCE_CONTINUITY" -> ScheduleTier.IMPORTANT
+    else -> ScheduleTier.OPTIONAL_CAPACITY
 }

@@ -152,6 +152,7 @@ class GapCandidateSelector {
         val historyKeys = snapshot.allConfirmedSets.mapTo(mutableSetOf(), PlanningSetRecord::stableKey)
         return snapshot.exercises.keys.asSequence()
             .filter { key -> key !in chosen && snapshot.metadata[key]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") }
+            .filterNot(snapshot::explicitlyRestricted)
             .filter { key -> state.freeWeightWillingness !in setOf(FreeWeightWillingness.AVOID, FreeWeightWillingness.UNRESOLVED) || !snapshot.isFreeWeight(key) || key in historyKeys }
             .sortedWith(
                 compareByDescending<String> { it in historyKeys }
@@ -222,9 +223,10 @@ class PersonalizedPrescriptionPlanner {
             rows.any { it.weightKg == last.weightKg && it.reps >= last.reps && (it.rpe ?: 10.0) <= 8.0 }
         }
         val progression = when {
-            item.stableKey in snapshot.recoverySignals.tissueRestrictedStableKeys || snapshot.recoverySignals.readinessStatus == "LIMITED" -> ProgressionDecision.REDUCE
+            item.stableKey in snapshot.recoverySignals.tissueRestrictedStableKeys || snapshot.recoverySignals.readinessStatus == "LIMITED" ||
+                (snapshot.recoverySignals.tissueStatus in setOf("VERY_HIGH", "BLOCKED") && snapshot.recoverySignals.tissueRestrictedStableKeys.isEmpty()) -> ProgressionDecision.REDUCE
             (anchor?.posteriorChangePercent ?: 0.0) < -2.0 -> ProgressionDecision.REVIEW
-            provenTwice && (anchor?.posteriorChangePercent ?: 0.0) > 0.0 && strengthIntent in setOf(StrengthIntent.STRENGTH_PRIORITY, StrengthIntent.MIXED) -> ProgressionDecision.ADVANCE
+            snapshot.hardRestrictedModes.isEmpty() && provenTwice && (anchor?.posteriorChangePercent ?: 0.0) > 0.0 && strengthIntent in setOf(StrengthIntent.STRENGTH_PRIORITY, StrengthIntent.MIXED) -> ProgressionDecision.ADVANCE
             else -> ProgressionDecision.HOLD
         }
         val load = when (progression) {
@@ -326,14 +328,20 @@ class PersonalizedProgramBuilder(
         val baselineResistance = weeklyResistance.average().takeIf { it.isFinite() } ?: state.anchors.sumOf { anchor ->
             anchor.sets.toDouble() / (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
         }
-        val systemicDoseFactor = (1.0 - .22 * transitionPlanner.systemicRecoveryPressure(state.recoverySignals)).coerceIn(.65, 1.0)
-        val resistanceContinuityDemand = (baselineResistance * systemicDoseFactor).roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
+        val systemicDoseFactor = state.trainingStateAssessment?.globalDoseFactor ?: 1.0
+        val normalWeeks = state.trainingStateAssessment?.weeklyContext.orEmpty().filter { it.context == WeeklyTrainingContext.NORMAL }
+        val normalResistance = trainingMedian(normalWeeks.map { week -> snapshot.allConfirmedSets.count {
+            it.date in week.start..week.end && snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.toDouble() })
+        val continuityReference = if (state.trainingStateAssessment?.permitsSustainableRelease == true)
+            maxOf(baselineResistance, normalResistance ?: baselineResistance) else baselineResistance
+        val resistanceContinuityDemand = continuityReference.roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
         val demand = MaterialDemandResolver().resolve(snapshot, state, gaps, request)
         val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
         val performanceContinuity = snapshot.allConfirmedSets.filter {
             !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
                 snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&
                 it.stableKey !in materialKeys && it.stableKey !in request.excludedExerciseStableKeys &&
+                !snapshot.explicitlyRestricted(it.stableKey) &&
                 (state.badmintonIntent == BadmintonPlanningIntent.ENABLED ||
                     snapshot.activityKind(it.stableKey) != PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
         }.groupBy(PlanningSetRecord::stableKey).filterValues { rows -> rows.map(PlanningSetRecord::date).distinct().size >= 2 }
@@ -341,7 +349,7 @@ class PersonalizedProgramBuilder(
                 PerformancePrescriptionResolver.resolve(snapshot, key) ?: return@mapNotNull null
                 if (key in state.recoverySignals.tissueRestrictedStableKeys) return@mapNotNull null
                 val weeks = rows.map { it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.distinct().size.coerceAtLeast(1)
-                val count = (rows.size.toDouble() / weeks * systemicDoseFactor).roundToInt().coerceAtLeast(1)
+                val count = (rows.size.toDouble() / weeks).roundToInt().coerceAtLeast(1)
                 PlannedExercise(key, "PERFORMANCE_CONTINUITY", "최근 반복한 경기력 훈련의 완료 처방을 유지했습니다.", 85,
                     targetSets = count, material = false)
             }
@@ -458,7 +466,8 @@ class PersonalizedProgramBuilder(
                     .flatMap { it.representedGapCodes }.associateWith { "FINITE_CAPACITY" } +
                     placementDeferred.flatMap { it.item.representedGapCodes }.associateWith { "SESSION_TIME_OR_STYLE_SPACING" } +
                     materializedGaps.flatMap { it.supportiveGapCodes() }.associateWith { "SUPPORTIVE_ONLY_DIRECT_EXPOSURE_NOT_REPLACED" })
-                    .filterKeys { it in pressureGapCodes },
+                    .filterKeys { code -> code in pressureGapCodes && materializedGaps.none {
+                        code in (it.representedGapCodes - it.supportiveGapCodes()) } },
                 optionalDevelopmentalItems = optional.filter { candidate -> firstWeek.any { it.exerciseStableKey == candidate.stableKey } }.map(PlannedExercise::stableKey),
                 candidateAudit = demand.audit + materialCandidates.filterIndexed { index, _ -> index in finite.deferred }
                     .associate { it.stableKey to "FINITE_CAPACITY" } + selected.associate { it.stableKey to if (firstWeek.any { row -> row.exerciseStableKey == it.stableKey }) {
@@ -468,7 +477,8 @@ class PersonalizedProgramBuilder(
                 representedGapCodesByStableKey = materializedGaps.associate { it.stableKey to (it.representedGapCodes - it.supportiveGapCodes()) },
                 prescriptionSources = timed.associate { it.item.stableKey to it.prescription.weightSource },
                 supportiveGapCodesByStableKey = materializedGaps.filter { it.supportiveGapCodes().isNotEmpty() }
-                    .associate { it.stableKey to it.supportiveGapCodes() }
+                    .associate { it.stableKey to it.supportiveGapCodes() },
+                scheduleTiers = timed.associate { it.item.stableKey to it.item.scheduleTier() }
             )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)
@@ -483,7 +493,8 @@ class PersonalizedProgramBuilder(
             anchorTransitions = transitions.values.sortedBy(AnchorTransition::stableKey), planningBudget = budget,
             movementRepresentations = state.movementRepresentations,
             badmintonObjectiveRepresentations = state.badmintonObjectiveRepresentations,
-            adaptationGaps = gaps
+            adaptationGaps = gaps,
+            trainingStateAssessment = state.trainingStateAssessment
         )
         return repaired.copy(personalizedDecision = decision)
     }

@@ -8,8 +8,8 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.12.0_KOTLIN_1"
-internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.12.0-reviewed"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.13.0_KOTLIN_1"
+internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.13.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
 enum class StrengthExposure { PRESENT, LOW, ABSENT, UNKNOWN }
@@ -91,7 +91,9 @@ data class PersonalizedPlanningPreferences(
     val badmintonIntent: BadmintonPlanningIntent? = null,
     val freeWeightWillingness: FreeWeightWillingness? = null,
     val strengthIntentAnsweredAtEpochMillis: Long? = null,
-    val strengthIntentProfileGoal: String? = null
+    val strengthIntentProfileGoal: String? = null,
+    val interruptionCause: InterruptionCause? = null,
+    val interruptionFrequency: InterruptionFrequency? = null
 )
 
 data class PersonalizedPlanningAnswerOption(val value: String, val label: String)
@@ -204,7 +206,10 @@ data class PlanningHistorySnapshot(
     val badmintonDirectObjectives: Map<String, Set<String>> = emptyMap(),
     val badmintonSupportiveObjectives: Map<String, Set<String>> = emptyMap(),
     val exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
-    val performancePrescriptions: Map<String, PerformancePrescriptionAuthority> = emptyMap()
+    val performancePrescriptions: Map<String, PerformancePrescriptionAuthority> = emptyMap(),
+    val dailyStrain: List<PlanningDailyStrain> = emptyList(),
+    val weeklyCourtLoad: Map<LocalDate, Double> = emptyMap(),
+    val hardRestrictedModes: Set<String> = emptySet()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1
@@ -256,7 +261,8 @@ data class AthletePlanningState(
     val movementRepresentations: List<MovementExposureRepresentation> = emptyList(),
     val badmintonObjectiveRepresentations: List<BadmintonObjectiveRepresentation> = emptyList(),
     val resistanceFoundationalOnramp: Boolean = false,
-    val badmintonFoundationalOnramp: Boolean = false
+    val badmintonFoundationalOnramp: Boolean = false,
+    val trainingStateAssessment: TrainingStateAssessment? = null
 )
 
 data class AdaptationGap(
@@ -314,7 +320,8 @@ data class PersonalizedPlanningDecision(
     val planningBudget: PlanningBudget? = null,
     val movementRepresentations: List<MovementExposureRepresentation> = emptyList(),
     val badmintonObjectiveRepresentations: List<BadmintonObjectiveRepresentation> = emptyList(),
-    val adaptationGaps: List<AdaptationGap> = emptyList()
+    val adaptationGaps: List<AdaptationGap> = emptyList(),
+    val trainingStateAssessment: TrainingStateAssessment? = null
 )
 
 sealed interface PersonalizedPlanningOutcome {

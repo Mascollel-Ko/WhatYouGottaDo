@@ -11,6 +11,8 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.QUESTION_BADMINTON_INTENT
 import com.training.trackplanner.data.personalized.QUESTION_FREE_WEIGHT
 import com.training.trackplanner.data.personalized.QUESTION_STRENGTH_INTENT
+import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_CAUSE
+import com.training.trackplanner.data.personalized.QUESTION_INTERRUPTION_FREQUENCY
 import com.training.trackplanner.data.personalized.StrengthIntent
 import com.training.trackplanner.data.personalized.personalizedProgramFingerprint
 import kotlinx.coroutines.runBlocking
@@ -64,6 +66,7 @@ class RealBackupPersonalizedPlannerE2eTest {
                     QUESTION_STRENGTH_INTENT -> StrengthIntent.MIXED.name
                     QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
                     QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                    QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                     else -> error(question.id)
                 } }
             ))
@@ -184,6 +187,7 @@ class RealBackupPersonalizedPlannerE2eTest {
                 QUESTION_STRENGTH_INTENT -> StrengthIntent.MIXED.name
                 QUESTION_BADMINTON_INTENT -> BadmintonPlanningIntent.ENABLED.name
                 QUESTION_FREE_WEIGHT -> FreeWeightWillingness.WILLING.name
+                QUESTION_INTERRUPTION_CAUSE, QUESTION_INTERRUPTION_FREQUENCY -> "UNSURE"
                 else -> error("Unexpected personalized question: ${question.id}")
             }
         })

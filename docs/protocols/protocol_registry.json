@@ -1363,7 +1363,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.2.0",
+      "currentVersion": "3.3.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1371,7 +1371,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.12.0 execution allocation from 2026-09-05",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.13.0 training state from 2026-09-05",
       "lastAuditedCommit": "7e544a80cae3a56b0b5dbc1cdbd4f3fd1d05ead3",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
@@ -1380,6 +1380,9 @@
         "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateAssessment.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateRouting.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateJson.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PlanningHistorySnapshotBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/AthletePlanningStateBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/ExposureRepresentation.kt",
@@ -1409,6 +1412,8 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExposureRepresentationV011Test.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExecutionAllocationV012Test.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/TrainingStateParityTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/TrainingStateRealBackupComparisonTest.kt",
         "app/src/test/java/com/training/trackplanner/PersonalizedPlanningQuestionUiTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RealBackupPersonalizedPlannerE2eTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
@@ -1421,6 +1426,9 @@
         "tools/planner_reference/v011_exposure_representation_reference.py",
         "tools/planner_reference/v012_execution_allocation_reference.py",
         "tools/planner_reference/fixtures/v012_execution_allocation_golden.json",
+        "tools/planner_reference/v013_training_state_reference.py",
+        "tools/planner_reference/v013_training_state_cases.py",
+        "tools/planner_reference/fixtures/v013_training_state_golden.json",
         "tools/planner_reference/fixtures/v011_exposure_representation_golden.json"
       ],
       "supportingDocuments": [

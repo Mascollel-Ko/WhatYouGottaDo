@@ -229,6 +229,23 @@ class ExecutionAllocationV012Test {
         PlannedExercise(key,"GAP","",100,targetSets=count),
         PlannedPrescription("",List(count){ProgramSetPrescription(it+1,0,0.0,seconds)},rest,"TEST"))
 
+    @Test fun `supporting a later objective cannot suppress its feasible direct candidate`() {
+        val base=performanceSource()
+        val other=base.exercises.getValue("landing").copy(stableKey="direct_rotation")
+        val source=base.copy(exercises=base.exercises+(other.stableKey to other),
+            metadata=base.metadata+(other.stableKey to base.metadata.getValue("landing").copy(programSlot="PLYOMETRIC_POWER"))+
+                ("landing" to base.metadata.getValue("landing").copy(programSlot="PLYOMETRIC_POWER")),
+            badmintonDirectObjectives=mapOf("landing" to setOf("FOOTWORK"),other.stableKey to setOf("ROTATIONAL_POWER")),
+            badmintonSupportiveObjectives=mapOf("landing" to setOf("ROTATIONAL_POWER")),
+            performancePrescriptions=listOf("landing",other.stableKey).associateWith { PerformancePrescriptionAuthority(
+                List(2) { ProgramSetPrescription(it+1,5,0.0,0) },60,"quality","CANONICAL_PROGRAM_TEST") })
+        val gaps=listOf(AdaptationGap("BADMINTON_UNDERREPRESENTED_FOOTWORK","HIGH",""),
+            AdaptationGap("BADMINTON_UNDERREPRESENTED_ROTATIONAL_POWER","HIGH",""))
+        val state=AthletePlanningStateBuilder().build(source,PersonalizedPlanningAnswers())
+        val demand=MaterialDemandResolver().resolve(source,state,gaps,request())
+        assertEquals("audit=${demand.audit}; deferred=${demand.deferred}",setOf("landing",other.stableKey),demand.candidates.map { it.stableKey }.toSet())
+    }
+
     private fun history():PlanningHistorySnapshot {
         val exercise=Exercise("anchor","anchor","",equipment="BARBELL",equipmentTags="BARBELL",
             activityKind="EXERCISE",planningEligibility="PROGRAM_SELECTABLE",defaultRestSeconds=180)

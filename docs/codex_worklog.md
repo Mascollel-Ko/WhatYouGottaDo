@@ -1,5 +1,17 @@
 # Codex Worklog
 
+## 2026-09-05 - Record-based planner v0.13 training state and sustainable workload
+
+- Baseline `d299800438410f9022add04f3601d20a3ffd722e`, verified against `origin/main`. Captured and froze the supplied private backup's complete BEFORE request/state/program before any production edit; private artifacts remain ignored under `build/planner-comparison`.
+- Implemented independent Python training-state reference first, with 16 synthetic raw-input cases (eight state and eight interruption scenarios). Kotlin compares every assessment field and its additive persisted JSON against these goldens, including the actual private numerical inputs.
+- Added longitudinal strain/adaptation/tolerance, major-movement breadth, explicit hard/local restrictions, and a single global soft dose. Kept v0.11 representation thresholds, Objective V2, canonical OFI/readiness/tissue/posterior engines, performance prescriptions, finite allocation kernel, legacy builder, Room schema, app version and tags unchanged.
+- Added up-to-12-week context classification, conservative low-week handling, demonstrated multi-week sustainable workload, conditional cause/frequency questions, portable preferences, and interruption-resilient CORE/IMPORTANT/OPTIONAL placement. Unknown context is not assumed fatigue failure or a private life event. Confirmed scheduling interruptions never remove physiological court history.
+- Corrected SUPPORTIVE overlap so it cannot suppress a subsequent feasible DIRECT candidate. Retained assistance eligibility, separate direct/supportive provenance, and unchanged prescription authority.
+- Generated Korean/English presentation resources through the existing localization authority; refreshed its audit and the current compatibility-consumer inventory without changing canonical metadata values.
+- Real backup comparison uses equal original request/core answers/cutoff and separately labeled additional UNSURE context. Complete old/new programs, weekly context/runs, all numerical evidence, deadlift/RDL/squat/pull-up/calf/press audits, and save/backup/restore proof stay in the private report, not Git. Actual restrictions are not overridden merely to obtain a productive label or a target volume.
+- Verification: full `testDebugUnitTest` 1,357 tests, 0 failures/errors/skips; 78 focused planner/UI/E2E tests included the unchanged 29-persona matrix, v0.11/v0.12 goldens, state parity, Korean/English scrolling questions and actual backup round-trip. `assembleDebug` passed. Python v0.13 16 cases and v0.12 14 cases passed; v0.11 deterministic check passed. Localization authority/audit and 10 Python tests passed with 0 unexplained English-mode Korean leaks. Protocol validation passed for 8 families/34 protocols; `git diff --check` passed. No connected device was available; no physical-device or remote GitHub Actions success is claimed.
+- Intentional limits: missing evidence remains HOLD; sustainable evidence is not MRV/safety/optimality; unresolved low-week causes remain unresolved; top-nine/per-movement incumbent selection and proportional accessory allocation are unchanged and explicitly audited. All thresholds are planner engineering policies, not physiological effect sizes.
+
 ## 2026-09-05 - Record-based planner v0.12 execution allocation
 
 - Baseline: `1c6e19343a9c2d091eaa38b061dfd93a1e05d4cb` on main. Runtime planner 0.12.0; PROGRAM-BUILDER-OVERVIEW 3.2.0.

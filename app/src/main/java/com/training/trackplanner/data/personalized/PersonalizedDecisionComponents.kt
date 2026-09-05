@@ -27,6 +27,30 @@ class PlanningQuestionPolicy {
                 PersonalizedPlanningAnswerOption(FreeWeightWillingness.AVOID.name, "피하고 싶음")
             )))
         }
+        if (state.trainingStateAssessment?.sustainable?.questionRequired == true &&
+            answers.values[QUESTION_INTERRUPTION_CAUSE] !in InterruptionCause.entries.map { it.name }) {
+            add(PersonalizedPlanningQuestion(QUESTION_INTERRUPTION_CAUSE,
+                "최근 기록에서 평소보다 운동량이 크게 줄어든 주가 몇 차례 있습니다. 이런 감소는 주로 어떤 이유였나요?", listOf(
+                    PersonalizedPlanningAnswerOption("EXTERNAL","업무·출장·여행·개인 일정"),
+                    PersonalizedPlanningAnswerOption("EVENT","대회·경기·의도적인 테이퍼"),
+                    PersonalizedPlanningAnswerOption("FATIGUE","피로 때문에 평소 훈련을 소화하기 어려웠음"),
+                    PersonalizedPlanningAnswerOption("MIXED","여러 이유가 섞여 있음"),
+                    PersonalizedPlanningAnswerOption("UNSURE","잘 모르겠음"))))
+        }
+        if ((state.trainingStateAssessment?.sustainable?.questionRequired == true ||
+                state.trainingStateAssessment?.weeklyContext.orEmpty().any { it.excludedFromTolerance }) &&
+            state.trainingStateAssessment?.weeklyContext.orEmpty().count { it.low } >= 2 &&
+            snapshot.preferences.interruptionFrequency == null &&
+            answers.values[QUESTION_INTERRUPTION_FREQUENCY] !in InterruptionFrequency.entries.map { it.name }) {
+            add(PersonalizedPlanningQuestion(QUESTION_INTERRUPTION_FREQUENCY,
+                "외부 일정 때문에 운동량이 줄어드는 일이 얼마나 자주 있나요?", listOf(
+                    PersonalizedPlanningAnswerOption("NEVER","거의 없음"),
+                    PersonalizedPlanningAnswerOption("RARE","2~3개월에 한 번 미만"),
+                    PersonalizedPlanningAnswerOption("MONTHLY","한 달에 한 번 정도"),
+                    PersonalizedPlanningAnswerOption("FREQUENT","한 달에 여러 번"),
+                    PersonalizedPlanningAnswerOption("VERY_FREQUENT","거의 매주 일정이 불규칙함"),
+                    PersonalizedPlanningAnswerOption("UNSURE","잘 모르겠음"))))
+        }
     }
 }
 
@@ -48,13 +72,15 @@ class AdaptationTransitionPlanner {
         val features = state.styleFeaturesByAnchor[anchor.stableKey] ?: StyleFeatures()
         val canonical = anchor.canonicalPerformanceSource != "CANONICAL_SIGNAL_UNAVAILABLE" &&
             anchor.posteriorChangePercent?.isFinite() == true && anchor.posteriorObservationCount >= 2
-        val response = if (canonical) tanh(requireNotNull(anchor.posteriorChangePercent) / 5.0) else 0.0
-        val responseConfidence = if (canonical) clip(anchor.posteriorObservationCount / 6.0) else 0.0
+        val localEvidence = state.trainingStateAssessment?.adaptation?.exercises?.firstOrNull { it.stableKey == anchor.stableKey }
+        val response = localEvidence?.responseScore ?: if (canonical) tanh(requireNotNull(anchor.posteriorChangePercent) / 5.0) else 0.0
+        val responseConfidence = localEvidence?.confidence ?: if (canonical) clip(anchor.posteriorObservationCount / 6.0) else 0.0
         val maturity = clip(features.weeksObserved / 8.0)
         val rotationReadiness = clip(maturity * (.55 + .45 * maxOf(0.0, response) * maxOf(responseConfidence, .35)))
         val gapWeights = gaps.filter(AdaptationGap::contributesTransitionPressure).map { gapScore.getOrDefault(it.priority, .55) }
         val gapPressure = if (gapWeights.isEmpty()) 0.0 else clip(gapWeights.max() + .12 * (gapWeights.size - 1))
-        val systemicRecovery = systemicRecoveryPressure(state.recoverySignals)
+        // Diagnostic only; the global factor is applied once by the capacity planner.
+        val systemicRecovery = state.trainingStateAssessment?.strainScore ?: 0.0
         val frequencyPressure = clip((features.weeklyFrequency - 2.0) / 2.0)
         val styleDemand = clip(.45 * features.heavyExposure + .35 * frequencyPressure + .20 * features.withinSessionRamping)
         val lowerAnchor = anchor.movementGroup in setOf(MovementCoverage.LOWER_KNEE.name, MovementCoverage.POSTERIOR_CHAIN.name)
@@ -64,7 +90,7 @@ class AdaptationTransitionPlanner {
         val continuityBase = .40 * evidence + .20 * features.frequencyStability + .20 * clip(.50 + .50 * response) + .20 * goalAlignment
         val rotation = clip(.45 * gapPressure + .30 * rotationReadiness + .25 * (1.0 - goalAlignment))
         val continuity = clip(continuityBase - .35 * rotation - .15 * maxOf(0.0, -response) * maxOf(responseConfidence, .35))
-        var localDose = clip(1.0 - .22 * systemicRecovery - .18 * sportInterference, .65, 1.0)
+        var localDose = clip(1.0 - .15 * maxOf(0.0, -response) * responseConfidence - .18 * sportInterference, .65, 1.0)
         if (anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys) localDose = minOf(localDose, .80)
         val structure = when {
             continuity >= .76 && rotation < .42 -> StructureTreatment.PRESERVE
@@ -89,7 +115,7 @@ class AdaptationTransitionPlanner {
         val preserved = featureScores.entries.sortedWith(compareByDescending<Map.Entry<String, Double>> { it.value }.thenBy { it.key })
             .filter { it.value >= .55 + .15 * rotation }.map(Map.Entry<String, Double>::key)
         val moderated = buildList {
-            if (maxOf(systemicRecovery, sportInterference) >= .45) {
+            if (sportInterference >= .45 || -response * responseConfidence >= .45 || anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys || state.recoverySignals.readinessStatus == "LIMITED") {
                 if (features.heavyExposure >= .55) add("heavy_exposure")
                 if (features.weeklyFrequency >= 3.0) add("weekly_frequency")
                 if (features.withinSessionRamping >= .30) add("within_session_ramping")
@@ -113,7 +139,7 @@ class AdaptationTransitionPlanner {
             reasons = buildList {
                 if (evidence >= .75) add("반복 기록에서 신뢰할 수 있는 기존 구성이 확인됐습니다.")
                 if (gapPressure >= .55) add("확인된 보완 대상 때문에 다음 블록의 배분을 조정했습니다.")
-                if (systemicRecovery >= .45) add("회복 신호에 따라 구성보다 용량을 먼저 낮췄습니다.")
+                if (-response * responseConfidence >= .45) add("이 운동의 반복 수행 저하에 따라 국소 용량을 조정했습니다.")
                 if (sportInterference >= .30) add("실제 주간 코트 부하가 하체 앵커의 비용을 높였습니다.")
                 if (anchor.stableKey in state.recoverySignals.tissueRestrictedStableKeys) add("조직 제한 stableKey라서 이 앵커의 증량을 차단했습니다.")
             }
@@ -283,7 +309,9 @@ class AdaptationGapAnalyzer {
 class PlanningHorizonPlanner {
     fun choose(state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent = BlockIntentPlanner().decide(state, gaps)): Int = when {
         state.recoverySignals.readinessStatus == "LIMITED" -> 2
-        state.recoverySignals.isConstrained -> 3
+        state.trainingStateAssessment?.globalHardRestriction == true -> 2
+        state.trainingStateAssessment?.state == TrainingState.MALADAPTATION_PATTERN -> 3
+        state.trainingStateAssessment?.state == TrainingState.ACCUMULATING_STRAIN -> 4
         state.historyDays < 28 -> 2
         gaps.any { it.code == "BADMINTON_FOUNDATIONAL_ONRAMP" } -> intent.adaptationMinWeeks.coerceIn(2, 6)
         state.scheduleVolatility >= .9 -> 4
@@ -291,19 +319,25 @@ class PlanningHorizonPlanner {
         state.historyDays >= 42 && state.confidence != PlanningConfidence.LOW -> 5
         else -> 4
     }.let { weeks ->
-        if (state.recoverySignals.isConstrained || state.historyDays < 28) weeks
+        if (state.recoverySignals.readinessStatus == "LIMITED" || state.trainingStateAssessment?.globalHardRestriction == true || state.trainingStateAssessment?.state in
+            setOf(TrainingState.MALADAPTATION_PATTERN, TrainingState.ACCUMULATING_STRAIN) || state.historyDays < 28) weeks
         else weeks.coerceIn(intent.adaptationMinWeeks.coerceIn(2, 6), intent.adaptationMaxWeeks.coerceIn(2, 6))
     }
 }
 
 class WeeklyDosePlanner {
     fun chooseDays(state: AthletePlanningState, itemCount: Int): Int {
-        val historical = state.recentTrainingDaysPerWeek.roundToInt().coerceIn(2, 5)
+        val assessment = state.trainingStateAssessment
+        val normalDays = trainingMedian(assessment?.weeklyContext.orEmpty().filter {
+            it.context == WeeklyTrainingContext.NORMAL }.map { it.days.toDouble() })
+        val historical = (normalDays ?: state.recentTrainingDaysPerWeek).roundToInt().coerceIn(2, 5)
         val densityFloor = ((itemCount + 3) / 4).coerceIn(2, 5)
         val courtAdjusted = if (state.genericCourtLoad >= 180.0) minOf(historical, 3) else historical
         val recoveryCeiling = when {
             state.recoverySignals.readinessStatus == "LIMITED" -> 2
-            state.recoverySignals.isConstrained -> 3
+            assessment?.globalHardRestriction == true -> 2
+            assessment?.state == TrainingState.MALADAPTATION_PATTERN -> 3
+            assessment?.state == TrainingState.ACCUMULATING_STRAIN -> 4
             else -> 5
         }
         return maxOf(courtAdjusted, densityFloor).coerceAtMost(recoveryCeiling)
