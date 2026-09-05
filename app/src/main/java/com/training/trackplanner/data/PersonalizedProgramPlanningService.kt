@@ -47,6 +47,7 @@ internal class PersonalizedProgramPlanningService(
     private val canonicalOfiAxisProfiles: Map<String, CanonicalOfiAxisProfile>,
     private val exerciseRoleRelationDao: ExerciseRoleRelationDao? = null,
     private val tissueStateProvider: suspend (LocalDate) -> com.training.trackplanner.analysis.tissue.TissueCurrentState? = { null },
+    private val performancePrescriptions: Map<String, com.training.trackplanner.data.personalized.PerformancePrescriptionAuthority> = emptyMap(),
     private val snapshotBuilder: PlanningHistorySnapshotBuilder = PlanningHistorySnapshotBuilder(),
     private val stateBuilder: AthletePlanningStateBuilder = AthletePlanningStateBuilder(),
     private val questionPolicy: PlanningQuestionPolicy = PlanningQuestionPolicy(),
@@ -79,16 +80,20 @@ internal class PersonalizedProgramPlanningService(
         answers: PersonalizedPlanningAnswers,
         metadata: Map<String, RuntimeExerciseMetadata>
     ): GeneratedProgramSkeleton {
-        val missingAnswers = preflight.questions.map(PersonalizedPlanningQuestion::id).filterNot(answers.values::containsKey)
+        val missingAnswers = preflight.questions.filter { question ->
+            question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
+        }.map(PersonalizedPlanningQuestion::id)
         require(missingAnswers.isEmpty()) { "사전 확인 답변이 누락됐습니다: ${missingAnswers.joinToString()}" }
         val preferences = readPreferences()
         val snapshot = buildSnapshot(preflight.cutoff, metadata, preferences)
         val state = stateBuilder.build(snapshot, answers)
+        require(state.strengthIntent != StrengthIntent.UNRESOLVED && state.badmintonIntent != BadmintonPlanningIntent.UNRESOLVED &&
+            state.freeWeightWillingness != FreeWeightWillingness.UNRESOLVED) { "UNRESOLVED_PLANNING_INTENT_REQUIRES_PREFLIGHT" }
         persistAnswers(answers, snapshot.profilePrimaryGoal)
         val gaps = gapAnalyzer.analyze(snapshot, state)
         val intent = blockPlanner.decide(state, gaps)
         val recommendedDays = WeeklyDosePlanner().chooseDays(state, state.anchors.size + gaps.size)
-        val recommendedHorizon = horizonPlanner.choose(state, gaps)
+        val recommendedHorizon = horizonPlanner.choose(state, gaps, intent)
         val constraints = preflight.constraints
         val personalizedRequest = resolvePersonalizedRequest(preflight.request, constraints, state.programGoal, recommendedDays, recommendedHorizon)
         val priorId = appMetaDao.latestByPrefix("$DECISION_PREFIX%")?.value?.let(::decisionIdFromJson)
@@ -104,7 +109,9 @@ internal class PersonalizedProgramPlanningService(
         constraints: PersonalizedGenerationConstraints = PersonalizedGenerationConstraints(explicitSessionMinutes = request.sessionMinutes)
     ): PersonalizedPlanningOutcome {
         val preflight = prepare(request, metadata, cutoff, constraints)
-        val unanswered = preflight.questions.filterNot { it.id in answers.values }
+        val unanswered = preflight.questions.filter { question ->
+            question.options.none { it.value == answers.values[question.id] && it.value != "UNRESOLVED" }
+        }
         return if (unanswered.isNotEmpty()) PersonalizedPlanningOutcome.Questions(unanswered)
         else PersonalizedPlanningOutcome.Generated(generatePrepared(preflight, answers, metadata))
     }
@@ -155,7 +162,7 @@ internal class PersonalizedProgramPlanningService(
             ExerciseRoleRelationCatalog.of(dao.allTrainingRoles(), dao.allProgramSlotCapabilities())
         } ?: ExerciseRoleRelationCatalog.EMPTY
         val snapshot = snapshotBuilder.build(cutoff, history, exercises, metadata, badmintonCatalog, profile, preferences, canonicalStrength, recovery, roleCatalog)
-        return snapshot
+        return snapshot.copy(performancePrescriptions = performancePrescriptions)
     }
 
     private suspend fun canonicalStrengthSignals(cutoff: LocalDate): Map<String, CanonicalStrengthSignal> {
@@ -248,6 +255,7 @@ internal class PersonalizedProgramPlanningService(
             .put("targetAthleticPerformanceBouts", budget.targetAthleticPerformanceBouts)
             .put("plannedAthleticPerformanceBouts", budget.plannedAthleticPerformanceBouts)
             .put("systemicDoseFactor", budget.systemicDoseFactor)
+            .put("execution", budget.execution?.toJson())
         })
         .put("movementRepresentations", JSONArray(movementRepresentations.map { value -> JSONObject()
             .put("movementCoverage", value.movementCoverage)

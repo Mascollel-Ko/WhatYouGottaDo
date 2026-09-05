@@ -5,35 +5,26 @@ import kotlin.math.tanh
 
 class PlanningQuestionPolicy {
     fun questions(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, answers: PersonalizedPlanningAnswers): List<PersonalizedPlanningQuestion> = buildList {
-        val strengthPreferenceFresh = snapshot.preferences.strengthIntent != null &&
-            snapshot.preferences.strengthIntentProfileGoal == snapshot.profilePrimaryGoal &&
-            snapshot.preferences.strengthIntentAnsweredAtEpochMillis?.let { answeredAt ->
-                val cutoffMillis = snapshot.cutoff.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                answeredAt <= cutoffMillis && cutoffMillis - answeredAt <= 56L * 24 * 60 * 60 * 1000
-            } == true
-        if (state.historyDays >= 42 && state.strengthExposure != StrengthExposure.PRESENT && !strengthPreferenceFresh && QUESTION_STRENGTH_INTENT !in answers.values) {
-            add(PersonalizedPlanningQuestion(QUESTION_STRENGTH_INTENT, "최근 기록만으로는 낮은 반복·고중량 훈련이 부족한 것인지, 의도적으로 피하는 것인지 구분하기 어렵습니다. 앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?", listOf(
+        // Ask the core preferences on every preflight, even if history or saved answers look sufficient.
+        if (answers.values[QUESTION_STRENGTH_INTENT] !in setOf("HYPERTROPHY_PRIORITY", "MIXED", "STRENGTH_PRIORITY", "AVOID_HEAVY")) {
+            add(PersonalizedPlanningQuestion(QUESTION_STRENGTH_INTENT, "앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?", listOf(
                 PersonalizedPlanningAnswerOption(StrengthIntent.HYPERTROPHY_PRIORITY.name, "근비대만 우선"),
                 PersonalizedPlanningAnswerOption(StrengthIntent.MIXED.name, "근비대 + 근력"),
                 PersonalizedPlanningAnswerOption(StrengthIntent.STRENGTH_PRIORITY.name, "근력 우선"),
-                PersonalizedPlanningAnswerOption(StrengthIntent.AVOID_HEAVY.name, "고중량은 의도적으로 피하고 싶음"),
-                PersonalizedPlanningAnswerOption(StrengthIntent.UNRESOLVED.name, "잘 모르겠음")
+                PersonalizedPlanningAnswerOption(StrengthIntent.AVOID_HEAVY.name, "고중량은 의도적으로 피하고 싶음")
             )))
         }
-        if (state.structuredBadmintonSessions == 0 && snapshot.badmintonTrainingYears <= 0 && snapshot.preferences.badmintonIntent == null && QUESTION_BADMINTON_INTENT !in answers.values) {
+        if (answers.values[QUESTION_BADMINTON_INTENT] !in setOf("ENABLED", "DISABLED")) {
             add(PersonalizedPlanningQuestion(QUESTION_BADMINTON_INTENT, "배드민턴 경기력 향상을 위한 구조화 훈련을 프로그램에 포함할까요?", listOf(
                 PersonalizedPlanningAnswerOption(BadmintonPlanningIntent.ENABLED.name, "포함"),
-                PersonalizedPlanningAnswerOption(BadmintonPlanningIntent.DISABLED.name, "포함하지 않음"),
-                PersonalizedPlanningAnswerOption(BadmintonPlanningIntent.UNRESOLVED.name, "잘 모르겠음")
+                PersonalizedPlanningAnswerOption(BadmintonPlanningIntent.DISABLED.name, "포함하지 않음")
             )))
         }
-        val modalityChallengeConsidered = state.machineSetRatio >= .65 && state.freeWeightSetRatio <= .12 && state.primaryAdaptation != "HYPERTROPHY"
-        if (modalityChallengeConsidered && snapshot.preferences.freeWeightWillingness == null && QUESTION_FREE_WEIGHT !in answers.values) {
+        if (answers.values[QUESTION_FREE_WEIGHT] !in setOf("WILLING", "PREFER_FAMILIAR", "AVOID")) {
             add(PersonalizedPlanningQuestion(QUESTION_FREE_WEIGHT, "낮은 강도의 프리웨이트 또는 편측 운동을 새 자극으로 포함해도 될까요?", listOf(
                 PersonalizedPlanningAnswerOption(FreeWeightWillingness.WILLING.name, "포함 가능"),
                 PersonalizedPlanningAnswerOption(FreeWeightWillingness.PREFER_FAMILIAR.name, "익숙한 방식 우선"),
-                PersonalizedPlanningAnswerOption(FreeWeightWillingness.AVOID.name, "피하고 싶음"),
-                PersonalizedPlanningAnswerOption(FreeWeightWillingness.UNRESOLVED.name, "잘 모르겠음")
+                PersonalizedPlanningAnswerOption(FreeWeightWillingness.AVOID.name, "피하고 싶음")
             )))
         }
     }
@@ -290,16 +281,18 @@ class AdaptationGapAnalyzer {
 }
 
 class PlanningHorizonPlanner {
-    fun choose(state: AthletePlanningState, gaps: List<AdaptationGap>): Int = when {
+    fun choose(state: AthletePlanningState, gaps: List<AdaptationGap>, intent: BlockIntent = BlockIntentPlanner().decide(state, gaps)): Int = when {
         state.recoverySignals.readinessStatus == "LIMITED" -> 2
         state.recoverySignals.isConstrained -> 3
         state.historyDays < 28 -> 2
-        state.strengthIntent == StrengthIntent.UNRESOLVED || state.badmintonIntent == BadmintonPlanningIntent.UNRESOLVED -> 3
-        gaps.any { it.code == "BADMINTON_FOUNDATIONAL_ONRAMP" } -> 3
+        gaps.any { it.code == "BADMINTON_FOUNDATIONAL_ONRAMP" } -> intent.adaptationMinWeeks.coerceIn(2, 6)
         state.scheduleVolatility >= .9 -> 4
         state.historyDays >= 56 && state.confidence == PlanningConfidence.HIGH && gaps.none { it.priority == "HIGH" } -> 6
         state.historyDays >= 42 && state.confidence != PlanningConfidence.LOW -> 5
         else -> 4
+    }.let { weeks ->
+        if (state.recoverySignals.isConstrained || state.historyDays < 28) weeks
+        else weeks.coerceIn(intent.adaptationMinWeeks.coerceIn(2, 6), intent.adaptationMaxWeeks.coerceIn(2, 6))
     }
 }
 

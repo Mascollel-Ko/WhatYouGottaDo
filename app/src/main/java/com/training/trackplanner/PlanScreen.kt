@@ -1,5 +1,9 @@
 package com.training.trackplanner
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -61,6 +65,39 @@ import com.training.trackplanner.data.personalized.PersonalizedGenerationConstra
 import com.training.trackplanner.data.personalized.PersonalizedPlanningPreflight
 import com.training.trackplanner.localization.localizedProgramName
 import java.time.LocalDate
+
+@Composable
+internal fun PersonalizedPlanningQuestionDialog(
+    questions: List<com.training.trackplanner.data.personalized.PersonalizedPlanningQuestion>,
+    answers: Map<String, String>,
+    onAnswer: (String, String) -> Unit,
+    onGenerate: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("기록 기반 계획 사전 확인") },
+        text = {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                questions.forEach { question ->
+                    Text(question.prompt, style = MaterialTheme.typography.bodyMedium)
+                    question.options.forEach { option ->
+                        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { onAnswer(question.id, option.value) }) {
+                            Text(if (answers[question.id] == option.value) "✓ ${option.label}" else option.label)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onGenerate, enabled = questions.isNotEmpty() && questions.all { question ->
+                question.options.any { it.value == answers[question.id] && it.value != "UNRESOLVED" }
+            }) { Text("이 답변으로 생성") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+    )
+}
 
 @Composable
 internal fun PlanScreen(
@@ -425,36 +462,14 @@ private fun ProgramEditorScreen(
     }
 
     pendingPersonalizedPreflight?.let { preflight ->
-        AlertDialog(
-            onDismissRequest = {
+        PersonalizedPlanningQuestionDialog(
+            questions = preflight.questions,
+            answers = personalizedAnswers,
+            onAnswer = { id, value -> personalizedAnswers = personalizedAnswers + (id to value) },
+            onGenerate = { runPreparedPersonalized(preflight, personalizedAnswers) },
+            onDismiss = {
                 pendingPersonalizedPreflight = null
                 personalizedAnswers = emptyMap()
-            },
-            title = { Text("기록 기반 계획 사전 확인") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    preflight.questions.forEach { question ->
-                        Text(question.prompt, style = MaterialTheme.typography.bodyMedium)
-                        question.options.forEach { option ->
-                            OutlinedButton(
-                                modifier = Modifier.fillMaxWidth(),
-                                onClick = { personalizedAnswers = personalizedAnswers + (question.id to option.value) }
-                            ) { Text(if (personalizedAnswers[question.id] == option.value) "✓ ${option.label}" else option.label) }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    enabled = preflight.questions.all { it.id in personalizedAnswers },
-                    onClick = { runPreparedPersonalized(preflight, personalizedAnswers) }
-                ) { Text("이 답변으로 생성") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    pendingPersonalizedPreflight = null
-                    personalizedAnswers = emptyMap()
-                }) { Text("취소") }
             }
         )
     }

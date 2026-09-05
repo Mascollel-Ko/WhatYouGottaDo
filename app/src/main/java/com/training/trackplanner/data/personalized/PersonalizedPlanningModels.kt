@@ -8,8 +8,8 @@ import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.ProgramGoal
 import java.time.LocalDate
 
-internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.11.1_KOTLIN_1"
-internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.11.1-reviewed"
+internal const val PERSONALIZED_PLANNER_PROTOCOL = "RECORD_BASED_PLANNER_0.12.0_KOTLIN_1"
+internal const val PERSONALIZED_AUTHORITY_VERSION = "canonical-v1+reference-planner-v0.12.0-reviewed"
 
 enum class ObservedTrainingBehavior { HYPERTROPHY_DOMINANT, STRENGTH_DOMINANT, MIXED_STRENGTH_HYPERTROPHY, GENERAL_MIXED, UNKNOWN }
 enum class StrengthExposure { PRESENT, LOW, ABSENT, UNKNOWN }
@@ -170,7 +170,8 @@ data class PlanningBudget(
     val plannedStructuredBadmintonBouts: Int,
     val systemicDoseFactor: Double,
     val targetAthleticPerformanceBouts: Int = 0,
-    val plannedAthleticPerformanceBouts: Int = 0
+    val plannedAthleticPerformanceBouts: Int = 0,
+    val execution: ExecutionAllocationTrace? = null
 )
 
 data class PlanningSetRecord(
@@ -201,7 +202,9 @@ data class PlanningHistorySnapshot(
     val canonicalStrengthSignals: Map<String, CanonicalStrengthSignal> = emptyMap(),
     val recoverySignals: PlanningRecoverySignals = PlanningRecoverySignals(),
     val badmintonDirectObjectives: Map<String, Set<String>> = emptyMap(),
-    val exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY
+    val badmintonSupportiveObjectives: Map<String, Set<String>> = emptyMap(),
+    val exerciseRoleCatalog: ExerciseRoleRelationCatalog = ExerciseRoleRelationCatalog.EMPTY,
+    val performancePrescriptions: Map<String, PerformancePrescriptionAuthority> = emptyMap()
 ) {
     val historyStart: LocalDate get() = allConfirmedSets.minOf(PlanningSetRecord::date)
     val historyDays: Int get() = java.time.temporal.ChronoUnit.DAYS.between(historyStart, cutoff).toInt() + 1

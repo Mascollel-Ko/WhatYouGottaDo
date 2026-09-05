@@ -75,9 +75,9 @@ class PersonalizedPlannerParityTest {
     }
 
     @Test
-    fun `sparse and unresolved horizons match v08 rules`() {
+    fun `sparse bridge is short and established horizon respects adaptation minimum`() {
         assertEquals(2, PlanningHorizonPlanner().choose(state(historyDays = 12), emptyList()))
-        assertEquals(3, PlanningHorizonPlanner().choose(state(historyDays = 56, strengthIntent = StrengthIntent.UNRESOLVED), emptyList()))
+        assertEquals(6, PlanningHorizonPlanner().choose(state(historyDays = 56, strengthIntent = StrengthIntent.UNRESOLVED), emptyList()))
         assertEquals(5, PlanningHorizonPlanner().choose(state(historyDays = 48), emptyList()))
     }
 

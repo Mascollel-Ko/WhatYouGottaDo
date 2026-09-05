@@ -302,7 +302,7 @@ class ExposureRepresentationV011Test {
     }
 
     @Test
-    fun `direct remediation requires exact direct relation and safe prescription authority`() {
+    fun `direct leads but explicit supportive is usable without claiming direct remediation`() {
         val definitions = mapOf(
             "lateral_bound_continuous" to Triple("LATERAL_BOUND_CONTINUOUS_VARIANTS", "PLYOMETRIC_POWER", "QUALITY_BASED"),
             "supportive_squat" to Triple("SQUAT_VARIANTS", "MAIN_LOWER_STRENGTH", "LOAD_REPS"),
@@ -314,14 +314,19 @@ class ExposureRepresentationV011Test {
                 "supportive_squat" to mapOf("DECELERATION" to .6),
                 "novel_direct" to mapOf("DECELERATION" to 1.0)
             ),
-            badmintonDirectObjectives = mapOf("lateral_bound_continuous" to setOf("DECELERATION"), "novel_direct" to setOf("DECELERATION"))
+            badmintonDirectObjectives = mapOf("lateral_bound_continuous" to setOf("DECELERATION"), "novel_direct" to setOf("DECELERATION")),
+            badmintonSupportiveObjectives = mapOf("supportive_squat" to setOf("DECELERATION"))
         )
         val gap = AdaptationGap("BADMINTON_UNDERREPRESENTED_DECELERATION", "MODERATE", "fixture")
         val selected = GapCandidateSelector().select(base, state(), listOf(gap), emptySet())
         assertEquals(listOf("lateral_bound_continuous"), selected.map(PlannedExercise::stableKey))
         assertEquals(PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL, base.activityKind(selected.single().stableKey))
         val noReviewed = base.copy(exercises = base.exercises - "lateral_bound_continuous")
-        assertTrue(GapCandidateSelector().select(noReviewed, state(), listOf(gap), emptySet()).isEmpty())
+        val supportive = GapCandidateSelector().select(noReviewed, state(), listOf(gap), emptySet()).single()
+        assertEquals("supportive_squat", supportive.stableKey)
+        assertTrue(supportive.representedObjectives.isEmpty())
+        assertEquals(setOf(gap.code), supportive.supportiveGapCodes())
+        assertTrue(GapCandidateSelector().select(noReviewed.copy(badmintonSupportiveObjectives = emptyMap()), state(), listOf(gap), emptySet()).isEmpty())
     }
 
     @Test

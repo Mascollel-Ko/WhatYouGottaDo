@@ -1,4 +1,7 @@
 korean,english,provenance,sourcePath
+앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?,How much strength improvement do you want from resistance training?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
+해당 목표의 보조운동으로 배정했습니다. 직접 훈련을 대체하지는 않습니다.,Assigned as assistance work for this objective. It does not replace direct training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
+최근 반복한 경기력 훈련의 완료 처방을 유지했습니다.,Kept the completed prescription of recently repeated performance training.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt
 "최근 기록만으로는 낮은 반복·고중량 훈련이 부족한 것인지, 의도적으로 피하는 것인지 구분하기 어렵습니다. 앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?",Recent records cannot distinguish insufficient low-rep heavy training from deliberate avoidance. How much strength improvement do you want from resistance training?,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 근비대만 우선,Prioritize hypertrophy only,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 근비대 + 근력,Hypertrophy + strength,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt

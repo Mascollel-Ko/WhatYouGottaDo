@@ -84,6 +84,11 @@ class PlanningHistorySnapshotBuilder {
             canonicalStrengthSignals = canonicalStrengthSignals,
             recoverySignals = recoverySignals,
             badmintonDirectObjectives = directObjectiveMap,
+            badmintonSupportiveObjectives = exercises.associate { exercise ->
+                exercise.stableKey to badmintonCatalog.relations(exercise.stableKey)
+                    .filter { it.transferLevel == BadmintonObjectiveTransferLevel.SUPPORTIVE }
+                    .mapTo(linkedSetOf()) { it.objective.name }
+            },
             exerciseRoleCatalog = exerciseRoleCatalog
         )
     }

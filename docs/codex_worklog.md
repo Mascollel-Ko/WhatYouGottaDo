@@ -1,5 +1,18 @@
 # Codex Worklog
 
+## 2026-09-05 - Record-based planner v0.12 execution allocation
+
+- Baseline: `1c6e19343a9c2d091eaa38b061dfd93a1e05d4cb` on main. Runtime planner 0.12.0; PROGRAM-BUILDER-OVERVIEW 3.2.0.
+- Replaced resistance-only allocation plus performance append/count-cap repair with shared finite execution demand, safe prescriptions, time-aware material-first placement and final returned-item trace.
+- Added observed session density/time envelope, explicit availability, canonical multi-week seed prescription fallback, exact overlap/quality selection, independent Python execution golden and production regressions.
+- User follow-up supersedes direct-only admission: exact SUPPORTIVE relations may fund assistance, including typed stability work; weighted coefficients/DIRECT exposure remain separate and unchanged.
+- User follow-up also requires three proactive preflight preferences on every generation. Scrollable Compose dialog gates generation on complete valid answers; cancellation does not generate.
+- Preserved legacy builder, physiology/OFI, exposure thresholds, posterior, tissue formula, Room schema and app version. Private backup remains outside source control.
+- Initial full verification: 1,343 tests, one compatibility-inventory failure; added the new execution fixture to the existing audited consumer inventory. Final results are recorded below after rerun.
+- Final verification: 1,345 unit tests passed, zero failures/errors/skips; focused planner/representation/preflight/real-backup classes contain 66 tests including all 29 historical personas. assembleDebug passed. Original Python v0.10 tests: 22 passed; v0.12 independent execution golden: 14 passed; v0.11 golden unchanged. Localization: 10 tests passed, deterministic generation/audit passed with zero unexplained leaks. Protocol validation and git diff --check passed.
+- Real-backup E2E executes 26 resistance sets + 5 structured badminton bouts + 7 athletic/assistance bouts per week (38 scheduling units); three versus five requested days both exhaust current justified demand. Cable Pallof press contributes three explicitly SUPPORTIVE anti-rotation sets, held from recent personal execution, without claiming DIRECT exposure. The detailed private week/day report remains outside Git.
+- Question dialog was exercised with Compose/Robolectric (answer gating, scrolling, cancellation). No physical-device/emulator execution or remote GitHub Actions result is claimed; no connected device or configured AVD was available.
+
 ## Tissue Load Foundation v1 - Commit 1
 
 - Baseline: Phase A final commit `c5aaaa0a01b289d50e5d277ef4d0fcb7a0ea6a1f`, fast-forwarded to `origin/main`; the tissue commits were then reapplied on that base.

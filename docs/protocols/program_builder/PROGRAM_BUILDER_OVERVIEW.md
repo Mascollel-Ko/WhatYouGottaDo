@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.1.1 |
+| Protocol version | 3.2.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.11.1 from 2026-09-04 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.12.0 from 2026-09-05 |
 | Last audited commit | 092803213aa517f1bd899b7a07d83dd4638da81d |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -35,7 +35,7 @@
 
 ## 6. 입력 데이터
 
-기존 자동 경로는 프로그램명, 기간, 주당 운동일, 하루 시간, 배드민턴 비율과 active exercise catalogue를 사용합니다. 기록 기반 경로는 생성 cutoff 이하의 `confirmed=true` set, canonical exercise `stableKey`, resolved runtime metadata, 초기 profile, 저장된 사용자 의도와 이번 실행의 조건부 답변만 사용합니다. 미래 기록과 미확정 set은 입력에서 제외합니다.
+기존 자동 경로는 프로그램명, 기간, 주당 운동일, 하루 시간, 배드민턴 비율과 active exercise catalogue를 사용합니다. 기록 기반 경로는 생성 cutoff 이하의 `confirmed=true` set, canonical exercise `stableKey`, resolved runtime metadata, 초기 profile, 저장된 사용자 의도와 이번 실행의 세 가지 사전 답변만 사용합니다. 미래 기록과 미확정 set은 입력에서 제외합니다.
 
 ## 7. 계산 또는 분류 계약
 
@@ -101,15 +101,27 @@ readiness, OFI와 연결조직 분석은 정보와 권고이며 저장 프로그
 
 ## 11. 개인화 또는 보정
 
-기록 기반 경로는 반복된 실제 운동의 연속성을 우선하되 관찰 style을 미래 처방으로 직접 복사하지 않습니다. 각 anchor에 대해 관찰 style과 다차원 feature, 적응 상태를 계산하고 `StructureTreatment`와 `DoseTreatment`를 별도로 결정합니다. 근력 반응은 최근 56일 canonical posterior의 실제 변화율에 `tanh(changePercent / 5)`를 적용하고, confidence는 posterior 관찰 수를 6으로 나눈 값을 0..1로 제한합니다. 변화가 없거나 관찰이 2개 미만이면 중립/0 confidence입니다. 회복은 우선 전체 또는 해당 stableKey의 dose를 낮추고, gap은 먼저 유한한 주간 저항 set budget 안에서 재배분합니다. 저항 working set, 구조화 배드민턴 bout, athletic-performance bout는 서로 다른 단위로 관리하면서 같은 세션 시간 한도를 공유합니다.
+기록 기반 경로는 반복된 실제 운동의 연속성을 우선하되 관찰 style을 미래 처방으로 직접 복사하지 않습니다. 각 anchor에 대해 관찰 style과 다차원 feature, 적응 상태를 계산하고 `StructureTreatment`와 `DoseTreatment`를 별도로 결정합니다. 근력 반응은 최근 56일 canonical posterior의 실제 변화율에 `tanh(changePercent / 5)`를 적용하고, confidence는 posterior 관찰 수를 6으로 나눈 값을 0..1로 제한합니다. 변화가 없거나 관찰이 2개 미만이면 중립/0 confidence입니다. 회복은 우선 전체 또는 해당 stableKey의 dose를 낮추고, gap은 저항·구조화 배드민턴·athletic/보조운동이 공유하는 유한 실행 용량 안에서 재배분합니다. 저항 working set, 구조화 배드민턴 bout, athletic-performance bout는 서로 다른 단위로 관리하면서 같은 세션 시간 한도를 공유합니다.
 
 multi-day style variant는 anchor별로 서로 다른 생성일에 배치합니다. 2일 계획은 기존 처리 의미에 따라 HLM/Madcow를 `HEAVY+LIGHT` 또는 heavy 완화 시 `LIGHT+MEDIUM`, DUP를 `STRENGTH+VOLUME` 또는 strength 완화 시 `VOLUME+MODERATE`로 제한합니다. gap truncation은 기존 HIGH, MEDIUM/MODERATE, LOW 순서를 사용하고 같은 priority에서는 원래 domain 순서를 보존합니다.
 
 주간 저항 목표에는 고정 4세트 하한이 없습니다. 기록/회복 목표 안에서 `PRESERVE`와 가능한 `PRESERVE_CORE_REBALANCE` 연속성을 먼저 유지하고, `PARTIAL_CONTINUITY`와 `ROTATE_EMPHASIS`는 유한 예산에서 0이 될 수 있습니다. 모든 anchor를 유지하려고 용량을 늘리지는 않습니다. 단, 낮은 기록 용량·양호한 회복·선택된 HIGH 저항 gap이 동시에 있고 최소 2세트를 다른 방식으로 배정할 수 없으면 `MINIMAL_CAPACITY_EXPANSION`으로 제한적 확장을 기록하고 preview에 표시합니다.
 
-직접 badminton objective 보완 후보는 그 exact objective에 canonical DIRECT 관계가 있어야 합니다. SUPPORTIVE/GENERAL/LOW는 weighted evidence에는 들어가지만 직접 보완 후보가 될 수 없습니다. 신규 athletic/badminton 후보는 기존 `ProgramRuleTables.badmintonAccessories`와 `ProgramIntensityResolver.badminton` 또는 정당한 개인 최근 처방 구조가 있어야 하며, 그렇지 않으면 `NO_SAFE_PRESCRIPTION_AUTHORITY`를 기록하고 자동 삽입하지 않습니다.
+직접 노출은 exact objective의 canonical DIRECT 관계로만 인정합니다. 사용자 요청에 따라 SUPPORTIVE 관계도 필요한 보조운동 후보로 사용하되 직접 노출이나 목표 충족으로 승격하지 않습니다. GENERAL/LOW는 후보 관계를 대신하지 않습니다. 안정성 typed authority와 명시적 SUPPORTIVE 관계가 함께 있는 운동은 athletic/보조 실행으로 배정할 수 있습니다. 처방은 최근 56일 실제 완료 구조 → exact stableKey 다주 canonical seed의 실행 가능한 무부하 처방 → 기존 reviewed rule 순서로 해석합니다. 휴식 시간만 있는 timing row로 반복·라운드·운동시간을 발명하지 않습니다.
 
 `TOP_SET_BACKOFF`, `STRAIGHT_5X5`, `MADCOW_LIKE_HLM_RAMPING`, `DUP_LIKE_UNDULATING`, `HEAVY_LIGHT_MEDIUM` 등은 각 anchor의 실제 feature와 할당 budget이 허용할 때만 알아볼 수 있는 형태로 이어집니다. multi-day style의 중량 기준은 마지막 세션이 아니라 최근 관찰 주의 가장 강한 정당한 노출입니다. 생성된 미래 주차는 새 완료 근거가 없으므로 자동 증량하지 않고 같은 현재 microcycle을 반복할 수 있습니다. 일반 배드민턴 세션은 실제 회복 비용으로 계속 반영되지만 구조화된 배드민턴 목표 자극으로 계산하지 않습니다.
+
+### v0.12 실행 용량과 사전 확인
+
+실행 순서는 representation/gap → 처방 authority → 유한 cross-domain 배분 → 실제 시간 배치 → residual repair → 반환 item 기준 count/fingerprint입니다. 보조 및 경기력 훈련을 저항 예산 밖에 덧붙이지 않습니다. 의미 있는 최소 처방을 먼저 배정하고 discretionary 연속성 용량을 양보할 수 있습니다. 동일 exact objective를 공유하는 항목은 중복 투입하지 않으며 typed family/redundancy로 서로 다른 훈련 질을 구분합니다.
+
+용량 envelope는 명시 주당 일수·세션 분·가용 초, 최근 session median/p75 단위·median 시간, active-week controllable workload, 기존 recovery factor, court context, useful demand, 시간상 bound와 최종 실제 단위를 보존합니다. density bound는 기존 관찰 workload × systemic dose factor × max(1, 요청 일수/관찰 일수) × max(1, 요청 세션 초/관찰 median 초)입니다. 최종 용량은 useful demand·density bound·추정 시간 bound의 최소값이며 실제 처방 시간으로 다시 확인합니다. 상세 식과 결측/희소 기록 정책은 implementation note에 있습니다.
+
+고정 4/5개 item 제한과 high-court 별도 item cap은 제거했습니다. 코트 부하는 기존 recovery/자동 빈도/lower-anchor interference 문맥만 유지하며 objective 자극을 만들지 않습니다. 실제 처방과 세트 간 휴식이 시간 한도를 결정하고 typed 하체/impact 항목을 분산합니다. 시간이 늘어도 정당한 demand가 소진됐으면 filler를 만들지 않습니다.
+
+매 preflight에서 근력 목표·배드민턴 포함·프리웨이트 수용의 세 질문을 먼저 합니다. 저장 선호나 관찰 기록이 질문을 생략하지 않으며 모든 유효 답변을 선택해야 생성할 수 있습니다. 취소는 저장하지 않고 UNRESOLVED로 임시 단기 계획을 만들지 않습니다. 정상 AUTO badminton-support horizon은 adaptation minimum 4주를 지키며 실제 회복 제한/희소 이력의 bridge만 짧아질 수 있습니다. 명시 기간은 그대로 우선합니다.
+
+portable app_meta의 planningBudget.execution은 최종 direct representation과 supportive allocation을 분리합니다. SUPPORTIVE_ONLY_DIRECT_EXPOSURE_NOT_REPLACED는 보조운동은 실제 배정됐지만 직접 노출은 아직 없다는 뜻입니다. Room schema 및 기존 적용 confirmed=false 계약은 유지합니다.
 
 ## 12. 연구 근거
 
@@ -130,7 +142,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 - Specification status: `ACTIVE`
 - Runtime implementation status: `IMPLEMENTED`
-- v0.11.0 record-based boundary: 기존 자동 버튼 바로 아래 별도 버튼으로 진입하며, 56일 완료 기록 snapshot, 인접 28+28일 representation 비교, 일괄 preflight 질문, 명시적이고 복귀 가능한 AUTO 기간·일수, per-anchor structure/dose 전환, 분리 budget, priority-aware projection repair, final-item decision provenance와 기존 editor/save/apply 재사용을 제공합니다.
+- v0.12.0 record-based boundary: 기존 자동 버튼 바로 아래 별도 버튼으로 진입하며, 56일 완료 기록 snapshot, 인접 28+28일 representation 비교, 매번 세 가지 핵심 선호를 확인하는 scrollable preflight 질문, 명시적이고 복귀 가능한 AUTO 기간·일수, per-anchor structure/dose 전환, 유한 cross-domain 실행 budget, 실제 처방 시간 기반 배치, residual projection repair, final-item decision provenance와 기존 editor/save/apply 재사용을 제공합니다.
 - 개인화 선호와 최근 decision provenance는 portable `app_meta`로 백업·복원되며 로컬 seed/rebuild/lineage metadata는 이식하지 않습니다.
 - v0.5.0.6 identity boundary: built-in program seed 753개 item은 모두
   explicit canonical stableKey를 사용하며 display name lookup으로 identity를 만들지 않습니다.
@@ -173,6 +185,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt`](../../../app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt)
 - [`app/src/main/java/com/training/trackplanner/PlanProgramSections.kt`](../../../app/src/main/java/com/training/trackplanner/PlanProgramSections.kt)
 
+- [`ExecutionAllocationPlanner.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/ExecutionAllocationPlanner.kt)
+- [`PerformancePrescriptionResolver.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PerformancePrescriptionResolver.kt)
+
 ## 17. 검증 테스트
 
 - [`app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt)
@@ -187,11 +202,18 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt)
 - [`app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt`](../../../app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt)
 
+- [`ExecutionAllocationV012Test.kt`](../../../app/src/test/java/com/training/trackplanner/data/personalized/ExecutionAllocationV012Test.kt)
+- [`PersonalizedPlanningQuestionUiTest.kt`](../../../app/src/test/java/com/training/trackplanner/PersonalizedPlanningQuestionUiTest.kt)
+- [`RealBackupPersonalizedPlannerE2eTest.kt`](../../../app/src/test/java/com/training/trackplanner/data/RealBackupPersonalizedPlannerE2eTest.kt)
+
 ## 18. 권위 자산
 
 - [`app/src/main/assets/training_settings_seed.csv`](../../../app/src/main/assets/training_settings_seed.csv)
 - [`tools/planner_reference/v011_exposure_representation_reference.py`](../../../tools/planner_reference/v011_exposure_representation_reference.py)
 - [`tools/planner_reference/fixtures/v011_exposure_representation_golden.json`](../../../tools/planner_reference/fixtures/v011_exposure_representation_golden.json)
+
+- [`v012_execution_allocation_reference.py`](../../../tools/planner_reference/v012_execution_allocation_reference.py)
+- [`v012_execution_allocation_golden.json`](../../../tools/planner_reference/fixtures/v012_execution_allocation_golden.json)
 
 ## 19. 관련 문서
 
@@ -202,7 +224,12 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`docs/protocols/data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md`](../data_portability/METADATA_ANALYSIS_CONTRACT_PHASE_0_1.md): slot relation shadow와 공개 generator golden을 정의하며 production generator는 변경하지 않습니다.
 - [`docs/protocols/README.md`](../README.md)
 
+- [기록 기반 planner 구현 노트](../../record_based_planner_implementation_note.md)
+- [기록 기반 planner 릴리스 노트](../../v0.5.1.4_record_based_planner_release_notes.md)
+
 ## 20. 변경 이력
+
+- `3.2.0` (2026-09-05): 유한 cross-domain 재배분, 처방 기반 시간 용량, canonical seed 처방, 명시적 SUPPORTIVE 보조운동과 proactive 세 질문을 연결했습니다. representation 임계값·Objective V2 계수·strength posterior·tissue 회복식·legacy builder는 변경하지 않았습니다.
 
 - `3.1.1` (2026-09-04): 비압력 발달 gap이 실제 anchor 전환 압력에 기여하지 않는 실행 계약을 고정하고, production tissue `MODERATE`를 `.30`으로 명시 매핑했으며, Python/Kotlin badminton parity가 raw 기록에서 실제 production analyzer를 통과하도록 강화했습니다.
 - `3.1.0` (2026-09-04): binary presence gap을 보수적 exposure representation 신호로 교체하고, 동일 priority movement peer median, normalized personal retention, Objective V2 weighted/DIRECT 분리, 최대 한 optional developmental candidate, typed athletic domain과 별도 bout budget, reviewed prescription gate를 계약화했습니다. 충분성·절대 주간 최소량·아홉 objective 동일 목표는 도입하지 않았습니다.

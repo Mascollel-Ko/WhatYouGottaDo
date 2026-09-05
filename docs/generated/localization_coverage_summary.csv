@@ -1,7 +1,7 @@
 metric,value
-koreanUiResourceCount,4515
-existingEnglishResourceCount,4523
-totalProductionUiResourceCount,4525
+koreanUiResourceCount,4519
+existingEnglishResourceCount,4527
+totalProductionUiResourceCount,4529
 currentBaselineCheckRequired,0
 unexplainedEnglishModeKoreanLeakCount,0
 unexplainedProductionLeakCount,0
@@ -11,8 +11,8 @@ localizedExerciseDescriptionCount,253
 localizedSeedProgramNameCount,12
 historyOnlyExerciseNameCount,11
 invalidEnglishPlaceholderCount,0
-approvedLocalizedPresentationCount,5194
-codexGeneratedEnglishCount,4488
+approvedLocalizedPresentationCount,5195
+codexGeneratedEnglishCount,4490
 userContentPassthroughCount,1
-canonicalNonDisplayCount,599
-internalDebugCount,50
+canonicalNonDisplayCount,600
+internalDebugCount,49

@@ -312,6 +312,7 @@ class TrainingRepository(
         exerciseDao = exerciseDao
     )
     private val personalizedProgramPlanningService = PersonalizedProgramPlanningService(
+        performancePrescriptions = com.training.trackplanner.data.personalized.PerformancePrescriptionResolver.fromCanonicalPrograms(SeedData.programs(context)),
         exerciseDao = exerciseDao,
         workoutDao = workoutDao,
         profileDao = initialUserProfileDao,

@@ -1363,7 +1363,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.1.1",
+      "currentVersion": "3.2.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1371,7 +1371,7 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.11.1 correctness patch from 2026-09-04",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.12.0 execution allocation from 2026-09-05",
       "lastAuditedCommit": "092803213aa517f1bd899b7a07d83dd4638da81d",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
@@ -1385,6 +1385,8 @@
         "app/src/main/java/com/training/trackplanner/data/personalized/ExposureRepresentation.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/ExecutionAllocationPlanner.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/PerformancePrescriptionResolver.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt",
@@ -1406,6 +1408,9 @@
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerParityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/PersonalizedPlannerV010Test.kt",
         "app/src/test/java/com/training/trackplanner/data/personalized/ExposureRepresentationV011Test.kt",
+        "app/src/test/java/com/training/trackplanner/data/personalized/ExecutionAllocationV012Test.kt",
+        "app/src/test/java/com/training/trackplanner/PersonalizedPlanningQuestionUiTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/RealBackupPersonalizedPlannerE2eTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt",
@@ -1414,10 +1419,14 @@
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
         "tools/planner_reference/v011_exposure_representation_reference.py",
+        "tools/planner_reference/v012_execution_allocation_reference.py",
+        "tools/planner_reference/fixtures/v012_execution_allocation_golden.json",
         "tools/planner_reference/fixtures/v011_exposure_representation_golden.json"
       ],
       "supportingDocuments": [
         "docs/v0.4.2.0_release_notes.md",
+        "docs/record_based_planner_implementation_note.md",
+        "docs/v0.5.1.4_record_based_planner_release_notes.md",
         "docs/v0.3.5.3_program_builder_architecture.md",
         "docs/v0.5.0.12_release_notes.md",
         "docs/v0.5.0.13_release_notes.md",

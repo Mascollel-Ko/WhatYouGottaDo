@@ -23,7 +23,11 @@ data class PlannedExercise(
     val styleVariant: String = "",
     val style: StrengthProgrammingStyle = StrengthProgrammingStyle.NONE,
     val targetSets: Int = 0,
-    val transition: AnchorTransition? = null
+    val transition: AnchorTransition? = null,
+    val representedGapCodes: Set<String> = emptySet(),
+    val representedObjectives: Set<String> = emptySet(),
+    val supportiveObjectives: Set<String> = emptySet(),
+    val material: Boolean = true
 )
 
 class ExerciseContinuityPlanner {
@@ -73,7 +77,7 @@ class ExerciseContinuityPlanner {
 }
 
 class GapCandidateSelector {
-    fun select(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, used: Set<String>): List<PlannedExercise> {
+    fun select(snapshot: PlanningHistorySnapshot, state: AthletePlanningState, gaps: List<AdaptationGap>, used: Set<String>, allAlternatives: Boolean = false): List<PlannedExercise> {
         val chosen = used.toMutableSet()
         val orderedGaps = gaps.withIndex().sortedWith(
             compareBy<IndexedValue<AdaptationGap>> { gapPriorityRank(it.value.priority) }.thenBy { it.index }
@@ -90,7 +94,7 @@ class GapCandidateSelector {
                     selectableCandidates(snapshot, state, chosen)
                         .firstOrNull { key -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key) == coverage }
                         ?.also(chosen::add)
-                        ?.let { key -> PlannedExercise(key, "FOUNDATIONAL_${coverage.name}", gap.reason, 80, targetSets = 2) }
+                        ?.let { key -> PlannedExercise(key, "FOUNDATIONAL_${coverage.name}", gap.reason, 90, targetSets = 2, representedGapCodes = setOf(gap.code)) }
                 }
             }
             val historyKeys = snapshot.allConfirmedSets.mapTo(mutableSetOf(), PlanningSetRecord::stableKey)
@@ -106,32 +110,41 @@ class GapCandidateSelector {
                 "ARMS_TRICEPS" -> setOf(MovementCoverage.ARMS_TRICEPS)
                 else -> emptySet()
             }
-            val candidates = selectableCandidates(snapshot, state, chosen).asSequence()
+            val candidates = selectableCandidates(snapshot, state, if (allAlternatives) used else chosen).asSequence()
                 .filter { key ->
                     when {
-                        gap.code == "BADMINTON_FOUNDATIONAL_ONRAMP" -> snapshot.activityKind(key) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL && snapshot.hasSafePerformancePrescription(key)
-                        objective.isNotBlank() -> objective in snapshot.badmintonDirectObjectives[key].orEmpty() &&
-                            snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS &&
-                            snapshot.hasSafePerformancePrescription(key)
+                        gap.code == "BADMINTON_FOUNDATIONAL_ONRAMP" -> snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS && snapshot.badmintonDirectObjectives[key].orEmpty().isNotEmpty() && snapshot.hasSafePerformancePrescription(key)
+                        objective.isNotBlank() -> (objective in snapshot.badmintonDirectObjectives[key].orEmpty() ||
+                            objective in snapshot.badmintonSupportiveObjectives[key].orEmpty()) &&
+                            (snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE ||
+                                (snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS && snapshot.hasSafePerformancePrescription(key)))
                         else -> snapshot.activityKind(key) == PlannedActivityKind.RESISTANCE && snapshot.movementCoverage(key) in target
                     }
                 }
                 .sortedWith(
-                    compareByDescending<String> { it in historyKeys }
+                    compareByDescending<String> { objective in snapshot.badmintonDirectObjectives[it].orEmpty() }
+                        .thenByDescending { it in historyKeys }
                         .thenByDescending { state.freeWeightWillingness != FreeWeightWillingness.PREFER_FAMILIAR || !snapshot.isFreeWeight(it) }
                         .thenByDescending { snapshot.metadata[it]?.sourceConfidenceLevel == "HIGH" }
                         .thenBy { it }
                 )
                 .toList()
-            val key = candidates.firstOrNull() ?: return@flatMap emptyList()
-            chosen += key
-            val retentionPriority = when (gap.priority) {
-                "HIGH" -> 90
-                "MEDIUM", "MODERATE" -> 80
-                else -> 70
+            val selectedKeys = if (allAlternatives) candidates else candidates.take(1)
+            selectedKeys.map { key ->
+                chosen += key
+                val priority = when (gap.priority) { "HIGH" -> 100; "MEDIUM", "MODERATE" -> 90; else -> 70 }
+                val targetSets = if (snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS)
+                    PerformancePrescriptionResolver.resolve(snapshot, key)!!.sets.size.coerceAtLeast(2) else 2
+                val supportiveOnly = objective in snapshot.badmintonSupportiveObjectives[key].orEmpty() &&
+                    objective !in snapshot.badmintonDirectObjectives[key].orEmpty()
+                PlannedExercise(key, if (supportiveOnly) "BADMINTON_SUPPORTIVE_$objective"
+                    else if (gap.code.startsWith("BADMINTON")) "BADMINTON_OBJECTIVE_$objective" else "COVERAGE_${gap.code}",
+                    if (supportiveOnly) "해당 목표의 보조운동으로 배정했습니다. 직접 훈련을 대체하지는 않습니다." else gap.reason,
+                    priority, targetSets = targetSets,
+                    representedGapCodes = setOf(gap.code), representedObjectives = snapshot.badmintonDirectObjectives[key].orEmpty(),
+                    supportiveObjectives = snapshot.badmintonSupportiveObjectives[key].orEmpty(),
+                    material = gap.contributesTransitionPressure)
             }
-            val targetSets = snapshot.reviewedBadmintonCategory(key)?.let { ProgramIntensityResolver.badminton(it).setCount } ?: 2
-            listOf(PlannedExercise(key, if (gap.code.startsWith("BADMINTON")) "BADMINTON_OBJECTIVE_$objective" else "COVERAGE_${gap.code}", "${gap.reason} canonical planning metadata로 ${snapshot.exercises.getValue(key).name}을 선택했습니다.", retentionPriority, targetSets = targetSets))
         }
     }
 
@@ -161,54 +174,24 @@ private val PERFORMANCE_ACTIVITY_KINDS = setOf(
     PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
 )
 
-private fun badmintonObjectiveFromGap(code: String): String = when {
+internal fun badmintonObjectiveFromGap(code: String): String = when {
     code.startsWith("BADMINTON_DROP_") -> code.removePrefix("BADMINTON_DROP_")
     code.startsWith("BADMINTON_UNDERREPRESENTED_") -> code.removePrefix("BADMINTON_UNDERREPRESENTED_")
     code.startsWith("BADMINTON_DEVELOP_") -> code.removePrefix("BADMINTON_DEVELOP_")
     else -> ""
 }
 
-private fun PlanningHistorySnapshot.reviewedBadmintonCategory(stableKey: String): ProgramBadmintonCategory? =
+internal fun PlannedExercise.supportiveGapCodes(): Set<String> = representedGapCodes.filterTo(linkedSetOf()) {
+    val objective = badmintonObjectiveFromGap(it)
+    objective in supportiveObjectives && objective !in representedObjectives
+}
+
+internal fun PlanningHistorySnapshot.reviewedBadmintonCategory(stableKey: String): ProgramBadmintonCategory? =
     ProgramRuleTables.badmintonAccessories.entries.firstOrNull { (_, specs) -> specs.any { it.stableKey == stableKey } }?.key
 
 private fun PlanningHistorySnapshot.hasSafePerformancePrescription(stableKey: String): Boolean =
-    allConfirmedSets.any { it.stableKey == stableKey } || reviewedBadmintonCategory(stableKey) != null
+    PerformancePrescriptionResolver.resolve(this, stableKey) != null
 
-private fun unresolvedPerformancePrescriptionCodes(snapshot: PlanningHistorySnapshot, gaps: List<AdaptationGap>): List<String> =
-    gaps.mapNotNull { gap ->
-        val objective = badmintonObjectiveFromGap(gap.code)
-        if (objective.isBlank()) return@mapNotNull null
-        val directCandidates = snapshot.exercises.keys.filter { key ->
-            snapshot.metadata[key]?.planningEligibility in setOf("PROGRAM_SELECTABLE", "SELECTABLE") &&
-                objective in snapshot.badmintonDirectObjectives[key].orEmpty() &&
-                snapshot.activityKind(key) in PERFORMANCE_ACTIVITY_KINDS
-        }
-        if (directCandidates.isNotEmpty() && directCandidates.none(snapshot::hasSafePerformancePrescription)) {
-            "NO_SAFE_PRESCRIPTION_AUTHORITY_$objective"
-        } else null
-    }.distinct()
-
-class WeeklyStructurePlanner {
-    fun distribute(items: List<PlannedExercise>, weeklyDays: Int, sessionMinutes: Int = 60, genericCourtLoad: Double = 0.0): Map<Int, List<PlannedExercise>> {
-        val buckets = (1..weeklyDays).associateWith { mutableListOf<PlannedExercise>() }
-        val fixedStyle = items.filter { it.styleVariant.isNotBlank() }
-        val normal = items.filter { it.styleVariant.isBlank() }
-        fixedStyle.groupBy(PlannedExercise::stableKey).toSortedMap().values.forEach { anchorVariants ->
-            anchorVariants.forEachIndexed { index, item ->
-                val logicalDay = (index * (weeklyDays - 1) / (anchorVariants.size - 1).coerceAtLeast(1)) + 1
-                buckets.getValue(logicalDay).add(item)
-            }
-        }
-        normal.sortedWith(compareByDescending<PlannedExercise> { it.priority }.thenBy(PlannedExercise::stableKey)).forEach { item ->
-            val courtCapacityPenalty = if (genericCourtLoad >= 180.0) 1 else 0
-            val capacity = ((sessionMinutes / 10).coerceIn(3, 6) - courtCapacityPenalty).coerceAtLeast(3)
-            val target = buckets.entries.filter { it.value.size < capacity }.minByOrNull { (_, rows) -> rows.size + rows.count { it.role.contains("LOWER") || it.role.contains("POSTERIOR") } * if (item.role.contains("LOWER") || item.role.contains("POSTERIOR")) 3 else 0 }
-                ?: error("주간 세션 용량을 초과했습니다.")
-            target.value.add(item)
-        }
-        return buckets
-    }
-}
 
 data class PlannedPrescription(
     val text: String,
@@ -222,18 +205,13 @@ class PersonalizedPrescriptionPlanner {
         prescribe(snapshot, StrengthIntent.MIXED, item, style)
 
     fun prescribe(snapshot: PlanningHistorySnapshot, strengthIntent: StrengthIntent, item: PlannedExercise, style: StrengthProgrammingStyle): PlannedPrescription {
+        if (snapshot.activityKind(item.stableKey) in PERFORMANCE_ACTIVITY_KINDS) return PerformancePrescriptionResolver.prescribe(snapshot, item)
         val history = snapshot.allConfirmedSets.filter { it.stableKey == item.stableKey }
         val latestDate = history.maxByOrNull { it.date.toEpochDay() }?.date
         val latestWeek = latestDate?.let { it.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }
         val last = history.filter { latestWeek == (it.date.get(java.time.temporal.IsoFields.WEEK_BASED_YEAR) to it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR)) }
             .maxWithOrNull(compareBy<PlanningSetRecord> { it.weightKg }.thenBy { it.reps })
         if (last == null) {
-            if (snapshot.activityKind(item.stableKey) in PERFORMANCE_ACTIVITY_KINDS) {
-                val category = requireNotNull(snapshot.reviewedBadmintonCategory(item.stableKey)) { "NO_SAFE_PRESCRIPTION_AUTHORITY:${item.stableKey}" }
-                val guide = ProgramIntensityResolver.badminton(category)
-                val sets = List(guide.setCount) { index -> ProgramSetPrescription(index + 1, guide.reps, 0.0, guide.seconds) }
-                return PlannedPrescription(guide.text, sets, guide.restSeconds, "REVIEWED_BADMINTON_RULE_${category.name}")
-            }
             val count = item.targetSets.coerceAtLeast(2)
             val sets = List(count) { index -> ProgramSetPrescription(index + 1, 8, 0.0, 0) }
             return PlannedPrescription("8–12회 × ${count}세트 · RPE 6–8 (첫 세션에서 중량 확인)", sets, 90, "PROVISIONAL_RPE_NO_INVENTED_LOAD")
@@ -296,8 +274,6 @@ class ProgramProjectionValidator {
     fun errors(skeleton: GeneratedProgramSkeleton, genericCourtLoad: Double = skeleton.personalizedDecision?.genericCourtLoad ?: 0.0): List<String> = buildList {
         if (skeleton.items.any { it.exerciseStableKey in setOf("ex_ae9ecdbc", "ex_badminton_lesson") }) add("일반 배드민턴 세션은 프로그램 항목으로 생성할 수 없습니다.")
         if ((1..skeleton.request.durationWeeks).any { week -> skeleton.items.none { it.weekNumber == week } }) add("선택된 계획 기간이 모두 생성되지 않았습니다.")
-        if (skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }.any { it.value.size > 5 }) add("하루 운동 수가 안전한 편집 한도를 넘었습니다.")
-        if (genericCourtLoad >= 180.0 && skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }.any { it.value.size > 4 }) add("높은 코트 부하에 비해 하루 운동 수가 많습니다.")
         if (skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }.any { (_, rows) -> rows.sumOf { it.estimatedDurationSeconds } > skeleton.request.sessionMinutes * 60 }) add("예상 세션 시간이 사용 가능한 시간을 넘었습니다.")
         if (skeleton.request.weeklyTrainingDays !in 2..5) add("기록 기반 계획 빈도는 주 2~5일이어야 합니다.")
         if (skeleton.items.any { it.exerciseStableKey.isBlank() }) add("canonical stableKey가 없는 운동이 있습니다.")
@@ -313,7 +289,6 @@ class ProgramRepairPolicy {
     ): GeneratedProgramSkeleton {
         if (errors.isEmpty()) return skeleton
         val secondsLimit = skeleton.request.sessionMinutes * 60
-        val itemLimit = if (genericCourtLoad >= 180.0) 4 else 5
         val reduced = skeleton.items
             .groupBy { it.weekNumber to it.dayOfWeek }
             .values
@@ -327,7 +302,7 @@ class ProgramRepairPolicy {
                     val fits = used + item.estimatedDurationSeconds <= secondsLimit
                     if (fits) used += item.estimatedDurationSeconds
                     fits
-                }.take(itemLimit).sortedBy(ProgramSkeletonItem::orderIndex)
+                }.sortedBy(ProgramSkeletonItem::orderIndex)
             }
         return skeleton.copy(items = reduced)
     }
@@ -335,9 +310,6 @@ class ProgramRepairPolicy {
 
 class PersonalizedProgramBuilder(
     private val continuityPlanner: ExerciseContinuityPlanner = ExerciseContinuityPlanner(),
-    private val candidateSelector: GapCandidateSelector = GapCandidateSelector(),
-    private val weeklyDosePlanner: WeeklyDosePlanner = WeeklyDosePlanner(),
-    private val structurePlanner: WeeklyStructurePlanner = WeeklyStructurePlanner(),
     private val prescriptionPlanner: PersonalizedPrescriptionPlanner = PersonalizedPrescriptionPlanner(),
     private val validator: ProgramProjectionValidator = ProgramProjectionValidator(),
     private val repairPolicy: ProgramRepairPolicy = ProgramRepairPolicy()
@@ -355,77 +327,85 @@ class PersonalizedProgramBuilder(
             anchor.sets.toDouble() / (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
         }
         val systemicDoseFactor = (1.0 - .22 * transitionPlanner.systemicRecoveryPressure(state.recoverySignals)).coerceIn(.65, 1.0)
-        var targetResistance = (baselineResistance * systemicDoseFactor).roundToInt()
-            .coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
-        val allGapCandidates = candidateSelector.select(snapshot, state, gaps, state.anchors.mapTo(mutableSetOf(), UserAnchor::stableKey))
-        val performanceCandidates = allGapCandidates.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
-        var resistanceCandidates = allGapCandidates.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }
+        val resistanceContinuityDemand = (baselineResistance * systemicDoseFactor).roundToInt().coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
+        val demand = MaterialDemandResolver().resolve(snapshot, state, gaps, request)
+        val materialKeys = demand.candidates.filter(PlannedExercise::material).mapTo(mutableSetOf(), PlannedExercise::stableKey)
+        val performanceContinuity = snapshot.allConfirmedSets.filter {
+            !it.date.isBefore(snapshot.cutoff.minusDays(27)) && !it.date.isAfter(snapshot.cutoff) &&
+                snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS &&
+                it.stableKey !in materialKeys && it.stableKey !in request.excludedExerciseStableKeys &&
+                (state.badmintonIntent == BadmintonPlanningIntent.ENABLED ||
+                    snapshot.activityKind(it.stableKey) != PlannedActivityKind.STRUCTURED_BADMINTON_DRILL)
+        }.groupBy(PlanningSetRecord::stableKey).filterValues { rows -> rows.map(PlanningSetRecord::date).distinct().size >= 2 }
+            .mapNotNull { (key, rows) ->
+                PerformancePrescriptionResolver.resolve(snapshot, key) ?: return@mapNotNull null
+                if (key in state.recoverySignals.tissueRestrictedStableKeys) return@mapNotNull null
+                val weeks = rows.map { it.date.get(java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.distinct().size.coerceAtLeast(1)
+                val count = (rows.size.toDouble() / weeks * systemicDoseFactor).roundToInt().coerceAtLeast(1)
+                PlannedExercise(key, "PERFORMANCE_CONTINUITY", "최근 반복한 경기력 훈련의 완료 처방을 유지했습니다.", 85,
+                    targetSets = count, material = false)
+            }
+        val continuityDemand = resistanceContinuityDemand + performanceContinuity.sumOf(PlannedExercise::targetSets)
+        val materialCandidates = demand.candidates.filter(PlannedExercise::material).sortedWith(
+            compareByDescending<PlannedExercise> { it.priority }.thenBy { it.stableKey })
+        val optionalCandidates = demand.candidates.filterNot(PlannedExercise::material).take(1)
         val lead = transitions.values.maxByOrNull(AnchorTransition::rotationPressure)
-        val continuityReserve = if (state.anchors.isEmpty()) 0 else maxOf(
-            1,
-            transitions.values.count { it.structureTreatment in setOf(StructureTreatment.PRESERVE, StructureTreatment.PRESERVE_CORE_REBALANCE) }
-        ).coerceAtMost(targetResistance)
-        val resistanceOnramp = gaps.any { it.code == "RESISTANCE_FOUNDATIONAL_ONRAMP" }
-        var gapBudget = if (resistanceOnramp) {
-            resistanceCandidates.sumOf(PlannedExercise::targetSets).also { targetResistance = maxOf(targetResistance, it) }
-        } else if (resistanceCandidates.isNotEmpty() && (lead?.adaptation?.gapPressure ?: 0.0) >= .55) {
-            val share = when (lead?.structureTreatment) {
-                StructureTreatment.PRESERVE -> 0.0
-                StructureTreatment.PRESERVE_CORE_REBALANCE -> minOf(.35, .16 + .18 * lead.rotationPressure)
-                StructureTreatment.PARTIAL_CONTINUITY -> minOf(.48, .28 + .20 * lead.rotationPressure)
-                StructureTreatment.ROTATE_EMPHASIS -> minOf(.62, .42 + .20 * lead.rotationPressure)
-                null -> 0.0
-            }
-            maxOf(2 * resistanceCandidates.size, (targetResistance * share).roundToInt()).coerceAtMost((targetResistance - continuityReserve).coerceAtLeast(0))
-        } else 0
-        val materialGap = resistanceCandidates.firstOrNull { it.priority == 90 }
-        var capacityExpanded = false
-        if (materialGap != null && gapBudget < 2 && baselineResistance < 4.0 && systemicDoseFactor >= .92) {
-            val availableWithoutExpansion = (targetResistance - continuityReserve).coerceAtLeast(0)
-            if (availableWithoutExpansion >= 2) {
-                gapBudget = 2
-            } else {
-                targetResistance = continuityReserve + 2
-                gapBudget = 2
-                capacityExpanded = true
-            }
+        val share = when (lead?.structureTreatment) {
+            StructureTreatment.PRESERVE -> 0.0
+            StructureTreatment.PRESERVE_CORE_REBALANCE -> minOf(.35, .16 + .18 * lead.rotationPressure)
+            StructureTreatment.PARTIAL_CONTINUITY -> minOf(.48, .28 + .20 * lead.rotationPressure)
+            StructureTreatment.ROTATE_EMPHASIS -> minOf(.62, .42 + .20 * lead.rotationPressure)
+            null -> 0.0
         }
-        val maxResistanceGapCount = gapBudget / 2
-        if (resistanceCandidates.size > maxResistanceGapCount) resistanceCandidates = resistanceCandidates.take(maxResistanceGapCount)
-        gapBudget = if (resistanceCandidates.isEmpty()) 0 else minOf(gapBudget, resistanceCandidates.size * maxOf(2, gapBudget / resistanceCandidates.size))
-        val anchorBudget = (targetResistance - gapBudget).coerceAtLeast(if (state.anchors.isEmpty()) 0 else 1)
+        val materialRequested = materialCandidates.sumOf(PlannedExercise::targetSets)
+        val envelope = ExecutionCapacityPlanner().envelope(snapshot, state, request, baselineResistance,
+            continuityDemand + materialRequested, systemicDoseFactor)
+        val coreReserve = if (state.anchors.isEmpty()) 0 else minOf(continuityDemand, state.anchors.size).coerceAtLeast(1)
+        val capacityExpanded = baselineResistance < 4.0 && materialCandidates.any { it.priority >= 100 } && systemicDoseFactor >= .92
+        val capacity = if (envelope.historicalSessionObservationCount < 4)
+            minOf(envelope.finalControllableUnits, if (capacityExpanded) maxOf(continuityDemand, coreReserve + (materialCandidates.firstOrNull()?.targetSets ?: 0)) else continuityDemand)
+            else envelope.finalControllableUnits
+        val finite = FiniteExecutionAllocator.allocate(capacity, continuityDemand, materialCandidates.map(PlannedExercise::targetSets), share, coreReserve,
+            materialCandidates.indices.filterTo(mutableSetOf()) { snapshot.activityKind(materialCandidates[it].stableKey) == PlannedActivityKind.RESISTANCE })
         val anchorWeights = state.anchors.associate { anchor ->
             val weeks = (state.styleFeaturesByAnchor[anchor.stableKey]?.weeksObserved ?: 1).coerceAtLeast(1)
-            val observedWeeklySets = anchor.sets.toDouble() / weeks
             val transition = transitions.getValue(anchor.stableKey)
-            anchor.stableKey to maxOf(.20, observedWeeklySets) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
+            anchor.stableKey to maxOf(.20, anchor.sets.toDouble() / weeks) * maxOf(.25, transition.continuityScore) * transition.localDoseFactor
         }
-        val allocations = allocateAnchors(state, transitions, anchorWeights, anchorBudget)
+        val incumbentWeights = anchorWeights + performanceContinuity.associate { it.stableKey to it.targetSets.toDouble() }
+        val incumbentAllocations = proportionalAllocation(incumbentWeights.entries.sortedByDescending { it.value }
+            .take(finite.continuity).associate { it.toPair() }, finite.continuity)
+        val allocations = incumbentAllocations.filterKeys { it in anchorWeights }
         val days = request.weeklyTrainingDays.coerceIn(2, 5)
-        val continuity = continuityPlanner.select(state, transitions, allocations, days)
-        val resistanceGapAllocations = proportionalAllocation(
-            resistanceCandidates.associate { it.stableKey to if (it.priority == 90) 1.4 else 1.0 },
-            gapBudget,
-            minimum = 2
-        )
-        val resistanceGapItems = resistanceCandidates.map { it.copy(targetSets = resistanceGapAllocations.getOrDefault(it.stableKey, 2)) }
-        val performanceItems = performanceCandidates
-        val selected = continuity + resistanceGapItems + performanceItems
-        require(selected.isNotEmpty()) { "신뢰할 수 있는 연속성 운동이나 reviewed 후보를 찾지 못했습니다." }
-        val plannedDays = weeklyDosePlanner.chooseDays(state, selected.size)
-        val logical = structurePlanner.distribute(selected, days, request.sessionMinutes, state.genericCourtLoad)
+        val continuity = continuityPlanner.select(state, transitions, allocations, days) +
+            performanceContinuity.mapNotNull { item -> incumbentAllocations[item.stableKey]?.let { item.copy(targetSets = it) } }
+        val gapItems = materialCandidates.mapIndexedNotNull { index, item ->
+            finite.material[index].takeIf { it > 0 }?.let { item.copy(targetSets = it) }
+        }
+        val spare = capacity - finite.continuity - finite.material.sum()
+        val optional = optionalCandidates.filter { it.targetSets <= spare }
+        val selected = continuity + gapItems + optional
+        require(selected.isNotEmpty()) { "NO_EXECUTABLE_PLANNING_DEMAND" }
+        val placement = TimedExecutionAllocationPlanner(prescriptionPlanner).allocate(
+            snapshot, state, continuity, gapItems, optional, days, request.sessionMinutes)
+        val timed = placement.days.values.flatten()
+        val logical = placement.days
+        val placementDeferred = placement.deferred
+        val performanceItems = selected.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
+        val targetResistance = selected.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
         val schedule = ProgramDaySelector.defaultSchedule(horizon, days)
         val retentionPriorities = mutableMapOf<String, Int>()
         val items = buildList {
             (1..horizon).forEach { week ->
                 val weekDays = schedule.getValue(week).sorted()
                 logical.forEach { (logicalDay, rows) ->
-                    rows.forEachIndexed { index, item ->
+                    rows.forEachIndexed { index, timedItem ->
+                        val item = timedItem.item
                         val exercise = snapshot.exercises.getValue(item.stableKey)
                         val meta = snapshot.metadata[item.stableKey]
-                        val rx = prescriptionPlanner.prescribe(snapshot, state.strengthIntent, item, item.style)
+                        val rx = timedItem.prescription
                         val scalar = rx.sets.first()
-                        val estimatedSeconds = rx.sets.sumOf { set -> if (set.seconds > 0) set.seconds else 45 } + (rx.sets.size - 1).coerceAtLeast(0) * rx.restSeconds
+                        val estimatedSeconds = timedItem.estimatedSeconds
                         val localId = "personalized_${week}_${logicalDay}_${index}_${item.stableKey}"
                         retentionPriorities[localId] = item.priority
                         add(ProgramSkeletonItem(
@@ -445,13 +425,15 @@ class PersonalizedProgramBuilder(
         val rawSkeleton = GeneratedProgramSkeleton(
             suggestedName = request.name, durationDays = horizon * 7, request = request, periodizationType = request.periodizationType,
             weekPlans = (1..horizon).map { ProgramWeekPlan(it, "PERSONALIZED_REVIEW", 1.0, 1.0, 2, 8.0, 2, if (state.badmintonIntent == BadmintonPlanningIntent.ENABLED) 1 else 0, false, 6.0, 8.5) },
-            items = items, weekDaySchedule = schedule, warnings = intent.constraints, optimizationSummary = ProgramOptimizationSummary(), templateId = "RECORD_BASED_PERSONALIZED_V0110", representativeTemplate = false,
+            items = items, weekDaySchedule = schedule, warnings = intent.constraints, optimizationSummary = ProgramOptimizationSummary(), templateId = "RECORD_BASED_PERSONALIZED_V0120", representativeTemplate = false,
             personalizedDecision = null
         )
         val repaired = repairPolicy.repair(rawSkeleton, validator.errors(rawSkeleton, state.genericCourtLoad), retentionPriorities, state.genericCourtLoad)
         val remaining = validator.errors(repaired, state.genericCourtLoad)
         require(remaining.isEmpty()) { remaining.joinToString(" ") }
         val firstWeek = repaired.items.filter { it.weekNumber == 1 }
+        val pressureGapCodes = gaps.filter(AdaptationGap::contributesTransitionPressure).mapTo(mutableSetOf(), AdaptationGap::code)
+        val materializedGaps = gapItems.filter { candidate -> firstWeek.any { it.exerciseStableKey == candidate.stableKey } }
         val plannedResistanceSets = firstWeek.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf(ProgramSkeletonItem::setCount)
         val plannedDrillBouts = firstWeek.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.STRUCTURED_BADMINTON_DRILL }.sumOf(ProgramSkeletonItem::setCount)
         val plannedAthleticBouts = firstWeek.filter { snapshot.activityKind(it.exerciseStableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(ProgramSkeletonItem::setCount)
@@ -463,7 +445,31 @@ class PersonalizedProgramBuilder(
             plannedStructuredBadmintonBouts = plannedDrillBouts,
             systemicDoseFactor = systemicDoseFactor,
             targetAthleticPerformanceBouts = performanceItems.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL }.sumOf(PlannedExercise::targetSets),
-            plannedAthleticPerformanceBouts = plannedAthleticBouts
+            plannedAthleticPerformanceBouts = plannedAthleticBouts,
+            execution = ExecutionAllocationTrace(
+                capacity = envelope.copy(finalControllableUnits = plannedResistanceSets + plannedDrillBouts + plannedAthleticBouts),
+                continuityRequestedUnits = continuityDemand,
+                continuityAllocatedUnits = firstWeek.filter { row -> continuity.any { it.stableKey == row.exerciseStableKey } }.sumOf(ProgramSkeletonItem::setCount),
+                materialGapRequestedUnits = materialRequested,
+                materialGapAllocatedUnits = firstWeek.filter { row -> gapItems.any { it.stableKey == row.exerciseStableKey } }.sumOf(ProgramSkeletonItem::setCount),
+                selectedMaterialGaps = gapItems.flatMap { it.representedGapCodes }.distinct().filter { it in pressureGapCodes },
+                representedMaterialGaps = materializedGaps.flatMap { it.representedGapCodes - it.supportiveGapCodes() }.distinct().filter { it in pressureGapCodes },
+                deferredMaterialGaps = (demand.deferred + materialCandidates.filterIndexed { index, _ -> index in finite.deferred }
+                    .flatMap { it.representedGapCodes }.associateWith { "FINITE_CAPACITY" } +
+                    placementDeferred.flatMap { it.item.representedGapCodes }.associateWith { "SESSION_TIME_OR_STYLE_SPACING" } +
+                    materializedGaps.flatMap { it.supportiveGapCodes() }.associateWith { "SUPPORTIVE_ONLY_DIRECT_EXPOSURE_NOT_REPLACED" })
+                    .filterKeys { it in pressureGapCodes },
+                optionalDevelopmentalItems = optional.filter { candidate -> firstWeek.any { it.exerciseStableKey == candidate.stableKey } }.map(PlannedExercise::stableKey),
+                candidateAudit = demand.audit + materialCandidates.filterIndexed { index, _ -> index in finite.deferred }
+                    .associate { it.stableKey to "FINITE_CAPACITY" } + selected.associate { it.stableKey to if (firstWeek.any { row -> row.exerciseStableKey == it.stableKey }) {
+                    if (it.supportiveGapCodes().isNotEmpty()) "MATERIALIZED_SUPPORTIVE_GAP"
+                    else if (it in gapItems) "MATERIALIZED_GAP" else "MATERIALIZED_CONTINUITY"
+                } else "SESSION_TIME_OR_STYLE_SPACING" },
+                representedGapCodesByStableKey = materializedGaps.associate { it.stableKey to (it.representedGapCodes - it.supportiveGapCodes()) },
+                prescriptionSources = timed.associate { it.item.stableKey to it.prescription.weightSource },
+                supportiveGapCodesByStableKey = materializedGaps.filter { it.supportiveGapCodes().isNotEmpty() }
+                    .associate { it.stableKey to it.supportiveGapCodes() }
+            )
         )
         val fingerprint = personalizedProgramFingerprint(repaired.request, repaired.items)
         val decision = PersonalizedPlanningDecision(
@@ -472,7 +478,7 @@ class PersonalizedProgramBuilder(
             strengthIntent = state.strengthIntent.name, strengthIntentProvenance = if (snapshot.preferences.strengthIntent != null || QUESTION_STRENGTH_INTENT in answers.values) "EXPLICIT_USER" else "INFERRED_OR_UNRESOLVED",
             badmintonIntent = state.badmintonIntent.name, badmintonIntentProvenance = if (snapshot.preferences.badmintonIntent != null || QUESTION_BADMINTON_INTENT in answers.values) "EXPLICIT_USER" else "PROFILE_OR_UNRESOLVED",
             primaryAdaptation = intent.primary, secondaryTargets = gaps.map(AdaptationGap::code), strengthStyle = state.observedStrengthStyle.name, strengthStyleProvenance = "OBSERVED_HISTORY_ONLY", weeklyFrequency = days,
-            confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("DOSE_RECOMMENDED_${plannedDays}_REQUESTED_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "SEPARATE_RESISTANCE_DRILL_BUDGETS") + unresolvedPerformancePrescriptionCodes(snapshot, gaps) + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
+            confidence = state.confidence.name, reasonCodes = intent.reasonCodes + listOf("RESOLVED_WEEKLY_DAYS_${days}", "WEEKLY_COURT_LOAD_NORMALIZED", "CROSS_DOMAIN_FINITE_EXECUTION_ALLOCATION") + if (capacityExpanded) listOf("MINIMAL_CAPACITY_EXPANSION") else emptyList(), reasons = intent.reasons, constraints = intent.constraints, metadataAuthorityVersion = PERSONALIZED_AUTHORITY_VERSION, priorDecisionId = priorDecisionId, userAnswers = answers.values,
             originalGenerationFingerprint = fingerprint, recoverySignalCodes = state.recoverySignals.sourceCodes.sorted(), genericCourtLoad = state.genericCourtLoad, objectiveExposure = state.objectiveExposure,
             anchorTransitions = transitions.values.sortedBy(AnchorTransition::stableKey), planningBudget = budget,
             movementRepresentations = state.movementRepresentations,
@@ -482,29 +488,6 @@ class PersonalizedProgramBuilder(
         return repaired.copy(personalizedDecision = decision)
     }
 
-    private fun allocateAnchors(
-        state: AthletePlanningState,
-        transitions: Map<String, AnchorTransition>,
-        weights: Map<String, Double>,
-        total: Int
-    ): Map<String, Int> {
-        if (state.anchors.isEmpty() || total <= 0) return emptyMap()
-        val treatmentRank = mapOf(
-            StructureTreatment.PRESERVE to 0,
-            StructureTreatment.PRESERVE_CORE_REBALANCE to 1,
-            StructureTreatment.PARTIAL_CONTINUITY to 2,
-            StructureTreatment.ROTATE_EMPHASIS to 3
-        )
-        val ordered = state.anchors.sortedWith(
-            compareBy<UserAnchor> { treatmentRank.getValue(transitions.getValue(it.stableKey).structureTreatment) }
-                .thenByDescending { transitions.getValue(it.stableKey).continuityScore }
-                .thenByDescending { transitions.getValue(it.stableKey).localDoseFactor }
-                .thenByDescending(UserAnchor::score)
-                .thenBy(UserAnchor::stableKey)
-        )
-        val retained = ordered.take(minOf(total, ordered.size)).map(UserAnchor::stableKey).toSet()
-        return proportionalAllocation(weights.filterKeys { it in retained }, total)
-    }
 
     private fun proportionalAllocation(weights: Map<String, Double>, total: Int, minimum: Int = 1): Map<String, Int> {
         if (weights.isEmpty() || total <= 0) return emptyMap()

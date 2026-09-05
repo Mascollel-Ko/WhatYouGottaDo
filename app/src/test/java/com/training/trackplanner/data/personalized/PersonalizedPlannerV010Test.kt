@@ -264,7 +264,9 @@ class PersonalizedPlannerV010Test {
         val firstWeek = plan.items.filter { it.weekNumber == 1 }
         val finalFingerprint = personalizedProgramFingerprint(plan.request, plan.items)
 
-        assertTrue(firstWeek.map { it.exerciseStableKey }.distinct().size < exercises.size)
+        assertTrue(firstWeek.groupBy { it.dayOfWeek }.values.all { rows ->
+            rows.sumOf { it.estimatedDurationSeconds } <= 15 * 60
+        })
         assertTrue(firstWeek.any { it.exerciseStableKey == "ex_33841b88" })
         assertEquals(finalFingerprint, decision.originalGenerationFingerprint)
         assertEquals(firstWeek.filter { source.activityKind(it.exerciseStableKey) == PlannedActivityKind.RESISTANCE }.sumOf { it.setCount }, budget.plannedResistanceSets)

@@ -1,0 +1,287 @@
+{
+  "version": "RECORD_BASED_PLANNER_0.12.0_REFERENCE_1",
+  "cases": [
+    {
+      "name": "preserve",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [],
+      "share": 0,
+      "core": 1,
+      "flexible": [],
+      "expected": {
+        "continuity": 5,
+        "material": [],
+        "deferred": []
+      }
+    },
+    {
+      "name": "successful_5x5_high_resistance",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [
+        2
+      ],
+      "share": 0.3,
+      "core": 1,
+      "flexible": [
+        0
+      ],
+      "expected": {
+        "continuity": 3,
+        "material": [
+          2
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "strength_high_badminton",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [
+        3
+      ],
+      "share": 0.3,
+      "core": 1,
+      "flexible": [],
+      "expected": {
+        "continuity": 2,
+        "material": [
+          3
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "resistance_and_badminton",
+      "capacity": 8,
+      "continuity": 11,
+      "minimums": [
+        2,
+        2
+      ],
+      "share": 0.45,
+      "core": 2,
+      "flexible": [
+        0
+      ],
+      "expected": {
+        "continuity": 4,
+        "material": [
+          2,
+          2
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "overlapping_direct_objectives_one_drill",
+      "capacity": 8,
+      "continuity": 8,
+      "minimums": [
+        3
+      ],
+      "share": 0.35,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 5,
+        "material": [
+          3
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "distinct_performance_qualities",
+      "capacity": 12,
+      "continuity": 12,
+      "minimums": [
+        3,
+        3,
+        2
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 4,
+        "material": [
+          3,
+          3,
+          2
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "insufficient_capacity",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [
+        3,
+        2
+      ],
+      "share": 0.4,
+      "core": 1,
+      "flexible": [],
+      "expected": {
+        "continuity": 2,
+        "material": [
+          3,
+          0
+        ],
+        "deferred": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "developmental_not_material",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [],
+      "share": 0,
+      "core": 1,
+      "flexible": [],
+      "expected": {
+        "continuity": 5,
+        "material": [],
+        "deferred": []
+      }
+    },
+    {
+      "name": "no_safe_candidate",
+      "capacity": 5,
+      "continuity": 5,
+      "minimums": [],
+      "share": 0.3,
+      "core": 1,
+      "flexible": [],
+      "expected": {
+        "continuity": 5,
+        "material": [],
+        "deferred": []
+      }
+    },
+    {
+      "name": "three_day_binding",
+      "capacity": 12,
+      "continuity": 15,
+      "minimums": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 3,
+        "material": [
+          3,
+          3,
+          3,
+          0
+        ],
+        "deferred": [
+          3
+        ]
+      }
+    },
+    {
+      "name": "five_day_available",
+      "capacity": 20,
+      "continuity": 15,
+      "minimums": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 8,
+        "material": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "45_minutes_binding",
+      "capacity": 8,
+      "continuity": 15,
+      "minimums": [
+        3,
+        3,
+        3
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 2,
+        "material": [
+          3,
+          3,
+          0
+        ],
+        "deferred": [
+          2
+        ]
+      }
+    },
+    {
+      "name": "90_minutes_available",
+      "capacity": 16,
+      "continuity": 15,
+      "minimums": [
+        3,
+        3,
+        3
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [],
+      "expected": {
+        "continuity": 7,
+        "material": [
+          3,
+          3,
+          3
+        ],
+        "deferred": []
+      }
+    },
+    {
+      "name": "madcow_recovery_multigap",
+      "capacity": 8,
+      "continuity": 11,
+      "minimums": [
+        2,
+        2
+      ],
+      "share": 0.48,
+      "core": 2,
+      "flexible": [
+        1
+      ],
+      "expected": {
+        "continuity": 4,
+        "material": [
+          2,
+          2
+        ],
+        "deferred": []
+      }
+    }
+  ]
+}

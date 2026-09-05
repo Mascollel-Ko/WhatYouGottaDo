@@ -979,6 +979,7 @@
     <string name="loc_baseline_c7e9a967acfe">스매시 평균 속도</string>
     <string name="loc_baseline_c81d2149590c">이미지 없음</string>
     <string name="loc_baseline_c83923fb5088">저반복/고강도</string>
+    <string name="loc_baseline_c871d5483e4d">앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?</string>
     <string name="loc_baseline_c8b32b37fd60">완료 세션 이벤트 원장과 저장된 필터링 사후분포를 진단합니다. Bayesian 시계열 실험실과는 별도 모델입니다.</string>
     <string name="loc_baseline_c8d800a86328">통증/부상</string>
     <string name="loc_baseline_c8fa69ef939a">주차와 요일별 운동 구성을 텍스트 요약으로 확인합니다.</string>
@@ -1189,6 +1190,7 @@
     <string name="loc_baseline_f6212df24f0e">집중력/의욕 입력이 낮아 반응 드릴과 고강도 배드민턴은 강도를 낮춰 진행하는 편이 낫습니다.</string>
     <string name="loc_baseline_f65890b73f90">예시 운동: ${sample.joinToString(</string>
     <string name="loc_baseline_f705bdac9427">아직 기록이 부족해 이 관계를 판단하기 어렵습니다.</string>
+    <string name="loc_baseline_f7458344a77c">해당 목표의 보조운동으로 배정했습니다. 직접 훈련을 대체하지는 않습니다.</string>
     <string name="loc_baseline_f74780eb3924">시계열 분석에 사용할 수 있는 주간 지표가 부족합니다.</string>
     <string name="loc_baseline_f750c88a9d8d">회전근</string>
     <string name="loc_baseline_f75f69178f01">현재 부담은 낮게 잡힙니다.</string>
@@ -1207,6 +1209,7 @@
     <string name="loc_baseline_fad83a745de6">다른 지표 조합을 선택해 주세요.</string>
     <string name="loc_baseline_fad9f8899eb8">기록 기준으로는</string>
     <string name="loc_baseline_fb05f4603ba2">축구 경기</string>
+    <string name="loc_baseline_fb0c1514826c">최근 반복한 경기력 훈련의 완료 처방을 유지했습니다.</string>
     <string name="loc_baseline_fb31665f15b8">I 규칙</string>
     <string name="loc_baseline_fb36da85d326">사선</string>
     <string name="loc_baseline_fb469bf2bac1">채널</string>
@@ -3328,6 +3331,7 @@
     <string name="loc_ui_pattern_d97d91e59710">%1$s 관련 피로가 많이 누적되었으며, %2$s 자극은 부족합니다.</string>
     <string name="loc_ui_pattern_d9a8facc7f13">%1$s-%2$s주 정상 세션의 rehab-like activation 비율이 15%%를 초과합니다.</string>
     <string name="loc_ui_pattern_dab7fe7fc498">%1$s 완료: profile %2$s, daily %3$s, check-in %4$s, entry %5$s, set %6$s, program %7$s, program item %8$s, program item set %9$s, program tombstone %10$s, skip %11$s</string>
+    <string name="loc_ui_pattern_db29b9e26b89">최근 완료 처방 유지 · %1$s세트</string>
     <string name="loc_ui_pattern_dbedbe291fc1">%1$s분 이상 배드민턴 뒤 다음날 피로/불편감 입력이 높았던 기록이 있습니다. 같은 패턴을 단정하지 않고 다음날 강도를 보수적으로 봅니다.</string>
     <string name="loc_ui_pattern_dc704836ce85">80%% 범위 %1$s</string>
     <string name="loc_ui_pattern_dc74e2bf28cd">%1$s-%2$s주</string>

@@ -39,6 +39,13 @@ class PlannerActivityDomainResolver {
         val powerAuthority = TrainingRole.POWER in roles || ProgramSlotCapability.POWER_SLOT in capabilities
         if (powerAuthority && !(strengthAuthority && loadBased)) return PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
         if (strengthAuthority || loadBased) return PlannedActivityKind.RESISTANCE
+        // Explicit objective assistance with stability authority is executable performance work,
+        // not a resistance set or a DIRECT objective relation.
+        if (snapshot.badmintonSupportiveObjectives[stableKey].orEmpty().isNotEmpty() &&
+            (TrainingRole.STABILITY in roles || ProgramSlotCapability.STABILITY_SLOT in capabilities ||
+                metadata.programSlot in setOf("CORE_STABILITY", "TRUNK_ANTI_ROTATION_STABILITY") ||
+                "BADMINTON_SUPPORTIVE" in metadata.analysisEligibility)
+        ) return PlannedActivityKind.ATHLETIC_PERFORMANCE_DRILL
         return PlannedActivityKind.OTHER
     }
 

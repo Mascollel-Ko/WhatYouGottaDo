@@ -1672,6 +1672,7 @@ internal object GeneratedLocalizationCatalogue {
         "알파 집단값 상태" to R.string.loc_metadata_b512c8c205fa,
         "앙클링" to R.string.loc_metadata_5a3d23552c2a,
         "앞뒤 랜덤 콕 줍기" to R.string.loc_metadata_2f0b3e352061,
+        "앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?" to R.string.loc_baseline_c871d5483e4d,
         "애질리티 래더" to R.string.loc_metadata_93efcf60b77d,
         "앱 cue 가능" to R.string.loc_baseline_e2226766ceed,
         "앱 밖에서도 휴식 종료를 보려면 알림 권한이 필요합니다." to R.string.loc_baseline_b947641986f1,
@@ -2039,10 +2040,10 @@ internal object GeneratedLocalizationCatalogue {
         "자세히 알아보기" to R.string.loc_baseline_e96d8f932db2,
         "자세히에서 진단 코드를 확인한 뒤 다시 시도해 주세요." to R.string.loc_baseline_3f5278c42e6a,
         "작동" to R.string.loc_baseline_5f6d77a987c6,
-        "작성 결과 재검증" to R.string.loc_ui_50a701d4c6df,
     )
 
     private fun exactUiTextIdsChunk5(): Map<String, Int> = mapOf(
+        "작성 결과 재검증" to R.string.loc_ui_50a701d4c6df,
         "작성된 백업 파일의 무결성 재검증에 실패했습니다." to R.string.loc_ui_45980e329d10,
         "작성한 백업 파일을 다시 열 수 없습니다." to R.string.loc_ui_33e54f95d014,
         "작업" to R.string.loc_ui_b87529988750,
@@ -2404,6 +2405,7 @@ internal object GeneratedLocalizationCatalogue {
         "최근 기록 기준 범위에 있습니다." to R.string.loc_baseline_1f642b3a840d,
         "최근 기록만으로는 낮은 반복·고중량 훈련이 부족한 것인지, 의도적으로 피하는 것인지 구분하기 어렵습니다. 앞으로 저항훈련에서 근력 향상을 어느 정도 원하나요?" to R.string.loc_baseline_33b409f17f70,
         "최근 기록보다 부담이 많이 쌓였다는 신호로 해석하되, 실제 수행감·통증·불안정감과 함께 판단합니다." to R.string.loc_ui_e7e730f4f9a2,
+        "최근 반복한 경기력 훈련의 완료 처방을 유지했습니다." to R.string.loc_baseline_fb0c1514826c,
         "최근 백분위" to R.string.loc_ui_93e573051b6d,
         "최근 변화 기여" to R.string.loc_ui_c3c15e4b85a6,
         "최근 부하와 회복 입력을 함께 보수적으로 반영했습니다." to R.string.loc_baseline_da3659910a99,
@@ -2441,11 +2443,11 @@ internal object GeneratedLocalizationCatalogue {
         "최신 주간 분석 데이터를 준비하지 못했습니다." to R.string.loc_baseline_037d04aa9178,
         "최종 출처 상태" to R.string.loc_metadata_e92bfa695bd8,
         "최종 프로그램을 정리하는 중입니다." to R.string.loc_baseline_0edb6ed3c5ac,
-        "추가" to R.string.loc_baseline_dbc899c1c80c,
-        "추세" to R.string.loc_baseline_3559a9f67c75,
     )
 
     private fun exactUiTextIdsChunk6(): Map<String, Int> = mapOf(
+        "추가" to R.string.loc_baseline_dbc899c1c80c,
+        "추세" to R.string.loc_baseline_3559a9f67c75,
         "추정 불가" to R.string.loc_baseline_abb011755de7,
         "추정 주요 운동 수행능력" to R.string.loc_baseline_098b4a6627a7,
         "추정 중앙값" to R.string.loc_baseline_e9fc34624e90,
@@ -2808,6 +2810,7 @@ internal object GeneratedLocalizationCatalogue {
         "항회전·항신전 코어" to R.string.loc_metadata_d611059149cd,
         "항회전·항신전 코어 변형" to R.string.loc_metadata_df07fb8ea163,
         "해결 상태" to R.string.loc_metadata_92b6e011b010,
+        "해당 목표의 보조운동으로 배정했습니다. 직접 훈련을 대체하지는 않습니다." to R.string.loc_baseline_f7458344a77c,
         "해당 없음" to R.string.loc_metadata_7b43a621af6b,
         "해당 주 마지막 저장 시점의 데드리프트 수행능력 사후분포 중앙값" to R.string.loc_ui_e756da2751f5,
         "해당 주 마지막 저장 시점의 벤치프레스 수행능력 사후분포 중앙값" to R.string.loc_ui_ac5985359963,
@@ -2843,12 +2846,12 @@ internal object GeneratedLocalizationCatalogue {
         "현재" to R.string.loc_ui_c9657ef13bf7,
         "현재 강도 유지" to R.string.loc_baseline_2b7b91d61abb,
         "현재 계획 적격성" to R.string.loc_metadata_7b1b0d7188a4,
-        "현재 근력 분석 모델로 과거 운동 기록을 재계산하고 있습니다." to R.string.loc_baseline_81262fd44599,
-        "현재 근력 분석을 재계산하지 못했습니다." to R.string.loc_baseline_5dace340d95f,
-        "현재 근력 분석을 재계산하지 못했습니다. 원시 운동 기록은 삭제되지 않았습니다." to R.string.loc_baseline_c6a0ba9d5bc2,
     )
 
     private fun exactUiTextIdsChunk7(): Map<String, Int> = mapOf(
+        "현재 근력 분석 모델로 과거 운동 기록을 재계산하고 있습니다." to R.string.loc_baseline_81262fd44599,
+        "현재 근력 분석을 재계산하지 못했습니다." to R.string.loc_baseline_5dace340d95f,
+        "현재 근력 분석을 재계산하지 못했습니다. 원시 운동 기록은 삭제되지 않았습니다." to R.string.loc_baseline_c6a0ba9d5bc2,
         "현재 기록 기준으로 큰 충돌은 보이지 않습니다." to R.string.loc_baseline_3a9572ca030f,
         "현재 기록에서는 긴 코트 시간이 항상 다음날 높은 피로 입력으로 이어진다고 보기 어렵습니다." to R.string.loc_baseline_8c7f9c519dcd,
         "현재 기록으로 승인된 엄격 모형 입력을 만들 수 없습니다." to R.string.loc_baseline_7c3c06215677,
@@ -3212,6 +3215,7 @@ internal object GeneratedLocalizationCatalogue {
         UiTextPattern(Regex("^최근\\ 7일은\\ (.*?)\\ 자극이\\ 많습니다\\.\$"), R.string.loc_ui_pattern_186c6e6f3ec1),
         UiTextPattern(Regex("^사용\\ 가능한\\ 기간:\\ (.*?)\\~(.*?)\$"), R.string.loc_ui_pattern_e41c6ec9ce1e),
         UiTextPattern(Regex("^세션\\ 전\\ local\\ prior\\ (.*?)\$"), R.string.loc_ui_pattern_d328389f9cce),
+        UiTextPattern(Regex("^최근\\ 완료\\ 처방\\ 유지\\ ·\\ (.*?)세트\$"), R.string.loc_ui_pattern_db29b9e26b89),
         UiTextPattern(Regex("^(.*?)주\\ (.*?):(.*?)\\ 프로그램\$"), R.string.loc_ui_pattern_5b182518fc08),
         UiTextPattern(Regex("^80%\\ 예상\\ 범위\\ (.*?)\\~(.*?)\$"), R.string.loc_ui_pattern_51742a06e213),
         UiTextPattern(Regex("^운동\\ (.*?)개\\ ·\\ 세트\\ (.*?)개\$"), R.string.loc_ui_pattern_71d56e5b507d),

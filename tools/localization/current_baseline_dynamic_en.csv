@@ -1,4 +1,5 @@
 koreanTemplate,englishTemplate,provenance,sourcePath
+최근 완료 처방 유지 · ${}세트,Hold recent completed prescription · %1$s sets,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PerformancePrescriptionResolver.kt
 최근 4주간 ${} 직접 훈련 기록이 없습니다.,No direct %1$s training was recorded in the last four weeks.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 최근 반복 사용한 ${}을(를) 연속성 운동으로 유지했습니다.,Kept the recently repeated %1$s as continuity exercises.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt
 "기록된 저항훈련 행동은 ${}이며, 행동과 사용자의 의도는 별도로 판단했습니다.",Recorded resistance-training behavior is %1$s; behavior and user intent were assessed separately.,CODEX_GENERATED_ENGLISH,app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt

@@ -979,6 +979,7 @@
     <string name="loc_baseline_c7e9a967acfe">Smash average speed</string>
     <string name="loc_baseline_c81d2149590c">No image</string>
     <string name="loc_baseline_c83923fb5088">Low repetition/high intensity</string>
+    <string name="loc_baseline_c871d5483e4d">How much strength improvement do you want from resistance training?</string>
     <string name="loc_baseline_c8b32b37fd60">Diagnose the completed session event ledger and the stored filtered posterior distribution. This is a separate model from the Bayesian Time Series Lab.</string>
     <string name="loc_baseline_c8d800a86328">Pain/Injury</string>
     <string name="loc_baseline_c8fa69ef939a">Check parking and workout schedules for each day of the week with a text summary.</string>
@@ -1189,6 +1190,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_f6212df24f0e">Reaction drills and high-intensity badminton are better performed at lower intensity due to low concentration/motivation input.</string>
     <string name="loc_baseline_f65890b73f90">Example exercise: ${sample.joinToString(</string>
     <string name="loc_baseline_f705bdac9427">It is difficult to determine this relationship due to lack of records.</string>
+    <string name="loc_baseline_f7458344a77c">Assigned as assistance work for this objective. It does not replace direct training.</string>
     <string name="loc_baseline_f74780eb3924">There is a lack of weekly indicators available for time series analysis.</string>
     <string name="loc_baseline_f750c88a9d8d">rotator cuff</string>
     <string name="loc_baseline_f75f69178f01">The current burden is set low.</string>
@@ -1207,6 +1209,7 @@ You can leave this screen open while it runs.</string>
     <string name="loc_baseline_fad83a745de6">Select a different metric combination.</string>
     <string name="loc_baseline_fad9f8899eb8">Based on records</string>
     <string name="loc_baseline_fb05f4603ba2">soccer match</string>
+    <string name="loc_baseline_fb0c1514826c">Kept the completed prescription of recently repeated performance training.</string>
     <string name="loc_baseline_fb31665f15b8">I rule</string>
     <string name="loc_baseline_fb36da85d326">diagonal</string>
     <string name="loc_baseline_fb469bf2bac1">channel</string>
@@ -3328,6 +3331,7 @@ Week %2$s</string>
     <string name="loc_ui_pattern_d97d91e59710">%1$s-related fatigue has accumulated a lot, and %2$s stimulation is lacking.</string>
     <string name="loc_ui_pattern_d9a8facc7f13">%1$s-%2$s The rehab-like activation rate for normal sessions exceeds 15%%.</string>
     <string name="loc_ui_pattern_dab7fe7fc498">%1$s complete: profile %2$s, daily %3$s, check-in %4$s, entry %5$s, set %6$s, program %7$s, program item %8$s, program item set %9$s, program tombstone %10$s, skip %11$s</string>
+    <string name="loc_ui_pattern_db29b9e26b89">Hold recent completed prescription · %1$s sets</string>
     <string name="loc_ui_pattern_dbedbe291fc1">There is a record of high levels of fatigue/discomfort the next day after playing badminton for more than %1$s minutes. We do not assume the same pattern and take a conservative look at the next day\'s intensity.</string>
     <string name="loc_ui_pattern_dc704836ce85">80%% range %1$s</string>
     <string name="loc_ui_pattern_dc74e2bf28cd">Week %1$s-%2$s</string>
