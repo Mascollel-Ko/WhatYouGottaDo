@@ -37,7 +37,8 @@ internal fun ProgramDaySummarySection(
     items: List<TrainingProgramItem>,
     setsByItemId: Map<Long, List<TrainingProgramItemSet>>,
     onExerciseInfo: (String) -> Unit,
-    availableExerciseKeys: Set<String>
+    availableExerciseKeys: Set<String>,
+    progressionControl: @Composable (Long) -> Unit = {}
 ) {
     val translator = rememberMetadataTranslator()
     Column(
@@ -96,6 +97,7 @@ internal fun ProgramDaySummarySection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    progressionControl(item.id)
                     if (item.prescription.isNotBlank()) {
                         Text(
                             item.prescription,

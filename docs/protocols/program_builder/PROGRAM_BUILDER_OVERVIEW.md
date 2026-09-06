@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Protocol ID | PROGRAM-BUILDER-OVERVIEW |
-| Protocol version | 3.3.1 |
+| Protocol version | 3.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
-| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; planner v0.13.1 from 2026-09-05 |
+| Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
 | Last audited commit | 8a81fbdf6955713d4f15f3c04650edf1fcc3e817 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
@@ -14,6 +14,46 @@
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### v0.14.0 프로그램 실행·진행 제안 (2026-09-06)
+
+생성·선택 알고리듬 뒤에 별도 실행 계층을 추가했습니다. runtime 표지는
+`RECORD_BASED_PLANNER_0.14.0_KOTLIN_1`이며 앱 버전은 `0.5.1.4` 그대로입니다.
+Room 30→31은 기존 기록을 변경하지 않고 여섯 관계형 테이블을 추가합니다.
+상세 설계와 구현 결정은 [프로그램 실행·진행 명세](../../program_execution_progression_spec_ko.md)를 참조합니다.
+
+- 프로그램 저장 시 `ProgramProgressionTrack`과 `ProgramProgressionItem`을 작성합니다.
+  같은 exact exerciseStableKey만 자동 연결 후보이며, 명시 HLM/DUP style/variant와
+  planner role을 먼저 사용합니다. 수동 처방은 세트 수, 반복 패턴, 구조, 중량,
+  기존 confirmed-record e1RM projection의 저장 당시 snapshot, typed slot/intensity를 비교합니다.
+  RPE나 이름으로 author-time 의도를 추론하지 않습니다. e1RM이 없으면 null이며 이후 재계산으로 채우지 않습니다.
+- 역할과 규칙은 트랙별입니다. 사용자 override가 우선하며, 연결·역할이 모호하면 검토 상태를 유지합니다.
+  초안의 진행 행과 저장된 프로그램의 진행 행에서 Auto/기존 트랙/별도/끄기 및 앱/내 기준/직접 판단/끄기를 설정합니다.
+- 적용마다 별도 `ProgramApplication`을 만들고, `ProgramWorkoutLink`가 이름·주차·요일·논리 항목·트랙·순번·역할·규칙을 snapshot합니다.
+  원본 프로그램 삭제 FK는 없으며 템플릿 수정은 적용 이력을 바꾸지 않습니다.
+- `ProgramPrescriptionSet`은 원본과 현재 계획을 분리합니다. `WorkoutSet.confirmed=true`만 수행값입니다.
+  첫 확인 전 세트 편집은 현재 계획 수정이며 원본을 바꾸지 않습니다. 첫 확인 후에는 목표를 동결합니다.
+  추가된 세트는 `originalExists=false`, 삭제된 계획 세트는 `plannedSetIndex=null`로 원본과 구분합니다.
+- 같은 application/track의 완료된 직전 순번만 비교합니다. 부분 수행, 임의 mixed-load 구조,
+  수행 도중 구조 변경은 자동 성공으로 만들지 않습니다. Uniform은 작업 중량, 명시 anchor는 해당 세트 중량/RPE를 사용합니다.
+- 기본 규칙은 목표 완료 + 실제 RPE 상한 이내일 때 증량 후보, 높은 노력/누락 RPE/첫 실패는 유지,
+  연속 두 실패는 5% 감량 후보입니다. Main 상한 8, Assistance 9는 편집 가능한 engineering defaults입니다.
+  사용자 kg → 두 번 이상 관측된 같은 체인 증량 → 2%/0.5kg 산술 grid → 검토 순서입니다.
+  grid는 실제 장비 단위의 추론이나 실행 가능성 보증이 아닙니다.
+- `140 actual / 145 plan / 142.5 suggestion`은 `INCREASE +2.5`입니다.
+  관련 국소 조직 제한만 해당 운동의 증량을 보류하며 OFI 하나를 전체 감량 스위치로 사용하지 않습니다.
+- PENDING은 닫아도 유지됩니다. 수락/현재 계획 유지/직접 입력은 영구 resolution으로 남고,
+  수락은 다음 한 세션만 수정합니다. 수행하지 않은 미래 세션으로 연쇄 합성하지 않습니다.
+  근거 변경은 미해결 제안을 STALE로 만들고 재계산하며 이미 명시한 결정은 자동으로 덮지 않습니다.
+- 이동·미루기는 연결과 처방·제안 참조를 remap합니다. 일반 복사는 detached입니다.
+  부분 수행의 나머지만 미루면 새 부분은 detached이고 기존 트랙은 검토 대상으로 표시합니다.
+- plyometric/skill/court 세션에는 자동 중량 진행을 부여하지 않습니다.
+  기존 planner selection, legacy ProgramAutoBuilder, OFI/조직/strength posterior/Objective 산식은 변경하지 않습니다.
+
+구현: `ProgramProgressionModels`, `ProgramProgressionEngine`, `ProgramProgressionService`,
+`ProgramProgressionBackup`, `ProgramProgressionWireCodec`, `ProgramProgressionUi`.
+검증: `ProgramProgressionEngineTest`, `ProgramProgressionPersistenceTest`,
+`ProgramProgressionLayoutTest`, `ProgramProgressionDeviceLayoutTest`, `ProgramProgressionMigrationTest`.
 
 프로그램 만들기에는 서로 독립적인 두 결정론적 경로가 있습니다. 기존 자동 골자 생성은 기존 입력과 rule table을 그대로 사용합니다. 기록 기반 경로는 완료 기록, 명시 답변, canonical metadata를 사용해 설명 가능한 다주 계획을 만듭니다.
 

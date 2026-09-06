@@ -117,7 +117,8 @@ internal class BackupRestorePlanner(
     private val overrideDao: ExerciseMetadataUserOverrideDao,
     private val appMetaDao: AppMetaDao,
     private val canonicalExercises: () -> Map<String, Exercise>,
-    private val semanticRevision: () -> String
+    private val semanticRevision: () -> String,
+    private val progressionRows: suspend () -> List<ProgressionBackupRow> = { emptyList() }
 ) {
     suspend fun prepare(data: RecordCsvImportData.Restore): BackupRestorePrepared {
         val rawGraphs = data.toWorkoutGraphs()
@@ -274,6 +275,7 @@ internal class BackupRestorePlanner(
     ): String {
         val tokens = buildList {
             add("backup=$backupHash")
+            progressionRows().forEach { add("execution=${it.type}|${it.payload}") }
             add("workoutMode=${workoutMode.name}")
             add("exerciseMode=${exerciseMode.name}")
             add("semanticRevision=${semanticRevision()}")

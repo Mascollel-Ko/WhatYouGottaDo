@@ -31,7 +31,8 @@ data class DailyRecordSummary(
     val totalSeconds: Int = 0,
     val entryCount: Int = 0,
     val categorySummary: String = "",
-    val bodyPartSummary: String? = null
+    val bodyPartSummary: String? = null,
+    val programConfirmedSets: Int = 0
 )
 
 data class CalendarConflictSummary(
@@ -491,6 +492,7 @@ interface WorkoutDao {
         """
         SELECT
             workout_entries.date AS date,
+            COALESCE(SUM(CASE WHEN workout_sets.confirmed = 1 AND EXISTS(SELECT 1 FROM program_workout_links WHERE entryId = workout_entries.id) THEN 1 ELSE 0 END), 0) AS programConfirmedSets,
             COALESCE(SUM(CASE WHEN workout_sets.confirmed = 1 THEN 1 ELSE 0 END), 0) AS confirmedSets,
             COALESCE(SUM(CASE WHEN workout_sets.confirmed = 0 THEN 1 ELSE 0 END), 0) AS plannedSets,
             COALESCE(SUM(CASE WHEN workout_sets.confirmed = 1 THEN workout_sets.reps * workout_sets.weightKg ELSE 0 END), 0.0) AS totalVolumeKg,

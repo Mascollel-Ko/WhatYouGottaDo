@@ -59,6 +59,7 @@ sealed class RecordCsvImportData {
         val posteriorLocalHistory: List<StrengthExercisePerformanceHistoryEntity> = emptyList(),
         val posteriorProxyHistory: List<StrengthProxyTransferHistoryEntity> = emptyList(),
         val programSnapshot: RestoreProgramSnapshot? = null,
+        val progressionRows: List<ProgressionBackupRow> = emptyList(),
         val manifest: BackupManifest? = null
     ) : RecordCsvImportData()
 
@@ -236,8 +237,8 @@ data class DailyTimeseriesRow(
 )
 
 object RecordCsvBackupRestore {
-    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 11
-    internal const val CURRENT_BACKUP_FORMAT_VERSION = 12
+    internal const val CURRENT_RESTORE_SCHEMA_VERSION = 12
+    internal const val CURRENT_BACKUP_FORMAT_VERSION = 13
     internal const val CURRENT_PROGRAM_BACKUP_SCHEMA_VERSION = 2
     internal const val EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY = "EXPLICIT_METADATA_USER_OVERRIDES_V1"
     private const val MANIFEST_PREFIX = "#WGTD_BACKUP_MANIFEST"
@@ -365,6 +366,7 @@ object RecordCsvBackupRestore {
         "strength_curve_version",
         "strength_factor_schema_version",
         "strength_posterior_payload",
+        "execution_payload",
         "program_backup_schema_version",
         "program_stable_key",
         "program_name",
@@ -421,7 +423,8 @@ object RecordCsvBackupRestore {
         metadataUserOverrides: List<ExerciseMetadataUserOverrideEntity> = emptyList(),
         portableAppMeta: List<AppMeta> = emptyList(),
         sourceDatabaseLineageId: String = "standalone-backup",
-        includeProgramSnapshot: Boolean = false
+        includeProgramSnapshot: Boolean = false,
+        progressionRows: List<ProgressionBackupRow> = emptyList()
     ): String {
         val builder = StringBuilder()
         val exercisesById = exercises.associateBy { exercise -> exercise.stableKey }
@@ -472,6 +475,8 @@ object RecordCsvBackupRestore {
             )
         }
         builder.appendLine(restoreHeader.joinToString(","))
+        ProgramProgressionBackup.validate(progressionRows)
+        progressionRows.forEach { appendMappedRow(it.type, mapOf("execution_payload" to it.payload)) }
         if (includeProgramSnapshot) {
             appendMappedRow(
                 rowType = "program_snapshot",
@@ -948,7 +953,7 @@ object RecordCsvBackupRestore {
         appVersion: String,
         exportedAt: Long,
         entityCounts: Map<String, Int>,
-        capabilities: Set<String> = setOf(EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY),
+        capabilities: Set<String> = setOf(EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY, ProgramProgressionBackup.CAPABILITY),
         representedExerciseStableKeys: Set<String> = emptySet(),
         semanticCanonicalRevision: String? = null,
         sourceDatabaseLineageId: String? = null
@@ -1000,7 +1005,7 @@ object RecordCsvBackupRestore {
         if (parsed is RecordCsvImportData.Restore && manifest != null) {
             validateManifestCounts(manifest, parsed)
             if (manifest.formatVersion >= 12) {
-                require(parsed.backupSchemaVersion == CURRENT_RESTORE_SCHEMA_VERSION) {
+                require(parsed.backupSchemaVersion == if (manifest.formatVersion == 12) 11 else CURRENT_RESTORE_SCHEMA_VERSION) {
                     "Backup format 12 must use restore schema $CURRENT_RESTORE_SCHEMA_VERSION."
                 }
                 val represented = parsed.exerciseRows.map(RestoreExerciseRow::stableKey)
@@ -1060,6 +1065,7 @@ object RecordCsvBackupRestore {
         val metadataSnapshotRows = mutableListOf<ExerciseMetadataSnapshotRow>()
         val metadataUserOverrideRows = mutableListOf<ExerciseMetadataUserOverrideEntity>()
         val portableAppMetaRows = mutableListOf<AppMeta>()
+        val progressionRows = mutableListOf<ProgressionBackupRow>()
         val posteriorEvents = mutableListOf<StrengthPosteriorEventEntity>()
         val posteriorHistory = mutableListOf<StrengthPosteriorHistoryEntity>()
         val posteriorModelStates = mutableListOf<StrengthPosteriorModelStateEntity>()
@@ -1079,6 +1085,7 @@ object RecordCsvBackupRestore {
             val rowType = row.value(index, "row_type").trim().lowercase(Locale.US)
             val posteriorPayload = row.value(index, "strength_posterior_payload")
             when (rowType) {
+                in ProgramProgressionBackup.types -> progressionRows.add(ProgressionBackupRow(rowType, row.value(index, "execution_payload")))
                 "exercise_metadata_user_override" -> {
                     val override = ExerciseMetadataUserOverrideEntity(
                         stableKey = row.value(index, "stable_key").trim(),
@@ -1499,6 +1506,11 @@ object RecordCsvBackupRestore {
             )
         }
         ExerciseMetadataFieldPolicyRegistry.validate(metadataSnapshotRows)
+        ProgramProgressionBackup.validate(progressionRows, setRows.mapNotNull { row -> row.entrySourceId?.let { it to row.stableKey } }.toMap())
+        if (progressionRows.isNotEmpty()) {
+            require(backupSchemaVersion >= 12) { "Execution graph requires restore schema 12" }
+            require(manifest == null || ProgramProgressionBackup.CAPABILITY in manifest.capabilities) { "Execution graph capability missing" }
+        }
         return RecordCsvImportData.Restore(
             exerciseRows = exerciseRows,
             profileRows = profileRows,
@@ -1524,6 +1536,7 @@ object RecordCsvBackupRestore {
             posteriorLocalHistory = posteriorLocalHistory,
             posteriorProxyHistory = posteriorProxyHistory,
             programSnapshot = programSnapshot,
+            progressionRows = progressionRows,
             manifest = manifest
         )
     }
@@ -1644,8 +1657,10 @@ object RecordCsvBackupRestore {
         programTombstoneCount: Int,
         metadataSnapshotCount: Int = 0,
         metadataUserOverrideCount: Int = 0,
-        portableAppMetaCount: Int = 0
+        portableAppMetaCount: Int = 0,
+        progressionRowCount: Int = 0
     ): Map<String, Int> = linkedMapOf(
+        "execution_graph_row" to progressionRowCount,
         "exercise" to exerciseCount,
         "daily_metric" to dailyMetricCount,
         "daily_check_in" to dailyCheckInCount,
@@ -1679,7 +1694,8 @@ object RecordCsvBackupRestore {
             programTombstoneCount = data.programSnapshot?.tombstones?.size ?: 0,
             metadataSnapshotCount = data.metadataSnapshotRows.size,
             metadataUserOverrideCount = data.metadataUserOverrideRows.size,
-            portableAppMetaCount = data.portableAppMetaRows.size
+            portableAppMetaCount = data.portableAppMetaRows.size,
+            progressionRowCount = data.progressionRows.size
         )
 
     private fun sha256(value: String): String =

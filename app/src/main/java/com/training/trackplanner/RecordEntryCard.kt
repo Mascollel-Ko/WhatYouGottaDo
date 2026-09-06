@@ -74,7 +74,8 @@ internal fun WorkoutEntryCard(
     onUpdateSet: (WorkoutSet) -> Unit,
     onDeleteSet: (WorkoutSet) -> Unit,
     onDeleteEntry: () -> Unit,
-    onStopRestTimer: () -> Unit
+    onStopRestTimer: () -> Unit,
+    programProvenance: @Composable () -> Unit = {}
 ) {
     val entry = entryWithSets.entry
     val sets = entryWithSets.sets.sortedBy { it.setIndex }
@@ -256,6 +257,7 @@ internal fun WorkoutEntryCard(
                     onDismiss = { pendingWeightSuggestion = null }
                 )
             }
+            programProvenance()
             HorizontalDivider()
             sets.forEach { set ->
                 Box(

@@ -365,6 +365,7 @@ internal class BackupRestoreImportService(
                     smashSpeedCount += 1
                 }
             }
+            ProgramProgressionBackup.restore(db, data.progressionRows, restoredEntryIdsBySource)
             validateRestoredExerciseReferences()
             strengthPosteriorCoordinator.scheduleDerivedResetRebuild()
         }

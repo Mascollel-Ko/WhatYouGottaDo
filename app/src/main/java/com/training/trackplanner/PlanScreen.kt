@@ -904,7 +904,8 @@ private fun ProgramDetailScreen(
                 items = dayItems,
                 setsByItemId = itemSets.groupBy(TrainingProgramItemSet::programItemId),
                 onExerciseInfo = { stableKey -> infoExerciseKey = stableKey },
-                availableExerciseKeys = exercises.mapTo(mutableSetOf()) { it.stableKey }
+                availableExerciseKeys = exercises.mapTo(mutableSetOf()) { it.stableKey },
+                progressionControl = { itemId -> ProgressionTrackControl(itemId, viewModel) }
             )
         }
     }

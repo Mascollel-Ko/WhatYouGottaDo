@@ -27,6 +27,7 @@ internal class ProgramPlanService(
     private val builtInProgramKeys: () -> Set<String>,
     private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider? = null
 ) {
+    private val progression = ProgramProgressionService(db)
     val programs: Flow<List<TrainingProgram>> = programDao.observePrograms()
 
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
@@ -68,6 +69,9 @@ internal class ProgramPlanService(
         val now = System.currentTimeMillis()
         val request = skeleton.request
         val existing = existingProgramId?.let { programDao.findProgram(it) }
+        val oldBindings = db.programProgressionDao().items().associateBy { "existing-${it.programItemId}" }
+        val generated = mutableMapOf<Long, ProgramSkeletonItem>()
+        val restored = mutableMapOf<Long, ProgramProgressionItem>()
         val program = TrainingProgram(
             id = existing?.id ?: 0,
             stableKey = existing?.stableKey ?: ProgramStableKeyPolicy.newUserKey(),
@@ -94,10 +98,13 @@ internal class ProgramPlanService(
         programDao.deleteProgramTombstone(program.stableKey)
         skeleton.items.forEach { item ->
             val itemId = programDao.insertProgramItem(item.toTrainingProgramItem(programId))
+            generated[itemId] = item
+            oldBindings[item.localId]?.let { restored[itemId] = it.copy(programItemId = itemId) }
             programDao.insertProgramItemSets(
                 ProgramSetPrescriptionResolver.resolve(item).map { set -> set.toEntity(itemId) }
             )
         }
+        progression.author(programId, generated, restored)
         programId
     }
 
@@ -147,15 +154,18 @@ internal class ProgramPlanService(
         programDao.insertProgramItemSets(
             listOf(ProgramSetPrescription(1, 0, 0.0, seconds).toEntity(itemId))
         )
+        progression.author(programId)
     }
 
     suspend fun updateProgramItem(item: TrainingProgramItem) {
         programDao.updateProgramItem(item)
+        progression.author(item.programId)
     }
 
     suspend fun deleteProgramItem(item: TrainingProgramItem) {
         programDao.deleteProgramItem(item)
         reindexProgramDay(item.programId, item.weekNumber, item.dayOfWeek)
+        progression.author(item.programId)
     }
 
     suspend fun programHasDateConflicts(programId: Long, startDate: String): Boolean =
@@ -200,6 +210,9 @@ internal class ProgramPlanService(
             }
 
             val now = System.currentTimeMillis()
+            progression.author(programId)
+            val application = ProgramApplication(programStableKey = program.stableKey, programName = program.name, startDate = startDate)
+            db.programProgressionDao().putApplication(application)
             items.forEachIndexed { index, item ->
                 val itemDate = dateForProgramItem(startDate, item)
                 val storedSets = storedSetsByItemId[item.id].orEmpty()
@@ -216,7 +229,9 @@ internal class ProgramPlanService(
                         backupSourceId = workoutSourceIdentityProvider?.newWorkoutSourceId()
                     )
                 )
-                ProgramSetPrescriptionResolver.resolve(item, storedSets).forEach { set ->
+                val prescriptions = ProgramSetPrescriptionResolver.resolve(item, storedSets)
+                progression.attach(application, item, entryId, index + 1, prescriptions)
+                prescriptions.forEach { set ->
                     workoutDao.insertSet(
                         WorkoutSet(
                             entryId = entryId,
@@ -324,6 +339,7 @@ internal class ProgramPlanService(
                         }
                     }
             }
+        progression.author(programId)
         programId
     }
 

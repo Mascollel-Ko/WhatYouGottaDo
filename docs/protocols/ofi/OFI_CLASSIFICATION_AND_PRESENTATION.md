@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Protocol ID | OFI-CLASSIFICATION |
-| Protocol version | 1.3.0 |
+| Protocol version | 1.4.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.15; calendar presentation from v0.5.0.10 |
@@ -55,7 +55,7 @@ OFI 상태는 0~39 `LOW`, 40~74 `NORMAL`, 75~86 `ELEVATED`, 87~97 `CAUTION`, 98~
 
 v0.5.0.0부터 기본 OFI 요약은 overall 상태 아래에 canonical 다섯 축을 텍스트 행으로 표시합니다. 각 행은 축 이름과 상태 라벨을 우선하며 낮음·보통은 중립색, 높음·매우 높음만 경고색으로 강조합니다. 축별 큰 막대, 개별 강조색, 반복 아이콘과 기여 운동 목록은 기본 요약에 넣지 않고 기존 상세 경로에서 확인합니다. 이 변경은 계산, threshold, 분류와 projected OFI를 변경하지 않습니다.
 
-v0.5.0.10부터 기록 달력은 보이는 날짜 범위의 canonical 일별 `DailyFatigueResult.state.overallFatigueIndex`를 사용합니다. 기존 셀 상태 색을 시작색으로 유지하고 OFI를 `0..100`으로 제한한 선형 비율로 Material `errorContainer`까지 연속 보간합니다. OFI가 없거나 미래인 날짜에는 값을 만들지 않으며, 회복 잔여가 있는 휴식일은 기존 `DailyFatigueCalculator.calculateSeries` 결과를 그대로 표시합니다. 이 표현은 OFI 계산식, baseline, threshold, 라벨과 projected fatigue를 변경하지 않습니다.
+기록 달력은 보이는 날짜 범위의 canonical 일별 `DailyFatigueResult.state.overallFatigueIndex`를 사용합니다. 실행 레이어 v0.14부터 계획만 있는 날짜는 OFI와 무관하게 가장 연한 파랑입니다. 프로그램 출처가 있는 확인 세트를 포함한 날짜는 `0..100` 선형 비율로 연한 파랑에서 진한 파랑까지 보간합니다. 프로그램 출처 없는 확인 기록 및 기존 휴식일은 기존 Material `errorContainer` 계열을 유지합니다. 파랑의 light/dark 토큰과 읽기 대비는 `CalendarDayPresentation`이 소유합니다. OFI가 없거나 미래인 날짜에는 값을 만들지 않으며, 회복 잔여가 있는 휴식일은 기존 `DailyFatigueCalculator.calculateSeries` 결과를 그대로 표시합니다. 선택은 2.dp 테두리로 표현하여 출처 색을 지우지 않습니다. 이 표현은 OFI 계산식, baseline, threshold, 라벨과 projected fatigue를 변경하지 않습니다.
 
 운동명 검색 강조는 OFI 배경과 독립된 테두리 채널입니다. 현재 canonical 운동명 또는 기록 당시 `WorkoutEntry.exerciseName`의 부분 문자열이 일치하고 해당 기록에 확인된 세트가 하나 이상 있을 때만 3.dp 테두리를 표시합니다. 검색 테두리는 오늘의 기존 1.dp 테두리보다 우선하며 계획 전용 또는 미확인 세트 전용 날짜는 검색 결과로 강조하지 않습니다.
 
@@ -129,6 +129,13 @@ Evidence profile은 `USER_APPROVED_POLICY, PRODUCT_POLICY`입니다. 이는 sour
 - [`docs/protocols/README.md`](../README.md)
 
 ## 20. 변경 이력
+
+- `1.4.0` (2026-09-06): 모든 계획-only 날짜를 가장 옅은 파랑으로 표시하고 OFI를 사용하지 않습니다.
+  확인된 프로그램 출처 운동이 하나라도 있는 날짜(혼합 날짜 포함)는 0..100을 옅은 파랑→진한 파랑으로 선형 보간합니다.
+  그 밖의 confirmed 날짜는 기존 error-family OFI 표시를 유지합니다. 선택은 배경 교체가 아닌 테두리이며 검색 테두리가 우선합니다.
+  `program_workout_links`의 실제 출처로 판단하고 이름/예정일로 추론하지 않습니다.
+  `calendarProgramContainerColor`가 light/dark 색을 소유하고 contrast 4.5:1 이상을 유지합니다.
+  `ProgressionCalendarTest`가 계획-only OFI 무시, 파랑 유지, contrast, 선택 테두리를 검증합니다. OFI 산식/분류는 변경하지 않았습니다.
 
 - `1.3.0` (2026-07-29): 기록 달력에 canonical 일별 OFI의 연속 Material 색 보간과 확인된 운동 기록 검색 테두리 계약을 추가했습니다. OFI 계산과 분류는 변경하지 않았습니다.
 - `1.2.0` (2026-07-19): v0.5.0.0에서 canonical 다섯 축을 조용한 텍스트 행으로 표시하고 실제 상승 상태만 강하게 강조하도록 정리했습니다. 계산과 분류는 변경하지 않았습니다.

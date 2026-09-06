@@ -203,6 +203,7 @@ class TrainingRepository(
         overrideDao = exerciseMetadataUserOverrideDao,
         appMetaDao = appMetaDao,
         canonicalExercises = ::seedExercisesByStableKey,
+        progressionRows = { ProgramProgressionBackup.export(db) },
         semanticRevision = {
             ExerciseMetadataRevisionPolicy.project(context, canonicalMetadataRepository)
                 .semanticCanonicalMetadataRevision
@@ -311,6 +312,22 @@ class TrainingRepository(
     private val programGenerationService = ProgramGenerationService(
         exerciseDao = exerciseDao
     )
+    private val programProgressionService = ProgramProgressionService(db) {
+        connectiveTissueAnalysisService.build(System.currentTimeMillis()).loadUnits
+            .filter { it.status in setOf(com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.HIGH, com.training.trackplanner.analysis.tissue.TissueCanonicalStatus.VERY_HIGH) }
+            .flatMap { it.contributors.map { contributor -> contributor.exerciseStableKey } }.toSet()
+    }
+    val progressionTracks = db.programProgressionDao().observeTracks()
+    val progressionItems = db.programProgressionDao().observeItems()
+    val programWorkoutLinks = db.programProgressionDao().observeLinks()
+    val progressionSuggestions = db.programProgressionDao().observeSuggestions()
+    suspend fun refreshProgression() = withContext(Dispatchers.IO) { programProgressionService.refresh() }
+    suspend fun configureProgression(itemId: Long, linkMode: ProgressionLinkMode, trackId: String?, role: ProgressionRole, mode: ProgressionMode, rule: ProgressionRule) = withContext(Dispatchers.IO) {
+        programProgressionService.configure(itemId, linkMode, trackId, role, mode, rule)
+    }
+    suspend fun resolveProgression(id: String, resolution: ProgressionResolution, kg: Double?): Boolean = withContext(Dispatchers.IO) {
+        programProgressionService.resolve(id, resolution, kg)
+    }
     private val personalizedProgramPlanningService = PersonalizedProgramPlanningService(
         performancePrescriptions = com.training.trackplanner.data.personalized.PerformancePrescriptionResolver.fromCanonicalPrograms(SeedData.programs(context)),
         exerciseDao = exerciseDao,
@@ -472,7 +489,8 @@ class TrainingRepository(
             canonicalMetadataRepository = canonicalMetadataRepository,
             workoutSourceIdentityProvider = workoutSourceIdentityProvider,
             reportStore = dataTransferReportStore,
-            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+            appVersion = context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty(),
+            progressionRows = { ProgramProgressionBackup.export(db) }
         ).export(uri, onReportChanged)
     }
 
@@ -631,6 +649,7 @@ class TrainingRepository(
             )
         }
 
+        programDao.allPrograms().forEach { ProgramProgressionService(db).author(it.id) }
         val strengthAnalysisLifecycle = strengthPosteriorCoordinator.ensureCurrentRevision()
 
         logDebugSummary()
@@ -769,6 +788,7 @@ class TrainingRepository(
 
     suspend fun updateSet(set: WorkoutSet) = withContext(Dispatchers.IO) {
         recordMutationService.updateSet(set)
+        programProgressionService.refresh()
     }
 
     suspend fun deleteSet(set: WorkoutSet): Boolean = withContext(Dispatchers.IO) {

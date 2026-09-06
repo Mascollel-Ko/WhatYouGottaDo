@@ -477,18 +477,16 @@ private fun CalendarDayCell(
     val hasRecord = summary != null && summary.confirmedSets > 0
     val hasPlanOnly = summary != null && summary.confirmedSets == 0 && summary.plannedSets > 0
     val baseContainer = when {
-        selected -> MaterialTheme.colorScheme.primaryContainer
         hasRecord -> MaterialTheme.colorScheme.secondaryContainer
-        hasPlanOnly -> MaterialTheme.colorScheme.tertiaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
     val baseContent = when {
-        selected -> MaterialTheme.colorScheme.onPrimaryContainer
         hasRecord -> MaterialTheme.colorScheme.onSecondaryContainer
-        hasPlanOnly -> MaterialTheme.colorScheme.onTertiaryContainer
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val container = calendarOfiContainerColor(
+    val container = if (hasPlanOnly || (summary?.programConfirmedSets ?: 0) > 0) calendarProgramContainerColor(
+        dark = androidx.compose.foundation.isSystemInDarkTheme(), planOnly = hasPlanOnly, ofi = ofi
+    ) else calendarOfiContainerColor(
         baseColor = baseContainer,
         errorContainerColor = MaterialTheme.colorScheme.errorContainer,
         ofi = ofi
@@ -498,9 +496,10 @@ private fun CalendarDayCell(
         baseContentColor = baseContent,
         onErrorContainerColor = MaterialTheme.colorScheme.onErrorContainer
     )
-    val borderStyle = calendarDayBorderStyle(exerciseSearchMatch, today)
+    val borderStyle = calendarDayBorderStyle(exerciseSearchMatch, today, selected)
     val border = when (borderStyle) {
         CalendarDayBorderStyle.SEARCH_MATCH -> BorderStroke(borderStyle.width!!, content)
+        CalendarDayBorderStyle.SELECTED -> BorderStroke(borderStyle.width!!, content)
         CalendarDayBorderStyle.TODAY -> BorderStroke(borderStyle.width!!, MaterialTheme.colorScheme.primary)
         CalendarDayBorderStyle.NONE -> null
     }

@@ -21,7 +21,7 @@ class RecordCsvBackupRestoreFormat12Test {
         val parsedWithOverride = RecordCsvBackupRestore.parse(withOverride) as RecordCsvImportData.Restore
 
         assertEquals(
-            setOf(RecordCsvBackupRestore.EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY),
+            setOf(RecordCsvBackupRestore.EXPLICIT_METADATA_USER_OVERRIDES_CAPABILITY, ProgramProgressionBackup.CAPABILITY),
             parsedWithOverride.manifest!!.capabilities
         )
         assertEquals(listOf(override), parsedWithOverride.metadataUserOverrideRows)

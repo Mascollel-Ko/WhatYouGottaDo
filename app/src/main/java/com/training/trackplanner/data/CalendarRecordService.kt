@@ -106,6 +106,8 @@ internal class CalendarRecordService(
         mutateDates(listOf(sourceDate, targetDate)) {
             val sourceEntries = workoutDao.entriesWithSets(sourceDate)
             if (sourceEntries.isEmpty()) return@mutateDates
+            val progressionLinks = db.programProgressionDao().links().associateBy { it.entryId }
+            val progressionPrescriptions = db.programProgressionDao().prescriptions().groupBy { it.entryId }
             if (conflictMode == CalendarConflictMode.Overwrite) {
                 workoutDao.deleteSetsOnDates(listOf(targetDate))
                 workoutDao.deleteEntriesOnDates(listOf(targetDate))
@@ -119,7 +121,9 @@ internal class CalendarRecordService(
                 targetDate = targetDate,
                 keepConfirmed = true,
                 baseCreatedAt = nextCreatedAt(),
-                preserveSourceIdentity = true
+                preserveSourceIdentity = true,
+                progressionLinks = progressionLinks,
+                progressionPrescriptions = progressionPrescriptions
             )
         }
     }
@@ -149,6 +153,8 @@ internal class CalendarRecordService(
         val affectedDates = shifted.flatMap { listOf(it.source.entry.date, it.targetDate) }.distinct()
 
         return mutateDates(affectedDates) {
+            val progressionLinks = db.programProgressionDao().links().associateBy { it.entryId }
+            val progressionPrescriptions = db.programProgressionDao().prescriptions().groupBy { it.entryId }
             shifted.forEach { item ->
                 item.plannedSets.forEach { workoutDao.deleteSet(it) }
                 val confirmed = item.source.sets.filter(WorkoutSet::confirmed).sortedBy(WorkoutSet::setIndex)
@@ -186,6 +192,14 @@ internal class CalendarRecordService(
                                 }
                             )
                         )
+                        progressionLinks[item.source.entry.id]?.let { link ->
+                            if (!sourceHadConfirmed) {
+                                ProgramProgressionService(db).relocate(link, progressionPrescriptions[link.entryId].orEmpty(), entryId)
+                            } else {
+                                // A split remainder is a detached plan, never a second occurrence with the same chain identity.
+                                db.programProgressionDao().putLink(link.copy(needsReview = true))
+                            }
+                        }
                         item.plannedSets.sortedBy(WorkoutSet::setIndex).forEachIndexed { index, set ->
                             workoutDao.insertSet(
                                 set.copy(id = 0, entryId = entryId, setIndex = index + 1, confirmed = false)
@@ -241,7 +255,9 @@ internal class CalendarRecordService(
         targetDate: String,
         keepConfirmed: Boolean,
         baseCreatedAt: Long,
-        preserveSourceIdentity: Boolean
+        preserveSourceIdentity: Boolean,
+        progressionLinks: Map<Long, ProgramWorkoutLink> = emptyMap(),
+        progressionPrescriptions: Map<Long, List<ProgramPrescriptionSet>> = emptyMap()
     ) {
         sourceEntries.forEachIndexed { entryIndex, entryWithSets ->
             val confirmedCount = entryWithSets.sets.count { it.confirmed }
@@ -274,6 +290,9 @@ internal class CalendarRecordService(
                         confirmed = keepConfirmed && sourceSet.confirmed
                     )
                 )
+            }
+            if (preserveSourceIdentity) progressionLinks[entryWithSets.entry.id]?.let { link ->
+                ProgramProgressionService(db).relocate(link, progressionPrescriptions[link.entryId].orEmpty(), copiedEntryId)
             }
         }
     }

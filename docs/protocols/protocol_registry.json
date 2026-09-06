@@ -92,7 +92,7 @@
       "familyId": "OFI",
       "titleKo": "OFI 분류와 표시",
       "titleEn": "OFI Classification and Presentation",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -118,6 +118,7 @@
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt"
       ],
       "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/ProgressionCalendarTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabelerTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactoryTest.kt",
         "app/src/test/java/com/training/trackplanner/analysis/readiness/FatiguePresentationMapperTest.kt",
@@ -130,6 +131,7 @@
       ],
       "authorityAssets": [],
       "supportingDocuments": [
+        "docs/program_execution_progression_spec_ko.md",
         "docs/v0.4.2.5_release_notes.md",
         "docs/v0.4.2.6_release_notes.md",
         "docs/v0.4.2.15_release_notes.md",
@@ -1363,7 +1365,7 @@
       "familyId": "PROGRAM_BUILDER",
       "titleKo": "자동·기록 기반 프로그램 생성 개요",
       "titleEn": "Automatic and Record-Based Program Builder Overview",
-      "currentVersion": "3.3.1",
+      "currentVersion": "3.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1371,9 +1373,14 @@
         "ENGINEERING_HEURISTIC"
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
-      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.13.1 training state correction from 2026-09-05",
+      "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
       "lastAuditedCommit": "8a81fbdf6955713d4f15f3c04650edf1fcc3e817",
       "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionEngine.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionService.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionMigration.kt",
+        "app/src/main/java/com/training/trackplanner/ProgramProgressionUi.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
@@ -1407,6 +1414,10 @@
         "app/src/main/java/com/training/trackplanner/PlanProgramSections.kt"
       ],
       "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramProgressionEngineTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/ProgramProgressionPersistenceTest.kt",
+        "app/src/test/java/com/training/trackplanner/ProgramProgressionLayoutTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/ProgramProgressionDeviceLayoutTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramRuleTablesTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramCandidateAuthorityTest.kt",
@@ -1438,6 +1449,7 @@
         "tools/planner_reference/fixtures/v011_exposure_representation_golden.json"
       ],
       "supportingDocuments": [
+        "docs/program_execution_progression_spec_ko.md",
         "docs/v0.4.2.0_release_notes.md",
         "docs/record_based_planner_implementation_note.md",
         "docs/v0.5.1.4_record_based_planner_release_notes.md",
@@ -1807,7 +1819,7 @@
       "familyId": "DATA_PORTABILITY",
       "titleKo": "백업과 복원",
       "titleEn": "Backup and Restore",
-      "currentVersion": "1.6.0",
+      "currentVersion": "1.7.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -1818,6 +1830,9 @@
       "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25",
       "lastAuditedCommit": "b44088c2a32d7222d97e5a213a2efea02d250f10",
       "sourceAnchors": [
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionBackup.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionWireCodec.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramProgressionMigration.kt",
         "app/src/main/java/com/training/trackplanner/data/RecordCsvBackupRestore.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupExportService.kt",
         "app/src/main/java/com/training/trackplanner/data/BackupRestoreImportService.kt",
@@ -1837,6 +1852,8 @@
         "app/src/main/java/com/training/trackplanner/BackupRestoreUiState.kt"
       ],
       "testAnchors": [
+        "app/src/test/java/com/training/trackplanner/data/ProgramProgressionPersistenceTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/data/ProgramProgressionMigrationTest.kt",
         "app/src/test/java/com/training/trackplanner/data/ProgramBackupRestoreTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordCsvBackupRestoreTest.kt",
         "app/src/test/java/com/training/trackplanner/data/BackupIntegrityBoundaryTest.kt",
@@ -1852,6 +1869,8 @@
         "app/src/test/java/com/training/trackplanner/BackupRestoreDialogUiTest.kt"
       ],
       "authorityAssets": [
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/30.json",
+        "app/schemas/com.training.trackplanner.data.TrainingDatabase/31.json",
         "app/src/main/assets/training_settings_seed.csv",
         "app/src/main/assets/exercise_legacy_import_map.csv",
         "app/schemas/com.training.trackplanner.data.TrainingDatabase/25.json",
@@ -1868,6 +1887,7 @@
         "docs/generated/app_meta_portability_classification.csv"
       ],
       "supportingDocuments": [
+        "docs/program_execution_progression_spec_ko.md",
         "docs/v0.5.0.5_release_notes.md",
         "docs/v0.5.0.6_release_notes.md",
         "docs/v0.5.0.11_release_notes.md",

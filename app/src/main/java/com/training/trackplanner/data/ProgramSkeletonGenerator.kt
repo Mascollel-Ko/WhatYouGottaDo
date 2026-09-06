@@ -145,7 +145,12 @@ data class ProgramSkeletonItem(
     val slotCapabilityWarnings: List<String> = emptyList(),
     val requestedTemplateSlot: String = "",
     val requiredTemplateAnchor: Boolean = false,
-    val setPrescriptions: List<ProgramSetPrescription> = emptyList()
+    val setPrescriptions: List<ProgramSetPrescription> = emptyList(),
+    val progressionStyle: String = "",
+    val progressionVariant: String = "",
+    val progressionAnchorSetIndex: Int? = null,
+    val progressionRole: ProgressionRole = ProgressionRole.AUTO,
+    val progressionSettings: ProgressionDraftSettings? = null
 )
 
 data class GeneratedProgramSkeleton(

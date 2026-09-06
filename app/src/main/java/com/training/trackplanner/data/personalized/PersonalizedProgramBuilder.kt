@@ -418,6 +418,10 @@ class PersonalizedProgramBuilder(
                         retentionPriorities[localId] = item.priority
                         add(ProgramSkeletonItem(
                             localId = localId, weekNumber = week, dayOfWeek = weekDays[logicalDay - 1], orderIndex = index + 1,
+                            progressionStyle = item.style.takeUnless { it in setOf(StrengthProgrammingStyle.NONE, StrengthProgrammingStyle.UNRESOLVED) }?.name.orEmpty(),
+                            progressionVariant = item.styleVariant,
+                            progressionRole = if (item in continuity && item.styleVariant !in setOf("LIGHT", "VOLUME")) com.training.trackplanner.data.ProgressionRole.MAIN else com.training.trackplanner.data.ProgressionRole.ASSISTANCE,
+                            progressionAnchorSetIndex = if (item.style in setOf(StrengthProgrammingStyle.TOP_SET_BACKOFF, StrengthProgrammingStyle.TOP_SET_HYPERTROPHY, StrengthProgrammingStyle.MADCOW_LIKE_HLM_RAMPING)) rx.sets.maxByOrNull { it.weightKg }?.setIndex else null,
                             exerciseStableKey = item.stableKey, exerciseName = exercise.name, category = exercise.category, restSeconds = rx.restSeconds, prescription = rx.text,
                             setCount = rx.sets.size, reps = scalar.reps, weightKg = scalar.weightKg, seconds = scalar.seconds, selectionReason = item.reason, weightSource = rx.weightSource,
                             trainingSlot = item.role, stableKey = item.stableKey, selectionRole = item.role, movementFamily = meta?.movementFamily.orEmpty(), movementSubtype = meta?.movementSubtype.orEmpty(),

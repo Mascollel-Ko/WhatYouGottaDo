@@ -22,7 +22,8 @@ internal class BackupExportService(
     private val canonicalMetadataRepository: CanonicalExerciseMetadataRepository,
     private val workoutSourceIdentityProvider: WorkoutSourceIdentityProvider,
     private val reportStore: DataTransferReportStore,
-    private val appVersion: String
+    private val appVersion: String,
+    private val progressionRows: suspend () -> List<ProgressionBackupRow> = { emptyList() }
 ) {
     suspend fun export(
         uri: Uri,
@@ -95,6 +96,7 @@ internal class BackupExportService(
             val posteriorEvidence = strengthPosteriorDao.allEvidence()
             val posteriorRevisions = strengthPosteriorDao.allRevisions()
             val programs = programDao.allPrograms()
+            val executionRows = progressionRows()
             val programItems = programDao.allProgramItems()
             val programItemSets = programDao.allProgramItemSets()
             val programTombstones = programDao.allProgramTombstones()
@@ -214,7 +216,8 @@ internal class BackupExportService(
                 metadataUserOverrides = metadataUserOverrides,
                 portableAppMeta = portableAppMeta,
                 sourceDatabaseLineageId = sourceDatabaseLineageId,
-                includeProgramSnapshot = true
+                includeProgramSnapshot = true,
+                progressionRows = executionRows
             )
             val dailyBackupCount = (
                 metrics.map(DailyMetric::date) +
@@ -235,7 +238,8 @@ internal class BackupExportService(
                 programTombstoneCount = programTombstones.size,
                 metadataSnapshotCount = metadataSnapshots.size,
                 metadataUserOverrideCount = metadataUserOverrides.size,
-                portableAppMetaCount = portableAppMeta.size
+                portableAppMetaCount = portableAppMeta.size,
+                progressionRowCount = executionRows.size
             )
             val csv = RecordCsvBackupRestore.wrapWithManifest(
                 body = body,

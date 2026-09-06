@@ -233,6 +233,20 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
     fun programItems(programId: Long): Flow<List<TrainingProgramItem>> =
         repository.programItems(programId)
 
+    val progressionTracks = repository.progressionTracks
+    val progressionItems = repository.progressionItems
+    val programWorkoutLinks = repository.programWorkoutLinks
+    val progressionSuggestions = repository.progressionSuggestions
+    fun refreshProgression() { viewModelScope.launch { repository.refreshProgression() } }
+    fun configureProgression(itemId: Long, linkMode: com.training.trackplanner.data.ProgressionLinkMode,
+        trackId: String?, role: com.training.trackplanner.data.ProgressionRole,
+        mode: com.training.trackplanner.data.ProgressionMode, rule: com.training.trackplanner.data.ProgressionRule) {
+        viewModelScope.launch { repository.configureProgression(itemId, linkMode, trackId, role, mode, rule) }
+    }
+    fun resolveProgression(id: String, resolution: com.training.trackplanner.data.ProgressionResolution, kg: Double?, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch { onResult(repository.resolveProgression(id, resolution, kg)) }
+    }
+
     fun programItemSets(programId: Long): Flow<List<TrainingProgramItemSet>> =
         repository.programItemSets(programId)
 

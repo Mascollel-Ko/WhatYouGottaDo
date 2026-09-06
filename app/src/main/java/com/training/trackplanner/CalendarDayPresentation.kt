@@ -9,6 +9,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 internal enum class CalendarDayBorderStyle(val width: Dp?) {
+    SELECTED(2.dp),
     SEARCH_MATCH(3.dp),
     TODAY(1.dp),
     NONE(null)
@@ -16,11 +17,20 @@ internal enum class CalendarDayBorderStyle(val width: Dp?) {
 
 internal fun calendarDayBorderStyle(
     exerciseSearchMatch: Boolean,
-    today: Boolean
+    today: Boolean,
+    selected: Boolean = false
 ): CalendarDayBorderStyle = when {
     exerciseSearchMatch -> CalendarDayBorderStyle.SEARCH_MATCH
+    selected -> CalendarDayBorderStyle.SELECTED
     today -> CalendarDayBorderStyle.TODAY
     else -> CalendarDayBorderStyle.NONE
+}
+
+/** Central semantic palette: plan-only never consumes an OFI value. */
+internal fun calendarProgramContainerColor(dark: Boolean, planOnly: Boolean, ofi: Int?): Color {
+    val pale = if (dark) Color(0xFF243B53) else Color(0xFFEAF4FF)
+    val deep = if (dark) Color(0xFF155BA6) else Color(0xFF174B8C)
+    return if (planOnly) pale else lerp(pale, deep, (ofi ?: 0).coerceIn(0, 100) / 100f)
 }
 
 internal fun calendarOfiContainerColor(

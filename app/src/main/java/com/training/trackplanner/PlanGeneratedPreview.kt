@@ -152,6 +152,7 @@ internal fun ProgramSkeletonPreview(
                     },
                     onAddExercise = { showExercisePicker = true },
                     onEditItem = { editingItem = it },
+                    onProgressionChange = { updated -> onSkeletonChange(skeleton.upsertDraftItem(updated)) },
                     onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
                 )
             }
@@ -229,6 +230,7 @@ private fun ProgramDraftEditTab(
     onToggleDay: (Int) -> Unit,
     onAddExercise: () -> Unit,
     onEditItem: (ProgramSkeletonItem) -> Unit,
+    onProgressionChange: (ProgramSkeletonItem) -> Unit,
     onDeleteItem: (ProgramSkeletonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -286,6 +288,9 @@ private fun ProgramDraftEditTab(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item) }
                 )
+                if (ProgramSetPrescriptionResolver.resolve(item).any { it.weightKg > 0 && it.reps > 0 }) {
+                    ProgressionDraftControl(item, skeleton.items, onProgressionChange)
+                }
             }
         }
         OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onAddExercise) {

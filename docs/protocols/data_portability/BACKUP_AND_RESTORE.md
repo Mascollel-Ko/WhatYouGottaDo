@@ -3,7 +3,7 @@
 | 항목 | 값 |
 |---|---|
 | Protocol ID | DATA-BACKUP-RESTORE |
-| Protocol version | 1.6.0 |
+| Protocol version | 1.7.0 |
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25; fail-closed blank stableKey import from v0.5.0.37 |
@@ -24,6 +24,25 @@ canonical semantics. Exact name is allowed only as an in-file transport
 grouping key when the backup has no immutable exercise identifier.
 
 ## 1. 일반 사용자용 요약
+
+### 프로그램 실행 graph v1 (2026-09-06)
+
+Backup format 13 / restore schema 12는 `PROGRAM_EXECUTION_V1` capability와
+`execution_track`, `execution_item`, `execution_application`, `execution_link`,
+`execution_prescription`, `execution_suggestion` 행을 추가합니다. `execution_payload`는 명시 typed wire JSON이며
+Room 저장은 여섯 정규 테이블입니다. app_meta에 graph를 저장하지 않습니다.
+원본 프로그램이 삭제되어도 application/이름/처방/결정 snapshot이 남습니다.
+논리 track/application/suggestion UUID는 유지하며 local workout ID는 immutable `backupSourceId`로,
+program item ID는 exact program stableKey + week/day/order + exerciseStableKey로 remap합니다.
+삭제된 workout을 가리키는 제안의 숫자 참조는 tombstone sentinel 0으로 복원하고 미해결 상태는 STALE로 표시합니다.
+백업 파일에 기록된 당시 base/방향/규칙/사유/해결 시각은 보존합니다.
+
+행 수는 manifest의 `execution_graph_row`, 전체 bytes는 기존 SHA-256으로 검증합니다.
+typed enum, rule 범위, graph 중복 identity/sequence와 track/application 참조를 검증합니다.
+restore preflight fingerprint도 실행 graph를 포함합니다. 이전 format 12/schema 11과
+그 이전 지원 백업은 새 graph가 없어도 읽으며 기존 workout metadata 계약을 보존합니다.
+30→31 migration은 기존 표를 파괴하거나 WorkoutSet.confirmed를 재해석하지 않습니다.
+`ProgramProgressionPersistenceTest`와 `ProgramProgressionMigrationTest`가 이 경계를 검증합니다.
 
 `v0.5.0.5`부터 기록 백업은 운동 기록뿐 아니라 현재 저장된 프로그램,
 프로그램 구성 운동, 삭제한 기본 프로그램 상태까지 한 CSV에 포함합니다.

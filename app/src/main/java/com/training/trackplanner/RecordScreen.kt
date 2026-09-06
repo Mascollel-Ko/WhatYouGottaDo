@@ -66,6 +66,8 @@ internal fun RecordScreen(
     onWorkoutTargetPositioned: (Rect) -> Unit = {}
 ) {
     val exercises by viewModel.exercises.collectAsState()
+    val programLinks by viewModel.programWorkoutLinks.collectAsState(emptyList())
+    val progressionSuggestions by viewModel.progressionSuggestions.collectAsState(emptyList())
     val timerState by restTimerSessionController.state.collectAsState()
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -82,6 +84,7 @@ internal fun RecordScreen(
         viewModel.smashSpeedsForDate(selectedDate)
     }.collectAsState(initial = emptyList())
     val sortedEntries = remember(entries) { entries.sortedForRecordDisplay() }
+    LaunchedEffect(entries, selectedDate) { viewModel.refreshProgression() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
@@ -368,7 +371,14 @@ internal fun RecordScreen(
                     onUpdateSet = viewModel::updateSet,
                     onDeleteSet = viewModel::deleteSet,
                     onDeleteEntry = { viewModel.deleteWorkoutEntry(entryWithSets.entry) },
-                    onStopRestTimer = restTimerSessionController::stop
+                    onStopRestTimer = restTimerSessionController::stop,
+                    programProvenance = {
+                        programLinks.firstOrNull { it.entryId == entryWithSets.entry.id }?.let { link ->
+                            ProgramRecordProvenance(link, progressionSuggestions.lastOrNull {
+                                it.targetEntryId == link.entryId && it.resolution == com.training.trackplanner.data.ProgressionResolution.PENDING
+                            }, viewModel::resolveProgression)
+                        }
+                    }
                 )
             }
         }

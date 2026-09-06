@@ -86,6 +86,7 @@ internal class RecordMutationService(
                 )
                 ?: defaultSet(entry.id, nextIndex, exerciseDao.findByStableKey(entry.exerciseStableKey))
             workoutDao.insertSet(nextSet)
+            ProgramProgressionService(db).setAdded(nextSet)
             refreshEntryCompletion(entry.id)
         }
     }
@@ -94,6 +95,7 @@ internal class RecordMutationService(
         val entry = workoutDao.findEntryById(set.entryId) ?: return
         mutateDate(entry.date) {
             val existing = workoutDao.findSetById(set.id)
+            ProgramProgressionService(db).beforeSetUpdate(existing, set)
             val newlyConfirmed = set.confirmed && existing?.confirmed != true
             val firstConfirmationForEntry = newlyConfirmed && workoutDao.confirmedCountForEntry(set.entryId) == 0
             if (firstConfirmationForEntry) {
@@ -129,6 +131,7 @@ internal class RecordMutationService(
         if (workoutDao.setCount(set.entryId) <= 1) return false
         val entry = workoutDao.findEntryById(set.entryId) ?: return false
         return mutateDate(entry.date) {
+            ProgramProgressionService(db).beforeSetRemoved(set)
             workoutDao.deleteSet(set)
             workoutDao.setsForEntry(set.entryId).forEachIndexed { index, remainingSet ->
                 workoutDao.updateSetIndex(remainingSet.id, index + 1)
