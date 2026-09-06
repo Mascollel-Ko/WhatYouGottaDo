@@ -3,6 +3,8 @@
 ## 2026-09-06 — Restore Legacy pre-save manual progression sessions
 
 - Baseline and fetched origin/main: `2e0a1979e5d967dbe55e2819047a7710c449c30f`, clean checkout.
+- Audited implementation: `6efd7d0b52109495a3abdcfa120392e471a9f4c9`; overview and registry
+  provenance updated together in the following docs-only commit. Protocol/app versions unchanged.
   Inspected pre-separation preview at a53f419 and explicit-session persistence at 17467a5.
   Ponytail was forbidden and not used. No subagents were used.
 - Cause: isolation removed ProgressionDraftControl from LegacyAutoSkeletonPreview, reconciliation
