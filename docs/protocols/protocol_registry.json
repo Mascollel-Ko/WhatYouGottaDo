@@ -101,7 +101,7 @@
       ],
       "canonicalDocument": "ofi/OFI_CLASSIFICATION_AND_PRESENTATION.md",
       "implementedFromAppVersion": "v0.4.2.15; calendar presentation from v0.5.0.10",
-      "lastAuditedCommit": "c2f30971e12849fbc18b7cb3ab97e12499707e23",
+      "lastAuditedCommit": "d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/analysis/readiness/TodayFatigueStatusLabeler.kt",
         "app/src/main/java/com/training/trackplanner/analysis/fatigue/HomeFatigueCardSummaryFactory.kt",
@@ -1374,7 +1374,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "8a81fbdf6955713d4f15f3c04650edf1fcc3e817",
+      "lastAuditedCommit": "d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionEngine.kt",
@@ -1828,7 +1828,7 @@
       ],
       "canonicalDocument": "data_portability/BACKUP_AND_RESTORE.md",
       "implementedFromAppVersion": "v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25",
-      "lastAuditedCommit": "b44088c2a32d7222d97e5a213a2efea02d250f10",
+      "lastAuditedCommit": "d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionBackup.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionWireCodec.kt",

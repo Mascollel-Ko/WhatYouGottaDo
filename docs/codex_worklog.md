@@ -2,6 +2,8 @@
 
 ## 2026-09-06 - Program execution and progression v0.14.0
 
+- Audited implementation commit: `d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd`; the following docs-only commit changes provenance, not runtime behavior.
+
 - Clean main baseline: `ae2eb4388a00c23aa536c595d5e99e6d6ae0ed07`, fetched and fast-forward checked before edits. Used the supplied Korean execution/progression spec and implementation prompt; copied the spec into the requested repository path and documented actual decisions in §25. Ponytail was not used.
 - Added six relational execution/progression entities, immutable logical/application/source identities, original/current/actual prescription separation and non-destructive Room 30→31. Tracks are authored before application using exact exercise keys and typed planner intent; role overrides persist through generated-program re-edit. RPE never determines author-time linkage or Main/Assistance role.
 - Deterministic default/custom rules produce pending suggestions relative to the previous comparable actual, not the target plan. Explicit accept/keep/manual decisions are durable and authoritative; accept changes only the immediate target. Evidence changes invalidate pending suggestions. Related canonical tissue contributors can hold that track; no OFI-wide direction switch or future synthetic cascade was added.

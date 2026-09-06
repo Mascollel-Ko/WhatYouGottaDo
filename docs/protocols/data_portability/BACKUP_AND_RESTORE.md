@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.5.0.5; stableKey-only format from v0.5.0.6; metadata preservation from v0.5.0.11; exact program sets from v0.5.0.12; typed role relations from v0.5.0.21; canonical authority from v0.5.0.22; self-contained metadata snapshot from v0.5.0.24; explicit overrides and selectable safe restore from v0.5.0.25; fail-closed blank stableKey import from v0.5.0.37 |
-| Last audited commit | b44088c2a32d7222d97e5a213a2efea02d250f10 |
+| Last audited commit | d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | 없음 |
 

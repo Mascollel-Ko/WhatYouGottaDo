@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.15; calendar presentation from v0.5.0.10 |
-| Last audited commit | c2f30971e12849fbc18b7cb3ab97e12499707e23 |
+| Last audited commit | d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd |
 | Evidence profile | USER_APPROVED_POLICY, PRODUCT_POLICY |
 | Supersedes | — |
 

@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 8a81fbdf6955713d4f15f3c04650edf1fcc3e817 |
+| Last audited commit | d7ee94a5e35fbd76a4d756245aa48f62dd29ccfd |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
