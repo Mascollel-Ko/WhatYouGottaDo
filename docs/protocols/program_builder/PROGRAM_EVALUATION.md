@@ -35,11 +35,11 @@
 
 ## 6. 입력 데이터
 
-설계상 생성된 skeleton, 주간·일별 구성과 issue context를 입력으로 받습니다. 현재 공개 `ProgramAutoBuilder`는 이 입력을 평가 경로에 전달하지 않습니다.
+설계상 생성된 skeleton, 주간·일별 구성과 issue context를 입력으로 받습니다. 현재 공개 `LegacyAutoProgramBuilder`는 이 입력을 평가 경로에 전달하지 않습니다.
 
 ## 7. 계산 또는 분류 계약
 
-현재 `ProgramAutoBuilder`는 고정 사용자 요약만 반환합니다. 삭제된 advanced evaluation score, issue, and repair model을 사용자에게 현재 실행되는 계약으로 주장하지 않습니다.
+현재 `LegacyAutoProgramBuilder`는 고정 사용자 요약만 반환합니다. 삭제된 advanced evaluation score, issue, and repair model을 사용자에게 현재 실행되는 계약으로 주장하지 않습니다.
 
 평가 또는 fatigue/readiness 결과는 저장 프로그램 적용의 입력이 아닙니다.
 프로그램 적용은 저장된 운동과 set을 그대로 materialize하며, 평가 결과가
@@ -74,7 +74,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`이며 evaluation/repair model을 포함하지 않습니다.
+- 공개 runtime은 `LegacyAutoGenerationService → LegacyAutoProgramBuilder`이며 evaluation/repair model을 포함하지 않습니다.
 - 공개 optimization summary는 평가 결과가 아닌 고정 사용자 문구입니다.
 - 저장 프로그램 적용은 평가/repair 경로와 분리된 exact materialization입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.

@@ -7,7 +7,7 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; exact stableKey candidate authority from v0.5.0.35 |
-| Last audited commit | ce93b32 |
+| Last audited commit | f1c993929a2a0712c2cab899264f113af6d7d050 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
@@ -16,6 +16,18 @@
 ## 1. 일반 사용자용 요약
 
 현재 공개 builder는 복잡한 평가 점수보다 후보의 exercise usage, group usage와 rule table 순서를 결정론적으로 비교합니다.
+
+### Frozen Legacy ownership
+
+이 문서의 hard-coded 선택 규칙은 **Legacy Auto Skeleton V1** 소유입니다.
+동결 기준은 `f5cc0ac7e0ba58cf21be81ec83e90d1c619921f9`이며
+`data/program/legacy/`로 package/type만 기계적으로 분리했습니다.
+후보 수 59, exact stableKey, comparator 순서, selected-main 중복 예외와 처방은 그대로입니다.
+full 360-case historical golden이 모든 지원 입력을 검사합니다.
+
+Record-Based는 이 후보/선택/배치/처방표를 호출하지 않습니다. 기존에 참조하던 reviewed
+배드민턴 관계/처방은 Record-Based-owned snapshot으로 옮겼으며 별도 baseline parity가 결과 보존을 검사합니다.
+Ponytail 및 유사도 기반 대체는 폐기·금지합니다. No-History V2 후보 설계는 이 작업의 범위가 아닙니다.
 
 ## 2. 목적
 
@@ -41,8 +53,8 @@
 
 선택 comparator는 exercise 사용 횟수 오름차순, group 사용 횟수 오름차순, table order 순입니다. exact stableKey와 narrow selected-main rule을 사용하며 삭제된 advanced scoring/reranking 설계를 공개 runtime이라고 설명하지 않습니다.
 
-Candidate eligibility is not a score. `ProgramCandidateAuthority` is a typed,
-read-only projection of the exact stableKeys declared by `ProgramRuleTables`.
+Candidate eligibility is not a score. `LegacyAutoCandidateAuthority` is a typed,
+read-only projection of the exact stableKeys declared by `LegacyAutoRuleTables`.
 Only those keys can enter public selection. Metadata, role, movement, core,
 and display-name classification cannot grant admission.
 Adding a future candidate therefore requires an explicit rule-table change.
@@ -85,11 +97,11 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt)
 
 ## 17. 검증 테스트
 

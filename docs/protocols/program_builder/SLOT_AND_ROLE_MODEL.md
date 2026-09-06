@@ -35,7 +35,7 @@
 
 ## 6. 입력 데이터
 
-정규화된 주당 운동일, 하루 시간, 배드민턴 비율, active exercise 목록과 `ProgramRuleTables`의 role 후보를 사용합니다.
+정규화된 주당 운동일, 하루 시간, 배드민턴 비율, active exercise 목록과 `LegacyAutoRuleTables`의 role 후보를 사용합니다.
 
 ## 7. 계산 또는 분류 계약
 
@@ -67,7 +67,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 14. 알려진 한계
 
-- 공개 runtime은 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder → ProgramSlotAllocator`입니다.
+- 공개 runtime은 `LegacyAutoGenerationService → LegacyAutoProgramBuilder → LegacyAutoSlotAllocator`입니다.
 - self-entered 기록과 metadata 품질에 의존하며 결과는 진단 또는 조직 손상량이 아닙니다.
 
 ## 15. 현재 구현 상태
@@ -79,11 +79,11 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoSlotAllocator.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoSlotAllocator.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt)
 - [`app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt)
 
 ## 17. 검증 테스트
@@ -117,7 +117,7 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
   intrinsic TrainingRole remains absent pending independent review.
 - Room schema 27 stores the two concepts in separate normalized relation tables.
   The legacy mixed `Exercise.trainingRole` column is removed.
-- The public `ProgramAutoBuilder` and `ProgramSlotAllocator` use the current
+- The public `LegacyAutoProgramBuilder` and `LegacyAutoSlotAllocator` use the current
   exact rule-table contract. The disconnected advanced compatibility path was
   removed in v0.5.0.37.
 

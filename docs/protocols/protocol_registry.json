@@ -1374,7 +1374,7 @@
       ],
       "canonicalDocument": "program_builder/PROGRAM_BUILDER_OVERVIEW.md",
       "implementedFromAppVersion": "v0.4.2.0; independent record-based builder from v0.5.1.4; v0.14.0 execution layer from 2026-09-06",
-      "lastAuditedCommit": "17467a5ab18bc3f54f94e0c11afe67dfb2e0ac1e",
+      "lastAuditedCommit": "f1c993929a2a0712c2cab899264f113af6d7d050",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionModels.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionDraft.kt",
@@ -1382,9 +1382,9 @@
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramProgressionMigration.kt",
         "app/src/main/java/com/training/trackplanner/ProgramProgressionUi.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt",
@@ -1401,9 +1401,9 @@
         "app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/ExecutionAllocationPlanner.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/PerformancePrescriptionResolver.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoExerciseSpec.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt",
@@ -1412,7 +1412,11 @@
         "app/src/main/java/com/training/trackplanner/PlanScreen.kt",
         "app/src/main/java/com/training/trackplanner/PlanGeneratedPreview.kt",
         "app/src/main/java/com/training/trackplanner/RecordCalendarScreen.kt",
-        "app/src/main/java/com/training/trackplanner/PlanProgramSections.kt"
+        "app/src/main/java/com/training/trackplanner/PlanProgramSections.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoModels.kt",
+        "app/src/main/java/com/training/trackplanner/data/LegacyAutoPersistenceAdapter.kt",
+        "app/src/main/java/com/training/trackplanner/data/personalized/RecordBasedReviewedPolicy.kt",
+        "app/src/main/java/com/training/trackplanner/LegacyAutoPreview.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramProgressionEngineTest.kt",
@@ -1437,7 +1441,11 @@
         "app/src/test/java/com/training/trackplanner/ProgramUserNoticePresentationTest.kt",
         "app/src/test/java/com/training/trackplanner/MetadataPresentationUiTest.kt",
         "app/src/test/java/com/training/trackplanner/data/RecordRangeProgramServiceTest.kt",
-        "app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt"
+        "app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyAutoFrozenParityTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyAutoPersistenceTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/PlannerIsolationArchitectureTest.kt",
+        "app/src/test/java/com/training/trackplanner/ProgramPreviewLayoutMatrixTest.kt"
       ],
       "authorityAssets": [
         "app/src/main/assets/training_settings_seed.csv",
@@ -1449,7 +1457,10 @@
         "tools/planner_reference/v0131_run_cases.py",
         "tools/planner_reference/fixtures/v0131_run_golden.json",
         "tools/planner_reference/fixtures/v013_training_state_golden.json",
-        "tools/planner_reference/fixtures/v011_exposure_representation_golden.json"
+        "tools/planner_reference/fixtures/v011_exposure_representation_golden.json",
+        "app/src/test/resources/program-authority/legacy-frozen/legacy_f5cc0ac_360.csv",
+        "app/src/test/resources/program-authority/legacy-frozen/exercises.tsv",
+        "app/src/test/resources/program-authority/record_based_a53f419_29.csv"
       ],
       "supportingDocuments": [
         "docs/program_execution_progression_spec_ko.md",
@@ -1460,12 +1471,14 @@
         "docs/v0.5.0.12_release_notes.md",
         "docs/v0.5.0.13_release_notes.md",
         "docs/v0.5.0.14_release_notes.md",
-        "docs/v0.5.0.35_release_notes.md"
+        "docs/v0.5.0.35_release_notes.md",
+        "tools/legacy_auto/README.md"
       ],
       "knownGaps": [
         "기존 자동 생성기는 history, today, resolved metadata catalogue와 fatigue 입력을 사용하지 않으며 기록 기반 경로와 독립적으로 유지됩니다.",
         "기록 기반 결과는 self-entered 기록과 canonical metadata 품질에 의존하는 제품 휴리스틱이며 의료 판단이 아닙니다.",
-        "노출 representation은 상대 분포 신호이며 생리적 충분성, 최적 주간 세트 수 또는 아홉 Objective V2의 동일 목표 비중을 정의하지 않습니다."
+        "노출 representation은 상대 분포 신호이며 생리적 충분성, 최적 주간 세트 수 또는 아홉 Objective V2의 동일 목표 비중을 정의하지 않습니다.",
+        "Record-Based sparse two-week persona retains active-but-empty week 3 (days 1,2,4,6); audited but intentionally not repaired by Legacy isolation."
       ],
       "supersedes": [],
       "publicSummaryAvailable": true
@@ -1486,11 +1499,11 @@
       "implementedFromAppVersion": "v0.4.2.0; typed role split from v0.5.0.21; workbook authority from v0.5.0.22",
       "lastAuditedCommit": "233d0fe84e85a9a4e44f9b9ed4c88a6dc77ee3ec",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramSlotAllocator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoSlotAllocator.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt",
         "app/src/main/java/com/training/trackplanner/data/ExerciseRoleRelations.kt",
         "app/src/main/java/com/training/trackplanner/data/TrainingRoleSplitMigration.kt",
         "app/src/main/java/com/training/trackplanner/data/CanonicalExerciseMetadataRepository.kt"
@@ -1530,13 +1543,13 @@
       ],
       "canonicalDocument": "program_builder/EXERCISE_SELECTION_AND_SCORING.md",
       "implementedFromAppVersion": "v0.4.2.0; exact stableKey candidate authority from v0.5.0.35",
-      "lastAuditedCommit": "ce93b32",
+      "lastAuditedCommit": "f1c993929a2a0712c2cab899264f113af6d7d050",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt"
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
@@ -1572,9 +1585,9 @@
       "implementedFromAppVersion": "v0.4.2.0",
       "lastAuditedCommit": "06b65f6cdb243780e97a7464f659219b50010c7c",
       "sourceAnchors": [
-        "app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt",
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt",
         "app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt",
-        "app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt"
+        "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/data/ProgramAutoBuilderTest.kt",
@@ -1992,7 +2005,7 @@
       "familyId": "UI_PRESENTATION",
       "titleKo": "한국어/영어 localization 계약",
       "titleEn": "Korean and English Localization",
-      "currentVersion": "1.3.0",
+      "currentVersion": "1.4.0",
       "status": "ACTIVE",
       "implementationStatus": "IMPLEMENTED",
       "evidenceProfile": [
@@ -2001,7 +2014,7 @@
       ],
       "canonicalDocument": "presentation/LOCALIZATION.md",
       "implementedFromAppVersion": "v0.5.0.27; correctness hardening from v0.5.0.28; runtime composition hardening from v0.5.0.30; persistent-strength identity hardening from v0.5.1",
-      "lastAuditedCommit": "a56d636",
+      "lastAuditedCommit": "f1c993929a2a0712c2cab899264f113af6d7d050",
       "sourceAnchors": [
         "app/src/main/java/com/training/trackplanner/localization/AppLanguageRegistry.kt",
         "app/src/main/java/com/training/trackplanner/localization/LocalizedPresentation.kt",
@@ -2012,7 +2025,8 @@
         "app/src/main/res/values/localization_generated.xml",
         "app/src/main/res/values-en/localization_generated.xml",
         "tools/localization/localization_authority.py",
-        "tools/localization/localization_audit.py"
+        "tools/localization/localization_audit.py",
+        "app/src/main/java/com/training/trackplanner/ProgramTemporalSelectors.kt"
       ],
       "testAnchors": [
         "app/src/test/java/com/training/trackplanner/localization/AppLanguageRegistryTest.kt",
@@ -2021,7 +2035,10 @@
         "app/src/test/java/com/training/trackplanner/AnalysisPersistentStrengthPerformanceUiTest.kt",
         "app/src/test/java/com/training/trackplanner/AnalysisStrengthChartSpecTest.kt",
         "tools/localization/tests/test_localization_authority.py",
-        "tools/localization/tests/test_localization_audit.py"
+        "tools/localization/tests/test_localization_audit.py",
+        "app/src/test/java/com/training/trackplanner/ProgramPreviewLayoutMatrixTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/ProgramPreviewDeviceLayoutTest.kt",
+        "app/src/test/java/com/training/trackplanner/ProgramCreationWeekFieldLayoutTest.kt"
       ],
       "authorityAssets": [
         "docs/metadata_authority/WhatYouGottaDo_KO_EN_Localization_Authority_v2_FULL_APPROVED_2026-08-09.xlsx",

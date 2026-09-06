@@ -79,9 +79,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 
 ## 16. 구현 위치
 
-- [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt)
 
 ## 17. 검증 테스트
 

@@ -7,13 +7,56 @@
 | Status | ACTIVE |
 | Implementation status | IMPLEMENTED |
 | Implemented from app version | v0.4.2.0; independent record-based builder from v0.5.1.4; execution layer v0.14.0 from 2026-09-06 |
-| Last audited commit | 17467a5ab18bc3f54f94e0c11afe67dfb2e0ac1e |
+| Last audited commit | f1c993929a2a0712c2cab899264f113af6d7d050 |
 | Evidence profile | PRODUCT_POLICY, ENGINEERING_HEURISTIC |
 | Supersedes | — |
 
 `1.0.0`은 현재 동작을 처음으로 관리되는 문서 계약으로 고정한다는 뜻입니다. 과학적 완전성, 임상 타당성 또는 예측 정확도를 뜻하지 않습니다.
 
 ## 1. 일반 사용자용 요약
+
+### Legacy Auto Skeleton V1 isolation (2026-09-06)
+
+Legacy Auto Skeleton V1의 동결 source/behavior 기준은
+`f5cc0ac7e0ba58cf21be81ec83e90d1c619921f9`입니다. 시작 HEAD는
+`a53f419ed723945d30016419453afb292ac3fe44`이며 전체 앱을 과거로 되돌리지 않습니다.
+Legacy와 Record-Based는 서로 독립된 제품입니다. No-History Planner V2는 별도 미래 작업이며 구현하지 않습니다.
+Ponytail 원칙은 폐기·금지하며, 유사도 추정이나 일반화된 fallback으로 명시 규칙을 대체하지 않습니다.
+
+- `generateLegacyAutoSkeleton → LegacyAutoGenerationService → LegacyAutoProgramBuilder`는
+  `data/program/legacy/`의 동결 규칙/후보/요일/배치/강도와 전용
+  `LegacyAutoRequest / LegacyAutoSkeleton / LegacyAutoSkeletonItem`만 사용합니다.
+- `legacyAutoDraft / LegacyAutoSkeletonPreview`는 Record-Based의
+  `personalizedDraft / ProgramSkeletonPreview`와 별도 상태·타입·편집 helper를 사용합니다.
+  Legacy 결과에는 개인화 결정, 훈련 상태/갭/배정 trace, progression style/variant/anchor/binding/session 필드가 없습니다.
+- Legacy builder 반환이 frozen-output finalization 경계입니다. 360-case historical parity는 이 반환값을 검사합니다.
+  이후 `LegacyAutoPersistenceAdapter → saveLegacyAutoProgram`이 정규화된 request와 exact item/set rows를 저장합니다.
+  `progression.author(programId)`는 모든 행이 materialize된 **뒤** 실행하며 Legacy 결과를 입력받거나 수정하지 않습니다.
+  저장 후의 공통 실행·진행 기능과 기존 저장 프로그램 편집 의미는 유지합니다.
+- Record-Based의 현재 요일 규칙과 reviewed 배드민턴 16-key 관계/처방은
+  `personalized/RecordBasedReviewedPolicy`가 독립 소유합니다. 기존 값·순서·범위 clamp를 그대로 옮겼으며
+  다른 planner의 후보표, intensity resolver 또는 day selector를 호출하지 않습니다.
+  `GeneratedProgramSkeleton`은 이제 Record-Based 및 저장/수동 편집 초안의 기존 계약이며 Legacy 결과가 아닙니다.
+- 공유 가능한 것은 exercise identity/DAO, 단순 immutable set row와 결과 알림, UI의 typed temporal 렌더러,
+  저장된 프로그램의 실행 인프라입니다. 공유 planner helper/flags 기반 planning pipeline은 없습니다.
+
+동결 커밋의 실제 코드로 별도 worktree에서 만든 golden은 3..8주 × 3..7일 × 30/45/60분 ×
+0/.30/.50/.70의 **360개 전체 조합**을 보호합니다. 정규화 request와 모든 result/item/week-plan 필드를
+fingerprint하며 자동 생성의 `activeDays == materializedDays`를 매 주 검사합니다.
+수동 편집으로 남긴 빈 요일에는 이 자동 생성 invariant를 적용하거나 자동 수리하지 않습니다.
+실패 시 golden 자동 갱신은 금지합니다. 상세 provenance/재현 절차는
+[`tools/legacy_auto/README.md`](../../../tools/legacy_auto/README.md)에 있습니다.
+
+시작 커밋의 Record-Based 29-persona 전체 결과/결정 트리 fingerprint도 보존합니다
+(random decision UUID와 생성 wall-clock만 정규화). `22_sparse_two_week_horizon`은 기존에
+2주 결과에 빈 3주차 일정 `3:1|3:2|3:4|3:6`이 남습니다. 이 알고리듬 문제는 발견·고정만 하며 이번 작업에서 수정하지 않습니다.
+
+주차/요일 표시는 historical generic 문자열 번역으로 복구하지 않습니다. typed temporal presentation은 필수입니다.
+`DayOfWeek.of(day) → localizedWeekday`와 전용 week resource, adaptive FlowRow를 사용합니다.
+KO/EN × 320/360/411dp × font 1.0/1.3 × 3..8주 × 3..7일 × Legacy/Record-Based/manual-empty의
+전체 preview matrix가 실제 selector glyph bounds·단일 행·탭 크기를 검증합니다.
+7/8주 및 6/7일 Record-Based UI fixture는 editor 수용 범위 검사이며 알고리듬의 생성 범위를 확장하지 않습니다.
+
 
 ### v0.14.1 수동 진행 세션 교정 (2026-09-06)
 
@@ -103,14 +146,14 @@ Room 30→31은 기존 기록을 변경하지 않고 여섯 관계형 테이블�
 
 ## 7. 계산 또는 분류 계약
 
-공개 경로는 `ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder`입니다. 현재 UI 입력은 이름, 기간, 주당 운동일, 하루 시간, 배드민턴 비율이며 builder는 goal, equipment, 제외어, sport-strength, periodization과 preferred/excluded stable key를 현재 기본값으로 정규화합니다.
+공개 경로는 `LegacyAutoGenerationService → LegacyAutoProgramBuilder`입니다. 현재 UI 입력은 이름, 기간, 주당 운동일, 하루 시간, 배드민턴 비율이며 builder는 goal, equipment, 제외어, sport-strength, periodization과 preferred/excluded stable key를 현재 기본값으로 정규화합니다.
 
-기록 기반 경로는 `TrainingViewModel → TrainingRepository → PersonalizedProgramPlanningService`이며 기존 `ProgramAutoBuilder`를 호출하거나 수정하지 않습니다. `PlanningHistorySnapshotBuilder`가 시점 고정 snapshot을 만들고, `PlannerActivityDomainResolver`가 typed role/capability, canonical activity kind, progress metric과 runtime metadata로 저항운동·구조화 배드민턴 드릴·athletic-performance drill·일반 코트 세션을 분리합니다. `MovementExposureRepresentationAnalyzer`와 `BadmintonObjectiveRepresentationAnalyzer`가 관찰된 분포를 계산하고 `AdaptationGapAnalyzer`는 그 상태를 기존 우선순위 사다리로 변환합니다. 운동 선택은 별도의 reviewed stableKey authority에서 수행합니다. `PersonalizedProgramBuilder`는 주간 구조와 set별 처방을 materialize하고 기존 editor/save/apply 형식으로 변환합니다. projection repair가 필요하면 기존 선택 priority로 보존 항목을 결정한 뒤, 반환할 최종 item으로 실제 세트 수·drill bout·fingerprint를 다시 확정합니다.
+기록 기반 경로는 `TrainingViewModel → TrainingRepository → PersonalizedProgramPlanningService`이며 기존 `LegacyAutoProgramBuilder`를 호출하거나 수정하지 않습니다. `PlanningHistorySnapshotBuilder`가 시점 고정 snapshot을 만들고, `PlannerActivityDomainResolver`가 typed role/capability, canonical activity kind, progress metric과 runtime metadata로 저항운동·구조화 배드민턴 드릴·athletic-performance drill·일반 코트 세션을 분리합니다. `MovementExposureRepresentationAnalyzer`와 `BadmintonObjectiveRepresentationAnalyzer`가 관찰된 분포를 계산하고 `AdaptationGapAnalyzer`는 그 상태를 기존 우선순위 사다리로 변환합니다. 운동 선택은 별도의 reviewed stableKey authority에서 수행합니다. `PersonalizedProgramBuilder`는 주간 구조와 set별 처방을 materialize하고 기존 editor/save/apply 형식으로 변환합니다. projection repair가 필요하면 기존 선택 priority로 보존 항목을 결정한 뒤, 반환할 최종 item으로 실제 세트 수·drill bout·fingerprint를 다시 확정합니다.
 
 핵심 선호 세 질문은 매번 먼저 표시합니다. 용량 해석에 영향을 줄 수 있는 미확인 저훈련 주를 최근순으로 최대 3개 골라 날짜가 있는 원인 질문을 추가합니다. 빈도는 향후 일정 견고성만 소유하며 90일 경과 또는 최근 8주 확정 외부 중단 2회와 NEVER/RARE 답변의 모순 때 다시 묻습니다. `preparePersonalizedProgram`이 질문을 한 번에 반환하고, 사용자가 모두 답한 뒤 `generatePreparedPersonalizedProgram`이 고정된 cutoff와 명시 조건으로 중단 없이 생성합니다. 기억나지 않음/다른 이유/의도적 디로드는 유효한 주별 답변이며 피로 실패로 바꾸지 않습니다. 답변은 관찰 사실로 취급하지 않고 명시 사용자 맥락으로 저장합니다.
 
 Program candidate admission is exact stableKey authority. The typed
-`ProgramCandidateAuthority` view is derived directly from `ProgramRuleTables`;
+`LegacyAutoCandidateAuthority` view is derived directly from `LegacyAutoRuleTables`;
 names, metadata labels, core tokens, or similarity cannot add an exercise.
 The approved set remains 59 keys. The disconnected advanced builder is guarded
 against reintroduction and was removed after confirming zero production
@@ -251,9 +294,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [TrainingStateRouting.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateRouting.kt)
 - [TrainingStateJson.kt](../../../app/src/main/java/com/training/trackplanner/data/personalized/TrainingStateJson.kt)
 
-- [`app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramGenerationService.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoGenerationService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSkeletonGenerator.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramAutoBuilder.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoProgramBuilder.kt)
 - [`app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt`](../../../app/src/main/java/com/training/trackplanner/data/PersonalizedProgramPlanningService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt`](../../../app/src/main/java/com/training/trackplanner/data/TrainingRepository.kt)
 - [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedPlanningModels.kt)
@@ -262,9 +305,9 @@ Evidence profile은 `PRODUCT_POLICY, ENGINEERING_HEURISTIC`입니다. 이는 sou
 - [`app/src/main/java/com/training/trackplanner/data/personalized/ExposureRepresentation.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/ExposureRepresentation.kt)
 - [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedDecisionComponents.kt)
 - [`app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt`](../../../app/src/main/java/com/training/trackplanner/data/personalized/PersonalizedProgramBuilder.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramRuleTables.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt)
-- [`app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramExerciseSpec.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoRuleTables.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt)
+- [`app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoExerciseSpec.kt`](../../../app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoExerciseSpec.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramOptimizationTrace.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramPlanService.kt)
 - [`app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt`](../../../app/src/main/java/com/training/trackplanner/data/ProgramSetPrescription.kt)

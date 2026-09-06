@@ -1,5 +1,76 @@
 # Codex Worklog
 
+## 2026-09-06 — Frozen Legacy isolation and typed Program editor
+
+- Audited implementation commit: `f1c993929a2a0712c2cab899264f113af6d7d050`; the following docs-only commit records
+  canonical anchors, verification and audit provenance without changing runtime behavior.
+- Starting HEAD = fetched origin/main: `a53f419ed723945d30016419453afb292ac3fe44`; clean main, latest 20 commits inspected, no reset.
+- Frozen reference: `f5cc0ac7e0ba58cf21be81ec83e90d1c619921f9`. Ponytail was explicitly forbidden and was not used; no subagents were used.
+- Preflight confirmed all eight requested files byte-identical in HEAD and frozen Git objects:
+
+| File | Identical Git blob |
+|---|---|
+| ProgramAutoBuilder.kt | 9c5bb993a1423bcc50f7d85c901fe6d95c7b20fb |
+| ProgramRuleTables.kt | 000a439fdb86a586ff47666c1e6c3d2253253007 |
+| ProgramSlotAllocator.kt | bf993992f52efb7e1720e9d5530827b89beabdc3 |
+| ProgramDaySelector.kt | 8e36206048c10a22dcee98df20ffb70b38b94cf1 |
+| ProgramDraftModel.kt | 63845ecaf2885c5df8a1441532d6d7c67ea16b11 |
+| ProgramIntensityResolver.kt | d2abf649acd8e9ed0135b129782b850c5e870871 |
+| ProgramExerciseSpec.kt | 383f28a5c2882c8baf153b58f3db540b70f3f663 |
+| ProgramGenerationService.kt | 1e1723dcec57297b70870aa911f134ba6874dc1d |
+
+- Pre-edit Legacy route: button → TrainingViewModel.generateProgramSkeleton → TrainingRepository →
+  ProgramGenerationService → ProgramSkeletonGenerator → ProgramAutoBuilder.
+  Record-Based: button → prepare/questions/generatePreparedPersonalizedProgram →
+  PersonalizedProgramPlanningService → PersonalizedProgramBuilder.
+  Shared components were GeneratedProgramSkeleton/ProgramSkeletonItem, PlanScreen.skeleton,
+  withResolvedWeekDaySchedule, ProgramSkeletonPreview/ProgramDraftEditTab, reconcileProgression,
+  saveGeneratedProgram and ProgramPlanService. Record-Based also consumed the old defaultSchedule,
+  badmintonAccessories exact table and badminton intensity resolver.
+- The historical/current model differences were only the personalized decision import/field and
+  progression style/variant/anchor/role/binding/session fields. Historical models, not those additions,
+  were copied into Legacy. Ten files (requested eight plus models and candidate authority) were
+  mechanically isolated; read-only source audit verifies package/type/import changes and the
+  sole DAO-service adaptation (direct invocation of the same builder, dropping unused history/date/fatigue arguments).
+- Dedicated Legacy request/result/state/editor and exact persistence adapter finalize before
+  generic saved-program progression authoring. Build-progress UI now carries notices only.
+  Current manual/saved editor helpers remain unchanged. Record-Based owns its existing 16-key
+  reviewed performance policy and schedule independently; no new shared planner helper exists.
+- Historical worktree exported 360 goldens plus exact input TSV. All generated active days have
+  materialized items; current Legacy matches 360/360. Manual empty days remain allowed.
+  Another worktree at starting SHA exported 29 full Record-Based result trees; only random
+  decision UUID and generation wall-clock are normalized. Existing sparse two-week persona leaves
+  empty week-3 days 1/2/4/6; recorded, not repaired.
+- Did not restore historical localization (already ambiguous), modern execution/progression,
+  Record-Based algorithms or other app code. No-History V2 remains future work; Ponytail is retired/forbidden.
+- Bounded presentation audit: typed DayOfWeek, dedicated week/day-count/minute resources and
+  content-sized FlowRow controls; units/set summaries bypass retranslation, transition exercise
+  identity uses stableKey localization. This creation/draft surface has no month/date input.
+  Global atomic translations and other-app date presentation remain outside scope.
+- Android 0.5.1.4/501004, planner runtime, Room 31, backup contracts and tags unchanged.
+  Localization protocol only advances 1.3.0→1.4.0 because protocol change policy C requires a
+  behavioral presentation update; structural Legacy protocol versions stay unchanged.
+- Final verification: `testDebugUnitTest` SUCCESS, 254 suites / 1,452 tests / 0 failures / 0 errors /
+  3 existing conditional private-backup skips (1,449 executed). Both Kotlin compilation targets and
+  `assembleDebug` / `assembleDebugAndroidTest` passed. No source edits occurred during the final build.
+- Frozen source audit 10/10; full historical parity 360/360; Record-Based baseline parity 29/29;
+  four architecture guards and real database Legacy save/hydrate/resave/apply test passed.
+- Full preview matrix passed all 1,080 cases in unit tests and all 1,080 cases on the owned
+  emulator-5556 (native instrumentation: one test, 104.697 seconds). Korean/English, 320/360/411dp,
+  font 1.0/1.3, 3–8 weeks, 3–7 days, Legacy/Record-Based/manual-empty all include actual screen
+  and card insets. Creation duration field/popup additionally passed 72 combinations.
+  Thirty-six final screenshots were pulled to ignored build/program-preview-isolation-final;
+  Korean and English 320dp/1.3 captures were visually inspected. No physical-device or remote CI claim.
+- Localization Python tests 10/10, deterministic generation/audit, zero reported English leaks and
+  placeholder violations; protocol validator 8 families / 34 protocols; `git diff --check` all passed.
+- Baseline diff exclusion check confirms no production changes to analysis, canonical metadata,
+  Room schemas, backup/restore, progression engine/service/draft, record mutation or calendar services.
+  Existing regression tests ran in the full suite. No numerical formulas, identity authority or
+  progression suggestion/resolution rules changed. Program date application remains on the existing path.
+- Final boundary answers: Legacy cannot reach personalized planning, TrainingState, AdaptationGap,
+  ExecutionAllocation or reconcileProgression before finalization; no historical case changed;
+  Ponytail was not used directly or indirectly. Generic progression authoring occurs only after save.
+
 ## 2026-09-06 - Manual progression-session correction v0.14.1
 
 - Audited implementation commit: `17467a5ab18bc3f54f94e0c11afe67dfb2e0ac1e`. The subsequent docs-only commit records audit provenance without changing runtime behavior.
