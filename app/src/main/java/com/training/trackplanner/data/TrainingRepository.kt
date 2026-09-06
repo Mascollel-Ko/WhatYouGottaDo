@@ -1,5 +1,9 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.data.program.legacy.LegacyAutoGenerationService
+import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
+import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.net.Uri
@@ -309,7 +313,7 @@ class TrainingRepository(
         prescriptionNoteFormatter = ::noteFromPrescription,
         builtInProgramKeys = { SeedData.programs(context).mapTo(mutableSetOf(), ProgramSeed::key) }
     )
-    private val programGenerationService = ProgramGenerationService(
+    private val legacyAutoGenerationService = LegacyAutoGenerationService(
         exerciseDao = exerciseDao
     )
     private val programProgressionService = ProgramProgressionService(db) {
@@ -825,9 +829,9 @@ class TrainingRepository(
         programPlanService.createProgram()
     }
 
-    suspend fun generateProgramSkeleton(request: ProgramSkeletonRequest): GeneratedProgramSkeleton =
+    suspend fun generateLegacyAutoSkeleton(request: LegacyAutoRequest): LegacyAutoSkeleton =
         withContext(Dispatchers.IO) {
-            programGenerationService.generateProgramSkeleton(request)
+            legacyAutoGenerationService.generateProgramSkeleton(request)
         }
 
     suspend fun generatePersonalizedProgram(
@@ -868,6 +872,9 @@ class TrainingRepository(
             metadata = exerciseMetadataEditorService.resolvedRuntimeMetadataByExerciseStableKey()
         )
     }
+
+    suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton): Long =
+        withContext(Dispatchers.IO) { programPlanService.saveLegacyAutoProgram(existingProgramId, skeleton) }
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,

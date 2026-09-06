@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -21,7 +22,7 @@ internal fun <T> ProgramDropdown(
     label: String,
     selected: T,
     options: List<T>,
-    optionLabel: (T) -> String,
+    optionLabel: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier.fillMaxWidth(),
     enabled: Boolean = true
@@ -50,7 +51,7 @@ internal fun <T> ProgramDropdown(
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(optionLabel(option)) },
+                    text = { MaterialText(optionLabel(option)) },
                     onClick = {
                         onSelect(option)
                         expanded = false
@@ -74,7 +75,7 @@ internal fun ProgramNumberField(
         value = value,
         onValueChange = { if (it.isUnsignedInt()) onChange(it) },
         label = { Text(label) },
-        suffix = suffix?.let { { Text(it) } },
+        suffix = suffix?.let { { MaterialText(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         singleLine = true
     )
@@ -93,7 +94,7 @@ internal fun ProgramDecimalField(
         value = value,
         onValueChange = { if (isDecimalInput(it)) onChange(it) },
         label = { Text(label) },
-        suffix = suffix?.let { { Text(it) } },
+        suffix = suffix?.let { { MaterialText(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         singleLine = true
     )

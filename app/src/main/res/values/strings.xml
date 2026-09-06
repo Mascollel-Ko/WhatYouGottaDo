@@ -199,4 +199,12 @@
     <string name="progression_disconnected">연결하지 않음</string>
     <string name="progression_top_backoff">탑세트/백오프</string>
     <string name="progression_mixed_sets">혼합 세트</string>
+    <string name="program_week_number">%1$d주</string>
+    <string name="program_week_training_days">%1$d주차 운동 요일</string>
+    <string name="program_days_per_week">주 %1$d일</string>
+    <string name="program_minutes">%1$d분</string>
+    <string name="program_unit_seconds">초</string>
+    <string name="program_unit_kg">kg</string>
+    <string name="program_planning_summary">%1$d주 계획 · 주 %2$d일 · 신뢰도 %3$s</string>
+    <string name="program_anchor_transition_summary">%1$s: 관찰 %2$s · 다음 블록 %3$s · %4$s</string>
 </resources>

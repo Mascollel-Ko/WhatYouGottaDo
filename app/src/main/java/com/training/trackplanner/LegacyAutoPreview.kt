@@ -31,34 +31,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
-import com.training.trackplanner.data.GeneratedProgramSkeleton
-import com.training.trackplanner.data.ProgramSkeletonItem
+import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+import com.training.trackplanner.data.program.legacy.LegacyAutoSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
-import com.training.trackplanner.data.ProgramSetPrescriptionResolver
+import com.training.trackplanner.data.LegacyAutoSetRows
 import com.training.trackplanner.data.ExerciseMetadataAdapter
 import com.training.trackplanner.data.ProgressMetricRuntimeBehavior
 import com.training.trackplanner.data.RuntimeExerciseMetadata
 import com.training.trackplanner.data.RuntimeExerciseMetadataDefaults
-import com.training.trackplanner.data.deleteDraftItem
-import com.training.trackplanner.data.resolvedWeekDaySchedule
-import com.training.trackplanner.data.upsertDraftItem
-import com.training.trackplanner.data.withWeekDays
-import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
+import com.training.trackplanner.data.program.legacy.deleteDraftItem
+import com.training.trackplanner.data.program.legacy.resolvedWeekDaySchedule
+import com.training.trackplanner.data.program.legacy.upsertDraftItem
+import com.training.trackplanner.data.program.legacy.withWeekDays
 import com.training.trackplanner.localization.localizedExerciseName
 import com.training.trackplanner.localization.localizedUiText
 
 @Composable
-internal fun ProgramSkeletonPreview(
-    skeleton: GeneratedProgramSkeleton,
+internal fun LegacyAutoSkeletonPreview(
+    skeleton: LegacyAutoSkeleton,
     exercises: List<Exercise>,
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
-    progressionEligibleKeys: Set<String> = emptySet(),
-    onSkeletonChange: (GeneratedProgramSkeleton) -> Unit
+    onSkeletonChange: (LegacyAutoSkeleton) -> Unit
 ) {
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var selectedDay by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
-    var editingItem by remember { mutableStateOf<ProgramSkeletonItem?>(null) }
+    var editingItem by remember { mutableStateOf<LegacyAutoSkeletonItem?>(null) }
     var removeDayTarget by remember { mutableStateOf<Int?>(null) }
     val schedule = skeleton.resolvedWeekDaySchedule()
     val selectedDays = schedule[selectedWeek].orEmpty().sorted()
@@ -97,7 +95,7 @@ internal fun ProgramSkeletonPreview(
                 val metadata = metadataByExerciseId[exercise.stableKey] ?: RuntimeExerciseMetadataDefaults.forExercise(exercise)
                 val nextOrder = skeleton.items
                     .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
-                    .maxOfOrNull(ProgramSkeletonItem::orderIndex)
+                    .maxOfOrNull(LegacyAutoSkeletonItem::orderIndex)
                     ?.plus(1)
                     ?: 1
                 editingItem = draftItemForExercise(exercise, metadata, selectedWeek, selectedDay, nextOrder)
@@ -118,7 +116,6 @@ internal fun ProgramSkeletonPreview(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        skeleton.personalizedDecision?.let { PersonalizedDecisionSummary(it) }
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -130,7 +127,6 @@ internal fun ProgramSkeletonPreview(
             ) {
                 ProgramDraftEditTab(
                     skeleton = skeleton,
-                    progressionEligibleKeys = progressionEligibleKeys,
                     selectedWeek = selectedWeek,
                     selectedDay = selectedDay,
                     selectedDays = selectedDays,
@@ -152,7 +148,6 @@ internal fun ProgramSkeletonPreview(
                     },
                     onAddExercise = { showExercisePicker = true },
                     onEditItem = { editingItem = it },
-                    onProgressionChange = onSkeletonChange,
                     onDeleteItem = { item -> onSkeletonChange(skeleton.deleteDraftItem(item.localId)) }
                 )
             }
@@ -161,68 +156,8 @@ internal fun ProgramSkeletonPreview(
 }
 
 @Composable
-private fun PersonalizedDecisionSummary(decision: PersonalizedPlanningDecision) {
-    fun label(value: String): String = when (value) {
-        "HIGH" -> "높음"
-        "MODERATE" -> "보통"
-        "LOW" -> "낮음"
-        "HYPERTROPHY_DOMINANT" -> "근비대 중심"
-        "STRENGTH_DOMINANT" -> "근력 중심"
-        "MIXED_STRENGTH_HYPERTROPHY" -> "근력·근비대 혼합"
-        "GENERAL_MIXED" -> "종합 혼합"
-        "UNKNOWN", "UNRESOLVED" -> "판단 보류"
-        "STRENGTH_SUPPORT" -> "근력 향상"
-        "HYPERTROPHY", "HYPERTROPHY_SUPPORT" -> "근비대"
-        "BADMINTON_SUPPORT" -> "배드민턴 보조"
-        "TOP_SET_HYPERTROPHY" -> "탑세트 근비대"
-        "TOP_SET_BACKOFF" -> "탑세트·백오프"
-        "STRAIGHT_5X5" -> "동일중량 5×5"
-        "STRAIGHT_STRENGTH_SETS" -> "동일중량 근력 세트"
-        "MADCOW_LIKE_HLM_RAMPING" -> "Madcow형 H/L/M 램핑"
-        "HEAVY_LIGHT_MEDIUM" -> "Heavy/Light/Medium"
-        "DUP_LIKE_UNDULATING" -> "주간 파동형"
-        "PRESERVE" -> "구성 유지"
-        "PRESERVE_CORE_REBALANCE" -> "핵심 유지·재배분"
-        "PARTIAL_CONTINUITY" -> "부분 연속성"
-        "ROTATE_EMPHASIS" -> "강조점 전환"
-        "MAINTAIN" -> "용량 유지"
-        "REDUCE_SLIGHTLY" -> "용량 소폭 감소"
-        "REDUCE_MODERATELY" -> "용량 중간 감소"
-        else -> value.replace('_', ' ')
-    }
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            MaterialText(localizedUiText("기록 기반 계획 요약"), fontWeight = FontWeight.Bold)
-            MaterialText(stringResource(R.string.program_planning_summary, decision.planningHorizonWeeks, decision.weeklyFrequency, localizedUiText(label(decision.confidence))))
-            MaterialText(localizedUiText("현재 경향 ${label(decision.observedTrainingBehavior)} · 주목표 ${label(decision.primaryAdaptation)}"))
-            if (decision.strengthStyle != "NONE") MaterialText(localizedUiText("근력 구성 ${label(decision.strengthStyle)}"))
-            decision.anchorTransitions.take(4).forEach { transition ->
-                MaterialText(
-                    stringResource(R.string.program_anchor_transition_summary, localizedExerciseName(transition.stableKey, transition.stableKey), localizedUiText(label(transition.observedStyle.name)), localizedUiText(label(transition.structureTreatment.name)), localizedUiText(label(transition.doseTreatment.name))),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                val features = (transition.preservedFeatures.map { "유지 $it" } + transition.moderatedFeatures.map { "완화 $it" }).take(4)
-                if (features.isNotEmpty()) MaterialText(localizedUiText(features.joinToString(" · ")), style = MaterialTheme.typography.bodySmall)
-            }
-            decision.planningBudget?.let { budget ->
-                MaterialText(
-                    localizedUiText("주간 저항 세트 ${budget.baselineResistanceSets.toInt()} → ${budget.plannedResistanceSets}/${budget.targetResistanceSets} · 구조화 배드민턴 ${budget.plannedStructuredBadmintonBouts}/${budget.targetStructuredBadmintonBouts}회"),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            if ("MINIMAL_CAPACITY_EXPANSION" in decision.reasonCodes) {
-                MaterialText(localizedUiText("높은 우선순위 보완 운동의 최소 배정을 위해 주간 용량을 제한적으로 확장했습니다."), style = MaterialTheme.typography.bodySmall)
-            }
-            if (decision.secondaryTargets.isNotEmpty()) MaterialText(localizedUiText("보완 대상 ${decision.secondaryTargets.joinToString { label(it) }}"))
-            decision.reasons.take(5).forEach { MaterialText("• ${localizedUiText(it)}", style = MaterialTheme.typography.bodySmall) }
-            decision.constraints.take(3).forEach { MaterialText(localizedUiText("주의: $it"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-    }
-}
-@Composable
 private fun ProgramDraftEditTab(
-    skeleton: GeneratedProgramSkeleton,
-    progressionEligibleKeys: Set<String>,
+    skeleton: LegacyAutoSkeleton,
     selectedWeek: Int,
     selectedDay: Int,
     selectedDays: List<Int>,
@@ -230,9 +165,8 @@ private fun ProgramDraftEditTab(
     onSelectDay: (Int) -> Unit,
     onToggleDay: (Int) -> Unit,
     onAddExercise: () -> Unit,
-    onEditItem: (ProgramSkeletonItem) -> Unit,
-    onProgressionChange: (GeneratedProgramSkeleton) -> Unit,
-    onDeleteItem: (ProgramSkeletonItem) -> Unit
+    onEditItem: (LegacyAutoSkeletonItem) -> Unit,
+    onDeleteItem: (LegacyAutoSkeletonItem) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ProgramTemporalSelector(skeleton.weekPlans.map { it.weekIndex }, setOf(selectedWeek),
@@ -248,7 +182,7 @@ private fun ProgramDraftEditTab(
             "program-day-view", { programWeekdayLabel(it) }, onSelectDay)
         val dayItems = skeleton.items
             .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
-            .sortedWith(compareBy<ProgramSkeletonItem> { it.orderIndex }.thenBy { it.localId })
+            .sortedWith(compareBy<LegacyAutoSkeletonItem> { it.orderIndex }.thenBy { it.localId })
         MaterialText(programWeekdayLabel(selectedDay), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         if (dayItems.isEmpty()) {
             Text("이 요일에는 아직 운동이 없습니다.")
@@ -259,9 +193,6 @@ private fun ProgramDraftEditTab(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item) }
                 )
-                if (item.exerciseStableKey in progressionEligibleKeys && item.progressionBinding != null) {
-                    ProgressionDraftControl(item, skeleton, onProgressionChange)
-                }
             }
         }
         OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onAddExercise) {
@@ -272,7 +203,7 @@ private fun ProgramDraftEditTab(
 
 @Composable
 private fun ProgramDraftItemRow(
-    item: ProgramSkeletonItem,
+    item: LegacyAutoSkeletonItem,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -304,13 +235,13 @@ private fun ProgramDraftItemRow(
 
 @Composable
 private fun ProgramDraftItemDialog(
-    item: ProgramSkeletonItem,
+    item: LegacyAutoSkeletonItem,
     onDismiss: () -> Unit,
-    onSave: (ProgramSkeletonItem) -> Unit
+    onSave: (LegacyAutoSkeletonItem) -> Unit
 ) {
     val displayName = localizedExerciseName(item.exerciseStableKey, item.exerciseName)
     var sets by remember(item.localId) {
-        mutableStateOf(ProgramSetPrescriptionResolver.resolve(item))
+        mutableStateOf(LegacyAutoSetRows.resolve(item))
     }
     var restText by rememberSaveable(item.localId) { mutableStateOf(item.restSeconds.toString()) }
 
@@ -387,7 +318,7 @@ private fun ProgramDraftItemDialog(
             Button(
                 onClick = {
                     val normalizedSets = sets.mapIndexed { index, set -> set.copy(setIndex = index + 1) }
-                    val summary = ProgramSetPrescriptionResolver.summarize(normalizedSets)
+                    val summary = LegacyAutoSetRows.summarize(normalizedSets)
                     onSave(
                         item.copy(
                             setCount = summary.setCount,
@@ -414,8 +345,8 @@ private fun List<ProgramSetPrescription>.updated(
     mapIndexed { current, existing -> if (current == index) value else existing }
 
 @Composable
-private fun programSetSummaryLines(item: ProgramSkeletonItem): List<String> {
-    val sets = ProgramSetPrescriptionResolver.resolve(item)
+private fun programSetSummaryLines(item: LegacyAutoSkeletonItem): List<String> {
+    val sets = LegacyAutoSetRows.resolve(item)
     val rest = item.restSeconds.takeIf { it > 0 }
         ?.let { stringResource(R.string.rest_seconds_suffix, it) }
         .orEmpty()
@@ -444,13 +375,13 @@ private fun draftItemForExercise(
     weekNumber: Int,
     dayOfWeek: Int,
     orderIndex: Int
-): ProgramSkeletonItem {
+): LegacyAutoSkeletonItem {
     val timed = ExerciseMetadataAdapter.progressMetricBehavior(metadata.progressMetricType) in setOf(
         ProgressMetricRuntimeBehavior.REPS_OR_TIME,
         ProgressMetricRuntimeBehavior.DISTANCE_OR_TIME,
         ProgressMetricRuntimeBehavior.SESSION_DURATION
     )
-    return ProgramSkeletonItem(
+    return LegacyAutoSkeletonItem(
         localId = "manual-$weekNumber-$dayOfWeek-${exercise.stableKey}-${System.nanoTime()}",
         weekNumber = weekNumber,
         dayOfWeek = dayOfWeek,
@@ -485,4 +416,3 @@ private fun draftItemForExercise(
         primarySlotCapabilities = metadata.badmintonTransferType.values
     )
 }
-

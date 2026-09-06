@@ -1,15 +1,24 @@
-package com.training.trackplanner.data
+package com.training.trackplanner.data.program.legacy
 
-import com.training.trackplanner.data.personalized.PersonalizedPlanningDecision
+// Mechanically isolated from f5cc0ac7e0ba58cf21be81ec83e90d1c619921f9.
+// Frozen product rules: do not generalize or route through another planner.
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseDao
+import com.training.trackplanner.data.ProgramOptimizationSummary
+import com.training.trackplanner.data.ProgramUserNotice
+import com.training.trackplanner.data.ProgramUserNoticeCode
+import com.training.trackplanner.data.ProgramUserNoticeLevel
+import com.training.trackplanner.data.ProgramSetPrescription
 
-enum class ProgramGoal {
+
+enum class LegacyAutoGoal {
     BADMINTON_SUPPORT,
     STRENGTH,
     BODYBUILDING,
     FUNCTIONAL_CONDITIONING
 }
 
-enum class ProgramPeriodizationType {
+enum class LegacyAutoPeriodizationType {
     AUTO,
     STEP_DELOAD,
     BADMINTON_WAVE,
@@ -17,7 +26,7 @@ enum class ProgramPeriodizationType {
     LINEAR_STRENGTH
 }
 
-enum class ProgramWeekType {
+enum class LegacyAutoWeekType {
     ADAPT,
     BUILD,
     HIGH,
@@ -29,7 +38,7 @@ enum class ProgramWeekType {
     REALIZATION
 }
 
-enum class ProgramTrainingSlot {
+enum class LegacyAutoTrainingSlot {
     FULL_BODY_BADMINTON_SUPPORT,
     LOWER_TRANSFER_FULL,
     UPPER_SCAP_CORE_FULL,
@@ -48,11 +57,11 @@ enum class ProgramTrainingSlot {
     MICRO_RECOVERY
 }
 
-enum class ProgramDayIntensity { HARD, MODERATE, LIGHT }
+enum class LegacyAutoDayIntensity { HARD, MODERATE, LIGHT }
 
-enum class ProgramFatigueBand { GREEN, YELLOW, ORANGE, RED }
+enum class LegacyAutoFatigueBand { GREEN, YELLOW, ORANGE, RED }
 
-enum class ProgramVarietyPreference { LOW, NORMAL, HIGH }
+enum class LegacyAutoVarietyPreference { LOW, NORMAL, HIGH }
 
 enum class BadmintonEventProfile {
     SINGLES,
@@ -62,19 +71,19 @@ enum class BadmintonEventProfile {
     NOT_SPECIFIED
 }
 
-data class ProgramSkeletonRequest(
+data class LegacyAutoRequest(
     val name: String,
-    val goal: ProgramGoal,
+    val goal: LegacyAutoGoal,
     val weeklyTrainingDays: Int,
     val sessionMinutes: Int,
     val availableEquipment: Set<String>,
     val excludedExerciseText: String,
     val badmintonTransferRatio: Double,
     val sportStrengthRatio: String,
-    val periodizationType: ProgramPeriodizationType,
+    val periodizationType: LegacyAutoPeriodizationType,
     val durationWeeks: Int = 4,
     val badmintonEventProfile: BadmintonEventProfile = BadmintonEventProfile.NOT_SPECIFIED,
-    val varietyPreference: ProgramVarietyPreference = ProgramVarietyPreference.NORMAL,
+    val varietyPreference: LegacyAutoVarietyPreference = LegacyAutoVarietyPreference.NORMAL,
     val excludedExerciseStableKeys: Set<String> = emptySet(),
     val preferredExerciseStableKeys: Set<String> = emptySet()
 ) {
@@ -83,7 +92,7 @@ data class ProgramSkeletonRequest(
     val badmintonSpecificityRatio: Int get() = (badmintonTransferRatio.coerceIn(0.0, 0.9) * 100).toInt()
 }
 
-data class ProgramWeekPlan(
+data class LegacyAutoWeekPlan(
     val weekIndex: Int,
     val weekType: String,
     val volumeMultiplier: Double,
@@ -97,7 +106,7 @@ data class ProgramWeekPlan(
     val targetRpeMax: Double = 8.0
 )
 
-data class ProgramSkeletonItem(
+data class LegacyAutoSkeletonItem(
     val localId: String,
     val weekNumber: Int,
     val dayOfWeek: Int,
@@ -113,8 +122,8 @@ data class ProgramSkeletonItem(
     val seconds: Int,
     val selectionReason: String,
     val weightSource: String,
-    val trainingSlot: String = ProgramTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
-    val dayIntensity: String = ProgramDayIntensity.MODERATE.name,
+    val trainingSlot: String = LegacyAutoTrainingSlot.FULL_BODY_BADMINTON_SUPPORT.name,
+    val dayIntensity: String = LegacyAutoDayIntensity.MODERATE.name,
     val stableKey: String = "",
     val selectionRole: String = "",
     val movementFamily: String = "",
@@ -143,26 +152,19 @@ data class ProgramSkeletonItem(
     val slotCapabilityWarnings: List<String> = emptyList(),
     val requestedTemplateSlot: String = "",
     val requiredTemplateAnchor: Boolean = false,
-    val setPrescriptions: List<ProgramSetPrescription> = emptyList(),
-    val progressionStyle: String = "",
-    val progressionVariant: String = "",
-    val progressionAnchorSetIndex: Int? = null,
-    val progressionRole: ProgressionRole = ProgressionRole.AUTO,
-    val progressionBinding: DraftProgressionBinding? = null
+    val setPrescriptions: List<ProgramSetPrescription> = emptyList()
 )
 
-data class GeneratedProgramSkeleton(
+data class LegacyAutoSkeleton(
     val suggestedName: String,
     val durationDays: Int,
-    val request: ProgramSkeletonRequest,
-    val periodizationType: ProgramPeriodizationType,
-    val weekPlans: List<ProgramWeekPlan>,
-    val items: List<ProgramSkeletonItem>,
+    val request: LegacyAutoRequest,
+    val periodizationType: LegacyAutoPeriodizationType,
+    val weekPlans: List<LegacyAutoWeekPlan>,
+    val items: List<LegacyAutoSkeletonItem>,
     val weekDaySchedule: Map<Int, Set<Int>> = emptyMap(),
     val warnings: List<String> = emptyList(),
     val optimizationSummary: ProgramOptimizationSummary = ProgramOptimizationSummary(),
     val templateId: String = "POLICY_FALLBACK",
-    val representativeTemplate: Boolean = false,
-    val personalizedDecision: PersonalizedPlanningDecision? = null,
-    val progressionSessions: List<DraftProgressionSession> = emptyList()
+    val representativeTemplate: Boolean = false
 )

@@ -31,6 +31,8 @@ android {
     }
 
     sourceSets {
+        getByName("test").java.srcDir("src/sharedTest/java")
+        getByName("androidTest").java.srcDir("src/sharedTest/java")
         getByName("androidTest").assets.srcDirs("$projectDir/schemas")
         getByName("test").java.srcDir(rootProject.file("tools/connective-tissue-prior/src/main/kotlin"))
     }

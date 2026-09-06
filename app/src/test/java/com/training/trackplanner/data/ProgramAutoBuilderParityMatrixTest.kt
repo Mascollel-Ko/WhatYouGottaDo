@@ -1,5 +1,7 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.data.program.legacy.*
+
 import java.io.File
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
@@ -36,22 +38,22 @@ class ProgramAutoBuilderParityMatrixTest {
                 WEEKLY_DAYS.forEach { days ->
                     SESSION_MINUTES.forEach { minutes ->
                         BADMINTON_RATIOS.forEach { ratio ->
-                            val skeleton = ProgramAutoBuilder().build(
-                                request = ProgramSkeletonRequest(
+                            val skeleton = LegacyAutoProgramBuilder().build(
+                                request = LegacyAutoRequest(
                                     name = "parity",
-                                    goal = ProgramGoal.BADMINTON_SUPPORT,
+                                    goal = LegacyAutoGoal.BADMINTON_SUPPORT,
                                     weeklyTrainingDays = days,
                                     sessionMinutes = minutes,
                                     availableEquipment = emptySet(),
                                     excludedExerciseText = "",
                                     badmintonTransferRatio = ratio,
                                     sportStrengthRatio = "AUTO",
-                                    periodizationType = ProgramPeriodizationType.AUTO,
+                                    periodizationType = LegacyAutoPeriodizationType.AUTO,
                                     durationWeeks = duration
                                 ),
                                 exercises = exercises
                             )
-                            check(skeleton.items.all { item -> ProgramCandidateAuthority.allows(item.exerciseStableKey) })
+                            check(skeleton.items.all { item -> LegacyAutoCandidateAuthority.allows(item.exerciseStableKey) })
                             check(skeleton.items.none { item -> item.exerciseStableKey == "unknown_pallof_direct_core" })
                             appendLine("$duration,$days,$minutes,$ratio,${skeleton.fingerprint()}")
                         }
@@ -61,7 +63,7 @@ class ProgramAutoBuilderParityMatrixTest {
         }
     }
 
-    private fun GeneratedProgramSkeleton.fingerprint(): String {
+    private fun LegacyAutoSkeleton.fingerprint(): String {
         val canonical = buildString {
             appendLine("${periodizationType.name}|$templateId|$durationDays")
             weekPlans.forEach { week ->
@@ -77,7 +79,7 @@ class ProgramAutoBuilderParityMatrixTest {
                     ).joinToString("|")
                 )
             }
-            items.sortedWith(compareBy(ProgramSkeletonItem::weekNumber, ProgramSkeletonItem::dayOfWeek, ProgramSkeletonItem::orderIndex))
+            items.sortedWith(compareBy(LegacyAutoSkeletonItem::weekNumber, LegacyAutoSkeletonItem::dayOfWeek, LegacyAutoSkeletonItem::orderIndex))
                 .forEach { item ->
                     appendLine(
                         listOf(

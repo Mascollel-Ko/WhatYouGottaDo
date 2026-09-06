@@ -1,5 +1,7 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.data.program.legacy.LegacyAutoCandidateAuthority as ProgramCandidateAuthority
+
 import android.content.Context
 import android.content.ContextWrapper
 import android.net.Uri

@@ -45,7 +45,7 @@ object PerformancePrescriptionResolver {
         }
         snapshot.performancePrescriptions[key]?.let { return it }
         val category = snapshot.reviewedBadmintonCategory(key) ?: return null
-        val guide = com.training.trackplanner.data.ProgramIntensityResolver.badminton(category)
+        val guide = RecordBasedReviewedPolicy.badminton(category)
         return PerformancePrescriptionAuthority(
             List(guide.setCount) { ProgramSetPrescription(it + 1, guide.reps, 0.0, guide.seconds) },
             guide.restSeconds, guide.text, "REVIEWED_BADMINTON_RULE_${category.name}"

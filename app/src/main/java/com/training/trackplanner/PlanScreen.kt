@@ -1,7 +1,14 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
+import com.training.trackplanner.data.program.legacy.LegacyAutoGoal
+import com.training.trackplanner.data.program.legacy.LegacyAutoPeriodizationType
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.heightIn
 
 import android.widget.Toast
@@ -318,6 +325,7 @@ private fun ProgramListScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProgramEditorScreen(
     program: TrainingProgram?,
@@ -351,9 +359,11 @@ private fun ProgramEditorScreen(
     var badmintonRatio by rememberSaveable(program?.id ?: 0L) {
         mutableStateOf((program?.badmintonTransferRatio ?: 0.70).coerceIn(0.0, 0.90))
     }
-    var skeleton by remember(program?.id) {
+    var personalizedDraft by remember(program?.id) {
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
+    var legacyAutoDraft by remember(program?.id) { mutableStateOf<LegacyAutoSkeleton?>(null) }
+    val hasDraftItems = legacyAutoDraft?.items?.isNotEmpty() == true || personalizedDraft?.items?.isNotEmpty() == true
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
     var confirmRegenerate by rememberSaveable { mutableStateOf(false) }
@@ -367,13 +377,13 @@ private fun ProgramEditorScreen(
     var lastGenerationWasPersonalized by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(program?.id) {
-        if (program != null && skeleton == null) skeleton = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
+        if (program != null && personalizedDraft == null) personalizedDraft = skeletonFromProgram(viewModel.programEditorSnapshot(program.id)).withResolvedWeekDaySchedule()
     }
     LaunchedEffect(exercises, runtimeMetadataByExerciseId) {
         progressionContext = viewModel.progressionDraftContext()
     }
-    LaunchedEffect(skeleton, progressionContext) {
-        progressionContext?.let { context -> skeleton = skeleton?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
+    LaunchedEffect(personalizedDraft, progressionContext) {
+        progressionContext?.let { context -> personalizedDraft = personalizedDraft?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
     }
 
     fun normalizedProgramName(): String = nameText.trim()
@@ -404,7 +414,8 @@ private fun ProgramEditorScreen(
     fun startBlankProgram() {
         if (!requireProgramName()) return
         val request = currentRequest()
-        skeleton = emptyProgramSkeleton(
+        legacyAutoDraft = null
+        personalizedDraft = emptyProgramSkeleton(
             request = request,
             weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
         )
@@ -414,13 +425,16 @@ private fun ProgramEditorScreen(
 
     fun generateSkeleton() {
         if (!requireProgramName()) return
-        val request = currentRequest()
+        val request = LegacyAutoRequest(
+            name = normalizedProgramName(), goal = LegacyAutoGoal.BADMINTON_SUPPORT,
+            weeklyTrainingDays = weeklyDays, sessionMinutes = sessionMinutes, durationWeeks = durationWeeks,
+            availableEquipment = emptySet(), excludedExerciseText = "", badmintonTransferRatio = badmintonRatio,
+            sportStrengthRatio = "AUTO", periodizationType = LegacyAutoPeriodizationType.AUTO
+        )
         lastGenerationWasPersonalized = false
-        viewModel.generateProgramSkeleton(request) { generated ->
-            skeleton = generated.copy(
-                suggestedName = request.name,
-                request = generated.request.copy(name = request.name)
-            ).withResolvedWeekDaySchedule()
+        viewModel.generateLegacyAutoSkeleton(request) { generated ->
+            legacyAutoDraft = generated
+            personalizedDraft = null
             autoSkeletonCreated = true
             personalizedSkeletonCreated = false
             showSkeletonOptions = true
@@ -430,7 +444,8 @@ private fun ProgramEditorScreen(
     fun runPreparedPersonalized(preflight: PersonalizedPlanningPreflight, answers: Map<String, String>) {
         viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(answers)) { generated ->
             val request = currentRequest()
-            skeleton = generated.copy(
+            legacyAutoDraft = null
+            personalizedDraft = generated.copy(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
             ).withResolvedWeekDaySchedule()
@@ -529,38 +544,38 @@ private fun ProgramEditorScreen(
                     )
                     if (program == null) {
                         if (showSkeletonOptions) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProgramOptionRow {
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "프로그램 기간",
                             selected = durationWeeks,
                             options = (3..8).toList(),
-                            optionLabel = { "${it}주" },
+                            optionLabel = { programWeekLabel(it) },
                             onSelect = { durationWeeks = it },
                             enabled = !generationRunning
                         )
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "주당 운동일수",
                             selected = weeklyDays,
                             options = (3..7).toList(),
-                            optionLabel = { "주 ${it}일" },
+                            optionLabel = { stringResource(R.string.program_days_per_week, it) },
                             onSelect = { weeklyDays = it },
                             enabled = !generationRunning
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProgramOptionRow {
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "하루 운동시간",
                             selected = sessionMinutes,
                             options = listOf(30, 45, 60),
-                            optionLabel = { "${it}분" },
+                            optionLabel = { stringResource(R.string.program_minutes, it) },
                             onSelect = { sessionMinutes = it },
                             enabled = !generationRunning
                         )
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "배드민턴 : 근력",
                             selected = badmintonRatio,
                             options = badmintonRatioOptions.keys.toList(),
@@ -588,7 +603,7 @@ private fun ProgramEditorScreen(
                         onClick = {
                             if (!showSkeletonOptions) {
                                 showSkeletonOptions = true
-                            } else if (skeleton?.items?.isNotEmpty() == true) {
+                            } else if (hasDraftItems) {
                                 confirmRegenerate = true
                             } else {
                                 generateSkeleton()
@@ -597,22 +612,22 @@ private fun ProgramEditorScreen(
                     ) {
                         Text(if (autoSkeletonCreated) "자동 골자 다시 만들기" else "자동 골자 만들기")
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProgramOptionRow {
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "기록 기반 기간",
                             selected = personalizedDurationOverride ?: 0,
                             options = personalizedDurationOptions,
-                            optionLabel = { if (it == 0) "AUTO" else "${it}주" },
+                            optionLabel = { if (it == 0) "AUTO" else programWeekLabel(it) },
                             onSelect = { personalizedDurationOverride = personalizedOverrideFromSelection(it) },
                             enabled = !generationRunning
                         )
                         ProgramDropdown(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).widthIn(min = 180.dp),
                             label = "기록 기반 주당 일수",
                             selected = personalizedDaysOverride ?: 0,
                             options = personalizedWeeklyDayOptions,
-                            optionLabel = { if (it == 0) "AUTO" else "주 ${it}일" },
+                            optionLabel = { if (it == 0) "AUTO" else stringResource(R.string.program_days_per_week, it) },
                             onSelect = { personalizedDaysOverride = personalizedOverrideFromSelection(it) },
                             enabled = !generationRunning
                         )
@@ -647,7 +662,12 @@ private fun ProgramEditorScreen(
                 )
             }
         }
-        skeleton?.let { currentSkeleton ->
+        legacyAutoDraft?.let { draft ->
+            item {
+                LegacyAutoSkeletonPreview(draft, exercises, runtimeMetadataByExerciseId) { legacyAutoDraft = it }
+            }
+        }
+        personalizedDraft?.let { currentSkeleton ->
             if (currentSkeleton.warnings.any { it.startsWith(PROGRAM_ITEM_RESTORE_WARNING) }) {
                 item {
                     InfoCard("일부 프로그램 메타데이터를 복원하지 못했습니다. 저장 전 구성을 확인하세요.")
@@ -659,10 +679,11 @@ private fun ProgramEditorScreen(
                     exercises = exercises,
                     metadataByExerciseId = runtimeMetadataByExerciseId,
                     progressionEligibleKeys = progressionEligibleKeys,
-                    onSkeletonChange = { skeleton = it }
+                    onSkeletonChange = { personalizedDraft = it }
                 )
             }
-        } ?: item {
+        }
+        if (legacyAutoDraft == null && personalizedDraft == null) item {
             InfoCard(
                 if (program == null) {
                     "자동 골자를 만들면 저장 전 미리보기와 수정 항목이 표시됩니다."
@@ -681,10 +702,17 @@ private fun ProgramEditorScreen(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    enabled = skeleton?.items?.isNotEmpty() == true && !generationRunning,
+                    enabled = hasDraftItems && !generationRunning,
                     onClick = {
                         if (!requireProgramName()) return@Button
-                        val current = skeleton ?: return@Button
+                        legacyAutoDraft?.let { finalized ->
+                            viewModel.saveLegacyAutoProgram(program?.id, finalized.copy(
+                                suggestedName = normalizedProgramName(),
+                                request = finalized.request.copy(name = normalizedProgramName())
+                            ), onSaved)
+                            return@Button
+                        }
+                        val current = personalizedDraft ?: return@Button
                         val request = currentRequest()
                         val savedRequest = if (lastGenerationWasPersonalized) {
                             current.request.copy(name = request.name)

@@ -1,5 +1,8 @@
 package com.training.trackplanner
 
+import com.training.trackplanner.data.program.legacy.LegacyAutoRequest
+import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -331,9 +334,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun generateProgramSkeleton(
-        request: ProgramSkeletonRequest,
-        onResult: (GeneratedProgramSkeleton) -> Unit
+    fun generateLegacyAutoSkeleton(
+        request: LegacyAutoRequest,
+        onResult: (LegacyAutoSkeleton) -> Unit
     ) {
         if (_programBuildProgress.value is ProgramBuildProgressState.Running) return
         viewModelScope.launch {
@@ -352,7 +355,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                             progressPercent = 40,
                             message = "주차와 요일 슬롯을 배치하는 중입니다."
                         )
-                        repository.generateProgramSkeleton(request)
+                        repository.generateLegacyAutoSkeleton(request)
                     }
                     _programBuildProgress.value = ProgramBuildProgressState.Running(
                         progressPercent = 85,
@@ -366,7 +369,6 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                     message = "최종 프로그램을 정리하는 중입니다."
                 )
                 _programBuildProgress.value = ProgramBuildProgressState.Completed(
-                    skeleton = generated,
                     summary = generated.optimizationSummary
                 )
                 onResult(generated)
@@ -402,7 +404,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             }.onSuccess { outcome ->
                 when (outcome) {
                     is PersonalizedPlanningOutcome.Questions -> _programBuildProgress.value = ProgramBuildProgressState.Idle
-                    is PersonalizedPlanningOutcome.Generated -> _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton, outcome.skeleton.optimizationSummary)
+                    is PersonalizedPlanningOutcome.Generated -> _programBuildProgress.value = ProgramBuildProgressState.Completed(outcome.skeleton.optimizationSummary)
                 }
                 onOutcome(outcome)
             }.onFailure { error ->
@@ -445,7 +447,7 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
             runCatching {
                 withTimeout(15_000) { repository.generatePreparedPersonalizedProgram(preflight, answers) }
             }.onSuccess { generated ->
-                _programBuildProgress.value = ProgramBuildProgressState.Completed(generated, generated.optimizationSummary)
+                _programBuildProgress.value = ProgramBuildProgressState.Completed(generated.optimizationSummary)
                 onResult(generated)
             }.onFailure { error ->
                 _programBuildProgress.value = ProgramBuildProgressState.Failed(
@@ -453,6 +455,10 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
                 )
             }
         }
+    }
+
+    fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton, onSaved: (Long) -> Unit) {
+        viewModelScope.launch { onSaved(repository.saveLegacyAutoProgram(existingProgramId, skeleton)) }
     }
 
     fun saveGeneratedProgram(

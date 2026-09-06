@@ -38,6 +38,11 @@ class PersonalizedPlannerParityTest {
         )
         assertEquals(29, names.size)
         assertEquals(29, names.distinct().size)
+        val root = generateSequence(java.io.File(System.getProperty("user.dir")).absoluteFile, java.io.File::getParentFile)
+            .first { java.io.File(it, "settings.gradle.kts").isFile }
+        val separationGolden = java.io.File(root, "app/src/test/resources/program-authority/record_based_a53f419_29.csv")
+            .readLines().associate { it.substringBefore(',') to it.split(',') }
+        assertEquals(29, separationGolden.size)
         names.forEachIndexed { index, name ->
             val snapshot = rawSnapshotFor(name, index)
             val state = AthletePlanningStateBuilder().build(snapshot, PersonalizedPlanningAnswers())
@@ -59,6 +64,11 @@ class PersonalizedPlannerParityTest {
                 .groupBy { it.weekNumber to it.exerciseStableKey }
                 .forEach { (_, variants) -> assertEquals(name, variants.size, variants.map { it.dayOfWeek }.distinct().size) }
             assertScenarioSemantics(name, snapshot, state, gaps, first)
+            assertEquals("$name changed from a53f419", separationGolden.getValue(name)[1], separationFingerprint(first))
+            val emptyDays = first.weekDaySchedule.entries.flatMap { (week, active) ->
+                (active - first.items.filter { it.weekNumber == week }.map { it.dayOfWeek }.toSet()).map { "$week:$it" }
+            }.joinToString("|")
+            assertEquals("$name pre-existing empty-day audit changed", separationGolden.getValue(name)[2], emptyDays)
         }
     }
 

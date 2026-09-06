@@ -1,11 +1,7 @@
 package com.training.trackplanner.data.personalized
 
 import com.training.trackplanner.data.GeneratedProgramSkeleton
-import com.training.trackplanner.data.ProgramDaySelector
 import com.training.trackplanner.data.ProgramOptimizationSummary
-import com.training.trackplanner.data.ProgramBadmintonCategory
-import com.training.trackplanner.data.ProgramIntensityResolver
-import com.training.trackplanner.data.ProgramRuleTables
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.ProgramSkeletonItem
 import com.training.trackplanner.data.ProgramSkeletonRequest
@@ -187,8 +183,8 @@ internal fun PlannedExercise.supportiveGapCodes(): Set<String> = representedGapC
     objective in supportiveObjectives && objective !in representedObjectives
 }
 
-internal fun PlanningHistorySnapshot.reviewedBadmintonCategory(stableKey: String): ProgramBadmintonCategory? =
-    ProgramRuleTables.badmintonAccessories.entries.firstOrNull { (_, specs) -> specs.any { it.stableKey == stableKey } }?.key
+internal fun PlanningHistorySnapshot.reviewedBadmintonCategory(stableKey: String): ReviewedBadmintonCategory? =
+    RecordBasedReviewedPolicy.badmintonKeys.entries.firstOrNull { (_, keys) -> stableKey in keys }?.key
 
 private fun PlanningHistorySnapshot.hasSafePerformancePrescription(stableKey: String): Boolean =
     PerformancePrescriptionResolver.resolve(this, stableKey) != null
@@ -401,7 +397,7 @@ class PersonalizedProgramBuilder(
         val placementDeferred = placement.deferred
         val performanceItems = selected.filter { snapshot.activityKind(it.stableKey) in PERFORMANCE_ACTIVITY_KINDS }
         val targetResistance = selected.filter { snapshot.activityKind(it.stableKey) == PlannedActivityKind.RESISTANCE }.sumOf(PlannedExercise::targetSets)
-        val schedule = ProgramDaySelector.defaultSchedule(horizon, days)
+        val schedule = RecordBasedReviewedPolicy.defaultSchedule(horizon, days)
         val retentionPriorities = mutableMapOf<String, Int>()
         val items = buildList {
             (1..horizon).forEach { week ->

@@ -1,5 +1,8 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.data.program.legacy.LegacyAutoCandidateAuthority as ProgramCandidateAuthority
+import com.training.trackplanner.data.program.legacy.LegacyAutoRuleTables as ProgramRuleTables
+
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

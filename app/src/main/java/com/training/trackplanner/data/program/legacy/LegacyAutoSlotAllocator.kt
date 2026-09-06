@@ -1,23 +1,33 @@
-package com.training.trackplanner.data
+package com.training.trackplanner.data.program.legacy
 
-internal data class ProgramAllocationContext(
-    val request: ProgramSkeletonRequest,
+// Mechanically isolated from f5cc0ac7e0ba58cf21be81ec83e90d1c619921f9.
+// Frozen product rules: do not generalize or route through another planner.
+import com.training.trackplanner.data.Exercise
+import com.training.trackplanner.data.ExerciseDao
+import com.training.trackplanner.data.ProgramOptimizationSummary
+import com.training.trackplanner.data.ProgramUserNotice
+import com.training.trackplanner.data.ProgramUserNoticeCode
+import com.training.trackplanner.data.ProgramUserNoticeLevel
+import com.training.trackplanner.data.ProgramSetPrescription
+
+internal data class LegacyAutoAllocationContext(
+    val request: LegacyAutoRequest,
     val exercises: List<Exercise>,
     val weekNumber: Int,
     val dayOfWeek: Int,
     val daySlotIndex: Int,
     val globalDayIndex: Int,
-    val dayRule: ProgramDayRule,
-    val intensityByArea: Map<ProgramMainArea, ProgramIntensityLabel>,
-    val usage: ProgramAutoUsage
+    val dayRule: LegacyAutoDayRule,
+    val intensityByArea: Map<LegacyAutoMainArea, LegacyAutoIntensityLabel>,
+    val usage: LegacyAutoUsage
 )
 
-internal class ProgramSlotAllocator {
-    fun allocate(context: ProgramAllocationContext): List<ProgramSkeletonItem> {
-        val caps = ProgramRuleTables.slotCaps(context.request.sessionMinutes)
-        val items = mutableListOf<ProgramSkeletonItem>()
+internal class LegacyAutoSlotAllocator {
+    fun allocate(context: LegacyAutoAllocationContext): List<LegacyAutoSkeletonItem> {
+        val caps = LegacyAutoRuleTables.slotCaps(context.request.sessionMinutes)
+        val items = mutableListOf<LegacyAutoSkeletonItem>()
         val mainLabel = context.dayRule.mainArea?.let { context.intensityByArea[it] }
-        val highIntensityMain = mainLabel == ProgramIntensityLabel.HIGH_LOW
+        val highIntensityMain = mainLabel == LegacyAutoIntensityLabel.HIGH_LOW
 
         context.dayRule.mainArea?.let { area ->
             if (items.size < caps.totalSlots) {
@@ -25,8 +35,8 @@ internal class ProgramSlotAllocator {
                     context = context,
                     spec = chooseMain(area, context.usage),
                     orderIndex = items.size + 1,
-                    prescription = ProgramIntensityResolver.main(
-                        label = context.intensityByArea[area] ?: ProgramIntensityLabel.MEDIUM_MEDIUM,
+                    prescription = LegacyAutoIntensityResolver.main(
+                        label = context.intensityByArea[area] ?: LegacyAutoIntensityLabel.MEDIUM_MEDIUM,
                         area = area,
                         weekNumber = context.weekNumber
                     ),
@@ -38,19 +48,19 @@ internal class ProgramSlotAllocator {
         context.dayRule.secondaryMainArea?.let { area ->
             if (
                 items.size < caps.totalSlots &&
-                items.count { it.selectionRole == ProgramAutoSlotType.MAIN.name } < caps.mainCap
+                items.count { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name } < caps.mainCap
             ) {
-                val tableLabel = context.intensityByArea[area] ?: ProgramIntensityLabel.MEDIUM_MEDIUM
-                val label = if (tableLabel == ProgramIntensityLabel.DELOAD) {
-                    ProgramIntensityLabel.DELOAD
+                val tableLabel = context.intensityByArea[area] ?: LegacyAutoIntensityLabel.MEDIUM_MEDIUM
+                val label = if (tableLabel == LegacyAutoIntensityLabel.DELOAD) {
+                    LegacyAutoIntensityLabel.DELOAD
                 } else {
-                    ProgramIntensityLabel.LOW_HIGH
+                    LegacyAutoIntensityLabel.LOW_HIGH
                 }
                 items += item(
                     context = context,
                     spec = chooseMain(area, context.usage),
                     orderIndex = items.size + 1,
-                    prescription = ProgramIntensityResolver.main(
+                    prescription = LegacyAutoIntensityResolver.main(
                         label = label,
                         area = area,
                         weekNumber = context.weekNumber
@@ -61,7 +71,7 @@ internal class ProgramSlotAllocator {
             }
         }
 
-        val badmintonTarget = ProgramRuleTables.badmintonTargetCount(
+        val badmintonTarget = LegacyAutoRuleTables.badmintonTargetCount(
             ratio = context.request.badmintonTransferRatio,
             sessionMinutes = context.request.sessionMinutes,
             globalDayIndex = context.globalDayIndex
@@ -72,7 +82,7 @@ internal class ProgramSlotAllocator {
                 context = context,
                 spec = chooseBadminton(category, context.usage),
                 orderIndex = items.size + 1,
-                prescription = ProgramIntensityResolver.badminton(category),
+                prescription = LegacyAutoIntensityResolver.badminton(category),
                 reason = "Badminton / ${category.label}",
                 trainingSlot = "BADMINTON_${category.name}"
             )
@@ -84,7 +94,7 @@ internal class ProgramSlotAllocator {
                 context = context,
                 spec = choosePaired(area, context.usage, context.exercises, items),
                 orderIndex = items.size + 1,
-                prescription = ProgramIntensityResolver.strengthAccessory(highIntensityMain),
+                prescription = LegacyAutoIntensityResolver.strengthAccessory(highIntensityMain),
                 reason = "Strength accessory / Paired ${area.label}",
                 trainingSlot = "PAIRED_${area.name}"
             )
@@ -96,7 +106,7 @@ internal class ProgramSlotAllocator {
                 context = context,
                 spec = chooseSmall(part, context.usage),
                 orderIndex = items.size + 1,
-                prescription = ProgramIntensityResolver.strengthAccessory(highIntensityMain),
+                prescription = LegacyAutoIntensityResolver.strengthAccessory(highIntensityMain),
                 reason = "Strength accessory / ${part.label}",
                 trainingSlot = "SMALL_${part.name}"
             )
@@ -106,16 +116,16 @@ internal class ProgramSlotAllocator {
     }
 
     private fun item(
-        context: ProgramAllocationContext,
-        spec: ProgramExerciseSpec,
+        context: LegacyAutoAllocationContext,
+        spec: LegacyAutoExerciseSpec,
         orderIndex: Int,
-        prescription: ProgramPrescriptionGuide,
+        prescription: LegacyAutoPrescriptionGuide,
         reason: String,
         trainingSlot: String
-    ): ProgramSkeletonItem {
+    ): LegacyAutoSkeletonItem {
         val resolved = spec.resolve(context.exercises)
         context.usage.record(spec)
-        return ProgramSkeletonItem(
+        return LegacyAutoSkeletonItem(
             localId = "w${context.weekNumber}d${context.daySlotIndex}o$orderIndex",
             weekNumber = context.weekNumber,
             dayOfWeek = context.dayOfWeek,
@@ -136,25 +146,25 @@ internal class ProgramSlotAllocator {
             selectionRole = spec.slotType.name,
             movementFamily = spec.substitutionGroup.orEmpty(),
             requestedTemplateSlot = context.dayRule.label,
-            requiredTemplateAnchor = spec.slotType == ProgramAutoSlotType.MAIN
+            requiredTemplateAnchor = spec.slotType == LegacyAutoAutoSlotType.MAIN
         )
     }
 
-    private fun chooseMain(area: ProgramMainArea, usage: ProgramAutoUsage): ProgramExerciseSpec =
-        choose(ProgramRuleTables.mainExercises.getValue(area), usage)
+    private fun chooseMain(area: LegacyAutoMainArea, usage: LegacyAutoUsage): LegacyAutoExerciseSpec =
+        choose(LegacyAutoRuleTables.mainExercises.getValue(area), usage)
 
     private fun choosePaired(
-        area: ProgramMainArea,
-        usage: ProgramAutoUsage,
+        area: LegacyAutoMainArea,
+        usage: LegacyAutoUsage,
         exercises: List<Exercise>,
-        currentItems: List<ProgramSkeletonItem>
-    ): ProgramExerciseSpec {
-        val pool = ProgramRuleTables.pairedAccessories.getValue(area)
+        currentItems: List<LegacyAutoSkeletonItem>
+    ): LegacyAutoExerciseSpec {
+        val pool = LegacyAutoRuleTables.pairedAccessories.getValue(area)
         val mainSquatStableKey = currentItems
-            .firstOrNull { it.trainingSlot == "MAIN_${ProgramMainArea.LOWER_ANTERIOR.name}" }
+            .firstOrNull { it.trainingSlot == "MAIN_${LegacyAutoMainArea.LOWER_ANTERIOR.name}" }
             ?.stableKey
             ?.takeIf { it.isNotBlank() }
-        if (area != ProgramMainArea.LOWER_ANTERIOR || mainSquatStableKey == null) return choose(pool, usage)
+        if (area != LegacyAutoMainArea.LOWER_ANTERIOR || mainSquatStableKey == null) return choose(pool, usage)
         val sorted = pool.sortedWith(programExerciseSpecComparator(pool, usage))
         return sorted
             .firstOrNull {
@@ -165,50 +175,50 @@ internal class ProgramSlotAllocator {
             ?: choose(pool, usage)
     }
 
-    private fun chooseSmall(part: ProgramSmallPart, usage: ProgramAutoUsage): ProgramExerciseSpec =
-        choose(ProgramRuleTables.smallPartAccessories.getValue(part), usage)
+    private fun chooseSmall(part: LegacyAutoSmallPart, usage: LegacyAutoUsage): LegacyAutoExerciseSpec =
+        choose(LegacyAutoRuleTables.smallPartAccessories.getValue(part), usage)
 
-    private fun chooseBadminton(category: ProgramBadmintonCategory, usage: ProgramAutoUsage): ProgramExerciseSpec =
-        choose(ProgramRuleTables.badmintonAccessories.getValue(category), usage)
+    private fun chooseBadminton(category: LegacyAutoBadmintonCategory, usage: LegacyAutoUsage): LegacyAutoExerciseSpec =
+        choose(LegacyAutoRuleTables.badmintonAccessories.getValue(category), usage)
 
-    private fun choose(pool: List<ProgramExerciseSpec>, usage: ProgramAutoUsage): ProgramExerciseSpec =
+    private fun choose(pool: List<LegacyAutoExerciseSpec>, usage: LegacyAutoUsage): LegacyAutoExerciseSpec =
         pool.minWith(programExerciseSpecComparator(pool, usage))
 
     private fun programExerciseSpecComparator(
-        pool: List<ProgramExerciseSpec>,
-        usage: ProgramAutoUsage
-    ): Comparator<ProgramExerciseSpec> =
-        compareBy<ProgramExerciseSpec> { usage.exerciseCount(it.stableKey) }
+        pool: List<LegacyAutoExerciseSpec>,
+        usage: LegacyAutoUsage
+    ): Comparator<LegacyAutoExerciseSpec> =
+        compareBy<LegacyAutoExerciseSpec> { usage.exerciseCount(it.stableKey) }
             .thenBy { usage.groupCount(it.substitutionGroup.orEmpty()) }
             .thenBy { pool.indexOf(it) }
 
-    private fun chooseBadmintonCategory(usage: ProgramAutoUsage): ProgramBadmintonCategory {
-        val categories = ProgramBadmintonCategory.entries
+    private fun chooseBadmintonCategory(usage: LegacyAutoUsage): LegacyAutoBadmintonCategory {
+        val categories = LegacyAutoBadmintonCategory.entries
         return categories
             .filter { it != usage.lastBadmintonCategory || categories.size == 1 }
-            .minWith(compareBy<ProgramBadmintonCategory> { usage.badmintonCount(it) }.thenBy { categories.indexOf(it) })
+            .minWith(compareBy<LegacyAutoBadmintonCategory> { usage.badmintonCount(it) }.thenBy { categories.indexOf(it) })
     }
 
-    private fun chooseSmallPart(usage: ProgramAutoUsage): ProgramSmallPart {
-        val parts = ProgramSmallPart.entries
+    private fun chooseSmallPart(usage: LegacyAutoUsage): LegacyAutoSmallPart {
+        val parts = LegacyAutoSmallPart.entries
         return parts
             .filter { it != usage.lastSmallPart || parts.size == 1 }
-            .minWith(compareBy<ProgramSmallPart> { usage.smallPartCount(it) }.thenBy { parts.indexOf(it) })
+            .minWith(compareBy<LegacyAutoSmallPart> { usage.smallPartCount(it) }.thenBy { parts.indexOf(it) })
     }
 }
 
-internal class ProgramAutoUsage {
-    var lastBadmintonCategory: ProgramBadmintonCategory? = null
+internal class LegacyAutoUsage {
+    var lastBadmintonCategory: LegacyAutoBadmintonCategory? = null
         private set
-    var lastSmallPart: ProgramSmallPart? = null
+    var lastSmallPart: LegacyAutoSmallPart? = null
         private set
 
     private val exerciseCounts = mutableMapOf<String, Int>()
     private val groupCounts = mutableMapOf<String, Int>()
-    private val badmintonCounts = mutableMapOf<ProgramBadmintonCategory, Int>()
-    private val smallPartCounts = mutableMapOf<ProgramSmallPart, Int>()
+    private val badmintonCounts = mutableMapOf<LegacyAutoBadmintonCategory, Int>()
+    private val smallPartCounts = mutableMapOf<LegacyAutoSmallPart, Int>()
 
-    fun record(spec: ProgramExerciseSpec) {
+    fun record(spec: LegacyAutoExerciseSpec) {
         exerciseCounts[spec.stableKey] = exerciseCount(spec.stableKey) + 1
         spec.substitutionGroup?.let { groupCounts[it] = groupCount(it) + 1 }
         spec.badmintonCategory?.let {
@@ -223,6 +233,6 @@ internal class ProgramAutoUsage {
 
     fun exerciseCount(name: String): Int = exerciseCounts[name] ?: 0
     fun groupCount(group: String): Int = groupCounts[group] ?: 0
-    fun badmintonCount(category: ProgramBadmintonCategory): Int = badmintonCounts[category] ?: 0
-    fun smallPartCount(part: ProgramSmallPart): Int = smallPartCounts[part] ?: 0
+    fun badmintonCount(category: LegacyAutoBadmintonCategory): Int = badmintonCounts[category] ?: 0
+    fun smallPartCount(part: LegacyAutoSmallPart): Int = smallPartCounts[part] ?: 0
 }

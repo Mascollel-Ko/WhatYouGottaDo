@@ -149,7 +149,7 @@ class ExerciseNameSemanticAuthorityArchitectureTest {
     fun semanticAuthoritiesCannotClassifyStableKeyFragments() {
         val guardedFiles = listOf(
             "app/src/main/java/com/training/trackplanner/data/ExercisePlanning.kt",
-            "app/src/main/java/com/training/trackplanner/data/ProgramCandidateAuthority.kt",
+            "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoCandidateAuthority.kt",
             "app/src/main/java/com/training/trackplanner/analysis/fatigue/DailyFatigueCalculator.kt",
             "app/src/main/java/com/training/trackplanner/analysis/strengthperformance/StrengthPerformanceRegistry.kt",
             "app/src/main/java/com/training/trackplanner/analysis/tissue/TissueDoseResolver.kt"

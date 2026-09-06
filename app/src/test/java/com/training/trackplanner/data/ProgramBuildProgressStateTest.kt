@@ -12,7 +12,6 @@ class ProgramBuildProgressStateTest {
             message = "주기화에 맞춰 주차별 역할을 정하고 메인 운동 후보를 비교하는 중입니다."
         )
         val completed: ProgramBuildProgressState = ProgramBuildProgressState.Completed(
-            skeleton = emptyProgramSkeleton(request(), emptyMap()),
             summary = ProgramOptimizationSummary(
                 notices = listOf(
                     ProgramUserNotice(ProgramUserNoticeCode.AUTOMATIC_QUALITY_ADJUSTMENT)

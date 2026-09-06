@@ -62,6 +62,28 @@ internal class ProgramPlanService(
         return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
+    /** Legacy is finalized before entry. Execution authoring happens only after every row is saved. */
+    suspend fun saveLegacyAutoProgram(
+        existingProgramId: Long?,
+        skeleton: com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+    ): Long = db.withTransaction {
+        val existing = existingProgramId?.let { programDao.findProgram(it) }
+        val program = skeleton.toTrainingProgram(existing, System.currentTimeMillis())
+        val programId = if (existing != null) {
+            programDao.updateProgram(program)
+            programDao.deleteProgramItems(existing.id)
+            existing.id
+        } else programDao.insertProgram(program)
+        programDao.deleteProgramTombstone(program.stableKey)
+        skeleton.items.forEach { item ->
+            val itemId = programDao.insertProgramItem(item.toTrainingProgramItem(programId))
+            programDao.insertProgramItemSets(LegacyAutoSetRows.resolve(item).map { it.toEntity(itemId) })
+        }
+        // Generic saved-program execution; no draft/result is passed in or returned.
+        progression.author(programId)
+        programId
+    }
+
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,
         skeleton: GeneratedProgramSkeleton

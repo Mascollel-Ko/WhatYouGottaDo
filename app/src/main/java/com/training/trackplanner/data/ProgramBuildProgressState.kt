@@ -9,7 +9,6 @@ sealed interface ProgramBuildProgressState {
     ) : ProgramBuildProgressState
 
     data class Completed(
-        val skeleton: GeneratedProgramSkeleton,
         val summary: ProgramOptimizationSummary
     ) : ProgramBuildProgressState
 

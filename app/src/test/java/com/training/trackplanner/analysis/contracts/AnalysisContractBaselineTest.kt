@@ -4,10 +4,10 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.training.trackplanner.data.CanonicalExerciseMetadataRepository
 import com.training.trackplanner.data.MetadataTokenField
-import com.training.trackplanner.data.ProgramGoal
-import com.training.trackplanner.data.ProgramPeriodizationType
-import com.training.trackplanner.data.ProgramSkeletonGenerator
-import com.training.trackplanner.data.ProgramSkeletonRequest
+import com.training.trackplanner.data.program.legacy.LegacyAutoGoal as ProgramGoal
+import com.training.trackplanner.data.program.legacy.LegacyAutoPeriodizationType as ProgramPeriodizationType
+import com.training.trackplanner.data.program.legacy.LegacyAutoProgramBuilder
+import com.training.trackplanner.data.program.legacy.LegacyAutoRequest as ProgramSkeletonRequest
 import com.training.trackplanner.data.RuntimeExerciseMetadataAssetLoader
 import com.training.trackplanner.data.RuntimeExerciseMetadataCatalog
 import com.training.trackplanner.data.SeedData
@@ -58,12 +58,9 @@ class AnalysisContractBaselineTest {
         val rendered = buildString {
             appendLine(PROGRAM_HEADER)
             PROGRAM_SCENARIOS.forEach { scenario ->
-                val result = ProgramSkeletonGenerator().generate(
+                val result = LegacyAutoProgramBuilder().build(
                     request = scenario.request,
-                    exercises = exercises,
-                    history = emptyList(),
-                    today = PROBE_DATE,
-                    runtimeMetadataCatalog = catalog
+                    exercises = exercises
                 )
                 appendLine(
                     listOf(

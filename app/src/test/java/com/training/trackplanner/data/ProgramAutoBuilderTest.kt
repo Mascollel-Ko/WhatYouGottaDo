@@ -1,5 +1,7 @@
 package com.training.trackplanner.data
 
+import com.training.trackplanner.data.program.legacy.*
+
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,8 +23,8 @@ class ProgramAutoBuilderTest {
             assertEquals(request.durationWeeks, skeleton.weekPlans.size)
             assertTrue(skeleton.weekPlans.all { week -> skeleton.items.any { it.weekNumber == week.weekIndex } })
             skeleton.items.groupBy { it.weekNumber to it.dayOfWeek }.forEach { (_, items) ->
-                assertTrue(items.size <= ProgramRuleTables.slotCaps(request.sessionMinutes).totalSlots)
-                assertTrue(items.count { it.selectionRole == ProgramAutoSlotType.MAIN.name } <= 2)
+                assertTrue(items.size <= LegacyAutoRuleTables.slotCaps(request.sessionMinutes).totalSlots)
+                assertTrue(items.count { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name } <= 2)
             }
         }
     }
@@ -34,7 +36,7 @@ class ProgramAutoBuilderTest {
         val fifty = build(request(ratio = 0.50))
         val seventy = build(request(minutes = 60, ratio = 0.70))
 
-        assertEquals(0, pureStrength.items.count { it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name })
+        assertEquals(0, pureStrength.items.count { it.selectionRole == LegacyAutoAutoSlotType.BADMINTON_ACCESSORY.name })
         assertTrue(thirty.badmintonCountsPerDay().all { it == 1 })
         assertTrue(fifty.badmintonCountsPerDay().all { it in 1..2 })
         assertTrue(seventy.badmintonCountsPerDay().all { it in 2..3 })
@@ -44,10 +46,10 @@ class ProgramAutoBuilderTest {
                 .values
                 .all { dayItems ->
                     val firstStrengthAccessory = dayItems.indexOfFirst {
-                        it.selectionRole == ProgramAutoSlotType.STRENGTH_ACCESSORY.name
+                        it.selectionRole == LegacyAutoAutoSlotType.STRENGTH_ACCESSORY.name
                     }
                     val lastBadminton = dayItems.indexOfLast {
-                        it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name
+                        it.selectionRole == LegacyAutoAutoSlotType.BADMINTON_ACCESSORY.name
                     }
                     firstStrengthAccessory == -1 || lastBadminton == -1 || lastBadminton < firstStrengthAccessory
                 }
@@ -58,11 +60,11 @@ class ProgramAutoBuilderTest {
     fun removedFormInputsDoNotAffectDeterministicAutoSkeleton() {
         val base = request(days = 5, minutes = 45, weeks = 4, ratio = 0.50)
         val noisy = base.copy(
-            goal = ProgramGoal.STRENGTH,
+            goal = LegacyAutoGoal.STRENGTH,
             availableEquipment = setOf("BARBELL", "DUMBBELL", "MACHINE", "CABLE"),
             excludedExerciseText = "avoid everything",
             sportStrengthRatio = "0/100",
-            periodizationType = ProgramPeriodizationType.LINEAR_STRENGTH,
+            periodizationType = LegacyAutoPeriodizationType.LINEAR_STRENGTH,
             excludedExerciseStableKeys = setOf("selected_excluded"),
             preferredExerciseStableKeys = setOf("selected_required")
         )
@@ -72,11 +74,11 @@ class ProgramAutoBuilderTest {
 
         assertEquals(baseSkeleton.itemSignature(), noisySkeleton.itemSignature())
         assertEquals(baseSkeleton.periodizationType, noisySkeleton.periodizationType)
-        assertEquals(ProgramGoal.BADMINTON_SUPPORT, noisySkeleton.request.goal)
+        assertEquals(LegacyAutoGoal.BADMINTON_SUPPORT, noisySkeleton.request.goal)
         assertEquals(emptySet<String>(), noisySkeleton.request.availableEquipment)
         assertEquals("", noisySkeleton.request.excludedExerciseText)
         assertEquals("AUTO", noisySkeleton.request.sportStrengthRatio)
-        assertEquals(ProgramPeriodizationType.AUTO, noisySkeleton.request.periodizationType)
+        assertEquals(LegacyAutoPeriodizationType.AUTO, noisySkeleton.request.periodizationType)
         assertEquals(emptySet<String>(), noisySkeleton.request.excludedExerciseStableKeys)
         assertEquals(emptySet<String>(), noisySkeleton.request.preferredExerciseStableKeys)
     }
@@ -166,7 +168,7 @@ class ProgramAutoBuilderTest {
     fun zeroRatioKeepsChestShoulderSecondaryMainAndNoBadminton() {
         val skeleton = build(request(days = 3, minutes = 45, weeks = 4, ratio = 0.0))
 
-        assertEquals(0, skeleton.items.count { it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name })
+        assertEquals(0, skeleton.items.count { it.selectionRole == LegacyAutoAutoSlotType.BADMINTON_ACCESSORY.name })
         assertMainSlots(chestShoulderDay(skeleton, week = 1), "MAIN_CHEST", "MAIN_SHOULDER")
         assertMainSlots(chestShoulderDay(skeleton, week = 2), "MAIN_SHOULDER", "MAIN_CHEST")
     }
@@ -176,7 +178,7 @@ class ProgramAutoBuilderTest {
         listOf(30 to 3, 45 to 4, 60 to 5).forEach { (minutes, cap) ->
             val skeleton = build(request(days = 3, minutes = minutes, weeks = 3, ratio = 0.30))
             listOf(chestShoulderDay(skeleton, 1), chestShoulderDay(skeleton, 2)).forEach { day ->
-                assertEquals(2, day.count { it.selectionRole == ProgramAutoSlotType.MAIN.name })
+                assertEquals(2, day.count { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name })
                 assertTrue(day.size <= cap)
             }
         }
@@ -187,9 +189,9 @@ class ProgramAutoBuilderTest {
         val skeleton = build(request(days = 5, minutes = 45, weeks = 4, ratio = 0.50))
         val weekOne = skeleton.items.filter { it.weekNumber == 1 }
 
-        assertEquals(4, weekOne.count { it.selectionRole == ProgramAutoSlotType.MAIN.name })
+        assertEquals(4, weekOne.count { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name })
         assertTrue(weekOne.any { it.trainingSlot == "PAIRED_SHOULDER" })
-        assertTrue(weekOne.groupBy { it.dayOfWeek }.values.any { day -> day.none { it.selectionRole == ProgramAutoSlotType.MAIN.name } })
+        assertTrue(weekOne.groupBy { it.dayOfWeek }.values.any { day -> day.none { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name } })
     }
 
     @Test
@@ -200,15 +202,15 @@ class ProgramAutoBuilderTest {
             .groupBy { it.dayOfWeek }
             .toSortedMap()
             .values
-            .map { it.sortedBy(ProgramSkeletonItem::orderIndex).map(ProgramSkeletonItem::exerciseName) }
+            .map { it.sortedBy(LegacyAutoSkeletonItem::orderIndex).map(LegacyAutoSkeletonItem::exerciseName) }
 
-        val changed = ProgramDaySelector.replaceWeekdays(skeleton, 1, setOf(2, 3, 5, 6))
+        val changed = LegacyAutoDaySelector.replaceWeekdays(skeleton, 1, setOf(2, 3, 5, 6))
         val after = changed.items
             .filter { it.weekNumber == 1 }
             .groupBy { it.dayOfWeek }
             .toSortedMap()
             .values
-            .map { it.sortedBy(ProgramSkeletonItem::orderIndex).map(ProgramSkeletonItem::exerciseName) }
+            .map { it.sortedBy(LegacyAutoSkeletonItem::orderIndex).map(LegacyAutoSkeletonItem::exerciseName) }
 
         assertEquals(setOf(2, 3, 5, 6), changed.resolvedWeekDaySchedule().getValue(1))
         assertEquals(before, after)
@@ -235,10 +237,10 @@ class ProgramAutoBuilderTest {
     }
 
     private fun build(
-        request: ProgramSkeletonRequest,
+        request: LegacyAutoRequest,
         exercises: List<Exercise> = loadSeedExercises()
-    ): GeneratedProgramSkeleton =
-        ProgramAutoBuilder().build(request, exercises = exercises)
+    ): LegacyAutoSkeleton =
+        LegacyAutoProgramBuilder().build(request, exercises = exercises)
 
     private fun loadSeedExercises(): List<Exercise> {
         val lines = seedFile().readLines(Charsets.UTF_8).filter(String::isNotBlank)
@@ -265,32 +267,32 @@ class ProgramAutoBuilderTest {
             File("app/src/main/assets/metadata/canonical_v1/exercise_bootstrap.csv")
         ).firstOrNull(File::exists) ?: error("Missing canonical exercise bootstrap.")
 
-    private fun chestShoulderDay(skeleton: GeneratedProgramSkeleton, week: Int): List<ProgramSkeletonItem> =
+    private fun chestShoulderDay(skeleton: LegacyAutoSkeleton, week: Int): List<LegacyAutoSkeletonItem> =
         skeleton.items.filter { it.weekNumber == week && it.dayOfWeek == 3 }
 
     private fun assertMainSlots(
-        dayItems: List<ProgramSkeletonItem>,
+        dayItems: List<LegacyAutoSkeletonItem>,
         first: String,
         second: String
     ) {
-        val mains = dayItems.filter { it.selectionRole == ProgramAutoSlotType.MAIN.name }
+        val mains = dayItems.filter { it.selectionRole == LegacyAutoAutoSlotType.MAIN.name }
         assertEquals(listOf(first, second), mains.map { it.trainingSlot })
         assertFalse(dayItems.any { it.trainingSlot == first.replace("MAIN_", "PAIRED_") })
         assertFalse(dayItems.any { it.trainingSlot == second.replace("MAIN_", "PAIRED_") })
     }
 
-    private fun assertLowHighMain(item: ProgramSkeletonItem) {
-        assertEquals(ProgramAutoSlotType.MAIN.name, item.selectionRole)
+    private fun assertLowHighMain(item: LegacyAutoSkeletonItem) {
+        assertEquals(LegacyAutoAutoSlotType.MAIN.name, item.selectionRole)
         assertEquals(3, item.setCount)
         assertEquals(15, item.reps)
     }
 
-    private fun GeneratedProgramSkeleton.badmintonCountsPerDay(): List<Int> =
+    private fun LegacyAutoSkeleton.badmintonCountsPerDay(): List<Int> =
         items.groupBy { it.weekNumber to it.dayOfWeek }
             .values
-            .map { dayItems -> dayItems.count { it.selectionRole == ProgramAutoSlotType.BADMINTON_ACCESSORY.name } }
+            .map { dayItems -> dayItems.count { it.selectionRole == LegacyAutoAutoSlotType.BADMINTON_ACCESSORY.name } }
 
-    private fun GeneratedProgramSkeleton.itemSignature(): List<String> =
+    private fun LegacyAutoSkeleton.itemSignature(): List<String> =
         items.map {
             listOf(
                 it.weekNumber,
@@ -309,17 +311,17 @@ class ProgramAutoBuilderTest {
         minutes: Int = 45,
         weeks: Int = 4,
         ratio: Double = 0.30
-    ): ProgramSkeletonRequest =
-        ProgramSkeletonRequest(
+    ): LegacyAutoRequest =
+        LegacyAutoRequest(
             name = "배드민턴 지원 웨이트",
-            goal = ProgramGoal.BADMINTON_SUPPORT,
+            goal = LegacyAutoGoal.BADMINTON_SUPPORT,
             weeklyTrainingDays = days,
             sessionMinutes = minutes,
             availableEquipment = emptySet(),
             excludedExerciseText = "",
             badmintonTransferRatio = ratio,
             sportStrengthRatio = "AUTO",
-            periodizationType = ProgramPeriodizationType.AUTO,
+            periodizationType = LegacyAutoPeriodizationType.AUTO,
             durationWeeks = weeks
         )
 }

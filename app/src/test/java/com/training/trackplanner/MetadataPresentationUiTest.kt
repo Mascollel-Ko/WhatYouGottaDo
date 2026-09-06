@@ -64,7 +64,6 @@ class MetadataPresentationUiTest {
         sizedContent {
             ProgramBuildProgressCard(
                 progress = ProgramBuildProgressState.Completed(
-                    skeleton = emptyProgramSkeleton(request(), emptyMap()),
                     summary = ProgramOptimizationSummary(notices)
                 ),
                 onRetry = {}
