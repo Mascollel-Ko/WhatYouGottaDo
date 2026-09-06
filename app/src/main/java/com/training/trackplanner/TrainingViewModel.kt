@@ -457,8 +457,9 @@ class TrainingViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton, onSaved: (Long) -> Unit) {
-        viewModelScope.launch { onSaved(repository.saveLegacyAutoProgram(existingProgramId, skeleton)) }
+    fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton,
+        progressionDraft: com.training.trackplanner.data.LegacyProgressionDraft, onSaved: (Long) -> Unit) {
+        viewModelScope.launch { onSaved(repository.saveLegacyAutoProgram(existingProgramId, skeleton, progressionDraft)) }
     }
 
     fun saveGeneratedProgram(

@@ -2,6 +2,7 @@ package com.training.trackplanner
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.Exercise
@@ -35,6 +37,8 @@ import com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
 import com.training.trackplanner.data.program.legacy.LegacyAutoSkeletonItem
 import com.training.trackplanner.data.ProgramSetPrescription
 import com.training.trackplanner.data.LegacyAutoSetRows
+import com.training.trackplanner.data.LegacyProgressionDraft
+import com.training.trackplanner.data.ProgramExecutionDraft
 import com.training.trackplanner.data.ExerciseMetadataAdapter
 import com.training.trackplanner.data.ProgressMetricRuntimeBehavior
 import com.training.trackplanner.data.RuntimeExerciseMetadata
@@ -51,8 +55,11 @@ internal fun LegacyAutoSkeletonPreview(
     skeleton: LegacyAutoSkeleton,
     exercises: List<Exercise>,
     metadataByExerciseId: Map<String, RuntimeExerciseMetadata>,
+    progressionDraft: LegacyProgressionDraft,
+    onProgressionChange: (LegacyProgressionDraft) -> Unit,
     onSkeletonChange: (LegacyAutoSkeleton) -> Unit
 ) {
+    val execution = remember(skeleton, progressionDraft) { progressionDraft.executionDraft(skeleton) }
     var selectedWeek by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var selectedDay by rememberSaveable(skeleton.suggestedName) { mutableStateOf(1) }
     var showExercisePicker by rememberSaveable { mutableStateOf(false) }
@@ -127,6 +134,8 @@ internal fun LegacyAutoSkeletonPreview(
             ) {
                 ProgramDraftEditTab(
                     skeleton = skeleton,
+                    execution = execution,
+                    onProgressionChange = { onProgressionChange(LegacyProgressionDraft.fromExecutionDraft(it)) },
                     selectedWeek = selectedWeek,
                     selectedDay = selectedDay,
                     selectedDays = selectedDays,
@@ -158,6 +167,8 @@ internal fun LegacyAutoSkeletonPreview(
 @Composable
 private fun ProgramDraftEditTab(
     skeleton: LegacyAutoSkeleton,
+    execution: ProgramExecutionDraft,
+    onProgressionChange: (ProgramExecutionDraft) -> Unit,
     selectedWeek: Int,
     selectedDay: Int,
     selectedDays: List<Int>,
@@ -193,6 +204,12 @@ private fun ProgramDraftEditTab(
                     onEdit = { onEditItem(item) },
                     onDelete = { onDeleteItem(item) }
                 )
+                val executionItem = execution.items.single { it.localId == item.localId }
+                if (executionItem.progressionBinding != null) {
+                    Box(Modifier.testTag("legacy-progression-${item.localId}")) {
+                        ProgressionDraftControl(executionItem, execution, onProgressionChange)
+                    }
+                }
             }
         }
         OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = onAddExercise) {

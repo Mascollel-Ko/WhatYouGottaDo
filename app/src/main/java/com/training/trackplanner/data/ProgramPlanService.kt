@@ -62,10 +62,11 @@ internal class ProgramPlanService(
         return MessageDigest.getInstance("SHA-256").digest(source.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
-    /** Legacy is finalized before entry. Execution authoring happens only after every row is saved. */
+    /** Frozen Legacy output and its separate post-generation session overlay arrive independently. */
     suspend fun saveLegacyAutoProgram(
         existingProgramId: Long?,
-        skeleton: com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton
+        skeleton: com.training.trackplanner.data.program.legacy.LegacyAutoSkeleton,
+        progressionDraft: LegacyProgressionDraft = LegacyProgressionDraft()
     ): Long = db.withTransaction {
         val existing = existingProgramId?.let { programDao.findProgram(it) }
         val program = skeleton.toTrainingProgram(existing, System.currentTimeMillis())
@@ -75,12 +76,28 @@ internal class ProgramPlanService(
             existing.id
         } else programDao.insertProgram(program)
         programDao.deleteProgramTombstone(program.stableKey)
+        val execution = progressionDraft.executionDraft(skeleton)
+        val sources = execution.items.associateBy { it.localId }
+        val sessions = execution.progressionSessions.associateBy { it.key }
+        val generated = mutableMapOf<Long, ProgramSkeletonItem>()
+        val restored = mutableMapOf<Long, ProgramProgressionItem>()
+        execution.items.mapNotNull { it.progressionBinding }.map { it.sessionKey }.distinct().forEach { key ->
+            val track = sessions.getValue(key).track
+            require(track.programStableKey == "draft" || track.programStableKey == program.stableKey)
+            db.programProgressionDao().putTrack(track.copy(programStableKey = program.stableKey))
+        }
         skeleton.items.forEach { item ->
             val itemId = programDao.insertProgramItem(item.toTrainingProgramItem(programId))
+            val source = sources.getValue(item.localId)
+            generated[itemId] = source
+            source.progressionBinding?.let { binding ->
+                require(sessions.getValue(binding.sessionKey).track.exerciseStableKey == item.exerciseStableKey)
+                restored[itemId] = ProgramProgressionItem(itemId, binding.logicalItemId, binding.sessionKey, binding.linkMode, binding.signature)
+            }
             programDao.insertProgramItemSets(LegacyAutoSetRows.resolve(item).map { it.toEntity(itemId) })
         }
-        // Generic saved-program execution; no draft/result is passed in or returned.
-        progression.author(programId)
+        // Same explicit-session persistence contract as the manual editor, without changing Legacy rows.
+        progression.author(programId, generated, restored)
         programId
     }
 

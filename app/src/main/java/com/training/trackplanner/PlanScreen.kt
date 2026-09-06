@@ -49,6 +49,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.training.trackplanner.data.GeneratedProgramSkeleton
+import com.training.trackplanner.data.LegacyProgressionDraft
 import com.training.trackplanner.data.ProgramBuildProgressState
 import com.training.trackplanner.data.ProgramApplyConflictSummary
 import com.training.trackplanner.data.ProgramApplyMode
@@ -363,6 +364,7 @@ private fun ProgramEditorScreen(
         mutableStateOf<GeneratedProgramSkeleton?>(null)
     }
     var legacyAutoDraft by remember(program?.id) { mutableStateOf<LegacyAutoSkeleton?>(null) }
+    var legacyProgressionDraft by remember(program?.id) { mutableStateOf(LegacyProgressionDraft()) }
     val hasDraftItems = legacyAutoDraft?.items?.isNotEmpty() == true || personalizedDraft?.items?.isNotEmpty() == true
     val buildProgress by viewModel.programBuildProgress.collectAsState()
     val generationRunning = buildProgress is ProgramBuildProgressState.Running
@@ -384,6 +386,11 @@ private fun ProgramEditorScreen(
     }
     LaunchedEffect(personalizedDraft, progressionContext) {
         progressionContext?.let { context -> personalizedDraft = personalizedDraft?.reconcileProgression(context.eligibleKeys, context.oneRmSnapshots) }
+    }
+    LaunchedEffect(legacyAutoDraft, progressionContext) {
+        legacyAutoDraft?.let { finalized ->
+            progressionContext?.let { legacyProgressionDraft = legacyProgressionDraft.reconcile(finalized, it) }
+        }
     }
 
     fun normalizedProgramName(): String = nameText.trim()
@@ -415,6 +422,7 @@ private fun ProgramEditorScreen(
         if (!requireProgramName()) return
         val request = currentRequest()
         legacyAutoDraft = null
+        legacyProgressionDraft = LegacyProgressionDraft()
         personalizedDraft = emptyProgramSkeleton(
             request = request,
             weekDaySchedule = defaultProgramWeekDaySchedule(durationWeeks, weeklyDays)
@@ -434,6 +442,9 @@ private fun ProgramEditorScreen(
         lastGenerationWasPersonalized = false
         viewModel.generateLegacyAutoSkeleton(request) { generated ->
             legacyAutoDraft = generated
+            // Frozen output has returned and is finalized. Only the separate editor overlay is initialized.
+            legacyProgressionDraft = progressionContext?.let { LegacyProgressionDraft().reconcile(generated, it) }
+                ?: LegacyProgressionDraft()
             personalizedDraft = null
             autoSkeletonCreated = true
             personalizedSkeletonCreated = false
@@ -445,6 +456,7 @@ private fun ProgramEditorScreen(
         viewModel.generatePreparedPersonalizedProgram(preflight, PersonalizedPlanningAnswers(answers)) { generated ->
             val request = currentRequest()
             legacyAutoDraft = null
+            legacyProgressionDraft = LegacyProgressionDraft()
             personalizedDraft = generated.copy(
                 suggestedName = request.name,
                 request = generated.request.copy(name = request.name)
@@ -664,7 +676,11 @@ private fun ProgramEditorScreen(
         }
         legacyAutoDraft?.let { draft ->
             item {
-                LegacyAutoSkeletonPreview(draft, exercises, runtimeMetadataByExerciseId) { legacyAutoDraft = it }
+                LegacyAutoSkeletonPreview(draft, exercises, runtimeMetadataByExerciseId,
+                    legacyProgressionDraft, { legacyProgressionDraft = it }) { updated ->
+                    legacyAutoDraft = updated
+                    progressionContext?.let { legacyProgressionDraft = legacyProgressionDraft.reconcile(updated, it) }
+                }
             }
         }
         personalizedDraft?.let { currentSkeleton ->
@@ -702,14 +718,14 @@ private fun ProgramEditorScreen(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    enabled = hasDraftItems && !generationRunning,
+                    enabled = hasDraftItems && !generationRunning && (legacyAutoDraft == null || progressionContext != null),
                     onClick = {
                         if (!requireProgramName()) return@Button
                         legacyAutoDraft?.let { finalized ->
                             viewModel.saveLegacyAutoProgram(program?.id, finalized.copy(
                                 suggestedName = normalizedProgramName(),
                                 request = finalized.request.copy(name = normalizedProgramName())
-                            ), onSaved)
+                            ), legacyProgressionDraft.reconcile(finalized, requireNotNull(progressionContext)), onSaved)
                             return@Button
                         }
                         val current = personalizedDraft ?: return@Button

@@ -19,6 +19,10 @@ class PlannerIsolationArchitectureTest {
             "progressionAnchorSetIndex", "progressionBinding", "progressionSessions")
         File(source, "data/program/legacy").walkTopDown().filter { it.extension == "kt" }.forEach { file ->
             val content = file.readText()
+            // Historical strengthProgressionGroup is metadata, not an execution dependency.
+            assertFalse("${file.name}: progression dependency", Regex(
+                "ProgramExecutionDraft|LegacyProgressionDraft|ProgramProgression|ProgressionTrack|ProgressionRule|ProgressionRole|ProgressionMode|ProgressionLink"
+            ).containsMatchIn(content))
             forbidden.forEach { assertFalse("${file.name}: $it", content.contains(it)) }
             Regex("(?m)^import com\\.training\\.trackplanner\\.([^\\n]+)").findAll(content).forEach {
                 assertTrue("${file.name}: ${it.value}", it.groupValues[1].startsWith("data.program.legacy.") ||
@@ -70,12 +74,25 @@ class PlannerIsolationArchitectureTest {
         val persistence = text("data/ProgramPlanService.kt").substringAfter("suspend fun saveLegacyAutoProgram")
             .substringBefore("suspend fun saveGeneratedProgram")
         assertTrue(persistence.indexOf("insertProgramItemSets") < persistence.indexOf("progression.author"))
-        assertTrue(persistence.contains("progression.author(programId)"))
+        assertTrue(persistence.contains("progression.author(programId, generated, restored)"))
+        assertTrue(persistence.contains("binding.logicalItemId, binding.sessionKey, binding.linkMode, binding.signature"))
         assertFalse(persistence.contains("reconcileProgression"))
         listOf("ProgramAutoBuilder", "ProgramRuleTables", "ProgramSlotAllocator", "ProgramIntensityResolver",
             "ProgramExerciseSpec", "ProgramCandidateAuthority", "ProgramGenerationService").forEach {
             assertFalse("Old planning entrypoint returned: $it", File(source, "data/$it.kt").exists())
         }
+    }
+
+    @Test fun sessionOverlayOnlyBeginsAfterFrozenOutputAndReusesGenericExecutionAuthority() {
+        val screen = text("PlanScreen.kt")
+        val generation = screen.substringAfter("viewModel.generateLegacyAutoSkeleton(request)").substringBefore("fun runPreparedPersonalized")
+        assertTrue(generation.indexOf("legacyAutoDraft = generated") < generation.indexOf("LegacyProgressionDraft().reconcile(generated"))
+        assertTrue(text("LegacyAutoPreview.kt").contains("ProgressionDraftControl(executionItem, execution"))
+        assertTrue(screen.contains("legacyProgressionDraft.reconcile(finalized, requireNotNull(progressionContext))"))
+        assertFalse(text("data/LegacyProgressionDraft.kt").contains("GeneratedProgramSkeleton"))
+        assertFalse(text("data/ProgramExecutionDraft.kt").contains("Legacy"))
+        assertTrue(text("data/ProgramProgressionDraft.kt").contains("ProgramExecutionDraft.reconcileProgression"))
+        assertTrue(text("data/ProgramProgressionDraft.kt").contains("ProgramExecutionDraft.configureProgressionSession"))
     }
 
     @Test fun temporalPresentationBypassesGenericTokenTranslation() {

@@ -873,8 +873,9 @@ class TrainingRepository(
         )
     }
 
-    suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton): Long =
-        withContext(Dispatchers.IO) { programPlanService.saveLegacyAutoProgram(existingProgramId, skeleton) }
+    suspend fun saveLegacyAutoProgram(existingProgramId: Long?, skeleton: LegacyAutoSkeleton,
+        progressionDraft: LegacyProgressionDraft = LegacyProgressionDraft()): Long =
+        withContext(Dispatchers.IO) { programPlanService.saveLegacyAutoProgram(existingProgramId, skeleton, progressionDraft) }
 
     suspend fun saveGeneratedProgram(
         existingProgramId: Long?,

@@ -43,6 +43,11 @@ internal fun GeneratedProgramSkeleton.hydrateProgression(snapshot: ProgramEditor
 
 /** Uses the existing classifier unchanged. User bindings bypass comparability, never identity checks. */
 internal fun GeneratedProgramSkeleton.reconcileProgression(eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap()): GeneratedProgramSkeleton {
+    return withExecutionDraft(executionDraft().reconcileProgression(eligibleKeys, oneRmSnapshots))
+}
+
+/** Same session authority for all editors; this overload has no planner result or request. */
+internal fun ProgramExecutionDraft.reconcileProgression(eligibleKeys: Set<String>, oneRmSnapshots: Map<String, Double> = emptyMap()): ProgramExecutionDraft {
     val sessions = progressionSessions.associateBy { it.key }.toMutableMap()
     val assigned = mutableListOf<ProgramSkeletonItem>()
     for (item in items.sortedWith(compareBy({ it.weekNumber }, { it.dayOfWeek }, { it.orderIndex }))) {
@@ -108,6 +113,13 @@ internal fun GeneratedProgramSkeleton.configureProgressionSession(
     localId: String, linkMode: ProgressionLinkMode, selectedKey: String?, role: ProgressionRole,
     mode: ProgressionMode, rule: ProgressionRule
 ): GeneratedProgramSkeleton {
+    return withExecutionDraft(executionDraft().configureProgressionSession(localId, linkMode, selectedKey, role, mode, rule))
+}
+
+internal fun ProgramExecutionDraft.configureProgressionSession(
+    localId: String, linkMode: ProgressionLinkMode, selectedKey: String?, role: ProgressionRole,
+    mode: ProgressionMode, rule: ProgressionRule
+): ProgramExecutionDraft {
     rule.validate()
     val item = items.single { it.localId == localId }
     val binding = requireNotNull(item.progressionBinding)

@@ -18,6 +18,11 @@ import com.training.trackplanner.localization.localizedWeekday
 
 @Composable
 internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: GeneratedProgramSkeleton, onChange: (GeneratedProgramSkeleton) -> Unit) {
+    ProgressionDraftControl(item, skeleton.executionDraft()) { onChange(skeleton.withExecutionDraft(it)) }
+}
+
+@Composable
+internal fun ProgressionDraftControl(item: ProgramSkeletonItem, skeleton: ProgramExecutionDraft, onChange: (ProgramExecutionDraft) -> Unit) {
     var show by remember { mutableStateOf(false) }
     val binding = item.progressionBinding ?: return
     val track = skeleton.progressionSessions.single { it.key == binding.sessionKey }.track
@@ -144,12 +149,12 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
     }.getOrNull()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         MaterialText(stringResource(R.string.progression_settings), style = MaterialTheme.typography.titleLarge, maxLines = 1)
-        ProgressionSessionChoice(stringResource(R.string.progression_auto_connect), selected = link == ProgressionLinkMode.AUTO) { link = ProgressionLinkMode.AUTO }
+        ProgressionSessionChoice(stringResource(R.string.progression_auto_connect), selected = link == ProgressionLinkMode.AUTO, tag = "progression-choice-AUTO") { link = ProgressionLinkMode.AUTO }
         sessionOptions.filter { it.track.exerciseStableKey == track.exerciseStableKey }.forEach { option ->
-            ProgressionSessionChoice(option.label, option.membership, link == ProgressionLinkMode.EXISTING && target == option.track.id, dynamic = true) { selectSession(option.track) }
+            ProgressionSessionChoice(option.label, option.membership, link == ProgressionLinkMode.EXISTING && target == option.track.id, dynamic = true, tag = "progression-choice-${option.track.id}") { selectSession(option.track) }
         }
-        ProgressionSessionChoice(stringResource(R.string.progression_separate), selected = link == ProgressionLinkMode.SEPARATE) { link = ProgressionLinkMode.SEPARATE }
-        ProgressionSessionChoice(stringResource(R.string.progression_disconnected), selected = link == ProgressionLinkMode.OFF) { link = ProgressionLinkMode.OFF }
+        ProgressionSessionChoice(stringResource(R.string.progression_separate), selected = link == ProgressionLinkMode.SEPARATE, tag = "progression-choice-SEPARATE") { link = ProgressionLinkMode.SEPARATE }
+        ProgressionSessionChoice(stringResource(R.string.progression_disconnected), selected = link == ProgressionLinkMode.OFF, tag = "progression-choice-OFF") { link = ProgressionLinkMode.OFF }
         ProgramDropdown(stringResource(R.string.progression_role), role, ProgressionRole.entries, { roleLabels.getValue(it) }, { role = it })
         ProgramDropdown(stringResource(R.string.progression_mode), mode, ProgressionMode.entries, { modeLabels.getValue(it) }, { mode = it })
         if (mode == ProgressionMode.CUSTOM) {
@@ -174,8 +179,8 @@ internal fun ProgressionSettingsContent(track: ProgramProgressionTrack, binding:
 }
 
 @Composable
-internal fun ProgressionSessionChoice(label: String, membership: String = "", selected: Boolean, dynamic: Boolean = false, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().selectable(selected, onClick = onClick), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+internal fun ProgressionSessionChoice(label: String, membership: String = "", selected: Boolean, dynamic: Boolean = false, tag: String = "", onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().testTag(tag).selectable(selected, onClick = onClick), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
         RadioButton(selected, onClick = null)
         Column(Modifier.weight(1f).padding(vertical = 10.dp, horizontal = 8.dp)) {
             MaterialText(label, maxLines = 1, overflow = if (dynamic) TextOverflow.Ellipsis else TextOverflow.Clip)

@@ -1,5 +1,37 @@
 # Codex Worklog
 
+## 2026-09-06 — Restore Legacy pre-save manual progression sessions
+
+- Baseline and fetched origin/main: `2e0a1979e5d967dbe55e2819047a7710c449c30f`, clean checkout.
+  Inspected pre-separation preview at a53f419 and explicit-session persistence at 17467a5.
+  Ponytail was forbidden and not used. No subagents were used.
+- Cause: isolation removed ProgressionDraftControl from LegacyAutoSkeletonPreview, reconciliation
+  remained personalized-only, and Legacy save authored sessions only after persistence.
+- Boundary: frozen builder returns LegacyAutoSkeleton unchanged → separate LegacyProgressionDraft
+  overlay → generic ProgramExecutionDraft session authority/UI → exact Legacy rows plus restored
+  explicit session bindings → persistence. No state flows back into the frozen builder.
+- Overlay maps stable localId to DraftProgressionBinding; shared DraftProgressionSession.track owns
+  role/mode/rule, membership and link mode remain binding properties. It projects prescriptions
+  read-only and extracts only session state from editor actions. Replacement identity is exact-key checked.
+- Existing reconcile/configure bodies moved to a planner-neutral receiver, with thin existing
+  GeneratedProgramSkeleton wrappers. No progression calculation/comparison/resolution rule changes.
+- Initialize only after generation returns; edits reconcile the overlay without overwriting explicit
+  memberships, regeneration starts fresh, and saving waits for the existing eligibility context.
+  Existing saveGeneratedProgram/apply/record code paths remain unchanged.
+- Verification: full testDebugUnitTest completed successfully: 257 suites, 1,459 tests,
+  zero failures/errors, three existing conditional private-input skips (1,456 executed passes).
+  Legacy parity remains 360/360 against f5cc0ac; Record-Based 29-persona parity passes unchanged.
+  New draft, real disk save/reopen/edit/resave/apply/confirmed-record, UI, and isolation guards pass.
+- Preview verification: full 1,080-case layout matrix passes in JVM and native device tests;
+  native Legacy session selection passes all four choices in Korean/English at 320dp/fontScale 1.3.
+  Final localized modal captures were visually checked. Temporal renderer/resources are unchanged.
+- compileDebugKotlin, compileDebugAndroidTestKotlin, assembleDebug, and assembleDebugAndroidTest pass.
+  Following a sandbox debug-signature mismatch, host builds and native tests passed with matching
+  debug signatures; no release key was accessed. Latest changes after the full unit run are androidTest-only.
+- Localization tests: 10/10; localization audit: zero leaks/placeholder errors. Frozen source audit:
+  10/10; protocol validation: eight families/34 protocols; git diff --check passes.
+  Excluded planner/analysis/backup/calendar/progression-engine sources have no baseline diff.
+
 ## 2026-09-06 — Compact single-row Program week/day selectors
 
 - Starting SHA: `e8492b86662b9c48d02a5ebc92ad7178e50104b7`; clean worktree. Ponytail was not used.

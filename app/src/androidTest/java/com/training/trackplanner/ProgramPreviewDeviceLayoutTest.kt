@@ -3,11 +3,18 @@ package com.training.trackplanner
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.os.SystemClock
+import android.view.inspector.WindowInspector
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
@@ -17,9 +24,12 @@ import androidx.compose.ui.platform.*
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.training.trackplanner.data.*
+import com.training.trackplanner.ui.theme.TrainingTrackPlannerTheme
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
@@ -32,6 +42,94 @@ import org.junit.runner.RunWith
 /** Full native preview matrix. No Espresso InputManager dependency (removed by Android 17). */
 @RunWith(AndroidJUnit4::class)
 class ProgramPreviewDeviceLayoutTest {
+    /** Actual Legacy preview and modal sheet; production semantic click actions, not a settings mock. */
+    @Test fun legacyPreSaveSessionChoicesOnDevice() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        for (language in listOf(Locale.KOREAN, Locale.ENGLISH)) {
+            val localized = context.createConfigurationContext(Configuration(context.resources.configuration).apply { setLocale(language) })
+            val frozen = previewLegacy(PreviewLayoutCase(4, 4, 0))
+            val item = frozen.items.first()
+            val overlay = mutableStateOf(LegacyProgressionDraft().reconcile(frozen, ProgressionDraftContext(setOf(item.exerciseStableKey), emptyMap())))
+            val original = overlay.value.bindings.getValue(item.localId).sessionKey
+            fun nodes() = WindowInspector.getGlobalWindowViews().filter { it.visibility == View.VISIBLE }
+                .mapNotNull(::findOwner).flatMap { allNodes(it.unmergedRootSemanticsNode) }
+            fun tagged(tag: String) = nodes().firstOrNull { it.config.getOrNull(SemanticsProperties.TestTag) == tag }
+            fun awaitUi(condition: () -> Boolean) {
+                val deadline = SystemClock.uptimeMillis() + 10000
+                do {
+                    instrumentation.waitForIdleSync()
+                    var success = false
+                    instrumentation.runOnMainSync { success = condition() }
+                    if (success) return
+                    SystemClock.sleep(20)
+                } while (SystemClock.uptimeMillis() < deadline)
+                fail("Legacy session UI timeout: ${language.language}")
+            }
+            fun click(tag: String) {
+                awaitUi { tagged(tag) != null }
+                instrumentation.runOnMainSync { assertTrue(tagged(tag)!!.config[SemanticsActions.OnClick].action!!.invoke()) }
+            }
+            fun openControl() {
+                awaitUi { tagged("legacy-progression-${item.localId}") != null }
+                instrumentation.runOnMainSync {
+                    val control = allNodes(tagged("legacy-progression-${item.localId}")!!).single {
+                        it.config.getOrNull(SemanticsProperties.TestTag) == "progression-session-control"
+                    }
+                    assertTrue(control.config[SemanticsActions.OnClick].action!!.invoke())
+                }
+                awaitUi { tagged("progression-choice-AUTO") != null }
+            }
+            ActivityScenario.launch<ComponentActivity>(Intent(context, ComponentActivity::class.java)).use { scenario ->
+                scenario.onActivity { activity ->
+                    // Dialog windows inherit the Activity resources, not the preview's LocalContext.
+                    @Suppress("DEPRECATION")
+                    activity.resources.updateConfiguration(localized.resources.configuration, activity.resources.displayMetrics)
+                    activity.setContent {
+                        val density = LocalDensity.current
+                        CompositionLocalProvider(LocalContext provides localized, LocalConfiguration provides localized.resources.configuration,
+                            LocalDensity provides Density(density.density, 1.3f)) {
+                            TrainingTrackPlannerTheme {
+                                Surface(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+                                    Column(Modifier.width(320.dp).verticalScroll(rememberScrollState()).padding(screenPadding())) {
+                                        LegacyAutoSkeletonPreview(frozen, emptyList(), emptyMap(), overlay.value, { overlay.value = it }) {
+                                            fail("Session selection changed the frozen output")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                fun choose(tag: String, mode: ProgressionLinkMode) {
+                    openControl(); click(tag); click("progression-save")
+                    awaitUi { overlay.value.bindings.getValue(item.localId).linkMode == mode && tagged("progression-save") == null }
+                }
+                choose("progression-choice-SEPARATE", ProgressionLinkMode.SEPARATE)
+                assertNotEquals(original, overlay.value.bindings.getValue(item.localId).sessionKey)
+                val compatible = overlay.value.sessions.first { it.key != overlay.value.bindings.getValue(item.localId).sessionKey }.key
+                choose("progression-choice-$compatible", ProgressionLinkMode.EXISTING)
+                assertEquals(compatible, overlay.value.bindings.getValue(item.localId).sessionKey)
+                choose("progression-choice-AUTO", ProgressionLinkMode.AUTO)
+                choose("progression-choice-OFF", ProgressionLinkMode.OFF)
+                openControl()
+                instrumentation.runOnMainSync {
+                    val expected = localized.getString(R.string.progression_auto_connect)
+                    assertTrue("Modal locale must match the preview", nodes().any { node ->
+                        node.config.getOrNull(SemanticsProperties.Text)?.any { it.text == expected } == true
+                    })
+                }
+                instrumentation.uiAutomation.waitForIdle(100, 5000)
+                SystemClock.sleep(350) // Wait for the modal's SurfaceFlinger presentation, not just semantics.
+                val bitmap = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+                val target = File(context.getExternalFilesDir(null), "legacy-session-ui/${language.language}-320-1.3.png")
+                target.parentFile!!.mkdirs()
+                target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                bitmap.recycle()
+            }
+        }
+    }
+
     @Test fun full1080ProgramPreviewMatrix() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext

@@ -30,15 +30,20 @@ Ponytail 원칙은 폐기·금지하며, 유사도 추정이나 일반화된 fal
   `personalizedDraft / ProgramSkeletonPreview`와 별도 상태·타입·편집 helper를 사용합니다.
   Legacy 결과에는 개인화 결정, 훈련 상태/갭/배정 trace, progression style/variant/anchor/binding/session 필드가 없습니다.
 - Legacy builder 반환이 frozen-output finalization 경계입니다. 360-case historical parity는 이 반환값을 검사합니다.
-  이후 `LegacyAutoPersistenceAdapter → saveLegacyAutoProgram`이 정규화된 request와 exact item/set rows를 저장합니다.
-  `progression.author(programId)`는 모든 행이 materialize된 **뒤** 실행하며 Legacy 결과를 입력받거나 수정하지 않습니다.
-  저장 후의 공통 실행·진행 기능과 기존 저장 프로그램 편집 의미는 유지합니다.
+  반환 **후, 저장 전** `LegacyProgressionDraft`가 localId별 바인딩과 공유 세션 설정을 별도 소유합니다.
+  `ProgramExecutionDraft`는 요청/스케줄/개인화 결정을 갖지 않는 편집·실행 projection이며 기존
+  reconcile/configure 로직을 재사용합니다. 동결 모델에 진행 필드를 추가하거나 builder로 되돌리지 않습니다.
+  Legacy 미리보기는 기존 `ProgressionDraftControl / ProgressionSettingsSheet`로 AUTO, 같은 운동의 기존 세션,
+  별도 세션, OFF를 저장 전에 선택할 수 있습니다. 세션의 역할/모드/custom rule도 기존 권위를 따릅니다.
+  `LegacyAutoPersistenceAdapter → saveLegacyAutoProgram`은 기존 exact item/set rows를 그대로 저장하고,
+  세션/논리 ID/연결 모드를 restored 바인딩으로 전달한 뒤 `progression.author(programId, generated, restored)`를 실행합니다.
+  명시 선택은 자동 authoring보다 우선합니다. 기존 저장 프로그램 편집·재저장·적용·기록의 의미는 유지합니다.
 - Record-Based의 현재 요일 규칙과 reviewed 배드민턴 16-key 관계/처방은
   `personalized/RecordBasedReviewedPolicy`가 독립 소유합니다. 기존 값·순서·범위 clamp를 그대로 옮겼으며
   다른 planner의 후보표, intensity resolver 또는 day selector를 호출하지 않습니다.
   `GeneratedProgramSkeleton`은 이제 Record-Based 및 저장/수동 편집 초안의 기존 계약이며 Legacy 결과가 아닙니다.
 - 공유 가능한 것은 exercise identity/DAO, 단순 immutable set row와 결과 알림, UI의 typed temporal 렌더러,
-  저장된 프로그램의 실행 인프라입니다. 공유 planner helper/flags 기반 planning pipeline은 없습니다.
+  동결 출력 확정 이후의 편집/실행 세션 인프라입니다. 공유 planner helper/flags 기반 planning pipeline은 없습니다.
 
 동결 커밋의 실제 코드로 별도 worktree에서 만든 golden은 3..8주 × 3..7일 × 30/45/60분 ×
 0/.30/.50/.70의 **360개 전체 조합**을 보호합니다. 정규화 request와 모든 result/item/week-plan 필드를

@@ -51,9 +51,12 @@ internal fun previewRecordBased(case: PreviewLayoutCase): GeneratedProgramSkelet
 internal fun FullProgramPreviewUnderTest(case: PreviewLayoutCase, width: Int) {
     var legacy by remember(case) { mutableStateOf(if (case.kind == 0) previewLegacy(case) else null) }
     var record by remember(case) { mutableStateOf(if (case.kind != 0) previewRecordBased(case) else null) }
+    val legacyContext = remember(case) { ProgressionDraftContext(legacy?.items?.firstOrNull()?.let { setOf(it.exerciseStableKey) }.orEmpty(), emptyMap()) }
+    var legacyProgression by remember(case) { mutableStateOf(legacy?.let { LegacyProgressionDraft().reconcile(it, legacyContext) } ?: LegacyProgressionDraft()) }
     TrainingTrackPlannerTheme {
         Column(Modifier.width(width.dp).verticalScroll(rememberScrollState()).testTag("full-program-preview").padding(screenPadding())) {
-            if (case.kind == 0) LegacyAutoSkeletonPreview(legacy!!, emptyList(), emptyMap()) { legacy = it }
+            if (case.kind == 0) LegacyAutoSkeletonPreview(legacy!!, emptyList(), emptyMap(),
+                legacyProgression, { legacyProgression = it }) { legacy = it; legacyProgression = legacyProgression.reconcile(it, legacyContext) }
             else ProgramSkeletonPreview(record!!, emptyList(), emptyMap(), setOf("squat")) { record = it }
         }
     }

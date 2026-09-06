@@ -1415,6 +1415,8 @@
         "app/src/main/java/com/training/trackplanner/PlanProgramSections.kt",
         "app/src/main/java/com/training/trackplanner/data/program/legacy/LegacyAutoModels.kt",
         "app/src/main/java/com/training/trackplanner/data/LegacyAutoPersistenceAdapter.kt",
+        "app/src/main/java/com/training/trackplanner/data/LegacyProgressionDraft.kt",
+        "app/src/main/java/com/training/trackplanner/data/ProgramExecutionDraft.kt",
         "app/src/main/java/com/training/trackplanner/data/personalized/RecordBasedReviewedPolicy.kt",
         "app/src/main/java/com/training/trackplanner/LegacyAutoPreview.kt"
       ],
@@ -1444,6 +1446,10 @@
         "app/src/test/java/com/training/trackplanner/ProgramRecordUiContractTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LegacyAutoFrozenParityTest.kt",
         "app/src/test/java/com/training/trackplanner/data/LegacyAutoPersistenceTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyProgressionDraftTest.kt",
+        "app/src/test/java/com/training/trackplanner/data/LegacyProgressionPersistenceTest.kt",
+        "app/src/test/java/com/training/trackplanner/LegacyProgressionUiTest.kt",
+        "app/src/androidTest/java/com/training/trackplanner/ProgramPreviewDeviceLayoutTest.kt",
         "app/src/test/java/com/training/trackplanner/data/PlannerIsolationArchitectureTest.kt",
         "app/src/test/java/com/training/trackplanner/ProgramPreviewLayoutMatrixTest.kt"
       ],
