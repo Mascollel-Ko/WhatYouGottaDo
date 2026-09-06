@@ -91,5 +91,9 @@ class PlannerIsolationArchitectureTest {
         assertTrue(selectors.contains("R.string.program_week_number"))
         assertFalse(selectors.contains("localizedUiText"))
         assertFalse(selectors.contains("horizontalScroll"))
+        val temporalRow = selectors.substringBefore("internal fun programWeekLabel")
+        assertFalse(temporalRow.contains("FlowRow("))
+        assertFalse(temporalRow.contains("OutlinedButton("))
+        assertTrue(temporalRow.contains("Modifier.weight(1f, fill = false).widthIn(max = 40.dp)"))
     }
 }

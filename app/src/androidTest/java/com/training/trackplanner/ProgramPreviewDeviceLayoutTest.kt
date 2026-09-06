@@ -20,9 +20,7 @@ import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.training.trackplanner.localization.LocalizedPresentation
 import java.io.File
-import java.time.DayOfWeek
 import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -77,15 +75,19 @@ class ProgramPreviewDeviceLayoutTest {
                         val nodes = allNodes(requireNotNull(findOwner(decor.get())).unmergedRootSemanticsNode)
                         val tagged = nodes.mapNotNull { node -> node.config.getOrNull(SemanticsProperties.TestTag)?.let { it to node } }.toMap()
                         val origin = tagged.getValue("full-program-preview").positionInRoot.x
-                        val localized = locales.getValue(language)
                         val density = context.resources.displayMetrics.density
+                        val dayLabels = if (language.language == "ko") listOf("월", "화", "수", "목", "금", "토", "일")
+                            else listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
+                        checkRow(tagged, "program-week", (1..weeks).toList(), origin, dp * density, density)
+                        checkRow(tagged, "program-day-toggle", (1..7).toList(), origin, dp * density, density)
                         for (week in 1..weeks) checkLabel(tagged, "program-week-$week",
-                            localized.getString(R.string.program_week_number, week), origin, dp * density)
+                            if (language.language == "ko") "${week}주" else "W$week", origin, dp * density)
                         for (day in 1..7) checkLabel(tagged, "program-day-toggle-$day",
-                            LocalizedPresentation.weekday(localized, DayOfWeek.of(day)), origin, dp * density)
+                            dayLabels[day - 1], origin, dp * density)
                         val active = if (kind == 0) previewLegacy(case).weekDaySchedule.getValue(1).sorted() else (1..days).toList()
+                        checkRow(tagged, "program-day-view", active, origin, dp * density, density)
                         for (day in active) checkLabel(tagged, "program-day-view-$day",
-                            LocalizedPresentation.weekday(localized, DayOfWeek.of(day)), origin, dp * density)
+                            dayLabels[day - 1], origin, dp * density)
                     }
                     if (weeks == 8 && days == 7) {
                         instrumentation.uiAutomation.waitForIdle(100, 5000)
@@ -102,6 +104,23 @@ class ProgramPreviewDeviceLayoutTest {
     }
 
     private fun allNodes(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::allNodes)
+    private fun checkRow(nodes: Map<String, SemanticsNode>, tag: String, values: List<Int>, origin: Float, width: Float, density: Float) {
+        val row = nodes.getValue("$tag-row")
+        assertEquals("$tag must be one line", 48f * density, row.size.height.toFloat(), 1f)
+        assertTrue("$tag row bounds", row.positionInRoot.x >= origin - 1 && row.positionInRoot.x + row.size.width <= origin + width + 1)
+        var right = row.positionInRoot.x
+        val firstWidth = nodes.getValue("$tag-${values.first()}").size.width
+        values.forEach { value ->
+            val cell = nodes.getValue("$tag-$value")
+            assertEquals("$tag cell wrapped", row.positionInRoot.y, cell.positionInRoot.y, 1f)
+            assertEquals("$tag cell height", row.size.height, cell.size.height)
+            assertTrue("$tag cell overlaps/exceeds row", cell.positionInRoot.x >= right - 1 &&
+                cell.positionInRoot.x + cell.size.width <= row.positionInRoot.x + row.size.width + 1)
+            assertTrue("$tag unequal widths", kotlin.math.abs(cell.size.width - firstWidth) <= 1)
+            assertTrue("$tag excessive cell width", cell.size.width <= 40f * density + 1)
+            right = cell.positionInRoot.x + cell.size.width
+        }
+    }
     private fun findOwner(view: View): SemanticsOwner? {
         view.javaClass.methods.firstOrNull { it.name == "getSemanticsOwner" && it.parameterCount == 0 }?.let {
             return it.invoke(view) as SemanticsOwner
@@ -114,6 +133,9 @@ class ProgramPreviewDeviceLayoutTest {
         assertEquals(tag, expected, node.config[SemanticsProperties.Text].joinToString("") { it.text })
         val x = node.positionInRoot.x - origin
         assertTrue("$tag outside width", x >= -1 && x + node.size.width <= width + 1)
+        val cell = nodes.getValue(tag)
+        assertTrue("$tag label exceeds cell", node.positionInRoot.x >= cell.positionInRoot.x - 1 &&
+            node.positionInRoot.x + node.size.width <= cell.positionInRoot.x + cell.size.width + 1)
         val results = mutableListOf<TextLayoutResult>()
         assertTrue(node.config[SemanticsActions.GetTextLayoutResult].action!!.invoke(results))
         val layout = results.single()

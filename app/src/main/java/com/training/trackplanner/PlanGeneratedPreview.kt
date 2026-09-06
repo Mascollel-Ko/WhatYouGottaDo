@@ -236,16 +236,16 @@ private fun ProgramDraftEditTab(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ProgramTemporalSelector(skeleton.weekPlans.map { it.weekIndex }, setOf(selectedWeek),
-            "program-week", { programWeekLabel(it) }, onSelectWeek)
+            "program-week", { programWeekChipLabel(it) }, onSelectWeek, { programWeekLabel(it) })
         MaterialText(stringResource(R.string.program_week_training_days, selectedWeek), fontWeight = FontWeight.SemiBold)
         ProgramTemporalSelector((1..7).toList(), selectedDays.toSet(),
-            "program-day-toggle", { programWeekdayLabel(it) }, onToggleDay)
+            "program-day-toggle", { programWeekdayChipLabel(it) }, onToggleDay, { programWeekdayLabel(it) })
         if (selectedDays.isEmpty()) {
             Text("이 주차에 운동 요일을 선택하세요.")
             return@Column
         }
         ProgramTemporalSelector(selectedDays, setOf(selectedDay),
-            "program-day-view", { programWeekdayLabel(it) }, onSelectDay)
+            "program-day-view", { programWeekdayChipLabel(it) }, onSelectDay, { programWeekdayLabel(it) })
         val dayItems = skeleton.items
             .filter { it.weekNumber == selectedWeek && it.dayOfWeek == selectedDay }
             .sortedWith(compareBy<ProgramSkeletonItem> { it.orderIndex }.thenBy { it.localId })

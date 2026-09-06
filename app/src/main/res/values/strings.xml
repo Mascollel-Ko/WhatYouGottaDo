@@ -200,6 +200,14 @@
     <string name="progression_top_backoff">탑세트/백오프</string>
     <string name="progression_mixed_sets">혼합 세트</string>
     <string name="program_week_number">%1$d주</string>
+    <string name="program_week_compact">%1$d주</string>
+    <string name="program_monday_compact">월</string>
+    <string name="program_tuesday_compact">화</string>
+    <string name="program_wednesday_compact">수</string>
+    <string name="program_thursday_compact">목</string>
+    <string name="program_friday_compact">금</string>
+    <string name="program_saturday_compact">토</string>
+    <string name="program_sunday_compact">일</string>
     <string name="program_week_training_days">%1$d주차 운동 요일</string>
     <string name="program_days_per_week">주 %1$d일</string>
     <string name="program_minutes">%1$d분</string>

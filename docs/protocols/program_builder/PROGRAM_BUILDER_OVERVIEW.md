@@ -52,7 +52,8 @@ fingerprint하며 자동 생성의 `activeDays == materializedDays`를 매 주 �
 2주 결과에 빈 3주차 일정 `3:1|3:2|3:4|3:6`이 남습니다. 이 알고리듬 문제는 발견·고정만 하며 이번 작업에서 수정하지 않습니다.
 
 주차/요일 표시는 historical generic 문자열 번역으로 복구하지 않습니다. typed temporal presentation은 필수입니다.
-`DayOfWeek.of(day) → localizedWeekday`와 전용 week resource, adaptive FlowRow를 사용합니다.
+`DayOfWeek.of(day)`와 전용 Program 주차/요일 resource, 동일 너비의 한 줄 Row 선택기를 사용합니다.
+제목·접근성 요일은 `localizedWeekday`를 유지하며 선택기만 W1/Mo 등 compact 표기를 사용합니다.
 KO/EN × 320/360/411dp × font 1.0/1.3 × 3..8주 × 3..7일 × Legacy/Record-Based/manual-empty의
 전체 preview matrix가 실제 selector glyph bounds·단일 행·탭 크기를 검증합니다.
 7/8주 및 6/7일 Record-Based UI fixture는 editor 수용 범위 검사이며 알고리듬의 생성 범위를 확장하지 않습니다.

@@ -52,13 +52,26 @@ class ProgramPreviewLayoutMatrixTest {
             }
         }
         var count = 0
+        val dayLabels = if (locale.language == "ko") listOf("월", "화", "수", "목", "금", "토", "일")
+            else listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
         for (weeks in 3..8) for (days in 3..7) for (kind in 0..2) {
             val case = PreviewLayoutCase(weeks, days, kind)
             compose.runOnIdle { current.value = case }
-            for (week in 1..weeks) checkLabel("program-week-$week", context.getString(R.string.program_week_number, week), width)
-            for (day in 1..7) checkLabel("program-day-toggle-$day", LocalizedPresentation.weekday(context, DayOfWeek.of(day)), width)
+            checkRow("program-week", (1..weeks).toList(), width)
+            checkRow("program-day-toggle", (1..7).toList(), width)
+            for (week in 1..weeks) {
+                checkLabel("program-week-$week", if (locale.language == "ko") "${week}주" else "W$week", width)
+                compose.onNodeWithTag("program-week-$week")
+                    .assertContentDescriptionEquals(context.getString(R.string.program_week_number, week))
+            }
+            for (day in 1..7) {
+                checkLabel("program-day-toggle-$day", dayLabels[day - 1], width)
+                compose.onNodeWithTag("program-day-toggle-$day")
+                    .assertContentDescriptionEquals(LocalizedPresentation.weekday(context, DayOfWeek.of(day)))
+            }
             val active = if (kind == 0) previewLegacy(case).weekDaySchedule.getValue(1).sorted() else (1..days).toList()
-            for (day in active) checkLabel("program-day-view-$day", LocalizedPresentation.weekday(context, DayOfWeek.of(day)), width)
+            checkRow("program-day-view", active, width)
+            for (day in active) checkLabel("program-day-view-$day", dayLabels[day - 1], width)
             compose.onNodeWithTag("program-week-$weeks").performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithTag("program-day-view-${active.last()}").performScrollTo().assertIsDisplayed().performClick()
             if (kind == 2) compose.onAllNodesWithTag("progression-session-control").assertCountEquals(0)
@@ -67,19 +80,41 @@ class ProgramPreviewLayoutMatrixTest {
         assertEquals(90, count)
     }
 
+    private fun checkRow(tag: String, values: List<Int>, width: Int) {
+        val row = compose.onNodeWithTag("$tag-row").getUnclippedBoundsInRoot()
+        assertTrue("$tag row outside viewport", row.left >= 0.dp && row.right <= width.dp)
+        assertEquals("$tag must occupy exactly one control line", 48.dp, row.bottom - row.top)
+        var previousRight = row.left
+        val cells = values.map { compose.onNodeWithTag("$tag-$it").getUnclippedBoundsInRoot() }
+        cells.forEach { cell ->
+            assertEquals("$tag cells wrap vertically", row.top, cell.top)
+            assertEquals("$tag cell bottom", row.bottom, cell.bottom)
+            assertTrue("$tag overlapping/outside row", cell.left >= previousRight && cell.right <= row.right)
+            val cellWidth = cell.right - cell.left
+            val firstWidth = cells.first().right - cells.first().left
+            assertTrue("$tag equal-width cells", kotlin.math.abs(cellWidth.value - firstWidth.value) <= 1f)
+            assertTrue("$tag excessive cell width", cellWidth <= 40.dp)
+            previousRight = cell.right
+        }
+    }
+
     private fun checkLabel(tag: String, text: String, width: Int) {
         val node = compose.onNodeWithTag("$tag-label", useUnmergedTree = true)
         node.assertTextEquals(text)
         val bounds = node.getUnclippedBoundsInRoot()
         assertTrue("$tag horizontal bounds $bounds", bounds.left >= 0.dp && bounds.right <= width.dp)
         val control = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        assertTrue("$tag control outside viewport", control.left >= 0.dp && control.right <= width.dp)
+        assertTrue("$tag label outside cell", bounds.left >= control.left && bounds.right <= control.right &&
+            bounds.top >= control.top && bounds.bottom <= control.bottom)
         assertTrue("$tag tap height", control.bottom - control.top >= 48.dp)
         val results = mutableListOf<TextLayoutResult>()
         node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
         val layout = results.single()
         assertEquals("$tag wrapped", 1, layout.lineCount)
         assertFalse("$tag ellipsized", layout.isLineEllipsized(0))
-        assertTrue("$tag clipped horizontally", layout.getLineLeft(0) >= -1f && layout.getLineRight(0) <= layout.size.width + 1f)
+        assertTrue("$tag clipped horizontally: ${layout.getLineLeft(0)}..${layout.getLineRight(0)} in ${layout.size}",
+            layout.getLineLeft(0) >= -1f && layout.getLineRight(0) <= layout.size.width + 1f)
         assertTrue("$tag clipped vertically", layout.getLineTop(0) >= -1f && layout.getLineBottom(0) <= layout.size.height + 1f)
     }
 }

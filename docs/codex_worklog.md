@@ -1,5 +1,35 @@
 # Codex Worklog
 
+## 2026-09-06 — Compact single-row Program week/day selectors
+
+- Starting SHA: `e8492b86662b9c48d02a5ebc92ad7178e50104b7`; clean worktree. Ponytail was not used.
+- Presentation only: replaced default Button/OutlinedButton in the temporal FlowRow with equal-width
+  Row cells, 2dp gaps, maximum 40dp width (equal narrower cells when needed), 48dp height,
+  zero default horizontal content padding/minimum width.
+  Text remains 12sp with fontScale applied, without ellipsis, clipping or text-size auto-shrink.
+- Added eight Program-only resource keys through the existing localization exporter. Visible
+  labels are W1–W8 / 1주–8주 and Mo–Su / 월–일; typed long accessibility labels and headings remain.
+  Creation dropdowns and the whole-field option FlowRow remain unchanged.
+- Strengthened the full 1,080-case unit/native preview matrices to reject vertically fragmented
+  rows, overlapping/out-of-bounds cells and clipped glyphs. Long accessibility labels are asserted.
+- No planner/data source, scheduling, persistence, progression, calculation or generated program
+  changes are permitted. No app/protocol semantic version or schema change.
+- Final focused tests: 17/17 passed, including all 1,080 preview combinations and 72 creation
+  duration/dropdown combinations. Native emulator-5556 instrumentation: 1 test, 1,080/1,080 cases,
+  104.159 seconds. Captured 36 screenshots under ignored build/program-temporal-compact-captures;
+  directly inspected KO/EN 320dp/fontScale 1.3. Owned emulator stopped; user emulator-5554 untouched.
+- Full testDebugUnitTest: 254 suites, 1,452 tests, 0 failures/errors, 3 existing conditional
+  private-input skips (1,449 executed). Legacy 360-case and Record-Based 29-case parity passed.
+  compileDebugKotlin, compileDebugAndroidTestKotlin, assembleDebug and assembleDebugAndroidTest passed.
+- Localization Python tests 10/10, official deterministic exporter/audit checks, zero unexplained
+  English-mode Korean leaks/placeholder errors; protocol validation 8 families/34 protocols;
+  git diff --check passed. Frozen source read-only audit remains 10/10.
+- Initial validation caught a test DpRect API error and the centered label's measurement bounds;
+  corrected the test API and made the text occupy the cell width. Kept glyph clipping assertions intact.
+- Baseline diff check confirms all data/planner/analysis sources, assets, schemas, app version,
+  PlanScreen and PlanEditorControls are unchanged. Production Kotlin changes are only the temporal
+  renderer and its label arguments in the two preview surfaces. No remote push requested in this task.
+
 ## 2026-09-06 — Frozen Legacy isolation and typed Program editor
 
 - Audited implementation commit: `f1c993929a2a0712c2cab899264f113af6d7d050`; the following docs-only commit records

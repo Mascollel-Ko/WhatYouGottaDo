@@ -4055,7 +4055,9 @@ profile_habitual_training_intensity_light,가벼운 편,Light,ANDROID_RESOURCE,a
 profile_habitual_training_intensity_normal,보통,Moderate,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,profile_habitual_training_intensity_normal,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
 program_anchor_transition_summary,%1$s: 관찰 %2$s · 다음 블록 %3$s · %4$s,%1$s: observed %2$s · next block %3$s · %4$s,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_anchor_transition_summary,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%s|%s|%s|%s,NO,Existing reviewed English reused
 program_days_per_week,주 %1$d일,%1$d days/week,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_days_per_week,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d,NO,Existing reviewed English reused
+program_friday_compact,금,Fr,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_friday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
 program_minutes,%1$d분,%1$d min,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_minutes,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d,NO,Existing reviewed English reused
+program_monday_compact,월,Mo,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_monday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
 program_name_10,스트렝스 최대측정주,Strength Max-Test Week,ANDROID_RESOURCE,app/src/main/res/values/program_names.xml,program_name_10,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
 program_name_11,초보자 스트렝스 4주 기초,Beginner Strength Foundations - 4 Weeks,ANDROID_RESOURCE,app/src/main/res/values/program_names.xml,program_name_11,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
 program_name_12,초보자 보디빌딩 4주 머신+복합,Beginner Bodybuilding Machines and Compounds - 4 Weeks,ANDROID_RESOURCE,app/src/main/res/values/program_names.xml,program_name_12,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
@@ -4081,8 +4083,14 @@ program_notice_success_description,자동 조정 완료,Automatic adjustment com
 program_notice_warning_description,확인 필요,Needs attention,ANDROID_RESOURCE,app/src/main/res/values/program_metadata_strings.xml,program_notice_warning_description,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
 program_planning_summary,%1$d주 계획 · 주 %2$d일 · 신뢰도 %3$s,%1$d-week plan · %2$d days/week · confidence %3$s,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_planning_summary,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d|%d|%s,NO,Existing reviewed English reused
 program_result_heading,프로그램 구성 결과,Program result,ANDROID_RESOURCE,app/src/main/res/values/program_metadata_strings.xml,program_result_heading,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
+program_saturday_compact,토,Sa,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_saturday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
+program_sunday_compact,일,Su,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_sunday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
+program_thursday_compact,목,Th,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_thursday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
+program_tuesday_compact,화,Tu,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_tuesday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
 program_unit_kg,kg,kg,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_unit_kg,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused
 program_unit_seconds,초,s,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_unit_seconds,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
+program_wednesday_compact,수,We,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_wednesday_compact,PRODUCTION_UI,CODEX_GENERATED_ENGLISH,,NO,Existing reviewed English reused
+program_week_compact,%1$d주,W%1$d,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_week_compact,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d,NO,Existing reviewed English reused
 program_week_number,%1$d주,Week %1$d,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_week_number,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d,NO,Existing reviewed English reused
 program_week_training_days,%1$d주차 운동 요일,Week %1$d training days,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,program_week_training_days,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,%d,NO,Existing reviewed English reused
 progression_anchor_rpe,기준 세트 RPE,Anchor-set RPE,ANDROID_RESOURCE,app/src/main/res/values/strings.xml,progression_anchor_rpe,PRODUCTION_UI,APPROVED_LOCALIZED_PRESENTATION,,NO,Existing reviewed English reused

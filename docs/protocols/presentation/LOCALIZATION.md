@@ -24,6 +24,9 @@ WhatYouGottaDo는 기기 언어가 Korean이면 Korean, English이면 English로
 KO는 월·화·수·목·금·토·일, EN은 locale SHORT 형식 Mon·Tue·Wed·Thu·Fri·Sat·Sun입니다.
 주차는 전용 `program_week_number / program_week_training_days` resource를 사용합니다.
 KO 1주/1주차 운동 요일, EN Week 1/Week 1 training days이며 'shares'로 번역하지 않습니다.
+선택기 셀은 별도 Program 전용 resource로 KO 1주…8주, EN W1…W8과
+KO 월·화·수·목·금·토·일, EN Mo·Tu·We·Th·Fr·Sa·Su를 표시합니다.
+요일 resource 선택도 DayOfWeek enum으로만 결정합니다. 제목·드롭다운·접근성 이름은 기존 긴 표기를 유지합니다.
 
 typed 결과는 `MaterialText`로 렌더링하여 generic `Text / localizedUiText`에 재입력하지 않습니다.
 요일·주차에 이 규칙은 필수이며, 전역 '월/화/수/목/금/토/일' 매핑은 의미 충돌 때문에 변경하지 않습니다.
@@ -32,9 +35,14 @@ typed 결과는 `MaterialText`로 렌더링하여 generic `Text / localizedUiTex
 `localizedExerciseName`을 사용합니다. enum 요약의 기존 explicit code→label 경계는 유지합니다.
 생성/초안 편집에는 별도 month/date 입력이 없으며, 다른 화면의 날짜/atomic 번역은 이번 bounded audit 밖입니다.
 
-주차·요일 컨트롤은 content-sized FlowRow로 줄바꿈하며 horizontalScroll을 추가하지 않습니다.
+주차·요일 컨트롤은 동일 너비 Row 셀로 한 줄에 표시하며 FlowRow/줄바꿈/horizontalScroll을 사용하지 않습니다.
+셀 간격 2dp, 최대 너비 40dp(좁으면 균등 축소), 높이 48dp, 기본 버튼의 최소 너비와
+내부 수평 패딩 없음, 12sp 텍스트(사용자 fontScale 적용)입니다. 주차가 적어도 셀을 과도하게 늘리지 않습니다.
+최대 8주/7요일을 실제 화면·카드 여백 안에 표시합니다. 좁은 셀 너비는 단일 행을 위한 의도적 절충이며
+48dp 높이와 선택 상태·접근성 이름은 유지합니다. 생성 옵션의 전체 필드 FlowRow는 변경하지 않습니다.
 320/360/411dp, fontScale 1.0/1.3, KO/EN 및 전체 기간/요일/초안 종류 1,080개 조합에서
-전체 preview의 실제 glyph extents, selector bounds, 한 줄 라벨과 usable controls를 검사합니다.
+전체 preview의 실제 glyph extents, 셀/라벨의 viewport·행 경계, 동일한 셀 Y 좌표,
+48dp 단일 행 높이, 셀 간 겹침 없음, 한 줄 라벨과 usable controls를 검사합니다.
 이는 planner output 또는 수동 빈 요일을 변경하는 로직이 아닙니다.
 
 `PROTOCOL_CHANGE_POLICY.md`의 C(behavioral presentation mapping)에 따라 localization protocol만
